@@ -147,12 +147,17 @@ const referenceBindings = (value: unknown): ProductionReferenceBinding[] | undef
     if (!isOneOf(kind, ["product", "character", "location", "style"] as const) || typeof assetId !== "string") {
       return [];
     }
-    return [{
+    const binding: ProductionReferenceBinding = {
       kind,
-      asset_id: assetId,
-      ...(typeof item.entity_id === "string" ? { entity_id: item.entity_id } : {}),
-      ...(typeof item.label === "string" ? { label: item.label } : {})
-    }];
+      asset_id: assetId
+    };
+    if (typeof item.entity_id === "string") {
+      binding.entity_id = item.entity_id;
+    }
+    if (typeof item.label === "string") {
+      binding.label = item.label;
+    }
+    return [binding];
   });
   return result.length > 0 ? result : undefined;
 };

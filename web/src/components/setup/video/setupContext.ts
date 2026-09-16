@@ -76,13 +76,20 @@ export const readVideoSetupContext = (
   const creativeContext = readCreativeContext(
     fields["creative_context"] ?? fields["creativeContext"]
   );
-  return {
+  const result: {
+    references: VideoSetupReference[];
+    entityIds: string[];
+    creativeContext?: CreativeContext;
+  } = {
     references: Array.isArray(references) ? references.filter(isReference) : [],
     entityIds: Array.isArray(entityIds)
       ? entityIds.filter((id): id is string => typeof id === "string")
-      : [],
-    ...(creativeContext ? { creativeContext } : {})
+      : []
   };
+  if (creativeContext) {
+    result.creativeContext = creativeContext;
+  }
+  return result;
 };
 
 /** The composer's context on the open sequence, for the step that shows it. */
