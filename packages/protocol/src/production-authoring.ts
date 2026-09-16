@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { captionWord } from "./caption-word.js";
+import { isObjectLike } from "./predicates.js";
 
 /** Version for the optional production authoring fields. */
 export const PRODUCTION_AUTHORING_SCHEMA_VERSION = 1 as const;
@@ -407,7 +408,7 @@ export function captureProductionGenerationSnapshot(
 }
 
 function freezeSnapshotValue(value: unknown): void {
-  if (typeof value !== "object" || value === null) {
+  if (!isObjectLike(value)) {
     return;
   }
   for (const child of Object.values(value)) {

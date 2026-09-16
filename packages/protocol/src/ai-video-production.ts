@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isRecord } from "./predicates.js";
+import { isBoolean, isNumber, isRecord, isString } from "./predicates.js";
 import {
   PRODUCTION_AUTHORING_SCHEMA_VERSION,
   creativeContext,
@@ -21,14 +21,49 @@ import {
 export const AI_VIDEO_PRODUCTION_SCHEMA_VERSION =
   PRODUCTION_AUTHORING_SCHEMA_VERSION;
 
+type LegacyRecord = { [key: string]: LegacyPreprocessValue };
+type LegacyPreprocessValue =
+  | LegacyRecord
+  | LegacyPreprocessValue[]
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
+
+function isLegacyRecord(value: LegacyPreprocessValue): value is LegacyRecord {
+  return isRecord(value);
+}
+
+/** Decode values from the JSON-compatible legacy API before rewriting keys. */
+function parseLegacyInput(input: unknown): LegacyPreprocessValue {
+  if (input === null || input === undefined) {
+    return input;
+  }
+  if (isRecord(input)) {
+    const output: LegacyRecord = {};
+    for (const [key, child] of Object.entries(input)) {
+      output[key] = parseLegacyInput(child);
+    }
+    return output;
+  }
+  if (Array.isArray(input)) {
+    return input.map((child) => parseLegacyInput(child));
+  }
+  if (isString(input) || isNumber(input) || isBoolean(input)) {
+    return input;
+  }
+  return undefined;
+}
+
 function aliases(
-  value: unknown,
+  value: LegacyPreprocessValue,
   keys: Readonly<Record<string, string>>
-): unknown {
-  if (!isRecord(value)) {
+): LegacyPreprocessValue {
+  if (!isLegacyRecord(value)) {
     return value;
   }
-  const output: Record<string, unknown> = {};
+  const output: LegacyRecord = {};
   for (const [key, child] of Object.entries(value)) {
     const canonical = keys[key] ?? key;
     if (canonical === key || !Object.hasOwn(value, canonical)) {
@@ -38,7 +73,7 @@ function aliases(
   return output;
 }
 
-function referenceBindings(value: unknown): unknown {
+function referenceBindings(value: LegacyPreprocessValue): LegacyPreprocessValue {
   return Array.isArray(value)
     ? value.map((binding) =>
         aliases(binding, { assetId: "asset_id", entityId: "entity_id" })
@@ -47,7 +82,7 @@ function referenceBindings(value: unknown): unknown {
 }
 
 export const aiVideoCreativeContextSchema = z.preprocess((input) => {
-  const value = aliases(input, {
+  const value = aliases(parseLegacyInput(input), {
     schemaVersion: "schema_version",
     productName: "product_name",
     productDescription: "product_description",
@@ -68,7 +103,7 @@ export type AiVideoCreativeContext = z.infer<
 >;
 
 export const aiVideoProductionRequirementSchema = z.preprocess((input) => {
-  const value = aliases(input, {
+  const value = aliases(parseLegacyInput(input), {
     schemaVersion: "schema_version",
     editorialPurpose: "editorial_purpose",
     visualTreatment: "visual_treatment",
@@ -100,16 +135,18 @@ export type AiVideoProductionRequirement = z.infer<
   typeof aiVideoProductionRequirementSchema
 >;
 
-function legacyCandidateIdentity(input: unknown): unknown {
-  if (!isRecord(input)) {
-    return input;
+function legacyCandidateIdentity(input: unknown): LegacyPreprocessValue {
+  const value = parseLegacyInput(input);
+  if (!isLegacyRecord(value)) {
+    return value;
   }
-  return {
-    ...input,
-    ...(input.requestId === undefined && typeof input.candidateId === "string"
-      ? { requestId: `request:${input.candidateId}` }
-      : {})
+  const output: LegacyRecord = {
+    ...value
   };
+  if (output.requestId === undefined && isString(output.candidateId)) {
+    output.requestId = `request:${output.candidateId}`;
+  }
+  return output;
 }
 
 export const aiVideoCandidateVariationIdentitySchema = z.preprocess(

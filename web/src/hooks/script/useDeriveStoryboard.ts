@@ -92,9 +92,6 @@ export const useDeriveStoryboard = (): UseDeriveStoryboardResult => {
           title: name,
           brief: "",
           style: "",
-          ...(script.creativeContext
-            ? { creativeContext: script.creativeContext }
-            : {}),
           entityIds: setupContext.entityIds,
           aspectRatio: "16:9",
           setupStage: "done",
@@ -106,6 +103,9 @@ export const useDeriveStoryboard = (): UseDeriveStoryboardResult => {
           timelineId: null,
           updatedAt: Date.now()
         };
+        if (script.creativeContext) {
+          board.creativeContext = script.creativeContext;
+        }
         const issues = boardLinkIssues(board, scriptLinkDocument(script));
         if (issues.errors.length > 0) {
           throw new Error(
