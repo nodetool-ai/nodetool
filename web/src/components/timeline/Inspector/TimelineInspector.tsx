@@ -69,6 +69,7 @@ import { ClipTextStyleSection } from "./ClipTextStyleSection";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
 import { DirectGenClipPanel } from "./DirectGenClipPanel";
 import AIEditClipPanel from "./AIEditClipPanel";
+import { ClipVersionHistory } from "./ClipVersionHistory";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -405,7 +406,9 @@ export const TimelineInspector: React.FC = memo(() => {
 
   if (!clip) return null;
   const isMidi = clip.mediaType === "midi";
-  const aiEditSection = <AIEditClipPanel key={clip.id} clipId={clip.id} />;
+  const aiEditSection = (
+    <AIEditClipPanel key={`ai-edit-${clip.id}`} clipId={clip.id} />
+  );
 
   // A group draws nothing, so the media/speed panel would be all blanks.
   if (clip.mediaType === "group") {
@@ -555,6 +558,8 @@ export const TimelineInspector: React.FC = memo(() => {
       />
 
       {aiEditSection}
+
+      {clip.mediaType === "video" && <ClipVersionHistory clipId={clip.id} />}
 
       {/* Shot clips are assembled as imported media, so this branch is the
           only one a board link can reach. */}
@@ -711,7 +716,7 @@ export const TimelineInspector: React.FC = memo(() => {
 
       {!isMidi && <ClipKeyframes clip={clip} />}
 
-      <ClipAudioDrive key={clip.id} clip={clip} />
+      <ClipAudioDrive key={`audio-drive-${clip.id}`} clip={clip} />
     </Panel>
   );
 });

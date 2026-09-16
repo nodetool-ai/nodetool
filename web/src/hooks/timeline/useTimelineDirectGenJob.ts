@@ -321,7 +321,17 @@ export function landMediaEdit(
     assetIds: assetId ? [assetId] : [],
     finishedAt: Date.now()
   });
-  if (!claimed || !assetId) return;
+  if (!claimed) return;
+  if (!assetId) {
+    useDirectGenPendingStore
+      .getState()
+      .markEditFailure(
+        destinationSequenceId,
+        request.sourceContext.clipId,
+        "The video edit failed before producing a candidate."
+      );
+    return;
+  }
   // `sequenceId` is retained for callers that still pass the captured
   // destination separately. The request snapshot is authoritative, and the
   // explicit comparison prevents a stale adapter from redirecting a result.
@@ -421,13 +431,6 @@ export function subscribeDirectGen(
         cleanup();
         if (sequenceId) {
           if (mediaEdit) {
-            useDirectGenPendingStore
-              .getState()
-              .markEditFailure(
-                mediaEdit.sourceContext.sequenceId,
-                mediaEdit.sourceContext.clipId,
-                "The video edit expired before producing a candidate."
-              );
             useDirectGenPendingStore.getState().settleEdit({
               sequenceId: mediaEdit.sourceContext.sequenceId,
               clipId: mediaEdit.sourceContext.clipId,
@@ -436,6 +439,13 @@ export function subscribeDirectGen(
               status: "expired",
               assetIds: []
             });
+            useDirectGenPendingStore
+              .getState()
+              .markEditFailure(
+                mediaEdit.sourceContext.sequenceId,
+                mediaEdit.sourceContext.clipId,
+                "The video edit expired before producing a candidate."
+              );
           } else {
             useDirectGenPendingStore.getState().settle(sequenceId, clipId);
           }
@@ -884,9 +894,12 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
 
   const cancelEdit = useCallback(
     (clipId: string) => {
+      const sequenceId = timeline.getState().sequenceId;
+      if (!sequenceId) return;
+      useDirectGenPendingStore.getState().clearEditFailure(sequenceId, clipId);
       cancel(clipId);
     },
-    [cancel]
+    [cancel, timeline]
   );
 
   return { start, startEdit, cancel, cancelEdit };

@@ -155,22 +155,19 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
 
       remember: (sequenceId, job) =>
         set((state) => {
-          if (!job.mediaEdit) {
-            return {
-              pending: {
-                ...state.pending,
-                [sequenceId]: prune(
-                  [
-                    ...(state.pending[sequenceId] ?? []).filter(
-                      (entry) => entry.clipId !== job.clipId
-                    ),
-                    job
-                  ],
-                  Date.now()
-                )
-              }
-            };
-          }
+          const pending = {
+            ...state.pending,
+            [sequenceId]: prune(
+              [
+                ...(state.pending[sequenceId] ?? []).filter(
+                  (entry) => entry.clipId !== job.clipId
+                ),
+                job
+              ],
+              Date.now()
+            )
+          };
+          if (!job.mediaEdit) return { pending };
           const sequenceFailures = { ...(state.editFailures[sequenceId] ?? {}) };
           delete sequenceFailures[job.clipId];
           const editFailures = { ...state.editFailures };
@@ -179,21 +176,7 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
           } else {
             editFailures[sequenceId] = sequenceFailures;
           }
-          return {
-            pending: {
-              ...state.pending,
-              [sequenceId]: prune(
-                [
-                  ...(state.pending[sequenceId] ?? []).filter(
-                    (entry) => entry.clipId !== job.clipId
-                  ),
-                  job
-                ],
-                Date.now()
-              )
-            },
-            editFailures
-          };
+          return { pending, editFailures };
         }),
 
       markEditFailure: (sequenceId, clipId, message) =>

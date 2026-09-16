@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { BLEND_MODE_TUPLE } from "../blend-modes.js";
-import { productionGenerationSnapshot, productionRequirement, creativeContext } from "../production-authoring.js";
+import {
+  creativeContext,
+  productionGenerationSnapshot,
+  productionRequirement
+} from "../production-authoring.js";
 
 const blendModeEnum = z.enum(BLEND_MODE_TUPLE);
 
@@ -51,14 +55,6 @@ export const clipVersion = z.object({
   prompt: z.string().optional(),
   negativePrompt: z.string().optional(),
   parentTakeId: z.string().optional(),
-  sourceMapping: z
-    .object({
-      inPointMs: z.number().optional(),
-      outPointMs: z.number().optional(),
-      speedMultiplier: z.number().optional(),
-      speedBaked: z.boolean().optional()
-    })
-    .optional(),
   /** Stable production candidate identity captured before dispatch. */
   candidateId: z.string().optional(),
   batchId: z.string().optional(),
@@ -67,6 +63,14 @@ export const clipVersion = z.object({
   variationIndex: z.number().int().min(1).max(3).optional(),
   /** Immutable resolved production inputs. Never rewritten on completion. */
   productionSnapshot: productionGenerationSnapshot.optional(),
+  sourceMapping: z
+    .object({
+      inPointMs: z.number().optional(),
+      outPointMs: z.number().optional(),
+      speedMultiplier: z.number().optional(),
+      speedBaked: z.boolean().optional()
+    })
+    .optional(),
   mediaEdit: z
     .object({
       action: z.literal("video_edit"),

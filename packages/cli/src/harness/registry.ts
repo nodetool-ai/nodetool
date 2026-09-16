@@ -171,7 +171,7 @@ const TIMELINE_MODEL3D_SUITES =
  */
 const TIMELINE_NATIVE_MEDIA_EDITING_SUITES =
   "npm run test --workspace=packages/agents -- timeline-generative-edit timeline-tool-loop && " +
-  "npm run test --workspace=web -- useTimelineAgentBridge timelineTools";
+  "npm run test --workspace=web -- useTimelineAgentBridge timelineTools nativeMediaEditingAcceptance nativeMediaEditingPreview";
 
 /**
  * The audio-driven-motion suites: `bake_audio_animation`'s own arithmetic
@@ -1174,6 +1174,9 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/hooks/timeline/useTimelineAgentBridge.ts",
       "web/src/hooks/timeline/useTimelineDirectGenJob.ts",
       "web/src/hooks/timeline/directGenPending.ts",
+      "web/src/hooks/timeline/__tests__/nativeMediaEditingAcceptance.test.tsx",
+      "web/src/components/timeline/Inspector/TimelineInspector.tsx",
+      "web/src/components/timeline/preview/__tests__/nativeMediaEditingPreview.test.tsx",
       "web/src/lib/tools/builtin/timeline.ts"
     ]
   },

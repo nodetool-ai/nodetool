@@ -41,7 +41,11 @@ import {
 } from "../documentHistory";
 import { rebaseDocumentSnapshots } from "../documentMerge";
 import { storyboardMergeAdapter } from "./merge";
-import type { ImageModelValue, LanguageModelValue, VideoModelValue } from "../ApiTypes";
+import type {
+  ImageModelValue,
+  LanguageModelValue,
+  VideoModelValue
+} from "../ApiTypes";
 import type {
   StoryboardImportSource,
   StoryboardSetupStage
