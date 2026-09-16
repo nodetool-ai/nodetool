@@ -2,7 +2,12 @@ import { describe, expect, it, beforeEach, jest } from "@jest/globals";
 import { asMock } from "../../../test-utils/doubles";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
-import { makeTrack, type TimelineSequence } from "@nodetool-ai/timeline";
+import {
+  createMediaEditRequest,
+  makeClip,
+  makeTrack,
+  type TimelineSequence
+} from "@nodetool-ai/timeline";
 
 import {
   useTimelineStore,
@@ -14,6 +19,8 @@ import {
 } from "../useTimelineAutosave";
 import { trpcClient } from "../../../__mocks__/trpcClientMock";
 import { useNotificationStore } from "../../../stores/NotificationStore";
+import { useDirectGenPendingStore } from "../directGenPending";
+import { landMediaEdit } from "../useTimelineDirectGenJob";
 
 const updateMutate = asMock(trpcClient.timeline.update.mutate);
 
@@ -52,6 +59,11 @@ describe("useTimelineAutosave", () => {
       updatedAt: "2026-01-01T00:00:01Z"
     });
     useTimelineStore.getState().reset();
+    useDirectGenPendingStore.setState({
+      pending: {},
+      durationSamples: {},
+      editSettlements: {}
+    });
     useNotificationStore.setState({ notifications: [] });
     jest.useFakeTimers();
   });
@@ -87,6 +99,66 @@ describe("useTimelineAutosave", () => {
     expect(arg.document.tracks).toHaveLength(1);
     expect(arg.document.clips).toEqual([]);
     expect(arg.document.markers).toEqual([]);
+  });
+
+  it("acknowledges a native edit only after its candidate is saved", async () => {
+    seedSequence();
+    const clip = makeClip({
+      id: "clip-1",
+      trackId: "track-1",
+      mediaType: "video",
+      sourceType: "imported",
+      currentAssetId: "asset-source",
+      durationMs: 4_000
+    });
+    useTimelineStore.setState({ clips: [clip] });
+    const request = createMediaEditRequest({
+      sourceContext: {
+        sequenceId: "seq-1",
+        clipId: "clip-1",
+        sourceAssetId: "asset-source",
+        sourceStartMs: 0,
+        sourceEndMs: 4_000,
+        timelineStartMs: 0,
+        timelineDurationMs: 4_000,
+        speedMultiplier: 1
+      },
+      instruction: "remove the crowd",
+      provider: "nodetool",
+      model: "edit-model"
+    });
+    const requestId = "req-autosave-ack";
+    useDirectGenPendingStore.getState().remember("seq-1", {
+      clipId: "clip-1",
+      requestId,
+      startedAt: Date.now() - 1_000,
+      bucket: "video_edit:edit-model",
+      mediaEdit: request
+    });
+    landMediaEdit(
+      useTimelineStore,
+      "clip-1",
+      requestId,
+      "seq-1",
+      request,
+      { assetIds: ["asset-candidate"], errored: false }
+    );
+    expect(
+      useDirectGenPendingStore.getState().editSettlements[requestId]
+        ?.acknowledgedAt
+    ).toBeUndefined();
+
+    renderHook(() => useTimelineAutosave({ debounceMs: 50 }));
+    act(() => {
+      useTimelineStore.getState().addTrack("video");
+      jest.advanceTimersByTime(60);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+
+    expect(
+      useDirectGenPendingStore.getState().editSettlements[requestId]
+        ?.acknowledgedAt
+    ).toBeDefined();
   });
 
   it("debounces multiple mutations into a single PATCH", async () => {
