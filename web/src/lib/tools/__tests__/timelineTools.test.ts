@@ -87,6 +87,8 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   setModel3DStyle: jest.fn(),
   bakeModel3DClip: jest.fn(),
   generateClip: jest.fn(),
+  generativelyEditClip: jest.fn(),
+  applyTake: jest.fn(),
   splitClip: jest.fn(),
   trimClip: jest.fn(),
   moveClip: jest.fn(),
@@ -250,6 +252,73 @@ describe("ui_timeline_* tools", () => {
     expect(result.ok).toBe(true);
     expect(result.generationStarted).toBe(true);
     expect(result.clip.name).toBe("city at night");
+  });
+
+  it("starts an edit as a candidate without applying it", async () => {
+    const handler = createMockHandler();
+    handler.generativelyEditClip.mockResolvedValue({
+      requestId: "generation-1",
+      generationId: "generation-1",
+      activeTakeId: "take-original",
+      candidate: {
+        id: "generation-1",
+        status: "pending",
+        source: "video_to_video"
+      },
+      clip: clipNode({
+        inPointMs: 40000,
+        outPointMs: 44000
+      })
+    });
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_generatively_edit_clip",
+      {
+        timeline_id: SEQ_ID,
+        clip_id: "clip-1",
+        instruction: "Make the station deserted at night",
+        provider: "fal",
+        model: "video-edit-model"
+      },
+      "tc-edit",
+      ctx
+    )) as {
+      ok: boolean;
+      generationId: string;
+      candidate: { id: string; status: string };
+    };
+
+    expect(handler.generativelyEditClip).toHaveBeenCalledWith({
+      clipId: "clip-1",
+      instruction: "Make the station deserted at night",
+      provider: "fal",
+      model: "video-edit-model"
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      generationId: "generation-1",
+      candidate: { id: "generation-1", status: "pending" }
+    });
+    expect(handler.applyTake).not.toHaveBeenCalled();
+  });
+
+  it("applies a candidate through the handler's shared take action", async () => {
+    const handler = createMockHandler();
+    handler.applyTake.mockReturnValue(
+      clipNode({ activeTakeId: "take-edit" })
+    );
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_apply_take",
+      { timeline_id: SEQ_ID, clip_id: "clip-1", take_id: "take-edit" },
+      "tc-apply-edit",
+      ctx
+    )) as { ok: boolean; clip: TimelineClipNode };
+
+    expect(handler.applyTake).toHaveBeenCalledWith("clip-1", "take-edit");
+    expect(result.clip.activeTakeId).toBe("take-edit");
   });
 
   it("places an existing asset as a clip", async () => {

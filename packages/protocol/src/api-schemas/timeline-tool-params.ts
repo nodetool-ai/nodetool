@@ -48,6 +48,47 @@ export const targetParam = z
     'Clip id, clip name (case-insensitive), or the literal "selected" for the currently-selected clip.'
   );
 
+/** Explicit target and prompt for the nondestructive video-edit operation. */
+const requireProviderModelPair = (
+  value: { provider?: string; model?: string },
+  ctx: z.RefinementCtx
+) => {
+  if ((value.provider === undefined) !== (value.model === undefined)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [value.provider === undefined ? "provider" : "model"],
+      message: "provider and model must be provided together"
+    });
+  }
+};
+
+export const generativelyEditClipParams = z
+  .object({
+    clip_id: z.string().trim().min(1),
+    instruction: z.string().trim().min(1),
+    provider: z.string().trim().min(1).optional(),
+    model: z.string().trim().min(1).optional()
+  })
+  .strict()
+  .superRefine(requireProviderModelPair);
+export type GenerativelyEditClipParams = z.infer<
+  typeof generativelyEditClipParams
+>;
+
+/** Apply the edit contract's cross-field validation to a host-specific shape. */
+export const strictGenerativelyEditClipParams = (
+  schema: z.ZodObject<z.ZodRawShape>
+): z.ZodType => schema.strict().superRefine(requireProviderModelPair);
+
+/** Select a completed candidate take without changing other clip fields. */
+export const applyTakeParams = z
+  .object({
+    clip_id: z.string().trim().min(1),
+    take_id: z.string().trim().min(1)
+  })
+  .strict();
+export type ApplyTakeParams = z.infer<typeof applyTakeParams>;
+
 /** How the track-addressing tools name their target. */
 export const trackTargetParam = z
   .string()
@@ -1634,6 +1675,8 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_bake_model3d_clip",
   "ui_timeline_add_group",
   "ui_timeline_generate_clip",
+  "ui_timeline_generatively_edit_clip",
+  "ui_timeline_apply_take",
   "ui_timeline_split_clip",
   "ui_timeline_trim_clip",
   "ui_timeline_move_clip",

@@ -50,11 +50,18 @@ import {
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useStoryboardGenerationStore } from "../../../stores/storyboard/StoryboardGenerationStore";
 import {
+  __handleShotJobMessageForTests,
+  settleCancelledShotJob
+} from "../../../stores/storyboard/StoryboardGenerationStore";
+import {
   clipPrompt,
   directClipPrompt,
   keyframePrompt
 } from "@nodetool-ai/protocol";
 import type { Entity, Scene, Shot } from "@nodetool-ai/protocol";
+import {
+  mediaEditGenerateMediaData
+} from "@nodetool-ai/timeline";
 
 const BOARD = "board-sf";
 const shot: Shot = {
@@ -244,6 +251,41 @@ it("allows a new start after the previous one settles", async () => {
   expect(send).toHaveBeenCalledTimes(1);
 });
 
+it("keeps an active ordinary render when an invalid revise arrives", async () => {
+  const activeShot: Shot = {
+    ...shot,
+    id: "shot-active-ordinary",
+    render_mode: "direct",
+    duration_seconds: 4
+  };
+  useStoryboardStore.getState().upsertShot(BOARD, activeShot);
+  const { result } = renderHook(() => useGenerateShot());
+
+  await act(async () => {
+    await result.current.generateClip(BOARD, activeShot);
+  });
+
+  const originalJob = useStoryboardGenerationStore.getState().shotJobs[
+    activeShot.id
+  ];
+  expect(originalJob?.status).toBe("running");
+
+  await act(async () => {
+    await result.current.generateRevisedClip(BOARD, activeShot, "");
+  });
+
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(useStoryboardGenerationStore.getState().shotJobs[activeShot.id]).toBe(
+    originalJob
+  );
+  expect(
+    useStoryboardGenerationStore
+      .getState()
+      .pendingJobs[BOARD]?.find((entry) => entry.shotId === activeShot.id)
+      ?.jobId
+  ).toBe(originalJob?.jobId);
+});
+
 describe("keyframe prompt composition", () => {
   const stillModel = {
     type: "image_model",
@@ -412,7 +454,11 @@ describe("clip generation on a script-linked board", () => {
     mockVideoModels.push({
       id: "vid-1",
       provider: "vprov",
-      supported_tasks: ["image_to_video", "text_to_video"]
+      supported_tasks: [
+        "image_to_video",
+        "text_to_video",
+        "video_to_video"
+      ]
     });
   });
 
@@ -493,7 +539,316 @@ describe("clip generation on a script-linked board", () => {
       provider: "vprov",
       model: "vid-1",
       prompt: "more fog",
-      source_asset_id: "clip-9"
+      source_asset_id: "clip-9",
+      source_context: {
+        sequence_id: LINKED,
+        clip_id: "shot-revised",
+        source_asset_id: "clip-9",
+        source_start_ms: 0,
+        source_end_ms: 8_000,
+        timeline_start_ms: 0,
+        timeline_duration_ms: 8_000,
+        speed_multiplier: 1
+      },
+      strength: undefined,
+      resolution: undefined,
+      duration: 8,
+      variations: 1
+    });
+  });
+
+  it("uses the selected clip duration before linked script timing for revise", async () => {
+    seedBoard("script-1");
+    scriptQuery.mockResolvedValue(script(true));
+    useStoryboardStore.getState().setVideoModel(LINKED, videoModel);
+    const revised: Shot = {
+      ...linkedShot,
+      id: "shot-revise-duration",
+      status: "rendered",
+      clip: {
+        type: "video",
+        uri: "asset://clip-duration",
+        asset_id: "clip-duration",
+        duration: 5
+      }
+    };
+    useStoryboardStore.getState().upsertShot(LINKED, revised);
+
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateRevisedClip(
+        LINKED,
+        revised,
+        "keep the boat"
+      );
+    });
+
+    expect(sentData()).toMatchObject({
+      source_context: {
+        source_end_ms: 5_000,
+        timeline_duration_ms: 5_000
+      },
+      duration: 5
+    });
+  });
+
+  it("does not overwrite an ordinary render started during revise duration lookup", async () => {
+    seedBoard("script-1");
+    useStoryboardStore.getState().setVideoModel(LINKED, videoModel);
+    const revised: Shot = {
+      ...linkedShot,
+      id: "shot-revise-duration-race",
+      status: "rendered",
+      clip: {
+        type: "video",
+        uri: "asset://duration-race-source",
+        asset_id: "duration-race-source"
+      }
+    };
+    useStoryboardStore.getState().upsertShot(LINKED, revised);
+    mockVideoModels[0].supported_tasks = ["text_to_video"];
+
+    let resolveDuration: (value: ReturnType<typeof script>) => void = () => {};
+    const durationLookup = new Promise<ReturnType<typeof script>>((resolve) => {
+      resolveDuration = resolve;
+    });
+    scriptQuery.mockReturnValue(durationLookup);
+
+    const { result } = renderHook(() => useGenerateShot());
+    const revisePromise = result.current.generateRevisedClip(
+      LINKED,
+      revised,
+      "preserve the framing"
+    );
+    expect(scriptQuery).toHaveBeenCalledWith({ id: "script-1" });
+
+    await act(async () => {
+      await result.current.generateKeyframe(LINKED, revised);
+    });
+    const ordinaryJob = useStoryboardGenerationStore.getState().shotJobs[
+      revised.id
+    ];
+    expect(ordinaryJob?.status).toBe("running");
+
+    resolveDuration(script(true));
+    await act(async () => {
+      await revisePromise;
+    });
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(useStoryboardGenerationStore.getState().shotJobs[revised.id]).toBe(
+      ordinaryJob
+    );
+    expect(ordinaryJob?.mediaEdit).toBeUndefined();
+  });
+
+  it("keeps captured revise inputs when preflight rejects the model", async () => {
+    seedBoard(null);
+    useStoryboardStore.getState().setVideoModel(LINKED, videoModel);
+    const revised: Shot = {
+      ...linkedShot,
+      id: "shot-revise-preflight",
+      status: "approved",
+      clip: {
+        type: "video",
+        uri: "asset://preflight-source",
+        asset_id: "preflight-source",
+        duration: 5
+      },
+      clip_model: videoModel
+    };
+    useStoryboardStore.getState().upsertShot(LINKED, revised);
+    mockVideoModels.length = 0;
+    mockVideoModels.push({
+      id: videoModel.id,
+      provider: videoModel.provider,
+      supported_tasks: ["text_to_video"]
+    });
+
+    const { result } = renderHook(() => useGenerateShot());
+    await expect(
+      act(() =>
+        result.current.generateRevisedClip(
+          LINKED,
+          revised,
+          "preserve the subject"
+        )
+      )
+    ).rejects.toThrow("supports video to video");
+
+    const job = useStoryboardGenerationStore.getState().shotJobs[revised.id];
+    expect(job?.status).toBe("failed");
+    expect(job?.acceptedShotStatus).toBe("approved");
+    expect(job?.mediaEdit).toMatchObject({
+      instruction: "preserve the subject",
+      provider: videoModel.provider,
+      model: videoModel.id,
+      sourceContext: {
+        sequenceId: LINKED,
+        clipId: revised.id,
+        sourceAssetId: "preflight-source",
+        sourceEndMs: 5_000,
+        timelineDurationMs: 5_000
+      }
+    });
+  });
+
+  it("uses the shared request envelope and lands an inactive candidate", async () => {
+    seedBoard(null);
+    useStoryboardStore.getState().setVideoModel(LINKED, videoModel);
+    const revised: Shot = {
+      ...linkedShot,
+      id: "shot-candidate",
+      status: "rendered",
+      clip: { type: "video", uri: "asset://source", asset_id: "source" }
+    };
+    const other: Shot = {
+      ...revised,
+      id: "shot-other",
+      clip: { type: "video", uri: "asset://other", asset_id: "other" }
+    };
+    useStoryboardStore.getState().upsertShot(LINKED, revised);
+    useStoryboardStore.getState().upsertShot(LINKED, other);
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateRevisedClip(LINKED, revised, "remove fog");
+    });
+
+    const job = useStoryboardGenerationStore.getState().shotJobs[revised.id];
+    const request = useStoryboardGenerationStore
+      .getState()
+      .pendingJobs[LINKED]?.find((entry) => entry.shotId === revised.id)
+      ?.mediaEdit;
+    expect(request).toBeDefined();
+    expect(sentData()).toEqual(mediaEditGenerateMediaData(request!));
+
+    __handleShotJobMessageForTests(
+      job!.jobId,
+      { shotId: revised.id, boardId: LINKED, kind: "clip", mediaEdit: request },
+      {
+        type: "rpc_response",
+        request_id: job!.jobId,
+        result: { asset_ids: ["candidate"] }
+      } as never
+    );
+
+    const landed = useStoryboardStore
+      .getState()
+      .getBoard(LINKED)
+      ?.shots.find((value) => value.id === revised.id);
+    expect(landed?.clip?.asset_id).toBe("source");
+    expect(landed?.clip_versions).toHaveLength(2);
+    expect(landed?.clip_versions?.[1]).toMatchObject({
+      asset_id: "candidate",
+      mediaEdit: {
+        action: "video_edit",
+        modelTask: "video_to_video",
+        requestId: job!.jobId,
+        instruction: "remove fog",
+        provider: "vprov",
+        model: "vid-1",
+        sourceContext: request!.sourceContext
+      }
+    });
+    expect(
+      useStoryboardStore
+        .getState()
+        .getBoard(LINKED)
+        ?.shots.find((value) => value.id === other.id)?.clip?.asset_id
+    ).toBe("other");
+
+    useStoryboardStore.getState().selectClipVersion(LINKED, revised.id, 1);
+    expect(
+      useStoryboardStore
+        .getState()
+        .getBoard(LINKED)
+        ?.shots.find((value) => value.id === revised.id)?.clip?.asset_id
+    ).toBe("candidate");
+  });
+
+  it("cancels a revise without changing the accepted shot clip", async () => {
+    seedBoard(null);
+    useStoryboardStore.getState().setVideoModel(LINKED, videoModel);
+    const revised: Shot = {
+      ...linkedShot,
+      id: "shot-cancel",
+      status: "rendered",
+      clip: { type: "video", uri: "asset://source", asset_id: "source" }
+    };
+    useStoryboardStore.getState().upsertShot(LINKED, revised);
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateRevisedClip(LINKED, revised, "cancel me");
+    });
+    settleCancelledShotJob(revised.id);
+    const job = useStoryboardGenerationStore.getState().shotJobs[revised.id];
+    expect(job?.status).toBe("failed");
+    expect(job?.errorMessage).toBe("Revision cancelled.");
+    expect(job?.mediaEdit?.instruction).toBe("cancel me");
+    expect(
+      useStoryboardStore
+        .getState()
+        .getBoard(LINKED)
+        ?.shots.find((value) => value.id === revised.id)?.clip?.asset_id
+    ).toBe("source");
+  });
+
+  it("restores an approved shot after an asynchronous revise failure", async () => {
+    seedBoard(null);
+    useStoryboardStore.getState().setVideoModel(LINKED, videoModel);
+    const revised: Shot = {
+      ...linkedShot,
+      id: "shot-revise-async-failure",
+      status: "approved",
+      clip: {
+        type: "video",
+        uri: "asset://async-source",
+        asset_id: "async-source",
+        duration: 5
+      }
+    };
+    useStoryboardStore.getState().upsertShot(LINKED, revised);
+    mockVideoModels.push({
+      id: videoModel.id,
+      provider: videoModel.provider,
+      supported_tasks: ["video_to_video"]
+    });
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateRevisedClip(
+        LINKED,
+        revised,
+        "keep the approved framing"
+      );
+    });
+
+    const job = useStoryboardGenerationStore.getState().shotJobs[revised.id];
+    __handleShotJobMessageForTests(
+      job!.jobId,
+      {
+        shotId: revised.id,
+        boardId: LINKED,
+        kind: "clip",
+        mediaEdit: job!.mediaEdit,
+        acceptedShotStatus: job!.acceptedShotStatus
+      },
+      {
+        type: "rpc_response",
+        request_id: job!.jobId,
+        error: { code: "PROVIDER_ERROR", message: "provider unavailable" }
+      } as never
+    );
+
+    expect(
+      useStoryboardStore
+        .getState()
+        .getBoard(LINKED)
+        ?.shots.find((candidate) => candidate.id === revised.id)?.status
+    ).toBe("approved");
+    expect(useStoryboardGenerationStore.getState().shotJobs[revised.id]).toMatchObject({
+      status: "failed",
+      acceptedShotStatus: "approved",
+      mediaEdit: { instruction: "keep the approved framing" }
     });
   });
 });
@@ -515,6 +870,54 @@ describe("a start that fails", () => {
     expect(useStoryboardStore.getState().getBoard(BOARD)?.shots[0].status).toBe(
       "failed"
     );
+  });
+
+  it("keeps a failed revise inspectable without changing the accepted shot", async () => {
+    const revised: Shot = {
+      ...shot,
+      id: "shot-revise-send-failure",
+      status: "approved",
+      clip: {
+        type: "video",
+        uri: "asset://accepted-clip",
+        asset_id: "accepted-clip",
+        duration: 5
+      },
+      clip_model: {
+        id: "revision-model",
+        provider: "vprov",
+        name: "Revision model"
+      }
+    };
+    useStoryboardStore.getState().upsertShot(BOARD, revised);
+    mockVideoModels.push({
+      id: "revision-model",
+      provider: "vprov",
+      supported_tasks: ["video_to_video"]
+    });
+    send.mockRejectedValue(new Error("socket closed"));
+
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await expect(
+        result.current.generateRevisedClip(
+          BOARD,
+          revised,
+          "preserve the take"
+        )
+      ).rejects.toThrow("socket closed");
+    });
+
+    const job = useStoryboardGenerationStore.getState().shotJobs[revised.id];
+    expect(job?.status).toBe("failed");
+    expect(job?.mediaEdit?.instruction).toBe("preserve the take");
+    expect(job?.mediaEdit?.model).toBe("revision-model");
+    expect(
+      useStoryboardStore
+        .getState()
+        .getBoard(BOARD)
+        ?.shots.find((candidate) => candidate.id === revised.id)?.status
+    ).toBe("approved");
   });
 
   it("records a reason when a clip's request fails to send", async () => {
@@ -688,9 +1091,21 @@ describe("render record context", () => {
     const revisable: Shot = {
       ...shot,
       id: "shot-revise-record",
+      duration_seconds: 8,
       clip: { type: "video", asset_id: "clip-1", uri: "asset://clip-1" }
     };
     useStoryboardStore.getState().upsertShot(BOARD, revisable);
+    useStoryboardStore.getState().setVideoModel(BOARD, {
+      type: "video_model",
+      id: "revision-model",
+      provider: "vprov",
+      name: "Revision model"
+    } as unknown as import("../../../stores/ApiTypes").VideoModelValue);
+    mockVideoModels.push({
+      id: "revision-model",
+      provider: "vprov",
+      supported_tasks: ["video_to_video"]
+    });
 
     const { result } = renderHook(() => useGenerateShot());
     await act(async () => {

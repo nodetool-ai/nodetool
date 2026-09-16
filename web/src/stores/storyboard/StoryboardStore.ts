@@ -18,6 +18,7 @@
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import type {
+  ClipVersion,
   CreativeContext,
   Entity,
   ImageRef,
@@ -40,7 +41,11 @@ import {
 } from "../documentHistory";
 import { rebaseDocumentSnapshots } from "../documentMerge";
 import { storyboardMergeAdapter } from "./merge";
-import type { ImageModelValue, LanguageModelValue, VideoModelValue } from "../ApiTypes";
+import type {
+  ImageModelValue,
+  LanguageModelValue,
+  VideoModelValue
+} from "../ApiTypes";
 import type {
   StoryboardImportSource,
   StoryboardSetupStage
@@ -231,6 +236,12 @@ interface StoryboardStoreState {
     keyframe: ImageRef
   ) => void;
   setShotClip: (boardId: string, shotId: string, clip: VideoRef) => void;
+  /** Append an inactive clip candidate without changing the selected clip. */
+  appendShotClipVersion: (
+    boardId: string,
+    shotId: string,
+    clip: ClipVersion
+  ) => void;
   /** Make one of the shot's preserved stills the selected keyframe. */
   selectKeyframeVersion: (
     boardId: string,
@@ -1070,6 +1081,24 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         return patchShot(b, shotId, {
           clip,
           clip_versions: exists ? versions : [...versions, clip]
+        });
+      })
+    ),
+
+  appendShotClipVersion: (boardId, shotId, clip) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const target = b.shots.find((s) => s.id === shotId);
+        if (!target || !clip.asset_id) {
+          return null;
+        }
+        const versions =
+          target.clip_versions ?? (target.clip ? [target.clip] : []);
+        if (versions.some((version) => sameMediaRef(version, clip))) {
+          return null;
+        }
+        return patchShot(b, shotId, {
+          clip_versions: [...versions, clip]
         });
       })
     ),

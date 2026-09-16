@@ -244,7 +244,7 @@ const VersionTile: React.FC<VersionTileProps> = memo(
         <Tooltip title={tooltip}>
           <button
             type="button"
-            css={tileStyles(theme, auditioned, true)}
+            css={tileStyles(theme, active || auditioned, true)}
             style={
               isImage && url ? { backgroundImage: `url(${url})` } : undefined
             }

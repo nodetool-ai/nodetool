@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { BLEND_MODE_TUPLE } from "../blend-modes.js";
-import { productionGenerationSnapshot, productionRequirement, creativeContext } from "../production-authoring.js";
+import {
+  creativeContext,
+  productionGenerationSnapshot,
+  productionRequirement
+} from "../production-authoring.js";
 
 const blendModeEnum = z.enum(BLEND_MODE_TUPLE);
 

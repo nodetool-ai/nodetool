@@ -56,11 +56,12 @@ jest.mock("../../../serverState/useAssetUpload", () => ({
 
 const generateKeyframeMock = jest.fn(async () => undefined);
 const generateClipMock = jest.fn(async () => undefined);
+const generateRevisedClipMock = jest.fn(async () => undefined);
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
     generateKeyframe: generateKeyframeMock,
     generateClip: generateClipMock,
-    generateRevisedClip: jest.fn(async () => undefined)
+    generateRevisedClip: generateRevisedClipMock
   })
 }));
 
@@ -98,6 +99,7 @@ describe("ShotCard retry", () => {
   beforeEach(() => {
     generateKeyframeMock.mockClear();
     generateClipMock.mockClear();
+    generateRevisedClipMock.mockClear();
     act(() => useStoryboardGenerationStore.setState({ shotJobs: {} }));
   });
 
@@ -131,6 +133,60 @@ describe("ShotCard retry", () => {
     renderCard(shot);
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(generateKeyframeMock).toHaveBeenCalledWith("board-1", shot);
+  });
+
+  it("retries a failed revise with its captured instruction and model", async () => {
+    const shot = makeShot({
+      status: "rendered",
+      clip: { type: "video", uri: "asset://clip-1", asset_id: "clip-1" }
+    });
+    const mediaEdit = {
+      action: "video_edit" as const,
+      modelTask: "video_to_video" as const,
+      requestId: "request-1",
+      instruction: "remove the fog",
+      provider: "captured-provider",
+      model: "captured-model",
+      sourceContext: {
+        sequenceId: "board-1",
+        clipId: shot.id,
+        sourceAssetId: "clip-1",
+        sourceStartMs: 0,
+        sourceEndMs: 5_000,
+        timelineStartMs: 0,
+        timelineDurationMs: 5_000,
+        speedMultiplier: 1
+      }
+    };
+    act(() => {
+      useStoryboardGenerationStore.setState({
+        shotJobs: {
+          [shot.id]: {
+            shotId: shot.id,
+            boardId: "board-1",
+            jobId: "unstarted:shot-1",
+            kind: "clip",
+            status: "failed",
+            errorMessage: "socket closed",
+            mediaEdit
+          }
+        }
+      });
+    });
+    renderCard(shot);
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(generateRevisedClipMock).toHaveBeenCalledWith(
+      "board-1",
+      shot,
+      "remove the fog",
+      {
+        id: "captured-model",
+        provider: "captured-provider",
+        name: "captured-model"
+      }
+    );
+    expect(generateClipMock).not.toHaveBeenCalled();
   });
 
   it("offers no retry on a read-only board", () => {

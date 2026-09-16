@@ -172,7 +172,9 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
       selectClipVersion(boardId, shot.id, index);
       // Keep a linked, already-assembled timeline on the newly chosen take.
       const assetId = clips[index]?.asset_id;
-      if (assetId) {
+      // Media-edit takes are storyboard candidates. They must not replace the
+      // assembled timeline until the creator explicitly accepts them there.
+      if (assetId && clips[index]?.mediaEdit?.action !== "video_edit") {
         void syncShotClipToTimeline(boardId, shot.id, assetId);
       }
     },

@@ -164,6 +164,16 @@ const TIMELINE_MODEL3D_SUITES =
   "npm run test --workspace=packages/agents -- timeline-model3d-frames";
 
 /**
+ * A trimmed imported source receives a candidate edit, keeps its active take
+ * inactive until the explicit promotion, then restores it with one undo. The
+ * package test exercises the headless contract and the web test drives the
+ * live TimelineStore path through its agent handler.
+ */
+const TIMELINE_NATIVE_MEDIA_EDITING_SUITES =
+  "npm run test --workspace=packages/agents -- timeline-generative-edit timeline-tool-loop && " +
+  "npm run test --workspace=web -- useTimelineAgentBridge timelineTools nativeMediaEditingAcceptance nativeMediaEditingPreview";
+
+/**
  * The audio-driven-motion suites: `bake_audio_animation`'s own arithmetic
  * (the two clock hops, the envelope/beats curve shapes) plus the end-to-end
  * demonstration that bakes a beat-synced pulse onto a clip that already
@@ -387,6 +397,16 @@ export const HARNESSES: HarnessEntry[] = [
     agentTool: "preview_timeline_frame",
     docs: "docs/harnesses.md § 3D clips in preview_timeline_frame",
     selfcheck: { command: TIMELINE_MODEL3D_SUITES, cost: "cheap" }
+  },
+  {
+    id: "timeline-native-media-editing",
+    title: "Native media editing (candidate take, apply, undo)",
+    command: TIMELINE_NATIVE_MEDIA_EDITING_SUITES,
+    kind: "static",
+    capabilities: ["no-db"],
+    agentTool: "ui_timeline_generatively_edit_clip",
+    docs: "docs/native-media-editing/prd.md § 9",
+    selfcheck: { command: TIMELINE_NATIVE_MEDIA_EDITING_SUITES, cost: "cheap" }
   },
   {
     id: "timeline-audio-drive",
@@ -1139,6 +1159,38 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/components/timeline/preview/bakeDecoding.ts",
       "web/src/components/timeline/Tracks/model3dClipFrames.ts"
     ]
+  },
+  {
+    id: "timeline-native-media-editing",
+    title: "Native media editing (generative candidates and explicit apply)",
+    harnesses: ["timeline-native-media-editing"],
+    paths: [
+      "packages/timeline/src/generative.ts",
+      "packages/timeline/src/takes.ts",
+      "packages/protocol/src/api-schemas/timeline-tool-contracts.ts",
+      "packages/protocol/src/api-schemas/timeline-tool-params.ts",
+      "packages/agents/src/evals/surfaces/timeline.ts",
+      "web/src/components/timeline/timelineAgentBridge.ts",
+      "web/src/hooks/timeline/useTimelineAgentBridge.ts",
+      "web/src/hooks/timeline/useTimelineDirectGenJob.ts",
+      "web/src/hooks/timeline/directGenPending.ts",
+      "web/src/hooks/timeline/__tests__/nativeMediaEditingAcceptance.test.tsx",
+      "web/src/components/timeline/Inspector/TimelineInspector.tsx",
+      "web/src/components/timeline/preview/__tests__/nativeMediaEditingPreview.test.tsx",
+      "web/src/lib/tools/builtin/timeline.ts"
+    ]
+  },
+  {
+    id: "timeline-native-media-editing-server-generation-gap",
+    title: "Server edit_timeline generative-edit submission",
+    harnesses: [],
+    paths: ["packages/agents/src/capabilities/timelines.ts"],
+    gap:
+      "edit_timeline deliberately excludes ui_timeline_generatively_edit_clip: " +
+      "it can persist a timeline document but cannot submit or reconcile a " +
+      "durable media-generation job. A future harness should drive that " +
+      "server-side job through candidate creation, explicit apply_take, and " +
+      "a restored undo snapshot without inventing an asset id."
   },
   {
     id: "timeline-audio-drive",
