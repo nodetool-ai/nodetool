@@ -1,6 +1,6 @@
 import { eq, desc, and, sql } from "drizzle-orm";
 import { boardEntityIdsWithShots } from "@nodetool-ai/protocol";
-import type { Screenplay, Shot } from "@nodetool-ai/protocol";
+import type { CreativeContext, Screenplay, Shot } from "@nodetool-ai/protocol";
 import type { StoryboardSetupStage } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import {
   DBModel,
@@ -21,6 +21,7 @@ export interface StoryboardDocument {
   shots: Shot[];
   brief: string;
   style: string;
+  creative_context?: CreativeContext;
   /** Library entity (asset) ids applied to the board's shot prompts. */
   entityIds: string[];
   aspectRatio: string;

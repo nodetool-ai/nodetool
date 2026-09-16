@@ -152,10 +152,8 @@ export const inspectVideoProductionCandidatesSpec: CapabilitySpec = {
 export const acceptVideoProductionCandidatesSpec: CapabilitySpec = {
   name: "accept_video_production_candidates",
   description:
-    "Validate an explicit candidate selection map, target revision, readiness, " +
-    "and one-candidate-per-slot rule. This capability reports a validated " +
-    "acceptance request but does not mutate a timeline, storyboard, or script " +
-    "until a destination-specific apply adapter is available.",
+    "Disabled until a destination-specific apply adapter is available. This " +
+    "operation rejects clearly and never reports candidate acceptance.",
   inputSchema: ACCEPT_VIDEO_PRODUCTION_CANDIDATES_SCHEMA,
   category: "write",
   userMessage: () => "Validating AI-video candidate acceptance"

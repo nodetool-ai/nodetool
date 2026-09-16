@@ -45,6 +45,9 @@ const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument =>
     shots: board.shots,
     brief: board.brief,
     style: board.style,
+    ...(board.creativeContext
+      ? { creative_context: board.creativeContext }
+      : {}),
     entityIds: board.entityIds,
     aspectRatio: board.aspectRatio,
     setupStage: board.setupStage,
@@ -67,6 +70,9 @@ const responseToBoard = (
     title: res.name === "Untitled storyboard" ? "" : res.name,
     brief: doc.brief,
     style: doc.style,
+    ...(doc.creative_context
+      ? { creativeContext: doc.creative_context }
+      : {}),
     entityIds: (doc.entityIds as string[] | undefined) ?? [],
     aspectRatio: doc.aspectRatio,
     setupStage: doc.setupStage,
@@ -192,6 +198,12 @@ export const useStoryboardServerSync = (
           break;
         case "style":
           s.setStyle(boardId, value as string);
+          break;
+        case "creativeContext":
+          s.setCreativeContext(
+            boardId,
+            value as StoryboardBoard["creativeContext"]
+          );
           break;
         case "aspectRatio":
           s.setAspectRatio(boardId, value as string);
