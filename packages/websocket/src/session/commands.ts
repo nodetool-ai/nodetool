@@ -30,7 +30,11 @@ import type { JobRunExecutionHooks } from "../job-run-registry.js";
 import type { ChatTurnHandler } from "./chat-turn.js";
 import type { ClientSession } from "./client-session.js";
 import type { MessageContent } from "@nodetool-ai/runtime";
-import type { DirectInferenceHandler, DirectTextContent } from "./inference.js";
+import type {
+  DirectInferenceHandler,
+  DirectMediaSourceContext,
+  DirectTextContent
+} from "./inference.js";
 import type { RunJobRequest } from "./job-execution.js";
 
 const log = createLogger("nodetool.websocket.runner");
@@ -875,6 +879,36 @@ export class CommandRouter {
         ? (data.audio_format as string)
         : undefined;
       const projectId = isString(data.project_id) ? data.project_id : undefined;
+      const rawSourceContext = isRecord(data.source_context)
+        ? data.source_context
+        : undefined;
+      let sourceContext: DirectMediaSourceContext | undefined =
+        rawSourceContext &&
+        isString(rawSourceContext.sequence_id) &&
+        isString(rawSourceContext.clip_id) &&
+        isString(rawSourceContext.source_asset_id) &&
+        isNumber(rawSourceContext.source_start_ms) &&
+        isNumber(rawSourceContext.source_end_ms) &&
+        isNumber(rawSourceContext.timeline_start_ms) &&
+        isNumber(rawSourceContext.timeline_duration_ms) &&
+        isNumber(rawSourceContext.speed_multiplier)
+          ? {
+              sequenceId: rawSourceContext.sequence_id,
+              clipId: rawSourceContext.clip_id,
+              sourceAssetId: rawSourceContext.source_asset_id,
+              sourceStartMs: rawSourceContext.source_start_ms,
+              sourceEndMs: rawSourceContext.source_end_ms,
+              timelineStartMs: rawSourceContext.timeline_start_ms,
+              timelineDurationMs: rawSourceContext.timeline_duration_ms,
+              speedMultiplier: rawSourceContext.speed_multiplier
+            }
+          : undefined;
+      if (sourceContext && isString(rawSourceContext?.source_take_id)) {
+        sourceContext = {
+          ...sourceContext,
+          sourceTakeId: rawSourceContext.source_take_id
+        };
+      }
       return this.runRpc(command, requestId, () => {
         const references = referenceMediaDataSchema.parse(data);
         return inference.runDirectMediaGeneration({
@@ -901,6 +935,7 @@ export class CommandRouter {
           referenceVideos: references.reference_videos,
           useReferenceVideoAudio: references.use_reference_video_audio,
           projectId,
+          sourceContext,
           requestId
         });
       });
