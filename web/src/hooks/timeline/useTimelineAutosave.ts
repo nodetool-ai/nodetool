@@ -14,6 +14,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
 import { isString } from "../../utils/typePredicates";
 import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
+import { acknowledgePersistedMediaEdits } from "./directGenPending";
 
 interface DocumentSnapshot {
   sequenceId: string | null;
@@ -113,6 +114,7 @@ export function useTimelineAutosave(
             baseUpdatedAt: baseUpdatedAt ?? undefined,
             document: buildTimelineDocumentPayload(snapshot)
           });
+          acknowledgePersistedMediaEdits(snapshot.sequenceId, snapshot.clips);
           const updatedAt = (response as { updatedAt?: unknown }).updatedAt;
           if (
             isString(updatedAt) &&
