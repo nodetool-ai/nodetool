@@ -7,7 +7,8 @@ import {
   productionCandidate,
   productionVariationIdentity,
   productionVariationIdentitySchema,
-  transitionProductionCandidate
+  transitionProductionCandidate,
+  validateProductionAcceptance
 } from "../src/production-authoring.js";
 
 describe("production authoring contract", () => {
@@ -116,5 +117,92 @@ describe("production authoring contract", () => {
     expect(() => transitionProductionCandidate(candidate, "ready")).toThrow(
       "Cannot transition"
     );
+  });
+
+  it("rejects a selection for a destination that is no longer live", () => {
+    const identity = productionVariationIdentity({
+      batchId: "batch-1",
+      destinationKind: "timeline_clip",
+      destinationId: "deleted-clip",
+      variationIndex: 1
+    });
+    const candidate = productionCandidate.parse({
+      ...identity,
+      status: "ready",
+      assetId: "asset-1",
+      snapshot: {
+        ...identity,
+        operation: "initial_generation"
+      }
+    });
+
+    const result = validateProductionAcceptance({
+      candidates: [candidate],
+      targets: [],
+      selection: { "deleted-clip": candidate.candidateId },
+      batchId: "batch-1"
+    });
+
+    expect(result).toEqual({
+      valid: false,
+      issues: ["deleted-clip: selected destination is missing"]
+    });
+  });
+
+  it("rejects a live destination whose selected candidate is missing", () => {
+    const result = validateProductionAcceptance({
+      candidates: [],
+      targets: [
+        { destinationKind: "timeline_clip", destinationId: "clip-1" }
+      ],
+      selection: { "clip-1": "missing-candidate" },
+      batchId: "batch-1"
+    });
+
+    expect(result).toEqual({
+      valid: false,
+      issues: ["clip-1: candidate is missing"]
+    });
+  });
+
+  it("accepts one ready candidate for each live destination", () => {
+    const first = productionVariationIdentity({
+      batchId: "batch-1",
+      destinationKind: "timeline_clip",
+      destinationId: "clip-1",
+      variationIndex: 1
+    });
+    const second = productionVariationIdentity({
+      batchId: "batch-1",
+      destinationKind: "timeline_clip",
+      destinationId: "clip-2",
+      variationIndex: 1
+    });
+    const candidates = [first, second].map((identity) =>
+      productionCandidate.parse({
+        ...identity,
+        status: "ready",
+        assetId: `asset-${identity.destinationId}`,
+        snapshot: {
+          ...identity,
+          operation: "initial_generation"
+        }
+      })
+    );
+
+    const result = validateProductionAcceptance({
+      candidates,
+      targets: [
+        { destinationKind: "timeline_clip", destinationId: "clip-1" },
+        { destinationKind: "timeline_clip", destinationId: "clip-2" }
+      ],
+      selection: {
+        "clip-1": candidates[0].candidateId,
+        "clip-2": candidates[1].candidateId
+      },
+      batchId: "batch-1"
+    });
+
+    expect(result).toMatchObject({ valid: true, candidates });
   });
 });
