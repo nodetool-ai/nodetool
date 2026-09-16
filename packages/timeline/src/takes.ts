@@ -57,7 +57,7 @@ export function ensureBaselineTake(
         speedMultiplier: clip.speedMultiplier
       }),
       ...(clip.speedBaked !== undefined && { speedBaked: clip.speedBaked })
-    }
+    },
   });
   return {
     ...clip,

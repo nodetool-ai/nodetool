@@ -11,6 +11,12 @@
 import { useMemo } from "react";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  readCreativeContext,
+  type CreativeContext,
+  type ProductionReference
+} from "../../../hooks/storyboard/productionContext";
+export type { CreativeContext } from "../../../hooks/storyboard/productionContext";
 
 /**
  * A reference image the composer was holding when the card was clicked.
@@ -19,7 +25,7 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
  * document, its autosave and its version history, so a caller that has a
  * local file uploads it first and passes the asset it got back.
  */
-export interface VideoSetupReference {
+export interface VideoSetupReference extends ProductionReference {
   /** `asset://<id>.<ext>`. */
   uri: string;
   /** The file's name, for the list on step 1. */
@@ -35,12 +41,19 @@ export interface VideoSetupContext {
   references?: readonly VideoSetupReference[];
   /** Entities the creator picked in the composer. */
   entityIds?: readonly string[];
+  /** Optional product, audience, objective and claims context. */
+  creativeContext?: CreativeContext;
 }
 
-const isReference = (value: unknown): value is VideoSetupReference =>
-  typeof value === "object" &&
-  value !== null &&
-  typeof (value as { uri?: unknown }).uri === "string";
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isReference = (value: unknown): value is VideoSetupReference => {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return typeof value.uri === "string";
+};
 
 /**
  * Read the composer's context back off a sequence.
@@ -52,27 +65,39 @@ const isReference = (value: unknown): value is VideoSetupReference =>
  */
 export const readVideoSetupContext = (
   setup: unknown
-): { references: VideoSetupReference[]; entityIds: string[] } => {
-  const fields =
-    typeof setup === "object" && setup !== null
-      ? (setup as Record<string, unknown>)
-      : {};
+): {
+  references: VideoSetupReference[];
+  entityIds: string[];
+  creativeContext?: CreativeContext;
+} => {
+  const fields = isRecord(setup) ? setup : {};
   const references = fields["references"];
   const entityIds = fields["entityIds"];
-  return {
+  const creativeContext = readCreativeContext(
+    fields["creative_context"] ?? fields["creativeContext"]
+  );
+  const result: {
+    references: VideoSetupReference[];
+    entityIds: string[];
+    creativeContext?: CreativeContext;
+  } = {
     references: Array.isArray(references) ? references.filter(isReference) : [],
     entityIds: Array.isArray(entityIds)
       ? entityIds.filter((id): id is string => typeof id === "string")
       : []
   };
+  if (creativeContext) {
+    result.creativeContext = creativeContext;
+  }
+  return result;
 };
 
 /** The composer's context on the open sequence, for the step that shows it. */
 export const useVideoSetupContext = (): {
   references: VideoSetupReference[];
   entityIds: string[];
+  creativeContext?: CreativeContext;
 } => {
   const setup = useTimelineStore((state) => state.setup);
   return useMemo(() => readVideoSetupContext(setup), [setup]);
 };
-

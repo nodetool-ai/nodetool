@@ -21,7 +21,8 @@ jest.mock("../../../../hooks/useModelsByProvider", () => ({
 jest.mock("../../../../hooks/timeline/useTimelineDirectGenJob", () => ({
   useTimelineDirectGenJob: () => ({
     startEdit: mockStartEdit,
-    cancel: mockCancel
+    cancel: mockCancel,
+    cancelEdit: mockCancel
   })
 }));
 
@@ -87,7 +88,8 @@ describe("AIEditClipPanel", () => {
     useDirectGenPendingStore.setState({
       pending: {},
       durationSamples: {},
-      editSettlements: {}
+      editSettlements: {},
+      editFailures: {}
     });
   });
 

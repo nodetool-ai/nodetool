@@ -35,7 +35,9 @@ import type {
   TimelineSetup,
   TimelineSetupStage
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
+import type { ProductionGenerationSnapshot } from "@nodetool-ai/protocol";
 export type { TimelineBeat, TimelineSetup, TimelineSetupStage };
+export type { ProductionGenerationSnapshot } from "@nodetool-ai/protocol";
 
 export interface TimelineSequence {
   id: string;
@@ -1671,6 +1673,14 @@ export interface ClipVersion {
     speedMultiplier?: number;
     speedBaked?: boolean;
   };
+  /** Stable identity for a production candidate created before dispatch. */
+  candidateId?: string;
+  batchId?: string;
+  requestId?: string;
+  variationId?: string;
+  variationIndex?: number;
+  /** Immutable resolved production inputs captured before provider dispatch. */
+  productionSnapshot?: ProductionGenerationSnapshot;
   mediaEdit?: {
     action: "video_edit";
     modelTask: "video_to_video";

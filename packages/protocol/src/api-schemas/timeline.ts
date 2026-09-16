@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { BLEND_MODE_TUPLE } from "../blend-modes.js";
+import { productionGenerationSnapshot, productionRequirement, creativeContext } from "../production-authoring.js";
 
 const blendModeEnum = z.enum(BLEND_MODE_TUPLE);
 
@@ -58,6 +59,14 @@ export const clipVersion = z.object({
       speedBaked: z.boolean().optional()
     })
     .optional(),
+  /** Stable production candidate identity captured before dispatch. */
+  candidateId: z.string().optional(),
+  batchId: z.string().optional(),
+  requestId: z.string().optional(),
+  variationId: z.string().optional(),
+  variationIndex: z.number().int().min(1).max(3).optional(),
+  /** Immutable resolved production inputs. Never rewritten on completion. */
+  productionSnapshot: productionGenerationSnapshot.optional(),
   mediaEdit: z
     .object({
       action: z.literal("video_edit"),
@@ -1492,7 +1501,9 @@ export const timelineBeat = z
     /** The line spoken over this beat. Absent or empty means no voiceover. */
     voiceover: z.string().optional(),
     music: z.boolean().optional(),
-    clip_id: z.string().optional()
+    clip_id: z.string().optional(),
+    /** Optional production requirements reviewed before generation. */
+    production: productionRequirement.optional()
   })
   .passthrough();
 export type TimelineBeat = z.infer<typeof timelineBeat>;
@@ -1517,6 +1528,8 @@ export const timelineSetup = z
      * them would throw the creator's words away (PRD § 8.3).
      */
     voiceover: z.boolean().optional(),
+    /** Optional shared product, audience, and reference context. */
+    creative_context: creativeContext.optional(),
     beats: z.array(timelineBeat).optional(),
     /**
      * The language model that drafts the beats. Absent means the flow picks

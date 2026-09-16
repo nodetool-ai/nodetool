@@ -62,3 +62,20 @@ export {
 } from "./invoke.js";
 export type { CreateCapabilityRunOptions } from "./invoke.js";
 export { gateFromContext } from "./gate-from-context.js";
+export {
+  VIDEO_PRODUCTION_SCHEMA_VERSION,
+  preflightVideoProduction,
+  prepareVideoProduction,
+  validateVideoProductionAcceptance
+} from "./video-production.js";
+export type {
+  PreparedVideoProduction,
+  VideoProductionAcceptance,
+  VideoProductionCandidate,
+  VideoProductionCandidateRequest,
+  VideoProductionCandidateStatus,
+  VideoProductionDestination,
+  VideoProductionPreflight,
+  VideoProductionRequest,
+  VideoProductionRoute
+} from "./video-production.js";

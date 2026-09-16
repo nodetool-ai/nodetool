@@ -19,6 +19,7 @@ import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import type {
   ClipVersion,
+  CreativeContext,
   Entity,
   ImageRef,
   Scene,
@@ -40,11 +41,7 @@ import {
 } from "../documentHistory";
 import { rebaseDocumentSnapshots } from "../documentMerge";
 import { storyboardMergeAdapter } from "./merge";
-import type {
-  ImageModelValue,
-  LanguageModelValue,
-  VideoModelValue
-} from "../ApiTypes";
+import type { ImageModelValue, LanguageModelValue, VideoModelValue } from "../ApiTypes";
 import type {
   StoryboardImportSource,
   StoryboardSetupStage
@@ -70,6 +67,8 @@ export interface StoryboardBoard {
   title: string;
   brief: string;
   style: string;
+  /** Shared product and reference direction persisted at the board root. */
+  creativeContext?: CreativeContext;
   /**
    * Library entity (asset) ids applied to this board. Each shot's still/clip
    * prompt picks up the applicable entities' descriptors for consistency.
@@ -163,6 +162,10 @@ interface StoryboardStoreState {
 
   setBrief: (boardId: string, brief: string) => void;
   setStyle: (boardId: string, style: string) => void;
+  setCreativeContext: (
+    boardId: string,
+    creativeContext: CreativeContext | undefined
+  ) => void;
   /**
    * Write the guided-setup fields in one edit. The three move together — a
    * step writes its answer and advances — so they are one undo entry, not
@@ -823,6 +826,19 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         (b) => (b.style === style ? null : { ...b, style }),
         { coalesceKey: "style" }
       )
+    ),
+
+  setCreativeContext: (boardId, creativeContext) =>
+    set((state) =>
+      withBoard(state, boardId, (board) => {
+        if (board.creativeContext === creativeContext) return null;
+        if (creativeContext === undefined) {
+          const next = { ...board };
+          delete next.creativeContext;
+          return next;
+        }
+        return { ...board, creativeContext };
+      })
     ),
 
   setSetup: (boardId, patch) =>
