@@ -93,7 +93,11 @@ interface DirectGenPendingState {
   pending: Record<string, PendingClipJob[]>;
   /** bucket → the durations of that bucket's most recent finished requests. */
   durationSamples: Record<string, number[]>;
+  /** sequenceId → clipId → terminal edit error, retained for Retry. */
+  editFailures: Record<string, Record<string, string>>;
   remember: (sequenceId: string, job: PendingClipJob) => void;
+  markEditFailure: (sequenceId: string, clipId: string, message: string) => void;
+  clearEditFailure: (sequenceId: string, clipId: string) => void;
   /** Drop a clip's entry and, when it finished, file how long it took. */
   settle: (
     sequenceId: string,
@@ -110,22 +114,74 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
     (set, get) => ({
       pending: {},
       durationSamples: {},
+      editFailures: {},
 
       remember: (sequenceId, job) =>
+        set((state) => {
+          if (!job.mediaEdit) {
+            return {
+              pending: {
+                ...state.pending,
+                [sequenceId]: prune(
+                  [
+                    ...(state.pending[sequenceId] ?? []).filter(
+                      (entry) => entry.clipId !== job.clipId
+                    ),
+                    job
+                  ],
+                  Date.now()
+                )
+              }
+            };
+          }
+          const sequenceFailures = { ...(state.editFailures[sequenceId] ?? {}) };
+          delete sequenceFailures[job.clipId];
+          const editFailures = { ...state.editFailures };
+          if (Object.keys(sequenceFailures).length === 0) {
+            delete editFailures[sequenceId];
+          } else {
+            editFailures[sequenceId] = sequenceFailures;
+          }
+          return {
+            pending: {
+              ...state.pending,
+              [sequenceId]: prune(
+                [
+                  ...(state.pending[sequenceId] ?? []).filter(
+                    (entry) => entry.clipId !== job.clipId
+                  ),
+                  job
+                ],
+                Date.now()
+              )
+            },
+            editFailures
+          };
+        }),
+
+      markEditFailure: (sequenceId, clipId, message) =>
         set((state) => ({
-          pending: {
-            ...state.pending,
-            [sequenceId]: prune(
-              [
-                ...(state.pending[sequenceId] ?? []).filter(
-                  (entry) => entry.clipId !== job.clipId
-                ),
-                job
-              ],
-              Date.now()
-            )
+          editFailures: {
+            ...state.editFailures,
+            [sequenceId]: {
+              ...(state.editFailures[sequenceId] ?? {}),
+              [clipId]: message
+            }
           }
         })),
+
+      clearEditFailure: (sequenceId, clipId) =>
+        set((state) => {
+          const sequenceFailures = { ...(state.editFailures[sequenceId] ?? {}) };
+          delete sequenceFailures[clipId];
+          const editFailures = { ...state.editFailures };
+          if (Object.keys(sequenceFailures).length === 0) {
+            delete editFailures[sequenceId];
+          } else {
+            editFailures[sequenceId] = sequenceFailures;
+          }
+          return { editFailures };
+        }),
 
       settle: (sequenceId, clipId, finishedAt, requestId) =>
         set((state) => {
@@ -183,7 +239,8 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         pending: state.pending,
-        durationSamples: state.durationSamples
+        durationSamples: state.durationSamples,
+        editFailures: state.editFailures
       })
     }
   )
