@@ -16,6 +16,10 @@ const TYPESCRIPT_NATIVE_VERSION = "7.0.2";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = resolve(dirname(scriptPath), "..");
+const auditExemptPaths = new Set([
+  scriptPath,
+  resolve(repoRoot, "scripts/__tests__/check-typescript-policy.test.mjs")
+]);
 const standaloneProjects = ["mobile", "marketing", "chrome-extension"];
 const sourceRoots = [
   "scripts",
@@ -216,7 +220,7 @@ export async function checkTypeScriptPolicy() {
     await collectFiles(resolve(repoRoot, root), (path) => sourceExtensions.has(path.slice(path.lastIndexOf("."))), sourceFiles);
   }
   for (const path of sourceFiles) {
-    if (path === scriptPath || path.endsWith("scripts/__tests__/check-typescript-policy.test.mjs")) {
+    if (auditExemptPaths.has(path)) {
       continue;
     }
     errors.push(...auditSourceText(path, await readFile(path, "utf8")));
