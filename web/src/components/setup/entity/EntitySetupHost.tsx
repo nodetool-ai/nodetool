@@ -126,6 +126,9 @@ const EntitySetupHost = ({
             : "Choose a reference image",
         render: () =>
           createElement(ReferenceStep, {
+            name: details.name,
+            kind: details.kind,
+            descriptor: details.descriptor,
             assetId: referenceAssetId,
             excludedAssetIds,
             assetsLoading: entitiesLoading,

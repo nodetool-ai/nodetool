@@ -10,6 +10,7 @@ const searchAssets = jest.fn();
 const getAsset = jest.fn();
 const updateAsset = jest.fn();
 const assignDocument = jest.fn();
+const rpcRequest = jest.fn();
 
 jest.mock("../../../../trpc/client", () => ({
   trpcClient: {
@@ -29,6 +30,40 @@ jest.mock("../../../../trpc/client", () => ({
 jest.mock("../../../node/ImageRefPreview", () => ({
   __esModule: true,
   default: () => <div aria-hidden />
+}));
+jest.mock("../../../properties/ImageModelSelect", () => ({
+  __esModule: true,
+  default: ({
+    value,
+    onChange
+  }: {
+    value: string;
+    onChange: (model: {
+      type: "image_model";
+      id: string;
+      provider: string;
+      name: string;
+      path: string;
+    }) => void;
+  }) => (
+    <button
+      type="button"
+      onClick={() =>
+        onChange({
+          type: "image_model",
+          id: "image-model-1",
+          provider: "openai",
+          name: "Reference model",
+          path: ""
+        })
+      }
+    >
+      {value ? "Reference model selected" : "Select image model"}
+    </button>
+  )
+}));
+jest.mock("../../../../lib/websocket/rpcRequest", () => ({
+  rpcRequest: (...args: unknown[]) => rpcRequest(...args)
 }));
 
 const renderHost = (
@@ -85,6 +120,7 @@ describe("EntitySetupHost", () => {
       metadata: input.metadata
     }));
     assignDocument.mockResolvedValue({ ok: true });
+    rpcRequest.mockResolvedValue({ asset_ids: ["generated-asset"] });
   });
 
   it("collects details and a reference before creating the entity", async () => {
@@ -172,5 +208,56 @@ describe("EntitySetupHost", () => {
     expect(updateAsset).not.toHaveBeenCalled();
     expect(assignDocument).not.toHaveBeenCalled();
     expect(onFinish).not.toHaveBeenCalled();
+  });
+
+  it("generates a reference image from the entity description", async () => {
+    const user = userEvent.setup();
+    const onFinish = renderHost();
+
+    await user.type(screen.getByRole("textbox", { name: "Name" }), "Nova");
+    await user.click(
+      screen.getByRole("button", { name: "Choose a reference" })
+    );
+    await user.click(screen.getByRole("button", { name: "Generate with AI" }));
+
+    expect(
+      screen.getByRole("heading", { name: /Generate a reference image/ })
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Select image model" }));
+    await user.click(
+      screen.getByRole("button", { name: "Generate reference" })
+    );
+
+    await waitFor(() =>
+      expect(rpcRequest).toHaveBeenCalledWith(
+        "generate_media",
+        expect.objectContaining({
+          mode: "image",
+          provider: "openai",
+          model: "image-model-1",
+          aspect_ratio: "1:1",
+          resolution: "1K",
+          variations: 1
+        })
+      )
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    );
+    expect(
+      await screen.findByAltText("Selected entity reference")
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Review entity" }));
+    await user.click(screen.getByRole("button", { name: "Create entity" }));
+
+    await waitFor(() =>
+      expect(updateAsset).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "generated-asset" })
+      )
+    );
+    expect(onFinish).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "asset-7", name: "Nova" })
+    );
   });
 });
