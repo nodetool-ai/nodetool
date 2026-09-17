@@ -759,6 +759,21 @@ export const transitionParams = z.object({
 
 export type TransitionParams = z.infer<typeof transitionParams>;
 
+export const APPLY_TRANSITION_AT_CUT_DESCRIPTION =
+  "Apply one transition candidate to two explicitly adjacent clips as a single undoable cut operation. The outgoing clip must precede the incoming clip on the same track. Provide durationMs or overlapMs. Transition-specific fields match set_transition: color controls dipToColor; direction controls wipe, push and slide; softness controls wipe. Do not use this to replace either clip's take.";
+
+export const applyTransitionAtCutParams = transitionParams.extend({
+  outgoingClipId: z.string().trim().min(1),
+  incomingClipId: z.string().trim().min(1),
+  durationMs: z.number().positive().optional(),
+  overlapMs: z.number().positive().optional(),
+  type: transitionParams.shape.type.optional()
+});
+
+export type ApplyTransitionAtCutParams = z.infer<
+  typeof applyTransitionAtCutParams
+>;
+
 /**
  * The union member the named type actually takes. The input schema is one flat
  * object because that is what a tool call can express, so a `color` sent with a

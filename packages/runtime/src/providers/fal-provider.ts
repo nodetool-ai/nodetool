@@ -1578,17 +1578,19 @@ export class FalProvider extends BaseProvider {
   /** Run an endpoint that returns a video and download the bytes. */
   private async runVideoEndpoint(
     modelId: string,
-    args: Record<string, unknown>
+    args: Record<string, unknown>,
+    signal?: AbortSignal
   ): Promise<Uint8Array> {
     const client = await this.getClient();
     this.recordRequestPayload(args);
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
+      abortSignal: signal,
       onQueueUpdate: this.makeQueueUpdateHandler()
     });
     const data = (result.data ?? result) as Record<string, unknown>;
-    return downloadBytes(extractVideoUrl(data));
+    return downloadBytes(extractVideoUrl(data), signal);
   }
 
   override async upscaleImage(
@@ -1702,8 +1704,16 @@ export class FalProvider extends BaseProvider {
     params: VideoToVideoParams
   ): Promise<Uint8Array> {
     const { endpointId, variant } = splitTopazVariant(params.model.id);
+    const images = params.referenceImages ?? [];
+    if (images.length) {
+      validateReferenceInputs("FAL", endpointId, { images, videos: [] },
+        getModelReferenceInputs(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, endpointId));
+    }
+    params.signal?.throwIfAborted();
+    const imageUrls = await Promise.all(images.map((image) => this.upload(image, detectImageMime(image))));
     const url = await this.upload(video, "video/mp4");
     const b = new FalArgsBuilder(endpointId);
+    b.attachReferenceAssets("image", imageUrls);
     b.attachAsset("video", url)
       .set("model", variant)
       .set("prompt", params.prompt)
@@ -1713,7 +1723,7 @@ export class FalProvider extends BaseProvider {
       .setSize(null, params.resolution);
     if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
     log.debug("FAL videoToVideo", { model: endpointId, variant });
-    return this.runVideoEndpoint(endpointId, b.args);
+    return this.runVideoEndpoint(endpointId, b.args, params.signal);
   }
 
   override async extendVideo(

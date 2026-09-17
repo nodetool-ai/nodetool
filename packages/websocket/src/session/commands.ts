@@ -40,6 +40,8 @@ import type { RunJobRequest } from "./job-execution.js";
 const log = createLogger("nodetool.websocket.runner");
 const referenceMediaDataSchema = generateMediaDataSchema.pick({
   capability: true,
+  reference_asset_ids: true,
+  entity_ids: true,
   reference_images: true,
   reference_videos: true,
   use_reference_video_audio: true
@@ -753,12 +755,17 @@ export class CommandRouter {
             continue;
           }
           seen.add(id);
+          const referenceFields: { media_edit_references?: unknown } = {};
+          if (row.parameters?.media_edit_references) {
+            referenceFields.media_edit_references = row.parameters.media_edit_references;
+          }
           generations.push({
             request_id: id,
             generation_id: row.id,
             status: publicGenerationStatus(row),
             asset_ids: row.asset_ids ?? [],
             error: row.error ?? null,
+            ...referenceFields,
             ...durableLifecycleFields(row)
           });
         }
@@ -946,6 +953,8 @@ export class CommandRouter {
           instructions,
           audioFormat,
           capability: references.capability,
+          referenceAssetIds: references.reference_asset_ids,
+          entityIds: references.entity_ids,
           referenceImages: references.reference_images,
           referenceVideos: references.reference_videos,
           useReferenceVideoAudio: references.use_reference_video_audio,

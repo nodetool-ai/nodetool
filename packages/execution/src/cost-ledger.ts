@@ -70,6 +70,7 @@ const UNIT_BILLED_CAPABILITIES = new Set([
   "text_to_speech",
   "text_to_music",
   "audio_to_audio",
+  "video_to_audio",
   "automatic_speech_recognition",
   "text_to_3d",
   "image_to_3d",

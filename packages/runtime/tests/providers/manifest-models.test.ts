@@ -118,7 +118,7 @@ describe("reference-to-video discovery and validation", () => {
   it("keeps video editing models with required sources out of reference generation", () => {
     const models = loadVideoModels("@nodetool-ai/replicate-nodes", "replicate-manifest.json", "replicate");
     for (const id of ["runwayml/gen4-aleph", "decart/lucy-edit-2", "wan-video/wan-2.7-videoedit"]) {
-      expect(models.find((model) => model.id === id)?.supportedTasks).toEqual(["video_to_video"]);
+      expect(models.find((model) => model.id === id)?.supportedTasks).toEqual(["video_to_video", "video_to_video_reference"]);
     }
   });
 
@@ -329,7 +329,9 @@ describe("manifest-models task inference (FAL manifest)", () => {
       m.supportedTasks?.includes("video_to_video")
     );
     expect(v2v.length).toBeGreaterThan(0);
-    for (const m of v2v) expect(m.supportedTasks).toEqual(["video_to_video"]);
+    for (const m of v2v) {
+      expect(m.supportedTasks?.filter((task) => task !== "video_to_video_reference")).toEqual(["video_to_video"]);
+    }
   });
 });
 

@@ -67,6 +67,10 @@ import {
 import { moveTrackOrder, type TrackDestination } from "../trackOrder.js";
 import { trimClip } from "../trimClip.js";
 import {
+  applyTransitionAtCutCandidate,
+  planTransitionAtCut
+} from "../transitionAtCut.js";
+import {
   resliceTracksForSplitClip,
   resliceTracksForTrimmedClip
 } from "../mediaTrack.js";
@@ -1153,6 +1157,24 @@ async function runOp(
       }
       scope.touch(clip.id);
       return { ok: true, clip: scope.clipOut(clip) };
+    }
+
+    case "apply_transition_at_cut": {
+      const planned = planTransitionAtCut(scope.clips, op);
+      if (!planned.ok) throw new Error(planned.error);
+      const applied = applyTransitionAtCutCandidate(
+        scope.clips,
+        planned.candidate
+      );
+      if (!applied.ok) throw new Error(applied.error);
+      scope.clips = applied.clips;
+      scope.touch(planned.candidate.outgoingClipId, planned.candidate.incomingClipId);
+      return {
+        ok: true,
+        candidate: planned.candidate,
+        operation: planned.candidate.operation,
+        description: applied.description
+      };
     }
 
     case "set_mask": {

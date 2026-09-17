@@ -456,6 +456,17 @@ describe("lookup_generations", () => {
     ]);
   });
 
+  it("returns the generation's resolved edit references for take recovery", async () => {
+    const references = { referenceAssetIds: ["portrait"], entityIds: ["hero"] };
+    (Prediction.byRequestIds as ReturnType<typeof vi.fn>).mockResolvedValue([
+      rowFor({ parameters: { media_edit_references: references } })
+    ]);
+    const out = await runOne(ws, runner, {
+      command: "lookup_generations", request_id: "lookup-refs", data: { request_ids: ["req-1"] }
+    });
+    expect(out.result).toMatchObject({ generations: [{ media_edit_references: references }] });
+  });
+
   // The query returns newest first, so a retry's row must win over the attempt
   // it replaced — otherwise a re-render lands the failure it was retrying.
   it("keeps only the newest row for a repeated request id", async () => {

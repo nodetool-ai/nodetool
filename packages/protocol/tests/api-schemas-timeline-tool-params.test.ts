@@ -21,6 +21,7 @@ import {
 import {
   addGroupParams,
   addMidiClipParams,
+  applyTransitionAtCutParams,
   buildEffect,
   buildMask,
   buildTimeRemap,
@@ -102,6 +103,28 @@ describe("flat bags enumerate the document schema's own types", () => {
     expect(() =>
       transitionParams.parse({ type: "flip", durationMs: 200 })
     ).toThrow();
+  });
+
+  it("accepts transition-specific fields for a cut transition", () => {
+    expect(
+      applyTransitionAtCutParams.parse({
+        outgoingClipId: "clip-1",
+        incomingClipId: "clip-2",
+        durationMs: 400,
+        type: "wipe",
+        direction: "right",
+        softness: 0.25,
+        easing: "ease-in-out"
+      })
+    ).toEqual({
+      outgoingClipId: "clip-1",
+      incomingClipId: "clip-2",
+      durationMs: 400,
+      type: "wipe",
+      direction: "right",
+      softness: 0.25,
+      easing: "ease-in-out"
+    });
   });
 
   it("offers every effect this build applies, and nothing else", () => {

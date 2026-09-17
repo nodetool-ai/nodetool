@@ -34,6 +34,15 @@ import {
 } from "./invocation-account.js";
 import { VariableChannel } from "./variable-channel.js";
 import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
+import {
+  objectTrackingRequestSchema,
+  parseObjectTrackingResult
+} from "./providers/object-tracking.js";
+import {
+  requestVideoToAudio,
+  VIDEO_TO_AUDIO_TASK,
+  VideoToAudioRequest
+} from "./providers/video-to-audio.js";
 import { encodeRawImageRef } from "./image-codec.js";
 import { extForImageMime, sniffImageMime } from "./providers/image-mime.js";
 import {
@@ -317,6 +326,7 @@ export type ProviderCapability =
   | "text_to_speech"
   | "text_to_music"
   | "audio_to_audio"
+  | "video_to_audio"
   | "automatic_speech_recognition"
   | "generate_embedding"
   | "text_to_3d"
@@ -463,6 +473,7 @@ export type ProviderPredictionResult = Awaited<
       | "segmentImage"
       | "vectorizeImage"
       | "videoToVideo"
+      | "trackObject"
       | "extendVideo"
       | "upscaleVideo"
       | "interpolateVideo"
@@ -470,6 +481,7 @@ export type ProviderPredictionResult = Awaited<
       | "lipSync"
       | "textToMusic"
       | "audioToAudio"
+      | "videoToAudio"
       | "automaticSpeechRecognition"
       | "generateEmbedding"
       | "textTo3D"
@@ -888,6 +900,11 @@ function coerceByteList(value: unknown): Uint8Array[] {
     (item): item is Uint8Array =>
       item instanceof Uint8Array && item.byteLength > 0
   );
+}
+
+function coerceStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isNonEmptyString);
 }
 
 function firstNonEmptyByteList(value: Uint8Array[]): Uint8Array {
@@ -3218,10 +3235,38 @@ export class ProcessingContext {
         return provider.vectorizeImage(params.image as Uint8Array, {
           model: { id: req.model, name: req.model, provider: req.provider }
         });
-      case "video_to_video":
+      case "track_object": {
+        const request = objectTrackingRequestSchema.parse(params);
+        if (!provider.getCapabilities().includes("track_object")) {
+          throw new Error("The selected provider does not support object tracking.");
+        }
+        const signal = params.signal instanceof AbortSignal ? params.signal : this.signal;
+        signal.throwIfAborted();
+        const video = await loadMediaRefBytes({ type: "video", asset_id: request.sourceAssetId }, this);
+        if (!video?.byteLength) {
+          throw new Error("The tracking source video could not be loaded.");
+        }
+        signal.throwIfAborted();
+        const output = await provider.trackObject(video, { ...request, model: req.model, signal });
+        signal.throwIfAborted();
+        return parseObjectTrackingResult(output, request);
+      }
+      case "video_to_video": {
+        const signal = isAbortSignal(params.signal) ? params.signal : this.signal;
+        const referenceImages = coerceByteList(
+          params.reference_images ?? params.referenceImages
+        );
+        const referenceAssetIds = coerceStringList(
+          params.reference_asset_ids ?? params.referenceAssetIds
+        );
+        signal.throwIfAborted();
         return provider.videoToVideo(params.video as Uint8Array, {
           model: { id: req.model, name: req.model, provider: req.provider },
           prompt: params.prompt as string | undefined,
+          referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
+          referenceAssetIds:
+            referenceAssetIds.length > 0 ? referenceAssetIds : undefined,
+          signal,
           entities: await coerceEntityList(params, this),
           negativePrompt: params.negative_prompt as string | undefined,
           strength: params.strength as number | undefined,
@@ -3229,6 +3274,43 @@ export class ProcessingContext {
           resolution: params.resolution as string | undefined,
           seed: params.seed as number | undefined
         });
+      }
+      case "video_to_audio": {
+        const source = isRecord(params.source)
+          ? {
+              assetId: params.source.assetId ?? params.source.asset_id,
+              durationSeconds:
+                params.source.durationSeconds ?? params.source.duration_seconds,
+              startSeconds:
+                params.source.startSeconds ?? params.source.start_seconds,
+              endSeconds:
+                params.source.endSeconds ?? params.source.end_seconds
+            }
+          : params.source;
+        const request = VideoToAudioRequest.parse({
+          task: VIDEO_TO_AUDIO_TASK,
+          model: {
+            id: req.model,
+            provider: req.provider,
+            supportedTasks: [VIDEO_TO_AUDIO_TASK]
+          },
+          source,
+          sceneContext: params.sceneContext ?? params.scene_context
+        });
+        const video =
+          params.video instanceof Uint8Array
+            ? params.video
+            : await loadMediaRefBytes(
+                { type: "video", asset_id: request.source.assetId },
+                this
+              );
+        if (!video?.byteLength) {
+          throw new Error("video_to_audio requires nonempty source video bytes");
+        }
+        return requestVideoToAudio(provider, video, request, {
+          signal: params.signal as AbortSignal | undefined
+        });
+      }
       case "extend_video": {
         if (
           (params.mode !== "start" && params.mode !== "end") ||
@@ -3448,8 +3530,14 @@ export class ProcessingContext {
           opts?.onProviderRequestBound ??
           this._generationLifecycle?.onProviderRequestBound
       });
+      const encoded = encodedAudioOf(output);
       const persistedAssets = req.persist
-        ? await this.persistGenerationBytes(id, req, mediaBuffers(output))
+        ? await this.persistGenerationBytes(
+            id,
+            req,
+            encoded ? [encoded.data] : mediaBuffers(output),
+            encoded?.mimeType
+          )
         : [];
       const assets = persistedAssets.filter(
         (asset): asset is AssetRef => asset !== null
@@ -3902,6 +3990,49 @@ export class ProcessingContext {
         audioFormat: params.audioFormat as string | undefined,
         timeoutSeconds: params.timeout_seconds as number | undefined
       });
+    });
+  }
+
+  /**
+   * Generate an audio result conditioned on a captured video window and scene
+   * context. The encoded-audio lifecycle persists the result without touching
+   * the source video's soundtrack or timeline placement.
+   */
+  async videoToAudio(req: GenerationRequest): Promise<EncodedAudioResult> {
+    return this.runEncodedGeneration(req, async (provider, signal) => {
+      const params = req.params ?? {};
+      const source = isRecord(params.source)
+        ? {
+            assetId: params.source.assetId ?? params.source.asset_id,
+            durationSeconds:
+              params.source.durationSeconds ?? params.source.duration_seconds,
+            startSeconds:
+              params.source.startSeconds ?? params.source.start_seconds,
+            endSeconds:
+              params.source.endSeconds ?? params.source.end_seconds
+          }
+        : params.source;
+      const request = VideoToAudioRequest.parse({
+        task: VIDEO_TO_AUDIO_TASK,
+        model: {
+          id: req.model,
+          provider: req.provider,
+          supportedTasks: [VIDEO_TO_AUDIO_TASK]
+        },
+        source,
+        sceneContext: params.sceneContext ?? params.scene_context
+      });
+      const video =
+        params.video instanceof Uint8Array
+          ? params.video
+          : await loadMediaRefBytes(
+              { type: "video", asset_id: request.source.assetId },
+              this
+            );
+      if (!video?.byteLength) {
+        throw new Error("video_to_audio requires nonempty source video bytes");
+      }
+      return requestVideoToAudio(provider, video, request, { signal });
     });
   }
 
@@ -4389,6 +4520,7 @@ function generationResultData(
   output: unknown
 ): unknown {
   if (output instanceof Uint8Array) return null;
+  if (encodedAudioOf(output)) return null;
   if (Array.isArray(output)) {
     if (output.every((item) => item instanceof Uint8Array)) {
       return { count: output.length };
@@ -4423,7 +4555,8 @@ const VIDEO_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
 const AUDIO_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
   "text_to_speech",
   "text_to_music",
-  "audio_to_audio"
+  "audio_to_audio",
+  "video_to_audio"
 ]);
 const MODEL3D_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
   "text_to_3d",

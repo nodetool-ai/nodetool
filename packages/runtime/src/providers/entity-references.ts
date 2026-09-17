@@ -29,9 +29,8 @@ const IMAGE_LIST_METHODS = new Set([
 ]);
 
 /**
- * Position of the params argument per entity-bearing method. Video methods
- * take media positionally too, but only get the text expansion — appending
- * entity images to `imageToVideo`'s list would change which frame animates.
+ * Position of the params argument per entity-bearing method. Video edits use
+ * separate reference images. Image-to-video keeps its source frame unchanged.
  */
 const PARAMS_INDEX: Record<string, number> = {
   textToImage: 0,
@@ -49,6 +48,7 @@ const PARAMS_INDEX: Record<string, number> = {
 interface EntityBearingParams {
   prompt?: string | null;
   entities?: EntityReference[] | null;
+  referenceImages?: readonly Uint8Array[];
 }
 
 const hasEntityParams = (value: unknown): value is EntityBearingParams =>
@@ -80,7 +80,7 @@ export const injectEntityDescriptors = (
  * Expand `params.entities` in a modality method's call arguments. Returns the
  * original array untouched when the method doesn't take entities or none are
  * attached; otherwise returns a new args array with the prompt expanded, the
- * reference images appended (image-editing methods only), and `entities`
+ * reference images appended for image and video edits, and `entities`
  * stripped from the params.
  */
 export function applyEntityReferences(
@@ -126,6 +126,14 @@ export function applyEntityReferences(
   }
 
   const nextParams: EntityBearingParams = { ...params, prompt };
+  if (method === "videoToVideo") {
+    const images = entities.flatMap((entity) =>
+      entity.image instanceof Uint8Array && entity.image.length > 0 ? [entity.image] : []
+    );
+    if (images.length) {
+      nextParams.referenceImages = [...(params.referenceImages ?? []), ...images];
+    }
+  }
   delete nextParams.entities;
   next[paramsIndex] = nextParams;
   return next;

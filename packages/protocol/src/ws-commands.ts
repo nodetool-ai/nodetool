@@ -208,6 +208,8 @@ export const generateMediaDataSchema = z
     model: z.string().optional(),
     prompt: z.string().optional(),
     capability: z.literal("reference_to_video").optional(),
+    reference_asset_ids: z.array(z.string().trim().min(1)).optional(),
+    entity_ids: z.array(z.string().trim().min(1)).optional(),
     /** Ordered, owned assets with distinct image-reference and video-reference roles. */
     reference_images: z
       .array(

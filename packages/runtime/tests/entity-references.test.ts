@@ -100,6 +100,21 @@ describe("applyEntityReferences", () => {
     );
   });
 
+  it("adds Entity images to video edit reference inputs without changing the source", () => {
+    const source = new Uint8Array([7]);
+    const explicit = new Uint8Array([8]);
+    const params = { model, prompt: "Keep the harbor", referenceImages: [explicit], entities: [harbor] };
+    const args = applyEntityReferences("videoToVideo", [source, params]);
+    expect(args[0]).toBe(source);
+    expect(args[1]).toEqual({
+      model, prompt: "Keep the harbor\n\nConsistency references:\n- Harbor: foggy industrial harbor at night",
+      referenceImages: [explicit, harborImage]
+    });
+    expect(params.referenceImages).toEqual([explicit]);
+    expect(params.entities).toEqual([harbor]);
+    expect(applyEntityReferences("videoToVideo", args)).toBe(args);
+  });
+
   it("passes through untouched without entities or on unrelated methods", () => {
     const args = [{ model, prompt: "a shot" }];
     expect(applyEntityReferences("textToImage", args)).toBe(args);

@@ -80,6 +80,9 @@ import {
   type TimelineTrack,
   type TrackBinding,
   type ClipAnimation,
+  applyTransitionAtCutCandidate,
+  planTransitionAtCut,
+  type TransitionAtCutInput,
   instantiateComposition,
   type TimelineComposition,
   DEFAULT_MIDI_INSTRUMENT,
@@ -130,6 +133,8 @@ import {
   type RenderCanvas
 } from "@nodetool-ai/timeline/scene";
 import {
+  APPLY_TRANSITION_AT_CUT_DESCRIPTION,
+  applyTransitionAtCutParams,
   buildEffect,
   buildMask,
   buildTimeRemap,
@@ -177,6 +182,90 @@ const CONTRACTS = buildTimelineToolContracts({
   animatedProperties: ANIMATED_PROPERTIES,
   beatToleranceMs: DEFAULT_BEAT_TOLERANCE_MS
 });
+
+const generatedTransitionCandidateParams = applyTransitionAtCutParams;
+const transitionCandidateParams = z.object({
+  candidate_id: z.string().trim().min(1)
+});
+const transitionCandidateLifecycleParams = applyTransitionAtCutParams
+  .partial()
+  .extend({ candidate_id: z.string().trim().min(1).optional() })
+  .superRefine((value, context) => {
+    if (
+      value.candidate_id === undefined &&
+      (value.outgoingClipId === undefined || value.incomingClipId === undefined)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Provide outgoingClipId and incomingClipId to create a candidate, or candidate_id to apply one."
+      });
+    }
+  });
+
+export interface TimelineTransitionCandidate {
+  readonly id: string;
+  readonly generationId: string;
+  readonly kind: "generated_transition_at_cut";
+  readonly status: "success";
+  readonly asset: {
+    readonly id: string;
+    readonly contentType: "video/mp4";
+  };
+  readonly source: {
+    readonly sequenceId: string;
+    readonly outgoingClipId: string;
+    readonly incomingClipId: string;
+    readonly outgoingTakeId?: string;
+    readonly incomingTakeId?: string;
+    readonly outgoingAssetId?: string;
+    readonly incomingAssetId?: string;
+    readonly outgoingTransition?: TimelineClip["transitionIn"];
+    readonly incomingTransition?: TimelineClip["transitionIn"];
+    readonly outgoingStartMs: number;
+    readonly outgoingDurationMs: number;
+    readonly incomingStartMs: number;
+    readonly incomingDurationMs: number;
+    readonly cutTimeMs: number;
+    readonly durationMs: number;
+  };
+  readonly request: {
+    readonly durationMs: number;
+    readonly overlapMs: number;
+    readonly type: TransitionAtCutInput["type"];
+    readonly easing?: string;
+    readonly color?: string;
+    readonly direction?: TransitionAtCutInput["direction"];
+    readonly softness?: number;
+  };
+  readonly operation: {
+    readonly op: "apply_generated_transition_at_cut";
+    readonly candidateId: string;
+    readonly outgoingClipId: string;
+    readonly incomingClipId: string;
+    readonly cutTimeMs: number;
+    readonly durationMs: number;
+    readonly undoable: true;
+  };
+}
+
+/** Host seam for the provider-backed selected-cut transition generation. */
+export interface TimelineTransitionGenerationRequest {
+  readonly sequenceId: string;
+  readonly source: TimelineTransitionCandidate["source"];
+  readonly request: TimelineTransitionCandidate["request"];
+}
+
+export interface TimelineTransitionGenerationResult {
+  /** Provider generation id, persisted with the candidate for provenance. */
+  readonly generationId: string;
+  /** Persisted provider output. A fabricated generative URI is not valid. */
+  readonly assetId: string;
+  readonly contentType?: "video/mp4";
+}
+
+export type TimelineTransitionGenerator = (
+  request: TimelineTransitionGenerationRequest
+) => Promise<TimelineTransitionGenerationResult>;
 
 /** Units a failed lookup names before it stops and points at get_state. */
 const MAX_LISTED_UNITS = 12;
@@ -326,6 +415,12 @@ export interface TimelineBridgeInitialState {
    */
   retargetFormat?: TimelineFormatRetargeter;
   /**
+   * Generate the selected-cut transition through the host's provider path.
+   * Without this seam the headless bridge refuses the action instead of
+   * claiming that an in-memory placeholder is generated media.
+   */
+  generateTransition?: TimelineTransitionGenerator;
+  /**
    * Offer `preview_timeline_frame` — a look at the layer stack at a timecode.
    * Off by default: `edit_timeline` builds this bridge too and reads its ops
    * off the `ui_timeline_` prefix, so a tool outside it would sit in that
@@ -409,6 +504,12 @@ export interface TimelineBridgeFinalState {
    * op run the same way tracks and clips do.
    */
   setup: TimelineSetup | null;
+  /** Cut-level generated candidates live outside the clip take history. */
+  transitionCandidates?: TimelineTransitionCandidate[];
+  /** Preview-only audition state for one generated cut candidate. */
+  auditionedTransitionCandidateId?: string;
+  /** Candidates explicitly applied through one undoable cut operation. */
+  appliedTransitionCandidates?: TimelineTransitionCandidate[];
   /**
    * Every tool this bridge ran, in call order, by name — failed calls
    * included, because a call that errored still happened. A document cannot
@@ -436,6 +537,7 @@ export const TIMELINE_READ_ONLY_TOOLS: readonly string[] = [
   "ui_timeline_get_state",
   "ui_timeline_list_animation_presets",
   "ui_timeline_select_clip",
+  "ui_timeline_preview_transition_candidate",
   "ui_timeline_seek",
   "preview_timeline_frame"
 ];
@@ -745,6 +847,7 @@ export function createTimelineToolBridge(
   const bakeModel3DClip = initial.bakeModel3DClip;
   const loadComposition = initial.loadComposition;
   const retargetFormat = initial.retargetFormat;
+  const generateTransition = initial.generateTransition;
   const sequenceId = initial.sequenceId ?? "seq_eval";
   const sequenceName = initial.sequenceName ?? "Sequence";
   const projectId = initial.projectId ?? "";
@@ -762,12 +865,16 @@ export function createTimelineToolBridge(
   let animSeq = 0;
   let markerSeq = 0;
   let versionSeq = 0;
+  let transitionSeq = 0;
   const tracks: TimelineTrack[] = [];
   let clips: TimelineClip[] = [];
   let markers: TimelineMarker[] = [];
   // Document-level, like markers: a track is named by `clipId`, and a clip
   // follows one through its own `trackBinding` (P0 AI Video, Phase 2).
   let mediaTracks: MediaTrack[] = [];
+  let transitionCandidates: TimelineTransitionCandidate[] = [];
+  let auditionedTransitionCandidateId: string | undefined;
+  let appliedTransitionCandidates: TimelineTransitionCandidate[] = [];
   const derivedSequences: TimelineSequence[] = [];
   let setup: TimelineSetup | null = seed?.setup
     ? structuredClone(seed.setup)
@@ -791,6 +898,198 @@ export function createTimelineToolBridge(
   const nextAnimId = () => mint("anim", () => ++animSeq);
   const nextMarkerId = () => mint("marker", () => ++markerSeq);
   const nextVersionId = () => mint("version", () => ++versionSeq);
+  const nextTransitionId = () => mint("transition", () => ++transitionSeq);
+
+  const clipEnd = (clip: TimelineClip): number =>
+    clip.startMs + clip.durationMs;
+
+  function isAmbiguousCut(
+    outgoing: TimelineClip,
+    incoming: TimelineClip
+  ): boolean {
+    const cutTimeMs = incoming.startMs;
+    return clips.some((candidate) => {
+      if (
+        candidate.id === outgoing.id ||
+        candidate.id === incoming.id ||
+        candidate.trackId !== outgoing.trackId
+      ) {
+        return false;
+      }
+      return (
+        (candidate.startMs <= cutTimeMs && clipEnd(candidate) > cutTimeMs) ||
+        candidate.startMs === cutTimeMs
+      );
+    });
+  }
+
+  function transitionSource(
+    outgoing: TimelineClip,
+    incoming: TimelineClip,
+    durationMs: number
+  ): TimelineTransitionCandidate["source"] {
+    return {
+      sequenceId,
+      outgoingClipId: outgoing.id,
+      incomingClipId: incoming.id,
+      outgoingTakeId: activeTakeIdOf(outgoing),
+      incomingTakeId: activeTakeIdOf(incoming),
+      outgoingAssetId: outgoing.currentAssetId,
+      incomingAssetId: incoming.currentAssetId,
+      outgoingTransition: outgoing.transitionIn
+        ? structuredClone(outgoing.transitionIn)
+        : undefined,
+      incomingTransition: incoming.transitionIn
+        ? structuredClone(incoming.transitionIn)
+        : undefined,
+      outgoingStartMs: outgoing.startMs,
+      outgoingDurationMs: outgoing.durationMs,
+      incomingStartMs: incoming.startMs,
+      incomingDurationMs: incoming.durationMs,
+      cutTimeMs: incoming.startMs,
+      durationMs
+    };
+  }
+
+  function assertFreshTransitionCandidate(
+    candidate: TimelineTransitionCandidate
+  ): void {
+    const outgoing = clips.find((clip) => clip.id === candidate.source.outgoingClipId);
+    const incoming = clips.find((clip) => clip.id === candidate.source.incomingClipId);
+    if (!outgoing || !incoming) {
+      throw new Error(
+        "The generated transition candidate is stale because its selected clip no longer exists."
+      );
+    }
+    if (isAmbiguousCut(outgoing, incoming)) {
+      throw new Error(
+        "The generated transition candidate is stale because the selected cut is ambiguous."
+      );
+    }
+    const source = transitionSource(outgoing, incoming, candidate.source.durationMs);
+    if (JSON.stringify(source) !== JSON.stringify(candidate.source)) {
+      throw new Error(
+        "The generated transition candidate is stale because the selected clips or cut changed."
+      );
+    }
+  }
+
+  async function createTransitionCandidate(
+    input: Record<string, unknown>
+  ): Promise<TimelineTransitionCandidate> {
+    const outgoingClipId = input.outgoingClipId as string;
+    const incomingClipId = input.incomingClipId as string;
+    const outgoing = resolveClip(outgoingClipId);
+    const incoming = resolveClip(incomingClipId);
+    if (isAmbiguousCut(outgoing, incoming)) {
+      throw new Error(
+        "The selected cut is ambiguous. Choose two adjacent clips with no other clip crossing the cut."
+      );
+    }
+    const planned = planTransitionAtCut(clips, {
+      outgoingClipId: outgoing.id,
+      incomingClipId: incoming.id,
+      durationMs: input.durationMs as number | undefined,
+      overlapMs: input.overlapMs as number | undefined,
+      type: input.type as TransitionAtCutInput["type"],
+      easing: input.easing as string | undefined,
+      color: input.color as string | undefined,
+      direction: input.direction as TransitionAtCutInput["direction"],
+      softness: input.softness as number | undefined
+    });
+    if (!planned.ok) throw new Error(planned.error);
+
+    if (!generateTransition) {
+      throw new Error(
+        "Selected-cut transition generation is unavailable because this surface has no provider generator."
+      );
+    }
+
+    const source = transitionSource(outgoing, incoming, planned.candidate.durationMs);
+    const request: TimelineTransitionCandidate["request"] = {
+      durationMs: planned.candidate.durationMs,
+      overlapMs: planned.candidate.overlapMs,
+      type: planned.candidate.type,
+      easing: input.easing as string | undefined,
+      color: input.color as string | undefined,
+      direction: input.direction as TransitionAtCutInput["direction"],
+      softness: input.softness as number | undefined
+    };
+    const generated = await generateTransition({
+      sequenceId,
+      source,
+      request
+    });
+    if (
+      generated.generationId.trim().length === 0 ||
+      generated.assetId.trim().length === 0
+    ) {
+      throw new Error(
+        "Selected-cut transition generation returned no generation id or asset."
+      );
+    }
+
+    const id = nextTransitionId();
+    const candidate: TimelineTransitionCandidate = {
+      id,
+      generationId: generated.generationId,
+      kind: "generated_transition_at_cut",
+      status: "success",
+      asset: {
+        id: generated.assetId,
+        contentType: generated.contentType ?? "video/mp4"
+      },
+      source,
+      request,
+      operation: {
+        op: "apply_generated_transition_at_cut",
+        candidateId: id,
+        outgoingClipId: outgoing.id,
+        incomingClipId: incoming.id,
+        cutTimeMs: incoming.startMs,
+        durationMs: planned.candidate.durationMs,
+        undoable: true
+      }
+    };
+    transitionCandidates = [...transitionCandidates, candidate];
+    return candidate;
+  }
+
+  function applyTransitionCandidate(candidateId: string): {
+    candidate: TimelineTransitionCandidate;
+    operation: TimelineTransitionCandidate["operation"];
+    description: string;
+  } {
+    const candidate = transitionCandidates.find((entry) => entry.id === candidateId);
+    if (!candidate) {
+      throw new Error(`No generated transition candidate named "${candidateId}" exists.`);
+    }
+    assertFreshTransitionCandidate(candidate);
+    if (appliedTransitionCandidates.some((entry) => entry.id === candidate.id)) {
+      throw new Error(`Generated transition candidate "${candidate.id}" was already applied.`);
+    }
+    const planned = planTransitionAtCut(clips, {
+      outgoingClipId: candidate.source.outgoingClipId,
+      incomingClipId: candidate.source.incomingClipId,
+      ...candidate.request
+    });
+    if (!planned.ok) throw new Error(planned.error);
+    const applied = applyTransitionAtCutCandidate(clips, planned.candidate);
+    if (!applied.ok) throw new Error(applied.error);
+    clips = applied.clips;
+    appliedTransitionCandidates = [
+      ...appliedTransitionCandidates,
+      structuredClone(candidate)
+    ];
+    if (auditionedTransitionCandidateId === candidate.id) {
+      auditionedTransitionCandidateId = undefined;
+    }
+    return {
+      candidate,
+      operation: candidate.operation,
+      description: `Apply generated transition candidate "${candidate.id}" to the selected cut as one undoable operation.`
+    };
+  }
 
   function addTrackInternal(
     type: TimelineTrack["type"],
@@ -2064,6 +2363,61 @@ export function createTimelineToolBridge(
           );
         }
         return { ok: true, clip: serializeClip(clip) };
+      }
+    ),
+
+    tool(
+      "ui_timeline_generate_transition_at_cut",
+      "Generate an inactive cut-level transition candidate for two explicitly adjacent clips. This does not change either clip or create a clip take. Preview the returned candidate before applying it.",
+      generatedTransitionCandidateParams,
+      async (args) => {
+        const candidate = await createTransitionCandidate(args);
+        return {
+          ok: true,
+          requestId: candidate.generationId,
+          generationId: candidate.generationId,
+          candidate,
+          source: candidate.source
+        };
+      }
+    ),
+
+    tool(
+      "ui_timeline_preview_transition_candidate",
+      "Audition one generated cut-level transition candidate without changing the timeline document. Refuses candidates whose selected clips, source takes, or cut are stale.",
+      transitionCandidateParams,
+      async ({ candidate_id }) => {
+        const candidate = transitionCandidates.find(
+          (entry) => entry.id === candidate_id
+        );
+        if (!candidate) {
+          throw new Error(`No generated transition candidate named "${candidate_id}" exists.`);
+        }
+        assertFreshTransitionCandidate(candidate);
+        auditionedTransitionCandidateId = candidate.id;
+        return { ok: true, previewOnly: true, candidate };
+      }
+    ),
+
+    tool(
+      "ui_timeline_apply_transition_at_cut",
+      `${APPLY_TRANSITION_AT_CUT_DESCRIPTION} With clip ids and timing, this creates an inactive cut-level candidate. Apply a returned candidate_id explicitly to commit it as one undoable operation.`,
+      transitionCandidateLifecycleParams,
+      async (args) => {
+        if (args.candidate_id !== undefined) {
+          const applied = applyTransitionCandidate(args.candidate_id as string);
+          return { ok: true, applied: true, ...applied };
+        }
+        const candidate = await createTransitionCandidate(args);
+        return {
+          ok: true,
+          applied: false,
+          requestId: candidate.generationId,
+          generationId: candidate.generationId,
+          candidate,
+          source: candidate.source,
+          next: "Preview with ui_timeline_preview_transition_candidate, then call this tool with candidate_id to apply."
+        };
       }
     ),
 
@@ -3525,6 +3879,9 @@ export function createTimelineToolBridge(
       ),
       tempo: tempo ? structuredClone(tempo) : undefined,
       setup: setup ? structuredClone(setup) : null,
+      transitionCandidates: structuredClone(transitionCandidates),
+      auditionedTransitionCandidateId,
+      appliedTransitionCandidates: structuredClone(appliedTransitionCandidates),
       toolLog: [...toolLog],
       previewTimesMs: [...previewTimesMs],
       previewedLayerKinds: [...previewedLayerKinds]
@@ -3543,6 +3900,7 @@ Use the ui_timeline_* tools to inspect and modify the sequence:
 - For motion no preset covers, animate with preset "custom" and pass curves — [{property, keyframes: [{t, value}]}], where t runs 0..1 over the animation window. list_animation_presets reports which properties a curve may drive.
 - ui_timeline_seek moves the playhead (useful before a playhead-relative split).
 - Use ui_timeline_list_tracks to inspect source-time subject tracks. ui_timeline_set_reframe_subject makes one ready track drive a clip's crop; ui_timeline_add_reframe_keyframe adds a manual source-time correction, and ui_timeline_clear_reframe removes only that framing state.
+- Generate a selected-cut transition with ui_timeline_generate_transition_at_cut. It returns an inactive cut-level candidate without changing either source clip. Audition it with ui_timeline_preview_transition_candidate, then explicitly apply it with ui_timeline_apply_transition_at_cut and the returned candidate_id. Never use a normal clip take or ordinary built-in transition as the generated result, and re-read state if the cut may have changed.
 - ui_timeline_retarget_format creates a new sequence for one target aspect ratio and leaves this sequence unchanged. Run it once per portrait, square, or other adaptation, then continue editing the returned sequence id.
 - For a played part: add a midi track, place phrases with ui_timeline_add_midi_clip (notes in ticks from the clip's content start, 960 ticks = a quarter note), rewrite them with ui_timeline_set_notes, pick the synth with ui_timeline_set_track_instrument — either a named voice ({"preset": "bass"}: saw-lead, square-lead, soft-pad, pluck, bass, bell) or every field spelled out — and set the speed once with ui_timeline_set_tempo, which rescales the midi clips and leaves picture and audio where they are.
 - Edit a phrase you already placed without resending it: ui_timeline_transpose_clip moves every note by whole semitones, ui_timeline_quantize_notes snaps onsets to a note grid (1/4, 1/8, 1/16, 1/32, 1/8T, 1/16T; strength below 1 keeps some of the feel) and reports how many notes moved, ui_timeline_scale_velocity multiplies how hard they are struck. get_state reports each midi clip's startBarsBeats, so the next phrase goes on a bar line.

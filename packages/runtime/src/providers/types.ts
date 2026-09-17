@@ -688,7 +688,11 @@ export interface ReferenceToVideoParams extends TextToVideoParams {
 export interface VideoToVideoParams {
   model: VideoModel;
   prompt?: string | null;
-  /** Consistency entities; descriptors join the prompt (text-only for video). */
+  /** Ordered identity/style images, separate from the source video. */
+  referenceImages?: readonly Uint8Array[];
+  referenceAssetIds?: readonly string[];
+  signal?: AbortSignal;
+  /** Consistency entities contribute descriptors and reference images. */
   entities?: EntityReference[] | null;
   negativePrompt?: string | null;
   strength?: number | null;

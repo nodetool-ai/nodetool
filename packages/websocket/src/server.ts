@@ -181,6 +181,7 @@ import jsScriptsRoutes from "./routes/js-scripts.js";
 import timelineAnimationRoutes from "./routes/timeline-animations.js";
 import timelineAudioBakeRoutes from "./routes/timeline-audio-bake.js";
 import timelineIsolateSubjectRoutes from "./routes/timeline-isolate-subject.js";
+import timelineTrackObjectRoutes from "./routes/timeline-track-object.js";
 import storyboardsRoutes from "./routes/storyboards.js";
 import timelinesRoutes from "./routes/timelines.js";
 import documentsRoutes from "./routes/documents.js";
@@ -1606,6 +1607,7 @@ await app.register(jsScriptsRoutes, routeOpts);
 await app.register(timelineAnimationRoutes, routeOpts);
 await app.register(timelineAudioBakeRoutes, routeOpts);
 await app.register(timelineIsolateSubjectRoutes, routeOpts);
+await app.register(timelineTrackObjectRoutes, routeOpts);
 await app.register(storyboardsRoutes, routeOpts);
 await app.register(timelinesRoutes, routeOpts);
 // PDF/DOCX text extraction for script and screenplay imports. Stores

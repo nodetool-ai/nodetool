@@ -52,6 +52,7 @@ function trackingContext(
   const owner = clip({
     id: mediaTrack.clipId,
     mediaType: "video",
+    currentAssetId: mediaTrack.sourceAssetId,
     durationMs: 10_000,
     ...ownerOverrides
   });
@@ -59,6 +60,18 @@ function trackingContext(
 }
 
 describe("resolveAnimatedLayerProps with a trackBinding", () => {
+  it.each(["changed-source", "failed", "generating", "stale"])("ignores %s tracking samples", (condition) => {
+    const bound = clip({ trackBinding: { trackId: "track_1", mode: "position" } });
+    const mediaTrack = track();
+    if (condition === "failed" || condition === "generating" || condition === "stale") {
+      mediaTrack.status = condition;
+    }
+    const props = resolveAnimatedLayerProps(
+      { clip: bound, transform: bound.transform, opacity: 1 }, 2000, CANVAS, undefined,
+      trackingContext(mediaTrack, condition === "changed-source" ? { currentAssetId: "new-source" } : {})
+    );
+    expect(props.transform).toEqual(bound.transform);
+  });
   it("offsets the transform by the track sample at the current time", () => {
     const bound = clip({
       trackBinding: { trackId: "track_1", mode: "position" }

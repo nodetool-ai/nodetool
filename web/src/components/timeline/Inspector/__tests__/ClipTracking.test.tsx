@@ -1,11 +1,12 @@
 /**
  * ClipTracking (P0 AI Video, Phase 2): the "Follow object" bind/unbind
  * controls wired to `TimelineStore.bindToTrack`/`unbindTrack`, and the
- * `track_object` starter section reporting itself as not wired up.
+ * executable `track_object` inspector action.
  */
 
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { jest } from "@jest/globals";
 import { ThemeProvider } from "@mui/material/styles";
 import { makeClip } from "@nodetool-ai/timeline";
 
@@ -16,8 +17,36 @@ import {
   useTimelineStore
 } from "../../../../stores/timeline/TimelineStore";
 
+const mockTrackObject = jest.fn();
+const mockSelection = {
+  clipId: "clip_video",
+  sourceAssetId: "asset_1",
+  sourceMs: 0,
+  region: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 }
+};
+
+jest.mock("../../../../hooks/timeline/useTrackObject", () => ({
+  useTrackObject: (...args: unknown[]) => mockTrackObject(...args)
+}));
+jest.mock("../../preview/useTrackingSelection", () => ({
+  useTrackingSelection: () => ({
+    selection: mockSelection,
+    select: jest.fn()
+  })
+}));
+
 beforeEach(() => {
   localStorage.clear();
+  mockTrackObject.mockReset();
+  mockTrackObject.mockReturnValue({
+    model: undefined,
+    modelError: null,
+    isLoadingModel: false,
+    status: "idle",
+    error: null,
+    canTrack: false,
+    start: jest.fn()
+  });
 });
 
 /** Renders and opens the (closed-by-default) collapsible section. */
@@ -68,14 +97,60 @@ function seedVideoClip(): string {
 }
 
 describe("ClipTracking on a video clip", () => {
-  it("shows the tracking starter with a disabled button and no-provider caption", () => {
+  it("refuses submission without an executable tracking model", () => {
     seedVideoClip();
     renderTracking("clip_video");
 
     expect(screen.getByTestId("track-object")).toBeDisabled();
     expect(
-      screen.getByText(/no tracking provider is configured/i)
+      screen.getByText(/no subject-tracking provider or model is available/i)
     ).toBeInTheDocument();
+  });
+
+  it("submits the selected normalized region when a model is available", async () => {
+    const start = jest.fn(
+      async (): Promise<{ status: "ready" }> => ({ status: "ready" })
+    );
+    mockTrackObject.mockReturnValue({
+      model: { id: "tracker-1", name: "Tracker", provider: "provider-1" },
+      modelError: null,
+      isLoadingModel: false,
+      status: "idle",
+      error: null,
+      canTrack: true,
+      start
+    });
+    seedVideoClip();
+    renderTracking("clip_video");
+
+    const button = screen.getByTestId("track-object");
+    expect(button).toBeEnabled();
+    await userEvent.click(button);
+
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(mockTrackObject).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "clip_video" }),
+      mockSelection
+    );
+  });
+
+  it("surfaces a provider failure and keeps submission disabled", () => {
+    mockTrackObject.mockReturnValue({
+      model: { id: "tracker-1", name: "Tracker", provider: "provider-1" },
+      modelError: null,
+      isLoadingModel: false,
+      status: "failed",
+      error: "The tracking provider rejected the source window.",
+      canTrack: false,
+      start: jest.fn()
+    });
+    seedVideoClip();
+    renderTracking("clip_video");
+
+    expect(screen.getByTestId("track-object")).toBeDisabled();
+    expect(
+      screen.getByText("The tracking provider rejected the source window.")
+    ).toHaveAttribute("role", "alert");
   });
 });
 

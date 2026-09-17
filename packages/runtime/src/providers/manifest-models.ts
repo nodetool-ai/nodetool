@@ -655,6 +655,14 @@ export function buildVideoModels(
     tasks = tasks.filter(
       (task) => !VIDEO_SOURCE_TASKS.has(task) || declaresVideoInput(n)
     );
+    const supportsEditReferences = tasks.includes("video_to_video") &&
+      declaresVideoInput(n) &&
+      referenceInputs.filter((field) => field.kind === "image").length === 1 &&
+      !referenceInputs.some((field) => field.kind === "video" && field.required);
+    tasks = tasks.filter((task) => task !== "video_to_video_reference");
+    if (supportsEditReferences) {
+      tasks.push("video_to_video_reference");
+    }
     // The direct extension contract needs explicit direction and added duration.
     // Image-conditioned continuations and endpoints with incompatible controls
     // must not appear in this task's picker.

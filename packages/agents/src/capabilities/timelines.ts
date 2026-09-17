@@ -1,13 +1,13 @@
 /**
  * The `timelines` capability module.
  *
- * Seven capabilities that used to be seven `Tool` subclasses: the five version
- * tools (`timeline-version-tools.ts`), the headless editor
- * (`timeline-edit-tools.ts`), and `validate_timeline`, which lived beside the
- * workflow tools in `../tools/mcp-tools.ts`.
+ * Timeline CRUD, versioning, editing, rendering, tracking, and native media
+ * candidate capabilities that used to live across several `Tool` subclasses.
+ * The native media actions are kept in `timeline-native-media.ts` and attached
+ * here so they share the timelines namespace and registry entry.
  *
- * Wire names, descriptions and schemas are unchanged: a belt builds all seven
- * from `timelines.specs.ts` by name.
+ * Wire names, descriptions and schemas come from `timelines.specs.ts`; the
+ * native media entries are attached here by name so the belt stays lazy.
  *
  * What was a constructor argument is now a field on the run: the tRPC-only
  * timeline loader `validate_timeline` takes is `run.loaders?.timeline`. Every
@@ -85,6 +85,7 @@ import {
 } from "@nodetool-ai/timeline";
 import type { TrackObjectInput } from "./timeline-track-object.js";
 import { clipSourceWindowMs } from "./timeline-audio-bake.js";
+import { TIMELINE_NATIVE_MEDIA_CAPABILITIES } from "./timeline-native-media.js";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
 
 import { resolveProjectId } from "./project-scope.js";
@@ -2568,9 +2569,7 @@ const isolateSubject: CapabilityExport = {
 /**
  * Follow a subject through a clip's source. The document work is
  * `trackObjectOnDocument`; everything here is the wiring it refuses to know
- * about — the sequence row and the CAS save. There is no provider runner to
- * wire in (see `notImplementedTrackObjectRunner`'s own doc comment), so this
- * call fails cleanly rather than fabricating a result.
+ * about: the sequence row, provider selection and the CAS save.
  */
 const trackObject: CapabilityExport = {
   spec: trackObjectSpec,
@@ -2633,8 +2632,13 @@ const trackObject: CapabilityExport = {
       return true;
     };
 
-    const { notImplementedTrackObjectRunner, trackObjectOnDocument } =
+    const { contextTrackObjectRunner, trackObjectOnDocument } =
       await import("./timeline-track-object.js");
+    const runner = await contextTrackObjectRunner(
+      run.context,
+      isString(params["provider"]) ? params["provider"] : undefined,
+      isString(params["model"]) ? params["model"] : undefined
+    );
 
     const input: TrackObjectInput = {
       clip,
@@ -2653,7 +2657,7 @@ const trackObject: CapabilityExport = {
       trackId
     };
     const settled = await trackObjectOnDocument(
-      { runner: notImplementedTrackObjectRunner, persist },
+      { runner, persist },
       input
     );
     if (!("status" in settled)) return settled;
@@ -2705,6 +2709,7 @@ export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   bakeAudioAnimation,
   isolateSubject,
   trackObject,
+  ...TIMELINE_NATIVE_MEDIA_CAPABILITIES,
   deleteTimeline
 ];
 

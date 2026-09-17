@@ -20,12 +20,33 @@ export const MEDIA_EDIT_MODEL_TASK = "video_to_video" as const;
 export interface MediaEditRequest {
   readonly action: typeof MEDIA_EDIT_ACTION;
   readonly modelTask: typeof MEDIA_EDIT_MODEL_TASK;
+  readonly referenceAssetIds?: readonly string[];
+  readonly entityIds?: readonly string[];
   readonly sourceContext: MediaEditSourceContext;
   readonly instruction: string;
   readonly provider: string;
   readonly model: string;
   readonly strength?: number;
   readonly resolution?: string;
+}
+
+/** Preserve legacy take snapshots when the server supplies no resolution. */
+export function withResolvedMediaEditReferences(
+  request: MediaEditRequest,
+  value: unknown
+): MediaEditRequest {
+  if (!value || typeof value !== "object" ||
+      !("referenceAssetIds" in value) || !("entityIds" in value) ||
+      !Array.isArray(value.referenceAssetIds) || !Array.isArray(value.entityIds) ||
+      !value.referenceAssetIds.every((id): id is string => typeof id === "string" && id.length > 0) ||
+      !value.entityIds.every((id): id is string => typeof id === "string" && id.length > 0)) {
+    return request;
+  }
+  return Object.freeze({
+    ...request,
+    referenceAssetIds: Object.freeze([...value.referenceAssetIds]),
+    entityIds: Object.freeze([...value.entityIds])
+  });
 }
 
 export interface MediaEditSourceContextInput {
@@ -96,7 +117,7 @@ export function mediaEditGenerateMediaData(
   if (context.sourceTakeId !== undefined) {
     sourceContext.source_take_id = context.sourceTakeId;
   }
-  return {
+  const data: Record<string, unknown> = {
     mode: request.action,
     provider: request.provider,
     model: request.model,
@@ -108,14 +129,21 @@ export function mediaEditGenerateMediaData(
     duration: Math.round(context.timelineDurationMs / 1000),
     variations: 1
   };
+  if (request.referenceAssetIds) data.reference_asset_ids = [...request.referenceAssetIds];
+  if (request.entityIds) data.entity_ids = [...request.entityIds];
+  return data;
 }
 
 /** Shared provenance payload stored on every host's accepted take record. */
 export function mediaEditTakeMetadata(
   request: MediaEditRequest,
   requestId: string
-): MediaEditRequest & { requestId: string } {
-  return { ...request, requestId };
+): NonNullable<ClipVersion["mediaEdit"]> {
+  const { referenceAssetIds, entityIds, ...snapshot } = request;
+  const metadata: NonNullable<ClipVersion["mediaEdit"]> = { ...snapshot, requestId };
+  if (referenceAssetIds) metadata.referenceAssetIds = [...referenceAssetIds];
+  if (entityIds) metadata.entityIds = [...entityIds];
+  return metadata;
 }
 
 export function createMediaEditRequest(input: {
@@ -125,6 +153,8 @@ export function createMediaEditRequest(input: {
   model: string;
   strength?: number;
   resolution?: string;
+  referenceAssetIds?: readonly string[];
+  entityIds?: readonly string[];
 }): MediaEditRequest {
   const sourceContext = Object.freeze({ ...input.sourceContext });
   const request: {
@@ -136,6 +166,8 @@ export function createMediaEditRequest(input: {
     model: string;
     strength?: number;
     resolution?: string;
+    referenceAssetIds?: readonly string[];
+    entityIds?: readonly string[];
   } = {
     action: MEDIA_EDIT_ACTION,
     modelTask: MEDIA_EDIT_MODEL_TASK,
@@ -146,6 +178,12 @@ export function createMediaEditRequest(input: {
   };
   if (input.strength !== undefined) request.strength = input.strength;
   if (input.resolution !== undefined) request.resolution = input.resolution;
+  if (input.entityIds?.length) {
+    request.entityIds = Object.freeze([...new Set(input.entityIds)]);
+  }
+  if (input.referenceAssetIds?.length) {
+    request.referenceAssetIds = Object.freeze([...new Set(input.referenceAssetIds)]);
+  }
   return Object.freeze(request);
 }
 

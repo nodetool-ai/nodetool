@@ -116,6 +116,8 @@ export const clipVersion = z.object({
     .object({
       action: z.literal("video_edit"),
       modelTask: z.literal("video_to_video"),
+      referenceAssetIds: z.array(z.string().trim().min(1)).optional(),
+      entityIds: z.array(z.string().trim().min(1)).optional(),
       requestId: z.string(),
       instruction: z.string(),
       provider: z.string(),

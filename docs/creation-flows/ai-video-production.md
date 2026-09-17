@@ -37,4 +37,3 @@ Generation records retain successful intermediate assets and candidate status. F
 The shared agent capability in [`video-production.ts`](../../packages/agents/src/capabilities/video-production.ts) exposes preparation, submission, candidate inspection, and acceptance. Preparation requires a reviewed request and a plan fingerprint. Submission consumes the captured prepared manifest rather than an edited copy. Inspection returns candidates and an explicit preview selection. Acceptance supports `use_take` and `use_draft` through the host acceptance adapter in [`video-production-acceptance.ts`](../../packages/agents/src/capabilities/video-production-acceptance.ts).
 
 Agent acceptance rechecks authorization, target revisions, candidate provenance, readiness, batch membership, and document state before applying. It does not activate generated results during submission, and it uses the same candidate and acceptance contract as the editor surfaces.
-

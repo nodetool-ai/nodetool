@@ -5,14 +5,17 @@
  * `cancelled` on abort, and never bytes on the wire.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { Prediction } from "@nodetool-ai/protocol";
 import { ProcessingContext } from "../src/context.js";
 import { BaseProvider } from "../src/providers/base-provider.js";
 import type {
   Message,
+  EncodedAudioResult,
   ProviderStreamItem,
-  TextToImageParams
+  TextToImageParams,
+  VideoModel,
+  VideoToVideoParams
 } from "../src/providers/types.js";
 import { recordGenerationReceipt } from "../src/generation-receipt.js";
 import { generationRegistry } from "../src/generation-registry.js";
@@ -36,6 +39,62 @@ class ImageProvider extends BaseProvider {
   }
 }
 
+class VideoAudioProvider extends ImageProvider {
+  constructor(private readonly audio: EncodedAudioResult) {
+    super(async () => PNG);
+  }
+
+  override async videoToAudio(): Promise<EncodedAudioResult> {
+    recordGenerationReceipt({ provider_request_id: "audio-request" });
+    return this.audio;
+  }
+
+  override async getAvailableVideoModels(): Promise<VideoModel[]> {
+    return [
+      {
+        id: "sound-model",
+        name: "Sound model",
+        provider: "fake",
+        supportedTasks: ["video_to_audio"]
+      }
+    ];
+  }
+}
+
+class VideoProvider extends ImageProvider {
+  video?: Uint8Array;
+  videoParams?: VideoToVideoParams;
+
+  constructor() {
+    super(async () => PNG);
+  }
+
+  override async videoToVideo(
+    video: Uint8Array,
+    params: VideoToVideoParams
+  ): Promise<Uint8Array> {
+    this.video = video;
+    this.videoParams = params;
+    return PNG;
+  }
+}
+
+const VIDEO_AUDIO_REQUEST = {
+  provider: "fake",
+  capability: "video_to_audio",
+  model: "sound-model",
+  params: {
+    video: new Uint8Array([1, 2, 3]),
+    source: {
+      assetId: "source-video",
+      durationSeconds: 60,
+      startSeconds: 40,
+      endSeconds: 44
+    },
+    sceneContext: "Footsteps cross a quiet room."
+  }
+} as const;
+
 function predictions(ctx: ProcessingContext): Prediction[] {
   return ctx
     .getMessages()
@@ -45,6 +104,120 @@ function predictions(ctx: ProcessingContext): Prediction[] {
 beforeEach(() => generationRegistry.reset());
 
 describe("runGeneration", () => {
+  it.each(["runGeneration", "runProviderPrediction", "videoToAudio"] as const)(
+    "%s persists encoded video audio with its MIME and emits only asset IDs",
+    async (method) => {
+      const terminal = vi.fn();
+      const ctx = new ProcessingContext({
+        jobId: "job-audio",
+        generationLifecycle: { onGenerationTerminal: terminal }
+      });
+      const audio = { data: new Uint8Array([4, 5, 6]), mimeType: "audio/wav" };
+      const created: Array<Record<string, unknown>> = [];
+      ctx.setModelInterfaces({
+        createAsset: async (args) => {
+          created.push({ ...args });
+          return { id: "audio-asset", content_type: args.contentType };
+        }
+      });
+      ctx.registerProvider("fake", new VideoAudioProvider(audio));
+      const request = {
+        ...VIDEO_AUDIO_REQUEST,
+        id: "audio-generation",
+        persist: {}
+      };
+      if (method === "runGeneration") {
+        const result = await ctx.runGeneration(request);
+        expect(result.output).toBe(audio);
+        expect(result.assets).toEqual([
+          expect.objectContaining({
+            type: "audio",
+            uri: "asset://audio-asset.wav",
+            asset_id: "audio-asset"
+          })
+        ]);
+      } else {
+        expect(await ctx[method](request)).toBe(audio);
+      }
+      expect(created).toHaveLength(1);
+      expect(created[0]).toMatchObject({
+        content: audio.data,
+        contentType: "audio/wav",
+        metadata: {
+          generation_id: request.id,
+          generation: {
+            provider: "fake",
+            model: "sound-model",
+            capability: "video_to_audio"
+          }
+        }
+      });
+      expect(created[0].name).toMatch(/\.wav$/);
+      const messages = predictions(ctx);
+      expect(messages.map((message) => message.status)).toEqual([
+        "running",
+        "completed"
+      ]);
+      expect(messages.map((message) => message.id)).toEqual([
+        request.id,
+        request.id
+      ]);
+      expect(messages.map((message) => message.data)).toEqual([null, null]);
+      expect(messages[1].asset_ids).toEqual(["audio-asset"]);
+      expect(messages[1].receipt).toEqual({
+        provider_request_id: "audio-request"
+      });
+      expect(terminal).toHaveBeenCalledExactlyOnceWith({
+        generationId: request.id,
+        request,
+        status: "completed",
+        output: audio,
+        receipt: { provider_request_id: "audio-request" },
+        assetIds: ["audio-asset"]
+      });
+      expect(await generationRegistry.wait(request.id, 10)).toMatchObject({
+        status: "completed",
+        asset_ids: ["audio-asset"]
+      });
+    }
+  );
+
+  it("keeps encoded video audio off prediction messages without persistence", async () => {
+    const ctx = new ProcessingContext({ jobId: "job-audio" });
+    const audio = { data: new Uint8Array([4, 5, 6]), mimeType: "audio/flac" };
+    ctx.registerProvider("fake", new VideoAudioProvider(audio));
+    const result = await ctx.runGeneration(VIDEO_AUDIO_REQUEST);
+    expect(result.output).toBe(audio);
+    expect(result.assets).toEqual([]);
+    expect(predictions(ctx)[1].data).toBeNull();
+    expect(predictions(ctx)[1].asset_ids).toEqual([]);
+  });
+
+  it("honors an explicit persistence MIME for encoded video audio", async () => {
+    const ctx = new ProcessingContext({ jobId: "job-audio" });
+    const created: Array<Record<string, unknown>> = [];
+    ctx.setModelInterfaces({
+      createAsset: async (args) => {
+        created.push({ ...args });
+        return { id: "audio-asset" };
+      }
+    });
+    ctx.registerProvider(
+      "fake",
+      new VideoAudioProvider({
+        data: new Uint8Array([4, 5, 6]),
+        mimeType: "audio/wav"
+      })
+    );
+    await ctx.runGeneration({
+      ...VIDEO_AUDIO_REQUEST,
+      persist: { mime: "audio/flac" }
+    });
+    expect(created).toHaveLength(1);
+    expect(created[0].contentType).toBe("audio/flac");
+    expect(created[0].name).toMatch(/\.flac$/);
+  });
+
   it("emits running then completed with one id and a job origin", async () => {
     const ctx = new ProcessingContext({ jobId: "job-1" });
     ctx.registerProvider("fake", new ImageProvider(async () => PNG));
@@ -324,5 +497,40 @@ describe("runGeneration", () => {
         params: { prompt: "x" }
       })
     ).toBe(PNG);
+  });
+
+  it("forwards video-to-video references and cancellation through the public seam", async () => {
+    const ctx = new ProcessingContext({ jobId: "job-1" });
+    const provider = new VideoProvider();
+    const callerController = new AbortController();
+    const sourceVideo = new Uint8Array([1, 2, 3]);
+    const referenceImages = [new Uint8Array([4, 5, 6])];
+    const referenceAssetIds = ["reference-asset"];
+    ctx.registerProvider("fake", provider);
+
+    const result = await ctx.runGeneration({
+      provider: "fake",
+      capability: "video_to_video",
+      model: "video-model",
+      signal: callerController.signal,
+      params: {
+        video: sourceVideo,
+        prompt: "keep the subject consistent",
+        reference_images: referenceImages,
+        reference_asset_ids: referenceAssetIds
+      }
+    });
+
+    expect(result.output).toBe(PNG);
+    expect(provider.video).toBe(sourceVideo);
+    expect(provider.videoParams).toMatchObject({
+      referenceImages,
+      referenceAssetIds
+    });
+    expect(provider.videoParams?.signal).toBeInstanceOf(AbortSignal);
+    expect(provider.videoParams?.signal?.aborted).toBe(false);
+
+    callerController.abort();
+    expect(provider.videoParams?.signal?.aborted).toBe(true);
   });
 });

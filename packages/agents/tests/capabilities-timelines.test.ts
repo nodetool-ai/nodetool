@@ -130,6 +130,11 @@ describe("timelines capability module", () => {
       "bake_audio_animation",
       "isolate_subject",
       "track_object",
+      "expand_frame",
+      "upscale_video",
+      "video_to_audio",
+      "recorded_voice_replacement",
+      "lip_sync",
       "delete_timeline"
     ]);
   });

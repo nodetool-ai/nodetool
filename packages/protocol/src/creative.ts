@@ -372,6 +372,8 @@ export type KeyframeVersion = VersionRef<ImageRef>;
 export interface MediaEditTakeMetadata {
   action: "video_edit";
   modelTask: "video_to_video";
+  referenceAssetIds?: string[];
+  entityIds?: string[];
   requestId: string;
   instruction: string;
   provider: string;

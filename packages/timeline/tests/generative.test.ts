@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { clipVersion } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import {
   captureMediaEditSourceContext,
   composeGenerativeTakePatch,
   createMediaEditRequest,
+  mediaEditGenerateMediaData,
+  mediaEditTakeMetadata,
+  withResolvedMediaEditReferences,
   planGenerativeOperation,
   takeSourceForOperation
 } from "../src/generative.js";
@@ -39,6 +43,53 @@ const track: MediaTrack = {
 };
 
 describe("generative timeline operations", () => {
+  it("keeps entity selections separate and records server-resolved references on a take", () => {
+    const source = clip();
+    const context = captureMediaEditSourceContext("sequence", source);
+    if (!context.ok) throw new Error(context.error);
+    const request = createMediaEditRequest({
+      sourceContext: context.context, instruction: "Keep entity://hero",
+      provider: "fal_ai", model: "edit", entityIds: ["hero"],
+      referenceAssetIds: ["style"]
+    });
+    expect(request.referenceAssetIds).toEqual(["style"]);
+    const references = { referenceAssetIds: ["style", "portrait"], entityIds: ["hero"] };
+    const resolved = withResolvedMediaEditReferences(request, references);
+    references.referenceAssetIds.push("changed");
+    const edited = composeGenerativeTakePatch(source, "restyle", {
+      assetId: "candidate", jobId: "job", createdAt: "2026-01-01", mediaEdit: resolved
+    });
+    expect(edited.versions?.at(-1)?.mediaEdit).toMatchObject({
+      referenceAssetIds: ["style", "portrait"], entityIds: ["hero"]
+    });
+    expect(withResolvedMediaEditReferences(request, undefined)).toBe(request);
+    expect(withResolvedMediaEditReferences(request, { referenceAssetIds: [42], entityIds: [] })).toBe(request);
+    expect(request.referenceAssetIds).toEqual(["style"]);
+  });
+  it("snapshots selected Entity and asset ids into the request and inactive take", () => {
+    const source = clip();
+    const context = captureMediaEditSourceContext("sequence", source);
+    if (!context.ok) throw new Error(context.error);
+    const references = ["reference", "entity"];
+    const entities = ["entity"];
+    const request = createMediaEditRequest({
+      sourceContext: context.context, instruction: "Keep the identity",
+      provider: "fal_ai", model: "edit", referenceAssetIds: references, entityIds: entities
+    });
+    references.push("later");
+    entities.push("recast");
+    expect(mediaEditGenerateMediaData(request)).toMatchObject({
+      reference_asset_ids: ["reference", "entity"], entity_ids: ["entity"]
+    });
+    const edited = composeGenerativeTakePatch(source, "restyle", {
+      assetId: "candidate", jobId: "job", createdAt: "2026-01-01", mediaEdit: request
+    });
+    expect(edited.currentAssetId).toBe(source.currentAssetId);
+    expect(edited.versions?.at(-1)?.mediaEdit).toEqual(mediaEditTakeMetadata(request, "job"));
+    expect(edited.versions?.at(-1)?.mediaEdit?.referenceAssetIds).toEqual(["reference", "entity"]);
+    expect(clipVersion.parse(edited.versions?.at(-1)).mediaEdit).toEqual(mediaEditTakeMetadata(request, "job"));
+    expect(source.versions).toEqual([]);
+  });
   it("captures a trimmed constant-speed source window immutably", () => {
     const result = captureMediaEditSourceContext(
       "sequence-1",
