@@ -36,6 +36,8 @@ import {
 } from "../../ui_primitives";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useImportSource } from "../../../hooks/storyboard/useImportSource";
+import { storyboardCreativeContextOf } from "../../../hooks/storyboard/directionFingerprint";
+import CreativeContextFields from "../video/CreativeContextFields";
 import {
   clearImport,
   releaseImportedStructure
@@ -61,17 +63,25 @@ export interface IdeaStepProps {
   onStartBlank: () => void;
   /** Opens the existing tutorials entry. */
   onOpenTutorial: () => void;
+  onValidationChange?: (reason: string | undefined) => void;
 }
 
 const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   boardId,
   onStartBlank,
-  onOpenTutorial
+  onOpenTutorial,
+  onValidationChange
 }) => {
   const brief = useStoryboardStore(
     (state) => state.boards[boardId]?.brief ?? ""
   );
   const setSetup = useStoryboardStore((state) => state.setSetup);
+  const creativeContext = useStoryboardStore(
+    (state) => state.boards[boardId]?.creativeContext
+  );
+  const screenplay = useStoryboardStore(
+    (state) => state.boards[boardId]?.screenplay
+  );
   const { data: examples } = useExampleStoryboards();
   const script = useScriptImport(boardId);
   const shotlist = useShotlistImport(boardId);
@@ -174,6 +184,12 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
             We&apos;ll turn it into a screenplay and storyboard.
           </Text>
         </FlexColumn>
+
+        <CreativeContextFields
+          value={creativeContext ?? storyboardCreativeContextOf(screenplay)}
+          onValidationChange={onValidationChange}
+          onChange={(value) => setSetup(boardId, { creative_context: value })}
+        />
 
         {source ? (
           <AlertBanner

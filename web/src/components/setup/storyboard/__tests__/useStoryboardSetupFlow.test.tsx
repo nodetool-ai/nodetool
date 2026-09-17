@@ -2,7 +2,13 @@
  * The storyboard flow config: three stepper entries for four stages, and a
  * last step that writes the terminal stage itself (PRD § 6.2, § 7.3).
  */
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  render,
+  renderHook,
+  screen,
+  waitFor
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -144,6 +150,42 @@ const seedScreenplay = () =>
   });
 
 describe("useStoryboardSetupFlow", () => {
+  it("persists production review and requires another review after context changes", async () => {
+    seedStepValues();
+    seedScreenplay();
+    useStoryboardStore
+      .getState()
+      .setSetup(BOARD_ID, {
+        creative_context: { schema_version: 1, tone: "Direct" }
+      });
+    const hook = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    expect(hook.result.current.steps[4].blockedReason).toContain(
+      "Production context changed"
+    );
+    await act(async () => hook.result.current.steps[2].onAdvance?.());
+    expect(hook.result.current.steps[4].canAdvance).toBe(true);
+    hook.unmount();
+    const resumed = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    expect(resumed.result.current.steps[4].canAdvance).toBe(true);
+    act(() =>
+      useStoryboardStore
+        .getState()
+        .setSetup(BOARD_ID, {
+          creative_context: { schema_version: 1, tone: "Playful" }
+        })
+    );
+    expect(resumed.result.current.steps[4].blockedReason).toContain(
+      "Production context changed"
+    );
+    await expect(resumed.result.current.steps[4].onAdvance?.()).rejects.toThrow(
+      "Production context changed"
+    );
+    expect(generate).not.toHaveBeenCalled();
+  });
   // F23: the price is beside the button, not inside its name.
   it("puts the measured render price beside the spending button", () => {
     renderPrice = "6 stills · about $0.018";
@@ -152,9 +194,7 @@ describe("useStoryboardSetupFlow", () => {
     expect(
       screen.getByRole("button", { name: "Generate your storyboard" })
     ).toBeEnabled();
-    expect(
-      screen.getByText("6 stills · about $0.018")
-    ).toBeInTheDocument();
+    expect(screen.getByText("6 stills · about $0.018")).toBeInTheDocument();
     expect(generate).not.toHaveBeenCalled();
   });
 
@@ -199,7 +239,13 @@ describe("useStoryboardSetupFlow", () => {
       id: "sp1",
       title: "",
       shots: [
-        { type: "shot", id: "s1", index: 0, action: "a lamp", status: "planned" }
+        {
+          type: "shot",
+          id: "s1",
+          index: 0,
+          action: "a lamp",
+          status: "planned"
+        }
       ]
     });
     // What a Director run over these inputs would have recorded. The run
@@ -319,8 +365,12 @@ describe("useStoryboardSetupFlow", () => {
     useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "entities" });
     renderFlow();
 
-    expect(screen.getByText("Keep people and places consistent")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Choose the look" })).toBeDisabled();
+    expect(
+      screen.getByText("Keep people and places consistent")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Choose the look" })
+    ).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Skip entities" }));
 
     expect(stageOf()).toBe("look");

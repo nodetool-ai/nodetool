@@ -31,7 +31,11 @@ jest.mock("../../../lib/websocket/lookupGenerations", () => ({
 
 import { __resetGenerationWatchesForTests } from "../../../lib/websocket/generationWatch";
 import { createTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { useDirectGenPendingStore } from "../directGenPending";
+import { compileProductionCandidates } from "@nodetool-ai/timeline";
+import {
+  useDirectGenPendingStore,
+  type PendingProductionRequest
+} from "../directGenPending";
 import { reattachSequenceJobs } from "../useTimelineDirectGenJob";
 
 const seedSequence = () => {
@@ -89,8 +93,33 @@ beforeEach(() => {
   // The watcher is module state: a poll left running by one case would fire
   // into the next one's store.
   __resetGenerationWatchesForTests();
-  useDirectGenPendingStore.setState({ pending: {}, durationSamples: {} });
+  useDirectGenPendingStore.setState({
+    pending: {},
+    durationSamples: {},
+    productionSettlements: {}
+  });
 });
+
+const productionRequests = (): PendingProductionRequest[] =>
+  compileProductionCandidates({
+    batchId: "batch-1",
+    destinationId: "c1",
+    destinationKind: "timeline_clip",
+    operation: "initial_generation",
+    prompt: "the reviewed product shot",
+    requirement: {
+      schema_version: 1,
+      speech_mode: "none",
+      requested_take_count: 3
+    },
+    routeSupport: {
+      referenceToVideo: true,
+      audioDrivenPerformance: false
+    }
+  }).map((candidate) => ({
+    ...candidate,
+    attemptId: candidate.identity.requestId
+  }));
 
 describe("reattachSequenceJobs (criterion 6)", () => {
   it("re-subscribes to a request that was in flight when the tab closed", async () => {
@@ -213,7 +242,9 @@ describe("reattachSequenceJobs (criterion 6)", () => {
     });
     await reattachSequenceJobs(store, "seq-1");
     expect(subscribeMock).not.toHaveBeenCalled();
-    expect(useDirectGenPendingStore.getState().pending["seq-1"]).toBeUndefined();
+    expect(
+      useDirectGenPendingStore.getState().pending["seq-1"]
+    ).toBeUndefined();
   });
 
   it("drops an entry too old to ever be answered", async () => {
@@ -236,6 +267,118 @@ describe("reattachSequenceJobs (criterion 6)", () => {
   });
 });
 
+describe("production candidate recovery", () => {
+  it("lands partial results by assigned variation number without activating them", async () => {
+    const store = seedSequence();
+    store.getState().patchClip("c1", {
+      status: "generated",
+      currentAssetId: "asset-accepted"
+    });
+    const candidates = productionRequests();
+    for (const production of [candidates[2], candidates[0]]) {
+      if (!production) throw new Error("Expected compiled production take.");
+      useDirectGenPendingStore.getState().remember("seq-1", {
+        clipId: "c1",
+        requestId: production.attemptId,
+        startedAt: Date.now() - 1_000,
+        bucket: "text-to-video:nodetool/kling-turbo",
+        production
+      });
+    }
+    const third = candidates[2];
+    const first = candidates[0];
+    if (!third || !first)
+      throw new Error("Expected compiled production takes.");
+    lookupMock.mockResolvedValue(
+      new Map([
+        [
+          third.attemptId,
+          {
+            requestId: third.attemptId,
+            generationId: "gen-3",
+            status: "completed",
+            assetIds: ["asset-3"],
+            error: null
+          }
+        ],
+        [
+          first.attemptId,
+          {
+            requestId: first.attemptId,
+            generationId: "gen-1",
+            status: "completed",
+            assetIds: ["asset-1"],
+            error: null
+          }
+        ]
+      ])
+    );
+
+    await reattachSequenceJobs(store, "seq-1");
+
+    const clip = store
+      .getState()
+      .clips.find((candidate) => candidate.id === "c1");
+    expect(clip?.currentAssetId).toBe("asset-accepted");
+    expect(clip?.versions?.map((version) => version.variationIndex)).toEqual([
+      1, 3
+    ]);
+    expect(
+      Object.values(
+        useDirectGenPendingStore.getState().productionSettlements
+      ).map((settlement) => settlement.status)
+    ).toEqual(["completed", "completed"]);
+  });
+
+  it("retains a completion for its local sequence and recovers it only there", async () => {
+    const destination = seedSequence();
+    const production = productionRequests()[0];
+    if (!production) throw new Error("Expected a compiled production take.");
+    useDirectGenPendingStore.getState().remember("seq-1", {
+      clipId: "c1",
+      requestId: production.attemptId,
+      startedAt: Date.now() - 1_000,
+      bucket: "text-to-video:nodetool/kling-turbo",
+      production
+    });
+    await reattachSequenceJobs(destination, "seq-1");
+    destination.getState().loadSequence({
+      id: "seq-2",
+      projectId: "p1",
+      name: "Other cut",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      durationMs: 0,
+      tracks: [],
+      clips: [],
+      markers: [],
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z"
+    });
+    handlers.get(production.attemptId)?.({
+      type: "rpc_response",
+      request_id: production.attemptId,
+      result: { asset_ids: ["asset-local"] }
+    });
+
+    expect(destination.getState().clips).toEqual([]);
+    expect(
+      useDirectGenPendingStore.getState().productionSettlements[
+        production.attemptId
+      ]?.sequenceId
+    ).toBe("seq-1");
+
+    const reopened = seedSequence();
+    await reattachSequenceJobs(reopened, "seq-1");
+    const clip = reopened
+      .getState()
+      .clips.find((candidate) => candidate.id === "c1");
+    expect(clip?.currentAssetId).toBeUndefined();
+    expect(clip?.versions?.[0]?.assetId).toBe("asset-local");
+  });
+});
+
 /**
  * Recovery across a browser reload, which re-subscribing alone cannot do.
  *
@@ -249,7 +392,11 @@ describe("reattachSequenceJobs (criterion 6)", () => {
 describe("reattach recovers a render its socket never delivered", () => {
   const settled = (
     requestId: string,
-    over: Partial<{ status: string; assetIds: string[]; error: string | null }> = {}
+    over: Partial<{
+      status: string;
+      assetIds: string[];
+      error: string | null;
+    }> = {}
   ) =>
     new Map([
       [
@@ -384,9 +531,9 @@ describe("reattach recovers a render its socket never delivered", () => {
       request_id: "req-1",
       result: { asset_ids: ["asset-late"] }
     });
-    expect(store.getState().clips.find((c) => c.id === "c1")?.currentAssetId).toBe(
-      "asset-late"
-    );
+    expect(
+      store.getState().clips.find((c) => c.id === "c1")?.currentAssetId
+    ).toBe("asset-late");
   });
 
   it("only asks about the entries whose clips the sequence still has", async () => {

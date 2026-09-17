@@ -355,7 +355,14 @@ export interface TimelineStoreState {
     patch: Partial<
       Pick<
         TimelineSetup,
-        "stage" | "brief" | "format" | "beats" | "voiceover" | "directorModel"
+        | "stage"
+        | "brief"
+        | "format"
+        | "beats"
+        | "voiceover"
+        | "directorModel"
+        | "creative_context"
+        | "production_review_fingerprint"
       >
     >
   ) => void;

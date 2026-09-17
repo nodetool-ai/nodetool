@@ -7,10 +7,7 @@ import { act, renderHook } from "@testing-library/react";
 
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import type { TimelineSetupStage } from "@nodetool-ai/timeline";
-import {
-  newVideoSetupDocument,
-  useVideoSetupFlow
-} from "../useVideoSetupFlow";
+import { newVideoSetupDocument, useVideoSetupFlow } from "../useVideoSetupFlow";
 import { readVideoSetupContext } from "../setupContext";
 
 jest.mock("../../../../lib/websocket/rpcRequest", () => ({
@@ -75,6 +72,52 @@ const seed = (
 };
 
 describe("useVideoSetupFlow (criterion 2)", () => {
+  it("requires review after creative context or production changes, including after remount", async () => {
+    seed("review", {
+      creative_context: { schema_version: 1, audience: "Travelers" },
+      beats: [{ id: "b", prompt: "Camera", duration_ms: 3000 }]
+    });
+    const hook = renderHook(() => useVideoSetupFlow());
+    expect(hook.result.current.steps[3].blockedReason).toContain("review");
+    await act(async () => hook.result.current.steps[2].onAdvance?.());
+    expect(hook.result.current.steps[3].blockedReason).not.toContain(
+      "Production context changed"
+    );
+    hook.unmount();
+    const resumed = renderHook(() => useVideoSetupFlow());
+    expect(resumed.result.current.steps[3].blockedReason).not.toContain(
+      "Production context changed"
+    );
+    act(() =>
+      useTimelineStore
+        .getState()
+        .setSetup({
+          creative_context: { schema_version: 1, audience: "Photographers" }
+        })
+    );
+    expect(resumed.result.current.steps[3].blockedReason).toContain(
+      "Production context changed"
+    );
+    await act(async () => resumed.result.current.steps[2].onAdvance?.());
+    act(() =>
+      useTimelineStore
+        .getState()
+        .updateBeat("b", {
+          production: {
+            schema_version: 1,
+            requested_take_count: 3,
+            speech_mode: "none"
+          }
+        })
+    );
+    expect(resumed.result.current.steps[3].blockedReason).toContain(
+      "Production context changed"
+    );
+    await act(async () => resumed.result.current.steps[2].onAdvance?.());
+    expect(resumed.result.current.steps[3].blockedReason).not.toContain(
+      "multiple candidates"
+    );
+  });
   it("resumes at the stage the document carries", () => {
     for (const stage of ["idea", "format", "review", "look"] as const) {
       seed(stage);

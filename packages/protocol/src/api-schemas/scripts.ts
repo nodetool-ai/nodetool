@@ -1,6 +1,9 @@
 import { z } from "zod";
-import { captionWord } from "./timeline.js";
-import { creativeContext } from "../production-authoring.js";
+import { captionWord } from "../caption-word.js";
+import {
+  creativeContext,
+  productionTakeMetadata
+} from "../production-authoring.js";
 
 // ── Cast / voices ────────────────────────────────────────────────────────────
 // A Script owns its text; audio is derived. The cast binds each speaker to a
@@ -35,6 +38,7 @@ export type Speaker = z.infer<typeof speaker>;
 // derivable without storing it.
 
 export const take = z.object({
+  ...productionTakeMetadata.shape,
   id: z.string(),
   assetId: z.string(),
   durationMs: z.number(),
@@ -120,7 +124,8 @@ export const scriptSetup = z
     length_seconds: z.number().optional(),
     pace: scriptPace.optional(),
     language: z.string().optional(),
-    writer_model: scriptWriterModel.optional()
+    writer_model: scriptWriterModel.optional(),
+    creative_context: creativeContext.optional()
   })
   .passthrough();
 export type ScriptSetup = z.infer<typeof scriptSetup>;

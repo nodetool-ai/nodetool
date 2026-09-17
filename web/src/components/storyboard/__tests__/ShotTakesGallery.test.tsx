@@ -204,6 +204,40 @@ describe("ShotTakesGallery", () => {
     expect(syncShotClipToTimelineMock).not.toHaveBeenCalled();
   });
 
+  it("previews production candidates without selecting them until Use take", async () => {
+    const candidate = {
+      ...video(1),
+      candidateId: "candidate-1",
+      productionSnapshot: { schemaVersion: 1 }
+    };
+    const shot = makeShot({
+      clip: video(2),
+      clip_versions: [candidate, video(2)]
+    });
+    seedShot(shot);
+    renderGallery(shot);
+
+    await userEvent.click(screen.getByText("Preview 1"));
+    expect(
+      useStoryboardStore
+        .getState()
+        .boards[BOARD]?.shots.find((item) => item.id === shot.id)?.clip
+    ).toEqual(video(2));
+    expect(screen.getByTestId("asset-viewer")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Use take 1" }));
+    expect(
+      useStoryboardStore
+        .getState()
+        .boards[BOARD]?.shots.find((item) => item.id === shot.id)?.clip
+    ).toEqual(candidate);
+    expect(syncShotClipToTimelineMock).toHaveBeenCalledWith(
+      BOARD,
+      shot.id,
+      "vid-1"
+    );
+  });
+
   it("opens a still take fullscreen without changing the selection", async () => {
     const shot = makeShot({
       keyframe: image(2),

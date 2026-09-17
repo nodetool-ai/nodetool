@@ -115,6 +115,12 @@ const takeRowLabelSx = { width: getSpacingPx(9), flexShrink: 0 } as const;
 const versionKey = (ref: ImageRef | VideoRef, index: number): string =>
   ref.asset_id ?? ref.uri ?? String(index);
 
+const isProductionCandidate = (value: unknown): boolean =>
+  typeof value === "object" &&
+  value !== null &&
+  "candidateId" in value &&
+  typeof value.candidateId === "string";
+
 const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
   boardId,
   shot,
@@ -167,7 +173,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
     [selectKeyframeVersion, boardId, shot.id]
   );
 
-  const handleSelectClip = useCallback(
+  const handleUseClip = useCallback(
     (index: number) => {
       selectClipVersion(boardId, shot.id, index);
       // Keep a linked, already-assembled timeline on the newly chosen take.
@@ -179,6 +185,19 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
       }
     },
     [selectClipVersion, boardId, shot.id, clips]
+  );
+
+  const handleSelectClip = useCallback(
+    (index: number) => {
+      const clip = clips[index];
+      if (!clip) return;
+      if (isProductionCandidate(clip)) {
+        setViewerMedia(clip);
+        return;
+      }
+      handleUseClip(index);
+    },
+    [clips, handleUseClip]
   );
 
   const handleRemoveStill = useCallback(
@@ -281,7 +300,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                 compact
                 clickable={!readOnly}
                 variant="outlined"
-                label={`Take ${i + 1}`}
+                label={`${isProductionCandidate(clip) ? "Preview" : "Take"} ${i + 1}`}
                 sx={{
                   borderRadius: BORDER_RADIUS.pill,
                   color: i === selectedClip ? "text.primary" : "text.secondary",
@@ -289,6 +308,14 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                 }}
                 onClick={readOnly ? undefined : () => handleSelectClip(i)}
               />
+              {isProductionCandidate(clip) && !readOnly && (
+                <EditorButton
+                  onClick={() => handleUseClip(i)}
+                  aria-label={`Use take ${i + 1}`}
+                >
+                  Use
+                </EditorButton>
+              )}
               {!readOnly && (
                 <ToolbarIconButton
                   icon={<DeleteOutlineIcon sx={{ fontSize: "1em" }} />}

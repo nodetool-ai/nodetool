@@ -26,7 +26,10 @@ import type {
   ShotStatus,
   VideoRef
 } from "@nodetool-ai/protocol";
-import type { MediaEditRequest } from "@nodetool-ai/timeline";
+import type {
+  CompiledProductionCandidate,
+  MediaEditRequest
+} from "@nodetool-ai/timeline";
 import { mediaEditTakeMetadata, withResolvedMediaEditReferences } from "@nodetool-ai/timeline";
 import { currentRenderInputs, stampRenderInputs } from "@nodetool-ai/protocol";
 import {
@@ -81,6 +84,8 @@ export interface ShotJobState {
   mediaEdit?: MediaEditRequest;
   /** Status of the accepted shot before a media edit started. */
   acceptedShotStatus?: ShotStatus;
+  /** Immutable production candidate captured before provider dispatch. */
+  production?: CompiledProductionCandidate;
 }
 
 /**
@@ -106,6 +111,7 @@ export interface DirectShotJobContext {
   kind: ShotJobKind;
   mediaEdit?: MediaEditRequest;
   acceptedShotStatus?: ShotStatus;
+  production?: CompiledProductionCandidate;
 }
 
 /**
@@ -124,6 +130,7 @@ export interface PendingShotJob {
   renderInputs?: RenderInputs;
   mediaEdit?: MediaEditRequest;
   acceptedShotStatus?: ShotStatus;
+  production?: CompiledProductionCandidate;
 }
 
 /** The wire shape of a `generate_media` reply. */
@@ -137,6 +144,8 @@ interface DirectGenRpcResponse extends WebSocketMessage {
 interface StoryboardGenerationStoreState {
   /** shotId → active job state */
   shotJobs: Record<string, ShotJobState>;
+  /** requestId → production candidate job; ordinary jobs remain shot-keyed. */
+  productionJobs: Record<string, ShotJobState>;
   /** jobId → shotId (reverse lookup for incoming job events) */
   jobToShot: Record<string, string>;
 
@@ -172,7 +181,8 @@ interface StoryboardGenerationStoreState {
     kind: ShotJobKind,
     render?: ShotRenderContext,
     mediaEdit?: MediaEditRequest,
-    acceptedShotStatus?: ShotStatus
+    acceptedShotStatus?: ShotStatus,
+    production?: CompiledProductionCandidate
   ) => void;
   updateJobStatus: (
     jobId: string,
@@ -244,14 +254,14 @@ const deriveMembership = (
 
 // ── Pending-job persistence ──────────────────────────────────────────────────
 
-/** Replace a board's entry for one shot — a shot has one request at a time. */
+/** Add a production request, or replace the ordinary request for one shot. */
 const withPendingJob = (
   pendingJobs: Record<string, PendingShotJob[]>,
   boardId: string,
   entry: PendingShotJob
 ): Record<string, PendingShotJob[]> => {
-  const others = (pendingJobs[boardId] ?? []).filter(
-    (job) => job.shotId !== entry.shotId
+  const others = (pendingJobs[boardId] ?? []).filter((job) =>
+    entry.production ? job.jobId !== entry.jobId : job.shotId !== entry.shotId
   );
   return {
     ...pendingJobs,
@@ -263,13 +273,16 @@ const withPendingJob = (
 const withoutPendingJob = (
   pendingJobs: Record<string, PendingShotJob[]>,
   boardId: string,
-  shotId: string
+  shotId: string,
+  requestId?: string
 ): Record<string, PendingShotJob[]> => {
   const existing = pendingJobs[boardId];
   if (!existing) {
     return pendingJobs;
   }
-  const next = existing.filter((job) => job.shotId !== shotId);
+  const next = existing.filter((job) =>
+    requestId ? job.jobId !== requestId : job.shotId !== shotId
+  );
   if (next.length === existing.length) {
     return pendingJobs;
   }
@@ -366,342 +379,439 @@ const notifyShotFailure = (job: ShotJobState): void => {
 
 // ── Store ────────────────────────────────────────────────────────────────────
 
-export const useStoryboardGenerationStore = create<StoryboardGenerationStoreState>()(
-  persist(
-    (set, get) => ({
-      shotJobs: {},
-      jobToShot: {},
-      generatingShotIds: [],
-      failedShotIds: [],
-      pendingJobs: {},
-      durationSamples: {},
+export const useStoryboardGenerationStore =
+  create<StoryboardGenerationStoreState>()(
+    persist(
+      (set, get) => ({
+        shotJobs: {},
+        productionJobs: {},
+        jobToShot: {},
+        generatingShotIds: [],
+        failedShotIds: [],
+        pendingJobs: {},
+        durationSamples: {},
 
-      restorePendingJobs: (boardId) => {
-        const board = useStoryboardStore.getState().getBoard(boardId);
-        const shotIds = new Set((board?.shots ?? []).map((shot) => shot.id));
-        const kept = (get().pendingJobs[boardId] ?? []).filter(
-          (job) => shotIds.has(job.shotId)
-        );
-        // A shot whose row is already live kept its subscription through the
-        // remount; only the ones this session has no row for are restored.
-        const restored = kept.filter((job) => !get().shotJobs[job.shotId]);
-        set((state) => {
-          const nextShotJobs = { ...state.shotJobs };
-          const nextJobToShot = { ...state.jobToShot };
-          for (const job of restored) {
-            const row: ShotJobState = {
-              shotId: job.shotId,
-              boardId,
-              jobId: job.jobId,
-              kind: job.kind,
-              status: "running",
-              startedAt: job.startedAt,
-              progress: 0
-            };
-            if (job.renderInputs) {
-              row.renderInputs = job.renderInputs;
-            }
-            if (job.mediaEdit) {
-              row.mediaEdit = job.mediaEdit;
-            }
-            if (job.acceptedShotStatus) {
-              row.acceptedShotStatus = job.acceptedShotStatus;
-            }
-            nextShotJobs[job.shotId] = row;
-            nextJobToShot[job.jobId] = job.shotId;
-          }
-          const nextPending = { ...state.pendingJobs };
-          if (kept.length === 0) {
-            delete nextPending[boardId];
-          } else {
-            nextPending[boardId] = kept;
-          }
-          return {
-            shotJobs: nextShotJobs,
-            jobToShot: nextJobToShot,
-            pendingJobs: nextPending,
-            ...deriveMembership(nextShotJobs, state)
-          };
-        });
-        const storyboard = useStoryboardStore.getState();
-        for (const job of restored) {
-          storyboard.setShotStatus(
-            boardId,
-            job.shotId,
-            job.kind === "keyframe" ? "keyframe_generating" : "clip_generating"
+        restorePendingJobs: (boardId) => {
+          const board = useStoryboardStore.getState().getBoard(boardId);
+          const shotIds = new Set((board?.shots ?? []).map((shot) => shot.id));
+          const kept = (get().pendingJobs[boardId] ?? []).filter((job) =>
+            shotIds.has(job.shotId)
           );
-        }
-        return restored;
-      },
+          // A shot whose row is already live kept its subscription through the
+          // remount; only the ones this session has no row for are restored.
+          const restored = kept.filter((job) =>
+            job.production
+              ? !get().productionJobs[job.jobId]
+              : !get().shotJobs[job.shotId]
+          );
+          set((state) => {
+            const nextShotJobs = { ...state.shotJobs };
+            const nextProductionJobs = { ...state.productionJobs };
+            const nextJobToShot = { ...state.jobToShot };
+            for (const job of restored) {
+              const row: ShotJobState = {
+                shotId: job.shotId,
+                boardId,
+                jobId: job.jobId,
+                kind: job.kind,
+                status: "running",
+                startedAt: job.startedAt,
+                progress: 0
+              };
+              if (job.renderInputs) {
+                row.renderInputs = job.renderInputs;
+              }
+              if (job.mediaEdit) {
+                row.mediaEdit = job.mediaEdit;
+              }
+              if (job.acceptedShotStatus) {
+                row.acceptedShotStatus = job.acceptedShotStatus;
+              }
+              if (job.production) {
+                row.production = job.production;
+                nextProductionJobs[job.jobId] = row;
+                if (!nextShotJobs[job.shotId]) {
+                  nextShotJobs[job.shotId] = row;
+                }
+              } else {
+                nextShotJobs[job.shotId] = row;
+              }
+              nextJobToShot[job.jobId] = job.shotId;
+            }
+            const nextPending = { ...state.pendingJobs };
+            if (kept.length === 0) {
+              delete nextPending[boardId];
+            } else {
+              nextPending[boardId] = kept;
+            }
+            return {
+              shotJobs: nextShotJobs,
+              productionJobs: nextProductionJobs,
+              jobToShot: nextJobToShot,
+              pendingJobs: nextPending,
+              ...deriveMembership(nextShotJobs, state)
+            };
+          });
+          const storyboard = useStoryboardStore.getState();
+          for (const job of restored) {
+            storyboard.setShotStatus(
+              boardId,
+              job.shotId,
+              job.kind === "keyframe"
+                ? "keyframe_generating"
+                : "clip_generating"
+            );
+          }
+          return restored;
+        },
 
-      registerJob: (
-        shotId,
-        boardId,
-        jobId,
-        kind,
-        render,
-        mediaEdit,
-        acceptedShotStatus
-      ) => {
-        const startedAt = Date.now();
-        // A direct request has no server queue: it is in flight the moment it
-        // is sent, so it registers as running rather than queued.
-        const jobState: ShotJobState = {
+        registerJob: (
           shotId,
           boardId,
           jobId,
           kind,
-          status: "running",
-          startedAt,
-          progress: 0
-        };
-        if (mediaEdit) {
-          jobState.mediaEdit = mediaEdit;
-        }
-        if (acceptedShotStatus) {
-          jobState.acceptedShotStatus = acceptedShotStatus;
-        }
-        // Taken here, not when the asset lands: a render that finishes after a
-        // style change has to carry the inputs it was started with, or it would
-        // read current against a board it never saw (PRD § 7.7.4).
-        if (render) {
-          jobState.renderInputs = stampRenderInputs(
-            currentRenderInputs(render.shot, render.board, kind)
-          );
-        }
-        const pending: PendingShotJob = {
-          shotId,
-          jobId,
-          kind,
-          startedAt
-        };
-        if (jobState.renderInputs) {
-          pending.renderInputs = jobState.renderInputs;
-        }
-        if (mediaEdit) {
-          pending.mediaEdit = mediaEdit;
-        }
-        if (acceptedShotStatus) {
-          pending.acceptedShotStatus = acceptedShotStatus;
-        }
-        set((state) => {
-          const nextShotJobs = { ...state.shotJobs, [shotId]: jobState };
-          const nextJobToShot = { ...state.jobToShot, [jobId]: shotId };
-          const previous = state.shotJobs[shotId];
-          if (previous && previous.jobId !== jobId) {
-            delete nextJobToShot[previous.jobId];
-          }
-          return {
-            shotJobs: nextShotJobs,
-            jobToShot: nextJobToShot,
-            pendingJobs: withPendingJob(state.pendingJobs, boardId, pending),
-            ...deriveMembership(nextShotJobs, state)
-          };
-        });
-        useStoryboardStore
-          .getState()
-          .setShotStatus(
-            boardId,
+          render,
+          mediaEdit,
+          acceptedShotStatus,
+          production
+        ) => {
+          const startedAt = Date.now();
+          // A direct request has no server queue: it is in flight the moment it
+          // is sent, so it registers as running rather than queued.
+          const jobState: ShotJobState = {
             shotId,
-            kind === "keyframe" ? "keyframe_generating" : "clip_generating"
-          );
-      },
-
-      updateJobStatus: (jobId, status, extra) => {
-        const { jobToShot, shotJobs } = get();
-        const shotId = jobToShot[jobId];
-        if (!shotId) {
-          return;
-        }
-        const existing = shotJobs[shotId];
-        if (!existing) {
-          return;
-        }
-
-        // A completed job may legitimately carry no assetId: inline `data`
-        // outputs are usable media refs that were already written to the shot.
-        // Success is decided by the message handler (usable ref or not) — do
-        // NOT reclassify completed-without-asset as failed here, or the
-        // ready/rendered status just written gets overwritten.
-        const updated: ShotJobState = {
-          ...existing,
-          status,
-          ...extra
-        };
-
-        // The bucket a finished render measures: the model it actually ran
-        // with, taken from the record stamped at enqueue. A render started
-        // without board context (a clip revision) measures nothing rather
-        // than filing its duration under an unknown model.
-        const measuredKey =
-          status === "completed" && existing.renderInputs && existing.startedAt
-            ? durationBucketKey(existing.kind, existing.renderInputs.model)
-            : null;
-        const elapsedMs = Date.now() - (existing.startedAt ?? 0);
-
-        set((state) => {
-          const nextShotJobs = { ...state.shotJobs, [shotId]: updated };
-          return {
-            shotJobs: nextShotJobs,
-            // The request settled either way: it is no longer something a
-            // reopened board should re-subscribe to.
-            pendingJobs: withoutPendingJob(
-              state.pendingJobs,
-              existing.boardId,
-              shotId
-            ),
-            durationSamples: measuredKey
-              ? withDurationSample(
-                  state.durationSamples,
-                  measuredKey,
-                  elapsedMs
-                )
-              : state.durationSamples,
-            ...deriveMembership(nextShotJobs, state)
+            boardId,
+            jobId,
+            kind,
+            status: "running",
+            startedAt,
+            progress: 0
           };
-        });
-
-        if (status === "failed" && !existing.mediaEdit) {
+          if (mediaEdit) {
+            jobState.mediaEdit = mediaEdit;
+          }
+          if (acceptedShotStatus) {
+            jobState.acceptedShotStatus = acceptedShotStatus;
+          }
+          if (production) {
+            jobState.production = production;
+          }
+          // Taken here, not when the asset lands: a render that finishes after a
+          // style change has to carry the inputs it was started with, or it would
+          // read current against a board it never saw (PRD § 7.7.4).
+          if (render) {
+            jobState.renderInputs = stampRenderInputs(
+              currentRenderInputs(render.shot, render.board, kind)
+            );
+          }
+          const pending: PendingShotJob = {
+            shotId,
+            jobId,
+            kind,
+            startedAt
+          };
+          if (jobState.renderInputs) {
+            pending.renderInputs = jobState.renderInputs;
+          }
+          if (mediaEdit) {
+            pending.mediaEdit = mediaEdit;
+          }
+          if (acceptedShotStatus) {
+            pending.acceptedShotStatus = acceptedShotStatus;
+          }
+          if (production) {
+            pending.production = production;
+          }
+          set((state) => {
+            const nextShotJobs = {
+              ...state.shotJobs,
+              [shotId]: state.shotJobs[shotId]?.production
+                ? state.shotJobs[shotId]
+                : jobState
+            };
+            const nextProductionJobs = production
+              ? { ...state.productionJobs, [jobId]: jobState }
+              : state.productionJobs;
+            const nextJobToShot = { ...state.jobToShot, [jobId]: shotId };
+            const previous = state.shotJobs[shotId];
+            if (previous && previous.jobId !== jobId && !production) {
+              delete nextJobToShot[previous.jobId];
+            }
+            return {
+              shotJobs: nextShotJobs,
+              productionJobs: nextProductionJobs,
+              jobToShot: nextJobToShot,
+              pendingJobs: withPendingJob(state.pendingJobs, boardId, pending),
+              ...deriveMembership(nextShotJobs, state)
+            };
+          });
           useStoryboardStore
             .getState()
-            .setShotStatus(existing.boardId, shotId, "failed");
-          notifyShotFailure(updated);
-        } else if (status === "failed" && existing.mediaEdit) {
-          const shot = useStoryboardStore
-            .getState()
-            .getBoard(existing.boardId)
-            ?.shots.find((candidate) => candidate.id === shotId);
-          if (shot) {
-            useStoryboardStore
-              .getState()
-              .setShotStatus(
+            .setShotStatus(
+              boardId,
+              shotId,
+              kind === "keyframe" ? "keyframe_generating" : "clip_generating"
+            );
+        },
+
+        updateJobStatus: (jobId, status, extra) => {
+          const { jobToShot, shotJobs, productionJobs } = get();
+          const shotId = jobToShot[jobId];
+          if (!shotId) {
+            return;
+          }
+          const existing = productionJobs[jobId] ?? shotJobs[shotId];
+          if (!existing) {
+            return;
+          }
+
+          // A completed job may legitimately carry no assetId: inline `data`
+          // outputs are usable media refs that were already written to the shot.
+          // Success is decided by the message handler (usable ref or not) — do
+          // NOT reclassify completed-without-asset as failed here, or the
+          // ready/rendered status just written gets overwritten.
+          const updated: ShotJobState = {
+            ...existing,
+            status,
+            ...extra
+          };
+
+          // The bucket a finished render measures: the model it actually ran
+          // with, taken from the record stamped at enqueue. A render started
+          // without board context (a clip revision) measures nothing rather
+          // than filing its duration under an unknown model.
+          const measuredKey =
+            status === "completed" &&
+            existing.renderInputs &&
+            existing.startedAt
+              ? durationBucketKey(existing.kind, existing.renderInputs.model)
+              : null;
+          const elapsedMs = Date.now() - (existing.startedAt ?? 0);
+
+          set((state) => {
+            const nextProductionJobs = existing.production
+              ? { ...state.productionJobs, [jobId]: updated }
+              : state.productionJobs;
+            const activeSibling = Object.values(nextProductionJobs).find(
+              (candidate) =>
+                candidate.shotId === shotId &&
+                candidate.jobId !== jobId &&
+                isActiveStatus(candidate.status)
+            );
+            const nextShotJobs = {
+              ...state.shotJobs,
+              [shotId]: activeSibling ?? updated
+            };
+            return {
+              shotJobs: nextShotJobs,
+              productionJobs: nextProductionJobs,
+              // The request settled either way: it is no longer something a
+              // reopened board should re-subscribe to.
+              pendingJobs: withoutPendingJob(
+                state.pendingJobs,
                 existing.boardId,
                 shotId,
-                existing.acceptedShotStatus ??
-                  (shot.clip ? "rendered" : "keyframe_ready")
-              );
-          }
-          notifyShotFailure(updated);
-        }
-      },
+                existing.production ? jobId : undefined
+              ),
+              durationSamples: measuredKey
+                ? withDurationSample(
+                    state.durationSamples,
+                    measuredKey,
+                    elapsedMs
+                  )
+                : state.durationSamples,
+              ...deriveMembership(nextShotJobs, state)
+            };
+          });
 
-      updateJobProgress: (jobId, progress) => {
-        const { jobToShot, shotJobs } = get();
-        const shotId = jobToShot[jobId];
-        if (!shotId) {
-          return;
-        }
-        const existing = shotJobs[shotId];
-        if (!existing) {
-          return;
-        }
-        const safeProgress = Math.max(0, Math.min(100, progress));
-        set((state) => ({
-          shotJobs: {
-            ...state.shotJobs,
-            [shotId]: { ...existing, progress: safeProgress }
-          }
-        }));
-      },
-
-      recordStartFailure: (
-        shotId,
-        boardId,
-        kind,
-        errorMessage,
-        mediaEdit,
-        acceptedShotStatus
-      ) => {
-        const jobState: ShotJobState = {
-          shotId,
-          boardId,
-          // No job was created, so there is nothing to subscribe to or cancel.
-          // The id only keys the reverse lookup, which nothing will hit.
-          jobId: `unstarted:${shotId}`,
-          kind,
-          status: "failed",
-          startedAt: Date.now(),
-          errorMessage
-        };
-        if (mediaEdit) {
-          jobState.mediaEdit = mediaEdit;
-        }
-        if (acceptedShotStatus) {
-          jobState.acceptedShotStatus = acceptedShotStatus;
-        }
-        set((state) => {
-          const nextShotJobs = { ...state.shotJobs, [shotId]: jobState };
-          const nextJobToShot = { ...state.jobToShot };
-          const previous = state.shotJobs[shotId];
-          if (previous) {
-            delete nextJobToShot[previous.jobId];
-          }
-          nextJobToShot[jobState.jobId] = shotId;
-          return {
-            shotJobs: nextShotJobs,
-            jobToShot: nextJobToShot,
-            // Nothing was sent, so there is nothing to reattach to on reopen.
-            pendingJobs: withoutPendingJob(state.pendingJobs, boardId, shotId),
-            ...deriveMembership(nextShotJobs, state)
-          };
-        });
-        if (mediaEdit) {
-          const shot = useStoryboardStore
-            .getState()
-            .getBoard(boardId)
-            ?.shots.find((candidate) => candidate.id === shotId);
-          if (shot) {
+          if (status === "failed" && existing.production) {
+            const shot = useStoryboardStore
+              .getState()
+              .getBoard(existing.boardId)
+              ?.shots.find((candidate) => candidate.id === shotId);
+            if (shot) {
+              useStoryboardStore
+                .getState()
+                .setShotStatus(
+                  existing.boardId,
+                  shotId,
+                  existing.acceptedShotStatus ??
+                    (shot.clip
+                      ? "rendered"
+                      : shot.keyframe
+                        ? "keyframe_ready"
+                        : "planned")
+                );
+            }
+            notifyShotFailure(updated);
+          } else if (status === "failed" && !existing.mediaEdit) {
             useStoryboardStore
               .getState()
-              .setShotStatus(
-                boardId,
-                shotId,
-                acceptedShotStatus ?? (shot.clip ? "rendered" : "keyframe_ready")
-              );
+              .setShotStatus(existing.boardId, shotId, "failed");
+            notifyShotFailure(updated);
+          } else if (status === "failed" && existing.mediaEdit) {
+            const shot = useStoryboardStore
+              .getState()
+              .getBoard(existing.boardId)
+              ?.shots.find((candidate) => candidate.id === shotId);
+            if (shot) {
+              useStoryboardStore
+                .getState()
+                .setShotStatus(
+                  existing.boardId,
+                  shotId,
+                  existing.acceptedShotStatus ??
+                    (shot.clip ? "rendered" : "keyframe_ready")
+                );
+            }
+            notifyShotFailure(updated);
           }
-        } else {
-          useStoryboardStore
-            .getState()
-            .setShotStatus(boardId, shotId, "failed");
-        }
-        notifyShotFailure(jobState);
-      },
+        },
 
-      clear: (shotId) => {
-        const { shotJobs, jobToShot } = get();
-        const jobState = shotJobs[shotId];
-        if (!jobState) {
-          return;
+        updateJobProgress: (jobId, progress) => {
+          const { jobToShot, shotJobs, productionJobs } = get();
+          const shotId = jobToShot[jobId];
+          if (!shotId) {
+            return;
+          }
+          const existing = productionJobs[jobId] ?? shotJobs[shotId];
+          if (!existing) {
+            return;
+          }
+          const safeProgress = Math.max(0, Math.min(100, progress));
+          set((state) => {
+            const updated = { ...existing, progress: safeProgress };
+            if (existing.production) {
+              return {
+                productionJobs: {
+                  ...state.productionJobs,
+                  [jobId]: updated
+                },
+                ...(state.shotJobs[shotId]?.jobId === jobId && {
+                  shotJobs: { ...state.shotJobs, [shotId]: updated }
+                })
+              };
+            }
+            return {
+              shotJobs: { ...state.shotJobs, [shotId]: updated }
+            };
+          });
+        },
+
+        recordStartFailure: (
+          shotId,
+          boardId,
+          kind,
+          errorMessage,
+          mediaEdit,
+          acceptedShotStatus
+        ) => {
+          const jobState: ShotJobState = {
+            shotId,
+            boardId,
+            // No job was created, so there is nothing to subscribe to or cancel.
+            // The id only keys the reverse lookup, which nothing will hit.
+            jobId: `unstarted:${shotId}`,
+            kind,
+            status: "failed",
+            startedAt: Date.now(),
+            errorMessage
+          };
+          if (mediaEdit) {
+            jobState.mediaEdit = mediaEdit;
+          }
+          if (acceptedShotStatus) {
+            jobState.acceptedShotStatus = acceptedShotStatus;
+          }
+          set((state) => {
+            const nextShotJobs = { ...state.shotJobs, [shotId]: jobState };
+            const nextJobToShot = { ...state.jobToShot };
+            const previous = state.shotJobs[shotId];
+            if (previous) {
+              delete nextJobToShot[previous.jobId];
+            }
+            nextJobToShot[jobState.jobId] = shotId;
+            return {
+              shotJobs: nextShotJobs,
+              jobToShot: nextJobToShot,
+              // Nothing was sent, so there is nothing to reattach to on reopen.
+              pendingJobs: withoutPendingJob(
+                state.pendingJobs,
+                boardId,
+                shotId
+              ),
+              ...deriveMembership(nextShotJobs, state)
+            };
+          });
+          if (mediaEdit) {
+            const shot = useStoryboardStore
+              .getState()
+              .getBoard(boardId)
+              ?.shots.find((candidate) => candidate.id === shotId);
+            if (shot) {
+              useStoryboardStore
+                .getState()
+                .setShotStatus(
+                  boardId,
+                  shotId,
+                  acceptedShotStatus ??
+                    (shot.clip ? "rendered" : "keyframe_ready")
+                );
+            }
+          } else {
+            useStoryboardStore
+              .getState()
+              .setShotStatus(boardId, shotId, "failed");
+          }
+          notifyShotFailure(jobState);
+        },
+
+        clear: (shotId) => {
+          const { shotJobs, jobToShot, productionJobs } = get();
+          const jobState = shotJobs[shotId];
+          const productionForShot = Object.values(productionJobs).filter(
+            (job) => job.shotId === shotId
+          );
+          if (!jobState && productionForShot.length === 0) {
+            return;
+          }
+          const nextJobToShot = { ...jobToShot };
+          if (jobState) {
+            delete nextJobToShot[jobState.jobId];
+          }
+          const nextProductionJobs = { ...productionJobs };
+          for (const job of productionForShot) {
+            delete nextJobToShot[job.jobId];
+            delete nextProductionJobs[job.jobId];
+          }
+          const nextShotJobs = { ...shotJobs };
+          delete nextShotJobs[shotId];
+          set((state) => ({
+            shotJobs: nextShotJobs,
+            productionJobs: nextProductionJobs,
+            jobToShot: nextJobToShot,
+            pendingJobs: withoutPendingJob(
+              state.pendingJobs,
+              jobState?.boardId ?? productionForShot[0]?.boardId ?? "",
+              shotId
+            ),
+            ...deriveMembership(nextShotJobs, state)
+          }));
         }
-        const nextJobToShot = { ...jobToShot };
-        delete nextJobToShot[jobState.jobId];
-        const nextShotJobs = { ...shotJobs };
-        delete nextShotJobs[shotId];
-        set((state) => ({
-          shotJobs: nextShotJobs,
-          jobToShot: nextJobToShot,
-          pendingJobs: withoutPendingJob(
-            state.pendingJobs,
-            jobState.boardId,
-            shotId
-          ),
-          ...deriveMembership(nextShotJobs, state)
-        }));
+      }),
+      {
+        name: "nodetool-storyboard-generation",
+        version: 1,
+        storage: createJSONStorage(() => localStorage),
+        // Only the two facts that must survive a reload: what was in flight, and
+        // what past renders took. Live rows are rebuilt from `pendingJobs`.
+        partialize: (state) => ({
+          pendingJobs: state.pendingJobs,
+          durationSamples: state.durationSamples
+        })
       }
-    }),
-    {
-      name: "nodetool-storyboard-generation",
-      version: 1,
-      storage: createJSONStorage(() => localStorage),
-      // Only the two facts that must survive a reload: what was in flight, and
-      // what past renders took. Live rows are rebuilt from `pendingJobs`.
-      partialize: (state) => ({
-        pendingJobs: state.pendingJobs,
-        durationSamples: state.durationSamples
-      })
-    }
-  )
-);
+    )
+  );
 
 // ── WebSocket request machinery ──────────────────────────────────────────────
 
@@ -726,9 +836,11 @@ export const settleCancelledShotJob = (shotId: string): void => {
     // Media edits are candidates. Keep the terminal row and its captured
     // inputs so the card can inspect and retry the cancelled revision, while
     // removing only the active subscription.
-    useStoryboardGenerationStore.getState().updateJobStatus(job.jobId, "failed", {
-      errorMessage: "Revision cancelled."
-    });
+    useStoryboardGenerationStore
+      .getState()
+      .updateJobStatus(job.jobId, "failed", {
+        errorMessage: "Revision cancelled."
+      });
     unsubscribeShotJob(job.jobId);
     return;
   }
@@ -788,6 +900,55 @@ const settleShotAsset = (
   requestId?: string
 ): void => {
   const storyboard = useStoryboardStore.getState();
+  if (context.production) {
+    const production = context.production;
+    const candidate: ClipVersion & {
+      candidateId: string;
+      batchId: string;
+      requestId: string;
+      variationId: string;
+      variationIndex: number;
+      productionSnapshot: CompiledProductionCandidate["snapshot"];
+    } = {
+      ...(ref as VideoRef),
+      candidateId: production.identity.candidateId,
+      batchId: production.identity.batchId,
+      requestId: production.identity.requestId,
+      variationId: production.identity.variationId,
+      variationIndex: production.identity.variationIndex,
+      productionSnapshot: production.snapshot
+    };
+    if (renderInputs) {
+      candidate.render_inputs = renderInputs;
+    }
+    storyboard.appendShotClipVersion(
+      context.boardId,
+      context.shotId,
+      candidate
+    );
+    const shot = storyboard
+      .getBoard(context.boardId)
+      ?.shots.find((item) => item.id === context.shotId);
+    if (!shot) return;
+    const versions = [...(shot.clip_versions ?? [])].sort((left, right) => {
+      const leftIndex =
+        "variationIndex" in left && typeof left.variationIndex === "number"
+          ? left.variationIndex
+          : Number.MAX_SAFE_INTEGER;
+      const rightIndex =
+        "variationIndex" in right && typeof right.variationIndex === "number"
+          ? right.variationIndex
+          : Number.MAX_SAFE_INTEGER;
+      return leftIndex - rightIndex;
+    });
+    storyboard.updateShot(context.boardId, context.shotId, {
+      clip_versions: versions,
+      status:
+        context.acceptedShotStatus ??
+        (shot.clip ? "rendered" : shot.keyframe ? "keyframe_ready" : "planned")
+    });
+    return;
+  }
   if (context.mediaEdit) {
     const candidate: ClipVersion = {
       type: "video",
@@ -852,7 +1013,10 @@ const settleDirectShotJob = (
   outcome: { assetIds: readonly string[]; errorMessage: string; mediaEditReferences?: unknown }
 ): void => {
   const generationStore = useStoryboardGenerationStore.getState();
-  if (generationStore.shotJobs[context.shotId]?.jobId !== requestId) {
+  const trackedJob = context.production
+    ? generationStore.productionJobs[requestId]
+    : generationStore.shotJobs[context.shotId];
+  if (trackedJob?.jobId !== requestId) {
     unsubscribeShotJob(requestId);
     return;
   }
@@ -875,7 +1039,7 @@ const settleDirectShotJob = (
   // The record was stamped at enqueue; the job row still holds it here,
   // before `clear` drops the row. Match on the request id so a row that a
   // newer render already replaced does not lend its record to this one.
-  const job = generationStore.shotJobs[context.shotId];
+  const job = trackedJob;
   settleShotAsset(
     context.mediaEdit ? {
       ...context,
@@ -887,7 +1051,9 @@ const settleDirectShotJob = (
     requestId
   );
   generationStore.updateJobStatus(requestId, "completed", { assetId });
-  generationStore.clear(context.shotId);
+  if (!context.production) {
+    generationStore.clear(context.shotId);
+  }
   unsubscribeShotJob(requestId);
 };
 
@@ -907,7 +1073,9 @@ const handleShotJobMessage = (
   ) {
     const percent =
       message.total > 0 ? (message.progress / message.total) * 100 : 0;
-    useStoryboardGenerationStore.getState().updateJobProgress(requestId, percent);
+    useStoryboardGenerationStore
+      .getState()
+      .updateJobProgress(requestId, percent);
     return;
   }
 
@@ -1001,7 +1169,8 @@ export const reattachBoardJobs = async (boardId: string): Promise<void> => {
         boardId,
         kind: job.kind,
         mediaEdit: job.mediaEdit,
-        acceptedShotStatus: job.acceptedShotStatus
+        acceptedShotStatus: job.acceptedShotStatus,
+        production: job.production
       };
       if (outcome && isSettled(outcome.status)) {
         // The row settled while this client was away. Land it from the row:
@@ -1016,10 +1185,7 @@ export const reattachBoardJobs = async (boardId: string): Promise<void> => {
       }
       // Watched as well as subscribed: after a reload the reply went to a
       // socket that no longer exists, so the row is what settles this.
-      return subscribeDirectShotJob(
-        job.jobId,
-        context
-      );
+      return subscribeDirectShotJob(job.jobId, context);
     })
   );
 };
@@ -1035,11 +1201,14 @@ export const reattachBoardJobs = async (boardId: string): Promise<void> => {
  * after a reload, which is what makes a board closed mid-batch show the
  * versions that landed while it was shut.
  */
-export const useStoryboardGenerationSubscriptions = (boardId?: string): void => {
+export const useStoryboardGenerationSubscriptions = (
+  boardId?: string
+): void => {
   const activeJobIdsKey = useStoryboardGenerationStore((state) =>
-    Object.values(state.shotJobs)
+    [...Object.values(state.shotJobs), ...Object.values(state.productionJobs)]
       .filter((job) => isActiveStatus(job.status))
       .map((job) => job.jobId)
+      .filter((jobId, index, all) => all.indexOf(jobId) === index)
       .sort()
       .join(",")
   );

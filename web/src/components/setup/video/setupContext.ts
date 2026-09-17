@@ -9,6 +9,7 @@
  */
 
 import { useMemo } from "react";
+import { creativeContext as creativeContextSchema } from "@nodetool-ai/protocol";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
@@ -73,9 +74,23 @@ export const readVideoSetupContext = (
   const fields = isRecord(setup) ? setup : {};
   const references = fields["references"];
   const entityIds = fields["entityIds"];
-  const creativeContext = readCreativeContext(
-    fields["creative_context"] ?? fields["creativeContext"]
-  );
+  const rawContext = fields["creative_context"] ?? fields["creativeContext"];
+  const canonical = creativeContextSchema.safeParse(rawContext);
+  const normalized = readCreativeContext(rawContext);
+  const creativeContext = canonical.success
+    ? { ...canonical.data, ...normalized }
+    : normalized;
+  if (creativeContext) {
+    for (const alias of [
+      "productName",
+      "productDescription",
+      "approvedClaims",
+      "prohibitedClaims",
+      "referenceBindings"
+    ]) {
+      delete creativeContext[alias];
+    }
+  }
   const result: {
     references: VideoSetupReference[];
     entityIds: string[];

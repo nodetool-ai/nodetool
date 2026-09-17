@@ -118,7 +118,9 @@ describe("generateFromBeats (criterion 5)", () => {
       .getState()
       .clips.filter((clip) => clip.bindingKind === "text-to-video");
     expect(video.map((clip) => clip.startMs)).toEqual([0, 3000, 7000, 11000]);
-    expect(video.map((clip) => clip.durationMs)).toEqual([3000, 4000, 4000, 4000]);
+    expect(video.map((clip) => clip.durationMs)).toEqual([
+      3000, 4000, 4000, 4000
+    ]);
   });
 
   it("links every clip to its beat and every beat to its clip", async () => {
@@ -186,6 +188,83 @@ describe("generateFromBeats (criterion 5)", () => {
     await expect(generateFromBeats(store, options)).rejects.toThrow(
       /Plan the beats/i
     );
+  });
+
+  it("assigns take numbers before dispatch and forwards resolved reference ids", async () => {
+    const store = seeded([
+      {
+        id: "b-production",
+        prompt: "the product in use",
+        duration_ms: 4_000,
+        production: {
+          schema_version: 1,
+          speech_mode: "none",
+          reference_bindings: [{ kind: "product", asset_id: "asset-product" }],
+          requested_take_count: 3
+        }
+      }
+    ]);
+    const requests: Array<{
+      clipId: string;
+      requestId?: string;
+      variationIndex?: number;
+      referenceAssetIds?: readonly string[];
+    }> = [];
+
+    const result = await generateFromBeats(store, {
+      ...options,
+      music: false,
+      productionBatchId: "batch-reviewed",
+      startJob: async (clipId, production) => {
+        requests.push({
+          clipId,
+          requestId: production?.identity.requestId,
+          variationIndex: production?.identity.variationIndex,
+          referenceAssetIds: production?.referenceAssetIds
+        });
+        return production?.identity.requestId ?? clipId;
+      }
+    });
+
+    expect(result.videoClipIds).toHaveLength(1);
+    expect(result.startedClipIds).toEqual(result.videoClipIds);
+    expect(requests.map((request) => request.variationIndex)).toEqual([
+      1, 2, 3
+    ]);
+    expect(requests.map((request) => request.requestId)).toEqual([
+      `request:candidate:variation:batch-reviewed:timeline_clip:${result.videoClipIds[0]}:1`,
+      `request:candidate:variation:batch-reviewed:timeline_clip:${result.videoClipIds[0]}:2`,
+      `request:candidate:variation:batch-reviewed:timeline_clip:${result.videoClipIds[0]}:3`
+    ]);
+    expect(
+      requests.every((request) =>
+        request.referenceAssetIds?.includes("asset-product")
+      )
+    ).toBe(true);
+  });
+
+  it("rejects speech that does not fit before creating destinations", async () => {
+    const store = seeded([
+      {
+        id: "b-too-long",
+        prompt: "voiceover over a short shot",
+        duration_ms: 2_000,
+        production: {
+          schema_version: 1,
+          speech_mode: "off_camera",
+          speech_binding: { audio_asset_id: "audio-long" },
+          speech_duration_ms: 2_500,
+          requested_take_count: 1
+        }
+      }
+    ]);
+    const startJob = jest.fn(async (clipId: string) => clipId);
+
+    await expect(
+      generateFromBeats(store, { ...options, startJob })
+    ).rejects.toThrow(/speech duration/i);
+    expect(store.getState().clips).toHaveLength(0);
+    expect(startJob).not.toHaveBeenCalled();
   });
 });
 

@@ -13,7 +13,10 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: {
     ensureConnection: jest.fn(async () => {}),
     send: (...args: unknown[]) => sendMock(...(args as [])),
-    subscribe: jest.fn((_id: string, _handler: (msg: unknown) => void): (() => void) => () => {}),
+    subscribe: jest.fn(
+      (_id: string, _handler: (msg: unknown) => void): (() => void) =>
+        () => {}
+    ),
     // Import-time side effect of the workflow runner module graph.
     setResumeJobIdProvider: jest.fn()
   }
@@ -32,7 +35,12 @@ jest.mock("../../../lib/websocket/lookupGenerations", () => ({
 
 import { __resetGenerationWatchesForTests } from "../../../lib/websocket/generationWatch";
 import { useTimelineDirectGenJob } from "../useTimelineDirectGenJob";
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import {
+  compileProductionCandidates,
+  type CompiledProductionCandidate,
+  type TimelineClip
+} from "@nodetool-ai/timeline";
+import { useDirectGenPendingStore } from "../directGenPending";
 
 let instance: TimelineInstance;
 let doc: TimelineStoreApi;
@@ -71,7 +79,10 @@ const addClip = (overrides: Partial<TimelineClip> & { id: string }): void => {
   );
 };
 
-const startClip = async (clipId: string): Promise<string | null> => {
+const startClip = async (
+  clipId: string,
+  production?: CompiledProductionCandidate
+): Promise<string | null> => {
   const { result } = renderHook(() => useTimelineDirectGenJob(), {
     wrapper: ({ children }) => (
       <TimelineProvider instance={instance}>{children}</TimelineProvider>
@@ -79,7 +90,7 @@ const startClip = async (clipId: string): Promise<string | null> => {
   });
   let requestId: string | null = null;
   await act(async () => {
-    requestId = await result.current.start(clipId);
+    requestId = await result.current.start(clipId, production);
   });
   return requestId;
 };
@@ -99,9 +110,36 @@ beforeEach(() => {
   lookupMock.mockReset();
   lookupMock.mockResolvedValue(new Map());
   __resetGenerationWatchesForTests();
+  useDirectGenPendingStore.setState({
+    pending: {},
+    durationSamples: {},
+    productionSettlements: {}
+  });
   instance = createTimelineInstance();
   doc = instance.doc;
 });
+
+const productionCandidate = (): CompiledProductionCandidate => {
+  const candidate = compileProductionCandidates({
+    batchId: "batch-1",
+    destinationId: "clip-production",
+    destinationKind: "timeline_clip",
+    operation: "initial_generation",
+    prompt: "the referenced product",
+    requirement: {
+      schema_version: 1,
+      speech_mode: "none",
+      reference_bindings: [{ kind: "product", asset_id: "asset-reference" }],
+      requested_take_count: 1
+    },
+    routeSupport: {
+      referenceToVideo: true,
+      audioDrivenPerformance: false
+    }
+  })[0];
+  if (!candidate) throw new Error("Expected a compiled production candidate.");
+  return candidate;
+};
 
 describe("useTimelineDirectGenJob request payloads", () => {
   it("text-to-image: sends provider, model, prompt and framing", async () => {
@@ -196,6 +234,52 @@ describe("useTimelineDirectGenJob request payloads", () => {
     expect(requestId).not.toBeNull();
     const frame = sendMock.mock.calls[0][0] as { request_id?: string };
     expect(frame.request_id).toBe(requestId);
+  });
+
+  it("sends resolved reference asset ids under the stable production request id", async () => {
+    addClip({ id: "clip-production", bindingKind: "text-to-video" });
+    const production = productionCandidate();
+
+    const requestId = await startClip("clip-production", production);
+
+    expect(requestId).toBe(production.identity.requestId);
+    expect(sentData()).toMatchObject({
+      capability: "reference_to_video",
+      reference_images: [{ type: "image", asset_id: "asset-reference" }]
+    });
+  });
+
+  it("retries only a failed candidate with a new attempt id", async () => {
+    addClip({ id: "clip-production", bindingKind: "text-to-video" });
+    doc.setState({ sequenceId: "seq-1" });
+    const production = productionCandidate();
+    const pendingProduction = {
+      ...production,
+      attemptId: production.identity.requestId
+    };
+    useDirectGenPendingStore.setState({
+      productionSettlements: {
+        [production.identity.requestId]: {
+          requestId: production.identity.requestId,
+          sequenceId: "seq-1",
+          clipId: "clip-production",
+          status: "failed",
+          settledAt: Date.now(),
+          assetIds: [],
+          production: pendingProduction
+        }
+      }
+    });
+
+    const requestId = await startClip("clip-production", production);
+
+    expect(requestId).toBe(`${production.identity.requestId}:retry:2`);
+    const frame = sendMock.mock.calls[0][0] as { request_id?: string };
+    expect(frame.request_id).toBe(requestId);
+    expect(
+      useDirectGenPendingStore.getState().pending["seq-1"]?.[0]?.production
+        ?.identity.variationIndex
+    ).toBe(1);
   });
 });
 

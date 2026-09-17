@@ -19,7 +19,15 @@
  * are the creator's.
  */
 
-import React, { Suspense, lazy, memo, useCallback, useMemo } from "react";
+import React, {
+  Suspense,
+  lazy,
+  memo,
+  useCallback,
+  useMemo,
+  useEffect,
+  useState
+} from "react";
 import type { Shot } from "@nodetool-ai/protocol";
 
 import {
@@ -36,6 +44,13 @@ import { useImportNotice } from "../../../hooks/storyboard/useImportNotice";
 import { sceneOrder } from "../../../lib/storyboard/sceneOrder";
 import { PlanReview } from "../PlanReview";
 import { REVIEW_WIDE_WIDTH } from "../reviewStyles";
+import {
+  productionFields,
+  productionPatch,
+  productionAuthoringBlocker,
+  productionGenerationBlocker
+} from "../video/productionAuthoring";
+import { productionRequirementsFrom } from "../../../hooks/storyboard/productionContext";
 import type { GenerationModel } from "../generationEstimate";
 import {
   forgetPreviousScreenplay,
@@ -68,6 +83,7 @@ export interface ReviewStepProps {
   /** The model a rewrite would call, for the estimate beside it (F23). */
   model: GenerationModel | null;
   maxOutputTokens: number;
+  onValidationChange?: (reason: string | undefined) => void;
 }
 
 /** One array, so a board that has not loaded yet returns a stable snapshot. */
@@ -84,7 +100,8 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   usedFallback = false,
   onKeepFallback,
   model,
-  maxOutputTokens
+  maxOutputTokens,
+  onValidationChange
 }) => {
   const shots = useStoryboardStore(
     (state) => state.boards[boardId]?.shots ?? NO_SHOTS
@@ -103,6 +120,23 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   const updateScene = useStoryboardStore((state) => state.updateScene);
   const setScreenplay = useStoryboardStore((state) => state.setScreenplay);
   const notice = useImportNotice(boardId);
+  const [lengths, setLengths] = useState<Record<string, string>>({});
+  const invalidDuration = shots.some((shot) => {
+    const value = lengths[shot.id];
+    return (
+      value !== undefined &&
+      value.trim() !== "" &&
+      (!Number.isFinite(Number(value)) || Math.round(Number(value) * 1000) <= 0)
+    );
+  });
+  const validationReason = invalidDuration
+    ? "Enter a positive duration in seconds, or clear it to leave timing unspecified."
+    : productionAuthoringBlocker(shots);
+  useEffect(() => {
+    onValidationChange?.(validationReason);
+    return () => onValidationChange?.(undefined);
+  }, [onValidationChange, validationReason]);
+  const productionNote = productionGenerationBlocker(shots, false);
   // What a rewrite replaced, kept for as long as the tab is open, so the
   // creator can put it back rather than reconstructing it by hand (F15).
   const replaced = usePreviousScreenplay(boardId);
@@ -253,16 +287,40 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
               {
                 id: `${shot.id}:dialogue`,
                 label: `Shot ${position + 1} · Dialogue`,
+                readOnly:
+                  !!shot.script_line_ids?.length ||
+                  !!productionRequirementsFrom(shot)?.speech_binding
+                    ?.script_line_id ||
+                  !!productionRequirementsFrom(shot)?.speech_binding
+                    ?.audio_asset_id,
                 // Existing dialogue stays readable. Empty dialogue opens on request.
                 hideLabel: true,
                 // Dialogue sets in from action, as it does on the page.
                 indent: true,
-                value: shot.dialogue ?? "",
+                value:
+                  shot.dialogue ??
+                  productionRequirementsFrom(shot)?.speech_binding?.text ??
+                  "",
                 multiline: true,
                 placeholder: "Dialogue",
                 addLabel: "Add dialogue",
-                onChange: (value: string) =>
-                  updateShot(boardId, shot.id, { dialogue: value })
+                onChange: (value: string) => {
+                  const current = productionRequirementsFrom(shot);
+                  const production =
+                    current?.speech_binding?.text && value.trim()
+                      ? productionPatch(current, {
+                          speech_binding: {
+                            ...current.speech_binding,
+                            text: value
+                          }
+                        })
+                      : current;
+                  const patch: Partial<Shot> = { dialogue: value };
+                  if (production) {
+                    patch.production = production;
+                  }
+                  updateShot(boardId, shot.id, patch);
+                }
               },
               {
                 // How long the shot runs is a value the creator sets here, not
@@ -272,21 +330,56 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                 id: `${shot.id}:duration`,
                 label: `Shot ${position + 1} · Seconds`,
                 compact: true,
-                value: shot.duration_seconds
-                  ? String(Math.round(shot.duration_seconds))
-                  : "",
+                value:
+                  lengths[shot.id] ??
+                  (shot.duration_seconds ? String(shot.duration_seconds) : ""),
                 placeholder: "Seconds",
                 onChange: (value: string) => {
+                  setLengths((current) => ({ ...current, [shot.id]: value }));
+                },
+                onCommit: (value: string) => {
                   const seconds = Number(value);
-                  updateShot(boardId, shot.id, {
+                  if (
+                    value.trim() &&
+                    (!Number.isFinite(seconds) ||
+                      Math.round(seconds * 1000) <= 0)
+                  ) {
+                    return;
+                  }
+                  const current = productionRequirementsFrom(shot);
+                  const patch: Partial<Shot> = {
                     duration_seconds:
-                      value.trim() === "" || !Number.isFinite(seconds) || seconds <= 0
+                      value.trim() === "" ||
+                      !Number.isFinite(seconds) ||
+                      seconds <= 0
                         ? undefined
                         : seconds,
                     duration_source: "manual"
-                  });
+                  };
+                  if (current) {
+                    patch.production = productionPatch(current, {
+                      duration_ms:
+                        Number.isFinite(seconds) && seconds > 0
+                          ? Math.round(seconds * 1000)
+                          : undefined
+                    });
+                  }
+                  updateShot(boardId, shot.id, patch);
                 }
-              }
+              },
+              ...productionFields({
+                id: shot.id,
+                value: shot,
+                speechText:
+                  shot.dialogue ??
+                  productionRequirementsFrom(shot)?.speech_binding?.text ??
+                  "",
+                linkedLineIds: shot.script_line_ids,
+                onChange: (production) => {
+                  const patch = { production, action: shot.action };
+                  updateShot(boardId, shot.id, patch);
+                }
+              })
             ]
           })
         );
@@ -304,7 +397,16 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         };
       })
     ];
-  }, [boardId, scenes, setTitle, shots, title, updateScene, updateShot]);
+  }, [
+    boardId,
+    lengths,
+    scenes,
+    setTitle,
+    shots,
+    title,
+    updateScene,
+    updateShot
+  ]);
 
   return (
     <FlexColumn
@@ -334,8 +436,8 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         <AlertBanner severity="warning" title="Written here, not by your model">
           <FlexColumn gap={GAP.tight}>
             <Caption component="span">
-              Your model returned nothing usable, so this outline was built
-              from your brief. Keep it and edit it, or run the Director again.
+              Your model returned nothing usable, so this outline was built from
+              your brief. Keep it and edit it, or run the Director again.
             </Caption>
             <FlexRow gap={GAP.normal} wrap>
               <EditorButton
@@ -397,7 +499,9 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       </FlexRow>
       {/* A rewrite is another model call, so it carries the same summary the
           first one did rather than spending on a quieter button (F23). */}
-      <Suspense fallback={<Caption color="secondary">Loading estimate…</Caption>}>
+      <Suspense
+        fallback={<Caption color="secondary">Loading estimate…</Caption>}
+      >
         <GenerationSummary
           result="Rewrite the screenplay from your brief"
           next="Shots this rewrite keeps keep their ids and any stills. No stills are rendered here."
@@ -406,6 +510,16 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           maxOutputTokens={maxOutputTokens}
         />
       </Suspense>
+      {validationReason ? (
+        <Caption role="alert" color="warning">
+          {validationReason}
+        </Caption>
+      ) : null}
+      {productionNote ? (
+        <Caption role="status" color="warning">
+          {productionNote}
+        </Caption>
+      ) : null}
       <PlanReview sections={sections} />
       {error ? (
         <Text size="small" color="error" role="alert">
