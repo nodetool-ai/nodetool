@@ -30,7 +30,7 @@
     "@types/node": "^22.0.0",
     "@types/turndown": "^5.0.6",
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "vitest": "^4.1.2",
+    "vitest": "^5.0.1",
     "natural": "^8.1.1",
     "@types/natural": "^5.1.5"
   },
