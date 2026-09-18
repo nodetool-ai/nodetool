@@ -7,7 +7,8 @@ import {
   TYPESCRIPT_NATIVE_SPEC,
   auditLockfile,
   auditManifests,
-  auditSourceText
+  auditSourceText,
+  isAuditExempt
 } from "../check-typescript-policy.mjs";
 
 describe("TypeScript policy audit", () => {
@@ -97,6 +98,28 @@ describe("TypeScript policy audit", () => {
   it("rejects native API imports and direct compiler paths", () => {
     expect(auditSourceText("fixture.ts", "import ts from '@typescript/native';")).toHaveLength(1);
     expect(auditSourceText("fixture.mjs", "const path = 'typescript/bin/tsc';")).toHaveLength(1);
+  });
+
+  it("exempts the audit and its fixtures from the source scan on both path separators", () => {
+    const posixRoot = "/home/runner/work/nodetool/nodetool";
+    const windowsRoot = "D:\\a\\nodetool\\nodetool";
+
+    expect(isAuditExempt(posixRoot, `${posixRoot}/scripts/check-typescript-policy.mjs`)).toBe(true);
+    expect(
+      isAuditExempt(posixRoot, `${posixRoot}/scripts/__tests__/check-typescript-policy.test.mjs`)
+    ).toBe(true);
+    expect(isAuditExempt(windowsRoot, `${windowsRoot}\\scripts\\check-typescript-policy.mjs`)).toBe(
+      true
+    );
+    expect(
+      isAuditExempt(
+        windowsRoot,
+        `${windowsRoot}\\scripts\\__tests__\\check-typescript-policy.test.mjs`
+      )
+    ).toBe(true);
+
+    expect(isAuditExempt(posixRoot, `${posixRoot}/packages/cli/src/index.ts`)).toBe(false);
+    expect(isAuditExempt(windowsRoot, `${windowsRoot}\\packages\\cli\\src\\index.ts`)).toBe(false);
   });
 
   it("requires native platform package entries in lockfiles", () => {
