@@ -101,6 +101,24 @@ beforeEach(() => {
   useLastModelStore.setState({ byKind: {}, byTask: {} });
 });
 
+describe("useTimelineAgentBridge compact track IDs", () => {
+  it("resolves a unique track prefix and rejects ambiguous prefixes", () => {
+    mockDoc.getState().addTrack("video", "First");
+    const track = mockDoc.getState().tracks[0];
+    const id = "a2aee50221dc4c4bb342a137c045e88a";
+    mockDoc.setState({ tracks: [{ ...track, id }] });
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    expect(handler.moveTrack(id.slice(0, 12), { toIndex: 0 })[0].id).toBe(id);
+    mockDoc.setState({ tracks: [
+      { ...track, id },
+      { ...track, id: "a2aee50221dc4c4bb342a137c045e88b", name: "Second", index: 1 }
+    ] });
+    expect(() => handler.moveTrack(id.slice(0, 12), { toIndex: 0 }))
+      .toThrow("matches more than one track");
+  });
+});
+
 describe("useTimelineAgentBridge AI edit", () => {
   it("keeps a trimmed source active until explicit apply, then undoes once", async () => {
     mockDoc.getState().addTrack("video", "Video 1");
@@ -395,12 +413,12 @@ jest.mock("../../../stores/AssetStore", () => {
 
 describe("useTimelineAgentBridge getClipFrames", () => {
   /** A clip whose media starts a long way into the cut, as an assembly lays it. */
-  const seedLateClip = (): void => {
+  const seedLateClip = (id = "shot-4"): void => {
     mockDoc.getState().addTrack("video", "Shots");
     const trackId = mockDoc.getState().tracks[0].id;
     mockDoc.getState().addClip(
       makeClip({
-        id: "shot-4",
+        id,
         name: "Shot 4",
         trackId,
         mediaType: "video",
@@ -439,6 +457,20 @@ describe("useTimelineAgentBridge getClipFrames", () => {
     expect(result.frames.map((f) => f.sourceTimeMs)).toEqual([200, 4848]);
   });
 
+  it("accepts the compact clip id returned to the agent", async () => {
+    const fullId = "fac9a239f3434aeea8215b680013f047";
+    seedLateClip(fullId);
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+
+    const result = await getTimelineAgentHandler(SEQ_ID).getClipFrames(
+      fullId.slice(0, 12),
+      { timesMs: [200] }
+    );
+
+    expect(result.clip.id).toBe(fullId);
+    expect(result.frames[0].clipId).toBe(fullId);
+  });
+
   it("names both accepted ranges when a time fits neither", async () => {
     seedLateClip();
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
@@ -448,6 +480,15 @@ describe("useTimelineAgentBridge getClipFrames", () => {
         timesMs: [90000]
       })
     ).rejects.toThrow(/15552–20736ms.*0–5184ms/s);
+  });
+
+  it("rejects an ambiguous compact clip id", async () => {
+    seedLateClip("fac9a239f3434aeea8215b680013f047");
+    seedLateClip("fac9a239f3434aeea8215b680013f048");
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    await expect(
+      getTimelineAgentHandler(SEQ_ID).getClipFrames("fac9a239f343", { timesMs: [200] })
+    ).rejects.toThrow("matches more than one clip");
   });
 });
 

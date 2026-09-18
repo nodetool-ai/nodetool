@@ -16,6 +16,8 @@
 // -----------------------------------------------------------------
 
 import { z } from "zod";
+import { isShortResourceId } from "@nodetool-ai/protocol";
+import { trpcClient } from "../../../trpc/client";
 import {
   FrontendToolRegistry,
   type FrontendToolContext
@@ -176,6 +178,10 @@ FrontendToolRegistry.register({
       )
   }),
   async execute({ type, id, focus }, ctx) {
+    if (type === "timeline" && isShortResourceId(id)) {
+      const sequence = await trpcClient.timeline.get.query({ id });
+      id = sequence.id;
+    }
     const tabs = useWorkspaceTabsStore.getState();
     const wasOpen = tabs.tabs.some(
       (tab) => tab.id === tabId(TAB_TYPE[type], id)

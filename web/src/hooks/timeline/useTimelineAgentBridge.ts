@@ -42,6 +42,7 @@ import type {
   TimelineSetup,
   TimelineTrack
 } from "@nodetool-ai/timeline";
+import { isShortResourceId } from "@nodetool-ai/protocol";
 import {
   buildEffect,
   buildMask,
@@ -303,6 +304,15 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       }
       const byId = clips.find((c) => c.id === target);
       if (byId) return byId;
+      if (isShortResourceId(target)) {
+        const prefixMatches = clips.filter((c) => c.id.startsWith(target));
+        if (prefixMatches.length === 1) return prefixMatches[0];
+        if (prefixMatches.length > 1) {
+          throw new Error(
+            `Short clip id "${target}" matches more than one clip; use the full id or name.`
+          );
+        }
+      }
       const lower = target.toLowerCase();
       const byName = clips.find((c) => c.name.toLowerCase() === lower);
       if (byName) return byName;
@@ -368,6 +378,17 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       const { tracks } = doc.getState();
       const byId = tracks.find((t) => t.id === target);
       if (byId) return byId;
+      if (isShortResourceId(target)) {
+        const matches = tracks.filter((track) => track.id.startsWith(target));
+        if (matches.length === 1) {
+          return matches[0];
+        }
+        if (matches.length > 1) {
+          throw new Error(
+            `Short track id "${target}" matches more than one track. Use the full id or name.`
+          );
+        }
+      }
       const lower = target.toLowerCase();
       const byName = tracks.find((t) => t.name.toLowerCase() === lower);
       if (byName) return byName;

@@ -12,6 +12,11 @@ import {
   type TimelineSnapshot
 } from "../../../components/timeline/timelineAgentBridge";
 import "../builtin/openDocument";
+import { trpcClient } from "../../../trpc/client";
+
+jest.mock("../../../trpc/client", () => ({
+  trpcClient: { timeline: { get: { query: jest.fn() } } }
+}));
 
 const snapshot = (sequenceId: string | null): TimelineSnapshot => ({
   sequenceId,
@@ -58,6 +63,19 @@ afterEach(() => {
 });
 
 describe("ui_open_document", () => {
+  it("resolves a compact timeline ID before opening and checking readiness", async () => {
+    const fullId = "8d7d5e9d6f1f41111111111111111111";
+    jest.mocked(trpcClient.timeline.get.query).mockResolvedValue({ id: fullId } as never);
+    setTimelineAgentHandler(fullId, timelineHandler(fullId));
+    try {
+      await expect(openDocument({ type: "timeline", id: fullId.slice(0, 12) }))
+        .resolves.toMatchObject({ ok: true, id: fullId });
+      expect(useWorkspaceTabsStore.getState().tabs[0].ref).toBe(fullId);
+    } finally {
+      setTimelineAgentHandler(fullId, null);
+    }
+  });
+
   it("is in the manifest with the openable document types", () => {
     const tool = FrontendToolRegistry.getManifest().find(
       (t) => t.name === "ui_open_document"

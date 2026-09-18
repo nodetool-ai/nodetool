@@ -24,6 +24,7 @@
  */
 
 import { z } from "zod";
+import { isShortResourceId } from "@nodetool-ai/protocol";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
 import {
   splitClip,
@@ -1221,6 +1222,17 @@ export function createTimelineToolBridge(
   function resolveTrack(idOrName: string): TimelineTrack {
     const byId = tracks.find((t) => t.id === idOrName);
     if (byId) return byId;
+    if (isShortResourceId(idOrName)) {
+      const matches = tracks.filter((track) => track.id.startsWith(idOrName));
+      if (matches.length === 1) {
+        return matches[0];
+      }
+      if (matches.length > 1) {
+        throw new Error(
+          `Short track id "${idOrName}" matches more than one track. Use the full id or name.`
+        );
+      }
+    }
     const lower = idOrName.toLowerCase();
     const byName = tracks.find((t) => t.name.toLowerCase() === lower);
     if (byName) return byName;
@@ -1248,6 +1260,17 @@ export function createTimelineToolBridge(
     }
     const byId = clips.find((c) => c.id === target);
     if (byId) return byId;
+    if (isShortResourceId(target)) {
+      const matches = clips.filter((clip) => clip.id.startsWith(target));
+      if (matches.length === 1) {
+        return matches[0];
+      }
+      if (matches.length > 1) {
+        throw new Error(
+          `Short clip id "${target}" matches more than one clip. Use the full id or name.`
+        );
+      }
+    }
     const lower = target.toLowerCase();
     const byName = clips.find((c) => c.name.toLowerCase() === lower);
     if (byName) return byName;

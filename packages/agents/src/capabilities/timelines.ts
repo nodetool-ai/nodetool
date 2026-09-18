@@ -962,7 +962,7 @@ const editTimeline: CapabilityExport = {
       }
 
       const saved = await TimelineSequence.updateDocumentIfUnchanged(
-        timelineId,
+        sequence.id,
         sequence.updated_at,
         next,
         {
@@ -2360,7 +2360,7 @@ const bakeAudioAnimation: CapabilityExport = {
       markers: state.markers
     };
     const saved = await TimelineSequence.updateDocumentIfUnchanged(
-      timelineId,
+      sequence.id,
       sequence.updated_at,
       next,
       {

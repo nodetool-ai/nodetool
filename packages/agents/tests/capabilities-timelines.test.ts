@@ -579,14 +579,60 @@ describe("timelines capability behaviour", () => {
     expect(result.error).toContain("positive integer");
   });
 
-  it("applies edit ops against the stored document", async () => {
+  it.each([false, true])("applies edit ops with compact ID=%s", async (compact) => {
     const row = await makeTimeline();
     const result = (await run().invoke("edit_timeline", {
-      timeline_id: row.id,
+      timeline_id: compact ? row.id.slice(0, 12) : row.id,
       ops: [{ op: "add_track", type: "audio", name: "Music" }]
     })) as { applied: number; failed: number; tracks: Array<{ name: string }> };
     expect(result).toMatchObject({ applied: 1, failed: 0 });
     expect(result.tracks.map((t) => t.name)).toContain("Music");
+  });
+
+  it("round trips compact clip and track IDs through edits and deletion", async () => {
+    const clipId = "fac9a239f3434aeea8215b680013f047";
+    const trackId = "a2aee50221dc4c4bb342a137c045e88a";
+    const row = await makeTimeline({ document: document()
+      .replaceAll("clip-1", clipId).replaceAll("track-1", trackId) });
+    const edited = await run().invoke("edit_timeline", {
+      timeline_id: row.id.slice(0, 12),
+      ops: [
+        { op: "trim_clip", target: clipId.slice(0, 12), durationMs: 1000 },
+        { op: "move_clip", target: clipId.slice(0, 12), trackId: trackId.slice(0, 12), startMs: 500 }
+      ]
+    });
+    expect(edited).toMatchObject({ applied: 2, failed: 0 });
+    expect((await TimelineSequence.findById(row.id))!.toDocument().clips[0])
+      .toMatchObject({ id: clipId, trackId, startMs: 500, durationMs: 1000 });
+    expect(await run().invoke("edit_timeline", {
+      timeline_id: row.id.slice(0, 12),
+      ops: [{ op: "delete_clip", target: clipId.slice(0, 12) }]
+    })).toMatchObject({ applied: 1, failed: 0 });
+    expect((await TimelineSequence.findById(row.id))!.toDocument().clips).toEqual([]);
+  });
+
+  it.each(["clip", "track"] as const)("rejects ambiguous compact %s IDs without changing state", async (kind) => {
+    const row = await makeTimeline();
+    const doc = row.toDocument();
+    const first = "fac9a239f3434aeea8215b680013f047";
+    const second = "fac9a239f3434aeea8215b680013f048";
+    if (kind === "clip") {
+      doc.clips = [{ ...doc.clips[0], id: first }, { ...doc.clips[0], id: second, name: "Other" }];
+    } else {
+      doc.tracks = [{ ...doc.tracks[0], id: first }, { ...doc.tracks[0], id: second, name: "Other", index: 1 }];
+      doc.clips[0].trackId = first;
+    }
+    row.document = JSON.stringify(doc);
+    await row.save();
+    expect(await run().invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [kind === "clip"
+        ? { op: "delete_clip", target: first.slice(0, 12) }
+        : { op: "move_track", target: first.slice(0, 12), toIndex: 1 }]
+    })).toMatchObject({ applied: 0, failed: 1, ops: [
+      { ok: false, error: expect.stringContaining(`matches more than one ${kind}`) }
+    ] });
+    expect((await TimelineSequence.findById(row.id))!.document).toBe(row.document);
   });
 
   it("writes markers back to the stored document, and snaps a clip to them", async () => {

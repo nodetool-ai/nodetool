@@ -157,6 +157,30 @@ workspace manifests. Build in dependency order with `npm run build:packages`.
 - LLM providers live in `packages/runtime/src/providers/`. Python nodes connect
   lazily through `PythonStdioBridge` using length-prefixed MsgPack over stdio.
 
+#### Resource ID Principles
+
+- Generated resource IDs are 32 lowercase hexadecimal characters. Keep the
+  full ID in models, stores, documents, messages, URLs, and internal APIs.
+  Preserve named IDs such as `personal:<user_id>` and legacy IDs verbatim.
+- Agent-facing output may shorten a full resource ID to its first 12
+  characters through `shortResourceId` from `@nodetool-ai/protocol`. Compact
+  only fields that identify resources (`id`, `*_id`, `*_ids`, and resource
+  URIs). Never truncate hashes, etags, external IDs, or arbitrary strings.
+- Every boundary that accepts an agent-visible resource ID must accept either
+  the full ID or an exact 12-character prefix. Resolve a prefix only when it
+  has one match in the caller's authorized scope. Return an ambiguity error
+  when it has multiple matches. Never guess or use `startsWith` without the
+  exact-length and uniqueness checks.
+- Return one ID form consistently within a tool result. Do not expose a short
+  ID and then require the full ID in a related tool call.
+- Temporary media handles are not persistent resource IDs. Preserve their
+  scheme or filename, resolve them only through the current run's temporary
+  storage, and do not require a database asset row. Register handles with the
+  context that created them. A filename's shape alone cannot authorize a read.
+- Add a boundary test whenever an ID crosses between models, agent compaction,
+  REST or tool input, browser state, or temporary storage. The test must use
+  the same ID form that the upstream boundary returns.
+
 ### Frontend Rules
 
 Read [Design System](docs/DESIGN.md) and [Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)
