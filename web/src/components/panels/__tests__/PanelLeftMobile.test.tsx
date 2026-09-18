@@ -168,6 +168,12 @@ jest.mock("../../workspaces/WorkspaceTree", () => ({
     <div data-testid="workspace-tree" data-project-id={props.projectId} />
   )
 }));
+jest.mock("../DocumentsTree", () => ({
+  __esModule: true,
+  default: (props: { projectId?: string }) => (
+    <div data-testid="documents-tree" data-project-id={props.projectId} />
+  )
+}));
 
 const WORKFLOW_EDIT_ONLY = ["nodes", "settings", "history", "favorites"];
 
@@ -196,7 +202,7 @@ it("offers every non-workflow-edit top-level view as a tab", () => {
   }
 });
 
-it("keeps only the direct views and More in the mobile tab row", () => {
+it("keeps the consolidated document tree and utility views in the mobile tab row", () => {
   renderPanel();
 
   const groups = Array.from(document.querySelectorAll(".mobile-tab-group"));
@@ -207,7 +213,7 @@ it("keeps only the direct views and More in the mobile tab row", () => {
         button.getAttribute("aria-label")
       )
     )
-  ).toEqual([["Projects", "Chats", "Library", "More"]]);
+  ).toEqual([["Projects", "Documents", "Library", "More"]]);
   expect(screen.queryByLabelText("Workflows")).not.toBeInTheDocument();
   expect(screen.queryByLabelText("Apps")).not.toBeInTheDocument();
   expect(screen.queryByLabelText("Sketches")).not.toBeInTheDocument();
@@ -224,25 +230,27 @@ it("offers Projects in the workspace shell", async () => {
   await user.click(projects);
 });
 
-it("reaches nested panels and app pages through More", async () => {
+it("reaches documents directly and utility pages through More", async () => {
   const user = userEvent.setup();
   renderPanel();
 
-  expect(screen.getByLabelText("More")).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByLabelText("Documents")).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
   await user.click(screen.getByLabelText("More"));
 
   // The destinations the desktop logo menu carries.
   expect(screen.getByText("Settings")).toBeInTheDocument();
   expect(screen.getByText("Downloads")).toBeInTheDocument();
   expect(
-    screen.getByRole("button", { name: /Storyboards/ })
+    screen.getByRole("button", { name: /^Workspace Browse/ })
   ).toBeInTheDocument();
   expect(screen.queryByTestId("workflow-list")).not.toBeInTheDocument();
   expect(screen.queryByTestId("create-workflow")).not.toBeInTheDocument();
 
-  // A category tab takes the sheet back to browsing documents.
-  await user.click(screen.getByLabelText("Chats"));
-  expect(screen.getByTestId("chat-list")).toBeInTheDocument();
+  await user.click(screen.getByLabelText("Documents"));
+  expect(screen.getByTestId("documents-tree")).toBeInTheDocument();
   expect(screen.queryByText("Downloads")).not.toBeInTheDocument();
 });
 
@@ -257,86 +265,60 @@ it("searches nested panels and application destinations together", async () => {
   );
 
   expect(screen.getByText("Downloads")).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: /Storyboards/ })).toBeNull();
-  expect(screen.queryByText("Create & edit")).toBeNull();
+  expect(screen.queryByRole("button", { name: /Favorite Nodes/ })).toBeNull();
+  expect(screen.queryByText("Workflow tools")).toBeNull();
 });
 
 it("switches the sheet to the view whose tab was tapped", async () => {
   const user = userEvent.setup();
   renderPanel();
 
-  await user.click(screen.getByLabelText("Chats"));
-  expect(usePanelStore.getState().panel.activeView).toBe("chats");
-  expect(screen.getByTestId("chat-list")).toBeInTheDocument();
+  await user.click(screen.getByLabelText("Documents"));
+  expect(usePanelStore.getState().panel.activeView).toBe("documents");
+  expect(screen.getByTestId("documents-tree")).toBeInTheDocument();
 
   await user.click(screen.getByLabelText("More"));
-  await user.click(screen.getByRole("button", { name: /^Apps\b/ }));
-  expect(usePanelStore.getState().panel.activeView).toBe("apps");
-  expect(screen.getByTestId("application-list")).toBeInTheDocument();
+  await user.click(
+    screen.getByRole("button", { name: /^Workspace Browse/ })
+  );
+  expect(usePanelStore.getState().panel.activeView).toBe("workspace-files");
+  expect(screen.getByTestId("workspace-tree")).toBeInTheDocument();
 });
 
-it("scopes every project-owned list to the active project", async () => {
+it("opens global skills from More without a create control", async () => {
   const user = userEvent.setup();
   renderPanel();
 
-  const projectViews = [
-    ["Workflows", "workflow-list"],
-    ["Apps", "application-list"],
-    ["Chats", "chat-list"],
-    ["Sketches", "sketch-list"],
-    ["Scripts", "script-list"],
-    ["Storyboards", "storyboard-list"],
-    ["Entities", "entity-list"],
-    ["Timelines", "timeline-list"],
-    ["JS Scripts", "jsscript-list"],
-    ["Workspace", "workspace-tree"]
-  ] as const;
-
-  for (const [label, testId] of projectViews) {
-    const directView = label === "Chats";
-    if (directView) {
-      await user.click(screen.getByLabelText(label));
-    } else {
-      await user.click(screen.getByLabelText("More"));
-      await user.click(
-        screen.getByRole("button", { name: new RegExp(`^${label}\\b`) })
-      );
-    }
-    expect(screen.getByTestId(testId)).toHaveAttribute(
-      "data-project-id",
-      "project-a"
-    );
-  }
-
   await user.click(screen.getByLabelText("More"));
-  await user.click(screen.getByRole("button", { name: /^Workflows\b/ }));
-  expect(screen.getByTestId("create-workflow")).toHaveAttribute(
-    "data-project-id",
-    "project-a"
-  );
-  await user.click(screen.getByLabelText("Chats"));
-  expect(screen.getByTestId("create-chat")).toHaveAttribute(
+  await user.click(screen.getByRole("button", { name: /^Skills\b/ }));
+
+  expect(screen.getByTestId("skill-list")).toBeInTheDocument();
+  expect(screen.queryByTestId("create-skill")).not.toBeInTheDocument();
+});
+
+it("scopes the document tree and workspace tree to the active project", async () => {
+  const user = userEvent.setup();
+  renderPanel();
+
+  await user.click(screen.getByLabelText("Documents"));
+  expect(screen.getByTestId("documents-tree")).toHaveAttribute(
     "data-project-id",
     "project-a"
   );
   await user.click(screen.getByLabelText("More"));
-  await user.click(screen.getByRole("button", { name: /Entities/ }));
-  expect(screen.getByTestId("create-entity")).toHaveAttribute(
+  await user.click(
+    screen.getByRole("button", { name: /^Workspace Browse/ })
+  );
+  expect(screen.getByTestId("workspace-tree")).toHaveAttribute(
     "data-project-id",
     "project-a"
   );
 });
 
-it("shows the create action for the active list view", async () => {
-  const user = userEvent.setup();
+it("maps a legacy document view to the document tree", () => {
+  usePanelStore.getState().setActiveView("storyboards");
   renderPanel();
 
-  expect(screen.getByTestId("create-workflow")).toBeInTheDocument();
-
-  await user.click(screen.getByLabelText("More"));
-  await user.click(screen.getByRole("button", { name: /Storyboards/ }));
-  expect(screen.getByTestId("create-storyboard")).toBeInTheDocument();
-
-  await user.click(screen.getByLabelText("Library"));
-  expect(screen.queryByTestId("create-storyboard")).not.toBeInTheDocument();
+  expect(screen.getByTestId("documents-tree")).toBeInTheDocument();
+  expect(screen.queryByTestId("storyboard-list")).not.toBeInTheDocument();
 });

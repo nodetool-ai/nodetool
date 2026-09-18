@@ -8,6 +8,7 @@ import {
 } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
+  isDocumentPanelView,
   isMorePanelView,
   LEFT_PANEL_TOP_LEVEL
 } from "../../config/quickAccessCategories";
@@ -17,6 +18,7 @@ import type { LeftPanelView } from "../../stores/PanelStore";
 interface QuickAccessSidebarProps {
   readonly activeCategory: LeftPanelView | "";
   readonly onCategoryClick: (id: LeftPanelView) => void;
+  readonly hiddenViews?: readonly LeftPanelView[];
 }
 
 interface QuickAccessButtonProps {
@@ -58,15 +60,19 @@ const QuickAccessButton = ({
  * buttons — the parent provides container styling via `.vertical-toolbar`.
  */
 const QuickAccessSidebar = memo<QuickAccessSidebarProps>(
-  ({ activeCategory, onCategoryClick }) => {
+  ({ activeCategory, onCategoryClick, hiddenViews = [] }) => {
     return (
       <FlexColumn className="quick-access-top" gap={SPACING.md}>
-        {LEFT_PANEL_TOP_LEVEL.map((category) => (
+        {LEFT_PANEL_TOP_LEVEL.filter(
+          (category) => !hiddenViews.includes(category.id)
+        ).map((category) => (
           <QuickAccessButton
             key={category.id}
             category={category}
             active={
-              category.id === "more"
+              category.id === "documents"
+                ? isDocumentPanelView(activeCategory)
+                : category.id === "more"
                 ? isMorePanelView(activeCategory)
                 : activeCategory === category.id
             }

@@ -36,10 +36,11 @@ const idsIn = (category: NodeCategoryId, all: NodeMetadata[]): string[] =>
 describe("quickAccessCategories", () => {
   it("ships only the direct rail views and More at the top level", () => {
     const ids = LEFT_PANEL_TOP_LEVEL.map((c) => c.id);
-    expect(ids).toEqual(["chats", "library", "more"]);
+    expect(ids).toEqual(["documents", "library", "nodes", "more"]);
     expect(LEFT_PANEL_DIRECT.map((category) => category.id)).toEqual([
-      "chats",
-      "library"
+      "documents",
+      "library",
+      "nodes"
     ]);
   });
 
@@ -51,20 +52,12 @@ describe("quickAccessCategories", () => {
       }))
     ).toEqual([
       {
-        id: "project-content",
-        views: ["workflows", "apps"]
-      },
-      {
         id: "workflow-tools",
-        views: ["nodes", "favorites", "history", "settings"]
+        views: ["favorites", "history", "settings"]
       },
       {
-        id: "editors",
-        views: ["sketches", "scripts", "storyboards", "entities", "timelines"]
-      },
-      {
-        id: "developer-tools",
-        views: ["jsscripts", "skills"]
+        id: "agent-tools",
+        views: ["skills"]
       },
       {
         id: "workspace",

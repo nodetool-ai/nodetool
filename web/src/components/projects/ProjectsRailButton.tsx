@@ -1,7 +1,6 @@
 import { useCallback } from "react";
-import DiamondOutlinedIcon from "@mui/icons-material/DiamondOutlined";
 
-import { ToolbarIconButton, Tooltip } from "../ui_primitives";
+import { Box, ToolbarIconButton, Tooltip } from "../ui_primitives";
 import type { TooltipProps } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
@@ -9,6 +8,28 @@ import {
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
 import { PROJECT_COLOR } from "./projectIdentity";
+
+const ProjectsIcon = ({ active }: { active: boolean }) => (
+  <Box
+    component="svg"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    sx={{
+      width: "1em",
+      height: "1em",
+      color: active ? PROJECT_COLOR : undefined
+    }}
+  >
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M3 9h18" />
+    <path d="M9 21V9" />
+  </Box>
+);
 
 /**
  * The rail's Projects entry. Unlike the views below it this opens a tab
@@ -48,11 +69,7 @@ const ProjectsRailButton = ({
         ariaLabel="Projects"
         className={onProjectSurface ? "active" : ""}
         onClick={handleClick}
-        icon={
-          <DiamondOutlinedIcon
-            sx={onProjectSurface ? { color: PROJECT_COLOR } : undefined}
-          />
-        }
+        icon={<ProjectsIcon active={onProjectSurface} />}
       />
     </Tooltip>
   );

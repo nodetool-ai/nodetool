@@ -47,7 +47,7 @@ import ScriptListPanel, { CreateScriptButton } from "../script/ScriptListPanel";
 import JsScriptListPanel, {
   CreateJsScriptButton
 } from "../jsScript/JsScriptListPanel";
-import SkillListPanel, { CreateSkillButton } from "../skills/SkillListPanel";
+import SkillListPanel from "../skills/SkillListPanel";
 import ChatListPanel, { CreateChatButton } from "../chat/ChatListPanel";
 import ApplicationListPanel, {
   CreateApplicationButton,
@@ -60,6 +60,7 @@ import NodeLibrary from "../node_menu/NodeLibrary";
 import RailAppMenu from "./RailAppMenu";
 import ProjectsRailButton from "../projects/ProjectsRailButton";
 import MorePanel from "./MorePanel";
+import DocumentsTree from "./DocumentsTree";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 
 import {
@@ -76,6 +77,7 @@ import { PAGE_TAB_TITLES } from "../workspace/pageTabs";
 import {
   LEFT_PANEL_TOP_LEVEL,
   getTopLevelCategory,
+  isDocumentPanelView,
   isMorePanelView
 } from "../../config/quickAccessCategories";
 import type { LeftPanelTopLevelCategory } from "../../config/quickAccessCategories";
@@ -267,12 +269,14 @@ const VerticalToolbar = memo(function VerticalToolbar({
   activeView,
   onViewChange,
   handlePanelToggle,
+  hiddenViews,
   showAppMenu = false,
   showProjects = false
 }: {
   activeView: LeftPanelView;
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: () => void;
+  hiddenViews: readonly LeftPanelView[];
   showAppMenu?: boolean;
   /** Projects open as tabs, so the entry only exists in the workspace shell. */
   showProjects?: boolean;
@@ -290,6 +294,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <QuickAccessSidebar
         activeCategory={renderedActive}
         onCategoryClick={onViewChange}
+        hiddenViews={hiddenViews}
       />
       <Divider className="toolbar-divider" sx={{ mx: SPACING.lg }} />
       <ThemeToggle />
@@ -380,6 +385,10 @@ const PanelContent = memo(function PanelContent({
         isMobile={isMobile}
       />
     );
+  }
+
+  if (activeView === "documents") {
+    return <DocumentsTree projectId={projectId} isMobile={isMobile} />;
   }
 
   return (
@@ -656,7 +665,6 @@ const PanelContent = memo(function PanelContent({
               title="Skills"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
-              actions={<CreateSkillButton />}
             />
           )}
           <SkillListPanel />
@@ -810,7 +818,6 @@ const MOBILE_CREATE_ACTIONS: Partial<
   entities: CreateEntityButton,
   scripts: CreateScriptButton,
   jsscripts: CreateJsScriptButton,
-  skills: CreateSkillButton,
   apps: CreateApplicationButton
 };
 
@@ -926,12 +933,16 @@ const MobilePanelLeft: React.FC<{
                   tooltipPlacement="bottom"
                 />
               )}
-              {LEFT_PANEL_TOP_LEVEL.map((category) => (
+              {LEFT_PANEL_TOP_LEVEL.filter(
+                (category) => !hiddenViews.includes(category.id)
+              ).map((category) => (
                 <MobilePanelCategoryButton
                   key={category.id}
                   category={category}
                   active={
-                    category.id === "more"
+                    category.id === "documents"
+                      ? isDocumentPanelView(activeView)
+                      : category.id === "more"
                       ? isMorePanelView(activeView)
                       : activeView === category.id
                   }
@@ -1031,6 +1042,8 @@ const PanelLeft: React.FC = () => {
   const displayActiveView: LeftPanelView =
     activeView === "assets"
       ? "library"
+      : isDocumentPanelView(activeView)
+        ? "documents"
       : isWorkflowEditOnlyView(activeView) && !isWorkflowEditActive
         ? "workflows"
         : activeView;
@@ -1064,6 +1077,8 @@ const PanelLeft: React.FC = () => {
   useEffect(() => {
     if (activeView === "assets") {
       setActiveView("library");
+    } else if (isDocumentPanelView(activeView) && activeView !== "documents") {
+      setActiveView("documents");
     } else if (!isWorkflowEditActive && isWorkflowEditOnlyView(activeView)) {
       setActiveView("workflows");
     }
@@ -1102,6 +1117,7 @@ const PanelLeft: React.FC = () => {
           activeView={displayActiveView}
           onViewChange={onViewChange}
           handlePanelToggle={handlePanelToggleClick}
+          hiddenViews={hiddenViews}
           showAppMenu={isWorkspace}
           showProjects={isWorkspace}
         />
@@ -1123,6 +1139,7 @@ const PanelLeft: React.FC = () => {
             if (
               e.key === "Escape" &&
               (displayActiveView === "nodes" ||
+                displayActiveView === "documents" ||
                 displayActiveView === "workflows" ||
                 displayActiveView === "chats" ||
                 displayActiveView === "sketches" ||

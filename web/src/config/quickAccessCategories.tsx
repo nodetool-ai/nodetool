@@ -37,6 +37,7 @@ import CollectionsOutlinedIcon from "@mui/icons-material/CollectionsOutlined";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
+import FolderCopyOutlinedIcon from "@mui/icons-material/FolderCopyOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 
 import type { NodeMetadata } from "../stores/ApiTypes";
@@ -96,6 +97,13 @@ const isAiNode = (m: NodeMetadata): boolean =>
 const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
   Record<LeftPanelView, LeftPanelTopLevelCategory>
 > = {
+  documents: {
+    id: "documents",
+    label: "Documents",
+    description: "Browse every document in the current project.",
+    docsTopic: "workflows",
+    icon: <FolderCopyOutlinedIcon />
+  },
   nodes: {
     id: "nodes",
     label: "Nodes",
@@ -228,47 +236,25 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
 };
 
 export const LEFT_PANEL_DIRECT: readonly LeftPanelTopLevelCategory[] = [
-  LEFT_PANEL_CATEGORY_BY_ID.chats,
-  LEFT_PANEL_CATEGORY_BY_ID.library
+  LEFT_PANEL_CATEGORY_BY_ID.documents,
+  LEFT_PANEL_CATEGORY_BY_ID.library,
+  LEFT_PANEL_CATEGORY_BY_ID.nodes
 ];
 
 export const LEFT_PANEL_MORE_GROUPS: readonly LeftPanelSection[] = [
   {
-    id: "project-content",
-    label: "Project",
-    categories: [
-      LEFT_PANEL_CATEGORY_BY_ID.workflows,
-      LEFT_PANEL_CATEGORY_BY_ID.apps
-    ]
-  },
-  {
     id: "workflow-tools",
     label: "Workflow tools",
     categories: [
-      LEFT_PANEL_CATEGORY_BY_ID.nodes,
       LEFT_PANEL_CATEGORY_BY_ID.favorites,
       LEFT_PANEL_CATEGORY_BY_ID.history,
       LEFT_PANEL_CATEGORY_BY_ID.settings
     ]
   },
   {
-    id: "editors",
-    label: "Create & edit",
-    categories: [
-      LEFT_PANEL_CATEGORY_BY_ID.sketches,
-      LEFT_PANEL_CATEGORY_BY_ID.scripts,
-      LEFT_PANEL_CATEGORY_BY_ID.storyboards,
-      LEFT_PANEL_CATEGORY_BY_ID.entities,
-      LEFT_PANEL_CATEGORY_BY_ID.timelines
-    ]
-  },
-  {
-    id: "developer-tools",
-    label: "Developer",
-    categories: [
-      LEFT_PANEL_CATEGORY_BY_ID.jsscripts,
-      LEFT_PANEL_CATEGORY_BY_ID.skills
-    ]
+    id: "agent-tools",
+    label: "Agent tools",
+    categories: [LEFT_PANEL_CATEGORY_BY_ID.skills]
   },
   {
     id: "workspace",
@@ -287,6 +273,22 @@ export const isMorePanelView = (view: LeftPanelView | ""): boolean =>
   LEFT_PANEL_MORE_GROUPS.some((group) =>
     group.categories.some((category) => category.id === view)
   );
+
+const DOCUMENT_PANEL_VIEWS: ReadonlySet<LeftPanelView> = new Set([
+  "documents",
+  "workflows",
+  "apps",
+  "chats",
+  "sketches",
+  "scripts",
+  "storyboards",
+  "entities",
+  "timelines",
+  "jsscripts"
+]);
+
+export const isDocumentPanelView = (view: LeftPanelView | ""): boolean =>
+  view !== "" && DOCUMENT_PANEL_VIEWS.has(view);
 
 /**
  * Node sub-tabs shown inside the Nodes view. Each entry filters

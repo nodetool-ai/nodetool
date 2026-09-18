@@ -13,27 +13,19 @@ const renderPanel = (onSelectView = jest.fn()) =>
   );
 
 describe("MorePanel", () => {
-  it("groups all non-direct panel views into sections", () => {
+  it("groups non-document utility views into sections", () => {
     renderPanel();
 
-    expect(screen.getByText("Project")).toBeInTheDocument();
     expect(screen.getByText("Workflow tools")).toBeInTheDocument();
-    expect(screen.getByText("Create & edit")).toBeInTheDocument();
-    expect(screen.getByText("Developer")).toBeInTheDocument();
+    expect(screen.getByText("Agent tools")).toBeInTheDocument();
     expect(screen.getAllByText("Workspace")).toHaveLength(2);
     expect(
-      screen.getByRole("button", { name: /Sketches/ })
+      screen.getByRole("button", { name: /Favorite Nodes/ })
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /JS Scripts/ })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Workflows/ })
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Apps/ })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /Workflow Output/ })
     ).toBeNull();
+    expect(screen.getByRole("button", { name: /Skills/ })).toBeInTheDocument();
   });
 
   it("searches across every section", async () => {
@@ -42,14 +34,14 @@ describe("MorePanel", () => {
 
     await user.type(
       screen.getByRole("textbox", { name: "Search all panels" }),
-      "timeline"
+      "workspace"
     );
 
     expect(
-      screen.getByRole("button", { name: /Timelines/ })
+      screen.getByRole("button", { name: /^Workspace/ })
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Sketches/ })).toBeNull();
-    expect(screen.queryByText("Developer")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Favorite Nodes/ })).toBeNull();
+    expect(screen.queryByText("Workflow tools")).toBeNull();
   });
 
   it("opens the selected nested panel", async () => {
@@ -57,8 +49,18 @@ describe("MorePanel", () => {
     const onSelectView = jest.fn();
     renderPanel(onSelectView);
 
-    await user.click(screen.getByRole("button", { name: /Storyboards/ }));
+    await user.click(screen.getByRole("button", { name: /Favorite Nodes/ }));
 
-    expect(onSelectView).toHaveBeenCalledWith("storyboards");
+    expect(onSelectView).toHaveBeenCalledWith("favorites");
+  });
+
+  it("opens the global skills panel outside the project tree", async () => {
+    const user = userEvent.setup();
+    const onSelectView = jest.fn();
+    renderPanel(onSelectView);
+
+    await user.click(screen.getByRole("button", { name: /Skills/ }));
+
+    expect(onSelectView).toHaveBeenCalledWith("skills");
   });
 });

@@ -243,7 +243,7 @@ const SkillListPanel = () => {
           }}
         />
       }
-      emptyDescription="Create a new skill with the + button above."
+      emptyDescription="Create a skill from the workspace New menu."
       deleteTarget={itemToDelete}
       onCancelDelete={handleCancelDelete}
       onConfirmDelete={handleConfirmDelete}

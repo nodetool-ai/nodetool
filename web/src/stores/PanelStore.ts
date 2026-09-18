@@ -14,6 +14,7 @@ import {
  * top-level view + activeNodeCategory pair.
  */
 export type LeftPanelView =
+  | "documents"
   | "workflows"
   | "chats"
   | "sketches"
@@ -48,6 +49,7 @@ export type NodeCategoryId =
   | "control-flow";
 
 const VALID_VIEWS: LeftPanelView[] = [
+  "documents",
   "workflows",
   "chats",
   "sketches",
@@ -126,7 +128,7 @@ export const usePanelStore = createResizablePanelStore<
   name: "left-panel-storage",
   version: 3,
   sizes: { drag: 60, min: 160, max: 800, initial: 500 },
-  defaultView: "workflows",
+  defaultView: "documents",
   isView: isLeftPanelView,
   persistVisibility: true,
   extraState: { activeNodeCategory: "all" },
