@@ -16,9 +16,9 @@ const TYPESCRIPT_NATIVE_VERSION = "7.0.2";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = resolve(dirname(scriptPath), "..");
-const auditExemptPaths = new Set([
-  scriptPath,
-  resolve(repoRoot, "scripts/__tests__/check-typescript-policy.test.mjs")
+export const AUDIT_EXEMPT_PATHS = new Set([
+  "scripts/check-typescript-policy.mjs",
+  "scripts/__tests__/check-typescript-policy.test.mjs"
 ]);
 const standaloneProjects = ["mobile", "marketing", "chrome-extension"];
 const sourceRoots = [
@@ -89,6 +89,11 @@ export function auditManifests(entries) {
     }
   }
   return errors;
+}
+
+export function isAuditExempt(root, path) {
+  const relativePath = path.slice(root.length).replace(/\\/g, "/").replace(/^\/+/, "");
+  return AUDIT_EXEMPT_PATHS.has(relativePath);
 }
 
 export function auditSourceText(path, text) {
@@ -220,7 +225,7 @@ export async function checkTypeScriptPolicy() {
     await collectFiles(resolve(repoRoot, root), (path) => sourceExtensions.has(path.slice(path.lastIndexOf("."))), sourceFiles);
   }
   for (const path of sourceFiles) {
-    if (auditExemptPaths.has(path)) {
+    if (isAuditExempt(repoRoot, path)) {
       continue;
     }
     errors.push(...auditSourceText(path, await readFile(path, "utf8")));
