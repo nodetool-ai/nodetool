@@ -16,6 +16,7 @@ import type { Theme } from "@mui/material/styles";
 import { ExpandCollapseButton, EmptyState, Text, Box, MOTION, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { isCoarsePointer } from "../../utils/isCoarsePointer";
+import { useVideoThumbnail } from "../../hooks/useVideoThumbnail";
 
 interface AssetListViewProps {
   assets: Asset[];
@@ -220,6 +221,36 @@ const styles = (theme: Theme) =>
     }
   });
 
+/**
+ * One row's preview tile. A component rather than inline JSX because a video
+ * whose stored thumbnail is missing needs a hook to decode a poster frame.
+ */
+const AssetRowThumbnail: React.FC<{
+  asset: Asset;
+  isSvg: boolean;
+  previewUrl: string | null | undefined;
+}> = ({ asset, isSvg, previewUrl }) => {
+  const isVideo = asset.content_type?.startsWith("video/") ?? false;
+  const videoThumbUrl = useVideoThumbnail(
+    isVideo ? previewUrl : null,
+    isVideo ? asset.get_url : null
+  );
+  const src = isVideo ? videoThumbUrl : previewUrl;
+  if (!src) {
+    return <div className="asset-item-thumbnail" />;
+  }
+  return (
+    <div
+      className="asset-item-thumbnail"
+      style={{
+        backgroundImage: `url(${src})`,
+        backgroundSize: isSvg ? "contain" : undefined
+      }}
+      title={`${asset.content_type} thumbnail`}
+    />
+  );
+};
+
 const AssetListView: React.FC<AssetListViewProps> = ({
   assets,
   onDoubleClick,
@@ -420,9 +451,14 @@ const AssetListView: React.FC<AssetListViewProps> = ({
         isSvg) &&
       asset.get_url &&
       asset.get_url !== "/images/placeholder.png";
+    const isVideo = asset.content_type?.startsWith("video/") ?? false;
+    // No browser paints an MP4 as a background image, so a video with a
+    // missing server thumbnail gets a poster decoded in the browser instead.
     const previewUrl = isSvg
       ? asset.get_url
-      : asset.thumb_url || asset.get_url;
+      : isVideo
+        ? asset.thumb_url
+        : asset.thumb_url || asset.get_url;
 
     return (
       <div
@@ -450,14 +486,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
         onContextMenu={(e) => handleContextMenu(e, asset.id)}
       >
         {hasVisualContent ? (
-          <div
-            className="asset-item-thumbnail"
-            style={{
-              backgroundImage: `url(${previewUrl})`,
-              backgroundSize: isSvg ? "contain" : undefined
-            }}
-            title={`${asset.content_type} thumbnail`}
-          />
+          <AssetRowThumbnail asset={asset} isSvg={isSvg} previewUrl={previewUrl} />
         ) : (
           <div className="asset-item-icon">
             {isFolder ? (

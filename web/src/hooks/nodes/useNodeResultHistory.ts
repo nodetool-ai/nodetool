@@ -49,12 +49,24 @@ export const nodeAssetsQueryKey = (nodeId: string | null) =>
  * Reduce a list of last-job assets to a single preview value (single asset)
  * or an array (multi-asset job). Returns `undefined` for an empty list so
  * callers can use it as a `??` fallback against live results.
+ *
+ * `outputName` narrows the list to the assets a node produced on one output
+ * handle — what a Preview wired to that handle should show. Autosave stamps
+ * `metadata.output_name`; assets saved before it did carry none, so the
+ * filter only applies when the list actually names its handles, and an
+ * unstamped list keeps the pre-existing whole-node behavior.
  */
 export const assetsToPreviewValue = (
-  assets: Asset[]
+  assets: Asset[],
+  outputName?: string | null
 ): OutputPreviewValue | OutputPreviewValue[] | undefined => {
   if (assets.length === 0) return undefined;
-  const values = assets.map(assetToOutputValue);
+  const scoped =
+    outputName && assets.some((a) => a.metadata?.output_name)
+      ? assets.filter((a) => a.metadata?.output_name === outputName)
+      : assets;
+  if (scoped.length === 0) return undefined;
+  const values = scoped.map(assetToOutputValue);
   return values.length === 1 ? values[0] : values;
 };
 

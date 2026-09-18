@@ -16,6 +16,7 @@ import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
 import { useActivateOnKey } from "../../hooks/useActivateOnKey";
+import { useVideoThumbnail } from "../../hooks/useVideoThumbnail";
 import { isCoarsePointer } from "../../utils/isCoarsePointer";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -420,6 +421,14 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     };
   }, [asset?.content_type, asset?.name]);
 
+  // Videos have no paintable fallback: `get_url` is an MP4, which no browser
+  // renders as a background image. When the server thumbnail is missing the
+  // tile used to come up empty, so decode a poster frame in the browser.
+  const videoThumbUrl = useVideoThumbnail(
+    isVideo ? asset?.thumb_url : null,
+    isVideo ? asset?.get_url : null
+  );
+
   const handleAudioClick = useCallback(() => {
     onSetCurrentAudioAsset?.(asset);
   }, [asset, onSetCurrentAudioAsset]);
@@ -520,26 +529,22 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
         )}
         {isVideo && (
           <>
-            {!asset.thumb_url && !asset.get_url ? (
+            {videoThumbUrl ? (
+              <div
+                className="image"
+                style={{ backgroundImage: `url(${videoThumbUrl})` }}
+                aria-label={asset.id}
+              />
+            ) : (
               <VideoFileIcon
                 className="placeholder"
                 style={{ color: `var(--c_${assetType})`, zIndex: Z_INDEX.modal }}
                 titleAccess={asset.content_type || "Video file"}
               />
-            ) : (
-              <div
-                className="image"
-                style={{
-                  backgroundImage: `url(${asset.thumb_url || asset.get_url})`
-                }}
-                aria-label={asset.id}
-              />
             )}
 
-            {/* Always show icon overlay for video if we have a thumbnail to indicate it's playble/video */}
-            {(asset.thumb_url || asset.get_url) && (
-              <VideoFileIcon style={videoIconOverlayStyle} />
-            )}
+            {/* Icon overlay marks the tile as playable once a poster is up. */}
+            {videoThumbUrl && <VideoFileIcon style={videoIconOverlayStyle} />}
 
             {showDuration && asset.duration && assetItemSize > 1 && (
               <Text className="duration info">
