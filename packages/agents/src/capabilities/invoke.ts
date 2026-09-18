@@ -149,7 +149,7 @@ export function createCapabilityRun(
     context: options.context,
     gate: options.gate,
     client: options.client,
-    projectId: options.projectId,
+    projectId: options.projectId ?? options.context.projectId ?? undefined,
     secretPrompt: options.secretPrompt,
     subAgent: options.subAgent,
     budget: options.budget ?? budgetFromContext(options.context),

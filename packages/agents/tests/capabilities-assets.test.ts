@@ -33,6 +33,7 @@ import {
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import type { Tool } from "../src/tools/base-tool.js";
 import type { PackageAssetLister } from "../src/tools/mcp-tools.js";
+import { getAllMcpTools } from "../src/tools/mcp-tools.js";
 
 const USER = "user-assets";
 
@@ -141,6 +142,26 @@ describe("assets capability module", () => {
 });
 
 describe("assets capabilities against the database", () => {
+  it("uses the context's Personal project through the chat toolbelt", async () => {
+    const project = await Project.ensurePersonal(USER);
+    const asset = await Asset.create<Asset>({
+      user_id: USER,
+      project_id: project.id,
+      name: "recording.mov",
+      content_type: "video/quicktime"
+    });
+    const ctx = makeContext({ projectId: project.id });
+    const tools = getAllMcpTools();
+    const list = tools.find((entry) => entry.name === "list_assets");
+    const get = tools.find((entry) => entry.name === "get_asset");
+    expect(await list?.process(ctx, { content_type: "video/", limit: 8 })).toMatchObject({
+      assets: [{ id: asset.id }]
+    });
+    expect(await get?.process(ctx, { asset_id: asset.id })).toMatchObject({
+      id: asset.id
+    });
+  });
+
   it("cannot list, search, get, or update assets from another project", async () => {
     const projectA = await Project.create<Project>({
       user_id: USER,
