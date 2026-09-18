@@ -5,11 +5,13 @@ import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import {
   extractInjectableImages,
   stripImagePayload,
+  registerTemporaryImageHandle,
   IMAGE_CONTENT_FIELD
 } from "../src/tools/image-injection.js";
 import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 import type { MessageContent } from "@nodetool-ai/runtime";
 import { createMockContext } from "./_helpers/mock-context.js";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 
 const viewImageTool = () => toolForCapabilityName("view_image");
 const listImagesTool = () => toolForCapabilityName("list_images");
@@ -221,6 +223,33 @@ describe("ViewImageTool", () => {
       image_id: "asset://missing.png"
     })) as Record<string, any>;
     expect(result.error).toBe("Asset missing was not found.");
+  });
+
+  it("loads a temporary frame handle from the run storage", async () => {
+    const tool = viewImageTool();
+    const handle = "7601e66c-4c37-4a86-8a98-95b61f21c3e7.jpg";
+    const context = imageContext(null);
+    context.storage = new InMemoryStorageAdapter();
+    await context.storage.store(handle, TINY_PNG_BYTES, "image/png");
+    registerTemporaryImageHandle(context, handle);
+
+    const result = (await tool.process(context, {
+      image_id: handle
+    })) as Record<string, unknown>;
+
+    expect(result.ok).toBe(true);
+    expect(context.resolveAssetBytes).not.toHaveBeenCalled();
+    expect(result.image_content).toEqual({
+      uri: `/api/storage/${handle}`,
+      mimeType: "image/png"
+    });
+
+    const otherContext = imageContext(TINY_PNG_BYTES);
+    otherContext.storage = context.storage;
+    expect(await tool.process(otherContext, { image_id: handle })).toMatchObject({
+      error: expect.stringContaining("not found")
+    });
+    expect(otherContext.resolveAssetBytes).not.toHaveBeenCalled();
   });
 
   it("passes remote URLs through for the provider to fetch", async () => {

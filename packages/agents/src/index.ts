@@ -24,6 +24,7 @@ export {
   IMAGE_CONTENT_FIELD,
   IMAGE_CONTENTS_FIELD,
   extractInjectableImages,
+  registerTemporaryImageHandle,
   stripImagePayload
 } from "./tools/image-injection.js";
 export type {

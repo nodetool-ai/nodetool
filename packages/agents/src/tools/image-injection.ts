@@ -17,13 +17,36 @@
  * `image_content`, and the websocket chat runner materializes any embedded
  * pixels from other tools into temp-asset handles before they reach the model.
  */
-import type { MessageImageContent } from "@nodetool-ai/runtime";
+import type { MessageImageContent, ProcessingContext } from "@nodetool-ai/runtime";
 import { isObjectLike, isRecord, isString } from "../utils/type-guards.js";
 
 /** Result field carrying a single viewable image. */
 export const IMAGE_CONTENT_FIELD = "image_content";
 /** Result field carrying several viewable images (e.g. multiple regions). */
 export const IMAGE_CONTENTS_FIELD = "image_contents";
+
+const temporaryImageHandles = new WeakMap<ProcessingContext, Set<string>>();
+
+/** Authorize a stored capture handle for the context that produced it. */
+export function registerTemporaryImageHandle(
+  context: ProcessingContext,
+  handle: string
+): void {
+  let handles = temporaryImageHandles.get(context);
+  if (!handles) {
+    handles = new Set();
+    temporaryImageHandles.set(context, handles);
+  }
+  handles.add(handle);
+}
+
+/** Check provenance before interpreting a bare handle as temporary media. */
+export function hasTemporaryImageHandle(
+  context: ProcessingContext,
+  handle: string
+): boolean {
+  return temporaryImageHandles.get(context)?.has(handle) ?? false;
+}
 
 /** A viewable image as returned by a tool. `uri` may be a data: URI. */
 export interface InjectableImage {

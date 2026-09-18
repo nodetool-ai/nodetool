@@ -69,6 +69,7 @@ import {
   isString
 } from "../utils/type-guards.js";
 import { resolveProjectId } from "./project-scope.js";
+import { hasTemporaryImageHandle } from "../tools/image-injection.js";
 
 // ---------------------------------------------------------------------------
 // Shared projections
@@ -868,15 +869,19 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
     passthroughUri = imageId;
   } else {
     try {
+      const temporary = hasTemporaryImageHandle(context, imageId);
       const assetId = assetIdFromReference(imageId);
       if (
         assetId &&
         !requiresStoredAssetOwnership(imageId) &&
+        !temporary &&
         !(await findRunAsset(run, assetId))
       ) {
         return { error: `Asset ${assetId} was not found.` };
       }
-      const { bytes } = await context.resolveAssetBytes(imageId);
+      const bytes = temporary
+        ? await context.storage?.retrieve(context.storage.uriForKey(imageId))
+        : (await context.resolveAssetBytes(imageId)).bytes;
       if (bytes && bytes.length > 0) {
         sourceBytes = bytes;
         // `sniffImageMime` falls back to PNG for anything it does not
@@ -884,11 +889,13 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
         // labeled `image/png`, passed the provider-safe check below, and was
         // shipped to the model as markup wearing a PNG label.
         sourceMime = isSvgBytes(bytes) ? SVG_MIME : sniffImageMime(bytes);
-        sourceRef = imageId.startsWith("asset://")
-          ? imageId
-          : imageId.startsWith("/api/storage/")
+        sourceRef = temporary
+          ? `/api/storage/${imageId}`
+          : imageId.startsWith("asset://")
             ? imageId
-            : `asset://${imageId}`;
+            : imageId.startsWith("/api/storage/")
+              ? imageId
+              : `asset://${imageId}`;
       }
     } catch (e) {
       // Keep why. A caller that passed a perfectly good asset id — one

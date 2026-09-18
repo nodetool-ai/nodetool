@@ -7,6 +7,9 @@ import {
 } from "../src/websocket-client-session.js";
 import { resetEnvironment } from "@nodetool-ai/config";
 import { initTestDb, Job } from "@nodetool-ai/models";
+import { ProcessingContext } from "@nodetool-ai/runtime";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
+import { toolForCapabilityName } from "@nodetool-ai/agents";
 
 class MockWebSocket implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -992,6 +995,21 @@ describe("WebSocketClientSession binary frame size guard", () => {
 
 describe("WebSocketClientSession image tool results", () => {
   const runner = new WebSocketClientSession({ resolveExecutor });
+
+  it("lets view_image read a materialized frame without a persistent asset row", async () => {
+    initTestDb();
+    const ctx = new ProcessingContext({ userId: "1", storage: new InMemoryStorageAdapter() });
+    const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    const out = await runner.chat.materializeToolResultImages({
+      frames: [{ timelineTimeMs: 5000, dataUrl: `data:image/png;base64,${png}` }]
+    }, ctx);
+    const result = out as { frames: Array<{ image_id: string }> };
+    const handle = result.frames[0]!.image_id;
+    expect(await toolForCapabilityName("view_image").process(ctx, { image_id: handle })).toMatchObject({
+      ok: true,
+      image_content: { uri: `/api/storage/${handle}`, mimeType: "image/png" }
+    });
+  });
 
   function makeCtx() {
     const stored: Array<{ key: string; bytes: Uint8Array; mimeType: string }> =

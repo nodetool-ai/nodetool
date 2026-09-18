@@ -119,6 +119,7 @@ import {
   UNGATED,
   PERMISSION_GATE_CONTEXT_KEY,
   extractInjectableImages,
+  registerTemporaryImageHandle,
   type CapabilityRun,
   type PermissionGateOptions,
   type SubAgentRuntime,
@@ -939,6 +940,7 @@ export class ChatTurnHandler {
     const key = `${randomUUID()}.${ext}`;
     try {
       await ctx.storage.store(key, bytes, mimeType);
+      registerTemporaryImageHandle(ctx, key);
       return key;
     } catch (err) {
       log.error("Failed to store temp image asset", {
