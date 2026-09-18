@@ -123,8 +123,8 @@ export class CodexProvider extends OpenAIProvider {
   }
 
   /**
-   * Include the shared OpenAI catalog alongside the account- and version-specific
-   * models returned by Codex, retaining live display names for matching ids.
+   * Return the account- and version-specific models served by Codex. Use the
+   * shared OpenAI catalog only when the live listing is unavailable or empty.
    */
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     const fallback: LanguageModel[] = OPENAI_FALLBACK_MODELS.map((model) => ({
@@ -150,9 +150,7 @@ export class CodexProvider extends OpenAIProvider {
           name: m.display_name ?? m.slug,
           provider: PROVIDER_IDS.CODEX
         }));
-      return [
-        ...new Map([...fallback, ...models].map((m) => [m.id, m])).values()
-      ];
+      return models.length > 0 ? models : fallback;
     } catch {
       return fallback;
     }

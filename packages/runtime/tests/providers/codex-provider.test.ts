@@ -49,17 +49,16 @@ describe("CodexProvider", () => {
     const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
     const models = await provider.getAvailableLanguageModels();
     expect(fetchSpy).toHaveBeenCalledWith(
-      `${CODEX_BACKEND_BASE_URL}/models?client_version=0.153.3`,
+      `${CODEX_BACKEND_BASE_URL}/models?client_version=0.155.0`,
       expect.any(Object)
     );
-    expect(models.map((m) => m.id)).toEqual(
-      expect.arrayContaining([
-        ...OPENAI_FALLBACK_MODELS.map((m) => m.id),
-        "codex-account-model"
-      ])
-    );
-    expect(models.filter((m) => m.id === "gpt-5.5")).toEqual([
-      { id: "gpt-5.5", name: "GPT-5.5", provider: "codex" }
+    expect(models).toEqual([
+      { id: "gpt-5.5", name: "GPT-5.5", provider: "codex" },
+      {
+        id: "codex-account-model",
+        name: "Account model",
+        provider: "codex"
+      }
     ]);
     expect(models.every((m) => m.provider === "codex")).toBe(true);
   });
