@@ -15,7 +15,11 @@ import { makeClip } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { TracksRegion } from "../TracksRegion";
-import { TimelineProvider, createTimelineInstance } from "../../../../stores/timeline/TimelineInstance";
+import {
+  TimelineProvider,
+  createTimelineInstance,
+  getTimelineTemporal
+} from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 
@@ -149,6 +153,26 @@ describe("TracksRegion keyboard shortcuts", () => {
       fireEvent.keyDown(input, { key: "a", ctrlKey: true });
     });
     expect(useTimelineUIStore.getState().selectedClipIds.size).toBe(0);
+  });
+
+  it("undoes a clip property while an inspector slider has focus", () => {
+    const { container } = setup();
+    const clip = useTimelineStore.getState().clips[0];
+    act(() => {
+      getTimelineTemporal().clear();
+      useTimelineStore.getState().patchClip(clip.id, { opacity: 0.5 });
+    });
+    expect(useTimelineStore.getState().clips[0].opacity).toBe(0.5);
+
+    const input = document.createElement("input");
+    input.type = "range";
+    container.appendChild(input);
+    input.focus();
+    act(() => {
+      fireEvent.keyDown(input, { key: "z", ctrlKey: true });
+    });
+
+    expect(useTimelineStore.getState().clips[0].opacity).toBe(clip.opacity);
   });
 });
 

@@ -836,10 +836,28 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     useEffect(() => {
       if (!isActive) return;
-      const isEditableTarget = (target: EventTarget | null): boolean =>
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        (target instanceof HTMLElement && target.isContentEditable);
+      const isTextEditingTarget = (target: EventTarget | null): boolean => {
+        if (
+          target instanceof HTMLTextAreaElement ||
+          (target instanceof HTMLElement && target.isContentEditable)
+        ) {
+          return true;
+        }
+        if (!(target instanceof HTMLInputElement)) {
+          return false;
+        }
+        return ![
+          "button",
+          "checkbox",
+          "color",
+          "file",
+          "image",
+          "radio",
+          "range",
+          "reset",
+          "submit"
+        ].includes(target.type);
+      };
 
       // The piano roll binds Delete, Ctrl+A, Ctrl+D, the arrows and Escape to
       // its own notes. It stops propagation, but this listener sits on
@@ -870,7 +888,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       };
 
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (isEditableTarget(e.target) || isPianoRollTarget(e.target)) {
+        if (isTextEditingTarget(e.target) || isPianoRollTarget(e.target)) {
           return;
         }
         // Another timeline surface (e.g. the focused preview's frame-step
