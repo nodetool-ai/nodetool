@@ -1,24 +1,25 @@
 /**
  * Effects section: the shader-catalog effects a clip applies in order (D7).
  *
- * The Color and Blur sections above own one effect each, keyed by a fixed id
- * (`inspector:color`, `inspector:blur`), and those two are edited there rather
- * than twice. This list holds everything else in `clip.effects` — the eight
- * catalog effects plus anything a newer build wrote, which shows as a
- * read-only row so reordering or removing it stays possible.
+ * The Color section above owns one effect keyed by `inspector:color`, which is
+ * edited there rather than twice. This list holds everything else in
+ * `clip.effects` — the catalog effects plus anything a newer build wrote,
+ * which shows as a read-only row so reordering or removing it stays possible.
  *
  * Order is the chain the compositor applies, so move-up/move-down operate on
- * the whole `clip.effects` array: a hidden colour or blur effect keeps its
- * slot while a listed one steps over it.
+ * the whole `clip.effects` array: the hidden colour effect keeps its slot while
+ * a listed one steps over it.
  */
 
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import type { Theme } from "@mui/material/styles";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
-import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
-import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
+import DragIndicatorOutlinedIcon from "@mui/icons-material/DragIndicatorOutlined";
+import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
+import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
 import {
+  isClipBlurEffect,
   isClipChromaKeyEffect,
   isClipCurvesEffect,
   isClipDropShadowEffect,
@@ -37,12 +38,18 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
   Button,
   Caption,
+  Checkbox,
   CollapsibleSection,
+  CONTROL,
   DeleteButton,
+  EmptyState,
   FlexColumn,
   FlexRow,
   SPACING,
-  Text,
+  Popover,
+  SearchInput,
+  TruncatedText,
+  TYPOGRAPHY,
   TextInput,
   ToolbarIconButton
 } from "../../ui_primitives";
@@ -52,21 +59,17 @@ import {
   InspectorPillInput,
   InspectorRow,
   InspectorSectionTitle,
-  InspectorSelect,
   InspectorSliderRow,
   InspectorToggleRow
 } from "./InspectorPrimitives";
-import { TextCommitField } from "./InspectorMotionFields";
-import {
-  formatCurvePoints,
-  parseCurvePoints
-} from "./InspectorPrimitives.helpers";
+import { ToneCurveEditor } from "./ToneCurveEditor";
 
-/** The two ids the Color and Blur sections own; never listed here. */
-const SECTION_OWNED_IDS = new Set(["inspector:color", "inspector:blur"]);
+/** The fixed effect the dedicated Color section owns; never listed here. */
+const SECTION_OWNED_IDS = new Set(["inspector:color"]);
 
 /** Catalog effects this panel can add, in the order D7 lists them. */
 const ADDABLE_EFFECTS = [
+  { value: "blur", label: "Blur" },
   { value: "glow", label: "Glow" },
   { value: "dropShadow", label: "Drop shadow" },
   { value: "vignette", label: "Vignette" },
@@ -97,6 +100,8 @@ const EFFECT_LABELS: Record<string, string> = {
 function makeEffect(type: AddableEffectType): ClipEffect {
   const id = crypto.randomUUID();
   switch (type) {
+    case "blur":
+      return { id, type, enabled: true, radius: 8 };
     case "glow":
       return { id, type, enabled: true, radius: 8, intensity: 1 };
     case "dropShadow":
@@ -187,6 +192,20 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
   ({ effect, onPatch }) => {
     const name = EFFECT_LABELS[effect.type] ?? effect.type;
 
+    if (isClipBlurEffect(effect)) {
+      return (
+        <InspectorSliderRow
+          label="Radius"
+          min={0}
+          max={20}
+          step={0.5}
+          value={effect.radius}
+          display={`${effect.radius.toFixed(1)}px`}
+          onChange={(radius) => onPatch({ radius })}
+        />
+      );
+    }
+
     if (isClipGlowEffect(effect)) {
       return (
         <>
@@ -195,7 +214,9 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
               value={String(effect.radius)}
               unit="px"
               scrub={SCRUB_PX}
-              onCommit={(raw) => commitNumber(raw, (radius) => onPatch({ radius }))}
+              onCommit={(raw) =>
+                commitNumber(raw, (radius) => onPatch({ radius }))
+              }
               ariaLabel={`${name} radius`}
             />
           </InspectorRow>
@@ -356,7 +377,9 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
               value={String(effect.radius ?? 1)}
               unit="px"
               scrub={SCRUB_PX}
-              onCommit={(raw) => commitNumber(raw, (radius) => onPatch({ radius }))}
+              onCommit={(raw) =>
+                commitNumber(raw, (radius) => onPatch({ radius }))
+              }
               ariaLabel={`${name} radius`}
             />
           </InspectorRow>
@@ -407,39 +430,14 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
     }
 
     if (isClipCurvesEffect(effect)) {
-      const channels = [
-        { key: "master", label: "Master", points: effect.master },
-        { key: "r", label: "Red", points: effect.r },
-        { key: "g", label: "Green", points: effect.g },
-        { key: "b", label: "Blue", points: effect.b }
-      ] as const;
       return (
-        <>
-          {channels.map((channel) => (
-            <InspectorRow key={channel.key} label={channel.label}>
-              <TextCommitField
-                value={formatCurvePoints(channel.points)}
-                ariaLabel={`${name} ${channel.label.toLowerCase()} points`}
-                placeholder="0,0 1,1"
-                onCommit={(raw) => {
-                  const points = parseCurvePoints(raw);
-                  if (points === null) return;
-                  onPatch({
-                    [channel.key]:
-                      channel.key === "master"
-                        ? points
-                        : points.length === 0
-                          ? undefined
-                          : points
-                  });
-                }}
-              />
-            </InspectorRow>
-          ))}
-          <Caption color="muted">
-            Control points as x,y pairs in 0..1, e.g. 0,0 0.5,0.6 1,1.
-          </Caption>
-        </>
+        <ToneCurveEditor
+          master={effect.master}
+          r={effect.r}
+          g={effect.g}
+          b={effect.b}
+          onPatch={onPatch}
+        />
       );
     }
 
@@ -468,7 +466,9 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             <InspectorPillInput
               value={effect.gamma.toFixed(2)}
               scrub={SCRUB_UNIT}
-              onCommit={(raw) => commitNumber(raw, (gamma) => onPatch({ gamma }))}
+              onCommit={(raw) =>
+                commitNumber(raw, (gamma) => onPatch({ gamma }))
+              }
               ariaLabel={`${name} gamma`}
             />
           </InspectorRow>
@@ -529,20 +529,19 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
       );
     }
 
-    // Only `color` and `blur` reach this and are still drawn: the Color and
-    // Blur sections edit the inspector's own two, not one written elsewhere.
+    // Only `color` reaches this and is still drawn: the dedicated Color
+    // section edits the inspector's own effect, not one written elsewhere.
     if (parseClipEffectType(effect.type)) {
       return (
         <Caption color="muted">
-          Written outside the inspector. It still applies; the Color and Blur
-          sections edit the inspector&apos;s own effects.
+          This effect still applies. Use the Color section to adjust color.
         </Caption>
       );
     }
     return (
       <Caption color="muted">
-        This build does not draw &quot;{effect.type}&quot;. Its settings are kept
-        as written.
+        This build does not draw &quot;{effect.type}&quot;. Its settings are
+        kept as written.
       </Caption>
     );
   }
@@ -553,15 +552,19 @@ const ROW_SX = {
   borderTop: (theme: Theme) => `1px solid ${theme.vars.palette.divider}`,
   pt: SPACING.md
 };
-const DELETE_SX = { width: 24, height: 24 };
+const DELETE_SX = { width: CONTROL.height.sm, height: CONTROL.height.sm };
+const EFFECT_DRAG_TYPE = "application/x-nodetool-clip-effect";
 
 interface EffectRowProps {
   effect: ClipEffect;
   isFirst: boolean;
   isLast: boolean;
+  expanded: boolean;
+  onExpand: (id: string) => void;
   onPatch: (id: string, patch: Record<string, unknown>) => void;
   onRemove: (id: string) => void;
   onMove: (id: string, delta: -1 | 1) => void;
+  onDrop: (fromId: string, toId: string) => void;
 }
 
 /**
@@ -570,7 +573,17 @@ interface EffectRowProps {
  * re-renders that effect, not every other effect's whole field set.
  */
 const EffectRow: React.FC<EffectRowProps> = memo(
-  ({ effect, isFirst, isLast, onPatch, onRemove, onMove }) => {
+  ({
+    effect,
+    isFirst,
+    isLast,
+    expanded,
+    onExpand,
+    onPatch,
+    onRemove,
+    onMove,
+    onDrop
+  }) => {
     const { id } = effect;
     const name = EFFECT_LABELS[effect.type] ?? effect.type;
 
@@ -578,50 +591,90 @@ const EffectRow: React.FC<EffectRowProps> = memo(
       (next: Record<string, unknown>) => onPatch(id, next),
       [id, onPatch]
     );
-    const setEnabled = useCallback(
-      (enabled: boolean) => onPatch(id, { enabled }),
-      [id, onPatch]
-    );
     const remove = useCallback(() => onRemove(id), [id, onRemove]);
-    const moveUp = useCallback(() => onMove(id, -1), [id, onMove]);
-    const moveDown = useCallback(() => onMove(id, 1), [id, onMove]);
 
     return (
-      <FlexColumn gap={SPACING.xs} sx={ROW_SX}>
-        <FlexRow align="center" justify="space-between" gap={SPACING.md}>
-          <Text size="small">{name}</Text>
-          <FlexRow align="center" gap={SPACING.micro}>
-            <ToolbarIconButton
-              icon={<ArrowUpwardOutlinedIcon />}
-              tooltip={`Move ${name} up`}
-              aria-label={`Move ${name} up`}
-              size="small"
-              disabled={isFirst}
-              onClick={moveUp}
-            />
-            <ToolbarIconButton
-              icon={<ArrowDownwardOutlinedIcon />}
-              tooltip={`Move ${name} down`}
-              aria-label={`Move ${name} down`}
-              size="small"
-              disabled={isLast}
-              onClick={moveDown}
-            />
-            <DeleteButton
-              onClick={remove}
-              tooltip={`Remove ${name} effect`}
-              ariaLabel={`Remove ${name} effect`}
-              iconVariant="clear"
-              sx={DELETE_SX}
-            />
-          </FlexRow>
+      <FlexColumn
+        gap={SPACING.xs}
+        sx={ROW_SX}
+        onDragOver={(event) => {
+          if (event.dataTransfer.types.includes(EFFECT_DRAG_TYPE)) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+          }
+        }}
+        onDrop={(event) => {
+          const fromId = event.dataTransfer.getData(EFFECT_DRAG_TYPE);
+          if (fromId) {
+            event.preventDefault();
+            onDrop(fromId, id);
+          }
+        }}
+      >
+        <FlexRow align="center" gap={SPACING.micro}>
+          <ToolbarIconButton
+            icon={<DragIndicatorOutlinedIcon />}
+            tooltip="Drag to reorder, or use Alt + arrow keys"
+            aria-label={`Reorder ${name}`}
+            aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+            size="small"
+            draggable
+            onDragStart={(event) => {
+              event.dataTransfer.setData(EFFECT_DRAG_TYPE, id);
+              event.dataTransfer.effectAllowed = "move";
+            }}
+            onKeyDown={(event) => {
+              if (
+                event.altKey &&
+                (event.key === "ArrowUp" || event.key === "ArrowDown")
+              ) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (event.key === "ArrowUp" && !isFirst) onMove(id, -1);
+                if (event.key === "ArrowDown" && !isLast) onMove(id, 1);
+              }
+            }}
+          />
+          <Checkbox
+            compact
+            size="small"
+            checked={effect.enabled}
+            onChange={(_, enabled) => onPatch(id, { enabled })}
+            slotProps={{ input: { "aria-label": `${name} enabled` } }}
+          />
+          <Button
+            variant="text"
+            size="small"
+            aria-expanded={expanded}
+            onClick={() => onExpand(id)}
+            startIcon={
+              expanded ? (
+                <ExpandMoreOutlinedIcon />
+              ) : (
+                <ChevronRightOutlinedIcon />
+              )
+            }
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              justifyContent: "flex-start",
+              color: effect.enabled ? "text.primary" : "text.secondary",
+              px: SPACING.xs
+            }}
+          >
+            <TruncatedText component="span" sx={TYPOGRAPHY.sans.label}>
+              {name}
+            </TruncatedText>
+          </Button>
+          <DeleteButton
+            onClick={remove}
+            tooltip={`Remove ${name} effect`}
+            ariaLabel={`Remove ${name} effect`}
+            iconVariant="clear"
+            sx={DELETE_SX}
+          />
         </FlexRow>
-        <InspectorToggleRow
-          label="Enabled"
-          checked={effect.enabled}
-          onChange={setEnabled}
-        />
-        <EffectFields effect={effect} onPatch={patch} />
+        {expanded && <EffectFields effect={effect} onPatch={patch} />}
       </FlexColumn>
     );
   }
@@ -636,7 +689,9 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
   ({ clip }) => {
     const patchClip = useTimelineStore((s) => s.patchClip);
     const [open, setOpen] = usePersistedFold("effects");
-    const [newType, setNewType] = useState<AddableEffectType>("glow");
+    const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+    const [query, setQuery] = useState("");
+    const [expandedId, setExpandedId] = useState<string | null>(null);
 
     const clipRef = useRef(clip);
     clipRef.current = clip;
@@ -648,9 +703,16 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
       [patchClip]
     );
 
-    const handleAdd = useCallback(() => {
-      setEffects([...(clipRef.current.effects ?? []), makeEffect(newType)]);
-    }, [newType, setEffects]);
+    const handleAdd = (type: AddableEffectType) => {
+      const effect = makeEffect(type);
+      setEffects([...(clipRef.current.effects ?? []), effect]);
+      setExpandedId(effect.id);
+      setMenuAnchor(null);
+      setQuery("");
+    };
+    const expandEffect = useCallback((id: string) => {
+      setExpandedId((current) => (current === id ? null : id));
+    }, []);
 
     const patchEffect = useCallback(
       (id: string, patch: Record<string, unknown>) => {
@@ -692,9 +754,25 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
       [setEffects]
     );
 
-    const handleNewType = useCallback(
-      (value: string) => setNewType(value as AddableEffectType),
-      []
+    const dropEffect = useCallback(
+      (fromId: string, toId: string) => {
+        const effects = clipRef.current.effects ?? [];
+        const visible = effects.filter(
+          (effect) => !SECTION_OWNED_IDS.has(effect.id)
+        );
+        const from = visible.findIndex((effect) => effect.id === fromId);
+        const to = visible.findIndex((effect) => effect.id === toId);
+        if (from < 0 || to < 0 || from === to) return;
+        const [moved] = visible.splice(from, 1);
+        visible.splice(to, 0, moved);
+        let index = 0;
+        setEffects(
+          effects.map((effect) =>
+            SECTION_OWNED_IDS.has(effect.id) ? effect : visible[index++]
+          )
+        );
+      },
+      [setEffects]
     );
 
     const listed = useMemo(
@@ -704,58 +782,97 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
         ),
       [clip.effects]
     );
+    const matchingEffects = ADDABLE_EFFECTS.filter((effect) =>
+      effect.label.toLowerCase().includes(query.trim().toLowerCase())
+    );
 
     return (
       <>
         <InspectorDivider />
         <CollapsibleSection
           title={
-            <InspectorSectionTitle
-              title="Effects"
-              icon={<AutoAwesomeOutlinedIcon />}
-            />
+            <FlexRow align="center" gap={SPACING.md}>
+              <InspectorSectionTitle
+                title="Effects"
+                icon={<AutoAwesomeOutlinedIcon />}
+              />
+              {listed.length > 0 && (
+                <Caption color="muted">
+                  {listed.filter((effect) => effect.enabled).length}/
+                  {listed.length} active
+                </Caption>
+              )}
+            </FlexRow>
           }
           open={open}
           onToggle={setOpen}
           unmountOnExit
         >
           <FlexColumn gap={SPACING.md} sx={{ py: SPACING.xs }}>
-            <FlexRow gap={SPACING.md} align="center">
-              <InspectorSelect
-                label="New effect type"
-                value={newType}
-                options={ADDABLE_EFFECTS}
-                onChange={handleNewType}
-                grow
-              />
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<AddOutlinedIcon />}
-                onClick={handleAdd}
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<AddOutlinedIcon />}
+              onClick={(event) => {
+                setQuery("");
+                setMenuAnchor(event.currentTarget);
+              }}
+              aria-haspopup="dialog"
+              aria-expanded={Boolean(menuAnchor)}
+              sx={{ alignSelf: "flex-start" }}
+            >
+              Add effect
+            </Button>
+            <Popover
+              open={Boolean(menuAnchor)}
+              anchorEl={menuAnchor}
+              onClose={() => setMenuAnchor(null)}
+            >
+              <FlexColumn
+                role="dialog"
+                aria-label="Add effect"
+                gap={SPACING.md}
+                sx={{ p: SPACING.md }}
               >
-                Add
-              </Button>
-            </FlexRow>
-
-            {listed.length === 0 ? (
-              <Caption color="muted">
-                Glow, drop shadow, vignette, sharpen, chroma key and the grading
-                effects apply in list order.
-              </Caption>
-            ) : (
-              listed.map((effect, index) => (
-                <EffectRow
-                  key={effect.id}
-                  effect={effect}
-                  isFirst={index === 0}
-                  isLast={index === listed.length - 1}
-                  onPatch={patchEffect}
-                  onRemove={removeEffect}
-                  onMove={moveEffect}
+                <SearchInput
+                  value={query}
+                  onChange={setQuery}
+                  placeholder="Search effects"
+                  autoFocus
+                  fullWidth
                 />
-              ))
-            )}
+                <FlexColumn gap={SPACING.none}>
+                  {matchingEffects.map((effect) => (
+                    <Button
+                      key={effect.value}
+                      variant="text"
+                      size="small"
+                      onClick={() => handleAdd(effect.value)}
+                      sx={{ justifyContent: "flex-start" }}
+                    >
+                      {effect.label}
+                    </Button>
+                  ))}
+                  {matchingEffects.length === 0 && (
+                    <EmptyState size="small" title="No matching effects" />
+                  )}
+                </FlexColumn>
+              </FlexColumn>
+            </Popover>
+            {listed.map((effect, index) => (
+              <EffectRow
+                key={effect.id}
+                effect={effect}
+                isFirst={index === 0}
+                isLast={index === listed.length - 1}
+                expanded={effect.id === expandedId}
+                onExpand={expandEffect}
+                onPatch={patchEffect}
+                onRemove={removeEffect}
+                onMove={moveEffect}
+                onDrop={dropEffect}
+              />
+            ))}
           </FlexColumn>
         </CollapsibleSection>
       </>

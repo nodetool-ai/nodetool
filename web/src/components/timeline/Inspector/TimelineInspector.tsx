@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
@@ -57,10 +57,7 @@ import { ClipAudioDrive } from "./ClipAudioDrive";
 import { ClipEffectsList } from "./ClipEffectsList";
 import { ClipGroupPanel } from "./ClipGroupPanel";
 import { ClipMaskMatte } from "./ClipMaskMatte";
-import {
-  ClipCompositionInfo,
-  ClipTimeRemapSection
-} from "./ClipTimeRemap";
+import { ClipCompositionInfo, ClipTimeRemapSection } from "./ClipTimeRemap";
 import { ClipKeyframes } from "./ClipKeyframes";
 import { ClipMidiSection } from "./ClipMidiSection";
 import { ClipModel3DSection } from "./ClipModel3DSection";
@@ -72,6 +69,7 @@ import AIEditClipPanel from "./AIEditClipPanel";
 import ExtendClipPanel from "./ExtendClipPanel";
 import { ClipVersionHistory } from "./ClipVersionHistory";
 import LineDeliveryPanel from "./LineDeliveryPanel";
+import InspectorSearch from "./InspectorSearch";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -86,8 +84,6 @@ const containerStyles = css({
 
 const sectionContentStyles = (theme: Theme) =>
   css({
-    display: "flex",
-    flexDirection: "column",
     gap: getSpacingPx(SPACING.micro),
     padding: theme.spacing(SPACING.micro, SPACING.none, SPACING.md)
   });
@@ -112,7 +108,7 @@ const clamp = (value: number, min: number, max: number) =>
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export const TimelineInspector: React.FC = memo(() => {
+const TimelineInspectorContent: React.FC = memo(() => {
   const theme = useTheme();
 
   const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
@@ -498,7 +494,10 @@ export const TimelineInspector: React.FC = memo(() => {
 
         <CollapsibleSection
           title={
-            <InspectorSectionTitle title="Render" icon={<LayersOutlinedIcon />} />
+            <InspectorSectionTitle
+              title="Render"
+              icon={<LayersOutlinedIcon />}
+            />
           }
           open={renderOpen}
           onToggle={setRenderOpen}
@@ -636,41 +635,40 @@ export const TimelineInspector: React.FC = memo(() => {
         </CollapsibleSection>
       )}
 
-      {isMidi &&
-        (parentOptions.length > 1 || clip.parentId !== undefined) && (
-          <CollapsibleSection
-            title={
-              <InspectorSectionTitle
-                title="Group"
-                icon={<FolderOutlinedIcon />}
+      {isMidi && (parentOptions.length > 1 || clip.parentId !== undefined) && (
+        <CollapsibleSection
+          title={
+            <InspectorSectionTitle
+              title="Group"
+              icon={<FolderOutlinedIcon />}
+            />
+          }
+          open={groupOpen}
+          onToggle={setGroupOpen}
+          unmountOnExit
+        >
+          <FlexColumn css={sectionContentStyles(theme)}>
+            <InspectorRow label="Parent">
+              <InspectorSelect
+                label="Parent group"
+                value={clip.parentId ?? NO_PARENT}
+                options={parentOptions}
+                onChange={handleParentChange}
+                grow
               />
-            }
-            open={groupOpen}
-            onToggle={setGroupOpen}
-            unmountOnExit
-          >
-            <FlexColumn css={sectionContentStyles(theme)}>
-              <InspectorRow label="Parent">
-                <InspectorSelect
-                  label="Parent group"
-                  value={clip.parentId ?? NO_PARENT}
-                  options={parentOptions}
-                  onChange={handleParentChange}
-                  grow
-                />
-              </InspectorRow>
-              {clip.parentId !== undefined && (
-                <Button size="small" variant="text" onClick={handleUngroup}>
-                  Ungroup
-                </Button>
-              )}
-            </FlexColumn>
-          </CollapsibleSection>
-        )}
+            </InspectorRow>
+            {clip.parentId !== undefined && (
+              <Button size="small" variant="text" onClick={handleUngroup}>
+                Ungroup
+              </Button>
+            )}
+          </FlexColumn>
+        </CollapsibleSection>
+      )}
 
-      {(!isMidi ||
-        parentOptions.length > 1 ||
-        clip.parentId !== undefined) && <InspectorDivider />}
+      {(!isMidi || parentOptions.length > 1 || clip.parentId !== undefined) && (
+        <InspectorDivider />
+      )}
 
       <CollapsibleSection
         title={
@@ -745,4 +743,26 @@ export const TimelineInspector: React.FC = memo(() => {
   );
 });
 
-TimelineInspector.displayName = "TimelineInspector";
+TimelineInspectorContent.displayName = "TimelineInspectorContent";
+
+export const TimelineInspector: React.FC = () => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const selectedClipIds = useTimelineUIStore((state) => state.selectedClipIds);
+  const selectedId =
+    selectedClipIds.size === 1 ? [...selectedClipIds][0] : null;
+
+  return (
+    <FlexColumn gap={SPACING.none} sx={{ height: "100%", minHeight: 0 }}>
+      {selectedId && (
+        <InspectorSearch key={selectedId} contentRef={contentRef} />
+      )}
+      <FlexColumn
+        ref={contentRef}
+        gap={SPACING.none}
+        sx={{ flex: 1, minHeight: 0 }}
+      >
+        <TimelineInspectorContent />
+      </FlexColumn>
+    </FlexColumn>
+  );
+};

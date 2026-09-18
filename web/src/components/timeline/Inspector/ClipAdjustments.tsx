@@ -4,7 +4,7 @@
  *
  * Playback adjustments shared by imported and generated clips. Audio and MIDI
  * clips get Audio controls because both travel through AudioGraph. Clips that
- * draw pixels get Render, Transform, Color, Blur, Effects, Mask, Matte, and
+ * draw pixels get Render, Transform, Color, Effects, Mask, Matte, and
  * Transition controls because those fields are applied by the compositor.
  *
  * Section fold state is persisted (shared keys with the rest of the inspector)
@@ -16,7 +16,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import WbSunnyOutlinedIcon from "@mui/icons-material/WbSunnyOutlined";
-import BlurOnOutlinedIcon from "@mui/icons-material/BlurOnOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import OpenWithOutlinedIcon from "@mui/icons-material/OpenWithOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
@@ -24,7 +23,6 @@ import VolumeUpOutlinedIcon from "@mui/icons-material/VolumeUpOutlined";
 
 import type {
   BlendMode,
-  ClipBlurEffect,
   ClipColorEffect,
   ClipCrop,
   ClipEffect,
@@ -61,7 +59,6 @@ import { ClipTransitionSection } from "./ClipTransitionSection";
 
 /** Stable IDs so the inspector-owned effects round-trip in `clip.effects`. */
 const COLOR_EFFECT_ID = "inspector:color";
-const BLUR_EFFECT_ID = "inspector:blur";
 
 const IDENTITY_TRANSFORM: ClipTransform = {
   position: { x: 0, y: 0 },
@@ -97,11 +94,6 @@ const clamp = (value: number, min: number, max: number) =>
 function findColorEffect(clip: TimelineClip): ClipColorEffect | undefined {
   return clip.effects?.find(
     (e): e is ClipColorEffect => e.type === "color" && e.id === COLOR_EFFECT_ID
-  );
-}
-function findBlurEffect(clip: TimelineClip): ClipBlurEffect | undefined {
-  return clip.effects?.find(
-    (e): e is ClipBlurEffect => e.type === "blur" && e.id === BLUR_EFFECT_ID
   );
 }
 function upsertEffect(
@@ -143,7 +135,7 @@ interface ClipAdjustmentsProps {
 
 /**
  * Audio controls for audio and midi clips. Visual clips instead get Render,
- * Transform, Color, Blur, Effects, Mask, Matte and Transition sections.
+ * Transform, Color, Effects, Mask, Matte and Transition sections.
  * Leads with an {@link InspectorDivider}; the caller supplies the trailing one.
  */
 export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
@@ -154,7 +146,6 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
     const [renderOpen, setRenderOpen] = usePersistedFold("render");
     const [transformOpen, setTransformOpen] = usePersistedFold("transform");
     const [colorOpen, setColorOpen] = usePersistedFold("color");
-    const [blurOpen, setBlurOpen] = usePersistedFold("blur");
 
     const isSounding =
       clip.mediaType === "audio" || clip.mediaType === "midi";
@@ -416,52 +407,12 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
       [patchClip]
     );
 
-    // ── Blur section ───────────────────────────────────────────────────────
-
-    const updateBlur = useCallback(
-      (patch: Partial<ClipBlurEffect>) => {
-        const current = findBlurEffect(clipRef.current);
-        const next: ClipBlurEffect = {
-          id: BLUR_EFFECT_ID,
-          type: "blur",
-          enabled: current?.enabled ?? false,
-          radius: current?.radius ?? 0,
-          sigma: current?.sigma,
-          ...patch
-        };
-        patchClip(clipRef.current.id, {
-          effects: upsertEffect(clipRef.current.effects, next)
-        });
-      },
-      [patchClip]
-    );
-    const handleBlurEnabledChange = useCallback(
-      (next: boolean) => updateBlur({ enabled: next }),
-      [updateBlur]
-    );
-    const handleBlurRadiusChange = useCallback(
-      (value: number) => updateBlur({ radius: value }),
-      [updateBlur]
-    );
-    const handleClearBlur = useCallback(
-      () =>
-        patchClip(clipRef.current.id, {
-          effects: clipRef.current.effects?.filter(
-            (e) => e.id !== BLUR_EFFECT_ID
-          )
-        }),
-      [patchClip]
-    );
-
     // ── Derived display values ──────────────────────────────────────────────
 
     const transform = clip.transform ?? IDENTITY_TRANSFORM;
     const crop = clip.crop ?? NO_CROP;
     const color = findColorEffect(clip);
     const colorEnabled = color?.enabled ?? false;
-    const blur = findBlurEffect(clip);
-    const blurEnabled = blur?.enabled ?? false;
-    const blurRadius = blur?.radius ?? 0;
 
     return (
       <>
@@ -801,44 +752,6 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   display={(color?.highlights ?? 0).toFixed(2)}
                   disabled={!colorEnabled}
                   onChange={handleHighlightsChange}
-                />
-              </FlexColumn>
-            </CollapsibleSection>
-          </>
-        )}
-
-        {!isSounding && (
-          <>
-            <InspectorDivider />
-            <CollapsibleSection
-              title={
-                <InspectorSectionTitle
-                  title="Blur"
-                  icon={<BlurOnOutlinedIcon />}
-                  checked={blurEnabled}
-                  onCheckedChange={handleBlurEnabledChange}
-                  action={{
-                    icon: <RestartAltOutlinedIcon />,
-                    label: "Reset blur",
-                    onClick: handleClearBlur,
-                    disabled: !blur
-                  }}
-                />
-              }
-              open={blurOpen}
-              onToggle={setBlurOpen}
-              unmountOnExit
-            >
-              <FlexColumn css={sectionContentStyles(theme)}>
-                <InspectorSliderRow
-                  label="Radius"
-                  min={0}
-                  max={20}
-                  step={0.5}
-                  value={blurRadius}
-                  display={`${blurRadius.toFixed(0)}px`}
-                  disabled={!blurEnabled}
-                  onChange={handleBlurRadiusChange}
                 />
               </FlexColumn>
             </CollapsibleSection>

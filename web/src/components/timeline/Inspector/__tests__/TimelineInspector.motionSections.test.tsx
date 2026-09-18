@@ -6,7 +6,7 @@
  * landed in the store, since every control writes through `patchClip`.
  */
 
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -225,14 +225,44 @@ describe("Matte section", () => {
 });
 
 describe("Effects section", () => {
+  it("adds blur as an ordered effect instead of showing a dedicated section", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    const clip = seedVideoClip();
+
+    const blurFold = screen
+      .queryAllByRole("button", { name: /^blur/i })
+      .find((element) => element.getAttribute("aria-expanded") !== null);
+    expect(blurFold).toBeUndefined();
+
+    await openSection(user, "Effects");
+    await user.click(screen.getByRole("button", { name: /^add effect$/i }));
+    await user.click(screen.getByRole("button", { name: /^blur$/i }));
+
+    expect(clipById(clip.id)?.effects).toEqual([
+      expect.objectContaining({ type: "blur", enabled: true, radius: 8 })
+    ]);
+
+    const radius = screen.getByRole("slider", { name: /^radius$/i });
+    act(() => radius.focus());
+    await user.keyboard("{ArrowUp}");
+    expect(clipById(clip.id)?.effects?.[0]).toEqual(
+      expect.objectContaining({ radius: 8.5 })
+    );
+  });
+
   it("adds an effect, edits a field, and removes it", async () => {
     const user = userEvent.setup();
     renderInspector();
     const clip = seedVideoClip();
 
     await openSection(user, "Effects");
-    await pickOption(user, /new effect type/i, /^drop shadow$/i);
-    await user.click(screen.getByRole("button", { name: /^add$/i }));
+    await user.click(screen.getByRole("button", { name: /^add effect$/i }));
+    await user.type(
+      screen.getByRole("textbox", { name: /search effects/i }),
+      "shadow"
+    );
+    await user.click(screen.getByRole("button", { name: /^drop shadow$/i }));
 
     expect(clipById(clip.id)?.effects).toEqual([
       expect.objectContaining({ type: "dropShadow", enabled: true, blur: 12 })
@@ -249,20 +279,174 @@ describe("Effects section", () => {
     expect(clipById(clip.id)?.effects).toEqual([]);
   });
 
-  it("reorders the chain with the move buttons", async () => {
+  it("reorders the chain using the keyboard without expanding the effects", async () => {
     const user = userEvent.setup();
     renderInspector();
     const clip = seedVideoClip({
       effects: [
-        { id: "a", type: "vignette", enabled: true, amount: 0.4, softness: 0.5 },
+        {
+          id: "a",
+          type: "vignette",
+          enabled: true,
+          amount: 0.4,
+          softness: 0.5
+        },
         { id: "b", type: "sharpen", enabled: true, amount: 0.5 }
       ]
     });
 
     await openSection(user, "Effects");
-    await user.click(screen.getByRole("button", { name: /move sharpen up/i }));
+    act(() => screen.getByRole("button", { name: /reorder sharpen/i }).focus());
+    await user.keyboard("{Alt>}{ArrowUp}{/Alt}");
 
     expect(clipById(clip.id)?.effects?.map((e) => e.id)).toEqual(["b", "a"]);
+  });
+
+  it("shows the active count and opens only the effect being edited", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    const clip = seedVideoClip({
+      effects: [
+        { id: "a", type: "blur", enabled: true, radius: 8 },
+        { id: "b", type: "glow", enabled: false, radius: 6, intensity: 1 }
+      ]
+    });
+
+    expect(screen.getByText("1/2 active")).toBeVisible();
+    await openSection(user, "Effects");
+    expect(screen.queryByRole("slider", { name: /^radius$/i })).toBeNull();
+    await user.click(screen.getByRole("button", { name: /^blur$/i }));
+    expect(screen.getByRole("slider", { name: /^radius$/i })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: /^glow$/i }));
+    expect(screen.queryByRole("slider", { name: /^radius$/i })).toBeNull();
+    expect(screen.getByRole("textbox", { name: /glow radius/i })).toBeVisible();
+    await user.click(screen.getByRole("checkbox", { name: /glow enabled/i }));
+    expect(clipById(clip.id)?.effects?.[1].enabled).toBe(true);
+    expect(screen.getByText("2/2 active")).toBeVisible();
+  });
+
+  it("keeps the dedicated color effect in place when dragging the stack", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    const clip = seedVideoClip({
+      effects: [
+        { id: "a", type: "blur", enabled: true, radius: 8 },
+        { id: "inspector:color", type: "color", enabled: true, saturation: 1 },
+        { id: "b", type: "glow", enabled: true, radius: 6, intensity: 1 }
+      ]
+    });
+    await openSection(user, "Effects");
+    const dataTransfer = {
+      getData: () => "b",
+      types: ["application/x-nodetool-clip-effect"]
+    };
+    fireEvent.drop(screen.getByRole("button", { name: /^blur$/i }), {
+      dataTransfer
+    });
+    expect(clipById(clip.id)?.effects?.map((effect) => effect.id)).toEqual([
+      "b",
+      "inspector:color",
+      "a"
+    ]);
+  });
+
+  it("edits curve control points on a tone-curve graph", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    const clip = seedVideoClip({
+      effects: [
+        {
+          id: "curve",
+          type: "curves",
+          enabled: true,
+          master: [
+            { x: 0, y: 0 },
+            { x: 1, y: 1 }
+          ]
+        }
+      ]
+    });
+
+    await openSection(user, "Effects");
+    await user.click(screen.getByRole("button", { name: /^curves$/i }));
+
+    const graph = screen.getByRole("group", { name: /master tone curve/i });
+    expect(
+      screen.queryByRole("textbox", { name: /curve.*points/i })
+    ).toBeNull();
+    jest.spyOn(graph, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 100,
+      bottom: 100,
+      width: 100,
+      height: 100,
+      toJSON: () => ({})
+    });
+
+    const surface = graph.querySelector("rect");
+    if (!surface) throw new Error("Tone curve graph has no editing surface");
+    fireEvent(
+      surface,
+      new MouseEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        clientX: 50,
+        clientY: 25
+      })
+    );
+
+    expect(clipById(clip.id)?.effects?.[0]).toEqual(
+      expect.objectContaining({
+        master: [
+          { x: 0, y: 0 },
+          { x: 0.5, y: 0.75 },
+          { x: 1, y: 1 }
+        ]
+      })
+    );
+  });
+});
+
+describe("Inspector control finder", () => {
+  it("finds a control in a collapsed section and opens it from the keyboard", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    seedVideoClip();
+    expect(screen.queryByRole("slider", { name: /^opacity$/i })).toBeNull();
+    await user.type(
+      screen.getByRole("textbox", { name: /find a control/i }),
+      "opacity"
+    );
+    const results = screen.getByRole("region", {
+      name: /matching inspector sections/i
+    });
+    expect(
+      within(results).getByRole("button", { name: /^render/i })
+    ).toBeVisible();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("slider", { name: /^opacity$/i })).toBeVisible();
+    expect(
+      screen.queryByRole("region", { name: /matching inspector sections/i })
+    ).toBeNull();
+  });
+
+  it("reports no matches and clears the search when the selection changes", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    seedVideoClip();
+    await user.type(
+      screen.getByRole("textbox", { name: /find a control/i }),
+      "unmatched-control"
+    );
+    expect(screen.getByText("No matching controls")).toBeVisible();
+    seedVideoClip({ name: "another clip" });
+    expect(
+      screen.getByRole("textbox", { name: /find a control/i })
+    ).toHaveValue("");
+    expect(screen.queryByText("No matching controls")).toBeNull();
   });
 });
 
@@ -327,7 +511,14 @@ describe("Shape section", () => {
     renderInspector();
     const clip = seedVideoClip({
       mediaType: "shape",
-      shapeStyle: { kind: "rect", fill: "#ff0000", x: 0, y: 0, width: 1, height: 1 }
+      shapeStyle: {
+        kind: "rect",
+        fill: "#ff0000",
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1
+      }
     });
 
     await openSection(user, "Shape");
@@ -379,7 +570,11 @@ describe("Custom animation curves", () => {
       clipById(clip.id)?.animations?.[0].custom?.curves[0].keyframes[1].value
     ).toBe(3.14);
 
-    await commitField(user, /in curve 1 keyframe 2 easing/i, "spring(180,12,1)");
+    await commitField(
+      user,
+      /in curve 1 keyframe 2 easing/i,
+      "spring(180,12,1)"
+    );
     expect(
       clipById(clip.id)?.animations?.[0].custom?.curves[0].keyframes[1].easing
     ).toBe("spring(180,12,1)");
