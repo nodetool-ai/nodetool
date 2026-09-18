@@ -21,6 +21,11 @@ export function getMaxUploadBytes(): number {
   return getByteLimitEnv("NODETOOL_MAX_UPLOAD_BYTES", DEFAULT_MAX_UPLOAD_BYTES);
 }
 
+/** Maximum for local file storage reads, uploads, and media staging. */
+export function getMaxLocalUploadBytes(): number {
+  return getByteLimitEnv("NODETOOL_MAX_UPLOAD_BYTES", 2 * 1024 * 1024 * 1024);
+}
+
 /**
  * Throw if `byteLength` exceeds the configured upload cap.
  *

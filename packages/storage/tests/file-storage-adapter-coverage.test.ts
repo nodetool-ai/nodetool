@@ -6,12 +6,13 @@
  * real temp directory.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { FileStorageAdapter } from "../src/file-storage-adapter.js";
+import * as storageLimits from "../src/storage-limits.js";
 
 describe("FileStorageAdapter", () => {
   let tmpDir: string;
@@ -40,6 +41,27 @@ describe("FileStorageAdapter", () => {
   });
 
   describe("store", () => {
+    it("uses the local upload limit when staging bytes already read from a local asset", async () => {
+      process.env.NODETOOL_MAX_UPLOAD_BYTES = "4";
+      const localLimit = vi.spyOn(storageLimits, "getMaxLocalUploadBytes").mockReturnValue(8);
+      try {
+        const uri = await adapter.store("recording.mov", Buffer.from("12345678"));
+        expect(await adapter.retrieve(uri)).toHaveLength(8);
+        await expect(adapter.store("too-large.mov", Buffer.from("123456789")))
+          .rejects.toThrow(/exceeds maximum size/);
+      } finally {
+        localLimit.mockRestore();
+      }
+    });
+
+    it("reads uploaded media larger than the filesystem library's default cap", async () => {
+      const bytes = Buffer.alloc(17 * 1024 * 1024, 37);
+      const uri = await adapter.store("owner/recording.mov", bytes);
+      const received = await adapter.retrieve(uri);
+      expect(received?.byteLength).toBe(bytes.byteLength);
+      expect(received?.[received.length - 1]).toBe(37);
+    });
+
     it("writes bytes and returns a file:// URL that round-trips", async () => {
       const uri = await adapter.store("hello.txt", Buffer.from("hi"));
       expect(uri.startsWith("file://")).toBe(true);

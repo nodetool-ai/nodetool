@@ -4,6 +4,11 @@
  * what actually landed rather than what the client claimed.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
+import { getAssetAdapter } from "../src/lib/storage.js";
 
 const mocks = vi.hoisted(() => ({
   assetCreate: vi.fn(),
@@ -33,7 +38,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
 });
 
 vi.mock("../src/lib/storage.js", () => ({
-  getAssetAdapter: () => mocks.adapter
+  getAssetAdapter: vi.fn(() => mocks.adapter)
 }));
 
 vi.mock("../src/lib/thumbnail.js", async (orig) => {
@@ -91,6 +96,20 @@ beforeEach(() => {
 });
 
 describe("assets.createUpload", () => {
+  it("accepts a 1.5 GiB local upload without raising the cloud limit", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "local-upload-handshake-"));
+    try {
+      vi.mocked(getAssetAdapter).mockReturnValueOnce(new FileStorageAdapter(directory));
+      const input = {
+        name: "clip.mp4", content_type: "video/mp4", parent_id: "user-1",
+        size: 1.5 * 1024 * 1024 * 1024
+      };
+      await expect(createCaller(makeCtx()).assets.createUpload(input)).resolves.toMatchObject({ upload: null });
+      await expect(createCaller(makeCtx()).assets.createUpload(input)).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
   it("assigns an owner-prefixed key the client never chose", async () => {
     assetCreate.mockResolvedValue(pendingAsset());
     const result = await createCaller(makeCtx()).assets.createUpload({

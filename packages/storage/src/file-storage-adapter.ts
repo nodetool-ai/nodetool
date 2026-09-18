@@ -16,7 +16,7 @@ import type {
   StorageStat
 } from "./storage-adapter.js";
 import { isWithinRoot, normalizeStorageKey } from "./storage-keys.js";
-import { assertUploadWithinLimit } from "./storage-limits.js";
+import { getMaxLocalUploadBytes } from "./storage-limits.js";
 
 /**
  * Percent-decode a storage key extracted from an `/api/storage/<key>` URL so it
@@ -118,10 +118,19 @@ export class FileStorageAdapter implements StorageAdapter {
     data: Uint8Array,
     _contentType?: string
   ): Promise<string> {
-    assertUploadWithinLimit(key, data.byteLength);
+    const max = getMaxLocalUploadBytes();
+    if (data.byteLength > max) {
+      throw new Error(
+        `Upload for key "${key}" exceeds maximum size: ${data.byteLength} > ${max} bytes ` +
+          `(set NODETOOL_MAX_UPLOAD_BYTES to raise the limit)`
+      );
+    }
     const r = await this.rootPromise;
     const rel = normalizeStorageKey(key);
-    await r.write(rel, Buffer.from(data), { mkdir: true, overwrite: true });
+    await r.write(rel, Buffer.from(data.buffer, data.byteOffset, data.byteLength), {
+      mkdir: true,
+      overwrite: true
+    });
     const absolutePath = await r.resolve(rel);
     return pathToFileURL(absolutePath).toString();
   }
@@ -137,12 +146,24 @@ export class FileStorageAdapter implements StorageAdapter {
       return null;
     }
     try {
-      return await r.readBytes(rel);
+      return await r.readBytes(rel, { maxBytes: getMaxLocalUploadBytes() });
     } catch {
       // A key that cannot be read — missing, denied, or outside the root — is
       // reported the same way as one that was never stored.
       return null;
     }
+  }
+
+  /** Atomically publish a staged local upload using a bounded streaming copy. */
+  async storeFile(key: string, sourcePath: string): Promise<string> {
+    const r = await this.rootPromise;
+    const rel = normalizeStorageKey(key);
+    await r.copyIn(rel, sourcePath, {
+      maxBytes: getMaxLocalUploadBytes(),
+      mkdir: true,
+      sourceHardlinks: "reject"
+    });
+    return this.uriForKey(rel);
   }
 
   async exists(uri: string): Promise<boolean> {

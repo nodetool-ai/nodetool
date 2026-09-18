@@ -17,6 +17,8 @@ import { createLogger } from "@nodetool-ai/config";
 const log = createLogger("nodetool.assets");
 import {
   assetKeyCandidates,
+  FileStorageAdapter,
+  getMaxLocalUploadBytes,
   getMaxUploadBytes
 } from "@nodetool-ai/storage";
 import {
@@ -290,7 +292,10 @@ export const assetsRouter = router({
           throwApiError(ApiErrorCode.INVALID_INPUT, "Project not found");
         }
       }
-      const max = getMaxUploadBytes();
+      const adapter = getAssetAdapter();
+      const max = adapter instanceof FileStorageAdapter
+        ? getMaxLocalUploadBytes()
+        : getMaxUploadBytes();
       if (input.size > max) {
         throwApiError(
           ApiErrorCode.INVALID_INPUT,
@@ -298,7 +303,6 @@ export const assetsRouter = router({
         );
       }
 
-      const adapter = getAssetAdapter();
       // Local file store has no signed upload URL. The client falls back to
       // POST /api/assets. Do not create a pending row that would stay empty.
       if (!adapter.createUploadUrl) {

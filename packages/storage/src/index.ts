@@ -1,6 +1,7 @@
 // Upload size guard (shared by all backends)
 export {
   getMaxUploadBytes,
+  getMaxLocalUploadBytes,
   assertUploadWithinLimit
 } from "./storage-limits.js";
 

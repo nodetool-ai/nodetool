@@ -1,4 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
+import multipart from "@fastify/multipart";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
+import { getAssetAdapter } from "../lib/storage.js";
+import { handleLocalAssetUpload } from "../lib/local-asset-upload.js";
 import { bridge } from "../lib/bridge.js";
 import {
   handleAssetsRoot,
@@ -26,6 +30,10 @@ interface RouteOptions {
  */
 const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   const { apiOptions } = opts;
+  const localUploads = getAssetAdapter() instanceof FileStorageAdapter;
+  if (localUploads) {
+    await app.register(multipart);
+  }
 
   // Stub: no package listing in standalone mode.
   app.get("/api/assets/packages", async (_req, reply) => {
@@ -213,6 +221,10 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   // Multipart asset upload (file POST). The handler also accepts JSON bodies,
   // but the tRPC `assets.create` procedure is the preferred path for JSON.
   app.post("/api/assets", async (req, reply) => {
+    if (localUploads && req.isMultipart()) {
+      await handleLocalAssetUpload(req, reply, apiOptions);
+      return;
+    }
     await bridge(req, reply, (request) =>
       handleAssetsRoot(request, apiOptions)
     );

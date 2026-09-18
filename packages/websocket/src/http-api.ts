@@ -65,7 +65,12 @@ import {
   type StorageHandlerOptions
 } from "./storage-api.js";
 import { handleFileRequest } from "./file-api.js";
-import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
+import {
+  storeAssetWithThumbnail,
+  generateThumbnailForStoredAsset,
+  THUMBNAIL_SOURCE_MAX_BYTES
+} from "./lib/thumbnail.js";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import {
   probeHasAudio,
@@ -108,6 +113,7 @@ const log = createLogger("nodetool.websocket.http");
 // graph. Re-exported here for any remaining REST callers.
 import {
   getAssetFileName,
+  getAssetStorageKey,
   getAssetStoragePath,
   retrieveAssetBytes,
   normalizeAssetContentType
@@ -1442,13 +1448,24 @@ export function toJobResponse(job: Job) {
 
 // ── Asset types & helpers ──────────────────────────────────────────
 
+export interface StagedAssetUpload {
+  readonly metadata: unknown;
+  readonly file?: {
+    readonly path: string;
+    readonly name: string;
+    readonly contentType: string;
+    readonly size: number;
+  };
+}
+
 /**
  * Handle multipart file upload at POST /api/assets. JSON-only creation has
  * moved to the tRPC `assets.create` procedure.
  */
 export async function handleAssetsRoot(
   request: Request,
-  options: HttpApiOptions
+  options: HttpApiOptions,
+  staged?: StagedAssetUpload
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
@@ -1458,7 +1475,18 @@ export async function handleAssetsRoot(
     let fileBuffer: Buffer | null = null;
     let fileSize: number | null = null;
 
-    if (contentType.toLowerCase().includes("multipart/form-data")) {
+    if (staged) {
+      body = parseBodyValue(staged.metadata, assetCreateBodySchema);
+      if (staged.file) {
+        body = {
+          ...body,
+          name: body?.name || staged.file.name,
+          content_type: body?.content_type || staged.file.contentType,
+          parent_id: body?.parent_id || userId
+        };
+        fileSize = staged.file.size;
+      }
+    } else if (contentType.toLowerCase().includes("multipart/form-data")) {
       try {
         const fd = await request.formData();
         const file = fd.get("file") as File | null;
@@ -1533,22 +1561,40 @@ export async function handleAssetsRoot(
       size: fileSize ?? body.size ?? null
     })) as Asset;
 
-    if (fileBuffer) {
+    if (fileBuffer || staged?.file) {
       const fileName = getAssetFileName(asset.id, asset.content_type);
       log.info("asset upload (multipart)", {
         assetId: asset.id,
         fileName,
         contentType: asset.content_type,
-        bytes: fileBuffer.byteLength
+        bytes: fileSize
       });
       try {
-        await storeAssetWithThumbnail(
-          asset.user_id,
-          asset.id,
-          fileName,
-          new Uint8Array(fileBuffer),
-          asset.content_type
-        );
+        if (staged?.file) {
+          const adapter = getAssetAdapter();
+          if (!(adapter instanceof FileStorageAdapter)) {
+            throw new Error("Staged uploads require local storage");
+          }
+          await adapter.storeFile(
+            getAssetStorageKey(asset.user_id, asset.id, asset.content_type),
+            staged.file.path
+          );
+          if (staged.file.size <= THUMBNAIL_SOURCE_MAX_BYTES) {
+            await generateThumbnailForStoredAsset(
+              asset.user_id,
+              asset.id,
+              asset.content_type
+            );
+          }
+        } else if (fileBuffer) {
+          await storeAssetWithThumbnail(
+            asset.user_id,
+            asset.id,
+            fileName,
+            new Uint8Array(fileBuffer),
+            asset.content_type
+          );
+        }
       } catch (error) {
         // The row was created before the bytes were written. If the store
         // rejects (over the upload cap, or any S3/Supabase failure) drop the

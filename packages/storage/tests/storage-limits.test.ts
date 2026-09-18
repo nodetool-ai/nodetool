@@ -7,6 +7,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import {
   getMaxUploadBytes,
+  getMaxLocalUploadBytes,
   assertUploadWithinLimit
 } from "../src/storage-limits.js";
 import { FileStorageAdapter } from "../src/file-storage-adapter.js";
@@ -23,6 +24,12 @@ describe("storage upload limit", () => {
 
   it("defaults to 1 GiB", () => {
     expect(getMaxUploadBytes()).toBe(1024 * 1024 * 1024);
+  });
+
+  it("allows 2 GiB for streamed local uploads and respects an explicit cap", () => {
+    expect(getMaxLocalUploadBytes()).toBe(2 * 1024 * 1024 * 1024);
+    process.env[KEY] = "16";
+    expect(getMaxLocalUploadBytes()).toBe(16);
   });
 
   it("honours NODETOOL_MAX_UPLOAD_BYTES override", () => {
@@ -63,5 +70,17 @@ describe("backend enforcement", () => {
     await expect(
       adapter.store("ok.bin", new Uint8Array(10))
     ).resolves.toContain("ok.bin");
+  });
+
+  it("publishes staged files atomically and leaves an existing object intact on limit failure", async () => {
+    const adapter = new FileStorageAdapter(path.join(tmpDir, "assets"));
+    const source = path.join(tmpDir, "upload");
+    await fs.writeFile(source, "original");
+    const uri = await adapter.storeFile("owner/clip.mp4", source);
+    expect(Buffer.from(await adapter.retrieve(uri) ?? []).toString()).toBe("original");
+    await fs.writeFile(source, "too many bytes");
+    await expect(adapter.storeFile("owner/clip.mp4", source)).rejects.toThrow(/exceeds limit/);
+    expect(Buffer.from(await adapter.retrieve(uri) ?? []).toString()).toBe("original");
+    await expect(adapter.storeFile("../escape", source)).rejects.toThrow();
   });
 });
