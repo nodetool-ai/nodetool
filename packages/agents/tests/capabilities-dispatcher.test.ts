@@ -11,7 +11,7 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { Workflow, initTestDb } from "@nodetool-ai/models";
+import { Workflow, TimelineSequence, initTestDb } from "@nodetool-ai/models";
 import {
   sandboxCapabilitySpecifier,
   SANDBOX_CAPABILITY_PACK
@@ -65,6 +65,11 @@ async function action(
   const session = createChatCodeActSession({
     tools: [
       {
+        name: "edit_timeline",
+        description: "Edit a timeline",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
         name: "list_workflows",
         description: "List workflows",
         inputSchema: { type: "object", properties: {} }
@@ -87,6 +92,27 @@ async function action(
 
 beforeEach(() => {
   initTestDb();
+});
+
+describe("edit failures at the action boundary", () => {
+  it.each([false, true])("stops dependent code after an edit failure, partial=%s", async (partial) => {
+    const sequence = await TimelineSequence.create<TimelineSequence>({
+      user_id: USER, project_id: "default", name: "Edit failure",
+      document: JSON.stringify({ tracks: [], clips: [], markers: [] })
+    });
+    const ops = [
+      ...(partial ? [{ op: "add_track", type: "video", name: "Saved track" }] : []),
+      { op: "delete_clip", target: "missing" }
+    ];
+    const outcome = await action(ungatedRun(),
+      `await nodetool.timelines.edit(${JSON.stringify(sequence.id)}, ${JSON.stringify(ops)}); return "continued";`
+    );
+    expect(outcome.ok).toBe(false);
+    expect(outcome.error).toContain("failed");
+    expect(outcome.error).toContain("missing");
+    expect((await TimelineSequence.findById(sequence.id))!.toDocument().tracks)
+      .toHaveLength(partial ? 1 : 0);
+  });
 });
 
 describe("the validation ladder", () => {

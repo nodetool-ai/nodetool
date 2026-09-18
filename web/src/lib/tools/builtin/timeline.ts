@@ -717,7 +717,7 @@ FrontendToolRegistry.register({
       .max(8)
       .optional()
       .describe(
-        "Absolute timeline timestamps in milliseconds to inspect. Omit to sample evenly across the clip."
+        "At most 8 absolute timeline timestamps in milliseconds per call. Split larger samples across calls. Omit to sample evenly across the clip."
       ),
     count: z
       .number()

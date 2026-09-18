@@ -460,6 +460,10 @@ export const editTimelineSpec: CapabilitySpec = {
     "list of operations; they run in order against the stored document and " +
     "the result is saved. An open editor picks the change up live. Call " +
     "list_timelines to find a sequence and validate_timeline afterwards. " +
+    "Inspect failed and each operation's ok field before dependent edits. " +
+    "A partial batch may already have saved successful operations. Before rendering, " +
+    "read get_timeline and verify clip count, source ranges, start times and total duration " +
+    "against the intended cut. Validation alone does not prove the edits landed. " +
     "Use render_storyboard_clips or a workflow run to generate media — this " +
     "tool authors the cut, it does not render.",
   inputSchema: EDIT_TIMELINE_SCHEMA,

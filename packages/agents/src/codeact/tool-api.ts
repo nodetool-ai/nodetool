@@ -121,19 +121,35 @@ export function toTransferable(value: unknown): JsonValue {
 }
 
 /**
- * An `{error}` payload from a tool is a failure the guest should see as a
- * thrown exception, not as a value to compute on.
+ * Tool errors and failed edit batches stop dependent guest code. Successful
+ * operations in a partial batch may already be persisted.
  */
 export function extractErrorPayload(result: unknown): string | null {
   if (!isObjectLike(result) || Array.isArray(result)) {
     return null;
   }
   const record = result as Record<string, unknown>;
-  if (!isString(record["error"])) return null;
-  const message = record["message"];
-  return isNonEmptyString(message)
-    ? message
-    : record["error"];
+  if (isString(record["error"])) {
+    const message = record["message"];
+    return isNonEmptyString(message) ? message : record["error"];
+  }
+  const { applied, failed, ops } = record;
+  if (isNumber(applied) && isNumber(failed) && failed > 0 && Array.isArray(ops)) {
+    const errors = ops.flatMap((op) => {
+      if (!isObjectLike(op) || op.ok !== false || !isString(op.error)) {
+        return [];
+      }
+      return [`${isString(op.op) ? op.op : "operation"}: ${op.error}`];
+    });
+    return (
+      `Edit batch: ${applied} applied, ${failed} failed. ${errors.join(" ")} ` +
+      (applied > 0
+        ? "Successful operations may already be saved. "
+        : "No operations applied. ") +
+      "Read the current document state before retrying or issuing dependent edits."
+    );
+  }
+  return null;
 }
 
 /**
