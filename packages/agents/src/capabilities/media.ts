@@ -33,6 +33,7 @@ import type {
   Workspace
 } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import { getMaxLocalUploadBytes } from "@nodetool-ai/storage";
 import {
   backgroundGenerationLimitError,
   startBackgroundGeneration
@@ -2110,7 +2111,7 @@ const FFPROBE_REMEDY =
   'Pass the ref in `inputs` instead — {"clip.mp4": "asset://<id>.mp4"} ' +
   'copies it into the workspace, then set path to "clip.mp4".';
 
-/** Largest single file `ffmpeg`'s `inputs` stages into the workspace. */
+/** Per-file limit for inline, temporary, and non-local staged inputs. */
 const MAX_STAGED_INPUT_BYTES = 100 * 1024 * 1024;
 /** Files one `inputs` bag may stage. */
 const MAX_STAGED_INPUTS = 8;
@@ -2155,6 +2156,15 @@ async function stageInputs(
 
   const staged: Record<string, number> = {};
   let total = 0;
+  const localAssetLimit = workspace.localDir
+    ? getMaxLocalUploadBytes()
+    : undefined;
+  const hasLocalAsset = localAssetLimit !== undefined && entries.some(
+    ([, ref]) => isNonBlankString(ref) && ref.trim().startsWith("asset://")
+  );
+  const totalLimit = hasLocalAsset
+    ? Math.max(MAX_STAGED_TOTAL_BYTES, localAssetLimit ?? 0)
+    : MAX_STAGED_TOTAL_BYTES;
   for (const [name, ref] of entries) {
     if (!isNonBlankString(name)) {
       return { error: "inputs keys must be non-empty workspace paths." };
@@ -2190,15 +2200,19 @@ async function stageInputs(
           `or a data: URI.`
       };
     }
-    if (bytes.byteLength > MAX_STAGED_INPUT_BYTES) {
+    const inputLimit =
+      localAssetLimit !== undefined && ref.trim().startsWith("asset://")
+        ? localAssetLimit
+        : MAX_STAGED_INPUT_BYTES;
+    if (bytes.byteLength > inputLimit) {
       return {
-        error: `inputs["${name}"] is ${bytes.byteLength} bytes, over the ${MAX_STAGED_INPUT_BYTES}-byte limit.`
+        error: `inputs["${name}"] is ${bytes.byteLength} bytes, over the ${inputLimit}-byte limit.`
       };
     }
     total += bytes.byteLength;
-    if (total > MAX_STAGED_TOTAL_BYTES) {
+    if (total > totalLimit) {
       return {
-        error: `inputs stages ${total} bytes, over the ${MAX_STAGED_TOTAL_BYTES}-byte total limit.`
+        error: `inputs stages ${total} bytes, over the ${totalLimit}-byte total limit.`
       };
     }
     // Through the workspace, so the staged input is durable and a cloud run

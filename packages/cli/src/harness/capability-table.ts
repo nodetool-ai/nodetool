@@ -542,7 +542,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "ffmpeg",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "433178927e9f",
+    contract: "5b56c11cbef0",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
@@ -553,9 +553,10 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "ffprobe",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "b4bba48ad634",
+    contract: "7d62f96db6d3",
     selfcheck: "capability-suites",
     suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
       "packages/agents/tests/capabilities-media-ffprobe.test.ts",
     ],
   },

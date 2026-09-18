@@ -43,6 +43,7 @@ import {
   videoFromReferences,
   classifyReferenceMedia,
   ffmpeg,
+  ffprobe,
   ytDlp
 } from "../src/capabilities/media.js";
 import type { CapabilityExport } from "../src/capabilities/types.js";
@@ -608,6 +609,47 @@ describe("ffmpeg and yt_dlp capabilities", () => {
       });
       expect(await readFile(join(dir, "a.txt"), "utf8")).toBe("hi");
     } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.each([{ wire: "ffmpeg", tool: ffmpeg }, { wire: "ffprobe", tool: ffprobe }])("$wire stages a local stored asset larger than the inline input limit", async ({ tool }) => {
+    const dir = await mkdtemp(join(tmpdir(), "ffmpeg-large-input-"));
+    try {
+      const context = workspaceContext(dir);
+      const bytes = new Uint8Array(101 * 1024 * 1024);
+      context.resolveAssetBytes = vi.fn().mockResolvedValue({ bytes });
+      const write = vi.spyOn(context.workspace, "write").mockResolvedValue(undefined);
+      vi.spyOn(context.workspace, "materialize").mockResolvedValue(join(dir, "source.mov"));
+      await asTool(tool).process(context, {
+        args: ["-i", "source.mov", "out.mp4"],
+        path: "source.mov",
+        inputs: { "source.mov": "asset://55c3ade10616.mov" }
+      });
+      expect(write).toHaveBeenCalledTimes(1);
+      expect(write.mock.calls[0][0]).toBe("source.mov");
+      expect(write.mock.calls[0][1] === bytes).toBe(true);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.each([{ wire: "ffmpeg", tool: ffmpeg }, { wire: "ffprobe", tool: ffprobe }])("$wire enforces the configured limit on local asset staging", async ({ tool }) => {
+    const dir = await mkdtemp(join(tmpdir(), "ffmpeg-input-limit-"));
+    vi.stubEnv("NODETOOL_MAX_UPLOAD_BYTES", "1024");
+    try {
+      const context = workspaceContext(dir);
+      context.resolveAssetBytes = vi.fn().mockResolvedValue({ bytes: new Uint8Array(1025) });
+      const write = vi.spyOn(context.workspace, "write");
+      const result = await asTool(tool).process(context, {
+        args: ["-i", "source.mov", "out.mp4"],
+        path: "source.mov",
+        inputs: { "source.mov": "asset://55c3ade10616.mov" }
+      });
+      expect(result).toMatchObject({ error: expect.stringContaining("1024-byte limit") });
+      expect(write).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
       await rm(dir, { recursive: true, force: true });
     }
   });

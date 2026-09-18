@@ -753,7 +753,8 @@ export const FFMPEG_SCHEMA: JsonSchema = {
         "Files to copy into the workspace before the run, as " +
         '{"<workspace-relative name>": "<asset:// URI, /api/storage/ key, ' +
         'or data: URI>"}. This is how an asset reaches ffmpeg: stage it, ' +
-        "then use the name in args. At most 8 files, 100 MB each. " +
+        "then use the name in args. At most 8 files, 100 MiB each and 256 MiB total. " +
+        "Local asset:// inputs use the configured local upload limit (2 GiB by default), also bounding the total. " +
         'Example: {"a.mp4": "asset://<id>.mp4", "b.mp4": "asset://<id>.mp4"}.',
       additionalProperties: { type: "string" as const }
     },
@@ -807,7 +808,8 @@ export const FFPROBE_SCHEMA: JsonSchema = {
         '{"<workspace-relative name>": "<asset:// URI, /api/storage/ key, ' +
         'or data: URI>"} — the same staging `ffmpeg` takes. `path` stages an ' +
         "asset by itself, so this is for the extra files a probe needs. At " +
-        "most 8 files, 100 MB each.",
+        "most 8 files, 100 MiB each and 256 MiB total. Local asset:// inputs " +
+        "use the configured local upload limit (2 GiB by default), also bounding the total.",
       additionalProperties: { type: "string" as const }
     },
     timeout_seconds: {
