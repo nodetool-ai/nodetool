@@ -10,3 +10,6 @@
 ## 2024-11-20 - O(4*N) filtering optimization in job queues
 **Learning:** Multiple array `.filter(...)` statements over the same array to partition items by disjoint conditions caused an O(K*N) performance bottleneck and unnecessary intermediate array allocations.
 **Action:** Replace multiple `.filter(...)` lines with a single manual `for` loop that iterates the array once and sorts the items into different target arrays concurrently (O(N) pass).
+## 2024-11-20 - Concurrent sequential promises
+**Learning:** `await` calls executed sequentially in `for...of` loops cause massive time overhead when bounded by I/O (e.g., querying external AI model providers).
+**Action:** Always replace independent, sequential `await` calls in a `for` loop with `Promise.all` inside `.map` to execute them concurrently.

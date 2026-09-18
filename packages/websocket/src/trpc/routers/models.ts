@@ -1163,8 +1163,14 @@ export const modelsRouter = router({
         access: "in_process" | "local_service" | "remote_api";
         display_name: string;
       }> = [];
-      for (const providerId of await getAvailableProviderIds(userId)) {
-        const instance = await instantiateProvider(providerId, userId);
+      const providerIds = await getAvailableProviderIds(userId);
+      const instances = await Promise.all(
+        providerIds.map(async (providerId) => ({
+          providerId,
+          instance: await instantiateProvider(providerId, userId)
+        }))
+      );
+      for (const { providerId, instance } of instances) {
         if (!instance) continue;
         const metadata = getRegisteredProvider(providerId)?.metadata;
         infos.push({
