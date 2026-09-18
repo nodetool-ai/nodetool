@@ -245,7 +245,7 @@ describe("EntitySetupHost", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     );
     expect(
-      await screen.findByAltText("Selected entity reference")
+      await screen.findByTestId("entity-reference-preview")
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Review entity" }));
