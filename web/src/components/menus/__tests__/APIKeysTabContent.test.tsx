@@ -74,7 +74,7 @@ describe("APIKeysTabContent on a hosted deployment", () => {
       });
   });
 
-  it("hides the Claude subscription card, whose sign-in needs a local server", () => {
+  it("lists OpenAI and Codex separately and hides local-only Claude Code", () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } }
     });
@@ -89,8 +89,9 @@ describe("APIKeysTabContent on a hosted deployment", () => {
     expect(
       screen.queryByRole("button", { name: /sign in with claude/i })
     ).not.toBeInTheDocument();
-    // The API-key providers are unaffected.
+    expect(screen.getByText("Codex")).toBeInTheDocument();
     expect(screen.getByText("Anthropic")).toBeInTheDocument();
     expect(screen.getByText("OpenAI")).toBeInTheDocument();
+    expect(screen.queryByText("Claude Code")).not.toBeInTheDocument();
   });
 });

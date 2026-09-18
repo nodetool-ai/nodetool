@@ -96,26 +96,37 @@ export const PROVIDER_META: ProviderMeta[] = [
   {
     key: "OPENAI_API_KEY",
     providerId: PROVIDER_IDS.OPENAI,
-    oauthProviderId: PROVIDER_IDS.CODEX,
     name: "OpenAI",
     description: "GPT models, images, embeddings, and more.",
     section: "popular",
     tag: "Popular",
     docsUrl: "https://platform.openai.com/docs",
     icon: openaiIcon,
+    mono: true
+  },
+  {
+    key: "CODEX_SUBSCRIPTION",
+    providerId: PROVIDER_IDS.CODEX,
+    name: "Codex",
+    description: "Use Codex models through your ChatGPT subscription.",
+    section: "popular",
+    docsUrl: "https://developers.openai.com/codex/",
+    icon: openaiIcon,
     mono: true,
-    oauth: "openai"
+    note: "Signs in with your ChatGPT account.",
+    oauth: "openai",
+    oauthOnly: true
   },
   {
     key: "CLAUDE_SUBSCRIPTION",
     providerId: PROVIDER_IDS.CLAUDE_AGENT_SDK,
-    name: "Claude",
+    name: "Claude Code",
     description: "Use a Claude Pro or Max subscription instead of API credits.",
     section: "popular",
     docsUrl: "https://code.claude.com/docs/en/overview",
     icon: anthropicIcon,
     mono: true,
-    note: "Signs in through Claude Code and shares its credentials.",
+    note: "Shares the credentials used by Claude Code.",
     oauth: "claude",
     oauthOnly: true,
     localOnly: true
