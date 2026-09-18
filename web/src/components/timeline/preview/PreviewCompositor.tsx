@@ -85,6 +85,9 @@ import { CaptionRasterizer } from "./captionRender";
 import { TextRasterizer } from "./textRender";
 import { ShapeRasterizer } from "./shapeRender";
 import { textMeasurer } from "./textMeasure";
+import { PreviewRecovery } from "./PreviewRecovery";
+import { watchVideoHealth } from "./videoHealth";
+import { type PreviewFailureHandler } from "./previewFailure";
 
 interface PlaceholderLayer {
   clipId: string;
@@ -108,19 +111,21 @@ export function sceneRequiresPerFrameResolution(
   layers: readonly ActiveLayer[]
 ): boolean {
   return layers.some(
-    (layer) => layer.transition !== undefined || layer.clip.reframe !== undefined
+    (layer) =>
+      layer.transition !== undefined || layer.clip.reframe !== undefined
   );
 }
 
-const compositorStyles = (theme: Theme) => css({
-  position: "absolute",
-  inset: 0,
-  backgroundColor: theme.vars.palette.common.black,
-  overflow: "hidden",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center"
-});
+const compositorStyles = (theme: Theme) =>
+  css({
+    position: "absolute",
+    inset: 0,
+    backgroundColor: theme.vars.palette.common.black,
+    overflow: "hidden",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+  });
 
 /**
  * Holds the preview canvas at the sequence's fixed aspect ratio. The
@@ -211,8 +216,43 @@ function isClipUpcoming(clip: TimelineClip, currentTimeMs: number): boolean {
   );
 }
 
-export const PreviewCompositor: React.FC = memo(() => {
+interface PreviewSurfaceProps {
+  readonly onFailure: PreviewFailureHandler;
+  readonly onReady: () => void;
+}
+
+export const PreviewCompositor: React.FC = () => {
+  const pause = useTimelinePlaybackStore((s) => s.pause);
+  const timelineId = useTimelineStore((s) => s.sequenceId);
+  return (
+    <PreviewRecovery
+      key={timelineId}
+      onPause={pause}
+      timelineId={timelineId ?? undefined}
+    >
+      {(onFailure, onReady) => (
+        <PreviewSurface onFailure={onFailure} onReady={onReady} />
+      )}
+    </PreviewRecovery>
+  );
+};
+
+const PreviewSurface = memo((props: PreviewSurfaceProps) => {
+  const { onFailure: reportFailure, onReady } = props;
   const theme = useTheme();
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  const onFailure: PreviewFailureHandler = useCallback(
+    (failure) => {
+      if (alive.current) reportFailure(failure);
+    },
+    [reportFailure]
+  );
 
   // Reactive position — now updated only on discrete events (seek/scrub/
   // pause/stop), never per playback frame. Drives the scene at rest.
@@ -269,11 +309,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     const target = clips.find((clip) => clip.id === audition.clipId);
     const preview = target && previewTake(target, audition.takeId);
     if (!target || !preview) return clips;
-    return clips.map((clip) =>
-      clip.id === target.id
-        ? preview
-        : clip
-    );
+    return clips.map((clip) => (clip.id === target.id ? preview : clip));
   }, [audition, clips]);
 
   // Collapses a whole gizmo drag (60-240 Hz `onChange`) into a single undo
@@ -298,22 +334,29 @@ export const PreviewCompositor: React.FC = memo(() => {
       assetUrlCache.current.set(assetId, { status: "pending" });
       getAsset(assetId)
         .then((asset) => {
+          if (!alive.current) return;
           const url = getAssetUrl(asset);
           if (url) {
             assetUrlCache.current.set(assetId, { status: "resolved", url });
             setUrlCacheVersion((v) => v + 1);
           } else {
             assetUrlCache.current.set(assetId, { status: "failed" });
+            onFailure({
+              stage: "asset",
+              resourceId: assetId,
+              error: new Error("Asset has no media URL")
+            });
           }
         })
-        .catch(() => {
+        .catch((error) => {
           // Asset unavailable — mark failed so the placeholder renders
           // without re-issuing the fetch on every render tick.
           assetUrlCache.current.set(assetId, { status: "failed" });
+          onFailure({ stage: "asset", resourceId: assetId, error });
         });
       return undefined;
     },
-    [getAsset]
+    [getAsset, onFailure]
   );
 
   /**
@@ -357,6 +400,16 @@ export const PreviewCompositor: React.FC = memo(() => {
   // Image element cache, keyed by URL — fed to the compositor as image layers.
   // Capped LRU (insertion order = recency) to bound memory in long sessions.
   const imageElementCache = useRef<Map<string, HTMLImageElement>>(new Map());
+  useEffect(() => {
+    const cache = imageElementCache.current;
+    return () => {
+      for (const image of cache.values()) {
+        image.onload = null;
+        image.onerror = null;
+      }
+      cache.clear();
+    };
+  }, []);
 
   // Pending video-element seek closures, keyed by the element. Stored on a
   // ref so the once-attached `loadedmetadata` listener always runs the most
@@ -385,6 +438,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       return;
     }
     const pool: HTMLVideoElement[] = [];
+    const cleanups: Array<() => void> = [];
     for (let i = 0; i < TOTAL_POOL_SIZE; i++) {
       const el = document.createElement("video");
       el.preload = "auto";
@@ -396,6 +450,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       el.style.cssText =
         "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;";
       pool.push(el);
+      cleanups.push(watchVideoHealth(el, onFailure));
       container.appendChild(el);
     }
     videoRefs.current = pool;
@@ -403,6 +458,7 @@ export const PreviewCompositor: React.FC = memo(() => {
 
     const pendingSeeksMap = pendingSeeks.current;
     return () => {
+      cleanups.forEach((cleanup) => cleanup());
       for (const el of pool) {
         el.pause();
         // Plain `el.src = ""` resolves to the document URL and can fire a
@@ -417,14 +473,22 @@ export const PreviewCompositor: React.FC = memo(() => {
       pendingSeeksMap.clear();
       setPoolReady(false);
     };
-  }, []);
+  }, [onFailure]);
 
   useEffect(() => {
     let cancelled = false;
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const onContextLost = (event: Event): void => {
+      event.preventDefault();
+      onFailure({
+        stage: "renderer-context-lost",
+        error: new Error("Preview canvas context was lost")
+      });
+    };
+    canvas.addEventListener("contextlost", onContextLost);
 
-    createCompositor(canvas)
+    createCompositor(canvas, onFailure)
       .then(({ compositor, init }) => {
         if (cancelled) {
           compositor.dispose();
@@ -435,11 +499,20 @@ export const PreviewCompositor: React.FC = memo(() => {
           setGpuReady(true);
         } else {
           setGpuFailed(true);
+          onFailure({
+            stage: "renderer-init",
+            error: new Error(
+              init.reason ?? "Preview renderer could not initialize"
+            )
+          });
           compositor.dispose();
         }
       })
-      .catch(() => {
-        if (!cancelled) setGpuFailed(true);
+      .catch((error) => {
+        if (!cancelled) {
+          setGpuFailed(true);
+          onFailure({ stage: "renderer-init", error });
+        }
       });
 
     const rasterizer = captionRasterizerRef.current;
@@ -447,6 +520,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     const shapeRasterizer = shapeRasterizerRef.current;
     return () => {
       cancelled = true;
+      canvas.removeEventListener("contextlost", onContextLost);
       compositorRef.current?.dispose();
       compositorRef.current = null;
       rasterizer.dispose();
@@ -454,7 +528,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       shapeRasterizer.dispose();
       setGpuReady(false);
     };
-  }, []);
+  }, [onFailure]);
 
   // Compute a fit-rect that preserves the sequence aspect inside the
   // outer container. Drives both the frame element's CSS pixel dimensions
@@ -466,49 +540,57 @@ export const PreviewCompositor: React.FC = memo(() => {
     const canvas = canvasRef.current;
     if (!container || !frame || !canvas) return;
     const apply = () => {
-      const rect = container.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return;
-      const aspect =
-        sequenceWidth > 0 && sequenceHeight > 0
-          ? sequenceWidth / sequenceHeight
-          : 16 / 9;
-      const fitByWidth = { w: rect.width, h: rect.width / aspect };
-      const fit =
-        fitByWidth.h <= rect.height
-          ? fitByWidth
-          : { w: rect.height * aspect, h: rect.height };
-      frame.style.width = `${fit.w}px`;
-      frame.style.height = `${fit.h}px`;
-      setFrameSize((prev) =>
-        prev.w === fit.w && prev.h === fit.h ? prev : { w: fit.w, h: fit.h }
-      );
-
-      const dpr = window.devicePixelRatio || 1;
-      const w = Math.max(1, Math.floor(fit.w * dpr));
-      const h = Math.max(1, Math.floor(fit.h * dpr));
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w;
-        canvas.height = h;
-        compositorRef.current?.resize(w, h);
-        compositorRef.current?.setLayers(
-          buildLayersRef.current(currentTimeMsRef.current),
-          precompositesRef.current
+      try {
+        const rect = container.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+        const aspect =
+          sequenceWidth > 0 && sequenceHeight > 0
+            ? sequenceWidth / sequenceHeight
+            : 16 / 9;
+        const fitByWidth = { w: rect.width, h: rect.width / aspect };
+        const fit =
+          fitByWidth.h <= rect.height
+            ? fitByWidth
+            : { w: rect.height * aspect, h: rect.height };
+        frame.style.width = `${fit.w}px`;
+        frame.style.height = `${fit.h}px`;
+        setFrameSize((prev) =>
+          prev.w === fit.w && prev.h === fit.h ? prev : { w: fit.w, h: fit.h }
         );
-        compositorRef.current?.render();
+
+        const dpr = window.devicePixelRatio || 1;
+        const w = Math.max(1, Math.floor(fit.w * dpr));
+        const h = Math.max(1, Math.floor(fit.h * dpr));
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+          compositorRef.current?.resize(w, h);
+          compositorRef.current?.setLayers(
+            buildLayersRef.current(currentTimeMsRef.current),
+            precompositesRef.current
+          );
+          compositorRef.current?.render();
+        }
+      } catch (error) {
+        onFailure({ stage: "renderer-resize", error });
       }
     };
     apply();
     const ro = new ResizeObserver(apply);
     ro.observe(container);
     return () => ro.disconnect();
-  }, [sequenceWidth, sequenceHeight]);
+  }, [sequenceWidth, sequenceHeight, onFailure]);
 
   // transform.position is stored in sequence pixels; tell the compositor the
   // sequence resolution so placement doesn't depend on viewport size / DPR.
   useEffect(() => {
     if (!gpuReady) return;
-    compositorRef.current?.setReferenceSize(sequenceWidth, sequenceHeight);
-  }, [gpuReady, sequenceWidth, sequenceHeight]);
+    try {
+      compositorRef.current?.setReferenceSize(sequenceWidth, sequenceHeight);
+    } catch (error) {
+      onFailure({ stage: "renderer-reference-size", error });
+    }
+  }, [gpuReady, sequenceWidth, sequenceHeight, onFailure]);
 
   // While paused (and on every discrete seek/scrub/stop) follow the reactive
   // position exactly so scrubbing repaints the right frame.
@@ -787,7 +869,8 @@ export const PreviewCompositor: React.FC = memo(() => {
     const activeReframe = renderableReframe(clip, track);
     if (!activeReframe) return null;
     const sampled = sampleReframeAt(activeReframe, sourceMs, track);
-    const sourceWidth = activeReframe.sourceWidth ?? clip.width ?? sequenceWidth;
+    const sourceWidth =
+      activeReframe.sourceWidth ?? clip.width ?? sequenceWidth;
     const sourceHeight =
       activeReframe.sourceHeight ?? clip.height ?? sequenceHeight;
     const crop =
@@ -844,136 +927,156 @@ export const PreviewCompositor: React.FC = memo(() => {
   useLayoutEffect(() => {
     if (!poolReady) return;
     const pool = videoRefs.current;
-
-    // Stable (clip, asset)→hot-slot binding. Reuse existing assignments first,
-    // then fill empty slots for newly-active pairs. Slots whose pair is no
-    // longer active become free for reuse.
-    const usedSlots = bindVideoSlots(
-      activeVideoSlots,
-      clipSlotMap.current,
-      HOT_POOL_SIZE
-    );
-
-    activeVideoSlots.forEach((slot) => {
-      const binding = clipSlotMap.current.get(
-        videoSlotKey(slot.clipId, slot.assetUrl)
+    try {
+      // Stable (clip, asset)→hot-slot binding. Reuse existing assignments first,
+      // then fill empty slots for newly-active pairs. Slots whose pair is no
+      // longer active become free for reuse.
+      const usedSlots = bindVideoSlots(
+        activeVideoSlots,
+        clipSlotMap.current,
+        HOT_POOL_SIZE
       );
-      if (binding === undefined || binding.index >= pool.length) return;
-      const el = pool[binding.index];
 
-      if (el.getAttribute("data-asset") !== slot.assetUrl) {
-        el.src = slot.assetUrl;
-        el.setAttribute("data-asset", slot.assetUrl);
-        el.load();
+      activeVideoSlots.forEach((slot) => {
+        const binding = clipSlotMap.current.get(
+          videoSlotKey(slot.clipId, slot.assetUrl)
+        );
+        if (binding === undefined || binding.index >= pool.length) return;
+        const el = pool[binding.index];
+        el.dataset.clipId = slot.clipId;
+
+        if (el.getAttribute("data-asset") !== slot.assetUrl) {
+          el.src = slot.assetUrl;
+          el.setAttribute("data-asset", slot.assetUrl);
+          el.load();
+        }
+
+        const clip = clipById.get(slot.clipId);
+        // If the speed change has been baked into the asset, the asset already
+        // plays at the right rate; otherwise the source media is at original
+        // speed and 1 timeline second consumes `rate` source seconds.
+        const rate = clip?.speedBaked
+          ? 1
+          : Math.max(0.0001, clip?.speedMultiplier ?? 1);
+        // A remapped clip has no constant rate to hand the element: the curve can
+        // hold, accelerate, or run backwards, and `playbackRate` is positive-only.
+        // Its element stays paused and is seeked to the curve instead — here on
+        // every scene bump, and once per rAF tick while playing (below).
+        const remapped = clip !== undefined && hasTimeRemap(clip);
+
+        // Setting currentTime before HAVE_METADATA is silently clamped to 0 and
+        // a subsequent play() can reject with AbortError. Defer until the
+        // element reports metadata; on next render the slot's pending closure
+        // (kept in pendingSeeks) re-runs with fresh state.
+        const applySeek = () => {
+          try {
+            if (el.readyState < 1) return;
+            // While playing, `currentTimeMs` (sceneTimeMs) is frozen between
+            // scene bumps — the 2s preload-tick re-run of this effect would
+            // otherwise seek the element BACKWARD to that stale position once
+            // the video's own clock has drifted past the 0.15s threshold.
+            // Read the live transient playhead instead, and do it here (at
+            // call time, not effect-run time) so the loadedmetadata-deferred
+            // path also gets a fresh value rather than a stale closure.
+            const atMs = isPlaying ? getTimeMs() : currentTimeMs;
+            const rawTargetSec = !clip
+              ? 0
+              : slot.baked
+                ? bakedClipSourceTimeSec(clip, atMs)
+                : clipSourceTimeSec(clip, atMs);
+            const targetSec = rawTargetSec;
+            // A remapped element never runs on its own clock, so its position is
+            // always wrong by more than a playing element's tolerance would allow.
+            const toleranceSec = isPlaying && !remapped ? 0.15 : 0.04;
+            if (Math.abs(el.currentTime - targetSec) > toleranceSec) {
+              el.currentTime = targetSec;
+            }
+            el.playbackRate = remapped ? 1 : rate;
+
+            if (isPlaying && !remapped && el.paused) {
+              void el.play().catch((error: unknown) => {
+                // A seek, pause or source replacement intentionally cancels play().
+                if (
+                  error instanceof DOMException &&
+                  error.name === "AbortError"
+                )
+                  return;
+                onFailure({
+                  stage: "video-play",
+                  resourceId: slot.clipId,
+                  error
+                });
+              });
+            } else if ((!isPlaying || remapped) && !el.paused) {
+              el.pause();
+            }
+          } catch (error) {
+            onFailure({ stage: "video-seek", resourceId: slot.clipId, error });
+          }
+        };
+
+        if (el.readyState >= 1) {
+          applySeek();
+        } else {
+          // Always stash the latest closure so the listener runs with the most
+          // recent target. Only attach the listener once; mark the element so
+          // re-runs of this effect don't pile up handlers.
+          pendingSeeks.current.set(el, applySeek);
+          if (el.getAttribute("data-seek-pending") !== "1") {
+            el.setAttribute("data-seek-pending", "1");
+            el.addEventListener(
+              "loadedmetadata",
+              () => {
+                el.removeAttribute("data-seek-pending");
+                const fn = pendingSeeks.current.get(el);
+                if (fn) {
+                  pendingSeeks.current.delete(el);
+                  fn();
+                }
+              },
+              { once: true }
+            );
+          }
+        }
+      });
+
+      // Pause unused hot-pool slots so their decoders go idle.
+      for (let i = 0; i < HOT_POOL_SIZE; i++) {
+        if (usedSlots.has(i)) continue;
+        const el = pool[i];
+        if (el && !el.paused) el.pause();
       }
 
-      const clip = clipById.get(slot.clipId);
-      // If the speed change has been baked into the asset, the asset already
-      // plays at the right rate; otherwise the source media is at original
-      // speed and 1 timeline second consumes `rate` source seconds.
-      const rate = clip?.speedBaked
-        ? 1
-        : Math.max(0.0001, clip?.speedMultiplier ?? 1);
-      // A remapped clip has no constant rate to hand the element: the curve can
-      // hold, accelerate, or run backwards, and `playbackRate` is positive-only.
-      // Its element stays paused and is seeked to the curve instead — here on
-      // every scene bump, and once per rAF tick while playing (below).
-      const remapped = clip !== undefined && hasTimeRemap(clip);
+      // Preload upcoming clips into cold pool slots. Sorted soonest-first so
+      // that with more than COLD_POOL_SIZE upcoming clips, the ones closest to
+      // the playhead win the slots (array order is otherwise arbitrary).
+      const upcomingVideoClips = previewClips
+        .filter(
+          (c) =>
+            (c.mediaType === "video" || c.mediaType === "overlay") &&
+            isClipUpcoming(c, currentTimeMs)
+        )
+        .sort((a, b) => a.startMs - b.startMs)
+        .slice(0, COLD_POOL_SIZE);
 
-      // Setting currentTime before HAVE_METADATA is silently clamped to 0 and
-      // a subsequent play() can reject with AbortError. Defer until the
-      // element reports metadata; on next render the slot's pending closure
-      // (kept in pendingSeeks) re-runs with fresh state.
-      const applySeek = () => {
-        if (el.readyState < 1) return;
-        // While playing, `currentTimeMs` (sceneTimeMs) is frozen between
-        // scene bumps — the 2s preload-tick re-run of this effect would
-        // otherwise seek the element BACKWARD to that stale position once
-        // the video's own clock has drifted past the 0.15s threshold.
-        // Read the live transient playhead instead, and do it here (at
-        // call time, not effect-run time) so the loadedmetadata-deferred
-        // path also gets a fresh value rather than a stale closure.
-        const atMs = isPlaying ? getTimeMs() : currentTimeMs;
-        const rawTargetSec = !clip
-          ? 0
-          : slot.baked
-            ? bakedClipSourceTimeSec(clip, atMs)
-            : clipSourceTimeSec(clip, atMs);
-        const targetSec = rawTargetSec;
-        // A remapped element never runs on its own clock, so its position is
-        // always wrong by more than a playing element's tolerance would allow.
-        const toleranceSec = isPlaying && !remapped ? 0.15 : 0.04;
-        if (Math.abs(el.currentTime - targetSec) > toleranceSec) {
-          el.currentTime = targetSec;
+      upcomingVideoClips.forEach((clip, i) => {
+        const slotIndex = HOT_POOL_SIZE + i;
+        if (slotIndex >= pool.length) return;
+        const el = pool[slotIndex];
+        el.dataset.clipId = clip.id;
+        const assetId = effectiveAssetId(clip);
+        const url = resolveUrl(assetId);
+        if (url && el.getAttribute("data-asset") !== url) {
+          el.src = url;
+          el.setAttribute("data-asset", url);
+          void el.load();
         }
-        el.playbackRate = remapped ? 1 : rate;
-
-        if (isPlaying && !remapped && el.paused) {
-          void el.play().catch(() => {
-            // Autoplay blocked; continue scrubbing via currentTime.
-          });
-        } else if ((!isPlaying || remapped) && !el.paused) {
-          el.pause();
-        }
-      };
-
-      if (el.readyState >= 1) {
-        applySeek();
-      } else {
-        // Always stash the latest closure so the listener runs with the most
-        // recent target. Only attach the listener once; mark the element so
-        // re-runs of this effect don't pile up handlers.
-        pendingSeeks.current.set(el, applySeek);
-        if (el.getAttribute("data-seek-pending") !== "1") {
-          el.setAttribute("data-seek-pending", "1");
-          el.addEventListener(
-            "loadedmetadata",
-            () => {
-              el.removeAttribute("data-seek-pending");
-              const fn = pendingSeeks.current.get(el);
-              if (fn) {
-                pendingSeeks.current.delete(el);
-                fn();
-              }
-            },
-            { once: true }
-          );
-        }
-      }
-    });
-
-    // Pause unused hot-pool slots so their decoders go idle.
-    for (let i = 0; i < HOT_POOL_SIZE; i++) {
-      if (usedSlots.has(i)) continue;
-      const el = pool[i];
-      if (el && !el.paused) el.pause();
+      });
+    } catch (error) {
+      onFailure({ stage: "video-pool", error });
     }
-
-    // Preload upcoming clips into cold pool slots. Sorted soonest-first so
-    // that with more than COLD_POOL_SIZE upcoming clips, the ones closest to
-    // the playhead win the slots (array order is otherwise arbitrary).
-    const upcomingVideoClips = previewClips
-      .filter(
-        (c) =>
-          (c.mediaType === "video" || c.mediaType === "overlay") &&
-          isClipUpcoming(c, currentTimeMs)
-      )
-      .sort((a, b) => a.startMs - b.startMs)
-      .slice(0, COLD_POOL_SIZE);
-
-    upcomingVideoClips.forEach((clip, i) => {
-      const slotIndex = HOT_POOL_SIZE + i;
-      if (slotIndex >= pool.length) return;
-      const el = pool[slotIndex];
-      const assetId = effectiveAssetId(clip);
-      const url = resolveUrl(assetId);
-      if (url && el.getAttribute("data-asset") !== url) {
-        el.src = url;
-        el.setAttribute("data-asset", url);
-        void el.load();
-      }
-    });
   }, [
+    onFailure,
     poolReady,
     activeVideoSlots,
     currentTimeMs,
@@ -1010,6 +1113,11 @@ export const PreviewCompositor: React.FC = memo(() => {
         // Trigger a re-render on first decode so the compositor picks it up.
         setUrlCacheVersion((v) => v + 1);
       };
+      img.onerror = () =>
+        onFailure({
+          stage: "image",
+          error: new Error("Preview image could not be decoded")
+        });
       img.src = url;
       imageElementCache.current.set(url, img);
       // Evict least-recently-used entries until under the cap.
@@ -1020,7 +1128,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       }
       return null;
     },
-    []
+    [onFailure]
   );
 
   /**
@@ -1162,16 +1270,59 @@ export const PreviewCompositor: React.FC = memo(() => {
     ]
   );
 
+  const presented = useRef(false);
+  const presenting = useRef(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (!presented.current)
+        onFailure({
+          stage: "renderer-timeout",
+          error: new Error(
+            "Preview did not produce a ready frame within 30 seconds"
+          )
+        });
+    }, 30_000);
+    return () => window.clearTimeout(timer);
+  }, [onFailure]);
   const renderFrame = useCallback(() => {
     if (!gpuReady) return;
     const compositor = compositorRef.current;
     if (!compositor) return;
-    compositor.setLayers(
-      buildLayersRef.current(currentTimeMsRef.current),
-      precompositesRef.current
-    );
-    compositor.render();
-  }, [gpuReady]);
+    try {
+      compositor.setLayers(
+        buildLayersRef.current(currentTimeMsRef.current),
+        precompositesRef.current
+      );
+      compositor.render();
+      if (
+        !presented.current &&
+        !presenting.current &&
+        [...clipSlotMap.current.values()].every((binding) => {
+          const video = videoRefs.current[binding.index];
+          return video && video.readyState >= 2 && !video.seeking;
+        }) &&
+        [...assetUrlCache.current.values()].every(
+          (entry) => entry.status === "resolved"
+        ) &&
+        [...imageElementCache.current.values()].every(
+          (image) => image.complete && image.naturalWidth > 0
+        )
+      ) {
+        presenting.current = true;
+        void compositor
+          .flush()
+          .then(() => {
+            presented.current = true;
+            if (alive.current) onReady();
+          })
+          .catch((error: unknown) =>
+            onFailure({ stage: "renderer-present", error })
+          );
+      }
+    } catch (error) {
+      onFailure({ stage: "renderer-frame", error });
+    }
+  }, [gpuReady, onFailure, onReady]);
 
   // Latest-frame builder ref so renderFrame and the rAF loop can always call
   // the current buildLayers without listing it as a dep (it changes identity
@@ -1209,6 +1360,8 @@ export const PreviewCompositor: React.FC = memo(() => {
       el.addEventListener("seeked", onFrameReady);
       el.addEventListener("loadeddata", onFrameReady);
     });
+    // Metadata/data can arrive between pool binding and effect installation.
+    renderFrame();
     return () => {
       pool.forEach((el) => {
         el.removeEventListener("seeked", onFrameReady);
@@ -1269,93 +1422,97 @@ export const PreviewCompositor: React.FC = memo(() => {
     let forceRender = true;
 
     const tick = () => {
-      const liveMs = getTimeMsRef.current();
+      try {
+        const liveMs = getTimeMsRef.current();
 
-      // Steady-state frames (no clip/caption-word boundary crossed, no seek,
-      // no document mutation) skip re-deriving the scene entirely — the prior
-      // horizon already proves the active set can't have changed.
-      const needsRecompute =
-        liveMs >= lastNextChangeMsRef.current ||
-        liveMs < lastLiveMsRef.current ||
-        latestTracksRef.current !== lastComputeTracksRef.current ||
-        latestClipsRef.current !== lastComputeClipsRef.current;
+        // Steady-state frames (no clip/caption-word boundary crossed, no seek,
+        // no document mutation) skip re-deriving the scene entirely — the prior
+        // horizon already proves the active set can't have changed.
+        const needsRecompute =
+          liveMs >= lastNextChangeMsRef.current ||
+          liveMs < lastLiveMsRef.current ||
+          latestTracksRef.current !== lastComputeTracksRef.current ||
+          latestClipsRef.current !== lastComputeClipsRef.current;
 
-      let setChanged = false;
-      if (needsRecompute) {
-        const result = sceneSignatureRef.current(liveMs);
-        setChanged = result.signature !== lastSignature;
-        lastSignature = result.signature;
-        lastNextChangeMsRef.current = result.nextChangeMs;
-        lastLayersRef.current = result.layers;
-        lastComputeTracksRef.current = latestTracksRef.current;
-        lastComputeClipsRef.current = latestClipsRef.current;
-        if (setChanged) {
-          setSceneTimeMs(liveMs);
-        }
-      }
-      lastLiveMsRef.current = liveMs;
-
-      // A remapped clip's element is paused on purpose — its curve is not a
-      // playback rate — so nothing advances it between scene bumps. Seek it
-      // every tick, and treat that as new pixels: `el.paused` is true, so the
-      // decoding-video check below would call the scene static.
-      let remapSeeked = false;
-      for (const binding of clipSlotMap.current.values()) {
-        const clip = clipByIdRef.current.get(binding.clipId);
-        if (!clip || !hasTimeRemap(clip)) continue;
-        const el = videoRefs.current[binding.index];
-        if (!el || el.readyState < 1) continue;
-        const targetSec = clipSourceTimeSec(clip, liveMs);
-        if (Math.abs(el.currentTime - targetSec) > 0.01) {
-          el.currentTime = targetSec;
-        }
-        remapSeeked = true;
-      }
-
-      // A frame needs re-compositing when the active set just changed, or when
-      // any active video is decoding new pixels (i.e. actually playing). Pure
-      // image/caption scenes are static between boundary changes, so skip the
-      // redundant clear+blit — UNLESS a motion-design animation is in flight,
-      // which changes transform/opacity every tick even with a cached layer set.
-      let dirty = setChanged || forceRender || remapSeeked;
-      forceRender = false;
-      if (!dirty) {
-        const pool = videoRefs.current;
-        for (const binding of clipSlotMap.current.values()) {
-          const el = pool[binding.index];
-          if (el && !el.paused && !el.ended && el.videoWidth > 0) {
-            dirty = true;
-            break;
+        let setChanged = false;
+        if (needsRecompute) {
+          const result = sceneSignatureRef.current(liveMs);
+          setChanged = result.signature !== lastSignature;
+          lastSignature = result.signature;
+          lastNextChangeMsRef.current = result.nextChangeMs;
+          lastLayersRef.current = result.layers;
+          lastComputeTracksRef.current = latestTracksRef.current;
+          lastComputeClipsRef.current = latestClipsRef.current;
+          if (setChanged) {
+            setSceneTimeMs(liveMs);
           }
         }
-      }
-      // Cuts and Smart Reframe paths are resolved by the scene model. Neither
-      // necessarily has a decoding video, so still scenes must also redraw.
-      if (
-        !dirty &&
-        (sceneRequiresPerFrameResolution(lastLayersRef.current) ||
-          hasActiveAnimation(
-            lastLayersRef.current,
-            liveMs,
-            canvasSizeRef.current,
-            animCacheRef.current
-          ))
-      ) {
-        dirty = true;
-      }
+        lastLiveMsRef.current = liveMs;
 
-      if (dirty) {
-        compositor.setLayers(
-          buildLayersRef.current(liveMs),
-          precompositesRef.current
-        );
-        compositor.render();
+        // A remapped clip's element is paused on purpose — its curve is not a
+        // playback rate — so nothing advances it between scene bumps. Seek it
+        // every tick, and treat that as new pixels: `el.paused` is true, so the
+        // decoding-video check below would call the scene static.
+        let remapSeeked = false;
+        for (const binding of clipSlotMap.current.values()) {
+          const clip = clipByIdRef.current.get(binding.clipId);
+          if (!clip || !hasTimeRemap(clip)) continue;
+          const el = videoRefs.current[binding.index];
+          if (!el || el.readyState < 1) continue;
+          const targetSec = clipSourceTimeSec(clip, liveMs);
+          if (Math.abs(el.currentTime - targetSec) > 0.01) {
+            el.currentTime = targetSec;
+          }
+          remapSeeked = true;
+        }
+
+        // A frame needs re-compositing when the active set just changed, or when
+        // any active video is decoding new pixels (i.e. actually playing). Pure
+        // image/caption scenes are static between boundary changes, so skip the
+        // redundant clear+blit — UNLESS a motion-design animation is in flight,
+        // which changes transform/opacity every tick even with a cached layer set.
+        let dirty = setChanged || forceRender || remapSeeked;
+        forceRender = false;
+        if (!dirty) {
+          const pool = videoRefs.current;
+          for (const binding of clipSlotMap.current.values()) {
+            const el = pool[binding.index];
+            if (el && !el.paused && !el.ended && el.videoWidth > 0) {
+              dirty = true;
+              break;
+            }
+          }
+        }
+        // Cuts and Smart Reframe paths are resolved by the scene model. Neither
+        // necessarily has a decoding video, so still scenes must also redraw.
+        if (
+          !dirty &&
+          (sceneRequiresPerFrameResolution(lastLayersRef.current) ||
+            hasActiveAnimation(
+              lastLayersRef.current,
+              liveMs,
+              canvasSizeRef.current,
+              animCacheRef.current
+            ))
+        ) {
+          dirty = true;
+        }
+
+        if (dirty) {
+          compositor.setLayers(
+            buildLayersRef.current(liveMs),
+            precompositesRef.current
+          );
+          compositor.render();
+        }
+        raf = requestAnimationFrame(tick);
+      } catch (error) {
+        onFailure({ stage: "renderer-playback", error });
       }
-      raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [gpuReady, isPlaying]);
+  }, [gpuReady, isPlaying, onFailure]);
 
   const hasAnything = sceneLayers.length > 0 || placeholderLayers.length > 0;
 
@@ -1464,24 +1621,30 @@ export const PreviewCompositor: React.FC = memo(() => {
           />
         )}
 
-        {selectedGizmo && !audition && sceneLayers.filter((layer) =>
-          layer.clipId === selectedClipId && layer.kind === "video" &&
-          layer.assetId === clipById.get(selectedClipId)?.currentAssetId
-        ).map((layer) => (
-          <ClipTrackingOverlay
-            key={`${layer.clipId}:${layer.assetId}`}
-            clip={layer.clip}
-            crop={layer.crop}
-            transform={layer.transform}
-            parentMatrix={layer.parentMatrix}
-            sourceWidth={selectedGizmo.sourceWidth}
-            sourceHeight={selectedGizmo.sourceHeight}
-            sequenceWidth={sequenceWidth}
-            sequenceHeight={sequenceHeight}
-            frameWidth={frameSize.w}
-            frameHeight={frameSize.h}
-          />
-        ))}
+        {selectedGizmo &&
+          !audition &&
+          sceneLayers
+            .filter(
+              (layer) =>
+                layer.clipId === selectedClipId &&
+                layer.kind === "video" &&
+                layer.assetId === clipById.get(selectedClipId)?.currentAssetId
+            )
+            .map((layer) => (
+              <ClipTrackingOverlay
+                key={`${layer.clipId}:${layer.assetId}`}
+                clip={layer.clip}
+                crop={layer.crop}
+                transform={layer.transform}
+                parentMatrix={layer.parentMatrix}
+                sourceWidth={selectedGizmo.sourceWidth}
+                sourceHeight={selectedGizmo.sourceHeight}
+                sequenceWidth={sequenceWidth}
+                sequenceHeight={sequenceHeight}
+                frameWidth={frameSize.w}
+                frameHeight={frameSize.h}
+              />
+            ))}
 
         {selectedClipId &&
           clipById.get(selectedClipId)?.mediaType === "model3d" && (
@@ -1504,7 +1667,9 @@ export const PreviewCompositor: React.FC = memo(() => {
             }}
           >
             <div css={placeholderLayerStyles(theme)}>
-              <span style={{ fontSize: FONT_SIZE_SANS.title, opacity: 0.4 }}>▭</span>
+              <span style={{ fontSize: FONT_SIZE_SANS.title, opacity: 0.4 }}>
+                ▭
+              </span>
               <span style={{ fontSize: theme.fontSizeSmaller, opacity: 0.5 }}>
                 {layer.name}
               </span>
@@ -1551,7 +1716,10 @@ export const PreviewCompositor: React.FC = memo(() => {
         {gpuFailed && (
           <div
             css={placeholderLayerStyles(theme)}
-            style={{ zIndex: Z_INDEX.raised, color: theme.vars.palette.warning.dark }}
+            style={{
+              zIndex: Z_INDEX.raised,
+              color: theme.vars.palette.warning.dark
+            }}
           >
             <span style={{ fontSize: theme.fontSizeSmall }}>
               Preview rendering unavailable
@@ -1564,7 +1732,9 @@ export const PreviewCompositor: React.FC = memo(() => {
             css={placeholderLayerStyles(theme)}
             style={{ zIndex: Z_INDEX.raised }}
           >
-            <span style={{ fontSize: FONT_SIZE_SANS.title, opacity: 0.15 }}>▶</span>
+            <span style={{ fontSize: FONT_SIZE_SANS.title, opacity: 0.15 }}>
+              ▶
+            </span>
             <span style={{ fontSize: theme.fontSizeSmall, opacity: 0.25 }}>
               No media at {Math.round(currentTimeMs / 1000)}s
             </span>
@@ -1575,4 +1745,4 @@ export const PreviewCompositor: React.FC = memo(() => {
   );
 });
 
-PreviewCompositor.displayName = "PreviewCompositor";
+PreviewSurface.displayName = "PreviewSurface";

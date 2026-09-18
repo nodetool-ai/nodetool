@@ -9,7 +9,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
-import { act, render, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { ThemeProvider } from "@mui/material/styles";
 import {
@@ -110,10 +110,15 @@ jest.mock("../../../../stores/AssetStore", () => ({
 const capturedClip = (assetId: string) =>
   mockBuildCompositeLayers.mock.calls
     .map((call) => call[0])
-    .filter((layers): layers is Array<{ clip: TimelineClip }> => Array.isArray(layers))
+    .filter((layers): layers is Array<{ clip: TimelineClip }> =>
+      Array.isArray(layers)
+    )
     .flat()
-    .find((layer) => layer.clip.id === "clip-preview" && layer.clip.currentAssetId === assetId)
-    ?.clip;
+    .find(
+      (layer) =>
+        layer.clip.id === "clip-preview" &&
+        layer.clip.currentAssetId === assetId
+    )?.clip;
 
 const makePreviewInstance = () => {
   const instance = createTimelineInstance();
@@ -124,6 +129,7 @@ const makePreviewInstance = () => {
     name: "Imported station",
     mediaType: "video",
     sourceType: "imported",
+    status: "generated",
     currentAssetId: "asset-original",
     startMs: 1_200,
     durationMs: 4_000,
@@ -131,10 +137,7 @@ const makePreviewInstance = () => {
     outPointMs: 44_000,
     versions: []
   });
-  const withBaseline = ensureBaselineTake(
-    original,
-    "2026-01-01T00:00:00.000Z"
-  );
+  const withBaseline = ensureBaselineTake(original, "2026-01-01T00:00:00.000Z");
   const request = createMediaEditRequest({
     sourceContext: {
       sequenceId: "sequence-preview",
@@ -165,7 +168,12 @@ const makePreviewInstance = () => {
   instance.doc.setState({
     sequenceId: "sequence-preview",
     tracks: [track],
-    clips: [{ ...withBaseline, versions: [...(withBaseline.versions ?? []), candidate] }],
+    clips: [
+      {
+        ...withBaseline,
+        versions: [...(withBaseline.versions ?? []), candidate]
+      }
+    ],
     durationMs: 8_000
   });
   instance.playback.getState().seek(2_200);
@@ -233,7 +241,9 @@ describe("native media editing preview comparison", () => {
       throw new Error("Preview did not project the candidate clip");
     }
     expect(clipSourceMsAt(candidateClip, 2_200)).toBe(1_000);
-    expect(instance.doc.getState().clips[0].currentAssetId).toBe("asset-original");
+    expect(instance.doc.getState().clips[0].currentAssetId).toBe(
+      "asset-original"
+    );
 
     mockBuildCompositeLayers.mockClear();
     act(() => instance.ui.getState().setAudition(null));
@@ -246,7 +256,51 @@ describe("native media editing preview comparison", () => {
       throw new Error("Preview did not restore the original clip");
     }
     expect(clipSourceMsAt(originalAfterClear, 2_200)).toBe(41_000);
-    expect(instance.doc.getState().clips[0].currentAssetId).toBe("asset-original");
+    expect(instance.doc.getState().clips[0].currentAssetId).toBe(
+      "asset-original"
+    );
     view.unmount();
+  });
+
+  it("replaces a failed decoder and canvas while preserving timeline edits and the playhead", async () => {
+    const consoleError = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const instance = makePreviewInstance();
+    const originalClips = instance.doc.getState().clips;
+    const view = render(
+      <ThemeProvider theme={mockTheme}>
+        <TimelineProvider instance={instance}>
+          <PreviewCompositor />
+        </TimelineProvider>
+      </ThemeProvider>
+    );
+    await waitFor(() => expect(capturedClip("asset-original")).toBeDefined());
+    await waitFor(() =>
+      expect(view.container.querySelector("video[src]")).not.toBeNull()
+    );
+    const canvas = view.container.querySelector("canvas");
+    const video = view.container.querySelector("video[src]");
+    if (!video) throw new Error("No video decoder bound");
+    Object.defineProperty(video, "error", {
+      value: { code: 3, message: "Decoder failed" }
+    });
+    act(() => video.dispatchEvent(new Event("error")));
+    expect(screen.getByRole("alert")).toHaveTextContent("Restarting preview");
+    await waitFor(() => {
+      expect(view.container.querySelector("video[src]")).not.toBeNull();
+      expect(view.container.querySelector("canvas")).not.toBe(canvas);
+    });
+    expect(view.container.querySelector("video[src]")).not.toBe(video);
+    expect(instance.doc.getState().clips).toBe(originalClips);
+    expect(instance.playback.getState().currentTimeMs).toBe(2_200);
+    expect(instance.playback.getState().isPlaying).toBe(false);
+    const replacement = view.container.querySelector("video[src]");
+    if (!replacement) throw new Error("Decoder not replaced");
+    Object.defineProperty(replacement, "readyState", { value: 4 });
+    await act(async () => replacement.dispatchEvent(new Event("loadeddata")));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    view.unmount();
+    consoleError.mockRestore();
   });
 });

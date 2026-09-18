@@ -42,25 +42,30 @@ function lastUpload(): UploadSource {
 }
 
 interface FakeGpu {
+  events: EventTarget;
   device: GPUDevice;
   context: GPUCanvasContext;
   canvas: HTMLCanvasElement;
   configure: jest.Mock<(configuration: GPUCanvasConfiguration) => undefined>;
-  copyExternalImageToTexture: jest.Mock<
-    GPUQueue["copyExternalImageToTexture"]
-  >;
+  copyExternalImageToTexture: jest.Mock<GPUQueue["copyExternalImageToTexture"]>;
 }
 
 /**
  * A WebGPU surface that records `configure` calls and hands out devices in
  * order, so a test can tell which device claimed the canvas and when.
  */
-function fakeGpu(): FakeGpu {
+function fakeGpu(
+  lost: Promise<GPUDeviceLostInfo> = new Promise(() => {})
+): FakeGpu {
   const configure =
     jest.fn<(configuration: GPUCanvasConfiguration) => undefined>();
   const copyExternalImageToTexture =
     jest.fn<GPUQueue["copyExternalImageToTexture"]>();
+  const events = new EventTarget();
   const device = stub<GPUDevice>({
+    lost,
+    addEventListener: events.addEventListener.bind(events),
+    removeEventListener: events.removeEventListener.bind(events),
     createCommandEncoder: () =>
       stub<GPUCommandEncoder>({ finish: () => stub<GPUCommandBuffer>({}) }),
     createTexture: () => stub<GPUTexture>({ destroy() {} }),
@@ -76,7 +81,11 @@ function fakeGpu(): FakeGpu {
   // answers "webgpu" only, which is all the compositor asks for.
   const getContext = ((type: string) =>
     type === "webgpu" ? context : null) as HTMLCanvasElement["getContext"];
-  const canvas = stub<HTMLCanvasElement>({ width: 320, height: 180, getContext });
+  const canvas = stub<HTMLCanvasElement>({
+    width: 320,
+    height: 180,
+    getContext
+  });
   Object.defineProperty(navigator, "gpu", {
     configurable: true,
     value: {
@@ -94,7 +103,14 @@ function fakeGpu(): FakeGpu {
       RENDER_ATTACHMENT: 8
     }
   });
-  return { device, context, canvas, configure, copyExternalImageToTexture };
+  return {
+    events,
+    device,
+    context,
+    canvas,
+    configure,
+    copyExternalImageToTexture
+  };
 }
 
 describe("WebGPUCompositor", () => {
@@ -202,5 +218,64 @@ describe("WebGPUCompositor", () => {
     compositor.render();
     expect(gpu.configure).toHaveBeenCalledTimes(2);
     compositor.dispose();
+  });
+
+  it("reports failed texture uploads instead of silently omitting the video", async () => {
+    const gpu = fakeGpu();
+    const compositor = new WebGPUCompositor();
+    await compositor.init(gpu.canvas);
+    gpu.copyExternalImageToTexture.mockImplementation(() => {
+      throw new Error("Decoder resource is gone");
+    });
+    expect(() =>
+      lastUpload()("v:clip-1", stub<ImageBitmap>({ width: 64, height: 32 }))
+    ).toThrow("Preview texture upload failed for v:clip-1");
+    compositor.dispose();
+  });
+
+  it("reports asynchronous device loss and validation errors", async () => {
+    let lose: (info: GPUDeviceLostInfo) => void = () => {};
+    const gpu = fakeGpu(
+      new Promise((resolve) => {
+        lose = resolve;
+      })
+    );
+    const failure = jest.fn();
+    const compositor = new WebGPUCompositor(failure);
+    await compositor.init(gpu.canvas);
+    const event = new Event("uncapturederror");
+    Object.defineProperty(event, "error", {
+      value: { message: "Invalid texture" }
+    });
+    gpu.events.dispatchEvent(event);
+    expect(failure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stage: "gpu-validation",
+        error: expect.objectContaining({ message: "Invalid texture" })
+      })
+    );
+    lose(stub<GPUDeviceLostInfo>({ reason: "unknown", message: "GPU reset" }));
+    await Promise.resolve();
+    expect(failure).toHaveBeenCalledWith(
+      expect.objectContaining({ stage: "gpu-device-lost" })
+    );
+    compositor.dispose();
+  });
+
+  it("ignores deliberate device destruction and detaches the validation listener", async () => {
+    let lose: (info: GPUDeviceLostInfo) => void = () => {};
+    const gpu = fakeGpu(
+      new Promise((resolve) => {
+        lose = resolve;
+      })
+    );
+    const failure = jest.fn();
+    const compositor = new WebGPUCompositor(failure);
+    await compositor.init(gpu.canvas);
+    compositor.dispose();
+    gpu.events.dispatchEvent(new Event("uncapturederror"));
+    lose(stub<GPUDeviceLostInfo>({ reason: "destroyed", message: "Disposed" }));
+    await Promise.resolve();
+    expect(failure).not.toHaveBeenCalled();
   });
 });

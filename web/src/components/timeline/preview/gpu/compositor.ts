@@ -17,6 +17,10 @@ import {
   sourceDimensions
 } from "./source";
 import { MaskRasterizer } from "../maskRender";
+import {
+  logPreviewFailure,
+  type PreviewFailureHandler
+} from "../previewFailure";
 
 interface SourceTexture extends GpuSourceTexture {
   source: CompositeSource;
@@ -33,12 +37,7 @@ let canvasUploads = 0;
 
 function uploadKey(source: CompositeSource): string {
   if (source instanceof HTMLVideoElement) {
-    // `currentTime` updates as soon as a seek starts, before the target frame
-    // is decoded. Stamping the new time while `seeking` is true would mark a
-    // stale frame as current and skip the real upload on `seeked` — so use a
-    // distinct key during the seek; the post-`seeked` render re-uploads.
-    const time = source.seeking ? "seeking" : String(source.currentTime);
-    return `v:${time}:${source.videoWidth}x${source.videoHeight}`;
+    return `v:${source.currentTime}:${source.videoWidth}x${source.videoHeight}`;
   }
   if (source instanceof HTMLImageElement) {
     return `i:${source.src}:${source.naturalWidth}x${source.naturalHeight}`;
@@ -66,6 +65,12 @@ function uploadKey(source: CompositeSource): string {
 const PRESENT_FORMAT: GPUTextureFormat = "rgba8unorm";
 
 export class WebGPUCompositor implements TimelineCompositor {
+  private disposed = false;
+  private removeErrorListener: (() => void) | null = null;
+
+  constructor(
+    private readonly onFailure: PreviewFailureHandler = logPreviewFailure
+  ) {}
   private device: GPUDevice | null = null;
   private context: GPUCanvasContext | null = null;
   private canvasFormat: GPUTextureFormat = PRESENT_FORMAT;
@@ -104,12 +109,30 @@ export class WebGPUCompositor implements TimelineCompositor {
       return { ok: false, reason: "No WebGPU adapter available" };
     }
     const device = await adapter.requestDevice();
+    this.device = device;
+    const onError = (event: GPUUncapturedErrorEvent): void => {
+      if (!this.disposed)
+        this.onFailure({
+          stage: "gpu-validation",
+          error: new Error(event.error.message)
+        });
+    };
+    device.addEventListener("uncapturederror", onError);
+    this.removeErrorListener = () =>
+      device.removeEventListener("uncapturederror", onError);
+    void device.lost.then((info) => {
+      if (!this.disposed) {
+        this.onFailure({
+          stage: "gpu-device-lost",
+          error: new Error(`${info.reason}: ${info.message}`)
+        });
+      }
+    });
     const context = canvas.getContext("webgpu");
     if (!context) {
       return { ok: false, reason: "Failed to get WebGPU canvas context" };
     }
 
-    this.device = device;
     this.context = context;
     // Not `getPreferredCanvasFormat()`: the shared core builds its blit
     // pipeline for its own accumulation format, and a render pass whose colour
@@ -195,6 +218,10 @@ export class WebGPUCompositor implements TimelineCompositor {
     source: CompositeSource
   ): SourceTexture | null {
     if (!this.device) return null;
+    // currentTime changes before decoding finishes. Keep the last texture until seeked.
+    if (source instanceof HTMLVideoElement && source.seeking) {
+      return this.sourceTextures.get(id) ?? null;
+    }
     const { width, height } = sourceDimensions(source);
     if (width === 0 || height === 0) {
       return this.sourceTextures.get(id) ?? null;
@@ -238,9 +265,10 @@ export class WebGPUCompositor implements TimelineCompositor {
           { width, height }
         );
         entry.lastUploadKey = key;
-      } catch {
-        // Browser claimed readyState >= 2 but the GPU side resource is
-        // gone (Chrome scrub race). Keep the previous texture.
+      } catch (error) {
+        throw new Error(`Preview texture upload failed for ${id}`, {
+          cause: error
+        });
       }
     }
     if (entry.lastUploadKey === "") return null;
@@ -323,6 +351,9 @@ export class WebGPUCompositor implements TimelineCompositor {
   }
 
   dispose(): void {
+    this.disposed = true;
+    this.removeErrorListener?.();
+    this.removeErrorListener = null;
     for (const entry of this.sourceTextures.values()) {
       entry.texture.destroy();
     }

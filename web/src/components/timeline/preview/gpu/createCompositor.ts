@@ -1,5 +1,9 @@
 import { Canvas2DCompositor } from "./canvas2dCompositor";
 import type { CompositorInitResult, TimelineCompositor } from "./types";
+import {
+  logPreviewFailure,
+  type PreviewFailureHandler
+} from "../previewFailure";
 
 export type CompositorBackend = "webgpu" | "canvas2d";
 
@@ -26,19 +30,26 @@ interface CreateCompositorResult {
  * caller owns disposing it.
  */
 export async function createCompositor(
-  canvas: HTMLCanvasElement
+  canvas: HTMLCanvasElement,
+  onFailure?: PreviewFailureHandler
 ): Promise<CreateCompositorResult> {
   if (typeof navigator !== "undefined" && navigator.gpu) {
+    let gpu: TimelineCompositor | undefined;
     try {
       const { WebGPUCompositor } = await import("./compositor");
-      const gpu = new WebGPUCompositor();
+      gpu = new WebGPUCompositor(onFailure);
       const gpuInit = await gpu.init(canvas);
       if (gpuInit.ok) {
         return { compositor: gpu, backend: "webgpu", init: gpuInit };
       }
+      logPreviewFailure({
+        stage: "gpu-init",
+        error: new Error(gpuInit.reason ?? "WebGPU initialization failed")
+      });
       gpu.dispose();
-    } catch {
-      // Fall through to the Canvas2D backend below.
+    } catch (error) {
+      logPreviewFailure({ stage: "gpu-init", error });
+      gpu?.dispose();
     }
   }
 
