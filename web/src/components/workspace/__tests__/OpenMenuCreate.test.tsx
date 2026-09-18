@@ -1,5 +1,5 @@
 /**
- * Creating a chat or image from `+ New` must stamp the selected project on
+ * Creating a chat or sketch from `+ New` must stamp the selected project on
  * the tab. Without it the tab bar hides the new document and the click looks
  * like a no-op.
  */
@@ -57,10 +57,10 @@ describe("OpenMenu create into the selected project", () => {
     );
   });
 
-  it("opens a new image in the selected project", async () => {
+  it("opens a new sketch in the selected project", async () => {
     const user = userEvent.setup();
     renderOpenMenu();
-    await user.click(screen.getByText("New image"));
+    await user.click(screen.getByText("New sketch"));
 
     await waitFor(() =>
       expect(mockOpenMenu.createAsset).toHaveBeenCalledWith(

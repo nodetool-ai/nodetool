@@ -210,6 +210,16 @@ export const useGameSetupFlow = ({
     [setGame]
   );
 
+  /**
+   * `Start with a blank canvas`: the flow's escape hatch, stage `done` with
+   * no template and no build — the canvas opens empty for hand placement,
+   * the way the workflow flow's blank does.
+   */
+  const startBlank = useCallback(() => {
+    void setGame({ stage: "done" });
+    onFinish?.(null);
+  }, [onFinish, setGame]);
+
   /** The style entity the flow is on, whether shipped or the creator's own. */
   const styleEntity = useMemo<Entity | null>(
     () =>
@@ -367,6 +377,7 @@ export const useGameSetupFlow = ({
               void exportBlank(id);
             },
             exportingBlank,
+            onStartBlank: startBlank,
             onOpenTutorial
           })
       },
@@ -558,6 +569,7 @@ export const useGameSetupFlow = ({
       setGame,
       sfxChoices,
       slots,
+      startBlank,
       styleChoice,
       styleEntity,
       styleEntityId,

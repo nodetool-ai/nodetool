@@ -5,11 +5,17 @@ import { ReactFlowProvider } from "@xyflow/react";
 import NodeEditor from "../node_editor/NodeEditor";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useWorkflowSetupStage } from "../../hooks/workflow/useWorkflowSetup";
+import type { BuildFromPlanResult } from "../../hooks/workflow/useBuildFromPlan";
+import type { Workflow } from "../../stores/ApiTypes";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import {
   tabId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
 import GameSetupHost from "../setup/game/GameSetupHost";
+import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
+import { examplePackageName, exampleSeedRef } from "../../utils/exampleWorkflow";
 import { useGameSetupStage } from "../../hooks/game/useGameSetup";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
@@ -63,16 +69,97 @@ const WorkflowEditorSurface = ({
 }: WorkflowEditorSurfaceProps) => {
   const nodeStore = useWorkflowManager((state) => state.getNodeStore(workflowId));
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
+  const createWorkflow = useWorkflowManager((state) => state.create);
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const editorViewMode = useSettingsStore(
     (state) => state.settings.editorViewMode
   );
   const [missing, setMissing] = useState(false);
   const gameStage = useGameSetupStage(workflowId);
+  // A workflow flow still in setup (`settings.setup` not at `done`) is where
+  // this tab lands after a refresh or a close — same rule as the game flow
+  // above. A workflow saved before the flow existed has no `setup` key and
+  // reads `done`, so it opens as the canvas it always did.
+  const setupStage = useWorkflowSetupStage(workflowId);
   // The document reaches stage `done` in the same click that places the nodes,
   // but this keeps the swap independent of when that save lands.
   const [gameFinished, setGameFinished] = useState(false);
   const finishGameFlow = useCallback(() => setGameFinished(true), []);
+  // The document reaches stage `done` in the same click that places the
+  // nodes, but this keeps the swap independent of when that save lands.
+  const [setupFinished, setSetupFinished] = useState(false);
+  const finishSetupFlow = useCallback(
+    (result: BuildFromPlanResult | null) => {
+      // The flow's own surface is gone the moment the canvas takes the tab,
+      // so a placement gap, a validation error or a refused test run has to
+      // be said here or it is never said at all.
+      const failures: string[] = [];
+      if (result) {
+        if (result.issues.length > 0) {
+          failures.push(
+            `${result.issues.length} connection${result.issues.length === 1 ? "" : "s"} could not be wired.`
+          );
+        }
+        if (result.validationErrors.length > 0) {
+          failures.push(
+            `The graph did not validate: ${result.validationErrors.join("; ")}`
+          );
+        }
+        if (result.testRun.error) {
+          failures.push(`The test run was refused: ${result.testRun.error}`);
+        }
+      }
+      if (failures.length > 0) {
+        addNotification({
+          type: "warning",
+          alert: true,
+          content: `Opened your workflow, but ${failures.join(" ")}`
+        });
+      }
+      setSetupFinished(true);
+    },
+    [addNotification]
+  );
+  /**
+   * "Start from an example" in step 1's inline browser: the copy lands in a
+   * new row (materialized server-side from the example's package), which
+   * opens as its own tab while this placeholder closes. The tab's project
+   * carries over, so the copy stays in the group it was started from.
+   */
+  const startFromExample = useCallback(
+    async (example: Workflow): Promise<string | null> => {
+      const tags = example.tags ?? [];
+      const copy = await createWorkflow(
+        {
+          name: example.name,
+          description: example.description,
+          package_name: example.package_name,
+          tags: tags.includes("example") ? tags : [...tags, "example"],
+          access: "private"
+        },
+        examplePackageName(example),
+        exampleSeedRef(example)
+      );
+      const projectId = useWorkspaceTabsStore
+        .getState()
+        .tabs.find((tab) => tab.type === "workflow" && tab.ref === workflowId)
+        ?.projectId;
+      openTab({
+        type: "workflow",
+        ref: copy.id,
+        mode: "edit",
+        title: copy.name || example.name,
+        projectId
+      });
+      closeTab(tabId("workflow", workflowId));
+      return copy.id;
+    },
+    [closeTab, createWorkflow, openTab, workflowId]
+  );
   // Only this workflow's subgraph tabs may take over its canvas — another
   // workflow tab's open subgraph must not hijack this one.
   const activeSubgraph = useSubgraphTabsStore((state) =>
@@ -118,6 +205,16 @@ const WorkflowEditorSurface = ({
 
   if (gameStage !== "done" && !gameFinished) {
     return <GameSetupHost workflowId={workflowId} onFinish={finishGameFlow} />;
+  }
+
+  if (setupStage !== "done" && !setupFinished) {
+    return (
+      <WorkflowSetupHost
+        workflowId={workflowId}
+        onStartFromExample={startFromExample}
+        onFinish={finishSetupFlow}
+      />
+    );
   }
 
   const showChain = active && editorViewMode === "chain";

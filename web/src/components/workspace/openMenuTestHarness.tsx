@@ -12,6 +12,7 @@
  * is being imported, before this module's own consts are initialized.
  */
 import { render } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../__mocks__/themeMock";
@@ -24,6 +25,17 @@ export const mockExampleStoryboards: {
 
 /** The project `creationProjectId` reports. Suites that open a named project set this. */
 export const mockCreationProjectId = { value: "default" };
+
+/** The guided starters `useGuidedFlowStarters` reports. Suites set this. */
+export const mockGuidedStarters: {
+  value: {
+    id: string;
+    title: string;
+    description: string;
+    icon?: ReactNode;
+    start: jest.Mock;
+  }[];
+} = { value: [] };
 
 export const mockOpenMenu = {
   openTab: jest.fn(),
@@ -48,6 +60,13 @@ jest.mock("../../hooks/storyboard/useStoryboards", () => ({
   }),
   useInstallExampleStoryboard: () => ({
     mutateAsync: mockOpenMenu.installExample
+  })
+}));
+
+jest.mock("./useGuidedFlowStarters", () => ({
+  useGuidedFlowStarters: () => ({
+    starters: mockGuidedStarters.value,
+    starting: null
   })
 }));
 
@@ -103,10 +122,10 @@ jest.mock("../../lib/newDocumentId", () => ({
   newDocumentId: () => "minted-skill-id"
 }));
 
-export const renderOpenMenu = (): void => {
+export const renderOpenMenu = (onClose: () => void = jest.fn()): void => {
   render(
     <ThemeProvider theme={mockTheme}>
-      <OpenMenu anchorEl={document.body} open onClose={jest.fn()} />
+      <OpenMenu anchorEl={document.body} open onClose={onClose} />
     </ThemeProvider>
   );
 };

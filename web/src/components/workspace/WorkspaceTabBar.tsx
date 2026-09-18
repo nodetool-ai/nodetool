@@ -213,7 +213,7 @@ const styles = (theme: Theme) =>
       border: "none",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",
-      color: theme.vars.palette.primary.main,
+      color: theme.vars.palette.text.secondary,
       cursor: "pointer",
       fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
@@ -230,7 +230,7 @@ const styles = (theme: Theme) =>
         lineHeight: 1
       },
       "&:hover": {
-        color: theme.vars.palette.secondary.main,
+        color: theme.vars.palette.text.primary,
         backgroundColor: theme.vars.palette.action.hover
       }
     },

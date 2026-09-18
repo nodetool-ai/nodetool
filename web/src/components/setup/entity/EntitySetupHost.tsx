@@ -5,6 +5,8 @@ import {
   useEntities,
   useSaveEntity
 } from "../../../serverState/useEntities";
+import { useAssetStore } from "../../../stores/AssetStore";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import { SetupFlow } from "../SetupFlow";
 import type { SetupFlowConfig, SetupStep } from "../types";
 import {
@@ -30,6 +32,28 @@ const tagsFromText = (value: string): string[] =>
     .map((tag) => tag.trim())
     .filter(Boolean);
 
+/** A plain white canvas, so a blank entity has a reference to be built on. */
+const createBlankReferenceFile = (): Promise<File> =>
+  new Promise((resolve, reject) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      reject(new Error("Canvas 2D context unavailable"));
+      return;
+    }
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Failed to render blank image"));
+        return;
+      }
+      resolve(new File([blob], "Untitled.png", { type: "image/png" }));
+    }, "image/png");
+  });
+
 const EntitySetupHost = ({
   projectId,
   initialDescriptor = "",
@@ -54,6 +78,12 @@ const EntitySetupHost = ({
     initialAssetId ?? null
   );
   const [pickerOpen, setPickerOpen] = useState(false);
+  // The blank reference being made, while the card reads as busy.
+  const [startingBlank, setStartingBlank] = useState(false);
+  const createAsset = useAssetStore((state) => state.createAsset);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const excludedAssetIds = useMemo(
     () => (entities ?? []).map((entity) => entity.id),
     [entities]
@@ -65,6 +95,41 @@ const EntitySetupHost = ({
     setAssetId(pickedAssetId);
     setPickerOpen(false);
   }, []);
+
+  /**
+   * The blank escape hatch: a plain canvas becomes the reference image and
+   * the review step opens, with the name and descriptor filled only where
+   * the creator left them empty — everything stays editable one step back.
+   * Failures toast rather than stranding the card, which the shell would
+   * otherwise leave busy with nothing to say.
+   */
+  const startBlank = useCallback(async () => {
+    setStartingBlank(true);
+    try {
+      const asset = await createAsset(await createBlankReferenceFile());
+      setDetails((current) => ({
+        ...current,
+        name:
+          current.name.trim().length > 0 ? current.name : "Untitled entity",
+        descriptor:
+          current.descriptor.trim().length > 0
+            ? current.descriptor
+            : "A reusable visual entity."
+      }));
+      setAssetId(asset.id);
+      setStage("review");
+    } catch (error) {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: `Could not start a blank entity: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      });
+    } finally {
+      setStartingBlank(false);
+    }
+  }, [addNotification, createAsset]);
 
   const save = useCallback(async () => {
     if (!referenceAssetId || entitiesLoading || entitiesError) {
@@ -111,7 +176,12 @@ const EntitySetupHost = ({
             ? "Name the entity"
             : "Describe the traits to preserve",
         render: () =>
-          createElement(DetailsStep, { value: details, onChange: setDetails })
+          createElement(DetailsStep, {
+            value: details,
+            onChange: setDetails,
+            onStartBlank: () => void startBlank(),
+            startingBlank
+          })
       },
       {
         stage: "reference",
@@ -167,7 +237,9 @@ const EntitySetupHost = ({
       pickerOpen,
       referenceAssetId,
       save,
-      saveEntity.isPending
+      saveEntity.isPending,
+      startBlank,
+      startingBlank
     ]
   );
 

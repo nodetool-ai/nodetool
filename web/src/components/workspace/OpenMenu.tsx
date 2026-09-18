@@ -8,6 +8,7 @@ import {
   FlexColumn,
   FlexRow,
   Caption,
+  Divider,
   LoadingSpinner
 } from "../ui_primitives";
 import { useExampleStoryboards } from "../../hooks/storyboard/useStoryboards";
@@ -16,6 +17,7 @@ import {
   useNewDocumentCatalog,
   type NewDocumentSubmenu
 } from "./newDocumentCatalog";
+import { useGuidedFlowStarters } from "./useGuidedFlowStarters";
 
 interface OpenMenuProps {
   anchorEl: HTMLElement | null;
@@ -25,8 +27,17 @@ interface OpenMenuProps {
 
 type MenuView = "root" | NewDocumentSubmenu;
 
+/** A section header inside the menu: quiet, uppercase-adjacent, padded. */
+const MenuSectionLabel = ({ children }: { children: string }) => (
+  <Caption color="muted" sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
+    {children}
+  </Caption>
+);
+
 /**
- * The `[+]` menu for the workspace tab bar. Blank documents only; starting a
+ * The `[+]` menu for the workspace tab bar. Two sections: the guided
+ * creation flows (one click creates the document at stage `idea` and opens
+ * its tab on the flow) and the blank documents (as before). Starting a
  * project lives on the project selector to the left of New.
  */
 const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
@@ -44,6 +55,9 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
     installStoryboardExample,
     creating
   } = useNewDocumentCatalog({}, close);
+  const { starters, starting } = useGuidedFlowStarters(close);
+
+  const busy = creating !== null || starting !== null;
 
   const { data: exampleData, isLoading: examplesLoading } =
     useExampleStoryboards(open && view === "storyboards");
@@ -58,22 +72,47 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       maxWidth={340}
       maxHeight="70vh"
     >
-      <FlexColumn sx={{ width: 320, py: 0.5 }}>
-        {view === "root" &&
-          entries.map((entry) => (
-            <MenuItemPrimitive
-              key={entry.key}
-              label={entry.menuLabel}
-              icon={entry.icon}
-              hasSubmenu={entry.submenu !== undefined}
-              onClick={() =>
-                entry.submenu
-                  ? setView(entry.submenu)
-                  : void entry.create?.()
-              }
-              disabled={creating !== null}
-            />
-          ))}
+      <FlexColumn
+        sx={{
+          width: 320,
+          py: 0.5,
+          // One icon size for every row: 16px beats the default MUI small
+          // (20px), which crowded the label at this menu's density.
+          "& .MuiSvgIcon-root": { fontSize: 16 }
+        }}
+      >
+        {view === "root" && (
+          <>
+            <MenuSectionLabel>Guided flows</MenuSectionLabel>
+            {starters.map((starter) => (
+              <MenuItemPrimitive
+                key={starter.id}
+                label={starter.title}
+                icon={starter.icon}
+                secondary={starter.description}
+                onClick={() => void starter.start()}
+                disabled={busy}
+              />
+            ))}
+
+            <Divider sx={{ my: 1 }} />
+            <MenuSectionLabel>Blank documents</MenuSectionLabel>
+            {entries.map((entry) => (
+              <MenuItemPrimitive
+                key={entry.key}
+                label={entry.menuLabel}
+                icon={entry.icon}
+                hasSubmenu={entry.submenu !== undefined}
+                onClick={() =>
+                  entry.submenu
+                    ? setView(entry.submenu)
+                    : void entry.create?.()
+                }
+                disabled={busy}
+              />
+            ))}
+          </>
+        )}
 
         {view === "texts" && (
           <>
@@ -88,7 +127,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
                 key={template.filename}
                 label={template.label}
                 onClick={() => void createTextFile(template)}
-                disabled={creating !== null}
+                disabled={busy}
               />
             ))}
           </>
@@ -106,7 +145,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               label="Blank storyboard"
               icon={<AddRoundedIcon fontSize="small" />}
               onClick={() => void createBlankStoryboard()}
-              disabled={creating !== null}
+              disabled={busy}
               dividerAfter
             />
             {examplesLoading && (
@@ -129,7 +168,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
                 onClick={() =>
                   void installStoryboardExample(example.slug, example.name)
                 }
-                disabled={creating !== null}
+                disabled={busy}
               />
             ))}
           </>

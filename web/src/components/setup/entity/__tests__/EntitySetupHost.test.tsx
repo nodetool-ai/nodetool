@@ -11,6 +11,8 @@ const getAsset = jest.fn();
 const updateAsset = jest.fn();
 const assignDocument = jest.fn();
 const rpcRequest = jest.fn();
+const mockCreateAsset = jest.fn();
+const mockAddNotification = jest.fn();
 
 jest.mock("../../../../trpc/client", () => ({
   trpcClient: {
@@ -64,6 +66,14 @@ jest.mock("../../../properties/ImageModelSelect", () => ({
 }));
 jest.mock("../../../../lib/websocket/rpcRequest", () => ({
   rpcRequest: (...args: unknown[]) => rpcRequest(...args)
+}));
+jest.mock("../../../../stores/AssetStore", () => ({
+  useAssetStore: (selector: (state: unknown) => unknown) =>
+    selector({ createAsset: mockCreateAsset })
+}));
+jest.mock("../../../../stores/NotificationStore", () => ({
+  useNotificationStore: (selector: (state: unknown) => unknown) =>
+    selector({ addNotification: mockAddNotification })
 }));
 
 const renderHost = (
@@ -259,5 +269,31 @@ describe("EntitySetupHost", () => {
     expect(onFinish).toHaveBeenCalledWith(
       expect.objectContaining({ id: "asset-7", name: "Nova" })
     );
+  });
+
+  it("starts a blank entity from a plain canvas", async () => {
+    Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
+      configurable: true,
+      value: () => ({ fillRect: jest.fn(), fillStyle: "" })
+    });
+    Object.defineProperty(HTMLCanvasElement.prototype, "toBlob", {
+      configurable: true,
+      value: (done: (blob: Blob | null) => void) => {
+        done(new Blob(["png"], { type: "image/png" }));
+      }
+    });
+    mockCreateAsset.mockResolvedValue({ id: "asset-blank" });
+    const user = userEvent.setup();
+    renderHost();
+
+    await user.click(screen.getByText("Start with a blank reference"));
+
+    await waitFor(() =>
+      expect(mockCreateAsset).toHaveBeenCalledWith(expect.any(File))
+    );
+    expect(
+      screen.getByRole("heading", { name: "Review your entity" })
+    ).toBeInTheDocument();
+    expect(mockAddNotification).not.toHaveBeenCalled();
   });
 });

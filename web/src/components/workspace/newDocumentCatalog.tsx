@@ -41,7 +41,7 @@ import {
 } from "../../stores/WorkspaceTabsStore";
 import { newDocumentId } from "../../lib/newDocumentId";
 
-/** Render a blank white PNG to seed a "New image" canvas asset. */
+/** Render a blank white PNG to seed a "New sketch" canvas asset. */
 const createBlankImageFile = (): Promise<File> =>
   new Promise((resolve, reject) => {
     const canvas = document.createElement("canvas");
@@ -299,13 +299,13 @@ export const useNewDocumentCatalog = (
 
   const createImage = useCallback(
     () =>
-      runCreate("image", async () => {
+      runCreate("sketch", async () => {
         const asset = await createProjectAsset(await createBlankImageFile());
         openCreatedTab({
           type: "image",
           ref: asset.id,
           mode: "edit",
-          title: asset.name || "Untitled image"
+          title: asset.name || "Untitled sketch"
         });
       }),
     [runCreate, createProjectAsset, openCreatedTab]
@@ -329,16 +329,16 @@ export const useNewDocumentCatalog = (
 
   const createVideo = useCallback(
     () =>
-      runCreate("video", async () => {
+      runCreate("timeline", async () => {
         const sequence = await createTimeline.mutateAsync({
-          name: "Untitled video",
+          name: "Untitled timeline",
           projectId: targetProject()
         });
         openTab({
           type: "timeline",
           ref: sequence.id,
           mode: "edit",
-          title: sequence.name || "Untitled video",
+          title: sequence.name || "Untitled timeline",
           projectId: sequence.projectId
         });
       }),
@@ -497,8 +497,8 @@ export const useNewDocumentCatalog = (
     },
     {
       key: "image",
-      label: "Image",
-      menuLabel: "New image",
+      label: "Sketch",
+      menuLabel: "New sketch",
       type: "image",
       icon: <ImageOutlinedIcon fontSize="small" />,
       create: createImage
@@ -513,8 +513,8 @@ export const useNewDocumentCatalog = (
     },
     {
       key: "video",
-      label: "Video",
-      menuLabel: "New video",
+      label: "Timeline",
+      menuLabel: "New timeline",
       type: "timeline",
       icon: <MovieOutlinedIcon fontSize="small" />,
       create: createVideo

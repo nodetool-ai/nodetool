@@ -42,6 +42,8 @@ export interface GameIdeaStepProps {
   onExportBlank: (templateId: string) => void;
   /** True while the blank export is placing and running its one node. */
   exportingBlank?: boolean;
+  /** Leaves the flow for an empty canvas — stage `done`, nothing built. */
+  onStartBlank: () => void;
   /** Opens the existing tutorials entry. */
   onOpenTutorial: () => void;
 }
@@ -56,6 +58,7 @@ const IdeaStepInternal: React.FC<GameIdeaStepProps> = ({
   onStartFromTemplate,
   onExportBlank,
   exportingBlank = false,
+  onStartBlank,
   onOpenTutorial
 }) => {
   const [picker, setPicker] = useState<Picker>(null);
@@ -93,13 +96,19 @@ const IdeaStepInternal: React.FC<GameIdeaStepProps> = ({
             : undefined
       },
       {
+        id: "blank",
+        title: "Start with a blank canvas",
+        description: "Skip the plan and place nodes yourself",
+        onSelect: onStartBlank
+      },
+      {
         id: "tutorial",
         title: "Tutorial",
         description: "Walk one project end to end, with the steps explained",
         onSelect: onOpenTutorial
       }
     ],
-    [exportingBlank, onOpenTutorial, templates.length]
+    [exportingBlank, onOpenTutorial, onStartBlank, templates.length]
   );
 
   if (picker !== null) {

@@ -32,6 +32,15 @@ jest.mock("../../../hooks/storyboard/useStoryboards", () => ({
   useExampleStoryboards: () => ({ data: undefined, isLoading: false })
 }));
 
+jest.mock("../useGuidedFlowStarters", () => ({
+  useGuidedFlowStarters: () => ({ starters: [], starting: null })
+}));
+
+jest.mock("../../../stores/WorkspaceTabsStore", () => ({
+  useWorkspaceTabsStore: <T,>(selector: (s: { openTab: jest.Mock }) => T): T =>
+    selector({ openTab: jest.fn() })
+}));
+
 import OpenMenu from "../OpenMenu";
 
 const onClose = jest.fn();

@@ -109,6 +109,7 @@ describe("GameIdeaStep", () => {
     const onBriefChange = jest.fn();
     const onStartFromTemplate = jest.fn();
     const onExportBlank = jest.fn();
+    const onStartBlank = jest.fn();
     const onOpenTutorial = jest.fn();
     wrap(
       <GameIdeaStep
@@ -117,14 +118,21 @@ describe("GameIdeaStep", () => {
         templates={[PLATFORMER]}
         onStartFromTemplate={onStartFromTemplate}
         onExportBlank={onExportBlank}
+        onStartBlank={onStartBlank}
         onOpenTutorial={onOpenTutorial}
         {...props}
       />
     );
-    return { onBriefChange, onStartFromTemplate, onExportBlank, onOpenTutorial };
+    return {
+      onBriefChange,
+      onStartFromTemplate,
+      onExportBlank,
+      onStartBlank,
+      onOpenTutorial
+    };
   };
 
-  it("asks the question and offers the three other ways in", () => {
+  it("asks the question and offers the four other ways in", () => {
     renderStep();
     expect(
       screen.getByRole("heading", { name: "What's your game?" })
@@ -140,6 +148,9 @@ describe("GameIdeaStep", () => {
     ).toBeInTheDocument();
     expect(
       within(column).getByText("Export a blank template")
+    ).toBeInTheDocument();
+    expect(
+      within(column).getByText("Start with a blank canvas")
     ).toBeInTheDocument();
     expect(within(column).getByText("Tutorial")).toBeInTheDocument();
   });
@@ -159,6 +170,13 @@ describe("GameIdeaStep", () => {
     await user.click(screen.getByRole("button", { name: /^Platformer/ }));
     expect(onExportBlank).toHaveBeenCalledWith("platformer");
     expect(onStartFromTemplate).not.toHaveBeenCalled();
+  });
+
+  it("leaves the flow for a blank canvas", async () => {
+    const user = userEvent.setup();
+    const { onStartBlank } = renderStep();
+    await user.click(screen.getByText("Start with a blank canvas"));
+    expect(onStartBlank).toHaveBeenCalledTimes(1);
   });
 
   it("writes the brief as it is typed", async () => {
