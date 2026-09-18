@@ -213,7 +213,7 @@ it("keeps the consolidated document tree and utility views in the mobile tab row
         button.getAttribute("aria-label")
       )
     )
-  ).toEqual([["Projects", "Documents", "Library", "More"]]);
+  ).toEqual([["Projects", "Documents", "Chats", "Library", "More"]]);
   expect(screen.queryByLabelText("Workflows")).not.toBeInTheDocument();
   expect(screen.queryByLabelText("Apps")).not.toBeInTheDocument();
   expect(screen.queryByLabelText("Sketches")).not.toBeInTheDocument();
@@ -276,6 +276,14 @@ it("switches the sheet to the view whose tab was tapped", async () => {
   await user.click(screen.getByLabelText("Documents"));
   expect(usePanelStore.getState().panel.activeView).toBe("documents");
   expect(screen.getByTestId("documents-tree")).toBeInTheDocument();
+
+  await user.click(screen.getByLabelText("Chats"));
+  expect(usePanelStore.getState().panel.activeView).toBe("chats");
+  expect(screen.getByTestId("chat-list")).toHaveAttribute(
+    "data-project-id",
+    "project-a"
+  );
+  expect(screen.queryByTestId("create-chat")).not.toBeInTheDocument();
 
   await user.click(screen.getByLabelText("More"));
   await user.click(

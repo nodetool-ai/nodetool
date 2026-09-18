@@ -22,13 +22,13 @@ const renderSidebar = (
   );
 
 describe("QuickAccessSidebar", () => {
-  it("shows Documents, Library, Nodes, and More", () => {
+  it("shows Documents, Chats, Library, Nodes, and More", () => {
     renderSidebar();
     expect(
       screen
         .getAllByRole("button")
         .map((button) => button.getAttribute("aria-label"))
-    ).toEqual(["Documents", "Library", "Nodes", "More"]);
+    ).toEqual(["Documents", "Chats", "Library", "Nodes", "More"]);
     expect(screen.queryByRole("button", { name: "Workflows" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Apps" })).toBeNull();
     expect(screen.getByRole("button", { name: "Nodes" })).toBeInTheDocument();
@@ -61,9 +61,9 @@ describe("QuickAccessSidebar", () => {
     renderSidebar(onCategoryClick);
 
     await user.click(screen.getByRole("button", { name: "Documents" }));
-    await user.click(screen.getByRole("button", { name: "Library" }));
+    await user.click(screen.getByRole("button", { name: "Chats" }));
 
     expect(onCategoryClick).toHaveBeenNthCalledWith(1, "documents");
-    expect(onCategoryClick).toHaveBeenNthCalledWith(2, "library");
+    expect(onCategoryClick).toHaveBeenNthCalledWith(2, "chats");
   });
 });

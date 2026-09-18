@@ -243,7 +243,7 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
         >
           <EmptyState
             title="No conversations yet"
-            description="Start a new chat with the + button above."
+            description="Start a chat from the workspace New menu."
           />
         </FlexColumn>
       ) : (

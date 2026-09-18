@@ -24,6 +24,7 @@ export interface AppMenuAction {
   label: string;
   icon: React.ReactNode;
   onClick: () => void;
+  placement: "logo" | "sidebar";
   /** Trailing text, e.g. live download progress. */
   secondary?: string;
   /** Group separator after this entry. */
@@ -74,18 +75,21 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
         key: "tutorials",
         label: "Tutorials",
         icon: <SchoolOutlinedIcon />,
+        placement: "sidebar",
         onClick: () => openPage("tutorials")
       },
       {
         key: "examples",
         label: "Examples",
         icon: <AutoAwesomeOutlinedIcon />,
+        placement: "sidebar",
         onClick: () => openPage("examples")
       },
       {
         key: "costs",
         label: "Costs",
         icon: <PaidOutlinedIcon />,
+        placement: "sidebar",
         onClick: () => openPage("costs"),
         dividerAfter: true
       },
@@ -93,6 +97,7 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
         key: "models",
         label: "Model Manager",
         icon: <ViewInArOutlinedIcon />,
+        placement: "sidebar",
         onClick: () => openPage("models")
       }
     ];
@@ -102,6 +107,7 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
         key: "packages",
         label: "Package Manager",
         icon: <Inventory2OutlinedIcon />,
+        placement: "sidebar",
         onClick: () => openPage("packages")
       });
     }
@@ -111,24 +117,28 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
         key: "assets",
         label: "Assets",
         icon: <PermMediaOutlinedIcon />,
+        placement: "sidebar",
         onClick: () => openPage("assets")
       },
       {
         key: "collections",
         label: "Collections",
         icon: <LibraryBooksOutlinedIcon />,
+        placement: "sidebar",
         onClick: () => openPage("collections")
       },
       {
         key: "workspaces",
         label: "Workspaces",
         icon: <FolderSpecialOutlinedIcon />,
+        placement: "sidebar",
         onClick: () => openPage("workspaces")
       },
       {
         key: "memory",
         label: "Memory",
         icon: <PsychologyOutlinedIcon />,
+        placement: "sidebar",
         onClick: () => openPage("memory"),
         dividerAfter: true
       },
@@ -136,12 +146,14 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
         key: "settings",
         label: "Settings",
         icon: <SettingsIcon />,
+        placement: "logo",
         onClick: () => openPage("settings")
       },
       {
         key: "help",
         label: "Help",
         icon: <HelpOutlineIcon />,
+        placement: "logo",
         onClick: () => {
           handleOpenHelp();
           finish();
@@ -151,6 +163,7 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
         key: "downloads",
         label: "Downloads",
         icon: <DownloadIcon />,
+        placement: "logo",
         onClick: () => {
           openDownloadsDialog();
           finish();

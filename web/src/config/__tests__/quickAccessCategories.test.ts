@@ -36,9 +36,10 @@ const idsIn = (category: NodeCategoryId, all: NodeMetadata[]): string[] =>
 describe("quickAccessCategories", () => {
   it("ships only the direct rail views and More at the top level", () => {
     const ids = LEFT_PANEL_TOP_LEVEL.map((c) => c.id);
-    expect(ids).toEqual(["documents", "library", "nodes", "more"]);
+    expect(ids).toEqual(["documents", "chats", "library", "nodes", "more"]);
     expect(LEFT_PANEL_DIRECT.map((category) => category.id)).toEqual([
       "documents",
+      "chats",
       "library",
       "nodes"
     ]);

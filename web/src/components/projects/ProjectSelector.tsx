@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
 
 import {
   Caption,
@@ -15,7 +16,6 @@ import {
 } from "../ui_primitives";
 import {
   LOOSE_PROJECT_ID,
-  PROJECT_LIST_REF,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
 import {
@@ -100,7 +100,6 @@ const ProjectSelector = () => {
   const resolvePersonalProject = useWorkspaceTabsStore(
     (state) => state.resolvePersonalProject
   );
-  const openTab = useWorkspaceTabsStore((state) => state.openTab);
 
   const activeProject = projects?.find(
     (project) => project.id === activeProjectId
@@ -146,17 +145,6 @@ const ProjectSelector = () => {
     [close, openProject]
   );
 
-  const openProjects = useCallback(() => {
-    close();
-    setActiveProjectId(null);
-    openTab({
-      type: "project-list",
-      ref: PROJECT_LIST_REF,
-      mode: "view",
-      title: "Projects"
-    });
-  }, [close, openTab, setActiveProjectId]);
-
   const openNewProject = useCallback(() => {
     close();
     setActiveProjectId(null);
@@ -192,30 +180,37 @@ const ProjectSelector = () => {
         open={open}
         anchorEl={anchorRef.current}
         onClose={close}
-        paperSx={{ p: SPACING.sm }}
+        paperSx={{
+          p: SPACING.xs,
+          width: getSpacingPx(80),
+          maxWidth: `calc(100vw - ${getSpacingPx(SPACING.xxxl)})`,
+          "& .project-menu-item .MuiListItemText-primary": {
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
+          }
+        }}
       >
         <MenuItemPrimitive
-          label="Start a project…"
-          secondary="An agent plans and builds its documents"
-          icon={<span aria-hidden>{PROJECT_GLYPH}</span>}
+          label="New project"
+          icon={<AddRoundedIcon />}
           onClick={openNewProject}
-        />
-        <MenuItemPrimitive
-          label="Manage projects"
+          color="primary"
+          dense
           dividerAfter
-          onClick={openProjects}
         />
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Find a project"
-          ariaLabel="Find a project"
+          placeholder="Search projects"
+          ariaLabel="Search projects"
           fullWidth
-          sx={{ mb: SPACING.sm }}
+          sx={{ my: SPACING.sm }}
         />
         <MenuItemPrimitive
           label="Personal"
-          secondary="Your personal workspace"
+          className="project-menu-item"
+          dense
           selected={
             activeProjectId === resolvedPersonalId ||
             activeProjectId === null ||
@@ -237,6 +232,8 @@ const ProjectSelector = () => {
           <MenuItemPrimitive
             key={project.id}
             label={project.name}
+            className="project-menu-item"
+            dense
             selected={project.id === activeProjectId}
             onClick={() => selectProject(project)}
           />

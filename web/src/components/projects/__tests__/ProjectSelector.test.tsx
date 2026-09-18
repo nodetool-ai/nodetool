@@ -80,7 +80,7 @@ describe("ProjectSelector", () => {
     );
     expect(documentsQuery).not.toHaveBeenCalled();
     expect(
-      screen.queryByRole("textbox", { name: "Find a project" })
+      screen.queryByRole("textbox", { name: "Search projects" })
     ).not.toBeInTheDocument();
   });
 
@@ -121,23 +121,22 @@ describe("ProjectSelector", () => {
     await user.click(
       screen.getByRole("button", { name: "Selected project: Personal" })
     );
-    await user.click(screen.getByRole("menuitem", { name: /Start a project/ }));
+    await user.click(screen.getByRole("menuitem", { name: "New project" }));
     expect(useWorkspaceTabsStore.getState().activeTabId).toBe("project-new:new");
     expect(useWorkspaceTabsStore.getState().activeProjectId).toBeNull();
   });
 
-  it("puts start and manage above the project list", async () => {
+  it("puts the compact new-project action above the project list", async () => {
     const user = userEvent.setup();
     renderSelector();
     await user.click(
       screen.getByRole("button", { name: "Selected project: Personal" })
     );
     const items = screen.getAllByRole("menuitem").map((item) => item.textContent);
-    const start = items.findIndex((text) => text?.includes("Start a project"));
-    const manage = items.findIndex((text) => text?.includes("Manage projects"));
+    const start = items.findIndex((text) => text?.includes("New project"));
     const personal = items.findIndex((text) => text?.includes("Personal"));
     expect(start).toBe(0);
-    expect(manage).toBe(1);
-    expect(personal).toBeGreaterThan(manage);
+    expect(personal).toBeGreaterThan(start);
+    expect(screen.queryByText("Manage projects")).toBeNull();
   });
 });

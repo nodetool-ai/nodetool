@@ -48,7 +48,7 @@ import JsScriptListPanel, {
   CreateJsScriptButton
 } from "../jsScript/JsScriptListPanel";
 import SkillListPanel from "../skills/SkillListPanel";
-import ChatListPanel, { CreateChatButton } from "../chat/ChatListPanel";
+import ChatListPanel from "../chat/ChatListPanel";
 import ApplicationListPanel, {
   CreateApplicationButton,
   CreateApplicationFromWorkflowButton
@@ -380,7 +380,6 @@ const PanelContent = memo(function PanelContent({
       <MorePanel
         onSelectView={handlePanelToggle}
         hiddenViews={hiddenViews}
-        includeAppPages={isMobile}
         onAppPageAction={closePanel}
         isMobile={isMobile}
       />
@@ -513,7 +512,6 @@ const PanelContent = memo(function PanelContent({
               title="Chats"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
-              actions={<CreateChatButton projectId={projectId} />}
             />
           )}
           <ChatListPanel projectId={projectId} />
@@ -811,7 +809,6 @@ const MOBILE_CREATE_ACTIONS: Partial<
   Record<LeftPanelView, React.ComponentType<{ readonly projectId?: string }>>
 > = {
   workflows: CreateWorkflowButton,
-  chats: CreateChatButton,
   sketches: CreateSketchButton,
   timelines: CreateTimelineButton,
   storyboards: CreateStoryboardButton,

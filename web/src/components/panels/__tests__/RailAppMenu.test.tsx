@@ -1,10 +1,8 @@
 /**
  * RailAppMenu tests
  *
- * The logo menu opens app pages (Settings, Costs, Model Manager, …) as
- * workspace tabs instead of navigating to their own routes. These tests drive
- * the menu with the real WorkspaceTabsStore and assert a `page` tab is opened
- * and the workspace is focused.
+ * The logo menu keeps global app controls while navigational destinations live
+ * in the sidebar's More panel. Settings still opens as a workspace page tab.
  */
 
 import { render, screen } from "@testing-library/react";
@@ -82,24 +80,17 @@ it("opens Settings as a page tab and focuses the workspace", async () => {
   expect(mockNavigateTo).toHaveBeenCalledWith("/workspace");
 });
 
-it("opens Workspaces as a page tab", async () => {
+it("keeps navigational destinations out of the logo menu", async () => {
   const user = userEvent.setup();
   renderMenu();
 
   await user.click(screen.getByRole("button", { name: /open app menu/i }));
-  await user.click(screen.getByRole("menuitem", { name: /workspaces/i }));
 
-  const { tabs, activeTabId } = useWorkspaceTabsStore.getState();
-  const expectedId = tabId("page", "workspaces");
-  expect(tabs).toEqual([
-    expect.objectContaining({
-      id: expectedId,
-      type: "page",
-      ref: "workspaces",
-      title: "Workspaces"
-    })
-  ]);
-  expect(activeTabId).toBe(expectedId);
+  expect(screen.queryByRole("menuitem", { name: /workspaces/i })).toBeNull();
+  expect(screen.queryByRole("menuitem", { name: /tutorials/i })).toBeNull();
+  expect(screen.getByRole("menuitem", { name: /settings/i })).toBeVisible();
+  expect(screen.getByRole("menuitem", { name: /help/i })).toBeVisible();
+  expect(screen.getByRole("menuitem", { name: /downloads/i })).toBeVisible();
 });
 
 it("reports the pick to its host so the mobile sheet can dismiss", async () => {

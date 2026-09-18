@@ -6,7 +6,6 @@ import {
 } from "../../config/quickAccessCategories";
 import type { LeftPanelView } from "../../stores/PanelStore";
 import {
-  EmptyState,
   FlexColumn,
   ListGroup,
   ListItemRow,
@@ -22,7 +21,6 @@ import AppPagesList from "./AppPagesList";
 interface MorePanelProps {
   readonly onSelectView: (view: LeftPanelView) => void;
   readonly hiddenViews?: readonly LeftPanelView[];
-  readonly includeAppPages?: boolean;
   readonly onAppPageAction?: () => void;
   readonly isMobile?: boolean;
 }
@@ -57,7 +55,6 @@ const MorePanelCategoryRow = ({
 const MorePanel: React.FC<MorePanelProps> = ({
   onSelectView,
   hiddenViews = EMPTY_VIEWS,
-  includeAppPages = false,
   onAppPageAction,
   isMobile = false
 }) => {
@@ -115,22 +112,13 @@ const MorePanel: React.FC<MorePanelProps> = ({
               </ListGroup>
             </FlexColumn>
           ))}
-          {includeAppPages && (
-            <AppPagesList
-              onAction={onAppPageAction ?? NOOP}
-              query={query}
-              showSectionTitle
-              showEmptyState={filteredGroups.length === 0}
-            />
-          )}
-          {filteredGroups.length === 0 && !includeAppPages && (
-            <EmptyState
-              variant="no-results"
-              title="No panels found"
-              description="No panels match your search."
-              size="small"
-            />
-          )}
+          <AppPagesList
+            onAction={onAppPageAction ?? NOOP}
+            query={query}
+            showSectionTitle
+            showEmptyState={filteredGroups.length === 0}
+            scope={isMobile ? "all" : "sidebar"}
+          />
         </FlexColumn>
       </ScrollArea>
     </FlexColumn>

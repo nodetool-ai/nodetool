@@ -1,9 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Entity } from "@nodetool-ai/protocol";
-import { useShallow } from "zustand/react/shallow";
 
-import useGlobalChatStore from "../stores/GlobalChatStore";
 import { useEntities } from "../serverState/useEntities";
 import { workflowListQueryKey } from "../serverState/workflowQueryKeys";
 import { trpc, trpcClient } from "../trpc/client";
@@ -24,7 +22,6 @@ export type DocumentTreeLeafType =
   | "storyboard"
   | "timeline"
   | "entity"
-  | "chat"
   | "jsscript";
 
 export interface DocumentTreeLeaf {
@@ -99,14 +96,6 @@ export const useDocumentTreeData = (
   const entitiesQuery = useEntities(projectId);
   const jsScriptsQuery = useJsScripts(projectId);
   const applicationsQuery = useApplications(projectId);
-  const { threads, isLoadingThreads, error: threadsError } =
-    useGlobalChatStore(
-      useShallow((state) => ({
-        threads: state.threads,
-        isLoadingThreads: state.isLoadingThreads,
-        error: state.error
-      }))
-    );
 
   const groups = useMemo<readonly DocumentTreeGroup[]>(() => {
     const workflows = (workflowsQuery.data?.workflows ?? []).map(
@@ -165,13 +154,6 @@ export const useDocumentTreeData = (
       )
     ];
     const agents = [
-      ...Object.values(threads)
-        .filter((thread) => (thread.project_id ?? "default") === projectId)
-        .map((thread) =>
-          leaf(thread.id, thread.title || "New chat", "chat", "Chat", {
-            projectId
-          })
-        ),
       ...(jsScriptsQuery.data ?? []).map((script) =>
         leaf(
           script.id,
@@ -198,7 +180,6 @@ export const useDocumentTreeData = (
     scriptsQuery.data,
     sketchesQuery.data,
     storyboardsQuery.data,
-    threads,
     timelinesQuery.data,
     workflowsQuery.data
   ]);
@@ -216,13 +197,12 @@ export const useDocumentTreeData = (
   const error =
     queryErrors.find(
       (queryError): queryError is Error => queryError instanceof Error
-    ) ?? (threadsError ? new Error(threadsError) : null);
+    ) ?? null;
   const isError = Boolean(error);
 
   return {
     groups,
     isLoading:
-      isLoadingThreads ||
       workflowsQuery.isLoading ||
       sketchesQuery.isLoading ||
       scriptsQuery.isLoading ||

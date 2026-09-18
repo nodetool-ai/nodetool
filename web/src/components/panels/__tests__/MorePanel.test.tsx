@@ -26,6 +26,13 @@ describe("MorePanel", () => {
       screen.queryByRole("button", { name: /Workflow Output/ })
     ).toBeNull();
     expect(screen.getByRole("button", { name: /Skills/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Tutorials/ })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Workspaces/ })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Settings$/ })).toBeNull();
   });
 
   it("searches across every section", async () => {
@@ -37,9 +44,8 @@ describe("MorePanel", () => {
       "workspace"
     );
 
-    expect(
-      screen.getByRole("button", { name: /^Workspace/ })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Workspace / })).toBeVisible();
+    expect(screen.getByRole("button", { name: /^Workspaces$/ })).toBeVisible();
     expect(screen.queryByRole("button", { name: /Favorite Nodes/ })).toBeNull();
     expect(screen.queryByText("Workflow tools")).toBeNull();
   });

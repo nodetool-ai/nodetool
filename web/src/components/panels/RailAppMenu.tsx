@@ -64,7 +64,8 @@ interface RailAppMenuProps {
 /**
  * The app menu docked at the top of the workspace rail. The logo opens a menu
  * carrying the global actions that used to live in the old header's right cluster:
- * Settings, Help, and Downloads (with live progress when active).
+ * Settings, Help, and Downloads (with live progress when active). Navigational
+ * destinations live in the rail's More panel.
  *
  * Desktop only — on mobile the same destinations are the More section of the
  * browse sheet (AppPagesList), so the top row carries one menu, not two.
@@ -109,7 +110,9 @@ const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
     onAction?.();
   }, [onAction]);
 
-  const actions = useAppMenuActions(finish);
+  const actions = useAppMenuActions(finish).filter(
+    (action) => action.placement === "logo"
+  );
 
   return (
     <>

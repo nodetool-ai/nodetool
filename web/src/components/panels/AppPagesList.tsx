@@ -50,6 +50,8 @@ interface AppPagesListProps {
   readonly showSectionTitle?: boolean;
   /** Show a no-results message when a shared query filters every destination. */
   readonly showEmptyState?: boolean;
+  /** Mobile combines both menus; desktop shows sidebar destinations only. */
+  readonly scope?: "all" | "sidebar";
 }
 
 /**
@@ -62,16 +64,19 @@ const AppPagesList: React.FC<AppPagesListProps> = ({
   onAction,
   query = "",
   showSectionTitle = false,
-  showEmptyState = false
+  showEmptyState = false,
+  scope = "sidebar"
 }) => {
   const theme = useTheme();
   const listStyles = useMemo(() => styles(theme), [theme]);
   const actions = useAppMenuActions(onAction);
   const normalizedQuery = query.trim().toLowerCase();
-  const filteredActions = actions.filter((action) =>
-    `${action.label} ${action.secondary ?? ""}`
-      .toLowerCase()
-      .includes(normalizedQuery)
+  const filteredActions = actions.filter(
+    (action) =>
+      (scope === "all" || action.placement === "sidebar") &&
+      `${action.label} ${action.secondary ?? ""}`
+        .toLowerCase()
+        .includes(normalizedQuery)
   );
 
   // RailAppMenu owns the Help dialog on desktop and is not mounted here.

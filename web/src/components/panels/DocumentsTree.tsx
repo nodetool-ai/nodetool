@@ -7,7 +7,6 @@ import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
-import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
@@ -52,7 +51,6 @@ const DOCUMENT_TAB_TYPES = {
   script: "script",
   storyboard: "storyboard",
   timeline: "timeline",
-  chat: "chat",
   jsscript: "jsscript"
 } satisfies Record<Exclude<DocumentTreeLeafType, "application" | "entity">, WorkspaceTabType>;
 
@@ -71,7 +69,6 @@ const LEAF_ICONS: Record<DocumentTreeLeafType, SvgIconComponent> = {
   storyboard: DashboardOutlinedIcon,
   timeline: MovieOutlinedIcon,
   entity: PersonOutlineOutlinedIcon,
-  chat: ForumOutlinedIcon,
   jsscript: DataObjectOutlinedIcon
 };
 
@@ -302,11 +299,10 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
       }
 
       const title = document.name;
-      const mode = document.type === "chat" ? "view" : "edit";
       openTab({
         type: DOCUMENT_TAB_TYPES[document.type],
         ref: document.id,
-        mode,
+        mode: "edit",
         title,
         projectId: document.projectId
       });
