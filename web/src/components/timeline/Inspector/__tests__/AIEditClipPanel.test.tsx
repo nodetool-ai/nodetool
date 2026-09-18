@@ -150,6 +150,96 @@ describe("AIEditClipPanel", () => {
     expect(generated.ok).toBe(true);
   });
 
+  it("shows an animated loading status while an edit is generating", () => {
+    const clip = makeVideoClip();
+    const request = createMediaEditRequest({
+      sourceContext: {
+        sequenceId: "sequence-1",
+        clipId: clip.id,
+        sourceAssetId: clip.currentAssetId ?? "",
+        sourceStartMs: 0,
+        sourceEndMs: clip.durationMs,
+        timelineStartMs: clip.startMs,
+        timelineDurationMs: clip.durationMs,
+        speedMultiplier: 1
+      },
+      instruction: "make it a cartoon",
+      provider: "provider-a",
+      model: "edit-model"
+    });
+    useDirectGenPendingStore.setState({
+      pending: {
+        "sequence-1": [
+          {
+            clipId: clip.id,
+            requestId: "request-active",
+            startedAt: Date.now(),
+            bucket: "video-edit:edit-model",
+            mediaEdit: request
+          }
+        ]
+      }
+    });
+
+    renderPanel(clip);
+
+    expect(
+      screen.getByRole("status", { name: "Editing video…" })
+    ).toHaveClass("loading-spinner");
+    expect(screen.getByTestId("ai-edit-submit")).toHaveTextContent("Cancel");
+  });
+
+  it("hides the previous failure while a retry is generating", () => {
+    const clip = makeVideoClip();
+    const request = createMediaEditRequest({
+      sourceContext: {
+        sequenceId: "sequence-1",
+        clipId: clip.id,
+        sourceAssetId: clip.currentAssetId ?? "",
+        sourceStartMs: 0,
+        sourceEndMs: clip.durationMs,
+        timelineStartMs: clip.startMs,
+        timelineDurationMs: clip.durationMs,
+        speedMultiplier: 1
+      },
+      instruction: "make it a cartoon",
+      provider: "provider-a",
+      model: "edit-model"
+    });
+    useDirectGenPendingStore.setState({
+      pending: {
+        "sequence-1": [
+          {
+            clipId: clip.id,
+            requestId: "request-retry",
+            startedAt: Date.now(),
+            bucket: "video-edit:edit-model",
+            mediaEdit: request
+          }
+        ]
+      },
+      editSettlements: {
+        "request-failed": {
+          requestId: "request-failed",
+          sequenceId: "sequence-1",
+          clipId: clip.id,
+          status: "failed",
+          settledAt: Date.now() - 1_000,
+          assetIds: [],
+          mediaEdit: request
+        }
+      }
+    });
+
+    renderPanel(clip);
+
+    expect(screen.queryByText(/provider failed this edit/i)).toBeNull();
+    expect(screen.queryByText(/edit failed.*retry/i)).toBeNull();
+    expect(
+      screen.getByRole("status", { name: "Editing video…" })
+    ).toBeTruthy();
+  });
+
   it("shows captured terminal settlement details and keeps retry actionable", async () => {
     const clip = makeVideoClip();
     const request = createMediaEditRequest({

@@ -254,9 +254,10 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
   const canNewTake = newTakeEligibility.ok;
   const settledStatus = latestSettlement?.status;
   const failed =
-    submissionFailed ||
-    editFailure !== undefined ||
-    (settledStatus !== undefined && settledStatus !== "completed");
+    !active &&
+    (submissionFailed ||
+      editFailure !== undefined ||
+      (settledStatus !== undefined && settledStatus !== "completed"));
   const noCompatibleModel =
     !isLoading && !error && availableModels.length === 0;
   const modelOptionsReady = Boolean(selectedModel && catalogModel);
@@ -277,8 +278,9 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
       : noCompatibleModel
         ? "No compatible video edit model is available. Add a provider or install a local model that supports video_to_video."
         : undefined;
-  const settlementMessage =
-    settledStatus === "cancelled"
+  const settlementMessage = active
+    ? undefined
+    : settledStatus === "cancelled"
       ? "The edit was cancelled. The accepted media was left unchanged."
       : settledStatus === "expired"
         ? "The edit expired before it finished. The captured request is available to retry."
@@ -436,9 +438,11 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
               </Caption>
             )}
             {active && (
-              <Caption color="secondary" sx={{ textAlign: "center" }}>
-                Editing video…
-              </Caption>
+              <LoadingSpinner
+                variant="dots"
+                size="small"
+                text="Editing video…"
+              />
             )}
             {errorMessage && (
               <Caption color="error" sx={{ textAlign: "center" }}>
