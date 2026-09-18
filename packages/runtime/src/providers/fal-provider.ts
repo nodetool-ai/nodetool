@@ -159,6 +159,7 @@ interface FalManifestField {
   name: string;
   apiParamName?: string;
   propType: string;
+  default?: unknown;
   enumValues?: string[];
   acceptsObject?: boolean;
   /** Declared bounds. Numeric for int/float fields, a length for str/list. */
@@ -1736,6 +1737,17 @@ export class FalProvider extends BaseProvider {
     if (!model?.supportedTasks?.includes("extend_video")) {
       throw new Error(`Model ${params.model.id} does not support extend_video`);
     }
+    const directionTasks = model.supportedTasks.filter((task) =>
+      task.startsWith("extend_video_")
+    );
+    if (
+      directionTasks.length > 0 &&
+      !directionTasks.includes(`extend_video_${params.mode}`)
+    ) {
+      throw new Error(
+        `Model ${params.model.id} does not support ${params.mode} extension`
+      );
+    }
     if (
       (params.mode !== "start" && params.mode !== "end") ||
       !Number.isFinite(params.durationSeconds) ||
@@ -1746,22 +1758,32 @@ export class FalProvider extends BaseProvider {
       throw new Error("Choose a supported extension mode and duration.");
     }
     const entry = getFalManifestEntry(params.model.id);
-    const duration = entry?.inputFields?.find((field) => field.name === "duration");
+    const durationField = entry?.inputFields?.find(
+      (field) => (field.apiParamName ?? field.name) === "duration"
+    );
     if (
-      (duration?.min !== undefined && params.durationSeconds < duration.min) ||
-      (duration?.max !== undefined && params.durationSeconds > duration.max)
+      (durationField?.min !== undefined &&
+        params.durationSeconds < durationField.min) ||
+      (durationField?.max !== undefined &&
+        params.durationSeconds > durationField.max)
     ) {
       throw new Error(
         "Choose an extension duration within the model's supported range."
       );
     }
+    const duration =
+      durationField?.propType === "str" &&
+      typeof durationField.default === "string" &&
+      /s$/i.test(durationField.default.trim())
+        ? `${params.durationSeconds}s`
+        : params.durationSeconds;
     const url = await this.upload(video, "video/mp4");
     const builder = new FalArgsBuilder(params.model.id);
     builder
       .attachAsset("video", url)
       .set("prompt", params.prompt)
       .set("mode", params.mode)
-      .set("duration", params.durationSeconds);
+      .set("duration", duration);
     return this.runVideoEndpoint(params.model.id, builder.args);
   }
 

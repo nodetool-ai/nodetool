@@ -329,6 +329,49 @@ describe("ReplicateProvider coverage", () => {
     expect(input.seed).toBe(3);
   });
 
+  it("extendVideo runs a manifest-declared end extension", async () => {
+    const runMock = vi.fn().mockResolvedValue(fakeFileOutput(IMG));
+    const provider = createProvider({ run: runMock });
+    await provider.extendVideo(new Uint8Array([9, 8, 7]), {
+      model: {
+        id: "xai/grok-imagine-video-extension",
+        name: "Grok Imagine Video Extension",
+        provider: "replicate"
+      },
+      prompt: "Continue the camera move",
+      mode: "end",
+      durationSeconds: 6
+    });
+    expect(runMock).toHaveBeenCalledWith(
+      "xai/grok-imagine-video-extension",
+      expect.objectContaining({
+        input: {
+          video: expect.stringMatching(/^data:video\/mp4;base64,/),
+          prompt: "Continue the camera move",
+          duration: 6
+        }
+      })
+    );
+  });
+
+  it("extendVideo rejects an unsupported start extension", async () => {
+    const runMock = vi.fn();
+    const provider = createProvider({ run: runMock });
+    await expect(
+      provider.extendVideo(new Uint8Array([9]), {
+        model: {
+          id: "xai/grok-imagine-video-extension",
+          name: "Grok Imagine Video Extension",
+          provider: "replicate"
+        },
+        prompt: "Lead into the shot",
+        mode: "start",
+        durationSeconds: 6
+      })
+    ).rejects.toThrow(/does not support start extension/);
+    expect(runMock).not.toHaveBeenCalled();
+  });
+
   // --- lipSync ---
 
   it("lipSync sends video, audio and seed", async () => {

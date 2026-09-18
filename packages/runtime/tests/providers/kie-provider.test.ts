@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { KieProvider } from "../../src/providers/kie-provider.js";
 import type {
+  ExtendVideoParams,
   ImageToImageParams,
   ImageToVideoParams
 } from "../../src/providers/types.js";
@@ -161,6 +162,68 @@ describe("KieProvider reference-to-video", () => {
     const { fetchMock } = mockKieFlow([]);
     const provider = new KieProvider({ KIE_API_KEY: "k" });
     await expect(provider.imageToVideo(new Uint8Array([1]), { model: { id: "minimax-h3/reference-to-video", name: "ref", provider: "kie" }, prompt: "x" })).rejects.toThrow("image_to_video");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("KieProvider — extendVideo", () => {
+  it("advertises and runs PixVerse extension from an uploaded video", async () => {
+    const { createdInputs } = mockKieFlow(["https://kie.cdn/source.mp4"]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+    const modelId = "pixverse-v6/extend";
+    const params: ExtendVideoParams = {
+      model: { id: modelId, name: "PixVerse V6 Extend", provider: "kie" },
+      prompt: "Continue the camera move",
+      mode: "end",
+      durationSeconds: 4
+    };
+
+    expect(provider.getCapabilities()).toContain("extend_video");
+    expect(
+      (await provider.getAvailableVideoModels()).find(
+        (model) => model.id === modelId
+      )?.supportedTasks
+    ).toEqual(["extend_video", "extend_video_end"]);
+
+    const result = await provider.extendVideo(new Uint8Array([1, 2]), params);
+
+    expect(result).toEqual(new Uint8Array([7, 7, 7]));
+    expect(createdInputs[0]).toEqual({
+      video_url: "https://kie.cdn/source.mp4",
+      prompt: "Continue the camera move",
+      duration: 4,
+      quality: "720p"
+    });
+  });
+
+  it("rejects unsupported direction and task-id-only extension models", async () => {
+    const { fetchMock } = mockKieFlow([]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+    const params: ExtendVideoParams = {
+      model: {
+        id: "pixverse-v6/extend",
+        name: "PixVerse V6 Extend",
+        provider: "kie"
+      },
+      prompt: "Continue",
+      mode: "start",
+      durationSeconds: 4
+    };
+
+    await expect(
+      provider.extendVideo(new Uint8Array([1]), params)
+    ).rejects.toThrow(/start extension/);
+    await expect(
+      provider.extendVideo(new Uint8Array([1]), {
+        ...params,
+        mode: "end",
+        model: {
+          id: "grok-imagine/extend",
+          name: "Grok Extend",
+          provider: "kie"
+        }
+      })
+    ).rejects.toThrow(/extend_video/);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

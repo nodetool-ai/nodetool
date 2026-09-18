@@ -14,14 +14,16 @@ describe("genuine video extension", () => {
     expect(provider.getCapabilities()).toContain("extend_video");
     const models = await provider.getAvailableVideoModels();
     expect(models.find((model) => model.id === MODEL)?.supportedTasks).toEqual([
-      "extend_video"
+      "extend_video",
+      "extend_video_end",
+      "extend_video_start"
     ]);
     expect(inferVideoTasks("Edit video", "fal-ai/wan/video-to-video")).toEqual([
       "video_to_video"
     ]);
   });
 
-  it("does not advertise an image continuation or an extension without direction controls", () => {
+  it("keeps image continuation out and marks implicit or explicit end-only extensions", () => {
     const models = buildVideoModels(
       [
         {
@@ -36,11 +38,29 @@ describe("genuine video extension", () => {
             { name: "video", propType: "video", required: true },
             { name: "duration", propType: "float" }
           ]
+        },
+        {
+          endpointId: "video/extend-end-only",
+          outputType: "video",
+          inputFields: [
+            { name: "video", propType: "video", required: true },
+            { name: "duration", propType: "float" },
+            { name: "mode", propType: "str", enumValues: ["end"] }
+          ]
         }
       ],
       "fal_ai"
     );
-    expect(models).toEqual([]);
+    expect(models).toEqual([
+      expect.objectContaining({
+        id: "video/extend",
+        supportedTasks: ["extend_video", "extend_video_end"]
+      }),
+      expect.objectContaining({
+        id: "video/extend-end-only",
+        supportedTasks: ["extend_video", "extend_video_end"]
+      })
+    ]);
   });
 
   it.each(["start", "end"] as const)(
@@ -78,6 +98,37 @@ describe("genuine video extension", () => {
       });
     }
   );
+
+  it("formats Veo extension duration using the manifest's seconds string", async () => {
+    const modelId = "fal-ai/veo3.1/fast/extend-video";
+    const provider = new FalProvider();
+    const transport = provider as unknown as {
+      upload(bytes: Uint8Array, mime: string): Promise<string>;
+      runVideoEndpoint(
+        id: string,
+        input: Record<string, unknown>
+      ): Promise<Uint8Array>;
+    };
+    vi.spyOn(transport, "upload").mockResolvedValue(
+      "https://fal.media/source.mp4"
+    );
+    const dispatch = vi
+      .spyOn(transport, "runVideoEndpoint")
+      .mockResolvedValue(new Uint8Array([1]));
+
+    await provider.extendVideo(new Uint8Array([9]), {
+      model: { id: modelId, provider: "fal_ai", name: modelId },
+      prompt: "Continue the pan",
+      mode: "end",
+      durationSeconds: 7
+    });
+
+    expect(dispatch).toHaveBeenCalledWith(modelId, {
+      video_url: "https://fal.media/source.mp4",
+      prompt: "Continue the pan",
+      duration: "7s"
+    });
+  });
 
   it("refuses ordinary editors and invalid extension durations before upload", async () => {
     const provider = new FalProvider();

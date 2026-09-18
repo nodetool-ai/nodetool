@@ -182,6 +182,10 @@ describe("AtlasCloudProvider — getAvailableVideoModels", () => {
     expect(
       byId.get("bytedance/seedance-2.0/reference-to-video")?.supportedTasks
     ).toEqual(["reference_to_video"]);
+    expect(
+      byId.get("google/gemini-omni-1.1-flash/video-extend")?.supportedTasks
+    ).toEqual(["extend_video", "extend_video_end"]);
+    expect(p.getCapabilities()).toContain("extend_video");
   });
 });
 
@@ -538,5 +542,83 @@ describe("AtlasCloudProvider — imageToVideo", () => {
     expect(body.refers).toEqual([
       { url: expect.stringMatching(/^data:image\/png;base64,/), type: "image" }
     ]);
+  });
+});
+
+describe("AtlasCloudProvider — videoToVideo", () => {
+  it("allows Gemini Omni video edits without optional reference images", async () => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+
+    await p.videoToVideo(Uint8Array.from([0, 0, 0, 24, 102, 116, 121, 112]), {
+      model: videoModel("google/gemini-omni-1.1-flash/video-edit"),
+      prompt: "make it more ad friendly",
+      durationSeconds: 0.75
+    });
+
+    expect(capture.submitBody).toEqual({
+      model: "google/gemini-omni-1.1-flash/video-edit",
+      prompt: "make it more ad friendly",
+      video: expect.stringMatching(/^data:video\/mp4;base64,/)
+    });
+  });
+
+  it("submits Gemini Omni video edits through the declared video field", async () => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+
+    expect(p.getCapabilities()).toContain("video_to_video");
+
+    await p.videoToVideo(Uint8Array.from([0, 0, 0, 24, 102, 116, 121, 112]), {
+      model: videoModel("google/gemini-omni-1.1-flash/video-edit"),
+      prompt: "remove people and focus on product",
+      durationSeconds: 2.5,
+      referenceImages: [Uint8Array.from([0x89, 0x50, 0x4e, 0x47])]
+    });
+
+    expect(capture.submitBody).toEqual({
+      model: "google/gemini-omni-1.1-flash/video-edit",
+      prompt: "remove people and focus on product",
+      video: expect.stringMatching(/^data:video\/mp4;base64,/),
+      reference_images: [expect.stringMatching(/^data:image\/png;base64,/)]
+    });
+  });
+});
+
+describe("AtlasCloudProvider — extendVideo", () => {
+  it("submits an end extension to Gemini Omni", async () => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+
+    await p.extendVideo(Uint8Array.from([0, 0, 0, 24, 102, 116, 121, 112]), {
+      model: videoModel("google/gemini-omni-1.1-flash/video-extend"),
+      prompt: "continue the product shot",
+      mode: "end",
+      durationSeconds: 4
+    });
+
+    expect(capture.submitBody).toEqual({
+      model: "google/gemini-omni-1.1-flash/video-extend",
+      prompt: "continue the product shot",
+      video: expect.stringMatching(/^data:video\/mp4;base64,/),
+      duration: 4
+    });
+  });
+
+  it("rejects unsupported start extensions before submission", async () => {
+    mockAtlasFetch();
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+
+    await expect(
+      p.extendVideo(Uint8Array.from([1]), {
+        model: videoModel("google/gemini-omni-1.1-flash/video-extend"),
+        prompt: "lead into the product shot",
+        mode: "start",
+        durationSeconds: 4
+      })
+    ).rejects.toThrow(/end extensions/);
   });
 });

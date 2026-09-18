@@ -61,6 +61,7 @@ import {
   loadVideoModels
 } from "./manifest-models.js";
 import type {
+  ExtendVideoParams,
   ImageModel,
   ImageToImageParams,
   ImageToVideoParams,
@@ -68,6 +69,7 @@ import type {
   TextToImageParams,
   TextToVideoParams,
   UpscaleVideoParams,
+  VideoToVideoParams,
   VideoModel
 } from "./types.js";
 import type { ReferenceToVideoInputs, ReferenceToVideoParams } from "./types.js";
@@ -771,5 +773,118 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       input.use_reference_video_audio = params.useReferenceVideoAudio;
     }
     return this.runJob("video", modelId, info, input, runJobOptions(params));
+  }
+
+  override async videoToVideo(
+    video: Uint8Array,
+    params: VideoToVideoParams
+  ): Promise<Uint8Array> {
+    if (video.length === 0) {
+      throw new Error("video must not be empty");
+    }
+    const modelId = params.model.id;
+    const model = (await this.getAvailableVideoModels()).find(
+      (item) => item.id === modelId
+    );
+    if (!model?.supportedTasks?.includes("video_to_video")) {
+      throw new Error(
+        `AtlasCloud model ${modelId} does not support video_to_video`
+      );
+    }
+    const info = this.resolveModel(modelId, "video");
+    const videoField = ["video", "video_url", "input_video"].find((name) =>
+      info.fields.has(name)
+    );
+    if (!videoField) {
+      throw new Error(
+        `AtlasCloud model ${modelId} does not declare a video field`
+      );
+    }
+    const input: Record<string, unknown> = {
+      [videoField]: `data:${sniffMediaMime(video, "video/mp4")};base64,${Buffer.from(video).toString("base64")}`
+    };
+    setIfDeclared(input, info, params.prompt, "prompt");
+    setIfDeclared(input, info, params.negativePrompt, "negative_prompt");
+    setIfDeclared(input, info, params.strength, "strength");
+    setIfDeclared(input, info, params.durationSeconds, "duration");
+    setIfDeclared(input, info, params.resolution, "resolution");
+    setIfDeclared(input, info, params.seed, "seed");
+
+    const referenceImages = (params.referenceImages ?? []).filter(
+      (bytes) => bytes.length > 0
+    );
+    const referenceFields = getModelReferenceInputs(
+      ATLASCLOUD_MANIFEST_PKG,
+      ATLASCLOUD_MANIFEST_PATH,
+      modelId
+    );
+    if (referenceImages.length > 0) {
+      validateReferenceInputs(
+        "AtlasCloud",
+        modelId,
+        { images: referenceImages, videos: [] },
+        referenceFields
+      );
+      const imageField = referenceFields.find(
+        (field) => field.kind === "image"
+      );
+      if (!imageField) {
+        throw new Error(
+          `AtlasCloud model ${modelId} does not declare a reference image field`
+        );
+      }
+      const urls = referenceImages.map(bytesToImageDataUri);
+      input[imageField.apiName] = imageField.isList ? urls : urls[0];
+    }
+
+    return this.runJob(
+      "video",
+      modelId,
+      info,
+      input,
+      runJobOptions(params)
+    );
+  }
+
+  override async extendVideo(
+    video: Uint8Array,
+    params: ExtendVideoParams
+  ): Promise<Uint8Array> {
+    if (video.length === 0) {
+      throw new Error("video must not be empty");
+    }
+    if (params.mode !== "end") {
+      throw new Error("This AtlasCloud model supports end extensions only");
+    }
+    if (
+      !Number.isFinite(params.durationSeconds) ||
+      params.durationSeconds <= 0
+    ) {
+      throw new Error("Extension duration must be positive");
+    }
+    const modelId = params.model.id;
+    const model = (await this.getAvailableVideoModels()).find(
+      (item) => item.id === modelId
+    );
+    if (!model?.supportedTasks?.includes("extend_video")) {
+      throw new Error(
+        `AtlasCloud model ${modelId} does not support extend_video`
+      );
+    }
+    const info = this.resolveModel(modelId, "video");
+    const videoField = ["video", "video_url", "input_video"].find((name) =>
+      info.fields.has(name)
+    );
+    if (!videoField) {
+      throw new Error(
+        `AtlasCloud model ${modelId} does not declare a video field`
+      );
+    }
+    const input: Record<string, unknown> = {
+      [videoField]: `data:${sniffMediaMime(video, "video/mp4")};base64,${Buffer.from(video).toString("base64")}`
+    };
+    setIfDeclared(input, info, params.prompt, "prompt");
+    setIfDeclared(input, info, params.durationSeconds, "duration");
+    return this.runJob("video", modelId, info, input);
   }
 }

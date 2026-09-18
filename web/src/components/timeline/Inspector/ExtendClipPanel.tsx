@@ -69,6 +69,23 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
   const model =
     modelsForTask.find((item) => `${item.provider}:${item.id}` === modelKey) ??
     modelsForTask[0];
+  const hasDirectionTasks = model?.supported_tasks?.some(
+    (task) => task === "extend_video_start" || task === "extend_video_end"
+  );
+  const directionOptions = [
+    ...(!hasDirectionTasks ||
+    model?.supported_tasks?.includes("extend_video_start")
+      ? [{ value: "start" as const, label: "Start" }]
+      : []),
+    ...(!hasDirectionTasks || model?.supported_tasks?.includes("extend_video_end")
+      ? [{ value: "end" as const, label: "End" }]
+      : [])
+  ];
+  const selectedDirection = directionOptions.some(
+    (option) => option.value === direction
+  )
+    ? direction
+    : directionOptions[0]?.value ?? "end";
   const pending = jobs.some((job) => job.status === "running");
   const eligibility = clip ? captureExtensionSource(clip) : null;
 
@@ -83,7 +100,7 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
     try {
       await start({
         clipId,
-        direction,
+        direction: selectedDirection,
         addedSourceDurationMs: Number(duration) * 1000,
         prompt: intent,
         model: {
@@ -149,11 +166,8 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                 />
                 <SelectField
                   label="Extend from"
-                  value={direction}
-                  options={[
-                    { value: "start", label: "Start" },
-                    { value: "end", label: "End" }
-                  ]}
+                  value={selectedDirection}
+                  options={directionOptions}
                   onChange={(value) =>
                     setDirection(value === "start" ? "start" : "end")
                   }

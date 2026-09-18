@@ -47,6 +47,17 @@ export function createExtensionRequest(input: {
   ) {
     throw new Error("Choose a model with the extend_video task.");
   }
+  const directionTasks = input.model.supportedTasks.filter(
+    (task) => task === "extend_video_start" || task === "extend_video_end"
+  );
+  if (
+    directionTasks.length > 0 &&
+    !directionTasks.includes(`extend_video_${input.direction}`)
+  ) {
+    throw new Error(
+      `The selected model does not support ${input.direction} extension.`
+    );
+  }
   if (
     (input.direction !== "start" && input.direction !== "end") ||
     !Number.isFinite(input.addedSourceDurationMs) ||

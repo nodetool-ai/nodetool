@@ -11,6 +11,7 @@ import type {
   ASRModel,
   EmbeddingModel,
   EncodedAudioResult,
+  ExtendVideoParams,
   ImageModel,
   ImageToImageParams,
   InpaintingParams,
@@ -1285,6 +1286,48 @@ export class ReplicateProvider extends BaseProvider {
       this.pruneToDeclaredInputs(params.model.id, input),
       params.signal
     ), params.signal);
+  }
+
+  override async extendVideo(
+    video: Uint8Array,
+    params: ExtendVideoParams
+  ): Promise<Uint8Array> {
+    if (video.length === 0) {
+      throw new Error("video must not be empty");
+    }
+    const model = (await this.getAvailableVideoModels()).find(
+      (candidate) => candidate.id === params.model.id
+    );
+    if (!model?.supportedTasks?.includes("extend_video")) {
+      throw new Error(`Model ${params.model.id} does not support extend_video`);
+    }
+    const directionTasks = model.supportedTasks.filter((task) =>
+      task.startsWith("extend_video_")
+    );
+    if (
+      directionTasks.length > 0 &&
+      !directionTasks.includes(`extend_video_${params.mode}`)
+    ) {
+      throw new Error(
+        `Model ${params.model.id} does not support ${params.mode} extension`
+      );
+    }
+    if (
+      !Number.isFinite(params.durationSeconds) ||
+      params.durationSeconds <= 0
+    ) {
+      throw new Error("Extension duration must be positive");
+    }
+    const input = this.pruneToDeclaredInputs(params.model.id, {
+      video: this.dataUri(video, "video/mp4"),
+      prompt: params.prompt,
+      mode: params.mode,
+      duration: params.durationSeconds
+    });
+    log.debug("extendVideo", { model: params.model.id, mode: params.mode });
+    return this._fetchOutputBytes(
+      await this.runModel(params.model.id, input)
+    );
   }
 
   override async upscaleVideo(

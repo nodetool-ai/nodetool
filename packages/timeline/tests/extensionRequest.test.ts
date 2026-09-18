@@ -49,6 +49,20 @@ describe("extension request and candidate mapping", () => {
     }
   });
 
+  it("rejects a direction that an extension model does not support", () => {
+    const { input } = setup();
+    expect(() =>
+      createExtensionRequest({
+        ...input,
+        direction: "start",
+        model: {
+          ...input.model,
+          supportedTasks: ["extend_video", "extend_video_end"]
+        }
+      })
+    ).toThrow(/does not support start extension/);
+  });
+
   it.each(["start", "end"] as const)(
     "captures source time and explicit %s extension inputs",
     (direction) => {

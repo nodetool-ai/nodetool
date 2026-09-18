@@ -116,6 +116,22 @@ describe("Extend inspector", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("offers only end extension for an end-only model", () => {
+    mockModels.mockReturnValue({
+      models: [
+        {
+          ...model,
+          supported_tasks: ["extend_video", "extend_video_end"]
+        }
+      ],
+      isLoading: false
+    });
+    show();
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "Extend from" }));
+    expect(screen.getByRole("option", { name: "End" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Start" })).toBeNull();
+  });
+
   it("offers every explicit timing choice for an inactive candidate", () => {
     const request = createExtensionRequest({
       clip,

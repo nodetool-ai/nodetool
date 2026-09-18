@@ -308,6 +308,21 @@ function isTrainerEndpoint(hay: string): boolean {
 /** A bare `/extend` path segment (`.../ltx-video-13b-dev/extend`). */
 const EXTEND_SEGMENT = /(^|[/\- ])extend([/\- ]|$)/;
 
+function isVideoExtensionEndpoint(name: string, id: string): boolean {
+  const hay = `${id} ${name}`.toLowerCase();
+  return (
+    !isTrainerEndpoint(hay) &&
+    (EXTEND_SEGMENT.test(id.toLowerCase()) ||
+      matchesAny(
+        hay,
+        "extend-video",
+        "video-extend",
+        "video-extension",
+        "video extension"
+      ))
+  );
+}
+
 /**
  * Endpoints that need a still (or several) to start from, named in ways the
  * plain "image-to-video" test misses. They are image-conditioned only: a text
@@ -332,7 +347,7 @@ const REFERENCE_VIDEO_KEYWORDS = [
 export function inferVideoTasks(name: string, id: string): string[] {
   const hay = `${id} ${name}`.toLowerCase();
   const tasks: string[] = [];
-  if (EXTEND_SEGMENT.test(id.toLowerCase()) && !isTrainerEndpoint(hay)) {
+  if (isVideoExtensionEndpoint(name, id)) {
     return ["extend_video"];
   }
   // Specialized video transforms — kept out of the text/image generation lists.
@@ -663,22 +678,34 @@ export function buildVideoModels(
     if (supportsEditReferences) {
       tasks.push("video_to_video_reference");
     }
-    // The direct extension contract needs explicit direction and added duration.
-    // Image-conditioned continuations and endpoints with incompatible controls
-    // must not appear in this task's picker.
+    // The direct extension contract needs a source video and added duration.
+    // A missing mode field means the endpoint continues from the last frame;
+    // explicit mode fields contribute only the directions they declare.
+    const extensionModeValues =
+      (n.inputFields ?? []).find(
+        (field) => (field.apiParamName ?? field.name) === "mode"
+      )?.enumValues ??
+      (n.fields ?? []).find((field) => field.name === "mode")?.values;
+    const hasExtensionDuration =
+      (n.inputFields ?? []).some(
+        (field) => (field.apiParamName ?? field.name) === "duration"
+      ) || (n.fields ?? []).some((field) => field.name === "duration");
     tasks = tasks.filter(
       (task) =>
         task !== "extend_video" ||
-        ((n.inputFields ?? []).some(
-          (field) =>
-            (field.apiParamName ?? field.name) === "mode" &&
-            field.enumValues?.includes("start") &&
-            field.enumValues.includes("end")
-        ) &&
-          (n.inputFields ?? []).some(
-            (field) => (field.apiParamName ?? field.name) === "duration"
-          ))
+        (hasExtensionDuration &&
+          (!extensionModeValues ||
+            extensionModeValues.includes("start") ||
+            extensionModeValues.includes("end")))
     );
+    if (tasks.includes("extend_video")) {
+      if (!extensionModeValues || extensionModeValues.includes("end")) {
+        tasks.push("extend_video_end");
+      }
+      if (extensionModeValues?.includes("start")) {
+        tasks.push("extend_video_start");
+      }
+    }
     if (tasks.length === 0) continue;
 
     const existing = seen.get(id);
@@ -941,6 +968,8 @@ export interface ModelInputField {
   enumValues?: string[];
   required?: boolean;
   default?: unknown;
+  /** Declared numeric or length lower bound. */
+  min?: number;
   /**
    * Declared upper bound: character count for a string field, numeric ceiling
    * otherwise. Kie publishes it (Kling 2.6's `prompt` is capped at 1000) and
@@ -985,6 +1014,9 @@ export function getModelInputFields(
       }
       if (f.default !== undefined) {
         field.default = f.default;
+      }
+      if (isNumber(f.min)) {
+        field.min = f.min;
       }
       if (isNumber(f.max)) {
         field.max = f.max;

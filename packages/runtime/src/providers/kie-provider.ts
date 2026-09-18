@@ -17,6 +17,7 @@ import { isString } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   EncodedAudioResult,
+  ExtendVideoParams,
   ImageModel,
   ImageToImageParams,
   InpaintingParams,
@@ -1501,6 +1502,92 @@ export class KieProvider extends BaseProvider {
     const taskId = await submitTaskWithWebhook(apiKey, modelId, input, signal);
     await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts, signal);
     return downloadResultBytes(apiKey, taskId, signal);
+  }
+
+  override async extendVideo(
+    video: Uint8Array,
+    params: ExtendVideoParams
+  ): Promise<Uint8Array> {
+    if (video.length === 0) {
+      throw new Error("The input video is empty.");
+    }
+    const modelId = params.model.id;
+    const selected = loadVideoModels(
+      KIE_MANIFEST_PKG,
+      KIE_MANIFEST_PATH,
+      "kie"
+    ).find((model) => model.id === modelId);
+    if (!selected?.supportedTasks?.includes("extend_video")) {
+      throw new Error(`Kie model ${modelId} does not support extend_video`);
+    }
+    if (
+      !selected.supportedTasks.includes(`extend_video_${params.mode}`)
+    ) {
+      throw new Error(`Kie model ${modelId} does not support ${params.mode} extension`);
+    }
+    if (
+      !Number.isFinite(params.durationSeconds) ||
+      params.durationSeconds <= 0 ||
+      (selected.durations?.length &&
+        !selected.durations.includes(params.durationSeconds))
+    ) {
+      throw new Error("Choose a supported extension duration.");
+    }
+
+    const fields = getModelInputFields(
+      KIE_MANIFEST_PKG,
+      KIE_MANIFEST_PATH,
+      modelId
+    );
+    const durationField = fields.find((field) => field.name === "duration");
+    if (
+      (durationField?.min !== undefined &&
+        params.durationSeconds < durationField.min) ||
+      (durationField?.max !== undefined &&
+        params.durationSeconds > durationField.max)
+    ) {
+      throw new Error(
+        "Choose an extension duration within the model's supported range."
+      );
+    }
+    const promptField = fields.find((field) => field.name === "prompt");
+    if (promptField?.required && !params.prompt.trim()) {
+      throw new Error(`Kie model ${modelId} requires a prompt`);
+    }
+    const videoField = getModelMediaInputs(
+      KIE_MANIFEST_PKG,
+      KIE_MANIFEST_PATH,
+      modelId
+    ).find((field) => field.kind === "video");
+    if (!videoField) {
+      throw new Error(`Kie model ${modelId} does not accept a source video`);
+    }
+    const qualityField = fields.find((field) => field.name === "quality");
+    const quality = qualityField?.enumValues?.includes("720p")
+      ? "720p"
+      : qualityField?.enumValues?.[0];
+    if (qualityField?.required && !quality) {
+      throw new Error(`Kie model ${modelId} does not declare a usable quality`);
+    }
+
+    const apiKey = this.requireApiKey();
+    const videoUrl = await uploadMediaBytes(apiKey, video, undefined, "video");
+    const input: Record<string, unknown> = {
+      [videoField.apiName]: videoField.isList ? [videoUrl] : videoUrl,
+      prompt: params.prompt
+    };
+    this.applyVideoDuration(input, fields, params);
+    if (quality) {
+      input.quality = quality;
+    }
+    this.clampToDeclaredMax(input, fields);
+
+    log.debug("Kie extendVideo", { model: modelId, mode: params.mode });
+
+    const { pollInterval, maxAttempts } = this.pollConfig(modelId);
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
+    return downloadResultBytes(apiKey, taskId);
   }
 
   /**
