@@ -11,6 +11,7 @@ const PROVIDER_CREDENTIALS: Array<[envVar: string, readBy: string]> = [
   ["JINA_API_KEY", "packages/runtime/src/providers/jina-provider.ts"],
   ["VOYAGE_API_KEY", "packages/runtime/src/providers/voyage-provider.ts"],
   ["EVOLINK_API_KEY", "packages/runtime/src/providers/evolink-provider.ts"],
+  ["MUAPI_API_KEY", "packages/runtime/src/providers/muapi-provider.ts"],
   ["VAST_API_KEY", "packages/compute/src/manager.ts"]
 ];
 
