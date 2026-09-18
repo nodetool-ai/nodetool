@@ -6,7 +6,15 @@
 // persistence and identity (profiles, instances) live above it in the manager.
 
 /** Provisioning target a profile/spec runs on. */
-export type WorkerTarget = "runpod" | "vast";
+export type WorkerTarget = "runpod" | "vast" | "verda";
+
+/**
+ * The resolved secrets a provider authenticates with, keyed by secret name
+ * (e.g. `{ RUNPOD_API_KEY: "..." }`). A target needs one entry per name in the
+ * manager's `CREDENTIAL_SECRETS` list — Verda takes a client id AND secret, so
+ * a single key string cannot express every target's credentials.
+ */
+export type WorkerCredentials = Readonly<Record<string, string>>;
 
 /**
  * Lifecycle status of a worker, shared by instances and provider results.
@@ -47,8 +55,21 @@ export interface WorkerSpec {
   image: string;
   /** Provisioning target. */
   target: WorkerTarget;
-  /** Provider-shaped GPU selector (e.g. "A40"). */
+  /** Provider-shaped GPU selector (e.g. "A40", or a Verda `instance_type`). */
   gpu?: string;
+  /**
+   * Provider-shaped region/datacenter selector. Verda REQUIRES a
+   * `location_code` on every create; when this is unset the provider resolves
+   * one from live availability. Ignored by targets that pick a region
+   * themselves (RunPod, Vast).
+   */
+  region?: string;
+  /**
+   * Guest OS image for VM targets (Verda `image_type`). Distinct from `image`,
+   * which is the Docker image the guest RUNS — a VM target needs both. Unset
+   * lets the provider choose a CUDA+Docker image from the live catalog.
+   */
+  osImage?: string;
   /** Number of GPUs to request (GPU targets only). Defaults to 1. */
   gpuCount?: number;
   /** vCPU count. */

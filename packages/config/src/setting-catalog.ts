@@ -456,6 +456,16 @@ sec(
   "Vast.ai API key for renting marketplace GPUs to run NodeTool workers. Get yours at https://cloud.vast.ai/manage-keys/"
 );
 sec(
+  "VERDA_CLIENT_ID",
+  "Verda",
+  "Verda cloud API client id for renting GPU instances to run NodeTool workers. Create credentials at https://cloud.verda.com/ (distinct from the inference key)."
+);
+sec(
+  "VERDA_CLIENT_SECRET",
+  "Verda",
+  "Verda cloud API client secret, paired with VERDA_CLIENT_ID. Credentials are tied to the team member who created them and are deleted when that member is removed."
+);
+sec(
   "NODE_SUPABASE_KEY",
   "NodeSupabase",
   "Supabase service key for user-provided nodes"

@@ -19,9 +19,13 @@ export type {
 export type { ReaperDeps, ReaperHandle, ReaperManager } from "./reaper.js";
 export { RunpodPodProvider } from "./providers/runpod.js";
 export { VastProvider } from "./providers/vast.js";
+export { VerdaProvider } from "./providers/verda.js";
+export { VerdaApiClient, VerdaApiError } from "./providers/verda-api.js";
+export type { VerdaCredentials } from "./providers/verda-api.js";
 export type {
   ProviderInstance,
   ProvisionResult,
+  WorkerCredentials,
   WorkerProvider,
   WorkerSpec,
   WorkerStatus,

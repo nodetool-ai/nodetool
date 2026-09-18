@@ -225,7 +225,7 @@ describe("worker router", () => {
   // ── lifecycle / status procedures ────────────────────────────────
   describe("apiKeyStatus / resume / terminate / health", () => {
     it("apiKeyStatus delegates to manager.apiKeyStatus", async () => {
-      const status = { runpod: true, vast: false };
+      const status = { runpod: true, vast: false, verda: true };
       manager.apiKeyStatus.mockResolvedValue(status);
       const caller = createCaller(makeCtx(manager, repoint));
       await expect(caller.worker.apiKeyStatus()).resolves.toEqual(status);
