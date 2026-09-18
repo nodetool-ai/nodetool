@@ -192,6 +192,10 @@ export const ReferenceStep = ({
         <ResponsiveImage
           locator={`asset://${assetId}`}
           alt="Selected entity reference"
+          // Stable hook for the reference slot. The rendered <img> is not one:
+          // jsdom fetches a src but has no image codec, so it fires `error` for
+          // even a valid data: URI and the error fallback replaces the <img>.
+          data-testid="entity-reference-preview"
           aspectRatio="1/1"
           fit="contain"
           borderRadius={BORDER_RADIUS.md}
