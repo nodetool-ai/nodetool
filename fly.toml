@@ -8,8 +8,10 @@
 #   - Fly terminates TLS at the edge, so the origin runs plain HTTP on 7777
 #     (no TLS_CERT/TLS_KEY set).
 #
-# Secrets (DATABASE_URL, SUPABASE_URL/KEY, SECRETS_MASTER_KEY, SERPAPI_API_KEY,
-# provider keys, …) are set with `fly secrets set`, NOT baked here.
+# Secrets (DATABASE_URL, DIRECT_URL, SUPABASE_URL/KEY, SECRETS_MASTER_KEY,
+# SERPAPI_API_KEY, provider keys, …) are set with `fly secrets set`, NOT baked
+# here. DATABASE_URL is the pooled runtime connection; DIRECT_URL is the
+# dedicated Supabase connection used by the release-phase migration.
 #
 # Deploy:  fly deploy --image ghcr.io/nodetool-ai/nodetool:latest
 

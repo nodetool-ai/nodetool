@@ -12,10 +12,13 @@
 // deploy are safe.
 import { MigrationRunner, PostgresJsMigrationAdapter } from "@nodetool-ai/models";
 import postgres from "postgres";
+import { resolveMigrationDatabaseUrl } from "./db-migrate-url.mjs";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = resolveMigrationDatabaseUrl();
 if (!databaseUrl) {
-  console.log("[db-migrate] DATABASE_URL not set — skipping (SQLite migrates in-process).");
+  console.log(
+    "[db-migrate] DIRECT_URL/DATABASE_URL not set — skipping (SQLite migrates in-process)."
+  );
   process.exit(0);
 }
 

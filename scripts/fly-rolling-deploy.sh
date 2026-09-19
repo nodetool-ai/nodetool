@@ -153,7 +153,7 @@ echo "==> Migrating the database on $IMAGE"
 # What fly.toml's release_command does on a `fly deploy`. `machine update` runs
 # no release phase, so the migration is run here, on the new image, before any
 # machine serves it. db-migrate.mjs takes the migration lock, and the machine
-# inherits the app's DATABASE_URL secret.
+# inherits the app's DIRECT_URL (or DATABASE_URL fallback) secret.
 #
 # `machine run` returns once the machine has *started*, not once the command
 # has exited, and its own exit code says nothing about the migration's. So the
