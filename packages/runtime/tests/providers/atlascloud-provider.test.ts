@@ -544,7 +544,7 @@ describe("AtlasCloudProvider — imageToVideo", () => {
     ]);
   });
 
-  it("does not send a resolution unsupported by MiniMax H3", async () => {
+  it("uses the model default when a persisted resolution is unsupported", async () => {
     const capture: { submitBody?: Record<string, unknown> } = {};
     mockAtlasFetch({ capture });
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
@@ -558,7 +558,7 @@ describe("AtlasCloudProvider — imageToVideo", () => {
       }
     );
 
-    expect(capture.submitBody?.resolution).toBeUndefined();
+    expect(capture.submitBody?.resolution).toBe("480P");
   });
 });
 

@@ -251,6 +251,16 @@ function setIfDeclared(
       input[name] = resolved;
       return;
     }
+    const fallback = resolveForField(field, field.default);
+    if (fallback !== null) {
+      input[name] = fallback;
+      log.debug("AtlasCloud: using model default for unsupported parameter", {
+        field: name,
+        value,
+        fallback
+      });
+      return;
+    }
   }
   log.debug("AtlasCloud: dropping unsupported parameter", {
     candidates,
