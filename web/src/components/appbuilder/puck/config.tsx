@@ -467,9 +467,24 @@ export const appConfig: Config = {
         },
         height: { type: "number", label: "Height (px)" },
         placeholder: { type: "text", label: "Placeholder" },
+        download: {
+          type: "radio",
+          label: "Download",
+          options: [
+            { label: "Show", value: true },
+            { label: "Hide", value: false }
+          ]
+        },
+        filename: { type: "text", label: "Download filename" },
         ...conditionalFields({ format: false })
       },
-      defaultProps: { fit: "contain", height: 240, placeholder: "No image" },
+      defaultProps: {
+        fit: "contain",
+        height: 240,
+        placeholder: "No image",
+        download: true,
+        filename: ""
+      },
       render: withConditions((props) => <ImageWidget {...props} />)
     },
     Audio: {
@@ -477,9 +492,22 @@ export const appConfig: Config = {
       fields: {
         binding: bindingField("read"),
         placeholder: { type: "text", label: "Placeholder" },
+        download: {
+          type: "radio",
+          label: "Download",
+          options: [
+            { label: "Show", value: true },
+            { label: "Hide", value: false }
+          ]
+        },
+        filename: { type: "text", label: "Download filename" },
         ...conditionalFields({ format: false })
       },
-      defaultProps: { placeholder: "No audio yet" },
+      defaultProps: {
+        placeholder: "No audio yet",
+        download: true,
+        filename: ""
+      },
       render: withConditions((props) => <AudioWidget {...props} />)
     },
     Video: {
@@ -488,9 +516,23 @@ export const appConfig: Config = {
         binding: bindingField("read"),
         height: { type: "number", label: "Max height (px)" },
         placeholder: { type: "text", label: "Placeholder" },
+        download: {
+          type: "radio",
+          label: "Download",
+          options: [
+            { label: "Show", value: true },
+            { label: "Hide", value: false }
+          ]
+        },
+        filename: { type: "text", label: "Download filename" },
         ...conditionalFields({ format: false })
       },
-      defaultProps: { height: 320, placeholder: "No video yet" },
+      defaultProps: {
+        height: 320,
+        placeholder: "No video yet",
+        download: true,
+        filename: ""
+      },
       render: withConditions((props) => <VideoWidget {...props} />)
     },
     Sketch: {
@@ -562,9 +604,22 @@ export const appConfig: Config = {
       fields: {
         binding: bindingField("read"),
         placeholder: { type: "text", label: "Placeholder" },
+        download: {
+          type: "radio",
+          label: "Download media",
+          options: [
+            { label: "Show", value: true },
+            { label: "Hide", value: false }
+          ]
+        },
+        filename: { type: "text", label: "Download filename" },
         ...conditionalFields()
       },
-      defaultProps: { placeholder: "Your result appears here" },
+      defaultProps: {
+        placeholder: "Your result appears here",
+        download: true,
+        filename: ""
+      },
       render: withConditions((props) => <OutputWidget {...props} />)
     },
     Progress: {
