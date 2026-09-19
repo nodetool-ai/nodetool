@@ -3,7 +3,7 @@
  */
 
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import AudioControls from "../AudioControls";
@@ -131,6 +131,86 @@ describe("AudioControls", () => {
       const { container } = renderWithTheme(<AudioControls {...defaultProps} fontSize="normal" />);
       const zoomLabel = container.querySelector(".normal");
       expect(zoomLabel).toBeInTheDocument();
+    });
+  });
+
+  describe("Download", () => {
+    const originalCreateObjectURL = global.URL.createObjectURL;
+    const originalRevokeObjectURL = global.URL.revokeObjectURL;
+    const originalFetch = global.fetch;
+
+    afterEach(() => {
+      global.URL.createObjectURL = originalCreateObjectURL;
+      global.URL.revokeObjectURL = originalRevokeObjectURL;
+      global.fetch = originalFetch;
+      jest.restoreAllMocks();
+    });
+
+    const downloadNameFor = async (
+      props: Partial<React.ComponentProps<typeof AudioControls>>,
+      servedType: string | null
+    ): Promise<string> => {
+      global.URL.createObjectURL = jest.fn(() => "blob:mock-url");
+      global.URL.revokeObjectURL = jest.fn();
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: true,
+          headers: { get: () => servedType },
+          blob: () =>
+            Promise.resolve(new Blob(["audio"], { type: servedType ?? "" }))
+        })
+      ) as unknown as typeof fetch;
+
+      const names: string[] = [];
+      jest
+        .spyOn(HTMLAnchorElement.prototype, "click")
+        .mockImplementation(function (this: HTMLAnchorElement) {
+          names.push(this.getAttribute("download") ?? "");
+        });
+
+      const { container } = renderWithTheme(
+        <AudioControls {...defaultProps} {...props} />
+      );
+      fireEvent.click(
+        container.querySelector(".download-audio-button") as HTMLElement
+      );
+      await waitFor(() => expect(names).toHaveLength(1));
+      return names[0];
+    };
+
+    it("names the file after the format the transfer served", async () => {
+      await expect(
+        downloadNameFor(
+          {
+            filename: "",
+            assetUrl: "http://example.com/api/storage/abc",
+            mimeType: "audio/wav"
+          },
+          "audio/wav"
+        )
+      ).resolves.toBe("audio.wav");
+    });
+
+    it("falls back to the declared mime type when the transfer is opaque", async () => {
+      await expect(
+        downloadNameFor(
+          {
+            filename: "",
+            assetUrl: "http://example.com/api/storage/abc",
+            mimeType: "audio/wav"
+          },
+          "application/octet-stream"
+        )
+      ).resolves.toBe("audio.wav");
+    });
+
+    it("keeps a filename that already names a format", async () => {
+      await expect(
+        downloadNameFor(
+          { filename: "seed-audio.wav", mimeType: "audio/wav" },
+          "audio/wav"
+        )
+      ).resolves.toBe("seed-audio.wav");
     });
   });
 

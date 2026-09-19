@@ -27,6 +27,12 @@ const readFileAsText = async (file: File): Promise<string> => {
   });
 };
 
+const fetchResponse = (bytes: number[], contentType?: string) => ({
+  ok: true,
+  headers: { get: () => contentType ?? null },
+  arrayBuffer: async () => new Uint8Array(bytes).buffer
+});
+
 describe("createAssetFile", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -135,10 +141,9 @@ describe("createAssetFile", () => {
   });
 
   it("fetches image via storage URI when data is a non-binary wrapper (ExtData-like)", async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      arrayBuffer: async () => new Uint8Array([137, 80, 78, 71, 13, 10]).buffer
-    });
+    (global.fetch as jest.Mock).mockResolvedValue(
+      fetchResponse([137, 80, 78, 71, 13, 10], "image/png")
+    );
 
     // Simulate `@msgpack/msgpack`'s ExtData with a placeholder payload.
     class ExtData {
@@ -200,10 +205,9 @@ describe("createAssetFile", () => {
       content_type: "image/png",
       get_url: "https://cdn.example.com/signed/user-1/abc123.png?sig=x"
     });
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      arrayBuffer: async () => new Uint8Array([137, 80, 78, 71]).buffer
-    });
+    (global.fetch as jest.Mock).mockResolvedValue(
+      fetchResponse([137, 80, 78, 71], "image/png")
+    );
 
     const [result] = await createAssetFile(
       {
@@ -227,10 +231,9 @@ describe("createAssetFile", () => {
       name: "fal-video.mp4",
       get_url: "/api/storage/asset-1.mp4"
     });
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer
-    });
+    (global.fetch as jest.Mock).mockResolvedValue(
+      fetchResponse([1, 2, 3], "video/mp4")
+    );
 
     const [result] = await createAssetFile(
       {
@@ -259,10 +262,9 @@ describe("createAssetFile", () => {
       content_type: "image/webp",
       get_url: "/api/storage/asset-2.webp"
     });
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      arrayBuffer: async () => new Uint8Array([82, 73, 70, 70]).buffer
-    });
+    (global.fetch as jest.Mock).mockResolvedValue(
+      fetchResponse([82, 73, 70, 70], "image/webp")
+    );
 
     const [result] = await createAssetFile(
       {
@@ -276,5 +278,75 @@ describe("createAssetFile", () => {
     // Without the fix this would fall back to image/png and a .png extension.
     expect(result.type).toBe("image/webp");
     expect(result.filename).toBe("preview_node.webp");
+  });
+
+  it("keeps a WAV audio ref's format when only the URI names it", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      fetchResponse([82, 73, 70, 70])
+    );
+
+    const [result] = await createAssetFile(
+      {
+        type: "audio",
+        uri: "https://cdn.example.com/files/seed-audio.wav?token=x"
+      },
+      "node"
+    );
+
+    // Without the fix both would claim mp3.
+    expect(result.type).toBe("audio/wav");
+    expect(result.filename).toBe("preview_node.wav");
+  });
+
+  it("keeps a WAV audio ref's format when only metadata names it", async () => {
+    const [result] = await createAssetFile(
+      {
+        type: "audio",
+        data: new Uint8Array([82, 73, 70, 70]),
+        metadata: { format: "wav" }
+      } as any,
+      "node"
+    );
+
+    expect(result.type).toBe("audio/wav");
+    expect(result.filename).toBe("preview_node.wav");
+  });
+
+  it("takes the audio format from what the transfer served", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      fetchResponse([102, 76, 97, 67], "audio/flac")
+    );
+
+    const [result] = await createAssetFile(
+      { type: "audio", uri: "/api/storage/temp/abc" },
+      "node"
+    );
+
+    expect(result.type).toBe("audio/flac");
+    expect(result.filename).toBe("preview_node.flac");
+  });
+
+  it("falls back to mp3 when nothing names an audio format", async () => {
+    const [result] = await createAssetFile(
+      { type: "audio", data: new Uint8Array([1, 2, 3]) } as any,
+      "node"
+    );
+
+    expect(result.type).toBe("audio/mp3");
+    expect(result.filename).toBe("preview_node.mp3");
+  });
+
+  it("ignores an opaque served content type rather than recording it", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      fetchResponse([137, 80, 78, 71], "application/octet-stream")
+    );
+
+    const [result] = await createAssetFile(
+      { type: "image", uri: "/api/storage/temp/abc.png" },
+      "node"
+    );
+
+    expect(result.type).toBe("image/png");
+    expect(result.filename).toBe("preview_node.png");
   });
 });

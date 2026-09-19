@@ -4,6 +4,11 @@ import { trpcClient } from "../trpc/client";
 import { isTRPCErrorWithCode, ApiErrorCode } from "@nodetool-ai/protocol/api-schemas";
 import { resolveMediaUri } from "./resolveMediaUri";
 import { isFunction, isNumber, isObjectLike, isString } from "./typePredicates";
+import {
+  getAudioExtension,
+  getAudioMimeType,
+  getAudioMimeTypeFromUrl
+} from "./audioFormat";
 
 interface AssetFileResult {
   file: File;
@@ -30,6 +35,7 @@ interface TypedOutput {
   uri?: string;
   asset_id?: string;
   filename?: string;
+  metadata?: Record<string, unknown>;
 }
 
 type AssetOutput = TypedOutput | string | Uint8Array | unknown[] | null;
@@ -424,7 +430,26 @@ const isExternalUrl = (url: string): boolean => {
   }
 };
 
-const fetchBinaryFromUri = async (uri: string): Promise<Uint8Array> => {
+interface FetchedBinary {
+  bytes: Uint8Array;
+  contentType: string | null;
+}
+
+/**
+ * A served content type only when it names a real format. `octet-stream` and
+ * the like say nothing, and recording one would override a better guess.
+ */
+const informativeContentType = (
+  value: string | null | undefined
+): string | undefined => {
+  const normalized = (value ?? "").split(";")[0].trim().toLowerCase();
+  if (!normalized.includes("/") || normalized.endsWith("/octet-stream")) {
+    return undefined;
+  }
+  return normalized;
+};
+
+const fetchBinaryFromUri = async (uri: string): Promise<FetchedBinary> => {
   // An `asset://` locator resolves through the asset's own `get_url`; every
   // other scheme needs no lookup.
   const resolved = await resolveMediaUri(uri);
@@ -443,7 +468,10 @@ const fetchBinaryFromUri = async (uri: string): Promise<Uint8Array> => {
     throw new Error(`Unexpected response ${response.status}`);
   }
   const arrayBuffer = await response.arrayBuffer();
-  return new Uint8Array(arrayBuffer);
+  return {
+    bytes: new Uint8Array(arrayBuffer),
+    contentType: response.headers.get("content-type")
+  };
 };
 
 const createSingleAssetFile = async (
@@ -496,9 +524,15 @@ const createSingleAssetFile = async (
         serverContentType = assetResponse.content_type;
       }
       if (downloadUrl) {
-        data = await fetchBinaryFromUri(downloadUrl);
+        const fetched = await fetchBinaryFromUri(downloadUrl);
+        data = fetched.bytes;
+        serverContentType =
+          serverContentType ?? informativeContentType(fetched.contentType);
       } else if (outputUri) {
-        data = await fetchBinaryFromUri(outputUri);
+        const fetched = await fetchBinaryFromUri(outputUri);
+        data = fetched.bytes;
+        serverContentType =
+          serverContentType ?? informativeContentType(fetched.contentType);
       } else {
         console.warn("[createAssetFile] asset metadata missing get_url");
       }
@@ -511,7 +545,9 @@ const createSingleAssetFile = async (
     }
   } else if (shouldFetchFromUri) {
     try {
-      data = await fetchBinaryFromUri(outputUri);
+      const fetched = await fetchBinaryFromUri(outputUri);
+      data = fetched.bytes;
+      serverContentType = informativeContentType(fetched.contentType);
     } catch (err) {
       console.warn("[createAssetFile] Failed to fetch data from URI", err);
       data = originalData ?? new Uint8Array();
@@ -549,8 +585,19 @@ const createSingleAssetFile = async (
       break;
     }
     case "audio": {
-      mimeType = getMimeType(output, serverContentType ?? "audio/mp3");
-      const extension = getExtension(mimeType, "mp3");
+      // Keep the format the backend produced. First the type declared on the
+      // ref, then what the transfer served, then the URI's extension, then the
+      // ref's own `metadata.format`. `getAudioExtension` rejects the empty and
+      // opaque candidates, so the first real audio type wins.
+      const format = typedOutput?.metadata?.format;
+      mimeType =
+        [
+          getMimeType(output, ""),
+          serverContentType,
+          getAudioMimeTypeFromUrl(outputUri),
+          isString(format) ? getAudioMimeType(format) : undefined
+        ].find((candidate) => getAudioExtension(candidate)) ?? "audio/mp3";
+      const extension = getAudioExtension(mimeType) ?? "mp3";
       content = toArrayBuffer(toUint8Array(data));
       filename = buildFilename(desiredFilename, id, suffix, extension, index);
       break;
