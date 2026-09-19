@@ -321,6 +321,12 @@ export type {
   StoryboardStatus,
   TimelineStatus
 } from "./project-summary.js";
+export { listDocumentIndex } from "./document-index.js";
+export type {
+  DocumentIndex,
+  DocumentIndexEntry,
+  DocumentIndexType
+} from "./document-index.js";
 export {
   moveDocumentToProject,
   hasProjectDocumentDependents,

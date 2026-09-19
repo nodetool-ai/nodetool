@@ -1,18 +1,7 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import type { Entity } from "@nodetool-ai/protocol";
 
-import { useEntities } from "../serverState/useEntities";
-import { workflowListQueryKey } from "../serverState/workflowQueryKeys";
-import { trpc, trpcClient } from "../trpc/client";
-import type { RouterOutputs } from "../trpc/client";
-import { useApplications } from "./useApplications";
-import { useJsScripts } from "./jsScript/useJsScripts";
-import { useScripts } from "./script/useScripts";
-import { useStoryboards } from "./storyboard/useStoryboards";
-import { useTimelines } from "./useTimelineSequence";
-
-type WorkflowListType = RouterOutputs["workflows"]["list"];
+import { trpc } from "../trpc/client";
 
 export type DocumentTreeLeafType =
   | "workflow"
@@ -46,172 +35,97 @@ export interface UseDocumentTreeDataResult {
   readonly error: Error | null;
 }
 
-const WORKFLOW_LIST_PAGE_SIZE = 1000;
+const INDEX_STALE_TIME = 30_000;
 
-const loadWorkflows = async (projectId: string): Promise<WorkflowListType> =>
-  trpcClient.workflows.list.query({
-    cursor: "",
-    limit: WORKFLOW_LIST_PAGE_SIZE,
-    project_id: projectId
-  });
+/** Fallback shown when a document was saved without a name. */
+const UNTITLED: Record<DocumentTreeLeafType, string> = {
+  workflow: "Untitled workflow",
+  application: "Untitled app",
+  sketch: "Untitled sketch",
+  script: "Untitled script",
+  storyboard: "Untitled storyboard",
+  timeline: "Untitled video",
+  entity: "Untitled entity",
+  jsscript: "Untitled JS script"
+};
 
-const leaf = (
-  id: string,
-  name: string,
-  type: DocumentTreeLeafType,
-  typeLabel: string,
-  options: Pick<DocumentTreeLeaf, "projectId" | "entity"> = {}
-): DocumentTreeLeaf => ({
-  id,
-  name,
-  type,
-  typeLabel,
-  ...options
-});
+const TYPE_LABELS: Record<DocumentTreeLeafType, string> = {
+  workflow: "Workflow",
+  application: "App",
+  sketch: "Sketch",
+  script: "Script",
+  storyboard: "Storyboard",
+  timeline: "Timeline",
+  entity: "Entity",
+  jsscript: "JS script"
+};
+
+/**
+ * The groups, and the kinds each one holds in the order it shows them. The
+ * index arrives newest-first across every kind at once, so a group's order
+ * comes from partitioning it by kind rather than from the order it arrived in.
+ */
+const GROUPS: readonly {
+  readonly id: DocumentTreeGroup["id"];
+  readonly label: string;
+  readonly types: readonly DocumentTreeLeafType[];
+}[] = [
+  { id: "workflows", label: "Workflows", types: ["workflow"] },
+  { id: "apps", label: "Apps", types: ["application"] },
+  {
+    id: "creative",
+    label: "Creative documents",
+    types: ["sketch", "script", "storyboard", "timeline", "entity"]
+  },
+  { id: "agents", label: "Agents & code", types: ["jsscript"] }
+];
 
 /**
  * Collects the project documents that can be opened from the left rail.
  * Individual list panels retain their richer editing and bulk-action UI; this
  * hook intentionally exposes only the stable identity needed by a navigator.
+ *
+ * One request serves the whole tree. Asking each per-kind list endpoint
+ * instead meant eight round trips whose answers carried entire documents —
+ * graphs, boards, sketch layers — to render a name apiece, and the panel stayed
+ * on its spinner until the slowest of them returned.
  */
 export const useDocumentTreeData = (
   projectId: string
 ): UseDocumentTreeDataResult => {
-  const workflowsQuery = useQuery<WorkflowListType, Error>({
-    queryKey: workflowListQueryKey(WORKFLOW_LIST_PAGE_SIZE, "", projectId),
-    queryFn: () => loadWorkflows(projectId),
-    staleTime: 15 * 60 * 1000,
-    retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false
-  });
-  const sketchesQuery = trpc.sketch.list.useQuery(
+  const indexQuery = trpc.documents.index.useQuery(
     { projectId },
-    { staleTime: 30_000, retry: false }
+    { staleTime: INDEX_STALE_TIME, retry: false }
   );
-  const scriptsQuery = useScripts(projectId);
-  const storyboardsQuery = useStoryboards(projectId);
-  const timelinesQuery = useTimelines(projectId);
-  const entitiesQuery = useEntities(projectId);
-  const jsScriptsQuery = useJsScripts(projectId);
-  const applicationsQuery = useApplications(projectId);
 
   const groups = useMemo<readonly DocumentTreeGroup[]>(() => {
-    const workflows = (workflowsQuery.data?.workflows ?? []).map(
-      (workflow) =>
-        leaf(
-          workflow.id,
-          workflow.name || "Untitled workflow",
-          "workflow",
-          "Workflow",
-          { projectId }
-        )
-    );
-    const applications = (applicationsQuery.data ?? []).map((application) =>
-      leaf(
-        application.id,
-        application.name || "Untitled app",
-        "application",
-        "App",
-        { projectId }
-      )
-    );
-    const creative = [
-      ...(sketchesQuery.data ?? []).map((sketch) =>
-        leaf(sketch.id, sketch.name || "Untitled sketch", "sketch", "Sketch", {
-          projectId
-        })
-      ),
-      ...(scriptsQuery.data ?? []).map((script) =>
-        leaf(script.id, script.name || "Untitled script", "script", "Script", {
-          projectId
-        })
-      ),
-      ...(storyboardsQuery.data ?? []).map((storyboard) =>
-        leaf(
-          storyboard.id,
-          storyboard.name || "Untitled storyboard",
-          "storyboard",
-          "Storyboard",
-          { projectId }
-        )
-      ),
-      ...(timelinesQuery.data ?? []).map((timeline) =>
-        leaf(
-          timeline.id,
-          timeline.name || "Untitled video",
-          "timeline",
-          "Timeline",
-          { projectId }
-        )
-      ),
-      ...(entitiesQuery.data ?? []).map((entity) =>
-        leaf(entity.id, entity.name || "Untitled entity", "entity", "Entity", {
-          projectId,
-          entity
-        })
-      )
-    ];
-    const agents = [
-      ...(jsScriptsQuery.data ?? []).map((script) =>
-        leaf(
-          script.id,
-          script.name || "Untitled JS script",
-          "jsscript",
-          "JS script",
-          { projectId }
-        )
-      )
-    ];
+    const byType = new Map<DocumentTreeLeafType, DocumentTreeLeaf[]>();
+    for (const document of indexQuery.data?.documents ?? []) {
+      const type = document.type;
+      const leaves = byType.get(type) ?? [];
+      leaves.push({
+        id: document.id,
+        name: document.name || UNTITLED[type],
+        type,
+        typeLabel: TYPE_LABELS[type],
+        projectId,
+        entity: document.entity
+      });
+      byType.set(type, leaves);
+    }
+    return GROUPS.map((group) => ({
+      id: group.id,
+      label: group.label,
+      children: group.types.flatMap((type) => byType.get(type) ?? [])
+    })).filter((group) => group.children.length > 0);
+  }, [indexQuery.data, projectId]);
 
-    const allGroups: DocumentTreeGroup[] = [
-      { id: "workflows", label: "Workflows", children: workflows },
-      { id: "apps", label: "Apps", children: applications },
-      { id: "creative", label: "Creative documents", children: creative },
-      { id: "agents", label: "Agents & code", children: agents }
-    ];
-    return allGroups.filter((group) => group.children.length > 0);
-  }, [
-    applicationsQuery.data,
-    entitiesQuery.data,
-    jsScriptsQuery.data,
-    projectId,
-    scriptsQuery.data,
-    sketchesQuery.data,
-    storyboardsQuery.data,
-    timelinesQuery.data,
-    workflowsQuery.data
-  ]);
-
-  const queryErrors = [
-    workflowsQuery.error,
-    sketchesQuery.error,
-    scriptsQuery.error,
-    storyboardsQuery.error,
-    timelinesQuery.error,
-    entitiesQuery.error,
-    jsScriptsQuery.error,
-    applicationsQuery.error
-  ];
-  const error =
-    queryErrors.find(
-      (queryError): queryError is Error => queryError instanceof Error
-    ) ?? null;
-  const isError = Boolean(error);
+  const error = indexQuery.error instanceof Error ? indexQuery.error : null;
 
   return {
     groups,
-    isLoading:
-      workflowsQuery.isLoading ||
-      sketchesQuery.isLoading ||
-      scriptsQuery.isLoading ||
-      storyboardsQuery.isLoading ||
-      timelinesQuery.isLoading ||
-      entitiesQuery.isLoading ||
-      jsScriptsQuery.isLoading ||
-      applicationsQuery.isLoading,
-    isError,
+    isLoading: indexQuery.isLoading,
+    isError: Boolean(error),
     error
   };
 };

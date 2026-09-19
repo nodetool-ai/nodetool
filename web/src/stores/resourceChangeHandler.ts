@@ -122,6 +122,15 @@ function invalidateProjectViews(): void {
   });
 }
 
+/**
+ * The project navigator's index. It lists every kind of document in one query,
+ * so any write that adds, renames, moves or removes one changes what it shows —
+ * and no per-kind `list` invalidation reaches it.
+ */
+function invalidateDocumentIndex(): void {
+  invalidateTrpcProcedure("documents", "index");
+}
+
 /** Invalidate one tRPC procedure's queries — key head is `[router, procedure]`. */
 function invalidateTrpcProcedure(router: string, procedure: string): void {
   queryClient.invalidateQueries({
@@ -207,6 +216,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
 
   if (resource_type === "project") {
     invalidateProjectViews();
+    invalidateDocumentIndex();
     return;
   }
 
@@ -222,6 +232,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     const trpcRouter = DOCUMENT_TRPC_ROUTER[resource_type];
     invalidateTrpcProcedure(trpcRouter, "list");
     invalidateProjectViews();
+    invalidateDocumentIndex();
     for (const procedure of DOCUMENT_EXTRA_PROCEDURES[resource_type] ?? []) {
       invalidateTrpcProcedure(trpcRouter, procedure);
     }
@@ -244,6 +255,11 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
   if (resource_type === "asset") {
     queryClient.invalidateQueries({ queryKey: ["entities"] });
     invalidateProjectViews();
+    invalidateDocumentIndex();
+  }
+
+  if (resource_type === "workflow") {
+    invalidateDocumentIndex();
   }
 
   const queryKeys = RESOURCE_TYPE_TO_QUERY_KEYS[resource_type];
