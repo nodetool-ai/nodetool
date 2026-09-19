@@ -13,11 +13,13 @@ export const UGC_PRODUCT_VIDEO_APP = {
   slug: "ugc-product-video",
   name: "UGC Product Video",
   emoji: "🤳",
+  showEmoji: false,
   featured: true,
-  tagline: "One take. Native voice. A polished social finish.",
+  tagline: "Build a testimonial, then finish it for social.",
   description:
-    "Create a native-audio Seedance 2.5 testimonial, then turn its spoken words into stable captions, restrained motion graphics, and an exact branded close.",
-  note: "🔑 Writing and caption transcription use OpenAI. The sample uses Seedance 2.5 on AtlasCloud with native audio; choose it below or select another compatible model.",
+    "Choose the promise, generate a native-audio testimonial, then turn the spoken words into reviewable captions, restrained motion graphics, and a branded close.",
+  note:
+    "Writing and caption transcription use OpenAI. Choose a compatible native-audio video model, then review the captions before the branded finish.",
   workflows: {
     copy: "Ad Copy in Three Registers",
     creator: "Generate a Native-Audio UGC Testimonial",
@@ -123,19 +125,25 @@ export const UGC_PRODUCT_VIDEO_APP = {
   ],
   sections: [
     {
-      title: "1 · Choose the angle",
+      title: "1 · Settle the angle",
       controls: [
         {
           textVar: "offer",
-          label: "What are you selling?",
+          label: "Offer or product brief",
           multiline: true
+        },
+        {
+          model: { node: "ag", prop: "model" },
+          op: "copy",
+          label: "Writing model",
+          modelKind: "language_model"
         },
         {
           note: "Pick the promise before touching footage. A UGC hook should create curiosity without making a claim the product cannot support."
         },
         {
           run: ["copy"],
-          label: "Explore three angles",
+          label: "Write three angles",
           disabledWhen: "copy"
         }
       ],
@@ -152,7 +160,7 @@ export const UGC_PRODUCT_VIDEO_APP = {
       ]
     },
     {
-      title: "2 · Generate one continuous testimonial",
+      title: "2 · Generate the testimonial",
       controls: [
         {
           note: "Image 1 anchors the creator and room. Image 2 anchors only the product. Seedance 2.5 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
@@ -164,16 +172,17 @@ export const UGC_PRODUCT_VIDEO_APP = {
           op: "creator",
           label: "Video model",
           modelKind: "video_model",
+          task: "reference_to_video",
           default: SEEDANCE_25_MODEL
         },
         {
           textVar: "creatorScript",
-          label: "Complete 15-second script",
+          label: "15-second creator script",
           multiline: true
         },
         {
           run: ["creator"],
-          label: "Make the 15-second testimonial",
+          label: "Render the testimonial",
           disabledWhen: "creator"
         }
       ],
@@ -192,7 +201,7 @@ export const UGC_PRODUCT_VIDEO_APP = {
       ]
     },
     {
-      title: "3 · Finish the Reel",
+      title: "3 · Finish the social cut",
       controls: [
         { textVar: "brand", label: "Brand" },
         { textVar: "slogan", label: "Slogan" },
@@ -209,7 +218,7 @@ export const UGC_PRODUCT_VIDEO_APP = {
         },
         {
           run: ["brand"],
-          label: "Add motion + captions",
+          label: "Render the social cut",
           disabledWhen: "brand"
         }
       ],

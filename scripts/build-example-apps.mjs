@@ -382,6 +382,7 @@ function buildControl(control, ctx) {
         binding,
         label: control.label,
         modelKind: control.modelKind,
+        task: control.task,
         events: []
       }
     };
@@ -636,7 +637,7 @@ function buildApp(app, templates) {
       type: "Heading",
       props: {
         id: nextId(["title"]),
-        text: `${app.emoji} ${app.name}`,
+        text: app.showEmoji === false ? app.name : `${app.emoji} ${app.name}`,
         level: "1"
       }
     },
@@ -752,9 +753,9 @@ function buildApp(app, templates) {
     schemaVersion: documentOperations.some((operation) => operation.target)
       ? 4
       : APP_SCHEMA_VERSION,
-    // No root title: the first widget is already a Heading carrying the app's
-    // emoji and name, and the runtime renders a root title as a heading of its
-    // own — so setting both printed the name twice on every example.
+    // No root title: the first widget is already a Heading carrying the app
+    // name, and the runtime renders a root title as a heading of its own — so
+    // setting both printed the name twice on every example.
     ui: { root: { props: {} }, content, zones: {} },
     operations: documentOperations,
     resources: [],

@@ -2,9 +2,9 @@
   "slug": "ugc-product-video",
   "name": "UGC Product Video",
   "emoji": "🤳",
-  "description": "Create a native-audio Seedance 2.5 testimonial, then turn its spoken words into stable captions, restrained motion graphics, and an exact branded close.",
-  "tagline": "One take. Native voice. A polished social finish.",
-  "note": "🔑 Writing and caption transcription use OpenAI. The sample uses Seedance 2.5 on AtlasCloud with native audio; choose it below or select another compatible model.",
+  "description": "Choose the promise, generate a native-audio testimonial, then turn the spoken words into reviewable captions, restrained motion graphics, and a branded close.",
+  "tagline": "Build a testimonial, then finish it for social.",
+  "note": "Writing and caption transcription use OpenAI. Choose a compatible native-audio video model, then review the captions before the branded finish.",
   "featured": true,
   "image": "/app-preview/img/ugc-product-video.jpg",
   "app": {
@@ -18,7 +18,7 @@
           "type": "Heading",
           "props": {
             "id": "title",
-            "text": "🤳 UGC Product Video",
+            "text": "UGC Product Video",
             "level": "1"
           }
         },
@@ -26,35 +26,45 @@
           "type": "Text",
           "props": {
             "id": "tagline",
-            "text": "One take. Native voice. A polished social finish."
+            "text": "Build a testimonial, then finish it for social."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Writing and caption transcription use OpenAI. The sample uses Seedance 2.5 on AtlasCloud with native audio; choose it below or select another compatible model."
+            "text": "Writing and caption transcription use OpenAI. Choose a compatible native-audio video model, then review the captions before the branded finish."
           }
         },
         {
           "type": "Columns",
           "props": {
-            "id": "cols-1-choose-the-angle",
+            "id": "cols-1-settle-the-angle",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-1-choose-the-angle",
-                  "title": "1 · Choose the angle",
+                  "id": "panel-1-settle-the-angle",
+                  "title": "1 · Settle the angle",
                   "content": [
                     {
                       "type": "TextInput",
                       "props": {
                         "id": "in-offer",
                         "binding": "var:offer",
-                        "label": "What are you selling?",
+                        "label": "Offer or product brief",
                         "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-copy-ag-model",
+                        "binding": "op:copy/prop:ag#model",
+                        "label": "Writing model",
+                        "modelKind": "language_model",
                         "events": []
                       }
                     },
@@ -69,7 +79,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-copy",
-                        "label": "Explore three angles",
+                        "label": "Write three angles",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -95,7 +105,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-1-choose-the-angle-results",
+                  "id": "panel-1-settle-the-angle-results",
                   "title": "Results",
                   "content": [
                     {
@@ -145,14 +155,14 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-2-generate-one-continuous-testimonial",
+            "id": "cols-2-generate-the-testimonial",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-2-generate-one-continuous-testimonial",
-                  "title": "2 · Generate one continuous testimonial",
+                  "id": "panel-2-generate-the-testimonial",
+                  "title": "2 · Generate the testimonial",
                   "content": [
                     {
                       "type": "Text",
@@ -186,6 +196,7 @@
                         "binding": "op:creator/prop:generate#model",
                         "label": "Video model",
                         "modelKind": "video_model",
+                        "task": "reference_to_video",
                         "events": []
                       }
                     },
@@ -194,7 +205,7 @@
                       "props": {
                         "id": "in-creatorscript",
                         "binding": "var:creatorScript",
-                        "label": "Complete 15-second script",
+                        "label": "15-second creator script",
                         "multiline": true,
                         "events": []
                       }
@@ -203,7 +214,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-creator",
-                        "label": "Make the 15-second testimonial",
+                        "label": "Render the testimonial",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -229,7 +240,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-2-generate-one-continuous-testimonial-results",
+                  "id": "panel-2-generate-the-testimonial-results",
                   "title": "Results",
                   "content": [
                     {
@@ -280,14 +291,14 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-3-finish-the-reel",
+            "id": "cols-3-finish-the-social-cut",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-3-finish-the-reel",
-                  "title": "3 · Finish the Reel",
+                  "id": "panel-3-finish-the-social-cut",
+                  "title": "3 · Finish the social cut",
                   "content": [
                     {
                       "type": "TextInput",
@@ -339,7 +350,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-brand",
-                        "label": "Add motion + captions",
+                        "label": "Render the social cut",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -365,7 +376,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-3-finish-the-reel-results",
+                  "id": "panel-3-finish-the-social-cut-results",
                   "title": "Results",
                   "content": [
                     {

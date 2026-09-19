@@ -7,7 +7,7 @@
 // that no longer exists fails the build instead of shipping a dead binding.
 //
 // Entry shape:
-//   slug, name, emoji, tagline, description, note, featured
+//   slug, name, emoji, showEmoji, tagline, description, note, featured
 //   workflows  { <bundleKey>: "<Template Name>" }
 //   variables  [ { id, name, scope, persist?, default? } ]
 //   operations [ { id, name, workflow, policy?, timeoutMs?,
@@ -849,11 +849,13 @@ export const EXAMPLE_APPS = [
     slug: "product-reshoot",
     name: "Product Reshoot",
     emoji: "📦",
+    showEmoji: false,
     featured: true,
-    tagline: "New setting, new light, or a clean cutout — without a reshoot.",
+    tagline: "Relight the product. Change the set. Keep the product fixed.",
     description:
-      "One product photo, three treatments. Put it on a described set, relight it for a season, or strip the background to a real alpha channel for compositing.",
-    note: "🔑 Needs a FAL key. Each treatment is one or two image calls.",
+      "Start with one product photo and make three production-ready passes: a new set, a seasonal relight, or a clean cutout for compositing.",
+    note:
+      "Requires a FAL key. Choose a treatment, review the result, then reuse the same product reference for another pass.",
     workflows: {
       backdrop: "Put a Product on a Studio Backdrop",
       relight: "Relight a Product for a Seasonal Campaign",
@@ -891,13 +893,27 @@ export const EXAMPLE_APPS = [
         controls: [{ image: "productPhoto", label: "Product photo" }]
       },
       {
-        title: "New setting",
+        title: "Set the scene",
         op: "backdrop",
         controls: [
           {
+            model: { node: "bg", prop: "model" },
+            op: "backdrop",
+            label: "Background removal model",
+            modelKind: "image_model",
+            task: "remove_background"
+          },
+          {
+            model: { node: "comp", prop: "model" },
+            op: "backdrop",
+            label: "Scene model",
+            modelKind: "image_model",
+            task: "image_to_image"
+          },
+          {
             select: { node: "comp", prop: "prompt" },
             op: "backdrop",
-            label: "Setting",
+            label: "Scene direction",
             default:
               "Keep the product as it is. Change only what is around it: warm concrete plinth, soft studio key from upper left, blurred background.",
             options: [
@@ -908,21 +924,34 @@ export const EXAMPLE_APPS = [
               "Keep the product as it is. Change only what is around it: wet black rock at the shoreline, overcast sky, sea spray."
             ]
           },
-          { run: ["backdrop"], label: "Place it on the set" }
+          {
+            run: ["backdrop"],
+            label: "Render the new set",
+            disabledWhen: "backdrop"
+          }
         ],
         results: [
           { progress: "backdrop", label: "Cutting out and placing…" },
-          { show: "styled", op: "backdrop", as: "Image", label: "On the set", demo: IMG }
+          { error: "backdrop", label: "The set treatment failed" },
+          { note: "Review the product edges, shadow, and surface before keeping the treatment." },
+          { show: "styled", op: "backdrop", as: "Image", label: "Set treatment", demo: IMG }
         ]
       },
       {
-        title: "New light",
+        title: "Relight the product",
         op: "relight",
         controls: [
           {
+            model: { node: "rl", prop: "model" },
+            op: "relight",
+            label: "Relight model",
+            modelKind: "image_model",
+            task: "relight"
+          },
+          {
             select: { node: "rl", prop: "prompt" },
             op: "relight",
-            label: "Season and light",
+            label: "Seasonal light",
             default: "warm low winter sun from the left, long soft shadows",
             options: [
               "warm low winter sun from the left, long soft shadows",
@@ -932,20 +961,41 @@ export const EXAMPLE_APPS = [
               "cool blue evening light, neon reflections"
             ]
           },
-          { run: ["relight"], label: "Relight it" }
+          {
+            run: ["relight"],
+            label: "Render the relight",
+            disabledWhen: "relight"
+          }
         ],
         results: [
           { progress: "relight", label: "Relighting…" },
-          { show: "seasonal", op: "relight", as: "Image", label: "Relit", demo: IMG }
+          { error: "relight", label: "The relight failed" },
+          { note: "Keep the product identity fixed while you compare the light and shadow." },
+          { show: "seasonal", op: "relight", as: "Image", label: "Seasonal relight", demo: IMG }
         ]
       },
       {
-        title: "Clean cutout",
+        title: "Prepare a cutout",
         op: "cutout",
-        controls: [{ run: ["cutout"], label: "Cut it out" }],
+        controls: [
+          {
+            model: { node: "bg", prop: "model" },
+            op: "cutout",
+            label: "Background removal model",
+            modelKind: "image_model",
+            task: "remove_background"
+          },
+          {
+            run: ["cutout"],
+            label: "Remove the background",
+            disabledWhen: "cutout"
+          }
+        ],
         results: [
           { progress: "cutout", label: "Removing the background…" },
-          { show: "cutout", op: "cutout", as: "Image", label: "Cutout with alpha", demo: IMG }
+          { error: "cutout", label: "The cutout failed" },
+          { note: "Use the transparent result in a layout, product page, or campaign composite." },
+          { show: "cutout", op: "cutout", as: "Image", label: "Transparent cutout", demo: IMG }
         ]
       }
     ]
@@ -956,11 +1006,13 @@ export const EXAMPLE_APPS = [
     slug: "product-shot-video",
     name: "Product Shot Video",
     emoji: "🎥",
+    showEmoji: false,
     featured: true,
-    tagline: "A product photo becomes a hero loop or a turntable clip.",
+    tagline: "Turn a product photo into a controlled moving shot.",
     description:
-      "Image-to-video keeps the product identical and adds only the camera move. Pick a motion for a looping ad, or spin a packshot into a turntable for the product page.",
-    note: "🔑 The ad loop runs Kling on Kie and needs a KIE key. The turntable runs LTX on FAL and needs a FAL key. Both are billed per generation.",
+      "Keep the product reference fixed and choose one camera move for a looping ad or a turntable clip for the product page.",
+    note:
+      "Requires a KIE key for the ad loop or a FAL key for the turntable. Review the motion before exporting the shot.",
     workflows: {
       loop: "Ad Loop from a Product Photo",
       turntable: "Spin a Packshot into a Turntable Clip"
@@ -990,9 +1042,16 @@ export const EXAMPLE_APPS = [
         controls: [{ image: "productPhoto", label: "A clean product photo" }]
       },
       {
-        title: "Hero loop",
+        title: "Make a hero loop",
         op: "loop",
         controls: [
+          {
+            model: { node: "animate", prop: "model" },
+            op: "loop",
+            label: "Video model",
+            modelKind: "video_model",
+            task: "image_to_video"
+          },
           {
             select: "motion",
             op: "loop",
@@ -1005,21 +1064,34 @@ export const EXAMPLE_APPS = [
               "Hold still while steam and light drift around the product"
             ]
           },
-          { run: ["loop"], label: "Make the loop" }
+          {
+            run: ["loop"],
+            label: "Render the hero loop",
+            disabledWhen: "loop"
+          }
         ],
         results: [
           { progress: "loop", label: "Animating…" },
-          { show: "ad_loop", op: "loop", as: "Video", label: "Hero loop", demo: VIDEO }
+          { error: "loop", label: "The hero loop failed" },
+          { note: "Check the first and last frame for a clean loop and stable product geometry." },
+          { show: "ad_loop", op: "loop", as: "Video", label: "Rendered hero loop", demo: VIDEO }
         ]
       },
       {
-        title: "Turntable",
+        title: "Make a turntable",
         op: "turntable",
         controls: [
           {
+            model: { node: "v", prop: "model" },
+            op: "turntable",
+            label: "Video model",
+            modelKind: "video_model",
+            task: "image_to_video"
+          },
+          {
             select: { node: "v", prop: "prompt" },
             op: "turntable",
-            label: "Spin",
+            label: "Turntable direction",
             default: "slow orbit around the product, fixed lighting, product stays centered",
             options: [
               "slow orbit around the product, fixed lighting, product stays centered",
@@ -1028,11 +1100,17 @@ export const EXAMPLE_APPS = [
               "gentle rocking turn, product centered, soft studio light"
             ]
           },
-          { run: ["turntable"], label: "Spin it" }
+          {
+            run: ["turntable"],
+            label: "Render the turntable",
+            disabledWhen: "turntable"
+          }
         ],
         results: [
           { progress: "turntable", label: "Rendering the turntable…" },
-          { show: "turntable", op: "turntable", as: "Video", label: "Turntable clip", demo: VIDEO }
+          { error: "turntable", label: "The turntable failed" },
+          { note: "Use the turntable when the product page needs a clear view around the packshot." },
+          { show: "turntable", op: "turntable", as: "Video", label: "Rendered turntable", demo: VIDEO }
         ]
       }
     ]
@@ -1086,11 +1164,13 @@ export const EXAMPLE_APPS = [
     slug: "scene-builder",
     name: "Scene Builder",
     emoji: "🎞️",
+    showEmoji: false,
     featured: true,
-    tagline: "See the look as a still, then bring it to life.",
+    tagline: "Approve the frame, then animate the shot.",
     description:
-      "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and color.",
-    note: "🔑 Needs a FAL key. The still is one FLUX call, the motion one LTX call.",
+      "Describe a scene, review the editorial still, then animate that exact frame so the subject, framing, and color carry into the moving shot.",
+    note:
+      "Requires a FAL key. Approve the still before you render the moving shot.",
     workflows: { look: "Editorial Still from a Line", motion: "Bring a Still to Life" },
     variables: [
       { id: "still", name: "The still", scope: "instance", type: "image" }
@@ -1113,25 +1193,41 @@ export const EXAMPLE_APPS = [
     ],
     sections: [
       {
-        title: "The look",
+        title: "Approve the frame",
         op: "look",
         controls: [
-          { text: "subject", op: "look", label: "Describe the scene", multiline: true },
-          { run: ["look"], label: "Show me the look" }
+          {
+            model: { node: "img", prop: "model" },
+            op: "look",
+            label: "Image model",
+            modelKind: "image_model",
+            task: "text_to_image"
+          },
+          { text: "subject", op: "look", label: "Scene brief", multiline: true },
+          { run: ["look"], label: "Render the still", disabledWhen: "look" }
         ],
         results: [
           { progress: "look", label: "Rendering the still…" },
-          { showVar: "still", as: "Image", label: "The still", demo: IMG }
+          { error: "look", label: "The still failed" },
+          { note: "Approve the composition before moving to the shot." },
+          { showVar: "still", as: "Image", label: "Approved still", demo: IMG }
         ]
       },
       {
-        title: "Bring it to life",
+        title: "Animate the approved frame",
         op: "motion",
         controls: [
           {
+            model: { node: "vid", prop: "model" },
+            op: "motion",
+            label: "Video model",
+            modelKind: "video_model",
+            task: "image_to_video"
+          },
+          {
             select: "motion",
             op: "motion",
-            label: "Camera move",
+            label: "Shot direction",
             options: [
               "Slow push in with a gentle parallax drift",
               "Slow pull back revealing more of the scene",
@@ -1143,17 +1239,23 @@ export const EXAMPLE_APPS = [
           {
             slider: { node: "vid", prop: "duration" },
             op: "motion",
-            label: "Seconds",
+            label: "Shot length",
             min: 6,
             max: 10,
             step: 2,
             default: 6
           },
-          { run: ["motion"], label: "Animate the still" }
+          {
+            run: ["motion"],
+            label: "Render the moving shot",
+            disabledWhen: "motion"
+          }
         ],
         results: [
           { progress: "motion", label: "Animating…" },
-          { show: "animated", op: "motion", as: "Video", label: "The moving shot", demo: VIDEO }
+          { error: "motion", label: "The moving shot failed" },
+          { note: "Review the motion for continuity with the approved still." },
+          { show: "animated", op: "motion", as: "Video", label: "Moving shot", demo: VIDEO }
         ]
       }
     ]
@@ -1378,11 +1480,13 @@ export const EXAMPLE_APPS = [
     slug: "ad-maker",
     name: "Ad Maker",
     emoji: "📣",
+    showEmoji: false,
     featured: true,
-    tagline: "Settle the words. Direct the image. Keep the brief.",
+    tagline: "Settle the message. Direct the campaign image.",
     description:
-      "Start with one offer and compare three copy registers with five headline angles. Only then write the visual brief and spend the image call. The final prompt stays beside the hero so the result can be directed instead of guessed at.",
-    note: "🔑 Writing uses OpenAI. The hero uses FAL and runs only when you ask for it.",
+      "Start with one offer, compare copy routes and headline angles, then direct a campaign hero with the approved message beside the visual brief.",
+    note:
+      "Writing uses OpenAI. The hero render uses FAL and only runs after you approve the visual brief.",
     workflows: {
       copy: "Ad Copy in Three Registers",
       headlines: "Five Headlines for a Landing Page",
@@ -1433,17 +1537,34 @@ export const EXAMPLE_APPS = [
     ],
     sections: [
       {
-        title: "1 · Write the routes",
+        title: "1 · Settle the message",
         controls: [
-          { textVar: "offer", label: "What are you advertising?", multiline: true },
+          { textVar: "offer", label: "Offer or product brief", multiline: true },
+          {
+            model: { node: "ag", prop: "model" },
+            op: "copy",
+            label: "Writing model",
+            modelKind: "language_model"
+          },
+          {
+            model: { node: "ag", prop: "model" },
+            op: "headlines",
+            label: "Headline model",
+            modelKind: "language_model"
+          },
           {
             note:
               "Start with the cheap decision point. Compare the writing before generating an image."
           },
-          { run: ["copy", "headlines"], label: "Write copy and headlines" }
+          {
+            run: ["copy", "headlines"],
+            label: "Write the routes",
+            disabledWhen: "copy"
+          }
         ],
         results: [
           { progress: "copy", label: "Writing three registers…" },
+          { error: "copy", label: "The copy routes failed" },
           {
             show: "variants",
             op: "copy",
@@ -1453,6 +1574,7 @@ export const EXAMPLE_APPS = [
               "**Plain**\nOlive Cup. Matte finish. Charcoal lid. Out Friday.\n\n**Playful**\nYour morning has a new plus-one.\n\n**Premium**\nDesigned for the space between first sip and first meeting."
           },
           { progress: "headlines", label: "Testing five angles…" },
+          { error: "headlines", label: "The headline angles failed" },
           {
             show: "headlines",
             op: "headlines",
@@ -1464,21 +1586,39 @@ export const EXAMPLE_APPS = [
         ]
       },
       {
-        title: "2 · Direct the image",
+        title: "2 · Direct the campaign image",
         controls: [
           {
+            model: { node: "ag", prop: "model" },
+            op: "visual",
+            label: "Prompt-writing model",
+            modelKind: "language_model"
+          },
+          {
+            model: { node: "gen", prop: "model" },
+            op: "visual",
+            label: "Image model",
+            modelKind: "image_model",
+            task: "text_to_image"
+          },
+          {
             note:
-              "Carry the strongest promise into the scene. State what the product is doing, where it sits, and what must not appear."
+              "Carry the approved promise into the scene. State what the product is doing, where it sits, and what must not appear."
           },
           {
             textVar: "visualBrief",
             label: "Visual brief",
             multiline: true
           },
-          { run: ["visual"], label: "Generate the hero" }
+          {
+            run: ["visual"],
+            label: "Render the campaign hero",
+            disabledWhen: "visual"
+          }
         ],
         results: [
           { progress: "visual", label: "Writing the prompt and rendering…" },
+          { error: "visual", label: "The campaign hero failed" },
           {
             show: "prompt_used",
             op: "visual",

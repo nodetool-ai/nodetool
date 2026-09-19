@@ -543,6 +543,23 @@ describe("AtlasCloudProvider — imageToVideo", () => {
       { url: expect.stringMatching(/^data:image\/png;base64,/), type: "image" }
     ]);
   });
+
+  it("does not send a resolution unsupported by MiniMax H3", async () => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+
+    await p.referenceToVideo(
+      { images: [Uint8Array.from([0x89, 0x50, 0x4e, 0x47])], videos: [] },
+      {
+        model: videoModel("minimax/h3-fast/reference-to-video"),
+        prompt: "anchor on this",
+        resolution: "2K"
+      }
+    );
+
+    expect(capture.submitBody?.resolution).toBeUndefined();
+  });
 });
 
 describe("AtlasCloudProvider — videoToVideo", () => {

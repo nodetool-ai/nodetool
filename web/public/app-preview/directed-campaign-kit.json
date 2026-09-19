@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "phase-brief",
-            "text": "Stage: Ready. Add one product image and the AI will write the brief and three directions.",
+            "text": "Stage: Ready. Add one product image and the agent will write the brief and three directions.",
             "visibleWhen": {
               "binding": "var:phase",
               "op": "eq",
@@ -420,6 +420,21 @@
                     {
                       "type": "ModelSelect",
                       "props": {
+                        "id": "autofill-model",
+                        "binding": "var:autofillModel",
+                        "label": "Writing model",
+                        "events": [],
+                        "visibleWhen": {
+                          "binding": "var:phase",
+                          "op": "eq",
+                          "value": "brief"
+                        },
+                        "modelKind": "language_model"
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
                         "id": "hero-model",
                         "binding": "op:renderHero/prop:hero-edit#model",
                         "label": "Hero model",
@@ -429,7 +444,8 @@
                           "op": "eq",
                           "value": "brief"
                         },
-                        "modelKind": "image_model"
+                        "modelKind": "image_model",
+                        "task": "image_to_image"
                       }
                     },
                     {
@@ -444,7 +460,8 @@
                           "op": "eq",
                           "value": "brief"
                         },
-                        "modelKind": "image_model"
+                        "modelKind": "image_model",
+                        "task": "image_to_image"
                       }
                     }
                   ]
@@ -2210,6 +2227,10 @@
           "reference_ignore": {
             "from": "variable",
             "variableId": "referenceIgnore"
+          },
+          "model": {
+            "from": "variable",
+            "variableId": "autofillModel"
           }
         },
         "outputs": {
@@ -2554,6 +2575,16 @@
           "optional": true
         },
         "default": "open",
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "autofillModel",
+        "name": "Writing model",
+        "type": {
+          "type": "language_model",
+          "optional": true
+        },
         "scope": "instance",
         "persist": false
       },
@@ -3724,7 +3755,7 @@
       "document": {
         "schemaVersion": 1,
         "description": "Uses a multimodal language model to analyze one product image, fill the campaign brief, and propose three directed concepts.",
-        "code": "\nfunction text(value) {\n  return typeof value === \"string\" ? value.trim() : \"\";\n}\n\nfunction imageUri(value) {\n  if (typeof value === \"string\") return value.trim();\n  if (value && typeof value === \"object\" && typeof value.uri === \"string\") {\n    return value.uri.trim();\n  }\n  return \"\";\n}\n\nfunction parseJson(value) {\n  const raw = text(value);\n  const fenced = raw.match(/\\x60\\x60\\x60(?:json)?\\s*([\\s\\S]*?)\\s*\\x60\\x60\\x60/i);\n  const body = fenced ? fenced[1] : raw;\n  const start = body.indexOf(\"{\");\n  const end = body.lastIndexOf(\"}\");\n  if (start < 0 || end <= start) throw new Error(\"The model returned no JSON object.\");\n  return JSON.parse(body.slice(start, end + 1));\n}\n\nfunction stringField(value, fallback) {\n  const normalized = text(value);\n  return normalized || fallback;\n}\n\nfunction direction(value, id, fallbackTitle) {\n  const source = value && typeof value === \"object\" ? value : {};\n  return {\n    id,\n    title: stringField(source.title, fallbackTitle),\n    setting: stringField(source.setting, \"A restrained product environment\"),\n    composition: stringField(source.composition, \"Product-led composition with generous copy space\"),\n    lighting: stringField(source.lighting, \"Soft directional light with controlled highlights\"),\n    palette: stringField(source.palette, \"Product-led neutrals with one supporting accent\"),\n    preservationInstructions: stringField(\n      source.preservationInstructions,\n      \"Preserve the product silhouette, materials, finish, logo, proportions, and exact campaign copy.\"\n    )\n  };\n}\n\nconst productImage = imageUri(inputs.product_image);\nif (!productImage) throw new Error(\"Add a product image before starting campaign analysis.\");\n\nconst current = {\n  campaignPrompt: text(inputs.campaign_prompt),\n  productName: text(inputs.product_name),\n  campaignMessage: text(inputs.campaign_message),\n  audience: text(inputs.audience),\n  headline: text(inputs.headline),\n  cta: text(inputs.cta),\n  referenceRole: text(inputs.reference_role),\n  referenceUse: text(inputs.reference_use),\n  referenceIgnore: text(inputs.reference_ignore)\n};\n\nlet draft;\nif (text(inputs.draft_json)) {\n  draft = parseJson(inputs.draft_json);\n} else {\n  progress(0.1, \"Reading product image\");\n  let model;\n  try {\n    model = await nodetool.models.pick(\"generate_message\", { query: \"gpt-6-astra\" });\n  } catch {\n    model = await nodetool.models.pick(\"generate_message\");\n  }\n  const referenceImage = imageUri(inputs.reference_image);\n  const images = [productImage, ...(referenceImage ? [referenceImage] : [])];\n  const instruction = [\n    \"Analyze the first image as the product that must remain recognizable.\",\n    referenceImage\n      ? \"The second image is optional visual steering. Use it only according to the reference fields.\"\n      : \"There is no separate visual reference.\",\n    \"Infer a concise product name, campaign message, audience, exact headline, exact CTA, and three materially different campaign directions.\",\n    \"Treat non-empty current values as explicit user overrides. Improve or fill blank values, but do not overwrite a clear override.\",\n    \"Direction A should be direct and iconic, B atmospheric and editorial, and C graphic or unexpected.\",\n    \"Return JSON only with keys productName, campaignMessage, audience, headline, cta, referenceRole, referenceUse, referenceIgnore, directions.\",\n    \"directions must be an array of exactly three objects with title, setting, composition, lighting, palette, preservationInstructions.\",\n    \"Keep headline under 9 words and CTA under 5 words.\",\n    \"Current form state:\",\n    JSON.stringify(current)\n  ].join(\"\\n\");\n  const generated = await nodetool.models.generate(instruction, model, {\n    system:\n      \"You are a senior campaign creative director and product-image analyst. Ground every claim in the supplied image. Never invent certifications, specifications, ingredients, or performance claims.\",\n    images,\n    max_tokens: 3000,\n    temperature: 0.3\n  });\n  if (!generated || generated.error) {\n    throw new Error(generated && generated.error ? generated.error : \"Campaign analysis failed.\");\n  }\n  draft = parseJson(generated.text);\n}\n\nprogress(0.8, \"Structuring campaign directions\");\nconst productName = stringField(current.productName, stringField(draft.productName, \"Featured Product\"));\nconst campaignMessage = stringField(\n  current.campaignMessage,\n  stringField(draft.campaignMessage, \"A distinctive product made for everyday rituals.\")\n);\nconst audience = stringField(current.audience, stringField(draft.audience, \"Design-conscious everyday buyers\"));\nconst headline = stringField(current.headline, stringField(draft.headline, \"Made to be noticed.\"));\nconst cta = stringField(current.cta, stringField(draft.cta, \"Discover more\"));\nconst allowedRoles = [\"none\", \"composition\", \"palette\", \"material\", \"lighting\"];\nconst proposedRole = stringField(current.referenceRole, stringField(draft.referenceRole, \"none\"));\nconst referenceRole = allowedRoles.includes(proposedRole) ? proposedRole : \"none\";\nconst referenceUse = stringField(current.referenceUse, text(draft.referenceUse));\nconst referenceIgnore = stringField(current.referenceIgnore, text(draft.referenceIgnore));\nconst rawDirections = Array.isArray(draft.directions) ? draft.directions : [];\nconst directions = [\n  direction(rawDirections[0], \"A\", \"The Icon\"),\n  direction(rawDirections[1], \"B\", \"The World\"),\n  direction(rawDirections[2], \"C\", \"The Twist\")\n];\nconst brief = {\n  schemaVersion: 1,\n  productName,\n  campaignMessage,\n  audience,\n  headline,\n  cta,\n  productImage: inputs.product_image,\n  referenceImage: inputs.reference_image,\n  referenceRole,\n  referenceUse,\n  referenceIgnore\n};\nconst plan = { schemaVersion: 1, brief, directions };\nconst markdown = directions\n  .map((item) =>\n    \"### \" + item.id + \" — \" + item.title + \"\\n\\n\" +\n    \"**Setting:** \" + item.setting + \"\\n\\n\" +\n    \"**Composition:** \" + item.composition + \"\\n\\n\" +\n    \"**Lighting:** \" + item.lighting + \"\\n\\n\" +\n    \"**Palette:** \" + item.palette + \"\\n\\n\" +\n    \"**Preserve:** \" + item.preservationInstructions\n  )\n  .join(\"\\n\\n---\\n\\n\");\n\nawait output(\"product_name\", productName);\nawait output(\"campaign_message\", campaignMessage);\nawait output(\"audience\", audience);\nawait output(\"headline\", headline);\nawait output(\"cta\", cta);\nawait output(\"reference_role\", referenceRole);\nawait output(\"reference_use\", referenceUse);\nawait output(\"reference_ignore\", referenceIgnore);\nawait output(\"directions\", markdown);\nawait output(\"plan\", JSON.stringify(plan));\nawait output(\"choice\", \"A\");\nawait output(\"phase\", \"directions_ready\");\nprogress(1, \"Campaign directions ready\");\n",
+        "code": "\nfunction text(value) {\n  return typeof value === \"string\" ? value.trim() : \"\";\n}\n\nfunction imageUri(value) {\n  if (typeof value === \"string\") return value.trim();\n  if (value && typeof value === \"object\" && typeof value.uri === \"string\") {\n    return value.uri.trim();\n  }\n  return \"\";\n}\n\nfunction parseJson(value) {\n  const raw = text(value);\n  const fenced = raw.match(/\\x60\\x60\\x60(?:json)?\\s*([\\s\\S]*?)\\s*\\x60\\x60\\x60/i);\n  const body = fenced ? fenced[1] : raw;\n  const start = body.indexOf(\"{\");\n  const end = body.lastIndexOf(\"}\");\n  if (start < 0 || end <= start) throw new Error(\"The model returned no JSON object.\");\n  return JSON.parse(body.slice(start, end + 1));\n}\n\nfunction stringField(value, fallback) {\n  const normalized = text(value);\n  return normalized || fallback;\n}\n\nfunction direction(value, id, fallbackTitle) {\n  const source = value && typeof value === \"object\" ? value : {};\n  return {\n    id,\n    title: stringField(source.title, fallbackTitle),\n    setting: stringField(source.setting, \"A restrained product environment\"),\n    composition: stringField(source.composition, \"Product-led composition with generous copy space\"),\n    lighting: stringField(source.lighting, \"Soft directional light with controlled highlights\"),\n    palette: stringField(source.palette, \"Product-led neutrals with one supporting accent\"),\n    preservationInstructions: stringField(\n      source.preservationInstructions,\n      \"Preserve the product silhouette, materials, finish, logo, proportions, and exact campaign copy.\"\n    )\n  };\n}\n\nconst productImage = imageUri(inputs.product_image);\nif (!productImage) throw new Error(\"Add a product image before starting campaign analysis.\");\n\nconst current = {\n  campaignPrompt: text(inputs.campaign_prompt),\n  productName: text(inputs.product_name),\n  campaignMessage: text(inputs.campaign_message),\n  audience: text(inputs.audience),\n  headline: text(inputs.headline),\n  cta: text(inputs.cta),\n  referenceRole: text(inputs.reference_role),\n  referenceUse: text(inputs.reference_use),\n  referenceIgnore: text(inputs.reference_ignore)\n};\n\nlet draft;\nif (text(inputs.draft_json)) {\n  draft = parseJson(inputs.draft_json);\n} else {\n  progress(0.1, \"Reading product image\");\n  const model = inputs.model || (await nodetool.models.pick(\"generate_message\"));\n  const referenceImage = imageUri(inputs.reference_image);\n  const images = [productImage, ...(referenceImage ? [referenceImage] : [])];\n  const instruction = [\n    \"Analyze the first image as the product that must remain recognizable.\",\n    referenceImage\n      ? \"The second image is optional visual steering. Use it only according to the reference fields.\"\n      : \"There is no separate visual reference.\",\n    \"Infer a concise product name, campaign message, audience, exact headline, exact CTA, and three materially different campaign directions.\",\n    \"Treat non-empty current values as explicit user overrides. Improve or fill blank values, but do not overwrite a clear override.\",\n    \"Direction A should be direct and iconic, B atmospheric and editorial, and C graphic or unexpected.\",\n    \"Return JSON only with keys productName, campaignMessage, audience, headline, cta, referenceRole, referenceUse, referenceIgnore, directions.\",\n    \"directions must be an array of exactly three objects with title, setting, composition, lighting, palette, preservationInstructions.\",\n    \"Keep headline under 9 words and CTA under 5 words.\",\n    \"Current form state:\",\n    JSON.stringify(current)\n  ].join(\"\\n\");\n  const generated = await nodetool.models.generate(instruction, model, {\n    system:\n      \"You are a senior campaign creative director and product-image analyst. Ground every claim in the supplied image. Never invent certifications, specifications, ingredients, or performance claims.\",\n    images,\n    max_tokens: 3000,\n    temperature: 1\n  });\n  if (!generated || generated.error) {\n    throw new Error(generated && generated.error ? generated.error : \"Campaign analysis failed.\");\n  }\n  draft = parseJson(generated.text);\n}\n\nprogress(0.8, \"Structuring campaign directions\");\nconst productName = stringField(current.productName, stringField(draft.productName, \"Featured Product\"));\nconst campaignMessage = stringField(\n  current.campaignMessage,\n  stringField(draft.campaignMessage, \"A distinctive product made for everyday rituals.\")\n);\nconst audience = stringField(current.audience, stringField(draft.audience, \"Design-conscious everyday buyers\"));\nconst headline = stringField(current.headline, stringField(draft.headline, \"Made to be noticed.\"));\nconst cta = stringField(current.cta, stringField(draft.cta, \"Discover more\"));\nconst allowedRoles = [\"none\", \"composition\", \"palette\", \"material\", \"lighting\"];\nconst proposedRole = stringField(current.referenceRole, stringField(draft.referenceRole, \"none\"));\nconst referenceRole = allowedRoles.includes(proposedRole) ? proposedRole : \"none\";\nconst referenceUse = stringField(current.referenceUse, text(draft.referenceUse));\nconst referenceIgnore = stringField(current.referenceIgnore, text(draft.referenceIgnore));\nconst rawDirections = Array.isArray(draft.directions) ? draft.directions : [];\nconst directions = [\n  direction(rawDirections[0], \"A\", \"The Icon\"),\n  direction(rawDirections[1], \"B\", \"The World\"),\n  direction(rawDirections[2], \"C\", \"The Twist\")\n];\nconst brief = {\n  schemaVersion: 1,\n  productName,\n  campaignMessage,\n  audience,\n  headline,\n  cta,\n  productImage: inputs.product_image,\n  referenceImage: inputs.reference_image,\n  referenceRole,\n  referenceUse,\n  referenceIgnore\n};\nconst plan = { schemaVersion: 1, brief, directions };\nconst markdown = directions\n  .map((item) =>\n    \"### \" + item.id + \" — \" + item.title + \"\\n\\n\" +\n    \"**Setting:** \" + item.setting + \"\\n\\n\" +\n    \"**Composition:** \" + item.composition + \"\\n\\n\" +\n    \"**Lighting:** \" + item.lighting + \"\\n\\n\" +\n    \"**Palette:** \" + item.palette + \"\\n\\n\" +\n    \"**Preserve:** \" + item.preservationInstructions\n  )\n  .join(\"\\n\\n---\\n\\n\");\n\nawait output(\"product_name\", productName);\nawait output(\"campaign_message\", campaignMessage);\nawait output(\"audience\", audience);\nawait output(\"headline\", headline);\nawait output(\"cta\", cta);\nawait output(\"reference_role\", referenceRole);\nawait output(\"reference_use\", referenceUse);\nawait output(\"reference_ignore\", referenceIgnore);\nawait output(\"directions\", markdown);\nawait output(\"plan\", JSON.stringify(plan));\nawait output(\"choice\", \"A\");\nawait output(\"phase\", \"directions_ready\");\nprogress(1, \"Campaign directions ready\");\n",
         "inputs": [
           {
             "name": "product_image",
@@ -3773,6 +3804,10 @@
           {
             "name": "draft_json",
             "type": "str"
+          },
+          {
+            "name": "model",
+            "type": "language_model"
           }
         ],
         "outputs": [

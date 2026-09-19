@@ -44,9 +44,13 @@ import {
   normalizeInputValue,
   resolveInputValue
 } from "../inputProperty";
-import { WorkflowInputIO } from "../workflowIO";
+import { WorkflowInputIO, WorkflowModelTask } from "../workflowIO";
 import { useWidgetRuntime } from "./useWidgetRuntime";
 import { isString } from "../../../utils/typePredicates";
+import type {
+  ImageModelTask,
+  VideoModelTask
+} from "../../../hooks/useModelsByProvider";
 
 interface WorkflowInputWidgetProps {
   id: string;
@@ -89,9 +93,21 @@ const ModelSelect: React.FC<{
     case "language_model":
       return <LanguageModelSelect onChange={onChange} value={modelId} />;
     case "image_model":
-      return <ImageModelSelect onChange={onChange} value={modelId} />;
+      return (
+        <ImageModelSelect
+          onChange={onChange}
+          value={modelId}
+          task={input.task as ImageModelTask | ImageModelTask[] | undefined}
+        />
+      );
     case "video_model":
-      return <VideoModelSelect onChange={onChange} value={modelId} />;
+      return (
+        <VideoModelSelect
+          onChange={onChange}
+          value={modelId}
+          task={input.task as VideoModelTask | VideoModelTask[] | undefined}
+        />
+      );
     case "tts_model":
       return <TTSModelSelect onChange={onChange} value={modelId} />;
     case "asr_model":
@@ -307,6 +323,7 @@ interface ModelSelectWidgetProps {
   binding?: string;
   label?: string;
   modelKind?: string;
+  task?: WorkflowModelTask;
   events?: AppEvent[];
 }
 
@@ -329,9 +346,10 @@ export const ModelSelectWidget: React.FC<ModelSelectWidgetProps> = (props) => {
       nodeType: MODEL_KIND_NODE_TYPE[kind],
       name: props.label || "Model",
       label: props.label || "Model",
-      kind
+      kind,
+      task: props.task
     }),
-    [kind, props.id, props.label]
+    [kind, props.id, props.label, props.task]
   );
 
   return (

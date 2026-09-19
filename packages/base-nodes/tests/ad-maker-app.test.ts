@@ -53,8 +53,8 @@ describe("Ad Maker app", () => {
       .map((component) => component.props.title)
       .filter((title): title is string => typeof title === "string");
 
-    expect(sectionTitles).toContain("1 · Write the routes");
-    expect(sectionTitles).toContain("2 · Direct the image");
+    expect(sectionTitles).toContain("1 · Settle the message");
+    expect(sectionTitles).toContain("2 · Direct the campaign image");
 
     const buttons = components.filter(
       (component) => component.type === "Button"
@@ -68,6 +68,17 @@ describe("Ad Maker app", () => {
     expect(operationIds).toEqual([
       ["copy", "headlines"],
       ["visual"]
+    ]);
+
+    expect(
+      components
+        .filter((component) => component.type === "ModelSelect")
+        .map((component) => [component.props.label, component.props.binding])
+    ).toEqual([
+      ["Writing model", "op:copy/prop:ag#model"],
+      ["Headline model", "op:headlines/prop:ag#model"],
+      ["Prompt-writing model", "op:visual/prop:ag#model"],
+      ["Image model", "op:visual/prop:gen#model"]
     ]);
 
     const visual = bundle.app.operations.find(

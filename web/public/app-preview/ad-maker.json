@@ -2,9 +2,9 @@
   "slug": "ad-maker",
   "name": "Ad Maker",
   "emoji": "📣",
-  "description": "Start with one offer and compare three copy registers with five headline angles. Only then write the visual brief and spend the image call. The final prompt stays beside the hero so the result can be directed instead of guessed at.",
-  "tagline": "Settle the words. Direct the image. Keep the brief.",
-  "note": "🔑 Writing uses OpenAI. The hero uses FAL and runs only when you ask for it.",
+  "description": "Start with one offer, compare copy routes and headline angles, then direct a campaign hero with the approved message beside the visual brief.",
+  "tagline": "Settle the message. Direct the campaign image.",
+  "note": "Writing uses OpenAI. The hero render uses FAL and only runs after you approve the visual brief.",
   "featured": true,
   "image": "/app-preview/img/ad-maker.jpg",
   "app": {
@@ -18,7 +18,7 @@
           "type": "Heading",
           "props": {
             "id": "title",
-            "text": "📣 Ad Maker",
+            "text": "Ad Maker",
             "level": "1"
           }
         },
@@ -26,35 +26,55 @@
           "type": "Text",
           "props": {
             "id": "tagline",
-            "text": "Settle the words. Direct the image. Keep the brief."
+            "text": "Settle the message. Direct the campaign image."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Writing uses OpenAI. The hero uses FAL and runs only when you ask for it."
+            "text": "Writing uses OpenAI. The hero render uses FAL and only runs after you approve the visual brief."
           }
         },
         {
           "type": "Columns",
           "props": {
-            "id": "cols-1-write-the-routes",
+            "id": "cols-1-settle-the-message",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-1-write-the-routes",
-                  "title": "1 · Write the routes",
+                  "id": "panel-1-settle-the-message",
+                  "title": "1 · Settle the message",
                   "content": [
                     {
                       "type": "TextInput",
                       "props": {
                         "id": "in-offer",
                         "binding": "var:offer",
-                        "label": "What are you advertising?",
+                        "label": "Offer or product brief",
                         "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-copy-ag-model",
+                        "binding": "op:copy/prop:ag#model",
+                        "label": "Writing model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-headlines-ag-model",
+                        "binding": "op:headlines/prop:ag#model",
+                        "label": "Headline model",
+                        "modelKind": "language_model",
                         "events": []
                       }
                     },
@@ -69,7 +89,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-copy-headlines",
-                        "label": "Write copy and headlines",
+                        "label": "Write the routes",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -87,7 +107,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:copy/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -98,7 +122,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-1-write-the-routes-results",
+                  "id": "panel-1-settle-the-message-results",
                   "title": "Results",
                   "content": [
                     {
@@ -107,6 +131,20 @@
                         "id": "progress-copy",
                         "binding": "op:copy/exec#progress",
                         "label": "Writing three registers…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-copy",
+                        "binding": "op:copy/exec#error",
+                        "title": "The copy routes failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:copy/exec#error",
+                          "op": "notEmpty"
+                        }
                       }
                     },
                     {
@@ -134,6 +172,20 @@
                       }
                     },
                     {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-headlines",
+                        "binding": "op:headlines/exec#error",
+                        "title": "The headline angles failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:headlines/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-headlines-headlines",
@@ -158,20 +210,41 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-2-direct-the-image",
+            "id": "cols-2-direct-the-campaign-image",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-2-direct-the-image",
-                  "title": "2 · Direct the image",
+                  "id": "panel-2-direct-the-campaign-image",
+                  "title": "2 · Direct the campaign image",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-visual-ag-model",
+                        "binding": "op:visual/prop:ag#model",
+                        "label": "Prompt-writing model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-visual-gen-model",
+                        "binding": "op:visual/prop:gen#model",
+                        "label": "Image model",
+                        "modelKind": "image_model",
+                        "task": "text_to_image",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Text",
                       "props": {
                         "id": "note-2",
-                        "text": "Carry the strongest promise into the scene. State what the product is doing, where it sits, and what must not appear."
+                        "text": "Carry the approved promise into the scene. State what the product is doing, where it sits, and what must not appear."
                       }
                     },
                     {
@@ -188,7 +261,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-visual",
-                        "label": "Generate the hero",
+                        "label": "Render the campaign hero",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -199,7 +272,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:visual/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -210,7 +287,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-2-direct-the-image-results",
+                  "id": "panel-2-direct-the-campaign-image-results",
                   "title": "Results",
                   "content": [
                     {
@@ -219,6 +296,20 @@
                         "id": "progress-visual",
                         "binding": "op:visual/exec#progress",
                         "label": "Writing the prompt and rendering…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-visual",
+                        "binding": "op:visual/exec#error",
+                        "title": "The campaign hero failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:visual/exec#error",
+                          "op": "notEmpty"
+                        }
                       }
                     },
                     {

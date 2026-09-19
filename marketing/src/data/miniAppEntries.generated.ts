@@ -6,15 +6,15 @@ export const miniAppEntries: MiniAppEntry[] = [
   {
     "route": "/apps/ad-maker",
     "title": "Ad Maker — Free AI Mini App | NodeTool",
-    "description": "Settle the words. Direct the image. Keep the brief.",
+    "description": "Settle the message. Direct the campaign image.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "ad-maker",
     "name": "Ad Maker",
-    "summary": "Start with one offer and compare three copy registers with five headline angles. Only then write the visual brief and spend the image call. The final prompt stays beside the hero so the result can be directed instead of guessed at.",
+    "summary": "Start with one offer, compare copy routes and headline angles, then direct a campaign hero with the approved message beside the visual brief.",
     "featured": true,
-    "note": "🔑 Writing uses OpenAI. The hero uses FAL and runs only when you ask for it.",
+    "note": "Writing uses OpenAI. The hero render uses FAL and only runs after you approve the visual brief.",
     "workflows": [
       {
         "name": "Ad Copy in Three Registers",
@@ -40,12 +40,28 @@ export const miniAppEntries: MiniAppEntry[] = [
       "text"
     ],
     "heading": "📣 Ad Maker",
-    "tagline": "Settle the words. Direct the image. Keep the brief.",
-    "buttonLabel": "Write copy and headlines",
+    "tagline": "Settle the message. Direct the campaign image.",
+    "buttonLabel": "Write the routes",
     "inputs": [
       {
-        "label": "What are you advertising?",
+        "label": "Offer or product brief",
         "kind": "text"
+      },
+      {
+        "label": "Writing model",
+        "kind": "model"
+      },
+      {
+        "label": "Headline model",
+        "kind": "model"
+      },
+      {
+        "label": "Prompt-writing model",
+        "kind": "model"
+      },
+      {
+        "label": "Image model",
+        "kind": "model"
       },
       {
         "label": "Visual brief",
@@ -70,7 +86,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       }
     ],
-    "widgetCount": 26
+    "widgetCount": 33
   },
   {
     "route": "/apps/ai-spokesperson",
@@ -470,9 +486,9 @@ export const miniAppEntries: MiniAppEntry[] = [
     "indexable": true,
     "slug": "directed-campaign-kit",
     "name": "Directed Campaign Kit",
-    "summary": "Upload one product image. A multimodal language model fills the brief and proposes three directions before you approve a hero, build two formats, and direct one revision.",
+    "summary": "Upload one product reference, choose a direction, render a hero, build coordinated formats, and direct one bounded revision.",
     "featured": false,
-    "note": null,
+    "note": "The proof below is a captured production run with a real product reference, hero, coordinated formats, and revision. Provider keys are required to rerun it.",
     "workflows": [
       {
         "name": "Render a Directed Campaign Hero",
@@ -496,6 +512,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/render-a-directed-campaign-hero",
+    "productionRecipeSlug": "directed-campaign-kit",
     "screenshot": "/apps/directed-campaign-kit.png",
     "tags": [
       "campaign",
@@ -553,6 +570,18 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "text"
       },
       {
+        "label": "Writing model",
+        "kind": "model"
+      },
+      {
+        "label": "Hero model",
+        "kind": "model"
+      },
+      {
+        "label": "Revision model",
+        "kind": "model"
+      },
+      {
         "label": "Direction",
         "kind": "choice"
       },
@@ -603,7 +632,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       }
     ],
-    "widgetCount": 134
+    "widgetCount": 135
   },
   {
     "route": "/apps/dubbing-desk",
@@ -1154,15 +1183,15 @@ export const miniAppEntries: MiniAppEntry[] = [
   {
     "route": "/apps/product-reshoot",
     "title": "Product Reshoot — Free AI Mini App | NodeTool",
-    "description": "New setting, new light, or a clean cutout — without a reshoot.",
+    "description": "Relight the product. Change the set. Keep the product fixed.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "product-reshoot",
     "name": "Product Reshoot",
-    "summary": "One product photo, three treatments. Put it on a described set, relight it for a season, or strip the background to a real alpha channel for compositing.",
+    "summary": "Start with one product photo and make three production-ready passes: a new set, a seasonal relight, or a clean cutout for compositing.",
     "featured": true,
-    "note": "🔑 Needs a FAL key. Each treatment is one or two image calls.",
+    "note": "Requires a FAL key. Choose a treatment, review the result, then reuse the same product reference for another pass.",
     "workflows": [
       {
         "name": "Put a Product on a Studio Backdrop",
@@ -1187,50 +1216,66 @@ export const miniAppEntries: MiniAppEntry[] = [
       "image"
     ],
     "heading": "📦 Product Reshoot",
-    "tagline": "New setting, new light, or a clean cutout — without a reshoot.",
-    "buttonLabel": "Place it on the set",
+    "tagline": "Relight the product. Change the set. Keep the product fixed.",
+    "buttonLabel": "Render the new set",
     "inputs": [
       {
         "label": "Product photo",
         "kind": "image"
       },
       {
-        "label": "Setting",
+        "label": "Background removal model",
+        "kind": "model"
+      },
+      {
+        "label": "Scene model",
+        "kind": "model"
+      },
+      {
+        "label": "Scene direction",
         "kind": "choice"
       },
       {
-        "label": "Season and light",
+        "label": "Relight model",
+        "kind": "model"
+      },
+      {
+        "label": "Seasonal light",
         "kind": "choice"
+      },
+      {
+        "label": "Background removal model",
+        "kind": "model"
       }
     ],
     "outputs": [
       {
-        "label": "On the set",
+        "label": "Set treatment",
         "kind": "image"
       },
       {
-        "label": "Relit",
+        "label": "Seasonal relight",
         "kind": "image"
       },
       {
-        "label": "Cutout with alpha",
+        "label": "Transparent cutout",
         "kind": "image"
       }
     ],
-    "widgetCount": 28
+    "widgetCount": 38
   },
   {
     "route": "/apps/product-shot-video",
     "title": "Product Shot Video — Free AI Mini App | NodeTool",
-    "description": "A product photo becomes a hero loop or a turntable clip.",
+    "description": "Turn a product photo into a controlled moving shot.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "product-shot-video",
     "name": "Product Shot Video",
-    "summary": "Image-to-video keeps the product identical and adds only the camera move. Pick a motion for a looping ad, or spin a packshot into a turntable for the product page.",
+    "summary": "Keep the product reference fixed and choose one camera move for a looping ad or a turntable clip for the product page.",
     "featured": true,
-    "note": "🔑 The ad loop runs Kling on Kie and needs a KIE key. The turntable runs LTX on FAL and needs a FAL key. Both are billed per generation.",
+    "note": "Requires a KIE key for the ad loop or a FAL key for the turntable. Review the motion before exporting the shot.",
     "workflows": [
       {
         "name": "Ad Loop from a Product Photo",
@@ -1252,33 +1297,41 @@ export const miniAppEntries: MiniAppEntry[] = [
       "video"
     ],
     "heading": "🎥 Product Shot Video",
-    "tagline": "A product photo becomes a hero loop or a turntable clip.",
-    "buttonLabel": "Make the loop",
+    "tagline": "Turn a product photo into a controlled moving shot.",
+    "buttonLabel": "Render the hero loop",
     "inputs": [
       {
         "label": "A clean product photo",
         "kind": "image"
       },
       {
+        "label": "Video model",
+        "kind": "model"
+      },
+      {
         "label": "Camera move",
         "kind": "choice"
       },
       {
-        "label": "Spin",
+        "label": "Video model",
+        "kind": "model"
+      },
+      {
+        "label": "Turntable direction",
         "kind": "choice"
       }
     ],
     "outputs": [
       {
-        "label": "Hero loop",
+        "label": "Rendered hero loop",
         "kind": "video"
       },
       {
-        "label": "Turntable clip",
+        "label": "Rendered turntable",
         "kind": "video"
       }
     ],
-    "widgetCount": 21
+    "widgetCount": 27
   },
   {
     "route": "/apps/research-desk",
@@ -1346,15 +1399,15 @@ export const miniAppEntries: MiniAppEntry[] = [
   {
     "route": "/apps/scene-builder",
     "title": "Scene Builder — Free AI Mini App | NodeTool",
-    "description": "See the look as a still, then bring it to life.",
+    "description": "Approve the frame, then animate the shot.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "scene-builder",
     "name": "Scene Builder",
-    "summary": "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and color.",
+    "summary": "Describe a scene, review the editorial still, then animate that exact frame so the subject, framing, and color carry into the moving shot.",
     "featured": true,
-    "note": "🔑 Needs a FAL key. The still is one FLUX call, the motion one LTX call.",
+    "note": "Requires a FAL key. Approve the still before you render the moving shot.",
     "workflows": [
       {
         "name": "Editorial Still from a Line",
@@ -1375,33 +1428,41 @@ export const miniAppEntries: MiniAppEntry[] = [
       "video"
     ],
     "heading": "🎞️ Scene Builder",
-    "tagline": "See the look as a still, then bring it to life.",
-    "buttonLabel": "Show me the look",
+    "tagline": "Approve the frame, then animate the shot.",
+    "buttonLabel": "Render the still",
     "inputs": [
       {
-        "label": "Describe the scene",
+        "label": "Image model",
+        "kind": "model"
+      },
+      {
+        "label": "Scene brief",
         "kind": "text"
       },
       {
-        "label": "Camera move",
+        "label": "Video model",
+        "kind": "model"
+      },
+      {
+        "label": "Shot direction",
         "kind": "choice"
       },
       {
-        "label": "Seconds",
+        "label": "Shot length",
         "kind": "number"
       }
     ],
     "outputs": [
       {
-        "label": "The still",
+        "label": "Approved still",
         "kind": "image"
       },
       {
-        "label": "The moving shot",
+        "label": "Moving shot",
         "kind": "video"
       }
     ],
-    "widgetCount": 20
+    "widgetCount": 26
   },
   {
     "route": "/apps/sku-factory",
@@ -1680,15 +1741,15 @@ export const miniAppEntries: MiniAppEntry[] = [
   {
     "route": "/apps/ugc-product-video",
     "title": "UGC Product Video — Free AI Mini App | NodeTool",
-    "description": "One take. Native voice. A polished social finish.",
+    "description": "Build a testimonial, then finish it for social.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "ugc-product-video",
     "name": "UGC Product Video",
-    "summary": "Create a native-audio testimonial with a compatible reference-to-video model, then add word-timed captions, restrained motion graphics, and an exact branded close.",
+    "summary": "Choose the promise, generate a native-audio testimonial, then turn the spoken words into reviewable captions, restrained motion graphics, and a branded close.",
     "featured": true,
-    "note": "Writing and caption transcription use OpenAI. Choose a compatible native-audio video model. The featured example uses a supplied Dreamina recording with a custom local animation finish.",
+    "note": "Writing and caption transcription use OpenAI. The featured example uses supplied testimonial media with a custom local animation finish, so it demonstrates the finishing workflow rather than an end-to-end generated run.",
     "workflows": [
       {
         "name": "Ad Copy in Three Registers",
@@ -1720,12 +1781,16 @@ export const miniAppEntries: MiniAppEntry[] = [
       "video"
     ],
     "heading": "🤳 UGC Product Video",
-    "tagline": "One take. Native voice. A polished social finish.",
-    "buttonLabel": "Explore three angles",
+    "tagline": "Build a testimonial, then finish it for social.",
+    "buttonLabel": "Write three angles",
     "inputs": [
       {
-        "label": "What are you selling?",
+        "label": "Offer or product brief",
         "kind": "text"
+      },
+      {
+        "label": "Writing model",
+        "kind": "model"
       },
       {
         "label": "Vertical creator image",
@@ -1736,7 +1801,11 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       },
       {
-        "label": "Complete 15-second script",
+        "label": "Video model",
+        "kind": "model"
+      },
+      {
+        "label": "15-second creator script",
         "kind": "text"
       },
       {
@@ -1770,7 +1839,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "video"
       }
     ],
-    "widgetCount": 39
+    "widgetCount": 40
   },
   {
     "route": "/apps/upscale-image",

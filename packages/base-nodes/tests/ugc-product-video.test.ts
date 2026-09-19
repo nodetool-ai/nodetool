@@ -130,6 +130,18 @@ describe("UGC Product Video recipe", () => {
       components.find(
         (component) =>
           component.type === "ModelSelect" &&
+          component.props.label === "Writing model"
+      )
+    ).toMatchObject({
+      props: {
+        binding: "op:copy/prop:ag#model",
+        modelKind: "language_model"
+      }
+    });
+    expect(
+      components.find(
+        (component) =>
+          component.type === "ModelSelect" &&
           component.props.label === "Video model"
       )
     ).toMatchObject({
@@ -140,14 +152,14 @@ describe("UGC Product Video recipe", () => {
     });
     expect(
       components.find(
-        (component) => component.props.label === "Add motion + captions"
+        (component) => component.props.label === "Render the social cut"
       )?.props.events
     ).toEqual([expect.objectContaining({ kind: "run", operationId: "brand" })]);
     expect(
       components.some(
         (component) =>
           component.type === "Container" &&
-          component.props.title === "3 · Finish the Reel"
+          component.props.title === "3 · Finish the social cut"
       )
     ).toBe(true);
     expect([...operations.keys()]).toEqual(["copy", "creator", "brand"]);

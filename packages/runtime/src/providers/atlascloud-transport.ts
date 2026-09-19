@@ -190,6 +190,8 @@ export interface AtlasPollResult {
 export interface AtlasPollOptions {
   pollInterval?: number;
   maxAttempts?: number;
+  /** Number of initial 404s tolerated while AtlasCloud registers a job. */
+  notFoundRetries?: number;
   signal?: AbortSignal;
 }
 
@@ -212,7 +214,9 @@ export async function atlasPoll(
 ): Promise<AtlasPollResult> {
   const pollInterval = opts.pollInterval ?? 3000;
   const maxAttempts = opts.maxAttempts ?? 600;
+  const notFoundRetries = Math.max(0, opts.notFoundRetries ?? 3);
   const url = `${ATLAS_BASE}${pollPath(predictionId)}`;
+  let notFoundCount = 0;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // `sleep` resolves rather than throws on abort, so without this an aborted
@@ -245,6 +249,13 @@ export async function atlasPoll(
       );
     }
     if (!res.ok) {
+      if (res.status === 404 && notFoundCount < notFoundRetries) {
+        notFoundCount += 1;
+        if (attempt < maxAttempts - 1) {
+          await sleep(pollInterval, opts.signal);
+          continue;
+        }
+      }
       throw new Error(`AtlasCloud poll ${res.status}: ${text.slice(0, 500)}`);
     }
     if (attempt < maxAttempts - 1) await sleep(pollInterval, opts.signal);

@@ -563,6 +563,67 @@ describe("createAtlasNodeClass.process", () => {
     });
   });
 
+  it("falls back to a model enum default when a persisted value is stale", async () => {
+    let submittedBody: Record<string, unknown> | undefined;
+    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u.endsWith("/generateImage")) {
+        submittedBody = JSON.parse(init!.body as string);
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ data: { id: "pid-stale" } })
+        } as Response;
+      }
+      if (u.includes("/prediction/pid-stale")) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          text: async () =>
+            JSON.stringify({
+              data: { status: "completed", outputs: ["https://cdn/stale.png"] }
+            })
+        } as Response;
+      }
+      if (u === "https://cdn/stale.png") {
+        return {
+          ok: true,
+          arrayBuffer: async () => Uint8Array.from([1]).buffer
+        } as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    const Cls = createAtlasNodeClass(
+      makeSpec({
+        fields: [
+          { name: "prompt", type: "str", default: "", required: true },
+          {
+            name: "resolution",
+            type: "enum",
+            default: "480P",
+            values: ["480P"]
+          }
+        ]
+      })
+    ) as unknown as new (properties?: Record<string, unknown>) => {
+      process: (ctx: unknown) => Promise<Record<string, unknown>>;
+      setDynamic: (key: string, value: unknown) => void;
+    };
+    const node = new Cls({ prompt: "stale", resolution: "2K" });
+    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "test-key" });
+    await node.process({
+      storage: { store: vi.fn().mockResolvedValue("memory://out") }
+    });
+
+    expect(submittedBody).toEqual({
+      model: "test/model/t2i",
+      prompt: "stale",
+      resolution: "480P"
+    });
+  });
+
   it("wraps a single-image field with array:true into [url]", async () => {
     const submitted: { body: unknown } = { body: null };
     global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {

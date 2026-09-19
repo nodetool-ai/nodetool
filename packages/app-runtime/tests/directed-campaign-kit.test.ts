@@ -244,7 +244,7 @@ describe("Directed Campaign Kit bundle", () => {
       variableId: "recordFile"
     });
     expect(widgetById("phase-brief").props.text).toBe(
-      "Stage: Ready. Add one product image and the AI will write the brief and three directions."
+      "Stage: Ready. Add one product image and the agent will write the brief and three directions."
     );
     expect(widgetById("reference-and-models").props).toMatchObject({
       title: "Optional steering and models",
@@ -360,6 +360,7 @@ describe("Directed Campaign Kit bundle", () => {
       .filter((candidate) => candidate.type === "ModelSelect")
       .map((candidate) => [candidate.props.binding, candidate.props.modelKind]);
     expect(modelBindings).toEqual([
+      ["var:autofillModel", "language_model"],
       ["op:renderHero/prop:hero-edit#model", "image_model"],
       ["op:reviseHero/prop:revision-edit#model", "image_model"]
     ]);

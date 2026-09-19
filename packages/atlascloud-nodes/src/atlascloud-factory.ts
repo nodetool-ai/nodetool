@@ -711,6 +711,24 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
         }
 
         if (v === "") continue;
+        if (
+          f.type === "enum" &&
+          f.values?.length &&
+          !f.values.some((allowed) => allowed === v)
+        ) {
+          // A model switch can leave a stale enum value in a persisted app.
+          // Use the declared model default when it is valid instead of sending
+          // a parameter that the selected AtlasCloud model cannot accept.
+          if (
+            f.default !== undefined &&
+            f.default !== null &&
+            f.values.some((allowed) => allowed === f.default)
+          ) {
+            // SAFETY: The preceding membership check proves the manifest default is an allowed NodeValue.
+            input[f.name] = f.default as NodeValue;
+          }
+          continue;
+        }
         input[f.name] = coerceScalar(v, f.type);
       }
 

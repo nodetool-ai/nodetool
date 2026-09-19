@@ -32,10 +32,16 @@ const SCREENSHOTS = path.join(MARKETING, "public/apps");
 const OUT_FILE = path.join(MARKETING, "src/data/miniAppEntries.generated.ts");
 
 const MARKETING_OVERRIDES = {
+  "directed-campaign-kit": {
+    summary:
+      "Upload one product reference, choose a direction, render a hero, build coordinated formats, and direct one bounded revision.",
+    note: "The proof below is a captured production run with a real product reference, hero, coordinated formats, and revision. Provider keys are required to rerun it.",
+    productionRecipeSlug: "directed-campaign-kit"
+  },
   "ugc-product-video": {
     summary:
-      "Create a native-audio testimonial with a compatible reference-to-video model, then add word-timed captions, restrained motion graphics, and an exact branded close.",
-    note: "Writing and caption transcription use OpenAI. Choose a compatible native-audio video model. The featured example uses a supplied Dreamina recording with a custom local animation finish.",
+      "Choose the promise, generate a native-audio testimonial, then turn the spoken words into reviewable captions, restrained motion graphics, and a branded close.",
+    note: "Writing and caption transcription use OpenAI. The featured example uses supplied testimonial media with a custom local animation finish, so it demonstrates the finishing workflow rather than an end-to-end generated run.",
     productionRecipeSlug: "ugc-product-video"
   }
 };
@@ -61,6 +67,7 @@ const WRITE_WIDGETS = new Set([
   "AudioInput",
   "VideoInput",
   "ColorInput",
+  "ModelSelect",
 ]);
 // Progress widgets are run feedback, not a result the visitor takes away.
 const READ_WIDGETS = new Set(["Markdown", "Image", "Audio", "Video", "Json", "Table"]);
@@ -89,6 +96,7 @@ const WIDGET_KIND = {
   AudioInput: "audio",
   VideoInput: "video",
   ColorInput: "color",
+  ModelSelect: "model",
 };
 
 /** Human label for what a display widget shows. */
