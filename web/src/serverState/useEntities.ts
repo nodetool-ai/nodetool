@@ -194,9 +194,13 @@ export function useSaveEntity(): UseMutationResult<
   return useMutation({
     mutationFn: async (input: SaveEntityInput): Promise<Entity | null> => {
       const projectId = input.projectId ?? activeProjectId;
+      // Unscoped by project on purpose: the asset being tagged is read
+      // wherever it currently sits (a fresh upload lands in the loose
+      // bucket), and filing it under `projectId` is the membership write
+      // below. Scoping the read to the destination would 404 every asset
+      // this mutation is meant to move. Ownership is the server's check.
       const asset = await trpcClient.assets.get.query({
-        id: input.assetId,
-        project_id: projectId
+        id: input.assetId
       });
       if (input.createOnly && readEntityMarker(asset.metadata)) {
         throw new Error("That image is already used by another entity.");
@@ -249,14 +253,11 @@ export function useSaveEntity(): UseMutationResult<
 /** Remove the entity marker from an asset. The asset itself is left intact. */
 export function useDeleteEntity(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient();
-  const activeProjectId =
-    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
   return useMutation({
     mutationFn: async (assetId: string): Promise<void> => {
-      const asset = await trpcClient.assets.get.query({
-        id: assetId,
-        project_id: activeProjectId
-      });
+      // Read unscoped, as in `useSaveEntity`: an entity shown from another
+      // project is still the caller's asset to untag.
+      const asset = await trpcClient.assets.get.query({ id: assetId });
       const nextMetadata = {
         ...(asset.metadata ?? {})
       } satisfies Record<string, unknown>;
