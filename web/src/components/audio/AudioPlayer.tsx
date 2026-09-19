@@ -424,6 +424,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           zoom={zoom}
           filename={filename}
           assetUrl={audioUrl}
+          mimeType={mimeType}
           onPlayPause={handlePlayPause}
           loop={loop}
           setLoop={setLoop}

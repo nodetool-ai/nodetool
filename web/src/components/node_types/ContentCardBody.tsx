@@ -53,6 +53,7 @@ import { getMimeTypeFromUri } from "../node/output";
 import { useMediaSrc } from "../../hooks/nodes/useMediaSrc";
 import { TextRenderer } from "../node/output/TextRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
+import { getAudioMimeType } from "../../utils/audioFormat";
 import { useMediaOverlay } from "../node/MediaOverlayContext";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -552,7 +553,8 @@ const AudioPreview: React.FC<{ value: unknown }> = ({ value }) => {
   const inlineFormat = (v?.metadata as { format?: string } | undefined)?.format;
   const mimeType =
     getMimeTypeFromUri(isString(v?.uri) ? v.uri : "") ||
-    (inlineFormat === "wav" ? "audio/wav" : "audio/mp3");
+    getAudioMimeType(inlineFormat) ||
+    "audio/mp3";
   // Pass mimeType so the in-memory blob is tagged for WaveSurfer to decode.
   const src = useMediaSrc(value, "audio", mimeType);
   if (!src) {
