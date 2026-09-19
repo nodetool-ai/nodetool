@@ -163,8 +163,11 @@ it("explains missing local speech and disables mode selection", () => {
   expect(fields.find((field) => field.label === "Speech mode")?.readOnly).toBe(
     true
   );
+  // The binding reads under the control it explains, not in a read-only field
+  // of its own that looks like a value the creator typed.
+  expect(fields.find((field) => field.label === "Speech binding")).toBeUndefined();
   expect(
-    fields.find((field) => field.label === "Speech binding")?.value
+    fields.find((field) => field.label === "Speech mode")?.hint
   ).toContain("Add voiceover or dialogue");
 });
 

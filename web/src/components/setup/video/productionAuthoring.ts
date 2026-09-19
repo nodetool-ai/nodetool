@@ -92,10 +92,25 @@ export function productionFields({
   };
   const canBind =
     !!binding || speechText.trim().length > 0 || linkedLineIds.length > 0;
+  // What the speech is bound to, under the control that binds it. It was a
+  // read-only field of its own, which read as a filled-in value and put the
+  // explanation a row below the select it explains.
+  const speechHint = !canBind
+    ? "Add voiceover or dialogue before choosing a speech mode."
+    : binding?.script_line_id
+      ? "Bound to a Script line. Edit the words and the voice in Script."
+      : binding?.audio_asset_id
+        ? "Bound to a recorded audio take."
+        : binding?.text
+          ? "Uses local speech. Production voice and audio resolution are unavailable in this setup."
+          : undefined;
+  // The enums are short values on a narrow column, so they pack into one row
+  // of properties rather than four full-width controls down the card.
   return [
     {
       id: `${id}:purpose`,
       label: "Editorial purpose",
+      compact: true,
       value: current?.editorial_purpose ?? "",
       options: [
         { value: "", label: "Unspecified" },
@@ -118,6 +133,7 @@ export function productionFields({
     {
       id: `${id}:treatment`,
       label: "Visual treatment",
+      compact: true,
       value: current?.visual_treatment ?? "",
       options: [
         { value: "", label: "Unspecified" },
@@ -136,10 +152,22 @@ export function productionFields({
       }
     },
     {
+      id: `${id}:takes`,
+      label: "Requested takes",
+      compact: true,
+      value: String(current?.requested_take_count ?? 1),
+      options: [1, 2, 3].map((count) => ({
+        value: String(count),
+        label: String(count)
+      })),
+      onChange: (count) => change({ requested_take_count: Number(count) })
+    },
+    {
       id: `${id}:speech`,
       label: "Speech mode",
       value: current?.speech_mode ?? "none",
       readOnly: !canBind,
+      hint: speechHint,
       options: [
         { value: "none", label: "None" },
         { value: "off_camera", label: "Off-camera" },
@@ -160,19 +188,6 @@ export function productionFields({
           })
         );
       }
-    },
-    {
-      id: `${id}:binding`,
-      label: "Speech binding",
-      readOnly: true,
-      value: binding?.script_line_id
-        ? `Script line: ${binding.script_line_id}. Edit words and voice in Script.`
-        : binding?.audio_asset_id
-          ? `Audio asset: ${binding.audio_asset_id}`
-          : canBind
-            ? "Uses local speech. Production voice and audio resolution are unavailable in this setup."
-            : "Add voiceover or dialogue before choosing a speech mode.",
-      onChange: () => undefined
     },
     ...(linkedLineIds.length > 1 && current && current.speech_mode !== "none"
       ? [
@@ -199,16 +214,6 @@ export function productionFields({
         change({
           local_direction: local_direction.trim() ? local_direction : undefined
         })
-    },
-    {
-      id: `${id}:takes`,
-      label: "Requested takes",
-      value: String(current?.requested_take_count ?? 1),
-      options: [1, 2, 3].map((count) => ({
-        value: String(count),
-        label: String(count)
-      })),
-      onChange: (count) => change({ requested_take_count: Number(count) })
     }
   ];
 }

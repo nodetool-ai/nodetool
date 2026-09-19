@@ -139,6 +139,12 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
       [onChange]
     );
 
+    // An option whose value is the empty string is a choice with a label of
+    // its own — "Unspecified", "Any", "None". MUI hides the display for an
+    // empty value unless it is told not to, so that option's label never
+    // reached the screen and the field read as a blank box with an arrow.
+    const hasEmptyOption = options.some((option) => option.value === "");
+
     const density = useContext(SelectFieldDensityContext);
     const fieldFontSize = density === "compact" ? FONT_SIZE_SANS.caption : FONT_SIZE_SANS.body;
     const controlHeight =
@@ -174,6 +180,7 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
             open={open}
             onOpen={onOpen}
             onClose={onClose}
+            displayEmpty={hasEmptyOption}
             value={value}
             onChange={handleChange}
             variant={variant}
