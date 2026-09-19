@@ -533,6 +533,52 @@ describe("handleResourceChange", () => {
     expect(matches([["scripts", "palette"], {}])).toBe(false);
   });
 
+  describe("the project navigator's index", () => {
+    /** True when some invalidation this call made matches `documents.index`. */
+    const invalidatedDocumentIndex = (): boolean =>
+      (queryClient.invalidateQueries as jest.Mock).mock.calls.some((call) => {
+        const predicate = call[0]?.predicate;
+        return (
+          isFunction(predicate) &&
+          (predicate as (q: { queryKey: readonly unknown[] }) => boolean)({
+            queryKey: [["documents", "index"], { input: {}, type: "query" }]
+          })
+        );
+      });
+
+    it.each([
+      "workflow",
+      "script",
+      "storyboard",
+      "timelinesequence",
+      "imagedocument",
+      "jsscript",
+      "application",
+      "asset",
+      "project"
+    ])("refetches after a %s change", (resourceType) => {
+      handleResourceChange({
+        type: "resource_change",
+        event: "updated",
+        resource_type: resourceType,
+        resource: { id: "doc-1" }
+      } as ResourceChangeUpdate);
+
+      expect(invalidatedDocumentIndex()).toBe(true);
+    });
+
+    it("leaves it alone for a change that adds no document", () => {
+      handleResourceChange({
+        type: "resource_change",
+        event: "updated",
+        resource_type: "setting",
+        resource: { id: "s-1" }
+      } as ResourceChangeUpdate);
+
+      expect(invalidatedDocumentIndex()).toBe(false);
+    });
+  });
+
   it("includes additional resource properties in the update", () => {
     const update: ResourceChangeUpdate = {
       type: "resource_change",

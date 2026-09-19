@@ -277,6 +277,14 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "endpoints and `save`/`test` write and exercise credentials, so " +
       "the whole router is credential surface."
   },
+  "documents.index": {
+    gap:
+      "The project navigator's one read: every kind of document in a " +
+      "project, name and id only. Same grouping surface as " +
+      "`projects.documents` — a run enumerates each kind through its own " +
+      "`list_*` capability, and what it cannot do is ask which of them " +
+      "belong together."
+  },
   "externalMcp.delete": {
     withheld:
       "External MCP servers carry commands, env vars and headers that may " +
