@@ -294,9 +294,16 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     props.data.workflow_id,
     incomingValueEdge?.source ?? null
   );
+  // Scoped to the handle this Preview is wired to: a source with several
+  // media outputs saves one asset per handle, and an unscoped read showed the
+  // same one under every Preview hanging off that node.
   const sourceFallbackValue = useMemo(
-    () => assetsToPreviewValue(sourceLastJobAssets),
-    [sourceLastJobAssets]
+    () =>
+      assetsToPreviewValue(
+        sourceLastJobAssets,
+        incomingValueEdge?.sourceHandle ?? null
+      ),
+    [sourceLastJobAssets, incomingValueEdge?.sourceHandle]
   );
 
   const displayResult = useMemo(

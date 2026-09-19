@@ -257,7 +257,8 @@ describe("autoSaveAssets", () => {
     expect(row?.size).toBe(PNG_1x1.length);
     expect(row?.metadata).toEqual({
       prompt: "a fox in snow",
-      generation_index: 3
+      generation_index: 3,
+      output_name: "out"
     });
   });
 
@@ -289,7 +290,8 @@ describe("autoSaveAssets", () => {
         model_name: "FLUX.1 [dev]",
         node_type: "nodetool.image.TextToImage",
         params: { width: 1024, seed: 42 }
-      }
+      },
+      output_name: "image"
     });
   });
 
@@ -306,13 +308,41 @@ describe("autoSaveAssets", () => {
     expect((prompt as string).length).toBe(8000);
   });
 
-  it("stores no metadata for a whitespace or non-string prompt and no index", async () => {
+  it("stores no prompt metadata for a whitespace or non-string prompt and no index", async () => {
     for (const prompt of ["   ", 42]) {
       const image: Record<string, unknown> = { type: "image", data: PNG_B64 };
       await autoSaveAssets({ image }, saveOpts({ properties: { prompt } }));
       const row = await Asset.find("1", image.asset_id as string);
-      expect(row?.metadata ?? null).toBeNull();
+      // Only the output handle, which every media asset carries.
+      expect(row?.metadata).toEqual({ output_name: "image" });
     }
+  });
+
+  // Two media outputs on one node used to be indistinguishable once saved, so
+  // a reloaded Preview wired to either handle showed the same asset.
+  it("records the output handle each media asset came from", async () => {
+    const video: Record<string, unknown> = {
+      type: "video",
+      data: [1, 2, 3],
+      mime_type: "video/mp4"
+    };
+    const lastFrame: Record<string, unknown> = {
+      type: "image",
+      data: PNG_B64
+    };
+    await autoSaveAssets(
+      { output: video, last_frame: lastFrame },
+      saveOpts()
+    );
+
+    const videoRow = await Asset.find("1", video.asset_id as string);
+    const frameRow = await Asset.find("1", lastFrame.asset_id as string);
+    expect(
+      (videoRow?.metadata as Record<string, unknown>).output_name
+    ).toBe("output");
+    expect(
+      (frameRow?.metadata as Record<string, unknown>).output_name
+    ).toBe("last_frame");
   });
 
   it("honors an explicit mime_type and decodes an integer-array payload", async () => {

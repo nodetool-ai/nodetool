@@ -172,4 +172,48 @@ describe("assetsToPreviewValue", () => {
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
   });
+
+  // A node with a video output and a last-frame image output saved both under
+  // the same node id, so both Previews hanging off it showed the same asset.
+  describe("output handle scoping", () => {
+    const videoAsset = makeAsset({
+      id: "vid",
+      content_type: "video/mp4",
+      get_url: "https://example.com/clip.mp4",
+      metadata: { output_name: "output" }
+    });
+    const frameAsset = makeAsset({
+      id: "frame",
+      content_type: "image/png",
+      get_url: "https://example.com/last.png",
+      metadata: { output_name: "last_frame" }
+    });
+
+    it("returns only the assets saved under the requested handle", () => {
+      expect(
+        assetsToPreviewValue([videoAsset, frameAsset], "output")
+      ).toEqual({ type: "video", uri: "https://example.com/clip.mp4" });
+      expect(
+        assetsToPreviewValue([videoAsset, frameAsset], "last_frame")
+      ).toEqual({ type: "image", uri: "https://example.com/last.png" });
+    });
+
+    it("returns undefined when the handle produced nothing", () => {
+      expect(
+        assetsToPreviewValue([videoAsset, frameAsset], "mask")
+      ).toBeUndefined();
+    });
+
+    it("ignores the handle for assets saved before it was recorded", () => {
+      const legacy = [
+        makeAsset({ id: "a1", content_type: "video/mp4" }),
+        makeAsset({ id: "a2", content_type: "image/png" })
+      ];
+      expect(assetsToPreviewValue(legacy, "output")).toHaveLength(2);
+    });
+
+    it("returns the whole list when no handle is given", () => {
+      expect(assetsToPreviewValue([videoAsset, frameAsset])).toHaveLength(2);
+    });
+  });
 });

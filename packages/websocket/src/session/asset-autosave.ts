@@ -325,26 +325,36 @@ export async function autoSaveAssets(
   // (docs/media-generation-tracking-design.md § 8, S3).
   const generationIds = generationsForNode(opts.jobId, opts.nodeId);
   const savedAssetIds: string[] = [];
-  const queue: Record<string, unknown>[] = [];
+  // Each entry keeps the top-level output handle it was found under, so a node
+  // with several media outputs (a video and its last frame, say) persists
+  // assets that name which handle produced them. Without it, a reloaded
+  // Preview wired to one handle cannot tell the node's saved assets apart and
+  // shows whichever one its priority order happens to pick — for every handle.
+  const queue: Array<{
+    value: Record<string, unknown>;
+    outputName: string | null;
+  }> = [];
 
   // Collect all asset-like values from the result (may be nested)
-  function collect(value: unknown): void {
+  function collect(value: unknown, outputName: string | null): void {
     if (value === null || value === undefined) return;
     if (Array.isArray(value)) {
-      for (const item of value) collect(item);
+      for (const item of value) collect(item, outputName);
       return;
     }
     if (isAssetLikeValue(value)) {
-      queue.push(value);
+      queue.push({ value, outputName });
       return;
     }
     if (isRecord(value)) {
       for (const v of Object.values(value as Record<string, unknown>)) {
-        collect(v);
+        collect(v, outputName);
       }
     }
   }
-  collect(result);
+  for (const [outputName, value] of Object.entries(result)) {
+    collect(value, outputName);
+  }
 
   // Whether this result carries media at all — used to gate the structured
   // (JSON) generation fallback below so a media node never also persists a
@@ -352,7 +362,7 @@ export async function autoSaveAssets(
   // media value already carries an asset_id and is skipped by the save loop).
   const hasMedia = queue.length > 0;
 
-  for (const assetValue of queue) {
+  for (const { value: assetValue, outputName } of queue) {
     // Skip if already saved
     if (assetValue.asset_id) continue;
 
@@ -401,6 +411,9 @@ export async function autoSaveAssets(
     }
     if (generationIds.length > 0) {
       mediaMeta.generation_ids = generationIds;
+    }
+    if (outputName) {
+      mediaMeta.output_name = outputName;
     }
     if (Object.keys(mediaMeta).length > 0) {
       asset.metadata = mediaMeta;
