@@ -50,7 +50,7 @@ Seeded in `screenshot-server.ts`:
 
 An app is its own resource, not a workflow with an `app_doc`: there is no
 standalone `/apps/<id>` route. The mini-app journey opens the app the way a user
-does — the editor's left rail, Apps, the app, then the tab's Run toggle.
+does — the editor's left rail, Documents, the app, then the tab's Run toggle.
 
 The echo graph is deliberately trivial: both nodes are structural, so the value
 the UI shows after a run is genuinely the value that travelled through the

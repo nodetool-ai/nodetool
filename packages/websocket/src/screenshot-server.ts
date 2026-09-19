@@ -204,7 +204,7 @@ const MOCK_APPLICATIONS = [
   {
     id: "app-mini-app",
     user_id: USER_ID,
-    project_id: "default",
+    project_id: "personal:1",
     name: "Echo Mini App",
     description:
       "Deterministic mini app used by the user-journey suite: echoes its input to an Output widget",

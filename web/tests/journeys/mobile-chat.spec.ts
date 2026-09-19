@@ -82,6 +82,8 @@ test.describe("Chat on a phone", () => {
     const code = await pan(page, ".code-block-content");
     expect(code.scrollWidth).toBeGreaterThan(code.clientWidth);
     expect(code.scrollLeft).toBeGreaterThan(0);
+
+    await page.unrouteAll({ behavior: "ignoreErrors" });
   });
 
   // 320px is the narrowest phone still in use; the longest opener chip is
