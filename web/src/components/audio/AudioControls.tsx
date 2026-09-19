@@ -13,6 +13,7 @@ import UpIcon from "@mui/icons-material/VolumeUp";
 import DownloadIcon from "@mui/icons-material/Download";
 import { ActionButtonGroup } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
+import { getAudioDownloadFilename } from "../../utils/audioFormat";
 
 interface AudioControlsProps {
   fontSize?: "normal" | "small" | "tiny" | undefined;
@@ -20,6 +21,7 @@ interface AudioControlsProps {
   zoom: number;
   filename?: string;
   assetUrl?: string;
+  mimeType?: string;
   onPlayPause: () => void;
   onZoomChange: (value: number) => void;
   loop: boolean;
@@ -126,7 +128,10 @@ const Zoom: React.FC<ZoomProps> = ({
   );
 };
 
-async function download(filename: string, assetUrl: string) {
+async function download(
+  assetUrl: string,
+  options: { filename?: string; mimeType?: string }
+) {
   if (!assetUrl) {
     console.warn("No url provided for download");
     return;
@@ -141,6 +146,16 @@ async function download(filename: string, assetUrl: string) {
     }
 
     const blob = await response.blob();
+
+    // What the transfer served beats what the player was told: a blob URL
+    // carries the format its bytes were tagged with, and a stored asset
+    // carries the backend's own content type.
+    const filename = getAudioDownloadFilename({
+      filename: options.filename,
+      contentType: response.headers.get("content-type") || blob.type,
+      mimeType: options.mimeType,
+      url: assetUrl
+    });
 
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -166,6 +181,7 @@ const AudioControls: React.FC<AudioControlsProps> = memo(({
   setMute,
   filename,
   assetUrl,
+  mimeType,
   onPlayPause,
   onZoomChange
 }): ReactElement => {
@@ -190,11 +206,11 @@ const AudioControls: React.FC<AudioControlsProps> = memo(({
 
   const handleDownload = useCallback(() => {
     if (assetUrl) {
-      download(filename || "audio.mp3", assetUrl);
+      download(assetUrl, { filename, mimeType });
     } else {
       console.warn("No assetUrl provided for download");
     }
-  }, [assetUrl, filename]);
+  }, [assetUrl, filename, mimeType]);
 
   return (
     <div

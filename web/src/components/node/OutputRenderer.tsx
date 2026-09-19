@@ -39,6 +39,7 @@ import AssetViewer from "../assets/AssetViewer";
 import TaskPlanView from "./TaskPlanView";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import isEqual from "../../utils/isEqual";
+import { getAudioMimeType } from "../../utils/audioFormat";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import { trpc } from "../../trpc/client";
@@ -595,10 +596,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         }
 
         const metadata = (v.metadata as { format?: string } | undefined) ?? {};
-        let mimeType = getMimeTypeFromUri(v.uri as string | undefined);
-        if (!mimeType) {
-          mimeType = metadata.format === "wav" ? "audio/wav" : "audio/mp3";
-        }
+        // The ref's own format decides the type, so a WAV or FLAC output is
+        // tagged, and downloaded, as what it is.
+        const mimeType =
+          getMimeTypeFromUri(v.uri as string | undefined) ??
+          getAudioMimeType(metadata.format) ??
+          "audio/mp3";
 
         return (
           <div className="audio" style={AUDIO_WRAPPER_STYLE}>
