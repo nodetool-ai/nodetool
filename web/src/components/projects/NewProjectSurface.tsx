@@ -86,7 +86,6 @@ import {
   useExampleStoryboards
 } from "../../hooks/storyboard/useStoryboards";
 import { useHasConfiguredProvider } from "../../hooks/useHasConfiguredProvider";
-import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
 import useOnboardingStore, {
   isOnboardingFinished
@@ -358,7 +357,6 @@ const NewProjectSurface = () => {
   const setSelectedModel = useGlobalChatStore(
     (state) => state.setSelectedModel
   );
-  const { handleCreateNewWorkflow } = useWorkflowActions();
   // The checklist retires once the getting-started steps are done or
   // dismissed; veterans get the plain project surface.
   const showOnboarding = useOnboardingStore(
@@ -575,6 +573,9 @@ const NewProjectSurface = () => {
         clearProjectFirstTurn(project.id);
         return;
       }
+      // The project agent has its first turn: the checklist's
+      // describe-idea step is done.
+      useOnboardingStore.getState().markStep("describe-idea");
       closeTab(tabId("project-new", PROJECT_NEW_REF));
     } catch (error) {
       addNotification({
@@ -1073,6 +1074,8 @@ const NewProjectSurface = () => {
       // Marked before the first await, so the card reads as busy on the click
       // rather than on the create's first render.
       setPendingFlow(id);
+      // Starting any entry card completes the checklist's guided-flow step.
+      useOnboardingStore.getState().markStep("start-guided-flow");
       // Read at pick time, not at render: a project opened after this mounted
       // is still the one a "current project" start belongs to.
       const existingProjectId =
@@ -1346,8 +1349,25 @@ const NewProjectSurface = () => {
     openProviderOnboarding();
   }, []);
 
-  const handleOpenTemplates = useCallback(() => {
+  const handleOpenExamples = useCallback(() => {
     openPageTab("examples");
+  }, []);
+
+  // The checklist pill for guided flows: the cards live further down this
+  // surface, so the pill scrolls to them instead of starting one itself.
+  const handleStartGuidedFlow = useCallback(() => {
+    document
+      .getElementById("guided-flows")
+      // Optional call: jsdom (and any non-visual host) has no scrolling.
+      ?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+  }, []);
+
+  // The checklist pill for the project agent: focus the composer so the next
+  // keystroke describes the idea. Pressing Start marks the step.
+  const handleDescribeIdea = useCallback(() => {
+    const element = promptRef.current;
+    element?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    element?.focus();
   }, []);
 
   const handleOpenTutorials = useCallback(() => {
@@ -1437,8 +1457,9 @@ const NewProjectSurface = () => {
             <GettingStartedChecklist
               hasConfiguredProvider={hasConfiguredProvider}
               onConnectProvider={handleConnectProvider}
-              onOpenTemplates={handleOpenTemplates}
-              onCreateWorkflow={() => void handleCreateNewWorkflow()}
+              onStartGuidedFlow={handleStartGuidedFlow}
+              onDescribeIdea={handleDescribeIdea}
+              onOpenExamples={handleOpenExamples}
             />
           )}
 
@@ -1454,6 +1475,7 @@ const NewProjectSurface = () => {
           </FlexColumn>
 
           <FlexColumn
+            id="guided-flows"
             gap={SPACING.md}
             sx={{
               "& button": { bgcolor: "common.black" },
@@ -1687,7 +1709,7 @@ const NewProjectSurface = () => {
             <EditorButton
               variant="text"
               density="compact"
-              onClick={handleOpenTemplates}
+              onClick={handleOpenExamples}
             >
               Browse examples
             </EditorButton>
@@ -1716,14 +1738,19 @@ const NewProjectSurface = () => {
                 component="button"
                 type="button"
                 disabled={creating !== null}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) =>
-                  entry.submenu
-                    ? setSubmenu({
-                        kind: entry.submenu,
-                        element: event.currentTarget
-                      })
-                    : void entry.create?.()
-                }
+                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                  if (entry.submenu) {
+                    setSubmenu({
+                      kind: entry.submenu,
+                      element: event.currentTarget
+                    });
+                    return;
+                  }
+                  // A blank document started here is the checklist's
+                  // keep-creating step done the loose-tab way.
+                  useOnboardingStore.getState().markStep("keep-creating");
+                  void entry.create?.();
+                }}
                 sx={{
                   display: "flex",
                   alignItems: "center",
@@ -1809,7 +1836,10 @@ const NewProjectSurface = () => {
                 label={template.label}
                 compact
                 disabled={creating !== null}
-                onClick={() => void createTextFile(template)}
+                onClick={() => {
+                  useOnboardingStore.getState().markStep("keep-creating");
+                  void createTextFile(template);
+                }}
               />
             ))}
           {submenu?.kind === "storyboards" && (
@@ -1819,7 +1849,10 @@ const NewProjectSurface = () => {
                 compact
                 dividerAfter
                 disabled={creating !== null}
-                onClick={() => void createBlankStoryboard()}
+                onClick={() => {
+                  useOnboardingStore.getState().markStep("keep-creating");
+                  void createBlankStoryboard();
+                }}
               />
               {!examplesLoading &&
                 (exampleData ?? []).map((example) => (
@@ -1831,9 +1864,13 @@ const NewProjectSurface = () => {
                     }, already rendered`}
                     compact
                     disabled={creating !== null}
-                    onClick={() =>
-                      void installStoryboardExample(example.slug, example.name)
-                    }
+                    onClick={() => {
+                      useOnboardingStore.getState().markStep("keep-creating");
+                      void installStoryboardExample(
+                        example.slug,
+                        example.name
+                      );
+                    }}
                   />
                 ))}
             </>

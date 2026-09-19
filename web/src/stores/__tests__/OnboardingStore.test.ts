@@ -14,20 +14,20 @@ describe("OnboardingStore", () => {
 
   it("marks a step as completed once", () => {
     const { markStep } = useOnboardingStore.getState();
-    markStep("run-workflow");
-    markStep("run-workflow");
+    markStep("describe-idea");
+    markStep("describe-idea");
     expect(useOnboardingStore.getState().completedSteps).toEqual([
-      "run-workflow"
+      "describe-idea"
     ]);
   });
 
   it("accumulates distinct steps", () => {
     const { markStep } = useOnboardingStore.getState();
-    markStep("open-template");
-    markStep("create-workflow");
+    markStep("start-guided-flow");
+    markStep("keep-creating");
     expect(useOnboardingStore.getState().completedSteps).toEqual([
-      "open-template",
-      "create-workflow"
+      "start-guided-flow",
+      "keep-creating"
     ]);
   });
 
@@ -36,6 +36,29 @@ describe("OnboardingStore", () => {
     expect(useOnboardingStore.getState().dismissed).toBe(true);
   });
 
+  it("migrates workflow-era steps to the project-surface steps", () => {
+    const { migrate } = (useOnboardingStore as unknown as {
+      persist: { getOptions: () => { migrate?: unknown } };
+    }).persist.getOptions();
+    expect(typeof migrate).toBe("function");
+    const next = (
+      migrate as (
+        state: unknown,
+        version: number
+      ) => { completedSteps: string[] }
+    )(
+      {
+        completedSteps: ["open-template", "run-workflow", "create-workflow"],
+        dismissed: false
+      },
+      1
+    );
+    expect(next.completedSteps).toEqual([
+      "start-guided-flow",
+      "describe-idea",
+      "keep-creating"
+    ]);
+  });
   it("records that the first-run provider sign-in was offered", () => {
     expect(useOnboardingStore.getState().providerSignInOffered).toBe(false);
     useOnboardingStore.getState().markProviderSignInOffered();
@@ -46,7 +69,7 @@ describe("OnboardingStore", () => {
     it("is false while steps remain", () => {
       expect(
         isOnboardingFinished({
-          completedSteps: ["open-template"],
+          completedSteps: ["start-guided-flow"],
           dismissed: false
         })
       ).toBe(false);

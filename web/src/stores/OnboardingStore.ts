@@ -1,27 +1,28 @@
 /**
  * OnboardingStore
  *
- * Tracks first-run getting-started progress (open a template, run a
- * workflow, build your own) for the checklist on the new-project surface.
- * Persists to localStorage so progress survives reloads. The "connect a
- * provider" step is derived live from configured secrets and is not stored
- * here — only the fact that the first-run sign-in offer was already made, so
- * a user who declined it is not asked again on every launch.
+ * Tracks first-run getting-started progress for the checklist on the
+ * new-project surface: start a guided flow, describe an idea for the project
+ * agent, and keep creating from examples or blank documents. Persists to
+ * localStorage so progress survives reloads. The "connect a provider" step
+ * is derived live from configured secrets and is not stored here — only the
+ * fact that the first-run sign-in offer was already made, so a user who
+ * declined it is not asked again on every launch.
  */
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type OnboardingStepId =
-  | "open-template"
-  | "run-workflow"
-  | "create-workflow";
+  | "start-guided-flow"
+  | "describe-idea"
+  | "keep-creating";
 
 /** Every step the checklist tracks, in checklist order. */
 export const ONBOARDING_STEP_IDS: readonly OnboardingStepId[] = [
-  "open-template",
-  "run-workflow",
-  "create-workflow"
+  "start-guided-flow",
+  "describe-idea",
+  "keep-creating"
 ];
 
 interface OnboardingProgress {
@@ -71,7 +72,26 @@ export const useOnboardingStore = create<OnboardingStore>()(
     }),
     {
       name: "nodetool-onboarding",
-      version: 1
+      // v1 stored the workflow-era steps (open-template, run-workflow,
+      // create-workflow); v2 carries the project-surface steps, mapped
+      // positionally so a half-finished checklist keeps its count.
+      version: 2,
+      migrate: (persistedState, version) => {
+        if (version > 1 || typeof persistedState !== "object" || persistedState === null) {
+          return persistedState as OnboardingStore;
+        }
+        const legacy = (persistedState as { completedSteps?: string[] })
+          .completedSteps;
+        const mapping: Record<string, OnboardingStepId> = {
+          "open-template": "start-guided-flow",
+          "run-workflow": "describe-idea",
+          "create-workflow": "keep-creating"
+        };
+        return {
+          ...(persistedState as object),
+          completedSteps: (legacy ?? []).map((step) => mapping[step] ?? step)
+        } as OnboardingStore;
+      }
     }
   )
 );

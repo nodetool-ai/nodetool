@@ -94,21 +94,26 @@ interface ChecklistStep {
 interface GettingStartedChecklistProps {
   hasConfiguredProvider: boolean;
   onConnectProvider: () => void;
-  onOpenTemplates: () => void;
-  onCreateWorkflow: () => void;
+  onStartGuidedFlow: () => void;
+  onDescribeIdea: () => void;
+  onOpenExamples: () => void;
 }
 
 /**
- * Slim first-run checklist: connect a provider, open a template, run it, build
- * your own. Steps complete via OnboardingStore markers (provider state is
- * derived live from secrets). Hidden once every step is done or the user
- * dismisses it — so a host can mount it unconditionally.
+ * Slim first-run checklist for the new-project surface: connect a provider,
+ * start a guided flow, describe an idea for the project agent, and keep
+ * creating from examples or blank documents. Each pill guides — it scrolls to
+ * or opens the surface section behind the step — while OnboardingStore marks
+ * the step once the thing is actually done (provider state is derived live
+ * from secrets). Hidden once every step is done or the user dismisses it —
+ * so a host can mount it unconditionally.
  */
 const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
   hasConfiguredProvider,
   onConnectProvider,
-  onOpenTemplates,
-  onCreateWorkflow
+  onStartGuidedFlow,
+  onDescribeIdea,
+  onOpenExamples
 }) => {
   const theme = useTheme();
   const { completedSteps, dismissed, dismiss } = useOnboardingStore(
@@ -127,23 +132,26 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
       onClick: onConnectProvider
     },
     {
-      id: "open-template",
-      label: "Open a starter or template",
-      done: completedSteps.includes("open-template"),
-      onClick: onOpenTemplates
+      id: "start-guided-flow",
+      label: "Start a guided flow",
+      done: completedSteps.includes("start-guided-flow"),
+      // The cards live further down this surface; the pill takes the user
+      // to them, starting one marks the step.
+      onClick: onStartGuidedFlow
     },
     {
-      id: "run-workflow",
-      label: "Run a workflow",
-      done: completedSteps.includes("run-workflow"),
-      // Running happens in the editor; opening a template is the way there.
-      onClick: onOpenTemplates
+      id: "describe-idea",
+      label: "Describe what you want to make",
+      done: completedSteps.includes("describe-idea"),
+      // The composer below the cards is the way there; pressing Start
+      // marks the step.
+      onClick: onDescribeIdea
     },
     {
-      id: "create-workflow",
-      label: "Build your own",
-      done: completedSteps.includes("create-workflow"),
-      onClick: onCreateWorkflow
+      id: "keep-creating",
+      label: "Open an example or a blank doc",
+      done: completedSteps.includes("keep-creating"),
+      onClick: onOpenExamples
     }
   ];
 

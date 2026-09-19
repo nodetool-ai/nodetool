@@ -11,8 +11,9 @@ const renderChecklist = (
 ) => {
   const handlers = {
     onConnectProvider: jest.fn(),
-    onOpenTemplates: jest.fn(),
-    onCreateWorkflow: jest.fn()
+    onStartGuidedFlow: jest.fn(),
+    onDescribeIdea: jest.fn(),
+    onOpenExamples: jest.fn()
   };
   render(
     <ThemeProvider theme={mockTheme}>
@@ -35,9 +36,13 @@ describe("GettingStartedChecklist", () => {
     renderChecklist();
     expect(screen.getByText(/getting started · 0\/4/i)).toBeInTheDocument();
     expect(screen.getByText("Connect an AI provider")).toBeInTheDocument();
-    expect(screen.getByText("Open a starter or template")).toBeInTheDocument();
-    expect(screen.getByText("Run a workflow")).toBeInTheDocument();
-    expect(screen.getByText("Build your own")).toBeInTheDocument();
+    expect(screen.getByText("Start a guided flow")).toBeInTheDocument();
+    expect(
+      screen.getByText("Describe what you want to make")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Open an example or a blank doc")
+    ).toBeInTheDocument();
   });
 
   it("counts the provider step from live secrets state", () => {
@@ -46,8 +51,8 @@ describe("GettingStartedChecklist", () => {
   });
 
   it("counts steps marked in the onboarding store", () => {
-    useOnboardingStore.getState().markStep("open-template");
-    useOnboardingStore.getState().markStep("run-workflow");
+    useOnboardingStore.getState().markStep("start-guided-flow");
+    useOnboardingStore.getState().markStep("describe-idea");
     renderChecklist();
     expect(screen.getByText(/getting started · 2\/4/i)).toBeInTheDocument();
   });
@@ -57,8 +62,12 @@ describe("GettingStartedChecklist", () => {
     const handlers = renderChecklist();
     await user.click(screen.getByText("Connect an AI provider"));
     expect(handlers.onConnectProvider).toHaveBeenCalledTimes(1);
-    await user.click(screen.getByText("Build your own"));
-    expect(handlers.onCreateWorkflow).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByText("Start a guided flow"));
+    expect(handlers.onStartGuidedFlow).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByText("Describe what you want to make"));
+    expect(handlers.onDescribeIdea).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByText("Open an example or a blank doc"));
+    expect(handlers.onOpenExamples).toHaveBeenCalledTimes(1);
   });
 
   it("hides after dismissal", async () => {
@@ -73,7 +82,7 @@ describe("GettingStartedChecklist", () => {
 
   it("renders nothing when every step is complete", () => {
     useOnboardingStore.setState({
-      completedSteps: ["open-template", "run-workflow", "create-workflow"],
+      completedSteps: ["start-guided-flow", "describe-idea", "keep-creating"],
       dismissed: false
     });
     renderChecklist({ hasConfiguredProvider: true });
