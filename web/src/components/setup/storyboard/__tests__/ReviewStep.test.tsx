@@ -133,7 +133,7 @@ describe("ReviewStep", () => {
     renderStep();
     await userEvent.click(screen.getAllByLabelText("Requested takes")[0]);
     await userEvent.click(await screen.findByRole("option", { name: "3" }));
-    await userEvent.type(screen.getByLabelText("Shot 1 · Seconds"), "3.5");
+    await userEvent.type(screen.getAllByLabelText("Seconds")[0], "3.5");
     await userEvent.tab();
     expect(board()?.shots[0]).toMatchObject({
       duration_seconds: 3.5,
@@ -164,7 +164,7 @@ describe("ReviewStep", () => {
 
   it("reports invalid duration instead of dropping it from the plan", async () => {
     renderStep();
-    await userEvent.type(screen.getByLabelText("Shot 1 · Seconds"), "oops");
+    await userEvent.type(screen.getAllByLabelText("Seconds")[0], "oops");
     await userEvent.tab();
     expect(screen.getByRole("alert")).toHaveTextContent("positive duration");
     expect(board()?.shots[0].duration_seconds).toBeUndefined();
@@ -176,10 +176,22 @@ describe("ReviewStep", () => {
       duration_seconds: 2
     });
     renderStep();
-    expect(screen.queryByText("EXT. HEADLAND — DUSK")).not.toBeInTheDocument();
+    // The scene's own field holds it. `ignore` keeps that field out of the
+    // search: a textarea's value is its text content, so it would match here.
+    expect(
+      screen.queryByText("EXT. HEADLAND — DUSK", { ignore: "textarea" })
+    ).not.toBeInTheDocument();
     expect(screen.getByLabelText("Slugline")).toHaveValue(
       "EXT. HEADLAND — DUSK"
     );
+  });
+
+  // The rail is narrower than a slugline: a single-line field clipped the
+  // scene's name to `INT. BLACK PRODUCT STUDIO — I`.
+  it("wraps the scene's own lines instead of clipping them", () => {
+    renderStep();
+    expect(screen.getByLabelText("Slugline").tagName).toBe("TEXTAREA");
+    expect(screen.getByLabelText("Lighting").tagName).toBe("TEXTAREA");
   });
 
   it("renders the screenplay as text and starts no render job", () => {
@@ -318,7 +330,7 @@ describe("ReviewStep", () => {
     const user = userEvent.setup();
     renderStep();
 
-    await user.type(screen.getByLabelText("Shot 2 · Seconds"), "4");
+    await user.type(screen.getAllByLabelText("Seconds")[1], "4");
     await user.tab();
 
     expect(board()?.shots[1].duration_seconds).toBe(4);
@@ -422,7 +434,9 @@ describe("ReviewStep — an imported FDX", () => {
       "SOPHIA\n(under her breath)\nNot today. Not again."
     );
     expect(
-      screen.getAllByLabelText("Slugline").map((el) => el.getAttribute("value"))
+      screen
+        .getAllByLabelText("Slugline")
+        .map((el) => (el as HTMLTextAreaElement).value)
     ).toEqual([
       "INT. SOPHIA'S FLAT - HALLWAY - EARLY MORNING",
       "EXT. CANAL PATH - MINUTES LATER"

@@ -4,8 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
-import { PlanReview } from "../PlanReview";
-import type { PlanReviewSection } from "../PlanReview";
+import { PlanReview, toLines } from "../PlanReview";
+import type { PlanReviewField, PlanReviewSection } from "../PlanReview";
 
 const makeSections = (onChange: jest.Mock): PlanReviewSection[] => [
   {
@@ -36,6 +36,59 @@ const makeSections = (onChange: jest.Mock): PlanReviewSection[] => [
   }
 ];
 
+const row = (
+  id: string,
+  extra: Partial<PlanReviewField> = {}
+): PlanReviewField => ({
+  id,
+  label: id,
+  value: "",
+  onChange: jest.fn(),
+  ...extra
+});
+
+// A shot's length, purpose, treatment and take count are four short values.
+// Down the card they read as four controls; on one line they read as the
+// shot's properties.
+describe("toLines", () => {
+  const ids = (rows: PlanReviewField[]): string[][] =>
+    toLines(rows).map((line) => line.map((field) => field.id));
+
+  it("runs short fields together on one line", () => {
+    expect(
+      ids([
+        row("seconds", { compact: true }),
+        row("purpose", { compact: true }),
+        row("treatment", { compact: true }),
+        row("takes", { compact: true })
+      ])
+    ).toEqual([["seconds", "purpose", "treatment", "takes"]]);
+  });
+
+  it("keeps a single short field beside the field it introduces", () => {
+    expect(ids([row("speaker", { compact: true }), row("line")])).toEqual([
+      ["speaker", "line"]
+    ]);
+  });
+
+  it("gives a full-width field its own line after a run of short ones", () => {
+    expect(
+      ids([
+        row("seconds", { compact: true }),
+        row("takes", { compact: true }),
+        row("direction")
+      ])
+    ).toEqual([["seconds", "takes"], ["direction"]]);
+  });
+
+  it("never puts two full-width fields side by side", () => {
+    expect(ids([row("action"), row("dialogue")])).toEqual([
+      ["action"],
+      ["dialogue"]
+    ]);
+  });
+});
+
 describe("PlanReview", () => {
   it("writes an inline edit back through the row", async () => {
     const user = userEvent.setup();
@@ -53,6 +106,39 @@ describe("PlanReview", () => {
     await user.type(screen.getByLabelText("Shot 2 action"), "!");
 
     expect(onChange).toHaveBeenCalledWith("Waves break on rock!");
+  });
+
+  // A read-only field holding a sentence of guidance reads as a value the
+  // creator typed. A hint is help, so it sits under the control, unboxed.
+  it("draws a hint under its control, outside any field", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <PlanReview
+          sections={[
+            {
+              id: "shot-1",
+              header: "Shot 1",
+              rows: [
+                {
+                  id: "speech",
+                  label: "Speech mode",
+                  value: "none",
+                  options: [{ value: "none", label: "None" }],
+                  hint: "Add voiceover or dialogue before choosing a speech mode.",
+                  onChange: jest.fn()
+                }
+              ]
+            }
+          ]}
+        />
+      </ThemeProvider>
+    );
+
+    const hint = screen.getByText(
+      "Add voiceover or dialogue before choosing a speech mode."
+    );
+    expect(hint).toBeInTheDocument();
+    expect(hint.closest("input, textarea")).toBeNull();
   });
 
   it("renders every section header", () => {

@@ -32,11 +32,13 @@ import type { SelectOption } from "../ui_primitives";
 import {
   EDITABLE_FIELD,
   REVIEW_BLOCK,
+  REVIEW_COMPACT_MAX_WIDTH,
   REVIEW_COMPACT_WIDTH,
   REVIEW_CONTENT_WIDTH,
   REVIEW_FLEX_MIN_WIDTH,
   REVIEW_SCENE,
   REVIEW_SCENE_RAIL,
+  REVIEW_SELECT_WIDTH,
   REVIEW_WIDE_WIDTH
 } from "./reviewStyles";
 
@@ -73,9 +75,9 @@ export interface PlanReviewField {
    */
   options?: readonly SelectOption[];
   /**
-   * A short field — a speaker, a shot size. It keeps a narrow fixed column and
-   * shares its line with the field that follows, instead of stretching the
-   * full width of the review.
+   * A short field — a speaker, a shot size, a take count. It keeps a narrow
+   * fixed column and shares its line with the short fields around it, instead
+   * of stretching the full width of the review.
    */
   compact?: boolean;
   /**
@@ -92,6 +94,13 @@ export interface PlanReviewField {
   indent?: boolean;
   /** Empty optional fields open on request. */
   addLabel?: string;
+  /**
+   * One quiet line under the control: what the field is bound to, or why it
+   * is read-only. It is help, not data, so it does not get a box of its own —
+   * a read-only field holding a sentence of guidance reads as a filled-in
+   * value, and the guidance ends up a row away from the control it explains.
+   */
+  hint?: string;
 }
 
 /**
@@ -155,12 +164,18 @@ export interface PlanReviewProps {
 }
 
 /**
- * Packs a section's fields into visual lines. A short field opens a line and
- * the field after it joins that line — a speaker and the words spoken. Every
- * other field gets a line of its own, so two unrelated rows can never end up
- * side by side.
+ * Packs a section's fields into visual lines. Short fields run together on one
+ * line — a length, a purpose, a treatment, a take count read as one row of
+ * properties rather than five full-width controls stacked down the card. A
+ * full-width field joins a line only behind a single short one, the speaker
+ * and the words spoken; otherwise it takes a line of its own, so two unrelated
+ * bodies of text can never end up side by side.
+ *
+ * The line is a wrapping row, so it is the packing rule here and the field
+ * widths in `fieldSx` together that decide how many actually share a visual
+ * line: a narrow pane wraps what does not fit rather than squeezing it.
  */
-const toLines = (
+export const toLines = (
   rows: readonly PlanReviewField[]
 ): readonly (readonly PlanReviewField[])[] => {
   const lines: PlanReviewField[][] = [];
@@ -169,7 +184,9 @@ const toLines = (
     const opensLine =
       current.length === 0
         ? false
-        : row.compact || current.some((field) => !field.compact);
+        : row.compact
+          ? !current.every((field) => field.compact)
+          : current.length > 1 || !current[0].compact;
     if (opensLine) {
       lines.push(current);
       current = [];
@@ -217,6 +234,11 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
       </EditorButton>
     );
   }
+  const hint = row.hint ? (
+    <Caption color="muted" component="p">
+      {row.hint}
+    </Caption>
+  ) : null;
   const control = row.options ? (
     <SelectField
       label={row.label}
@@ -254,22 +276,39 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
       slotProps={{ input: { readOnly: row.readOnly } }}
     />
   );
-  return <Box ref={holder}>{control}</Box>;
+  return (
+    <FlexColumn ref={holder} gap={GAP.tight}>
+      {control}
+      {hint}
+    </FlexColumn>
+  );
 };
 
-/** A field's box: how much of the line it takes, and how far in it sits. */
-const fieldSx = (row: PlanReviewField): SxProps<Theme> => {
+/**
+ * A field's box: how much of the line it takes, and how far in it sits.
+ *
+ * `packed` is a line of nothing but short fields — a shot's properties. They
+ * share that line evenly instead of holding fixed columns, because a fixed
+ * column is sized for the shortest value and clips every longer one.
+ */
+const fieldSx = (row: PlanReviewField, packed: boolean): SxProps<Theme> => {
   const box: Record<string, unknown> = { ...EDITABLE_FIELD };
   if (row.compact) {
     // It keeps its narrow column while the line holds, and takes the full
     // width once the line has wrapped.
-    box.flex = `0 1 ${REVIEW_COMPACT_WIDTH}px`;
+    box.flex = `${packed ? 1 : 0} 1 ${REVIEW_COMPACT_WIDTH}px`;
     box.minWidth = `min(100%, ${REVIEW_COMPACT_WIDTH}px)`;
+    if (packed) {
+      box.maxWidth = `${REVIEW_COMPACT_MAX_WIDTH}px`;
+    }
   } else {
     // The basis is what wraps the line: below it there is no room for both
     // fields, so the row stacks instead of clipping the text.
     box.flex = `1 1 ${REVIEW_FLEX_MIN_WIDTH}px`;
     box.minWidth = 0;
+    if (row.options) {
+      box.maxWidth = `${REVIEW_SELECT_WIDTH}px`;
+    }
   }
   if (row.indent) {
     box.pl = `${SPACING_PX.xxl}px`;
@@ -282,21 +321,24 @@ const PlanReviewLines: React.FC<{ rows: readonly PlanReviewField[] }> = ({
   rows
 }) => (
   <FlexColumn gap={GAP.compact}>
-    {toLines(rows).map((line) => (
-      <FlexRow
-        key={line[0].id}
-        gap={GAP.normal}
-        align="flex-start"
-        wrap
-        sx={{ width: "100%" }}
-      >
-        {line.map((row) => (
-          <Box key={row.id} sx={fieldSx(row)}>
-            <PlanReviewControl row={row} />
-          </Box>
-        ))}
-      </FlexRow>
-    ))}
+    {toLines(rows).map((line) => {
+      const packed = line.length > 1 && line.every((row) => row.compact);
+      return (
+        <FlexRow
+          key={line[0].id}
+          gap={GAP.normal}
+          align="flex-start"
+          wrap
+          sx={{ width: "100%" }}
+        >
+          {line.map((row) => (
+            <Box key={row.id} sx={fieldSx(row, packed)}>
+              <PlanReviewControl row={row} />
+            </Box>
+          ))}
+        </FlexRow>
+      );
+    })}
   </FlexColumn>
 );
 

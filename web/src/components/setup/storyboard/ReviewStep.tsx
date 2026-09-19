@@ -239,10 +239,15 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                 // first shot, so they carry no labels of their own: the
                 // placeholders say what each one is, and four labelled blocks
                 // per scene buried the shots.
+                //
+                // Both wrap rather than scroll: the rail is narrower than a
+                // slugline, and a scene whose name reads `INT. BLACK PRODUCT
+                // STUDIO — I` says nothing about where it is set.
                 {
                   id: `${sceneId}:slugline`,
                   label: "Slugline",
                   hideLabel: true,
+                  multiline: true,
                   value: group.scene?.slugline ?? "",
                   placeholder: "INT. LOCATION — TIME",
                   onChange: (value: string) =>
@@ -252,6 +257,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                   id: `${sceneId}:lighting`,
                   label: "Lighting",
                   hideLabel: true,
+                  multiline: true,
                   value: group.scene?.lighting ?? "",
                   placeholder: "How the scene is lit",
                   onChange: (value: string) =>
@@ -328,12 +334,15 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                 // is that everything on the page is editable (F20). Typing one
                 // pins it, the way the shot dialog's ERT field does.
                 id: `${shot.id}:duration`,
-                label: `Shot ${position + 1} · Seconds`,
+                // Named like the production fields beside it, which repeat per
+                // shot too: the block's heading says which shot they are on,
+                // and `Shot 1 · Seconds` wrapped to two lines in the narrow
+                // column while its neighbours took one.
+                label: "Seconds",
                 compact: true,
                 value:
                   lengths[shot.id] ??
                   (shot.duration_seconds ? String(shot.duration_seconds) : ""),
-                placeholder: "Seconds",
                 onChange: (value: string) => {
                   setLengths((current) => ({ ...current, [shot.id]: value }));
                 },

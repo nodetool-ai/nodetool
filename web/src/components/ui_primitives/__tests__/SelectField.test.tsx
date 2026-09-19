@@ -31,6 +31,35 @@ describe("SelectField", () => {
     expect(screen.getByRole("combobox")).toBeInTheDocument();
   });
 
+  // MUI hides the display for an empty value unless it is told not to, so an
+  // "Unspecified" option left the field reading as a blank box with an arrow.
+  it("shows the label of an option whose value is empty", () => {
+    renderWithTheme(
+      <SelectField
+        label="Editorial purpose"
+        value=""
+        onChange={jest.fn()}
+        options={[
+          { value: "", label: "Unspecified" },
+          { value: "hook", label: "Hook" }
+        ]}
+      />
+    );
+    expect(screen.getByRole("combobox")).toHaveTextContent("Unspecified");
+  });
+
+  it("shows no option for a value none of its options carry", () => {
+    renderWithTheme(
+      <SelectField
+        label="Color"
+        value=""
+        onChange={jest.fn()}
+        options={options}
+      />
+    );
+    expect(screen.getByRole("combobox")).not.toHaveTextContent(/Red|Blue/);
+  });
+
   it("renders the outlined variant by default", () => {
     renderWithTheme(
       <SelectField

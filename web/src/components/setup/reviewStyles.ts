@@ -36,6 +36,22 @@ export const REVIEW_RAIL_WIDTH = 300;
 export const REVIEW_COMPACT_WIDTH = 168;
 
 /**
+ * How wide a short field grows when it shares its line only with other short
+ * fields. They split the line evenly rather than sitting in fixed columns with
+ * their values clipped — `Product close-…` said nothing the full value did —
+ * and stop here, so a line holding two of them does not stretch a take count
+ * across the card.
+ */
+export const REVIEW_COMPACT_MAX_WIDTH = 260;
+
+/**
+ * A select is as wide as its longest value, never as wide as the line: the
+ * review is up to 1180px across, and a full-width dropdown holding the word
+ * `None` reads as a text field that lost its text.
+ */
+export const REVIEW_SELECT_WIDTH = 360;
+
+/**
  * The width the flexible half of a shared line needs before the line is worth
  * keeping. Below it the row wraps and the fields stack, because a speaker
  * column beside a squeezed line of dialogue is unreadable — in a narrow pane,
