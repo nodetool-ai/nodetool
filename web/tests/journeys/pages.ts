@@ -250,8 +250,9 @@ export class ChatPage {
  * A mini app, opened the way a user opens one.
  *
  * An app is its own resource: there is no standalone `/apps/<id>` route any
- * more. A user reaches one from the editor's left rail — Apps → the app — which
- * opens it as a workspace tab in Design mode, then switches that tab to Run.
+ * more. A user reaches one from the editor's left rail — Documents → the app —
+ * which opens it as a workspace tab in Design mode, then switches that tab to
+ * Run. Apps are grouped under Documents with the other project documents.
  */
 export class MiniAppPage {
   constructor(private readonly page: Page) {}
@@ -260,12 +261,13 @@ export class MiniAppPage {
   async open(appName: string): Promise<void> {
     await goto(this.page, "/workspace");
     await this.page
-      .getByRole("button", { name: "More", exact: true })
+      .getByRole("button", { name: "Documents", exact: true })
       .click();
-    await this.page.getByRole("button", { name: /^Apps\b/ }).click();
     await this.page
-      .getByRole("button", { name: appName })
-      .first()
+      .locator('[role="treeitem"][aria-level="1"]')
+      .filter({ hasText: /^Apps/ })
+      .locator('[role="treeitem"][aria-level="2"]')
+      .filter({ hasText: appName })
       .click({ timeout: 30_000 });
 
     // The tab opens in Design mode; Run is the surface a user runs the app on.
@@ -310,7 +312,7 @@ export class MiniAppPage {
 }
 
 /**
- * The workflow library — the editor's left "Workflows" panel.
+ * The workflow library — the editor's Documents tree.
  *
  * This is the surface that actually lists a user's saved workflows. The
  * dashboard's own list is a different thing: it leads with templates and
@@ -320,21 +322,18 @@ export class MiniAppPage {
 export class LibraryPage {
   constructor(private readonly page: Page) {}
 
-  /** Open the editor on `workflowId`, then open the Workflows panel. */
+  /** Open the editor on `workflowId`, then open the Documents panel. */
   async open(workflowId: string): Promise<void> {
     const editor = new EditorPage(this.page);
     await editor.open(workflowId);
     await this.page
-      .getByRole("button", { name: "More", exact: true })
+      .getByRole("button", { name: "Documents", exact: true })
       .click();
-    await this.page.getByRole("button", { name: /^Workflows\b/ }).click();
     await this.searchBox().waitFor({ state: "visible", timeout: 30_000 });
   }
 
   searchBox(): Locator {
-    // Three dots, not an ellipsis character — the dashboard's search box uses
-    // "Search workflows…" and would match the wrong element.
-    return this.page.getByPlaceholder("Search workflows...").first();
+    return this.page.getByPlaceholder("Search documents").first();
   }
 
   async search(query: string): Promise<void> {
@@ -343,7 +342,11 @@ export class LibraryPage {
 
   /** A workflow entry in the panel, by name. */
   entry(name: string): Locator {
-    return this.page.getByText(name, { exact: false });
+    return this.page
+      .getByRole("tree", { name: "Project documents" })
+      .locator('[role="treeitem"][aria-level="2"]')
+      .filter({ hasText: name })
+      .first();
   }
 
   async openWorkflow(name: string): Promise<void> {
