@@ -395,6 +395,11 @@ import { takeProjectFirstTurn } from "../projectAgent";
 import useOnboardingStore from "../../../stores/OnboardingStore";
 import { useProviderOnboardingStore } from "../../../stores/ProviderOnboardingStore";
 
+// The real tab store behind the suite's selector mock: `creationProjectId`
+// reads it, so a "current project" pick files where these tests point it.
+const actualTabsStore: typeof import("../../../stores/WorkspaceTabsStore") =
+  jest.requireActual("../../../stores/WorkspaceTabsStore");
+
 const renderSurface = () => {
   const client = new QueryClient();
   return render(
@@ -414,6 +419,7 @@ beforeEach(() => {
   openProject.mockResolvedValue(true);
   hasConfiguredProvider = true;
   selectedModel = { provider: "anthropic", id: "claude-sonnet-5" };
+  actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: null });
   // An earlier test's start may have left a turn staged for this project id.
   takeProjectFirstTurn("p9");
   useOnboardingStore.setState({ completedSteps: [], dismissed: false });
@@ -437,6 +443,18 @@ beforeEach(() => {
 });
 
 describe("NewProjectSurface", () => {
+  /** Pick the destination a card click asks for. */
+  const pickDestination = async (destination: "current" | "new" = "new") => {
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", {
+        name:
+          destination === "new"
+            ? "Start in a new project"
+            : /Start in current project/
+      })
+    );
+  };
   it("offers every skill as a starter, the user's own and the shipped ones", () => {
     renderSurface();
     expect(useSkillsOptions).toHaveBeenCalledWith({ includeSystem: true });
@@ -852,6 +870,7 @@ describe("NewProjectSurface", () => {
         name: /^Storyboard From a sentence to a rendered board/
       })
     );
+    await pickDestination();
 
     await waitFor(() =>
       expect(createProject).toHaveBeenCalledWith({
@@ -909,6 +928,7 @@ describe("NewProjectSurface", () => {
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Video / }));
+    await pickDestination();
 
     await waitFor(() =>
       expect(seedTimelineDetail).toHaveBeenCalledWith(patchedSequence)
@@ -932,6 +952,7 @@ describe("NewProjectSurface", () => {
     await user.click(
       within(cards).getByRole("button", { name: new RegExp(`^${title} `) })
     );
+    await pickDestination();
 
     await waitFor(() => expect(mock()).toHaveBeenCalledTimes(1));
   });
@@ -949,6 +970,7 @@ describe("NewProjectSurface", () => {
         name: /^Entity Create a reusable character/
       })
     );
+    await pickDestination();
 
     await waitFor(() =>
       expect(createProject).toHaveBeenCalledWith({
@@ -972,6 +994,7 @@ describe("NewProjectSurface", () => {
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Game / }));
+    await pickDestination();
 
     await waitFor(() => expect(managerCreateWorkflow).toHaveBeenCalled());
     expect(createProject).toHaveBeenCalledWith(
@@ -989,6 +1012,31 @@ describe("NewProjectSurface", () => {
     expect(await screen.findByTestId("setup-flow")).toHaveTextContent("wf-new");
   });
 
+  it.each(["Workflow", "Game"])(
+    "assigns a current-project %s workflow to that project",
+    async (title) => {
+      const user = userEvent.setup();
+      actualTabsStore.useWorkspaceTabsStore.setState({
+        activeProjectId: "current-project"
+      });
+      renderSurface();
+      const cards = screen.getByRole("group", {
+        name: "Guided creation flows"
+      });
+
+      await user.click(
+        within(cards).getByRole("button", { name: new RegExp(`^${title} `) })
+      );
+      await pickDestination("current");
+
+      await waitFor(() =>
+        expect(managerCreateWorkflow).toHaveBeenCalledWith(
+          expect.objectContaining({ project_id: "current-project" })
+        )
+      );
+    }
+  );
+
   // BUG: the video flow's enabled "Start from a script" card did nothing —
   // the host was rendered without the callback it hands the brief to.
   it("hands the video brief to the script flow", async () => {
@@ -999,6 +1047,7 @@ describe("NewProjectSurface", () => {
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Video / }));
+    await pickDestination();
     await screen.findByTestId("setup-flow");
     await user.click(
       screen.getByRole("button", { name: "Start from a script" })
@@ -1039,6 +1088,22 @@ describe("NewProjectSurface", () => {
 
     await user.click(within(cards).getByRole("button", { name: /^Script / }));
 
+    // The click asks where the flow should live first — nothing is created
+    // until the destination is picked.
+    expect(
+      await screen.findByText("Start Script in…")
+    ).toBeInTheDocument();
+    expect(createProject).not.toHaveBeenCalled();
+    await pickDestination();
+
+    // The picker unmounts before the cards report the work in flight — its
+    // modal keeps the background out of the accessibility tree while open,
+    // so these wait rather than read it straight away.
+    await waitFor(() =>
+      expect(
+        within(cards).getByRole("button", { name: /^Script / })
+      ).toHaveAttribute("aria-disabled", "true")
+    );
     expect(within(cards).getByText("Creating…")).toBeInTheDocument();
     expect(
       within(cards).getByRole("button", { name: /^Script / })
@@ -1074,6 +1139,7 @@ describe("NewProjectSurface", () => {
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await pickDestination();
     await screen.findByTestId("setup-flow");
     // The copy is a second create, and it lands in its own row.
     managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
@@ -1082,7 +1148,10 @@ describe("NewProjectSurface", () => {
     await waitFor(() => expect(exampleCopyId).toHaveBeenCalledWith("wf-example"));
     // Copied from the package and seed, because the listing has no graph.
     expect(managerCreateWorkflow).toHaveBeenLastCalledWith(
-      expect.objectContaining({ name: "Movie Posters" }),
+      expect.objectContaining({
+        name: "Movie Posters",
+        project_id: "p9"
+      }),
       "nodetool-base",
       "movie_posters"
     );
@@ -1109,6 +1178,7 @@ describe("NewProjectSurface", () => {
         name: /^Storyboard From a sentence to a rendered board/
       })
     );
+    await pickDestination();
     await screen.findByTestId("setup-flow");
 
     await user.click(screen.getByRole("button", { name: "Change flow" }));
@@ -1142,6 +1212,7 @@ describe("NewProjectSurface", () => {
         name: /^Storyboard From a sentence to a rendered board/
       })
     );
+    await pickDestination();
 
     await waitFor(() =>
       expect(createStoryboard).toHaveBeenCalledWith(
@@ -1150,5 +1221,50 @@ describe("NewProjectSurface", () => {
         })
       )
     );
+  });
+
+  // A flow filed into the open project leaves that project where it is:
+  // "Change flow" drops the draft but never the row it did not make.
+  it("files into the open project and leaves it on change flow", async () => {
+    actualTabsStore.useWorkspaceTabsStore.setState({
+      activeProjectId: "p-current"
+    });
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: /^Storyboard From a sentence to a rendered board/
+      })
+    );
+    await pickDestination("current");
+
+    // No project row is made — the board is filed into the open project.
+    await waitFor(() =>
+      expect(createStoryboard).toHaveBeenCalledWith({
+        name: "A spot for our desk lamp",
+        projectId: "p-current",
+        document: expect.objectContaining({
+          brief: "A spot for our desk lamp",
+          setupStage: "idea"
+        })
+      })
+    );
+    expect(createProject).not.toHaveBeenCalled();
+    expect(await screen.findByTestId("setup-flow")).toHaveTextContent("b7");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Change flow" })
+    );
+
+    await waitFor(() =>
+      expect(storyboardDelete).toHaveBeenCalledWith({ id: "b7" })
+    );
+    expect(projectDelete).not.toHaveBeenCalled();
+    expect(
+      await screen.findByRole("group", { name: "Guided creation flows" })
+    ).toBeInTheDocument();
   });
 });

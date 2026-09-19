@@ -66,6 +66,7 @@ import useGlobalChatStore from "../../stores/GlobalChatStore";
 import {
   PROJECT_NEW_REF,
   LOOSE_PROJECT_ID,
+  creationProjectId,
   tabId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
@@ -93,6 +94,7 @@ import useOnboardingStore, {
 import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import { openPageTab } from "../workspace/openPageTab";
+import GuidedFlowProjectDialog from "../setup/GuidedFlowProjectDialog";
 import { OptionCardGrid, type OptionCardItem } from "../setup/OptionCardGrid";
 import { ENTRY_CARDS, type EntryFlowId } from "../setup/entryCards";
 import StoryboardSetupHost from "../setup/storyboard/StoryboardSetupHost";
@@ -178,12 +180,16 @@ interface SubmenuAnchor {
  * which is a workflow too (D25). Image is absent on purpose — its flow renders
  * as an overlay on the sketch editor, so its card opens the editor straight
  * away rather than hosting a step here.
+ * `ownsProject` says the card made the project row it files under. Set, and
+ * "Change flow" deletes the row with the draft; unset, and the flow was
+ * filed into the open project, which stays where it is.
  */
 interface SetupTarget {
   kind: "entity" | "storyboard" | "video" | "script" | "workflow" | "game";
   id: string;
   projectId: string;
   name: string;
+  ownsProject: boolean;
   initialAssetId?: string;
 }
 
@@ -304,6 +310,12 @@ const NewProjectSurface = () => {
   // that card says so while the other cards are off (PRD § 6.1: one click
   // creates the row and the document, so a second one has nothing to add).
   const [pendingFlow, setPendingFlow] = useState<EntryFlowId | null>(null);
+  // The card waiting for its destination. Set, and the picker asks whether
+  // the flow should live in the open project or a project made for it — the
+  // cards used to always make one, the `+ New` menu used to never make one.
+  const [destinationFlow, setDestinationFlow] = useState<EntryFlowId | null>(
+    null
+  );
   // The board an entry card created. Set, and this surface is the flow.
   const [setupTarget, setSetupTarget] = useState<SetupTarget | null>(null);
   // The model the project agent will run on, picked here — the prompt box has
@@ -375,6 +387,20 @@ const NewProjectSurface = () => {
     () => (entities ?? []).filter((entity) => entityIds.includes(entity.id)),
     [entities, entityIds]
   );
+
+  // The project a "current project" entry-card pick files into, as the
+  // picker names it. The summaries carry every project the selector lists;
+  // with none open yet the destination reads as Personal, where the filing
+  // itself lands through `creationProjectId`.
+  const activeProjectId = useWorkspaceTabsStore(
+    (state) => state.activeProjectId
+  );
+  const currentProjectName = useMemo(() => {
+    const match = (summaries.data ?? []).find(
+      (summary) => summary.project.id === activeProjectId
+    );
+    return match?.project.name ?? "Personal";
+  }, [activeProjectId, summaries.data]);
 
   const starters = useMemo(
     () => rankStarters(skills ?? [], summaries.data ?? []),
@@ -643,8 +669,10 @@ const NewProjectSurface = () => {
   // and a `/skill` prompt both keep going to the project agent through
   // `handleStart`. The board is created with its stage already at `idea` and
   // the typed prompt as its brief, so the flow resumes from the document
-  // alone (D3).
-  const startStoryboardFlow = useCallback(async () => {
+  // alone (D3). Without a project id the card makes the row first; with one
+  // the board is filed into the open project instead.
+  const startStoryboardFlow = useCallback(
+    async (existingProjectId?: string) => {
     if (starting) {
       return;
     }
@@ -653,13 +681,17 @@ const NewProjectSurface = () => {
       text.length > 0 ? projectNameFromPrompt(text, null) : "New storyboard";
     setStarting(true);
     try {
-      const project = await createProject.mutateAsync({
-        name,
-        kind: "storyboard"
-      });
+      const projectId =
+        existingProjectId ??
+        (
+          await createProject.mutateAsync({
+            name,
+            kind: "storyboard"
+          })
+        ).id;
       const board = await createStoryboard.mutateAsync({
         name,
-        projectId: project.id,
+        projectId,
         document: {
           ...newStoryboardSetupDocument(text),
           // The one setup document with a cast field, so the entities picked
@@ -674,8 +706,9 @@ const NewProjectSurface = () => {
       applySetupTarget({
         kind: "storyboard",
         id: board.id,
-        projectId: project.id,
-        name
+        projectId,
+        name,
+        ownsProject: existingProjectId === undefined
       });
     } catch (error) {
       reportEntryFailure("storyboard", error);
@@ -696,7 +729,7 @@ const NewProjectSurface = () => {
 
   // The Video card. `timeline.create` takes no document, so the setup goes in
   // as one PATCH straight after — the flow reads it off the loaded sequence.
-  const startVideoFlow = useCallback(async () => {
+  const startVideoFlow = useCallback(async (existingProjectId?: string) => {
     if (starting) {
       return;
     }
@@ -707,13 +740,17 @@ const NewProjectSurface = () => {
     try {
       // Before the project row, so a failed upload costs nothing to clean up.
       const references = await uploadComposerReferences(droppedFiles);
-      const project = await createProject.mutateAsync({
-        name,
-        kind: "timeline"
-      });
+      const projectId =
+        existingProjectId ??
+        (
+          await createProject.mutateAsync({
+            name,
+            kind: "timeline"
+          })
+        ).id;
       const sequence = await createTimeline.mutateAsync({
         name,
-        projectId: project.id
+        projectId
       });
       const withSetup = await trpcClient.timeline.update.mutate({
         id: sequence.id,
@@ -733,8 +770,9 @@ const NewProjectSurface = () => {
       applySetupTarget({
         kind: "video",
         id: sequence.id,
-        projectId: project.id,
-        name
+        projectId,
+        name,
+        ownsProject: existingProjectId === undefined
       });
     } catch (error) {
       reportEntryFailure("video", error);
@@ -754,7 +792,7 @@ const NewProjectSurface = () => {
     starting
   ]);
 
-  const startScriptFlow = useCallback(async () => {
+  const startScriptFlow = useCallback(async (existingProjectId?: string) => {
     if (starting) {
       return;
     }
@@ -764,10 +802,12 @@ const NewProjectSurface = () => {
     setStarting(true);
     try {
       const references = await uploadComposerReferences(droppedFiles);
-      const project = await createProject.mutateAsync({ name, kind: "script" });
+      const projectId =
+        existingProjectId ??
+        (await createProject.mutateAsync({ name, kind: "script" })).id;
       const script = await createScript.mutateAsync({
         name,
-        projectId: project.id,
+        projectId,
         document: newScriptSetupDocument(text, {
           attachments: references.map(({ uri, name: fileName, type }) => ({
             uri,
@@ -781,8 +821,9 @@ const NewProjectSurface = () => {
       applySetupTarget({
         kind: "script",
         id: script.id,
-        projectId: project.id,
-        name
+        projectId,
+        name,
+        ownsProject: existingProjectId === undefined
       });
     } catch (error) {
       reportEntryFailure("script", error);
@@ -804,7 +845,7 @@ const NewProjectSurface = () => {
   // Image has no step host: its flow is an overlay the sketch editor renders,
   // so the card opens the editor and the overlay resumes from the document's
   // stage (PRD § 10.4).
-  const startImageProject = useCallback(async () => {
+  const startImageProject = useCallback(async (existingProjectId?: string) => {
     if (starting) {
       return;
     }
@@ -814,10 +855,12 @@ const NewProjectSurface = () => {
     setStarting(true);
     try {
       const references = await uploadComposerReferences(droppedFiles);
-      const project = await createProject.mutateAsync({ name, kind: "image" });
+      const projectId =
+        existingProjectId ??
+        (await createProject.mutateAsync({ name, kind: "image" })).id;
       const started = await startImageFlow({
         name,
-        projectId: project.id,
+        projectId,
         brief: text,
         references,
         entityIds
@@ -828,7 +871,7 @@ const NewProjectSurface = () => {
         ref: started.documentId,
         mode: "edit",
         title: name,
-        projectId: project.id
+        projectId
       });
       closeTab(tabId("project-new", PROJECT_NEW_REF));
     } catch (error) {
@@ -848,7 +891,7 @@ const NewProjectSurface = () => {
     starting
   ]);
 
-  const startWorkflowFlow = useCallback(async () => {
+  const startWorkflowFlow = useCallback(async (existingProjectId?: string) => {
     if (starting) {
       return;
     }
@@ -857,15 +900,20 @@ const NewProjectSurface = () => {
       text.length > 0 ? projectNameFromPrompt(text, null) : "New workflow";
     setStarting(true);
     try {
-      const project = await createProject.mutateAsync({
-        name,
-        kind: "workflow"
-      });
+      const projectId =
+        existingProjectId ??
+        (
+          await createProject.mutateAsync({
+            name,
+            kind: "workflow"
+          })
+        ).id;
       const created = await createWorkflow({
         name,
         description: "",
         tags: [],
         access: "private",
+        project_id: projectId,
         settings: writeWorkflowSetup({}, { stage: "idea", brief: text })
       });
       noteUncarriedContext("workflow", {
@@ -875,8 +923,9 @@ const NewProjectSurface = () => {
       applySetupTarget({
         kind: "workflow",
         id: created.id,
-        projectId: project.id,
-        name
+        projectId,
+        name,
+        ownsProject: existingProjectId === undefined
       });
     } catch (error) {
       reportEntryFailure("workflow", error);
@@ -901,7 +950,7 @@ const NewProjectSurface = () => {
    * with the brief the composer holds. The project row carries `kind: "game"`,
    * which is what its spend history is read back by.
    */
-  const startGameFlow = useCallback(async () => {
+  const startGameFlow = useCallback(async (existingProjectId?: string) => {
     if (starting) {
       return;
     }
@@ -909,15 +958,20 @@ const NewProjectSurface = () => {
     const name = text.length > 0 ? projectNameFromPrompt(text, null) : "New game";
     setStarting(true);
     try {
-      const project = await createProject.mutateAsync({
-        name,
-        kind: "game"
-      });
+      const projectId =
+        existingProjectId ??
+        (
+          await createProject.mutateAsync({
+            name,
+            kind: "game"
+          })
+        ).id;
       const created = await createWorkflow({
         name,
         description: "",
         tags: [],
         access: "private",
+        project_id: projectId,
         settings: writeGameSetup({}, { stage: "idea", brief: text })
       });
       noteUncarriedContext("game", {
@@ -927,8 +981,9 @@ const NewProjectSurface = () => {
       applySetupTarget({
         kind: "game",
         id: created.id,
-        projectId: project.id,
-        name
+        projectId,
+        name,
+        ownsProject: existingProjectId === undefined
       });
     } catch (error) {
       reportEntryFailure("game", error);
@@ -945,7 +1000,7 @@ const NewProjectSurface = () => {
     starting
   ]);
 
-  const startEntityFlow = useCallback(async () => {
+  const startEntityFlow = useCallback(async (existingProjectId?: string) => {
     if (starting) {
       return;
     }
@@ -958,19 +1013,24 @@ const NewProjectSurface = () => {
       const initialAssetId = assetIdFromLocator(
         references.find((reference) => reference.type.startsWith("image/"))?.uri
       );
-      const project = await createProject.mutateAsync({
-        name,
-        kind: "entity"
-      });
+      const projectId =
+        existingProjectId ??
+        (
+          await createProject.mutateAsync({
+            name,
+            kind: "entity"
+          })
+        ).id;
       noteUncarriedContext("entity", {
         entities: false,
         references: initialAssetId !== undefined
       });
       const target: SetupTarget = {
         kind: "entity",
-        id: project.id,
-        projectId: project.id,
-        name
+        id: projectId,
+        projectId,
+        name,
+        ownsProject: existingProjectId === undefined
       };
       if (initialAssetId) {
         target.initialAssetId = initialAssetId;
@@ -991,18 +1051,17 @@ const NewProjectSurface = () => {
     starting
   ]);
 
-  const handleEntryCard = useCallback(
-    (id: string) => {
-      if (pendingFlow !== null || starting) {
-        return;
-      }
-      // Through the card list, so the id that reaches the starters is a known
-      // flow and no cast is needed to say so.
-      const card = ENTRY_CARDS.find((entry) => entry.id === id);
-      if (!card) {
-        return;
-      }
-      const starters: Record<EntryFlowId, () => Promise<void>> = {
+  /**
+   * Run the card's flow into its destination. "New" makes the project row
+   * first, as the cards always did; "current" files the document into the
+   * open project instead, the way the `+ New` menu does.
+   */
+  const runDestinationFlow = useCallback(
+    (id: EntryFlowId, destination: "current" | "new") => {
+      const starters: Record<
+        EntryFlowId,
+        (existingProjectId?: string) => Promise<void>
+      > = {
         entity: startEntityFlow,
         storyboard: startStoryboardFlow,
         video: startVideoFlow,
@@ -1013,21 +1072,55 @@ const NewProjectSurface = () => {
       };
       // Marked before the first await, so the card reads as busy on the click
       // rather than on the create's first render.
-      setPendingFlow(card.id);
-      void starters[card.id]().finally(() => setPendingFlow(null));
+      setPendingFlow(id);
+      // Read at pick time, not at render: a project opened after this mounted
+      // is still the one a "current project" start belongs to.
+      const existingProjectId =
+        destination === "current" ? creationProjectId() : undefined;
+      void starters[id](existingProjectId).finally(() => setPendingFlow(null));
     },
     [
-      pendingFlow,
       startEntityFlow,
       startGameFlow,
       startImageProject,
       startScriptFlow,
       startStoryboardFlow,
       startVideoFlow,
-      startWorkflowFlow,
-      starting
+      startWorkflowFlow
     ]
   );
+
+  const handleEntryCard = useCallback(
+    (id: string) => {
+      if (pendingFlow !== null || destinationFlow !== null || starting) {
+        return;
+      }
+      // Through the card list, so the id that reaches the starters is a known
+      // flow and no cast is needed to say so.
+      const card = ENTRY_CARDS.find((entry) => entry.id === id);
+      if (!card) {
+        return;
+      }
+      setDestinationFlow(card.id);
+    },
+    [destinationFlow, pendingFlow, starting]
+  );
+
+  const handlePickDestination = useCallback(
+    (destination: "current" | "new") => {
+      const flow = destinationFlow;
+      setDestinationFlow(null);
+      if (flow !== null) {
+        runDestinationFlow(flow, destination);
+      }
+    },
+    [destinationFlow, runDestinationFlow]
+  );
+
+  const destinationFlowTitle = useMemo(() => {
+    const card = ENTRY_CARDS.find((entry) => entry.id === destinationFlow);
+    return card?.title ?? "";
+  }, [destinationFlow]);
 
   // The chosen card says what it is doing; the other cards are off, because a
   // second flow started over the first would leave an orphan project row.
@@ -1098,11 +1191,12 @@ const NewProjectSurface = () => {
    * "Change flow" on step 1 — the shell asks first, this runs on confirm.
    *
    * Step 1 is cheap text (PRD § 6.2: nothing renders before step 3), so the
-   * draft is worth nothing and both it and the project row the card made are
-   * deleted rather than left as an empty project. The brief the creator typed
-   * in step 1 comes back to the composer, which still holds every reference
-   * and entity it had — this surface never unmounted, it only rendered the
-   * flow instead.
+   * draft is worth nothing and is deleted rather than left behind. The project
+   * row the card made goes with it — but only when the card made one: a flow
+   * filed into the open project leaves that project where it is. The brief
+   * the creator typed in step 1 comes back to the composer, which still holds
+   * every reference and entity it had — this surface never unmounted, it only
+   * rendered the flow instead.
    *
    * The host hands over the brief its own mounted document holds, before
    * anything is deleted. Reading it back from the server instead would race
@@ -1120,7 +1214,9 @@ const NewProjectSurface = () => {
         return;
       }
       await deleteSetupDocument(target);
-      await trpcClient.projects.delete.mutate({ id: target.projectId });
+      if (target.ownsProject) {
+        await trpcClient.projects.delete.mutate({ id: target.projectId });
+      }
       setPrompt(brief);
       applySetupTarget(null);
     },
@@ -1138,10 +1234,8 @@ const NewProjectSurface = () => {
    *
    * The project row stays and takes the copy. The creator clicked an entry
    * card, which is a request for a project; the copy is what that project now
-   * holds. A workflow's only project association is the tab group it opens in
-   * (`projectDocumentType` has no `workflow` member, so there is no server-side
-   * assignment to make), which is the same association the entry card gave the
-   * placeholder.
+   * holds. The copy keeps the server-side project assignment and the tab group
+   * association the entry card gave the placeholder.
    *
    * Returns the copy's id, which differs from the flow's own workflow: the
    * flow then writes no stage of its own and only finishes.
@@ -1159,7 +1253,8 @@ const NewProjectSurface = () => {
           description: example.description,
           package_name: example.package_name,
           tags: tags.includes("example") ? tags : [...tags, "example"],
-          access: "private"
+          access: "private",
+          project_id: placeholder.projectId
         },
         examplePackageName(example),
         exampleSeedRef(example)
@@ -1170,7 +1265,8 @@ const NewProjectSurface = () => {
         kind: "workflow",
         id: copy.id,
         projectId: placeholder.projectId,
-        name: copy.name || example.name
+        name: copy.name || example.name,
+        ownsProject: placeholder.ownsProject
       });
       await deleteSetupDocument(placeholder);
       return copy.id;
@@ -1202,7 +1298,8 @@ const NewProjectSurface = () => {
           kind: "script",
           id: script.id,
           projectId: target.projectId,
-          name
+          name,
+          ownsProject: target.ownsProject
         });
       } catch (error) {
         reportEntryFailure("script", error);
@@ -1743,6 +1840,14 @@ const NewProjectSurface = () => {
           )}
         </FlexColumn>
       </Popover>
+      <GuidedFlowProjectDialog
+        open={destinationFlow !== null}
+        flowTitle={destinationFlowTitle}
+        currentProjectName={currentProjectName}
+        busy={starting}
+        onPick={handlePickDestination}
+        onClose={() => setDestinationFlow(null)}
+      />
     </ScrollArea>
   );
 };

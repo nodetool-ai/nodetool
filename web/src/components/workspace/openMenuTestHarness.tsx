@@ -37,6 +37,14 @@ export const mockGuidedStarters: {
   }[];
 } = { value: [] };
 
+/** The destination picker `useGuidedFlowStarters` reports. Suites set this. */
+export const mockGuidedDestination: {
+  pending: { id: string; title: string } | null;
+  projectName: string;
+} = { pending: null, projectName: "Personal" };
+export const mockPickDestination = jest.fn();
+export const mockCancelDestination = jest.fn();
+
 export const mockOpenMenu = {
   openTab: jest.fn(),
   addNotification: jest.fn(),
@@ -66,7 +74,11 @@ jest.mock("../../hooks/storyboard/useStoryboards", () => ({
 jest.mock("./useGuidedFlowStarters", () => ({
   useGuidedFlowStarters: () => ({
     starters: mockGuidedStarters.value,
-    starting: null
+    starting: null,
+    pendingDestination: mockGuidedDestination.pending,
+    currentProject: { id: "p-current", name: mockGuidedDestination.projectName },
+    pickDestination: mockPickDestination,
+    cancelDestination: mockCancelDestination
   })
 }));
 

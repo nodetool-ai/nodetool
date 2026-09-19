@@ -6,7 +6,13 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { mockGuidedStarters, renderOpenMenu } from "../openMenuTestHarness";
+import {
+  mockCancelDestination,
+  mockGuidedDestination,
+  mockGuidedStarters,
+  mockPickDestination,
+  renderOpenMenu
+} from "../openMenuTestHarness";
 
 const startStoryboard = jest.fn(async () => undefined);
 const startVideo = jest.fn(async () => undefined);
@@ -14,6 +20,8 @@ const startVideo = jest.fn(async () => undefined);
 describe("OpenMenu guided flows", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGuidedDestination.pending = null;
+    mockGuidedDestination.projectName = "Personal";
     mockGuidedStarters.value = [
       {
         id: "storyboard",
@@ -68,5 +76,39 @@ describe("OpenMenu guided flows", () => {
 
     await waitFor(() => expect(startStoryboard).toHaveBeenCalledTimes(1));
     expect(startVideo).not.toHaveBeenCalled();
+  });
+
+  it("asks where the flow should live once it is waiting", () => {
+    mockGuidedDestination.pending = { id: "storyboard", title: "Storyboard" };
+    mockGuidedDestination.projectName = "Aurora launch";
+    renderOpenMenu();
+
+    expect(screen.getByText("Start Storyboard in…")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Start in current project, Aurora launch"
+      })
+    ).toBeInTheDocument();
+  });
+
+  it("resolves the waiting flow into the picked destination", async () => {
+    const user = userEvent.setup();
+    mockGuidedDestination.pending = { id: "storyboard", title: "Storyboard" };
+    renderOpenMenu();
+
+    await user.click(
+      screen.getByRole("button", { name: "Start in a new project" })
+    );
+    expect(mockPickDestination).toHaveBeenCalledWith("new");
+  });
+
+  it("drops the wait when the picker closes", async () => {
+    const user = userEvent.setup();
+    mockGuidedDestination.pending = { id: "storyboard", title: "Storyboard" };
+    renderOpenMenu();
+
+    await user.keyboard("{Escape}");
+    expect(mockCancelDestination).toHaveBeenCalled();
+    expect(startStoryboard).not.toHaveBeenCalled();
   });
 });
