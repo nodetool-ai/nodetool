@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
-import { getDb, initTestDb } from "../src/db.js";
+import { getDb, getRawDb, initTestDb } from "../src/db.js";
 import { scripts as scriptsTable } from "../src/schema/scripts.js";
 import { storyboards as storyboardsTable } from "../src/schema/storyboards.js";
 import { Application } from "../src/application.js";
@@ -258,6 +258,47 @@ describe("listDocumentIndex", () => {
     });
     expect(documents[0]?.entity?.reference_images?.[0]?.asset_id).toBe(
       documents[0]?.id
+    );
+  });
+
+  it("keeps the kinds that answered when one kind's read fails", async () => {
+    await seedOneOfEach();
+    // What a deployment whose schema lags the shipped code does to one kind.
+    getRawDb().exec("DROP TABLE js_scripts");
+
+    const { documents, partial } = await listDocumentIndex(OWNER, PROJECT);
+
+    expect(partial).toBe(true);
+    expect(documents.map((d) => d.type).sort()).toEqual([
+      "application",
+      "entity",
+      "script",
+      "sketch",
+      "storyboard",
+      "timeline",
+      "workflow"
+    ]);
+  });
+
+  it("fails with the database's own reason when no kind can be read", async () => {
+    await seedOneOfEach();
+    for (const table of [
+      "nodetool_workflows",
+      "applications",
+      "image_documents",
+      "scripts",
+      "storyboards",
+      "timeline_sequences",
+      "js_scripts",
+      "nodetool_assets"
+    ]) {
+      getRawDb().exec(`DROP TABLE ${table}`);
+    }
+
+    // The reason the database gave, not just the SQL that carried it: a
+    // driver error arrives wrapped, with the reason on `cause`.
+    await expect(listDocumentIndex(OWNER, PROJECT)).rejects.toThrow(
+      /The document index could not be read: .*no such table/
     );
   });
 
