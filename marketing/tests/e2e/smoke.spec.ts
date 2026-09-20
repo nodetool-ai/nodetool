@@ -179,29 +179,29 @@ test.describe("marketing smoke", () => {
   });
 
   for (const path of ["/recipes/ugc-product-video", "/apps/ugc-product-video"]) {
-    test(`${path} exposes the playable emotional-support UGC story`, async ({
+    test(`${path} exposes the playable live AtlasCloud UGC run`, async ({
       page
     }) => {
       await page.goto(path);
 
       const proof = page.getByRole("region", {
-        name: "Turns out I needed the green one."
+        name: "One run, one real download."
       });
       const video = proof.locator("video");
 
       await expect(proof).toBeVisible();
       await expect(video).toHaveAttribute(
         "poster",
-        "/recipes/runs/2026-09-14-emotional-support-cup/poster.jpg"
+        "/recipes/runs/2026-09-20-ugc-product-video-atlascloud/poster.jpg"
       );
       await expect(video.locator('source[type="video/mp4"]')).toHaveAttribute(
         "src",
-        "/recipes/runs/2026-09-14-emotional-support-cup/final.mp4"
+        "/recipes/runs/2026-09-20-ugc-product-video-atlascloud/final.mp4"
       );
       await expect(video).toHaveJSProperty("error", null);
       expect(
         await video.evaluate((element: HTMLVideoElement) => element.duration)
-      ).toBeCloseTo(15.017, 2);
+      ).toBeCloseTo(15.083, 2);
     });
   }
 
@@ -229,10 +229,10 @@ test.describe("marketing smoke", () => {
     }
 
     const hero = page.getByRole("img", {
-      name: "Creator speaking to camera in her kitchen while holding an olive travel cup."
+      name: "Creator speaking to camera before showing an olive travel cup."
     });
     const proof = page.getByRole("img", {
-      name: "Five frames follow the creator and olive cup from morning at home through work to evening."
+      name: "Five frames from the live UGC run show the creator, the cup entering frame, and the closing reaction."
     });
     const heroBox = await hero.boundingBox();
     const proofBox = await proof.boundingBox();
