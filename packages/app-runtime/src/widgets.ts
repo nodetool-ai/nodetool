@@ -82,18 +82,31 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
       binding: "custom",
       fit: "select",
       height: "number",
-      placeholder: "text"
+      placeholder: "text",
+      download: "radio",
+      filename: "text"
     }
   },
   Audio: {
     label: "Audio",
     mode: "read",
-    fields: { binding: "custom", placeholder: "text" }
+    fields: {
+      binding: "custom",
+      placeholder: "text",
+      download: "radio",
+      filename: "text"
+    }
   },
   Video: {
     label: "Video",
     mode: "read",
-    fields: { binding: "custom", height: "number", placeholder: "text" }
+    fields: {
+      binding: "custom",
+      height: "number",
+      placeholder: "text",
+      download: "radio",
+      filename: "text"
+    }
   },
   Json: {
     label: "JSON",
@@ -139,7 +152,12 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     label: "Output",
     mode: "read",
     format: true,
-    fields: { binding: "custom", placeholder: "text" }
+    fields: {
+      binding: "custom",
+      placeholder: "text",
+      download: "radio",
+      filename: "text"
+    }
   },
   Progress: {
     label: "Progress",

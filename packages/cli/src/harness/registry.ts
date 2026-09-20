@@ -1693,7 +1693,10 @@ export const UNCLAIMED_PATHS: Record<string, string> = {
   "packages/system-skills/":
     "Not an npm workspace, just SKILL.md files staged into the packaged " +
     "backend by scripts/bundle-backend.mjs; verify-backend-bundle.mjs " +
-    "checks every directory ships, not the skill content."
+    "checks every directory ships, shipped-skill-names.test.ts checks the " +
+    "calls each one names against the registry, and check-agents-docs.mjs " +
+    "checks the frontmatter name, the one-document rule and the " +
+    ".claude/skills symlinks."
 };
 
 /**

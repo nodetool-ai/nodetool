@@ -1,0 +1,5 @@
+# Codex's counterpart to `disable-model-invocation: true` in SKILL.md, which
+# Codex does not read: this skill is typed, never reached for on its own.
+# `npm run check:agents-docs` keeps the two in step.
+policy:
+  allow_implicit_invocation: false

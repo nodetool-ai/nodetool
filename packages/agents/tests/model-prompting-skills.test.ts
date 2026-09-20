@@ -236,7 +236,7 @@ describe("the shipped prompting skills", () => {
   /**
    * Prose drifts where code cannot follow it: a capability gets renamed and
    * the skill keeps teaching the old spelling. Same protection the motion
-   * skills get from motion-graphics-skill-names.test.ts.
+   * skills get from shipped-skill-names.test.ts.
    */
   /**
    * Provider request fields a guide has to name that collide with a capability

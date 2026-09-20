@@ -104,7 +104,9 @@ describe("ModelSelectWidget", () => {
             id: "gpt-5.6-luna",
             provider: "codex",
             name: "GPT-5.6-Luna"
-          }
+          },
+          dirty: false,
+          revision: 0
         }
       }
     });

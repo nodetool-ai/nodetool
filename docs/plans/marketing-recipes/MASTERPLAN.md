@@ -21,7 +21,7 @@ Keep the existing recipe slugs as identifiers. The display names above describe 
 
 Read the root `AGENTS.md`, `docs/DEVELOPMENT_STANDARDS.md`, `docs/WRITING_STYLE.md`, `docs/BRAND.md`, this master plan, and the assigned recipe plan. Read directory overlays before changing source code in that directory.
 
-For production, read `.claude/skills/storyboard-core/SKILL.md` and `.claude/skills/storyboard-core/references/tool-contract.md`. Each recipe names its additional skills. Use the callable tool schemas and checked-out implementation to resolve contract drift. Do not copy an obsolete model ID or a stale tool signature out of prose.
+For production, read `.claude/skills/storyboard-core/SKILL.md`, including its Tool contract section. Each recipe names its additional skills. Use the callable tool schemas and checked-out implementation to resolve contract drift. Do not copy an obsolete model ID or a stale tool signature out of prose.
 
 Use NodeTool to create the work being demonstrated. A generated image from a different service may be an explicitly disclosed source reference, but cannot serve as proof that a NodeTool flow generated that image. Source preparation and the recipe's resulting work must be distinguishable in the manifest.
 

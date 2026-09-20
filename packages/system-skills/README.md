@@ -13,7 +13,47 @@ into `_skills/` beside the bundled `server.mjs`, and
 `scripts/verify-backend-bundle.mjs` fails a build that misses one. A new
 directory ships with no other change.
 
-## What is here
+`SKILL.md` is the whole skill. Only that file is staged and only that file is
+read, so material that would have been a `references/` file goes in a `##`
+section of the body, which `load_skill` returns in one piece.
+
+A skill the repository's own coding agent also wants is symlinked, not copied:
+`.claude/skills/<name>` points here. `npm run check:agents-docs` fails on a
+second copy, a broken link, a frontmatter name that disagrees with its
+directory, and a file beside `SKILL.md` — the last two are mistakes the loader
+would otherwise absorb in silence, leaving the skill out of the catalog with no
+error anywhere.
+
+## The surfaces
+
+One skill per NodeTool document kind, for the agent inside the product and the
+one working on this repository alike.
+
+| Skill | Surface |
+| :--- | :--- |
+| `nodetool-workflow-builder` | Workflow graphs, and the routing table for when a graph is the wrong document |
+| `nodetool-app-builder` | Mini apps: operations, widgets, bindings, variables, resources |
+| `nodetool-sketch` | Sketches (image documents): layers, blend modes, placed images, briefs, versions |
+| `nodetool-3d-scene` | glTF models: objects, transforms, lights, materials, headless Blender renders |
+| `nodetool-js-scripting` | The QuickJS sandbox: Code node bodies, JS script documents, packs, calling nodes from code |
+| `nodetool-video-post` | Repairs on delivered footage, and the candidate review protocol they return |
+| `nodetool-rag-indexing` | Ingestion, vector collections, retrieval, the RAG loop |
+| `nodetool-browser-agent` | Browser automation agents: navigation, extraction, forms |
+| `nodetool-custom-node-developer` | New TypeScript node types and node packages |
+| `nodetool-model-provider-config` | Providers, credentials, local models, model selection |
+| `nodetool-api-reference` | REST, tRPC, MsgPack WebSocket, MCP, the OpenAI-compatible chat API |
+| `nodetool-chat-cli` | Chat CLI sessions, provider selection, Global Chat |
+| `nodetool-deployment` | Servers and workers: Docker, SSH, Runpod, cloud |
+| `nodetool-troubleshooter` | A failing run, routed to the surface it belongs to, and stuck generations |
+| `nodetool-skill-author` | Writing a user skill row or a shipped one |
+| `storyboard-core` | Storyboards, entity casting, rendering, timeline assembly — the contract the job skills quote |
+| `godot-game` | A playable Godot game or a complete asset pack |
+
+The job skills that sit on `storyboard-core`, each one a brief shape rather
+than a tool contract: `ugc-video`, `product-commercial`, `script-video`,
+`short-film`, `video-clone`, `launch-kit`, `video-workflow`.
+
+## The craft and the model lines
 
 | Skill | Answers |
 | :--- | :--- |
@@ -55,14 +95,20 @@ skills on disk, the model ids the shipped provider manifests actually name, and
 the capability registry. A new line means a directory here plus a row there.
 
 `motion-graphics` carries the mechanics and the other motion skills carry the
-craft. A craft skill quotes calls rather than teaching them, so
-`packages/agents/tests/motion-graphics-skill-names.test.ts` checks every
-snake_case call in the skills its `SKILL_NAMES` lists against the capability
-registry and `edit_timeline`'s op list — a renamed tool fails there rather than
-in a model's hands. Add a skill to `SKILL_NAMES` in that test in the same
-change. The board skills stay out of it: the test knows `edit_timeline`'s ops
-and not `edit_storyboard`'s, so `set_board` and `add_shot` would read as
-unregistered calls.
+craft. A skill quotes calls rather than teaching them, and a renamed tool leaves
+it teaching a spelling no model can use, so
+`packages/agents/tests/shipped-skill-names.test.ts` reads every snake_case call
+out of every skill in this directory and checks it against the registry. A new
+directory is covered with no entry to add.
+
+It checks at two strengths. The motion skills its `SKILL_NAMES` lists are
+matched exactly against the capability specs and `edit_timeline`'s op list, and
+`motion-graphics` additionally has to name every shipped preset and stagger
+unit. Every other skill is matched against the wider vocabulary the registry
+writes about itself, because `edit_sketch`, `edit_model3d` and
+`edit_storyboard` declare their ops in prose rather than an enum — there is no
+list to compare against. A call that is neither is exempted by name in
+`NOT_A_BACKEND_CALL`, with the reason it is not a rename waiting to happen.
 
 ## How the set routes
 
@@ -72,7 +118,9 @@ the same seams:
 1. **Brief → board.** A board skill (`commercial-beat-sheet`,
    `launch-commercial`, `explainer-storyboard`, `music-video-treatment`,
    `trailer-template`) resolves entities, writes the beats and stores them
-   with `create_storyboard` / `edit_storyboard`. The storyboard and entity call
+   with `create_storyboard` / `edit_storyboard`. A job skill on
+   `storyboard-core` decides what the picture looks like over the same board,
+   and the two compose: structure from one, look from the other. The storyboard and entity call
    shapes — return fields, the five ops, what `set_board` accepts, which
    entities a shot's prompt receives, what text the generator actually reads —
    live once, in `commercial-beat-sheet` § Tool contract, and the other four

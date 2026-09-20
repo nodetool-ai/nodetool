@@ -36,7 +36,7 @@ Never generate a storyboard before the roster is resolved. Without entities, bea
 
 ## Tool contract (shared by every board skill)
 
-`explainer-storyboard`, `music-video-treatment`, `trailer-template` and `launch-commercial` build the same board with the same calls and point here for the shapes. Every line below is checked against the capability code, not remembered.
+`explainer-storyboard`, `music-video-treatment`, `trailer-template` and `launch-commercial` build the same board with the same calls and point here for the shapes. Every line below is checked against the capability code, not remembered. `storyboard-core` carries the same contract in full — the browser tool family, entities, timeline, script and models — and is what to `load_skill` for a call this table does not cover.
 
 | Call | Returns | The id you want |
 | --- | --- | --- |

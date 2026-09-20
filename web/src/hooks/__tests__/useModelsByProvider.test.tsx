@@ -168,6 +168,11 @@ describe("useImageModelsByProvider — task filter", () => {
 
   beforeEach(() => imageByProviderQuery.mockResolvedValue(CATALOG));
 
+  // The union includes `image_to_image`, which is basic generation rather than
+  // one of `STRICT_MODEL_TASKS`, so the untagged model qualifies through it —
+  // `modelMatchesTask` lets an undeclared model pass exactly the non-strict
+  // tasks. Excluding it here would mean making `image_to_image` strict, which
+  // would also take undeclared models out of every plain image-editing picker.
   it("relight can use image-editing models and dedicated relight models", async () => {
     const { result } = renderHook(
       () =>
@@ -178,7 +183,8 @@ describe("useImageModelsByProvider — task filter", () => {
     expect(result.current.models.map((m) => m.id)).toEqual([
       "fal-ai/flux/schnell",
       "fal-ai/ideogram/v2/edit",
-      "fal-ai/image-apps-v2/relighting"
+      "fal-ai/image-apps-v2/relighting",
+      "untagged/legacy"
     ]);
   });
 

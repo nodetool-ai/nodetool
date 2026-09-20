@@ -12,7 +12,8 @@ without being told how.
 | `commands/serve.md` | `/serve` — start the API on :7777 in the background and poll until it answers. |
 | `commands/verify.md` | `/verify` — typecheck, lint, test, and fix what breaks. |
 | `commands/onboard.md` | `/onboard <area>` — locate the owning workspace, entry point, nearest example, and the pitfalls that apply. |
-| `skills/` | Repository engineering and NodeTool authoring skills. The `.agents` symlink exposes the same files to Codex. |
+| `skills/` | Repository engineering skills, plus a symlink per NodeTool skill into `packages/system-skills/`. The `.agents` symlink exposes the same files to Codex. |
+| `skills/<name>/agents/openai.yaml` | Codex's invocation policy, where a skill is typed rather than reached for. |
 
 ## Engineering skills
 
@@ -50,10 +51,14 @@ you can also type them:
 | `/resolving-merge-conflicts` | Work an in-progress merge or rebase hunk by hunk. |
 | `/wizard` | Generate a bash wizard for steps only a human can perform. |
 
-## NodeTool authoring skills
+## NodeTool skills ship with the product
 
-These cover the product surfaces rather than the engineering loop. All are
-model-invoked and typeable.
+These cover the product surfaces rather than the engineering loop. Each one is
+a **system skill**: the document lives in
+[`packages/system-skills/<name>/SKILL.md`](../packages/system-skills/README.md),
+every install loads it through `load_skill`, and `skills/<name>` here is a
+symlink to it so the coding agent reads the same file. Edit the shipped copy.
+All are model-invoked and typeable.
 
 | Skill | Surface |
 | :--- | :--- |
@@ -75,11 +80,16 @@ model-invoked and typeable.
 | `/nodetool-deployment` | Servers and workers: Docker, SSH, Runpod, cloud |
 | `/nodetool-skill-author` | Writing a user skill row or a shipped system skill |
 
-Deeper craft guidance ships as **system skills** in
-[`packages/system-skills/`](../packages/system-skills/README.md) and loads at
-runtime through `load_skill`, not from this directory. `motion-graphics` carries
-the full timeline op contract, and the `*-prompting` skills carry the model-line
-guides. A repository skill points at one rather than restating it.
+The rest of the shipped set is not symlinked here, because it answers a
+question this repository's coding agent does not ask: `motion-graphics` and the
+motion craft skills, the board shapes, and the `*-prompting` model-line guides.
+Load one with `load_skill` in the product, or read it under
+[`packages/system-skills/`](../packages/system-skills/README.md).
+
+Adding one: write `packages/system-skills/<name>/SKILL.md`, symlink it in here
+if the coding agent wants it too, and run `npm run check:agents-docs`. A skill
+ships as one document, so fold anything that would have been a `references/`
+file into a `##` section. `/nodetool-skill-author` has the contract.
 
 `/code-review` is a merge of upstream's skill and the old
 `nodetool-code-review`, which it replaces: upstream's Standards and Spec axes
@@ -88,8 +98,32 @@ MsgPack framing, Zustand subscriptions, `ui_primitives`, packaged-Electron
 paths, IPC security). It pairs with `unslop` for a full pre-merge pass.
 
 Existing invocation metadata is preserved. Claude-specific frontmatter remains
-in place. Codex discovers the same skill files through `.agents/skills`.
-Review upstream updates against local adaptations instead of replacing them wholesale.
+in place. Review upstream updates against local adaptations instead of
+replacing them wholesale.
+
+## Codex reads the same skills
+
+Codex scans `.agents/skills` at the repository root, and `.agents` is a symlink
+to `.claude`, so both agents read one tree — including the NodeTool skills,
+which are themselves symlinks into `packages/system-skills/`. Codex follows a
+symlinked skill folder to its target, so the two hops resolve.
+
+It needs `name` and `description` in the frontmatter and skips a skill missing
+either. Everything else Claude Code puts there, Codex ignores — including
+`disable-model-invocation: true`, which is why the nine typed-only skills each
+carry Codex's own form of that rule:
+
+```yaml
+# skills/<name>/agents/openai.yaml
+policy:
+  allow_implicit_invocation: false
+```
+
+Without it Codex reaches for a skill the repository says to type. The two are
+kept in step by `npm run check:agents-docs`, which also fails on a `.agents`
+that stops pointing at `.claude` and on a skill Codex would silently skip. That
+file also carries `interface` (display name, icon, colour) and `dependencies`
+(MCP servers a skill needs); this repository sets neither.
 
 ## Maintaining skills
 
