@@ -315,11 +315,15 @@ export const useGuidedFlowStarters = (
             return startById[card.id](projectId);
           }
           setPendingDestination({ id: card.id, title });
+          // The picker is the surface now, so the menu that opened it goes
+          // away rather than sitting behind the dialog.
+          onStarted?.();
           return Promise.resolve();
         }
       };
     });
   }, [
+    onStarted,
     startEntity,
     startGame,
     startImage,

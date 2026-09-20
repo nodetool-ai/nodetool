@@ -122,6 +122,15 @@ describe("useGuidedFlowStarters destinations", () => {
     expect(createProject).not.toHaveBeenCalled();
   });
 
+  it("closes the menu when the picker takes over", () => {
+    const { storyboard, onStarted } = renderStarters();
+    act(() => {
+      void storyboard().start();
+    });
+
+    expect(onStarted).toHaveBeenCalledTimes(1);
+  });
+
   it("names the open project for the picker", () => {
     const { hook } = renderStarters();
     expect(hook.result.current.currentProject).toEqual({
