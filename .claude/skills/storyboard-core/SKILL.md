@@ -24,6 +24,8 @@ from an example. Load other sections only when the task reaches them.
 | Narrative with dialogue, score and a title: short film, trailer, scene | `/short-film` |
 | A campaign, not one video: entity sheets, still set, several cuts | `/launch-kit` |
 | A template to re-run on new inputs | `/video-workflow` |
+| Footage already exists and needs repair: cutout, upscale, outpaint, lip sync, generated sound | `/nodetool-video-post` |
+| A screen someone clicks, over the workflows behind a piece | `/nodetool-app-builder` |
 
 If none fits, run the loop below directly.
 
@@ -74,6 +76,9 @@ Bridge the two with `ui_open_document {type: "storyboard", id}`.
 10. **Cut.** `assemble_storyboard_timeline`, then `validate_timeline`. Re-running
     rebuilds the same sequence in place and keeps tracks the board does not own.
 11. **Finish** with `edit_timeline` ops (`references/tool-contract.md` § Timeline).
+    Load the `motion-graphics` system skill with `load_skill` for the full op
+    list, the presets and the preview contract. A repair on a delivered clip
+    belongs to [nodetool-video-post](../nodetool-video-post/SKILL.md).
 
 **Stills-only mode.** When the user wants a board and frames but no motion — a spec
 ad, a pitch, a look test — run steps 1 to 7 and stop. Adding the motion later is

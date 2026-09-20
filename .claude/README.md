@@ -50,6 +50,37 @@ you can also type them:
 | `/resolving-merge-conflicts` | Work an in-progress merge or rebase hunk by hunk. |
 | `/wizard` | Generate a bash wizard for steps only a human can perform. |
 
+## NodeTool authoring skills
+
+These cover the product surfaces rather than the engineering loop. All are
+model-invoked and typeable.
+
+| Skill | Surface |
+| :--- | :--- |
+| `/storyboard-core` | Storyboards, entity casting, rendering, timeline assembly. Routes to `/ugc-video`, `/product-commercial`, `/script-video`, `/short-film`, `/video-clone`, `/launch-kit`, `/video-workflow` |
+| `/nodetool-workflow-builder` | Workflow graphs, and the routing table for when a graph is the wrong document |
+| `/nodetool-app-builder` | Mini apps: operations, widgets, bindings, variables, resources |
+| `/nodetool-video-post` | Repairs on delivered footage, and the candidate review protocol |
+| `/nodetool-js-scripting` | Code nodes, JS script documents, sandbox packs, calling nodes from code |
+| `/nodetool-sketch` | Sketches (image documents): layers, placed images, briefs |
+| `/nodetool-3d-scene` | glTF models: objects, transforms, lights, Blender renders |
+| `/godot-game` | A playable Godot game or a complete asset pack |
+| `/nodetool-custom-node-developer` | New TypeScript node types and node packages |
+| `/nodetool-troubleshooter` | A failing run, on whichever surface it belongs to |
+| `/nodetool-api-reference` | REST, tRPC, WebSocket, MCP, OpenAI-compatible chat |
+| `/nodetool-rag-indexing` | Ingestion, vector indexing, retrieval |
+| `/nodetool-browser-agent` | Browser automation agents |
+| `/nodetool-chat-cli` | Chat CLI sessions and Global Chat |
+| `/nodetool-model-provider-config` | Providers, credentials, model selection |
+| `/nodetool-deployment` | Servers and workers: Docker, SSH, Runpod, cloud |
+| `/nodetool-skill-author` | Writing a user skill row or a shipped system skill |
+
+Deeper craft guidance ships as **system skills** in
+[`packages/system-skills/`](../packages/system-skills/README.md) and loads at
+runtime through `load_skill`, not from this directory. `motion-graphics` carries
+the full timeline op contract, and the `*-prompting` skills carry the model-line
+guides. A repository skill points at one rather than restating it.
+
 `/code-review` is a merge of upstream's skill and the old
 `nodetool-code-review`, which it replaces: upstream's Standards and Spec axes
 plus a Correctness axis carrying this repo's landmines (cross-package imports,

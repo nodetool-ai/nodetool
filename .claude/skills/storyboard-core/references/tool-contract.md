@@ -256,6 +256,24 @@ Others: `list_scripts`, `get_script` (line status: `draft`, `stale`, `voiced`,
 `no_voice`), `create_script`, `edit_script`, `delete_script`. Browser twins are
 `ui_script_*`.
 
+### Writing the lines
+
+`create_script` makes an empty one. `edit_script {script_id, ops[]}` ops:
+`set_setup` (brief, format, length, pace, language, stage), `add_speaker`,
+`set_speaker`, `set_speaker_voice`, `add_section`, `add_line`, `set_line_text`,
+`set_line_speaker`, `remove_line`, `remove_speaker`. Call `get_script` first for
+line and speaker ids.
+
+`write_script {script_id, rewrite?, imported_text?}` drafts the lines from the
+setup and saves the cast and lines it produces, replacing what was there. Set
+the brief with `set_setup` first. `rewrite: true` keeps the ids of the lines it
+keeps, so their takes and storyboard links survive. Words passed as
+`imported_text` are only split into lines and attributed to speakers, never
+reworded. It records no take: voice the result with `voice_script_lines`.
+
+Rewriting a line leaves its takes in place as **stale**, so a following
+`voice_script_lines` re-records exactly those and nothing else.
+
 ## Models
 
 `find_model {capability, query?, task?, provider_hint?, model_hint?, prefer_local?,

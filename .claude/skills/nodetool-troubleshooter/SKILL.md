@@ -1,9 +1,28 @@
 ---
 name: nodetool-troubleshooter
-description: "Diagnose NodeTool workflow failures, stuck nodes, type mismatches, and execution errors. Use diagnosing-bugs for repository code defects."
+description: "Diagnose a failing NodeTool run on any surface: workflows, mini apps, timelines, sketches, scripts, storyboards, and stuck media generations. Use diagnosing-bugs for repository code defects."
 ---
 
 You are a NodeTool troubleshooter. Diagnose issues systematically using this guide.
+
+# Name the surface first
+
+A failure belongs to one document kind, and each kind has its own static check
+and its own replay harness. Checking the wrong one wastes the run.
+
+| Symptom sits in | Static check | Replay | Skill for the fix |
+|---|---|---|---|
+| A workflow graph | `validate_workflow` | `debug_workflow` | [nodetool-workflow-builder](../nodetool-workflow-builder/SKILL.md) |
+| A mini app: dead button, blank widget | `debug_app {run: false}` | `debug_app {interact}` | [nodetool-app-builder](../nodetool-app-builder/SKILL.md) |
+| A timeline: wrong length, missing clip, bad font | `validate_timeline` | `timeline debug` | [nodetool-video-post](../nodetool-video-post/SKILL.md) |
+| A sketch: empty layer, wrong blend | `validate_sketch` | `sketch debug` | [nodetool-sketch](../nodetool-sketch/SKILL.md) |
+| A JS script or Code node | `validate_js_script`, `validate_code` | `run_js_script`, `test_js_script` | [nodetool-js-scripting](../nodetool-js-scripting/SKILL.md) |
+| A 3D model | `validate_model3d` | `render_model3d` | [nodetool-3d-scene](../nodetool-3d-scene/SKILL.md) |
+| A storyboard: a shot that will not render | `get_storyboard` | re-render one target | [storyboard-core](../storyboard-core/SKILL.md) |
+| A media call that never came back | `generations get` | `generations await` | below, under **Stuck generation** |
+
+A run that spans surfaces fails at one of them. A mini app over a broken
+workflow reports that the app is broken: debug the graph as a graph first.
 
 # CLI Debug Harnesses (start here when you have shell access)
 
@@ -26,16 +45,30 @@ npm run dev:nodetool -- debug workflow.json --watch     # re-run on save, print 
 npm run dev:nodetool -- debug <id> --trace              # OTel spans: timing, tokens, cost
 npm run dev:nodetool -- debug <id> --browser --stages   # real browser + per-stage screenshots
 
-# App-builder mini apps (workflow.app_doc): binding validation + headless run
+# Mini apps: binding validation, then a headless run of every operation
+npm run dev:nodetool -- app debug <id> --no-run     # free wiring check
 npm run dev:nodetool -- app debug <id> --json
+
+# The other document surfaces — same shape: validate, then replay a scripted session
+npm run dev:nodetool -- timeline validate <timeline_id|sequence.json> --json
+npm run dev:nodetool -- sketch validate <image_document_id|sketch.json> --json
+npm run dev:nodetool -- jsscript validate <id|file.json> --json
+npm run dev:nodetool -- timeline debug <id> --interact '[…]'
+npm run dev:nodetool -- sketch debug <id> --interact '[…]'
+npm run dev:nodetool -- jsscript debug <id> --interact '[…]'
 ```
+
+For every one of these, a path that exists on disk wins over an id, and a file
+target needs no database. Each `debug` writes a bundle under `nodetool-debug/`
+and exits non-zero on a bad verdict. Read the report's `notSimulated` list
+before concluding that a green verdict means the surface works.
 
 The bundle lands in `nodetool-debug/<id>-<ts>/` (`report.md`, `server/messages.jsonl`, …). Loop: run `debug` → read the verdict → edit → re-run. Against a running server, agents can use the `validate_workflow` and `debug_workflow` tools instead.
 
 For agent/LLM issues, capture a trace and inspect the spans (`llm.chat` carries `gen_ai.usage.*` token/cost attributes):
 
 ```bash
-NODETOOL_TRACE_FILE=/tmp/trace.jsonl npm run dev:chat -- --agent
+NODETOOL_TRACE_FILE=/tmp/trace.jsonl npm run dev:chat
 npm run dev:nodetool -- --trace-file trace.jsonl run workflow.ts
 ```
 
@@ -95,13 +128,68 @@ When a user reports a problem, work through this in order:
 3. Are optional inputs that are actually needed left unconnected?
 4. Is the node returning the correct output key?
 
+## Stuck Generation
+
+**Symptoms**: An image, video, audio or 3D call never returns. The surface shows
+a pending take with no error.
+
+Every provider media call is one `predictions` row, opened before the call and
+closed with its outcome, so a hung call is visible without reading logs.
+
+```bash
+npm run dev:nodetool -- generations list --status running --json
+npm run dev:nodetool -- generations get <generation_id> --json
+npm run dev:nodetool -- generations await <generation_id> --timeout 300   # exit 1 while running
+npm run dev:nodetool -- generations cancel <generation_id>
+npm run dev:nodetool -- generations sweep        # close orphaned rows after a restart
+npm run dev:nodetool -- generations reconcile <generation_id>   # ask the provider what it billed
+```
+
+A row reading `interrupted` means a restart orphaned it, not that the provider
+failed. `provider-list` and `provider-get` ask the provider's own record instead
+of the local table, for a run started on another machine. Agents reach the same
+record through `list_generations`, `get_generation`, `await_generation`,
+`cancel_generation` and `reconcile_generation`.
+
+## Mini App Shows Nothing
+
+**Symptoms**: The button does nothing, or a widget stays blank after a run.
+
+**Check**, in this order:
+
+1. `debug_app {application_id, run: false}` — free. A binding pointing at a
+   missing input, output or variable is the usual answer.
+2. Does the app have a run trigger at all? A Button needs a `run` action.
+3. Is anything bound to `op:<id>/exec#error`? A failed operation with no error
+   binding leaves the app looking idle.
+4. Did the run actually complete? `debug_app {interact}` reports each widget's
+   final state and each invocation's policy decision, so a run that was
+   replaced, queued or timed out says so.
+5. Is the widget bound to the right kind? A Sketch or Timeline reference bound
+   to an Image or Video widget renders nothing.
+
+## Timeline Renders Wrong
+
+**Symptoms**: The cut runs longer than planned, a font differs from the editor,
+an animation does not play.
+
+1. `validate_timeline` first. It catches overlaps, fades longer than their clip,
+   unknown presets, incomplete bindings and non-portable fonts.
+2. A shot is as long as its render, not as long as its directed duration. Check
+   `retimed_shots` from the assembly call.
+3. A CSS generic family (`sans-serif`, `serif`, `system-ui`) is refused where a
+   clip is authored, because the editor, the render and the frame preview would
+   each pick a different typeface. Use a bundled family.
+4. `preview_timeline_frame` before `render_timeline`. Rendering to check an edit
+   is the expensive way to be wrong.
+
 ## LLM Poor Quality
 
 **Symptoms**: Agent output is wrong, irrelevant, or garbled
 
 **Fix**:
 - Improve the prompt (be specific, add examples)
-- Use a more capable model (gpt-5.4, claude-sonnet-4-6)
+- Use a more capable model (`find_model`, or the ids the provider registry lists)
 - Lower temperature for factual tasks (0.0–0.3)
 - Add few-shot examples in system prompt
 - Use RAG to ground answers in source documents
