@@ -171,12 +171,12 @@ describe("useWorkflowActions", () => {
       );
     });
 
-    it("navigates to new workflow after creation", async () => {
+    it("opens a new workflow in view mode after creation", async () => {
       const { result } = renderHook(() => useWorkflowActions());
 
       await result.current.handleExampleClick(mockWorkflow);
 
-      expect(mockNavigate).toHaveBeenCalledWith("/editor/test-workflow-123");
+      expect(mockNavigate).toHaveBeenCalledWith("/workspace");
     });
 
     it("clears loading state on error", async () => {
@@ -237,7 +237,7 @@ describe("useWorkflowActions", () => {
       await result.current.handleExampleClick(exampleWorkflow);
 
       expect(mockCreateWorkflow).toHaveBeenCalled();
-      expect(mockNavigate).toHaveBeenCalledWith("/editor/test-workflow-123");
+      expect(mockNavigate).toHaveBeenCalledWith("/workspace");
     });
 
     it("creates workflow with correct properties", async () => {

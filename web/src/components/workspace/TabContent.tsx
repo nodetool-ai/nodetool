@@ -44,7 +44,13 @@ interface TabContentProps {
 const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
   switch (tab.type) {
     case "workflow":
-      return <WorkflowEditorSurface workflowId={tab.ref} active={active} />;
+      return (
+        <WorkflowEditorSurface
+          workflowId={tab.ref}
+          mode={tab.mode}
+          active={active}
+        />
+      );
     case "image":
       return <ImageSurface refId={tab.ref} mode={tab.mode} active={active} />;
     case "svg":
@@ -80,7 +86,7 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
         />
       );
     case "application":
-      return <ApplicationSurface refId={tab.ref} />;
+      return <ApplicationSurface refId={tab.ref} mode={tab.mode} />;
     case "chat":
       return <ChatSurface refId={tab.ref} active={active} />;
     case "page":

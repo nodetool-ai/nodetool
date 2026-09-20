@@ -14,6 +14,7 @@ import {
 } from "../../utils/exampleApps";
 import {
   BORDER_RADIUS,
+  EditorButton,
   EmptyState,
   LoadingSpinner,
   MOTION,
@@ -25,13 +26,8 @@ import { useSectionWrap, SectionHeader } from "./dashboardChrome";
 /** Query key for the shipped example apps, shared with any invalidation. */
 export const EXAMPLE_APPS_QUERY_KEY = ["applications", "examples"] as const;
 
-const CARD_WIDTH = 220;
-
 const styles = (theme: Theme) =>
   css({
-    // A fixed-height band between the recipes and the template browser: the
-    // cards scroll sideways so the page below keeps its viewport share.
-    flexShrink: 0,
     paddingTop: getSpacingPx(SPACING.xxl),
     ".apps-lede": {
       margin: `0 0 ${getSpacingPx(SPACING.sm)}`,
@@ -39,14 +35,12 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     ".apps-strip": {
-      display: "flex",
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
       gap: getSpacingPx(SPACING.md),
-      overflowX: "auto",
-      paddingBottom: getSpacingPx(SPACING.sm),
-      scrollSnapType: "x proximity"
+      paddingBottom: getSpacingPx(SPACING.sm)
     },
     ".app-card": {
-      flex: `0 0 ${CARD_WIDTH}px`,
       display: "flex",
       flexDirection: "column",
       textAlign: "left",
@@ -57,7 +51,6 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       cursor: "pointer",
       overflow: "hidden",
-      scrollSnapAlign: "start",
       transition: `border-color ${MOTION.fast}, background ${MOTION.fast}`,
       "&:hover": {
         borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
@@ -181,11 +174,20 @@ const ExampleAppCard = memo(function ExampleAppCard({
   );
 });
 
+interface DashboardExampleAppsProps {
+  /** Show a small entry-point selection instead of the full catalog. */
+  compact?: boolean;
+  onBrowseAll?: () => void;
+}
+
 /**
- * The shipped example apps as a strip of cards on the Examples page. Clicking
- * one installs it (the app plus the workflows it binds) and opens it.
+ * The shipped example apps. Clicking one installs it (the app plus the
+ * workflows it binds) and opens it.
  */
-const DashboardExampleApps: React.FC = () => {
+const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
+  compact = false,
+  onBrowseAll
+}) => {
   const theme = useTheme();
   const sectionWrap = useSectionWrap();
   const queryClient = useQueryClient();
@@ -205,7 +207,12 @@ const DashboardExampleApps: React.FC = () => {
     onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: ["applications"] });
       await queryClient.invalidateQueries({ queryKey: ["workflows"] });
-      openTab({ type: "application", ref: created.id, title: created.name });
+      openTab({
+        type: "application",
+        ref: created.id,
+        mode: "view",
+        title: created.name
+      });
       addNotification({
         type: "success",
         alert: true,
@@ -232,11 +239,18 @@ const DashboardExampleApps: React.FC = () => {
   const apps = data ?? [];
   const installingSlug = install.isPending ? install.variables?.slug : null;
   const countLabel = `${apps.length} app${apps.length === 1 ? "" : "s"}`;
+  const visibleApps = compact ? apps.slice(0, 3) : apps;
 
   return (
     <section css={styles(theme)} aria-labelledby="dashboard-example-apps-title">
       <div css={sectionWrap}>
-        <SectionHeader title="Start from an app" count={countLabel} />
+        <SectionHeader title="Start from an app" count={countLabel}>
+          {compact && onBrowseAll && apps.length > visibleApps.length && (
+            <EditorButton variant="text" density="compact" onClick={onBrowseAll}>
+              See all apps
+            </EditorButton>
+          )}
+        </SectionHeader>
         <p className="apps-lede">
           One upload, a few choices, one result. Adding an app also adds the
           workflows it runs, so you can open the graph behind any of them.
@@ -265,7 +279,7 @@ const DashboardExampleApps: React.FC = () => {
           </div>
         ) : (
           <div className="apps-strip">
-            {apps.map((app) => (
+            {visibleApps.map((app) => (
               <ExampleAppCard
                 key={app.slug}
                 app={app}

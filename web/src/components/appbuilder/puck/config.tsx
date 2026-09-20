@@ -11,7 +11,12 @@ import {
   SPACING,
   SPACING_PX
 } from "../../ui_primitives";
-import { APP_THEMES, appThemeFrame, resolveAppTheme } from "../appThemes";
+import {
+  APP_ROOT_STYLES,
+  APP_THEMES,
+  appThemeFrame,
+  resolveAppTheme
+} from "../appThemes";
 import { useAppRuntimeContext } from "../runtime/AppRuntimeContext";
 import {
   bindingField,
@@ -284,6 +289,7 @@ const AppRoot: React.FC<{
   return (
     <Box
       sx={{
+        ...APP_ROOT_STYLES,
         p: appTheme.padding,
         minHeight: "100%",
         backgroundColor: appTheme.surface,

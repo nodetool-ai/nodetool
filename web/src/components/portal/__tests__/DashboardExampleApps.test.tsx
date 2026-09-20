@@ -96,6 +96,7 @@ describe("DashboardExampleApps", () => {
     expect(openTab).toHaveBeenCalledWith({
       type: "application",
       ref: "app-1",
+      mode: "view",
       title: "Vary Image"
     });
     expect(addNotification).toHaveBeenCalledWith(

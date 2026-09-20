@@ -97,10 +97,10 @@ jest.mock("../../applications/ApplicationGovernancePanel", () => ({
 
 import ApplicationSurface from "../ApplicationSurface";
 
-const renderSurface = () =>
+const renderSurface = (mode?: "edit" | "view") =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <ApplicationSurface refId="app-1" />
+      <ApplicationSurface refId="app-1" mode={mode} />
     </ThemeProvider>
   );
 
@@ -136,6 +136,13 @@ describe("ApplicationSurface", () => {
     expect(screen.queryByTestId("governance")).not.toBeInTheDocument();
     expect(screen.getByTestId("app-assistant")).toHaveTextContent("app-1:wf-1");
     expect(setTitle).toHaveBeenCalledWith("app-1", "application", "Translator");
+  });
+
+  it("hides the editor header when previewing an app", () => {
+    renderSurface("view");
+
+    expect(screen.queryByText("Translates things")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("linked-workflows")).not.toBeInTheDocument();
   });
 
   it("switches to publish and budget controls", async () => {

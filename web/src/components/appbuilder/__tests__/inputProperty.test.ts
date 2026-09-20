@@ -74,6 +74,11 @@ describe("createPropertyForInput", () => {
     expect(property.default).toBe("x");
   });
 
+  it("maps music model inputs to a model property", () => {
+    const property = createPropertyForInput(makeInput({ kind: "music_model" }));
+    expect(property.type.type).toBe("music_model");
+  });
+
   it("routes path kinds through json_schema_extra", () => {
     expect(
       createPropertyForInput(makeInput({ kind: "file_path" })).json_schema_extra

@@ -3,34 +3,13 @@ import { asMock } from "../../test-utils/doubles";
 
 import { useHasConfiguredProvider } from "../useHasConfiguredProvider";
 import useSecretsStore from "../../stores/SecretsStore";
-import {
-  useOAuthConnection,
-  type OAuthConnection
-} from "../useOAuthConnection";
 import type { SecretResponse } from "../../stores/ApiTypes";
 
 jest.mock("../../stores/SecretsStore");
-jest.mock("../useOAuthConnection");
 
 const mockUseSecretsStore = asMock(useSecretsStore);
-const mockUseOAuthConnection = useOAuthConnection as jest.MockedFunction<
-  typeof useOAuthConnection
->;
 
 const fetchSecrets = jest.fn();
-
-const oauthState = (isConnected: boolean): OAuthConnection => ({
-  label: "",
-  isConnected,
-  isConnecting: false,
-  canDisconnect: false,
-  connect: jest.fn(),
-  disconnect: jest.fn(),
-  manualPrompt: null,
-  isSubmittingManual: false,
-  submitManualCode: jest.fn(),
-  cancelManual: jest.fn()
-});
 
 const withSecrets = (secrets: SecretResponse[]): void => {
   mockUseSecretsStore.mockImplementation(
@@ -46,7 +25,6 @@ const secret = (key: string, is_configured: boolean): SecretResponse => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockUseOAuthConnection.mockReturnValue(oauthState(false));
   withSecrets([]);
 });
 
@@ -85,11 +63,8 @@ describe("useHasConfiguredProvider", () => {
     expect(result.current).toBe(false);
   });
 
-  it("is true for an OAuth sign-in that stores no secret", () => {
-    mockUseOAuthConnection.mockImplementation((provider) =>
-      oauthState(provider === "claude")
-    );
+  it("ignores OAuth credentials that are not stored in NodeTool secrets", () => {
     const { result } = renderHook(() => useHasConfiguredProvider());
-    expect(result.current).toBe(true);
+    expect(result.current).toBe(false);
   });
 });

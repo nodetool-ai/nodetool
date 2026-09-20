@@ -7,6 +7,7 @@ import {
   examplePackageName,
   exampleSeedRef
 } from "../utils/exampleWorkflow";
+import { useWorkspaceTabsStore } from "../stores/WorkspaceTabsStore";
 
 interface WorkflowActions {
   loadingExampleId: string | null;
@@ -20,6 +21,7 @@ export const useWorkflowActions = (): WorkflowActions => {
   const navigate = useNavigate();
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const createWorkflow = useWorkflowManager((state) => state.create);
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const [loadingExampleId, setLoadingExampleId] = useState<string | null>(null);
 
   const handleCreateNewWorkflow = useCallback(async () => {
@@ -62,13 +64,19 @@ export const useWorkflowActions = (): WorkflowActions => {
           examplePackageName(example),
           exampleSeedRef(example)
         );
-        navigate(`/editor/${newWorkflow.id}`);
+        openTab({
+          type: "workflow",
+          ref: newWorkflow.id,
+          mode: "view",
+          title: newWorkflow.name || example.name
+        });
+        navigate("/workspace");
       } catch (error) {
         console.error("Error copying example:", error);
         setLoadingExampleId(null);
       }
     },
-    [loadingExampleId, createWorkflow, navigate]
+    [loadingExampleId, createWorkflow, navigate, openTab]
   );
 
   const handleViewAllTemplates = useCallback(() => {

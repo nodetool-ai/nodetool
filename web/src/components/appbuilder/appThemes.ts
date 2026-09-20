@@ -10,6 +10,23 @@
  */
 import { BORDER_RADIUS, SPACING } from "../ui_primitives";
 
+/**
+ * The inherited page contract for every mini app. Widgets can opt into a
+ * different sanctioned type style, but unstyled content such as Markdown and
+ * native form controls must still start from the NodeTool scale.
+ */
+export const APP_ROOT_STYLES = {
+  fontFamily: "var(--fontFamily1)",
+  fontSize: "var(--fontSizeNormal)",
+  lineHeight: 1.45,
+  "& button, & input, & textarea, & select": {
+    fontFamily: "inherit"
+  },
+  "& *, & *::before, & *::after": {
+    boxSizing: "border-box"
+  }
+} as const;
+
 interface AppTheme {
   id: string;
   label: string;

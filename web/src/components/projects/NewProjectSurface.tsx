@@ -91,6 +91,7 @@ import useOnboardingStore, {
   isOnboardingFinished
 } from "../../stores/OnboardingStore";
 import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
+import DashboardExampleApps from "../portal/DashboardExampleApps";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import { openPageTab } from "../workspace/openPageTab";
 import GuidedFlowProjectDialog from "../setup/GuidedFlowProjectDialog";
@@ -1498,6 +1499,11 @@ const NewProjectSurface = () => {
               mode="navigation"
             />
           </FlexColumn>
+
+          <DashboardExampleApps
+            compact
+            onBrowseAll={handleOpenExamples}
+          />
 
           {/* The composer sits below the cards, not above them: its `/` and `@`
               menus open upward from the box's top edge

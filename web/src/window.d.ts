@@ -126,7 +126,12 @@ export type MenuEventType =
   | "prevTab"
   | "nextTab"
   | "switchToTab"
-  | "openSettings";
+  | "openSettings"
+  | "showKeyboardShortcuts"
+  | "openHelp"
+  | "openDownloads"
+  | "openModelManager"
+  | "openPackageManager";
 
 export interface MenuEventData {
   type: MenuEventType;

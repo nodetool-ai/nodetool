@@ -9,7 +9,11 @@ import ApplicationRunView from "../appbuilder/ApplicationRunView";
 import AppBuilderAgentPanel from "../appbuilder/AppBuilderAgentPanel";
 import LinkedWorkflowsMenu from "./LinkedWorkflowsMenu";
 import { useApplication } from "../../hooks/useApplications";
-import { tabId, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  tabId,
+  useWorkspaceTabsStore,
+  type WorkspaceTabMode
+} from "../../stores/WorkspaceTabsStore";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import {
   Box,
@@ -29,6 +33,7 @@ import {
 
 interface ApplicationSurfaceProps {
   refId: string;
+  mode?: WorkspaceTabMode;
 }
 
 type ApplicationView = "design" | "run" | "settings";
@@ -69,11 +74,24 @@ const overlayPanelSx = {
  * Workspace surface for a mini app: the WYSIWYG canvas over the app's own
  * document, plus its publish and governance controls.
  */
-const ApplicationSurface = ({ refId }: ApplicationSurfaceProps) => {
+const ApplicationSurface = ({
+  refId,
+  mode = "edit"
+}: ApplicationSurfaceProps) => {
   const { data: application, isLoading, isError, error } = useApplication(refId);
-  const [view, setView] = useState<ApplicationView>("design");
+  const [view, setView] = useState<ApplicationView>(
+    mode === "view" ? "run" : "design"
+  );
+  useEffect(() => {
+    if (mode === "view") {
+      setView("run");
+      setOpened((views) => (views.includes("run") ? views : [...views, "run"]));
+    }
+  }, [mode]);
   // A view is mounted the first time it is opened, and never unmounted after.
-  const [opened, setOpened] = useState<ApplicationView[]>(["design"]);
+  const [opened, setOpened] = useState<ApplicationView[]>(
+    mode === "view" ? ["run"] : ["design"]
+  );
   // The first operation's graph, reported by the builder as it binds. The
   // assistant lives on this surface, so a Design bind reaches it in Run too.
   const [agentWorkflowId, setAgentWorkflowId] = useState<string | undefined>();
@@ -134,46 +152,48 @@ const ApplicationSurface = ({ refId }: ApplicationSurfaceProps) => {
         gap={0}
         sx={{ flex: 1, minWidth: 0, height: "100%", minHeight: 0 }}
       >
-        <FlexRow
-          align="center"
-          justify="space-between"
-          gap={SPACING.md}
-          sx={{
-            px: SPACING.lg,
-            py: SPACING.md,
-            borderBottom: "1px solid",
-            borderColor: "divider",
-            backgroundColor: "background.paper"
-          }}
-        >
-          <Box sx={{ minWidth: 0 }}>
-            <Text size="small" weight={600} truncate>
-              {application.name || "Untitled app"}
-            </Text>
-            {application.description && (
-              <Caption color="secondary" sx={{ display: "block" }}>
-                {application.description}
-              </Caption>
-            )}
-          </Box>
-          <FlexRow align="center" gap={SPACING.sm}>
-            <LinkedWorkflowsMenu
-              applicationId={application.id}
-              active={isActiveTab}
-            />
-            <ToggleGroup
-              segmented
-              exclusive
-              value={view}
-              onChange={handleViewChange}
-              aria-label="App view"
-            >
-              <ToggleOption value="design">Design</ToggleOption>
-              <ToggleOption value="run">Run</ToggleOption>
-              <ToggleOption value="settings">Settings</ToggleOption>
-            </ToggleGroup>
+        {mode === "edit" && (
+          <FlexRow
+            align="center"
+            justify="space-between"
+            gap={SPACING.md}
+            sx={{
+              px: SPACING.lg,
+              py: SPACING.md,
+              borderBottom: "1px solid",
+              borderColor: "divider",
+              backgroundColor: "background.paper"
+            }}
+          >
+            <Box sx={{ minWidth: 0 }}>
+              <Text size="small" weight={600} truncate>
+                {application.name || "Untitled app"}
+              </Text>
+              {application.description && (
+                <Caption color="secondary" sx={{ display: "block" }}>
+                  {application.description}
+                </Caption>
+              )}
+            </Box>
+            <FlexRow align="center" gap={SPACING.sm}>
+              <LinkedWorkflowsMenu
+                applicationId={application.id}
+                active={isActiveTab}
+              />
+              <ToggleGroup
+                segmented
+                exclusive
+                value={view}
+                onChange={handleViewChange}
+                aria-label="App view"
+              >
+                <ToggleOption value="design">Design</ToggleOption>
+                <ToggleOption value="run">Run</ToggleOption>
+                <ToggleOption value="settings">Settings</ToggleOption>
+              </ToggleGroup>
+            </FlexRow>
           </FlexRow>
-        </FlexRow>
+        )}
         <Box sx={{ flex: 1, minHeight: 0, position: "relative" }}>
           {opened.includes("design") && (
             <Box sx={view === "design" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}>

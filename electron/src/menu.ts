@@ -105,6 +105,10 @@ const buildMenu = () => {
             });
           },
         },
+        {
+          label: "Settings",
+          click: () => openSettingsInMainWindow(),
+        },
         { type: "separator" },
         {
           label: "New Workflow",
@@ -195,6 +199,9 @@ const buildMenu = () => {
     {
       label: "View",
       submenu: [
+        { role: "reload" },
+        { role: "toggleDevTools" },
+        { type: "separator" },
         {
           label: "Fit View",
           accelerator: "CmdOrCtrl+0",
@@ -206,28 +213,16 @@ const buildMenu = () => {
         },
         { type: "separator" },
         {
-          label: "Reset Zoom",
-          click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
-              type: "resetZoom",
-            });
-          },
+          label: "Reset Browser Zoom",
+          role: "resetZoom",
         },
         {
-          label: "Zoom In",
-          click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
-              type: "zoomIn",
-            });
-          },
+          label: "Browser Zoom In",
+          role: "zoomIn",
         },
         {
-          label: "Zoom Out",
-          click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
-              type: "zoomOut",
-            });
-          },
+          label: "Browser Zoom Out",
+          role: "zoomOut",
         },
         { type: "separator" },
         {
@@ -259,10 +254,37 @@ const buildMenu = () => {
           label: "Performance Monitor",
           click: () => openPerformanceMonitorWindow(),
         },
-        { type: "separator" },
         {
-          label: "Settings",
-          click: () => openSettingsInMainWindow(),
+          label: "Model Manager",
+          click: () => {
+            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+              type: "openModelManager",
+            });
+          },
+        },
+        {
+          label: "Package Manager",
+          click: () => {
+            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+              type: "openPackageManager",
+            });
+          },
+        },
+        {
+          label: "Help",
+          click: () => {
+            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+              type: "openHelp",
+            });
+          },
+        },
+        {
+          label: "Downloads",
+          click: () => {
+            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+              type: "openDownloads",
+            });
+          },
         },
       ],
     },
@@ -281,6 +303,15 @@ const buildMenu = () => {
           label: "Learn More",
           click: async () => {
             await shell.openExternal("https://nodetool.ai");
+          },
+        },
+        {
+          label: "Keyboard Shortcuts",
+          accelerator: "CmdOrCtrl+/",
+          click: () => {
+            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+              type: "showKeyboardShortcuts",
+            });
           },
         },
         { type: "separator" },

@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from "react";
 import useSecretsStore from "../stores/SecretsStore";
-import { useOAuthConnection } from "./useOAuthConnection";
 import { AI_PROVIDER_SECRET_KEYS } from "../components/menus/providerCatalog";
 
 /**
@@ -8,18 +7,13 @@ import { AI_PROVIDER_SECRET_KEYS } from "../components/menus/providerCatalog";
  * provider" onboarding step wherever it is shown (the new-project surface's
  * checklist, chat welcome), so every surface reads the same signal.
  *
- * A provider counts when its secret is configured — the key set comes from the
- * settings provider catalog, so a provider connected anywhere in the app ticks
- * the step — or when its OAuth flow is signed in, which stores tokens rather
- * than a secret and would otherwise look unconnected.
+ * A provider counts only when its secret is configured in NodeTool's settings
+ * database. External OAuth credentials, such as Claude Code credentials, do
+ * not complete this step.
  */
 export const useHasConfiguredProvider = (): boolean => {
   const fetchSecrets = useSecretsStore((s) => s.fetchSecrets);
   const secrets = useSecretsStore((s) => s.secrets);
-
-  const openai = useOAuthConnection("openai");
-  const hf = useOAuthConnection("hf");
-  const claude = useOAuthConnection("claude");
 
   useEffect(() => {
     fetchSecrets();
@@ -33,9 +27,7 @@ export const useHasConfiguredProvider = (): boolean => {
     [secrets]
   );
 
-  return (
-    hasSecret || openai.isConnected || hf.isConnected || claude.isConnected
-  );
+  return hasSecret;
 };
 
 export default useHasConfiguredProvider;

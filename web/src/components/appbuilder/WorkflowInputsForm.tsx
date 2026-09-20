@@ -46,6 +46,7 @@ const KIND_TO_PROPERTY_TYPE = {
   video_model: "video_model",
   tts_model: "tts_model",
   asr_model: "asr_model",
+  music_model: "music_model",
   embedding_model: "embedding_model",
   image_list: "list",
   video_list: "list",

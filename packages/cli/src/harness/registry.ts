@@ -324,7 +324,7 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "docs/harnesses.md § nodetool app debug",
     selfcheck: {
       command:
-        "npm run dev:nodetool -- app debug packages/base-nodes/nodetool/examples/apps/ask-your-documents.app.json --no-run",
+        "npm run dev:nodetool -- app debug packages/base-nodes/nodetool/examples/apps/ad-maker.app.json --no-run",
       cost: "cheap"
     }
   },

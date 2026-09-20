@@ -11,7 +11,8 @@ import type { Workflow } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
   tabId,
-  useWorkspaceTabsStore
+  useWorkspaceTabsStore,
+  type WorkspaceTabMode
 } from "../../stores/WorkspaceTabsStore";
 import GameSetupHost from "../setup/game/GameSetupHost";
 import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
@@ -36,6 +37,7 @@ import {
   SPACING
 } from "../ui_primitives";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
+import WorkflowGraphPreview from "../version/WorkflowGraphPreview";
 
 // Floating editor status message: sits above the canvas and node overlays but
 // below the node-info panel (15000) and find dialog (20000). Beyond the shared
@@ -44,6 +46,7 @@ const STATUS_MESSAGE_Z_INDEX = 10000;
 
 interface WorkflowEditorSurfaceProps {
   workflowId: string;
+  mode?: WorkspaceTabMode;
   active: boolean;
 }
 
@@ -65,9 +68,11 @@ interface WorkflowEditorSurfaceProps {
  */
 const WorkflowEditorSurface = ({
   workflowId,
+  mode = "edit",
   active
 }: WorkflowEditorSurfaceProps) => {
   const nodeStore = useWorkflowManager((state) => state.getNodeStore(workflowId));
+  const workflow = useWorkflowManager((state) => state.getWorkflow(workflowId));
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
   const createWorkflow = useWorkflowManager((state) => state.create);
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
@@ -205,6 +210,17 @@ const WorkflowEditorSurface = ({
 
   if (gameStage !== "done" && !gameFinished) {
     return <GameSetupHost workflowId={workflowId} onFinish={finishGameFlow} />;
+  }
+
+  if (mode === "view") {
+    return (
+      <WorkflowGraphPreview
+        graph={workflow?.graph}
+        workflowId={workflowId}
+        width="100%"
+        height="100%"
+      />
+    );
   }
 
   if (setupStage !== "done" && !setupFinished) {

@@ -1,4 +1,10 @@
-import { APP_THEMES, DEFAULT_APP_THEME, appThemeFrame, resolveAppTheme } from "../appThemes";
+import {
+  APP_ROOT_STYLES,
+  APP_THEMES,
+  DEFAULT_APP_THEME,
+  appThemeFrame,
+  resolveAppTheme
+} from "../appThemes";
 
 describe("app themes", () => {
   it("resolves a document's theme id to its registry entry", () => {
@@ -21,5 +27,19 @@ describe("app themes", () => {
   it("has unique ids", () => {
     const ids = APP_THEMES.map((theme) => theme.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("starts every app with the NodeTool typography and box model", () => {
+    expect(APP_ROOT_STYLES).toMatchObject({
+      fontFamily: "var(--fontFamily1)",
+      fontSize: "var(--fontSizeNormal)",
+      lineHeight: 1.45
+    });
+    expect(APP_ROOT_STYLES["& button, & input, & textarea, & select"]).toEqual({
+      fontFamily: "inherit"
+    });
+    expect(APP_ROOT_STYLES["& *, & *::before, & *::after"]).toEqual({
+      boxSizing: "border-box"
+    });
   });
 });

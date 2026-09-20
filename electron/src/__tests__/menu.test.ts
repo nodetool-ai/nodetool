@@ -100,8 +100,50 @@ describe('buildMenu', () => {
     saveItem?.click();
     expect(sendMock).toHaveBeenCalledWith('menu-event', { type: 'saveWorkflow' });
 
-    // Trigger help command
+    const fileSettingsItem = template
+      .find((item) => item.label === 'File')
+      ?.submenu?.find((item: { label?: string }) => item.label === 'Settings');
+    expect(fileSettingsItem).toBeDefined();
+
+    const toolsMenu = template.find((item) => item.label === 'Tools');
+    expect(
+      toolsMenu?.submenu?.find((item: { label?: string }) => item.label === 'Help'),
+    ).toBeDefined();
+    expect(
+      toolsMenu?.submenu?.find((item: { label?: string }) => item.label === 'Downloads'),
+    ).toBeDefined();
+    expect(
+      toolsMenu?.submenu?.find((item: { label?: string }) => item.label === 'Model Manager'),
+    ).toBeDefined();
+    expect(
+      toolsMenu?.submenu?.find((item: { label?: string }) => item.label === 'Package Manager'),
+    ).toBeDefined();
+    expect(
+      toolsMenu?.submenu?.find((item: { label?: string }) => item.label === 'Model Manager'),
+    ).toBeDefined();
+    expect(
+      toolsMenu?.submenu?.find((item: { label?: string }) => item.label === 'Package Manager'),
+    ).toBeDefined();
+
+    const viewMenu = template.find((item) => item.label === 'View');
+    expect(
+      viewMenu?.submenu?.find((item: { label?: string }) => item.label === 'Reset Browser Zoom')?.role,
+    ).toBe('resetZoom');
+    expect(
+      viewMenu?.submenu?.find((item: { label?: string }) => item.label === 'Browser Zoom In')?.role,
+    ).toBe('zoomIn');
+    expect(
+      viewMenu?.submenu?.find((item: { label?: string }) => item.label === 'Browser Zoom Out')?.role,
+    ).toBe('zoomOut');
+
     const helpMenu = template.find((item) => item.role === 'help');
+    const keyboardShortcutsItem = helpMenu?.submenu?.find(
+      (item: { label?: string }) => item.label === 'Keyboard Shortcuts',
+    );
+    keyboardShortcutsItem?.click?.();
+    expect(sendMock).toHaveBeenCalledWith('menu-event', { type: 'showKeyboardShortcuts' });
+
+    // Trigger help command
     const learnMoreItem = helpMenu?.submenu?.find(
       (item: { label?: string }) => item.label === 'Learn More',
     );

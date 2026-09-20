@@ -123,7 +123,7 @@ describe("ApplicationRunView", () => {
     renderView();
 
     expect(await screen.findByTestId("title")).toHaveTextContent("Draft");
-    expect(screen.getByText(/no released version/)).toBeInTheDocument();
+    expect(screen.queryByText(/no released version/)).not.toBeInTheDocument();
     await waitFor(() => expect(fetchWorkflow).toHaveBeenCalledWith("wf-1"));
   });
 

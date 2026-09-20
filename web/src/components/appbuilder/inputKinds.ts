@@ -22,6 +22,7 @@ export type WorkflowInputKind =
   | "video_model"
   | "tts_model"
   | "asr_model"
+  | "music_model"
   | "embedding_model"
   | "image_list"
   | "video_list"
@@ -83,6 +84,8 @@ export const getWorkflowInputKind = (
       return "tts_model";
     case "nodetool.input.ASRModelInput":
       return "asr_model";
+    case "nodetool.input.MusicModelInput":
+      return "music_model";
     case "nodetool.input.EmbeddingModelInput":
       return "embedding_model";
     case "nodetool.input.ImageListInput":
@@ -180,6 +183,7 @@ const KIND_NODE_TYPE = {
   video_model: "nodetool.input.VideoModelInput",
   tts_model: "nodetool.input.TTSModelInput",
   asr_model: "nodetool.input.ASRModelInput",
+  music_model: "nodetool.input.MusicModelInput",
   embedding_model: "nodetool.input.EmbeddingModelInput",
   image_list: "nodetool.input.ImageListInput",
   video_list: "nodetool.input.VideoListInput",

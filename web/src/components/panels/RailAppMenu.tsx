@@ -7,8 +7,11 @@ import { useShallow } from "zustand/react/shallow";
 
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
-import { openSettingsTab } from "../workspace/openPageTab";
+import { openPageTab, openSettingsTab } from "../workspace/openPageTab";
 import Help from "../content/Help/Help";
+import { useMenuHandler } from "../../hooks/useIpcRenderer";
+import type { MenuEventData } from "../../window";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import Logo from "../Logo";
 import { useAppMenuActions } from "./useAppMenuActions";
 import {
@@ -85,6 +88,8 @@ const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
       }))
     );
 
+  const openDownloadsDialog = useModelDownloadStore((state) => state.openDialog);
+
   const handleShowKeyboardShortcuts = useCallback(() => {
     setHelpIndex(1);
     handleOpenHelp();
@@ -93,6 +98,32 @@ const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
   // Cmd+/ (Mac) or Ctrl+/ (Win/Linux) opens Help at Keyboard Shortcuts tab
   useCombo(["Meta", "/"], handleShowKeyboardShortcuts);
   useCombo(["Control", "/"], handleShowKeyboardShortcuts);
+
+  const handleMenuEvent = useCallback(
+    (data: MenuEventData) => {
+      switch (data.type) {
+        case "showKeyboardShortcuts":
+          handleShowKeyboardShortcuts();
+          break;
+        case "openHelp":
+          handleOpenHelp();
+          break;
+        case "openDownloads":
+          openDownloadsDialog();
+          break;
+        case "openModelManager":
+          openPageTab("models");
+          break;
+        case "openPackageManager":
+          openPageTab("packages");
+          break;
+        default:
+          break;
+      }
+    },
+    [handleShowKeyboardShortcuts, handleOpenHelp, openDownloadsDialog],
+  );
+  useMenuHandler(handleMenuEvent);
 
   // Cmd+, (Mac) or Ctrl+, (Win/Linux) opens Settings as a workspace tab. The
   // rail is mounted for every surface, so the shortcut works on any tab — not

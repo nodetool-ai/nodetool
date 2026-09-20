@@ -4,7 +4,7 @@ import { recipeEntries } from "../../src/data/recipes";
 // Static route/metadata/media coverage lives in static-seo.spec.ts and uses
 // HTTP responses. Browser work stays representative so hydration and user
 // navigation are exercised without opening a page for every prerendered route.
-const HYDRATION_ROUTES = ["/", "/models", "/recipes/ugc-product-video", "/download"];
+const HYDRATION_ROUTES = ["/", "/apps", "/models", "/recipes/ugc-product-video", "/download"];
 
 test.describe("marketing smoke", () => {
   for (const path of HYDRATION_ROUTES) {
@@ -19,6 +19,17 @@ test.describe("marketing smoke", () => {
       await expect(page.locator("h1")).toBeVisible();
     });
   }
+
+  test("mini-app cards show available results", async ({ page }) => {
+    await page.goto("/apps");
+    await expect(
+      page.getByRole("heading", { name: "AI mini apps anyone can use" })
+    ).toBeVisible();
+    await expect(page.getByTestId("mini-app-result").first()).toBeVisible();
+    const appCard = page.locator('a[href="/apps/ad-maker"]');
+    await expect(appCard.getByTestId("mini-app-result")).toBeVisible();
+    await expect(appCard.getByAltText("Ad Maker mini app")).toHaveCount(0);
+  });
 
   test("shared header exposes the global nav (Pricing + Docs)", async ({
     page

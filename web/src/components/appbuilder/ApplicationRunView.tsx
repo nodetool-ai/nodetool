@@ -123,11 +123,11 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
 
   return (
     <FlexColumn gap={0} fullWidth sx={{ height: "100%", minHeight: 0 }}>
-      <Caption color="secondary" sx={{ px: SPACING.lg, py: SPACING.xs }}>
-        {release
-          ? `Running released version ${release.version}`
-          : "Running the draft — this app has no released version"}
-      </Caption>
+      {release && (
+        <Caption color="secondary" sx={{ px: SPACING.lg, py: SPACING.xs }}>
+          {`Running released version ${release.version}`}
+        </Caption>
+      )}
       <AppRuntimeView
         workflow={workflow}
         data={document.ui as Data}

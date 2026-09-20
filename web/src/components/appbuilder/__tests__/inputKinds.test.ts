@@ -32,6 +32,7 @@ describe("appbuilder/inputKinds", () => {
       ["nodetool.input.VideoModelInput", "video_model"],
       ["nodetool.input.TTSModelInput", "tts_model"],
       ["nodetool.input.ASRModelInput", "asr_model"],
+      ["nodetool.input.MusicModelInput", "music_model"],
       ["nodetool.input.EmbeddingModelInput", "embedding_model"],
       ["nodetool.input.ImageListInput", "image_list"],
       ["nodetool.input.VideoListInput", "video_list"],

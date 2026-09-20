@@ -30,8 +30,12 @@ import VideoModelSelect from "../../properties/VideoModelSelect";
 import TTSModelSelect from "../../properties/TTSModelSelect";
 import ASRModelSelect from "../../properties/ASRModelSelect";
 import EmbeddingModelSelect from "../../properties/EmbeddingModelSelect";
+import MusicModelSelect from "../../properties/MusicModelSelect";
 import HuggingFaceModelSelect from "../../properties/HuggingFaceModelSelect";
-import type { HuggingFaceModelValueInput } from "../../../stores/ApiTypes";
+import type {
+  HuggingFaceModelValueInput,
+  MusicModelValue
+} from "../../../stores/ApiTypes";
 import { NodeContext } from "../../../contexts/NodeContext";
 import { AppEvent } from "../types";
 import {
@@ -121,6 +125,13 @@ const ModelSelect: React.FC<{
       return <TTSModelSelect onChange={onChange} value={modelId} />;
     case "asr_model":
       return <ASRModelSelect onChange={onChange} value={modelId} />;
+    case "music_model":
+      return (
+        <MusicModelSelect
+          onChange={onChange}
+          value={value as MusicModelValue | string}
+        />
+      );
     case "huggingface_model":
       // A HuggingFace reference is `{type, repo_id, path}`, not an id, so this
       // one takes the whole stored value.
@@ -308,6 +319,7 @@ const MODEL_WIDGET_KINDS = [
   "video_model",
   "tts_model",
   "asr_model",
+  "music_model",
   "embedding_model",
   "huggingface_model"
 ] as const;
@@ -320,6 +332,7 @@ const MODEL_KIND_NODE_TYPE = {
   video_model: "nodetool.input.VideoModelInput",
   tts_model: "nodetool.input.TTSModelInput",
   asr_model: "nodetool.input.ASRModelInput",
+  music_model: "nodetool.input.MusicModelInput",
   embedding_model: "nodetool.input.EmbeddingModelInput",
   huggingface_model: "nodetool.input.HuggingFaceModelInput"
 } satisfies Record<ModelWidgetKind, string>;

@@ -6,7 +6,11 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
-import { miniAppEntries, type MiniAppEntry } from "@/data/miniApps";
+import {
+  miniAppEntries,
+  type MiniAppEntry,
+  type MiniAppOutputExample
+} from "@/data/miniApps";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -24,13 +28,76 @@ export const metadata: Metadata = {
   },
 };
 
+function resultPreview(entry: MiniAppEntry): MiniAppOutputExample | undefined {
+  return (
+    entry.outputExamples.find((output) => output.kind === "image") ??
+    entry.outputExamples.find((output) => output.kind === "video") ??
+    entry.outputExamples.find(
+      (output) => output.kind === "text" || output.kind === "data"
+    ) ??
+    entry.outputExamples.find((output) => output.kind === "audio")
+  );
+}
+
+function ResultPreview({
+  output,
+  name
+}: {
+  output: MiniAppOutputExample;
+  name: string;
+}) {
+  return (
+    <div
+      data-testid="mini-app-result"
+      className="border-b border-emerald-500/20 bg-slate-950/70"
+    >
+      <div className="flex items-center justify-between px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300/80">
+        <span>Result</span>
+        <span>{output.label}</span>
+      </div>
+      {output.kind === "image" ? (
+        <Image
+          src={output.path}
+          alt={`${name}: ${output.label}`}
+          width={980}
+          height={700}
+          className="aspect-video w-full object-cover"
+        />
+      ) : null}
+      {output.kind === "video" ? (
+        <video
+          aria-label={`${name}: ${output.label}`}
+          src={output.path}
+          muted
+          playsInline
+          autoPlay
+          loop
+          preload="metadata"
+          className="aspect-video w-full object-cover"
+        />
+      ) : null}
+      {output.kind === "text" || output.kind === "data" ? (
+        <pre className="line-clamp-5 max-h-36 overflow-hidden whitespace-pre-wrap px-4 pb-4 text-xs leading-relaxed text-slate-300">
+          {output.excerpt || "Output available on the app page."}
+        </pre>
+      ) : null}
+      {output.kind === "audio" ? (
+        <div className="px-4 pb-4 text-sm text-slate-300">
+          Audio output available
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function AppCard({ entry }: { entry: MiniAppEntry }) {
+  const output = resultPreview(entry);
   return (
     <a
       href={entry.route}
       className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 transition-all hover:border-sky-500/40 hover:bg-slate-900/70"
     >
-      {entry.screenshot ? (
+      {entry.screenshot && !output ? (
         <div className="relative aspect-[16/10] overflow-hidden border-b border-white/5 bg-[#16161c]">
           <Image
             src={entry.screenshot}
@@ -41,6 +108,7 @@ function AppCard({ entry }: { entry: MiniAppEntry }) {
           />
         </div>
       ) : null}
+      {output ? <ResultPreview output={output} name={entry.name} /> : null}
       <div className="flex flex-1 flex-col p-5">
         <div className="font-semibold text-white">{entry.heading}</div>
         <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-400">
