@@ -192,11 +192,11 @@ test.describe("marketing smoke", () => {
       await expect(proof).toBeVisible();
       await expect(video).toHaveAttribute(
         "poster",
-        "/recipes/runs/2026-09-20-ugc-product-video-atlascloud/poster.jpg"
+        "/recipes/runs/2026-09-14-emotional-support-cup/poster.jpg"
       );
       await expect(video.locator('source[type="video/mp4"]')).toHaveAttribute(
         "src",
-        "/recipes/runs/2026-09-20-ugc-product-video-atlascloud/final.mp4"
+        "/recipes/runs/2026-09-14-emotional-support-cup/final.mp4"
       );
       await expect(video).toHaveJSProperty("error", null);
       expect(

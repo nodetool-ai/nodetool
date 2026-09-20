@@ -159,7 +159,7 @@ preview server does not have Supabase credentials.
 - Directed Campaign Kit now displays the captured production proof from the
   [accepted campaign run](recipe-assets/2026-09-14-directed-campaign-kit-gpt25/asset-manifest.json), including the hero, formats, and revision.
 - Ad Maker continues to use the checked-in [campaign hero](public/apps/examples/ad-maker/campaign-hero.png) in its preview result state.
-- UGC Product Video now uses the [downloaded live run](public/recipes/runs/2026-09-20-ugc-product-video-atlascloud/final.mp4), with extracted poster and proof frames from that exact output. The landing page records the provider, model, measurements, and review limitations.
+- UGC Product Video uses the [emotional-support cup run](public/recipes/runs/2026-09-14-emotional-support-cup/final.mp4), with its poster and proof frames. The landing page records the supplied-video measurements and review limitations.
 - Product Reshoot uses the downloaded [seasonal relight](public/apps/examples/product-reshoot/seasonal-relight.jpg).
 - Scene Builder has a downloaded [approved still](public/apps/examples/scene-builder/approved-still.jpg) and [moving shot](public/apps/examples/scene-builder/moving-shot.mp4).
 - Product Shot Video has a downloaded [hero loop](public/apps/examples/product-shot-video/hero-loop.mp4).
