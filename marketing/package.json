@@ -6,7 +6,7 @@
     "dev": "next dev --port 3001",
     "build": "opennextjs-cloudflare build",
     "start": "next start --port 3001",
-    "lint": "next lint",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .js,.jsx,.ts,.tsx",
     "typecheck": "node ../scripts/run-tsc.mjs --noEmit",
     "typecheck:ts6": "node ../scripts/run-with-tsc-version.mjs 6 node ../scripts/run-tsc.mjs --noEmit",
     "og:screenshots": "next build && node scripts/generate-og-screenshots.mjs",
