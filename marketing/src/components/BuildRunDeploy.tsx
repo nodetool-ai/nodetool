@@ -57,7 +57,7 @@ export default function BuildRunDeploy() {
           title="Automate"
           icon={<PlayCircle className="h-6 w-6" />}
           accent="fuchsia"
-          description="The agent boards the scenes, generates the footage, syncs the audio, and cuts it on a multi-track timeline. On your keys, at provider prices."
+          description="The agent boards the scenes, generates the footage, syncs the audio, and cuts it on a multi-track timeline. Every step lands in a project you can open, on your keys, at provider prices."
         >
           <RunVisual />
         </Card>
@@ -67,7 +67,7 @@ export default function BuildRunDeploy() {
           title="Direct"
           icon={<Wand2 className="h-6 w-6" />}
           accent="amber"
-          description="Jump in at any moment. Swap a voice take, re-roll a clip, trim frames. The agent lays the foundation. You cut the final."
+          description="Jump in at any moment. Swap a voice take, re-roll a clip, trim frames. Or hand the project back to the agent with one note and keep going."
         >
           <EditVisual />
         </Card>

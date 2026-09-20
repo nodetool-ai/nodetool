@@ -183,9 +183,11 @@ export default function SurfaceShowcase() {
             Five editors. One project file.
           </h2>
           <p className="text-lg text-slate-300">
-            Storyboard, script, timeline, sketch, and 3D scene, all on the
-            canvas you generate on. The agent works every one of them through
-            the same tools you click.
+            Everything the agent made stays open. Re-roll a shot, audition
+            another take, retime the cut, change a line, swap a reference, or
+            adjust the workflow behind it. Storyboard, script, timeline,
+            sketch, and 3D scene all sit on the canvas you generate on, and the
+            agent works every one of them through the same tools you click.
           </p>
         </div>
 

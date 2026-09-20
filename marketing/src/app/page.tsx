@@ -210,28 +210,29 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Breadth first: the model wall sits directly under the hero, because
-            a reader who cannot find their model stops reading and no amount of
-            finished work later recovers them (NARRATIVE.md § Order of the
-            page). Ownership rides in the same headline: your own keys. */}
-        <ModelSupportSection reducedMotion={reducedMotion} />
-
-        {/* Guided recipes with editable steps and example media */}
-        <RecipeShowcase />
-
-        {/* What one of those runs leaves behind: an executable, editable
-            project rather than a transcript */}
+        {/* The agent, directly under the hero: a brief becomes a project that
+            is still open, and the next note goes back to the agent
+            (NARRATIVE.md § Order of the page) */}
         <ProjectSection />
 
-        {/* How it works (Describe / Run / Inspect) — the 3-step mental model */}
+        {/* The same loop in three steps (Pitch / Automate / Direct) */}
         <section aria-labelledby="how-title" className="rhythm-section pt-4">
           <div className={`${sectionContainer}`}>
             <BuildRunDeploy />
           </div>
         </section>
 
-        {/* The five editors, each over a loop of the real thing (#surface-<id>) */}
+        {/* What the reader controls once the agent has built something: the
+            five editors, each over a loop of the real thing (#surface-<id>) */}
         <SurfaceShowcase />
+
+        {/* Proof, after the product is understood: guided recipes with editable
+            steps and example media */}
+        <RecipeShowcase />
+
+        {/* Model breadth on your own keys, under the agent story rather than in
+            front of it */}
+        <ModelSupportSection reducedMotion={reducedMotion} />
 
         {/* One job, one tool — for the reader who is not here to direct a film */}
         <AppsSection />
