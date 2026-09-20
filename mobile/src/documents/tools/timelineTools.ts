@@ -1200,10 +1200,19 @@ MobileToolRegistry.register<{
         break;
       }
     }
+    let applied = 0;
+    let failed = 0;
+    for (const entry of results) {
+      if (entry.ok) {
+        applied++;
+      } else {
+        failed++;
+      }
+    }
     return {
       ok: true,
-      applied: results.filter((entry) => entry.ok).length,
-      failed: results.filter((entry) => !entry.ok).length,
+      applied,
+      failed,
       results,
     };
   },

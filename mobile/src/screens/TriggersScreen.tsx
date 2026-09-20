@@ -426,8 +426,16 @@ export default function TriggersScreen({ navigation }: Props) {
     [runningRows, perWorkflowRows],
   );
 
-  const armedCount = rows.filter((r) => r.enabled).length;
-  const brokenCount = rows.filter((r) => r.last_error).length;
+  let armedCount = 0;
+  let brokenCount = 0;
+  for (const r of rows) {
+    if (r.enabled) {
+      armedCount++;
+    }
+    if (r.last_error) {
+      brokenCount++;
+    }
+  }
 
   const partialFailure = byWorkflowQueries.some((q) => Boolean(q.error));
   const loadError = runningQuery.error?.message ?? null;
