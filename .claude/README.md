@@ -13,6 +13,7 @@ without being told how.
 | `commands/verify.md` | `/verify` — typecheck, lint, test, and fix what breaks. |
 | `commands/onboard.md` | `/onboard <area>` — locate the owning workspace, entry point, nearest example, and the pitfalls that apply. |
 | `skills/` | Repository engineering skills, plus a symlink per NodeTool skill into `packages/system-skills/`. The `.agents` symlink exposes the same files to Codex. |
+| `skills/<name>/agents/openai.yaml` | Codex's invocation policy, where a skill is typed rather than reached for. |
 
 ## Engineering skills
 
@@ -97,8 +98,32 @@ MsgPack framing, Zustand subscriptions, `ui_primitives`, packaged-Electron
 paths, IPC security). It pairs with `unslop` for a full pre-merge pass.
 
 Existing invocation metadata is preserved. Claude-specific frontmatter remains
-in place. Codex discovers the same skill files through `.agents/skills`.
-Review upstream updates against local adaptations instead of replacing them wholesale.
+in place. Review upstream updates against local adaptations instead of
+replacing them wholesale.
+
+## Codex reads the same skills
+
+Codex scans `.agents/skills` at the repository root, and `.agents` is a symlink
+to `.claude`, so both agents read one tree — including the NodeTool skills,
+which are themselves symlinks into `packages/system-skills/`. Codex follows a
+symlinked skill folder to its target, so the two hops resolve.
+
+It needs `name` and `description` in the frontmatter and skips a skill missing
+either. Everything else Claude Code puts there, Codex ignores — including
+`disable-model-invocation: true`, which is why the nine typed-only skills each
+carry Codex's own form of that rule:
+
+```yaml
+# skills/<name>/agents/openai.yaml
+policy:
+  allow_implicit_invocation: false
+```
+
+Without it Codex reaches for a skill the repository says to type. The two are
+kept in step by `npm run check:agents-docs`, which also fails on a `.agents`
+that stops pointing at `.claude` and on a skill Codex would silently skip. That
+file also carries `interface` (display name, icon, colour) and `dependencies`
+(MCP servers a skill needs); this repository sets neither.
 
 ## Maintaining skills
 

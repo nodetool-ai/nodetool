@@ -24,6 +24,17 @@
 //   7. A shipped skill's frontmatter `name` matches its directory, and it ships
 //      nothing but `SKILL.md` — the loader silently drops both mistakes, so the
 //      skill would simply be absent from the catalog with no error anywhere.
+//
+// Codex reads the same skills through `.agents/skills`, which is why `.agents`
+// is a symlink to `.claude`. It requires `name` and `description` frontmatter,
+// and it does not read Claude Code's `disable-model-invocation`, so a skill
+// that must be typed rather than reached for carries Codex's own form of that
+// rule beside it:
+//
+//   8. `.agents` resolves to `.claude`, and every skill is readable through it.
+//   9. `disable-model-invocation: true` and `agents/openai.yaml` with
+//      `policy.allow_implicit_invocation: false` are present together or not at
+//      all — otherwise one agent reaches for a skill the other never would.
 
 import { readFile, lstat, readdir, readlink } from "node:fs/promises";
 import { glob } from "node:fs/promises";
@@ -32,6 +43,9 @@ import { fileURLToPath } from "node:url";
 
 const SYSTEM_SKILLS_DIR = "packages/system-skills";
 const REPO_SKILLS_DIR = ".claude/skills";
+const CODEX_DIR = ".agents";
+const CODEX_SKILLS_DIR = `${CODEX_DIR}/skills`;
+const CODEX_POLICY = "agents/openai.yaml";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MACRO = "@AGENTS.md";
@@ -99,6 +113,7 @@ async function main() {
   }
 
   const skills = await checkSkills(failures);
+  const codexSkills = await checkCodexSkills(failures);
 
   if (failures.length > 0) {
     console.error("Agent-doc check failed:\n");
@@ -110,8 +125,80 @@ async function main() {
 
   console.log(
     `Agent docs OK: ${agents.length} AGENTS.md files, each paired and reachable; ` +
-      `${skills.shipped} system skills, ${skills.linked} of them linked into ${REPO_SKILLS_DIR}.`
+      `${skills.shipped} system skills, ${skills.linked} of them linked into ${REPO_SKILLS_DIR}; ` +
+      `${codexSkills} readable by Codex through ${CODEX_SKILLS_DIR}.`
   );
+}
+
+/**
+ * Rules 8-9. Codex scans `${CODEX_SKILLS_DIR}` at the repository root and
+ * follows symlinks, so one tree serves both agents — but only while the link
+ * holds and the two invocation rules agree.
+ */
+async function checkCodexSkills(failures) {
+  let target;
+  try {
+    target = relative(
+      repoRoot,
+      resolve(repoRoot, await readlink(join(repoRoot, CODEX_DIR)))
+    );
+  } catch {
+    failures.push(
+      `${CODEX_DIR} is missing or not a symlink — it is the only path Codex ` +
+        `scans for this repository's skills, and it points at .claude`
+    );
+    return 0;
+  }
+  if (target !== ".claude") {
+    failures.push(`${CODEX_DIR} points at ${target}, not .claude`);
+    return 0;
+  }
+
+  let readable = 0;
+
+  for (const name of (await entries(CODEX_SKILLS_DIR)).sort()) {
+    const dir = join(CODEX_SKILLS_DIR, name);
+    let body;
+    try {
+      body = await readFile(join(repoRoot, dir, "SKILL.md"), "utf8");
+    } catch {
+      continue;
+    }
+    readable += 1;
+    // Codex requires both, and skips a skill that is missing either.
+    if (!frontmatterName(body)) {
+      failures.push(`${dir}/SKILL.md has no frontmatter name — Codex skips it`);
+    }
+    if (!/^description:\s*\S/m.test(frontmatter(body))) {
+      failures.push(
+        `${dir}/SKILL.md has no frontmatter description — Codex skips it`
+      );
+    }
+    const typedOnly = /^disable-model-invocation:\s*true\s*$/m.test(
+      frontmatter(body)
+    );
+    let policy = "";
+    try {
+      policy = await readFile(join(repoRoot, dir, CODEX_POLICY), "utf8");
+    } catch {
+      policy = "";
+    }
+    const implicitOff = /allow_implicit_invocation:\s*false/.test(policy);
+    if (typedOnly && !implicitOff) {
+      failures.push(
+        `${dir} is \`disable-model-invocation: true\` for Claude Code but has no ` +
+          `${CODEX_POLICY} with \`policy.allow_implicit_invocation: false\` — ` +
+          `Codex would reach for it on its own`
+      );
+    }
+    if (!typedOnly && implicitOff) {
+      failures.push(
+        `${dir} tells Codex not to invoke it implicitly but does not tell Claude ` +
+          `Code the same with \`disable-model-invocation: true\``
+      );
+    }
+  }
+  return readable;
 }
 
 /** Directory entries, or [] when the directory is absent. */
@@ -123,14 +210,21 @@ async function entries(dir) {
   }
 }
 
+/** The frontmatter block of a SKILL.md, or "" when it has none. */
+function frontmatter(text) {
+  const lines = text.split(/\r?\n/);
+  if (lines[0] !== "---") return "";
+  const close = lines.indexOf("---", 1);
+  return close === -1 ? "" : lines.slice(1, close).join("\n");
+}
+
 /** The frontmatter `name` of a SKILL.md, or null when it has none. */
 function frontmatterName(text) {
-  const lines = text.split(/\r?\n/);
-  if (lines[0] !== "---") return null;
-  const close = lines.indexOf("---", 1);
-  if (close === -1) return null;
-  const match = /^name:(.*)$/m.exec(lines.slice(1, close).join("\n"));
-  return match ? match[1].trim().replace(/^["']|["']$/g, "").toLowerCase() : null;
+  const match = /^name:(.*)$/m.exec(frontmatter(text));
+  const name = match
+    ? match[1].trim().replace(/^["']|["']$/g, "").toLowerCase()
+    : "";
+  return name || null;
 }
 
 /** Rules 5-7. Returns the counts the success line reports. */

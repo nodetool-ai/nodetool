@@ -97,8 +97,10 @@ Use these sections for the detailed rules summarized below.
 ## Repository Skills
 
 Skills live in `.claude/skills/`. The `.agents` symlink exposes the same files
-through `.agents/skills/`. Use a skill when requested or when its description
-and invocation policy match the task. Read the selected `SKILL.md`, then only
+through `.agents/skills/`, which is the path Codex scans; a skill that must be
+typed rather than invoked on its own says so once for each agent, in
+`disable-model-invocation` and in `agents/openai.yaml`. Use a skill when
+requested or when its description and invocation policy match the task. Read the selected `SKILL.md`, then only
 the supporting references needed for the current operation. User instructions
 take precedence over skill guidelines.
 
