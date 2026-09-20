@@ -14,8 +14,9 @@ import {
   isCompactionMessage,
   Message
 } from "@nodetool-ai/models";
-import { markContextExceeded } from "@nodetool-ai/runtime";
+import { estimatePromptTokens, markContextExceeded } from "@nodetool-ai/runtime";
 import {
+  COMPACTION_DEFAULTS,
   chooseCompactionCut,
   renderTranscriptForSummary
 } from "../src/session/chat-compaction.js";
@@ -69,6 +70,26 @@ async function seedThread(threadId: string): Promise<void> {
 /** Every `asset://` uri in a blob of text, in order. */
 const assetUris = (text: string): string[] =>
   text.match(/asset:\/\/[A-Za-z0-9._~\-/]+/g) ?? [];
+
+/**
+ * Fail on the cause rather than the symptom when the system prompt has grown
+ * into a compaction budget. A prompt at or above the threshold makes every turn
+ * compact forever, so a suite asserting "and then it does not compact again"
+ * has to know its budget still has room for one.
+ */
+function systemFitsWithRoom(
+  attempt: Array<{ role: string; content: unknown }>,
+  threshold: number
+): void {
+  const system = attempt.filter((m) => m.role === "system");
+  expect(system.length, "the turn sent no system message").toBeGreaterThan(0);
+  const tokens = estimatePromptTokens(system as never);
+  expect(
+    tokens,
+    `the system prompt is ${tokens} tokens against a ${threshold}-token ` +
+      "compaction budget: raise the budget in this test, or shrink the prompt"
+  ).toBeLessThan(threshold / 2);
+}
 
 interface TurnRecord {
   /** What the provider's loop was handed, per attempt. */
@@ -280,8 +301,21 @@ describe("chat compaction", () => {
     expect(dangling).toEqual([]);
   });
 
+  /**
+   * The budget is the shipped default, not a small stand-in, because what a
+   * compaction may keep is `threshold * 0.75` minus the summary cap minus the
+   * system prompt — so a threshold under the system prompt leaves a negative
+   * keep budget, and the second turn then compacts again however little history
+   * survived the first. This ran at 20000 against a system prompt of 19670 and
+   * passed on a 285-token margin, until the prompt grew past it.
+   *
+   * `systemFitsWithRoom` below is what makes that visible: it fails naming the
+   * prompt rather than leaving a downstream assertion to fail for a reason that
+   * is nowhere in its message.
+   */
   it("removes oversized recent turns so the next turn does not compact again", async () => {
-    process.env.NODETOOL_CHAT_COMPACTION_TOKENS = "20000";
+    const threshold = COMPACTION_DEFAULTS.thresholdTokens;
+    process.env.NODETOOL_CHAT_COMPACTION_TOKENS = String(threshold);
     const threadId = "t-large-recent-turn";
     await seedThread(threadId);
     await Message.create({
@@ -289,7 +323,7 @@ describe("chat compaction", () => {
       user_id: "1",
       created_at: at(20),
       role: "assistant",
-      content: "large observation ".repeat(30000)
+      content: "large observation ".repeat(75000)
     });
 
     const first = await runTurn(threadId, () => {});
@@ -298,6 +332,7 @@ describe("chat compaction", () => {
       "large observation"
     );
     const second = await runTurn(threadId, () => {});
+    systemFitsWithRoom(second.record.attempts[0], threshold);
     expect(second.record.summarized).toHaveLength(0);
     expect(await compactionRows(threadId)).toHaveLength(1);
   });
