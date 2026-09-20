@@ -7,7 +7,27 @@ description: "Create or edit NodeTool workflow graphs, connections, and properti
 
 Create or edit a workflow that produces the requested outputs from the specified
 inputs. Preserve existing nodes and connections outside the requested change.
-A request for a finished video alone belongs to the matching storyboard skill.
+
+## A graph is one surface among several
+
+NodeTool holds several document kinds, and most of them are not graphs. Build a
+graph when the user asked for one, when the job has to re-run on new inputs, or
+when the result must be callable over the API. Otherwise route the request.
+
+| The deliverable | Skill |
+|---|---|
+| A finished video, still set or campaign | [storyboard-core](../storyboard-core/SKILL.md), which picks the job skill |
+| A screen someone clicks | [nodetool-app-builder](../nodetool-app-builder/SKILL.md) |
+| A repair on footage already cut: cutout, upscale, lip sync, generated sound | [nodetool-video-post](../nodetool-video-post/SKILL.md) |
+| A cut, titles, transitions or animation on a timeline | the `motion-graphics` system skill, via `load_skill` |
+| Logic in JavaScript rather than nodes | [nodetool-js-scripting](../nodetool-js-scripting/SKILL.md) |
+| A layered image, mask or overlay | [nodetool-sketch](../nodetool-sketch/SKILL.md) |
+| A 3D model or scene | [nodetool-3d-scene](../nodetool-3d-scene/SKILL.md) |
+| A reusable video template for batches | [video-workflow](../video-workflow/SKILL.md) |
+| A new node type | [nodetool-custom-node-developer](../nodetool-custom-node-developer/SKILL.md) |
+
+A workflow can still be the right answer alongside one of these: a mini app runs
+workflows, and a timeline clip can be produced by one.
 
 Use the authoring surface the user requested. Prefer available UI tools for a
 visible canvas, headless workflow tools for saved graphs, and JSON or the

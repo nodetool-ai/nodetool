@@ -34,9 +34,32 @@ preliminary interview or tracker setup.
 | Prepare a procedure requiring human access | [wizard](../wizard/SKILL.md) |
 | Configure tracker and domain-document conventions | [setup-matt-pocock-skills](../setup-matt-pocock-skills/SKILL.md) |
 
-Read the selected skill, not every entry. For NodeTool media or workflow work,
-select the matching skill from the available catalog. Load supporting references
-only when the task reaches the operation they describe.
+## Choose a NodeTool surface
+
+Product work is routed by the document the user wants, not by the tool they
+named. Each of these loads the rest of what it needs.
+
+| Requested result | Skill |
+|---|---|
+| A finished video, still set or campaign | [storyboard-core](../storyboard-core/SKILL.md), which picks the job skill |
+| A workflow graph | [nodetool-workflow-builder](../nodetool-workflow-builder/SKILL.md) |
+| A screen someone clicks | [nodetool-app-builder](../nodetool-app-builder/SKILL.md) |
+| A repair on delivered footage | [nodetool-video-post](../nodetool-video-post/SKILL.md) |
+| JavaScript in the sandbox, or a Code node | [nodetool-js-scripting](../nodetool-js-scripting/SKILL.md) |
+| A layered image, mask or overlay | [nodetool-sketch](../nodetool-sketch/SKILL.md) |
+| A 3D model or scene | [nodetool-3d-scene](../nodetool-3d-scene/SKILL.md) |
+| A playable Godot game or asset pack | [godot-game](../godot-game/SKILL.md) |
+| A new node type | [nodetool-custom-node-developer](../nodetool-custom-node-developer/SKILL.md) |
+| A run that is failing, on any surface | [nodetool-troubleshooter](../nodetool-troubleshooter/SKILL.md) |
+| An integration over REST, tRPC, WebSocket or MCP | [nodetool-api-reference](../nodetool-api-reference/SKILL.md) |
+| Retrieval over documents | [nodetool-rag-indexing](../nodetool-rag-indexing/SKILL.md) |
+| A browser automation agent | [nodetool-browser-agent](../nodetool-browser-agent/SKILL.md) |
+| Provider keys and model selection | [nodetool-model-provider-config](../nodetool-model-provider-config/SKILL.md) |
+| A server or worker to deploy | [nodetool-deployment](../nodetool-deployment/SKILL.md) |
+| Instructions that should persist across sessions | [nodetool-skill-author](../nodetool-skill-author/SKILL.md) |
+
+Read the selected skill, not every entry. Load supporting references only when
+the task reaches the operation they describe.
 
 ## Continue at the requested scope
 

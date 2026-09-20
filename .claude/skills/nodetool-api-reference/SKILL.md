@@ -1,6 +1,6 @@
 ---
 name: nodetool-api-reference
-description: "Integrate with NodeTool REST, MsgPack WebSocket, workflow execution, or OpenAI-compatible Chat APIs."
+description: "Integrate with NodeTool over REST, tRPC, MsgPack WebSocket, MCP, or the OpenAI-compatible Chat API, including the document surfaces and workflow execution."
 ---
 
 You help users integrate with NodeTool's HTTP + WebSocket server (default `http://localhost:7777`). Start it with `nodetool serve` (flags: `--host`, `--port`).
@@ -9,12 +9,21 @@ You help users integrate with NodeTool's HTTP + WebSocket server (default `http:
 
 | Surface | Path prefix | Use case |
 |---------|-------------|----------|
-| **REST** | `/api/...` | Workflows, assets, collections, models, health |
+| **REST** | `/api/...` | Workflows, assets, collections, models, bundles, health |
+| **tRPC** | `/trpc/...` | The document surfaces: timelines, storyboards, sketches, scripts, applications, JS scripts, projects, skills, settings |
 | **OpenAI-compatible** | `/v1/...` | Chat completions + model list |
 | **WebSocket** | `/ws` | Run/cancel/stream jobs, live chat, live editor tools |
+| **MCP** | `/mcp` | Agent tools over streamable HTTP, for Claude Desktop and CLI agents |
 
 The server mode (`desktop` / `private` / `public`) and auth are controlled by
 environment variables (`NODETOOL_SERVER_MODE`, `AUTH_PROVIDER`), not CLI flags.
+
+**Pick the right surface.** REST covers workflows, assets and the portable
+bundles. Everything that is a *document* someone edits (a timeline sequence, a
+storyboard, a sketch, a script, a mini app, a JS script) is a tRPC router, and
+the REST routes for those kinds cover only import, export and build. An
+integration that reads or writes a document calls tRPC, or calls the agent
+capability of the same name over `/mcp`.
 
 # Authentication
 
@@ -49,6 +58,57 @@ curl http://localhost:7777/api/workflows/<id>/export-bundle   # .nodetool bundle
 > **Running a workflow is done over WebSocket** (`/ws`, see below), not via a REST
 > `/run` endpoint. From a terminal you can also run with the CLI:
 > `nodetool workflows run <id> --params '{"key":"value"}'`.
+
+## Documents (tRPC)
+
+The routers under `/trpc`, one per document kind:
+`timeline`, `storyboards`, `sketch`, `scripts`, `applications`, `jsScripts`,
+`workflows`, `projects`, `assets`, `collections`, `jobs`, `models`, `nodes`,
+`memories`, `messages`, `threads`, `settings`, `skills`, `storage`, `packs`,
+`costs`, `credits`, `files`, `fonts`, `games`, `integrations`, `triggers`,
+`users`, `worker`, `workspace`.
+
+Each follows the same shape: `list`, `get`, `create`, `update` (compare-and-swap
+on `updated_at`), `delete`, plus sub-routers. Whole-document snapshots are
+`timeline.versions`, `sketch.documentVersions` and `jsScripts.documentVersions`
+(`sketch.versions` is a different thing: the per-layer generation takes).
+`applications` also carries `publish`, `released`, `deploy`, `budget` and
+`usage`, because publishing an app locks in the current graph of every workflow
+it runs and caps what it may spend. Read the router in
+`packages/websocket/src/trpc/routers/` for the exact procedure names rather than
+guessing them. `/trpc/healthz` answers without auth.
+
+An agent reaches the same data through the capability tools, which need no
+client: `list_timelines`, `get_storyboard`, `edit_sketch`, `save_js_script`,
+`edit_app`, and so on.
+
+## Document REST routes
+
+The REST side of the document kinds is import, export and build.
+
+```bash
+# Mini apps
+curl http://localhost:7777/api/applications/:id/export-bundle       # app + every bound graph
+curl -X POST http://localhost:7777/api/applications/import-bundle
+curl -X POST http://localhost:7777/api/applications/build           # {prompt|spec, provider, model, ...}
+curl -X POST http://localhost:7777/api/applications/debug
+curl http://localhost:7777/api/applications/examples
+curl -X POST http://localhost:7777/api/applications/examples/:slug/install
+
+# Timelines and storyboards
+curl http://localhost:7777/api/timelines/:id/export-zip
+curl -X POST http://localhost:7777/api/timelines/import-zip
+curl http://localhost:7777/api/storyboards/:id/export-zip
+curl -X POST http://localhost:7777/api/timelines/:id/isolate-subject
+
+# JS scripts
+curl -X POST http://localhost:7777/api/js-scripts/:id/run
+```
+
+A build or an interactive debug runs for minutes, so those routes accept
+`poll: true`, return a session id, and are read at
+`GET /api/debug/sessions/:id` until they settle. Cancel with
+`POST /api/debug/sessions/:id/cancel`.
 
 ## Collections (RAG)
 
@@ -222,6 +282,20 @@ socket.send(JSON.stringify({ command: "end_input_stream", data: { input: "name",
 | `output_update` | `output_name`, `value`, `output_type` | Node output values |
 | `log_update` | `content`, `severity` | Log messages |
 | `chunk` | `content`, `done` | Streaming text |
+
+# MCP
+
+`/mcp` serves the agent capability tools over streamable HTTP, so an outside
+agent drives NodeTool with the same calls the in-product agent uses. Reach it
+three ways:
+
+- `nodetool mcp install` configures a CLI agent (Claude Code, Codex).
+- `npm run build:mcpb` builds `dist/nodetool.mcpb`, a one-file bundle Claude
+  Desktop installs by drag-and-drop. It is a stdio-to-HTTP bridge against a
+  running server's `/mcp`, and it starts in offline mode when the server is
+  down, then hot-attaches when it appears.
+- A deployed server is reached by pointing the client at `/mcp` with a token
+  minted in **Settings → MCP → Connect an agent remotely**.
 
 # Server Management (CLI)
 

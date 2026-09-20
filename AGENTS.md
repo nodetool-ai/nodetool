@@ -115,8 +115,14 @@ take precedence over skill guidelines.
 | Turn an agreed discussion into a spec or dependent tickets | [to-spec](.claude/skills/to-spec/SKILL.md), [to-tickets](.claude/skills/to-tickets/SKILL.md) |
 | Create or edit a NodeTool workflow graph | [nodetool-workflow-builder](.claude/skills/nodetool-workflow-builder/SKILL.md) |
 | Create or update a NodeTool node implementation | [nodetool-custom-node-developer](.claude/skills/nodetool-custom-node-developer/SKILL.md) |
-| Diagnose a failed or stuck workflow run | [nodetool-troubleshooter](.claude/skills/nodetool-troubleshooter/SKILL.md) |
+| Diagnose a failed run on any NodeTool surface | [nodetool-troubleshooter](.claude/skills/nodetool-troubleshooter/SKILL.md) |
 | Direct storyboards, render shots, and assemble timelines | [storyboard-core](.claude/skills/storyboard-core/SKILL.md) |
+| Build or repair a mini app | [nodetool-app-builder](.claude/skills/nodetool-app-builder/SKILL.md) |
+| Repair delivered footage: cutout, upscale, outpaint, lip sync | [nodetool-video-post](.claude/skills/nodetool-video-post/SKILL.md) |
+| Write sandbox JavaScript: Code nodes, JS scripts, packs | [nodetool-js-scripting](.claude/skills/nodetool-js-scripting/SKILL.md) |
+| Build or edit a sketch (image document) | [nodetool-sketch](.claude/skills/nodetool-sketch/SKILL.md) |
+| Build, edit or render a 3D model | [nodetool-3d-scene](.claude/skills/nodetool-3d-scene/SKILL.md) |
+| Write or revise a NodeTool skill, user or shipped | [nodetool-skill-author](.claude/skills/nodetool-skill-author/SKILL.md) |
 
 Use [ask-matt](.claude/skills/ask-matt/SKILL.md) when the user asks which
 engineering workflow fits. See [skill maintenance guidance](.claude/README.md#maintaining-skills)
