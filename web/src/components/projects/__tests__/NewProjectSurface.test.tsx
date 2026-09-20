@@ -668,6 +668,64 @@ describe("NewProjectSurface", () => {
     expect(createWorkflow).toHaveBeenCalled();
   });
 
+  it("marks describe-idea when a project starts from the prompt", async () => {
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+
+    await waitFor(() => expect(createProject).toHaveBeenCalled());
+    expect(openProject).toHaveBeenCalled();
+    expect(useOnboardingStore.getState().completedSteps).toContain(
+      "describe-idea"
+    );
+  });
+
+  it("marks start-guided-flow when an entry card starts", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    await user.click(
+      within(cards).getByRole("button", { name: /^Storyboard / })
+    );
+    await pickDestination();
+
+    await waitFor(() => expect(createStoryboard).toHaveBeenCalled());
+    expect(useOnboardingStore.getState().completedSteps).toContain(
+      "start-guided-flow"
+    );
+  });
+
+  it("marks keep-creating when a blank document opens", async () => {
+    renderSurface();
+    await userEvent.click(screen.getByRole("button", { name: "Workflow" }));
+    expect(createWorkflow).toHaveBeenCalled();
+    expect(useOnboardingStore.getState().completedSteps).toContain(
+      "keep-creating"
+    );
+  });
+
+  it("guides from the checklist pills to the cards, the composer, and examples", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+    await user.click(
+      screen.getByRole("button", { name: "Start a guided flow" })
+    );
+    expect(document.getElementById("guided-flows")).not.toBeNull();
+    await user.click(
+      screen.getByRole("button", { name: "Describe what you want to make" })
+    );
+    expect(screen.getByPlaceholderText(/30-second launch spot/)).toHaveFocus();
+    await user.click(
+      screen.getByRole("button", { name: "Open an example or a blank doc" })
+    );
+    expect(openPageTab).toHaveBeenCalledWith("examples");
+  });
+
   it("shows the checklist until onboarding is done", () => {
     renderSurface();
     expect(

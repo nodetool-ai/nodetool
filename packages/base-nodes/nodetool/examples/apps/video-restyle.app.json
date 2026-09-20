@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs a Replicate key (Lucy Edit 2). Billed per clip."
+            "text": "Video restyling is billed per clip."
           }
         },
         {
@@ -44,7 +44,18 @@
                   "title": "Restyle a clip",
                   "content": [
                     {
-                      "type": "WorkflowInput",
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-restyle-restyle-model",
+                        "binding": "op:restyle/prop:restyle#model",
+                        "label": "Restyle model",
+                        "modelKind": "video_model",
+                        "task": "video_to_video",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "VideoInput",
                       "props": {
                         "id": "in-restyle-source-video",
                         "binding": "op:restyle/in:in-video",

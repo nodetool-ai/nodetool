@@ -4,7 +4,7 @@
   "emoji": "📦",
   "description": "Stage a product photo into lifestyle mockups, then — deliberately, because it costs real money — turn the same photo into a launch video.",
   "tagline": "One product photo in, mockups and a launch video out.",
-  "note": "💸 Mockups need OpenAI and FAL. The launch video runs on Veo and costs credits per run, so it has its own button.",
+  "note": "💸 Mockups and launch video use configured cloud models. Video generation is billed per run, so it has its own button.",
   "featured": false,
   "image": "/app-preview/img/product-launch-kit.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "💸 Mockups need OpenAI and FAL. The launch video runs on Veo and costs credits per run, so it has its own button."
+            "text": "💸 Mockups and launch video use configured cloud models. Video generation is billed per run, so it has its own button."
           }
         },
         {
@@ -48,6 +48,46 @@
                   "id": "panel-your-product",
                   "title": "Your product",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-mockups-4-model",
+                        "binding": "op:mockups/prop:4#model",
+                        "label": "Mockups model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-mockups-6-model",
+                        "binding": "op:mockups/prop:6#model",
+                        "label": "Mockups model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-mockups-8-model",
+                        "binding": "op:mockups/prop:8#model",
+                        "label": "Mockups model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-mockups-15-model",
+                        "binding": "op:mockups/prop:15#model",
+                        "label": "Mockups model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "ImageInput",
                       "props": {
@@ -188,10 +228,30 @@
                   "title": "Launch video",
                   "content": [
                     {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-video-3-model",
+                        "binding": "op:video/prop:3#model",
+                        "label": "Launch video model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-video-97f03868-da4f-4604-b57e-5f2118847956-model",
+                        "binding": "op:video/prop:97f03868-da4f-4604-b57e-5f2118847956#model",
+                        "label": "Launch video model",
+                        "modelKind": "video_model",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Text",
                       "props": {
                         "id": "note",
-                        "text": "💸 One run of this uses the Veo video model and costs credits."
+                        "text": "💸 One run generates a video and incurs usage charges."
                       }
                     },
                     {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "Product Shot Video",
-  "description": "Image-to-video keeps the product identical and adds only the camera move. Pick a motion for a looping ad, or spin a packshot into a turntable for the product page.",
+  "description": "Keep the product reference fixed and choose one camera move for a looping ad or a turntable clip for the product page.",
   "app": {
     "schemaVersion": 3,
     "ui": {
@@ -13,7 +13,7 @@
           "type": "Heading",
           "props": {
             "id": "title",
-            "text": "🎥 Product Shot Video",
+            "text": "Product Shot Video",
             "level": "1"
           }
         },
@@ -21,14 +21,14 @@
           "type": "Text",
           "props": {
             "id": "tagline",
-            "text": "A product photo becomes a hero loop or a turntable clip."
+            "text": "Turn a product photo into a controlled moving shot."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 The ad loop runs Kling on Kie and needs a KIE key. The turntable runs LTX on FAL and needs a FAL key. Both are billed per generation."
+            "text": "Choose an ad loop or turntable model. Review the motion before exporting the shot."
           }
         },
         {
@@ -52,15 +52,26 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-hero-loop",
+            "id": "cols-make-a-hero-loop",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-hero-loop",
-                  "title": "Hero loop",
+                  "id": "panel-make-a-hero-loop",
+                  "title": "Make a hero loop",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-loop-animate-model",
+                        "binding": "op:loop/prop:animate#model",
+                        "label": "Video model",
+                        "modelKind": "video_model",
+                        "task": "image_to_video",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Select",
                       "props": {
@@ -91,7 +102,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-loop",
-                        "label": "Make the loop",
+                        "label": "Render the hero loop",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -102,7 +113,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:loop/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -113,7 +128,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-hero-loop-results",
+                  "id": "panel-make-a-hero-loop-results",
                   "title": "Results",
                   "content": [
                     {
@@ -125,10 +140,31 @@
                       }
                     },
                     {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-loop",
+                        "binding": "op:loop/exec#error",
+                        "title": "The hero loop failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:loop/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "Check the first and last frame for a clean loop and stable product geometry."
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-loop-ad-loop",
-                        "text": "Hero loop",
+                        "text": "Rendered hero loop",
                         "level": "3"
                       }
                     },
@@ -150,21 +186,32 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-turntable",
+            "id": "cols-make-a-turntable",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-turntable",
-                  "title": "Turntable",
+                  "id": "panel-make-a-turntable",
+                  "title": "Make a turntable",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-turntable-v-model",
+                        "binding": "op:turntable/prop:v#model",
+                        "label": "Video model",
+                        "modelKind": "video_model",
+                        "task": "image_to_video",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Select",
                       "props": {
                         "id": "select-turntable-v-prompt",
                         "binding": "op:turntable/prop:v#prompt",
-                        "label": "Spin",
+                        "label": "Turntable direction",
                         "options": [
                           {
                             "value": "slow orbit around the product, fixed lighting, product stays centered"
@@ -186,7 +233,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-turntable",
-                        "label": "Spin it",
+                        "label": "Render the turntable",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -197,7 +244,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:turntable/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -208,7 +259,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-turntable-results",
+                  "id": "panel-make-a-turntable-results",
                   "title": "Results",
                   "content": [
                     {
@@ -220,10 +271,31 @@
                       }
                     },
                     {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-turntable",
+                        "binding": "op:turntable/exec#error",
+                        "title": "The turntable failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:turntable/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-2",
+                        "text": "Use the turntable when the product page needs a clear view around the packshot."
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-turntable-turntable",
-                        "text": "Turntable clip",
+                        "text": "Rendered turntable",
                         "level": "3"
                       }
                     },

@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs OpenAI and FAL keys. Your brand name, audience, and voice persist between sessions."
+            "text": "Your brand name, audience, and voice persist between sessions."
           }
         },
         {
@@ -43,6 +43,36 @@
                   "id": "panel-your-brand",
                   "title": "Your brand",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-kit-gen-prompts-model",
+                        "binding": "op:kit/prop:gen_prompts#model",
+                        "label": "Asset kit model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-kit-txt2img-model",
+                        "binding": "op:kit/prop:txt2img#model",
+                        "label": "Asset kit model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-kit-brief-agent-model",
+                        "binding": "op:kit/prop:brief_agent#model",
+                        "label": "Asset kit model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {
@@ -191,6 +221,26 @@
                   "id": "panel-hooks-and-thumbnails",
                   "title": "Hooks & thumbnails",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-thumbnails-hooks-model",
+                        "binding": "op:thumbnails/prop:hooks#model",
+                        "label": "Thumbnails model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-thumbnails-thumbnail-model",
+                        "binding": "op:thumbnails/prop:thumbnail#model",
+                        "label": "Thumbnails model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {

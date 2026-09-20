@@ -43,6 +43,7 @@ import {
 import { AppEvent } from "../types";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
 import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
+import { downloadResolvedMedia } from "../../storyboard/shotMediaDownload";
 import {
   isNumber,
   isObjectLike,
@@ -166,6 +167,50 @@ const MediaPlaceholder: React.FC<{ height: number; text: string }> = ({
   </FlexColumn>
 );
 
+const MediaDownloadButton: React.FC<{
+  src: string;
+  filename: string;
+}> = React.memo(({ src, filename }) => {
+  const href = useResolvedMediaUri(src);
+  if (!href) return null;
+
+  return (
+    <EditorButton
+      href={href}
+      download={filename}
+      size="small"
+      variant="text"
+      density="compact"
+      aria-label={`Download ${filename}`}
+      onClick={(event) => {
+        event.preventDefault();
+        void downloadResolvedMedia(href, filename);
+      }}
+    >
+      Download
+    </EditorButton>
+  );
+});
+MediaDownloadButton.displayName = "MediaDownloadButton";
+
+const mediaFilename = (
+  filename: string | undefined,
+  kind: "image" | "audio" | "video",
+  index: number,
+  total: number
+): string => {
+  const fallback = {
+    image: "image.png",
+    audio: "audio.mp3",
+    video: "video.mp4"
+  }[kind];
+  if (!filename || total === 1) return filename || fallback;
+  const dot = filename.lastIndexOf(".");
+  const stem = dot > 0 ? filename.slice(0, dot) : filename;
+  const extension = dot > 0 ? filename.slice(dot) : "";
+  return `${stem}-${index + 1}${extension}`;
+};
+
 /**
  * A bound media value carries an `asset://` locator, which fetches nowhere —
  * every media leaf resolves its source to the asset's own `get_url` first.
@@ -175,8 +220,14 @@ const MediaPlaceholder: React.FC<{ height: number; text: string }> = ({
  * per emitted item, and without this every item already on screen re-renders
  * with it.
  */
-const ImageItem: React.FC<{ src: string; fit?: string; height: number }> =
-  React.memo(({ src, fit, height }) => (
+const ImageItem: React.FC<{
+  src: string;
+  fit?: string;
+  height: number;
+  download?: boolean;
+  filename?: string;
+}> = React.memo(({ src, fit, height, download = true, filename }) => (
+  <FlexColumn gap={SPACING.xs} align="flex-start" fullWidth>
     <ResponsiveImage
       locator={src}
       alt=""
@@ -184,18 +235,42 @@ const ImageItem: React.FC<{ src: string; fit?: string; height: number }> =
       borderRadius={BORDER_RADIUS.md}
       sx={{ height }}
     />
-  ));
+    {download ? (
+      <MediaDownloadButton
+        src={src}
+        filename={filename ?? "image.png"}
+      />
+    ) : null}
+  </FlexColumn>
+));
 ImageItem.displayName = "ImageItem";
 
-const AudioItem: React.FC<{ src: string }> = React.memo(({ src }) => (
-  <AudioPlayback locator={src} />
+const AudioItem: React.FC<{
+  src: string;
+  download?: boolean;
+  filename?: string;
+}> = React.memo(({ src, download = true, filename }) => (
+  <FlexColumn gap={SPACING.xs} align="flex-start" fullWidth>
+    <AudioPlayback locator={src} />
+    {download ? (
+      <MediaDownloadButton
+        src={src}
+        filename={filename ?? "audio.mp3"}
+      />
+    ) : null}
+  </FlexColumn>
 ));
 AudioItem.displayName = "AudioItem";
 
-const VideoItem: React.FC<{ src: string; height: number }> = React.memo(
-  ({ src, height }) => (
-    // `VideoPlayer` fills its container, so the widget's height cap becomes the
-    // container's height rather than a max on the element.
+const VideoItem: React.FC<{
+  src: string;
+  height: number;
+  download?: boolean;
+  filename?: string;
+}> = React.memo(({ src, height, download = true, filename }) => (
+  <FlexColumn gap={SPACING.xs} align="flex-start" fullWidth>
+    {/* `VideoPlayer` fills its container, so the widget's height cap becomes the
+        container's height rather than a max on the element. */}
     <Box
       sx={{
         width: "100%",
@@ -206,8 +281,14 @@ const VideoItem: React.FC<{ src: string; height: number }> = React.memo(
     >
       <VideoPlayer locator={src} />
     </Box>
-  )
-);
+    {download ? (
+      <MediaDownloadButton
+        src={src}
+        filename={filename ?? "video.mp4"}
+      />
+    ) : null}
+  </FlexColumn>
+));
 VideoItem.displayName = "VideoItem";
 
 export const MarkdownBlock: React.FC<{ text: string }> = React.memo(
@@ -302,6 +383,8 @@ export const ImageWidget: React.FC<
     fit?: string;
     height?: number;
     placeholder?: string;
+    download?: boolean;
+    filename?: string;
   }
 > = (props) => {
   const { value } = useBinding(props, "read");
@@ -322,7 +405,15 @@ export const ImageWidget: React.FC<
     );
   }
   if (sources.length === 1) {
-    return <ImageItem src={sources[0]} fit={props.fit} height={height} />;
+    return (
+      <ImageItem
+        src={sources[0]}
+        fit={props.fit}
+        height={height}
+        download={props.download !== false}
+        filename={mediaFilename(props.filename, "image", 0, sources.length)}
+      />
+    );
   }
   return (
     <Box
@@ -334,15 +425,31 @@ export const ImageWidget: React.FC<
       }}
     >
       {sources.map((src, index) => (
-        <ImageItem key={index} src={src} fit={props.fit} height={height} />
+        <ImageItem
+          key={index}
+          src={src}
+          fit={props.fit}
+          height={height}
+          download={props.download !== false}
+          filename={mediaFilename(
+            props.filename,
+            "image",
+            index,
+            sources.length
+          )}
+        />
       ))}
     </Box>
   );
 };
 
-export const AudioWidget: React.FC<WidgetCommon & { placeholder?: string }> = (
-  props
-) => {
+export const AudioWidget: React.FC<
+  WidgetCommon & {
+    placeholder?: string;
+    download?: boolean;
+    filename?: string;
+  }
+> = (props) => {
   const { value } = useBinding(props, "read");
   const sources = React.useMemo(
     () =>
@@ -362,7 +469,17 @@ export const AudioWidget: React.FC<WidgetCommon & { placeholder?: string }> = (
   return (
     <FlexColumn gap={SPACING.sm} fullWidth>
       {sources.map((src, index) => (
-        <AudioItem key={index} src={src} />
+        <AudioItem
+          key={index}
+          src={src}
+          download={props.download !== false}
+          filename={mediaFilename(
+            props.filename,
+            "audio",
+            index,
+            sources.length
+          )}
+        />
       ))}
     </FlexColumn>
   );
@@ -372,6 +489,8 @@ export const VideoWidget: React.FC<
   WidgetCommon & {
     height?: number;
     placeholder?: string;
+    download?: boolean;
+    filename?: string;
   }
 > = (props) => {
   const { value } = useBinding(props, "read");
@@ -394,7 +513,18 @@ export const VideoWidget: React.FC<
   return (
     <FlexColumn gap={SPACING.sm} fullWidth>
       {sources.map((src, index) => (
-        <VideoItem key={index} src={src} height={height} />
+        <VideoItem
+          key={index}
+          src={src}
+          height={height}
+          download={props.download !== false}
+          filename={mediaFilename(
+            props.filename,
+            "video",
+            index,
+            sources.length
+          )}
+        />
       ))}
     </FlexColumn>
   );
@@ -411,22 +541,64 @@ const mediaRefKind = (value: unknown): "image" | "audio" | "video" | null => {
 /** Render one untyped output item by its runtime shape. */
 export const renderOutputItem = (
   item: unknown,
-  key: number
+  key: number,
+  options: {
+    download?: boolean;
+    filename?: string;
+    total?: number;
+  } = {}
 ): React.ReactNode => {
   switch (mediaRefKind(item)) {
     case "image": {
       const src = resolveImageSrc(item);
       return src ? (
-        <ImageItem key={key} src={src} fit="contain" height={280} />
+        <ImageItem
+          key={key}
+          src={src}
+          fit="contain"
+          height={280}
+          download={options.download !== false}
+          filename={mediaFilename(
+            options.filename,
+            "image",
+            key,
+            options.total ?? 1
+          )}
+        />
       ) : null;
     }
     case "audio": {
       const src = resolveMediaSrc(item, "audio/mpeg");
-      return src ? <AudioItem key={key} src={src} /> : null;
+      return src ? (
+        <AudioItem
+          key={key}
+          src={src}
+          download={options.download !== false}
+          filename={mediaFilename(
+            options.filename,
+            "audio",
+            key,
+            options.total ?? 1
+          )}
+        />
+      ) : null;
     }
     case "video": {
       const src = resolveMediaSrc(item, "video/mp4");
-      return src ? <VideoItem key={key} src={src} height={320} /> : null;
+      return src ? (
+        <VideoItem
+          key={key}
+          src={src}
+          height={320}
+          download={options.download !== false}
+          filename={mediaFilename(
+            options.filename,
+            "video",
+            key,
+            options.total ?? 1
+          )}
+        />
+      ) : null;
     }
     default:
       break;
@@ -443,9 +615,13 @@ export const renderOutputItem = (
  * media, strings as markdown, other objects as JSON. An accumulated stream of
  * items renders as separate stacked parts.
  */
-export const OutputWidget: React.FC<WidgetCommon & { placeholder?: string }> = (
-  props
-) => {
+export const OutputWidget: React.FC<
+  WidgetCommon & {
+    placeholder?: string;
+    download?: boolean;
+    filename?: string;
+  }
+> = (props) => {
   const { value } = useBinding(props, "read");
   const items = props.formattedValue
     ? [props.formattedValue]
@@ -458,11 +634,25 @@ export const OutputWidget: React.FC<WidgetCommon & { placeholder?: string }> = (
     );
   }
   if (items.length === 1) {
-    return <>{renderOutputItem(items[0], 0)}</>;
+    return (
+      <>
+        {renderOutputItem(items[0], 0, {
+          download: props.download !== false,
+          filename: props.filename,
+          total: 1
+        })}
+      </>
+    );
   }
   return (
     <FlexColumn gap={SPACING.md} fullWidth>
-      {items.map(renderOutputItem)}
+      {items.map((item, index) =>
+        renderOutputItem(item, index, {
+          download: props.download !== false,
+          filename: props.filename,
+          total: items.length
+        })
+      )}
     </FlexColumn>
   );
 };

@@ -15,6 +15,7 @@ export {
   retryAfterMs,
   fetchWithRetry,
   atlasDownload,
+  atlasUploadMedia,
   atlasSubmit,
   atlasPoll,
   atlasAwaitResult,

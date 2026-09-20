@@ -4,7 +4,7 @@
   "emoji": "🗣️",
   "description": "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localize a take, fix a fluffed line, or spin one recording into many variants.",
   "tagline": "Give a presenter clip a new script.",
-  "note": "🔑 Needs a Replicate key for the voice (Inworld TTS) and a FAL key for the lip-sync. Both steps are billed per run.",
+  "note": "Voice generation and lip-sync are both billed per run.",
   "featured": false,
   "image": "/app-preview/img/ai-spokesperson.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs a Replicate key for the voice (Inworld TTS) and a FAL key for the lip-sync. Both steps are billed per run."
+            "text": "Voice generation and lip-sync are both billed per run."
           }
         },
         {
@@ -48,6 +48,16 @@
                   "id": "panel-new-words-same-take",
                   "title": "New words, same take",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-revoice-speech-model",
+                        "binding": "op:revoice/prop:speech#model",
+                        "label": "Revoice model",
+                        "modelKind": "tts_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "WorkflowInput",
                       "props": {
@@ -68,6 +78,17 @@
                       }
                     },
                     {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-revoice-sync-model",
+                        "binding": "op:revoice/prop:sync#model",
+                        "label": "Lip-sync model",
+                        "modelKind": "video_model",
+                        "task": "lip_sync",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-revoice",
@@ -82,7 +103,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:revoice/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -102,6 +127,20 @@
                         "id": "progress-revoice",
                         "binding": "op:revoice/exec#progress",
                         "label": "Voicing and syncing…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-revoice",
+                        "binding": "op:revoice/exec#error",
+                        "title": "The revoice failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:revoice/exec#error",
+                          "op": "notEmpty"
+                        }
                       }
                     },
                     {

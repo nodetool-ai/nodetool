@@ -4,7 +4,7 @@
   "emoji": "📈",
   "description": "The Viral Video Ad Engine chain behind one surface. The offer drives both the copy registers and the hook-and-thumbnail set, so the line you pick and the thumbnails you test come from the same brief.",
   "tagline": "Settle the line, fan it into a test set, then put the product in motion.",
-  "note": "🔑 Needs an OpenAI key for the writing and a FAL key for the thumbnails. The ad loop is a video model; the vertical cut runs locally.",
+  "note": "Writing and thumbnails use configured models. The ad loop generates video; the vertical cut runs locally.",
   "featured": false,
   "image": "/app-preview/img/viral-ad-engine.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs an OpenAI key for the writing and a FAL key for the thumbnails. The ad loop is a video model; the vertical cut runs locally."
+            "text": "Writing and thumbnails use configured models. The ad loop generates video; the vertical cut runs locally."
           }
         },
         {
@@ -48,6 +48,36 @@
                   "id": "panel-the-line",
                   "title": "The line",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-hooks-hooks-model",
+                        "binding": "op:hooks/prop:hooks#model",
+                        "label": "Hooks model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-hooks-thumbnail-model",
+                        "binding": "op:hooks/prop:thumbnail#model",
+                        "label": "Hooks model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-copy-ag-model",
+                        "binding": "op:copy/prop:ag#model",
+                        "label": "Copy model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {
@@ -199,6 +229,16 @@
                   "id": "panel-the-footage",
                   "title": "The footage",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-loop-animate-model",
+                        "binding": "op:loop/prop:animate#model",
+                        "label": "Ad loop model",
+                        "modelKind": "video_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Text",
                       "props": {

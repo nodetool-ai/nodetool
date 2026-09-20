@@ -18,9 +18,11 @@ import {
   DownloadWidget,
   KeyValueWidget,
   ListWidget,
+  OutputWidget,
   RadioGroupWidget,
   StatWidget,
-  TabsWidget
+  TabsWidget,
+  VideoWidget
 } from "../widgets";
 
 // Media sources resolve through TanStack Query; these suites render no
@@ -140,6 +142,50 @@ describe("DownloadWidget", () => {
       <DownloadWidget id="d1" binding="result" placeholder="Not yet" />
     );
     expect(screen.getByText("Not yet")).toBeInTheDocument();
+  });
+});
+
+describe("media output downloads", () => {
+  it("offers a download link alongside a video player", () => {
+    renderWidget(
+      <VideoWidget id="v1" binding="result" />,
+      withOutput({ type: "video", uri: "https://example.test/result.mp4" })
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Download video.mp4" })
+    ).toHaveAttribute("download", "video.mp4");
+  });
+
+  it("can hide downloads for a media output", () => {
+    renderWidget(
+      <VideoWidget id="v1" binding="result" download={false} />,
+      withOutput({ type: "video", uri: "https://example.test/result.mp4" })
+    );
+
+    expect(screen.queryByRole("link", { name: /Download/ })).not.toBeInTheDocument();
+  });
+
+  it("resolves asset locators before downloading", () => {
+    renderWidget(
+      <VideoWidget id="v1" binding="result" />,
+      withOutput({ type: "video", uri: "asset://video-result" })
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Download video.mp4" })
+    ).toHaveAttribute("href", "https://assets.test/video-result");
+  });
+
+  it("adds the same download action to generic media outputs", () => {
+    renderWidget(
+      <OutputWidget id="o1" binding="result" filename="campaign.mp4" />,
+      withOutput({ type: "video", uri: "https://example.test/result.mp4" })
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Download campaign.mp4" })
+    ).toHaveAttribute("download", "campaign.mp4");
   });
 });
 

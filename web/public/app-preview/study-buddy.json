@@ -4,7 +4,7 @@
   "emoji": "🃏",
   "description": "Structured data an app renders better than a graph does: the cards land in a table, the explanation beside them.",
   "tagline": "A deck of flashcards and the concept behind it, side by side.",
-  "note": "🔑 Needs an OpenAI key. Your topic persists between sessions.",
+  "note": "Your topic persists between sessions.",
   "featured": false,
   "image": "/app-preview/img/study-buddy.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs an OpenAI key. Your topic persists between sessions."
+            "text": "Your topic persists between sessions."
           }
         },
         {
@@ -48,6 +48,26 @@
                   "id": "panel-your-deck",
                   "title": "Your deck",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-cards-generate-flashcards-model",
+                        "binding": "op:cards/prop:generate_flashcards#model",
+                        "label": "Cards model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-explain-llm-model",
+                        "binding": "op:explain/prop:llm#model",
+                        "label": "Explain model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {

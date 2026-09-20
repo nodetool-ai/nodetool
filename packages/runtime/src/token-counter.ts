@@ -92,7 +92,7 @@ export function countTokens(text: string | null | undefined): number {
   const encoder = getEncoder();
   let total = 0;
   for (const piece of encodingPieces(text)) {
-    total += encoder.encode(piece).length;
+    total += encoder.encode(piece, [], []).length;
   }
   return total;
 }
@@ -116,7 +116,7 @@ export function truncateToTokens(text: string, maxTokens: number): string {
   const kept: number[] = [];
   let truncated = false;
   for (const piece of encodingPieces(text)) {
-    for (const token of encoder.encode(piece)) {
+    for (const token of encoder.encode(piece, [], [])) {
       if (kept.length >= maxTokens) {
         truncated = true;
         break;

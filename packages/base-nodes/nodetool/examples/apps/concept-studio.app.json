@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🎨 Generating needs OpenAI and FAL keys. Polishing is GPU-only and runs with no keys."
+            "text": "🎨 Generation uses configured cloud models. Polishing runs locally on a compatible GPU."
           }
         },
         {
@@ -43,6 +43,36 @@
                   "id": "panel-concept-art",
                   "title": "Concept art",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-concepts-4-model",
+                        "binding": "op:concepts/prop:4#model",
+                        "label": "Concepts model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-concepts-5-model",
+                        "binding": "op:concepts/prop:5#model",
+                        "label": "Concepts model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-concepts-8-model",
+                        "binding": "op:concepts/prop:8#model",
+                        "label": "Concepts model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {
@@ -174,6 +204,26 @@
                   "id": "panel-creatures",
                   "title": "Creatures",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-creatures-7613de08-0407-42aa-8dc8-3b7777e9529d-model",
+                        "binding": "op:creatures/prop:7613de08-0407-42aa-8dc8-3b7777e9529d#model",
+                        "label": "Creatures model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-creatures-b55c474e-e397-44a3-adc7-94bcf61eee35-model",
+                        "binding": "op:creatures/prop:b55c474e-e397-44a3-adc7-94bcf61eee35#model",
+                        "label": "Creatures model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "Product Reshoot",
-  "description": "One product photo, three treatments. Put it on a described set, relight it for a season, or strip the background to a real alpha channel for compositing.",
+  "description": "Start with one product photo and make three production-ready passes: a new set, a seasonal relight, or a clean cutout for compositing.",
   "app": {
     "schemaVersion": 3,
     "ui": {
@@ -13,7 +13,7 @@
           "type": "Heading",
           "props": {
             "id": "title",
-            "text": "📦 Product Reshoot",
+            "text": "Product Reshoot",
             "level": "1"
           }
         },
@@ -21,14 +21,14 @@
           "type": "Text",
           "props": {
             "id": "tagline",
-            "text": "New setting, new light, or a clean cutout — without a reshoot."
+            "text": "Relight the product. Change the set. Keep the product fixed."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs a FAL key. Each treatment is one or two image calls."
+            "text": "Choose a treatment, review the result, then reuse the same product reference for another pass."
           }
         },
         {
@@ -52,21 +52,43 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-new-setting",
+            "id": "cols-set-the-scene",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-new-setting",
-                  "title": "New setting",
+                  "id": "panel-set-the-scene",
+                  "title": "Set the scene",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-backdrop-bg-model",
+                        "binding": "op:backdrop/prop:bg#model",
+                        "label": "Background removal model",
+                        "modelKind": "image_model",
+                        "task": "remove_background",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-backdrop-comp-model",
+                        "binding": "op:backdrop/prop:comp#model",
+                        "label": "Scene model",
+                        "modelKind": "image_model",
+                        "task": "image_to_image",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Select",
                       "props": {
                         "id": "select-backdrop-comp-prompt",
                         "binding": "op:backdrop/prop:comp#prompt",
-                        "label": "Setting",
+                        "label": "Scene direction",
                         "options": [
                           {
                             "value": "Keep the product as it is. Change only what is around it: warm concrete plinth, soft studio key from upper left, blurred background."
@@ -91,7 +113,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-backdrop",
-                        "label": "Place it on the set",
+                        "label": "Render the new set",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -102,7 +124,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:backdrop/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -113,7 +139,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-new-setting-results",
+                  "id": "panel-set-the-scene-results",
                   "title": "Results",
                   "content": [
                     {
@@ -125,10 +151,31 @@
                       }
                     },
                     {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-backdrop",
+                        "binding": "op:backdrop/exec#error",
+                        "title": "The set treatment failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:backdrop/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "Review the product edges, shadow, and surface before keeping the treatment."
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-backdrop-styled",
-                        "text": "On the set",
+                        "text": "Set treatment",
                         "level": "3"
                       }
                     },
@@ -151,21 +198,32 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-new-light",
+            "id": "cols-relight-the-product",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-new-light",
-                  "title": "New light",
+                  "id": "panel-relight-the-product",
+                  "title": "Relight the product",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-relight-rl-model",
+                        "binding": "op:relight/prop:rl#model",
+                        "label": "Relight model",
+                        "modelKind": "image_model",
+                        "task": "image_to_image",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Select",
                       "props": {
                         "id": "select-relight-rl-prompt",
                         "binding": "op:relight/prop:rl#prompt",
-                        "label": "Season and light",
+                        "label": "Seasonal light",
                         "options": [
                           {
                             "value": "warm low winter sun from the left, long soft shadows"
@@ -190,7 +248,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-relight",
-                        "label": "Relight it",
+                        "label": "Render the relight",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -201,7 +259,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:relight/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -212,7 +274,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-new-light-results",
+                  "id": "panel-relight-the-product-results",
                   "title": "Results",
                   "content": [
                     {
@@ -224,10 +286,31 @@
                       }
                     },
                     {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-relight",
+                        "binding": "op:relight/exec#error",
+                        "title": "The relight failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:relight/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-2",
+                        "text": "Keep the product identity fixed while you compare the light and shadow."
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-relight-seasonal",
-                        "text": "Relit",
+                        "text": "Seasonal relight",
                         "level": "3"
                       }
                     },
@@ -250,20 +333,31 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-clean-cutout",
+            "id": "cols-prepare-a-cutout",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-clean-cutout",
-                  "title": "Clean cutout",
+                  "id": "panel-prepare-a-cutout",
+                  "title": "Prepare a cutout",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-cutout-bg-model",
+                        "binding": "op:cutout/prop:bg#model",
+                        "label": "Background removal model",
+                        "modelKind": "image_model",
+                        "task": "remove_background",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Button",
                       "props": {
                         "id": "btn-cutout",
-                        "label": "Cut it out",
+                        "label": "Remove the background",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -274,7 +368,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:cutout/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -285,7 +383,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-clean-cutout-results",
+                  "id": "panel-prepare-a-cutout-results",
                   "title": "Results",
                   "content": [
                     {
@@ -297,10 +395,31 @@
                       }
                     },
                     {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-cutout",
+                        "binding": "op:cutout/exec#error",
+                        "title": "The cutout failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:cutout/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-3",
+                        "text": "Use the transparent result in a layout, product page, or campaign composite."
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-cutout-cutout",
-                        "text": "Cutout with alpha",
+                        "text": "Transparent cutout",
                         "level": "3"
                       }
                     },
@@ -416,11 +535,13 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/bria/background/remove",
-                "name": "Bria Background Remove",
+                "provider": "atlascloud",
+                "id": "youchuan/v8.2/remove-background",
+                "name": "Youchuan v8.2 — Remove Background",
                 "path": null,
-                "supported_tasks": []
+                "supported_tasks": [
+                  "remove_background"
+                ]
               }
             },
             "ui_properties": {
@@ -732,11 +853,13 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/bria/background/remove",
-                "name": "Bria Background Remove",
+                "provider": "atlascloud",
+                "id": "youchuan/v8.2/remove-background",
+                "name": "Youchuan v8.2 — Remove Background",
                 "path": null,
-                "supported_tasks": []
+                "supported_tasks": [
+                  "remove_background"
+                ]
               }
             },
             "ui_properties": {

@@ -44,6 +44,26 @@
                   "title": "The paperwork",
                   "content": [
                     {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-beats-ag-model",
+                        "binding": "op:beats/prop:ag#model",
+                        "label": "Beats model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-shots-ag-model",
+                        "binding": "op:shots/prop:ag#model",
+                        "label": "Shots model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "TextInput",
                       "props": {
                         "id": "in-premise",
@@ -176,6 +196,46 @@
                   "id": "panel-the-footage",
                   "title": "The footage",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-trailer-director-model",
+                        "binding": "op:trailer/prop:director#model",
+                        "label": "Shoot model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-trailer-keyframe-model",
+                        "binding": "op:trailer/prop:keyframe#model",
+                        "label": "Shoot model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-trailer-animate-model",
+                        "binding": "op:trailer/prop:animate#model",
+                        "label": "Shoot model",
+                        "modelKind": "video_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-score-score-model",
+                        "binding": "op:score/prop:score#model",
+                        "label": "Score model",
+                        "modelKind": "music_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Text",
                       "props": {

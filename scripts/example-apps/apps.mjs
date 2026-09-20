@@ -7,7 +7,7 @@
 // that no longer exists fails the build instead of shipping a dead binding.
 //
 // Entry shape:
-//   slug, name, emoji, tagline, description, note, featured
+//   slug, name, emoji, showEmoji, tagline, description, note, featured
 //   workflows  { <bundleKey>: "<Template Name>" }
 //   variables  [ { id, name, scope, persist?, default? } ]
 //   operations [ { id, name, workflow, policy?, timeoutMs?,
@@ -40,6 +40,37 @@ const IMG = { $demo: "image" };
 const VIDEO = { $demo: "video" };
 const AUDIO = { $demo: "audio" };
 const AD_MAKER_HERO = "/app-preview/media/ad-maker/campaign-hero.png";
+const CODEX_LUNA = {
+  type: "language_model",
+  provider: "codex",
+  id: "gpt-5.6-luna",
+  name: "GPT-5.6-Luna",
+  path: null,
+  supported_tasks: []
+};
+const ATLASCLOUD_YOUCHUAN_REMOVE_BACKGROUND = {
+  type: "image_model",
+  provider: "atlascloud",
+  id: "youchuan/v8.2/remove-background",
+  name: "Youchuan v8.2 — Remove Background",
+  path: null,
+  supported_tasks: ["remove_background"]
+};
+const ATLASCLOUD_SYNC_LIPSYNC = {
+  type: "video_model",
+  provider: "atlascloud",
+  id: "sync/lipsync-v3",
+  name: "Sync Lipsync v3",
+  path: null,
+  supported_tasks: ["lip_sync"]
+};
+const OPENAI_TRANSCRIBE = {
+  type: "asr_model",
+  provider: "openai",
+  id: "gpt-4o-mini-transcribe",
+  name: "GPT-4o Mini Transcribe",
+  path: null
+};
 
 export const EXAMPLE_APPS = [
   // ── 1 ──────────────────────────────────────────────────────────────────────
@@ -52,7 +83,7 @@ export const EXAMPLE_APPS = [
       "Drag five sliders and watch the photo re-render — then run the same grade over a whole folder.",
     description:
       "A live photo editor and a batch retoucher behind one surface. The single-photo grade is pure GPU filters, so it runs with no API key at all.",
-    note: "✨ `Enhance` is GPU-only and needs no keys. `Batch` adds a FAL grading pass, so it needs a FAL key.",
+    note: "✨ `Enhance` runs locally. `Batch` adds a cloud grading pass and is billed per image.",
     workflows: { enhance: "Image Enhance", batch: "Photo Enhancement Suite" },
     variables: [
       { id: "sourceImage", name: "Source photo", scope: "instance", type: "image" }
@@ -107,11 +138,22 @@ export const EXAMPLE_APPS = [
     tagline: "Recording in, minutes out — then question the transcript.",
     description:
       "Transcribe a recording, summarize it into notes and action items, then ask follow-up questions of the transcript on a local model.",
-    note: "🎙️ Transcription uses FAL Whisper and the summary uses OpenAI. The follow-up questions run on a local Ollama model, so they cost nothing.",
+    note: "🎙️ Transcription and summarization use configured models. Follow-up questions run locally.",
     workflows: {
       transcribe: "Transcribe Audio",
       summarize: "Meeting Transcript Summarizer",
       assistant: "Private Assistant"
+    },
+    modelOverrides: {
+      transcribe: {
+        "c5191702-2a3c-440d-b3af-2db20e74a369": OPENAI_TRANSCRIBE
+      },
+      summarize: {
+        asr: OPENAI_TRANSCRIBE,
+        summarizer: CODEX_LUNA,
+        action_items_generator: CODEX_LUNA
+      },
+      assistant: { assistant: CODEX_LUNA }
     },
     variables: [
       { id: "transcript", name: "Transcript", scope: "instance", type: "str", default: "" }
@@ -199,7 +241,7 @@ export const EXAMPLE_APPS = [
     tagline: "Generate a gallery, pick one, polish it.",
     description:
       "The creative iteration loop: fan a brief into concept art, mix animals into creatures, then run the picked image through a keyless filter chain.",
-    note: "🎨 Generating needs OpenAI and FAL keys. Polishing is GPU-only and runs with no keys.",
+    note: "🎨 Generation uses configured cloud models. Polishing runs locally on a compatible GPU.",
     workflows: {
       concepts: "Concept Art Iteration Board",
       creatures: "Pokemon Maker",
@@ -295,7 +337,7 @@ export const EXAMPLE_APPS = [
     tagline: "One topic, two sources, two briefings side by side.",
     description:
       "A research agent and a Hacker News reader both take the same topic and stream into their own panel.",
-    note: "🔑 Needs an OpenAI key. Both briefings run in parallel from one button.",
+    note: "Both briefings run in parallel from one button.",
     workflows: {
       research: "Research Agent",
       hn: "Hacker News Agent"
@@ -362,7 +404,7 @@ export const EXAMPLE_APPS = [
     tagline: "Ask your own documents — with a local mode that never leaves your machine.",
     description:
       "Retrieval-augmented answers with citations, and a fully local fallback that reads one pasted document instead of the vector store.",
-    note: "🖥️ The retrieval mode embeds with Ollama `nomic-embed-text` and answers with OpenAI, so it needs **both**. Local mode needs only Ollama.",
+    note: "🖥️ Retrieval mode combines semantic search with a writing model. Local mode keeps the full run on your machine.",
     workflows: { rag: "Chat With Your Documents", local: "Private Assistant" },
     variables: [
       { id: "question", name: "Question", scope: "instance", type: "str", default: "Is the Aurora Trail safe to swim with?" },
@@ -435,7 +477,7 @@ export const EXAMPLE_APPS = [
     tagline: "One brand identity drives two deliverables.",
     description:
       "Fill in your brand once — the asset kit and the thumbnail factory both read the same values.",
-    note: "🔑 Needs OpenAI and FAL keys. Your brand name, audience, and voice persist between sessions.",
+    note: "Your brand name, audience, and voice persist between sessions.",
     workflows: {
       brand: "Brand Asset Generator",
       hooks: "Hook & Thumbnail Factory"
@@ -505,7 +547,7 @@ export const EXAMPLE_APPS = [
     tagline: "One product photo in, mockups and a launch video out.",
     description:
       "Stage a product photo into lifestyle mockups, then — deliberately, because it costs real money — turn the same photo into a launch video.",
-    note: "💸 Mockups need OpenAI and FAL. The launch video runs on Veo and costs credits per run, so it has its own button.",
+    note: "💸 Mockups and launch video use configured cloud models. Video generation is billed per run, so it has its own button.",
     workflows: { mockups: "Product Mockup Generator", video: "Product Video Generator" },
     variables: [
       { id: "productPhoto", name: "Product photo", scope: "instance", type: "image" },
@@ -555,7 +597,7 @@ export const EXAMPLE_APPS = [
         title: "Launch video",
         op: "video",
         controls: [
-          { note: "💸 One run of this uses the Veo video model and costs credits." },
+          { note: "💸 One run generates a video and incurs usage charges." },
           { text: "campaign_brief", op: "video", label: "Campaign brief", multiline: true },
           { text: "key_features", op: "video", label: "Key features", multiline: true },
           { run: ["video"], label: "Generate the launch video" }
@@ -577,7 +619,7 @@ export const EXAMPLE_APPS = [
     tagline: "Brief → direction → storyboard → cut → key art.",
     description:
       "The showcase run: one brief drives a directed short, an editable rough cut, and the poster that sells it.",
-    note: "💸 This app spends real money — Veo 3.1 video and Replicate MusicGen. Run it once, deliberately.",
+    note: "💸 This app generates video and music. Run it once, deliberately.",
     workflows: {
       script: "Script to Screen",
       timeline: "Directed Film to Timeline",
@@ -620,19 +662,21 @@ export const EXAMPLE_APPS = [
         title: "The film",
         op: "produce",
         controls: [
-          { note: "💸 Each run of Produce or Rough cut uses Veo and Replicate credits." },
+          { note: "💸 Each run of Produce or Rough cut incurs video and music generation charges." },
           { textVar: "brief", label: "Your film in one line", multiline: true },
           { textVar: "style", label: "Visual style", multiline: true },
           { text: "Shot Count", op: "produce", label: "Number of shots" },
-          { run: ["produce"], label: "Shoot my film" },
-          { run: ["cut"], label: "Give me the rough cut" }
+          { run: ["produce"], label: "Shoot my film", disabledWhen: "produce" },
+          { run: ["cut"], label: "Give me the rough cut", disabledWhen: "cut" }
         ],
         results: [
           { progress: "produce", label: "Directing, storyboarding & shooting…" },
+          { error: "produce", label: "Film production failed" },
           { show: "direction", op: "produce", as: "Markdown", label: "Direction document", demo: "## THE BENDING LIGHT\n\n**Logline** — A keeper follows her own beam to the thing it will no longer stop pointing at." },
           { show: "storyboard", op: "produce", as: "Image", label: "Storyboard keyframes", demo: IMG },
           { show: "film", op: "produce", as: "Video", label: "Finished film", demo: VIDEO },
           { progress: "cut", label: "Cutting the timeline…" },
+          { error: "cut", label: "Rough cut failed" },
           { show: "film", op: "cut", as: "Video", label: "Editable rough cut" }
         ]
       },
@@ -657,10 +701,11 @@ export const EXAMPLE_APPS = [
               "Documentary"
             ]
           },
-          { run: ["poster"], label: "Make my poster" }
+          { run: ["poster"], label: "Make my poster", disabledWhen: "poster" }
         ],
         results: [
           { progress: "poster", label: "Designing your poster…" },
+          { error: "poster", label: "Poster generation failed" },
           { show: "Poster", op: "poster", as: "Image", label: "Your poster", demo: IMG }
         ]
       }
@@ -675,7 +720,7 @@ export const EXAMPLE_APPS = [
     tagline: "A deck of flashcards and the concept behind it, side by side.",
     description:
       "Structured data an app renders better than a graph does: the cards land in a table, the explanation beside them.",
-    note: "🔑 Needs an OpenAI key. Your topic persists between sessions.",
+    note: "Your topic persists between sessions.",
     workflows: { cards: "Flashcard Generator", explain: "Prompt Template" },
     variables: [
       { id: "topic", name: "Topic", scope: "user", persist: true, type: "str", default: "Python data structures" }
@@ -728,7 +773,7 @@ export const EXAMPLE_APPS = [
     tagline: "One brief, three frontier models, answered side by side.",
     description:
       "Three answers in three columns, each streaming independently. A missing provider key fails one column, not the run.",
-    note: "🔑 Needs OpenAI, Anthropic, and Google keys — one per column.",
+    note: "Choose one configured language model per column.",
     workflows: { arena: "Model Arena" },
     operations: [
       { id: "compare", name: "Compare", workflow: "arena", policy: "replace" }
@@ -744,9 +789,9 @@ export const EXAMPLE_APPS = [
         ],
         results: [
           { progress: "compare", label: "Asking three models…" },
-          { show: "openai", op: "compare", as: "Markdown", label: "OpenAI", demo: "**OpenAI:** leads with a crisp three-point structure and ships a concrete next step." },
-          { show: "anthropic", op: "compare", as: "Markdown", label: "Anthropic", demo: "**Anthropic:** longer reasoning, names the tradeoff explicitly, flags one risk the others miss." },
-          { show: "gemini", op: "compare", as: "Markdown", label: "Google", demo: "**Google:** tightest answer, strongest factual recall, lightest on caveats." }
+          { show: "openai", op: "compare", as: "Markdown", label: "Model A", demo: "**Model A:** leads with a crisp three-point structure and ships a concrete next step." },
+          { show: "anthropic", op: "compare", as: "Markdown", label: "Model B", demo: "**Model B:** longer reasoning, names the tradeoff explicitly, flags one risk the others miss." },
+          { show: "gemini", op: "compare", as: "Markdown", label: "Model C", demo: "**Model C:** tightest answer, strongest factual recall, lightest on caveats." }
         ]
       }
     ]
@@ -760,7 +805,7 @@ export const EXAMPLE_APPS = [
     tagline: "Describe the dataset you need — get it as a table.",
     description:
       "The smallest app in the set, and the reference for the Table widget: a dataframe reads better as rows than as a Preview node.",
-    note: "🔑 Needs an OpenAI key.",
+    note: "Requires a configured language model.",
     workflows: { data: "Data Generator" },
     operations: [
       { id: "generate", name: "Generate", workflow: "data", policy: "replace" }
@@ -793,18 +838,14 @@ export const EXAMPLE_APPS = [
     tagline: "Change one thing about a photo and keep the rest.",
     description:
       "Pick what should change: lighting, background, pose, palette, camera angle. An edit model alters only that, and composition and subject survive because it edits in place instead of regenerating.",
-    note: "🔑 Needs a FAL key (Nano Banana edit). Billed per image.",
+    note: "Image editing is billed per generated image.",
     workflows: { edit: "Edit a Still with Words" },
-    variables: [
-      { id: "picture", name: "Your image", scope: "instance", type: "image" }
-    ],
     operations: [
       {
         id: "edit",
         name: "Edit",
         workflow: "edit",
-        policy: "replace",
-        inputs: { picture: { from: "variable", variableId: "picture" } }
+        policy: "replace"
       }
     ],
     sections: [
@@ -812,7 +853,18 @@ export const EXAMPLE_APPS = [
         title: "Vary it",
         op: "edit",
         controls: [
-          { image: "picture", label: "Your image" },
+          {
+            model: { node: "ed", prop: "model" },
+            op: "edit",
+            label: "Edit model",
+            modelKind: "image_model",
+            task: "image_to_image"
+          },
+          {
+            image: { input: "picture", op: "edit" },
+            op: "edit",
+            label: "Your image"
+          },
           {
             select: "instruction",
             op: "edit",
@@ -849,15 +901,21 @@ export const EXAMPLE_APPS = [
     slug: "product-reshoot",
     name: "Product Reshoot",
     emoji: "📦",
+    showEmoji: false,
     featured: true,
-    tagline: "New setting, new light, or a clean cutout — without a reshoot.",
+    tagline: "Relight the product. Change the set. Keep the product fixed.",
     description:
-      "One product photo, three treatments. Put it on a described set, relight it for a season, or strip the background to a real alpha channel for compositing.",
-    note: "🔑 Needs a FAL key. Each treatment is one or two image calls.",
+      "Start with one product photo and make three production-ready passes: a new set, a seasonal relight, or a clean cutout for compositing.",
+    note:
+      "Choose a treatment, review the result, then reuse the same product reference for another pass.",
     workflows: {
       backdrop: "Put a Product on a Studio Backdrop",
       relight: "Relight a Product for a Seasonal Campaign",
       cutout: "Cut a Product Out of Its Background"
+    },
+    modelOverrides: {
+      backdrop: { bg: ATLASCLOUD_YOUCHUAN_REMOVE_BACKGROUND },
+      cutout: { bg: ATLASCLOUD_YOUCHUAN_REMOVE_BACKGROUND }
     },
     variables: [
       { id: "productPhoto", name: "Product photo", scope: "instance", type: "image" }
@@ -891,13 +949,27 @@ export const EXAMPLE_APPS = [
         controls: [{ image: "productPhoto", label: "Product photo" }]
       },
       {
-        title: "New setting",
+        title: "Set the scene",
         op: "backdrop",
         controls: [
           {
+            model: { node: "bg", prop: "model" },
+            op: "backdrop",
+            label: "Background removal model",
+            modelKind: "image_model",
+            task: "remove_background"
+          },
+          {
+            model: { node: "comp", prop: "model" },
+            op: "backdrop",
+            label: "Scene model",
+            modelKind: "image_model",
+            task: "image_to_image"
+          },
+          {
             select: { node: "comp", prop: "prompt" },
             op: "backdrop",
-            label: "Setting",
+            label: "Scene direction",
             default:
               "Keep the product as it is. Change only what is around it: warm concrete plinth, soft studio key from upper left, blurred background.",
             options: [
@@ -908,21 +980,34 @@ export const EXAMPLE_APPS = [
               "Keep the product as it is. Change only what is around it: wet black rock at the shoreline, overcast sky, sea spray."
             ]
           },
-          { run: ["backdrop"], label: "Place it on the set" }
+          {
+            run: ["backdrop"],
+            label: "Render the new set",
+            disabledWhen: "backdrop"
+          }
         ],
         results: [
           { progress: "backdrop", label: "Cutting out and placing…" },
-          { show: "styled", op: "backdrop", as: "Image", label: "On the set", demo: IMG }
+          { error: "backdrop", label: "The set treatment failed" },
+          { note: "Review the product edges, shadow, and surface before keeping the treatment." },
+          { show: "styled", op: "backdrop", as: "Image", label: "Set treatment", demo: IMG }
         ]
       },
       {
-        title: "New light",
+        title: "Relight the product",
         op: "relight",
         controls: [
           {
+            model: { node: "rl", prop: "model" },
+            op: "relight",
+            label: "Relight model",
+            modelKind: "image_model",
+            task: "image_to_image"
+          },
+          {
             select: { node: "rl", prop: "prompt" },
             op: "relight",
-            label: "Season and light",
+            label: "Seasonal light",
             default: "warm low winter sun from the left, long soft shadows",
             options: [
               "warm low winter sun from the left, long soft shadows",
@@ -932,20 +1017,41 @@ export const EXAMPLE_APPS = [
               "cool blue evening light, neon reflections"
             ]
           },
-          { run: ["relight"], label: "Relight it" }
+          {
+            run: ["relight"],
+            label: "Render the relight",
+            disabledWhen: "relight"
+          }
         ],
         results: [
           { progress: "relight", label: "Relighting…" },
-          { show: "seasonal", op: "relight", as: "Image", label: "Relit", demo: IMG }
+          { error: "relight", label: "The relight failed" },
+          { note: "Keep the product identity fixed while you compare the light and shadow." },
+          { show: "seasonal", op: "relight", as: "Image", label: "Seasonal relight", demo: IMG }
         ]
       },
       {
-        title: "Clean cutout",
+        title: "Prepare a cutout",
         op: "cutout",
-        controls: [{ run: ["cutout"], label: "Cut it out" }],
+        controls: [
+          {
+            model: { node: "bg", prop: "model" },
+            op: "cutout",
+            label: "Background removal model",
+            modelKind: "image_model",
+            task: "remove_background"
+          },
+          {
+            run: ["cutout"],
+            label: "Remove the background",
+            disabledWhen: "cutout"
+          }
+        ],
         results: [
           { progress: "cutout", label: "Removing the background…" },
-          { show: "cutout", op: "cutout", as: "Image", label: "Cutout with alpha", demo: IMG }
+          { error: "cutout", label: "The cutout failed" },
+          { note: "Use the transparent result in a layout, product page, or campaign composite." },
+          { show: "cutout", op: "cutout", as: "Image", label: "Transparent cutout", demo: IMG }
         ]
       }
     ]
@@ -956,11 +1062,13 @@ export const EXAMPLE_APPS = [
     slug: "product-shot-video",
     name: "Product Shot Video",
     emoji: "🎥",
+    showEmoji: false,
     featured: true,
-    tagline: "A product photo becomes a hero loop or a turntable clip.",
+    tagline: "Turn a product photo into a controlled moving shot.",
     description:
-      "Image-to-video keeps the product identical and adds only the camera move. Pick a motion for a looping ad, or spin a packshot into a turntable for the product page.",
-    note: "🔑 The ad loop runs Kling on Kie and needs a KIE key. The turntable runs LTX on FAL and needs a FAL key. Both are billed per generation.",
+      "Keep the product reference fixed and choose one camera move for a looping ad or a turntable clip for the product page.",
+    note:
+      "Choose an ad loop or turntable model. Review the motion before exporting the shot.",
     workflows: {
       loop: "Ad Loop from a Product Photo",
       turntable: "Spin a Packshot into a Turntable Clip"
@@ -990,9 +1098,16 @@ export const EXAMPLE_APPS = [
         controls: [{ image: "productPhoto", label: "A clean product photo" }]
       },
       {
-        title: "Hero loop",
+        title: "Make a hero loop",
         op: "loop",
         controls: [
+          {
+            model: { node: "animate", prop: "model" },
+            op: "loop",
+            label: "Video model",
+            modelKind: "video_model",
+            task: "image_to_video"
+          },
           {
             select: "motion",
             op: "loop",
@@ -1005,21 +1120,34 @@ export const EXAMPLE_APPS = [
               "Hold still while steam and light drift around the product"
             ]
           },
-          { run: ["loop"], label: "Make the loop" }
+          {
+            run: ["loop"],
+            label: "Render the hero loop",
+            disabledWhen: "loop"
+          }
         ],
         results: [
           { progress: "loop", label: "Animating…" },
-          { show: "ad_loop", op: "loop", as: "Video", label: "Hero loop", demo: VIDEO }
+          { error: "loop", label: "The hero loop failed" },
+          { note: "Check the first and last frame for a clean loop and stable product geometry." },
+          { show: "ad_loop", op: "loop", as: "Video", label: "Rendered hero loop", demo: VIDEO }
         ]
       },
       {
-        title: "Turntable",
+        title: "Make a turntable",
         op: "turntable",
         controls: [
           {
+            model: { node: "v", prop: "model" },
+            op: "turntable",
+            label: "Video model",
+            modelKind: "video_model",
+            task: "image_to_video"
+          },
+          {
             select: { node: "v", prop: "prompt" },
             op: "turntable",
-            label: "Spin",
+            label: "Turntable direction",
             default: "slow orbit around the product, fixed lighting, product stays centered",
             options: [
               "slow orbit around the product, fixed lighting, product stays centered",
@@ -1028,11 +1156,17 @@ export const EXAMPLE_APPS = [
               "gentle rocking turn, product centered, soft studio light"
             ]
           },
-          { run: ["turntable"], label: "Spin it" }
+          {
+            run: ["turntable"],
+            label: "Render the turntable",
+            disabledWhen: "turntable"
+          }
         ],
         results: [
           { progress: "turntable", label: "Rendering the turntable…" },
-          { show: "turntable", op: "turntable", as: "Video", label: "Turntable clip", demo: VIDEO }
+          { error: "turntable", label: "The turntable failed" },
+          { note: "Use the turntable when the product page needs a clear view around the packshot." },
+          { show: "turntable", op: "turntable", as: "Video", label: "Rendered turntable", demo: VIDEO }
         ]
       }
     ]
@@ -1047,10 +1181,16 @@ export const EXAMPLE_APPS = [
     tagline: "One logline in, a cut sequence of shots out.",
     description:
       "A director model writes the shot list and a style bible, every shot is rendered as a keyframe and animated, and the clips are cut together into one video.",
-    note: "💸 Needs Gemini and KIE keys: Gemini writes the shots and animates them with Veo, KIE renders the keyframes with GPT Image. Every shot is one Veo call, metered per second of video, so start with a small shot count.",
+    note: "💸 Each shot generates a keyframe and a video clip. Video is metered by duration, so start with a small shot count.",
     workflows: { trailer: "Movie Trailer Generator" },
     operations: [
-      { id: "trailer", name: "Direct", workflow: "trailer", policy: "replace" }
+      {
+        id: "trailer",
+        name: "Direct",
+        workflow: "trailer",
+        policy: "replace",
+        timeoutMs: 1200000
+      }
     ],
     sections: [
       {
@@ -1071,10 +1211,15 @@ export const EXAMPLE_APPS = [
             ]
           },
           { slider: "Shot Count", op: "trailer", label: "How many shots?", min: 1, max: 8, step: 1 },
-          { run: ["trailer"], label: "Direct the video" }
+          {
+            run: ["trailer"],
+            label: "Direct the video",
+            disabledWhen: "trailer"
+          }
         ],
         results: [
           { progress: "trailer", label: "Writing, rendering and cutting shots…" },
+          { error: "trailer", label: "Video production failed" },
           { show: "trailer", op: "trailer", as: "Video", label: "Your video", demo: VIDEO }
         ]
       }
@@ -1086,11 +1231,13 @@ export const EXAMPLE_APPS = [
     slug: "scene-builder",
     name: "Scene Builder",
     emoji: "🎞️",
+    showEmoji: false,
     featured: true,
-    tagline: "See the look as a still, then bring it to life.",
+    tagline: "Approve the frame, then animate the shot.",
     description:
-      "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and color.",
-    note: "🔑 Needs a FAL key. The still is one FLUX call, the motion one LTX call.",
+      "Describe a scene, review the editorial still, then animate that exact frame so the subject, framing, and color carry into the moving shot.",
+    note:
+      "Approve the still before you render the moving shot.",
     workflows: { look: "Editorial Still from a Line", motion: "Bring a Still to Life" },
     variables: [
       { id: "still", name: "The still", scope: "instance", type: "image" }
@@ -1113,25 +1260,41 @@ export const EXAMPLE_APPS = [
     ],
     sections: [
       {
-        title: "The look",
+        title: "Approve the frame",
         op: "look",
         controls: [
-          { text: "subject", op: "look", label: "Describe the scene", multiline: true },
-          { run: ["look"], label: "Show me the look" }
+          {
+            model: { node: "img", prop: "model" },
+            op: "look",
+            label: "Image model",
+            modelKind: "image_model",
+            task: "text_to_image"
+          },
+          { text: "subject", op: "look", label: "Scene brief", multiline: true },
+          { run: ["look"], label: "Render the still", disabledWhen: "look" }
         ],
         results: [
           { progress: "look", label: "Rendering the still…" },
-          { showVar: "still", as: "Image", label: "The still", demo: IMG }
+          { error: "look", label: "The still failed" },
+          { note: "Approve the composition before moving to the shot." },
+          { showVar: "still", as: "Image", label: "Approved still", demo: IMG }
         ]
       },
       {
-        title: "Bring it to life",
+        title: "Animate the approved frame",
         op: "motion",
         controls: [
           {
+            model: { node: "vid", prop: "model" },
+            op: "motion",
+            label: "Video model",
+            modelKind: "video_model",
+            task: "image_to_video"
+          },
+          {
             select: "motion",
             op: "motion",
-            label: "Camera move",
+            label: "Shot direction",
             options: [
               "Slow push in with a gentle parallax drift",
               "Slow pull back revealing more of the scene",
@@ -1143,17 +1306,23 @@ export const EXAMPLE_APPS = [
           {
             slider: { node: "vid", prop: "duration" },
             op: "motion",
-            label: "Seconds",
+            label: "Shot length",
             min: 6,
             max: 10,
             step: 2,
             default: 6
           },
-          { run: ["motion"], label: "Animate the still" }
+          {
+            run: ["motion"],
+            label: "Render the moving shot",
+            disabledWhen: "motion"
+          }
         ],
         results: [
           { progress: "motion", label: "Animating…" },
-          { show: "animated", op: "motion", as: "Video", label: "The moving shot", demo: VIDEO }
+          { error: "motion", label: "The moving shot failed" },
+          { note: "Review the motion for continuity with the approved still." },
+          { show: "animated", op: "motion", as: "Video", label: "Moving shot", demo: VIDEO }
         ]
       }
     ]
@@ -1168,7 +1337,7 @@ export const EXAMPLE_APPS = [
     tagline: "Repaint a clip in a new style while its motion stays put.",
     description:
       "Upload footage, name the look and what must survive, and a video-to-video model applies the style while the motion stays put.",
-    note: "🔑 Needs a Replicate key (Lucy Edit 2). Billed per clip.",
+    note: "Video restyling is billed per clip.",
     workflows: { restyle: "Video Restyle Studio" },
     operations: [
       { id: "restyle", name: "Restyle", workflow: "restyle", policy: "replace" }
@@ -1178,7 +1347,18 @@ export const EXAMPLE_APPS = [
         title: "Restyle a clip",
         op: "restyle",
         controls: [
-          { input: "source_video", op: "restyle", label: "The clip" },
+          {
+            model: { node: "restyle", prop: "model" },
+            op: "restyle",
+            label: "Restyle model",
+            modelKind: "video_model",
+            task: "video_to_video"
+          },
+          {
+            video: { input: "source_video", op: "restyle" },
+            op: "restyle",
+            label: "The clip"
+          },
           {
             select: "style",
             op: "restyle",
@@ -1212,8 +1392,11 @@ export const EXAMPLE_APPS = [
     tagline: "Give a presenter clip a new script.",
     description:
       "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localize a take, fix a fluffed line, or spin one recording into many variants.",
-    note: "🔑 Needs a Replicate key for the voice (Inworld TTS) and a FAL key for the lip-sync. Both steps are billed per run.",
+    note: "Voice generation and lip-sync are both billed per run.",
     workflows: { revoice: "AI Spokesperson" },
+    modelOverrides: {
+      revoice: { sync: ATLASCLOUD_SYNC_LIPSYNC }
+    },
     operations: [
       { id: "revoice", name: "Revoice", workflow: "revoice", policy: "replace" }
     ],
@@ -1224,10 +1407,22 @@ export const EXAMPLE_APPS = [
         controls: [
           { input: "presenter_clip", op: "revoice", label: "Presenter clip" },
           { text: "script", op: "revoice", label: "What they should say", multiline: true },
-          { run: ["revoice"], label: "Revoice the clip" }
+          {
+            model: { node: "sync", prop: "model" },
+            op: "revoice",
+            label: "Lip-sync model",
+            modelKind: "video_model",
+            task: "lip_sync"
+          },
+          {
+            run: ["revoice"],
+            label: "Revoice the clip",
+            disabledWhen: "revoice"
+          }
         ],
         results: [
           { progress: "revoice", label: "Voicing and syncing…" },
+          { error: "revoice", label: "The revoice failed" },
           { show: "revoiced_clip", op: "revoice", as: "Video", label: "Revoiced clip", demo: VIDEO }
         ]
       }
@@ -1243,39 +1438,42 @@ export const EXAMPLE_APPS = [
     tagline: "Enlarge an image without the softness of a plain resize.",
     description:
       "Two upscalers behind one drop zone. ESRGAN reconstructs the detail that is there, which is what you want for a photo. Clarity invents plausible detail, which is what you want when the source is small.",
-    note: "🔑 Needs a FAL key. One call per upscale.",
+    note: "One billed generation per upscale.",
     workflows: {
       faithful: "Upscale a Still",
       clarity: "Take a Product Shot to Print Resolution"
     },
-    variables: [
-      { id: "picture", name: "Your image", scope: "instance", type: "image" }
-    ],
     operations: [
       {
         id: "faithful",
         name: "Faithful",
         workflow: "faithful",
-        policy: "replace",
-        inputs: { picture: { from: "variable", variableId: "picture" } }
+        policy: "replace"
       },
       {
         id: "clarity",
         name: "Clarity",
         workflow: "clarity",
-        policy: "replace",
-        inputs: { photo: { from: "variable", variableId: "picture" } }
+        policy: "replace"
       }
     ],
     sections: [
       {
-        title: "Your image",
-        controls: [{ image: "picture", label: "The image to enlarge" }]
-      },
-      {
         title: "Faithful",
         op: "faithful",
         controls: [
+          {
+            model: { node: "up", prop: "model" },
+            op: "faithful",
+            label: "Faithful model",
+            modelKind: "image_model",
+            task: "upscale"
+          },
+          {
+            image: { input: "picture", op: "faithful" },
+            op: "faithful",
+            label: "The image to enlarge"
+          },
           {
             slider: { node: "up", prop: "scale" },
             op: "faithful",
@@ -1296,6 +1494,18 @@ export const EXAMPLE_APPS = [
         title: "Clarity",
         op: "clarity",
         controls: [
+          {
+            model: { node: "up", prop: "model" },
+            op: "clarity",
+            label: "Clarity model",
+            modelKind: "image_model",
+            task: "upscale"
+          },
+          {
+            image: { input: "photo", op: "clarity" },
+            op: "clarity",
+            label: "The image to enlarge"
+          },
           {
             slider: { node: "up", prop: "scale" },
             op: "clarity",
@@ -1378,11 +1588,13 @@ export const EXAMPLE_APPS = [
     slug: "ad-maker",
     name: "Ad Maker",
     emoji: "📣",
+    showEmoji: false,
     featured: true,
-    tagline: "Settle the words. Direct the image. Keep the brief.",
+    tagline: "Settle the message. Direct the campaign image.",
     description:
-      "Start with one offer and compare three copy registers with five headline angles. Only then write the visual brief and spend the image call. The final prompt stays beside the hero so the result can be directed instead of guessed at.",
-    note: "🔑 Writing uses OpenAI. The hero uses FAL and runs only when you ask for it.",
+      "Start with one offer, compare copy routes and headline angles, then direct a campaign hero with the approved message beside the visual brief.",
+    note:
+      "The hero render only runs after you approve the visual brief.",
     workflows: {
       copy: "Ad Copy in Three Registers",
       headlines: "Five Headlines for a Landing Page",
@@ -1433,17 +1645,34 @@ export const EXAMPLE_APPS = [
     ],
     sections: [
       {
-        title: "1 · Write the routes",
+        title: "1 · Settle the message",
         controls: [
-          { textVar: "offer", label: "What are you advertising?", multiline: true },
+          { textVar: "offer", label: "Offer or product brief", multiline: true },
+          {
+            model: { node: "ag", prop: "model" },
+            op: "copy",
+            label: "Writing model",
+            modelKind: "language_model"
+          },
+          {
+            model: { node: "ag", prop: "model" },
+            op: "headlines",
+            label: "Headline model",
+            modelKind: "language_model"
+          },
           {
             note:
               "Start with the cheap decision point. Compare the writing before generating an image."
           },
-          { run: ["copy", "headlines"], label: "Write copy and headlines" }
+          {
+            run: ["copy", "headlines"],
+            label: "Write the routes",
+            disabledWhen: "copy"
+          }
         ],
         results: [
           { progress: "copy", label: "Writing three registers…" },
+          { error: "copy", label: "The copy routes failed" },
           {
             show: "variants",
             op: "copy",
@@ -1453,6 +1682,7 @@ export const EXAMPLE_APPS = [
               "**Plain**\nOlive Cup. Matte finish. Charcoal lid. Out Friday.\n\n**Playful**\nYour morning has a new plus-one.\n\n**Premium**\nDesigned for the space between first sip and first meeting."
           },
           { progress: "headlines", label: "Testing five angles…" },
+          { error: "headlines", label: "The headline angles failed" },
           {
             show: "headlines",
             op: "headlines",
@@ -1464,21 +1694,39 @@ export const EXAMPLE_APPS = [
         ]
       },
       {
-        title: "2 · Direct the image",
+        title: "2 · Direct the campaign image",
         controls: [
           {
+            model: { node: "ag", prop: "model" },
+            op: "visual",
+            label: "Prompt-writing model",
+            modelKind: "language_model"
+          },
+          {
+            model: { node: "gen", prop: "model" },
+            op: "visual",
+            label: "Image model",
+            modelKind: "image_model",
+            task: "text_to_image"
+          },
+          {
             note:
-              "Carry the strongest promise into the scene. State what the product is doing, where it sits, and what must not appear."
+              "Carry the approved promise into the scene. State what the product is doing, where it sits, and what must not appear."
           },
           {
             textVar: "visualBrief",
             label: "Visual brief",
             multiline: true
           },
-          { run: ["visual"], label: "Generate the hero" }
+          {
+            run: ["visual"],
+            label: "Render the campaign hero",
+            disabledWhen: "visual"
+          }
         ],
         results: [
           { progress: "visual", label: "Writing the prompt and rendering…" },
+          { error: "visual", label: "The campaign hero failed" },
           {
             show: "prompt_used",
             op: "visual",
@@ -1628,7 +1876,7 @@ export const EXAMPLE_APPS = [
     tagline: "One packshot in, the whole channel set out.",
     description:
       "The E-commerce SKU Visual Factory chain behind one surface. Drop a product photo once and the cutout, the studio scene, the seasonal relight and the listing copy all read the same image; motion and print resolution stay on their own buttons because they cost more.",
-    note: "🔑 Needs a FAL key for the image steps and an OpenAI key for the listing. The turntable is a video model and is metered per second.",
+    note: "Image and listing steps use configured models. The turntable is metered per second of video.",
     workflows: {
       cutout: "Cut a Product Out of Its Background",
       backdrop: "Put a Product on a Studio Backdrop",
@@ -1636,6 +1884,10 @@ export const EXAMPLE_APPS = [
       turntable: "Spin a Packshot into a Turntable Clip",
       print: "Take a Product Shot to Print Resolution",
       listing: "Write a Listing from the Product Photo"
+    },
+    modelOverrides: {
+      cutout: { bg: ATLASCLOUD_YOUCHUAN_REMOVE_BACKGROUND },
+      listing: { ag: CODEX_LUNA }
     },
     variables: [
       { id: "packshot", name: "The packshot", scope: "instance", type: "image" }
@@ -1689,6 +1941,13 @@ export const EXAMPLE_APPS = [
       {
         title: "The still set",
         controls: [
+          {
+            model: { node: "bg", prop: "model" },
+            op: "cutout",
+            label: "Cutout model",
+            modelKind: "image_model",
+            task: "remove_background"
+          },
           { image: "packshot", label: "Your packshot" },
           {
             text: { node: "comp", prop: "prompt" },
@@ -1778,13 +2037,18 @@ export const EXAMPLE_APPS = [
     tagline: "One presenter clip, spoken in another language, checked and subtitled.",
     description:
       "The Multilingual Video Dubber chain behind one surface. Transcribing writes the script into a variable the revoice and back-translation steps both read, so the words that get dubbed are the words you can see.",
-    note: "🔑 Needs a FAL key for transcription, speech and lip-sync, and an OpenAI key for the translation.",
+    note: "Transcription, translation, speech, and lip-sync use configured models and are billed per run.",
     workflows: {
       transcribe: "Transcribe a Clip",
       revoice: "Localise a Script and Revoice It",
       check: "One Tagline, Six Markets",
       spokesperson: "AI Spokesperson",
       subtitles: "Subtitle Text from a Recording"
+    },
+    modelOverrides: {
+      revoice: { ag: CODEX_LUNA },
+      check: { ag: CODEX_LUNA },
+      subtitles: { ag: CODEX_LUNA }
     },
     variables: [
       { id: "clip", name: "The clip", scope: "instance", type: "video" },
@@ -1816,7 +2080,8 @@ export const EXAMPLE_APPS = [
         id: "check",
         name: "Back-translate",
         workflow: "check",
-        policy: "parallel"
+        policy: "parallel",
+        inputs: { tagline: { from: "variable", variableId: "script" } }
       },
       {
         id: "spokesperson",
@@ -1911,7 +2176,7 @@ export const EXAMPLE_APPS = [
     tagline: "Settle the line, fan it into a test set, then put the product in motion.",
     description:
       "The Viral Video Ad Engine chain behind one surface. The offer drives both the copy registers and the hook-and-thumbnail set, so the line you pick and the thumbnails you test come from the same brief.",
-    note: "🔑 Needs an OpenAI key for the writing and a FAL key for the thumbnails. The ad loop is a video model; the vertical cut runs locally.",
+    note: "Writing and thumbnails use configured models. The ad loop generates video; the vertical cut runs locally.",
     workflows: {
       copy: "Ad Copy in Three Registers",
       hooks: "Hook & Thumbnail Factory",

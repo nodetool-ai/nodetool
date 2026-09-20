@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🎙️ Transcription uses FAL Whisper and the summary uses OpenAI. The follow-up questions run on a local Ollama model, so they cost nothing."
+            "text": "🎙️ Transcription and summarization use configured models. Follow-up questions run locally."
           }
         },
         {
@@ -43,6 +43,16 @@
                   "id": "panel-the-recording",
                   "title": "The recording",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-transcribe-c5191702-2a3c-440d-b3af-2db20e74a369-model",
+                        "binding": "op:transcribe/prop:c5191702-2a3c-440d-b3af-2db20e74a369#model",
+                        "label": "Transcribe model",
+                        "modelKind": "asr_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "AudioInput",
                       "props": {
@@ -132,6 +142,36 @@
                   "id": "panel-the-minutes",
                   "title": "The minutes",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-summarize-asr-model",
+                        "binding": "op:summarize/prop:asr#model",
+                        "label": "Summarize model",
+                        "modelKind": "asr_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-summarize-summarizer-model",
+                        "binding": "op:summarize/prop:summarizer#model",
+                        "label": "Summarize model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-summarize-action-items-generator-model",
+                        "binding": "op:summarize/prop:action_items_generator#model",
+                        "label": "Summarize model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Button",
                       "props": {
@@ -234,6 +274,16 @@
                   "id": "panel-ask-the-transcript",
                   "title": "Ask the transcript",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-ask-assistant-model",
+                        "binding": "op:ask/prop:assistant#model",
+                        "label": "Ask model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {
@@ -447,9 +497,9 @@
             "data": {
               "model": {
                 "type": "asr_model",
-                "provider": "fal_ai",
-                "id": "openai/whisper-large-v3",
-                "name": "Whisper Large v3",
+                "provider": "openai",
+                "id": "gpt-4o-mini-transcribe",
+                "name": "GPT-4o Mini Transcribe",
                 "path": null
               }
             },
@@ -593,9 +643,9 @@
             "data": {
               "model": {
                 "type": "asr_model",
-                "provider": "fal_ai",
-                "id": "openai/whisper-large-v3",
-                "name": "Whisper Large v3",
+                "provider": "openai",
+                "id": "gpt-4o-mini-transcribe",
+                "name": "GPT-4o Mini Transcribe",
                 "path": null
               }
             },
@@ -688,9 +738,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "openai",
-                "id": "gpt-5-mini",
-                "name": "GPT-5 mini",
+                "provider": "codex",
+                "id": "gpt-5.6-luna",
+                "name": "GPT-5.6-Luna",
                 "path": null,
                 "supported_tasks": []
               },
@@ -740,9 +790,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "openai",
-                "id": "gpt-5-mini",
-                "name": "GPT-5 mini",
+                "provider": "codex",
+                "id": "gpt-5.6-luna",
+                "name": "GPT-5.6-Luna",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1146,9 +1196,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "ollama",
-                "id": "llama3.2",
-                "name": "Llama 3.2",
+                "provider": "codex",
+                "id": "gpt-5.6-luna",
+                "name": "GPT-5.6-Luna",
                 "path": null,
                 "supported_tasks": []
               },

@@ -36,11 +36,11 @@ beforeEach(() => {
   mockRunnerStore.setState.mockClear();
 });
 
-describe("handleUpdate — run-workflow onboarding step", () => {
+describe("handleUpdate — describe-idea onboarding step", () => {
   it("marks the step when a run completes", () => {
     dispatch("completed");
     expect(useOnboardingStore.getState().completedSteps).toContain(
-      "run-workflow"
+      "describe-idea"
     );
   });
 
@@ -49,7 +49,7 @@ describe("handleUpdate — run-workflow onboarding step", () => {
     (status) => {
       dispatch(status);
       expect(useOnboardingStore.getState().completedSteps).not.toContain(
-        "run-workflow"
+        "describe-idea"
       );
     }
   );
@@ -59,7 +59,7 @@ describe("handleUpdate — run-workflow onboarding step", () => {
     try {
       dispatch("completed", "preview-1");
       expect(useOnboardingStore.getState().completedSteps).not.toContain(
-        "run-workflow"
+        "describe-idea"
       );
     } finally {
       unmarkJobSilent("preview-1");

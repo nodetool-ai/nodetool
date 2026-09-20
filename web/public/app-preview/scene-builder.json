@@ -2,9 +2,9 @@
   "slug": "scene-builder",
   "name": "Scene Builder",
   "emoji": "🎞️",
-  "description": "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and color.",
-  "tagline": "See the look as a still, then bring it to life.",
-  "note": "🔑 Needs a FAL key. The still is one FLUX call, the motion one LTX call.",
+  "description": "Describe a scene, review the editorial still, then animate that exact frame so the subject, framing, and color carry into the moving shot.",
+  "tagline": "Approve the frame, then animate the shot.",
+  "note": "Approve the still before you render the moving shot.",
   "featured": true,
   "image": "/app-preview/img/scene-builder.jpg",
   "app": {
@@ -18,7 +18,7 @@
           "type": "Heading",
           "props": {
             "id": "title",
-            "text": "🎞️ Scene Builder",
+            "text": "Scene Builder",
             "level": "1"
           }
         },
@@ -26,34 +26,45 @@
           "type": "Text",
           "props": {
             "id": "tagline",
-            "text": "See the look as a still, then bring it to life."
+            "text": "Approve the frame, then animate the shot."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs a FAL key. The still is one FLUX call, the motion one LTX call."
+            "text": "Approve the still before you render the moving shot."
           }
         },
         {
           "type": "Columns",
           "props": {
-            "id": "cols-the-look",
+            "id": "cols-approve-the-frame",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-the-look",
-                  "title": "The look",
+                  "id": "panel-approve-the-frame",
+                  "title": "Approve the frame",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-look-img-model",
+                        "binding": "op:look/prop:img#model",
+                        "label": "Image model",
+                        "modelKind": "image_model",
+                        "task": "text_to_image",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {
                         "id": "in-look-subject",
                         "binding": "op:look/in:in",
-                        "label": "Describe the scene",
+                        "label": "Scene brief",
                         "multiline": true,
                         "events": []
                       }
@@ -62,7 +73,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-look",
-                        "label": "Show me the look",
+                        "label": "Render the still",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -73,7 +84,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:look/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -84,7 +99,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-the-look-results",
+                  "id": "panel-approve-the-frame-results",
                   "title": "Results",
                   "content": [
                     {
@@ -96,10 +111,31 @@
                       }
                     },
                     {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-look",
+                        "binding": "op:look/exec#error",
+                        "title": "The still failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:look/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "Approve the composition before moving to the shot."
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-still",
-                        "text": "The still",
+                        "text": "Approved still",
                         "level": "3"
                       }
                     },
@@ -122,21 +158,32 @@
         {
           "type": "Columns",
           "props": {
-            "id": "cols-bring-it-to-life",
+            "id": "cols-animate-the-approved-frame",
             "gap": 24,
             "left": [
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-bring-it-to-life",
-                  "title": "Bring it to life",
+                  "id": "panel-animate-the-approved-frame",
+                  "title": "Animate the approved frame",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-motion-vid-model",
+                        "binding": "op:motion/prop:vid#model",
+                        "label": "Video model",
+                        "modelKind": "video_model",
+                        "task": "image_to_video",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Select",
                       "props": {
                         "id": "in-motion-motion",
                         "binding": "op:motion/in:mo",
-                        "label": "Camera move",
+                        "label": "Shot direction",
                         "options": [
                           {
                             "value": "Slow push in with a gentle parallax drift"
@@ -162,7 +209,7 @@
                       "props": {
                         "id": "slider-motion-vid-duration",
                         "binding": "op:motion/prop:vid#duration",
-                        "label": "Seconds",
+                        "label": "Shot length",
                         "min": 6,
                         "max": 10,
                         "step": 2,
@@ -173,7 +220,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-motion",
-                        "label": "Animate the still",
+                        "label": "Render the moving shot",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -184,7 +231,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:motion/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -195,7 +246,7 @@
               {
                 "type": "Container",
                 "props": {
-                  "id": "panel-bring-it-to-life-results",
+                  "id": "panel-animate-the-approved-frame-results",
                   "title": "Results",
                   "content": [
                     {
@@ -207,10 +258,31 @@
                       }
                     },
                     {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-motion",
+                        "binding": "op:motion/exec#error",
+                        "title": "The moving shot failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:motion/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-2",
+                        "text": "Review the motion for continuity with the approved still."
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-motion-animated",
-                        "text": "The moving shot",
+                        "text": "Moving shot",
                         "level": "3"
                       }
                     },

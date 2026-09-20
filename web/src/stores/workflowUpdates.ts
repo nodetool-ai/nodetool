@@ -920,10 +920,12 @@ const handleJobUpdate = (
 
   switch (job.status) {
     case "completed": {
-      // A run that finished is what the "run a workflow" onboarding step
-      // asks for; a failed or cancelled one isn't. Preview runs don't count.
+      // A run that finished is what the checklist's describe-idea step
+      // waits for once the idea is running: the build executed, whether it
+      // came from the project agent or a workflow canvas. A failed or
+      // cancelled one isn't. Preview runs don't count.
       if (isRunnerJob && !silentJob) {
-        useOnboardingStore.getState().markStep("run-workflow");
+        useOnboardingStore.getState().markStep("describe-idea");
       }
       // No toast — completion is reflected in the Queue panel/overlay.
       // Don't clear this run's per-job state (progress/timings/edges): with

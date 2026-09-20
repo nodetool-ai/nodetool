@@ -61,7 +61,7 @@ export const useRecipeActions = (): RecipeActions => {
   const openStep = useCallback(
     async (slug: string, step: CopyableStep) => {
       if (busy) return;
-      useOnboardingStore.getState().markStep("open-template");
+      useOnboardingStore.getState().markStep("keep-creating");
       setCopyingStep(`${slug}:${step.example}`);
       try {
         const created = await createWorkflow(
@@ -82,7 +82,7 @@ export const useRecipeActions = (): RecipeActions => {
   const installApp = useCallback(
     async (appSlug: string) => {
       if (busy) return;
-      useOnboardingStore.getState().markStep("open-template");
+      useOnboardingStore.getState().markStep("keep-creating");
       setInstallingApp(appSlug);
       try {
         // The install creates the app and every workflow it binds, so the
@@ -108,7 +108,7 @@ export const useRecipeActions = (): RecipeActions => {
   const addRecipe = useCallback(
     async (recipe: Recipe) => {
       if (busy) return;
-      useOnboardingStore.getState().markStep("open-template");
+      useOnboardingStore.getState().markStep("keep-creating");
       setAddingSlug(recipe.slug);
       try {
         let firstId: string | null = null;

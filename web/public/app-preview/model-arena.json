@@ -4,7 +4,7 @@
   "emoji": "⚖️",
   "description": "Three answers in three columns, each streaming independently. A missing provider key fails one column, not the run.",
   "tagline": "One brief, three frontier models, answered side by side.",
-  "note": "🔑 Needs OpenAI, Anthropic, and Google keys — one per column.",
+  "note": "Choose one configured language model per column.",
   "featured": false,
   "image": "/app-preview/img/model-arena.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs OpenAI, Anthropic, and Google keys — one per column."
+            "text": "Choose one configured language model per column."
           }
         },
         {
@@ -48,6 +48,36 @@
                   "id": "panel-the-brief",
                   "title": "The brief",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-compare-openai-lane-model",
+                        "binding": "op:compare/prop:openai_lane#model",
+                        "label": "Compare model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-compare-anthropic-lane-model",
+                        "binding": "op:compare/prop:anthropic_lane#model",
+                        "label": "Compare model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-compare-gemini-lane-model",
+                        "binding": "op:compare/prop:gemini_lane#model",
+                        "label": "Compare model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {
@@ -109,7 +139,7 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-compare-openai",
-                        "text": "OpenAI",
+                        "text": "Model A",
                         "level": "3"
                       }
                     },
@@ -125,7 +155,7 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-compare-anthropic",
-                        "text": "Anthropic",
+                        "text": "Model B",
                         "level": "3"
                       }
                     },
@@ -141,7 +171,7 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-compare-gemini",
-                        "text": "Google",
+                        "text": "Model C",
                         "level": "3"
                       }
                     },
@@ -295,8 +325,8 @@
   "values": {
     "op:compare/in:brief": "Should a 12-person B2B SaaS startup build its own customer-facing analytics dashboard, or integrate a third-party embedded-analytics vendor, for its reporting feature? Ship target is one quarter out.",
     "op:compare/in:context": "Audience: the founding team (technical). Constraints: 2 engineers can be spared for 6 weeks; weak reporting is a top-3 reason prospects churn; tooling budget is about $2k/month.",
-    "op:compare/out:openai_out": "**OpenAI:** leads with a crisp three-point structure and ships a concrete next step.",
-    "op:compare/out:anthropic_out": "**Anthropic:** longer reasoning, names the tradeoff explicitly, flags one risk the others miss.",
-    "op:compare/out:gemini_out": "**Google:** tightest answer, strongest factual recall, lightest on caveats."
+    "op:compare/out:openai_out": "**Model A:** leads with a crisp three-point structure and ships a concrete next step.",
+    "op:compare/out:anthropic_out": "**Model B:** longer reasoning, names the tradeoff explicitly, flags one risk the others miss.",
+    "op:compare/out:gemini_out": "**Model C:** tightest answer, strongest factual recall, lightest on caveats."
   }
 }

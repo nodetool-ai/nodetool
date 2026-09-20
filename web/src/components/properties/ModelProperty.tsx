@@ -19,6 +19,7 @@ import Model3DModelSelect from "./Model3DModelSelect";
 import { useNodes } from "../../contexts/NodeContext";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import { useRecommendedModelsForNode } from "../../hooks/useRecommendedModelsForNode";
+import type { ImageModelTask } from "../../hooks/useModelsByProvider";
 import ConnectedBadge from "./ConnectedBadge";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -96,15 +97,18 @@ const ModelProperty = (props: PropertyProps) => {
   );
 
   const { imageTask, videoTask, model3dTask } = useMemo(() => {
-    const imageTaskByNode = {
+    const imageTaskByNode: Record<
+      string,
+      ImageModelTask | ImageModelTask[]
+    > = {
       "nodetool.image.TextToImage": "text_to_image",
       "nodetool.image.ImageToImage": "image_to_image",
       "nodetool.image.Upscale": "upscale",
       "nodetool.image.RemoveBackground": "remove_background",
       "nodetool.image.Segment": "segment",
-      "nodetool.image.Relight": "relight",
+      "nodetool.image.Relight": ["image_to_image", "relight"],
       "nodetool.image.Vectorize": "vectorize"
-    } as const;
+    };
     const videoTaskByNode = {
       "nodetool.video.TextToVideo": "text_to_video",
       "nodetool.video.ImageToVideo": "image_to_video",
@@ -112,8 +116,7 @@ const ModelProperty = (props: PropertyProps) => {
       "nodetool.video.VideoToVideo": "video_to_video",
       "nodetool.video.LipSync": "lip_sync"
     } as const;
-    const imageTask =
-      imageTaskByNode[props.nodeType as keyof typeof imageTaskByNode];
+    const imageTask = imageTaskByNode[props.nodeType];
     const videoTask =
       videoTaskByNode[props.nodeType as keyof typeof videoTaskByNode];
     const model3dTask =

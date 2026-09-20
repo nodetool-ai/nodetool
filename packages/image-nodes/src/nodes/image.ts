@@ -3024,7 +3024,7 @@ export class RelightImageNode extends BaseNode {
   static readonly body = "content_card";
   static readonly title = "Relight Image";
   static readonly description =
-    "Re-light a subject according to a text prompt using any supported relighting provider.\n    image, relight, lighting, AI";
+    "Re-light a subject according to a text prompt using any supported image-editing model.\n    image, relight, lighting, AI, image-to-image";
   static readonly metadataOutputTypes = { output: "image" };
   static readonly inlineFields = [];
   static readonly inputFields = ["image", "prompt"];
@@ -3041,7 +3041,7 @@ export class RelightImageNode extends BaseNode {
       supported_tasks: []
     },
     title: "Model",
-    description: "The relighting model to use"
+    description: "The image-editing or dedicated relighting model to use"
   })
   declare model: ImageModel;
 
@@ -3079,10 +3079,10 @@ export class RelightImageNode extends BaseNode {
     }
     const output = (await context.runProviderPrediction({
       provider: providerId,
-      capability: "relight_image",
+      capability: "image_to_image",
       model: modelId,
       params: {
-        image: bytes,
+        images: [bytes],
         prompt: this.prompt,
         negative_prompt: this.negative_prompt
       }

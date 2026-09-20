@@ -168,7 +168,7 @@ const operationFeedback = ({
 const phaseMessages = [
   [
     "brief",
-    "Stage: Ready. Add one product image and the AI will write the brief and three directions."
+    "Stage: Ready. Add one product image and the agent will write the brief and three directions."
   ],
   ["autofilling", "Stage: Reading the product and writing the campaign brief."],
   ["directions_ready", "Stage: Directions ready. Choose A, B, or C."],
@@ -234,11 +234,19 @@ const referenceAndModels = widget("Accordion", "reference-and-models", {
     ),
     input(
       "ModelSelect",
+      "autofill-model",
+      variableBinding("autofillModel"),
+      "Writing model",
+      briefVisibility,
+      { modelKind: "language_model" }
+    ),
+    input(
+      "ModelSelect",
       "hero-model",
       "op:renderHero/prop:hero-edit#model",
       "Hero model",
       briefVisibility,
-      { modelKind: "image_model" }
+      { modelKind: "image_model", task: "image_to_image" }
     ),
     input(
       "ModelSelect",
@@ -246,7 +254,7 @@ const referenceAndModels = widget("Accordion", "reference-and-models", {
       "op:reviseHero/prop:revision-edit#model",
       "Revision model",
       briefVisibility,
-      { modelKind: "image_model" }
+      { modelKind: "image_model", task: "image_to_image" }
     )
   ]
 });
@@ -886,12 +894,7 @@ if (text(inputs.draft_json)) {
   draft = parseJson(inputs.draft_json);
 } else {
   progress(0.1, "Reading product image");
-  let model;
-  try {
-    model = await nodetool.models.pick("generate_message", { query: "gpt-6-astra" });
-  } catch {
-    model = await nodetool.models.pick("generate_message");
-  }
+  const model = inputs.model || (await nodetool.models.pick("generate_message"));
   const referenceImage = imageUri(inputs.reference_image);
   const images = [productImage, ...(referenceImage ? [referenceImage] : [])];
   const instruction = [
@@ -913,7 +916,7 @@ if (text(inputs.draft_json)) {
       "You are a senior campaign creative director and product-image analyst. Ground every claim in the supplied image. Never invent certifications, specifications, ingredients, or performance claims.",
     images,
     max_tokens: 3000,
-    temperature: 0.3
+    temperature: 1
   });
   if (!generated || generated.error) {
     throw new Error(generated && generated.error ? generated.error : "Campaign analysis failed.");
@@ -1000,7 +1003,8 @@ const AUTOFILL_CAMPAIGN_SCRIPT = {
       { name: "reference_role", type: "str" },
       { name: "reference_use", type: "str" },
       { name: "reference_ignore", type: "str" },
-      { name: "draft_json", type: "str" }
+      { name: "draft_json", type: "str" },
+      { name: "model", type: "language_model" }
     ],
     outputs: [
       { name: "product_name", type: "str" },
@@ -1052,6 +1056,7 @@ export const DIRECTED_CAMPAIGN_KIT_APP = {
   slug: "directed-campaign-kit",
   name: "Directed Campaign Kit",
   emoji: "🎯",
+  showEmoji: false,
   tagline: "One product. One direction. A campaign you can revise.",
   description:
     "Upload one product image. A multimodal language model fills the brief and proposes three directions before you approve a hero, build two formats, and direct one revision.",
@@ -1060,10 +1065,13 @@ export const DIRECTED_CAMPAIGN_KIT_APP = {
   },
   debugInteractions: [
     {
-      change: "product-image",
-      value: { type: "image", uri: "asset://debug-product.png" }
+      set: {
+        key: "productImage",
+        value: { type: "image", uri: "asset://debug-product.png" }
+      }
     },
     ...[
+      "autofilling",
       "directions_ready",
       "rendering_hero",
       "hero_ready",
@@ -1084,6 +1092,7 @@ export const DIRECTED_CAMPAIGN_KIT_APP = {
   variables: [
     variable("phase", "Stage", "str", "brief"),
     variable("restoreGate", "Restore availability", "str", "open"),
+    variable("autofillModel", "Writing model", "language_model"),
     variable("campaignPrompt", "Campaign prompt", "str", ""),
     variable("productImage", "Product reference", "image"),
     variable("referenceImage", "Optional visual reference", "image"),
@@ -1151,7 +1160,8 @@ export const DIRECTED_CAMPAIGN_KIT_APP = {
         reference_image: { from: "variable", variableId: "referenceImage" },
         reference_role: { from: "variable", variableId: "referenceRole" },
         reference_use: { from: "variable", variableId: "referenceUse" },
-        reference_ignore: { from: "variable", variableId: "referenceIgnore" }
+        reference_ignore: { from: "variable", variableId: "referenceIgnore" },
+        model: { from: "variable", variableId: "autofillModel" }
       },
       outputs: {
         product_name: { to: "variable", variableId: "productName" },

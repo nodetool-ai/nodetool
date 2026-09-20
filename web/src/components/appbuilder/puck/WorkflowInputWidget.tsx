@@ -30,6 +30,7 @@ import VideoModelSelect from "../../properties/VideoModelSelect";
 import TTSModelSelect from "../../properties/TTSModelSelect";
 import ASRModelSelect from "../../properties/ASRModelSelect";
 import EmbeddingModelSelect from "../../properties/EmbeddingModelSelect";
+import MusicModelSelect from "../../properties/MusicModelSelect";
 import HuggingFaceModelSelect from "../../properties/HuggingFaceModelSelect";
 import type { HuggingFaceModelValueInput } from "../../../stores/ApiTypes";
 import { NodeContext } from "../../../contexts/NodeContext";
@@ -44,9 +45,13 @@ import {
   normalizeInputValue,
   resolveInputValue
 } from "../inputProperty";
-import { WorkflowInputIO } from "../workflowIO";
+import { WorkflowInputIO, WorkflowModelTask } from "../workflowIO";
 import { useWidgetRuntime } from "./useWidgetRuntime";
 import { isString } from "../../../utils/typePredicates";
+import type {
+  ImageModelTask,
+  VideoModelTask
+} from "../../../hooks/useModelsByProvider";
 
 interface WorkflowInputWidgetProps {
   id: string;
@@ -84,18 +89,41 @@ const ModelSelect: React.FC<{
   value: unknown;
   onChange: (value: unknown) => void;
 }> = ({ input, value, onChange }) => {
-  const modelId = (value as { id?: string } | undefined)?.id || "";
+  const modelValue = value as
+    | { id?: string; provider?: string }
+    | undefined;
+  const modelId = modelValue?.id || "";
   switch (input.kind) {
     case "language_model":
-      return <LanguageModelSelect onChange={onChange} value={modelId} />;
+      return (
+        <LanguageModelSelect
+          onChange={onChange}
+          value={modelId}
+          provider={modelValue?.provider}
+        />
+      );
     case "image_model":
-      return <ImageModelSelect onChange={onChange} value={modelId} />;
+      return (
+        <ImageModelSelect
+          onChange={onChange}
+          value={modelId}
+          task={input.task as ImageModelTask | ImageModelTask[] | undefined}
+        />
+      );
     case "video_model":
-      return <VideoModelSelect onChange={onChange} value={modelId} />;
+      return (
+        <VideoModelSelect
+          onChange={onChange}
+          value={modelId}
+          task={input.task as VideoModelTask | VideoModelTask[] | undefined}
+        />
+      );
     case "tts_model":
       return <TTSModelSelect onChange={onChange} value={modelId} />;
     case "asr_model":
       return <ASRModelSelect onChange={onChange} value={modelId} />;
+    case "music_model":
+      return <MusicModelSelect onChange={onChange} value={modelValue ?? ""} />;
     case "huggingface_model":
       // A HuggingFace reference is `{type, repo_id, path}`, not an id, so this
       // one takes the whole stored value.
@@ -283,6 +311,7 @@ const MODEL_WIDGET_KINDS = [
   "video_model",
   "tts_model",
   "asr_model",
+  "music_model",
   "embedding_model",
   "huggingface_model"
 ] as const;
@@ -295,6 +324,7 @@ const MODEL_KIND_NODE_TYPE = {
   video_model: "nodetool.input.VideoModelInput",
   tts_model: "nodetool.input.TTSModelInput",
   asr_model: "nodetool.input.ASRModelInput",
+  music_model: "nodetool.input.MusicModelInput",
   embedding_model: "nodetool.input.EmbeddingModelInput",
   huggingface_model: "nodetool.input.HuggingFaceModelInput"
 } satisfies Record<ModelWidgetKind, string>;
@@ -307,6 +337,7 @@ interface ModelSelectWidgetProps {
   binding?: string;
   label?: string;
   modelKind?: string;
+  task?: WorkflowModelTask;
   events?: AppEvent[];
 }
 
@@ -329,9 +360,10 @@ export const ModelSelectWidget: React.FC<ModelSelectWidgetProps> = (props) => {
       nodeType: MODEL_KIND_NODE_TYPE[kind],
       name: props.label || "Model",
       label: props.label || "Model",
-      kind
+      kind,
+      task: props.task
     }),
-    [kind, props.id, props.label]
+    [kind, props.id, props.label, props.task]
   );
 
   return (

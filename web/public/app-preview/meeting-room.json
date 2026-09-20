@@ -4,7 +4,7 @@
   "emoji": "🎧",
   "description": "Transcribe a recording, summarize it into notes and action items, then ask follow-up questions of the transcript on a local model.",
   "tagline": "Recording in, minutes out — then question the transcript.",
-  "note": "🎙️ Transcription uses FAL Whisper and the summary uses OpenAI. The follow-up questions run on a local Ollama model, so they cost nothing.",
+  "note": "🎙️ Transcription and summarization use configured models. Follow-up questions run locally.",
   "featured": true,
   "image": "/app-preview/img/meeting-room.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🎙️ Transcription uses FAL Whisper and the summary uses OpenAI. The follow-up questions run on a local Ollama model, so they cost nothing."
+            "text": "🎙️ Transcription and summarization use configured models. Follow-up questions run locally."
           }
         },
         {
@@ -48,6 +48,16 @@
                   "id": "panel-the-recording",
                   "title": "The recording",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-transcribe-c5191702-2a3c-440d-b3af-2db20e74a369-model",
+                        "binding": "op:transcribe/prop:c5191702-2a3c-440d-b3af-2db20e74a369#model",
+                        "label": "Transcribe model",
+                        "modelKind": "asr_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "AudioInput",
                       "props": {
@@ -137,6 +147,36 @@
                   "id": "panel-the-minutes",
                   "title": "The minutes",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-summarize-asr-model",
+                        "binding": "op:summarize/prop:asr#model",
+                        "label": "Summarize model",
+                        "modelKind": "asr_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-summarize-summarizer-model",
+                        "binding": "op:summarize/prop:summarizer#model",
+                        "label": "Summarize model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-summarize-action-items-generator-model",
+                        "binding": "op:summarize/prop:action_items_generator#model",
+                        "label": "Summarize model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Button",
                       "props": {
@@ -239,6 +279,16 @@
                   "id": "panel-ask-the-transcript",
                   "title": "Ask the transcript",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-ask-assistant-model",
+                        "binding": "op:ask/prop:assistant#model",
+                        "label": "Ask model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {

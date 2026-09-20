@@ -21,6 +21,7 @@
 // "no example carries an app_doc" is enforced here rather than remembered.
 //
 //   node scripts/build-example-apps.mjs                 # build + validate
+//   node scripts/build-example-apps.mjs --app vary-image # one app only
 //   node scripts/build-example-apps.mjs --skip-validate # build only
 //   node scripts/build-example-apps.mjs --check         # fail if outputs would change
 //
@@ -243,6 +244,14 @@ function buildControl(control, ctx) {
     return { binding, idParts: [kind, control.op, node, prop] };
   };
 
+  const variableTarget = (id) => {
+    ctx.useVariable(id);
+    return {
+      binding: varBinding(id),
+      idParts: ["in", id]
+    };
+  };
+
   if (control.note !== undefined) {
     return {
       type: "Text",
@@ -301,12 +310,15 @@ function buildControl(control, ctx) {
   }
 
   if (control.image !== undefined) {
-    ctx.useVariable(control.image);
+    const { binding, idParts } =
+      typeof control.image === "string"
+        ? variableTarget(control.image)
+        : inputTarget("image", control.image.input);
     return {
       type: "ImageInput",
       props: {
-        id: nextId(["in", control.image]),
-        binding: varBinding(control.image),
+        id: nextId(idParts),
+        binding,
         label: control.label,
         events: []
       }
@@ -314,12 +326,15 @@ function buildControl(control, ctx) {
   }
 
   if (control.video !== undefined) {
-    ctx.useVariable(control.video);
+    const { binding, idParts } =
+      typeof control.video === "string"
+        ? variableTarget(control.video)
+        : inputTarget("video", control.video.input);
     return {
       type: "VideoInput",
       props: {
-        id: nextId(["in", control.video]),
-        binding: varBinding(control.video),
+        id: nextId(idParts),
+        binding,
         label: control.label,
         events: []
       }
@@ -382,6 +397,7 @@ function buildControl(control, ctx) {
         binding,
         label: control.label,
         modelKind: control.modelKind,
+        task: control.task,
         events: []
       }
     };
@@ -608,6 +624,64 @@ function buildApp(app, templates) {
     });
   }
 
+  const explicitModelBindings = new Set();
+  for (const section of app.sections ?? []) {
+    for (const control of section.controls ?? []) {
+      if (
+        control.model &&
+        typeof control.model === "object" &&
+        control.model.node &&
+        control.model.prop
+      ) {
+        explicitModelBindings.add(
+          `${control.op}:${control.model.node}:${control.model.prop}`
+        );
+      }
+    }
+  }
+
+  const modelControlsForSection = (section) => {
+    const operationIds = new Set();
+    for (const control of section.controls ?? []) {
+      if (control.op) operationIds.add(control.op);
+      if (Array.isArray(control.run)) {
+        for (const operationId of control.run) operationIds.add(operationId);
+      }
+    }
+    for (const result of section.results ?? []) {
+      if (result.op) operationIds.add(result.op);
+      if (result.progress) operationIds.add(result.progress);
+      if (result.error) operationIds.add(result.error);
+    }
+
+    const controls = [];
+    for (const operationId of operationIds) {
+      const operation = operations.get(operationId);
+      if (!operation || operation.kind === "script") continue;
+      for (const node of operation.template.graph.nodes) {
+        const model = node.data?.model;
+        if (
+          !model ||
+          typeof model !== "object" ||
+          typeof model.type !== "string" ||
+          !model.type.endsWith("_model")
+        ) {
+          continue;
+        }
+        const key = `${operationId}:${node.id}:model`;
+        if (explicitModelBindings.has(key)) continue;
+        explicitModelBindings.add(key);
+        controls.push({
+          op: operationId,
+          model: { node: node.id, prop: "model" },
+          modelKind: model.type,
+          label: `${node.data?.title || operation.spec.name} model`
+        });
+      }
+    }
+    return controls;
+  };
+
   const ctx = {
     app,
     operations,
@@ -636,7 +710,7 @@ function buildApp(app, templates) {
       type: "Heading",
       props: {
         id: nextId(["title"]),
-        text: `${app.emoji} ${app.name}`,
+        text: app.showEmoji === false ? app.name : `${app.emoji} ${app.name}`,
         level: "1"
       }
     },
@@ -651,7 +725,11 @@ function buildApp(app, templates) {
   }
 
   for (const section of app.content ? [] : app.sections) {
-    const controls = (section.controls ?? []).map((control) =>
+    const sourceControls = [
+      ...modelControlsForSection(section),
+      ...(section.controls ?? [])
+    ];
+    const controls = sourceControls.map((control) =>
       buildControl(control, ctx)
     );
     const results = (section.results ?? []).flatMap((result) =>
@@ -752,9 +830,9 @@ function buildApp(app, templates) {
     schemaVersion: documentOperations.some((operation) => operation.target)
       ? 4
       : APP_SCHEMA_VERSION,
-    // No root title: the first widget is already a Heading carrying the app's
-    // emoji and name, and the runtime renders a root title as a heading of its
-    // own — so setting both printed the name twice on every example.
+    // No root title: the first widget is already a Heading carrying the app
+    // name, and the runtime renders a root title as a heading of its own — so
+    // setting both printed the name twice on every example.
     ui: { root: { props: {} }, content, zones: {} },
     operations: documentOperations,
     resources: [],
@@ -781,6 +859,23 @@ function buildBundle(app, templates) {
   const { document, values } = buildApp(app, templates);
   const workflows = Object.entries(app.workflows).map(([key, templateName]) => {
     const template = templates.get(templateName);
+    const graph = structuredClone(template.graph);
+    for (const [nodeId, model] of Object.entries(
+      app.modelOverrides?.[key] ?? {}
+    )) {
+      const node = graph.nodes.find((candidate) => candidate.id === nodeId);
+      if (!node) {
+        fail(
+          `${app.name}: model override names unknown node "${nodeId}" in ${template.name}`
+        );
+      }
+      if (!node.data?.model) {
+        fail(
+          `${app.name}: model override targets node "${nodeId}" without a model in ${template.name}`
+        );
+      }
+      node.data.model = model;
+    }
     return {
       key,
       name: template.name,
@@ -788,7 +883,7 @@ function buildBundle(app, templates) {
       // Stable across installs: a second app binding the same template reuses
       // the workflow row this one created instead of duplicating it.
       sourceId: `${PACKAGE}/${template.name}`,
-      graph: template.graph,
+      graph,
       version: null,
       graphHash: null
     };
@@ -984,8 +1079,14 @@ if (regen) runRegen();
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 
+const only = flagValue("--app");
+const selectedApps = only
+  ? EXAMPLE_APPS.filter((app) => app.slug === only)
+  : EXAMPLE_APPS;
+if (selectedApps.length === 0) fail(`no example app with slug "${only}"`);
+
 const templateNames = new Set();
-for (const app of EXAMPLE_APPS) {
+for (const app of selectedApps) {
   for (const name of Object.values(app.workflows)) templateNames.add(name);
 }
 const templates = new Map(
@@ -993,11 +1094,13 @@ const templates = new Map(
 );
 
 // Any template not bound by an app still must not carry an app_doc.
-for (const file of fs
-  .readdirSync(EXAMPLES)
-  .filter((f) => f.endsWith(".json"))) {
-  const name = file.replace(/\.json$/, "");
-  if (!templates.has(name)) loadTemplate(name);
+if (!only) {
+  for (const file of fs
+    .readdirSync(EXAMPLES)
+    .filter((f) => f.endsWith(".json"))) {
+    const name = file.replace(/\.json$/, "");
+    if (!templates.has(name)) loadTemplate(name);
+  }
 }
 
 fs.mkdirSync(APPS_OUT, { recursive: true });
@@ -1008,7 +1111,7 @@ const liveSlugs = new Set();
 const bundleFiles = [];
 const debugInteractions = new Map();
 
-for (const app of EXAMPLE_APPS) {
+for (const app of selectedApps) {
   const { bundle, values } = buildBundle(app, templates);
   const bundleFile = path.join(APPS_OUT, `${app.slug}.app.json`);
   writeFile(bundleFile, `${JSON.stringify(bundle, null, 2)}\n`);
@@ -1032,15 +1135,17 @@ for (const app of EXAMPLE_APPS) {
   });
 }
 
-writeFile(
-  path.join(PREVIEW, "manifest.json"),
-  `${JSON.stringify(manifest, null, 2)}\n`
-);
+if (!only) {
+  writeFile(
+    path.join(PREVIEW, "manifest.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`
+  );
+}
 
 // Prune previews and bundles for apps that no longer exist, so the marketing
 // rig never renders a retired one.
 let pruned = 0;
-for (const file of fs.readdirSync(PREVIEW)) {
+for (const file of only ? [] : fs.readdirSync(PREVIEW)) {
   if (!file.endsWith(".json") || file === "manifest.json") continue;
   const slug = file.replace(/\.json$/, "");
   if (liveSlugs.has(slug)) continue;
@@ -1050,13 +1155,13 @@ for (const file of fs.readdirSync(PREVIEW)) {
   if (fs.existsSync(img)) fs.rmSync(img);
   pruned += 1;
 }
-for (const file of fs.readdirSync(path.join(PREVIEW, "img"))) {
+for (const file of only ? [] : fs.readdirSync(path.join(PREVIEW, "img"))) {
   if (liveSlugs.has(file.replace(/\.jpg$/, ""))) continue;
   if (checkOnly) fail(`stale preview image ${file}`);
   fs.rmSync(path.join(PREVIEW, "img", file));
   pruned += 1;
 }
-for (const file of fs.readdirSync(APPS_OUT)) {
+for (const file of only ? [] : fs.readdirSync(APPS_OUT)) {
   if (!file.endsWith(".app.json")) continue;
   if (liveSlugs.has(file.replace(/\.app\.json$/, ""))) continue;
   if (checkOnly) fail(`stale app bundle ${file}`);
@@ -1065,7 +1170,7 @@ for (const file of fs.readdirSync(APPS_OUT)) {
 }
 
 console.log(
-  `apps: ${EXAMPLE_APPS.length} · workflows bound: ${templates.size} · files written: ${changed} · pruned: ${pruned}`
+  `apps: ${selectedApps.length} · workflows bound: ${templates.size} · files written: ${changed} · pruned: ${pruned}`
 );
 console.log(`bundles  → ${path.relative(ROOT, APPS_OUT)}`);
 console.log(`previews → ${path.relative(ROOT, PREVIEW)}`);

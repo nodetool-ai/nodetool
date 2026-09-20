@@ -6,15 +6,15 @@ export const miniAppEntries: MiniAppEntry[] = [
   {
     "route": "/apps/ad-maker",
     "title": "Ad Maker — Free AI Mini App | NodeTool",
-    "description": "Settle the words. Direct the image. Keep the brief.",
+    "description": "Settle the message. Direct the campaign image.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "ad-maker",
     "name": "Ad Maker",
-    "summary": "Start with one offer and compare three copy registers with five headline angles. Only then write the visual brief and spend the image call. The final prompt stays beside the hero so the result can be directed instead of guessed at.",
+    "summary": "Start with one offer, compare copy routes and headline angles, then direct a campaign hero with the approved message beside the visual brief.",
     "featured": true,
-    "note": "🔑 Writing uses OpenAI. The hero uses FAL and runs only when you ask for it.",
+    "note": "The hero render only runs after you approve the visual brief.",
     "workflows": [
       {
         "name": "Ad Copy in Three Registers",
@@ -34,18 +34,53 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/ad-copy-in-three-registers",
     "screenshot": "/apps/ad-maker.png",
+    "outputExamples": [
+      {
+        "label": "Campaign Hero",
+        "kind": "image",
+        "path": "/apps/examples/ad-maker/campaign-hero.png"
+      },
+      {
+        "label": "Live Copy Variants",
+        "kind": "text",
+        "path": "/apps/examples/ad-maker/live-copy-variants.md",
+        "excerpt": "**Plain**  \nMeet the Olive Travel Cup, launching this Friday. Its matte muted-olive finish and charcoal lid create a clean, understated look for coffee, tea, and everything in between. Take your everyday drink with you in simple, reliable style.\n\n**Playful**  \nYour daily drink just found its new favorite outfit. The Olive Travel Cup pairs a matte muted-olive body with a charcoal lid for serious style and effortless sipping. Launching this Friday—because coffee runs deserve a little color.\n\n**Premium**  \nIntroducing the Olive Travel Cup: a refined everyday essential in matte muted olive, finished with a sophisticated charcoal lid. Designed to elevate your daily ritual with understated style, it launches this Friday. Reserve yours for effortless, considered sipping."
+      },
+      {
+        "label": "Copy Variants",
+        "kind": "text",
+        "path": "/apps/examples/ad-maker/out-copy-variants.md",
+        "excerpt": "**Plain**  \nMeet the Olive Travel Cup: a matte, muted-olive cup finished with a sleek charcoal lid. Designed for everyday drinks on the go, it combines understated style with practical portability. Available this Friday—bring a refined, reliable companion to your daily coffee routine.\n\n**Playful**  \nYour coffee’s new favorite travel buddy has arrived. The Olive Travel Cup pairs a soft, muted-olive finish with a charcoal lid for effortlessly cool sipping wherever you roam. Pack it, carry it, love it—launching this Friday. Your commute just got greener.\n\n**Premium**  \nIntroducing the Olive Travel Cup, defined by a matte muted-olive finish and contrasting charcoal lid. Thoughtfully styled for elevated everyday rituals, it brings quiet sophistication to every journey. Discover this understated essential when it launches exclusively this Friday."
+      }
+    ],
     "tags": [
       "example",
       "image",
       "text"
     ],
     "heading": "📣 Ad Maker",
-    "tagline": "Settle the words. Direct the image. Keep the brief.",
-    "buttonLabel": "Write copy and headlines",
+    "tagline": "Settle the message. Direct the campaign image.",
+    "buttonLabel": "Write the routes",
     "inputs": [
       {
-        "label": "What are you advertising?",
+        "label": "Offer or product brief",
         "kind": "text"
+      },
+      {
+        "label": "Writing model",
+        "kind": "model"
+      },
+      {
+        "label": "Headline model",
+        "kind": "model"
+      },
+      {
+        "label": "Prompt-writing model",
+        "kind": "model"
+      },
+      {
+        "label": "Image model",
+        "kind": "model"
       },
       {
         "label": "Visual brief",
@@ -70,7 +105,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       }
     ],
-    "widgetCount": 26
+    "widgetCount": 33
   },
   {
     "route": "/apps/ai-spokesperson",
@@ -83,7 +118,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "AI Spokesperson",
     "summary": "Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Localize a take, fix a fluffed line, or spin one recording into many variants.",
     "featured": false,
-    "note": "🔑 Needs a Replicate key for the voice (Inworld TTS) and a FAL key for the lip-sync. Both steps are billed per run.",
+    "note": "Voice generation and lip-sync are both billed per run.",
     "workflows": [
       {
         "name": "AI Spokesperson",
@@ -93,6 +128,23 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/ai-spokesperson",
     "screenshot": "/apps/ai-spokesperson.png",
+    "outputExamples": [
+      {
+        "label": "Live Revoice Revoiced Clip",
+        "kind": "video",
+        "path": "/apps/examples/ai-spokesperson/live-revoice-revoiced-clip.mp4"
+      },
+      {
+        "label": "Revoiced Clip Poster",
+        "kind": "image",
+        "path": "/apps/examples/ai-spokesperson/revoiced-clip-poster.jpg"
+      },
+      {
+        "label": "Revoiced Clip",
+        "kind": "video",
+        "path": "/apps/examples/ai-spokesperson/revoiced-clip.mp4"
+      }
+    ],
     "tags": [
       "audio",
       "example",
@@ -104,12 +156,20 @@ export const miniAppEntries: MiniAppEntry[] = [
     "buttonLabel": "Revoice the clip",
     "inputs": [
       {
+        "label": "Revoice model",
+        "kind": "model"
+      },
+      {
         "label": "Presenter clip",
         "kind": "video"
       },
       {
         "label": "What they should say",
         "kind": "text"
+      },
+      {
+        "label": "Lip-sync model",
+        "kind": "model"
       }
     ],
     "outputs": [
@@ -118,7 +178,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "video"
       }
     ],
-    "widgetCount": 12
+    "widgetCount": 15
   },
   {
     "route": "/apps/ask-your-documents",
@@ -131,7 +191,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Ask Your Documents",
     "summary": "Retrieval-augmented answers with citations, and a fully local fallback that reads one pasted document instead of the vector store.",
     "featured": false,
-    "note": "🖥️ The retrieval mode embeds with Ollama nomic-embed-text and answers with OpenAI, so it needs both. Local mode needs only Ollama.",
+    "note": "🖥️ Retrieval mode combines semantic search with a writing model. Local mode keeps the full run on your machine.",
     "workflows": [
       {
         "name": "Chat With Your Documents",
@@ -146,6 +206,20 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/chat-with-your-documents",
     "screenshot": "/apps/ask-your-documents.png",
+    "outputExamples": [
+      {
+        "label": "Live Ask Answer",
+        "kind": "text",
+        "path": "/apps/examples/ask-your-documents/live-ask-answer.md",
+        "excerpt": "I couldn't find that in the provided documents."
+      },
+      {
+        "label": "Ask Answer",
+        "kind": "text",
+        "path": "/apps/examples/ask-your-documents/out-ask-answer.md",
+        "excerpt": "I couldn't find that in the provided documents."
+      }
+    ],
     "tags": [
       "assistant",
       "citations",
@@ -162,6 +236,14 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "Ask your own documents — with a local mode that never leaves your machine.",
     "buttonLabel": "Search my documents",
     "inputs": [
+      {
+        "label": "Ask model",
+        "kind": "model"
+      },
+      {
+        "label": "Ask locally model",
+        "kind": "model"
+      },
       {
         "label": "Your question",
         "kind": "text"
@@ -209,7 +291,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "text"
       }
     ],
-    "widgetCount": 25
+    "widgetCount": 27
   },
   {
     "route": "/apps/brand-and-social",
@@ -222,7 +304,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Brand & Social",
     "summary": "Fill in your brand once — the asset kit and the thumbnail factory both read the same values.",
     "featured": true,
-    "note": "🔑 Needs OpenAI and FAL keys. Your brand name, audience, and voice persist between sessions.",
+    "note": "Your brand name, audience, and voice persist between sessions.",
     "workflows": [
       {
         "name": "Brand Asset Generator",
@@ -237,6 +319,60 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/brand-asset-generator",
     "screenshot": "/apps/brand-and-social.png",
+    "outputExamples": [
+      {
+        "label": "Live Kit Brand Brief",
+        "kind": "text",
+        "path": "/apps/examples/brand-and-social/live-kit-brand-brief.md",
+        "excerpt": "## **Voice & tone**\n**Warm, optimistic, precise.** Aurora Labs speaks clearly and encouragingly, turning complex energy technology into friendly, human progress.\n\n## **Color palette**\n- **Aurora Green — #2E8B68 (primary):** Use for brand moments, buttons, headings, and signals of positive action.\n- **Sunrise Gold — #F4B942 (complementary):** Add warmth to highlights, calls to action, and optimistic accents.\n- **Sky Mist — #DCEFF0 (complementary):** Use for backgrounds, panels, and spacious, calming layouts.\n\n## **Tagline options**\n- Energy for a brighter home\n- Smarter power, kinder living\n- A brighter way to power home\n\n## **Do / Don't**\n- **Do:** Pair organic forms, soft light, and nature-inspired imagery with crisp diagrams and precise data.\n- **Do:** Write in plain language, lead with human benefits, and make progress feel achievable.\n- **Don't:** Use dark, dystopian climate imagery, harsh neon palettes, or overly technical visual clutter.\n- **Don't:** Overpromise, guilt-trip people, or hide behind jargon when explaining the technology."
+      },
+      {
+        "label": "Live Kit Social 1",
+        "kind": "image",
+        "path": "/apps/examples/brand-and-social/live-kit-social-1.png"
+      },
+      {
+        "label": "Live Kit Social 2",
+        "kind": "image",
+        "path": "/apps/examples/brand-and-social/live-kit-social-2.png"
+      },
+      {
+        "label": "Live Kit Social 3",
+        "kind": "image",
+        "path": "/apps/examples/brand-and-social/live-kit-social-3.png"
+      },
+      {
+        "label": "Live Kit Social 4",
+        "kind": "image",
+        "path": "/apps/examples/brand-and-social/live-kit-social-4.png"
+      },
+      {
+        "label": "Kit Brand Brief",
+        "kind": "text",
+        "path": "/apps/examples/brand-and-social/out-kit-brand-brief.md",
+        "excerpt": "**Voice & tone** — Warm, optimistic, clear. NodeTool speaks like a smart, thoughtful neighbor: making complex energy choices feel useful, approachable, and hopeful.\n\n**Color palette**\n- **Primary — Moss Green `#2F6B4F`**: Ground the brand in nature, trust, and practical progress.\n- **Complementary — Sunlit Amber `#F4B942`**: Add optimism, energy, and moments of human warmth.\n- **Complementary — Cloud Cream `#F7F4EC`**: Keep interfaces calm, open, and easy to understand.\n\n**Tagline options**\n- Energy for a brighter home\n- Smarter power, better living\n- Make energy do more good\n\n**Do / Don't**\n- **Do:** Pair organic shapes, generous whitespace, and friendly photography with precise diagrams and clear data.\n- **Do:** Use plain language, active verbs, and tangible benefits; invite people into progress rather than selling perfection.\n- **Don’t:** Use glossy futurism, harsh neon, or intimidating technical visuals that make clean energy feel distant.\n- **Don’t:** Overpromise, guilt-trip, or bury the message in jargon; never make sustainability sound like a sacrifice."
+      },
+      {
+        "label": "Social Assets 1",
+        "kind": "image",
+        "path": "/apps/examples/brand-and-social/social_assets-1.png"
+      },
+      {
+        "label": "Social Assets 2",
+        "kind": "image",
+        "path": "/apps/examples/brand-and-social/social_assets-2.png"
+      },
+      {
+        "label": "Social Assets 3",
+        "kind": "image",
+        "path": "/apps/examples/brand-and-social/social_assets-3.png"
+      },
+      {
+        "label": "Social Assets 4",
+        "kind": "image",
+        "path": "/apps/examples/brand-and-social/social_assets-4.png"
+      }
+    ],
     "tags": [
       "brand-asset",
       "branding",
@@ -252,6 +388,18 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "One brand identity drives two deliverables.",
     "buttonLabel": "Generate brand assets",
     "inputs": [
+      {
+        "label": "Asset kit model",
+        "kind": "model"
+      },
+      {
+        "label": "Asset kit model",
+        "kind": "model"
+      },
+      {
+        "label": "Asset kit model",
+        "kind": "model"
+      },
       {
         "label": "Brand name",
         "kind": "text"
@@ -275,6 +423,14 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "Primary color",
         "kind": "color"
+      },
+      {
+        "label": "Thumbnails model",
+        "kind": "model"
+      },
+      {
+        "label": "Thumbnails model",
+        "kind": "model"
       },
       {
         "label": "What's your video about?",
@@ -307,7 +463,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       }
     ],
-    "widgetCount": 31
+    "widgetCount": 36
   },
   {
     "route": "/apps/concept-studio",
@@ -320,7 +476,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Concept Studio",
     "summary": "The creative iteration loop: fan a brief into concept art, mix animals into creatures, then run the picked image through a keyless filter chain.",
     "featured": true,
-    "note": "🎨 Generating needs OpenAI and FAL keys. Polishing is GPU-only and runs with no keys.",
+    "note": "🎨 Generation uses configured cloud models. Polishing runs locally on a compatible GPU.",
     "workflows": [
       {
         "name": "Concept Art Iteration Board",
@@ -340,6 +496,18 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/concept-art-iteration-board",
     "screenshot": "/apps/concept-studio.png",
+    "outputExamples": [
+      {
+        "label": "Live Concepts Concept Art",
+        "kind": "image",
+        "path": "/apps/examples/concept-studio/live-concepts-concept-art.jpg"
+      },
+      {
+        "label": "Concepts Concept Art",
+        "kind": "image",
+        "path": "/apps/examples/concept-studio/out-concepts-concept-art.jpg"
+      }
+    ],
     "tags": [
       "concept-art",
       "example",
@@ -351,6 +519,18 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "Generate a gallery, pick one, polish it.",
     "buttonLabel": "Generate concept art",
     "inputs": [
+      {
+        "label": "Concepts model",
+        "kind": "model"
+      },
+      {
+        "label": "Concepts model",
+        "kind": "model"
+      },
+      {
+        "label": "Concepts model",
+        "kind": "model"
+      },
       {
         "label": "Creative brief",
         "kind": "text"
@@ -366,6 +546,14 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "How many variations?",
         "kind": "number"
+      },
+      {
+        "label": "Creatures model",
+        "kind": "model"
+      },
+      {
+        "label": "Creatures model",
+        "kind": "model"
       },
       {
         "label": "Mix these animals",
@@ -414,7 +602,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       }
     ],
-    "widgetCount": 36
+    "widgetCount": 41
   },
   {
     "route": "/apps/dataset-builder",
@@ -427,7 +615,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Dataset Builder",
     "summary": "The smallest app in the set, and the reference for the Table widget: a dataframe reads better as rows than as a Preview node.",
     "featured": false,
-    "note": "🔑 Needs an OpenAI key.",
+    "note": "Requires a configured language model.",
     "workflows": [
       {
         "name": "Data Generator",
@@ -437,6 +625,20 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/data-generator",
     "screenshot": "/apps/dataset-builder.png",
+    "outputExamples": [
+      {
+        "label": "Live Generate Generated Data",
+        "kind": "data",
+        "path": "/apps/examples/dataset-builder/live-generate-generated-data.json",
+        "excerpt": "{\n  \"rows\": [\n    {\n      \"name\": \"carrot\",\n      \"color\": \"orange\"\n    },\n    {\n      \"name\": \"broccoli\",\n      \"color\": \"green\"\n    },\n    {\n      \"name\": \"cauliflower\",\n      \"color\": \"white\"\n    },\n    {\n      \"name\": \"eggplant\",\n      \"color\": \"purple\"\n    },\n    {\n      \"name\": \"spinach\",\n      \"color\": \"dark green\"\n    },\n    {\n      \"name\": \"radish\",\n      \"color\": \"red\"\n    },\n    {\n      \"name\": \"yellow squash\",\n      \"color\": \"yellow\"\n    },\n    {\n      \"name\": \"red bell pepper\",\n      \"color\": \"red\"\n    }\n  ],\n  \"columns\": [\n    {\n      \"name\": \"name\"\n    },\n    {\n      \"name\": \"color\"\n    }\n  ],\n  \"data\": [\n    [\n      \"carrot\",\n      \"orange\"\n    ],\n    [\n      \"broccoli\",\n      \"green\"\n    ],\n    [\n      \"cauliflower\",\n      \"white\"\n    ],\n    [\n      \"eggplant\",\n      \"purple\"\n    ],\n    [\n      \"spinach\",\n      \"dark green\"\n    ],\n    [\n      \"radish\",\n      \"red\"\n    ],\n    [\n      \"yellow squash\",\n      \"yellow\"\n    ],\n    [\n      \"red bell pepper\",\n      \"red\"\n    ]\n  ]\n}"
+      },
+      {
+        "label": "Generate Generated Data",
+        "kind": "data",
+        "path": "/apps/examples/dataset-builder/out-generate-generated-data.json",
+        "excerpt": "{\n  \"rows\": [\n    {\n      \"name\": \"carrot\",\n      \"color\": \"orange\"\n    },\n    {\n      \"name\": \"broccoli\",\n      \"color\": \"green\"\n    },\n    {\n      \"name\": \"cauliflower\",\n      \"color\": \"white\"\n    },\n    {\n      \"name\": \"eggplant\",\n      \"color\": \"purple\"\n    },\n    {\n      \"name\": \"bell pepper\",\n      \"color\": \"red\"\n    },\n    {\n      \"name\": \"spinach\",\n      \"color\": \"green\"\n    },\n    {\n      \"name\": \"radish\",\n      \"color\": \"red\"\n    },\n    {\n      \"name\": \"zucchini\",\n      \"color\": \"green\"\n    }\n  ],\n  \"columns\": [\n    {\n      \"name\": \"name\"\n    },\n    {\n      \"name\": \"color\"\n    }\n  ],\n  \"data\": [\n    [\n      \"carrot\",\n      \"orange\"\n    ],\n    [\n      \"broccoli\",\n      \"green\"\n    ],\n    [\n      \"cauliflower\",\n      \"white\"\n    ],\n    [\n      \"eggplant\",\n      \"purple\"\n    ],\n    [\n      \"bell pepper\",\n      \"red\"\n    ],\n    [\n      \"spinach\",\n      \"green\"\n    ],\n    [\n      \"radish\",\n      \"red\"\n    ],\n    [\n      \"zucchini\",\n      \"green\"\n    ]\n  ]\n}"
+      }
+    ],
     "tags": [
       "agents"
     ],
@@ -444,6 +646,10 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "Describe the dataset you need — get it as a table.",
     "buttonLabel": "Generate data",
     "inputs": [
+      {
+        "label": "Generate model",
+        "kind": "model"
+      },
       {
         "label": "What data do you need?",
         "kind": "text"
@@ -459,7 +665,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "data"
       }
     ],
-    "widgetCount": 12
+    "widgetCount": 13
   },
   {
     "route": "/apps/directed-campaign-kit",
@@ -470,9 +676,9 @@ export const miniAppEntries: MiniAppEntry[] = [
     "indexable": true,
     "slug": "directed-campaign-kit",
     "name": "Directed Campaign Kit",
-    "summary": "Upload one product image. A multimodal language model fills the brief and proposes three directions before you approve a hero, build two formats, and direct one revision.",
+    "summary": "Upload one product reference, choose a direction, render a hero, build coordinated formats, and direct one bounded revision.",
     "featured": false,
-    "note": null,
+    "note": "The proof below is a captured production run with a real product reference, hero, coordinated formats, and revision. Provider keys are required to rerun it.",
     "workflows": [
       {
         "name": "Render a Directed Campaign Hero",
@@ -496,7 +702,9 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/render-a-directed-campaign-hero",
+    "productionRecipeSlug": "directed-campaign-kit",
     "screenshot": "/apps/directed-campaign-kit.png",
+    "outputExamples": [],
     "tags": [
       "campaign",
       "document",
@@ -553,6 +761,18 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "text"
       },
       {
+        "label": "Writing model",
+        "kind": "model"
+      },
+      {
+        "label": "Hero model",
+        "kind": "model"
+      },
+      {
+        "label": "Revision model",
+        "kind": "model"
+      },
+      {
         "label": "Direction",
         "kind": "choice"
       },
@@ -603,7 +823,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       }
     ],
-    "widgetCount": 134
+    "widgetCount": 135
   },
   {
     "route": "/apps/dubbing-desk",
@@ -616,7 +836,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Dubbing Desk",
     "summary": "The Multilingual Video Dubber chain behind one surface. Transcribing writes the script into a variable the revoice and back-translation steps both read, so the words that get dubbed are the words you can see.",
     "featured": false,
-    "note": "🔑 Needs a FAL key for transcription, speech and lip-sync, and an OpenAI key for the translation.",
+    "note": "Transcription, translation, speech, and lip-sync use configured models and are billed per run.",
     "workflows": [
       {
         "name": "Transcribe a Clip",
@@ -646,6 +866,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/transcribe-a-clip",
     "screenshot": null,
+    "outputExamples": [],
     "tags": [
       "audio",
       "data",
@@ -659,12 +880,44 @@ export const miniAppEntries: MiniAppEntry[] = [
     "buttonLabel": "Get the script back out",
     "inputs": [
       {
+        "label": "Transcribe model",
+        "kind": "model"
+      },
+      {
+        "label": "Revoice model",
+        "kind": "model"
+      },
+      {
+        "label": "Revoice model",
+        "kind": "model"
+      },
+      {
+        "label": "Subtitles model",
+        "kind": "model"
+      },
+      {
+        "label": "Subtitles model",
+        "kind": "model"
+      },
+      {
         "label": "Presenter clip",
         "kind": "video"
       },
       {
         "label": "The script that gets dubbed",
         "kind": "text"
+      },
+      {
+        "label": "Lip-sync model",
+        "kind": "model"
+      },
+      {
+        "label": "Lip-sync model",
+        "kind": "model"
+      },
+      {
+        "label": "Back-translate model",
+        "kind": "model"
       },
       {
         "label": "A line to read back",
@@ -689,7 +942,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "text"
       }
     ],
-    "widgetCount": 32
+    "widgetCount": 40
   },
   {
     "route": "/apps/film-studio",
@@ -702,7 +955,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Film Studio",
     "summary": "The showcase run: one brief drives a directed short, an editable rough cut, and the poster that sells it.",
     "featured": true,
-    "note": "💸 This app spends real money — Veo 3.1 video and Replicate MusicGen. Run it once, deliberately.",
+    "note": "💸 This app generates video and music. Run it once, deliberately.",
     "workflows": [
       {
         "name": "Script to Screen",
@@ -722,6 +975,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/script-to-screen",
     "screenshot": "/apps/film-studio.png",
+    "outputExamples": [],
     "tags": [
       "ai",
       "creative",
@@ -740,6 +994,50 @@ export const miniAppEntries: MiniAppEntry[] = [
     "buttonLabel": "Shoot my film",
     "inputs": [
       {
+        "label": "Produce model",
+        "kind": "model"
+      },
+      {
+        "label": "Produce model",
+        "kind": "model"
+      },
+      {
+        "label": "Produce model",
+        "kind": "model"
+      },
+      {
+        "label": "Produce model",
+        "kind": "model"
+      },
+      {
+        "label": "Produce model",
+        "kind": "model"
+      },
+      {
+        "label": "Produce model",
+        "kind": "model"
+      },
+      {
+        "label": "Produce model",
+        "kind": "model"
+      },
+      {
+        "label": "Produce model",
+        "kind": "model"
+      },
+      {
+        "label": "Rough cut model",
+        "kind": "model"
+      },
+      {
+        "label": "Rough cut model",
+        "kind": "model"
+      },
+      {
+        "label": "Rough cut model",
+        "kind": "model"
+      },
+      {
         "label": "Your film in one line",
         "kind": "text"
       },
@@ -750,6 +1048,18 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "Number of shots",
         "kind": "text"
+      },
+      {
+        "label": "Poster model",
+        "kind": "model"
+      },
+      {
+        "label": "Poster model",
+        "kind": "model"
+      },
+      {
+        "label": "Poster model",
+        "kind": "model"
       },
       {
         "label": "Movie title",
@@ -782,7 +1092,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       }
     ],
-    "widgetCount": 31
+    "widgetCount": 48
   },
   {
     "route": "/apps/meeting-room",
@@ -795,7 +1105,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Meeting Room",
     "summary": "Transcribe a recording, summarize it into notes and action items, then ask follow-up questions of the transcript on a local model.",
     "featured": true,
-    "note": "🎙️ Transcription uses FAL Whisper and the summary uses OpenAI. The follow-up questions run on a local Ollama model, so they cost nothing.",
+    "note": "🎙️ Transcription and summarization use configured models. Follow-up questions run locally.",
     "workflows": [
       {
         "name": "Transcribe Audio",
@@ -815,6 +1125,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/transcribe-audio",
     "screenshot": "/apps/meeting-room.png",
+    "outputExamples": [],
     "tags": [
       "asr",
       "assistant",
@@ -832,8 +1143,28 @@ export const miniAppEntries: MiniAppEntry[] = [
     "buttonLabel": "Transcribe",
     "inputs": [
       {
+        "label": "Transcribe model",
+        "kind": "model"
+      },
+      {
         "label": "Meeting recording",
         "kind": "audio"
+      },
+      {
+        "label": "Summarize model",
+        "kind": "model"
+      },
+      {
+        "label": "Summarize model",
+        "kind": "model"
+      },
+      {
+        "label": "Summarize model",
+        "kind": "model"
+      },
+      {
+        "label": "Ask model",
+        "kind": "model"
       },
       {
         "label": "Your question",
@@ -866,7 +1197,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "text"
       }
     ],
-    "widgetCount": 31
+    "widgetCount": 36
   },
   {
     "route": "/apps/model-arena",
@@ -879,7 +1210,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Model Arena",
     "summary": "Three answers in three columns, each streaming independently. A missing provider key fails one column, not the run.",
     "featured": false,
-    "note": "🔑 Needs OpenAI, Anthropic, and Google keys — one per column.",
+    "note": "Choose one configured language model per column.",
     "workflows": [
       {
         "name": "Model Arena",
@@ -889,6 +1220,44 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/model-arena",
     "screenshot": "/apps/model-arena.png",
+    "outputExamples": [
+      {
+        "label": "Live Compare Anthropic",
+        "kind": "text",
+        "path": "/apps/examples/model-arena/live-compare-anthropic.md",
+        "excerpt": "## Recommendation\n\nIntegrate a third-party embedded-analytics vendor for the first release, rather than building the dashboard in-house. Choose a vendor that supports your data model, tenant isolation, white-label embedding, and fits the roughly $2k/month budget.\n\n## Why\n\n- **The one-quarter target favors integration:** Two engineers have only six weeks, making a reliable build—charts, filters, permissions, exports, performance, and responsive UX—high risk.\n- **Reporting directly affects retention:** A proven analytics product reduces the chance that a rushed internal dashboard becomes another churn driver.\n- **It preserves scarce engineering capacity:** The team can focus on core product differentiation, data correctness, and integrating the highest-value reports instead of maintaining visualization infrastructure.\n- **The economics are favorable at this stage:** About $12k in vendor cost over six months is likely cheaper than the opportunity cost of two engineers, especially given reporting’s role in churn.\n- **It enables validation before commitment:** Ship the most-requested workflows now, measure usage and retention impact, then consider replacing the vendor only if scale, UX limitations, or pricing justify it.\n\n## Strongest counterargument\n\nA vendor can create long-term cost and product constraints: per-user or per-query pricing may exceed $2k/month as adoption grows, embedding and customization may be limited, and sensitive B2B data may require controls the vendor cannot provide. Build in-house instead if no credible vendor meets tenant-level security and core report"
+      },
+      {
+        "label": "Live Compare Gemini",
+        "kind": "text",
+        "path": "/apps/examples/model-arena/live-compare-gemini.md",
+        "excerpt": "## Recommendation\n\nIntegrate a third-party embedded-analytics vendor for the first release, rather than building the dashboard in-house. Choose a vendor that fits the ~$2k/month budget, supports your existing data stack, and allows a branded, customer-facing experience.\n\n## Why\n\n- Two engineers for six weeks provide only 12 engineer-weeks; a reliable dashboard also requires permissions, tenant isolation, filtering, exports, performance, alerting, and ongoing maintenance.\n- Weak reporting is a top-3 churn driver, so shipping a credible feature this quarter has higher business value than owning the implementation.\n- Embedded analytics vendors provide mature visualization, dashboarding, and access-control primitives that would consume much of the available schedule to reproduce.\n- The recurring cost is justified if it accelerates retention impact; validate that expected customer value exceeds the ~$24k annual tooling cost before committing.\n- Keep your core metrics definitions and data model under your control so the vendor remains replaceable and product differentiation does not depend entirely on it.\n\n## Strongest counterargument\n\nThis recommendation is wrong if your reporting experience is itself a major product differentiator, your data model requires highly bespoke interactions, or vendor pricing scales sharply with customers or query volume. In those cases, a rushed integration can create poor UX, security constraints, and long-term lock-in; building a narrow internal MVP may be cheaper and more strategically valuable, provided you strictly limit scope to the few reports"
+      },
+      {
+        "label": "Live Compare Openai",
+        "kind": "text",
+        "path": "/apps/examples/model-arena/live-compare-openai.md",
+        "excerpt": "## Recommendation\nIntegrate a third-party embedded-analytics vendor rather than build the dashboard internally. Use the six-week window for product-specific metrics, UX, permissions, and integration—not for recreating charts, filtering, exports, and dashboard infrastructure.\n\n## Why\n- Two engineers for six weeks is unlikely to produce a polished, reliable reporting product; embedded analytics materially reduces implementation risk against the one-quarter ship target.\n- Weak reporting is a top-3 churn driver, so shipping a credible feature quickly is more valuable than owning the underlying analytics stack.\n- A roughly $2k/month budget is likely cheaper than the opportunity cost of diverting scarce engineering capacity from core SaaS work.\n- Vendors typically provide mature capabilities—filters, drilldowns, exports, sharing, responsive UI, caching, and permissions—that customers expect but are expensive to build and maintain.\n- The team can preserve differentiation by owning the metric definitions, data model, onboarding, and customer workflow while outsourcing generic dashboard mechanics.\n\n## Strongest counterargument\nA vendor may impose unacceptable limits on data isolation, customization, performance, branding, or pricing as usage grows; it can also create long-term dependency around your reporting model. If the product requires highly bespoke analytics, has strict compliance or latency requirements, or already has a strong reusable reporting foundation, building a narrow first-party dashboard could produce a better customer experience and lower total cost."
+      },
+      {
+        "label": "Compare Anthropic",
+        "kind": "text",
+        "path": "/apps/examples/model-arena/out-compare-anthropic.md",
+        "excerpt": "## Recommendation\n\nIntegrate a third-party embedded-analytics vendor, assuming a short proof of concept confirms acceptable UX, security, and pricing below the ~$2k/month budget. Do not build the analytics engine in-house this quarter.\n\n## Why\n\n- Two engineers over six weeks is roughly 12 engineer-weeks—enough for data modeling, embedding, permissions, and launch integration, but not a reliable customer-grade analytics product with ongoing maintenance.\n- Reporting is a top-three churn driver, so shipping a credible experience next quarter has more value than owning the underlying technology.\n- A vendor provides mature filtering, visualization, exports, caching, and dashboard administration, reducing both launch risk and post-launch support burden.\n- The ~$2k/month budget is likely cheaper than diverting engineering capacity, especially when delayed reporting improvements could cost renewals.\n- Keep ownership of the data model and metrics layer so the startup can replace the vendor or build selectively later.\n\n## Strongest counterargument\n\nA vendor can impose unacceptable limitations on customization, multi-tenant permissions, branding, data residency, or performance, while usage-based pricing may exceed $2k/month as adoption grows. If the proof of concept cannot meet the core workflows and security requirements—or vendor lock-in would materially constrain the product—build a narrowly scoped first-party dashboard instead, focused on the highest-value reports rather than a general analytics platform."
+      },
+      {
+        "label": "Compare Gemini",
+        "kind": "text",
+        "path": "/apps/examples/model-arena/out-compare-gemini.md",
+        "excerpt": "## Recommendation\nIntegrate a third-party embedded-analytics vendor for the first release, rather than building the dashboard in-house. Use the six-week window to ship a focused, branded reporting experience and validate which analytics capabilities customers actually use.\n\n## Why\n- Two engineers for six weeks is roughly 12 engineer-weeks—enough for integration, permissions, embedding, and polish, but not a reliable path to building and maintaining a production-grade analytics platform.\n- Weak reporting is a top-3 churn driver, so reducing time to customer value outweighs the benefits of owning the implementation.\n- A roughly $2k/month tool budget is materially cheaper than diverting engineering capacity and delaying the quarter’s release; compare vendors on total cost, not license price alone.\n- Embedded vendors typically provide difficult-to-build capabilities—filters, exports, charting, dashboard authoring, permissions, and performance optimization—while letting the team retain product control over the surrounding workflow.\n- Treat the integration as a reversible experiment: instrument usage and customer feedback, then replace or internalize only the highest-value functionality if adoption and economics justify it.\n\n## Strongest counterargument\nThis recommendation is wrong if analytics is a core product differentiator, requires highly specialized queries or tenant-specific workflows that vendors cannot support, or creates unacceptable data-governance and latency risks. Vendor lock-in and recurring costs can also exceed the cost of ownership over time; in those cases, bui"
+      },
+      {
+        "label": "Compare Openai",
+        "kind": "text",
+        "path": "/apps/examples/model-arena/out-compare-openai.md",
+        "excerpt": "## Recommendation\nIntegrate a third-party embedded-analytics vendor rather than build the dashboard in-house. Use the six weeks to implement a narrow, opinionated reporting experience on top of a validated data model.\n\n## Why\n- Two engineers for six weeks cannot reliably deliver charting, filtering, exports, permissions, performance, and cross-customer isolation to production quality before the quarter ends.\n- Reporting is a top-three churn driver, so reducing time to a credible customer-facing feature has greater near-term value than owning the full analytics stack.\n- A vendor provides mature visualization, dashboard authoring, embedding, and often row-level security, reducing operational and maintenance burden for a 12-person team.\n- A roughly $2k/month budget is likely sufficient for a focused rollout, provided pricing is validated against expected tenants, users, query volume, and embedding requirements.\n- The team can retain strategic control by owning the semantic model, metric definitions, data pipeline, and product-specific workflow while outsourcing commodity visualization infrastructure.\n\n## Strongest counterargument\nThis recommendation is wrong if vendor pricing scales sharply with customers or usage, security/compliance requirements rule out the available providers, or the product needs highly bespoke workflows that embedded tools cannot support. In those cases, a narrowly scoped custom dashboard—limited to the few reports prospects use to make decisions—could produce a better long-term experience and avoid lock-in, even if it requires deferring advanced analyti"
+      }
+    ],
     "tags": [
       "agents",
       "comparison",
@@ -901,6 +1270,18 @@ export const miniAppEntries: MiniAppEntry[] = [
     "buttonLabel": "Compare the models",
     "inputs": [
       {
+        "label": "Compare model",
+        "kind": "model"
+      },
+      {
+        "label": "Compare model",
+        "kind": "model"
+      },
+      {
+        "label": "Compare model",
+        "kind": "model"
+      },
+      {
         "label": "Your brief",
         "kind": "text"
       },
@@ -911,19 +1292,19 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "outputs": [
       {
-        "label": "OpenAI",
+        "label": "Model A",
         "kind": "text"
       },
       {
-        "label": "Anthropic",
+        "label": "Model B",
         "kind": "text"
       },
       {
-        "label": "Google",
+        "label": "Model C",
         "kind": "text"
       }
     ],
-    "widgetCount": 16
+    "widgetCount": 19
   },
   {
     "route": "/apps/multi-shot-video",
@@ -936,7 +1317,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Multi-Shot Video",
     "summary": "A director model writes the shot list and a style bible, every shot is rendered as a keyframe and animated, and the clips are cut together into one video.",
     "featured": true,
-    "note": "💸 Needs Gemini and KIE keys: Gemini writes the shots and animates them with Veo, KIE renders the keyframes with GPT Image. Every shot is one Veo call, metered per second of video, so start with a small shot count.",
+    "note": "💸 Each shot generates a keyframe and a video clip. Video is metered by duration, so start with a small shot count.",
     "workflows": [
       {
         "name": "Movie Trailer Generator",
@@ -946,6 +1327,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/movie-trailer-generator",
     "screenshot": "/apps/multi-shot-video.png",
+    "outputExamples": [],
     "tags": [
       "ai",
       "creative",
@@ -960,6 +1342,18 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "One logline in, a cut sequence of shots out.",
     "buttonLabel": "Direct the video",
     "inputs": [
+      {
+        "label": "Direct model",
+        "kind": "model"
+      },
+      {
+        "label": "Direct model",
+        "kind": "model"
+      },
+      {
+        "label": "Direct model",
+        "kind": "model"
+      },
       {
         "label": "Logline",
         "kind": "text"
@@ -979,7 +1373,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "video"
       }
     ],
-    "widgetCount": 13
+    "widgetCount": 17
   },
   {
     "route": "/apps/photo-studio",
@@ -992,7 +1386,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Photo Studio",
     "summary": "A live photo editor and a batch retoucher behind one surface. The single-photo grade is pure GPU filters, so it runs with no API key at all.",
     "featured": true,
-    "note": "✨ Enhance is GPU-only and needs no keys. Batch adds a FAL grading pass, so it needs a FAL key.",
+    "note": "✨ Enhance runs locally. Batch adds a cloud grading pass and is billed per image.",
     "workflows": [
       {
         "name": "Image Enhance",
@@ -1007,6 +1401,13 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/image-enhance",
     "screenshot": "/apps/photo-studio.png",
+    "outputExamples": [
+      {
+        "label": "Live Enhance Enhanced Image",
+        "kind": "image",
+        "path": "/apps/examples/photo-studio/live-enhance-enhanced-image.png"
+      }
+    ],
     "tags": [
       "batch processing",
       "example",
@@ -1043,6 +1444,10 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "number"
       },
       {
+        "label": "Batch model",
+        "kind": "model"
+      },
+      {
         "label": "Your photos",
         "kind": "image"
       },
@@ -1065,7 +1470,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       }
     ],
-    "widgetCount": 26
+    "widgetCount": 27
   },
   {
     "route": "/apps/product-launch-kit",
@@ -1078,7 +1483,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Product Launch Kit",
     "summary": "Stage a product photo into lifestyle mockups, then — deliberately, because it costs real money — turn the same photo into a launch video.",
     "featured": false,
-    "note": "💸 Mockups need OpenAI and FAL. The launch video runs on Veo and costs credits per run, so it has its own button.",
+    "note": "💸 Mockups and launch video use configured cloud models. Video generation is billed per run, so it has its own button.",
     "workflows": [
       {
         "name": "Product Mockup Generator",
@@ -1093,6 +1498,33 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/product-mockup-generator",
     "screenshot": "/apps/product-launch-kit.png",
+    "outputExamples": [
+      {
+        "label": "Live Mockup 1",
+        "kind": "image",
+        "path": "/apps/examples/product-launch-kit/live-mockup-1.png"
+      },
+      {
+        "label": "Live Mockup 2",
+        "kind": "image",
+        "path": "/apps/examples/product-launch-kit/live-mockup-2.png"
+      },
+      {
+        "label": "Live Mockup 3",
+        "kind": "image",
+        "path": "/apps/examples/product-launch-kit/live-mockup-3.png"
+      },
+      {
+        "label": "Live Mockup 4",
+        "kind": "image",
+        "path": "/apps/examples/product-launch-kit/live-mockup-4.png"
+      },
+      {
+        "label": "Live Mockup 5",
+        "kind": "image",
+        "path": "/apps/examples/product-launch-kit/live-mockup-5.png"
+      }
+    ],
     "tags": [
       "business",
       "data",
@@ -1106,6 +1538,22 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "One product photo in, mockups and a launch video out.",
     "buttonLabel": "Generate mockups",
     "inputs": [
+      {
+        "label": "Mockups model",
+        "kind": "model"
+      },
+      {
+        "label": "Mockups model",
+        "kind": "model"
+      },
+      {
+        "label": "Mockups model",
+        "kind": "model"
+      },
+      {
+        "label": "Mockups model",
+        "kind": "model"
+      },
       {
         "label": "Product photo",
         "kind": "image"
@@ -1125,6 +1573,14 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "How many scenes?",
         "kind": "number"
+      },
+      {
+        "label": "Launch video model",
+        "kind": "model"
+      },
+      {
+        "label": "Launch video model",
+        "kind": "model"
       },
       {
         "label": "Campaign brief",
@@ -1149,20 +1605,20 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "video"
       }
     ],
-    "widgetCount": 27
+    "widgetCount": 33
   },
   {
     "route": "/apps/product-reshoot",
     "title": "Product Reshoot — Free AI Mini App | NodeTool",
-    "description": "New setting, new light, or a clean cutout — without a reshoot.",
+    "description": "Relight the product. Change the set. Keep the product fixed.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "product-reshoot",
     "name": "Product Reshoot",
-    "summary": "One product photo, three treatments. Put it on a described set, relight it for a season, or strip the background to a real alpha channel for compositing.",
+    "summary": "Start with one product photo and make three production-ready passes: a new set, a seasonal relight, or a clean cutout for compositing.",
     "featured": true,
-    "note": "🔑 Needs a FAL key. Each treatment is one or two image calls.",
+    "note": "Choose a treatment, review the result, then reuse the same product reference for another pass.",
     "workflows": [
       {
         "name": "Put a Product on a Studio Backdrop",
@@ -1182,55 +1638,83 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/put-a-product-on-a-studio-backdrop",
     "screenshot": "/apps/product-reshoot.png",
+    "outputExamples": [
+      {
+        "label": "Live Backdrop Styled",
+        "kind": "image",
+        "path": "/apps/examples/product-reshoot/live-backdrop-styled.jpg"
+      },
+      {
+        "label": "Seasonal Relight",
+        "kind": "image",
+        "path": "/apps/examples/product-reshoot/seasonal-relight.jpg"
+      }
+    ],
     "tags": [
       "example",
       "image"
     ],
     "heading": "📦 Product Reshoot",
-    "tagline": "New setting, new light, or a clean cutout — without a reshoot.",
-    "buttonLabel": "Place it on the set",
+    "tagline": "Relight the product. Change the set. Keep the product fixed.",
+    "buttonLabel": "Render the new set",
     "inputs": [
       {
         "label": "Product photo",
         "kind": "image"
       },
       {
-        "label": "Setting",
+        "label": "Background removal model",
+        "kind": "model"
+      },
+      {
+        "label": "Scene model",
+        "kind": "model"
+      },
+      {
+        "label": "Scene direction",
         "kind": "choice"
       },
       {
-        "label": "Season and light",
+        "label": "Relight model",
+        "kind": "model"
+      },
+      {
+        "label": "Seasonal light",
         "kind": "choice"
+      },
+      {
+        "label": "Background removal model",
+        "kind": "model"
       }
     ],
     "outputs": [
       {
-        "label": "On the set",
+        "label": "Set treatment",
         "kind": "image"
       },
       {
-        "label": "Relit",
+        "label": "Seasonal relight",
         "kind": "image"
       },
       {
-        "label": "Cutout with alpha",
+        "label": "Transparent cutout",
         "kind": "image"
       }
     ],
-    "widgetCount": 28
+    "widgetCount": 38
   },
   {
     "route": "/apps/product-shot-video",
     "title": "Product Shot Video — Free AI Mini App | NodeTool",
-    "description": "A product photo becomes a hero loop or a turntable clip.",
+    "description": "Turn a product photo into a controlled moving shot.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "product-shot-video",
     "name": "Product Shot Video",
-    "summary": "Image-to-video keeps the product identical and adds only the camera move. Pick a motion for a looping ad, or spin a packshot into a turntable for the product page.",
+    "summary": "Keep the product reference fixed and choose one camera move for a looping ad or a turntable clip for the product page.",
     "featured": true,
-    "note": "🔑 The ad loop runs Kling on Kie and needs a KIE key. The turntable runs LTX on FAL and needs a FAL key. Both are billed per generation.",
+    "note": "Choose an ad loop or turntable model. Review the motion before exporting the shot.",
     "workflows": [
       {
         "name": "Ad Loop from a Product Photo",
@@ -1245,6 +1729,23 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/ad-loop-from-a-product-photo",
     "screenshot": "/apps/product-shot-video.png",
+    "outputExamples": [
+      {
+        "label": "Hero Loop",
+        "kind": "video",
+        "path": "/apps/examples/product-shot-video/hero-loop.mp4"
+      },
+      {
+        "label": "Live Loop Ad Loop",
+        "kind": "video",
+        "path": "/apps/examples/product-shot-video/live-loop-ad-loop.mp4"
+      },
+      {
+        "label": "Loop Ad Loop",
+        "kind": "video",
+        "path": "/apps/examples/product-shot-video/out-loop-ad-loop.mp4"
+      }
+    ],
     "tags": [
       "example",
       "image",
@@ -1252,33 +1753,41 @@ export const miniAppEntries: MiniAppEntry[] = [
       "video"
     ],
     "heading": "🎥 Product Shot Video",
-    "tagline": "A product photo becomes a hero loop or a turntable clip.",
-    "buttonLabel": "Make the loop",
+    "tagline": "Turn a product photo into a controlled moving shot.",
+    "buttonLabel": "Render the hero loop",
     "inputs": [
       {
         "label": "A clean product photo",
         "kind": "image"
       },
       {
+        "label": "Video model",
+        "kind": "model"
+      },
+      {
         "label": "Camera move",
         "kind": "choice"
       },
       {
-        "label": "Spin",
+        "label": "Video model",
+        "kind": "model"
+      },
+      {
+        "label": "Turntable direction",
         "kind": "choice"
       }
     ],
     "outputs": [
       {
-        "label": "Hero loop",
+        "label": "Rendered hero loop",
         "kind": "video"
       },
       {
-        "label": "Turntable clip",
+        "label": "Rendered turntable",
         "kind": "video"
       }
     ],
-    "widgetCount": 21
+    "widgetCount": 27
   },
   {
     "route": "/apps/research-desk",
@@ -1291,7 +1800,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Research Desk",
     "summary": "A research agent and a Hacker News reader both take the same topic and stream into their own panel.",
     "featured": true,
-    "note": "🔑 Needs an OpenAI key. Both briefings run in parallel from one button.",
+    "note": "Both briefings run in parallel from one button.",
     "workflows": [
       {
         "name": "Research Agent",
@@ -1306,6 +1815,14 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/research-agent",
     "screenshot": "/apps/research-desk.png",
+    "outputExamples": [
+      {
+        "label": "Live Brief Brief",
+        "kind": "text",
+        "path": "/apps/examples/research-desk/live-brief-brief.md",
+        "excerpt": "# On-Device Language Models\n\n## TL;DR\n\n- **Adopt on-device models selectively, not as a universal replacement for cloud inference.** Small models are now viable for bounded tasks such as classification, extraction, rewriting, summarization, offline assistance, and structured tool calls; larger or open-ended reasoning workloads will generally still need a cloud fallback.\n- **The main product benefits are availability, data locality, and predictable interaction latency.** However, “on device” does not automatically guarantee privacy: telemetry, model updates, logs, prompts, and fallback paths still require explicit controls.\n- **Quantization is central to deployment.** It reduces memory and can improve throughput, but accuracy and energy effects depend on the model, precision, hardware, and workload. Benchmark the exact model and device rather than relying on parameter count alone.[3][5]\n- **A practical architecture is hybrid:** run a compact model locally for routine or sensitive operations, route unsupported or high-value requests to a server, and make the routing policy observable and user-controllable.\n\n## Research questions\n\n1. What capabilities are realistic on current phones and edge devices?\n2. What hardware, memory, runtime, and model-format constraints determine feasibility?\n3. How do quantization and optimization affect quality, latency, memory, and energy?\n4. What product and operational risks should determine whether to adopt?\n\n## 1. Capability envelope\n\n### Small models are increasingly capable, but benchmark results need qualification\n\nMicrosoft’s Phi-3 technic"
+      }
+    ],
     "tags": [
       "agent",
       "analysis",
@@ -1322,6 +1839,14 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "One topic, two sources, two briefings side by side.",
     "buttonLabel": "Run the desk",
     "inputs": [
+      {
+        "label": "Brief model",
+        "kind": "model"
+      },
+      {
+        "label": "Pulse model",
+        "kind": "model"
+      },
       {
         "label": "Research topic",
         "kind": "text"
@@ -1341,20 +1866,20 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "text"
       }
     ],
-    "widgetCount": 18
+    "widgetCount": 20
   },
   {
     "route": "/apps/scene-builder",
     "title": "Scene Builder — Free AI Mini App | NodeTool",
-    "description": "See the look as a still, then bring it to life.",
+    "description": "Approve the frame, then animate the shot.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "scene-builder",
     "name": "Scene Builder",
-    "summary": "Describe a scene and get an editorial still first. When the frame is right, choose a camera move and animate that exact image — the second step preserves subject, framing and color.",
+    "summary": "Describe a scene, review the editorial still, then animate that exact frame so the subject, framing, and color carry into the moving shot.",
     "featured": true,
-    "note": "🔑 Needs a FAL key. The still is one FLUX call, the motion one LTX call.",
+    "note": "Approve the still before you render the moving shot.",
     "workflows": [
       {
         "name": "Editorial Still from a Line",
@@ -1369,39 +1894,69 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/editorial-still-from-a-line",
     "screenshot": "/apps/scene-builder.png",
+    "outputExamples": [
+      {
+        "label": "Approved Still",
+        "kind": "image",
+        "path": "/apps/examples/scene-builder/approved-still.jpg"
+      },
+      {
+        "label": "Live Look Picture",
+        "kind": "image",
+        "path": "/apps/examples/scene-builder/live-look-picture.jpg"
+      },
+      {
+        "label": "Moving Shot",
+        "kind": "video",
+        "path": "/apps/examples/scene-builder/moving-shot.mp4"
+      },
+      {
+        "label": "Still",
+        "kind": "image",
+        "path": "/apps/examples/scene-builder/out-still.jpg"
+      }
+    ],
     "tags": [
       "example",
       "image",
       "video"
     ],
     "heading": "🎞️ Scene Builder",
-    "tagline": "See the look as a still, then bring it to life.",
-    "buttonLabel": "Show me the look",
+    "tagline": "Approve the frame, then animate the shot.",
+    "buttonLabel": "Render the still",
     "inputs": [
       {
-        "label": "Describe the scene",
+        "label": "Image model",
+        "kind": "model"
+      },
+      {
+        "label": "Scene brief",
         "kind": "text"
       },
       {
-        "label": "Camera move",
+        "label": "Video model",
+        "kind": "model"
+      },
+      {
+        "label": "Shot direction",
         "kind": "choice"
       },
       {
-        "label": "Seconds",
+        "label": "Shot length",
         "kind": "number"
       }
     ],
     "outputs": [
       {
-        "label": "The still",
+        "label": "Approved still",
         "kind": "image"
       },
       {
-        "label": "The moving shot",
+        "label": "Moving shot",
         "kind": "video"
       }
     ],
-    "widgetCount": 20
+    "widgetCount": 26
   },
   {
     "route": "/apps/sku-factory",
@@ -1414,7 +1969,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "SKU Factory",
     "summary": "The E-commerce SKU Visual Factory chain behind one surface. Drop a product photo once and the cutout, the studio scene, the seasonal relight and the listing copy all read the same image; motion and print resolution stay on their own buttons because they cost more.",
     "featured": false,
-    "note": "🔑 Needs a FAL key for the image steps and an OpenAI key for the listing. The turntable is a video model and is metered per second.",
+    "note": "Image and listing steps use configured models. The turntable is metered per second of video.",
     "workflows": [
       {
         "name": "Cut a Product Out of Its Background",
@@ -1449,6 +2004,13 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/cut-a-product-out-of-its-background",
     "screenshot": null,
+    "outputExamples": [
+      {
+        "label": "Live Cutout Cutout",
+        "kind": "image",
+        "path": "/apps/examples/sku-factory/live-cutout-cutout.png"
+      }
+    ],
     "tags": [
       "example",
       "image",
@@ -1459,6 +2021,26 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "One packshot in, the whole channel set out.",
     "buttonLabel": "Make the still set",
     "inputs": [
+      {
+        "label": "Studio scene model",
+        "kind": "model"
+      },
+      {
+        "label": "Studio scene model",
+        "kind": "model"
+      },
+      {
+        "label": "Seasonal relight model",
+        "kind": "model"
+      },
+      {
+        "label": "Listing model",
+        "kind": "model"
+      },
+      {
+        "label": "Cutout model",
+        "kind": "model"
+      },
       {
         "label": "Your packshot",
         "kind": "image"
@@ -1474,6 +2056,14 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "The light to put on it",
         "kind": "text"
+      },
+      {
+        "label": "Turntable model",
+        "kind": "model"
+      },
+      {
+        "label": "Print master model",
+        "kind": "model"
       },
       {
         "label": "Camera move",
@@ -1514,7 +2104,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       }
     ],
-    "widgetCount": 35
+    "widgetCount": 42
   },
   {
     "route": "/apps/study-buddy",
@@ -1527,7 +2117,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Study Buddy",
     "summary": "Structured data an app renders better than a graph does: the cards land in a table, the explanation beside them.",
     "featured": false,
-    "note": "🔑 Needs an OpenAI key. Your topic persists between sessions.",
+    "note": "Your topic persists between sessions.",
     "workflows": [
       {
         "name": "Flashcard Generator",
@@ -1542,6 +2132,26 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/flashcard-generator",
     "screenshot": "/apps/study-buddy.png",
+    "outputExamples": [
+      {
+        "label": "Live Cards Flashcards",
+        "kind": "data",
+        "path": "/apps/examples/study-buddy/live-cards-flashcards.json",
+        "excerpt": "{\n  \"rows\": [\n    {\n      \"front\": \"What is a Python list?\",\n      \"back\": \"A list is an ordered collection that can hold multiple values. Lists can be changed after creation.\",\n      \"category\": \"Lists\"\n    },\n    {\n      \"front\": \"What is a Python tuple?\",\n      \"back\": \"A tuple is an ordered collection that cannot be changed after creation. It is useful for storing fixed groups of values.\",\n      \"category\": \"Tuples\"\n    },\n    {\n      \"front\": \"What is a Python dictionary?\",\n      \"back\": \"A dictionary stores pairs of keys and values. You use a key to look up its related value.\",\n      \"category\": \"Dictionaries\"\n    },\n    {\n      \"front\": \"What is a Python set?\",\n      \"back\": \"A set is a collection of unique values with no guaranteed order. It automatically removes duplicate values.\",\n      \"category\": \"Sets\"\n    },\n    {\n      \"front\": \"How do you access an item in a list?\",\n      \"back\": \"Use its index inside square brackets, such as numbers[0]. Python starts counting list positions at zero.\",\n      \"category\": \"List Indexing\"\n    }\n  ],\n  \"columns\": [\n    {\n      \"name\": \"front\"\n    },\n    {\n      \"name\": \"back\"\n    },\n    {\n      \"name\": \"category\"\n    }\n  ],\n  \"data\": [\n    [\n      \"What is a Python list?\",\n      \"A list is an ordered collection that can hold multiple values. Lists can be changed after creation.\",\n      \"Lists\"\n    ],\n    [\n      \"What is a Python tuple?\",\n      \"A tuple is an ordered collection that cannot be changed after creation. It is useful for storing fixed groups of values.\",\n      \"Tuples\"\n    ],\n    [\n      \"What is a Python dictionary?"
+      },
+      {
+        "label": "Live Cards Study Plan",
+        "kind": "data",
+        "path": "/apps/examples/study-buddy/live-cards-study-plan.json",
+        "excerpt": "[\n  {\n    \"position\": 1,\n    \"front\": \"What is a Python list?\",\n    \"back\": \"A list is an ordered collection that can hold multiple values. Lists can be changed after creation.\",\n    \"category\": \"Lists\",\n    \"review_after_days\": [\n      0,\n      2,\n      5\n    ]\n  },\n  {\n    \"position\": 2,\n    \"front\": \"What is a Python tuple?\",\n    \"back\": \"A tuple is an ordered collection that cannot be changed after creation. It is useful for storing fixed groups of values.\",\n    \"category\": \"Tuples\",\n    \"review_after_days\": [\n      0,\n      2,\n      5\n    ]\n  },\n  {\n    \"position\": 3,\n    \"front\": \"What is a Python dictionary?\",\n    \"back\": \"A dictionary stores pairs of keys and values. You use a key to look up its related value.\",\n    \"category\": \"Dictionaries\",\n    \"review_after_days\": [\n      0,\n      2,\n      5\n    ]\n  },\n  {\n    \"position\": 4,\n    \"front\": \"What is a Python set?\",\n    \"back\": \"A set is a collection of unique values with no guaranteed order. It automatically removes duplicate values.\",\n    \"category\": \"Sets\",\n    \"review_after_days\": [\n      0,\n      2,\n      5\n    ]\n  },\n  {\n    \"position\": 5,\n    \"front\": \"How do you access an item in a list?\",\n    \"back\": \"Use its index inside square brackets, such as numbers[0]. Python starts counting list positions at zero.\",\n    \"category\": \"List Indexing\",\n    \"review_after_days\": [\n      0,\n      2,\n      5\n    ]\n  }\n]"
+      },
+      {
+        "label": "Cards Flashcards",
+        "kind": "data",
+        "path": "/apps/examples/study-buddy/out-cards-flashcards.json",
+        "excerpt": "{\n  \"rows\": [\n    {\n      \"front\": \"What is a Python list?\",\n      \"back\": \"A list is an ordered collection that can hold multiple values. You can change its contents after creating it.\",\n      \"category\": \"Lists\"\n    },\n    {\n      \"front\": \"What is a Python tuple?\",\n      \"back\": \"A tuple is an ordered collection that cannot be changed after it is created. It is useful for values that should stay fixed.\",\n      \"category\": \"Tuples\"\n    },\n    {\n      \"front\": \"What is a Python dictionary?\",\n      \"back\": \"A dictionary stores values using unique keys, such as storing a person's age under the key \",\n      \"category\": \"age\"\n    },\n    {\n      \"front\": \"What is a Python set?\",\n      \"back\": \"A set is a collection of unique values with no guaranteed order. It automatically removes duplicate values.\",\n      \"category\": \"Sets\"\n    },\n    {\n      \"front\": \"How do you access an item in a list?\",\n      \"back\": \"Use its index inside square brackets, such as `colors[0]` for the first item. Python starts counting list indexes at 0.\",\n      \"category\": \"List Indexing\"\n    }\n  ],\n  \"columns\": [\n    {\n      \"name\": \"front\"\n    },\n    {\n      \"name\": \"back\"\n    },\n    {\n      \"name\": \"category\"\n    }\n  ],\n  \"data\": [\n    [\n      \"What is a Python list?\",\n      \"A list is an ordered collection that can hold multiple values. You can change its contents after creating it.\",\n      \"Lists\"\n    ],\n    [\n      \"What is a Python tuple?\",\n      \"A tuple is an ordered collection that cannot be changed after it is created. It is useful for values that should stay fixed.\",\n      \"Tuples\"\n    ],\n    ["
+      }
+    ],
     "tags": [
       "ai",
       "beginner",
@@ -1558,6 +2168,14 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "A deck of flashcards and the concept behind it, side by side.",
     "buttonLabel": "Make flashcards",
     "inputs": [
+      {
+        "label": "Cards model",
+        "kind": "model"
+      },
+      {
+        "label": "Explain model",
+        "kind": "model"
+      },
       {
         "label": "Study topic",
         "kind": "text"
@@ -1581,7 +2199,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "text"
       }
     ],
-    "widgetCount": 16
+    "widgetCount": 18
   },
   {
     "route": "/apps/trailer-room",
@@ -1619,6 +2237,20 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/trailer-beats-from-a-premise",
     "screenshot": null,
+    "outputExamples": [
+      {
+        "label": "Live Beats Beats",
+        "kind": "text",
+        "path": "/apps/examples/trailer-room/live-beats-beats.md",
+        "excerpt": "- **Hook — 5 sec:** A getaway driver races onto a suspension bridge as the roadway violently collapses behind her, cutting off every escape route.  \n- **Setup — 7 sec:** Flashbacks reveal she’s carrying a mysterious passenger—and the police, helicopters, and a ticking dashboard timer are closing in.  \n- **Escalation — 10 sec:** Sections of the bridge plunge into the river while traffic crashes around her, forcing her to leap gaps and drive against oncoming lanes.  \n- **Turn — 5 sec:** Her passenger reveals the collapse was deliberate—and the final explosives are planted beneath the bridge ahead of them.  \n- **Title Card — 3 sec:** **THE LAST CROSSING**."
+      },
+      {
+        "label": "Beats Beats",
+        "kind": "text",
+        "path": "/apps/examples/trailer-room/out-beats-beats.md",
+        "excerpt": "1. **Hook — 0:00–0:08 (8 sec):** A getaway driver tears onto a bridge as explosions ripple behind her and the roadway begins collapsing section by section.  \n2. **Setup — 0:08–0:20 (12 sec):** Flash cuts reveal the heist, her trapped passenger, and a warning over the radio: “Do not stop. They’re waiting on the other side.”  \n3. **Escalation — 0:20–0:38 (18 sec):** Concrete drops into the river, pursuing helicopters close in, and the driver races across widening gaps while her passenger reveals the stolen case is still ticking.  \n4. **Turn — 0:38–0:52 (14 sec):** She reaches the far side—only to discover the bridge was destroyed from both ends, and the passenger has been directing her into a trap.  \n5. **Title Card — 0:52–1:00 (8 sec):** As the car launches toward the final collapsing span, the title slams on screen: **NO EXIT**."
+      }
+    ],
     "tags": [
       "ai",
       "audio",
@@ -1637,12 +2269,36 @@ export const miniAppEntries: MiniAppEntry[] = [
     "buttonLabel": "Write the beats",
     "inputs": [
       {
+        "label": "Beats model",
+        "kind": "model"
+      },
+      {
+        "label": "Shots model",
+        "kind": "model"
+      },
+      {
         "label": "Your trailer in one line",
         "kind": "text"
       },
       {
         "label": "Synopsis to break into shots",
         "kind": "text"
+      },
+      {
+        "label": "Shoot model",
+        "kind": "model"
+      },
+      {
+        "label": "Shoot model",
+        "kind": "model"
+      },
+      {
+        "label": "Shoot model",
+        "kind": "model"
+      },
+      {
+        "label": "Score model",
+        "kind": "model"
       },
       {
         "label": "Visual style",
@@ -1675,20 +2331,20 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "video"
       }
     ],
-    "widgetCount": 31
+    "widgetCount": 37
   },
   {
     "route": "/apps/ugc-product-video",
     "title": "UGC Product Video — Free AI Mini App | NodeTool",
-    "description": "One take. Native voice. A polished social finish.",
+    "description": "Build a testimonial, then finish it for social.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "ugc-product-video",
     "name": "UGC Product Video",
-    "summary": "Create a native-audio testimonial with a compatible reference-to-video model, then add word-timed captions, restrained motion graphics, and an exact branded close.",
+    "summary": "Choose the promise, generate a native-audio testimonial, then turn the spoken words into reviewable captions, restrained motion graphics, and a branded close.",
     "featured": true,
-    "note": "Writing and caption transcription use OpenAI. Choose a compatible native-audio video model. The featured example uses a supplied Dreamina recording with a custom local animation finish.",
+    "note": "The featured example is a live NodeTool testimonial run. Configure compatible writing, transcription, and native-audio video models to rerun it.",
     "workflows": [
       {
         "name": "Ad Copy in Three Registers",
@@ -1709,6 +2365,70 @@ export const miniAppEntries: MiniAppEntry[] = [
     "templateRoute": "/templates/ad-copy-in-three-registers",
     "productionRecipeSlug": "ugc-product-video",
     "screenshot": "/apps/ugc-product-video.png",
+    "outputExamples": [
+      {
+        "label": "Creator",
+        "kind": "video",
+        "path": "/apps/examples/ugc-product-video/creator.mp4"
+      },
+      {
+        "label": "Final Poster",
+        "kind": "image",
+        "path": "/apps/examples/ugc-product-video/final-poster.jpg"
+      },
+      {
+        "label": "Final",
+        "kind": "video",
+        "path": "/apps/examples/ugc-product-video/final.mp4"
+      },
+      {
+        "label": "Hook Master",
+        "kind": "image",
+        "path": "/apps/examples/ugc-product-video/hook-master.png"
+      },
+      {
+        "label": "Hook",
+        "kind": "video",
+        "path": "/apps/examples/ugc-product-video/hook.mp4"
+      },
+      {
+        "label": "Live Copy Variants",
+        "kind": "text",
+        "path": "/apps/examples/ugc-product-video/live-copy-variants.md",
+        "excerpt": "**Plain**  \nStart your day with the Olive Travel Cup, featuring a matte muted-olive finish and secure charcoal lid. Designed for calm, convenient mornings, it keeps your favorite drink close while adding understated style to your daily routine—at home, on your commute, or beyond.\n\n**Playful**  \nMeet your morning’s new sidekick: the Olive Travel Cup. With a soothing muted-olive body and a charcoal lid, it brings good vibes wherever coffee, tea, or cocoa goes. Sip, stroll, and let your routine feel a little more relaxed—and a lot more stylish.\n\n**Premium**  \nRefine your daily ritual with the Olive Travel Cup. Its matte muted-olive finish creates a quietly sophisticated look, complemented by a sleek charcoal lid. Thoughtfully styled for life in motion, it brings composed design and effortless elegance to every morning commute and coffee break."
+      },
+      {
+        "label": "Motion Caption",
+        "kind": "image",
+        "path": "/apps/examples/ugc-product-video/motion-caption.jpg"
+      },
+      {
+        "label": "Motion Close",
+        "kind": "image",
+        "path": "/apps/examples/ugc-product-video/motion-close.jpg"
+      },
+      {
+        "label": "Copy Variants",
+        "kind": "text",
+        "path": "/apps/examples/ugc-product-video/out-copy-variants.md",
+        "excerpt": "### Plain  \nMeet the Olive Travel Cup: a matte, muted-olive cup with a charcoal lid, designed to make your morning routine feel calmer. Take your coffee, tea, or favorite drink on the go in understated style that fits effortlessly into everyday life.\n\n### Playful  \nYour morning just found its mellow mood. The Olive Travel Cup pairs a soothing muted-olive finish with a charcoal lid, bringing calm to every coffee run, tea break, and commute. Sip happily, travel lightly, and leave frantic mornings behind.\n\n### Premium  \nElevate your daily ritual with the Olive Travel Cup. Its refined matte, muted-olive finish is complemented by a sleek charcoal lid, creating a quietly sophisticated companion for coffee, tea, and everything in between—from your first sip to the last."
+      },
+      {
+        "label": "Proof",
+        "kind": "video",
+        "path": "/apps/examples/ugc-product-video/proof.mp4"
+      },
+      {
+        "label": "Verdict Master",
+        "kind": "image",
+        "path": "/apps/examples/ugc-product-video/verdict-master.png"
+      },
+      {
+        "label": "Verdict",
+        "kind": "video",
+        "path": "/apps/examples/ugc-product-video/verdict.mp4"
+      }
+    ],
     "tags": [
       "captions",
       "example",
@@ -1720,12 +2440,16 @@ export const miniAppEntries: MiniAppEntry[] = [
       "video"
     ],
     "heading": "🤳 UGC Product Video",
-    "tagline": "One take. Native voice. A polished social finish.",
-    "buttonLabel": "Explore three angles",
+    "tagline": "Build a testimonial, then finish it for social.",
+    "buttonLabel": "Write three angles",
     "inputs": [
       {
-        "label": "What are you selling?",
+        "label": "Offer or product brief",
         "kind": "text"
+      },
+      {
+        "label": "Writing model",
+        "kind": "model"
       },
       {
         "label": "Vertical creator image",
@@ -1736,7 +2460,11 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       },
       {
-        "label": "Complete 15-second script",
+        "label": "Video model",
+        "kind": "model"
+      },
+      {
+        "label": "15-second creator script",
         "kind": "text"
       },
       {
@@ -1770,7 +2498,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "video"
       }
     ],
-    "widgetCount": 39
+    "widgetCount": 40
   },
   {
     "route": "/apps/upscale-image",
@@ -1783,7 +2511,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Upscale Image",
     "summary": "Two upscalers behind one drop zone. ESRGAN reconstructs the detail that is there, which is what you want for a photo. Clarity invents plausible detail, which is what you want when the source is small.",
     "featured": false,
-    "note": "🔑 Needs a FAL key. One call per upscale.",
+    "note": "One billed generation per upscale.",
     "workflows": [
       {
         "name": "Upscale a Still",
@@ -1798,6 +2526,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/upscale-a-still",
     "screenshot": "/apps/upscale-image.png",
+    "outputExamples": [],
     "tags": [
       "example",
       "image"
@@ -1807,12 +2536,24 @@ export const miniAppEntries: MiniAppEntry[] = [
     "buttonLabel": "Upscale (ESRGAN)",
     "inputs": [
       {
+        "label": "Faithful model",
+        "kind": "model"
+      },
+      {
         "label": "The image to enlarge",
         "kind": "image"
       },
       {
         "label": "Scale",
         "kind": "number"
+      },
+      {
+        "label": "Clarity model",
+        "kind": "model"
+      },
+      {
+        "label": "The image to enlarge",
+        "kind": "image"
       },
       {
         "label": "Scale",
@@ -1829,7 +2570,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       }
     ],
-    "widgetCount": 21
+    "widgetCount": 23
   },
   {
     "route": "/apps/vary-image",
@@ -1842,7 +2583,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Vary Image",
     "summary": "Pick what should change: lighting, background, pose, palette, camera angle. An edit model alters only that, and composition and subject survive because it edits in place instead of regenerating.",
     "featured": true,
-    "note": "🔑 Needs a FAL key (Nano Banana edit). Billed per image.",
+    "note": "Image editing is billed per generated image.",
     "workflows": [
       {
         "name": "Edit a Still with Words",
@@ -1852,6 +2593,13 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/edit-a-still-with-words",
     "screenshot": "/apps/vary-image.png",
+    "outputExamples": [
+      {
+        "label": "Live Edit Edited",
+        "kind": "image",
+        "path": "/apps/examples/vary-image/live-edit-edited.jpg"
+      }
+    ],
     "tags": [
       "example",
       "image"
@@ -1860,6 +2608,10 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "Change one thing about a photo and keep the rest.",
     "buttonLabel": "Vary the image",
     "inputs": [
+      {
+        "label": "Edit model",
+        "kind": "model"
+      },
       {
         "label": "Your image",
         "kind": "image"
@@ -1879,7 +2631,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "image"
       }
     ],
-    "widgetCount": 13
+    "widgetCount": 14
   },
   {
     "route": "/apps/vertical-cut",
@@ -1907,6 +2659,13 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/cut-a-landscape-clip-for-vertical",
     "screenshot": "/apps/vertical-cut.png",
+    "outputExamples": [
+      {
+        "label": "Live Vertical Video",
+        "kind": "video",
+        "path": "/apps/examples/vertical-cut/live-vertical-video.mp4"
+      }
+    ],
     "tags": [
       "example",
       "image",
@@ -1949,7 +2708,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Video Restyle",
     "summary": "Upload footage, name the look and what must survive, and a video-to-video model applies the style while the motion stays put.",
     "featured": false,
-    "note": "🔑 Needs a Replicate key (Lucy Edit 2). Billed per clip.",
+    "note": "Video restyling is billed per clip.",
     "workflows": [
       {
         "name": "Video Restyle Studio",
@@ -1959,6 +2718,13 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/video-restyle-studio",
     "screenshot": "/apps/video-restyle.png",
+    "outputExamples": [
+      {
+        "label": "Live Restyled Video",
+        "kind": "video",
+        "path": "/apps/examples/video-restyle/live-restyled-video.mp4"
+      }
+    ],
     "tags": [
       "design",
       "example",
@@ -1968,6 +2734,10 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "Repaint a clip in a new style while its motion stays put.",
     "buttonLabel": "Restyle the clip",
     "inputs": [
+      {
+        "label": "Restyle model",
+        "kind": "model"
+      },
       {
         "label": "The clip",
         "kind": "video"
@@ -1987,7 +2757,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "video"
       }
     ],
-    "widgetCount": 13
+    "widgetCount": 14
   },
   {
     "route": "/apps/viral-ad-engine",
@@ -2000,7 +2770,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "name": "Viral Ad Engine",
     "summary": "The Viral Video Ad Engine chain behind one surface. The offer drives both the copy registers and the hook-and-thumbnail set, so the line you pick and the thumbnails you test come from the same brief.",
     "featured": false,
-    "note": "🔑 Needs an OpenAI key for the writing and a FAL key for the thumbnails. The ad loop is a video model; the vertical cut runs locally.",
+    "note": "Writing and thumbnails use configured models. The ad loop generates video; the vertical cut runs locally.",
     "workflows": [
       {
         "name": "Ad Copy in Three Registers",
@@ -2025,6 +2795,20 @@ export const miniAppEntries: MiniAppEntry[] = [
     ],
     "templateRoute": "/templates/ad-copy-in-three-registers",
     "screenshot": null,
+    "outputExamples": [
+      {
+        "label": "Live Copy Variants",
+        "kind": "text",
+        "path": "/apps/examples/viral-ad-engine/live-copy-variants.md",
+        "excerpt": "**Plain**  \nMeet Aurora Trail running shoes, launching Friday. They’re one-third lighter than last season, helping you move with less effort, while reliable grip keeps you steady on wet rock. Get ready for your next trail run with a lighter, more confident step.\n\n**Playful**  \nWet rock? No big deal. Aurora Trail running shoes are back Friday, now one-third lighter than last season and ready to stick with you when the trail gets slippery. Lace up, head out, and let your feet chase the adventure.\n\n**Premium**  \nIntroducing Aurora Trail, launching Friday. Refined to be one-third lighter than last season, these performance running shoes pair effortless movement with grip engineered to hold on wet rock. Step into a more capable trail experience, designed for confidence wherever the route leads."
+      },
+      {
+        "label": "Copy Variants",
+        "kind": "text",
+        "path": "/apps/examples/viral-ad-engine/out-copy-variants.md",
+        "excerpt": "**Plain**  \nMeet the Aurora Trail running shoes, now one-third lighter than last season. Their dependable grip helps you stay sure-footed on wet rock, mile after mile. Launching Friday—get ready to take on the trail with less weight and more confidence.\n\n**Playful**  \nThe trail just got lighter. Aurora Trail running shoes are one-third lighter than last season, with grip that hangs tough on wet rock. Mud, rain, slippery climbs? Bring them on. Aurora Trail launches Friday—your next adventure is already lacing up.\n\n**Premium**  \nIntroducing Aurora Trail: a refined running shoe engineered to feel one-third lighter than last season, with confident grip on wet rock. Designed for sure-footed movement wherever the trail leads. Aurora Trail launches Friday. Elevate every run from the very first step."
+      }
+    ],
     "tags": [
       "content",
       "example",
@@ -2039,6 +2823,18 @@ export const miniAppEntries: MiniAppEntry[] = [
     "buttonLabel": "Write it and fan it out",
     "inputs": [
       {
+        "label": "Hooks model",
+        "kind": "model"
+      },
+      {
+        "label": "Hooks model",
+        "kind": "model"
+      },
+      {
+        "label": "Copy model",
+        "kind": "model"
+      },
+      {
         "label": "What are you advertising?",
         "kind": "text"
       },
@@ -2049,6 +2845,10 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "How many hooks",
         "kind": "number"
+      },
+      {
+        "label": "Ad loop model",
+        "kind": "model"
       },
       {
         "label": "Product photo",
@@ -2085,6 +2885,6 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "video"
       }
     ],
-    "widgetCount": 33
+    "widgetCount": 37
   }
 ];

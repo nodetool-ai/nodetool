@@ -363,6 +363,32 @@ describe("atlasPoll", () => {
     expect(calls).toBe(3);
   });
 
+  it("tolerates transient 404s while a prediction is being registered", async () => {
+    let calls = 0;
+    global.fetch = vi.fn(async () => {
+      calls++;
+      if (calls < 3) {
+        return {
+          ok: false,
+          status: 404,
+          headers: new Headers(),
+          text: async () => JSON.stringify({ code: 404, msg: "not found" })
+        } as Response;
+      }
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        text: async () =>
+          JSON.stringify({ data: { status: "completed", outputs: ["u"] } })
+      } as Response;
+    }) as unknown as typeof fetch;
+
+    const out = await atlasPoll("k", "p", { pollInterval: 0, maxAttempts: 5 });
+    expect(out.status).toBe("completed");
+    expect(calls).toBe(3);
+  });
+
   it("recognizes alternative terminal success words (complete / done)", async () => {
     for (const status of ["complete", "done"]) {
       global.fetch = vi.fn(async () => {

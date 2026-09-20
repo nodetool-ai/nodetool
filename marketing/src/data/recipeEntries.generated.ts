@@ -264,7 +264,7 @@ export const recipeEntries: RecipeEntry[] = [
         "The picture follows the same creator and cup from home through travel, work, an outdoor pause, and an evening close.",
         "The supplied MP4 is 1440×2560, runs for 15.017 seconds, and contains H.264 video with AAC stereo audio."
       ],
-      "essentialLimitation": "Generated product details, lip-sync, factual claims, and caption words still need review before publishing.",
+      "essentialLimitation": "Generated creator performance, product details, lip-sync, factual claims, and caption words still need review before publishing.",
       "limitations": [
         "The Olive Travel Cup is a fictional demonstration product.",
         "The supplied MP4 does not include provider, model, or editable project metadata."

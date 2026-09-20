@@ -1,0 +1,67 @@
+{
+  "rows": [
+    {
+      "front": "What is a Python list?",
+      "back": "A list is an ordered collection that can hold multiple values. You can change its contents after creating it.",
+      "category": "Lists"
+    },
+    {
+      "front": "What is a Python tuple?",
+      "back": "A tuple is an ordered collection that cannot be changed after it is created. It is useful for values that should stay fixed.",
+      "category": "Tuples"
+    },
+    {
+      "front": "What is a Python dictionary?",
+      "back": "A dictionary stores values using unique keys, such as storing a person's age under the key ",
+      "category": "age"
+    },
+    {
+      "front": "What is a Python set?",
+      "back": "A set is a collection of unique values with no guaranteed order. It automatically removes duplicate values.",
+      "category": "Sets"
+    },
+    {
+      "front": "How do you access an item in a list?",
+      "back": "Use its index inside square brackets, such as `colors[0]` for the first item. Python starts counting list indexes at 0.",
+      "category": "List Indexing"
+    }
+  ],
+  "columns": [
+    {
+      "name": "front"
+    },
+    {
+      "name": "back"
+    },
+    {
+      "name": "category"
+    }
+  ],
+  "data": [
+    [
+      "What is a Python list?",
+      "A list is an ordered collection that can hold multiple values. You can change its contents after creating it.",
+      "Lists"
+    ],
+    [
+      "What is a Python tuple?",
+      "A tuple is an ordered collection that cannot be changed after it is created. It is useful for values that should stay fixed.",
+      "Tuples"
+    ],
+    [
+      "What is a Python dictionary?",
+      "A dictionary stores values using unique keys, such as storing a person's age under the key ",
+      "age"
+    ],
+    [
+      "What is a Python set?",
+      "A set is a collection of unique values with no guaranteed order. It automatically removes duplicate values.",
+      "Sets"
+    ],
+    [
+      "How do you access an item in a list?",
+      "Use its index inside square brackets, such as `colors[0]` for the first item. Python starts counting list indexes at 0.",
+      "List Indexing"
+    ]
+  ]
+}

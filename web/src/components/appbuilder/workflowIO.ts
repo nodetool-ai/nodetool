@@ -17,6 +17,16 @@ import {
 } from "./inputKinds";
 import { parseNodeUIProperties } from "../../stores/nodeUiDefaults";
 import { isNumber, isString } from "../../utils/typePredicates";
+import type {
+  ImageModelTask,
+  VideoModelTask
+} from "../../hooks/useModelsByProvider";
+
+export type WorkflowModelTask =
+  | ImageModelTask
+  | ImageModelTask[]
+  | VideoModelTask
+  | VideoModelTask[];
 
 export interface WorkflowInputIO {
   nodeId: string;
@@ -35,6 +45,8 @@ export interface WorkflowInputIO {
   /** SelectInput enum type name for type matching. */
   enumTypeName?: string;
   defaultValue?: unknown;
+  /** Capability required by a model picker bound to this input. */
+  task?: WorkflowModelTask;
 }
 
 export interface WorkflowOutputIO {

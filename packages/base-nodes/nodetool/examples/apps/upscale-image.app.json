@@ -28,25 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs a FAL key. One call per upscale."
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-your-image",
-            "title": "Your image",
-            "content": [
-              {
-                "type": "ImageInput",
-                "props": {
-                  "id": "in-picture",
-                  "binding": "var:picture",
-                  "label": "The image to enlarge",
-                  "events": []
-                }
-              }
-            ]
+            "text": "One billed generation per upscale."
           }
         },
         {
@@ -61,6 +43,26 @@
                   "id": "panel-faithful",
                   "title": "Faithful",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-faithful-up-model",
+                        "binding": "op:faithful/prop:up#model",
+                        "label": "Faithful model",
+                        "modelKind": "image_model",
+                        "task": "upscale",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-faithful-picture",
+                        "binding": "op:faithful/in:in",
+                        "label": "The image to enlarge",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Slider",
                       "props": {
@@ -147,6 +149,26 @@
                   "title": "Clarity",
                   "content": [
                     {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-clarity-up-model",
+                        "binding": "op:clarity/prop:up#model",
+                        "label": "Clarity model",
+                        "modelKind": "image_model",
+                        "task": "upscale",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-clarity-photo",
+                        "binding": "op:clarity/in:in",
+                        "label": "The image to enlarge",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Slider",
                       "props": {
                         "id": "slider-clarity-up-scale",
@@ -227,12 +249,7 @@
         "id": "faithful",
         "name": "Faithful",
         "workflowId": "faithful",
-        "inputs": {
-          "in": {
-            "from": "variable",
-            "variableId": "picture"
-          }
-        },
+        "inputs": {},
         "outputs": {},
         "policy": "replace"
       },
@@ -240,29 +257,13 @@
         "id": "clarity",
         "name": "Clarity",
         "workflowId": "clarity",
-        "inputs": {
-          "in": {
-            "from": "variable",
-            "variableId": "picture"
-          }
-        },
+        "inputs": {},
         "outputs": {},
         "policy": "replace"
       }
     ],
     "resources": [],
-    "variables": [
-      {
-        "id": "picture",
-        "name": "Your image",
-        "type": {
-          "type": "image",
-          "optional": true
-        },
-        "scope": "instance",
-        "persist": false
-      }
-    ]
+    "variables": []
   },
   "workflows": [
     {

@@ -20,7 +20,7 @@ export default function TemplateSampleFigure({ sample }: { sample: TemplateSampl
         >
           {[
             { src: sample.inputImage, label: "Input photo" },
-            { src: sample.image, label: "Result" },
+            { src: sample.image, label: "Output" },
           ].map(({ src, label }) => src && (
             <div key={label}>
               <p className="mb-3 text-sm font-medium text-slate-300">{label}</p>
@@ -38,13 +38,24 @@ export default function TemplateSampleFigure({ sample }: { sample: TemplateSampl
         </div>
       )}
       {sample.video && (
-        <video src={sample.video} poster={sample.poster} controls playsInline preload="metadata" className="max-h-[640px] w-full rounded-2xl border border-white/10 bg-slate-950" />
+        <div>
+          <p className="mb-3 text-sm font-medium text-slate-300">Output</p>
+          <video src={sample.video} poster={sample.poster} controls playsInline preload="metadata" className="max-h-[640px] w-full rounded-2xl border border-white/10 bg-slate-950" />
+        </div>
       )}
-      {sample.audio && <audio src={sample.audio} controls preload="metadata" className="w-full" />}
+      {sample.audio && (
+        <div>
+          <p className="mb-3 text-sm font-medium text-slate-300">Output</p>
+          <audio src={sample.audio} controls preload="metadata" className="w-full" />
+        </div>
+      )}
       {sample.text && (
-        <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-slate-900/60 p-6 text-sm leading-relaxed text-slate-200">
-          {sample.text}
-        </pre>
+        <div>
+          <p className="mb-3 text-sm font-medium text-slate-300">Output</p>
+          <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-slate-900/60 p-6 text-sm leading-relaxed text-slate-200">
+            {sample.text}
+          </pre>
+        </div>
       )}
       {(sample.caption || sample.credit) && <figcaption className="mt-4 text-sm leading-relaxed text-slate-400">
         {sample.caption}
