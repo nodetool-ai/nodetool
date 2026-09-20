@@ -24,6 +24,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { WorkflowRunner, Graph } from "@nodetool-ai/kernel";
@@ -32,6 +33,10 @@ import {
   createGraphNodeTypeResolver
 } from "@nodetool-ai/node-sdk";
 import { createFakeContext, stubGlobalFetch } from "@nodetool-ai/runtime";
+import {
+  resetDefaultStore,
+  resetDefaultVectorProvider
+} from "@nodetool-ai/vectorstore";
 import { registerBaseNodes } from "../src/index.js";
 
 // Nodes that bypass the ProcessingContext fetch indirection (e.g. SerpAPI
@@ -39,12 +44,29 @@ import { registerBaseNodes } from "../src/index.js";
 // duration of the suite so no real outbound HTTP happens even when those
 // nodes execute. Restored in afterAll.
 let restoreFetch: (() => void) | null = null;
+const originalVectorstoreDbPath = process.env.VECTORSTORE_DB_PATH;
+const vectorstoreTempDir = fs.mkdtempSync(
+  path.join(os.tmpdir(), "nodetool-example-vectorstore-")
+);
+process.env.VECTORSTORE_DB_PATH = path.join(
+  vectorstoreTempDir,
+  "vectorstore.db"
+);
+
 beforeAll(() => {
   restoreFetch = stubGlobalFetch();
 });
 afterAll(() => {
   restoreFetch?.();
   restoreFetch = null;
+  resetDefaultVectorProvider();
+  resetDefaultStore();
+  if (originalVectorstoreDbPath === undefined) {
+    delete process.env.VECTORSTORE_DB_PATH;
+  } else {
+    process.env.VECTORSTORE_DB_PATH = originalVectorstoreDbPath;
+  }
+  fs.rmSync(vectorstoreTempDir, { recursive: true, force: true });
 });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
