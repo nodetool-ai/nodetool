@@ -51,17 +51,18 @@ supported desktop platforms.
 Everything below the hero earns its place by advancing one of three claims, in
 this order of importance:
 
-1. **Every model, on your keys.** Abundance first, ownership in the same breath.
-   The model wall is the second thing on the page because breadth is the claim a
-   reader checks before any other, and because ours comes with a fact no hosted
-   platform can match: you pay the provider directly.
-2. **Agentic automation, and what it leaves behind.** Not chat that tells you
-   what to do, and not a render you cannot reopen. The agent does the heavy
-   lifting and hands back a multi-track project you can still edit. Show the
+1. **A brief becomes a working project, fast.** Not chat that tells you what to
+   do, and not a render you cannot reopen. The agent drafts, boards, renders,
+   and cuts, and hands back a multi-track project you can still edit. Show the
    board appearing, the line re-voiced, the cut updating.
-3. **One canvas, pitch through final cut.** Image, video, audio, text, plus the
-   editors — storyboard, timeline, sketch, script — so a piece never leaves the
-   studio to be finished.
+2. **You direct every detail of that project.** Storyboard, script, timeline,
+   sketch, and 3D over the same files, so the answer to "what do I control once
+   the agent has built something" arrives right after the agent does. The agent
+   works those same surfaces when you send it back in with a note.
+3. **Every model, on your keys.** Abundance and ownership in one breath, with a
+   fact no hosted platform can match: you pay the provider directly. It sits
+   under the agent story rather than in front of it, because a reader who meets
+   the model wall before they have seen the product reads us as a router.
 
 Provider lists, node counts, tool counts, and architecture belong under those
 claims, not next to them. On the homepage they are one strip of links to
@@ -69,22 +70,23 @@ claims, not next to them. On the homepage they are one strip of links to
 
 ## Order of the page
 
-Hero → **every model, your keys** → how teams are using it (the recipes, each a
-real run with its bundle) → the project one of those runs leaves behind → the
-three steps (Pitch / Automate / Direct) → the editors, framed as volume →
-**apps for everything** → ownership → **build the workflows that work for you**
-→ comparison → Studio vs Cloud → ways in → FAQ → community → download.
+Hero → **the agent builds the project** (a brief, then a board, takes, and a cut
+that opens) → the three steps (Pitch / Automate / Direct) → the editors, framed
+as control over that project → how teams are using it (the recipes, each a real
+run with its bundle) → **every model, your keys** → **apps for everything** →
+ownership → **build the workflows that work for you** → comparison → Studio vs
+Cloud → ways in → FAQ → community → download.
 
 Three rules produced that order:
 
-**Breadth before proof.** Models move from late on the page to directly under
-the hero. A reader who cannot find their model stops reading, and no amount of
-finished work later recovers them. It is the beat every leading page in this
-category puts second, and it was ours in tenth place.
+**The product before its parts.** The agent working inside a real project is the
+second beat, because it is the only one a hosted platform cannot copy sentence
+for sentence. Recipes, models, and apps read as evidence for that story once it
+has landed, and as a catalogue before it.
 
-**Results before the argument.** The recipes are the third beat because proof
-earns the argument, not the other way round: the work first, then what one run
-leaves behind, then how it is made.
+**Control answers velocity.** The editors follow the agent immediately, because
+the question the agent beat raises is what a reader can change afterwards. An
+answer held until the bottom of the page reads as a render that does not reopen.
 
 **Graphs last.** The node canvas is the power-user layer and is introduced as
 one, near the bottom, under its own heading — "Build the workflows that work for

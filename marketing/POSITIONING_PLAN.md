@@ -193,21 +193,25 @@ pins; that file wins when the two drift.
 
 1. **Hero** — "Open-source agent-first creative workspace" + the project
    reel + download CTA. The subhead carries the project-not-render claim.
-2. **The enemy** — the closed AI studio, once, briefly: their models, their
-   credits, their locked project.
-3. **The project the agent leaves behind** — four frames of one session.
-4. **Three steps** — Pitch / Automate / Direct, each visual a film frame.
-5. **The jobs** — the four recipes, each with its real run, the models it
-   calls, and its `.nodetool` bundle.
-6. **The five creative surfaces** — interactive tabs: Storyboard, Script &
-   Voice, Timeline, Sketch, 3D.
-7. **Ownership** — keys, project file, source. Local inference stays on
-   `/studio`.
-8. **BYOK calculator** — the one place cost is proven with numbers.
-9. **Comparison** — against the closed studios; ComfyUI on `/alternatives`.
-10. **Ways in** — Studio, Cloud (alpha), Developers, Marketing.
-11. **What is underneath** — one strip of links (app builder, node catalog,
-    asset and model managers), not ten sections.
+2. **The agent builds the project** — a brief, then the board, the takes, and
+   the cut, all of it still open, and the next note goes back to the agent.
+3. **Three steps** — Pitch / Automate / Direct, each visual a film frame.
+4. **The five creative surfaces** — interactive tabs (Storyboard, Script &
+   Voice, Timeline, Sketch, 3D), framed as what a director controls once the
+   agent has built something.
+5. **The jobs** — the recipes, each with its real run, the models it calls,
+   and its `.nodetool` bundle.
+6. **Models** — every major provider on your keys, under the agent story
+   rather than in front of it.
+7. **Apps** — one job, one tool, one screen.
+8. **Ownership** — keys, project file, source. Local inference stays on
+   `/studio`. The BYOK calculator is on `/pricing`.
+9. **What is underneath** — one strip of links (app builder, node catalog,
+   asset and model managers), not ten sections, under "build the workflows
+   that work for you".
+10. **Comparison** — open studio against hosted platform, as categories.
+11. **Studio vs Cloud**, then **ways in** — Studio, Cloud (alpha), Developers,
+    Marketing.
 12. **FAQ, community, final CTA + footer.**
 
 ### Hero section

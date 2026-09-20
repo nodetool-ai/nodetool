@@ -83,6 +83,7 @@ export default function UnderneathSection() {
             Build the workflows that work for you.
           </h2>
           <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
+            When a project comes out right, keep the process that made it.
             Chain models, editors, and code into a node graph you can re-run on
             new inputs, ship as an app, or drive headless from the CLI.
           </p>
