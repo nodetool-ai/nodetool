@@ -204,6 +204,69 @@ export default async function MiniAppPage({
 
         {productionRun && <RecipeProductionRun run={productionRun} />}
 
+        {entry.outputExamples.length > 0 && (
+          <section className="relative py-12">
+            <div className="mx-auto max-w-6xl px-6 lg:px-8">
+              <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
+                Output from a live run
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-400">
+                These files came from the app itself. Open or download the
+                result, then swap the model or inputs in NodeTool to make your
+                own version.
+              </p>
+              <div className="mt-8 grid gap-6 md:grid-cols-2">
+                {entry.outputExamples.map((output) => (
+                  <article
+                    key={output.path}
+                    className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40"
+                  >
+                    {output.kind === "image" && (
+                      <a href={output.path} download>
+                        <Image
+                          src={output.path}
+                          alt={`${entry.name}: ${output.label}`}
+                          width={1600}
+                          height={1000}
+                          className="h-auto w-full object-cover"
+                        />
+                      </a>
+                    )}
+                    {output.kind === "video" && (
+                      <video className="w-full" controls preload="metadata">
+                        <source src={output.path} />
+                      </video>
+                    )}
+                    {output.kind === "audio" && (
+                      <div className="p-6">
+                        <audio className="w-full" controls preload="metadata">
+                          <source src={output.path} />
+                        </audio>
+                      </div>
+                    )}
+                    {(output.kind === "text" || output.kind === "data") && (
+                      <pre className="max-h-96 overflow-auto whitespace-pre-wrap p-6 text-sm leading-relaxed text-slate-300">
+                        {output.excerpt}
+                      </pre>
+                    )}
+                    <div className="flex items-center justify-between gap-4 border-t border-white/10 px-5 py-4">
+                      <h3 className="font-semibold text-white">{output.label}</h3>
+                      <a
+                        href={output.path}
+                        download
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-sky-400 transition-colors hover:text-sky-300"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download
+                      </a>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* In / Out */}
         <section className="relative py-12">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">

@@ -31,6 +31,7 @@ import type {
 import {
   atlasAwaitResult,
   atlasDownload,
+  atlasUploadMedia,
   atlasSubmit,
   getApiKey,
   pickOutputUrl,
@@ -135,11 +136,7 @@ type AssetRef = {
 
 type StorageLike = {
   retrieve: (uri: string) => Promise<Uint8Array | null> | Uint8Array | null;
-  store?: (
-    key: string,
-    bytes: Uint8Array,
-    mime?: string
-  ) => Promise<string>;
+  store?: (key: string, bytes: Uint8Array, mime?: string) => Promise<string>;
 };
 
 type ProcessContext = Parameters<BaseNode["process"]>[0] & {
@@ -147,9 +144,7 @@ type ProcessContext = Parameters<BaseNode["process"]>[0] & {
   // Canonical asset resolver on ProcessingContext. Resolves asset://<id> and
   // package://<pkg>/<path> reference URIs that storage adapters return null for.
   // SSRF-safe — it performs no unguarded outbound fetches.
-  resolveAssetBytes?: (
-    uri: string
-  ) => Promise<{ bytes: Uint8Array | null }>;
+  resolveAssetBytes?: (uri: string) => Promise<{ bytes: Uint8Array | null }>;
 };
 
 /** The JSON body posted to AtlasCloud's submit endpoint. */
@@ -272,7 +267,8 @@ function ipv4ToOctets(host: string): [number, number, number, number] | null {
   }
   const tailOctets = 4 - (n - 1);
   const tail = nums[n - 1];
-  if (tail < 0 || tail > 0xffffffff || tail >= 2 ** (tailOctets * 8)) return null;
+  if (tail < 0 || tail > 0xffffffff || tail >= 2 ** (tailOctets * 8))
+    return null;
   let value = tail;
   for (let i = 0; i < n - 1; i++) {
     value += nums[i] * 256 ** (3 - i);
@@ -290,7 +286,9 @@ function mappedIpv4ToOctets(
   host: string
 ): [number, number, number, number] | null {
   // Dotted tail: ::ffff:127.0.0.1 or the deprecated compat form ::127.0.0.1
-  const dotted = /^::(?:ffff:)?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i.exec(host);
+  const dotted = /^::(?:ffff:)?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i.exec(
+    host
+  );
   if (dotted) return ipv4ToOctets(dotted[1]);
   // Hex tail: ::ffff:7f00:1
   const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i.exec(host);
@@ -535,6 +533,30 @@ export async function resolveAssetForAtlas(
   );
 }
 
+async function uploadVideoInput(
+  apiKey: string,
+  resolved: string
+): Promise<string> {
+  if (!resolved.startsWith("data:")) return resolved;
+  const match = /^data:([^;,]+);base64,(.+)$/s.exec(resolved);
+  if (!match) {
+    throw new Error(
+      "AtlasCloud video input must be a public URL or Base64 data URI"
+    );
+  }
+  const mimeType = match[1];
+  const encoded = match[2];
+  if (!mimeType || !encoded) {
+    throw new Error("AtlasCloud video input data URI is empty");
+  }
+  return atlasUploadMedia(
+    apiKey,
+    new Uint8Array(Buffer.from(encoded, "base64")),
+    mimeType,
+    "input-video"
+  );
+}
+
 /**
  * Coerce a UI-serialized value back to the type AtlasCloud's worker expects.
  * NodeTool serializes numeric dropdowns as strings; AtlasCloud rejects `"5"`
@@ -566,7 +588,9 @@ function coerceScalar(v: NodeValue, type: AtlasFieldType): NodeValue {
 }
 
 function computeFieldClassification(fields: AtlasFieldDef[]) {
-  return classifyFields(fields.map((f) => ({ name: f.name, propType: f.type })));
+  return classifyFields(
+    fields.map((f) => ({ name: f.name, propType: f.type }))
+  );
 }
 
 /** Whether an asset ref already points at a source (so a mention shouldn't fill it). */
@@ -671,10 +695,14 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
           const resolved =
             v == null ? null : await resolveAssetForAtlas(v, context, inner);
           if (resolved !== null) {
+            const inputUrl =
+              inner === "video"
+                ? await uploadVideoInput(apiKey, resolved)
+                : resolved;
             if (f.wrapInto) {
-              appendWrapped(input, f.wrapInto, [resolved], inner);
+              appendWrapped(input, f.wrapInto, [inputUrl], inner);
             } else {
-              input[f.name] = f.array ? [resolved] : resolved;
+              input[f.name] = f.array ? [inputUrl] : inputUrl;
             }
           } else if (f.required) {
             throw new Error(
@@ -693,7 +721,11 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
           const resolved: string[] = [];
           for (const item of v) {
             const r = await resolveAssetForAtlas(item, context, inner);
-            if (r !== null) resolved.push(r);
+            if (r !== null) {
+              resolved.push(
+                inner === "video" ? await uploadVideoInput(apiKey, r) : r
+              );
+            }
           }
           if (f.maxItems !== undefined && resolved.length > f.maxItems) {
             throw new Error(
@@ -782,7 +814,11 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
         input.output_format === "jpeg" || input.output_format === "webp"
           ? input.output_format
           : "png";
-      const ext = isVideo ? "mp4" : imageFormat === "jpeg" ? "jpg" : imageFormat;
+      const ext = isVideo
+        ? "mp4"
+        : imageFormat === "jpeg"
+          ? "jpg"
+          : imageFormat;
       const mime = isVideo ? "video/mp4" : `image/${imageFormat}`;
       const filename = `atlascloud-${specRef.outputType}-${Date.now()}.${ext}`;
 
@@ -856,7 +892,7 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
     const propDefault =
       field.default === null
         ? null
-        : field.default ?? defaultForPropType(field.type);
+        : (field.default ?? defaultForPropType(field.type));
     const propOptions: PropOptions = {
       type: field.type,
       default: propDefault

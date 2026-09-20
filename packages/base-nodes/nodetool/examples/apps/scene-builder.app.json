@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Requires a FAL key. Approve the still before you render the moving shot."
+            "text": "Approve the still before you render the moving shot."
           }
         },
         {

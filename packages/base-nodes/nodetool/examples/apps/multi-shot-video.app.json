@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "💸 Needs Gemini and KIE keys: Gemini writes the shots and animates them with Veo, KIE renders the keyframes with GPT Image. Every shot is one Veo call, metered per second of video, so start with a small shot count."
+            "text": "💸 Each shot generates a keyframe and a video clip. Video is metered by duration, so start with a small shot count."
           }
         },
         {
@@ -43,6 +43,36 @@
                   "id": "panel-the-brief",
                   "title": "The brief",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-trailer-director-model",
+                        "binding": "op:trailer/prop:director#model",
+                        "label": "Direct model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-trailer-keyframe-model",
+                        "binding": "op:trailer/prop:keyframe#model",
+                        "label": "Direct model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-trailer-animate-model",
+                        "binding": "op:trailer/prop:animate#model",
+                        "label": "Direct model",
+                        "modelKind": "video_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {
@@ -106,7 +136,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:trailer/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -126,6 +160,20 @@
                         "id": "progress-trailer",
                         "binding": "op:trailer/exec#progress",
                         "label": "Writing, rendering and cutting shots…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-trailer",
+                        "binding": "op:trailer/exec#error",
+                        "title": "Video production failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:trailer/exec#error",
+                          "op": "notEmpty"
+                        }
                       }
                     },
                     {
@@ -161,7 +209,8 @@
         "workflowId": "trailer",
         "inputs": {},
         "outputs": {},
-        "policy": "replace"
+        "policy": "replace",
+        "timeoutMs": 1200000
       }
     ],
     "resources": [],

@@ -24,6 +24,13 @@ interface MiniAppOutput {
   kind: string;
 }
 
+export interface MiniAppOutputExample {
+  label: string;
+  kind: "image" | "video" | "audio" | "text" | "data";
+  path: string;
+  excerpt?: string;
+}
+
 /** A workflow template the app binds, one per operation target. */
 interface MiniAppWorkflow {
   name: string;
@@ -50,6 +57,8 @@ export interface MiniAppEntry extends PageEntry {
   productionRecipeSlug?: string;
   /** Public path to the app screenshot (`/apps/<slug>.png`) or null. */
   screenshot: string | null;
+  /** Verified files collected from live app runs for the marketing page. */
+  outputExamples: MiniAppOutputExample[];
   tags: string[];
   /** The app's H1, straight from the app document (usually emoji-prefixed). */
   heading: string;

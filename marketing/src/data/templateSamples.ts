@@ -69,3 +69,12 @@ export const templateSamples: Record<string, TemplateSample> = {
     caption: "A generated presenter, revoiced with a coffee-shop script. Audio is levelled and faded before lip-sync.",
   },
 };
+
+/** Prefer a real workflow result for presentation, then fall back to card art. */
+export function templateThumbnail(
+  slug: string,
+  fallback: string | null,
+): string | null {
+  const sample = templateSamples[slug];
+  return sample?.image ?? sample?.poster ?? fallback;
+}

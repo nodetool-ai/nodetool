@@ -21,11 +21,19 @@ jest.mock("../../../properties/LanguageModelSelect", () => {
   };
   return {
     __esModule: true,
-    default: ({ value, onChange }: { value: string; onChange: (v: unknown) => void }) =>
+    default: ({
+      value,
+      provider,
+      onChange
+    }: {
+      value: string;
+      provider?: string;
+      onChange: (v: unknown) => void;
+    }) =>
       react.createElement(
         "button",
         { type: "button", onClick: () => onChange(model) },
-        `language_model:${value || "none"}`
+        `language_model:${provider || "none"}:${value || "none"}`
       )
   };
 });
@@ -73,7 +81,9 @@ describe("ModelSelectWidget", () => {
     const user = userEvent.setup();
     const runtime = renderWidget({ binding: MODEL_PROPERTY_BINDING });
 
-    await user.click(screen.getByRole("button", { name: "language_model:none" }));
+    await user.click(
+      screen.getByRole("button", { name: "language_model:none:none" })
+    );
 
     expect(
       runtime.store.getState().inputs[`${DEFAULT_OPERATION_ID}:n5#model`].value
@@ -83,6 +93,34 @@ describe("ModelSelectWidget", () => {
       provider: "openai",
       name: "gpt-5.4-mini"
     });
+  });
+
+  it("keeps the provider when model ids overlap", () => {
+    const runtime = makeTestRuntime({
+      inputs: {
+        [`${DEFAULT_OPERATION_ID}:n5#model`]: {
+          value: {
+            type: "language_model",
+            id: "gpt-5.6-luna",
+            provider: "codex",
+            name: "GPT-5.6-Luna"
+          }
+        }
+      }
+    });
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <runtime.wrapper>
+          <ModelSelectWidget id="m1" binding={MODEL_PROPERTY_BINDING} />
+        </runtime.wrapper>
+      </ThemeProvider>
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "language_model:codex:gpt-5.6-luna"
+      })
+    ).toBeInTheDocument();
   });
 
   it("renders the select for the chosen model kind", () => {
@@ -107,7 +145,9 @@ describe("ModelSelectWidget", () => {
     const user = userEvent.setup();
     const runtime = renderWidget({});
 
-    await user.click(screen.getByRole("button", { name: "language_model:none" }));
+    await user.click(
+      screen.getByRole("button", { name: "language_model:none:none" })
+    );
 
     expect(runtime.store.getState().view["m1:value"]).toEqual(
       expect.objectContaining({ id: "gpt-5.4-mini" })

@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Requires a KIE key for the ad loop or a FAL key for the turntable. Review the motion before exporting the shot."
+            "text": "Choose an ad loop or turntable model. Review the motion before exporting the shot."
           }
         },
         {

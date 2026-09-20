@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "✨ `Enhance` is GPU-only and needs no keys. `Batch` adds a FAL grading pass, so it needs a FAL key."
+            "text": "✨ `Enhance` runs locally. `Batch` adds a cloud grading pass and is billed per image."
           }
         },
         {
@@ -230,6 +230,16 @@
                   "id": "panel-a-whole-set",
                   "title": "A whole set",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-batch-3-model",
+                        "binding": "op:batch/prop:3#model",
+                        "label": "Batch model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "WorkflowInput",
                       "props": {

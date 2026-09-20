@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs a FAL key for the image steps and an OpenAI key for the listing. The turntable is a video model and is metered per second."
+            "text": "Image and listing steps use configured models. The turntable is metered per second of video."
           }
         },
         {
@@ -43,6 +43,57 @@
                   "id": "panel-the-still-set",
                   "title": "The still set",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-backdrop-bg-model",
+                        "binding": "op:backdrop/prop:bg#model",
+                        "label": "Studio scene model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-backdrop-comp-model",
+                        "binding": "op:backdrop/prop:comp#model",
+                        "label": "Studio scene model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-relight-rl-model",
+                        "binding": "op:relight/prop:rl#model",
+                        "label": "Seasonal relight model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-listing-ag-model",
+                        "binding": "op:listing/prop:ag#model",
+                        "label": "Listing model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-cutout-bg-model",
+                        "binding": "op:cutout/prop:bg#model",
+                        "label": "Cutout model",
+                        "modelKind": "image_model",
+                        "task": "remove_background",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "ImageInput",
                       "props": {
@@ -241,6 +292,26 @@
                   "id": "panel-motion-and-print",
                   "title": "Motion and print",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-turntable-v-model",
+                        "binding": "op:turntable/prop:v#model",
+                        "label": "Turntable model",
+                        "modelKind": "video_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-print-up-model",
+                        "binding": "op:print/prop:up#model",
+                        "label": "Print master model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Text",
                       "props": {
@@ -522,11 +593,13 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/bria/background/remove",
-                "name": "Bria Background Remove",
+                "provider": "atlascloud",
+                "id": "youchuan/v8.2/remove-background",
+                "name": "Youchuan v8.2 — Remove Background",
                 "path": null,
-                "supported_tasks": []
+                "supported_tasks": [
+                  "remove_background"
+                ]
               }
             },
             "ui_properties": {
@@ -1320,9 +1393,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "openai",
-                "id": "gpt-5-mini",
-                "name": "GPT-5 mini",
+                "provider": "codex",
+                "id": "gpt-5.6-luna",
+                "name": "GPT-5.6-Luna",
                 "path": null,
                 "supported_tasks": []
               },

@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Writing uses OpenAI. The hero render uses FAL and only runs after you approve the visual brief."
+            "text": "The hero render only runs after you approve the visual brief."
           }
         },
         {

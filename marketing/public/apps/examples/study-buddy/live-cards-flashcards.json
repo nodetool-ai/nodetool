@@ -1,0 +1,67 @@
+{
+  "rows": [
+    {
+      "front": "What is a Python list?",
+      "back": "A list is an ordered collection that can hold multiple values. Lists can be changed after creation.",
+      "category": "Lists"
+    },
+    {
+      "front": "What is a Python tuple?",
+      "back": "A tuple is an ordered collection that cannot be changed after creation. It is useful for storing fixed groups of values.",
+      "category": "Tuples"
+    },
+    {
+      "front": "What is a Python dictionary?",
+      "back": "A dictionary stores pairs of keys and values. You use a key to look up its related value.",
+      "category": "Dictionaries"
+    },
+    {
+      "front": "What is a Python set?",
+      "back": "A set is a collection of unique values with no guaranteed order. It automatically removes duplicate values.",
+      "category": "Sets"
+    },
+    {
+      "front": "How do you access an item in a list?",
+      "back": "Use its index inside square brackets, such as numbers[0]. Python starts counting list positions at zero.",
+      "category": "List Indexing"
+    }
+  ],
+  "columns": [
+    {
+      "name": "front"
+    },
+    {
+      "name": "back"
+    },
+    {
+      "name": "category"
+    }
+  ],
+  "data": [
+    [
+      "What is a Python list?",
+      "A list is an ordered collection that can hold multiple values. Lists can be changed after creation.",
+      "Lists"
+    ],
+    [
+      "What is a Python tuple?",
+      "A tuple is an ordered collection that cannot be changed after creation. It is useful for storing fixed groups of values.",
+      "Tuples"
+    ],
+    [
+      "What is a Python dictionary?",
+      "A dictionary stores pairs of keys and values. You use a key to look up its related value.",
+      "Dictionaries"
+    ],
+    [
+      "What is a Python set?",
+      "A set is a collection of unique values with no guaranteed order. It automatically removes duplicate values.",
+      "Sets"
+    ],
+    [
+      "How do you access an item in a list?",
+      "Use its index inside square brackets, such as numbers[0]. Python starts counting list positions at zero.",
+      "List Indexing"
+    ]
+  ]
+}

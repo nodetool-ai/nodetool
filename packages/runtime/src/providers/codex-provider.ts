@@ -53,6 +53,13 @@ const log = createLogger("nodetool.runtime.codex");
  */
 const CODEX_IMAGE_ORCHESTRATOR_MODEL = "gpt-5.5";
 
+const CODEX_CONTROL_TOKEN = /<\|(?:endoftext|endofprompt|startoftext)\|>/g;
+
+/** Remove tokenizer control markers that can arrive in untrusted tool output. */
+export function sanitizeCodexControlTokens(text: string): string {
+  return text.replace(CODEX_CONTROL_TOKEN, " ");
+}
+
 function codexClientVersion(): string {
   return (
     (typeof process !== "undefined" && process.env?.CODEX_CLIENT_VERSION) ||
@@ -187,9 +194,11 @@ export class CodexProvider extends OpenAIProvider {
     if (!params.prompt) {
       throw new Error("The input prompt cannot be empty.");
     }
-    const prompt = params.negativePrompt
-      ? `${params.prompt.trim()}\n\nDo not include: ${params.negativePrompt.trim()}`
-      : params.prompt;
+    const prompt = sanitizeCodexControlTokens(
+      params.negativePrompt
+        ? `${params.prompt.trim()}\n\nDo not include: ${params.negativePrompt.trim()}`
+        : params.prompt
+    );
 
     const imageTool: Record<string, unknown> = {
       type: "image_generation",
@@ -313,7 +322,7 @@ export class CodexProvider extends OpenAIProvider {
   }) {
     const instructions = args.messages
       .filter((m) => m.role === "system")
-      .map((m) => textOf(m.content))
+      .map((m) => sanitizeCodexControlTokens(textOf(m.content)))
       .filter(Boolean)
       .join("\n\n");
 
@@ -324,7 +333,7 @@ export class CodexProvider extends OpenAIProvider {
         input.push({
           type: "function_call_output",
           call_id: m.toolCallId ?? "",
-          output: textOf(m.content)
+          output: sanitizeCodexControlTokens(textOf(m.content))
         });
         continue;
       }
@@ -334,7 +343,9 @@ export class CodexProvider extends OpenAIProvider {
             type: "function_call",
             call_id: tc.id,
             name: tc.name,
-            arguments: JSON.stringify(tc.args ?? {})
+            arguments: sanitizeCodexControlTokens(
+              JSON.stringify(tc.args ?? {})
+            )
           });
         }
       }
@@ -342,7 +353,7 @@ export class CodexProvider extends OpenAIProvider {
       // payload in the function_call items above and has no text of its own.
       // Emitting an empty output_text on every round-trip both bloats the
       // request and can confuse the backend.
-      const text = textOf(m.content);
+      const text = sanitizeCodexControlTokens(textOf(m.content));
       if (!text) continue;
       const partType = m.role === "assistant" ? "output_text" : "input_text";
       input.push({

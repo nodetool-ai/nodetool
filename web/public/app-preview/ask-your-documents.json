@@ -4,7 +4,7 @@
   "emoji": "📄",
   "description": "Retrieval-augmented answers with citations, and a fully local fallback that reads one pasted document instead of the vector store.",
   "tagline": "Ask your own documents — with a local mode that never leaves your machine.",
-  "note": "🖥️ The retrieval mode embeds with Ollama `nomic-embed-text` and answers with OpenAI, so it needs **both**. Local mode needs only Ollama.",
+  "note": "🖥️ Retrieval mode combines semantic search with a writing model. Local mode keeps the full run on your machine.",
   "featured": false,
   "image": "/app-preview/img/ask-your-documents.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🖥️ The retrieval mode embeds with Ollama `nomic-embed-text` and answers with OpenAI, so it needs **both**. Local mode needs only Ollama."
+            "text": "🖥️ Retrieval mode combines semantic search with a writing model. Local mode keeps the full run on your machine."
           }
         },
         {
@@ -48,6 +48,26 @@
                   "id": "panel-ask",
                   "title": "Ask",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-ask-answer-model",
+                        "binding": "op:ask/prop:answer#model",
+                        "label": "Ask model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-asklocal-assistant-model",
+                        "binding": "op:askLocal/prop:assistant#model",
+                        "label": "Ask locally model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {

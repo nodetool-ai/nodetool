@@ -38,6 +38,7 @@ import {
   atlasDownload,
   atlasGetPrediction,
   atlasSubmit,
+  atlasUploadMedia,
   outputUrls,
   pickOutputUrl
 } from "./atlascloud-transport.js";
@@ -66,13 +67,18 @@ import type {
   ImageToImageParams,
   ImageToVideoParams,
   LanguageModel,
+  LipSyncParams,
+  RemoveBackgroundParams,
   TextToImageParams,
   TextToVideoParams,
   UpscaleVideoParams,
   VideoToVideoParams,
   VideoModel
 } from "./types.js";
-import type { ReferenceToVideoInputs, ReferenceToVideoParams } from "./types.js";
+import type {
+  ReferenceToVideoInputs,
+  ReferenceToVideoParams
+} from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.atlascloud");
 
@@ -616,6 +622,21 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     return atlasDownload(pickOutputUrl(result), opts.signal);
   }
 
+  private uploadMedia(
+    bytes: Uint8Array,
+    fallbackMime: string,
+    filename: string,
+    signal?: AbortSignal
+  ): Promise<string> {
+    return atlasUploadMedia(
+      this.apiKey,
+      bytes,
+      sniffMediaMime(bytes, fallbackMime),
+      filename,
+      signal
+    );
+  }
+
   override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
     if (!params.prompt) throw new Error("Prompt is required");
     const info = this.resolveModel(params.model.id, "image");
@@ -664,6 +685,87 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     );
   }
 
+  override async removeBackground(
+    image: Uint8Array,
+    params: RemoveBackgroundParams
+  ): Promise<Uint8Array> {
+    if (!image || image.length === 0) {
+      throw new Error("image must not be empty");
+    }
+    const model = (await this.getAvailableImageModels()).find(
+      (item) => item.id === params.model.id
+    );
+    if (!model?.supportedTasks?.includes("remove_background")) {
+      throw new Error(
+        `AtlasCloud model ${params.model.id} does not support remove_background`
+      );
+    }
+    const info = this.resolveModel(params.model.id, "image");
+    const imageField = ["image", "image_url", "image_urls", "images"].find(
+      (name) => info.fields.has(name)
+    );
+    if (!imageField) {
+      throw new Error(
+        `AtlasCloud model ${params.model.id} does not declare an input image field`
+      );
+    }
+    const dataUri = bytesToImageDataUri(image);
+    const input: Record<string, unknown> = {
+      [imageField]: info.fields.get(imageField)?.type.startsWith("list[")
+        ? [dataUri]
+        : dataUri
+    };
+    return this.runJob("image", params.model.id, info, input);
+  }
+
+  override async lipSync(
+    video: Uint8Array,
+    params: LipSyncParams
+  ): Promise<Uint8Array> {
+    if (video.length === 0) {
+      throw new Error("video must not be empty");
+    }
+    if (params.audio.length === 0) {
+      throw new Error("audio must not be empty");
+    }
+    const modelId = params.model.id;
+    const model = (await this.getAvailableVideoModels()).find(
+      (item) => item.id === modelId
+    );
+    if (!model?.supportedTasks?.includes("lip_sync")) {
+      throw new Error(`AtlasCloud model ${modelId} does not support lip_sync`);
+    }
+    const info = this.resolveModel(modelId, "video");
+    const videoField = ["video", "video_url", "input_video"].find((name) =>
+      info.fields.has(name)
+    );
+    const audioField = ["audio", "audio_url", "input_audio"].find((name) =>
+      info.fields.has(name)
+    );
+    if (!videoField || !audioField) {
+      throw new Error(
+        `AtlasCloud model ${modelId} does not declare video and audio fields`
+      );
+    }
+    const [videoUrl, audioUrl] = await Promise.all([
+      this.uploadMedia(video, "video/mp4", "input-video"),
+      this.uploadMedia(params.audio, "audio/mpeg", "input-audio")
+    ]);
+    const input: Record<string, unknown> = {
+      [videoField]: videoUrl,
+      [audioField]: audioUrl
+    };
+    const syncModeDefault = info.fields.get("sync_mode")?.default;
+    if (
+      typeof syncModeDefault === "string" ||
+      typeof syncModeDefault === "number"
+    ) {
+      setIfDeclared(input, info, syncModeDefault, "sync_mode");
+    }
+    setIfDeclared(input, info, params.seed, "seed");
+    return this.runJob("video", modelId, info, input);
+  }
+
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
     if (!params.prompt) throw new Error("Prompt is required");
     const info = this.resolveModel(params.model.id, "video");
@@ -684,18 +786,29 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     if (!image || image.length === 0) {
       throw new Error("image must not be empty");
     }
-    const model = (await this.getAvailableVideoModels()).find((item) => item.id === params.model.id);
+    const model = (await this.getAvailableVideoModels()).find(
+      (item) => item.id === params.model.id
+    );
     if (!model?.supportedTasks?.includes("image_to_video")) {
-      throw new Error(`AtlasCloud model ${params.model.id} does not support image_to_video`);
+      throw new Error(
+        `AtlasCloud model ${params.model.id} does not support image_to_video`
+      );
     }
     const info = this.resolveModel(params.model.id, "video");
     const input = mapVideoParams(info, params);
     const dataUri = bytesToImageDataUri(image);
-    const imageField = ["first_frame_image", "start_image", "image", "image_url", "images", "image_urls"].find(
-      (name) => info.fields.has(name)
-    );
+    const imageField = [
+      "first_frame_image",
+      "start_image",
+      "image",
+      "image_url",
+      "images",
+      "image_urls"
+    ].find((name) => info.fields.has(name));
     if (!imageField) {
-      throw new Error(`AtlasCloud model ${params.model.id} does not declare a start image field`);
+      throw new Error(
+        `AtlasCloud model ${params.model.id} does not declare a start image field`
+      );
     }
     input[imageField] = info.fields.get(imageField)?.type.startsWith("list[")
       ? [dataUri]
@@ -721,22 +834,37 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       (item) => item.id === modelId
     );
     if (!model?.supportedTasks?.includes("upscale_video")) {
-      throw new Error(`AtlasCloud model ${modelId} does not support upscale_video`);
+      throw new Error(
+        `AtlasCloud model ${modelId} does not support upscale_video`
+      );
     }
     const info = this.resolveModel(modelId, "video");
     const videoField = ["video", "video_url", "input_video"].find((name) =>
       info.fields.has(name)
     );
     if (!videoField) {
-      throw new Error(`AtlasCloud model ${modelId} does not declare a video field`);
+      throw new Error(
+        `AtlasCloud model ${modelId} does not declare a video field`
+      );
     }
-    const dataUri = `data:${sniffMediaMime(video, "video/mp4")};base64,${Buffer.from(video).toString("base64")}`;
+    const videoUrl = await this.uploadMedia(
+      video,
+      "video/mp4",
+      "input-video",
+      params.signal
+    );
     const input: Record<string, unknown> = {
       [videoField]: info.fields.get(videoField)?.type.startsWith("list[")
-        ? [dataUri]
-        : dataUri
+        ? [videoUrl]
+        : videoUrl
     };
-    setIfDeclared(input, info, params.targetResolution, "target_resolution", "resolution");
+    setIfDeclared(
+      input,
+      info,
+      params.targetResolution,
+      "target_resolution",
+      "resolution"
+    );
     setIfDeclared(input, info, params.scale, "upscale_factor", "scale");
     setIfDeclared(input, info, params.seed, "seed");
     return this.runJob("video", modelId, info, input, runJobOptions(params));
@@ -747,11 +875,19 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     params: ReferenceToVideoParams
   ): Promise<Uint8Array> {
     const modelId = params.model.id;
-    const model = (await this.getAvailableVideoModels()).find((item) => item.id === modelId);
+    const model = (await this.getAvailableVideoModels()).find(
+      (item) => item.id === modelId
+    );
     if (!model?.supportedTasks?.includes("reference_to_video")) {
-      throw new Error(`AtlasCloud model ${modelId} does not support reference_to_video`);
+      throw new Error(
+        `AtlasCloud model ${modelId} does not support reference_to_video`
+      );
     }
-    const fields = getModelReferenceInputs(ATLASCLOUD_MANIFEST_PKG, ATLASCLOUD_MANIFEST_PATH, modelId);
+    const fields = getModelReferenceInputs(
+      ATLASCLOUD_MANIFEST_PKG,
+      ATLASCLOUD_MANIFEST_PATH,
+      modelId
+    );
     const references = {
       images: inputs.images.filter((bytes) => bytes.length > 0),
       videos: inputs.videos.filter((bytes) => bytes.length > 0)
@@ -759,17 +895,36 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     validateReferenceInputs("AtlasCloud", modelId, references, fields);
     const info = this.resolveModel(modelId, "video");
     const audioField = info.fields.get("use_reference_video_audio");
-    if (params.useReferenceVideoAudio === true && (!audioField || references.videos.length === 0)) {
-      throw new Error(`AtlasCloud model ${modelId} does not support reference video audio for these inputs`);
+    if (
+      params.useReferenceVideoAudio === true &&
+      (!audioField || references.videos.length === 0)
+    ) {
+      throw new Error(
+        `AtlasCloud model ${modelId} does not support reference video audio for these inputs`
+      );
     }
     const input = mapVideoParams(info, params);
-    const groups = new Map<string, Array<{ url: string; type: "image" | "video" }>>();
+    const groups = new Map<
+      string,
+      Array<{ url: string; type: "image" | "video" }>
+    >();
     for (const field of fields) {
-      const buffers = field.kind === "image" ? references.images : references.videos;
+      const buffers =
+        field.kind === "image" ? references.images : references.videos;
       if (buffers.length === 0) continue;
-      const urls = buffers.map((bytes) => field.kind === "image"
-        ? bytesToImageDataUri(bytes)
-        : `data:${sniffMediaMime(bytes, "video/mp4")};base64,${Buffer.from(bytes).toString("base64")}`);
+      const urls =
+        field.kind === "image"
+          ? buffers.map(bytesToImageDataUri)
+          : await Promise.all(
+              buffers.map((bytes, index) =>
+                this.uploadMedia(
+                  bytes,
+                  "video/mp4",
+                  `reference-video-${index + 1}`,
+                  params.signal
+                )
+              )
+            );
       if (field.wrapInto) {
         const group = groups.get(field.wrapInto) ?? [];
         group.push(...urls.map((url) => ({ url, type: field.kind })));
@@ -810,9 +965,13 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
         `AtlasCloud model ${modelId} does not declare a video field`
       );
     }
-    const input: Record<string, unknown> = {
-      [videoField]: `data:${sniffMediaMime(video, "video/mp4")};base64,${Buffer.from(video).toString("base64")}`
-    };
+    const videoUrl = await this.uploadMedia(
+      video,
+      "video/mp4",
+      "input-video",
+      params.signal
+    );
+    const input: Record<string, unknown> = { [videoField]: videoUrl };
     setIfDeclared(input, info, params.prompt, "prompt");
     setIfDeclared(input, info, params.negativePrompt, "negative_prompt");
     setIfDeclared(input, info, params.strength, "strength");
@@ -847,13 +1006,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       input[imageField.apiName] = imageField.isList ? urls : urls[0];
     }
 
-    return this.runJob(
-      "video",
-      modelId,
-      info,
-      input,
-      runJobOptions(params)
-    );
+    return this.runJob("video", modelId, info, input, runJobOptions(params));
   }
 
   override async extendVideo(
@@ -890,9 +1043,8 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
         `AtlasCloud model ${modelId} does not declare a video field`
       );
     }
-    const input: Record<string, unknown> = {
-      [videoField]: `data:${sniffMediaMime(video, "video/mp4")};base64,${Buffer.from(video).toString("base64")}`
-    };
+    const videoUrl = await this.uploadMedia(video, "video/mp4", "input-video");
+    const input: Record<string, unknown> = { [videoField]: videoUrl };
     setIfDeclared(input, info, params.prompt, "prompt");
     setIfDeclared(input, info, params.durationSeconds, "duration");
     return this.runJob("video", modelId, info, input);

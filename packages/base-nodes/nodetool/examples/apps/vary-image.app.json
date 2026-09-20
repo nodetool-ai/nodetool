@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs a FAL key (Nano Banana edit). Billed per image."
+            "text": "Image editing is billed per generated image."
           }
         },
         {
@@ -44,10 +44,21 @@
                   "title": "Vary it",
                   "content": [
                     {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-edit-ed-model",
+                        "binding": "op:edit/prop:ed#model",
+                        "label": "Edit model",
+                        "modelKind": "image_model",
+                        "task": "image_to_image",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "ImageInput",
                       "props": {
-                        "id": "in-picture",
-                        "binding": "var:picture",
+                        "id": "in-edit-picture",
+                        "binding": "op:edit/in:in",
                         "label": "Your image",
                         "events": []
                       }
@@ -166,29 +177,13 @@
         "id": "edit",
         "name": "Edit",
         "workflowId": "edit",
-        "inputs": {
-          "in": {
-            "from": "variable",
-            "variableId": "picture"
-          }
-        },
+        "inputs": {},
         "outputs": {},
         "policy": "replace"
       }
     ],
     "resources": [],
-    "variables": [
-      {
-        "id": "picture",
-        "name": "Your image",
-        "type": {
-          "type": "image",
-          "optional": true
-        },
-        "scope": "instance",
-        "persist": false
-      }
-    ]
+    "variables": []
   },
   "workflows": [
     {

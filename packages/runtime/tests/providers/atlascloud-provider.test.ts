@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { AtlasCloudProvider } from "../../src/providers/atlascloud-provider.js";
-import type {
-  ImageModel,
-  VideoModel
-} from "../../src/providers/types.js";
+import type { ImageModel, VideoModel } from "../../src/providers/types.js";
 
 const imageModel = (id: string): ImageModel => ({
   id,
@@ -24,7 +21,7 @@ afterEach(() => {
 
 interface MockFetchOptions {
   /** Body shape sent to the submit endpoint, captured for assertions. */
-  capture?: { submitUrl?: string; submitBody?: unknown };
+  capture?: { submitUrl?: string; submitBody?: unknown; uploads?: FormData[] };
   outputUrl?: string;
   resultBytes?: Uint8Array;
   /** Predicate to make the poll loop iterate before completing. */
@@ -35,8 +32,26 @@ function mockAtlasFetch(opts: MockFetchOptions = {}): void {
   const outputUrl = opts.outputUrl ?? "https://cdn.atlas/result.bin";
   const resultBytes = opts.resultBytes ?? Uint8Array.from([1, 2, 3]);
   let pollCalls = 0;
+  let uploadCalls = 0;
   global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
     const u = String(url);
+    if (u.endsWith("/uploadMedia")) {
+      uploadCalls++;
+      if (opts.capture && init?.body instanceof FormData) {
+        opts.capture.uploads ??= [];
+        opts.capture.uploads.push(init.body);
+      }
+      return {
+        ok: true,
+        status: 200,
+        text: async () =>
+          JSON.stringify({
+            data: {
+              download_url: `https://uploads.atlas/input-${uploadCalls}`
+            }
+          })
+      } as Response;
+    }
     if (u.endsWith("/generateImage") || u.endsWith("/generateVideo")) {
       if (opts.capture) {
         opts.capture.submitUrl = u;
@@ -76,7 +91,9 @@ describe("AtlasCloudProvider — metadata", () => {
   it("reports provider id and required secrets", () => {
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
     expect(p.provider).toBe("atlascloud");
-    expect(AtlasCloudProvider.requiredSecrets()).toEqual(["ATLASCLOUD_API_KEY"]);
+    expect(AtlasCloudProvider.requiredSecrets()).toEqual([
+      "ATLASCLOUD_API_KEY"
+    ]);
   });
 
   it("getContainerEnv exposes the API key", () => {
@@ -163,6 +180,10 @@ describe("AtlasCloudProvider — getAvailableImageModels", () => {
     expect(ids).toContain("openai/gpt-image-2/text-to-image");
     expect(ids).toContain("google/nano-banana-2/edit");
     expect(ids).toContain("google/nano-banana-pro/text-to-image-ultra");
+    expect(
+      models.find((m) => m.id === "youchuan/v8.2/remove-background")
+        ?.supportedTasks
+    ).toContain("remove_background");
   });
 });
 
@@ -173,12 +194,12 @@ describe("AtlasCloudProvider — getAvailableVideoModels", () => {
     expect(models.length).toBeGreaterThan(0);
     for (const m of models) expect(m.provider).toBe("atlascloud");
     const byId = new Map(models.map((m) => [m.id, m]));
-    expect(byId.get("bytedance/seedance-2.0/text-to-video")?.supportedTasks).toEqual([
-      "text_to_video"
-    ]);
-    expect(byId.get("bytedance/seedance-2.0/image-to-video")?.supportedTasks).toEqual([
-      "image_to_video"
-    ]);
+    expect(
+      byId.get("bytedance/seedance-2.0/text-to-video")?.supportedTasks
+    ).toEqual(["text_to_video"]);
+    expect(
+      byId.get("bytedance/seedance-2.0/image-to-video")?.supportedTasks
+    ).toEqual(["image_to_video"]);
     expect(
       byId.get("bytedance/seedance-2.0/reference-to-video")?.supportedTasks
     ).toEqual(["reference_to_video"]);
@@ -298,7 +319,8 @@ describe("AtlasCloudProvider — textToImage", () => {
         return {
           ok: false,
           status: 400,
-          text: async () => JSON.stringify({ message: "Invalid request parameters" })
+          text: async () =>
+            JSON.stringify({ message: "Invalid request parameters" })
         } as Response;
       }
       throw new Error(`unexpected fetch: ${String(url)}`);
@@ -311,7 +333,9 @@ describe("AtlasCloudProvider — textToImage", () => {
         width: 1920,
         height: 1080
       })
-    ).rejects.toThrow(/black-forest-labs\/flux-schnell.*Invalid request parameters.*size=1920\*1088/s);
+    ).rejects.toThrow(
+      /black-forest-labs\/flux-schnell.*Invalid request parameters.*size=1920\*1088/s
+    );
   });
 
   it("snaps `size` to the nearest declared option on enum models", async () => {
@@ -418,9 +442,7 @@ describe("AtlasCloudProvider — imageToImage", () => {
     expect(body.prompt).toBe("make it pink");
     expect(body.aspect_ratio).toBe("1:1");
     expect(Array.isArray(body.images)).toBe(true);
-    expect((body.images as string[])[0]).toMatch(
-      /^data:image\/png;base64,/
-    );
+    expect((body.images as string[])[0]).toMatch(/^data:image\/png;base64,/);
   });
 
   it("rejects empty input bytes", async () => {
@@ -431,6 +453,41 @@ describe("AtlasCloudProvider — imageToImage", () => {
         prompt: "x"
       })
     ).rejects.toThrow("image must not be empty");
+  });
+});
+
+describe("AtlasCloudProvider — removeBackground", () => {
+  it("submits the image to Youchuan v8.2 remove-background", async () => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+
+    await p.removeBackground(Uint8Array.from([0x89, 0x50, 0x4e, 0x47]), {
+      model: imageModel("youchuan/v8.2/remove-background")
+    });
+
+    expect(capture.submitBody).toEqual({
+      model: "youchuan/v8.2/remove-background",
+      image: expect.stringMatching(/^data:image\/png;base64,/)
+    });
+  });
+
+  it("rejects empty input bytes", async () => {
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    await expect(
+      p.removeBackground(new Uint8Array(), {
+        model: imageModel("youchuan/v8.2/remove-background")
+      })
+    ).rejects.toThrow("image must not be empty");
+  });
+
+  it("rejects an image model without remove-background support", async () => {
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    await expect(
+      p.removeBackground(Uint8Array.from([1]), {
+        model: imageModel("google/nano-banana-2/edit")
+      })
+    ).rejects.toThrow("does not support remove_background");
   });
 });
 
@@ -484,6 +541,30 @@ describe("AtlasCloudProvider — textToVideo", () => {
   });
 });
 
+describe("AtlasCloudProvider — lipSync", () => {
+  it("uploads video and audio before submitting their temporary URLs", async () => {
+    const capture: {
+      submitBody?: Record<string, unknown>;
+      uploads?: FormData[];
+    } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+
+    await p.lipSync(Uint8Array.from([0, 0, 0, 24, 102, 116, 121, 112]), {
+      model: videoModel("sync/lipsync-v3"),
+      audio: Uint8Array.from([0x49, 0x44, 0x33])
+    });
+
+    expect(capture.uploads).toHaveLength(2);
+    expect(capture.submitBody).toEqual({
+      model: "sync/lipsync-v3",
+      video_url: "https://uploads.atlas/input-1",
+      audio_url: "https://uploads.atlas/input-2",
+      sync_mode: "cut_off"
+    });
+  });
+});
+
 describe("AtlasCloudProvider — imageToVideo", () => {
   it("sets `image` (singular) on the Seedance i2v endpoint", async () => {
     const capture: { submitBody?: Record<string, unknown> } = {};
@@ -516,10 +597,13 @@ describe("AtlasCloudProvider — imageToVideo", () => {
     const capture: { submitBody?: Record<string, unknown> } = {};
     mockAtlasFetch({ capture });
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
-    await p.referenceToVideo({ images: [Uint8Array.from([0x89, 0x50, 0x4e, 0x47])], videos: [] }, {
-      model: videoModel("bytedance/seedance-2.0/reference-to-video"),
-      prompt: "spin it"
-    });
+    await p.referenceToVideo(
+      { images: [Uint8Array.from([0x89, 0x50, 0x4e, 0x47])], videos: [] },
+      {
+        model: videoModel("bytedance/seedance-2.0/reference-to-video"),
+        prompt: "spin it"
+      }
+    );
     const body = capture.submitBody!;
     expect(Array.isArray(body.reference_images)).toBe(true);
     expect((body.reference_images as string[])[0]).toMatch(
@@ -531,10 +615,13 @@ describe("AtlasCloudProvider — imageToVideo", () => {
     const capture: { submitBody?: Record<string, unknown> } = {};
     mockAtlasFetch({ capture });
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
-    await p.referenceToVideo({ images: [Uint8Array.from([0x89, 0x50, 0x4e, 0x47])], videos: [] }, {
-      model: videoModel("minimax/h3/reference-to-video"),
-      prompt: "anchor on this"
-    });
+    await p.referenceToVideo(
+      { images: [Uint8Array.from([0x89, 0x50, 0x4e, 0x47])], videos: [] },
+      {
+        model: videoModel("minimax/h3/reference-to-video"),
+        prompt: "anchor on this"
+      }
+    );
     const body = capture.submitBody!;
     // MiniMax H3 takes `refers: [{url, type}]`, not per-kind lists — posting
     // `reference_images` would be rejected by the endpoint.
@@ -577,7 +664,7 @@ describe("AtlasCloudProvider — videoToVideo", () => {
     expect(capture.submitBody).toEqual({
       model: "google/gemini-omni-1.1-flash/video-edit",
       prompt: "make it more ad friendly",
-      video: expect.stringMatching(/^data:video\/mp4;base64,/)
+      video: "https://uploads.atlas/input-1"
     });
   });
 
@@ -598,7 +685,7 @@ describe("AtlasCloudProvider — videoToVideo", () => {
     expect(capture.submitBody).toEqual({
       model: "google/gemini-omni-1.1-flash/video-edit",
       prompt: "remove people and focus on product",
-      video: expect.stringMatching(/^data:video\/mp4;base64,/),
+      video: "https://uploads.atlas/input-1",
       reference_images: [expect.stringMatching(/^data:image\/png;base64,/)]
     });
   });
@@ -620,7 +707,7 @@ describe("AtlasCloudProvider — extendVideo", () => {
     expect(capture.submitBody).toEqual({
       model: "google/gemini-omni-1.1-flash/video-extend",
       prompt: "continue the product shot",
-      video: expect.stringMatching(/^data:video\/mp4;base64,/),
+      video: "https://uploads.atlas/input-1",
       duration: 4
     });
   });

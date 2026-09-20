@@ -354,7 +354,9 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
             }
 
             if (definition.kind === "language_model") {
-              const modelValue = value as { id?: string } | undefined;
+              const modelValue = value as
+                | { id?: string; provider?: string }
+                | undefined;
               return (
                 <div
                   className="input-field"
@@ -370,6 +372,7 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
                       <LanguageModelSelect
                         onChange={handleChange}
                         value={modelValue?.id || ""}
+                        provider={modelValue?.provider}
                       />
                     </div>
                   </div>

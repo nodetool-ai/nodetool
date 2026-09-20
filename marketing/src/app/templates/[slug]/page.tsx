@@ -1,10 +1,13 @@
 import TemplateSampleFigure from "@/components/TemplateSampleFigure";
-import { templateSamples } from "@/data/templateSamples";
+import {
+  templateSamples,
+  templateThumbnail,
+} from "@/data/templateSamples";
 import React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, Download, Boxes, Play, Workflow } from "lucide-react";
+import { ArrowLeft, Download, Play, Workflow } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
@@ -40,6 +43,7 @@ export async function generateMetadata({
   const entry = getEntry(slug);
   if (!entry) return {};
   const url = `${BASE_URL}${entry.route}`;
+  const thumbnail = templateThumbnail(entry.slug, entry.thumbnail);
   return {
     title: entry.title,
     description: entry.description,
@@ -50,6 +54,7 @@ export async function generateMetadata({
       description: entry.description,
       url,
       type: "website",
+      ...(thumbnail ? { images: [{ url: `${BASE_URL}${thumbnail}` }] } : {}),
     },
   };
 }
@@ -230,45 +235,6 @@ export default async function TemplatePage({
           </div>
         </section>
 
-        {/* Nodes list */}
-        {entry.nodeTypes.length > 0 && (
-          <section className="relative py-12">
-            <div className="mx-auto max-w-6xl px-6 lg:px-8">
-              <div className="mb-6 flex items-center gap-3">
-                <Boxes className="h-6 w-6 text-sky-400" />
-                <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
-                  Nodes in this workflow
-                </h2>
-                <span className="text-sm text-slate-500">
-                  {entry.nodeCount} nodes · {entry.nodeTypes.length} types
-                </span>
-              </div>
-              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {entry.nodeTypes.map((t) => (
-                  <li
-                    key={t.type}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-900/40 px-4 py-3"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate font-medium text-white">
-                        {t.label}
-                      </div>
-                      <div className="truncate font-mono text-xs text-slate-500">
-                        {t.type}
-                      </div>
-                    </div>
-                    {t.count > 1 && (
-                      <span className="shrink-0 rounded-md border border-white/10 bg-slate-950/60 px-2 py-0.5 text-xs font-medium text-slate-300">
-                        ×{t.count}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-        )}
-
         {/* How to run */}
         <section id="how-to-run" className="relative scroll-mt-28 py-12">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
@@ -340,15 +306,17 @@ export default async function TemplatePage({
                 Related templates
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {related.map((r) => (
-                  <a
-                    key={r.slug}
-                    href={r.route}
-                    className="group overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 transition-colors hover:border-white/25"
-                  >
-                    {r.thumbnail ? (
+                {related.map((r) => {
+                  const thumbnail = templateThumbnail(r.slug, r.thumbnail);
+                  return (
+                    <a
+                      key={r.slug}
+                      href={r.route}
+                      className="group overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 transition-colors hover:border-white/25"
+                    >
+                    {thumbnail ? (
                       <Image
-                        src={r.thumbnail}
+                        src={thumbnail}
                         alt=""
                         width={640}
                         height={360}
@@ -365,8 +333,9 @@ export default async function TemplatePage({
                         {r.name}
                       </div>
                     </div>
-                  </a>
-                ))}
+                    </a>
+                  );
+                })}
               </div>
             </div>
           </section>

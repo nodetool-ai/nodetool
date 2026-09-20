@@ -1,5 +1,5 @@
 import React from "react";
-import { templateSamples } from "@/data/templateSamples";
+import { templateThumbnail } from "@/data/templateSamples";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Boxes, Download } from "lucide-react";
@@ -160,15 +160,17 @@ export default function TemplatesHub() {
                 {category}
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((t) => (
-                  <a
-                    key={t.slug}
-                    href={t.route}
-                    className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 transition-colors hover:border-white/25"
-                  >
-                    {templateSamples[t.slug]?.image || templateSamples[t.slug]?.poster || t.thumbnail ? (
+                {items.map((t) => {
+                  const thumbnail = templateThumbnail(t.slug, t.thumbnail);
+                  return (
+                    <a
+                      key={t.slug}
+                      href={t.route}
+                      className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 transition-colors hover:border-white/25"
+                    >
+                    {thumbnail ? (
                       <Image
-                        src={templateSamples[t.slug]?.image || templateSamples[t.slug]?.poster || t.thumbnail!}
+                        src={thumbnail}
                         alt=""
                         width={640}
                         height={360}
@@ -192,8 +194,9 @@ export default function TemplatesHub() {
                         {t.nodeCount} nodes
                       </div>
                     </div>
-                  </a>
-                ))}
+                    </a>
+                  );
+                })}
               </div>
             </div>
           </section>

@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Requires a FAL key. Choose a treatment, review the result, then reuse the same product reference for another pass."
+            "text": "Choose a treatment, review the result, then reuse the same product reference for another pass."
           }
         },
         {
@@ -214,7 +214,7 @@
                         "binding": "op:relight/prop:rl#model",
                         "label": "Relight model",
                         "modelKind": "image_model",
-                        "task": "relight",
+                        "task": "image_to_image",
                         "events": []
                       }
                     },
@@ -535,11 +535,13 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/bria/background/remove",
-                "name": "Bria Background Remove",
+                "provider": "atlascloud",
+                "id": "youchuan/v8.2/remove-background",
+                "name": "Youchuan v8.2 — Remove Background",
                 "path": null,
-                "supported_tasks": []
+                "supported_tasks": [
+                  "remove_background"
+                ]
               }
             },
             "ui_properties": {
@@ -851,11 +853,13 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/bria/background/remove",
-                "name": "Bria Background Remove",
+                "provider": "atlascloud",
+                "id": "youchuan/v8.2/remove-background",
+                "name": "Youchuan v8.2 — Remove Background",
                 "path": null,
-                "supported_tasks": []
+                "supported_tasks": [
+                  "remove_background"
+                ]
               }
             },
             "ui_properties": {

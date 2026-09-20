@@ -45,13 +45,66 @@ export const SUBMIT_PATH = {
   video: "/api/v1/model/generateVideo"
 } satisfies Record<AtlasModality, string>;
 
-export const pollPath = (id: string): string => `/api/v1/model/prediction/${id}`;
+export const UPLOAD_MEDIA_PATH = "/api/v1/model/uploadMedia";
+
+export const pollPath = (id: string): string =>
+  `/api/v1/model/prediction/${id}`;
 
 function authHeaders(apiKey: string): Record<string, string> {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json"
   };
+}
+
+/** Upload bytes to AtlasCloud and return the temporary URL used by model inputs. */
+export async function atlasUploadMedia(
+  apiKey: string,
+  bytes: Uint8Array,
+  mimeType: string,
+  filename: string,
+  signal?: AbortSignal
+): Promise<string> {
+  if (bytes.length === 0) {
+    throw new Error("AtlasCloud upload media must not be empty");
+  }
+  const form = new FormData();
+  form.append(
+    "file",
+    new Blob([new Uint8Array(bytes)], { type: mimeType }),
+    filename
+  );
+  const init: RequestInit = {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form
+  };
+  if (signal) init.signal = signal;
+  const res = await fetch(`${ATLAS_BASE}${UPLOAD_MEDIA_PATH}`, init);
+  const text = await res.text();
+  let data: {
+    url?: string;
+    data?: { url?: string; download_url?: string };
+    message?: string;
+  } | null;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = null;
+  }
+  if (!res.ok) {
+    throw new Error(
+      `AtlasCloud media upload failed: HTTP ${res.status}: ${text.slice(0, 500)}`
+    );
+  }
+  const url = data?.url ?? data?.data?.url ?? data?.data?.download_url;
+  if (!url) {
+    throw new Error(
+      `AtlasCloud media upload returned no URL: ${text.slice(0, 500)}`
+    );
+  }
+  assertSafePublicHttpsUrl(url);
+  return url;
 }
 
 /**
@@ -308,11 +361,7 @@ export async function atlasAwaitResult(
     ? AbortSignal.any([opts.signal, settled.signal])
     : settled.signal;
 
-  const callback = registerAtlasWebhookWait(
-    predictionId,
-    windowMs,
-    waitSignal
-  );
+  const callback = registerAtlasWebhookWait(predictionId, windowMs, waitSignal);
   const reconcile = atlasPoll(apiKey, predictionId, {
     pollInterval: reconcileInterval,
     maxAttempts: reconcileAttempts,

@@ -168,13 +168,16 @@ describe("useImageModelsByProvider — task filter", () => {
 
   beforeEach(() => imageByProviderQuery.mockResolvedValue(CATALOG));
 
-  it("relight (strict) returns ONLY relight models — no generators, no untagged", async () => {
+  it("relight can use image-editing models and dedicated relight models", async () => {
     const { result } = renderHook(
-      () => useImageModelsByProvider({ task: "relight" }),
+      () =>
+        useImageModelsByProvider({ task: ["image_to_image", "relight"] }),
       { wrapper: wrapper() }
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.models.map((m) => m.id)).toEqual([
+      "fal-ai/flux/schnell",
+      "fal-ai/ideogram/v2/edit",
       "fal-ai/image-apps-v2/relighting"
     ]);
   });

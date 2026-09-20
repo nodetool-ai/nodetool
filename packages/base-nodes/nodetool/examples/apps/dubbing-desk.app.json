@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs a FAL key for transcription, speech and lip-sync, and an OpenAI key for the translation."
+            "text": "Transcription, translation, speech, and lip-sync use configured models and are billed per run."
           }
         },
         {
@@ -43,6 +43,56 @@
                   "id": "panel-the-footage",
                   "title": "The footage",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-transcribe-asr-model",
+                        "binding": "op:transcribe/prop:asr#model",
+                        "label": "Transcribe model",
+                        "modelKind": "asr_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-revoice-ag-model",
+                        "binding": "op:revoice/prop:ag#model",
+                        "label": "Revoice model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-revoice-tts-model",
+                        "binding": "op:revoice/prop:tts#model",
+                        "label": "Revoice model",
+                        "modelKind": "tts_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-subtitles-asr-model",
+                        "binding": "op:subtitles/prop:asr#model",
+                        "label": "Subtitles model",
+                        "modelKind": "asr_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-subtitles-ag-model",
+                        "binding": "op:subtitles/prop:ag#model",
+                        "label": "Subtitles model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "VideoInput",
                       "props": {
@@ -183,6 +233,26 @@
                   "title": "Make the mouth match",
                   "content": [
                     {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-spokesperson-speech-model",
+                        "binding": "op:spokesperson/prop:speech#model",
+                        "label": "Lip-sync model",
+                        "modelKind": "tts_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-spokesperson-sync-model",
+                        "binding": "op:spokesperson/prop:sync#model",
+                        "label": "Lip-sync model",
+                        "modelKind": "video_model",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Text",
                       "props": {
                         "id": "note",
@@ -261,6 +331,16 @@
                   "id": "panel-check-what-you-shipped",
                   "title": "Check what you shipped",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-check-ag-model",
+                        "binding": "op:check/prop:ag#model",
+                        "label": "Back-translate model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {
@@ -369,7 +449,12 @@
         "id": "check",
         "name": "Back-translate",
         "workflowId": "check",
-        "inputs": {},
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "script"
+          }
+        },
         "outputs": {},
         "policy": "parallel"
       },
@@ -585,9 +670,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "openai",
-                "id": "gpt-5-mini",
-                "name": "GPT-5 mini",
+                "provider": "codex",
+                "id": "gpt-5.6-luna",
+                "name": "GPT-5.6-Luna",
                 "path": null,
                 "supported_tasks": []
               },
@@ -801,9 +886,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "openai",
-                "id": "gpt-5-mini",
-                "name": "GPT-5 mini",
+                "provider": "codex",
+                "id": "gpt-5.6-luna",
+                "name": "GPT-5.6-Luna",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1198,9 +1283,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "openai",
-                "id": "gpt-5-mini",
-                "name": "GPT-5 mini",
+                "provider": "codex",
+                "id": "gpt-5.6-luna",
+                "name": "GPT-5.6-Luna",
                 "path": null,
                 "supported_tasks": []
               },

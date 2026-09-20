@@ -1,46 +1,38 @@
 import React from "react";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
-import { recipeEntries } from "../data/recipes";
-import type { RecipeStep } from "../data/recipes";
+import {
+  miniAppEntries,
+  type MiniAppEntry,
+  type MiniAppOutputExample,
+} from "../data/miniApps";
 
 /**
  * "Apps for everything" (NARRATIVE.md § Apps for everything).
  *
  * A strip of small, single-purpose tools, each named for the job it does. The
- * tiles are derived from the steps of the shipped recipes rather than written
- * by hand, so every one of them opens a template that actually runs — the grid
- * can never drift into being aspirational.
+ * tiles come from the shipped mini-app catalog, so every card opens the actual
+ * app rather than the workflow template behind it.
  */
-
-/** Every recipe step, deduped by template, in recipe order. */
-function uniqueSteps(): RecipeStep[] {
-  const seen = new Set<string>();
-  const out: RecipeStep[] = [];
-  for (const recipe of recipeEntries) {
-    for (const step of recipe.steps) {
-      if (seen.has(step.template)) continue;
-      seen.add(step.template);
-      out.push(step);
-    }
-  }
-  return out;
-}
-
-/**
- * Tiles read best when the name is a verb phrase for the job ("Cut a Product
- * Out of Its Background"), so prefer those and fall back to the rest only if
- * there are not enough to fill the grid.
- */
-const VERB_FIRST =
-  /^(Cut|Put|Relight|Spin|Take|Write|Score|Localise|Localize|Transcribe|Generate|Remove|Add|Change|Upscale|Fan|Settle|Turn|Make|Build|Draft|Extract|Assemble|Subtitle)\b/;
 
 const TILE_COUNT = 9;
 
-function tiles(): RecipeStep[] {
-  const all = uniqueSteps();
-  const verbs = all.filter((s) => VERB_FIRST.test(s.name));
-  const rest = all.filter((s) => !VERB_FIRST.test(s.name));
-  return [...verbs, ...rest].slice(0, TILE_COUNT);
+function visualOutput(app: MiniAppEntry): MiniAppOutputExample | undefined {
+  return (
+    app.outputExamples.find((output) => output.kind === "image") ??
+    app.outputExamples.find((output) => output.kind === "video")
+  );
+}
+
+function tiles(): MiniAppEntry[] {
+  return [...miniAppEntries]
+    .filter((app) => visualOutput(app))
+    .sort(
+      (a, b) =>
+        Number(b.featured) - Number(a.featured) ||
+        a.name.localeCompare(b.name),
+    )
+    .slice(0, TILE_COUNT);
 }
 
 export default function AppsSection() {
@@ -70,20 +62,43 @@ export default function AppsSection() {
         </header>
 
         <div className="scroll-fade mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((step) => (
-            <a
-              key={step.template}
-              href={step.route}
-              className="group rounded-2xl border border-slate-800/70 bg-slate-950/40 p-5 transition-colors hover:border-emerald-500/40 hover:bg-slate-900/50 focus-ring"
-            >
-              <h3 className="text-base font-semibold tracking-tight text-white">
-                {step.name}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                {step.role}.
-              </p>
-            </a>
-          ))}
+          {items.map((app) => {
+            const output = visualOutput(app);
+            return (
+              <a
+                key={app.slug}
+                href={app.route}
+                className="group overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-950/40 transition-colors hover:border-emerald-500/40 hover:bg-slate-900/50 focus-ring"
+              >
+                {output?.kind === "image" && (
+                  <Image
+                    src={output.path}
+                    alt={`${app.name}: ${output.label}`}
+                    width={980}
+                    height={700}
+                    className="aspect-video w-full object-cover"
+                  />
+                )}
+                {output?.kind === "video" && (
+                  <video
+                    src={output.path}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="aspect-video w-full object-cover"
+                  />
+                )}
+                <div className="p-5">
+                  <h3 className="text-base font-semibold tracking-tight text-white">
+                    {app.name}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                    {app.tagline || app.summary}
+                  </p>
+                </div>
+              </a>
+            );
+          })}
         </div>
 
         <div className="scroll-fade mt-8">

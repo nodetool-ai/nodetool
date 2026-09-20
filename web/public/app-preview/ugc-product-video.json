@@ -4,7 +4,7 @@
   "emoji": "🤳",
   "description": "Choose the promise, generate a native-audio testimonial, then turn the spoken words into reviewable captions, restrained motion graphics, and a branded close.",
   "tagline": "Build a testimonial, then finish it for social.",
-  "note": "Writing and caption transcription use OpenAI. Choose a compatible native-audio video model, then review the captions before the branded finish.",
+  "note": "Choose compatible writing, transcription, and native-audio video models, then review the captions before the branded finish.",
   "featured": true,
   "image": "/app-preview/img/ugc-product-video.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Writing and caption transcription use OpenAI. Choose a compatible native-audio video model, then review the captions before the branded finish."
+            "text": "Choose compatible writing, transcription, and native-audio video models, then review the captions before the branded finish."
           }
         },
         {

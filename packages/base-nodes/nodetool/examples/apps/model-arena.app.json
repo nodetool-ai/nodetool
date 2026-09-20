@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs OpenAI, Anthropic, and Google keys — one per column."
+            "text": "Choose one configured language model per column."
           }
         },
         {
@@ -43,6 +43,36 @@
                   "id": "panel-the-brief",
                   "title": "The brief",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-compare-openai-lane-model",
+                        "binding": "op:compare/prop:openai_lane#model",
+                        "label": "Compare model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-compare-anthropic-lane-model",
+                        "binding": "op:compare/prop:anthropic_lane#model",
+                        "label": "Compare model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-compare-gemini-lane-model",
+                        "binding": "op:compare/prop:gemini_lane#model",
+                        "label": "Compare model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {
@@ -104,7 +134,7 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-compare-openai",
-                        "text": "OpenAI",
+                        "text": "Model A",
                         "level": "3"
                       }
                     },
@@ -120,7 +150,7 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-compare-anthropic",
-                        "text": "Anthropic",
+                        "text": "Model B",
                         "level": "3"
                       }
                     },
@@ -136,7 +166,7 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-compare-gemini",
-                        "text": "Google",
+                        "text": "Model C",
                         "level": "3"
                       }
                     },

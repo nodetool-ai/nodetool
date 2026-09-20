@@ -4,7 +4,7 @@
   "emoji": "📦",
   "description": "Start with one product photo and make three production-ready passes: a new set, a seasonal relight, or a clean cutout for compositing.",
   "tagline": "Relight the product. Change the set. Keep the product fixed.",
-  "note": "Requires a FAL key. Choose a treatment, review the result, then reuse the same product reference for another pass.",
+  "note": "Choose a treatment, review the result, then reuse the same product reference for another pass.",
   "featured": true,
   "image": "/app-preview/img/product-reshoot.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Requires a FAL key. Choose a treatment, review the result, then reuse the same product reference for another pass."
+            "text": "Choose a treatment, review the result, then reuse the same product reference for another pass."
           }
         },
         {
@@ -219,7 +219,7 @@
                         "binding": "op:relight/prop:rl#model",
                         "label": "Relight model",
                         "modelKind": "image_model",
-                        "task": "relight",
+                        "task": "image_to_image",
                         "events": []
                       }
                     },

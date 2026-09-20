@@ -1,0 +1,5 @@
+- **Hook — 5 sec:** A getaway driver races onto a suspension bridge as the roadway violently collapses behind her, cutting off every escape route.  
+- **Setup — 7 sec:** Flashbacks reveal she’s carrying a mysterious passenger—and the police, helicopters, and a ticking dashboard timer are closing in.  
+- **Escalation — 10 sec:** Sections of the bridge plunge into the river while traffic crashes around her, forcing her to leap gaps and drive against oncoming lanes.  
+- **Turn — 5 sec:** Her passenger reveals the collapse was deliberate—and the final explosives are planted beneath the bridge ahead of them.  
+- **Title Card — 3 sec:** **THE LAST CROSSING**.

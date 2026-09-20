@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Writing and caption transcription use OpenAI. Choose a compatible native-audio video model, then review the captions before the branded finish."
+            "text": "Choose compatible writing, transcription, and native-audio video models, then review the captions before the branded finish."
           }
         },
         {

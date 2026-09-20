@@ -29,6 +29,7 @@ const EXAMPLES_DIR = path.join(
   "packages/base-nodes/nodetool/examples/nodetool-base",
 );
 const SCREENSHOTS = path.join(MARKETING, "public/apps");
+const OUTPUT_EXAMPLES = path.join(SCREENSHOTS, "examples");
 const OUT_FILE = path.join(MARKETING, "src/data/miniAppEntries.generated.ts");
 
 const MARKETING_OVERRIDES = {
@@ -41,7 +42,7 @@ const MARKETING_OVERRIDES = {
   "ugc-product-video": {
     summary:
       "Choose the promise, generate a native-audio testimonial, then turn the spoken words into reviewable captions, restrained motion graphics, and a branded close.",
-    note: "Writing and caption transcription use OpenAI. The featured example uses supplied testimonial media with a custom local animation finish, so it demonstrates the finishing workflow rather than an end-to-end generated run.",
+    note: "The featured example is a live NodeTool testimonial run. Configure compatible writing, transcription, and native-audio video models to rerun it.",
     productionRecipeSlug: "ugc-product-video"
   }
 };
@@ -237,6 +238,36 @@ function templateInfo(preview) {
   return { workflows, tags: [...tags].sort() };
 }
 
+function outputExamples(slug) {
+  const directory = path.join(OUTPUT_EXAMPLES, slug);
+  if (!fs.existsSync(directory)) return [];
+  return fs
+    .readdirSync(directory)
+    .filter((name) => /\.(?:jpe?g|png|webp|mp4|webm|mp3|wav|md|json)$/i.test(name))
+    .sort()
+    .map((name) => {
+      const extension = path.extname(name).toLowerCase();
+      const label = humanize(path.basename(name, extension).replace(/^out-/, ""));
+      const publicPath = `/apps/examples/${slug}/${name}`;
+      if ([".jpg", ".jpeg", ".png", ".webp"].includes(extension)) {
+        return { label, kind: "image", path: publicPath };
+      }
+      if ([".mp4", ".webm"].includes(extension)) {
+        return { label, kind: "video", path: publicPath };
+      }
+      if ([".mp3", ".wav"].includes(extension)) {
+        return { label, kind: "audio", path: publicPath };
+      }
+      const source = fs.readFileSync(path.join(directory, name), "utf8").trim();
+      return {
+        label,
+        kind: extension === ".json" ? "data" : "text",
+        path: publicPath,
+        excerpt: source.slice(0, 1600),
+      };
+    });
+}
+
 const previews = fs
   .readdirSync(PREVIEWS)
   .filter((f) => f.endsWith(".json") && f !== "manifest.json")
@@ -273,6 +304,7 @@ const entries = previews.map((preview) => {
       ? { productionRecipeSlug: override.productionRecipeSlug }
       : {}),
     screenshot,
+    outputExamples: outputExamples(preview.slug),
     tags,
     ...app,
   };

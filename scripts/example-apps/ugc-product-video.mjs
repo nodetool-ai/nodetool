@@ -19,7 +19,7 @@ export const UGC_PRODUCT_VIDEO_APP = {
   description:
     "Choose the promise, generate a native-audio testimonial, then turn the spoken words into reviewable captions, restrained motion graphics, and a branded close.",
   note:
-    "Writing and caption transcription use OpenAI. Choose a compatible native-audio video model, then review the captions before the branded finish.",
+    "Choose compatible writing, transcription, and native-audio video models, then review the captions before the branded finish.",
   workflows: {
     copy: "Ad Copy in Three Registers",
     creator: "Generate a Native-Audio UGC Testimonial",

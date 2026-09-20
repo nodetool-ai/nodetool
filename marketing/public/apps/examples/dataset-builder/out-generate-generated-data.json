@@ -1,0 +1,78 @@
+{
+  "rows": [
+    {
+      "name": "carrot",
+      "color": "orange"
+    },
+    {
+      "name": "broccoli",
+      "color": "green"
+    },
+    {
+      "name": "cauliflower",
+      "color": "white"
+    },
+    {
+      "name": "eggplant",
+      "color": "purple"
+    },
+    {
+      "name": "bell pepper",
+      "color": "red"
+    },
+    {
+      "name": "spinach",
+      "color": "green"
+    },
+    {
+      "name": "radish",
+      "color": "red"
+    },
+    {
+      "name": "zucchini",
+      "color": "green"
+    }
+  ],
+  "columns": [
+    {
+      "name": "name"
+    },
+    {
+      "name": "color"
+    }
+  ],
+  "data": [
+    [
+      "carrot",
+      "orange"
+    ],
+    [
+      "broccoli",
+      "green"
+    ],
+    [
+      "cauliflower",
+      "white"
+    ],
+    [
+      "eggplant",
+      "purple"
+    ],
+    [
+      "bell pepper",
+      "red"
+    ],
+    [
+      "spinach",
+      "green"
+    ],
+    [
+      "radish",
+      "red"
+    ],
+    [
+      "zucchini",
+      "green"
+    ]
+  ]
+}

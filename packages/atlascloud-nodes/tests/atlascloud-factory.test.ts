@@ -250,9 +250,9 @@ describe("resolveAssetForAtlas", () => {
     const uri = "data:image/png;base64,AQID";
     expect(await resolveAssetForAtlas({ uri }, undefined, "image")).toBe(uri);
     expect(await resolveAssetForAtlas(uri, undefined, "image")).toBe(uri);
-    expect(
-      await resolveAssetForAtlas({ data: uri }, undefined, "image")
-    ).toBe(uri);
+    expect(await resolveAssetForAtlas({ data: uri }, undefined, "image")).toBe(
+      uri
+    );
   });
 
   // Refs produced by local file nodes carry a file:// URI or an absolute path;
@@ -274,7 +274,11 @@ describe("resolveAssetForAtlas", () => {
       )
     ).toBe("data:image/png;base64,AQID");
     expect(
-      await resolveAssetForAtlas({ type: "image", uri: file }, undefined, "image")
+      await resolveAssetForAtlas(
+        { type: "image", uri: file },
+        undefined,
+        "image"
+      )
     ).toBe("data:image/png;base64,AQID");
   });
 
@@ -301,7 +305,9 @@ describe("resolveAssetForAtlas", () => {
 
   it("returns null for an empty/null ref", async () => {
     expect(await resolveAssetForAtlas(null, undefined, "image")).toBeNull();
-    expect(await resolveAssetForAtlas(undefined, undefined, "image")).toBeNull();
+    expect(
+      await resolveAssetForAtlas(undefined, undefined, "image")
+    ).toBeNull();
   });
 
   it("passes through a bare-string public URL", async () => {
@@ -326,7 +332,9 @@ describe("createAtlasNodeClass.process", () => {
     vi.restoreAllMocks();
   });
 
-  function makeSpec(overrides: Partial<AtlasManifestEntry> = {}): AtlasManifestEntry {
+  function makeSpec(
+    overrides: Partial<AtlasManifestEntry> = {}
+  ): AtlasManifestEntry {
     return {
       className: "TestNode",
       moduleName: "image",
@@ -530,19 +538,16 @@ describe("createAtlasNodeClass.process", () => {
     const node = new Cls();
     // BaseNode hands secrets via the `_secrets` accessor backed by dynamic
     // state; populate the backing slot directly. (See base-node.ts.)
-    (node as unknown as { setDynamic: (k: string, v: unknown) => void }).setDynamic(
-      "_secrets",
-      { ATLASCLOUD_API_KEY: "tk" }
-    );
+    (
+      node as unknown as { setDynamic: (k: string, v: unknown) => void }
+    ).setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
     node.prompt = "a cat";
     node.size = "1024x1024";
     // UI sends ints as strings — make sure coercion kicks in.
     (node as unknown as Record<string, unknown>).steps = "30";
 
     const storage = {
-      store: vi
-        .fn()
-        .mockResolvedValue("memory://atlascloud-image-x.png")
+      store: vi.fn().mockResolvedValue("memory://atlascloud-image-x.png")
     };
 
     const out = await node.process({ storage });
@@ -923,6 +928,14 @@ describe("createAtlasNodeClass.process", () => {
     const submitted: { body: Record<string, unknown> } = { body: {} };
     global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
       const u = String(url);
+      if (u.endsWith("/uploadMedia")) {
+        return {
+          ok: true,
+          status: 200,
+          text: async () =>
+            JSON.stringify({ url: "https://uploads.atlas/input-video" })
+        } as Response;
+      }
       if (u.endsWith("/generateVideo")) {
         submitted.body = JSON.parse(init!.body as string);
         return {
@@ -969,7 +982,8 @@ describe("createAtlasNodeClass.process", () => {
     };
     const node = new Cls();
     node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
-    node.prompt = "drive asset://clip.mp4 with asset://track.wav and asset://ref.png";
+    node.prompt =
+      "drive asset://clip.mp4 with asset://track.wav and asset://ref.png";
 
     const assetBytes = Uint8Array.from([1, 2, 3]);
     const b64 = Buffer.from(assetBytes).toString("base64");
@@ -983,7 +997,7 @@ describe("createAtlasNodeClass.process", () => {
       prompt: "drive video with audio and image",
       image: `data:image/png;base64,${b64}`,
       audio: `data:audio/wav;base64,${b64}`,
-      video: `data:video/mp4;base64,${b64}`
+      video: "https://uploads.atlas/input-video"
     });
   });
 
@@ -1011,7 +1025,10 @@ describe("createAtlasNodeClass.process", () => {
         } as Response;
       }
       if (u === "https://cdn/out.mp4") {
-        return { ok: true, arrayBuffer: async () => Uint8Array.from([1]).buffer } as Response;
+        return {
+          ok: true,
+          arrayBuffer: async () => Uint8Array.from([1]).buffer
+        } as Response;
       }
       throw new Error(`unexpected: ${u}`);
     }) as unknown as typeof fetch;
@@ -1243,7 +1260,10 @@ describe("createAtlasNodeClass.process", () => {
 describe("atlascloud-manifest", () => {
   const manifest = JSON.parse(
     readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "../src/atlascloud-manifest.json"),
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../src/atlascloud-manifest.json"
+      ),
       "utf8"
     )
   ) as AtlasManifestEntry[];
@@ -1317,9 +1337,9 @@ describe("atlascloud-manifest", () => {
 
     expect(minimaxH3Variants.length).toBeGreaterThan(0);
     for (const entry of minimaxH3Variants) {
-      expect(entry.fields.find((field) => field.name === "duration")?.type).toBe(
-        "int"
-      );
+      expect(
+        entry.fields.find((field) => field.name === "duration")?.type
+      ).toBe("int");
     }
   });
 });

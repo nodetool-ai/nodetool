@@ -154,7 +154,7 @@ describe("SegmentImageNode", () => {
 });
 
 describe("RelightImageNode", () => {
-  it("routes to the relight_image capability with prompt", async () => {
+  it("routes relighting through image editing with prompt", async () => {
     const { context, calls } = captureContext(PNG_BYTES);
     const n = new (RelightImageNode as any)();
     n.assign({
@@ -164,7 +164,8 @@ describe("RelightImageNode", () => {
     });
     const result = await n.process(context);
 
-    expect(calls[0].capability).toBe("relight_image");
+    expect(calls[0].capability).toBe("image_to_image");
+    expect(calls[0].params.images).toEqual([PNG_BYTES]);
     expect(calls[0].params.prompt).toBe("warm sunset light");
     expect((result.output as any).type).toBe("image");
   });

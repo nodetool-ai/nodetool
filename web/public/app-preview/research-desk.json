@@ -4,7 +4,7 @@
   "emoji": "🕵️",
   "description": "A research agent and a Hacker News reader both take the same topic and stream into their own panel.",
   "tagline": "One topic, two sources, two briefings side by side.",
-  "note": "🔑 Needs an OpenAI key. Both briefings run in parallel from one button.",
+  "note": "Both briefings run in parallel from one button.",
   "featured": true,
   "image": "/app-preview/img/research-desk.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs an OpenAI key. Both briefings run in parallel from one button."
+            "text": "Both briefings run in parallel from one button."
           }
         },
         {
@@ -48,6 +48,26 @@
                   "id": "panel-your-topic",
                   "title": "Your topic",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-brief-research-agent-model",
+                        "binding": "op:brief/prop:research-agent#model",
+                        "label": "Brief model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-pulse-3-model",
+                        "binding": "op:pulse/prop:3#model",
+                        "label": "Pulse model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {

@@ -226,48 +226,48 @@ export const recipeEntries: RecipeEntry[] = [
   {
     "sample": null,
     "productionRun": {
-      "runId": "2026-09-14-emotional-support-cup",
+      "runId": "2026-09-20-ugc-product-video-atlascloud",
       "status": "accepted",
-      "statusLabel": "15-second emotional-support UGC story",
-      "proofTitle": "Turns out I needed the green one.",
-      "summary": "A self-aware purchase becomes a small source of reassurance as the same cup follows one chaotic day.",
-      "provider": "Finished UGC video supplied by the user. Transcript and media measurements verified locally.",
+      "statusLabel": "Live AtlasCloud UGC run",
+      "proofTitle": "One run, one real download.",
+      "summary": "A native-audio vertical testimonial generated from creator and product references inside NodeTool.",
+      "provider": "Generated in NodeTool with AtlasCloud MiniMax H3 Fast — Reference to Video, downloaded from the live app, and verified locally.",
       "hero": {
-        "src": "/recipes/runs/2026-09-14-emotional-support-cup/hero.jpg",
-        "alt": "Creator speaking to camera in her kitchen while holding an olive travel cup.",
-        "width": 1440,
-        "height": 2560
+        "src": "/recipes/runs/2026-09-20-ugc-product-video-atlascloud/hero.jpg",
+        "alt": "Creator speaking to camera before showing an olive travel cup.",
+        "width": 480,
+        "height": 864
       },
       "card": {
-        "src": "/recipes/runs/2026-09-14-emotional-support-cup/poster.jpg",
-        "alt": "Creator smiling in warm evening light while holding the olive cup.",
-        "width": 1440,
-        "height": 2560
+        "src": "/recipes/runs/2026-09-20-ugc-product-video-atlascloud/poster.jpg",
+        "alt": "Creator holding an olive travel cup beside her face.",
+        "width": 480,
+        "height": 864
       },
-      "ogImage": "/recipes/runs/2026-09-14-emotional-support-cup/poster.jpg",
+      "ogImage": "/recipes/runs/2026-09-20-ugc-product-video-atlascloud/poster.jpg",
       "proof": {
-        "src": "/recipes/runs/2026-09-14-emotional-support-cup/story-strip.jpg",
-        "alt": "Five frames follow the creator and olive cup from morning at home through work to evening.",
-        "caption": "The cup moves through the day before the creator returns to the opening thought.",
-        "width": 1600,
-        "height": 900
+        "src": "/recipes/runs/2026-09-20-ugc-product-video-atlascloud/story-strip.jpg",
+        "alt": "Five frames from the live UGC run show the creator, the cup entering frame, and the closing reaction.",
+        "caption": "The live output keeps the creator and room consistent while the cup enters for the product beat.",
+        "width": 2000,
+        "height": 720
       },
       "video": {
-        "mp4": "/recipes/runs/2026-09-14-emotional-support-cup/final.mp4",
+        "mp4": "/recipes/runs/2026-09-20-ugc-product-video-atlascloud/final.mp4",
         "webm": null,
-        "poster": "/recipes/runs/2026-09-14-emotional-support-cup/poster.jpg",
+        "poster": "/recipes/runs/2026-09-20-ugc-product-video-atlascloud/poster.jpg",
         "hasAudio": true,
-        "caption": "A 15.017-second vertical UGC story with continuous first-person narration and natural location sound."
+        "caption": "A 15.083-second 480×864 vertical UGC testimonial with H.264 video and AAC stereo audio."
       },
       "supportedClaims": [
-        "The creator says she bought the cup because it was green even though she already owned six cups.",
-        "The picture follows the same creator and cup from home through travel, work, an outdoor pause, and an evening close.",
-        "The supplied MP4 is 1440×2560, runs for 15.017 seconds, and contains H.264 video with AAC stereo audio."
+        "The live Nodetool app used AtlasCloud MiniMax H3 Fast — Reference to Video.",
+        "The app accepted creator and product references, produced a vertical testimonial, and exposed an in-product download link.",
+        "The downloaded MP4 is 480×864, runs for 15.083 seconds, and contains H.264 video with AAC stereo audio."
       ],
-      "essentialLimitation": "Generated product details, lip-sync, factual claims, and caption words still need review before publishing.",
+      "essentialLimitation": "Generated creator performance, product details, lip-sync, factual claims, and caption words still need review before publishing.",
       "limitations": [
         "The Olive Travel Cup is a fictional demonstration product.",
-        "The supplied MP4 does not include provider, model, or editable project metadata."
+        "The live verification used the same local reference image for both app inputs."
       ],
       "reviewLabel": "Reviewed example"
     },

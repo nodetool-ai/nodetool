@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-09-20-ugc-product-video-atlascloud",
+  "recipeSlug": "ugc-product-video",
+  "status": "accepted",
+  "product": "Fictional unbranded Olive Travel Cup",
+  "sourceReferences": [
+    "marketing/recipe-assets/2026-09-20-ugc-product-video-atlascloud/evidence/creator-reference.jpg",
+    "marketing/recipe-assets/2026-09-20-ugc-product-video-atlascloud/evidence/product-reference.jpg"
+  ],
+  "models": {
+    "video": {
+      "provider": "atlascloud",
+      "id": "minimax/h3-fast/reference-to-video"
+    }
+  },
+  "output": {
+    "path": "marketing/public/recipes/runs/2026-09-20-ugc-product-video-atlascloud/final.mp4",
+    "sha256": "e47bc92f668578c8e81a3aeef6988f3d63ba1fcfc3ba01b95e7c44257acdfd85",
+    "bytes": 5279195,
+    "width": 480,
+    "height": 864,
+    "durationSeconds": 15.083333,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "audioChannels": 2
+  },
+  "verification": {
+    "decode": "FFmpeg decoded the complete MP4 without errors.",
+    "visualReview": "Start, middle, and end frames show a consistent creator, room, and olive travel cup. The product enters the frame in the middle of the testimonial and the creator returns to camera at the end.",
+    "audio": "FFprobe found one AAC stereo audio stream."
+  },
+  "limitations": [
+    "The creator, product, lip-sync, and spoken claims are generated demonstration material and require review before publication.",
+    "The live run used the same local reference image for both app inputs during verification."
+  ]
+}

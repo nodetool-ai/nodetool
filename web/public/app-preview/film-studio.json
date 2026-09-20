@@ -4,7 +4,7 @@
   "emoji": "🎬",
   "description": "The showcase run: one brief drives a directed short, an editable rough cut, and the poster that sells it.",
   "tagline": "Brief → direction → storyboard → cut → key art.",
-  "note": "💸 This app spends real money — Veo 3.1 video and Replicate MusicGen. Run it once, deliberately.",
+  "note": "💸 This app generates video and music. Run it once, deliberately.",
   "featured": true,
   "image": "/app-preview/img/film-studio.jpg",
   "app": {
@@ -33,7 +33,7 @@
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "💸 This app spends real money — Veo 3.1 video and Replicate MusicGen. Run it once, deliberately."
+            "text": "💸 This app generates video and music. Run it once, deliberately."
           }
         },
         {
@@ -49,10 +49,120 @@
                   "title": "The film",
                   "content": [
                     {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-produce-director-model",
+                        "binding": "op:produce/prop:director#model",
+                        "label": "Produce model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-produce-production-data-model",
+                        "binding": "op:produce/prop:production_data#model",
+                        "label": "Produce model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-produce-style-frame-model",
+                        "binding": "op:produce/prop:style_frame#model",
+                        "label": "Produce model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-produce-shot-list-model",
+                        "binding": "op:produce/prop:shot_list#model",
+                        "label": "Produce model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-produce-keyframe-model",
+                        "binding": "op:produce/prop:keyframe#model",
+                        "label": "Produce model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-produce-animate-model",
+                        "binding": "op:produce/prop:animate#model",
+                        "label": "Produce model",
+                        "modelKind": "video_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-produce-narration-tts-model",
+                        "binding": "op:produce/prop:narration_tts#model",
+                        "label": "Produce model",
+                        "modelKind": "tts_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-produce-music-model",
+                        "binding": "op:produce/prop:music#model",
+                        "label": "Produce model",
+                        "modelKind": "music_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-cut-director-model",
+                        "binding": "op:cut/prop:director#model",
+                        "label": "Rough cut model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-cut-keyframe-model",
+                        "binding": "op:cut/prop:keyframe#model",
+                        "label": "Rough cut model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-cut-animate-model",
+                        "binding": "op:cut/prop:animate#model",
+                        "label": "Rough cut model",
+                        "modelKind": "video_model",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Text",
                       "props": {
                         "id": "note",
-                        "text": "💸 Each run of Produce or Rough cut uses Veo and Replicate credits."
+                        "text": "💸 Each run of Produce or Rough cut incurs video and music generation charges."
                       }
                     },
                     {
@@ -100,7 +210,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:produce/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     },
                     {
@@ -118,7 +232,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:cut/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -138,6 +256,20 @@
                         "id": "progress-produce",
                         "binding": "op:produce/exec#progress",
                         "label": "Directing, storyboarding & shooting…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-produce",
+                        "binding": "op:produce/exec#error",
+                        "title": "Film production failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:produce/exec#error",
+                          "op": "notEmpty"
+                        }
                       }
                     },
                     {
@@ -200,6 +332,20 @@
                       }
                     },
                     {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-cut",
+                        "binding": "op:cut/exec#error",
+                        "title": "Rough cut failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:cut/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-cut-film",
@@ -234,6 +380,36 @@
                   "id": "panel-key-art",
                   "title": "Key art",
                   "content": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-poster-prompt-list-generator-model",
+                        "binding": "op:poster/prop:prompt_list_generator#model",
+                        "label": "Poster model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-poster-0276f606-d899-4487-be65-4615564507cc-model",
+                        "binding": "op:poster/prop:0276f606-d899-4487-be65-4615564507cc#model",
+                        "label": "Poster model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-poster-04757c8a-dad6-48f3-a45f-459f54e26b7b-model",
+                        "binding": "op:poster/prop:04757c8a-dad6-48f3-a45f-459f54e26b7b#model",
+                        "label": "Poster model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "TextInput",
                       "props": {
@@ -297,7 +473,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:poster/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -317,6 +497,20 @@
                         "id": "progress-poster",
                         "binding": "op:poster/exec#progress",
                         "label": "Designing your poster…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-poster",
+                        "binding": "op:poster/exec#error",
+                        "title": "Poster generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:poster/exec#error",
+                          "op": "notEmpty"
+                        }
                       }
                     },
                     {

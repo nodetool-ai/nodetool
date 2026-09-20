@@ -68,7 +68,10 @@ export async function runOnServer(
     userId: "1",
     secretResolver: getSecret,
     storage: new FileStorageAdapter(getDefaultAssetsPath()),
-    workspace
+    workspace,
+    // The debug bundle crosses a JSON boundary. Store generated media so raw
+    // RGBA frames and image collections remain encoded, compact references.
+    assetOutputMode: "storage_url"
   });
 
   // ExecutionSession owns editor-only-node pruning (Comment/Group/Reroute —

@@ -20,6 +20,7 @@ import {
 } from "@nodetool-ai/execution/app-debug";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { resolveAppTarget, type AppTargetDeps } from "./app-target.js";
+import { formatRunJson } from "../run-json.js";
 import type { DebugGraph } from "../debug/types.js";
 import type {
   ServerRunInput,
@@ -126,9 +127,21 @@ export async function runAppDebug(
     loadScript,
     onRunMessages: async (runIndex: number, messages: ProcessingMessage[]) => {
       const messagesFile = `server/run-${runIndex + 1}.messages.jsonl`;
+      const lines: string[] = [];
+      for (const [messageIndex, message] of messages.entries()) {
+        const { json } = await formatRunJson(message, {
+          outputDir: join(
+            outDir,
+            "server",
+            `run-${runIndex + 1}-payloads`,
+            `message-${messageIndex + 1}`
+          )
+        });
+        lines.push(JSON.stringify(JSON.parse(json)));
+      }
       await writeFile(
         join(outDir, messagesFile),
-        messages.map((m) => JSON.stringify(m)).join("\n") + "\n",
+        `${lines.join("\n")}\n`,
         "utf8"
       );
       return messagesFile;
