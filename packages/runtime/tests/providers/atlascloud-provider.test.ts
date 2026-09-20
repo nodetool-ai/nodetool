@@ -37,6 +37,12 @@ function mockAtlasFetch(opts: MockFetchOptions = {}): void {
     const u = String(url);
     if (u.endsWith("/uploadMedia")) {
       uploadCalls++;
+      // Bound here, not read inside `text()`. Concurrent uploads — `lipSync`
+      // sends the video and the audio through one `Promise.all` — await their
+      // bodies after both calls have landed, so a closure over the mutable
+      // counter hands every one of them the last number and the caller cannot
+      // tell the two uploads apart.
+      const uploadIndex = uploadCalls;
       if (opts.capture && init?.body instanceof FormData) {
         opts.capture.uploads ??= [];
         opts.capture.uploads.push(init.body);
@@ -47,7 +53,7 @@ function mockAtlasFetch(opts: MockFetchOptions = {}): void {
         text: async () =>
           JSON.stringify({
             data: {
-              download_url: `https://uploads.atlas/input-${uploadCalls}`
+              download_url: `https://uploads.atlas/input-${uploadIndex}`
             }
           })
       } as Response;
