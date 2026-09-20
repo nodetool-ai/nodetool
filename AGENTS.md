@@ -102,6 +102,15 @@ and invocation policy match the task. Read the selected `SKILL.md`, then only
 the supporting references needed for the current operation. User instructions
 take precedence over skill guidelines.
 
+Two kinds sit in that directory. An **engineering skill** is a real directory
+and directs work on this repository. A **NodeTool skill** teaches a product
+surface, so it ships to every install as a system skill: the document lives in
+[`packages/system-skills/<name>/`](packages/system-skills/README.md) and
+`.claude/skills/<name>` is a symlink to it. Edit the shipped copy, never a
+second one, and keep it to a single `SKILL.md` — `load_skill` returns one
+document and nothing else in the directory reaches the product.
+`npm run check:agents-docs` enforces both.
+
 | Task | Skill |
 |---|---|
 | Implement an existing spec or tickets | [implement](.claude/skills/implement/SKILL.md) |
@@ -123,6 +132,16 @@ take precedence over skill guidelines.
 | Build or edit a sketch (image document) | [nodetool-sketch](.claude/skills/nodetool-sketch/SKILL.md) |
 | Build, edit or render a 3D model | [nodetool-3d-scene](.claude/skills/nodetool-3d-scene/SKILL.md) |
 | Write or revise a NodeTool skill, user or shipped | [nodetool-skill-author](.claude/skills/nodetool-skill-author/SKILL.md) |
+| Configure providers, credentials and model selection | [nodetool-model-provider-config](.claude/skills/nodetool-model-provider-config/SKILL.md) |
+| Build ingestion, vector indexing and retrieval | [nodetool-rag-indexing](.claude/skills/nodetool-rag-indexing/SKILL.md) |
+| Build a browser automation agent | [nodetool-browser-agent](.claude/skills/nodetool-browser-agent/SKILL.md) |
+| Integrate over REST, tRPC, WebSocket, MCP or the chat API | [nodetool-api-reference](.claude/skills/nodetool-api-reference/SKILL.md) |
+| Deploy or operate a server or worker | [nodetool-deployment](.claude/skills/nodetool-deployment/SKILL.md) |
+| Build a playable Godot game or an asset pack | [godot-game](.claude/skills/godot-game/SKILL.md) |
+
+The full shipped set, including the model-line prompting guides and the motion
+craft skills, is in
+[packages/system-skills/README.md](packages/system-skills/README.md).
 
 Use [ask-matt](.claude/skills/ask-matt/SKILL.md) when the user asks which
 engineering workflow fits. See [skill maintenance guidance](.claude/README.md#maintaining-skills)

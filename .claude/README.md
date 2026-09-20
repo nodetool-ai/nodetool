@@ -12,7 +12,7 @@ without being told how.
 | `commands/serve.md` | `/serve` — start the API on :7777 in the background and poll until it answers. |
 | `commands/verify.md` | `/verify` — typecheck, lint, test, and fix what breaks. |
 | `commands/onboard.md` | `/onboard <area>` — locate the owning workspace, entry point, nearest example, and the pitfalls that apply. |
-| `skills/` | Repository engineering and NodeTool authoring skills. The `.agents` symlink exposes the same files to Codex. |
+| `skills/` | Repository engineering skills, plus a symlink per NodeTool skill into `packages/system-skills/`. The `.agents` symlink exposes the same files to Codex. |
 
 ## Engineering skills
 
@@ -50,10 +50,14 @@ you can also type them:
 | `/resolving-merge-conflicts` | Work an in-progress merge or rebase hunk by hunk. |
 | `/wizard` | Generate a bash wizard for steps only a human can perform. |
 
-## NodeTool authoring skills
+## NodeTool skills ship with the product
 
-These cover the product surfaces rather than the engineering loop. All are
-model-invoked and typeable.
+These cover the product surfaces rather than the engineering loop. Each one is
+a **system skill**: the document lives in
+[`packages/system-skills/<name>/SKILL.md`](../packages/system-skills/README.md),
+every install loads it through `load_skill`, and `skills/<name>` here is a
+symlink to it so the coding agent reads the same file. Edit the shipped copy.
+All are model-invoked and typeable.
 
 | Skill | Surface |
 | :--- | :--- |
@@ -75,11 +79,16 @@ model-invoked and typeable.
 | `/nodetool-deployment` | Servers and workers: Docker, SSH, Runpod, cloud |
 | `/nodetool-skill-author` | Writing a user skill row or a shipped system skill |
 
-Deeper craft guidance ships as **system skills** in
-[`packages/system-skills/`](../packages/system-skills/README.md) and loads at
-runtime through `load_skill`, not from this directory. `motion-graphics` carries
-the full timeline op contract, and the `*-prompting` skills carry the model-line
-guides. A repository skill points at one rather than restating it.
+The rest of the shipped set is not symlinked here, because it answers a
+question this repository's coding agent does not ask: `motion-graphics` and the
+motion craft skills, the board shapes, and the `*-prompting` model-line guides.
+Load one with `load_skill` in the product, or read it under
+[`packages/system-skills/`](../packages/system-skills/README.md).
+
+Adding one: write `packages/system-skills/<name>/SKILL.md`, symlink it in here
+if the coding agent wants it too, and run `npm run check:agents-docs`. A skill
+ships as one document, so fold anything that would have been a `references/`
+file into a `##` section. `/nodetool-skill-author` has the contract.
 
 `/code-review` is a merge of upstream's skill and the old
 `nodetool-code-review`, which it replaces: upstream's Standards and Spec axes
