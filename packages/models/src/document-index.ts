@@ -15,9 +15,16 @@
  * the client used to read a thousand asset rows to find the handful that are
  * entities. The marker is a substring of the stored JSON, so the database
  * filters on it and only entities cross the wire.
+ *
+ * Eight reads also mean eight ways to fail. They are gathered so that a kind
+ * whose read errors costs the navigator that kind, not the panel: the index
+ * says it is partial and names the failure in the log, rather than answering
+ * the whole request with a database error. Only a request where every kind
+ * failed throws, because then there is no index to show.
  */
 
 import { and, desc, eq, isNull, like, or, type SQL } from "drizzle-orm";
+import { createLogger } from "@nodetool-ai/config";
 import type { Entity } from "@nodetool-ai/protocol";
 
 import { getDb } from "./db.js";
@@ -74,6 +81,8 @@ const DOCUMENT_INDEX_PER_TYPE = 500;
 
 /** The marker key, as it appears in the stored metadata JSON. */
 const ENTITY_MARKER_KEY = "nodetool_entity";
+
+const log = createLogger("nodetool.models.document-index");
 
 /**
  * The document tables. They differ in everything but the five columns this
@@ -201,6 +210,67 @@ const toEntries = (
     updatedAt: row.updated_at
   }));
 
+/** What one kind's read produced. */
+interface KindRead {
+  entries: DocumentIndexEntry[];
+  /**
+   * Rows the read consumed from its cap. Not `entries.length`: an entity row
+   * the marker read rejected took its place in the cap all the same.
+   */
+  rowCount: number;
+}
+
+/** One kind of document, and the read that lists it. */
+interface Kind {
+  type: DocumentIndexType;
+  read: () => Promise<KindRead>;
+}
+
+/**
+ * An error's message followed by its causes.
+ *
+ * A database error arrives wrapped: Drizzle's `DrizzleQueryError` says only
+ * `Failed query: <sql> params: <params>`, and the reason the database gave —
+ * the relation that does not exist, the statement that timed out — hangs off
+ * `cause`. Logging the outer message alone is how the navigator came to quote
+ * SQL at somebody with no way to tell what was wrong with it.
+ */
+function describeError(error: unknown): string {
+  const messages: string[] = [];
+  let current: unknown = error;
+  // Bounded rather than exhaustive: a `cause` chain can be cyclic.
+  for (let depth = 0; depth < 8 && current instanceof Error; depth += 1) {
+    if (current.message) messages.push(current.message);
+    current = current.cause;
+  }
+  return messages.length > 0 ? messages.join(": ") : String(error);
+}
+
+/** The kinds the index gathers, each with the read that lists it. */
+function documentKinds(userId: string, projectId: string, cap: number): Kind[] {
+  const named = (
+    type: DocumentIndexType,
+    table: DocumentTable,
+    extra?: SQL<unknown>
+  ): Kind => ({
+    type,
+    read: async () => {
+      const rows = await listNamed(table, userId, projectId, cap, extra);
+      return { entries: toEntries(type, rows), rowCount: rows.length };
+    }
+  });
+  return [
+    named("workflow", workflows, listedRunModes()),
+    named("application", applications),
+    named("sketch", imageDocuments),
+    named("script", scripts),
+    named("storyboard", storyboards),
+    named("timeline", timelineSequences),
+    named("jsscript", jsScripts),
+    { type: "entity", read: () => listEntities(userId, projectId, cap) }
+  ];
+}
+
 /**
  * Every document in a project, newest first, read in one pass per kind.
  *
@@ -215,41 +285,45 @@ export async function listDocumentIndex(
   // One row over the cap, so a kind that ran out of room says so rather than
   // looking complete.
   const cap = documentsPerType + 1;
-  const [
-    workflowRows,
-    applicationRows,
-    sketchRows,
-    scriptRows,
-    storyboardRows,
-    timelineRows,
-    jsScriptRows,
-    entities
-  ] = await Promise.all([
-    listNamed(workflows, userId, projectId, cap, listedRunModes()),
-    listNamed(applications, userId, projectId, cap),
-    listNamed(imageDocuments, userId, projectId, cap),
-    listNamed(scripts, userId, projectId, cap),
-    listNamed(storyboards, userId, projectId, cap),
-    listNamed(timelineSequences, userId, projectId, cap),
-    listNamed(jsScripts, userId, projectId, cap),
-    listEntities(userId, projectId, cap)
-  ]);
+  const kinds = documentKinds(userId, projectId, cap);
+  const results = await Promise.allSettled(kinds.map((kind) => kind.read()));
 
-  const kinds: DocumentIndexEntry[][] = [
-    toEntries("workflow", workflowRows),
-    toEntries("application", applicationRows),
-    toEntries("sketch", sketchRows),
-    toEntries("script", scriptRows),
-    toEntries("storyboard", storyboardRows),
-    toEntries("timeline", timelineRows),
-    toEntries("jsscript", jsScriptRows),
-    entities.entries
-  ];
-  const partial =
-    entities.rowCount > documentsPerType ||
-    kinds.some((rows) => rows.length > documentsPerType);
-  const documents = kinds
-    .flatMap((rows) => rows.slice(0, documentsPerType))
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const documents: DocumentIndexEntry[] = [];
+  const failures: Array<{ type: DocumentIndexType; error: unknown }> = [];
+  let partial = false;
+
+  results.forEach((result, index) => {
+    const { type } = kinds[index]!;
+    if (result.status === "rejected") {
+      // A kind the database could not answer for is a kind missing from the
+      // index, which is what `partial` says.
+      failures.push({ type, error: result.reason });
+      partial = true;
+      return;
+    }
+    if (result.value.rowCount > documentsPerType) {
+      partial = true;
+    }
+    documents.push(...result.value.entries.slice(0, documentsPerType));
+  });
+
+  if (failures.length === kinds.length) {
+    // Nothing was read, so there is no partial index to draw. The reason the
+    // database gave travels with the error rather than only the failed SQL.
+    const first = failures[0]!;
+    throw new Error(
+      `The document index could not be read: ${describeError(first.error)}`,
+      { cause: first.error }
+    );
+  }
+  for (const failure of failures) {
+    log.error(`Document index: the ${failure.type} read failed`, {
+      userId,
+      projectId,
+      error: describeError(failure.error)
+    });
+  }
+
+  documents.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   return { documents, partial };
 }
