@@ -50,6 +50,7 @@ import {
 import { CloseButton } from "./CloseButton";
 import PanelHeadline from "../ui/PanelHeadline";
 import { isString } from "../../utils/typePredicates";
+import { OverlayLayerProvider, useOverlayLayer } from "./OverlayLayer";
 
 export interface DialogProps extends Omit<MuiDialogProps, "title" | "content"> {
   /**
@@ -162,6 +163,13 @@ export const Dialog = memo(
     ) => {
       const theme = useTheme();
       const titleId = useId();
+      // A dialog opened from inside a popover has to clear that popover's
+      // invisible backdrop, which the theme pins far above the modal layer.
+      // Outside any overlay there is nothing to clear, so the theme layer and
+      // everything stacked against it stay as they are.
+      const parentLayer = useOverlayLayer();
+      const nestedZIndex =
+        parentLayer === undefined ? undefined : parentLayer + 1;
 
       const shouldShowActions = showActions || !!onConfirm;
 
@@ -205,6 +213,10 @@ export const Dialog = memo(
           className={`dialog ${className ?? ""}`}
           aria-labelledby={title ? titleId : undefined}
           slotProps={{
+            root:
+              nestedZIndex === undefined
+                ? undefined
+                : { style: { zIndex: nestedZIndex } },
             backdrop: {
               style: {
                 backdropFilter: glass.blur,
@@ -223,34 +235,36 @@ export const Dialog = memo(
           }}
           {...dialogProps}
         >
-          {title && (
-            <DialogTitle className="dialog-title" id={titleId}>
-              {titleIsString ? (
-                <PanelHeadline title={title} actions={headerActions} />
-              ) : (
-                title
-              )}
-            </DialogTitle>
-          )}
-          {dialogContent && (
-            <DialogContent className="dialog-content">
-              {dialogContent}
-            </DialogContent>
-          )}
-          {actions && <MuiDialogActions>{actions}</MuiDialogActions>}
-          {!actions && shouldShowActions && onConfirm && (
-            <DialogActionButtons
-              onConfirm={onConfirm}
-              onCancel={handleCancel}
-              confirmText={confirmText}
-              cancelText={cancelText}
-              isLoading={isLoading}
-              confirmDisabled={confirmDisabled}
-              cancelDisabled={cancelDisabled}
-              destructive={destructive}
-              {...actionButtonsProps}
-            />
-          )}
+          <OverlayLayerProvider value={nestedZIndex}>
+            {title && (
+              <DialogTitle className="dialog-title" id={titleId}>
+                {titleIsString ? (
+                  <PanelHeadline title={title} actions={headerActions} />
+                ) : (
+                  title
+                )}
+              </DialogTitle>
+            )}
+            {dialogContent && (
+              <DialogContent className="dialog-content">
+                {dialogContent}
+              </DialogContent>
+            )}
+            {actions && <MuiDialogActions>{actions}</MuiDialogActions>}
+            {!actions && shouldShowActions && onConfirm && (
+              <DialogActionButtons
+                onConfirm={onConfirm}
+                onCancel={handleCancel}
+                confirmText={confirmText}
+                cancelText={cancelText}
+                isLoading={isLoading}
+                confirmDisabled={confirmDisabled}
+                cancelDisabled={cancelDisabled}
+                destructive={destructive}
+                {...actionButtonsProps}
+              />
+            )}
+          </OverlayLayerProvider>
         </MuiDialog>
       );
     }

@@ -317,6 +317,8 @@ export type { ResponsiveImageProps } from "./ResponsiveImage";
 export { Tooltip } from "./Tooltip";
 export type { TooltipProps } from "./Tooltip";
 
+export { OverlayLayerProvider, useOverlayLayer } from "./OverlayLayer";
+
 export { Popover } from "./Popover";
 export type { PopoverProps, PopoverPlacement } from "./Popover";
 
