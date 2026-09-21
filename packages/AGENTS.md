@@ -27,6 +27,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/replicate-nodes` | Replicate integration nodes |
 | `@nodetool-ai/elevenlabs-nodes` | ElevenLabs TTS integration nodes |
 | `@nodetool-ai/minimax-nodes` | MiniMax TTS, music, image, and video nodes |
+| `@nodetool-ai/muapi-nodes` | MuAPI text-to-video and image-to-video nodes (thin wrappers over `MuapiProvider`'s transport) |
 | `@nodetool-ai/huggingface` | HuggingFace model discovery and downloads |
 | `@nodetool-ai/vectorstore` | SQLite-vec vector store for RAG |
 | `@nodetool-ai/websocket` | Fastify HTTP + WebSocket server (main API, port 7777) |
