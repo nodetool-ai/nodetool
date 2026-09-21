@@ -9,19 +9,17 @@ import {
   MousePointerClick,
   PencilLine,
   Sparkles,
-  Workflow,
+  Workflow
 } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
-import RecipeProductionRun from "@/components/RecipeProductionRun";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import {
   miniAppEntries,
   relatedMiniApps,
-  type MiniAppEntry,
+  type MiniAppEntry
 } from "@/data/miniApps";
-import { recipeEntries } from "@/data/recipes";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -36,7 +34,7 @@ function getEntry(slug: string): MiniAppEntry | undefined {
 }
 
 export async function generateMetadata({
-  params,
+  params
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
@@ -56,8 +54,8 @@ export async function generateMetadata({
       type: "website",
       ...(entry.screenshot
         ? { images: [{ url: `${BASE_URL}${entry.screenshot}` }] }
-        : {}),
-    },
+        : {})
+    }
   };
 }
 
@@ -67,11 +65,11 @@ const OUTPUT_LABEL: Record<string, string> = {
   audio: "Audio",
   video: "Video",
   data: "Structured data",
-  progress: "Live progress",
+  progress: "Live progress"
 };
 
 export default async function MiniAppPage({
-  params,
+  params
 }: {
   params: Promise<{ slug: string }>;
 }) {
@@ -80,11 +78,6 @@ export default async function MiniAppPage({
   if (!entry) notFound();
 
   const related = relatedMiniApps(entry, miniAppEntries, 6);
-  const productionRun = entry.productionRecipeSlug
-    ? (recipeEntries.find(
-        (recipe) => recipe.slug === entry.productionRecipeSlug
-      )?.productionRun ?? null)
-    : null;
   const tagline =
     entry.tagline ||
     entry.summary ||
@@ -93,19 +86,24 @@ export default async function MiniAppPage({
   const steps = [
     {
       icon: <PencilLine className="h-5 w-5 text-sky-400" />,
-      title: entry.inputs.length > 0 ? "Fill in a few fields" : "Nothing to configure",
+      title:
+        entry.inputs.length > 0
+          ? "Fill in a few fields"
+          : "Nothing to configure",
       body:
         entry.inputs.length > 0
           ? `Plain-language inputs — ${entry.inputs
               .slice(0, 3)
               .map((i) => i.label.toLowerCase())
-              .join(", ")}${entry.inputs.length > 3 ? ", …" : ""}. No settings, no jargon.`
-          : "This app is one button. Sensible defaults are already wired into the workflow.",
+              .join(
+                ", "
+              )}${entry.inputs.length > 3 ? ", …" : ""}. No settings, no jargon.`
+          : "This app is one button. Sensible defaults are already wired into the workflow."
     },
     {
       icon: <MousePointerClick className="h-5 w-5 text-sky-400" />,
       title: `Click “${entry.buttonLabel}”`,
-      body: "The workflow runs behind the scenes — on your machine or with your own provider keys. You pay providers directly, or run local models for free.",
+      body: "The workflow runs behind the scenes — on your machine or with your own provider keys. You pay providers directly, or run local models for free."
     },
     {
       icon: <Sparkles className="h-5 w-5 text-sky-400" />,
@@ -116,8 +114,8 @@ export default async function MiniAppPage({
               .map((o) => o.label.toLowerCase())
               .slice(0, 4)
               .join(", ")}.`
-          : "Results appear live in the app as the workflow streams them.",
-    },
+          : "Results appear live in the app as the workflow streams them."
+    }
   ];
 
   const appLd = {
@@ -129,7 +127,9 @@ export default async function MiniAppPage({
     description: tagline,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     url: `${BASE_URL}${entry.route}`,
-    ...(entry.screenshot ? { screenshot: `${BASE_URL}${entry.screenshot}` } : {}),
+    ...(entry.screenshot
+      ? { screenshot: `${BASE_URL}${entry.screenshot}` }
+      : {})
   };
 
   return (
@@ -202,8 +202,6 @@ export default async function MiniAppPage({
           </section>
         )}
 
-        {productionRun && <RecipeProductionRun run={productionRun} />}
-
         {entry.outputExamples.length > 0 && (
           <section className="relative py-12">
             <div className="mx-auto max-w-6xl px-6 lg:px-8">
@@ -250,7 +248,9 @@ export default async function MiniAppPage({
                       </pre>
                     )}
                     <div className="flex items-center justify-between gap-4 border-t border-white/10 px-5 py-4">
-                      <h3 className="font-semibold text-white">{output.label}</h3>
+                      <h3 className="font-semibold text-white">
+                        {output.label}
+                      </h3>
                       <a
                         href={output.path}
                         download
@@ -335,7 +335,9 @@ export default async function MiniAppPage({
                       Step {i + 1}
                     </span>
                   </div>
-                  <h3 className="mt-3 font-semibold text-white">{step.title}</h3>
+                  <h3 className="mt-3 font-semibold text-white">
+                    {step.title}
+                  </h3>
                   <p className="mt-2 text-sm leading-relaxed text-slate-400">
                     {step.body}
                   </p>
@@ -399,7 +401,9 @@ export default async function MiniAppPage({
                       </div>
                     ) : null}
                     <div className="p-5">
-                      <div className="font-semibold text-white">{r.heading}</div>
+                      <div className="font-semibold text-white">
+                        {r.heading}
+                      </div>
                       <p className="mt-2 line-clamp-2 text-sm text-slate-400">
                         {r.tagline || r.summary}
                       </p>

@@ -4,7 +4,13 @@ import { recipeEntries } from "../../src/data/recipes";
 // Static route/metadata/media coverage lives in static-seo.spec.ts and uses
 // HTTP responses. Browser work stays representative so hydration and user
 // navigation are exercised without opening a page for every prerendered route.
-const HYDRATION_ROUTES = ["/", "/apps", "/models", "/recipes/ugc-product-video", "/download"];
+const HYDRATION_ROUTES = [
+  "/",
+  "/apps",
+  "/models",
+  "/recipes/ugc-product-video",
+  "/download"
+];
 
 test.describe("marketing smoke", () => {
   for (const path of HYDRATION_ROUTES) {
@@ -119,8 +125,12 @@ test.describe("marketing smoke", () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(campaignImage).toBeVisible();
-    expect((await campaignImage.boundingBox())?.width ?? 0).toBeGreaterThan(300);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    expect((await campaignImage.boundingBox())?.width ?? 0).toBeGreaterThan(
+      300
+    );
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth)
+    ).toBeLessThanOrEqual(390);
   });
 
   test("advertising showcase opens the impossible product worlds recipe", async ({
@@ -189,36 +199,44 @@ test.describe("marketing smoke", () => {
     }
   });
 
-  for (const path of ["/recipes/ugc-product-video", "/apps/ugc-product-video"]) {
-    test(`${path} exposes the playable live AtlasCloud UGC run`, async ({
-      page
-    }) => {
-      await page.goto(path);
+  test("the UGC recipe exposes its playable live run", async ({ page }) => {
+    await page.goto("/recipes/ugc-product-video");
 
-      const proof = page.getByRole("region", {
-        name: "One run, one real download."
-      });
-      const video = proof.locator("video");
-
-      await expect(proof).toBeVisible();
-      await expect(video).toHaveAttribute(
-        "poster",
-        "/recipes/runs/2026-09-14-emotional-support-cup/poster.jpg"
-      );
-      await expect(video.locator('source[type="video/mp4"]')).toHaveAttribute(
-        "src",
-        "/recipes/runs/2026-09-14-emotional-support-cup/final.mp4"
-      );
-      await expect(video).toHaveJSProperty("error", null);
-      expect(
-        await video.evaluate((element: HTMLVideoElement) => element.duration)
-      ).toBeCloseTo(15.083, 2);
+    const proof = page.getByRole("region", {
+      name: "Turns out I needed the green one."
     });
-  }
+    const video = proof.locator("video");
 
-  test("every UGC recipe step shows its source visual", async ({
+    await expect(proof).toBeVisible();
+    await expect(video).toHaveAttribute(
+      "poster",
+      "/recipes/runs/2026-09-14-emotional-support-cup/poster.jpg"
+    );
+    await expect(video.locator('source[type="video/mp4"]')).toHaveAttribute(
+      "src",
+      "/recipes/runs/2026-09-14-emotional-support-cup/final.mp4"
+    );
+    await expect(video).toHaveJSProperty("error", null);
+    expect(
+      await video.evaluate((element: HTMLVideoElement) => element.duration)
+    ).toBeCloseTo(15.083, 2);
+  });
+
+  test("the UGC mini app shows its captured outputs without recipe proof", async ({
     page
   }) => {
+    await page.goto("/apps/ugc-product-video");
+
+    await expect(
+      page.getByRole("heading", { name: "Output from a live run" })
+    ).toBeVisible();
+    await expect(page.getByText("Final Poster", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Turns out I needed the green one." })
+    ).toHaveCount(0);
+  });
+
+  test("every UGC recipe step shows its source visual", async ({ page }) => {
     await page.goto("/recipes/ugc-product-video");
 
     for (const name of [
@@ -314,7 +332,9 @@ test.describe("marketing smoke", () => {
 
     await expect(proof).toBeVisible();
     await expect(page.getByText("Partial example")).toHaveCount(0);
-    await expect(page.getByText("Review notes", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Review notes", { exact: true })).toHaveCount(
+      0
+    );
     await expect(
       proof.getByText(recipe.productionRun!.essentialLimitation)
     ).toHaveCount(0);
@@ -441,5 +461,4 @@ test.describe("marketing smoke", () => {
       page.getByRole("link", { name: "visual node-based AI guide" })
     ).toHaveAttribute("href", "/node-based-ai");
   });
-
 });
