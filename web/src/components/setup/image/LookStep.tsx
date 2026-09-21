@@ -46,7 +46,11 @@ import { useGenerateVariations } from "../../../hooks/sketch/useGenerateVariatio
 import { OptionCardGrid, type OptionCardItem } from "../OptionCardGrid";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
 import ImageModelSelect from "../../properties/ImageModelSelect";
-import { SIZE_PRESETS, sizePresetFor } from "./sizes";
+import {
+  sizePresetFor,
+  sizePresetsForAspectRatios,
+  type SizePreset
+} from "./sizes";
 import {
   NO_STYLE_ID,
   modelChoicePatch,
@@ -79,6 +83,8 @@ export interface LookStepControls {
   /** The model list's state, and what the body renders in its place. */
   availability: ModelAvailability;
   models: readonly ImageModel[];
+  /** Guided canvas sizes the selected model accepts. */
+  sizePresets: readonly SizePreset[];
   /** True while the chosen model is not one the providers offer. */
   modelMissing: boolean;
   refetchModels: () => void;
@@ -158,6 +164,24 @@ export function useLookStep(): LookStepControls {
       (entry) => entry.id === model && entry.provider === provider
     );
 
+  const selectedModel = useMemo(
+    () =>
+      models.find(
+        (entry) => entry.id === model && entry.provider === provider
+      ),
+    [model, models, provider]
+  );
+  const sizePresets = useMemo(
+    () => sizePresetsForAspectRatios(selectedModel?.aspect_ratios),
+    [selectedModel?.aspect_ratios]
+  );
+  const selectedSize = sizePresetFor(canvas.width, canvas.height);
+  const sizeUnsupported =
+    selectedModel?.aspect_ratios != null &&
+    selectedModel.aspect_ratios.length > 0 &&
+    (!selectedSize ||
+      !selectedModel.aspect_ratios.includes(selectedSize.aspectRatio));
+
   const generate = useCallback(async (): Promise<string[]> => {
     const current = useSketchStore.getState().document.setup;
     const size = useSketchStore.getState().document.canvas;
@@ -212,7 +236,11 @@ export function useLookStep(): LookStepControls {
             ? "No image model can render a picture yet"
             : modelMissing
               ? "That model is no longer offered — pick another"
-              : "Pick an image model";
+              : sizePresets.length === 0
+                ? "That model has no size supported by this guided flow"
+                : sizeUnsupported
+                  ? "Pick a size supported by this image model"
+                  : "Pick an image model";
 
   return {
     styleChoice: persisted.styleChoice,
@@ -221,11 +249,16 @@ export function useLookStep(): LookStepControls {
     model,
     setModel,
     canAdvance:
-      availability === "ready" && model.length > 0 && !modelMissing,
+      availability === "ready" &&
+      model.length > 0 &&
+      !modelMissing &&
+      sizePresets.length > 0 &&
+      !sizeUnsupported,
     blockedReason,
     primaryDetail,
     availability,
     models,
+    sizePresets,
     modelMissing,
     refetchModels: () => void refetch(),
     generate
@@ -296,24 +329,24 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
 
   const sizeOptions = useMemo<OptionCardItem[]>(
     () =>
-      SIZE_PRESETS.map((preset) => ({
+      look.sizePresets.map((preset) => ({
         id: preset.id,
         title: preset.label,
         description: `${preset.width} × ${preset.height}`
       })),
-    []
+    [look.sizePresets]
   );
 
   const selectedSizeId = sizePresetFor(canvas.width, canvas.height)?.id ?? null;
 
   const handleSize = useCallback(
     (id: string) => {
-      const preset = SIZE_PRESETS.find((entry) => entry.id === id);
+      const preset = look.sizePresets.find((entry) => entry.id === id);
       if (preset) {
         resizeCanvas(preset.width, preset.height);
       }
     },
-    [resizeCanvas]
+    [look.sizePresets, resizeCanvas]
   );
 
   const styleTiles = useMemo<PresetTile[]>(
@@ -333,8 +366,25 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
     [setStyleChoice]
   );
   const handleModel = useCallback(
-    (chosen: ImageModelValue) => setModel(chosen.provider, chosen.id),
-    [setModel]
+    (chosen: ImageModelValue) => {
+      setModel(chosen.provider, chosen.id);
+      const selected = look.models.find(
+        (entry) =>
+          entry.id === chosen.id && entry.provider === chosen.provider
+      );
+      const supported = sizePresetsForAspectRatios(selected?.aspect_ratios);
+      const current = sizePresetFor(canvas.width, canvas.height);
+      if (
+        supported.length > 0 &&
+        (!current ||
+          !supported.some(
+            (preset) => preset.aspectRatio === current.aspectRatio
+          ))
+      ) {
+        resizeCanvas(supported[0].width, supported[0].height);
+      }
+    },
+    [canvas.height, canvas.width, look.models, resizeCanvas, setModel]
   );
   // The style grid's trailing tile is a real choice, so nothing adds anything.
   const noop = useCallback(() => undefined, []);

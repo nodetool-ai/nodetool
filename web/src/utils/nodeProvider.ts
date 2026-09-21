@@ -26,6 +26,7 @@ const namespaceToSecretKey: Record<string, string> = {
   elevenlabs: "ELEVENLABS_API_KEY",
   search: "SERPAPI_API_KEY",
   atlascloud: "ATLASCLOUD_API_KEY",
+  higgsfield: "HIGGSFIELD_API_KEY_ID",
   xai: "XAI_API_KEY",
   together: "TOGETHER_API_KEY",
   minimax: "MINIMAX_API_KEY"
@@ -64,6 +65,8 @@ const secretKeyToDisplayName: Record<string, string> = {
   COMFY_API_KEY: "Comfy Cloud",
   SERPAPI_API_KEY: "SerpAPI Key",
   ATLASCLOUD_API_KEY: "AtlasCloud API Key",
+  HIGGSFIELD_API_KEY_ID: "Higgsfield API Key ID",
+  HIGGSFIELD_API_KEY_SECRET: "Higgsfield API Key Secret",
   XAI_API_KEY: "xAI API Key",
   TOGETHER_API_KEY: "Together API Key",
   MINIMAX_API_KEY: "MiniMax API Key"

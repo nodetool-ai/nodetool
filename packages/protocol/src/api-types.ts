@@ -1128,6 +1128,7 @@ export const PROVIDER_IDS = {
   TOPAZ: "topaz",
   REVE: "reve",
   ATLASCLOUD: "atlascloud",
+  HIGGSFIELD: "higgsfield",
   AKI: "aki",
   MESHY: "meshy",
   RODIN: "rodin",

@@ -1,0 +1,5 @@
+{
+  "modelId": "bytedance/seedance-2.5/reference-to-video",
+  "sourceUrl": "https://open.higgsfield.ai/models/bytedance/seedance-2.5/reference-to-video/api-reference",
+  "verifiedFields": ["prompt", "audio_urls", "image_urls", "video_urls", "duration", "resolution", "aspect_ratio", "output_format", "generate_audio"]
+}

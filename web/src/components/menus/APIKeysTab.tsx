@@ -670,7 +670,19 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     try {
       if (meta?.fields) {
         // Multi-field provider: update all fields
-        if (!meta.fields.every((f) => formValues[f.key])) {
+        const combinedValues = meta.combinedCredential?.parse(formValue);
+        if (meta.combinedCredential && !combinedValues) {
+          addNotification({
+            type: "error",
+            content: meta.combinedCredential.errorMessage,
+            dismissable: true
+          });
+          return;
+        }
+        if (
+          !combinedValues &&
+          !meta.fields.every((f) => formValues[f.key])
+        ) {
           addNotification({
             type: "error",
             content: "All fields are required",
@@ -679,7 +691,10 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
           return;
         }
         for (const field of meta.fields) {
-          await updateSecret(field.key, formValues[field.key]);
+          await updateSecret(
+            field.key,
+            combinedValues?.[field.key] ?? formValues[field.key]
+          );
         }
       } else {
         // Single-field provider
@@ -911,7 +926,9 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
           const meta = getParentProviderMeta(editingSecret.key);
           const isMultiField = !!meta?.fields && meta.fields.length > 0;
           const allFieldsFilled =
-            isMultiField && meta?.fields
+            meta?.combinedCredential
+              ? formValue
+              : isMultiField && meta?.fields
               ? meta.fields.every((f) => formValues[f.key])
               : formValue;
 
@@ -943,7 +960,25 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
               <FlexColumn
                 sx={{ marginTop: theme.spacing(4), gap: theme.spacing(3) }}
               >
-                {isMultiField ? (
+                {meta?.combinedCredential ? (
+                  <>
+                    <TextInput
+                      label={meta.combinedCredential.label}
+                      type="password"
+                      value={formValue}
+                      onChange={(e) => setFormValue(e.target.value)}
+                      fullWidth
+                      placeholder={meta.combinedCredential.placeholder}
+                      autoFocus
+                      variant="outlined"
+                      size="small"
+                    />
+                    <Caption>
+                      Paste the complete value copied from Higgsfield. The key
+                      ID and secret will be encrypted and stored separately.
+                    </Caption>
+                  </>
+                ) : isMultiField ? (
                   <>
                     {meta?.fields?.map((field) => (
                       <TextInput

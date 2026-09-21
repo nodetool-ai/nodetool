@@ -120,6 +120,12 @@ export const BUILTIN_NODE_PACKS: readonly BuiltinNodePack[] = [
     namespaces: ["atlascloud"]
   },
   {
+    id: "higgsfield",
+    name: "Higgsfield",
+    description: "Curated Higgsfield image and video generation models.",
+    namespaces: ["higgsfield"]
+  },
+  {
     id: "together",
     name: "Together AI",
     description:

@@ -673,6 +673,7 @@ export interface ImageToVideoParams {
 export interface ReferenceToVideoInputs {
   images: Uint8Array[];
   videos: Uint8Array[];
+  audios?: Uint8Array[];
 }
 
 export interface ReferenceToVideoParams extends TextToVideoParams {
@@ -708,6 +709,7 @@ export interface ExtendVideoParams {
   mode: "start" | "end";
   /** Additional source seconds, not the total output duration. */
   durationSeconds: number;
+  signal?: AbortSignal;
 }
 
 /**

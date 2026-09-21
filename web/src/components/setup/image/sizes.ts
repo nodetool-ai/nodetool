@@ -31,6 +31,15 @@ export const SIZE_PRESETS: readonly SizePreset[] = [
   at1K("banner", "Banner", "21:9")
 ];
 
+/** Guided sizes accepted by a model, or every preset when it states no limit. */
+export const sizePresetsForAspectRatios = (
+  aspectRatios: readonly string[] | null | undefined
+): readonly SizePreset[] => {
+  if (!aspectRatios || aspectRatios.length === 0) return SIZE_PRESETS;
+  const allowed = new Set(aspectRatios);
+  return SIZE_PRESETS.filter((preset) => allowed.has(preset.aspectRatio));
+};
+
 /** The preset whose pixels match a canvas, or null when none does. */
 export const sizePresetFor = (
   width: number,

@@ -1,0 +1,1 @@
+{"modelId":"bytedance/seedance-2.5/image-to-video","sourceUrl":"https://open.higgsfield.ai/models/bytedance/seedance-2.5/image-to-video/api-reference","verifiedFields":["prompt","image_url","duration","resolution","bitrate_mode","generate_audio","end_image_url"]}

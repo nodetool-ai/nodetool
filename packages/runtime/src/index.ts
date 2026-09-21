@@ -117,6 +117,28 @@ export {
   type GenerationProviderRequestOptions
 } from "./generation-receipt.js";
 export {
+  HIGGSFIELD_BASE,
+  HiggsfieldApiError,
+  higgsfieldSubmit,
+  higgsfieldGetStatus,
+  higgsfieldGetStatusByRequestId,
+  higgsfieldAwaitResult,
+  higgsfieldCancel,
+  higgsfieldCancelByRequestId,
+  higgsfieldEstimate,
+  higgsfieldCreateUploadUrl,
+  higgsfieldUploadMedia,
+  higgsfieldOutputUrls,
+  higgsfieldDownloadResult
+} from "./providers/higgsfield-transport.js";
+export type {
+  HiggsfieldCredentials,
+  HiggsfieldStatus,
+  HiggsfieldSubmission,
+  HiggsfieldUpload,
+  HiggsfieldEstimate
+} from "./providers/higgsfield-transport.js";
+export {
   generationRegistry,
   type GenerationOutcome,
   type CompletedGeneration
