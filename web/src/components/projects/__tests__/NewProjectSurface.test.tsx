@@ -77,7 +77,7 @@ jest.mock("../../workspace/newDocumentCatalog", () => ({
   TEXT_FILE_TEMPLATES: [
     { label: "Markdown (.md)", filename: "Untitled.md", mimeType: "text/markdown", content: "" }
   ],
-  useNewDocumentCatalog: (options: unknown) => {
+  useNewDocumentCatalog: (options: unknown, onCreated?: () => void) => {
     catalogOptions(options);
     return {
       entries: [
@@ -87,7 +87,10 @@ jest.mock("../../workspace/newDocumentCatalog", () => ({
           menuLabel: "New workflow",
           type: "workflow",
           icon: null,
-          create: createWorkflow
+          create: async () => {
+            await createWorkflow();
+            onCreated?.();
+          }
         },
         {
           key: "text",

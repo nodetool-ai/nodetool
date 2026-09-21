@@ -111,6 +111,7 @@ export function SetupFlow<Stage extends string>({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [canceledStage, setCanceledStage] = useState<Stage | null>(null);
+  const [cancelingStage, setCancelingStage] = useState<Stage | null>(null);
   const [confirmingChange, setConfirmingChange] = useState(false);
   const blockedReasonId = useId();
 
@@ -128,6 +129,7 @@ export function SetupFlow<Stage extends string>({
   const revisionRef = useRef(0);
   const operationRef = useRef(0);
   const activeControllerRef = useRef<AbortController | null>(null);
+  const activeOperationRef = useRef<Promise<unknown> | null>(null);
   if (stageRef.current !== stage) {
     stageRef.current = stage;
     revisionRef.current += 1;
@@ -164,6 +166,7 @@ export function SetupFlow<Stage extends string>({
       operationRef.current += 1;
       activeControllerRef.current?.abort();
       activeControllerRef.current = null;
+      activeOperationRef.current = null;
     },
     []
   );
@@ -195,7 +198,9 @@ export function SetupFlow<Stage extends string>({
   }, [onChangeFlow]);
 
   const canceled = canceledStage === stage || step?.canceled === true;
-  const pending = !canceled && (busy || step?.pending === true);
+  const canceling = cancelingStage === stage;
+  const pending =
+    canceling || (!canceled && (busy || step?.pending === true));
 
   const handlePrimary = useCallback(async () => {
     if (!step) {
@@ -207,36 +212,48 @@ export function SetupFlow<Stage extends string>({
     activeControllerRef.current = controller;
     setError(null);
     setCanceledStage(null);
+    setCancelingStage(null);
     setBusy(true);
+    const run = (async () => {
+      try {
+        const context: SetupOperationContext = { signal: controller.signal };
+        const shouldAdvance = await step.onAdvance?.(context);
+        if (
+          shouldAdvance === false ||
+          !isCurrent(origin) ||
+          operation !== operationRef.current ||
+          controller.signal.aborted
+        ) {
+          return;
+        }
+        // The last step's action writes the terminal stage itself, so there is
+        // nothing left for the shell to advance.
+        const next = steps[currentIndex + 1];
+        if (next) {
+          onStageChange(next.stage);
+        }
+      } catch (cause) {
+        if (
+          !isCurrent(origin) ||
+          operation !== operationRef.current ||
+          controller.signal.aborted
+        ) {
+          return;
+        }
+        setError(cause instanceof Error ? cause.message : String(cause));
+      } finally {
+        if (activeControllerRef.current === controller) {
+          activeControllerRef.current = null;
+          setBusy(false);
+        }
+      }
+    })();
+    activeOperationRef.current = run;
     try {
-      const context: SetupOperationContext = { signal: controller.signal };
-      await step.onAdvance?.(context);
-      if (
-        !isCurrent(origin) ||
-        operation !== operationRef.current ||
-        controller.signal.aborted
-      ) {
-        return;
-      }
-      // The last step's action writes the terminal stage itself, so there is
-      // nothing left for the shell to advance.
-      const next = steps[currentIndex + 1];
-      if (next) {
-        onStageChange(next.stage);
-      }
-    } catch (cause) {
-      if (
-        !isCurrent(origin) ||
-        operation !== operationRef.current ||
-        controller.signal.aborted
-      ) {
-        return;
-      }
-      setError(cause instanceof Error ? cause.message : String(cause));
+      await run;
     } finally {
-      if (activeControllerRef.current === controller) {
-        activeControllerRef.current = null;
-        setBusy(false);
+      if (activeOperationRef.current === run) {
+        activeOperationRef.current = null;
       }
     }
   }, [currentIndex, isCurrent, onStageChange, step, steps]);
@@ -248,10 +265,19 @@ export function SetupFlow<Stage extends string>({
     operationRef.current += 1;
     activeControllerRef.current?.abort();
     activeControllerRef.current = null;
-    setBusy(false);
     setError(null);
     setCanceledStage(step.stage);
-    void step.onCancel?.();
+    setCancelingStage(step.stage);
+    const operation = activeOperationRef.current;
+    void Promise.allSettled([
+      operation ?? Promise.resolve(),
+      Promise.resolve(step.onCancel?.())
+    ]).then(() => {
+      if (stageRef.current === step.stage) {
+        setCancelingStage(null);
+        setBusy(false);
+      }
+    });
   }, [pending, step]);
 
   const handleSkip = useCallback(async () => {
@@ -417,8 +443,9 @@ export function SetupFlow<Stage extends string>({
               The pending operation was canceled. Your draft is unchanged.
             </AlertBanner>
             <Text size="normal" color="secondary">
-              Retry when you are ready. A new request will be started
-              deliberately and the canceled request cannot replace this draft.
+              {canceling
+                ? "Stopping the canceled request before retry is available."
+                : "Retry when you are ready. A new request will be started deliberately and the canceled request cannot replace this draft."}
             </Text>
           </FlexColumn>
         ) : error ? (
@@ -527,7 +554,7 @@ export function SetupFlow<Stage extends string>({
             <Text size="normal">{step.primaryDetail}</Text>
           ) : null}
           <FlexRow gap={GAP.normal} align="center">
-            {pending ? (
+            {pending && !canceled ? (
               <EditorButton
                 variant="text"
                 size="large"

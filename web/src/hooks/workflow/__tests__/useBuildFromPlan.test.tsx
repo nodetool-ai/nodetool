@@ -13,7 +13,7 @@ import type { WorkflowSetupPlan } from "@nodetool-ai/protocol/api-schemas/workfl
 const calls: Array<{ name: string; args: Record<string, unknown> }> = [];
 let graphValidation: { errors: string[] } = { errors: [] };
 let runThrows: Error | null = null;
-let runResponse: unknown = { ok: true };
+let runResponse: unknown = { ok: true, job_id: "job-1" };
 jest.mock("../../../lib/tools/frontendTools", () => ({
   FrontendToolRegistry: {
     call: jest.fn(async (name: string, args: Record<string, unknown>) => {
@@ -25,6 +25,20 @@ jest.mock("../../../lib/tools/frontendTools", () => ({
         throw runThrows;
       }
       if (name === "ui_run_workflow") {
+        if (runResponse && (runResponse as Record<string, unknown>)["job_id"]) {
+          const runs = require("../../../stores/WorkflowRunsStore").default;
+          const results = require("../../../stores/ResultsStore").default;
+          runs.getState().recordRun({
+            jobId: "job-1",
+            workflowId: "w1",
+            state: "running",
+            startedAt: Date.now()
+          });
+          results
+            .getState()
+            .setOutputResult("w1", "job-1", "output_1", "hello");
+          runs.getState().updateRunState("w1", "job-1", "completed");
+        }
         return runResponse;
       }
       return { ok: true };
@@ -119,7 +133,7 @@ beforeEach(() => {
   settings = {};
   graphValidation = { errors: [] };
   runThrows = null;
-  runResponse = { ok: true };
+  runResponse = { ok: true, job_id: "job-1" };
 });
 
 describe("buildFromPlan", () => {
@@ -167,8 +181,12 @@ describe("buildFromPlan", () => {
 
   it("runs once with the sample inputs when the graph is clean", async () => {
     const result = await build();
-    expect(result.status).toBe("running");
-    expect(result.testRun).toEqual({ started: true, error: null });
+    expect(result.status).toBe("completed-with-output");
+    expect(result.testRun).toEqual({
+      started: true,
+      error: null,
+      output: { post: "hello" }
+    });
     const run = calls.find((call) => call.name === "ui_run_workflow");
     expect(run?.args["params"]).toEqual({ text: "hello" });
   });
@@ -219,6 +237,18 @@ describe("buildFromPlan", () => {
       status: "completed-with-output",
       output: { post: "hello" },
       explanation: "The sample run completed and produced output."
+    });
+  });
+
+  it("does not leave the build running when the runner omits its job id", async () => {
+    runResponse = { ok: true, workflow_id: "w1" };
+
+    const result = await build();
+
+    expect(result.status).toBe("failed");
+    expect(result.testRun).toEqual({
+      started: true,
+      error: "The test run did not return a job id."
     });
   });
 

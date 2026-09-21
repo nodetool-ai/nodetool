@@ -57,7 +57,7 @@ export interface SetupStep<Stage extends string> {
    */
   onAdvance?: (
     context?: SetupOperationContext
-  ) => void | Promise<void>;
+  ) => void | boolean | Promise<void | boolean>;
   /**
    * Cancels the operation represented by `pending`. The shell moves to its
    * terminal canceled state immediately, even if this cleanup is asynchronous.

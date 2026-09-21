@@ -100,7 +100,11 @@ const FrontendToolRuntimeSync = memo(function FrontendToolRuntimeSync() {
   );
 
   const runWorkflowById = useCallback(
-    async (workflowId: string, params: Record<string, unknown> = {}) => {
+    async (
+      workflowId: string,
+      params: Record<string, unknown> = {},
+      signal?: AbortSignal
+    ): Promise<string> => {
       const workflow =
         (await fetchWorkflow(workflowId)) ?? getWorkflow(workflowId);
       if (!workflow) {
@@ -113,9 +117,13 @@ const FrontendToolRuntimeSync = memo(function FrontendToolRuntimeSync() {
       }
 
       const { nodes, edges } = nodeStore;
-      await getWorkflowRunnerStore(workflowId)
+      const jobId = await getWorkflowRunnerStore(workflowId)
         .getState()
         .run(params, workflow, nodes, edges, undefined, undefined, true);
+      if (signal?.aborted) {
+        await getWorkflowRunnerStore(workflowId).getState().cancelJob(jobId);
+      }
+      return jobId;
     },
     [fetchWorkflow, getNodeStore, getWorkflow]
   );

@@ -18,7 +18,7 @@
  * proposed, and nothing is applied without a click (PRD § 11.4).
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { z } from "zod";
 import { planNodeShape, planToPlacement } from "@nodetool-ai/protocol";
 import type {
@@ -29,6 +29,9 @@ import type {
 import { FrontendToolRegistry } from "../../lib/tools/frontendTools";
 import { getFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
 import useMetadataStore from "../../stores/MetadataStore";
+import useResultsStore from "../../stores/ResultsStore";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
+import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import { useWorkflowSetupWriter } from "./useWorkflowSetup";
 
 export const workflowBuildStatuses = [
@@ -135,16 +138,25 @@ export interface BuildFromPlanInput {
 }
 
 export interface UseBuildFromPlanResult {
-  buildFromPlan: (input: BuildFromPlanInput) => Promise<BuildFromPlanResult>;
+  buildFromPlan: (
+    input: BuildFromPlanInput,
+    signal?: AbortSignal
+  ) => Promise<BuildFromPlanResult>;
+  cancelBuild: () => Promise<void>;
   building: boolean;
   result: BuildFromPlanResult | null;
 }
 
 /** One tool call, through the registry the agent uses. */
 let callSeq = 0;
-const callTool = (name: string, args: Record<string, unknown>) =>
+const callTool = (
+  name: string,
+  args: Record<string, unknown>,
+  signal?: AbortSignal
+) =>
   FrontendToolRegistry.call(name, args, `build-${++callSeq}`, {
-    getState: getFrontendToolRuntimeState
+    getState: getFrontendToolRuntimeState,
+    signal
   });
 
 /** The `validation` block `ui_get_graph` returns. */
@@ -156,6 +168,7 @@ interface RunResponse {
   status: "running" | "completed-with-output" | "failed";
   output?: unknown;
   error: string | null;
+  jobId?: string;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -170,13 +183,15 @@ const readRunResponse = (value: unknown): RunResponse => {
   const output =
     value["output"] ?? value["outputs"] ?? value["result"] ?? undefined;
   const status = value["status"];
+  const jobId = typeof value["job_id"] === "string" ? value["job_id"] : undefined;
   if (status === "completed") {
     return output === undefined || output === null
       ? {
           status: "failed",
-          error: "The test run completed without producing output."
+          error: "The test run completed without producing output.",
+          jobId
         }
-      : { status: "completed-with-output", output, error: null };
+      : { status: "completed-with-output", output, error: null, jobId };
   }
   if (status === "error" || status === "failed") {
     return {
@@ -184,11 +199,100 @@ const readRunResponse = (value: unknown): RunResponse => {
       error:
         typeof value["error"] === "string"
           ? value["error"]
-          : "The test run failed."
+          : "The test run failed.",
+      jobId
     };
   }
-  return { status: "running", error: null };
+  return { status: "running", error: null, jobId };
 };
+
+const abortError = (): Error => {
+  const error = new Error("The build was canceled.");
+  error.name = "AbortError";
+  return error;
+};
+
+const throwIfAborted = (signal?: AbortSignal): void => {
+  if (signal?.aborted) {
+    throw abortError();
+  }
+};
+
+interface PlacementOutput {
+  id: string;
+  name: string;
+}
+
+const waitForRunCompletion = async (
+  workflowId: string,
+  jobId: string,
+  outputs: PlacementOutput[],
+  signal?: AbortSignal
+): Promise<{ status: "completed-with-output" | "failed"; output?: unknown; error: string | null }> =>
+  new Promise((resolve, reject) => {
+    let settled = false;
+    const cleanups: Array<() => void> = [];
+    const finish = (
+      value:
+        | { status: "completed-with-output"; output: unknown; error: null }
+        | { status: "failed"; error: string; output?: never }
+    ) => {
+      if (settled) return;
+      settled = true;
+      cleanups.forEach((cleanup) => cleanup());
+      resolve(value);
+    };
+    const failOnAbort = () => {
+      if (settled) return;
+      settled = true;
+      cleanups.forEach((cleanup) => cleanup());
+      void getWorkflowRunnerStore(workflowId).getState().cancelJob(jobId);
+      reject(abortError());
+    };
+    const check = () => {
+      const run = useWorkflowRunsStore
+        .getState()
+        .getRuns(workflowId)
+        .find((candidate) => candidate.jobId === jobId);
+      if (!run || !["completed", "error", "cancelled"].includes(run.state)) {
+        return;
+      }
+      if (run.state !== "completed") {
+        finish({
+          status: "failed",
+          error: `The sample run ${run.state === "cancelled" ? "was canceled" : "failed"}.`
+        });
+        return;
+      }
+      const output: Record<string, unknown> = {};
+      for (const item of outputs) {
+        const value = useResultsStore
+          .getState()
+          .getOutputResult(workflowId, jobId, item.id);
+        if (value === undefined) {
+          finish({
+            status: "failed",
+            error: "The test run completed without producing output."
+          });
+          return;
+        }
+        output[item.name] = value;
+      }
+      finish({ status: "completed-with-output", output, error: null });
+    };
+
+    cleanups.push(useWorkflowRunsStore.subscribe(check));
+    cleanups.push(useResultsStore.subscribe(check));
+    if (signal) {
+      signal.addEventListener("abort", failOnAbort, { once: true });
+      cleanups.push(() => signal.removeEventListener("abort", failOnAbort));
+    }
+    if (signal?.aborted) {
+      failOnAbort();
+      return;
+    }
+    check();
+  });
 
 const resultWith = (
   status: WorkflowBuildStatus,
@@ -218,12 +322,57 @@ export const useBuildFromPlan = (
 ): UseBuildFromPlanResult => {
   const [building, setBuilding] = useState(false);
   const [result, setResult] = useState<BuildFromPlanResult | null>(null);
+  const activeJobIdRef = useRef<string | null>(null);
   const { setSetup } = useWorkflowSetupWriter(workflowId);
 
+  const cancelBuild = useCallback(async () => {
+    const jobId = activeJobIdRef.current;
+    if (jobId) {
+      await getWorkflowRunnerStore(workflowId).getState().cancelJob(jobId);
+    }
+  }, [workflowId]);
+
   const buildFromPlan = useCallback(
-    async (input: BuildFromPlanInput): Promise<BuildFromPlanResult> => {
+    async (
+      input: BuildFromPlanInput,
+      signal?: AbortSignal
+    ): Promise<BuildFromPlanResult> => {
       setBuilding(true);
+      const addedNodeIds: string[] = [];
+      const addedEdgeIds: string[] = [];
+      const rollback = async () => {
+        for (const edgeId of addedEdgeIds.reverse()) {
+          try {
+            await callTool("ui_delete_edge", {
+              workflow_id: workflowId,
+              edge_id: edgeId
+            });
+          } catch {
+            // Best effort cleanup. The original cancellation remains the
+            // useful error and the graph can still be repaired manually.
+          }
+        }
+        for (const nodeId of addedNodeIds.reverse()) {
+          try {
+            await callTool("ui_delete_node", {
+              workflow_id: workflowId,
+              node_id: nodeId
+            });
+          } catch {
+            // Best effort cleanup, as above.
+          }
+        }
+        try {
+          await setSetup({
+            stage: "setup",
+            [WORKFLOW_BUILD_KEY]: undefined
+          });
+        } catch {
+          // The setup writer may already have observed the aborted operation.
+        }
+      };
       try {
+        throwIfAborted(signal);
         const metadata = useMetadataStore.getState().metadata;
         const placement = planToPlacement(
           input.plan,
@@ -235,7 +384,8 @@ export const useBuildFromPlan = (
         );
 
         // The editor has to be open before a node tool can reach it.
-        await callTool("ui_open_workflow", { workflow_id: workflowId });
+        await callTool("ui_open_workflow", { workflow_id: workflowId }, signal);
+        throwIfAborted(signal);
 
         for (const node of placement.nodes) {
           await callTool("ui_add_node", {
@@ -244,7 +394,9 @@ export const useBuildFromPlan = (
             type: node.type,
             position: node.position,
             properties: node.properties
-          });
+          }, signal);
+          addedNodeIds.push(node.id);
+          throwIfAborted(signal);
           // Two writes the add cannot carry: the dynamic slots an edge needs to
           // land on, and the plan step this node came from (PRD § 11.5).
           const data: Record<string, unknown> = {};
@@ -259,18 +411,23 @@ export const useBuildFromPlan = (
               workflow_id: workflowId,
               node_id: node.id,
               data
-            });
+            }, signal);
+            throwIfAborted(signal);
           }
         }
 
         for (const edge of placement.edges) {
-          await callTool("ui_connect_nodes", {
+          const response = await callTool("ui_connect_nodes", {
             workflow_id: workflowId,
             source_node_id: edge.source,
             source_handle: edge.sourceHandle,
             target_node_id: edge.target,
             target_handle: edge.targetHandle
-          });
+          }, signal);
+          if (isRecord(response) && typeof response["edge_id"] === "string") {
+            addedEdgeIds.push(response["edge_id"]);
+          }
+          throwIfAborted(signal);
         }
 
         // The graph is placed: the stage is terminal from here, so a reload
@@ -285,6 +442,7 @@ export const useBuildFromPlan = (
             placement.nodes.length === 1 ? "" : "s"
           }. Checking it now.`
         );
+        throwIfAborted(signal);
         await setSetup({
           stage: "done",
           [WORKFLOW_BUILD_KEY]: workflowBuildRecord(placed)
@@ -294,7 +452,7 @@ export const useBuildFromPlan = (
         try {
           graph = (await callTool("ui_get_graph", {
             workflow_id: workflowId
-          })) as { validation?: GraphValidation };
+          }, signal)) as { validation?: GraphValidation };
         } catch (cause) {
           const error = cause instanceof Error ? cause.message : String(cause);
           const failed = resultWith(
@@ -356,8 +514,9 @@ export const useBuildFromPlan = (
           const response = await callTool("ui_run_workflow", {
             workflow_id: workflowId,
             params: input.sampleInputs ?? {}
-          });
+          }, signal);
           const runResponse = readRunResponse(response);
+          throwIfAborted(signal);
           if (runResponse.status === "completed-with-output") {
             finalResult = resultWith(
               "completed-with-output",
@@ -374,13 +533,60 @@ export const useBuildFromPlan = (
               placement.nodes.length,
               placement.issues,
               validationErrors,
-              { started: false, error: runResponse.error },
+              { started: true, error: runResponse.error },
               `The sample run failed: ${runResponse.error}`
             );
+          } else if (runResponse.jobId) {
+            activeJobIdRef.current = runResponse.jobId;
+            const completed = await waitForRunCompletion(
+              workflowId,
+              runResponse.jobId,
+              placement.nodes
+                .filter((node) => node.type === "nodetool.output.Output")
+                .map((node) => ({
+                  id: node.id,
+                  name:
+                    typeof node.properties["name"] === "string"
+                      ? node.properties["name"]
+                      : node.id
+                })),
+              signal
+            );
+            activeJobIdRef.current = null;
+            if (completed.status === "completed-with-output") {
+              finalResult = resultWith(
+                "completed-with-output",
+                placement.nodes.length,
+                placement.issues,
+                validationErrors,
+                { started: true, error: null, output: completed.output },
+                "The sample run completed and produced output.",
+                completed.output
+              );
+            } else {
+              finalResult = resultWith(
+                "failed",
+                placement.nodes.length,
+                placement.issues,
+                validationErrors,
+                { started: true, error: completed.error },
+                `The sample run failed: ${completed.error}`
+              );
+            }
           } else {
-            finalResult = running;
+            finalResult = resultWith(
+              "failed",
+              placement.nodes.length,
+              placement.issues,
+              validationErrors,
+              { started: true, error: "The test run did not return a job id." },
+              "The sample run could not be tracked because it did not return a job id."
+            );
           }
         } catch (cause) {
+          if (signal?.aborted) {
+            throw cause;
+          }
           const error = cause instanceof Error ? cause.message : String(cause);
           finalResult = resultWith(
             "failed",
@@ -396,14 +602,20 @@ export const useBuildFromPlan = (
         });
         setResult(finalResult);
         return finalResult;
+      } catch (cause) {
+        if (signal?.aborted) {
+          await rollback();
+        }
+        throw cause;
       } finally {
+        activeJobIdRef.current = null;
         setBuilding(false);
       }
     },
     [setSetup, workflowId]
   );
 
-  return { buildFromPlan, building, result };
+  return { buildFromPlan, cancelBuild, building, result };
 };
 
 export default useBuildFromPlan;

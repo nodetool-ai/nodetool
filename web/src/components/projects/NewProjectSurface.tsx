@@ -377,9 +377,10 @@ const NewProjectSurface = () => {
     createBlankStoryboard,
     installStoryboardExample,
     creating
-  } = useNewDocumentCatalog({ projectId: LOOSE_PROJECT_ID }, () =>
-    setSubmenu(null)
-  );
+  } = useNewDocumentCatalog({ projectId: LOOSE_PROJECT_ID }, () => {
+    setSubmenu(null);
+    useOnboardingStore.getState().markStep("keep-creating");
+  });
   const { data: exampleData, isLoading: examplesLoading } =
     useExampleStoryboards(submenu?.kind === "storyboards");
 
@@ -1764,12 +1765,7 @@ const NewProjectSurface = () => {
                     });
                     return;
                   }
-                  // A blank document completes the step only after its
-                  // creation promise resolves.
-                  void (async () => {
-                    await entry.create?.();
-                    useOnboardingStore.getState().markStep("keep-creating");
-                  })();
+                  void entry.create?.();
                 }}
                 sx={{
                   display: "flex",
@@ -1857,10 +1853,7 @@ const NewProjectSurface = () => {
                 compact
                 disabled={creating !== null}
                 onClick={() => {
-                  void (async () => {
-                    await createTextFile(template);
-                    useOnboardingStore.getState().markStep("keep-creating");
-                  })();
+                  void createTextFile(template);
                 }}
               />
             ))}
@@ -1872,10 +1865,7 @@ const NewProjectSurface = () => {
                 dividerAfter
                 disabled={creating !== null}
                 onClick={() => {
-                  void (async () => {
-                    await createBlankStoryboard();
-                    useOnboardingStore.getState().markStep("keep-creating");
-                  })();
+                  void createBlankStoryboard();
                 }}
               />
               {!examplesLoading &&
@@ -1889,13 +1879,10 @@ const NewProjectSurface = () => {
                     compact
                     disabled={creating !== null}
                     onClick={() => {
-                      void (async () => {
-                        await installStoryboardExample(
-                          example.slug,
-                          example.name
-                        );
-                        useOnboardingStore.getState().markStep("keep-creating");
-                      })();
+                      void installStoryboardExample(
+                        example.slug,
+                        example.name
+                      );
                     }}
                   />
                 ))}

@@ -114,6 +114,7 @@ export const useWorkflowSetupFlow = ({
   } = usePlanWorkflow(workflowId);
   const {
     buildFromPlan,
+    cancelBuild,
     building,
     result: buildResult
   } = useBuildFromPlan(workflowId);
@@ -399,6 +400,22 @@ export const useWorkflowSetupFlow = ({
             providerConfigured,
             error: planError
           }),
+        onAdvance: async () => {
+          if (planningStatus !== "canceled") {
+            return;
+          }
+          const refusal = await planWorkflow({
+            brief,
+            category,
+            model: plannerModel
+          });
+          if (refusal) {
+            throw new Error(refusal);
+          }
+          // Re-planning returns to this review. It must not skip straight to
+          // Build with the previous plan while the new plan is arriving.
+          return false;
+        },
         onCancel: cancelPlanning,
         canceled: planningStatus === "canceled"
       },
@@ -436,7 +453,7 @@ export const useWorkflowSetupFlow = ({
           }),
         // `buildFromPlan` writes the terminal stage itself, as soon as the
         // nodes are placed (PRD § 11.3, D3).
-        onAdvance: async () => {
+        onAdvance: async (context) => {
           const built = await buildFromPlan({
             plan,
             models: Object.fromEntries(
@@ -450,9 +467,10 @@ export const useWorkflowSetupFlow = ({
                 .filter((input) => input.sample !== undefined)
                 .map((input) => [input.name, input.sample])
             )
-          });
+          }, context?.signal);
           onFinish?.(built);
-        }
+        },
+        onCancel: cancelBuild
       }
     ],
     [
@@ -463,6 +481,7 @@ export const useWorkflowSetupFlow = ({
       hasPinnedPlan,
       pickingExampleId,
       buildFromPlan,
+      cancelBuild,
       building,
       category,
       cancelPlanning,

@@ -412,11 +412,14 @@ describe("SetupFlow", () => {
       screen.getByRole("heading", { name: "This step was canceled" })
     ).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("draft is unchanged");
-    expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeDisabled();
 
     // The canceled request may still resolve, but it cannot advance the draft.
     resolveCurrent();
     await waitFor(() => expect(onStageChange).not.toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled()
+    );
 
     // Only the deliberate retry can start another operation.
     await user.click(screen.getByRole("button", { name: "Retry" }));

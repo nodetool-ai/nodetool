@@ -73,8 +73,8 @@ FrontendToolRegistry.register({
     const state = ctx.getState();
 
     if (state.runWorkflow) {
-      await state.runWorkflow(workflow_id, params);
-      return { ok: true, workflow_id };
+      const jobId = await state.runWorkflow(workflow_id, params, ctx.abortSignal);
+      return { ok: true, workflow_id, job_id: jobId };
     }
 
     await state.fetchWorkflow(workflow_id);
@@ -89,11 +89,14 @@ FrontendToolRegistry.register({
     }
 
     const { nodes, edges } = nodeStore;
-    await getWorkflowRunnerStore(workflow_id)
+    const jobId = await getWorkflowRunnerStore(workflow_id)
       .getState()
       .run(params ?? {}, workflow, nodes, edges, undefined, undefined, true);
+    if (ctx.abortSignal.aborted) {
+      await getWorkflowRunnerStore(workflow_id).getState().cancelJob(jobId);
+    }
 
-    return { ok: true, workflow_id };
+    return { ok: true, workflow_id, job_id: jobId };
   }
 });
 
