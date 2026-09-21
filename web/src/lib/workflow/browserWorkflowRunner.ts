@@ -69,6 +69,22 @@ function shouldUseWorker(): boolean {
 // for the session rather than re-paying a failing spawn.
 let workerDisabled = false;
 
+const BROWSER_WORKER_READY_TIMEOUT_MS = 5_000;
+
+async function getBrowserWorkerReadyWithTimeout(
+  getReady: () => Promise<Set<string>>
+): Promise<Set<string>> {
+  return await Promise.race([
+    getReady(),
+    new Promise<Set<string>>((_, reject) =>
+      setTimeout(
+        () => reject(new Error("Browser runner worker readiness timed out")),
+        BROWSER_WORKER_READY_TIMEOUT_MS
+      )
+    )
+  ]);
+}
+
 // Synchronously-readable snapshot of the browser-capable node types, populated
 // by whichever path loads first: `undefined` until known, then the set or
 // `null` (no runner available).
@@ -161,7 +177,9 @@ async function ensureRunnerLoaded(): Promise<boolean> {
   if (usingWorker()) {
     try {
       const { getBrowserWorkerReady } = await import("./browserWorkerClient");
-      cachedBrowserNodeTypes = await getBrowserWorkerReady();
+      cachedBrowserNodeTypes = await getBrowserWorkerReadyWithTimeout(
+        getBrowserWorkerReady
+      );
       return true;
     } catch (error) {
       console.warn(
@@ -352,7 +370,7 @@ export async function runBrowserGraphJob(
       const { getBrowserWorkerReady, runBrowserGraphJobInWorker } =
         await import("./browserWorkerClient");
       // Ensure the registry is built; a failed init throws → main-thread path.
-      await getBrowserWorkerReady();
+      await getBrowserWorkerReadyWithTimeout(getBrowserWorkerReady);
       return await runBrowserGraphJobInWorker(options, sandboxModules);
     } catch (error) {
       console.warn(

@@ -158,6 +158,14 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   </QueryClientProvider>
 );
 
+const strictWrapper = ({ children }: { children: React.ReactNode }) => (
+  <React.StrictMode>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      {children}
+    </QueryClientProvider>
+  </React.StrictMode>
+);
+
 const renderRuntime = (
   workflow: Workflow | undefined,
   document?: ApplicationDocument,
@@ -319,6 +327,19 @@ describe("useAppRuntime — run policy", () => {
         }
       ]
     });
+
+  it("starts runs after the Strict Mode mount probe", async () => {
+    const { result } = renderHook(
+      () => useAppRuntime(workflowA, false, { document: operation("replace") }),
+      { wrapper: strictWrapper }
+    );
+
+    await act(async () => {
+      result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+
+    expect(runnerState("wf-a").run).toHaveBeenCalledTimes(1);
+  });
 
   it("replace cancels the run in flight before starting the next", async () => {
     const { result } = renderRuntime(workflowA, operation("replace"));

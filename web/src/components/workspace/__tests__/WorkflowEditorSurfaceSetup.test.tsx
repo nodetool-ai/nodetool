@@ -107,8 +107,10 @@ jest.mock("../../../hooks/useRecommendedModelKeys", () => ({
 }));
 jest.mock("../../../stores/MetadataStore", () => ({
   __esModule: true,
-  default: (selector: (state: unknown) => unknown) =>
-    selector({ metadata: {} })
+  default: Object.assign(
+    (selector: (state: unknown) => unknown) => selector({ metadata: {} }),
+    { subscribe: jest.fn(() => jest.fn()) }
+  )
 }));
 jest.mock("../../../hooks/workflow/usePlanWorkflow", () => ({
   usePlanWorkflow: () => ({

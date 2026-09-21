@@ -389,6 +389,7 @@ export const useAppRuntime = (
   useEffect(() => {
     const timers = timersRef.current;
     const waits = settleWaitsRef.current;
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       for (const timer of timers.values()) clearTimeout(timer);

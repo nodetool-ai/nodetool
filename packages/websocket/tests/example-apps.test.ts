@@ -171,12 +171,12 @@ describe("example apps", () => {
   it("installs the same app twice without duplicating its workflows", async () => {
     await server.inject({
       method: "POST",
-      url: "/api/applications/examples/study-buddy/install"
+      url: "/api/applications/examples/photo-studio/install"
     });
     const [before] = await Workflow.paginate(USER_ID, { limit: 100 });
     await server.inject({
       method: "POST",
-      url: "/api/applications/examples/study-buddy/install"
+      url: "/api/applications/examples/photo-studio/install"
     });
     const [after] = await Workflow.paginate(USER_ID, { limit: 100 });
 
@@ -187,7 +187,7 @@ describe("example apps", () => {
 
   it("keeps a bundle without a sourceId on the create-fresh path", async () => {
     const bundle = (
-      await server.inject({ url: "/api/applications/examples/dataset-builder" })
+      await server.inject({ url: "/api/applications/examples/model-arena" })
     ).json();
     for (const workflow of bundle.workflows) delete workflow.sourceId;
 
