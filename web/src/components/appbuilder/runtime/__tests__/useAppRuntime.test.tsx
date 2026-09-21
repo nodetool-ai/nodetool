@@ -158,6 +158,14 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   </QueryClientProvider>
 );
 
+const strictWrapper = ({ children }: { children: React.ReactNode }) => (
+  <React.StrictMode>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      {children}
+    </QueryClientProvider>
+  </React.StrictMode>
+);
+
 const renderRuntime = (
   workflow: Workflow | undefined,
   document?: ApplicationDocument,
@@ -320,6 +328,19 @@ describe("useAppRuntime — run policy", () => {
       ]
     });
 
+  it("starts runs after the Strict Mode mount probe", async () => {
+    const { result } = renderHook(
+      () => useAppRuntime(workflowA, false, { document: operation("replace") }),
+      { wrapper: strictWrapper }
+    );
+
+    await act(async () => {
+      result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+
+    expect(runnerState("wf-a").run).toHaveBeenCalledTimes(1);
+  });
+
   it("replace cancels the run in flight before starting the next", async () => {
     const { result } = renderRuntime(workflowA, operation("replace"));
     await act(async () => {
@@ -357,6 +378,88 @@ describe("useAppRuntime — run policy", () => {
     await waitFor(() =>
       expect(runnerState("wf-a").run).toHaveBeenCalledTimes(2)
     );
+  });
+
+  it("admits queued actions in FIFO order with captured input values", async () => {
+    const queued = operation("queue");
+    queued.operations[0].inputs = { in1: { from: "widget" } };
+    const { result } = renderRuntime(workflowA, queued);
+
+    act(() => {
+      result.current.store.getState().dispatchEvent({
+        type: "setInput",
+        key: "main:in1",
+        value: "first"
+      });
+      result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+    const first = await runnerState("wf-a").run.mock.results[0].value;
+
+    act(() => {
+      result.current.store.getState().dispatchEvent({
+        type: "setInput",
+        key: "main:in1",
+        value: "second"
+      });
+      result.current.dispatch({ kind: "run", operationId: "main" });
+      result.current.store.getState().dispatchEvent({
+        type: "setInput",
+        key: "main:in1",
+        value: "third"
+      });
+      result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+
+    expect(runnerState("wf-a").run).toHaveBeenCalledTimes(1);
+    deliver({ type: "job_update", job_id: first, status: "completed" });
+    await waitFor(() =>
+      expect(runnerState("wf-a").run).toHaveBeenCalledTimes(2)
+    );
+    expect(runnerState("wf-a").run.mock.calls[1][0]).toEqual({
+      prompt: "second"
+    });
+
+    const second = await runnerState("wf-a").run.mock.results[1].value;
+    deliver({ type: "job_update", job_id: second, status: "completed" });
+    await waitFor(() =>
+      expect(runnerState("wf-a").run).toHaveBeenCalledTimes(3)
+    );
+    expect(runnerState("wf-a").run.mock.calls[2][0]).toEqual({
+      prompt: "third"
+    });
+  });
+
+  it("cancels a pending reservation before provider startup completes", async () => {
+    const { result } = renderRuntime(workflowA, operation("replace"));
+    const resolvers: Array<(jobId: string) => void> = [];
+    runnerState("wf-a").run.mockImplementation(
+      () => new Promise<string>((resolve) => resolvers.push(resolve))
+    );
+
+    act(() => {
+      result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+    await waitFor(() => expect(resolvers).toHaveLength(1));
+    const pendingId =
+      result.current.store.getState().activeInvocation.main ?? "";
+    expect(result.current.store.getState().invocations[pendingId]?.status).toBe(
+      "pending"
+    );
+
+    act(() => {
+      result.current.dispatch({ kind: "cancel", operationId: "main" });
+    });
+    expect(result.current.store.getState().invocations[pendingId]?.status).toBe(
+      "cancelled"
+    );
+
+    resolvers[0]?.("job-wf-a-delayed");
+    await waitFor(() =>
+      expect(cancelJob).toHaveBeenCalledWith({ id: "job-wf-a-delayed" })
+    );
+    expect(
+      result.current.store.getState().invocations["job-wf-a-delayed"]?.status
+    ).toBe("cancelled");
   });
 
   it("parallel starts immediately and asks the server for a concurrent slot", async () => {

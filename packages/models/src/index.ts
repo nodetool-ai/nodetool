@@ -254,6 +254,7 @@ export {
   listApplicationVersions,
   releasedApplicationVersion,
   releasedApplicationRelease,
+  applicationReleaseVersion,
   releaseApplicationVersion
 } from "./application.js";
 export type {

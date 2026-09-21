@@ -248,6 +248,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
         value={workflowState}
         operations={meta.operations}
         states={operationStates}
+        variables={meta.variables}
       >
         <AppRuntimeContext.Provider value={designRuntime}>
           <Box

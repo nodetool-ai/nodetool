@@ -708,8 +708,9 @@ export function validateApp(
     );
   }
 
-  // No policy refuses a second click, so an unguarded run button is a race the
-  // user drives: what the second click does depends only on the policy.
+  // The Button primitive disables itself while its click action runs an
+  // operation. Other run-capable widgets still need an explicit guard because
+  // they do not inherit that browser behavior.
   for (const trigger of runTriggers) {
     const guard = trigger.widget.disabledWhen?.binding
       ? resolveBinding(trigger.widget.disabledWhen.binding, scope)
@@ -721,6 +722,7 @@ export function validateApp(
     ) {
       continue;
     }
+    if (trigger.widget.type === "Button") continue;
     const policy =
       operations.find((op) => op.id === trigger.operationId)?.policy ??
       "parallel";

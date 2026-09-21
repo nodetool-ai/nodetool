@@ -29,6 +29,8 @@ import AppRuntimeView from "./AppRuntimeView";
 
 interface ApplicationRunViewProps {
   applicationId: string;
+  /** Run the current draft for the owner without changing the released app. */
+  previewDraft?: boolean;
 }
 
 /** A pinned graph, wrapped as the workflow shape the runtime and runner want. */
@@ -47,7 +49,8 @@ const pinnedWorkflow = (
 });
 
 const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
-  applicationId
+  applicationId,
+  previewDraft = false
 }) => {
   const { data: application, isLoading } = useApplication(applicationId);
   const { data: release, isLoading: releaseLoading } =
@@ -55,15 +58,17 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
   const fetchWorkflow = useWorkflowManager((s) => s.fetchWorkflow);
 
   const document = useMemo<AppDocument | null>(() => {
-    const source = release?.document ?? application?.document;
+    const source = previewDraft
+      ? application?.document
+      : release?.document ?? application?.document;
     return source ? parseApplicationDocument(source) : null;
-  }, [application?.document, release?.document]);
+  }, [application?.document, previewDraft, release?.document]);
 
   // Graphs the release froze. A snapshot published before releases pinned
   // anything carries none, and those operations fall back to the live workflow.
   const workflowOverrides = useMemo<Record<string, Workflow>>(() => {
     const overrides: Record<string, Workflow> = {};
-    for (const pinned of release?.workflows ?? []) {
+    for (const pinned of previewDraft ? [] : release?.workflows ?? []) {
       if (!pinned.graph) continue;
       overrides[pinned.workflowId] = pinnedWorkflow(
         pinned.workflowId,
@@ -72,7 +77,7 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
       );
     }
     return overrides;
-  }, [application?.name, release?.workflows]);
+  }, [application?.name, previewDraft, release?.workflows]);
 
   // The host workflow: the first operation's, pinned when the release pinned it.
   const hostWorkflowId = document?.operations[0]?.workflowId ?? "";
@@ -123,16 +128,24 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
 
   return (
     <FlexColumn gap={0} fullWidth sx={{ height: "100%", minHeight: 0 }}>
-      {release && (
+      {!previewDraft && release && (
         <Caption color="secondary" sx={{ px: SPACING.lg, py: SPACING.xs }}>
           {`Running released version ${release.version}`}
+        </Caption>
+      )}
+      {previewDraft && (
+        <Caption color="secondary" sx={{ px: SPACING.lg, py: SPACING.xs }}>
+          Previewing current draft. This does not change the released app.
         </Caption>
       )}
       <AppRuntimeView
         workflow={workflow}
         data={document.ui as Data}
         document={document}
-        application={{ id: applicationId, version: release?.version }}
+        application={{
+          id: applicationId,
+          version: previewDraft ? undefined : release?.version
+        }}
         workflowOverrides={workflowOverrides}
       />
     </FlexColumn>

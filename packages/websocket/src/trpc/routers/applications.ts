@@ -32,12 +32,14 @@
 
 import { z } from "zod";
 import {
+  ApplicationDeployment,
   applicationUsage,
   getApplicationBudget,
   listApplicationVersions,
   listInvocations,
   publishApplication,
   reserveInvocation,
+  applicationReleaseVersion,
   releaseApplicationVersion,
   releasedApplicationVersion,
   setApplicationBudget,
@@ -76,6 +78,7 @@ import {
 import {
   deployApplication,
   getApplicationDeployment,
+  publicReleasePreflight,
   undeployApplication
 } from "../../lib/app-deployment-service.js";
 
@@ -112,6 +115,15 @@ export const applicationsRouter = router({
     .output(applicationVersionResponse)
     .mutation(async ({ ctx, input }) => {
       const app = await loadOwned(ctx.userId, input.id);
+      // A live public link follows the current release. Validate the exact
+      // draft before promotion so a publish cannot replace a working link
+      // with a release the public session cannot execute.
+      if (await ApplicationDeployment.findLive(app.id)) {
+        const blocked = await publicReleasePreflight(app.id, {
+          document: app.toDocument()
+        });
+        if (blocked) throwApiError(ApiErrorCode.INVALID_INPUT, blocked);
+      }
       return applicationVersionResponse.parse(await publishApplication(app));
     }),
 
@@ -263,6 +275,17 @@ export const applicationsRouter = router({
     .output(applicationVersionResponse)
     .mutation(async ({ ctx, input }) => {
       await loadOwned(ctx.userId, input.id);
+      if (await ApplicationDeployment.findLive(input.id)) {
+        const candidate = await applicationReleaseVersion(
+          input.id,
+          input.version,
+          ctx.userId
+        );
+        if (candidate) {
+          const blocked = await publicReleasePreflight(input.id, candidate);
+          if (blocked) throwApiError(ApiErrorCode.INVALID_INPUT, blocked);
+        }
+      }
       const released = await releaseApplicationVersion(
         input.id,
         input.version,

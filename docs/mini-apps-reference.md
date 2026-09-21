@@ -372,8 +372,12 @@ unique. Results land in `nodetool-debug/app-<id>-<ts>/` as `report.json`,
 `report.md`, `app.json`, `workflow.json`, and one
 `server/run-N.messages.jsonl` per run.
 
-Not simulated: `visibleWhen`, `disabledWhen`, `format`, and inputs that come from
-a resource.
+The harness evaluates `visibleWhen`, `disabledWhen`, and `format` for scripted
+interactions. It does not render layout, styling, focus, or scroll, and it does
+not read the user's resource library. Resource tests must seed an in-memory
+collection with `seedResource` or a `resource:<binding-id>` parameter. Reactive
+browser subgraph runs are reported separately because the harness executes the
+whole workflow.
 
 ## Related
 

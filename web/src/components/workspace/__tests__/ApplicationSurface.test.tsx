@@ -167,6 +167,43 @@ describe("ApplicationSurface", () => {
     expect(builderMounted).toHaveBeenCalledTimes(1);
   });
 
+  it("removes inactive mounted layers from the accessibility tree", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+
+    await user.click(screen.getByRole("button", { name: "Run" }));
+    expect(screen.getByTestId("application-design-layer")).toHaveAttribute(
+      "inert"
+    );
+    expect(screen.getByTestId("application-design-layer")).toHaveAttribute(
+      "aria-hidden",
+      "true"
+    );
+    expect(screen.getByTestId("application-run-layer")).not.toHaveAttribute(
+      "inert"
+    );
+
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+    expect(screen.getByTestId("application-run-layer")).toHaveAttribute(
+      "inert"
+    );
+    expect(screen.getByTestId("application-settings-layer")).not.toHaveAttribute(
+      "inert"
+    );
+  });
+
+  it("mounts the run layer when preview opens directly from design", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+
+    await user.click(screen.getByRole("button", { name: "Preview draft" }));
+
+    expect(screen.getByTestId("app-run")).toHaveTextContent("app-1");
+    expect(screen.getByTestId("application-run-layer")).not.toHaveAttribute(
+      "inert"
+    );
+  });
+
   it("keeps the assistant on the right in design, run, and settings", async () => {
     const user = userEvent.setup();
     renderSurface();
@@ -183,6 +220,59 @@ describe("ApplicationSurface", () => {
     expect(screen.getByTestId("governance")).toHaveTextContent("app-1");
     expect(screen.getByTestId("assistant-side-dock")).toBeInTheDocument();
     expect(screen.getByTestId("app-assistant")).toHaveTextContent("app-1:wf-1");
+  });
+
+  it("isolates inactive mounted layers from keyboard and assistive technology", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+
+    await user.click(screen.getByRole("button", { name: "Run" }));
+    expect(screen.getByTestId("application-design-layer")).toHaveAttribute(
+      "aria-hidden",
+      "true"
+    );
+    expect(screen.getByTestId("application-design-layer")).toHaveAttribute(
+      "inert"
+    );
+    expect(screen.getByTestId("application-run-layer")).not.toHaveAttribute(
+      "inert"
+    );
+
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+    expect(screen.getByTestId("application-run-layer")).toHaveAttribute(
+      "aria-hidden",
+      "true"
+    );
+    expect(screen.getByTestId("application-run-layer")).toHaveAttribute(
+      "inert"
+    );
+    expect(screen.getByTestId("application-settings-layer")).not.toHaveAttribute(
+      "inert"
+    );
+  });
+
+  it("restores focus to the assistant button after closing its narrow overlay", async () => {
+    const user = userEvent.setup();
+    window.matchMedia = jest.fn((query: string) =>
+      stub<MediaQueryList>({
+        matches: query === "(max-width: 637.98px)",
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn()
+      })
+    );
+    renderSurface();
+
+    const openButton = screen.getByRole("button", { name: "Ask Agent" });
+    await user.click(openButton);
+    expect(screen.getByRole("dialog", { name: "App builder assistant" })).toHaveFocus();
+
+    await user.click(screen.getByRole("button", { name: "Close agent" }));
+    expect(screen.getByRole("button", { name: "Ask Agent" })).toHaveFocus();
   });
 
   it("links its workflows without opening one", () => {

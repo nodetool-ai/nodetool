@@ -57,7 +57,21 @@ const seedWorkflow = () =>
     id: "wf1",
     user_id: USER,
     name: "Demo workflow",
-    graph: { nodes: [{ id: "n1", type: "nodetool.text.Concat" }], edges: [] }
+    graph: {
+      nodes: [
+        {
+          id: "prompt",
+          type: "nodetool.input.StringInput",
+          data: { name: "prompt", value: "hello" }
+        },
+        {
+          id: "result",
+          type: "nodetool.output.Output",
+          data: { name: "result" }
+        }
+      ],
+      edges: []
+    }
   });
 
 describe("applications service", () => {
@@ -78,6 +92,71 @@ describe("applications service", () => {
 
     expect(again.id).toBe(first.id);
     expect(again.name).toBe("Mine");
+  });
+
+  it("scaffolds a runnable screen when the workflow has no legacy app document", async () => {
+    const created = await createApplication(USER, {
+      name: "Demo workflow",
+      description: "",
+      projectId: "default",
+      fromWorkflowId: "wf1"
+    });
+
+    expect(created.document.operations).toEqual([
+      expect.objectContaining({ id: "main", workflowId: "wf1" })
+    ]);
+    expect(created.document.ui.content).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "Button" }),
+        expect.objectContaining({ type: "Container" })
+      ])
+    );
+
+    const inputContainer = created.document.ui.content.find(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        "type" in item &&
+        item.type === "Container" &&
+        "props" in item &&
+        typeof item.props === "object" &&
+        item.props !== null &&
+        "id" in item.props &&
+        item.props.id === "workflow-inputs"
+    );
+    expect(inputContainer).toEqual(
+      expect.objectContaining({
+        props: expect.objectContaining({
+          content: expect.arrayContaining([
+            expect.objectContaining({ type: "WorkflowInput" })
+          ])
+        })
+      })
+    );
+
+    const inputContent =
+      inputContainer &&
+      "props" in inputContainer &&
+      typeof inputContainer.props === "object" &&
+      inputContainer.props !== null &&
+      "content" in inputContainer.props &&
+      Array.isArray(inputContainer.props.content)
+        ? inputContainer.props.content
+        : [];
+    const inputWidget = inputContent.find(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        "type" in item &&
+        item.type === "WorkflowInput"
+    );
+    expect(inputWidget).toEqual(
+      expect.objectContaining({
+        props: expect.objectContaining({
+          binding: "op:main/in:prompt"
+        })
+      })
+    );
   });
 
   it("refuses an id another user already holds", async () => {

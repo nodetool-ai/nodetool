@@ -5,6 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
 import { bindingField, conditionField, variableField } from "../puck/fields";
+import { parseVariableDefault } from "../AppDataPanel";
 import { BuilderWorkflowProvider } from "../puck/BuilderWorkflowContext";
 import type { OperationBinding } from "@nodetool-ai/app-runtime";
 
@@ -82,6 +83,46 @@ describe("binding fields", () => {
     expect(
       screen.getByText(/Add a Set Variable node/i)
     ).toBeInTheDocument();
+  });
+
+  it("offers declared app variables in the read binding picker", async () => {
+    const field = bindingField("read");
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <BuilderWorkflowProvider
+          value={emptyState}
+          variables={[
+            {
+              id: "approved",
+              name: "Approved",
+              type: { type: "bool" },
+              scope: "instance",
+              persist: false
+            }
+          ]}
+        >
+          {field.render(fieldProps)}
+        </BuilderWorkflowProvider>
+      </ThemeProvider>
+    );
+    await userEvent.click(screen.getByRole("combobox", { name: /Bind to/i }));
+    expect(await screen.findByRole("option", { name: /variable · Approved/i })).toBeInTheDocument();
+  });
+});
+
+describe("typed app variable defaults", () => {
+  it("round-trips JSON values without stringifying their types", () => {
+    expect(parseVariableDefault("true", "bool")).toEqual({ value: true });
+    expect(parseVariableDefault("42", "int")).toEqual({ value: 42 });
+    expect(parseVariableDefault("[1,2]", "list")).toEqual({ value: [1, 2] });
+    expect(parseVariableDefault('{"tone":"warm"}', "dict")).toEqual({
+      value: { tone: "warm" }
+    });
+  });
+
+  it("reports invalid typed defaults instead of coercing them", () => {
+    expect(parseVariableDefault("not-json", "dict").error).toMatch(/valid JSON/);
+    expect(parseVariableDefault('"42"', "int").error).toMatch(/JSON number/);
   });
 });
 

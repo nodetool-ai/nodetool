@@ -6,6 +6,7 @@ import "@puckeditor/core/puck.css";
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 
 import { Workflow } from "../../stores/ApiTypes";
+import ReportBugButton from "../support/ReportBugButton";
 import { useAppRuntime } from "./runtime/useAppRuntime";
 import {
   AppRuntimeContext,
@@ -13,7 +14,13 @@ import {
   useRuntimeSelector
 } from "./runtime/AppRuntimeContext";
 import { appConfig } from "./puck/config";
-import { AlertBanner, Box, SPACING, Z_INDEX } from "../ui_primitives";
+import {
+  AlertBanner,
+  Box,
+  CloseButton,
+  SPACING,
+  Z_INDEX
+} from "../ui_primitives";
 
 interface AppRuntimeViewProps {
   workflow: Workflow;
@@ -39,21 +46,19 @@ interface AppRuntimeViewProps {
  * next run replaces the banner and dismissing it clears the invocation's error.
  */
 const RuntimeErrorBanner: React.FC = () => {
-  const { store, scope } = useAppRuntimeContext();
-  const operationId = scope.defaultOperationId;
-  const invocationId = useRuntimeSelector(
-    (s) => s.activeInvocation[operationId]
-  );
-  const error = useRuntimeSelector((s) =>
-    invocationId ? s.invocations[invocationId]?.error : undefined
-  );
-  const setError = (value: string | null) => {
-    if (!invocationId) return;
-    store
-      .getState()
-      .dispatchEvent({ type: "invocationError", invocationId, error: value ?? "" });
-  };
-  if (!error) return null;
+  const { store, operations } = useAppRuntimeContext();
+  const runtimeState = useRuntimeSelector((s) => s);
+  const errors = operations.flatMap((operation) => {
+    const invocationId = runtimeState.activeInvocation[operation.id];
+    const error = invocationId
+      ? runtimeState.invocations[invocationId]?.error
+      : undefined;
+    return error && invocationId
+      ? [{ invocationId, operationId: operation.id, name: operation.name, error }]
+      : [];
+  });
+
+  if (errors.length === 0) return null;
   return (
     <Box
       sx={{
@@ -64,9 +69,42 @@ const RuntimeErrorBanner: React.FC = () => {
         pt: SPACING.md
       }}
     >
-      <AlertBanner severity="error" onClose={() => setError(null)}>
-        {error}
-      </AlertBanner>
+      {errors.map(({ invocationId, operationId, name, error }) => (
+        <AlertBanner
+          key={invocationId}
+          severity="error"
+          action={
+            <>
+              <ReportBugButton
+                label="Report failure"
+                context={{
+                  source: "panel-crash",
+                  summary: `${name || operationId} operation failed`,
+                  errorText: error
+                }}
+              />
+              <CloseButton
+                onClick={() =>
+                  store.getState().dispatchEvent({
+                    type: "invocationError",
+                    invocationId,
+                    error: ""
+                  })
+                }
+              />
+            </>
+          }
+          onClose={() =>
+            store.getState().dispatchEvent({
+              type: "invocationError",
+              invocationId,
+              error: ""
+            })
+          }
+        >
+          {`${name || operationId}: ${error}`}
+        </AlertBanner>
+      ))}
     </Box>
   );
 };

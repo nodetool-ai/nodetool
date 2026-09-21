@@ -156,4 +156,56 @@ describe("AppRuntimeView (Puck Render)", () => {
       expect(screen.queryByRole("alert")).not.toBeInTheDocument()
     );
   });
+
+  it("surfaces an error from a non-default operation", async () => {
+    const document: ApplicationDocument = {
+      schemaVersion: 3,
+      ui: data,
+      operations: [
+        {
+          id: "main",
+          name: "Main",
+          workflowId: workflow.id,
+          inputs: {},
+          outputs: {},
+          policy: "replace"
+        },
+        {
+          id: "review",
+          name: "Review",
+          workflowId: workflow.id,
+          inputs: {},
+          outputs: {},
+          policy: "replace"
+        }
+      ],
+      resources: [],
+      variables: []
+    };
+    act(() =>
+      store().getState().dispatchEvent({
+        type: "runStarted",
+        invocation: {
+          id: "job-review-error",
+          operationId: "review",
+          status: "running",
+          startedAt: 2
+        },
+        outputKeys: []
+      })
+    );
+    act(() =>
+      store().getState().dispatchEvent({
+        type: "invocationError",
+        invocationId: "job-review-error",
+        error: "Review failed"
+      })
+    );
+
+    renderView(document);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Review: Review failed"
+    );
+  });
 });

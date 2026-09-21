@@ -264,11 +264,54 @@ const OperationRow: React.FC<{
   );
 };
 
+export const parseVariableDefault = (
+  raw: string,
+  type: string | undefined
+): { value?: unknown; error?: string } => {
+  if (raw === "") return {};
+  if (!type || type === "str") return { value: raw };
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (type === "bool" && typeof parsed !== "boolean") {
+      return { error: "Enter true or false." };
+    }
+    if ((type === "int" || type === "float") && typeof parsed !== "number") {
+      return { error: "Enter a JSON number." };
+    }
+    if (type === "int" && !Number.isInteger(parsed)) {
+      return { error: "Enter a whole number." };
+    }
+    if (type === "list" && !Array.isArray(parsed)) {
+      return { error: "Enter a JSON array, for example [1, 2]." };
+    }
+    if (type === "dict" && (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))) {
+      return { error: "Enter a JSON object, for example {\"key\": \"value\"}." };
+    }
+    return { value: parsed };
+  } catch {
+    return { error: `Enter valid JSON for ${type}.` };
+  }
+};
+
+const formatVariableDefault = (value: unknown, type: string | undefined): string => {
+  if (value == null) return "";
+  if (type && type !== "str") return JSON.stringify(value);
+  return String(value);
+};
+
+const variableDefaultError = (value: unknown, type: string | undefined): string | undefined => {
+  if (value == null || !type || type === "str") return undefined;
+  return parseVariableDefault(JSON.stringify(value), type).error;
+};
+
 const VariableRow: React.FC<{
   variable: VariableDeclaration;
   onPatch: (patch: Partial<VariableDeclaration>) => void;
   onRemove: () => void;
-}> = ({ variable, onPatch, onRemove }) => (
+}> = ({ variable, onPatch, onRemove }) => {
+  const type = variable.type?.type;
+  const error = variableDefaultError(variable.default, type);
+  return (
   <EntryCard
     title={variable.name || variable.id}
     subtitle={`var:${variable.id}`}
@@ -290,12 +333,15 @@ const VariableRow: React.FC<{
     />
     <TextInput
       label="Default"
-      value={variable.default == null ? "" : String(variable.default)}
+      value={formatVariableDefault(variable.default, type)}
+      errorMessage={error}
+      helperText={type && type !== "str" ? "Use JSON for typed values." : undefined}
       size="small"
       fullWidth
-      onChange={(e) =>
-        onPatch({ default: e.target.value === "" ? undefined : e.target.value })
-      }
+      onChange={(e) => {
+        const parsed = parseVariableDefault(e.target.value, type);
+        if (!parsed.error) onPatch({ default: parsed.value });
+      }}
     />
     <SelectField
       label="Scope"
@@ -317,7 +363,8 @@ const VariableRow: React.FC<{
       <Caption color="secondary">Only per-user variables can be remembered.</Caption>
     ) : null}
   </EntryCard>
-);
+  );
+};
 
 const ResourceRow: React.FC<{
   resource: ResourceBinding;
