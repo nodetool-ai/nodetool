@@ -13,6 +13,7 @@ import { useTheme } from "@mui/material/styles";
 import { SxProps, Theme } from "@mui/material";
 import { isNumber } from "../../utils/typePredicates";
 import { sxEntries } from "./tokens";
+import { OverlayLayerProvider, useOverlayLayer } from "./OverlayLayer";
 
 export type PopoverPlacement =
   | "bottom-left"
@@ -105,6 +106,14 @@ const PopoverInternal: React.FC<PopoverProps> = ({
 }) => {
   const theme = useTheme();
   const placed = PLACEMENT_MAP[placement];
+  // Sit one layer above an enclosing overlay so its backdrop cannot swallow
+  // clicks meant for this one. Inline, because the theme pins the `MuiPopover`
+  // root z-index through a class this has to beat.
+  const parentLayer = useOverlayLayer();
+  const zIndex =
+    parentLayer === undefined ? theme.zIndex.popover2 : parentLayer + 1;
+  const rootSlot = slotProps?.root;
+  const rootSlotObject = typeof rootSlot === "object" ? rootSlot : undefined;
 
   // Compute border radius with type guard since borderRadius can be string | number
   const borderRadiusValue =
@@ -134,6 +143,10 @@ const PopoverInternal: React.FC<PopoverProps> = ({
       transformOrigin={transformOrigin ?? placed.transformOrigin}
       slotProps={{
         ...slotProps,
+        root: {
+          ...rootSlotObject,
+          style: { zIndex, ...rootSlotObject?.style }
+        },
         paper: {
           ...paperSlotObject,
           sx: [
@@ -150,7 +163,7 @@ const PopoverInternal: React.FC<PopoverProps> = ({
       }}
       {...props}
     >
-      {children}
+      <OverlayLayerProvider value={zIndex}>{children}</OverlayLayerProvider>
     </MuiPopover>
   );
 };

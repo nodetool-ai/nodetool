@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 import ThreadList from "../ThreadList";
+import { Popover } from "../../../ui_primitives";
 import type { ThreadInfo } from "../../types/thread.types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -51,6 +52,32 @@ const renderList = (threads: Record<string, ThreadInfo>) => {
 const rowDeleteButtons = () =>
   screen.getAllByRole("button", { name: "Delete" });
 
+/** The conversations list as the chat header shows it: inside a popover. */
+const renderListInPopover = (threads: Record<string, ThreadInfo>) => {
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <Popover open anchorEl={document.body}>
+        <ThreadList
+          threads={threads}
+          currentThreadId={null}
+          onNewThread={jest.fn()}
+          onSelectThread={jest.fn()}
+          onDeleteThread={jest.fn()}
+          getThreadPreview={(id) => threads[id]?.title ?? "Empty conversation"}
+        />
+      </Popover>
+    </ThemeProvider>
+  );
+};
+
+const layerOf = (selector: string): number => {
+  const root = document.querySelector<HTMLElement>(selector);
+  if (!root) {
+    throw new Error(`no ${selector} in the document`);
+  }
+  return Number(root.style.zIndex);
+};
+
 describe("ThreadList", () => {
   afterEach(() => {
     jest.useRealTimers();
@@ -94,6 +121,21 @@ describe("ThreadList", () => {
     expect(
       within(screen.getByRole("dialog")).getByText(/Storyboard ideas/)
     ).toBeInTheDocument();
+  });
+
+  it("stacks the confirm dialog above the popover holding the list", async () => {
+    const user = userEvent.setup();
+    renderListInPopover(twoThreads());
+
+    await user.click(rowDeleteButtons()[0]);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    // The popover keeps a full-viewport invisible backdrop while it is open.
+    // Below that backdrop the dialog's buttons take keyboard activation but no
+    // clicks, which is how deleting a conversation by mouse silently no-opped.
+    expect(layerOf(".MuiDialog-root")).toBeGreaterThan(
+      layerOf(".MuiPopover-root")
+    );
   });
 
   it("deletes the confirmed thread once the row has animated out", async () => {
