@@ -260,10 +260,10 @@ test.describe("marketing smoke", () => {
     }
 
     const hero = page.getByRole("img", {
-      name: "Creator speaking to camera before showing an olive travel cup."
+      name: "Creator speaking to camera in her kitchen while holding an olive travel cup."
     });
     const proof = page.getByRole("img", {
-      name: "Five frames from the live UGC run show the creator, the cup entering frame, and the closing reaction."
+      name: "Five frames follow the creator and olive cup from morning at home through work to evening."
     });
     const heroBox = await hero.boundingBox();
     const proofBox = await proof.boundingBox();
