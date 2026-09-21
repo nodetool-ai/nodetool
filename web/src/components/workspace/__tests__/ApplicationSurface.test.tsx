@@ -192,6 +192,18 @@ describe("ApplicationSurface", () => {
     );
   });
 
+  it("mounts the run layer when preview opens directly from design", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+
+    await user.click(screen.getByRole("button", { name: "Preview draft" }));
+
+    expect(screen.getByTestId("app-run")).toHaveTextContent("app-1");
+    expect(screen.getByTestId("application-run-layer")).not.toHaveAttribute(
+      "inert"
+    );
+  });
+
   it("keeps the assistant on the right in design, run, and settings", async () => {
     const user = userEvent.setup();
     renderSurface();

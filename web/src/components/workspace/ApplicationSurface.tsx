@@ -131,7 +131,10 @@ const ApplicationSurface = ({
     (_event: MouseEvent<HTMLElement>, next: ApplicationView | null) => {
       if (!next) return;
       setView(next);
-      setOpened((views) => (views.includes(next) ? views : [...views, next]));
+      const mountedView = next === "preview" ? "run" : next;
+      setOpened((views) =>
+        views.includes(mountedView) ? views : [...views, mountedView]
+      );
     },
     []
   );

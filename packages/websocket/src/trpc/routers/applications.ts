@@ -31,16 +31,15 @@
  */
 
 import { z } from "zod";
-import { operationTarget } from "@nodetool-ai/app-runtime";
 import {
   ApplicationDeployment,
   applicationUsage,
   getApplicationBudget,
-  hasFiniteBudgetLimit,
   listApplicationVersions,
   listInvocations,
   publishApplication,
   reserveInvocation,
+  applicationReleaseVersion,
   releaseApplicationVersion,
   releasedApplicationVersion,
   setApplicationBudget,
@@ -79,6 +78,7 @@ import {
 import {
   deployApplication,
   getApplicationDeployment,
+  publicReleasePreflight,
   undeployApplication
 } from "../../lib/app-deployment-service.js";
 
@@ -119,28 +119,10 @@ export const applicationsRouter = router({
       // draft before promotion so a publish cannot replace a working link
       // with a release the public session cannot execute.
       if (await ApplicationDeployment.findLive(app.id)) {
-        const draft = app.toDocument();
-        const scriptOperations = draft.operations.filter(
-          (operation) => operationTarget(operation).kind === "script"
-        );
-        if (scriptOperations.length > 0) {
-          throwApiError(
-            ApiErrorCode.INVALID_INPUT,
-            "This app has a live public link. Script operations cannot be published to that audience."
-          );
-        }
-        if (draft.resources.length > 0) {
-          throwApiError(
-            ApiErrorCode.INVALID_INPUT,
-            "This app has a live public link. Resource bindings cannot be published to that audience."
-          );
-        }
-        if (!hasFiniteBudgetLimit(await getApplicationBudget(app.id))) {
-          throwApiError(
-            ApiErrorCode.INVALID_INPUT,
-            "This app has a live public link. Configure a finite budget before publishing again."
-          );
-        }
+        const blocked = await publicReleasePreflight(app.id, {
+          document: app.toDocument()
+        });
+        if (blocked) throwApiError(ApiErrorCode.INVALID_INPUT, blocked);
       }
       return applicationVersionResponse.parse(await publishApplication(app));
     }),
@@ -293,6 +275,17 @@ export const applicationsRouter = router({
     .output(applicationVersionResponse)
     .mutation(async ({ ctx, input }) => {
       await loadOwned(ctx.userId, input.id);
+      if (await ApplicationDeployment.findLive(input.id)) {
+        const candidate = await applicationReleaseVersion(
+          input.id,
+          input.version,
+          ctx.userId
+        );
+        if (candidate) {
+          const blocked = await publicReleasePreflight(input.id, candidate);
+          if (blocked) throwApiError(ApiErrorCode.INVALID_INPUT, blocked);
+        }
+      }
       const released = await releaseApplicationVersion(
         input.id,
         input.version,

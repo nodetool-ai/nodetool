@@ -174,4 +174,41 @@ describe("applications router releases", () => {
     expect(back?.version).toBe(1);
     expect(back?.workflows[0]!.graph?.nodes[0]).toMatchObject({ id: "n1" });
   });
+
+  it("keeps the live release when a public-link rollback fails preflight", async () => {
+    const app = await seedApp();
+    const caller = createCaller(makeCtx("user-1"));
+    await caller.applications.publish({ id: app.id });
+
+    const current = await caller.applications.get({ id: app.id });
+    await caller.applications.update({
+      id: app.id,
+      baseUpdatedAt: current.updatedAt,
+      document: {
+        ...current.document,
+        resources: [
+          {
+            id: "library",
+            name: "Library",
+            kind: "asset",
+            scope: { projectId: "p1" },
+            operations: ["read"]
+          }
+        ]
+      }
+    });
+    await caller.applications.publish({ id: app.id });
+    await caller.applications.release({ id: app.id, version: 1 });
+    await ApplicationDeployment.ensure({
+      applicationId: app.id,
+      userId: "user-1"
+    });
+
+    await expect(
+      caller.applications.release({ id: app.id, version: 2 })
+    ).rejects.toThrow(/resource bindings cannot be published/i);
+    expect(
+      (await caller.applications.releasedDocument({ id: app.id }))?.version
+    ).toBe(1);
+  });
 });
