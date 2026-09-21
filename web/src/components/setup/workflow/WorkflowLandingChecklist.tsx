@@ -21,7 +21,10 @@ import {
   StatusPill,
   Text
 } from "../../ui_primitives";
-import type { BuildFromPlanResult } from "../../../hooks/workflow/useBuildFromPlan";
+import type {
+  BuildFromPlanResult,
+  WorkflowBuildStatus
+} from "../../../hooks/workflow/useBuildFromPlan";
 
 /** What each run mode leaves to do once the graph runs (PRD § 11.4). */
 const NEXT_STEP: Readonly<
@@ -54,7 +57,7 @@ export const buildFailureMessage = (result: BuildFromPlanResult): string | null 
       "The graph I just built does not validate:",
       ...result.validationErrors.map((error) => `- ${error}`),
       "",
-      "Propose a fix and wait for me before changing the graph."
+      "Repair: inspect each named node, set the missing property, or reconnect the invalid handle. Propose the change and wait for me before applying it."
     ].join("\n");
   }
   if (result.issues.length > 0) {
@@ -62,17 +65,60 @@ export const buildFailureMessage = (result: BuildFromPlanResult): string | null 
       "The graph I just built validates, but part of the plan was never wired:",
       ...result.issues.map((issue) => `- ${issue}`),
       "",
-      "That means it can run and produce nothing. Propose a fix and wait for me."
+      "Repair: connect each unwired output to the named upstream step, or remove the output that the plan does not produce. Propose the change and wait for me."
     ].join("\n");
   }
   if (result.testRun.error !== null) {
     return [
       `The test run did not start: ${result.testRun.error}`,
       "",
-      "Propose a fix and wait for me before changing the graph."
+      "Repair: check the named provider, worker, or runtime, then retry the sample run. Propose any graph change and wait for me before applying it."
+    ].join("\n");
+  }
+  if (result.status === "failed") {
+    return [
+      result.explanation,
+      "",
+      "Repair: inspect the graph's last failed step and propose one targeted change. Wait for me before applying it."
     ].join("\n");
   }
   return null;
+};
+
+const outputDetail = (output: unknown): string => {
+  if (output === null || output === undefined) {
+    return "Output is ready";
+  }
+  if (typeof output === "string") {
+    return output.length > 0 ? `Output: ${output}` : "Output is ready";
+  }
+  if (Array.isArray(output)) {
+    return `Output is ready (${output.length} value${
+      output.length === 1 ? "" : "s"
+    })`;
+  }
+  if (typeof output === "object") {
+    const keys = Object.keys(output);
+    return keys.length > 0
+      ? `Output is ready (${keys.join(", ")})`
+      : "Output is ready";
+  }
+  return `Output: ${String(output)}`;
+};
+
+const statusTone = (
+  status: WorkflowBuildStatus
+): "done" | "rendering" | "failed" | "neutral" => {
+  switch (status) {
+    case "running":
+      return "rendering";
+    case "failed":
+      return "failed";
+    case "built":
+    case "validated":
+    case "completed-with-output":
+      return "done";
+  }
 };
 
 const ChecklistInternal: React.FC<WorkflowLandingChecklistProps> = ({
@@ -89,12 +135,12 @@ const ChecklistInternal: React.FC<WorkflowLandingChecklistProps> = ({
   return (
     <FlexColumn gap={GAP.normal}>
       <Line
-        done
+        status="built"
         label="Graph built"
         detail={`${result.nodeCount} node${result.nodeCount === 1 ? "" : "s"} placed`}
       />
       <Line
-        done={validated && wired}
+        status={validated && wired ? "validated" : "failed"}
         label="Validated"
         detail={
           validated
@@ -110,11 +156,21 @@ const ChecklistInternal: React.FC<WorkflowLandingChecklistProps> = ({
           creator was told on the setup step that building would run it once,
           so a missing run is a promise this screen has to account for (F1, F8). */}
       <Line
-        done={result.testRun.started}
+        status={
+          result.testRun.error !== null
+            ? "failed"
+            : result.status === "completed-with-output"
+              ? "completed-with-output"
+              : result.status === "running"
+                ? "running"
+                : result.status
+        }
         label="Test run"
         detail={
-          result.testRun.started
-            ? "Started with your sample inputs"
+          result.status === "completed-with-output"
+            ? outputDetail(result.output ?? result.testRun.output)
+            : result.status === "running"
+              ? "Running with your sample inputs"
             : (result.testRun.error ??
               (validated
                 ? "Not started — part of the plan is unwired"
@@ -147,14 +203,14 @@ const ChecklistInternal: React.FC<WorkflowLandingChecklistProps> = ({
 };
 
 interface LineProps {
-  done: boolean;
+  status: WorkflowBuildStatus;
   label: string;
   detail: string;
 }
 
-const Line: React.FC<LineProps> = ({ done, label, detail }) => (
+const Line: React.FC<LineProps> = ({ status, label, detail }) => (
   <FlexRow gap={GAP.normal} align="center">
-    <StatusPill tone={done ? "done" : "failed"}>{done ? "done" : "todo"}</StatusPill>
+    <StatusPill tone={statusTone(status)}>{status}</StatusPill>
     <Text size="small" component="span">
       {label}
     </Text>

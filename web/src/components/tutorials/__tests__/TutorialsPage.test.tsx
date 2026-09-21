@@ -8,6 +8,37 @@ import TutorialsPage from "../TutorialsPage";
 import { TUTORIALS } from "../tutorialsData";
 
 const MAX_WIDTH_QUERY = /max-width/;
+const mockStartGuidedFlow = jest.fn().mockResolvedValue(undefined);
+const mockCreateNewThread = jest.fn().mockResolvedValue("thread-new");
+const mockOpenTab = jest.fn();
+
+jest.mock("../../workspace/useGuidedFlowStarters", () => ({
+  useGuidedFlowStarters: () => ({
+    starters: [
+      { id: "image", start: mockStartGuidedFlow },
+      { id: "script", start: mockStartGuidedFlow },
+      { id: "storyboard", start: mockStartGuidedFlow },
+      { id: "video", start: mockStartGuidedFlow },
+      { id: "workflow", start: mockStartGuidedFlow }
+    ],
+    starting: null,
+    pendingDestination: null,
+    currentProject: { id: "project-1", name: "Personal" },
+    pickDestination: jest.fn(),
+    cancelDestination: jest.fn()
+  })
+}));
+
+jest.mock("../../../stores/GlobalChatStore", () => ({
+  __esModule: true,
+  default: <T,>(selector: (state: { createNewThread: typeof mockCreateNewThread }) => T): T =>
+    selector({ createNewThread: mockCreateNewThread })
+}));
+
+jest.mock("../../../stores/WorkspaceTabsStore", () => ({
+  useWorkspaceTabsStore: <T,>(selector: (state: { openTab: typeof mockOpenTab }) => T): T =>
+    selector({ openTab: mockOpenTab })
+}));
 
 /** Drive MUI's useMediaQuery: only max-width queries match on "narrow". */
 const setViewport = (narrow: boolean) => {
@@ -37,6 +68,7 @@ describe("TutorialsPage video loading", () => {
 
   afterEach(() => {
     window.matchMedia = originalMatchMedia;
+    jest.clearAllMocks();
   });
 
   // The videos live on the docs site. Setting `src` on mount would fetch a
@@ -56,6 +88,27 @@ describe("TutorialsPage video loading", () => {
     );
 
     expect(container.querySelector("video")).toHaveAttribute("src", first.video);
+  });
+
+  it("shows the task loop and opens the matching guided flow", async () => {
+    setViewport(false);
+    const first = TUTORIALS[0];
+    const startingState = first.startingState;
+    const task = first.task;
+    const result = first.result;
+    if (!startingState || !task || !result) {
+      throw new Error("The first tutorial must expose a task loop");
+    }
+    renderPage();
+
+    expect(screen.getByRole("heading", { name: "Try it yourself" })).toBeInTheDocument();
+    expect(screen.getByText(startingState)).toBeInTheDocument();
+    expect(screen.getByText(task)).toBeInTheDocument();
+    expect(screen.getByText(result)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Open task" }));
+
+    expect(mockStartGuidedFlow).toHaveBeenCalledWith("project-1");
   });
 });
 

@@ -29,6 +29,8 @@ export interface FrontendToolDefinition<
 
 export interface FrontendToolState {
   nodeMetadata: Record<string, NodeMetadata>;
+  /** True when the live model catalog offers a model for this workflow role. */
+  getModelRoleAvailability?: (role: string) => boolean;
   currentWorkflowId: string | null;
   getWorkflow: (workflowId: string) => Workflow | undefined;
   addWorkflow: (workflow: Workflow) => void;

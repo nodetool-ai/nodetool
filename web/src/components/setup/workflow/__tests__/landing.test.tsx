@@ -24,10 +24,13 @@ import {
 } from "../categories";
 
 const CLEAN: BuildFromPlanResult = {
+  status: "completed-with-output",
   nodeCount: 3,
   issues: [],
   validationErrors: [],
-  testRun: { started: true, error: null }
+  testRun: { started: true, error: null },
+  output: { post: "hello" },
+  explanation: "The sample run completed and produced output."
 };
 
 const renderChecklist = (
@@ -56,7 +59,7 @@ describe("WorkflowLandingChecklist", () => {
     expect(screen.getByText("3 nodes placed")).toBeInTheDocument();
     expect(screen.getByText("No problems found")).toBeInTheDocument();
     expect(
-      screen.getByText("Started with your sample inputs")
+      screen.getByText("Output is ready (post)")
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Save as app" }));
     expect(onNextStep).toHaveBeenCalledTimes(1);
@@ -103,6 +106,20 @@ describe("WorkflowLandingChecklist", () => {
     });
     await userEvent.click(screen.getByRole("button", { name: "Ask the agent" }));
     expect(onAskAgent.mock.calls[0][0]).toContain("no worker available");
+    expect(onAskAgent.mock.calls[0][0]).toContain("check the named provider");
+  });
+
+  it("shows a running sample distinctly from a completed output", () => {
+    renderChecklist({
+      ...CLEAN,
+      status: "running",
+      output: undefined,
+      testRun: { started: true, error: null }
+    });
+    expect(screen.getByText("running")).toBeInTheDocument();
+    expect(
+      screen.getByText("Running with your sample inputs")
+    ).toBeInTheDocument();
   });
 });
 
@@ -119,6 +136,7 @@ describe("buildFailureMessage", () => {
     });
     expect(message).toContain("does not validate");
     expect(message).not.toContain("also bad");
+    expect(message).toContain("set the missing property");
   });
 });
 

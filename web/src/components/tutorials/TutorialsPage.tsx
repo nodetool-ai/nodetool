@@ -17,6 +17,10 @@ import {
   SPACING,
   VideoPlayer
 } from "../ui_primitives";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { openPageTab } from "../workspace/openPageTab";
+import { useGuidedFlowStarters } from "../workspace/useGuidedFlowStarters";
 import { TutorialCard } from "./TutorialCard";
 import { TUTORIALS, getTutorial } from "./tutorialsData";
 import { resolveStaticMediaUri } from "../../utils/resolveMediaUri";
@@ -229,6 +233,39 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.success.main
     },
 
+    ".tut-task": {
+      marginTop: getSpacingPx(6),
+      [theme.breakpoints.down("md")]: { marginTop: getSpacingPx(SPACING.xl) }
+    },
+    ".tut-task h2": {
+      margin: 0,
+      fontSize: "var(--fontSizeNormal)",
+      fontWeight: 600,
+      color: theme.vars.palette.text.primary
+    },
+    ".tut-task-grid": {
+      display: "grid",
+      gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+      gap: getSpacingPx(SPACING.lg),
+      marginTop: getSpacingPx(SPACING.md),
+      [theme.breakpoints.down("md")]: {
+        gridTemplateColumns: "1fr",
+        gap: getSpacingPx(SPACING.md)
+      }
+    },
+    ".tut-task-grid h3": {
+      margin: 0,
+      fontSize: "var(--fontSizeSmall)",
+      fontWeight: 600,
+      color: theme.vars.palette.text.primary
+    },
+    ".tut-task-grid p": {
+      margin: `${getSpacingPx(SPACING.xs)} 0 0`,
+      fontSize: "var(--fontSizeSmall)",
+      lineHeight: 1.5,
+      color: theme.vars.palette.text.secondary
+    },
+
     ".tut-cta": {
       display: "flex",
       gap: theme.spacing(1.5),
@@ -247,6 +284,9 @@ const TutorialsPage: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const stacked = useMediaQuery(theme.breakpoints.down("md"));
   const bodyRef = useRef<HTMLDivElement>(null);
+  const { starters, currentProject } = useGuidedFlowStarters();
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
 
   const active = getTutorial(params.get("id"));
 
@@ -256,6 +296,50 @@ const TutorialsPage: React.FC = () => {
   const [startedId, setStartedId] = useState<string | null>(null);
   const started = startedId === active.id;
   const start = useCallback(() => setStartedId(active.id), [active.id]);
+  const [openingTask, setOpeningTask] = useState(false);
+
+  const openTask = useCallback(async () => {
+    const launch = active.launch;
+    if (!launch) {
+      navigate("/workspace");
+      return;
+    }
+
+    setOpeningTask(true);
+    try {
+      if (launch.kind === "guided-flow") {
+        const starter = starters.find((entry) => entry.id === launch.flow);
+        if (!starter) {
+          throw new Error(`No starter is registered for ${launch.flow}`);
+        }
+        await starter.start(currentProject.id);
+        navigate("/workspace");
+      } else if (launch.kind === "chat") {
+        const threadId = await createNewThread(undefined, undefined, {
+          projectId: currentProject.id
+        });
+        openTab({
+          type: "chat",
+          ref: threadId,
+          mode: "view",
+          title: "New chat",
+          projectId: currentProject.id
+        });
+        navigate("/workspace");
+      } else {
+        openPageTab("examples");
+      }
+    } finally {
+      setOpeningTask(false);
+    }
+  }, [
+    active.launch,
+    createNewThread,
+    currentProject.id,
+    navigate,
+    openTab,
+    starters
+  ]);
 
   const select = useCallback(
     (id: string) => {
@@ -345,10 +429,41 @@ const TutorialsPage: React.FC = () => {
               </ul>
             </section>
 
+            {active.startingState && active.task && active.result && (
+              <section className="tut-task" aria-labelledby="tut-task-heading">
+                <h2 id="tut-task-heading">Try it yourself</h2>
+                <div className="tut-task-grid">
+                  <div>
+                    <h3>Start here</h3>
+                    <p>{active.startingState}</p>
+                  </div>
+                  <div>
+                    <h3>Your task</h3>
+                    <p>{active.task}</p>
+                  </div>
+                  <div>
+                    <h3>Check the result</h3>
+                    <p>{active.result}</p>
+                  </div>
+                </div>
+              </section>
+            )}
+
             <div className="tut-cta">
-              <EditorButton variant="contained" onClick={() => navigate("/workspace")}>
-                Start building
-              </EditorButton>
+              {active.launch ? (
+                <EditorButton
+                  variant="contained"
+                  onClick={() => void openTask()}
+                  disabled={openingTask}
+                  aria-busy={openingTask}
+                >
+                  {openingTask ? "Opening task…" : "Open task"}
+                </EditorButton>
+              ) : (
+                <EditorButton variant="contained" onClick={() => navigate("/workspace")}>
+                  Start building
+                </EditorButton>
+              )}
               <EditorButton variant="outlined" onClick={() => navigate("/examples")}>
                 Browse examples
               </EditorButton>

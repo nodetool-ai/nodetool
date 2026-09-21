@@ -15,12 +15,16 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { apiService } from '../services/api';
+import {
+  diagnoseServer,
+  type ServerDiagnosticStatus,
+} from '../services/serverDiagnostics';
 import { queryClient } from '../queryClient';
 import { useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../stores/AuthStore';
 import { RootStackParamList } from '../navigation/types';
 
-type ConnectionStatus = 'idle' | 'testing' | 'success' | 'error';
+type ConnectionStatus = 'idle' | 'testing' | ServerDiagnosticStatus;
 
 type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -30,6 +34,21 @@ function isValidUrl(url: string): boolean {
     return parsed.protocol === 'http:' || parsed.protocol === 'https:';
   } catch {
     return false;
+  }
+}
+
+function connectionStatusMessage(status: ServerDiagnosticStatus): string {
+  switch (status) {
+    case 'timeout':
+      return 'The server did not respond in time. Check that it is running and reachable from this device.';
+    case 'network-error':
+      return 'The server could not be reached. Check the URL, network, and device-to-server connection.';
+    case 'unauthorized':
+      return 'The server is reachable, but it rejected the current session. Sign in or use a valid server account.';
+    case 'incompatible':
+      return 'The host responded, but it is not a compatible NodeTool server.';
+    case 'ready':
+      return 'The server is ready.';
   }
 }
 
@@ -129,31 +148,28 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
 
     try {
       setConnectionStatus('testing');
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-      const response = await fetch(`${trimmed}/api/workflows/?limit=1`, {
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
+      const result = await diagnoseServer(trimmed);
+
+      if (result.status === 'ready') {
+        try {
+          await apiService.saveApiHost(trimmed);
+          queryClient.clear();
+          setApiHost(trimmed);
+        } catch (error: unknown) {
+          console.error('Failed to save the tested server:', error);
+          Alert.alert('Server Ready', 'The server is ready, but its URL could not be saved.');
+        }
       }
 
-      await apiService.saveApiHost(trimmed);
-      queryClient.clear();
-      await apiService.getWorkflows(1);
-      setApiHost(trimmed);
-      setConnectionStatus('success');
+      setConnectionStatus(result.status);
+      if (result.status !== 'ready') {
+        Alert.alert('Connection Failed', connectionStatusMessage(result.status));
+      }
       setTimeout(() => setConnectionStatus('idle'), 3000);
     } catch (error: unknown) {
       console.error('Connection test failed:', error);
-      setConnectionStatus('error');
-      const detail = error instanceof DOMException && error.name === 'AbortError'
-        ? 'Connection timed out. Is the server running?'
-        : error instanceof TypeError
-          ? 'Network error. Check the URL and your connection.'
-          : 'Could not reach the server. Verify the URL is correct.';
-      Alert.alert('Connection Failed', detail);
+      setConnectionStatus('network-error');
+      Alert.alert('Connection Failed', 'The server check could not be completed.');
       setTimeout(() => setConnectionStatus('idle'), 3000);
     }
   };
@@ -170,9 +186,13 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
 
   const getTestButtonStyle = () => {
     switch (connectionStatus) {
-      case 'success':
+      case 'ready':
         return { backgroundColor: colors.success + '15', borderColor: colors.success };
-      case 'error':
+      case 'unauthorized':
+      case 'timeout':
+        return { backgroundColor: colors.warning + '15', borderColor: colors.warning };
+      case 'network-error':
+      case 'incompatible':
         return { backgroundColor: colors.error + '15', borderColor: colors.error };
       default:
         return { backgroundColor: colors.cardBg, borderColor: colors.border };
@@ -183,18 +203,39 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
     switch (connectionStatus) {
       case 'testing':
         return <ActivityIndicator color={colors.text} />;
-      case 'success':
+      case 'ready':
         return (
           <View style={styles.buttonContent}>
             <Ionicons name="checkmark-circle" size={18} color={colors.success} style={styles.buttonIcon} />
-            <Text style={[styles.buttonText, { color: colors.success }]}>Connected & Saved</Text>
+            <Text style={[styles.buttonText, { color: colors.success }]}>Server Ready & Saved</Text>
           </View>
         );
-      case 'error':
+      case 'unauthorized':
+        return (
+          <View style={styles.buttonContent}>
+            <Ionicons name="lock-closed" size={18} color={colors.warning} style={styles.buttonIcon} />
+            <Text style={[styles.buttonText, { color: colors.warning }]}>Sign In Required</Text>
+          </View>
+        );
+      case 'timeout':
+        return (
+          <View style={styles.buttonContent}>
+            <Ionicons name="time-outline" size={18} color={colors.warning} style={styles.buttonIcon} />
+            <Text style={[styles.buttonText, { color: colors.warning }]}>Connection Timed Out</Text>
+          </View>
+        );
+      case 'incompatible':
+        return (
+          <View style={styles.buttonContent}>
+            <Ionicons name="server-outline" size={18} color={colors.error} style={styles.buttonIcon} />
+            <Text style={[styles.buttonText, { color: colors.error }]}>Incompatible Server</Text>
+          </View>
+        );
+      case 'network-error':
         return (
           <View style={styles.buttonContent}>
             <Ionicons name="close-circle" size={18} color={colors.error} style={styles.buttonIcon} />
-            <Text style={[styles.buttonText, { color: colors.error }]}>Connection Failed</Text>
+            <Text style={[styles.buttonText, { color: colors.error }]}>Network Error</Text>
           </View>
         );
       default:

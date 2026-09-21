@@ -13,6 +13,7 @@ import type { WorkflowSetupPlan } from "@nodetool-ai/protocol/api-schemas/workfl
 const calls: Array<{ name: string; args: Record<string, unknown> }> = [];
 let graphValidation: { errors: string[] } = { errors: [] };
 let runThrows: Error | null = null;
+let runResponse: unknown = { ok: true };
 jest.mock("../../../lib/tools/frontendTools", () => ({
   FrontendToolRegistry: {
     call: jest.fn(async (name: string, args: Record<string, unknown>) => {
@@ -22,6 +23,9 @@ jest.mock("../../../lib/tools/frontendTools", () => ({
       }
       if (name === "ui_run_workflow" && runThrows) {
         throw runThrows;
+      }
+      if (name === "ui_run_workflow") {
+        return runResponse;
       }
       return { ok: true };
     })
@@ -115,6 +119,7 @@ beforeEach(() => {
   settings = {};
   graphValidation = { errors: [] };
   runThrows = null;
+  runResponse = { ok: true };
 });
 
 describe("buildFromPlan", () => {
@@ -162,6 +167,7 @@ describe("buildFromPlan", () => {
 
   it("runs once with the sample inputs when the graph is clean", async () => {
     const result = await build();
+    expect(result.status).toBe("running");
     expect(result.testRun).toEqual({ started: true, error: null });
     const run = calls.find((call) => call.name === "ui_run_workflow");
     expect(run?.args["params"]).toEqual({ text: "hello" });
@@ -194,8 +200,37 @@ describe("buildFromPlan", () => {
       started: false,
       error: "no worker available"
     });
+    expect(result.status).toBe("failed");
     // The graph is still built and the stage still terminal — the creator lands
     // on the canvas with the reason, not back in the flow.
     expect(readWorkflowSetup(settings)?.stage).toBe("done");
+  });
+
+  it("records a completed run when the runner returns output", async () => {
+    runResponse = { status: "completed", output: { post: "hello" } };
+    const result = await build();
+
+    expect(result).toMatchObject({
+      status: "completed-with-output",
+      output: { post: "hello" },
+      explanation: "The sample run completed and produced output."
+    });
+    expect(readWorkflowSetup(settings)?.build).toMatchObject({
+      status: "completed-with-output",
+      output: { post: "hello" },
+      explanation: "The sample run completed and produced output."
+    });
+  });
+
+  it("keeps the failed outcome explanation in setup state", async () => {
+    graphValidation = { errors: ["Node x: required property missing"] };
+    const result = await build();
+
+    expect(result.status).toBe("failed");
+    expect(readWorkflowSetup(settings)?.build).toMatchObject({
+      status: "failed",
+      validation_errors: ["Node x: required property missing"],
+      explanation: expect.stringContaining("failed validation")
+    });
   });
 });

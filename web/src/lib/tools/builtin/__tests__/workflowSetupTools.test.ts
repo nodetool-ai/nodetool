@@ -43,6 +43,7 @@ const METADATA = {
 } as unknown as Record<string, NodeMetadata>;
 
 let settings: Record<string, unknown> = {};
+let modelRoleAvailable = false;
 const nodeToolCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
 const saveWorkflow = jest.fn(async () => {});
 
@@ -61,6 +62,7 @@ const recordNodeTool = (name: `ui_${string}`) =>
 const state = (): FrontendToolState =>
   ({
     nodeMetadata: METADATA,
+    getModelRoleAvailability: () => modelRoleAvailable,
     currentWorkflowId: WORKFLOW,
     getWorkflow: () => ({
       id: WORKFLOW,
@@ -96,6 +98,7 @@ let unregister: Array<() => boolean> = [];
 
 beforeEach(() => {
   settings = {};
+  modelRoleAvailable = false;
   nodeToolCalls.length = 0;
   saveWorkflow.mockClear();
   useMetadataStore.setState({ metadata: METADATA });
@@ -175,6 +178,55 @@ describe("ui_workflow_plan", () => {
     expect(result.review.steps[0].unknown_node_type).toBe(true);
     expect(result.review.can_continue).toBe(false);
   });
+
+  it("marks a step whose model role has no available model", async () => {
+    const result = (await call("ui_workflow_plan", {
+      plan: {
+        ...PLAN,
+        steps: [
+          {
+            id: "s1",
+            title: "Write",
+            summary: "write the copy",
+            node_type: "nodetool.text.Template",
+            model_role: "language"
+          }
+        ]
+      }
+    })) as {
+      review: {
+        can_continue: boolean;
+        missing_roles: string[];
+        steps: { missing_provider: string | null; block: string | null }[];
+      };
+    };
+    expect(result.review.can_continue).toBe(false);
+    expect(result.review.missing_roles).toEqual(["language"]);
+    expect(result.review.steps[0]).toMatchObject({
+      missing_provider: "language",
+      block: "missing-provider"
+    });
+  });
+
+  it("allows a step when its model role has an available model", async () => {
+    modelRoleAvailable = true;
+    const result = (await call("ui_workflow_plan", {
+      plan: {
+        ...PLAN,
+        steps: [
+          {
+            id: "s1",
+            title: "Write",
+            summary: "write the copy",
+            node_type: "nodetool.text.Template",
+            model_role: "language"
+          }
+        ]
+      }
+    })) as { review: { can_continue: boolean; missing_roles: string[] } };
+    expect(result.review.can_continue).toBe(true);
+    expect(result.review.missing_roles).toEqual([]);
+  });
 });
 
 describe("ui_workflow_update_plan_step", () => {
@@ -238,6 +290,41 @@ describe("ui_workflow_build_from_plan", () => {
       "nodetool.made.Up"
     );
     expect(nodeToolCalls).toEqual([]);
+  });
+
+  it("refuses to build when a required model role is unavailable", async () => {
+    await call("ui_workflow_plan", {
+      plan: {
+        ...PLAN,
+        steps: [
+          {
+            id: "s1",
+            title: "Write",
+            summary: "write the copy",
+            node_type: "nodetool.text.Template",
+            model_role: "language"
+          }
+        ]
+      }
+    });
+    await expect(call("ui_workflow_build_from_plan", {})).rejects.toThrow(
+      "Missing provider roles: language"
+    );
+    expect(nodeToolCalls).toEqual([]);
+  });
+
+  it("reports build submission separately from result verification", async () => {
+    await call("ui_workflow_plan", { plan: PLAN });
+    const result = (await call("ui_workflow_build_from_plan", {})) as {
+      built: boolean;
+      submitted: boolean;
+      verified_result: boolean;
+    };
+    expect(result).toMatchObject({
+      built: true,
+      submitted: true,
+      verified_result: false
+    });
   });
 
   it("places the plan through the node tools and writes the terminal stage", async () => {

@@ -56,10 +56,12 @@ jest.mock("../../../model_menu/LanguageModelMenuDialog", () => ({
 // Typed with the real input, so `mock.calls[0][0]` is the argument the flow
 // passed rather than an empty tuple.
 const buildFromPlan = jest.fn(async (_input: BuildFromPlanInput) => ({
+  status: "running" as const,
   nodeCount: 3,
   issues: [] as string[],
   validationErrors: [] as string[],
-  testRun: { started: true, error: null as string | null }
+  testRun: { started: true, error: null as string | null },
+  explanation: "The sample run is running. Waiting for its output."
 }));
 jest.mock("../../../../hooks/workflow/useBuildFromPlan", () => ({
   useBuildFromPlan: () => ({ buildFromPlan, building: false, result: null })

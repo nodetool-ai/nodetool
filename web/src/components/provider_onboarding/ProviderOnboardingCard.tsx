@@ -24,8 +24,51 @@ import {
 import { useOAuthConnection } from "../../hooks/useOAuthConnection";
 import { OAuthManualCompletionDialog } from "../oauth/OAuthManualCompletionDialog";
 import useSecretsStore from "../../stores/SecretsStore";
+import type { SecretValidation } from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import type { OnboardingProvider } from "./providerOnboardingCatalog";
+
+type StoredCredentialStatus = "configured" | "verified" | "unavailable" | "rejected";
+
+const statusLabel: Record<StoredCredentialStatus, string> = {
+  configured: "Configured",
+  verified: "Verified",
+  unavailable: "Unavailable",
+  rejected: "Rejected"
+};
+
+const statusColor: Record<StoredCredentialStatus, "secondary" | "success" | "warning" | "error"> = {
+  configured: "secondary",
+  verified: "success",
+  unavailable: "warning",
+  rejected: "error"
+};
+
+const statusFromValidation = (
+  result: SecretValidation
+): StoredCredentialStatus => {
+  switch (result.status) {
+    case "valid":
+      return "verified";
+    case "invalid":
+      return "rejected";
+    case "unverifiable":
+      return "unavailable";
+  }
+};
+
+const detailFromValidation = (
+  status: SecretValidation["status"]
+): string | null => {
+  switch (status) {
+    case "valid":
+      return null;
+    case "invalid":
+      return "The provider rejected the key.";
+    case "unverifiable":
+      return "The key was saved, but it could not be verified.";
+  }
+};
 
 interface ProviderOnboardingCardProps {
   provider: OnboardingProvider;
@@ -56,31 +99,53 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [keyValue, setKeyValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [rechecking, setRechecking] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [statusDetail, setStatusDetail] = useState<string | null>(null);
+  const [replacing, setReplacing] = useState(false);
+  const [storedCredentialStatus, setStoredCredentialStatus] =
+    useState<StoredCredentialStatus | null>(() =>
+      configured ? "configured" : null
+    );
   // Set when the provider rejected the key. The field keeps its value and the
   // user can either fix it or save it anyway.
   const [rejected, setRejected] = useState<string | null>(null);
 
-  const isConnected = configured || oauth.isConnected;
+  // `CLAUDE_SUBSCRIPTION` is a display id for OAuth and is never a stored key.
+  const hasStoredKey =
+    !provider.oauthOnly && (configured || storedCredentialStatus !== null);
+  const isConnected = hasStoredKey || oauth.isConnected;
 
   // Once the OAuth popup completes, collapse the inline key field — the card
   // flips to its connected state on its own.
   useEffect(() => {
+    if (!provider.oauthOnly && configured && storedCredentialStatus === null) {
+      setStoredCredentialStatus("configured");
+    }
     if (isConnected) {
       setExpanded(false);
     }
-  }, [isConnected]);
+  }, [configured, isConnected, provider.oauthOnly, storedCredentialStatus]);
 
   const persistKey = useCallback(
-    async (value: string, unverified: string | null) => {
+    async (
+      value: string,
+      status: StoredCredentialStatus,
+      notificationDetail: string | null
+    ) => {
       await updateSecret(provider.secretKey, value);
       setKeyValue("");
       setRejected(null);
+      setStatusDetail(notificationDetail);
+      setStoredCredentialStatus(status);
+      setReplacing(false);
+      setExpanded(false);
       addNotification({
-        type: unverified ? "warning" : "success",
-        content: unverified
-          ? `${provider.name} key saved — ${unverified}`
-          : `${provider.name} connected`,
+        type: status === "verified" ? "success" : "warning",
+        content:
+          status === "verified"
+            ? `${provider.name} connected`
+            : `${provider.name} key saved — ${statusLabel[status].toLowerCase()}`,
         alert: true
       });
     },
@@ -103,19 +168,18 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
     try {
       const result = await validateSecret(provider.secretKey, trimmed);
       if (result.status === "invalid") {
-        setRejected(result.message);
+        setRejected(detailFromValidation(result.status));
         return;
       }
       await persistKey(
         trimmed,
-        result.status === "unverifiable" ? result.message : null
+        statusFromValidation(result),
+        result.status === "unverifiable"
+          ? detailFromValidation(result.status)
+          : null
       );
-    } catch (err) {
-      setSaveError(
-        err instanceof Error
-          ? err.message
-          : "Couldn't save the key. Check your connection and try again."
-      );
+    } catch {
+      setSaveError("Couldn't save the key. Check your connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -130,17 +194,49 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
     setSaving(true);
     setSaveError(null);
     try {
-      await persistKey(trimmed, "the provider rejected it");
-    } catch (err) {
-      setSaveError(
-        err instanceof Error
-          ? err.message
-          : "Couldn't save the key. Check your connection and try again."
-      );
+      await persistKey(trimmed, "rejected", "The provider rejected this key.");
+    } catch {
+      setSaveError("Couldn't save the key. Check your connection and try again.");
     } finally {
       setSaving(false);
     }
   }, [keyValue, persistKey, saving]);
+
+  const handleRecheck = useCallback(async () => {
+    if (rechecking || !hasStoredKey) {
+      return;
+    }
+    setRechecking(true);
+    setSaveError(null);
+    try {
+      const result = await validateSecret(provider.secretKey);
+      setStoredCredentialStatus(statusFromValidation(result));
+      setStatusDetail(
+        result.status === "invalid"
+          ? "The provider rejected the stored key."
+          : result.status === "unverifiable"
+            ? "The stored key could not be verified."
+            : null
+      );
+    } catch {
+      setSaveError(
+        "Couldn't recheck the key. Check your connection and try again."
+      );
+    } finally {
+      setRechecking(false);
+    }
+  }, [hasStoredKey, provider.secretKey, rechecking, validateSecret]);
+
+  const handleReplace = useCallback(() => {
+    setReplacing(true);
+    setExpanded(true);
+    setKeyValue("");
+    setRejected(null);
+    setStatusDetail(null);
+    setSaveError(null);
+  }, []);
+
+  const storedStatus = storedCredentialStatus ?? "configured";
 
   return (
     <FlexColumn
@@ -197,7 +293,37 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
 
           {/* Actions */}
           <FlexRow align="center" gap={SPACING.md} wrap sx={{ marginLeft: "auto" }}>
-            {isConnected ? (
+            {hasStoredKey ? (
+              <FlexRow align="center" gap={SPACING.micro}>
+                <CheckCircleRoundedIcon
+                  sx={{
+                    fontSize: "1.2em",
+                    color:
+                      theme.vars.palette[statusColor[storedStatus]].main
+                  }}
+                />
+                <Caption size="small">
+                  {statusLabel[storedStatus]}
+                </Caption>
+                <EditorButton
+                  density="compact"
+                  variant="text"
+                  size="small"
+                  onClick={handleRecheck}
+                  disabled={rechecking}
+                >
+                  {rechecking ? "Checking…" : "Recheck"}
+                </EditorButton>
+                <EditorButton
+                  density="compact"
+                  variant="outlined"
+                  size="small"
+                  onClick={handleReplace}
+                >
+                  Replace key
+                </EditorButton>
+              </FlexRow>
+            ) : oauth.isConnected ? (
               <FlexRow align="center" gap={SPACING.micro}>
                 <CheckCircleRoundedIcon
                   sx={{
@@ -205,9 +331,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                     color: theme.vars.palette.success.main
                   }}
                 />
-                <Caption size="small">
-                  Connected
-                </Caption>
+                <Caption size="small">Connected</Caption>
               </FlexRow>
             ) : (
               <>
@@ -260,7 +384,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
         </FlexRow>
 
         {/* Inline API-key entry */}
-        {expanded && !isConnected && !provider.oauthOnly && (
+        {expanded && (!isConnected || replacing) && !provider.oauthOnly && (
           <FlexColumn id={keyFieldId} gap={SPACING.md} className="nodrag nowheel" sx={{ pt: SPACING.lg }}>
             <FlexRow gap={SPACING.xs} align="center">
               <TextInput
@@ -285,7 +409,13 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                 onClick={handleSaveKey}
                 disabled={saving || !keyValue.trim()}
               >
-                {saving ? <LoadingSpinner size="small" inline /> : "Connect"}
+                {saving ? (
+                  <LoadingSpinner size="small" inline />
+                ) : replacing ? (
+                  "Replace"
+                ) : (
+                  "Connect"
+                )}
               </EditorButton>
             </FlexRow>
             <FlexRow
@@ -330,7 +460,26 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                 {saveError}
               </Caption>
             )}
+            {statusDetail && !rejected && (
+              <Caption
+                role="status"
+                size="small"
+                color={storedStatus === "rejected" ? "error" : undefined}
+              >
+                {statusDetail}
+              </Caption>
+            )}
           </FlexColumn>
+        )}
+        {hasStoredKey && statusDetail && !expanded && (
+          <Caption
+            role="status"
+            size="small"
+            color={statusColor[storedStatus]}
+            sx={{ maxWidth: 560 }}
+          >
+            {statusDetail}
+          </Caption>
         )}
       </FlexColumn>
       <OAuthManualCompletionDialog

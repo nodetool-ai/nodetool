@@ -6,6 +6,12 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { setFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
+import {
+  useImageModelsByProvider,
+  useLanguageModelsByProvider,
+  useTTSModelsByProvider,
+  useVideoModelsByProvider
+} from "../../hooks/useModelsByProvider";
 
 /**
  * Keeps the frontend tool runtime state (the context `ui_*` tools execute
@@ -53,6 +59,33 @@ const FrontendToolRuntimeSync = memo(function FrontendToolRuntimeSync() {
     }))
   );
   const nodeMetadata = useMetadataStore((state) => state.metadata);
+  const languageModels = useLanguageModelsByProvider();
+  const imageModels = useImageModelsByProvider();
+  const videoModels = useVideoModelsByProvider();
+  const audioModels = useTTSModelsByProvider();
+
+  const getModelRoleAvailability = useCallback(
+    (role: string): boolean => {
+      switch (role) {
+        case "language":
+          return languageModels.models.length > 0;
+        case "image":
+          return imageModels.models.length > 0;
+        case "video":
+          return videoModels.models.length > 0;
+        case "audio":
+          return audioModels.models.length > 0;
+        default:
+          return false;
+      }
+    },
+    [
+      audioModels.models.length,
+      imageModels.models.length,
+      languageModels.models.length,
+      videoModels.models.length
+    ]
+  );
 
   const openWorkflow = useCallback(
     async (workflowId: string) => {
@@ -127,6 +160,7 @@ const FrontendToolRuntimeSync = memo(function FrontendToolRuntimeSync() {
   useEffect(() => {
     setFrontendToolRuntimeState({
       nodeMetadata,
+      getModelRoleAvailability,
       getOpenWorkflowIds: () => openWorkflows.map((workflow) => workflow.id),
       openWorkflow,
       runWorkflow: runWorkflowById,
@@ -152,6 +186,7 @@ const FrontendToolRuntimeSync = memo(function FrontendToolRuntimeSync() {
     });
   }, [
     nodeMetadata,
+    getModelRoleAvailability,
     openWorkflows,
     openWorkflow,
     runWorkflowById,

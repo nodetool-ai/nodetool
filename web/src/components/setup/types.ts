@@ -18,6 +18,11 @@ export interface SetupFlowLabels {
   subline?: string;
 }
 
+/** Context passed to an action that can be canceled by the setup shell. */
+export interface SetupOperationContext {
+  signal: AbortSignal;
+}
+
 /**
  * One stage of a flow: what the creator sees, what the primary button says,
  * and what pressing it does before the stage moves on.
@@ -50,7 +55,16 @@ export interface SetupStep<Stage extends string> {
    * so a rejected Director call leaves the creator where they were with the
    * message on the button (PRD § 7.2).
    */
-  onAdvance?: () => void | Promise<void>;
+  onAdvance?: (
+    context?: SetupOperationContext
+  ) => void | Promise<void>;
+  /**
+   * Cancels the operation represented by `pending`. The shell moves to its
+   * terminal canceled state immediately, even if this cleanup is asynchronous.
+   */
+  onCancel?: () => void | Promise<void>;
+  /** External terminal cancellation state for operations owned by a flow. */
+  canceled?: boolean;
   /**
    * Pending state owned elsewhere (a mutation, a queued job). The shell also
    * marks itself busy while it awaits `onAdvance`; either one disables the

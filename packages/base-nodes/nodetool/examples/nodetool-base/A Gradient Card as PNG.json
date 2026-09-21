@@ -5,10 +5,11 @@
  "updated_at": "2026-07-30T12:00:00.000Z",
  "name": "A Gradient Card as PNG",
  "tool_name": null,
- "description": "Build vector art in a Code node, then rasterise it. SVGToImage is the bridge: author resolution-independently, hand a PNG to anything that needs pixels.",
+ "description": "A certified starter that runs as-is with no asset, provider, or API key. Build vector art in a Code node, rasterise it, and inspect the generated 800×480 PNG.",
  "tags": [
   "image",
-  "example"
+  "example",
+  "getting-started"
  ],
  "thumbnail": null,
  "thumbnail_url": null,

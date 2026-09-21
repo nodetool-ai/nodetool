@@ -4,7 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import DashboardTemplates from "../DashboardTemplates";
-import type { Workflow } from "../../../stores/ApiTypes";
+import type { NodeMetadata, Workflow } from "../../../stores/ApiTypes";
+import useMetadataStore from "../../../stores/MetadataStore";
 
 const loadTemplates = jest.fn();
 const handleExampleClick = jest.fn();
@@ -34,7 +35,8 @@ const template = (
   id: string,
   name: string,
   tags: string[],
-  thumbnailUrl: string | null = null
+  thumbnailUrl: string | null = null,
+  overrides: Partial<Workflow> = {}
 ): Workflow =>
   ({
     id,
@@ -45,7 +47,8 @@ const template = (
     access: "public",
     created_at: "2026-08-01T00:00:00Z",
     updated_at: "2026-08-01T00:00:00Z",
-    graph: { nodes: [], edges: [] }
+    graph: { nodes: [], edges: [] },
+    ...overrides
   }) as unknown as Workflow;
 
 const TEMPLATES = [
@@ -54,8 +57,8 @@ const TEMPLATES = [
   template("t3", "Web researcher", ["research"])
 ];
 
-const renderTemplates = () => {
-  loadTemplates.mockResolvedValue({ workflows: TEMPLATES, next: null });
+const renderTemplates = (templates: Workflow[] = TEMPLATES) => {
+  loadTemplates.mockResolvedValue({ workflows: templates, next: null });
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } }
   });
@@ -71,6 +74,7 @@ const renderTemplates = () => {
 describe("DashboardTemplates", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useMetadataStore.getState().setMetadata({});
   });
 
   it("lists each template as a row carrying its description", async () => {
@@ -80,6 +84,63 @@ describe("DashboardTemplates", () => {
     expect(within(row).getByText("Image upscaler description")).toBeInTheDocument();
     expect(
       await screen.findByRole("button", { name: /podcast cutter/i })
+    ).toBeInTheDocument();
+  });
+
+  it("shows template inputs, provider requirements, and explicit estimate unknowns", async () => {
+    const workflow = template("t4", "Provider template", ["image"], null, {
+      input_schema: {
+        properties: {
+          image: { title: "Source image" }
+        },
+        required: ["image"]
+      },
+      required_providers: ["fal_ai"],
+      required_models: ["fal_ai/model-1"],
+      graph: {
+        nodes: [
+          {
+            id: "generate",
+            type: "fal.image.Generate",
+            data: { model: { id: "model-1", provider: "fal_ai" } }
+          }
+        ],
+        edges: []
+      }
+    });
+    loadTemplates.mockResolvedValue({ workflows: [workflow], next: null });
+    useMetadataStore.getState().setMetadata({
+      "fal.image.Generate": {
+        required_settings: ["FAL_API_KEY"],
+        required_runtimes: [],
+        recommended_models: [],
+        properties: [
+          {
+            name: "model",
+            type: { type: "image_model" },
+            required: true
+          }
+        ],
+        outputs: []
+      }
+    } as unknown as Record<string, NodeMetadata>);
+
+    renderTemplates([workflow]);
+
+    const row = await screen.findByRole("button", {
+      name: /provider template/i
+    });
+    expect(within(row).getByText(/Inputs: Source image \(required\)/)).toBeInTheDocument();
+    expect(
+      within(row).getByText(/Provider\/model: FAL AI \/ model-1/)
+    ).toBeInTheDocument();
+    expect(within(row).getByText("Execution: Provider-hosted")).toBeInTheDocument();
+    expect(within(row).getByText("Required setup: FAL_API_KEY")).toBeInTheDocument();
+    expect(
+      within(row).getByText("Estimated cost: unknown — 1 node has no published price")
+    ).toBeInTheDocument();
+    expect(
+      within(row).getByText("Duration: unknown — execution time is not declared")
     ).toBeInTheDocument();
   });
 

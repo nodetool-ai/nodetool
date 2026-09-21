@@ -121,7 +121,7 @@ describe("ProviderOnboardingCard", () => {
     validateSecret.mockResolvedValue({
       status: "invalid",
       valid: false,
-      message: "Anthropic rejected the key (401)."
+      message: "Anthropic rejected sk-bad (401)."
     });
     renderCard(anthropic);
     await userEvent.click(
@@ -134,6 +134,7 @@ describe("ProviderOnboardingCard", () => {
     await waitFor(() =>
       expect(screen.getByText(/rejected the key/i)).toBeInTheDocument()
     );
+    expect(screen.getByRole("alert")).not.toHaveTextContent("sk-bad");
     expect(updateSecret).not.toHaveBeenCalled();
     expect(input).toHaveValue("sk-bad");
 
@@ -170,6 +171,7 @@ describe("ProviderOnboardingCard", () => {
     expect(addNotification).toHaveBeenCalledWith(
       expect.objectContaining({ type: "warning" })
     );
+    expect(screen.getByText(/^unavailable$/i)).toBeInTheDocument();
   });
 
   it("expands the key field by default when highlighted", () => {
@@ -179,11 +181,115 @@ describe("ProviderOnboardingCard", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows a connected state and no actions when configured", () => {
+  it("shows configured status with recheck and replace actions", () => {
     renderCard(anthropic, { configured: true });
-    expect(screen.getByText(/^connected$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^configured$/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^recheck$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /replace key/i })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /add api key/i })
     ).not.toBeInTheDocument();
+  });
+
+  it("marks a stored key verified after rechecking without reading a key value", async () => {
+    validateSecret.mockResolvedValue({
+      status: "valid",
+      valid: true,
+      message: "Anthropic accepted the stored key."
+    });
+    renderCard(anthropic, { configured: true });
+
+    await userEvent.click(screen.getByRole("button", { name: /^recheck$/i }));
+
+    await waitFor(() =>
+      expect(validateSecret).toHaveBeenCalledWith("ANTHROPIC_API_KEY")
+    );
+    expect(screen.getByText(/^verified$/i)).toBeInTheDocument();
+    expect(screen.queryByText(/accepted the stored key/i)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["unverifiable", "Unavailable", "The stored key could not be verified."],
+    ["invalid", "Rejected", "The provider rejected the stored key."]
+  ] as const)(
+    "keeps a stored key marked %s after rechecking",
+    async (validationStatus, statusLabel, detail) => {
+      validateSecret.mockResolvedValue({
+        status: validationStatus,
+        valid: false,
+        message: "Provider response containing sk-stored-secret should stay hidden."
+      });
+      renderCard(anthropic, { configured: true });
+
+      await userEvent.click(screen.getByRole("button", { name: /^recheck$/i }));
+
+      await waitFor(() =>
+        expect(screen.getByText(new RegExp(`^${statusLabel}$`, "i"))).toBeInTheDocument()
+      );
+      expect(screen.getByText(detail)).toBeInTheDocument();
+      expect(
+        screen.queryByText(/sk-stored-secret/i)
+      ).not.toBeInTheDocument();
+    }
+  );
+
+  it("uses a safe error when saving fails with a credential in the error", async () => {
+    validateSecret.mockRejectedValue(
+      new Error("Provider request failed for sk-secret-error")
+    );
+    renderCard(anthropic);
+    await userEvent.click(
+      screen.getByRole("button", { name: /add api key/i })
+    );
+    await userEvent.type(
+      screen.getByPlaceholderText(/paste your anthropic api key/i),
+      "sk-secret-error"
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^connect$/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Couldn't save the key"
+      )
+    );
+    expect(screen.getByRole("alert")).not.toHaveTextContent("sk-secret-error");
+  });
+
+  it("returns a saved key to configured uncertainty after remounting", async () => {
+    const rendered = renderCard(anthropic);
+    await userEvent.click(
+      screen.getByRole("button", { name: /add api key/i })
+    );
+    await userEvent.type(
+      screen.getByPlaceholderText(/paste your anthropic api key/i),
+      "sk-reload"
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^connect$/i }));
+    await waitFor(() =>
+      expect(screen.getByText(/^verified$/i)).toBeInTheDocument()
+    );
+
+    rendered.unmount();
+    renderCard(anthropic, { configured: true });
+    expect(screen.getByText(/^configured$/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^verified$/i)).not.toBeInTheDocument();
+  });
+
+  it("opens a blank replacement field and verifies the replacement", async () => {
+    renderCard(anthropic, { configured: true });
+
+    await userEvent.click(screen.getByRole("button", { name: /replace key/i }));
+    const input = screen.getByPlaceholderText(/paste your anthropic api key/i);
+    expect(input).toHaveValue("");
+    await userEvent.type(input, "sk-replacement");
+    await userEvent.click(screen.getByRole("button", { name: /^replace$/i }));
+
+    await waitFor(() =>
+      expect(updateSecret).toHaveBeenCalledWith(
+        "ANTHROPIC_API_KEY",
+        "sk-replacement"
+      )
+    );
+    expect(screen.getByText(/^verified$/i)).toBeInTheDocument();
   });
 });

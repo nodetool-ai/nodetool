@@ -78,6 +78,20 @@ describe("DashboardExampleApps", () => {
       within(card).getByText("Change one thing about a photo and keep the rest.")
     ).toBeInTheDocument();
     expect(within(card).getByText("1 workflow")).toBeInTheDocument();
+    expect(
+      within(card).getByText("Inputs: Unknown")
+    ).toBeInTheDocument();
+    expect(
+      within(card).getByText(/Provider\/model: Unknown provider \/ Unknown/)
+    ).toBeInTheDocument();
+    expect(
+      within(card).getByText(
+        "Estimated cost: unknown — workflow graphs are not included in the app listing"
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(card).getByText("Duration: unknown — execution time is not declared")
+    ).toBeInTheDocument();
 
     const reshoot = screen.getByRole("button", { name: /product reshoot/i });
     expect(within(reshoot).getByText("3 workflows")).toBeInTheDocument();

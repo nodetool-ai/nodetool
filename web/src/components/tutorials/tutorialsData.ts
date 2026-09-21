@@ -38,7 +38,20 @@ export interface Tutorial {
   accent: string;
   /** Bullet points: what the viewer will learn. */
   learn: string[];
+  /** The surface and state the learner should open after watching. */
+  startingState?: string;
+  /** The concrete action the learner should take. */
+  task?: string;
+  /** The observable outcome that confirms the task worked. */
+  result?: string;
+  /** Existing app entry point for trying the task. */
+  launch?: TutorialLaunch;
 }
+
+export type TutorialLaunch =
+  | { kind: "guided-flow"; flow: "image" | "script" | "storyboard" | "video" | "workflow" }
+  | { kind: "chat" }
+  | { kind: "examples" };
 
 export const TUTORIALS: Tutorial[] = [
   {
@@ -57,6 +70,10 @@ export const TUTORIALS: Tutorial[] = [
       "Watching layers appear in the panel as the assistant works",
       "Taking over by hand — every edit stays yours to change",
     ],
+    startingState: "A new sketch with a blank layer stack.",
+    task: "Ask the assistant to add a soft wash layer and set its blend mode and opacity.",
+    result: "The wash layer appears in the layer panel with the requested blend mode and opacity.",
+    launch: { kind: "guided-flow", flow: "image" },
   },
   {
     id: "script-assistant",
@@ -74,6 +91,10 @@ export const TUTORIALS: Tutorial[] = [
       "How speakers are cast before any line is written",
       "Voicing lines into takes you can swap or re-record",
     ],
+    startingState: "A new script with no cast or dialogue.",
+    task: "Ask the assistant for a short two-speaker script, then have it voice the lines.",
+    result: "The script contains cast speakers, written lines, and an audio take for each speaker.",
+    launch: { kind: "guided-flow", flow: "script" },
   },
   {
     id: "storyboard-assistant",
@@ -91,6 +112,10 @@ export const TUTORIALS: Tutorial[] = [
       "Revising a shot while it is still free to change",
       "Rendering stills across the board in one call",
     ],
+    startingState: "A new storyboard with an empty shot list.",
+    task: "Describe a short piece, review the generated shot list, and approve it for rendering.",
+    result: "The board contains an approved shot list with a rendered still for each shot.",
+    launch: { kind: "guided-flow", flow: "storyboard" },
   },
   {
     id: "app-assistant",
@@ -108,6 +133,10 @@ export const TUTORIALS: Tutorial[] = [
       "Saving a value as a setting that persists between sessions",
       "Binding widgets to inputs, outputs, and variables",
     ],
+    startingState: "The Examples page with the mini-app gallery ready to browse.",
+    task: "Open a mini app, provide its input, and run it once from the app surface.",
+    result: "The app displays a completed answer and its input/output widgets remain bound.",
+    launch: { kind: "examples" },
   },
   {
     id: "jsscript-assistant",
@@ -142,6 +171,10 @@ export const TUTORIALS: Tutorial[] = [
       "Reading which tool call the correction actually ran",
       "Taking the last step yourself with the panel controls",
     ],
+    startingState: "A new sketch ready for an assistant-led edit.",
+    task: "Make one assistant edit, then ask it to reduce the effect without creating another layer.",
+    result: "The existing layer is amended in place and the layer count stays unchanged.",
+    launch: { kind: "guided-flow", flow: "image" },
   },
   {
     id: "storyboard-ask",
@@ -159,6 +192,10 @@ export const TUTORIALS: Tutorial[] = [
       "What the assistant does while it waits on you: nothing",
       "Approving the spend once the shots read right",
     ],
+    startingState: "A new storyboard with no shots and no render started.",
+    task: "Give the assistant an incomplete brief, answer its follow-up question, and approve the board.",
+    result: "The assistant waits before spending, then creates the clarified shot list after your answer.",
+    launch: { kind: "guided-flow", flow: "storyboard" },
   },
   {
     id: "jsscript-repair",
@@ -193,6 +230,10 @@ export const TUTORIALS: Tutorial[] = [
       "Watching a tool call run in the open",
       "Reading a streamed answer as it arrives",
     ],
+    startingState: "A new Global Chat conversation with an empty composer.",
+    task: "Ask a current-facts question that requires a web search.",
+    result: "The chat shows a web-search tool call followed by a streamed answer.",
+    launch: { kind: "chat" },
   },
   {
     id: "first-workflow",
@@ -210,6 +251,10 @@ export const TUTORIALS: Tutorial[] = [
       "Reading live status: running rings, streaming text, progress",
       "Where generated outputs appear on the canvas",
     ],
+    startingState: "A new workflow in the guided workflow setup.",
+    task: "Build a text-to-image graph with a text input, an enhancement step, and an image generator, then run it.",
+    result: "The graph completes and the generated image appears on the canvas.",
+    launch: { kind: "guided-flow", flow: "workflow" },
   },
   {
     id: "connect-run",
@@ -227,6 +272,10 @@ export const TUTORIALS: Tutorial[] = [
       "Running a graph and watching nodes complete",
       "Finding a node's result in a Preview",
     ],
+    startingState: "A new workflow canvas ready for a small connected graph.",
+    task: "Connect a text input to Uppercase and then to Preview, run it with hello nodetool, and inspect the output.",
+    result: "Preview shows HELLO NODETOOL and each connected node reports completion.",
+    launch: { kind: "guided-flow", flow: "workflow" },
   },
   {
     id: "list-generator",
@@ -244,6 +293,10 @@ export const TUTORIALS: Tutorial[] = [
       "Streaming multi-item output as it arrives",
       "Passing a list into the rest of a workflow",
     ],
+    startingState: "A new workflow canvas with no nodes connected.",
+    task: "Connect a topic input to a list-generating LLM node and run it for weekend trip ideas.",
+    result: "The output contains multiple list items that can be passed to a downstream node.",
+    launch: { kind: "guided-flow", flow: "workflow" },
   },
   {
     id: "ask-ai",
@@ -261,6 +314,10 @@ export const TUTORIALS: Tutorial[] = [
       "Watching an answer stream as it generates",
       "Reusing the answer downstream",
     ],
+    startingState: "A new workflow canvas with an empty input and output path.",
+    task: "Connect a question input to an LLM node, ask for a short API explanation, and run it.",
+    result: "The answer streams into the output and remains available to the next node.",
+    launch: { kind: "guided-flow", flow: "workflow" },
   },
   {
     id: "combine-inputs",
@@ -278,6 +335,10 @@ export const TUTORIALS: Tutorial[] = [
       "Composing text with {{ placeholders }}",
       "Building prompts from reusable parts",
     ],
+    startingState: "A new workflow canvas with two text inputs ready to connect.",
+    task: "Connect name and topic inputs to a template prompt, fill both values, and run it.",
+    result: "Preview shows the completed template with both input values substituted.",
+    launch: { kind: "guided-flow", flow: "workflow" },
   },
   {
     id: "summarize-text",
@@ -295,6 +356,10 @@ export const TUTORIALS: Tutorial[] = [
       "Watching the summary stream as it generates",
       "Passing the result into the rest of a workflow",
     ],
+    startingState: "A new workflow canvas with an empty text path.",
+    task: "Feed a long passage into a Summarizer node, run it, and send the summary to Preview.",
+    result: "Preview contains a shorter set of key points while the source remains available for comparison.",
+    launch: { kind: "guided-flow", flow: "workflow" },
   },
   {
     id: "describe-image",
@@ -312,6 +377,10 @@ export const TUTORIALS: Tutorial[] = [
       "Sending a picture to a vision model",
       "Reusing the streamed description downstream",
     ],
+    startingState: "A new workflow canvas with an image input ready to fill.",
+    task: "Add an image, connect it to an Agent, and run the graph to describe what is visible.",
+    result: "The vision response describes the image and is available in the downstream output.",
+    launch: { kind: "guided-flow", flow: "workflow" },
   },
   {
     id: "timeline-trim-arrange",
@@ -329,6 +398,10 @@ export const TUTORIALS: Tutorial[] = [
       "Adding a caption synced word-by-word",
       "Scrubbing and previewing the cut live",
     ],
+    startingState: "A new timeline with empty tracks and no clips.",
+    task: "Place two clips, trim their cut, add a caption, and preview the finished sequence.",
+    result: "The timeline plays the arranged cut with the caption aligned to the dialogue.",
+    launch: { kind: "guided-flow", flow: "video" },
   },
 ];
 

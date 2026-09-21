@@ -3,12 +3,16 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useState } from "react";
+import { formatUsd } from "@nodetool-ai/model-pricing";
+import type { WorkflowCostEstimateDetail } from "@nodetool-ai/node-sdk/cost-estimate";
 import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import { useQuery } from "@tanstack/react-query";
-import { Workflow, WorkflowList as WorkflowListType } from "../../stores/ApiTypes";
+import type { NodeMetadata, Workflow, WorkflowList as WorkflowListType } from "../../stores/ApiTypes";
+import useMetadataStore from "../../stores/MetadataStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import { BASE_URL } from "../../stores/BASE_URL";
+import { estimateGraphCost } from "../../hooks/useGraphCostEstimate";
 import {
   TOP_CATEGORIES,
   workflowsForCategory,
@@ -29,6 +33,10 @@ import {
   DashboardSearchBox,
   SectionLink
 } from "./dashboardChrome";
+import {
+  CompatibilityDetails,
+  getWorkflowCompatibility
+} from "./entryCompatibility";
 
 /** Rows shown on the dashboard before the user searches or opens /examples. */
 const MAX_VISIBLE = 18;
@@ -113,8 +121,7 @@ const styles = (theme: Theme) =>
       objectFit: "cover"
     },
     ".tpl-title": {
-      flexShrink: 0,
-      maxWidth: "50%",
+      display: "block",
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.primary,
       overflow: "hidden",
@@ -122,14 +129,27 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap"
     },
     ".tpl-desc": {
-      flex: 1,
-      minWidth: 0,
+      display: "block",
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
       [theme.breakpoints.down("sm")]: { display: "none" }
+    },
+    ".tpl-copy": { flex: 1, minWidth: 0 },
+    ".tpl-compat": {
+      display: "grid",
+      gap: getSpacingPx(SPACING.micro),
+      paddingTop: getSpacingPx(SPACING.xs),
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      lineHeight: 1.4,
+      color: theme.vars.palette.text.disabled,
+      "& .entry-compat": {
+        display: "grid",
+        gap: getSpacingPx(SPACING.micro)
+      }
     },
     ".tpl-cat": {
       flexShrink: 0,
@@ -176,12 +196,27 @@ const templateGlyph = (
 
 interface TemplateRowProps {
   workflow: Workflow;
+  metadata: Record<string, NodeMetadata>;
   isLoading: boolean;
   onClick: (workflow: Workflow) => void;
 }
 
+const formatTemplateCost = (estimate: WorkflowCostEstimateDetail): string => {
+  if (estimate.unknown_count === 0) {
+    return `Estimated cost: ${formatUsd(estimate.total)}`;
+  }
+
+  const unknownNodes = `${estimate.unknown_count} node${
+    estimate.unknown_count === 1 ? " has" : "s have"
+  } no published price`;
+  return estimate.total > 0
+    ? `Estimated cost: at least ${formatUsd(estimate.total)}; ${unknownNodes}`
+    : `Estimated cost: unknown — ${unknownNodes}`;
+};
+
 const TemplateRow = memo(function TemplateRow({
   workflow,
+  metadata,
   isLoading,
   onClick
 }: TemplateRowProps) {
@@ -198,6 +233,15 @@ const TemplateRow = memo(function TemplateRow({
     }
     return url.startsWith("http") ? url : `${BASE_URL}${url}`;
   }, [workflow.thumbnail_url]);
+  const compatibility = useMemo(
+    () => getWorkflowCompatibility(workflow, metadata),
+    [workflow, metadata]
+  );
+  const costEstimate = useMemo(
+    () =>
+      estimateGraphCost(workflow.graph.nodes, (nodeType) => metadata[nodeType]),
+    [workflow.graph.nodes, metadata]
+  );
 
   return (
     <button
@@ -229,8 +273,15 @@ const TemplateRow = memo(function TemplateRow({
           />
         )}
       </span>
-      <span className="tpl-title">{workflow.name}</span>
-      <span className="tpl-desc">{workflow.description}</span>
+      <span className="tpl-copy">
+        <span className="tpl-title">{workflow.name}</span>
+        <span className="tpl-desc">{workflow.description}</span>
+        <span className="tpl-compat">
+          <CompatibilityDetails compatibility={compatibility} />
+          <span>Duration: unknown — execution time is not declared</span>
+          <span>{formatTemplateCost(costEstimate)}</span>
+        </span>
+      </span>
       {category && (
         <span className="tpl-cat">
           <span className="cat-dot" style={{ background: category.color }} />
@@ -254,6 +305,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
 }) => {
   const theme = useTheme();
   const sectionWrap = useSectionWrap();
+  const metadata = useMetadataStore((state) => state.metadata);
   const loadTemplates = useWorkflowManager((state) => state.loadTemplates);
   const { handleExampleClick, handleViewAllTemplates, loadingExampleId } =
     useWorkflowActions();
@@ -412,6 +464,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
               <TemplateRow
                 key={workflow.id}
                 workflow={workflow}
+                metadata={metadata}
                 isLoading={loadingExampleId === workflow.id}
                 onClick={handleExampleClick}
               />

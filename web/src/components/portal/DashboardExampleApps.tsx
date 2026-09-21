@@ -22,6 +22,10 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import { useSectionWrap, SectionHeader } from "./dashboardChrome";
+import {
+  CompatibilityDetails,
+  getAppCompatibility
+} from "./entryCompatibility";
 
 /** Query key for the shipped example apps, shared with any invalidation. */
 export const EXAMPLE_APPS_QUERY_KEY = ["applications", "examples"] as const;
@@ -93,6 +97,19 @@ const styles = (theme: Theme) =>
       WebkitBoxOrient: "vertical",
       overflow: "hidden"
     },
+    ".app-compat": {
+      display: "grid",
+      gap: getSpacingPx(SPACING.micro),
+      paddingTop: getSpacingPx(SPACING.xs),
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      lineHeight: 1.4,
+      color: theme.vars.palette.text.disabled,
+      "& .entry-compat": {
+        display: "grid",
+        gap: getSpacingPx(SPACING.micro)
+      }
+    },
     ".app-meta": {
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmaller)",
@@ -141,6 +158,13 @@ const ExampleAppCard = memo(function ExampleAppCard({
   const [thumbFailed, setThumbFailed] = useState(false);
   const src = thumbSrc(app.thumbnailUrl);
   const workflows = app.workflows.length;
+  // The summary endpoint intentionally omits workflow graphs. Keep every
+  // compatibility field explicit instead of deriving claims from the app's
+  // name or workflow count.
+  const compatibility = getAppCompatibility(
+    { workflows: app.workflows.map(() => ({})) },
+    {}
+  );
   return (
     <button
       type="button"
@@ -168,6 +192,14 @@ const ExampleAppCard = memo(function ExampleAppCard({
         <span className="app-desc">{app.description}</span>
         <span className="app-meta">
           {workflows} workflow{workflows === 1 ? "" : "s"}
+        </span>
+        <span className="app-compat">
+          <CompatibilityDetails compatibility={compatibility} />
+          <span>
+            Estimated cost: unknown — workflow graphs are not included in the
+            app listing
+          </span>
+          <span>Duration: unknown — execution time is not declared</span>
         </span>
       </span>
     </button>

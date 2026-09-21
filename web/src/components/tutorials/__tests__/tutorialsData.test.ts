@@ -51,6 +51,18 @@ describe("tutorialsData", () => {
       }
     });
 
+    it("every beginner tutorial exposes a task loop and launch target", () => {
+      for (const tutorial of TUTORIALS) {
+        if (tutorial.level !== "Beginner") {
+          continue;
+        }
+        expect(tutorial.startingState?.trim()).toBeTruthy();
+        expect(tutorial.task?.trim()).toBeTruthy();
+        expect(tutorial.result?.trim()).toBeTruthy();
+        expect(tutorial.launch).toBeDefined();
+      }
+    });
+
     it("every video is served from the docs site, not the app bundle", () => {
       for (const tutorial of TUTORIALS) {
         expect(tutorial.video.startsWith(DOCS_ASSETS)).toBe(true);

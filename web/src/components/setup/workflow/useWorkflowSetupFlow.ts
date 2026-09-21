@@ -107,7 +107,9 @@ export const useWorkflowSetupFlow = ({
   const metadata = useMetadataStore((state) => state.metadata);
   const {
     planWorkflow,
+    cancelPlanning,
     planning,
+    planningStatus,
     error: planError
   } = usePlanWorkflow(workflowId);
   const {
@@ -358,7 +360,9 @@ export const useWorkflowSetupFlow = ({
           if (refusal) {
             throw new Error(refusal);
           }
-        }
+        },
+        onCancel: cancelPlanning,
+        canceled: planningStatus === "canceled"
       },
       {
         stage: "review",
@@ -394,7 +398,9 @@ export const useWorkflowSetupFlow = ({
             replanPending: planning,
             providerConfigured,
             error: planError
-          })
+          }),
+        onCancel: cancelPlanning,
+        canceled: planningStatus === "canceled"
       },
       {
         stage: "setup",
@@ -459,6 +465,7 @@ export const useWorkflowSetupFlow = ({
       buildFromPlan,
       building,
       category,
+      cancelPlanning,
       chosenModel,
       finish,
       handleImport,
@@ -472,6 +479,7 @@ export const useWorkflowSetupFlow = ({
       planWorkflow,
       plannerModel,
       planning,
+      planningStatus,
       providerConfigured,
       review.canContinue,
       roleChoices,

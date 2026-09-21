@@ -18,7 +18,7 @@
  * after that is text the creator can edit before anything is spent.
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   WORKFLOW_INSPIRATION_CHIPS,
   WORKFLOW_PLANNER_SYSTEM_PROMPT,
@@ -34,7 +34,10 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 import { rpcRequest } from "../../lib/websocket/rpcRequest";
-import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
+import {
+  useWorkflowManager,
+  useWorkflowManagerStore
+} from "../../contexts/WorkflowManagerContext";
 import { planSourceOf, PLAN_SOURCE_KEY } from "../../components/setup/workflow/setupExtras";
 import useMetadataStore from "../../stores/MetadataStore";
 import type { NodeMetadata } from "../../stores/ApiTypes";
@@ -72,7 +75,10 @@ export interface UsePlanWorkflowResult {
    * of quota reported as "did not return a plan").
    */
   planWorkflow: (input: PlanWorkflowInput) => Promise<string | null>;
+  /** Ends the active planner request without allowing its reply to commit. */
+  cancelPlanning: () => void;
   planning: boolean;
+  planningStatus: "idle" | "pending" | "canceled" | "error";
   error: string | null;
 }
 
@@ -222,14 +228,35 @@ export const pinnedChipPlan = (brief: string): WorkflowSetupPlan | null =>
 
 export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
   const [planning, setPlanning] = useState(false);
+  const [planningStatus, setPlanningStatus] = useState<
+    "idle" | "pending" | "canceled" | "error"
+  >("idle");
   const [error, setError] = useState<string | null>(null);
   const { setSetup } = useWorkflowSetupWriter(workflowId);
   const store = useWorkflowManagerStore();
+  const workflowSettings = useWorkflowManager(
+    (state) => state.getWorkflow(workflowId)?.settings
+  );
   // Which request the hook is still waiting for. A planner call outlives the
   // stage that asked for it, so a late answer must neither overwrite a plan a
   // newer request wrote nor pull a creator who has moved on back to the review
   // (F9, the same guard `usePlanBeats` uses).
   const requestRef = useRef(0);
+  const settingsRef = useRef(workflowSettings);
+  const activeControllerRef = useRef<AbortController | null>(null);
+  if (settingsRef.current !== workflowSettings) {
+    settingsRef.current = workflowSettings;
+    requestRef.current += 1;
+  }
+
+  useEffect(
+    () => () => {
+      requestRef.current += 1;
+      activeControllerRef.current?.abort();
+      activeControllerRef.current = null;
+    },
+    [workflowId]
+  );
 
   const readStage = useCallback(
     (): WorkflowSetupStage =>
@@ -244,14 +271,20 @@ export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
       if (brief.length === 0) {
         const reason = "Describe the task before planning.";
         setError(reason);
+        setPlanningStatus("error");
         return reason;
       }
       const token = (requestRef.current += 1);
       const originStage = readStage();
+      const controller = new AbortController();
+      activeControllerRef.current = controller;
       const isCurrent = () =>
-        token === requestRef.current && readStage() === originStage;
+        token === requestRef.current &&
+        readStage() === originStage &&
+        !controller.signal.aborted;
       setError(null);
       setPlanning(true);
+      setPlanningStatus("pending");
       try {
         const pinned = pinnedChipPlan(brief);
         let plan: WorkflowSetupPlan | null = null;
@@ -303,6 +336,7 @@ export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
             ? "The planner did not return a plan. Try again, or edit the steps by hand."
             : "Connect a provider to plan this, or start from one of the examples.";
           setError(reason);
+          setPlanningStatus("error");
           return reason;
         }
         // Nothing above placed a node — criterion 3. `plan_source` records what
@@ -323,17 +357,43 @@ export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
         // what the creator has to change.
         const reason = cause instanceof Error ? cause.message : String(cause);
         setError(reason);
+        setPlanningStatus("error");
         return reason;
       } finally {
-        if (token === requestRef.current) {
+        if (activeControllerRef.current === controller) {
+          activeControllerRef.current = null;
           setPlanning(false);
+          if (!controller.signal.aborted) {
+            setPlanningStatus((current) =>
+              current === "pending" ? "idle" : current
+            );
+          }
         }
       }
     },
     [readStage, setSetup]
   );
 
-  return { planWorkflow, planning, error };
+  const cancelPlanning = useCallback(() => {
+    const controller = activeControllerRef.current;
+    if (!controller) {
+      return;
+    }
+    requestRef.current += 1;
+    controller.abort();
+    activeControllerRef.current = null;
+    setPlanning(false);
+    setError(null);
+    setPlanningStatus("canceled");
+  }, []);
+
+  return {
+    planWorkflow,
+    cancelPlanning,
+    planning,
+    planningStatus,
+    error
+  };
 };
 
 export default usePlanWorkflow;

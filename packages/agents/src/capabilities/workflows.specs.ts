@@ -895,7 +895,7 @@ export const updateWorkflowPlanStepSpec: CapabilitySpec = {
 export const buildWorkflowFromPlanSpec: CapabilitySpec = {
   name: "build_workflow_from_plan",
   description:
-    "Build the workflow's graph from its stored plan and validate it. Places one input node per plan input, one node per step in plan order chained to the one before it, and one output node per plan output; then runs the same checks as validate_workflow. Refused while any step names a node type the registry does not have. Run the workflow afterwards with the plan's sample inputs to see whether it produces anything.",
+    "Build the workflow's graph from its stored plan and validate it. Places one input node per plan input, one node per step in plan order chained to the one before it, and one output node per plan output; then runs the same checks as validate_workflow. Refused while any step names a node type the registry does not have or requires a model role with no available provider. The result distinguishes a built graph from a submitted workflow and a verified result. Run the workflow afterwards with the plan's sample inputs to verify what it produces.",
   inputSchema: BUILD_WORKFLOW_FROM_PLAN_SCHEMA,
   category: "write",
   userMessage: () => "Building the workflow from its plan"

@@ -72,25 +72,18 @@ export const useOnboardingStore = create<OnboardingStore>()(
     }),
     {
       name: "nodetool-onboarding",
-      // v1 stored the workflow-era steps (open-template, run-workflow,
-      // create-workflow); v2 carries the project-surface steps, mapped
-      // positionally so a half-finished checklist keeps its count.
-      version: 2,
+      // Older versions recorded exploration and clicks, not successful
+      // outcomes. Do not turn those actions into completed work after the
+      // success-only semantics were introduced.
+      version: 3,
       migrate: (persistedState, version) => {
-        if (version > 1 || typeof persistedState !== "object" || persistedState === null) {
+        if (version >= 3 || typeof persistedState !== "object" || persistedState === null) {
           return persistedState as OnboardingStore;
         }
-        const legacy = (persistedState as { completedSteps?: string[] })
-          .completedSteps;
-        const mapping: Record<string, OnboardingStepId> = {
-          "open-template": "start-guided-flow",
-          "run-workflow": "describe-idea",
-          "create-workflow": "keep-creating"
-        };
         return {
           ...(persistedState as object),
-          completedSteps: (legacy ?? []).map((step) => mapping[step] ?? step)
-        } as OnboardingStore;
+          completedSteps: []
+        } as unknown as OnboardingStore;
       }
     }
   )

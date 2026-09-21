@@ -5,9 +5,17 @@ import { ReactFlowProvider } from "@xyflow/react";
 import NodeEditor from "../node_editor/NodeEditor";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { useWorkflowSetupStage } from "../../hooks/workflow/useWorkflowSetup";
-import type { BuildFromPlanResult } from "../../hooks/workflow/useBuildFromPlan";
-import type { Workflow } from "../../stores/ApiTypes";
+import {
+  useWorkflowSetupDocument,
+  useWorkflowSetupStage
+} from "../../hooks/workflow/useWorkflowSetup";
+import {
+  readWorkflowBuild,
+  workflowBuildResult,
+  type BuildFromPlanResult
+} from "../../hooks/workflow/useBuildFromPlan";
+import type { Message, Workflow } from "../../stores/ApiTypes";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
   tabId,
@@ -31,13 +39,16 @@ import SubgraphTabContent from "./SubgraphTabContent";
 import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import {
+  BORDER_RADIUS,
   ConflictBanner,
+  Box,
   FlexColumn,
   LoadingSpinner,
   SPACING
 } from "../ui_primitives";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import WorkflowGraphPreview from "../version/WorkflowGraphPreview";
+import { WorkflowLandingChecklist } from "../setup/workflow/WorkflowLandingChecklist";
 
 // Floating editor status message: sits above the canvas and node overlays but
 // below the node-info panel (15000) and find dialog (20000). Beyond the shared
@@ -90,6 +101,8 @@ const WorkflowEditorSurface = ({
   // above. A workflow saved before the flow existed has no `setup` key and
   // reads `done`, so it opens as the canvas it always did.
   const setupStage = useWorkflowSetupStage(workflowId);
+  const setup = useWorkflowSetupDocument(workflowId);
+  const persistedBuild = readWorkflowBuild(setup);
   // The document reaches stage `done` in the same click that places the nodes,
   // but this keeps the swap independent of when that save lands.
   const [gameFinished, setGameFinished] = useState(false);
@@ -97,6 +110,13 @@ const WorkflowEditorSurface = ({
   // The document reaches stage `done` in the same click that places the
   // nodes, but this keeps the swap independent of when that save lands.
   const [setupFinished, setSetupFinished] = useState(false);
+  const [landingResult, setLandingResult] =
+    useState<BuildFromPlanResult | null>(null);
+  const [landingDismissed, setLandingDismissed] = useState(false);
+  const openWorkflowThread = useGlobalChatStore(
+    (state) => state.openWorkflowThread
+  );
+  const sendMessage = useGlobalChatStore((state) => state.sendMessage);
   const finishSetupFlow = useCallback(
     (result: BuildFromPlanResult | null) => {
       // The flow's own surface is gone the moment the canvas takes the tab,
@@ -125,10 +145,65 @@ const WorkflowEditorSurface = ({
           content: `Opened your workflow, but ${failures.join(" ")}`
         });
       }
+      setLandingResult(result);
+      setLandingDismissed(false);
       setSetupFinished(true);
     },
     [addNotification]
   );
+
+  const visibleLanding =
+    !landingDismissed &&
+    (landingResult ??
+      (setupStage === "done" && persistedBuild
+        ? workflowBuildResult(persistedBuild)
+        : null));
+  const landingRunMode =
+    setup?.run_mode === "app" || setup?.run_mode === "trigger"
+      ? setup.run_mode
+      : "manual";
+
+  const handleAskAgent = useCallback(
+    async (message: string) => {
+      try {
+        const threadId = await openWorkflowThread(workflowId);
+        openTab({
+          type: "chat",
+          ref: threadId,
+          mode: "view",
+          title: "Workflow repair"
+        });
+        await sendMessage(
+          {
+            type: "message",
+            name: "",
+            role: "user",
+            content: message
+          } as Message,
+          threadId
+        );
+        setLandingDismissed(true);
+      } catch (cause) {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Could not open the repair chat: ${
+            cause instanceof Error ? cause.message : String(cause)
+          }`
+        });
+      }
+    },
+    [addNotification, openTab, openWorkflowThread, sendMessage, workflowId]
+  );
+
+  const handleLandingNext = useCallback(() => {
+    setLandingDismissed(true);
+    addNotification({
+      type: "info",
+      alert: true,
+      content: "Your workflow is ready. You can change its inputs and run it again from the canvas."
+    });
+  }, [addNotification]);
   /**
    * "Start from an example" in step 1's inline browser: the copy lands in a
    * new row (materialized server-side from the example's package), which
@@ -254,6 +329,31 @@ const WorkflowEditorSurface = ({
                 </div>
               )}
               <WorkflowConflictBanner workflowId={workflowId} />
+              {visibleLanding && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: SPACING.md,
+                    left: SPACING.md,
+                    right: SPACING.md,
+                    maxWidth: 720,
+                    margin: "0 auto",
+                    padding: SPACING.lg,
+                    backgroundColor: "background.paper",
+                    border: 1,
+                    borderColor: "divider",
+                    borderRadius: BORDER_RADIUS.md,
+                    zIndex: STATUS_MESSAGE_Z_INDEX + 1
+                  }}
+                >
+                  <WorkflowLandingChecklist
+                    result={visibleLanding}
+                    runMode={landingRunMode}
+                    onNextStep={handleLandingNext}
+                    onAskAgent={(message) => void handleAskAgent(message)}
+                  />
+                </Box>
+              )}
               <SubgraphTabStrip
                 hostId={workflowId}
                 hostActiveKey={null}
