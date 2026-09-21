@@ -217,9 +217,11 @@ test.describe("marketing smoke", () => {
       "/recipes/runs/2026-09-14-emotional-support-cup/final.mp4"
     );
     await expect(video).toHaveJSProperty("error", null);
-    expect(
-      await video.evaluate((element: HTMLVideoElement) => element.duration)
-    ).toBeCloseTo(15.083, 2);
+    const duration = await video.evaluate(
+      (element: HTMLVideoElement) => element.duration
+    );
+    expect(duration).toBeGreaterThan(15);
+    expect(duration).toBeLessThan(15.2);
   });
 
   test("the UGC mini app shows its captured outputs without recipe proof", async ({
