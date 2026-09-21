@@ -884,6 +884,9 @@ export async function simulateApp(
         inputNameByNodeId: new Map(
           operationIO.inputs.map((i) => [i.nodeId, i.name])
         ),
+        inputNodeTypeByNodeId: new Map(
+          operationIO.inputs.map((i) => [i.nodeId, i.nodeType])
+        ),
         defaults
       };
       if (script && deps.runScript) {

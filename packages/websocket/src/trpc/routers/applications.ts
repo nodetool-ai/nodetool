@@ -31,9 +31,12 @@
  */
 
 import { z } from "zod";
+import { operationTarget } from "@nodetool-ai/app-runtime";
 import {
+  ApplicationDeployment,
   applicationUsage,
   getApplicationBudget,
+  hasFiniteBudgetLimit,
   listApplicationVersions,
   listInvocations,
   publishApplication,
@@ -112,6 +115,33 @@ export const applicationsRouter = router({
     .output(applicationVersionResponse)
     .mutation(async ({ ctx, input }) => {
       const app = await loadOwned(ctx.userId, input.id);
+      // A live public link follows the current release. Validate the exact
+      // draft before promotion so a publish cannot replace a working link
+      // with a release the public session cannot execute.
+      if (await ApplicationDeployment.findLive(app.id)) {
+        const draft = app.toDocument();
+        const scriptOperations = draft.operations.filter(
+          (operation) => operationTarget(operation).kind === "script"
+        );
+        if (scriptOperations.length > 0) {
+          throwApiError(
+            ApiErrorCode.INVALID_INPUT,
+            "This app has a live public link. Script operations cannot be published to that audience."
+          );
+        }
+        if (draft.resources.length > 0) {
+          throwApiError(
+            ApiErrorCode.INVALID_INPUT,
+            "This app has a live public link. Resource bindings cannot be published to that audience."
+          );
+        }
+        if (!hasFiniteBudgetLimit(await getApplicationBudget(app.id))) {
+          throwApiError(
+            ApiErrorCode.INVALID_INPUT,
+            "This app has a live public link. Configure a finite budget before publishing again."
+          );
+        }
+      }
       return applicationVersionResponse.parse(await publishApplication(app));
     }),
 

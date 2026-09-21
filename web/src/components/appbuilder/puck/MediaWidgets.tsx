@@ -15,6 +15,7 @@ import {
   Box,
   Caption,
   FlexColumn,
+  ResponsiveImage,
   BORDER_RADIUS,
   MOTION,
   SPACING
@@ -179,7 +180,15 @@ const imageSx = {
 // it.
 const GalleryTile: React.FC<GalleryTileProps> = React.memo(
   ({ index, src, size, selectable, selected, disabled, onSelect }) => {
-    const image = <Box component="img" src={src} alt="" sx={imageSx} />;
+    const image = (
+      <ResponsiveImage
+        locator={src}
+        alt=""
+        fit="cover"
+        borderRadius={BORDER_RADIUS.sm}
+        sx={imageSx}
+      />
+    );
     if (!selectable) {
       return <Box sx={tileSx(size)}>{image}</Box>;
     }

@@ -18,7 +18,8 @@ import React, {
 import {
   DEFAULT_OPERATION_ID,
   type BindingScope,
-  type OperationBinding
+  type OperationBinding,
+  type VariableDeclaration
 } from "@nodetool-ai/app-runtime";
 
 import { WorkflowState } from "../workflowState";
@@ -39,13 +40,15 @@ interface BuilderWorkflowContextValue {
   selectOperation: (operationId: string) => void;
   /** The bindable surface of one operation; the host workflow's when unknown. */
   workflowFor: (operationId?: string) => WorkflowState;
+  variables: ReadonlyArray<VariableDeclaration>;
 }
 
 const BuilderWorkflowContext = createContext<BuilderWorkflowContextValue>({
   operations: [],
   selectedOperationId: DEFAULT_OPERATION_ID,
   selectOperation: () => {},
-  workflowFor: () => EMPTY_STATE
+  workflowFor: () => EMPTY_STATE,
+  variables: []
 });
 
 interface BuilderWorkflowProviderProps {
@@ -58,6 +61,8 @@ interface BuilderWorkflowProviderProps {
    * different workflows. An operation absent here falls back to the host.
    */
   states?: ReadonlyMap<string, WorkflowState>;
+  /** Variables declared by the application document, shared by all operations. */
+  variables?: ReadonlyArray<VariableDeclaration>;
   children: React.ReactNode;
 }
 
@@ -65,6 +70,7 @@ export const BuilderWorkflowProvider: React.FC<BuilderWorkflowProviderProps> = (
   value,
   operations = [],
   states,
+  variables = [],
   children
 }) => {
   const [selected, setSelected] = useState<string | null>(null);
@@ -86,9 +92,10 @@ export const BuilderWorkflowProvider: React.FC<BuilderWorkflowProviderProps> = (
       operations,
       selectedOperationId,
       selectOperation: setSelected,
-      workflowFor
+      workflowFor,
+      variables
     }),
-    [operations, selectedOperationId, value, workflowFor]
+    [operations, selectedOperationId, variables, workflowFor]
   );
 
   return (
@@ -117,7 +124,7 @@ export const useBuilderOperations = (): BuilderWorkflowContextValue =>
  * options.
  */
 export const useBuilderBindingScope = (): BindingScope => {
-  const { operations, workflowFor } = useContext(BuilderWorkflowContext);
+  const { operations, variables, workflowFor } = useContext(BuilderWorkflowContext);
   // `workflowFor` is rebuilt whenever the host graph or an operation's graph
   // changes, so it alone keeps the scope current.
   return useMemo(() => {
@@ -137,7 +144,7 @@ export const useBuilderBindingScope = (): BindingScope => {
           variableNames: state.variables
         };
       }),
-      variables: []
+      variables
     };
-  }, [operations, workflowFor]);
+  }, [operations, variables, workflowFor]);
 };

@@ -1,4 +1,11 @@
-import { memo, useCallback, useEffect, useState, type MouseEvent } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent
+} from "react";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CloseIcon from "@mui/icons-material/Close";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -36,7 +43,7 @@ interface ApplicationSurfaceProps {
   mode?: WorkspaceTabMode;
 }
 
-type ApplicationView = "design" | "run" | "settings";
+type ApplicationView = "design" | "run" | "preview" | "settings";
 
 /**
  * Each view is a layer, and a layer stays mounted once it has been opened —
@@ -97,10 +104,22 @@ const ApplicationSurface = ({
   const [agentWorkflowId, setAgentWorkflowId] = useState<string | undefined>();
   const narrow = useMediaQuery(NARROW_QUERY);
   const [narrowAgentOpen, setNarrowAgentOpen] = useState(false);
+  const narrowAgentPanelRef = useRef<HTMLDivElement>(null);
+  const narrowAgentButtonRef = useRef<HTMLButtonElement>(null);
+  const wasNarrowAgentOpen = useRef(false);
   const toggleNarrowAgent = useCallback(
     () => setNarrowAgentOpen((open) => !open),
     []
   );
+  useEffect(() => {
+    if (!narrow) return;
+    if (narrowAgentOpen && !wasNarrowAgentOpen.current) {
+      narrowAgentPanelRef.current?.focus();
+    } else if (!narrowAgentOpen && wasNarrowAgentOpen.current) {
+      narrowAgentButtonRef.current?.focus();
+    }
+    wasNarrowAgentOpen.current = narrowAgentOpen;
+  }, [narrow, narrowAgentOpen]);
   // Background tabs stay mounted, so the linked graphs only load once this
   // app is the focused tab.
   const isActiveTab = useWorkspaceTabsStore(
@@ -142,6 +161,7 @@ const ApplicationSurface = ({
       workflowId={agentWorkflowId}
     />
   );
+  const isRunView = view === "run" || view === "preview";
 
   return (
     <FlexRow
@@ -189,6 +209,7 @@ const ApplicationSurface = ({
               >
                 <ToggleOption value="design">Design</ToggleOption>
                 <ToggleOption value="run">Run</ToggleOption>
+                <ToggleOption value="preview">Preview draft</ToggleOption>
                 <ToggleOption value="settings">Settings</ToggleOption>
               </ToggleGroup>
             </FlexRow>
@@ -196,7 +217,12 @@ const ApplicationSurface = ({
         )}
         <Box sx={{ flex: 1, minHeight: 0, position: "relative" }}>
           {opened.includes("design") && (
-            <Box sx={view === "design" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}>
+            <Box
+              data-testid="application-design-layer"
+              aria-hidden={view !== "design"}
+              inert={view !== "design"}
+              sx={view === "design" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}
+            >
               <ApplicationAppBuilder
                 applicationId={application.id}
                 onAgentWorkflowIdChange={setAgentWorkflowId}
@@ -206,13 +232,23 @@ const ApplicationSurface = ({
           {opened.includes("run") && (
             <Box
               data-testid="application-run-layer"
-              sx={view === "run" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}
+              aria-hidden={!isRunView}
+              inert={!isRunView}
+              sx={isRunView ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}
             >
-              <ApplicationRunView applicationId={application.id} />
+              <ApplicationRunView
+                applicationId={application.id}
+                previewDraft={view === "preview"}
+              />
             </Box>
           )}
           {opened.includes("settings") && (
-            <Box sx={view === "settings" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}>
+            <Box
+              data-testid="application-settings-layer"
+              aria-hidden={view !== "settings"}
+              inert={view !== "settings"}
+              sx={view === "settings" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}
+            >
               <ScrollArea fullHeight>
                 <FlexColumn gap={SPACING.lg} padding={SPACING.xl} fullWidth>
                   <ApplicationGovernancePanel applicationId={application.id} />
@@ -222,6 +258,10 @@ const ApplicationSurface = ({
           )}
           {narrow && (
             <Box
+              ref={narrowAgentPanelRef}
+              role="dialog"
+              aria-label="App builder assistant"
+              tabIndex={-1}
               sx={{
                 ...overlayPanelSx,
                 display: narrowAgentOpen ? "block" : "none"
@@ -243,6 +283,7 @@ const ApplicationSurface = ({
       )}
       {narrow && (
         <CircularActionButton
+          ref={narrowAgentButtonRef}
           icon={narrowAgentOpen ? <CloseIcon /> : <AutoAwesomeIcon />}
           onClick={toggleNarrowAgent}
           ariaLabel={narrowAgentOpen ? "Close agent" : "Ask Agent"}

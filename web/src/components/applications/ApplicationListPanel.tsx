@@ -28,6 +28,7 @@ import {
   Dialog,
   DocumentListPanel,
   EmptyState,
+  AlertBanner,
   FlexColumn,
   ListPanelItem,
   LoadingSpinner,
@@ -104,6 +105,7 @@ export const CreateApplicationFromWorkflowButton = memo(
     projectId
   }: CreateApplicationFromWorkflowButtonProps) {
     const [open, setOpen] = useState(false);
+    const [createError, setCreateError] = useState<string | null>(null);
     const createApplication = useCreateApplication();
     const openApplication = useOpenApplication();
     const scopedProjectId = projectId ?? creationProjectId();
@@ -114,7 +116,7 @@ export const CreateApplicationFromWorkflowButton = memo(
 
     const handlePick = useCallback(
       async (workflowId: string, workflowName: string) => {
-        setOpen(false);
+        setCreateError(null);
         try {
           const created = await createApplication.mutateAsync({
             name: workflowName || UNTITLED,
@@ -122,9 +124,14 @@ export const CreateApplicationFromWorkflowButton = memo(
             projectId: scopedProjectId,
             fromWorkflowId: workflowId
           });
+          setOpen(false);
           openApplication(created.id, created.name, created.projectId);
         } catch (error) {
-          console.error("Failed to create app from workflow", error);
+          setCreateError(
+            error instanceof Error
+              ? error.message
+              : "Could not create the app from this workflow."
+          );
         }
       },
       [createApplication, openApplication, scopedProjectId]
@@ -144,10 +151,18 @@ export const CreateApplicationFromWorkflowButton = memo(
         </Tooltip>
         <Dialog
           open={open}
-          onClose={() => setOpen(false)}
+          onClose={() => {
+            setOpen(false);
+            setCreateError(null);
+          }}
           title="Create app from workflow"
         >
           <div css={pickerStyles()}>
+            {createError ? (
+              <AlertBanner severity="error" title="Could not create app">
+                {createError} Select the workflow again to retry.
+              </AlertBanner>
+            ) : null}
             {isLoading ? (
               <LoadingSpinner text="Loading workflows" />
             ) : workflows.length === 0 ? (
@@ -162,6 +177,7 @@ export const CreateApplicationFromWorkflowButton = memo(
                     key={workflow.id}
                     type="button"
                     className="workflow-option"
+                    disabled={createApplication.isPending}
                     onClick={() =>
                       void handlePick(workflow.id, workflow.name ?? "")
                     }

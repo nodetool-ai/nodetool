@@ -24,9 +24,11 @@ import {
   implicitOperation,
   initialVariableValues,
   isLiveInvocation,
+  isMissingRequiredMediaValue,
   liveInvocations,
   mergeVariables,
   messageToEvents,
+  outputVariableTargets,
   operationTarget,
   resolveBinding,
   resolveOperationParams,
@@ -193,7 +195,13 @@ export const useAppRuntime = (
   });
   const fetchedRef = useRef(fetched);
   fetchedRef.current = fetched;
-  const fetchedKey = [...fetched.keys()].join("|");
+  // TanStack keeps the same workflow object when a refetch is structurally
+  // equal, and a workflow id alone cannot invalidate graph-derived bindings.
+  // Include each query's update revision so a same-id refresh rebuilds the
+  // operation runtimes and binding scope.
+  const fetchedKey = extraWorkflowIds
+    .map((id, index) => `${id}:${extraWorkflows[index]?.dataUpdatedAt ?? 0}`)
+    .join("|");
 
   const operationRuntimes = useMemo(() => {
     const map = new Map<string, OperationRuntime>();
@@ -349,9 +357,15 @@ export const useAppRuntime = (
     });
   }, [designMode, document, identity, store]);
 
-  // Invocations this app started, by job id. A streaming message for anything
-  // else is not ours — that is the whole cross-run contamination fix.
+  // Invocations this app started, by logical and transport id. A streaming
+  // message for anything else is not ours — that is the whole cross-run
+  // contamination fix.
   const ownedRef = useRef(new Map<string, InvocationState>());
+  // A logical invocation is reserved before the runner performs any async
+  // work. The runner returns its transport job id later, so both ids point at
+  // the same invocation while the app folds messages by transport id.
+  const transportIdsRef = useRef(new Map<string, string>());
+  const mountedRef = useRef(true);
   // The resource each binding currently points at. A picker widget sets one;
   // an operation input mapped `from: "resource"` passes it to the run.
   const resourceRefsRef = useRef(new Map<string, ResourceRef>());
@@ -376,6 +390,7 @@ export const useAppRuntime = (
     const timers = timersRef.current;
     const waits = settleWaitsRef.current;
     return () => {
+      mountedRef.current = false;
       for (const timer of timers.values()) clearTimeout(timer);
       timers.clear();
       for (const stopWaiting of [...waits]) stopWaiting();
@@ -421,6 +436,10 @@ export const useAppRuntime = (
   /** Stop one run on the server (or in the browser, when it runs there). */
   const stopJob = useCallback(async (invocationId: string) => {
     const invocation = ownedRef.current.get(invocationId);
+    const transportId = transportIdsRef.current.get(invocationId);
+    // A queued reservation may be cancelled before the runner has produced a
+    // provider job id. There is no external job to cancel in that window.
+    if (!transportId) return;
     const entry = invocation
       ? operationRuntimesRef.current.get(invocation.operationId)
       : undefined;
@@ -430,12 +449,12 @@ export const useAppRuntime = (
     const runner = entry?.runnerStore;
     // The runner only knows how to cancel the run it currently displays;
     // anything else (a queued or parallel sibling) is cancelled by job id.
-    if (runner && runner.getState().job_id === invocationId) {
+    if (runner && runner.getState().job_id === transportId) {
       await runner.getState().cancel();
       return;
     }
     try {
-      await trpcClient.jobs.cancel.mutate({ id: invocationId });
+      await trpcClient.jobs.cancel.mutate({ id: transportId });
     } catch {
       // The job may already be gone; the app still marks it cancelled.
     }
@@ -447,12 +466,15 @@ export const useAppRuntime = (
         clearTimeoutTimer(invocationId);
         const invocation = ownedRef.current.get(invocationId);
         if (invocation) invocation.status = "cancelled";
-        await stopJob(invocationId);
         store.getState().dispatchEvent({
           type: "invocationStatus",
           invocationId,
           status: "cancelled"
         });
+        // Publish cancellation before waiting on transport cleanup. A
+        // reservation may not have a provider job id yet, but it still needs
+        // to stop looking runnable immediately.
+        await stopJob(invocationId);
       }
     },
     [clearTimeoutTimer, stopJob, store]
@@ -469,7 +491,9 @@ export const useAppRuntime = (
       new Promise<void>((resolve) => {
         const settled = () =>
           invocationIds.every((id) => {
-            const invocation = store.getState().invocations[id];
+            const state = store.getState();
+            const canonicalId = state.invocationAliases[id] ?? id;
+            const invocation = state.invocations[canonicalId];
             return !invocation || !isLiveInvocation(invocation);
           });
         if (settled()) {
@@ -501,17 +525,23 @@ export const useAppRuntime = (
     [store]
   );
 
-  /** Register a run this app started and flush anything buffered for it. */
-  const claimInvocation = useCallback(
-    (operationId: string, jobId: string, clearOutputs: boolean) => {
+  /** Reserve a logical run before any asynchronous runner work begins. */
+  const reserveInvocation = useCallback(
+    (operationId: string, clearOutputs: boolean): string => {
+      const id = `pending-${crypto.randomUUID()}`;
       const entry = operationRuntimesRef.current.get(operationId);
+      const variableKeys =
+        clearOutputs && entry
+          ? outputVariableTargets(entry.operation).map((target) => target.variableId)
+          : [];
       const invocation: InvocationState = {
-        id: jobId,
+        id,
         operationId,
-        status: "running",
-        startedAt: now()
+        status: "pending",
+        startedAt: now(),
+        variableKeys
       };
-      ownedRef.current.set(jobId, invocation);
+      ownedRef.current.set(id, invocation);
       store.getState().dispatchEvent({
         type: "runStarted",
         invocation,
@@ -520,23 +550,94 @@ export const useAppRuntime = (
             ? entry.io.outputs.map((output) =>
                 outputKey(operationId, output.nodeId)
               )
-            : []
+            : [],
+        variableKeys
       });
+      return id;
+    },
+    [outputKey, store]
+  );
+
+  /** Register a run this app started and flush anything buffered for it. */
+  const claimInvocation = useCallback(
+    (
+      operationId: string,
+      jobId: string,
+      clearOutputs: boolean,
+      reservationId?: string
+    ) => {
+      const entry = operationRuntimesRef.current.get(operationId);
+      const reserved = reservationId
+        ? ownedRef.current.get(reservationId)
+        : undefined;
+      const invocation: InvocationState = reserved
+        ? {
+            ...reserved,
+            id: jobId,
+            status: isLiveInvocation(reserved) ? "running" : reserved.status
+          }
+        : {
+            id: jobId,
+            operationId,
+            status: "running",
+            startedAt: now()
+          };
+      ownedRef.current.set(jobId, invocation);
+      transportIdsRef.current.set(jobId, jobId);
+      if (reservationId) {
+        transportIdsRef.current.set(reservationId, jobId);
+        ownedRef.current.set(reservationId, invocation);
+        store.getState().dispatchEvent({
+          type: "runStarted",
+          invocation,
+          outputKeys: [],
+          variableKeys: reserved?.variableKeys ?? []
+        });
+        store.getState().dispatchEvent({
+          type: "invocationAlias",
+          aliasId: reservationId,
+          invocationId: jobId
+        });
+        // Cancellation may have won the race while the runner was starting.
+        // Keep the reservation cancelled and stop the provider job as soon as
+        // its id becomes available instead of admitting it as a live run.
+        if (!isLiveInvocation(invocation)) {
+          pendingRef.current.delete(jobId);
+          void stopJob(reservationId);
+          return;
+        }
+        invocation.status = "running";
+      } else {
+        store.getState().dispatchEvent({
+          type: "runStarted",
+          invocation,
+          outputKeys:
+            clearOutputs && entry
+              ? entry.io.outputs.map((output) =>
+                  outputKey(operationId, output.nodeId)
+                )
+              : [],
+          variableKeys:
+            clearOutputs && entry
+              ? outputVariableTargets(entry.operation).map((target) => target.variableId)
+              : []
+        });
+      }
 
       // A declared timeout is a promise to the user that the app stops waiting.
       const timeoutMs = entry?.operation.timeoutMs;
       if (timeoutMs && timeoutMs > 0) {
         timersRef.current.set(
-          jobId,
+          invocation.id,
           setTimeout(() => {
-            timersRef.current.delete(jobId);
-            const live = ownedRef.current.get(jobId);
+            timersRef.current.delete(invocation.id);
+            const live = ownedRef.current.get(invocation.id);
             if (!live || !isLiveInvocation(live)) return;
             live.status = "failed";
-            void stopJob(jobId);
+            void stopJob(invocation.id);
             store.getState().dispatchEvent({
               type: "invocationStatus",
-              invocationId: jobId,
+              invocationId: invocation.id,
               status: "failed",
               error: `"${entry.operation.name}" timed out after ${timeoutMs} ms`
             });
@@ -554,7 +655,20 @@ export const useAppRuntime = (
 
   /** Record a run that never started as a failed invocation the app can show. */
   const failInvocation = useCallback(
-    (operationId: string, error: string) => {
+    (operationId: string, error: string, reservationId?: string) => {
+      if (reservationId) {
+        const invocation = ownedRef.current.get(reservationId);
+        if (!invocation) return;
+        invocation.status = "failed";
+        invocation.error = error;
+        store.getState().dispatchEvent({
+          type: "invocationStatus",
+          invocationId: reservationId,
+          status: "failed",
+          error
+        });
+        return;
+      }
       const failed: InvocationState = {
         id: `failed-${now()}`,
         operationId,
@@ -677,18 +791,13 @@ export const useAppRuntime = (
       }
 
       // What a collision with a live run of this operation means: replace it,
-      // queue behind it, or start alongside it.
+      // queue behind it, or start alongside it. The reservation below is
+      // created synchronously before the first await, so a second dispatch
+      // observes this run even while the provider is still starting.
       const decision = decideRun(store.getState(), entry.operation);
-      if (decision.kind === "replace") {
-        await cancelInvocations(decision.cancel);
-      } else if (decision.kind === "queue") {
-        await awaitSettled(decision.after, entry.operation.timeoutMs);
-      }
-
       const state = store.getState();
-      // Bindings key on node IDs; the run protocol wants names. That translation
-      // happens here, at the execution boundary, which is why a graph rename
-      // never touches the app document.
+      // Capture the action's inputs before a queue wait. Later widget edits
+      // belong to later actions, not to this already-admitted one.
       const params = resolveOperationParams({
         operation: entry.operation,
         state,
@@ -698,6 +807,26 @@ export const useAppRuntime = (
         resourceRef: (resourceBindingId) =>
           resourceRefsRef.current.get(resourceBindingId)
       });
+      const missingMedia = entry.io.inputs.find((input) =>
+        isMissingRequiredMediaValue(input.nodeType, params[input.name])
+      );
+      if (missingMedia) {
+        failInvocation(
+          operationId,
+          `Input "${missingMedia.label}" requires a media value before this operation can run.`
+        );
+        return;
+      }
+      const reservationId = reserveInvocation(operationId, true);
+      if (decision.kind === "replace") {
+        await cancelInvocations(decision.cancel);
+      } else if (decision.kind === "queue") {
+        await awaitSettled(decision.after, entry.operation.timeoutMs);
+      }
+      const reservation = ownedRef.current.get(reservationId);
+      if (!mountedRef.current || !reservation || !isLiveInvocation(reservation)) {
+        return;
+      }
 
       // A script has no graph to submit and no job to subscribe to: it runs
       // over one request and answers with a result, which the shared adapter
@@ -705,7 +834,7 @@ export const useAppRuntime = (
       const script = entry.script;
       if (script) {
         const jobId = `jsscript-${script.id}-${now()}`;
-        claimInvocation(operationId, jobId, true);
+        claimInvocation(operationId, jobId, true, reservationId);
         let result: ScriptRunResult;
         try {
           const { inputs, inputStreams } = scriptInvocationInput(
@@ -759,11 +888,12 @@ export const useAppRuntime = (
             undefined,
             { application, operationId }
           );
-        claimInvocation(operationId, jobId, true);
+        claimInvocation(operationId, jobId, true, reservationId);
       } catch (error) {
         failInvocation(
           operationId,
-          error instanceof Error ? error.message : "Run failed"
+          error instanceof Error ? error.message : "Run failed",
+          reservationId
         );
       } finally {
         awaitingJobRef.current -= 1;
@@ -779,6 +909,8 @@ export const useAppRuntime = (
       claimInvocation,
       designMode,
       failInvocation,
+      mountedRef,
+      reserveInvocation,
       store
     ]
   );

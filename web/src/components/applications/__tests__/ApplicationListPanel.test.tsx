@@ -389,4 +389,22 @@ describe("CreateApplicationFromWorkflowButton", () => {
       })
     );
   });
+
+  it("shows a retryable error when workflow app creation fails", async () => {
+    const user = userEvent.setup();
+    createMutateAsync.mockRejectedValueOnce(new Error("service unavailable"));
+    renderPanel(<CreateApplicationFromWorkflowButton projectId="project-a" />);
+
+    await user.click(
+      screen.getByRole("button", { name: "Create app from workflow" })
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Render poster" })
+    );
+
+    expect(
+      await screen.findByText(/service unavailable.*retry/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Render poster" })).toBeEnabled();
+  });
 });

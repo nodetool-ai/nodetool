@@ -6,11 +6,23 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { AppInstanceState } from "@nodetool-ai/app-runtime";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { makeTestRuntime } from "../../__tests__/testRuntime";
 import { GalleryWidget, Model3DWidget, PDFWidget } from "../MediaWidgets";
+
+jest.mock("../../../../hooks/useResolvedMediaUri", () => ({
+  useResolvedMediaUri: (locator: string | null | undefined) =>
+    locator === "asset://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ? "https://cdn.test/resolved.png"
+      : locator ?? undefined,
+  useResolvedThumbnailUri: (locator: string | null | undefined) =>
+    locator === "asset://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ? "https://cdn.test/thumb.png"
+      : locator ?? undefined
+}));
 
 // The real viewers pull in three.js and pdf.js; the widget's job is only to
 // hand them a resolved URL.
@@ -37,7 +49,9 @@ const renderWidget = (
   return {
     ...render(
       <ThemeProvider theme={mockTheme}>
-        <Wrapper>{element}</Wrapper>
+        <QueryClientProvider client={new QueryClient()}>
+          <Wrapper>{element}</Wrapper>
+        </QueryClientProvider>
       </ThemeProvider>
     ),
     runtime
@@ -101,6 +115,18 @@ describe("GalleryWidget", () => {
     expect(tiles).toHaveLength(2);
     expect(tiles[0]).toHaveAttribute("src", "https://cdn/a.png");
     expect(screen.getByText("Results")).toBeInTheDocument();
+  });
+
+  it("resolves asset locators through the media primitive", () => {
+    const { container } = renderWidget(
+      <GalleryWidget id="g1" binding="result" />,
+      withOutput(["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"])
+    );
+
+    expect(container.querySelector("img")).toHaveAttribute(
+      "src",
+      "https://cdn.test/resolved.png"
+    );
   });
 
   it("shows the placeholder when the binding holds nothing", () => {
@@ -238,14 +264,16 @@ describe("GalleryWidget selection", () => {
     const { wrapper: Wrapper } = runtime;
     const { container } = render(
       <ThemeProvider theme={mockTheme}>
-        <Wrapper>
-          <GalleryWidget
-            id="g1"
-            binding="result"
-            selectionBinding={SELECTION}
-            events={CHANGE_RUN}
-          />
-        </Wrapper>
+        <QueryClientProvider client={new QueryClient()}>
+          <Wrapper>
+            <GalleryWidget
+              id="g1"
+              binding="result"
+              selectionBinding={SELECTION}
+              events={CHANGE_RUN}
+            />
+          </Wrapper>
+        </QueryClientProvider>
       </ThemeProvider>
     );
 
