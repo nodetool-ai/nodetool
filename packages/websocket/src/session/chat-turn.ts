@@ -3182,8 +3182,6 @@ export class ChatTurnHandler {
           });
         }
 
-        await sendTerminalDone();
-
         const assistantMsgData: Record<string, unknown> = {
           type: "message",
           role: "assistant",
@@ -3198,6 +3196,7 @@ export class ChatTurnHandler {
         if (cancelled()) return;
         await this.saveMessageToDb(assistantMsgData);
         await this.session.send(assistantMsgData);
+        await sendTerminalDone();
         return;
       }
 
@@ -3277,13 +3276,6 @@ export class ChatTurnHandler {
           seamAssetId(generated) ??
           (await storeMediaAsset(generated.output, "video/mp4", "mp4"));
 
-        await this.session.send({
-          type: "chunk",
-          thread_id: threadId,
-          content: "",
-          done: true
-        });
-
         const assistantMsgData: Record<string, unknown> = {
           type: "message",
           role: "assistant",
@@ -3308,6 +3300,7 @@ export class ChatTurnHandler {
         if (cancelled()) return;
         await this.saveMessageToDb(assistantMsgData);
         await this.session.send(assistantMsgData);
+        await sendTerminalDone();
         return;
       }
 
@@ -3395,13 +3388,6 @@ export class ChatTurnHandler {
           seamAssetId(generated) ??
           (await storeMediaAsset(generated.output, "video/mp4", "mp4"));
 
-        await this.session.send({
-          type: "chunk",
-          thread_id: threadId,
-          content: "",
-          done: true
-        });
-
         const assistantMsgData: Record<string, unknown> = {
           type: "message",
           role: "assistant",
@@ -3426,6 +3412,7 @@ export class ChatTurnHandler {
         if (cancelled()) return;
         await this.saveMessageToDb(assistantMsgData);
         await this.session.send(assistantMsgData);
+        await sendTerminalDone();
         return;
       }
 
@@ -3521,13 +3508,6 @@ export class ChatTurnHandler {
         }
         await linkGenerationAssets([audioGenerationId], [assetId]);
 
-        await this.session.send({
-          type: "chunk",
-          thread_id: threadId,
-          content: "",
-          done: true
-        });
-
         const assistantMsgData: Record<string, unknown> = {
           type: "message",
           role: "assistant",
@@ -3551,6 +3531,7 @@ export class ChatTurnHandler {
         if (cancelled()) return;
         await this.saveMessageToDb(assistantMsgData);
         await this.session.send(assistantMsgData);
+        await sendTerminalDone();
         return;
       }
 
@@ -3663,7 +3644,6 @@ export class ChatTurnHandler {
               }
             });
           }
-          await sendTerminalDone();
           const assistantMsgData: Record<string, unknown> = {
             type: "message",
             role: "assistant",
@@ -3678,6 +3658,7 @@ export class ChatTurnHandler {
           if (cancelled()) return;
           await this.saveMessageToDb(assistantMsgData);
           await this.session.send(assistantMsgData);
+          await sendTerminalDone();
           return;
         }
 
@@ -3726,7 +3707,6 @@ export class ChatTurnHandler {
         const assetId =
           seamAssetId(generated) ??
           (await storeMediaAsset(generated.output, "video/mp4", "mp4"));
-        await sendTerminalDone();
         const assistantMsgData: Record<string, unknown> = {
           type: "message",
           role: "assistant",
@@ -3751,6 +3731,7 @@ export class ChatTurnHandler {
         if (cancelled()) return;
         await this.saveMessageToDb(assistantMsgData);
         await this.session.send(assistantMsgData);
+        await sendTerminalDone();
         return;
       }
 
@@ -3787,8 +3768,8 @@ export class ChatTurnHandler {
         message: failureMessage,
         thread_id: threadId
       });
-      await sendTerminalDone();
       await this.session.send(assistantMsgData);
+      await sendTerminalDone();
     }
   }
 
@@ -3803,7 +3784,7 @@ export class ChatTurnHandler {
    *   4. Run workflow via ExecutionSession (@nodetool-ai/execution)
    *   5. Stream events (job_update, node_update, output_update)
    *   6. Collect output_update results
-   *   7. Send done chunk + response message with typed content
+   *   7. Send response message with typed content, then the terminal chunk
    */
   private async handleWorkflowMessage(
     data: Record<string, unknown>,
@@ -4156,16 +4137,6 @@ export class ChatTurnHandler {
         this.session.logError("workflow job persistence (final) failed", error);
       }
 
-      // Signal completion — done chunk with job_id + workflow_id
-      await this.session.send({
-        type: "chunk",
-        content: "",
-        done: true,
-        job_id: jobId,
-        workflow_id: workflowId,
-        thread_id: threadId
-      });
-
       // Create response message from workflow outputs — matches Python's _create_response_message
       const responseContent = createWorkflowResponseContent(result);
       const responseMsg = {
@@ -4180,6 +4151,16 @@ export class ChatTurnHandler {
       } satisfies Record<string, unknown>;
       await this.saveMessageToDb(responseMsg);
       await this.session.send(responseMsg);
+
+      // Signal completion — done chunk with job_id + workflow_id
+      await this.session.send({
+        type: "chunk",
+        content: "",
+        done: true,
+        job_id: jobId,
+        workflow_id: workflowId,
+        thread_id: threadId
+      });
 
       log.debug("Workflow message complete", { threadId, workflowId, jobId });
     } catch (err) {
