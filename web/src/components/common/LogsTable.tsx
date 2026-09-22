@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION, Z_INDEX, SPACING, getSpacingPx, VirtualList } from "../ui_primitives";
+import { Text, TextLink, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION, Z_INDEX, SPACING, getSpacingPx, VirtualList } from "../ui_primitives";
 import type { VirtualListHandle } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -14,7 +14,11 @@ export type Severity = "info" | "warning" | "error";
 
 export type LogRow = {
   severity: Severity;
+  workflowId?: string;
   workflowName?: string;
+  jobId?: string;
+  nodeId?: string;
+  nodeName?: string;
   timestamp: number;
   content: string;
   data?: unknown;
@@ -28,6 +32,7 @@ export type LogsTableProps = {
   severities?: Severity[]; // when provided, only show these severities
   autoScroll?: boolean; // default true
   showTimestampColumn?: boolean;
+  onRevealNode?: (workflowId: string, nodeId: string) => void;
 };
 
 const SEVERITY_COLORS = (theme: Theme) => ({
@@ -107,13 +112,9 @@ const tableStyles = (theme: Theme) =>
         opacity: 0,
         transition: MOTION.opacity
       },
-      "&:hover .copy-btn": {
+      "&:hover .copy-btn, &:focus-within .copy-btn": {
         opacity: 1
       },
-      // Show timestamp on hover
-      "&:hover .timestamp": {
-        opacity: 1
-      }
     },
 
     ".row-error": {
@@ -150,6 +151,23 @@ const tableStyles = (theme: Theme) =>
       cursor: "default"
     },
 
+    ".execution-context": {
+      color: theme.vars.palette.text.secondary,
+      marginRight: getSpacingPx(SPACING.md),
+      whiteSpace: "nowrap"
+    },
+
+    ".context-separator": {
+      color: theme.vars.palette.text.disabled,
+      margin: `0 ${getSpacingPx(SPACING.xs)}`
+    },
+
+    ".node-link": {
+      fontFamily: "inherit",
+      fontSize: "inherit",
+      lineHeight: "inherit"
+    },
+
     ".content.expanded": {
       whiteSpace: "normal",
       overflow: "visible",
@@ -161,8 +179,8 @@ const tableStyles = (theme: Theme) =>
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[500],
-      opacity: 0,
-      transition: `opacity ${MOTION.normal}`
+      opacity: 1,
+      fontVariantNumeric: "tabular-nums"
     },
 
     ".empty": {
@@ -203,11 +221,14 @@ type RowItemProps = {
   showTimestampColumn: boolean;
   columns: string;
   onToggle: (key: string) => void;
+  onRevealNode?: (workflowId: string, nodeId: string) => void;
 };
 
 /** Derived per call: only the visible window and the expanded set need a key. */
 const rowKeyAt = (row: LogRow, index: number) =>
-  `${row.timestamp}:${row.severity}:${row.content}:${index}`;
+  `${row.workflowId ?? ""}:${row.jobId ?? ""}:${row.nodeId ?? ""}:${row.timestamp}:${row.severity}:${row.content}:${index}`;
+
+const shortRunLabel = (jobId: string): string => `Run #${jobId.slice(0, 8)}`;
 
 const RowItem = memo(({
   row,
@@ -215,7 +236,8 @@ const RowItem = memo(({
   isExpanded,
   showTimestampColumn,
   columns,
-  onToggle
+  onToggle,
+  onRevealNode
 }: RowItemProps) => {
   const theme = useTheme();
   const colors = SEVERITY_COLORS(theme)[row.severity];
@@ -262,6 +284,16 @@ const RowItem = memo(({
     event.stopPropagation();
   }, []);
 
+  const handleRevealNode = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation();
+      if (row.workflowId && row.nodeId) {
+        onRevealNode?.(row.workflowId, row.nodeId);
+      }
+    },
+    [onRevealNode, row.nodeId, row.workflowId]
+  );
+
 
   const open = Boolean(anchorEl);
 
@@ -281,6 +313,35 @@ const RowItem = memo(({
           disabled={showTimestampColumn}
         >
           <div className={`cell content${isExpanded ? " expanded" : ""}`}>
+            {row.workflowId ? (
+              <span className="execution-context">
+                <span title={row.workflowId}>{row.workflowName || row.workflowId}</span>
+                {row.jobId ? (
+                  <>
+                    <span className="context-separator">→</span>
+                    <span title={row.jobId}>{shortRunLabel(row.jobId)}</span>
+                  </>
+                ) : null}
+                {row.nodeId ? (
+                  <>
+                    <span className="context-separator">→</span>
+                    {onRevealNode ? (
+                      <TextLink
+                        asButton
+                        className="node-link"
+                        onClick={handleRevealNode}
+                        aria-label={`Reveal node ${row.nodeName || row.nodeId}`}
+                      >
+                        {row.nodeName || row.nodeId}
+                      </TextLink>
+                    ) : (
+                      <span title={row.nodeId}>{row.nodeName || row.nodeId}</span>
+                    )}
+                  </>
+                ) : null}
+                <span className="context-separator">·</span>
+              </span>
+            ) : null}
             {row.content}
           </div>
         </Tooltip>
@@ -351,7 +412,8 @@ export const LogsTable: React.FC<LogsTableProps> = ({
   emptyText = "No logs to display",
   severities,
   autoScroll = true,
-  showTimestampColumn = true
+  showTimestampColumn = true,
+  onRevealNode
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => tableStyles(theme), [theme]);
@@ -478,10 +540,11 @@ export const LogsTable: React.FC<LogsTableProps> = ({
           showTimestampColumn={showTimestampColumn}
           columns={columns}
           onToggle={toggleExpand}
+          onRevealNode={onRevealNode}
         />
       );
     },
-    [expandedKeys, showTimestampColumn, columns, toggleExpand]
+    [expandedKeys, showTimestampColumn, columns, toggleExpand, onRevealNode]
   );
 
   return (

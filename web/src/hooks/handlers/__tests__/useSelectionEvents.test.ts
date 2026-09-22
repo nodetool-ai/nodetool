@@ -2,7 +2,10 @@ import { renderHook } from "@testing-library/react";
 import { asMock, stub } from "../../../test-utils/doubles";
 import { MouseEvent as ReactMouseEvent } from "react";
 import { useReactFlow, type Node } from "@xyflow/react";
-import { useSelectionEvents } from "../useSelectionEvents";
+import {
+  edgePathIntersectsRect,
+  useSelectionEvents
+} from "../useSelectionEvents";
 import useContextMenu from "../../../stores/ContextMenuStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import useDragHandlers from "../useDragHandlers";
@@ -251,14 +254,14 @@ describe("useSelectionEvents", () => {
         "path"
       );
       edgeInPath.setAttribute("class", "react-flow__edge-path");
-      Object.defineProperty(edgeInPath, "getBoundingClientRect", {
-        value: () =>
-          ({
-            left: 10,
-            top: 10,
-            right: 20,
-            bottom: 20
-          }) as DOMRect
+      Object.defineProperty(edgeInPath, "getTotalLength", {
+        value: () => 20
+      });
+      Object.defineProperty(edgeInPath, "getPointAtLength", {
+        value: (length: number) => ({ x: 10 + length / 2, y: 10 })
+      });
+      Object.defineProperty(edgeInPath, "getScreenCTM", {
+        value: () => null
       });
       edgeIn.appendChild(edgeInPath);
       document.body.appendChild(edgeIn);
@@ -271,14 +274,14 @@ describe("useSelectionEvents", () => {
         "path"
       );
       edgeOutPath.setAttribute("class", "react-flow__edge-path");
-      Object.defineProperty(edgeOutPath, "getBoundingClientRect", {
-        value: () =>
-          ({
-            left: 200,
-            top: 200,
-            right: 220,
-            bottom: 220
-          }) as DOMRect
+      Object.defineProperty(edgeOutPath, "getTotalLength", {
+        value: () => 20
+      });
+      Object.defineProperty(edgeOutPath, "getPointAtLength", {
+        value: (length: number) => ({ x: 200 + length, y: 200 })
+      });
+      Object.defineProperty(edgeOutPath, "getScreenCTM", {
+        value: () => null
       });
       edgeOut.appendChild(edgeOutPath);
       document.body.appendChild(edgeOut);
@@ -301,6 +304,58 @@ describe("useSelectionEvents", () => {
       rafSpy.mockRestore();
       edgeIn.remove();
       edgeOut.remove();
+    });
+
+    it("does not select an edge when only its bounding box crosses the marquee", () => {
+      const curvedPath = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path"
+      );
+      Object.defineProperty(curvedPath, "getTotalLength", {
+        value: () => 200
+      });
+      Object.defineProperty(curvedPath, "getPointAtLength", {
+        value: (length: number) => ({
+          x: length,
+          y: length < 100 ? 0 : 200
+        })
+      });
+      Object.defineProperty(curvedPath, "getScreenCTM", {
+        value: () => null
+      });
+      Object.defineProperty(curvedPath, "getBoundingClientRect", {
+        value: () => ({ left: 0, top: 0, right: 200, bottom: 200 })
+      });
+
+      expect(
+        edgePathIntersectsRect(curvedPath, {
+          minX: 40,
+          maxX: 60,
+          minY: 90,
+          maxY: 110
+        })
+      ).toBe(false);
+    });
+
+    it("does not treat disjoint collinear samples as an intersection", () => {
+      const path = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path"
+      );
+      Object.defineProperty(path, "getTotalLength", { value: () => 10 });
+      Object.defineProperty(path, "getPointAtLength", {
+        value: (length: number) => ({ x: length, y: 20 })
+      });
+      Object.defineProperty(path, "getScreenCTM", { value: () => null });
+
+      expect(
+        edgePathIntersectsRect(path, {
+          minX: 20,
+          maxX: 30,
+          minY: 20,
+          maxY: 30
+        })
+      ).toBe(false);
     });
 
     it("with selected nodes and no Shift, deselects all edges and sets suppress flag", () => {

@@ -97,7 +97,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       boxShadow: `0 1px 4px ${theme.vars.palette.action.focus}`,
     },
 
-    "&:hover .action-icons, &:hover .reset-button.is-active": {
+    "&:hover .action-icons, &:focus-within .action-icons, &:hover .reset-button.is-active, &:focus-within .reset-button.is-active": {
       opacity: 1
     },
 
@@ -379,16 +379,6 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     updateNodeProperties
   ]);
 
-  const handleResetKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        handleResetToDefault();
-      }
-    },
-    [handleResetToDefault]
-  );
-
   const onContextMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       event.preventDefault();
@@ -538,16 +528,15 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         disabled={!isChanged}
       >
         <span className="property-reset-anchor">
-          <div
+          <ToolbarIconButton
             className={`reset-button${isChanged ? " is-active" : ""}`}
-            role={isChanged ? "button" : undefined}
-            tabIndex={isChanged ? 0 : undefined}
-            onClick={isChanged ? handleResetToDefault : undefined}
-            onKeyDown={isChanged ? handleResetKeyDown : undefined}
-            aria-hidden={!isChanged}
-          >
-            <SettingsBackupRestoreIcon />
-          </div>
+            tooltip="Reset to default"
+            ariaLabel="Reset to default"
+            tabIndex={isChanged ? 0 : -1}
+            disabled={!isChanged}
+            onClick={handleResetToDefault}
+            icon={<SettingsBackupRestoreIcon />}
+          />
         </span>
       </Tooltip>
     ) : null;
@@ -616,13 +605,19 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
               onChange={handleSlotTypeChange}
             />
           )}
-          <Edit
+          <ToolbarIconButton
             className="action-icon"
+            tooltip={`Rename ${property.name}`}
+            ariaLabel={`Rename ${property.name}`}
             onClick={handleEditNameClick}
+            icon={<Edit />}
           />
-          <Close
+          <ToolbarIconButton
             className="action-icon close"
+            tooltip={`Delete ${property.name}`}
+            ariaLabel={`Delete ${property.name}`}
             onClick={handleDeleteClick}
+            icon={<Close />}
           />
         </div>
       )}

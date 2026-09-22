@@ -1,14 +1,29 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import { useMemo, useState, useCallback, memo } from "react";
-import { ToggleGroup, ToggleOption, ToolbarIconButton, Box, SPACING, getSpacingPx } from "../ui_primitives";
-import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import { css } from "@emotion/react";
+import { useNavigate } from "react-router-dom";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import LogsTable, { LogRow, Severity } from "../common/LogsTable";
-import useLogsStore from "../../stores/LogStore";
+
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { requestFitNode } from "../../hooks/useFitNodeEvent";
+import useLogsStore from "../../stores/LogStore";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import LogsTable, {
+  type LogRow,
+  type Severity
+} from "../common/LogsTable";
+import {
+  Box,
+  Chip,
+  SPACING,
+  ToggleGroup,
+  ToggleOption,
+  ToolbarIconButton,
+  getSpacingPx
+} from "../ui_primitives";
 import PanelToolbar from "./PanelToolbar";
 
 type Row = LogRow & { workflowId: string; workflowName: string; key: string };
@@ -44,9 +59,15 @@ const SEVERITY_LABELS = {
 
 const LogPanel: React.FC = memo(function LogPanel() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const rootStyles = useMemo(() => containerStyles(theme), [theme]);
   const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
+  const setCurrentWorkflowId = useWorkflowManager(
+    (state) => state.setCurrentWorkflowId
+  );
   const openWorkflows = useWorkflowManager((s) => s.openWorkflows);
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const setActiveTab = useWorkspaceTabsStore((state) => state.setActiveTab);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Map workflow id -> name for quick lookup
@@ -59,12 +80,21 @@ const LogPanel: React.FC = memo(function LogPanel() {
   const [selectedSeverities, setSelectedSeverities] = useState<Severity[]>([]);
 
   const logs = useLogsStore((s) => s.logs);
+  const filter = useLogsStore((s) => s.filter);
+  const clearFilter = useLogsStore((s) => s.clearFilter);
 
   // Filter by workflow and severity, then shape rows, in a single pass.
   const filteredRows = useMemo<Row[]>(() => {
     return logs
       .filter((log) => {
-        if (currentWorkflowId && log.workflowId !== currentWorkflowId) {
+        const workflowId = filter?.workflowId ?? currentWorkflowId;
+        if (workflowId && log.workflowId !== workflowId) {
+          return false;
+        }
+        if (filter?.jobId && log.jobId !== filter.jobId) {
+          return false;
+        }
+        if (filter?.nodeId && log.nodeId !== filter.nodeId) {
           return false;
         }
         if (
@@ -78,17 +108,37 @@ const LogPanel: React.FC = memo(function LogPanel() {
       .sort((a, b) => b.timestamp - a.timestamp)
       .map((log, index) => {
         const workflowId = log.workflowId;
-        return {
+        const row: Row = {
           key: `${workflowId}:${log.nodeId}:${log.timestamp}:${index}`,
           workflowId,
           workflowName: log.workflowName || wfName[workflowId] || workflowId,
+          nodeId: log.nodeId,
+          nodeName: log.nodeName,
           severity: log.severity,
           timestamp: log.timestamp,
           content: log.content,
           data: log.data
-        } as Row;
+        };
+        if (log.jobId) {
+          row.jobId = log.jobId;
+        }
+        return row;
       });
-  }, [logs, currentWorkflowId, selectedSeverities, wfName]);
+  }, [logs, filter, currentWorkflowId, selectedSeverities, wfName]);
+
+  const filteredNodeName = useMemo(() => {
+    if (!filter?.nodeId) {
+      return null;
+    }
+    return (
+      logs.find(
+        (log) =>
+          log.workflowId === filter.workflowId &&
+          log.nodeId === filter.nodeId &&
+          (!filter.jobId || log.jobId === filter.jobId)
+      )?.nodeName || filter.nodeId
+    );
+  }, [filter, logs]);
 
   const handleSeverityChange = useCallback(
     (_event: React.MouseEvent<HTMLElement>, value: string[]) => {
@@ -100,6 +150,39 @@ const LogPanel: React.FC = memo(function LogPanel() {
   const handleFullscreenToggle = useCallback(() => {
     setIsFullscreen((v) => !v);
   }, []);
+
+  const handleRevealNode = useCallback(
+    (workflowId: string, nodeId: string) => {
+      const workflowTab: {
+        type: "workflow";
+        ref: string;
+        mode: "edit";
+        title?: string;
+      } = {
+        type: "workflow",
+        ref: workflowId,
+        mode: "edit"
+      };
+      if (wfName[workflowId]) {
+        workflowTab.title = wfName[workflowId];
+      }
+      const workflowTabId = openTab(workflowTab);
+      setActiveTab(workflowTabId);
+      if (workflowId !== currentWorkflowId) {
+        setCurrentWorkflowId(workflowId);
+      }
+      navigate("/workspace");
+      requestFitNode({ workflowId, nodeId });
+    },
+    [
+      currentWorkflowId,
+      navigate,
+      openTab,
+      setActiveTab,
+      setCurrentWorkflowId,
+      wfName
+    ]
+  );
 
   return (
     <Box
@@ -136,13 +219,23 @@ const LogPanel: React.FC = memo(function LogPanel() {
             </ToggleOption>
           ))}
         </ToggleGroup>
+        {filter?.nodeId && filteredNodeName ? (
+          <Chip
+            compact
+            color="info"
+            label={`Node: ${filteredNodeName}`}
+            onDelete={clearFilter}
+            title={filter.jobId ? `Run ${filter.jobId}` : undefined}
+          />
+        ) : null}
       </PanelToolbar>
 
       <Box className="table-wrap">
         <LogsTable
           rows={filteredRows}
           height={undefined}
-          showTimestampColumn={false}
+          showTimestampColumn
+          onRevealNode={handleRevealNode}
         />
       </Box>
     </Box>

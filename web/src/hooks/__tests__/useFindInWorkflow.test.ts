@@ -29,11 +29,12 @@ const createMockNodeData = (): NodeData => ({
 describe("useFindInWorkflow", () => {
   const mockSetCenter = jest.fn();
   const mockFitView = jest.fn();
+  const mockSetSelectedNodes = jest.fn();
 
   const mockNodes: Node<NodeData>[] = [
     {
       id: "node-1",
-      type: "input.text",
+      type: "nodetool.input.StringInput",
       position: { x: 0, y: 0 },
       data: { ...createMockNodeData(), properties: { name: "Text Source" } }
     },
@@ -41,7 +42,13 @@ describe("useFindInWorkflow", () => {
       id: "node-2",
       type: "process.transform",
       position: { x: 100, y: 0 },
-      data: { ...createMockNodeData(), properties: { name: "Uppercase" } }
+      data: {
+        ...createMockNodeData(),
+        properties: {
+          name: "Uppercase",
+          prompt: "Value-only needle"
+        }
+      }
     },
     {
       id: "node-3",
@@ -51,7 +58,7 @@ describe("useFindInWorkflow", () => {
     },
     {
       id: "node-4",
-      type: "input.text",
+      type: "nodetool.input.StringInput",
       position: { x: 300, y: 0 },
       data: { ...createMockNodeData(), properties: { name: "Another Text Node" } }
     }
@@ -59,7 +66,8 @@ describe("useFindInWorkflow", () => {
 
   const mockNodesState = selectFrom<NodeStoreState>({
     nodes: mockNodes,
-    edges: []
+    edges: [],
+    setSelectedNodes: mockSetSelectedNodes
   });
 
   const mockReactFlowInstance = {
@@ -177,10 +185,13 @@ describe("useFindInWorkflow", () => {
       const { result } = renderHook(() => useFindInWorkflow());
 
       act(() => {
-        result.current.immediateSearch("input.text");
+        result.current.immediateSearch("nodetool.input.StringInput");
       });
 
-      expect(result.current.results.length).toBe(2);
+      expect(result.current.results.map(({ node }) => node.id)).toEqual([
+        "node-1",
+        "node-4"
+      ]);
     });
 
     it("should find nodes by node ID", () => {
@@ -235,6 +246,22 @@ describe("useFindInWorkflow", () => {
 
       expect(result.current.results).toHaveLength(0);
     });
+
+    it("finds property-only values and reports the matching field", () => {
+      mockUseNodes.mockImplementation(mockNodesState);
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.immediateSearch("needle");
+      });
+
+      expect(result.current.results).toHaveLength(1);
+      expect(result.current.results[0]).toMatchObject({
+        matchedField: "prompt",
+        matchSnippet: expect.stringContaining("needle")
+      });
+    });
   });
 
   describe("node display name", () => {
@@ -280,6 +307,27 @@ describe("useFindInWorkflow", () => {
 
       const displayName = result.current.getNodeDisplayName(nodeNoType);
       expect(displayName).toBe("id-fallback-node");
+    });
+
+    it("uses the same title resolution as the canvas", () => {
+      mockUseNodes.mockImplementation(mockNodesState);
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+      const inputWithStaleTitle: Node<NodeData> = {
+        ...mockNodes[0],
+        data: { ...mockNodes[0].data, title: "Old title" }
+      };
+      const ordinaryNodeWithTitle: Node<NodeData> = {
+        ...mockNodes[1],
+        data: { ...mockNodes[1].data, title: "Custom transform title" }
+      };
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      expect(result.current.getNodeDisplayName(inputWithStaleTitle)).toBe(
+        "Text Source"
+      );
+      expect(result.current.getNodeDisplayName(ordinaryNodeWithTitle)).toBe(
+        "transform"
+      );
     });
   });
 
@@ -391,6 +439,7 @@ describe("useFindInWorkflow", () => {
         );
         // fitView would override setCenter's zoom, so goToSelected must not call it.
         expect(mockFitView).not.toHaveBeenCalled();
+        expect(mockSetSelectedNodes).toHaveBeenCalledWith([mockNodes[0]]);
       }
     });
 

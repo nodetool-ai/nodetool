@@ -6,7 +6,7 @@ import { useMediaQuery } from "@mui/material";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
-import { memo, useCallback, useEffect, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import isEqual from "../../utils/isEqual";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -15,10 +15,8 @@ import { useLocation } from "react-router-dom";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useStoreWithEqualityFn } from "zustand/traditional";
 import FrontendToolRuntimeSync from "./FrontendToolRuntimeSync";
 import { WorkflowCostEstimatePanel } from "../costs/WorkflowCostEstimatePanel";
-import type { NodeStore } from "../../stores/NodeStore";
 import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 
 import {
@@ -31,7 +29,8 @@ import {
   FlexColumn,
   MOTION,
   reducedMotion,
-  Z_INDEX
+  Z_INDEX,
+  ResizeHandle
 } from "../ui_primitives";
 
 // Matches HEADER_HEIGHT in PanelBottom — the bar still occupies this when collapsed.
@@ -110,28 +109,6 @@ const styles = (theme: Theme, bottomOffset: number, isVisible: boolean) =>
   });
 
 
-/**
- * Selection-driven visibility for the inspector. Subscribes to the active
- * workflow's node store and mirrors `selection > 0` onto the right panel's
- * visibility — selecting a node opens the panel, deselecting closes it.
- * Renders nothing.
- */
-const InspectorVisibilitySync = memo(function InspectorVisibilitySync({
-  activeNodeStore
-}: {
-  activeNodeStore: NodeStore;
-}) {
-  const hasSelection = useStoreWithEqualityFn(
-    activeNodeStore,
-    (state) => state.nodes.some((node) => node.selected)
-  );
-  const setVisibility = useRightPanelStore((state) => state.setVisibility);
-  useEffect(() => {
-    setVisibility(hasSelection);
-  }, [hasSelection, setVisibility]);
-  return null;
-});
-
 const PanelRight: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -139,11 +116,20 @@ const PanelRight: React.FC = () => {
     ref: panelRef,
     size: panelSize,
     isVisible,
-    isDragging,
-    handleMouseDown
+    isDragging
   } = useResizeRightPanel("right");
 
-  const setVisibility = useRightPanelStore((state) => state.setVisibility);
+  const closeInspector = useRightPanelStore((state) => state.closeInspector);
+  const setPanelSize = useRightPanelStore((state) => state.setSize);
+  const setPanelDragging = useRightPanelStore((state) => state.setIsDragging);
+  const setPanelHasDragged = useRightPanelStore((state) => state.setHasDragged);
+  const handlePanelResize = useCallback(
+    (delta: number) => {
+      setPanelSize(panelSize + delta);
+      setPanelHasDragged(true);
+    },
+    [panelSize, setPanelHasDragged, setPanelSize]
+  );
 
   const { pathname } = useLocation();
   const { bottomPanelSize, bottomPanelVisible } = useBottomPanelStore(
@@ -184,8 +170,8 @@ const PanelRight: React.FC = () => {
   const activeNodeStore = activeSubgraphTab?.store ?? workflowNodeStore;
 
   const handleMobileSheetClose = useCallback(
-    () => setVisibility(false),
-    [setVisibility]
+    () => closeInspector(),
+    [closeInspector]
   );
 
   const inspectorBody = activeNodeStore ? (
@@ -203,9 +189,6 @@ const PanelRight: React.FC = () => {
     return (
       <>
         <FrontendToolRuntimeSync />
-        {activeNodeStore && (
-          <InspectorVisibilitySync activeNodeStore={activeNodeStore} />
-        )}
         <MobileBottomSheet
           open={isVisible}
           onClose={handleMobileSheetClose}
@@ -228,28 +211,31 @@ const PanelRight: React.FC = () => {
   return (
     <>
       <FrontendToolRuntimeSync />
-      {activeNodeStore && (
-        <InspectorVisibilitySync activeNodeStore={activeNodeStore} />
-      )}
       <div
         css={panelRightStyles}
         className="panel-right-container"
         aria-hidden={!isVisible}
+        inert={!isVisible}
       >
         <div
           ref={panelRef}
           className={`drawer-content ${isDragging ? "dragging" : ""}`}
           style={{ width: `${panelSize}px` }}
         >
-          <div
+          <ResizeHandle
             className="panel-button"
-            onMouseDown={handleMouseDown}
-            role="slider"
-            aria-label="Resize panel"
-            aria-valuenow={panelSize}
-            aria-valuemin={60}
-            aria-valuemax={600}
-            tabIndex={-1}
+            orientation="vertical"
+            value={panelSize}
+            min={130}
+            max={600}
+            invert
+            ariaLabel="Resize Inspector panel"
+            onResize={handlePanelResize}
+            onResizeStart={() => setPanelDragging(true)}
+            onResizeEnd={() => {
+              setPanelDragging(false);
+              setPanelHasDragged(false);
+            }}
           />
           <div className="panel-inner-content">
             <div className="inspector-region">{inspectorBody}</div>

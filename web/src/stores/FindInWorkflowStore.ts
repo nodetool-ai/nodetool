@@ -5,6 +5,10 @@ import { NodeData } from "./NodeData";
 export interface FindResult {
   node: Node<NodeData>;
   matchIndex: number;
+  /** Property path whose value matched, when the node identity did not. */
+  matchedField?: string;
+  /** Short, user-readable context for a property-value match. */
+  matchSnippet?: string;
 }
 
 interface FindInWorkflowState {

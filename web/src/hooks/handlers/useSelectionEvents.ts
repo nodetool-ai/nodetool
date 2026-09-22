@@ -11,6 +11,131 @@ import { NodeData } from "../../stores/NodeData";
 import { shallow } from "zustand/shallow";
 import { GROUP_NODE_TYPE } from "../../constants/nodeTypes";
 
+interface ScreenRect {
+  readonly minX: number;
+  readonly maxX: number;
+  readonly minY: number;
+  readonly maxY: number;
+}
+
+interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
+const pointInsideRect = (point: Point, rect: ScreenRect): boolean =>
+  point.x >= rect.minX &&
+  point.x <= rect.maxX &&
+  point.y >= rect.minY &&
+  point.y <= rect.maxY;
+
+const orientation = (a: Point, b: Point, c: Point): number =>
+  (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+
+const segmentsIntersect = (
+  firstStart: Point,
+  firstEnd: Point,
+  secondStart: Point,
+  secondEnd: Point
+): boolean => {
+  const overlaps = (a: number, b: number, c: number): boolean =>
+    c >= Math.min(a, b) && c <= Math.max(a, b);
+  const onSegment = (start: Point, end: Point, point: Point): boolean =>
+    Math.abs(orientation(start, end, point)) < Number.EPSILON &&
+    overlaps(start.x, end.x, point.x) &&
+    overlaps(start.y, end.y, point.y);
+  const firstSideStart = orientation(firstStart, firstEnd, secondStart);
+  const firstSideEnd = orientation(firstStart, firstEnd, secondEnd);
+  const secondSideStart = orientation(secondStart, secondEnd, firstStart);
+  const secondSideEnd = orientation(secondStart, secondEnd, firstEnd);
+  if (
+    firstSideStart * firstSideEnd < 0 &&
+    secondSideStart * secondSideEnd < 0
+  ) {
+    return true;
+  }
+  return (
+    onSegment(firstStart, firstEnd, secondStart) ||
+    onSegment(firstStart, firstEnd, secondEnd) ||
+    onSegment(secondStart, secondEnd, firstStart) ||
+    onSegment(secondStart, secondEnd, firstEnd)
+  );
+};
+
+const segmentIntersectsRect = (
+  start: Point,
+  end: Point,
+  rect: ScreenRect
+): boolean => {
+  if (pointInsideRect(start, rect) || pointInsideRect(end, rect)) {
+    return true;
+  }
+  const topLeft = { x: rect.minX, y: rect.minY };
+  const topRight = { x: rect.maxX, y: rect.minY };
+  const bottomRight = { x: rect.maxX, y: rect.maxY };
+  const bottomLeft = { x: rect.minX, y: rect.maxY };
+  return (
+    segmentsIntersect(start, end, topLeft, topRight) ||
+    segmentsIntersect(start, end, topRight, bottomRight) ||
+    segmentsIntersect(start, end, bottomRight, bottomLeft) ||
+    segmentsIntersect(start, end, bottomLeft, topLeft)
+  );
+};
+
+export const edgePathIntersectsRect = (
+  path: SVGPathElement,
+  rect: ScreenRect
+): boolean => {
+  if (
+    typeof path.getTotalLength !== "function" ||
+    typeof path.getPointAtLength !== "function"
+  ) {
+    return false;
+  }
+  const bounds = path.getBoundingClientRect();
+  if (
+    bounds.right < rect.minX ||
+    bounds.left > rect.maxX ||
+    bounds.bottom < rect.minY ||
+    bounds.top > rect.maxY
+  ) {
+    return false;
+  }
+  const totalLength = path.getTotalLength();
+  const sampleCount = Math.max(1, Math.min(2048, Math.ceil(totalLength / 4)));
+  const screenTransform = path.getScreenCTM();
+  const toScreenPoint = (point: Point): Point => {
+    if (!screenTransform) {
+      return point;
+    }
+    return {
+      x:
+        point.x * screenTransform.a +
+        point.y * screenTransform.c +
+        screenTransform.e,
+      y:
+        point.x * screenTransform.b +
+        point.y * screenTransform.d +
+        screenTransform.f
+    };
+  };
+
+  let previousPoint = toScreenPoint(path.getPointAtLength(0));
+  if (pointInsideRect(previousPoint, rect)) {
+    return true;
+  }
+  for (let index = 1; index <= sampleCount; index += 1) {
+    const point = toScreenPoint(
+      path.getPointAtLength((totalLength * index) / sampleCount)
+    );
+    if (segmentIntersectsRect(previousPoint, point, rect)) {
+      return true;
+    }
+    previousPoint = point;
+  }
+  return false;
+};
+
 interface UseSelectionEventsProps {
   reactFlowInstance: ReturnType<typeof useReactFlow>;
   onSelectionStartBase: (event: ReactMouseEvent) => void;
@@ -130,11 +255,7 @@ export function useSelectionEvents({
     const allEdges = reactFlowInstance.getEdges();
     const edgeSelections: Record<string, boolean> = {};
 
-    const intersectsSelectionRect = (rect: DOMRect): boolean =>
-      rect.right >= minX &&
-      rect.left <= maxX &&
-      rect.bottom >= minY &&
-      rect.top <= maxY;
+    const selectionScreenRect = { minX, maxX, minY, maxY };
 
     allEdges.forEach((edge) => {
       const edgeElement = document.querySelector(
@@ -145,14 +266,18 @@ export function useSelectionEvents({
         return;
       }
 
-      const edgePath = edgeElement.querySelector(".react-flow__edge-path");
+      const edgePath = edgeElement.querySelector<SVGPathElement>(
+        ".react-flow__edge-path"
+      );
       if (!edgePath) {
         edgeSelections[edge.id] = false;
         return;
       }
 
-      const edgeBounds = edgePath.getBoundingClientRect();
-      edgeSelections[edge.id] = intersectsSelectionRect(edgeBounds);
+      edgeSelections[edge.id] = edgePathIntersectsRect(
+        edgePath,
+        selectionScreenRect
+      );
     });
 
     setEdgeSelectionState(edgeSelections);

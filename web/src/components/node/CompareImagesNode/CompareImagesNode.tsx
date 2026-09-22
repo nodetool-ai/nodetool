@@ -194,6 +194,8 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
             paramName="image_a"
             handlePosition="left"
             enableHover={false}
+            nodeId={props.id}
+            handleDirection="target"
           >
             <Handle
               type="target"
@@ -211,6 +213,8 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
             paramName="image_b"
             handlePosition="left"
             enableHover={false}
+            nodeId={props.id}
+            handleDirection="target"
           >
             <Handle
               type="target"

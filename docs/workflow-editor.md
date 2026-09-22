@@ -4,7 +4,7 @@ title: "Workflow Editor"
 description: "The canvas — build, test, refine."
 ---
 
-The canvas: place nodes, connect ports, run, debug. Covers basic navigation through node bypass and auto layout.
+The canvas: place nodes, connect ports, run, debug. Covers basic navigation through disabling nodes and auto layout.
 
 > New here? Start with [Getting Started](getting-started.md), then come back.
 
@@ -99,18 +99,21 @@ Each node does one thing.
 - **Arrow keys** to nudge
 - **Auto Layout** button to organize
 
-### Bypass Nodes
+### Disable Nodes
 
-Skip temporarily without deleting:
+Exclude nodes from a run without deleting them:
 
 1. Right-click node
-2. Select **Bypass Node**
-3. Node dims, data passes through
+2. Select **Disable Node**
+3. The node dims
+
+A disabled node and every connection to or from it are excluded from the
+submitted graph. Data does not pass through the node.
 
 Good for:
-- **Testing** - Compare with/without
-- **Debugging** - Isolate problems
-- **A/B testing** - Toggle effects
+- **Testing** - Run a smaller part of the graph
+- **Debugging** - Exclude a failing or costly branch
+- **Editing** - Keep unfinished nodes on the canvas without executing them
 
 Re-enable: Right-click → **Enable Node**
 
@@ -154,8 +157,13 @@ When you drag a connection and release on **empty space**, the **Connection Menu
 
 | Method | How |
 |--------|-----|
-| Button | Click **Run** in the bottom toolbar |
+| Button | Click **Run entire workflow** in the bottom toolbar |
 | Keyboard | `Ctrl/⌘ + Enter` |
+| Command menu | Select **Run Entire Workflow** |
+
+All three methods run the entire enabled graph. They use the same checks for
+missing models, search-provider setup, large runs, and additional concurrent
+runs.
 
 ### Watching Progress
 
@@ -163,13 +171,15 @@ When you drag a connection and release on **empty space**, the **Connection Menu
 - **Preview nodes** display intermediate results
 - **Node borders** indicate status (running, complete, error)
 - **Edge animations** show data flowing between nodes
+- The main run control shows **Starting**, **Queued**, **Running**, **Stopping**,
+  or **Error** without requiring a tooltip
 
 
 ### Stopping a Run
 
 | Method | How |
 |--------|-----|
-| Button | Click **Stop** (shown only while the run state is `running`) |
+| Button | Click **Stop** while a run is starting, queued, or running |
 | Keyboard | `Esc` |
 
 ---
@@ -256,7 +266,7 @@ Right-click for options anywhere:
 | Location | Options |
 |----------|---------|
 | **Canvas** | Add node, paste, select all |
-| **Node header** | Copy, copy as JSON, duplicate, delete, group, bypass |
+| **Node header** | Copy, copy as JSON, duplicate, delete, group, disable |
 | **Input/Output** | Disconnect, add compatible node |
 | **Connection** | Delete, add node in middle |
 
@@ -323,7 +333,7 @@ The color picker appears when selecting colors in properties:
 | Shortcut | Action |
 |----------|--------|
 | `Space` | Open node menu |
-| `Ctrl/⌘ + Enter` | Run workflow |
+| `Ctrl/⌘ + Enter` | Run entire workflow |
 | `Ctrl/⌘ + S` | Save |
 | `Ctrl/⌘ + Z` | Undo |
 | `F` | Fit view |
@@ -363,7 +373,7 @@ The color picker appears when selecting colors in properties:
 - **Add Preview nodes** between steps to see exactly what data each node produces
 - **Check connections** — verify data types match (connection colors indicate type)
 - **Look at node borders** — red = error, yellow = running, green = completed
-- **Test incrementally** — bypass downstream nodes and run partial workflows to isolate problems
+- **Test incrementally** — disable downstream nodes and run smaller graphs to isolate problems
 - **Use the Inspector** — press `i` to see detailed error messages and validation warnings
 
 ### Performance

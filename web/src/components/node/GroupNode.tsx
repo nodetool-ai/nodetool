@@ -644,7 +644,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           {hasChildren && (
             <div style={POPOVER_ROW_STYLE}>
               <span style={menuTextStyle}>
-                {someChildrenBypassed ? "Enable all nodes" : "Bypass all nodes"}
+                {someChildrenBypassed ? "Enable all nodes" : "Disable all nodes"}
               </span>
               <BypassGroupButton
                 isBypassed={someChildrenBypassed}

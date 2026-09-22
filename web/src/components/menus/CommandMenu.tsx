@@ -47,6 +47,7 @@ import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useCanvasChatDockStore } from "../../stores/CanvasChatDockStore";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
+import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";
 
 // Icons — Workflow
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
@@ -184,20 +185,16 @@ const WorkflowCommands = memo(function WorkflowCommands() {
   // Optimization: use shallow equality to prevent the CommandMenu from
   // re-rendering 60 times a second on unrelated node position updates
   const {
-    nodes,
-    edges,
     currentWorkflow,
     workflowJSON,
     autoLayout
   } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
     currentWorkflow: state.workflow,
     workflowJSON: state.workflowJSON,
     autoLayout: state.autoLayout
   }), shallow);
-  const run = useWebsocketRunner((state) => state.run);
   const cancel = useWebsocketRunner((state) => state.cancel);
+  const { handleRun } = useFloatingToolbarActions();
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -213,10 +210,6 @@ const WorkflowCommands = memo(function WorkflowCommands() {
   const createWorkflow = useWorkflowManager((state) => state.create);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bundleInputRef = useRef<HTMLInputElement>(null);
-
-  const runWorkflow = useCallback(() => {
-    run({}, currentWorkflow, nodes, edges);
-  }, [run, currentWorkflow, nodes, edges]);
 
   const downloadWorkflow = useCallback(() => {
     const blob = new Blob([workflowJSON()], { type: "application/json" });
@@ -385,8 +378,8 @@ const WorkflowCommands = memo(function WorkflowCommands() {
         onChange={handleBundleFileChange}
       />
     <Command.Group heading="Workflow">
-      <Command.Item onSelect={() => executeAndClose(runWorkflow)}>
-        <PlayArrowRoundedIcon /> Run Workflow
+      <Command.Item onSelect={() => executeAndClose(handleRun)}>
+        <PlayArrowRoundedIcon /> Run Entire Workflow
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(handleSave)}>
         <SaveRoundedIcon /> Save Workflow
@@ -495,7 +488,7 @@ const EditCommands = memo(function EditCommands({
         <GroupWorkRoundedIcon /> Group Selected
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(toggleBypassSelected)}>
-        <BlockRoundedIcon /> Bypass Node
+        <BlockRoundedIcon /> Disable Selected Nodes
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(openFind)}>
         <SearchRoundedIcon /> Find in Workflow
@@ -609,7 +602,7 @@ const ViewCommands = memo(function ViewCommands() {
 
 const PanelCommands = memo(function PanelCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
-  const rightPanelToggle = useRightPanelStore((state) => state.handleViewChange);
+  const rightPanelToggle = useRightPanelStore((state) => state.toggleInspector);
   const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
   const toggleConversation = useCanvasChatDockStore(
     (state) => state.toggleConversation
@@ -618,7 +611,7 @@ const PanelCommands = memo(function PanelCommands() {
   return (
     <Command.Group heading="Panels">
       <Command.Item
-        onSelect={() => executeAndClose(() => rightPanelToggle("inspector"))}
+        onSelect={() => executeAndClose(rightPanelToggle)}
       >
         <InfoRoundedIcon /> Toggle Inspector
       </Command.Item>

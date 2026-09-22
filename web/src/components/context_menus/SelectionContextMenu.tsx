@@ -279,12 +279,12 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
 
       <ContextMenuItem
         onClick={handleToggleBypass}
-        label={majorityBypassed ? "Enable All" : "Bypass All"}
+        label={majorityBypassed ? "Enable All" : "Disable All"}
         IconComponent={<BlockIcon />}
         tooltip={
           <div className="tooltip-span">
             <div className="tooltip-title">
-              {majorityBypassed ? "Enable Nodes" : "Bypass Nodes"}
+              {majorityBypassed ? "Enable Nodes" : "Disable Nodes"}
             </div>
             <div className="tooltip-key">
               <kbd>B</kbd>

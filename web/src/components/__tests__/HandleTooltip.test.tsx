@@ -7,6 +7,7 @@ import { asMock } from "../../test-utils/doubles";
 import { HandleTooltip } from '../HandleTooltip';
 import { TypeMetadata } from '../../stores/ApiTypes';
 import useConnectionStore from '../../stores/ConnectionStore';
+import { PortLabelVisibilityContext } from '../../contexts/PortLabelVisibilityContext';
 
 // Mock the dependencies
 jest.mock('../../utils/MousePosition', () => ({
@@ -23,6 +24,11 @@ jest.mock('react-dom', () => ({
 }));
 
 jest.mock('../../stores/ConnectionStore');
+jest.mock('../node/KeyboardConnectionPicker', () => ({
+  __esModule: true,
+  default: ({ open }: { open: boolean }) =>
+    open ? <div role="dialog">Connection picker</div> : null
+}));
 
 const mockUseConnectionStore = asMock(useConnectionStore);
 
@@ -113,6 +119,20 @@ describe('HandleTooltip', () => {
   });
 
   describe('Keyboard Navigation', () => {
+    it('opens the connection picker with Enter', () => {
+      render(
+        <HandleTooltip
+          {...defaultProps}
+          nodeId="node-1"
+          handleDirection="source"
+        />
+      );
+
+      fireEvent.keyDown(screen.getByRole('button'), { key: 'Enter' });
+
+      expect(screen.getByRole('dialog')).toHaveTextContent('Connection picker');
+    });
+
     it('should show tooltip on focus', async () => {
       render(<HandleTooltip {...defaultProps} />);
 
@@ -307,6 +327,18 @@ describe('HandleTooltip', () => {
         const tooltipType = document.querySelector('.handle-tooltip-type');
         expect(tooltipType).toHaveTextContent('string');
       });
+    });
+
+    it('keeps port labels visible when the canvas toggle is enabled', () => {
+      render(
+        <PortLabelVisibilityContext.Provider value>
+          <HandleTooltip {...defaultProps} />
+        </PortLabelVisibilityContext.Provider>
+      );
+
+      expect(document.querySelector('.handle-tooltip-name')).toHaveTextContent(
+        'Test Param'
+      );
     });
   });
 

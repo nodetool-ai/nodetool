@@ -1,25 +1,45 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
-import { CopyButton, DeleteButton, DownloadButton, EmptyState, ScrollArea, SPACING, getSpacingPx } from "../ui_primitives";
-import PanelToolbar from "./PanelToolbar";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ErrorIcon from "@mui/icons-material/Error";
+import { css } from "@emotion/react";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import BuildIcon from "@mui/icons-material/Build";
-import OutputIcon from "@mui/icons-material/Output";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ChecklistIcon from "@mui/icons-material/Checklist";
-import TaskAltIcon from "@mui/icons-material/TaskAlt";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ErrorIcon from "@mui/icons-material/Error";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import useTraceStore from "../../stores/TraceStore";
-import type { TraceEvent, TraceEventType } from "../../stores/TraceStore";
-import { isObjectLike, isString } from "../../utils/typePredicates";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import OutputIcon from "@mui/icons-material/Output";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+import { useNavigate } from "react-router-dom";
 
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { requestFitNode } from "../../hooks/useFitNodeEvent";
+import useTraceStore from "../../stores/TraceStore";
+import type {
+  TraceEvent,
+  TraceEventType,
+  TraceRun,
+  TraceRunContext
+} from "../../stores/TraceStore";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { formatTimeOfDay } from "../../utils/formatUtils";
+import { isObjectLike, isString } from "../../utils/typePredicates";
+import {
+  CopyButton,
+  DeleteButton,
+  DownloadButton,
+  EmptyState,
+  ScrollArea,
+  SelectField,
+  SPACING,
+  TextLink,
+  getSpacingPx
+} from "../ui_primitives";
+import PanelToolbar from "./PanelToolbar";
 
 const EVENT_ICONS = {
   node_start: <PlayArrowIcon sx={{ fontSize: 14, color: "info.main" }} />,
@@ -61,8 +81,9 @@ const styles = (theme: Theme) =>
     },
     ".trace-time": {
       color: theme.vars.palette.text.disabled,
-      minWidth: 60,
+      minWidth: 150,
       flexShrink: 0,
+      fontVariantNumeric: "tabular-nums",
     },
     ".trace-icon": {
       flexShrink: 0,
@@ -74,6 +95,19 @@ const styles = (theme: Theme) =>
       flex: 1,
       color: theme.vars.palette.text.primary,
       wordBreak: "break-word",
+    },
+    ".trace-context": {
+      color: theme.vars.palette.text.secondary,
+      whiteSpace: "nowrap",
+    },
+    ".trace-context-separator": {
+      color: theme.vars.palette.text.disabled,
+      margin: `0 ${getSpacingPx(SPACING.xs)}`,
+    },
+    ".trace-node-link": {
+      fontFamily: "inherit",
+      fontSize: "inherit",
+      lineHeight: "inherit",
     },
     ".trace-detail": {
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(20)}`, // 80px
@@ -104,6 +138,17 @@ function formatRelativeTime(ms: number): string {
   if (ms < 1000) {return `+${ms}ms`;}
   return `+${(ms / 1000).toFixed(1)}s`;
 }
+
+const shortRunLabel = (jobId: string): string => `Run #${jobId.slice(0, 8)}`;
+
+const traceRunLabel = (run: TraceRun, activeRunId: string | null): string => {
+  const workflowName = run.context?.workflowName ?? "Workflow";
+  const runLabel = run.context?.jobId
+    ? shortRunLabel(run.context.jobId)
+    : `Run at ${formatTimeOfDay(run.startTime)}`;
+  const status = run.id === activeRunId ? " (current)" : "";
+  return `${workflowName} · ${runLabel}${status}`;
+};
 
 function getOutputText(detail: unknown): string | null {
   if (!detail || !isObjectLike(detail)) return null;
@@ -168,12 +213,16 @@ function LLMDetail({ detail }: { detail: LLMCallDetail }) {
 
 const TraceRow = memo(function TraceRow({
   event,
+  runContext,
   expanded,
   onToggle,
+  onRevealNode,
 }: {
   event: TraceEvent;
+  runContext: TraceRunContext | null;
   expanded: boolean;
   onToggle: (id: string) => void;
+  onRevealNode: (workflowId: string, nodeId: string) => void;
 }) {
   const handleClick = useCallback(() => onToggle(event.id), [onToggle, event.id]);
   const outputText = event.type === "output" ? getOutputText(event.detail) : null;
@@ -181,6 +230,15 @@ const TraceRow = memo(function TraceRow({
     outputText !== null
       ? `${event.summary}: ${outputText.length > 80 ? outputText.slice(0, 80) + "…" : outputText}`
       : event.summary;
+  const handleRevealNode = useCallback(
+    (clickEvent: React.MouseEvent) => {
+      clickEvent.stopPropagation();
+      if (runContext && event.nodeId) {
+        onRevealNode(runContext.workflowId, event.nodeId);
+      }
+    },
+    [event.nodeId, onRevealNode, runContext]
+  );
 
   return (
     <>
@@ -192,8 +250,37 @@ const TraceRow = memo(function TraceRow({
         tabIndex={0}
         aria-expanded={expanded}
       >
-        <span className="trace-time">{formatRelativeTime(event.relativeMs)}</span>
+        <span className="trace-time">
+          {formatTimeOfDay(event.timestamp)} ({formatRelativeTime(event.relativeMs)})
+        </span>
         <span className="trace-icon">{EVENT_ICONS[event.type]}</span>
+        {runContext ? (
+          <span className="trace-context">
+            <span title={runContext.workflowId}>{runContext.workflowName}</span>
+            {runContext.jobId ? (
+              <>
+                <span className="trace-context-separator">→</span>
+                <span title={runContext.jobId}>
+                  {shortRunLabel(runContext.jobId)}
+                </span>
+              </>
+            ) : null}
+            {event.nodeId ? (
+              <>
+                <span className="trace-context-separator">→</span>
+                <TextLink
+                  asButton
+                  className="trace-node-link"
+                  onClick={handleRevealNode}
+                  aria-label={`Reveal node ${event.nodeName || event.nodeId}`}
+                >
+                  {event.nodeName || event.nodeId}
+                </TextLink>
+              </>
+            ) : null}
+            <span className="trace-context-separator">·</span>
+          </span>
+        ) : null}
         <span className="trace-summary">{displaySummary}</span>
         {expanded ? (
           <ExpandLessIcon sx={{ fontSize: 14, color: "text.disabled" }} />
@@ -218,10 +305,33 @@ const TraceRow = memo(function TraceRow({
 
 const TracePanel: React.FC = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
+  const runs = useTraceStore((s) => s.runs);
+  const activeRunId = useTraceStore((s) => s.activeRunId);
+  const selectedRunId = useTraceStore((s) => s.selectedRunId);
   const events = useTraceStore((s) => s.events);
+  const runContext = useTraceStore((s) => s.runContext);
+  const selectRun = useTraceStore((s) => s.selectRun);
   const clear = useTraceStore((s) => s.clear);
   const exportJSON = useTraceStore((s) => s.exportJSON);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const currentWorkflowId = useWorkflowManager(
+    (state) => state.currentWorkflowId
+  );
+  const setCurrentWorkflowId = useWorkflowManager(
+    (state) => state.setCurrentWorkflowId
+  );
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const setActiveTab = useWorkspaceTabsStore((state) => state.setActiveTab);
+
+  const runOptions = useMemo(
+    () =>
+      runs.map((run) => ({
+        value: run.id,
+        label: traceRunLabel(run, activeRunId)
+      })),
+    [activeRunId, runs]
+  );
 
   // Collapse consecutive output events from the same node+output into one
   // row. Streaming output_update values are deltas (ResultsStore accumulates
@@ -268,6 +378,33 @@ const TracePanel: React.FC = () => {
       return next;
     });
   }, []);
+
+  const handleRevealNode = useCallback(
+    (workflowId: string, nodeId: string) => {
+      const workflowTabId = openTab({
+        type: "workflow",
+        ref: workflowId,
+        mode: "edit",
+        title:
+          runs.find((run) => run.context?.workflowId === workflowId)?.context
+            ?.workflowName ?? "Workflow"
+      });
+      setActiveTab(workflowTabId);
+      if (currentWorkflowId !== workflowId) {
+        setCurrentWorkflowId(workflowId);
+      }
+      navigate("/workspace");
+      requestFitNode({ workflowId, nodeId });
+    },
+    [
+      currentWorkflowId,
+      navigate,
+      openTab,
+      runs,
+      setActiveTab,
+      setCurrentWorkflowId
+    ]
+  );
 
   const handleExport = useCallback(() => {
     const json = exportJSON();
@@ -316,7 +453,19 @@ const TracePanel: React.FC = () => {
             />
           </>
         }
-      />
+      >
+        {runs.length > 0 && selectedRunId ? (
+          <SelectField
+            label="Trace run"
+            hideLabel
+            size="small"
+            variant="standard"
+            value={selectedRunId}
+            options={runOptions}
+            onChange={selectRun}
+          />
+        ) : null}
+      </PanelToolbar>
       <ScrollArea className="trace-list" direction="both">
         {events.length === 0 ? (
           <EmptyState
@@ -330,8 +479,10 @@ const TracePanel: React.FC = () => {
             <TraceRow
               key={event.id}
               event={event}
+              runContext={runContext}
               expanded={expandedIds.has(event.id)}
               onToggle={handleToggle}
+              onRevealNode={handleRevealNode}
             />
           ))
         )}

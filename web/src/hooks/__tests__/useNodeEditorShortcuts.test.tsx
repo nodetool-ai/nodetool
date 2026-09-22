@@ -199,4 +199,19 @@ describe("useNodeEditorShortcuts", () => {
     const hasSpaceShortcut = calls.some(([combo]) => combo === " ");
     expect(hasSpaceShortcut).toBe(true);
   });
+
+  it("registers graph mutations in the canvas scope", () => {
+    renderHook(() => useNodeEditorShortcuts(true));
+
+    const calls = jest.mocked(registerComboCallback).mock.calls;
+    const mutationCombos = new Set(["b", "delete", "backspace"]);
+    const registrations = calls.filter(([combo]) => mutationCombos.has(combo));
+
+    expect(registrations.map(([combo]) => combo)).toEqual(
+      expect.arrayContaining(["b", "delete", "backspace"])
+    );
+    for (const [, options] of registrations) {
+      expect(options).toEqual(expect.objectContaining({ scope: "canvas" }));
+    }
+  });
 });

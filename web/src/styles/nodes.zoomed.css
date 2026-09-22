@@ -71,8 +71,6 @@
 .react-flow.zoomed-out .node-property .property-label,
 .react-flow.zoomed-out .audio-controls-container,
 .react-flow.zoomed-out .multi-outputs,
-.react-flow.zoomed-out .node-title,
-.react-flow.zoomed-out .node-header span,
 .react-flow.zoomed-out .node-header .menu-button,
 .react-flow.zoomed-out .node-footer,
 .react-flow.zoomed-out .node-status,
@@ -92,6 +90,23 @@
   pointer-events: none;
   transition: opacity var(--motion-slow) ease-out,
     visibility var(--motion-slow) ease-out;
+}
+
+/* Selection establishes a readable upstream/downstream branch at every zoom. */
+.react-flow .react-flow__node.branch-dimmed,
+.react-flow .react-flow__edge.branch-dimmed {
+  opacity: 0.2;
+}
+
+.react-flow .react-flow__node.branch-related,
+.react-flow .react-flow__edge.branch-related {
+  opacity: 1;
+}
+
+/* Overview keeps the purpose label even while detail controls are hidden. */
+.react-flow.zoomed-out .react-flow__node .node-header .node-title {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Keep media outputs visible; hide text-like preview outputs only */

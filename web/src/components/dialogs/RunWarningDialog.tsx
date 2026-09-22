@@ -4,7 +4,7 @@ import { useRunWarningStore } from "../../stores/RunWarningStore";
 import { Dialog, Checkbox, Text, FlexColumn } from "../ui_primitives";
 
 /**
- * Confirmation shown before a "Run Workflow" that would execute many
+ * Confirmation shown before a "Run Entire Workflow" action that would execute many
  * provider/model nodes at once. Mounted once at the app root; driven entirely
  * by {@link useRunWarningStore}.
  */
@@ -36,7 +36,11 @@ const RunWarningDialog: React.FC = () => {
     <Dialog
       open={open}
       onClose={handleCancel}
-      title={isConcurrent ? "Start another run?" : "Run this workflow?"}
+      title={
+        isConcurrent
+          ? "Start another entire workflow run?"
+          : "Run the entire workflow?"
+      }
       onConfirm={handleConfirm}
       onCancel={handleCancel}
       confirmText={isConcurrent ? "Start second run" : "Run anyway"}

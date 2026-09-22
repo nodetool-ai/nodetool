@@ -204,7 +204,9 @@ export class EditorPage {
   }
 
   async run(): Promise<void> {
-    await this.page.getByRole("button", { name: "Run workflow" }).click();
+    await this.page
+      .getByRole("button", { name: "Run entire workflow", exact: true })
+      .click();
   }
 
   /** Resolves when the canvas shows `text` (an Output node renders its value). */

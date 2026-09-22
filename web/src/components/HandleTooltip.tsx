@@ -4,6 +4,8 @@ import { typeToString } from "../utils/TypeHandler";
 import { TypeMetadata } from "../stores/ApiTypes";
 import useConnectionStore from "../stores/ConnectionStore";
 import { NodeSelectionContext } from "./node/NodeSelectionContext";
+import KeyboardConnectionPicker from "./node/KeyboardConnectionPicker";
+import { PortLabelVisibilityContext } from "../contexts/PortLabelVisibilityContext";
 
 const ENTER_DELAY = 1200;
 
@@ -40,6 +42,8 @@ type HandleTooltipProps = {
   handlePosition: "left" | "right";
   enableHover?: boolean;
   variant?: "handle" | "property";
+  nodeId?: string;
+  handleDirection?: "source" | "target";
 };
 
 const HandleTooltip = memo(function HandleTooltip({
@@ -50,11 +54,15 @@ const HandleTooltip = memo(function HandleTooltip({
   children,
   handlePosition,
   enableHover = true,
-  variant = "handle"
+  variant = "handle",
+  nodeId,
+  handleDirection
 }: HandleTooltipProps) {
   const isPropertyVariant = variant === "property";
   const [showTooltip, setShowTooltip] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [connectionPickerOpen, setConnectionPickerOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   // Lazy: `useRef(generateTooltipId())` would call the generator on every
   // render of every handle only to discard the result.
   const tooltipIdRef = useRef<string | null>(null);
@@ -66,6 +74,7 @@ const HandleTooltip = memo(function HandleTooltip({
   // so the user can see every port's name + type at a glance without
   // hovering each one. Selection toggles cleanly via the context provider.
   const nodeSelected = useContext(NodeSelectionContext);
+  const showAllPortLabels = useContext(PortLabelVisibilityContext);
 
   const showTimerRef = useRef<number | null>(null);
 
@@ -93,7 +102,12 @@ const HandleTooltip = memo(function HandleTooltip({
   }, [isConnecting]);
 
   useEffect(() => {
-    if (isPropertyVariant || !nodeSelected || isConnecting || !enableHover) {
+    if (
+      isPropertyVariant ||
+      (!nodeSelected && !showAllPortLabels) ||
+      isConnecting ||
+      !enableHover
+    ) {
       if (!isPropertyVariant) {
         setShowTooltip(false);
       }
@@ -104,7 +118,13 @@ const HandleTooltip = memo(function HandleTooltip({
       showTimerRef.current = null;
     }
     setShowTooltip(true);
-  }, [nodeSelected, isConnecting, enableHover, isPropertyVariant]);
+  }, [
+    nodeSelected,
+    showAllPortLabels,
+    isConnecting,
+    enableHover,
+    isPropertyVariant
+  ]);
 
   const prettyName = useMemo(
     () =>
@@ -142,11 +162,11 @@ const HandleTooltip = memo(function HandleTooltip({
       showTimerRef.current = null;
     }
     setIsHovering(false);
-    if (!isPropertyVariant && nodeSelected) {
+    if (!isPropertyVariant && (nodeSelected || showAllPortLabels)) {
       return;
     }
     setShowTooltip(false);
-  }, [nodeSelected, isPropertyVariant]);
+  }, [nodeSelected, showAllPortLabels, isPropertyVariant]);
 
   const handleFocus = useCallback(() => {
     if (!enableHover) {
@@ -158,11 +178,37 @@ const HandleTooltip = memo(function HandleTooltip({
 
   const handleBlur = useCallback(() => {
     setIsHovering(false);
-    if (!isPropertyVariant && nodeSelected) {
+    if (!isPropertyVariant && (nodeSelected || showAllPortLabels)) {
       return;
     }
     setShowTooltip(false);
-  }, [nodeSelected, isPropertyVariant]);
+  }, [nodeSelected, showAllPortLabels, isPropertyVariant]);
+
+  const canOpenConnectionPicker =
+    !isPropertyVariant && nodeId !== undefined && handleDirection !== undefined;
+
+  const openConnectionPicker = useCallback(() => {
+    if (canOpenConnectionPicker) {
+      setConnectionPickerOpen(true);
+    }
+  }, [canOpenConnectionPicker]);
+
+  const closeConnectionPicker = useCallback(() => {
+    setConnectionPickerOpen(false);
+    window.requestAnimationFrame(() => wrapperRef.current?.focus());
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      openConnectionPicker();
+    },
+    [openConnectionPicker]
+  );
 
   // While a connection is being dragged, expose the names of every handle
   // that ReactFlow marked as compatible (the same `is-connectable` class
@@ -208,15 +254,19 @@ const HandleTooltip = memo(function HandleTooltip({
 
   return (
     <div
+      ref={wrapperRef}
       className={`handle-tooltip-wrapper${isPropertyVariant ? " property-tooltip-wrapper" : ""} ${className}`.trim()}
       onMouseEnter={isPropertyVariant ? handleMouseEnter : undefined}
       onMouseLeave={isPropertyVariant ? handleMouseLeave : undefined}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onKeyDown={isPropertyVariant ? undefined : handleKeyDown}
       tabIndex={isPropertyVariant ? -1 : 0}
       role={isPropertyVariant ? undefined : "button"}
       aria-label={isPropertyVariant ? undefined : `${prettyName} (${displayType})`}
       aria-describedby={effectiveShow ? tooltipIdRef.current : undefined}
+      aria-haspopup={canOpenConnectionPicker ? "dialog" : undefined}
+      aria-expanded={canOpenConnectionPicker ? connectionPickerOpen : undefined}
     >
       {interactiveChildren}
       {handleShow && (
@@ -261,6 +311,16 @@ const HandleTooltip = memo(function HandleTooltip({
           <div className="property-handle-tooltip-type">{displayType}</div>
         </div>
       )}
+      {canOpenConnectionPicker && nodeId && handleDirection ? (
+        <KeyboardConnectionPicker
+          open={connectionPickerOpen}
+          nodeId={nodeId}
+          handleId={paramName}
+          direction={handleDirection}
+          typeMetadata={typeMetadata}
+          onClose={closeConnectionPicker}
+        />
+      ) : null}
     </div>
   );
 });

@@ -5,7 +5,11 @@ import { shallow } from "zustand/shallow";
 import { css } from "@emotion/react";
 import useConnectableNodesStore, { ConnectableNodesState } from "../../stores/ConnectableNodesStore";
 import { useReactFlow } from "@xyflow/react";
-import { isConnectable, Slugify } from "../../utils/TypeHandler";
+import {
+  isConnectable,
+  Slugify,
+  typeToString
+} from "../../utils/TypeHandler";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { rankSearchNodes } from "../../utils/nodeSearch";
 
@@ -31,6 +35,11 @@ import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
+import { useContextMenuActions } from "../../stores/ContextMenuStore";
+import type {
+  ConnectionMatchMenuPayload,
+  ConnectionMatchOption
+} from "./ConnectionMatchMenu";
 
 const NODE_ROW_HEIGHT = 34;
 
@@ -132,7 +141,7 @@ const searchNodesHelper = (
   return rankSearchNodes(nodes, searchTerm, recentNodeTypes);
 };
 
-const getPreferredConnectableInput = (
+export const getCompatibleConnectableInputs = (
   metadata: NodeMetadata,
   typeMetadata: NonNullable<ConnectableNodesState["typeMetadata"]>
 ) => {
@@ -142,7 +151,7 @@ const getPreferredConnectableInput = (
   );
 
   if (compatibleProperties.length === 0) {
-    return null;
+    return [];
   }
 
   // A property typed `any` accepts everything, so it is the weakest match —
@@ -153,21 +162,15 @@ const getPreferredConnectableInput = (
   const candidates =
     typedProperties.length > 0 ? typedProperties : compatibleProperties;
 
-  // Prefer a property classified as an input port (the node's "primary"
-  // wired-from-upstream slot); fall back to the first compatible property.
   const inputFields = metadata.input_fields ?? [];
-  return (
-    candidates.find((property) => inputFields.includes(property.name)) ||
-    candidates[0]
+  const declaredInputs = candidates.filter((property) =>
+    inputFields.includes(property.name)
   );
+  return declaredInputs.length > 0 ? declaredInputs : candidates;
 };
 
-/**
- * The output slot to wire into the input handle the drag started from: the
- * first one the connection policy accepts, preferring a typed slot over one
- * declared `any` (which matches everything and so says the least).
- */
-const getPreferredConnectableOutput = (
+/** Compatible output slots, excluding `any` when a typed match exists. */
+export const getCompatibleConnectableOutputs = (
   metadata: NodeMetadata,
   typeMetadata: NonNullable<ConnectableNodesState["typeMetadata"]>
 ) => {
@@ -176,13 +179,13 @@ const getPreferredConnectableOutput = (
   );
 
   if (compatibleOutputs.length === 0) {
-    return null;
+    return [];
   }
 
-  return (
-    compatibleOutputs.find((output) => output.type.type !== "any") ||
-    compatibleOutputs[0]
+  const typedOutputs = compatibleOutputs.filter(
+    (output) => output.type.type !== "any"
   );
+  return typedOutputs.length > 0 ? typedOutputs : compatibleOutputs;
 };
 
 const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
@@ -191,6 +194,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   const reactFlowInstance = useReactFlow();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const autoFocusEnabled = useAutoFocusEnabled();
+  const { openContextMenu } = useContextMenuActions();
   const recentNodes = useRecentNodesStore((state) => state.recentNodes);
   const recentNodeTypes = useMemo(
     () => recentNodes.map((node) => node.nodeType),
@@ -258,17 +262,56 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
       newNode.width = 200;
       newNode.height = 200;
 
-      addNode(newNode);
-
       if (nodeId) {
         // When filterType is "input", we're looking at nodes with compatible inputs
         // because we started from an output handle
         if (filterType === "input" && typeMetadata) {
-          const property = getPreferredConnectableInput(
+          const compatibleInputs = getCompatibleConnectableInputs(
             metadata,
             typeMetadata
           );
-          if (!property) {return;}
+          if (compatibleInputs.length === 0) {return;}
+          if (compatibleInputs.length > 1) {
+            const options: ConnectionMatchOption[] = compatibleInputs.map(
+              (property) => ({
+                id: property.name,
+                label: `Connect to: ${property.name}`,
+                typeLabel: typeToString(property.type),
+                connection: {
+                  source: nodeId,
+                  target: newNode.id,
+                  sourceHandle,
+                  targetHandle: property.name
+                }
+              })
+            );
+            const payload: ConnectionMatchMenuPayload = {
+              options,
+              onSelect: (option) => {
+                addNode(newNode);
+                addEdge({
+                  ...option.connection,
+                  id: generateEdgeId(),
+                  type: "default",
+                  className: Slugify(typeMetadata.type || "")
+                });
+              }
+            };
+            openContextMenu(
+              "connection-match-menu",
+              newNode.id,
+              menuPosition?.x ?? 0,
+              menuPosition?.y ?? 0,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              payload
+            );
+            return;
+          }
+          const property = compatibleInputs[0];
           const edge = {
             id: generateEdgeId(),
             source: nodeId, // FROM existing node
@@ -278,14 +321,63 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             type: "default",
             className: Slugify(typeMetadata?.type || "")
           };
+          addNode(newNode);
           addEdge(edge);
+          return;
         }
 
         // When filterType is "output", we're looking at nodes with compatible outputs
         // because we started from an input handle
         if (filterType === "output" && typeMetadata) {
-          const output = getPreferredConnectableOutput(metadata, typeMetadata);
-          if (!output) {return;}
+          const compatibleOutputs = getCompatibleConnectableOutputs(
+            metadata,
+            typeMetadata
+          );
+          if (compatibleOutputs.length === 0) {return;}
+          const primaryOutput = compatibleOutputs.find(
+            (output) => output.name === metadata.primary_output
+          );
+          if (compatibleOutputs.length > 1 && !primaryOutput) {
+            const options: ConnectionMatchOption[] = compatibleOutputs.map(
+              (output) => ({
+                id: output.name,
+                label: `Connect from: ${output.name}`,
+                typeLabel: typeToString(output.type),
+                connection: {
+                  source: newNode.id,
+                  target: nodeId,
+                  sourceHandle: output.name,
+                  targetHandle
+                }
+              })
+            );
+            const payload: ConnectionMatchMenuPayload = {
+              options,
+              onSelect: (option) => {
+                addNode(newNode);
+                addEdge({
+                  ...option.connection,
+                  id: generateEdgeId(),
+                  type: "default",
+                  className: Slugify(typeMetadata.type || "")
+                });
+              }
+            };
+            openContextMenu(
+              "connection-match-menu",
+              newNode.id,
+              menuPosition?.x ?? 0,
+              menuPosition?.y ?? 0,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              payload
+            );
+            return;
+          }
+          const output = primaryOutput ?? compatibleOutputs[0];
           const edge = {
             id: generateEdgeId(),
             source: newNode.id, // FROM new node
@@ -295,9 +387,13 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             type: "default",
             className: Slugify(typeMetadata?.type || "")
           };
+          addNode(newNode);
           addEdge(edge);
+          return;
         }
       }
+
+      addNode(newNode);
     },
     [
       reactFlowInstance,
@@ -310,7 +406,8 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
       createNode,
       addNode,
       addEdge,
-      generateEdgeId
+      generateEdgeId,
+      openContextMenu
     ]
   );
 

@@ -1373,6 +1373,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                   paramName={getLayerInputHandleName(layer.name)}
                   displayName={layer.name}
                   handlePosition="left"
+                  nodeId={props.id}
+                  handleDirection="target"
                 >
                   <Handle
                     type="target"

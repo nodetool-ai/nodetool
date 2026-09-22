@@ -1,9 +1,16 @@
-import { act } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
+import { act, renderHook } from "@testing-library/react";
 import {
   useKeyPressedStore,
+  useCombo,
+  initKeyListeners,
   registerComboCallback,
   unregisterComboCallback
 } from "../KeyPressedStore";
+import KeyboardProvider from "../../components/KeyboardProvider";
+
+const keyboardWrapper = ({ children }: { children: ReactNode }) =>
+  createElement(KeyboardProvider, null, children);
 
 describe("KeyPressedStore", () => {
   beforeEach(() => {
@@ -48,6 +55,40 @@ describe("KeyPressedStore", () => {
   });
 
   describe("setKeysPressed", () => {
+    it("fires reachable Control+Alt+digit zoom chords from real key events", () => {
+      const callback = jest.fn();
+      const unregister = registerComboCallback("1+alt+control", { callback });
+      const releaseListeners = initKeyListeners();
+
+      act(() => {
+        window.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "1",
+            code: "Digit1",
+            ctrlKey: true,
+            altKey: true,
+            bubbles: true
+          })
+        );
+      });
+
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        window.dispatchEvent(
+          new KeyboardEvent("keyup", {
+            key: "1",
+            code: "Digit1",
+            ctrlKey: true,
+            altKey: true,
+            bubbles: true
+          })
+        );
+      });
+      releaseListeners();
+      unregister();
+    });
+
     it("adds a pressed key", () => {
       const { setKeysPressed } = useKeyPressedStore.getState();
       act(() => {
@@ -256,6 +297,134 @@ describe("KeyPressedStore", () => {
       expect(callback).not.toHaveBeenCalled();
       unregisterComboCallback("control+s");
     });
+
+    it.each(["b", "delete"])(
+      "gives a focused widget priority over the canvas %s shortcut",
+      (key) => {
+        const callback = jest.fn();
+        const dispose = registerComboCallback(key, {
+          callback,
+          scope: "canvas"
+        });
+        const releaseListeners = initKeyListeners();
+        const button = document.createElement("button");
+        button.setAttribute("aria-label", "Inspector action");
+        document.body.appendChild(button);
+        button.focus();
+
+        act(() => {
+          window.dispatchEvent(
+            new KeyboardEvent("keydown", {
+              key: key === "delete" ? "Delete" : key,
+              bubbles: true
+            })
+          );
+        });
+
+        expect(callback).not.toHaveBeenCalled();
+
+        act(() => {
+          window.dispatchEvent(
+            new KeyboardEvent("keyup", {
+              key: key === "delete" ? "Delete" : key,
+              bubbles: true
+            })
+          );
+        });
+        button.remove();
+        releaseListeners();
+        dispose();
+      }
+    );
+
+    it("lets a component-local Escape handler close its focused widget", () => {
+      const callback = jest.fn();
+      const canvasCallback = jest.fn();
+      const dialog = document.createElement("div");
+      const input = document.createElement("input");
+      dialog.setAttribute("role", "dialog");
+      dialog.appendChild(input);
+      document.body.appendChild(dialog);
+      input.focus();
+
+      const { unmount } = renderHook(
+        () => useCombo(["escape"], callback),
+        { wrapper: keyboardWrapper }
+      );
+      const disposeCanvas = registerComboCallback("escape", {
+        callback: canvasCallback,
+        scope: "canvas"
+      });
+
+      act(() => {
+        window.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+        );
+      });
+
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(canvasCallback).not.toHaveBeenCalled();
+
+      act(() => {
+        window.dispatchEvent(
+          new KeyboardEvent("keyup", { key: "Escape", bubbles: true })
+        );
+      });
+      disposeCanvas();
+      unmount();
+      dialog.remove();
+    });
+
+    it.each([
+      ["control", { ctrlKey: true }],
+      ["meta", { metaKey: true }]
+    ] as const)(
+      "runs a component-local %s+Enter binding from a focused input",
+      (modifier, modifierInit) => {
+        const callback = jest.fn();
+        const input = document.createElement("input");
+        document.body.appendChild(input);
+        input.focus();
+
+        const { unmount } = renderHook(
+          () =>
+            useCombo([modifier, "enter"], callback, true, true, {
+              allowInInputs: true
+            }),
+          { wrapper: keyboardWrapper }
+        );
+
+        act(() => {
+          window.dispatchEvent(
+            new KeyboardEvent("keydown", {
+              key: "Enter",
+              bubbles: true,
+              ...modifierInit
+            })
+          );
+        });
+
+        expect(callback).toHaveBeenCalledTimes(1);
+
+        act(() => {
+          window.dispatchEvent(
+            new KeyboardEvent("keyup", {
+              key: "Enter",
+              bubbles: true,
+              ...modifierInit
+            })
+          );
+          window.dispatchEvent(
+            new KeyboardEvent("keyup", {
+              key: modifier === "control" ? "Control" : "Meta",
+              bubbles: true
+            })
+          );
+        });
+        unmount();
+        input.remove();
+      }
+    );
 
     it("unregisters combo callback", () => {
       const callback = jest.fn();

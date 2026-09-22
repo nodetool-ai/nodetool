@@ -4,7 +4,7 @@ import { create } from "zustand";
  * Session-scoped state for the run-confirmation dialog.
  *
  * Two situations ask for confirmation before starting a run:
- * - "heavy": the "Run Workflow" button executes every node in the workspace
+ * - "heavy": "Run Entire Workflow" executes every enabled node in the workspace
  *   at once; for graphs with many provider/model nodes that can fire a lot of
  *   API calls in one click. Suppressible per session.
  * - "concurrent": a run of this workflow is already in progress; confirming

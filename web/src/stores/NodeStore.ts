@@ -187,6 +187,10 @@ export interface NodeStoreState {
     id: string,
     properties: Record<string, unknown>
   ) => void;
+  updateNodesProperties: (
+    ids: readonly string[],
+    properties: Record<string, unknown>
+  ) => void;
   deleteNode: (id: string) => void;
   deleteNodes: (ids: string[]) => void;
   findEdge: (id: string) => Edge | undefined;
@@ -936,6 +940,40 @@ export const createNodeStore = (
               return { ...state, nodes };
             });
             get().setWorkflowDirty(true);
+          },
+          updateNodesProperties: (
+            ids: readonly string[],
+            properties: Record<string, unknown>
+          ): void => {
+            if (ids.length === 0) {
+              return;
+            }
+            const idsToUpdate = new Set(ids);
+            const workflow_id = get().workflow.id;
+            let changed = false;
+            set((state) => ({
+              ...state,
+              nodes: state.nodes.map((node) => {
+                if (!idsToUpdate.has(node.id)) {
+                  return node;
+                }
+                changed = true;
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    workflow_id,
+                    properties: {
+                      ...node.data.properties,
+                      ...properties
+                    }
+                  }
+                };
+              })
+            }));
+            if (changed) {
+              get().setWorkflowDirty(true);
+            }
           },
           deleteNode: (id: string): void => {
             get().deleteNodes([id]);

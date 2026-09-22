@@ -130,7 +130,6 @@ const styles = (theme: Theme) =>
       }
     },
     "& .result-name": {
-      flex: 1,
       fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.text.primary,
       overflow: "hidden",
@@ -142,6 +141,22 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       marginLeft: getSpacingPx(SPACING.md),
       maxWidth: "100px",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
+    "& .result-main": {
+      flex: 1,
+      minWidth: 0
+    },
+    "& .result-heading": {
+      display: "flex",
+      alignItems: "center"
+    },
+    "& .result-snippet": {
+      display: "block",
+      marginTop: getSpacingPx(SPACING.xs),
+      color: theme.vars.palette.text.secondary,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
@@ -214,7 +229,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       navigateNext,
       navigatePrevious,
       clearSearch,
-      selectNode,
+      activateResult,
       getNodeDisplayName
     } = useFindInWorkflow();
 
@@ -261,7 +276,11 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
     // window listener had.
     const inInputs = { active: isOpen, allowInInputs: true } as const;
     useGlobalCombo("escape", closeFind, inInputs);
-    useGlobalCombo("enter", navigateNext, inInputs);
+    const activateSelectedAndClose = useCallback(() => {
+      goToSelected();
+      closeFind();
+    }, [closeFind, goToSelected]);
+    useGlobalCombo("enter", activateSelectedAndClose, inInputs);
     useGlobalCombo("enter+shift", navigatePrevious, inInputs);
     useGlobalCombo("arrowdown", navigateNext, inInputs);
     useGlobalCombo("arrowup", navigatePrevious, inInputs);
@@ -279,11 +298,10 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
     const handleResultClick = useCallback(
       (event: React.MouseEvent<HTMLElement>) => {
         const index = Number(event.currentTarget.dataset.index);
-        selectNode(index);
-        goToSelected();
+        activateResult(index);
         closeFind();
       },
-      [selectNode, goToSelected, closeFind]
+      [activateResult, closeFind]
     );
 
     const handleClear = useCallback(() => {
@@ -393,12 +411,21 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
                   data-index={index}
                   onClick={handleResultClick}
                 >
-                  <Text className="result-name" size="small">
-                    {getNodeDisplayName(result.node)}
-                  </Text>
-                  <Caption className="result-type">
-                    {formatNodeType(result.node.type ?? "")}
-                  </Caption>
+                  <Box className="result-main">
+                    <Box className="result-heading">
+                      <Text className="result-name" size="small">
+                        {getNodeDisplayName(result.node)}
+                      </Text>
+                      <Caption className="result-type">
+                        {formatNodeType(result.node.type ?? "")}
+                      </Caption>
+                    </Box>
+                    {result.matchedField ? (
+                      <Caption className="result-snippet">
+                        {result.matchedField}: {result.matchSnippet}
+                      </Caption>
+                    ) : null}
+                  </Box>
                 </ListItemButton>
               </ListItem>
             ))}

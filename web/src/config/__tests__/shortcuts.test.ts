@@ -41,6 +41,31 @@ describe("NODE_EDITOR_SHORTCUTS", () => {
       const uniqueSlugs = new Set(slugs);
       expect(slugs.length).toBe(uniqueSlugs.size);
     });
+
+    it("does not advertise simultaneous multi-digit zoom chords", () => {
+      expect(
+        NODE_EDITOR_SHORTCUTS.find((shortcut) => shortcut.slug === "zoom50")
+          ?.keyCombo
+      ).toEqual(["Control", "Alt", "5"]);
+      expect(
+        NODE_EDITOR_SHORTCUTS.find((shortcut) => shortcut.slug === "zoom100")
+          ?.keyCombo
+      ).toEqual(["Control", "Alt", "1"]);
+      expect(
+        NODE_EDITOR_SHORTCUTS.find((shortcut) => shortcut.slug === "zoom200")
+          ?.keyCombo
+      ).toEqual(["Control", "Alt", "2"]);
+    });
+
+    it("keeps directional focus and history on distinct bindings", () => {
+      const focusLeft = NODE_EDITOR_SHORTCUTS.find(
+        (shortcut) => shortcut.slug === "focusNodeLeft"
+      );
+      const goBack = NODE_EDITOR_SHORTCUTS.find(
+        (shortcut) => shortcut.slug === "goBack"
+      );
+      expect(goBack?.keyCombo).not.toEqual(focusLeft?.keyCombo);
+    });
   });
 
   describe("skipInElectron", () => {

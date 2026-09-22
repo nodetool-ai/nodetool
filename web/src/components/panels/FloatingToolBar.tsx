@@ -329,6 +329,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     handleToggleNodeMenu,
     handleToggleMiniMap,
     isWorkflowRunning,
+    isWorkflowActive,
+    runControlLabel,
+    runControlDetail,
+    isStopping,
     queuePosition,
     pendingRunCount
   } = useFloatingToolbarActions();
@@ -366,7 +370,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const workflow = useNodes((state) => state.workflow);
 
-  const isRunningish = isWorkflowRunning;
+  const isRunningish = isWorkflowActive;
 
   // Conversation overlay: floats above the composer, showing the active chat
   // thread. It surfaces dynamically — auto-opening whenever a new message
@@ -534,9 +538,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   );
 
   // Keyboard shortcuts: Ctrl/Cmd+Enter runs (queues while running), Escape stops.
-  useCombo(["control", "enter"], handleRun, true);
-  useCombo(["meta", "enter"], handleRun, true);
-  useCombo(["escape"], handleStop, true, isRunningish);
+  useCombo(["control", "enter"], handleRun, true, true, {
+    allowInInputs: true
+  });
+  useCombo(["meta", "enter"], handleRun, true, true, {
+    allowInInputs: true
+  });
+  useCombo(["escape"], handleStop, true, isRunningish, { scope: "canvas" });
 
   const runWithClose = useCallback(
     (fn: () => void) => () => {
@@ -559,14 +567,25 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     return null;
   }
 
-  const runTooltip =
-    pendingRunCount > 0
-      ? `Running — ${pendingRunCount} queued (click to queue another)`
+  const runTooltip = isStopping
+    ? "Stopping workflow"
+    : runControlLabel.startsWith("Error")
+      ? `${runControlDetail ?? "Workflow failed to start"}. Click to retry the entire workflow.`
       : queuePosition != null
         ? `Queued (#${queuePosition})`
-        : isWorkflowRunning
-          ? "Running (click to queue another run)"
-          : getShortcutTooltip("runWorkflow");
+        : pendingRunCount > 0
+          ? `Running — ${pendingRunCount} queued (click to queue another)`
+        : isWorkflowActive
+          ? `${runControlLabel} (click to queue another entire workflow run)`
+          : `${getShortcutTooltip("runWorkflow")} — runs the entire workflow`;
+
+  const runAriaLabel = isStopping
+    ? "Stopping workflow"
+    : runControlLabel.startsWith("Error")
+      ? `${runControlLabel}. Retry the entire workflow`
+      : isWorkflowActive
+        ? `${runControlLabel}. Queue another entire workflow run`
+        : runControlLabel;
 
   const workflowActions = (
     <span css={actionStyles(theme)} className="composer-workflow-actions">
@@ -618,7 +637,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             type="button"
             className="composer-stop"
             onClick={handleStop}
-            aria-label="Stop workflow"
+            aria-label={isStopping ? "Stopping workflow" : "Stop workflow"}
+            disabled={isStopping}
           >
             <StopIcon />
           </button>
@@ -628,19 +648,19 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       <Tooltip title={runTooltip} placement="top" delay={TOOLTIP_ENTER_DELAY}>
         <button
           type="button"
-          className={cn("composer-run", isWorkflowRunning && "running")}
+          className={cn("composer-run", isWorkflowActive && "running")}
           onClick={handleRun}
-          aria-label="Run workflow"
+          aria-label={runAriaLabel}
+          disabled={isStopping}
         >
-          {/* Instant-update mode runs on every keystroke; the ticking timer
-              (and its setInterval re-render churn via useRunningTime) is pure
-              noise there, so show a static Play icon. The button stays a live
-              run control — clicking still queues another run. */}
+          {/* Instant-update mode runs on every keystroke, so its ticking timer
+              would be noise. The visible state label remains stable instead. */}
           {isWorkflowRunning && !instantUpdate ? (
             <RunningTime isRunning timerKey={workflow?.id} />
-          ) : (
+          ) : !isWorkflowActive || runControlLabel.startsWith("Error") ? (
             <PlayArrow />
-          )}
+          ) : null}
+          <span>{runControlLabel}</span>
           {pendingRunCount > 0 && (
             <span className="run-queue-badge" aria-hidden>
               {pendingRunCount}

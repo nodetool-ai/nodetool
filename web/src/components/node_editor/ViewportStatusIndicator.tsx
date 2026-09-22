@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 
 import {
   Tooltip,
@@ -14,67 +14,52 @@ import {
   getSpacingPx,
   ListItemButton,
   ListItemText,
-  Z_INDEX
+  Z_INDEX,
+  reducedMotion
 } from "../ui_primitives";
 import { useStore, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
+import FilterCenterFocusIcon from "@mui/icons-material/FilterCenterFocus";
+import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import { getShortcutTooltip } from "../../config/shortcuts";
 
 interface ViewportStatusIndicatorProps {
   visible?: boolean;
+  showPortLabels?: boolean;
+  onTogglePortLabels?: () => void;
 }
 
 const ZOOM_PRESETS = [0.25, 0.5, 0.75, 1, 1.5, 2] as const;
-const HIDE_DELAY_MS = 1500;
-const ZOOM_CHANGE_THRESHOLD = 0.001;
-
 type ZoomPreset = (typeof ZOOM_PRESETS)[number];
 
 const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
-  visible = true
+  visible = true,
+  showPortLabels = false,
+  onTogglePortLabels
 }) => {
   const theme = useTheme();
   const zoom = useStore((s) => s.transform[2]);
-  const { zoomTo, fitView } = useReactFlow();
+  const { zoomTo, fitView, getNodes } = useReactFlow();
   const [zoomMenuAnchor, setZoomMenuAnchor] = useState<HTMLElement | null>(
     null
   );
-  const [isZooming, setIsZooming] = useState(false);
-  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prevZoomRef = useRef<number | null>(null);
-
-  // Detect zoom changes and show the panel
-  useEffect(() => {
-    // Skip showing on initial render (prevZoomRef is null)
-    if (prevZoomRef.current !== null && Math.abs(zoom - prevZoomRef.current) > ZOOM_CHANGE_THRESHOLD) {
-      setIsZooming(true);
-
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
-
-      hideTimeoutRef.current = setTimeout(() => {
-        setIsZooming(false);
-      }, HIDE_DELAY_MS);
-    }
-    
-    prevZoomRef.current = zoom;
-    
-    return () => {
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
-    };
-  }, [zoom]);
-
   const zoomPercentage = useMemo(() => Math.round(zoom * 100), [zoom]);
 
   const handleFitView = useCallback(() => {
     fitView({ padding: 0.2, duration: 200 });
   }, [fitView]);
+
+  const handleFitSelection = useCallback(() => {
+    const selectedNodes = getNodes().filter((node) => node.selected);
+    if (selectedNodes.length === 0) {
+      fitView({ padding: 0.2, duration: 200 });
+      return;
+    }
+    fitView({ nodes: selectedNodes, padding: 0.2, duration: 200 });
+  }, [fitView, getNodes]);
 
   const handleZoomIn = useCallback(() => {
     zoomTo(Math.min(zoom * 1.2, 5), { duration: 100 });
@@ -158,14 +143,11 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
     [currentPreset, theme.palette.primary.main, theme.vars.palette.text.secondary, theme.vars.palette.action.hover]
   );
 
-  // Keep the popover open even when not zooming
-  const shouldShowPanel = isZooming || Boolean(zoomMenuAnchor);
-
   const containerSx = useMemo(
     () => ({
       position: "absolute" as const,
-      bottom: 16,
-      right: 20,
+      bottom: getSpacingPx(SPACING.xl),
+      right: getSpacingPx(SPACING.xl),
       zIndex: Z_INDEX.dropdown,
       backgroundColor: theme.vars.palette.Paper.paper,
       backdropFilter: "blur(8px)",
@@ -174,11 +156,12 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       boxShadow: theme.shadows[4],
       userSelect: "none" as const,
-      pointerEvents: shouldShowPanel ? ("auto" as const) : ("none" as const),
-      opacity: shouldShowPanel ? 1 : 0,
-      transition: `opacity ${MOTION.normal}`
+      pointerEvents: "auto" as const,
+      opacity: 1,
+      transition: MOTION.opacity,
+      ...reducedMotion({ transition: MOTION.none })
     }),
-    [shouldShowPanel, theme.vars.palette.Paper.paper, theme.vars.palette.divider, theme.shadows]
+    [theme.vars.palette.Paper.paper, theme.vars.palette.divider, theme.shadows]
   );
 
   if (!visible) {
@@ -189,7 +172,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
     <>
       <FlexRow
         data-testid="viewport-status-indicator"
-        gap={0.5}
+        gap={SPACING.micro}
         align="center"
         sx={containerSx}
       >
@@ -242,12 +225,34 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
 
         <ToolbarIconButton
           icon={<CenterFocusStrongIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
-          tooltip={getShortcutTooltip("fitView")}
+          tooltip={`Fit all · ${getShortcutTooltip("fitView")}`}
           tooltipPlacement="top"
           onClick={handleFitView}
           size="small"
           sx={zoomButtonSx}
         />
+
+        <ToolbarIconButton
+          icon={<FilterCenterFocusIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+          tooltip="Fit selection"
+          tooltipPlacement="top"
+          onClick={handleFitSelection}
+          size="small"
+          sx={zoomButtonSx}
+        />
+
+        {onTogglePortLabels ? (
+          <ToolbarIconButton
+            icon={<LabelOutlinedIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+            tooltip={showPortLabels ? "Hide port labels" : "Show port labels"}
+            tooltipPlacement="top"
+            onClick={onTogglePortLabels}
+            ariaLabel={showPortLabels ? "Hide port labels" : "Show port labels"}
+            aria-pressed={showPortLabels}
+            size="small"
+            sx={zoomButtonSx}
+          />
+        ) : null}
       </FlexRow>
 
       <Popover

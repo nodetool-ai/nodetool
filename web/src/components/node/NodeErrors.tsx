@@ -4,11 +4,17 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import BugReportIcon from "@mui/icons-material/BugReport";
+import ListAltIcon from "@mui/icons-material/ListAlt";
 import {
   nodeErrorToDisplayString,
   hasNodeError,
 } from "../../stores/ErrorStore";
-import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
+import useLogsStore, {
+  nodeLogKey,
+  type LogFilter
+} from "../../stores/LogStore";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
+import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { useNodeError } from "../../hooks/nodes/useNodeExecState";
 import isEqual from "../../utils/isEqual";
 import { CopyButton, ExternalLink, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
@@ -111,6 +117,16 @@ const NodeErrorsImpl: React.FC<{
   const memoizedErrorStyles = useMemo(() => errorStyles(theme), [theme]);
   const error = useNodeError(workflow_id, id);
   const nodeStore = useNodeStoreRef();
+  const focusedJobId = useWorkflowRunsStore(
+    (state) => state.focusedJob[workflow_id]
+  );
+  const setLogFilter = useLogsStore((state) => state.setFilter);
+  const setBottomPanelView = useBottomPanelStore(
+    (state) => state.setActiveView
+  );
+  const setBottomPanelVisibility = useBottomPanelStore(
+    (state) => state.setVisibility
+  );
 
   const logs = useLogsStore(
     (state) => state.logsByNode[nodeLogKey(workflow_id, id)]
@@ -156,6 +172,26 @@ const NodeErrorsImpl: React.FC<{
     [errorDisplay]
   );
 
+  const handleViewLogs = useCallback(() => {
+    const filter: LogFilter = {
+      workflowId: workflow_id,
+      nodeId: id
+    };
+    if (focusedJobId) {
+      filter.jobId = focusedJobId;
+    }
+    setLogFilter(filter);
+    setBottomPanelView("logs");
+    setBottomPanelVisibility(true);
+  }, [
+    focusedJobId,
+    id,
+    setBottomPanelView,
+    setBottomPanelVisibility,
+    setLogFilter,
+    workflow_id
+  ]);
+
   if (!hasNodeError(error)) {
     return null;
   }
@@ -163,12 +199,22 @@ const NodeErrorsImpl: React.FC<{
   return (
     <div css={memoizedErrorStyles} className="node-error nodrag nowheel">
       <div className="error-actions">
+        <Tooltip title="Show logs for this node and run">
+          <button
+            type="button"
+            className="report-button nodrag"
+            onClick={handleViewLogs}
+            aria-label="View logs for this node and run"
+          >
+            <ListAltIcon sx={{ fontSize: "0.9em" }} />
+            View logs
+          </button>
+        </Tooltip>
         <Tooltip title="Report this as a bug">
           <button
             type="button"
             className="report-button nodrag"
             onClick={handleReport}
-            tabIndex={-1}
             aria-label="Report this as a bug"
           >
             <BugReportIcon sx={{ fontSize: "0.9em" }} />
@@ -178,7 +224,6 @@ const NodeErrorsImpl: React.FC<{
         <CopyButton
           value={errorDisplay}
           tooltip="Copy to clipboard"
-          tabIndex={-1}
         />
       </div>
       <div className="error-text">{errorDisplay}</div>

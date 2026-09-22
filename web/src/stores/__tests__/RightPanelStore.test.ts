@@ -3,11 +3,7 @@ import { useRightPanelStore } from "../RightPanelStore";
 
 describe("RightPanelStore", () => {
   beforeEach(() => {
-    const store = useRightPanelStore.getState();
-    store.closePanel();
-    store.setHasDragged(false);
-    store.setIsDragging(false);
-    store.initializePanelSize(350);
+    useRightPanelStore.setState(useRightPanelStore.getInitialState());
   });
 
   describe("initial state", () => {
@@ -148,6 +144,34 @@ describe("RightPanelStore", () => {
       const { panel } = useRightPanelStore.getState();
       expect(panel.isVisible).toBe(false);
       expect(panel.panelSize).toBe(60);
+    });
+  });
+
+  describe("inspector visibility intent", () => {
+    it("keeps an explicit close closed when selection changes", () => {
+      const { closeInspector, revealForSelection } =
+        useRightPanelStore.getState();
+      act(() => {
+        revealForSelection();
+        closeInspector();
+        revealForSelection();
+      });
+
+      expect(useRightPanelStore.getState().panel.isVisible).toBe(false);
+      expect(useRightPanelStore.getState().panel.explicitlyClosed).toBe(true);
+    });
+
+    it("reopens explicitly and resumes following selection", () => {
+      const { closeInspector, toggleInspector, revealForSelection } =
+        useRightPanelStore.getState();
+      act(() => {
+        closeInspector();
+        toggleInspector();
+        revealForSelection();
+      });
+
+      expect(useRightPanelStore.getState().panel.isVisible).toBe(true);
+      expect(useRightPanelStore.getState().panel.explicitlyClosed).toBe(false);
     });
   });
 
