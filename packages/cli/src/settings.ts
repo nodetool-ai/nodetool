@@ -36,7 +36,17 @@ export const ALWAYS_ENABLED_TOOLS: readonly string[] = [
   "generate_video_from_references",
   "generate_speech",
   "transcribe_audio",
-  "read_media_bytes"
+  "read_media_bytes",
+  // Headless storyboard lifecycle.
+  "list_storyboards",
+  "create_storyboard",
+  "get_storyboard",
+  "edit_storyboard",
+  "render_storyboard_stills",
+  "render_storyboard_clips",
+  "revise_storyboard_clip",
+  "assemble_storyboard_timeline",
+  "extract_script_from_storyboard"
 ];
 
 export const DEFAULT_SETTINGS: ChatSettings = {

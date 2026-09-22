@@ -171,7 +171,16 @@ describe("DEFAULT_SETTINGS structure", () => {
       "get_node_info",
       "list_nodes",
       "generate_image",
-      "read_media_bytes"
+      "read_media_bytes",
+      "list_storyboards",
+      "create_storyboard",
+      "get_storyboard",
+      "edit_storyboard",
+      "render_storyboard_stills",
+      "render_storyboard_clips",
+      "revise_storyboard_clip",
+      "assemble_storyboard_timeline",
+      "extract_script_from_storyboard"
     ]) {
       expect(ALWAYS_ENABLED_TOOLS, `${name} must be always-on`).toContain(name);
       expect(DEFAULT_SETTINGS.enabledTools).toContain(name);
