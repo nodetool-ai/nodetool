@@ -1,347 +1,129 @@
-/**
- * NodeTool Chat CLI — Ink-based terminal UI.
- *
- * Layout:
- *   ╭─ nodetool ─────────────────── provider · model ─╮
- *   │                                                  │
- *   │  You: message                                    │
- *   │                                                  │
- *   │  response with markdown                          │
- *   │                                                  │
- *   │  ◆ tool_name result preview                      │
- *   │                                                  │
- *   ├──────────────────────────────────────────────────┤
- *   │ › input                                          │
- *   ╰──────────────────────────────────────────────────╯
- */
-
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Box, Text, Static, useApp, useInput } from "ink";
-import ReadlineInput from "./readline-input.js";
+import React, { useState, useEffect, useRef } from "react";
+import { Box, Text, useApp, useInput } from "ink";
 import Spinner from "ink-spinner";
-import { ExecutionTree } from "./ExecutionTree.js";
-import { useExecutionState } from "./useExecutionState.js";
-import type { Message, ToolCall } from "@nodetool-ai/runtime";
-import { RUN_BUDGET_CONTEXT_KEY } from "@nodetool-ai/runtime";
-import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import type { Message, ProviderSession, RunBudget } from "@nodetool-ai/runtime";
+import {
+  PERMISSION_GATE_CONTEXT_KEY,
+  RUN_BUDGET_CONTEXT_KEY
+} from "@nodetool-ai/runtime";
+import type { ProcessingMessage, TodoItem } from "@nodetool-ai/protocol";
 import { processChat } from "@nodetool-ai/chat";
 import {
-  RunSubtaskTool,
   getBuiltinTools,
   getAllMcpTools,
+  type PermissionMode,
+  type PermissionGateOptions
 } from "@nodetool-ai/agents";
-import { availableProviders, configuredProviderIds, createProvider, DEFAULT_MODELS, KNOWN_PROVIDERS, providerSecretKey, WebSocketProvider } from "./providers.js";
-import { WebSocketChatClient } from "./websocket-client.js";
-import { budgetStopReason, createCliRunBudget } from "./run-budget.js";
+import {
+  availableProviders,
+  configuredProviderIds,
+  createProvider,
+  DEFAULT_MODELS,
+  KNOWN_PROVIDERS,
+  providerSecretKey
+} from "./providers.js";
+import { WebSocketChatClient, type ChatEvent } from "./websocket-client.js";
+import {
+  budgetStopReason,
+  budgetSummaryLine,
+  createCliRunBudget
+} from "./run-budget.js";
 import { renderMarkdown } from "./markdown.js";
 import {
-  isBasicTool,
-  isCodeAction,
-  isFormattedTool,
   friendlyToolName,
-  toolStatusLabel,
-  formatToolParams,
   formatToolResult,
-  formatToolDiff,
-  formatToolCode,
+  isFormattedTool
 } from "./tool-format.js";
 import { saveSettings } from "./settings.js";
-import { applySystemPrompt, createCliCodeActTurn } from "./chat-codeact.js";
+import {
+  applySystemPrompt,
+  buildCliAgentBelt,
+  createCliCodeActTurn
+} from "./chat-codeact.js";
 import { createChatContext } from "./chat-context.js";
 import { isString } from "./predicates.js";
+import { parsePermissionMode } from "./permission-gate.js";
+import ReadlineInput from "./readline-input.js";
+import {
+  Transcript,
+  terminalLines,
+  terminalText,
+  useTerminalSize,
+  type ChatMessage
+} from "./terminal-screen.js";
+import {
+  ChatSessionStore,
+  newSessionId,
+  exportTranscript,
+  type ChatSession
+} from "./chat-sessions.js";
+import { ChatPrompts, type ChatPrompt } from "./chat-prompts.js";
+import { attachmentLines } from "./chat-media.js";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+export type { ChatMessage } from "./terminal-screen.js";
 
-export interface ChatMessage {
-  id: string;
-  role: "user" | "assistant" | "tool" | "system";
-  content: string;
-  toolName?: string;
-  toolArgs?: Record<string, unknown>;
-  rendered?: string; // pre-rendered markdown
-}
-
-interface AppProps {
-  initialProvider: string;
-  initialModel: string;
-  enabledTools: string[];
-  workspaceDir: string;
-  wsUrl?: string;
-  /** NodeRegistry — unused by the unified loop; kept for back-compat. */
-  registry?: import("@nodetool-ai/node-sdk").NodeRegistry;
-  /** Configured BaseProvider instances by id (passed through to subtasks). */
-  agentProviders?: Record<
+export interface AppProps {
+  readonly initialProvider: string;
+  readonly initialModel: string;
+  readonly enabledTools: string[];
+  readonly workspaceDir: string;
+  readonly wsUrl?: string;
+  readonly registry?: import("@nodetool-ai/node-sdk").NodeRegistry;
+  readonly agentProviders?: Record<
     string,
     import("@nodetool-ai/runtime").BaseProvider
   >;
-  /** `--cost-cap <usd>`; `0` lifts the cap. Bounds each turn. */
-  costCap?: string;
-  /** `--timeout <s>`; `0` leaves the turn no time at all. */
-  timeout?: string;
+  readonly costCap?: string;
+  readonly timeout?: string;
+  readonly permissionMode?: PermissionMode;
+  readonly enableReadOnlySearch?: boolean;
+  readonly resume?: string | boolean;
+  readonly sessionStore?: ChatSessionStore;
 }
 
-// ---------------------------------------------------------------------------
-// Command definitions
-// ---------------------------------------------------------------------------
-
-const COMMANDS = {
-  "/help":     "Show available commands",
-  "/new":      "Start a new chat session",
-  "/clear":    "Clear conversation history",
-  "/compact":  "Summarize conversation into retained context: /compact [instructions]",
-  "/model":    "Set model: /model <model-id>",
-  "/provider": "Set provider: /provider <name>",
-  "/tools":    "List enabled tools",
-  "/exit":     "Exit the chat",
-  "/quit":     "Exit the chat",
+export const CHAT_COMMANDS = {
+  "/help": "Commands and keyboard shortcuts",
+  "/new": "Start a new conversation",
+  "/clear": "Clear the screen, keep conversation context",
+  "/compact": "Summarize retained context",
+  "/model": "Choose a model",
+  "/provider": "Choose a provider",
+  "/mode": "Permissions: default, auto, plan",
+  "/sessions": "Browse saved conversations",
+  "/resume": "Resume a session: /resume <id>",
+  "/export": "Save transcript: /export <path.md>",
+  "/tools": "Show available tools",
+  "/details": "Toggle tool arguments, code and diffs",
+  "/exit": "Save and quit",
+  "/quit": "Save and quit"
 } as const;
-
-// ---------------------------------------------------------------------------
-// Individual message rendering
-// ---------------------------------------------------------------------------
-
-function UserMessage({ content }: { content: string }) {
-  return (
-    <Box marginTop={1}>
-      <Text color="magenta" dimColor bold>{"❯ "}</Text>
-      <Text bold inverse>{" " + content + " "}</Text>
-    </Box>
-  );
+const APPROVAL_CHOICES = [
+  { key: "y", label: "Allow once", value: "allow" },
+  { key: "a", label: "Allow for chat", value: "allow_for_chat" },
+  { key: "n", label: "Deny", value: "deny" }
+];
+interface Completion {
+  readonly value: string;
+  readonly description: string;
+  readonly disabled?: boolean;
 }
 
-function AssistantMessage({ content, rendered }: { content: string; rendered?: string }) {
-  return (
-    <Box marginTop={1}>
-      <Text color="green">{"● "}</Text>
-      <Text>{rendered ?? content}</Text>
-    </Box>
-  );
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
-
-/**
- * Renders one tool call — header (`● Verb(params)`), result summary, and (for
- * edits) a diff. `execute_code` uses the action title as the headline and
- * shows the program as a dimmed block. Shared by the committed transcript
- * (ToolMessage) and the live in-progress area (LiveToolCall). When `running`,
- * shows a spinner instead of waiting for a summary.
- */
-function ToolCallView({
-  name,
-  args,
-  summary,
-  running,
-}: {
-  name: string;
-  args?: Record<string, unknown>;
-  summary?: string;
-  running?: boolean;
-}) {
-  const isError = !!summary && summary.startsWith("Error");
-
-  if (isCodeAction(name)) {
-    const title = formatToolParams(name, args) || "Code action";
-    const codeLines = formatToolCode(name, args);
-    const maxCodeWidth = Math.max((process.stdout.columns ?? 80) - 8, 20);
-    const summaryLines = summary ? summary.split("\n") : [];
-    return (
-      <Box flexDirection="column" marginTop={1}>
-        <Box>
-          <Text color="green">{"● "}</Text>
-          <Text bold color="cyan">Run</Text>
-          <Text>{"  "}</Text>
-          <Text bold>{title}</Text>
-          {running ? <Text color="gray" dimColor>{"  "}<Spinner type="dots" /></Text> : null}
-        </Box>
-        {codeLines?.map((line, i) => (
-          <Box key={i} marginLeft={4}>
-            <Text
-              color={line.startsWith("…") ? "gray" : undefined}
-              dimColor
-            >
-              {line.slice(0, maxCodeWidth)}
-            </Text>
-          </Box>
-        ))}
-        {summaryLines.map((line, i) => (
-          <Box key={`s${i}`} marginLeft={2}>
-            <Text color={isError ? "red" : "gray"} dimColor={!isError}>
-              {i === 0 ? "⎿  " : "   "}
-              {line}
-            </Text>
-          </Box>
-        ))}
-      </Box>
-    );
-  }
-
-  if (isBasicTool(name)) {
-    const params = formatToolParams(name, args);
-    // Show the edit diff while running (from args) and after success.
-    const diff = !isError ? formatToolDiff(name, args) : null;
-    const maxDiffWidth = Math.max((process.stdout.columns ?? 80) - 8, 20);
-    return (
-      <Box flexDirection="column" marginTop={1}>
-        <Box>
-          <Text color="green">{"● "}</Text>
-          <Text bold>{friendlyToolName(name)}</Text>
-          <Text color="gray" dimColor>{"("}{params}{")"}</Text>
-          {running ? <Text color="gray" dimColor>{"  "}<Spinner type="dots" /></Text> : null}
-        </Box>
-        {summary ? (
-          <Box marginLeft={2}>
-            <Text color={isError ? "red" : "gray"} dimColor={!isError}>{"⎿  "}{summary}</Text>
-          </Box>
-        ) : null}
-        {diff?.map((line, i) => (
-          <Box key={i} marginLeft={5}>
-            <Text
-              color={line.sign === "+" ? "green" : line.sign === "-" ? "red" : "gray"}
-              dimColor={line.sign === " "}
-            >
-              {line.sign === " " ? "" : line.sign + " "}
-              {line.text.slice(0, maxDiffWidth)}
-            </Text>
-          </Box>
-        ))}
-      </Box>
-    );
-  }
-
-  const argsStr = args
-    ? Object.entries(args)
-        .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
-        .join(", ")
-    : "";
-  const preview = summary ? summary.split("\n").slice(0, 3).join(" ").slice(0, 200) : "";
-  return (
-    <Box flexDirection="column" marginTop={1}>
-      <Box>
-        <Text color="green">{"● "}</Text>
-        <Text bold>{name}</Text>
-        {argsStr ? <Text color="gray" dimColor>{"("}{argsStr}{")"}</Text> : null}
-        {running ? <Text color="gray" dimColor>{"  "}<Spinner type="dots" /></Text> : null}
-      </Box>
-      {preview ? (
-        <Box marginLeft={2}>
-          <Text color="gray" dimColor>{"└ "}</Text>
-          <Text color="gray" dimColor>{preview}</Text>
-        </Box>
-      ) : null}
-    </Box>
-  );
+function displayResult(
+  name: string,
+  args: Record<string, unknown> | undefined,
+  result: unknown
+): string {
+  return isFormattedTool(name)
+    ? formatToolResult(name, args, result)
+    : isString(result)
+      ? result
+      : (JSON.stringify(result, null, 2) ?? "Done");
 }
-
-function ToolMessage({ toolName, toolArgs, content }: { toolName: string; toolArgs?: Record<string, unknown>; content: string }) {
-  return <ToolCallView name={toolName} args={toolArgs} summary={content} />;
-}
-
-/** A tool call currently in flight (or just finished, pre-flush) for the live area. */
-interface LiveToolCall {
-  id: string;
-  name: string;
-  args?: Record<string, unknown>;
-  done: boolean;
-  result?: string;
-}
-
-function LiveToolCallItem({ tool }: { tool: LiveToolCall }) {
-  return (
-    <ToolCallView
-      name={tool.name}
-      args={tool.args}
-      summary={tool.result}
-      running={!tool.done}
-    />
-  );
-}
-
-function SystemMessage({ content }: { content: string }) {
-  return (
-    <Box>
-      <Text color="gray" dimColor>{"  " + content}</Text>
-    </Box>
-  );
-}
-
-function ChatMessageItem({ msg }: { msg: ChatMessage }) {
-  switch (msg.role) {
-    case "user":      return <UserMessage content={msg.content} />;
-    case "assistant": return <AssistantMessage content={msg.content} rendered={msg.rendered} />;
-    case "tool":      return <ToolMessage toolName={msg.toolName ?? "tool"} toolArgs={msg.toolArgs} content={msg.content} />;
-    case "system":    return <SystemMessage content={msg.content} />;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Autocomplete menu
-// ---------------------------------------------------------------------------
-
-const CMD_WIDTH = 14;
-
-/** A one-line hint telling the user which key to set for an unusable provider. */
-function missingKeyHint(provider: string): string {
-  const key = providerSecretKey(provider);
-  return key
-    ? `${provider}: no key — set ${key} (run: nodetool secrets store ${key})`
-    : `${provider}: unavailable`;
-}
-
-function AutocompleteMenu({
-  matches,
-  selectedIndex,
-}: {
-  matches: Array<{ cmd: string; desc: string; disabled?: boolean }>;
-  selectedIndex: number;
-}) {
-  return (
-    <Box flexDirection="column" marginLeft={2}>
-      {matches.map(({ cmd, desc, disabled }, i) => {
-        const selected = i === selectedIndex;
-        return (
-          <Box key={cmd}>
-            <Text
-              color={disabled ? "gray" : selected ? "cyan" : "gray"}
-              bold={selected && !disabled}
-              dimColor={disabled}
-            >
-              {selected ? "› " : "  "}{cmd.padEnd(CMD_WIDTH)}
-            </Text>
-            <Text color="gray" dimColor>
-              {desc}
-            </Text>
-          </Box>
-        );
-      })}
-    </Box>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Help panel
-// ---------------------------------------------------------------------------
-
-function HelpPanel() {
-  return (
-    <Box flexDirection="column" marginLeft={2} marginTop={1} marginBottom={1}>
-      <Text color="gray" dimColor bold>Commands</Text>
-      {Object.entries(COMMANDS).map(([cmd, desc]) => (
-        <Box key={cmd}>
-          <Text color="cyan">{("  " + cmd).padEnd(16)}</Text>
-          <Text color="gray" dimColor>{desc}</Text>
-        </Box>
-      ))}
-      <Box marginTop={1}>
-        <Text color="gray" dimColor>  ↑↓ history  ·  Tab complete  ·  Ctrl+C exit</Text>
-      </Box>
-    </Box>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Main App
-// ---------------------------------------------------------------------------
 
 export function App({
   initialProvider,
@@ -353,884 +135,1076 @@ export function App({
   agentProviders,
   costCap,
   timeout,
-}: AppProps) {
+  permissionMode = "default",
+  enableReadOnlySearch = true,
+  resume,
+  sessionStore
+}: AppProps): React.ReactElement {
   const { exit } = useApp();
-
-  // --- State ---
+  const { columns, rows } = useTerminalSize();
   const [provider, setProvider] = useState(initialProvider);
   const [model, setModel] = useState(initialModel);
+  const [mode, setMode] = useState(permissionMode);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [chatHistory, setChatHistory] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState("");
-  const [, setInputHistory] = useState<string[]>([]);
-  const [, setHistoryIndex] = useState(-1);
-  const [historyDraft, setHistoryDraft] = useState("");
-  const [streaming, setStreaming] = useState(false);
-  const [streamContent, setStreamContent] = useState("");
-  const [streamLabel, setStreamLabel] = useState("");
-  // Tool calls in flight this turn — rendered live (with a spinner) in the
-  // dynamic area so the user sees each call as it happens, then committed to
-  // the <Static> thread the moment their result arrives.
-  const [liveTools, setLiveTools] = useState<LiveToolCall[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [showHelp, setShowHelp] = useState(false);
-  const execState = useExecutionState();
-  const [acIndex, setAcIndex] = useState(0);
-  const [modelList, setModelList] = useState<Array<{ id: string; name: string }>>([]);
-  // Providers the user can actually select. Seeded synchronously from env keys
-  // (immediate, no flicker for env-configured providers), then refined with the
-  // encrypted secret store. Local/keyless providers are always included.
-  const [configuredProviders, setConfiguredProviders] = useState<Set<string>>(
+  const [clearedCount, setClearedCount] = useState(0);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("Ready");
+  const [live, setLive] = useState("");
+  const [details, setDetails] = useState(false);
+  const [prompt, setPrompt] = useState<ChatPrompt | null>(null);
+  const [completionIndex, setCompletionIndex] = useState(0);
+  const [models, setModels] = useState<Array<{ id: string; name: string }>>([]);
+  const [configured, setConfigured] = useState(
     () => new Set(availableProviders())
   );
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [tasks, setTasks] = useState<Record<string, string>>({});
+  const [activeTools, setActiveTools] = useState<
+    Record<string, { name: string; args: Record<string, unknown> }>
+  >({});
+  const [elapsed, setElapsed] = useState(0);
+  const [usage, setUsage] = useState("");
+  const [connection, setConnection] = useState(wsUrl ? "Connecting" : "Local");
+  const [sessionId, setSessionId] = useState(newSessionId);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [inputHistory, setInputHistory] = useState<string[]>([]);
+  const [draft, setDraft] = useState("");
+  const store = useRef(sessionStore ?? new ChatSessionStore());
+  const prompts = useRef(new ChatPrompts(setPrompt));
+  const controller = useRef<AbortController | null>(null);
+  const client = useRef<WebSocketChatClient | null>(null);
+  const history = useRef<Message[]>([]);
+  const transcript = useRef<ChatMessage[]>([]);
+  const stream = useRef("");
+  const thread = useRef(newSessionId());
+  const providerSession = useRef<ProviderSession | null>(null);
+  const sessionAllow = useRef(new Set<string>());
+  const active = useRef(false);
+  const mounted = useRef(true);
+  const scrollGeneration = useRef(0);
+  const [scrollKey, setScrollKey] = useState("0");
+
+  function updateMessages(next: ChatMessage[]): void {
+    transcript.current = next;
+    setMessages(next);
+  }
+  function add(
+    role: ChatMessage["role"],
+    content: string,
+    toolName?: string,
+    toolArgs?: Record<string, unknown>
+  ): void {
+    const message: ChatMessage = {
+      id: newSessionId(),
+      role,
+      content,
+      toolName,
+      toolArgs
+    };
+    updateMessages([...transcript.current, message]);
+    if (role === "assistant") {
+      void renderMarkdown(terminalText(content))
+        .then((rendered) => {
+          if (mounted.current) {
+            updateMessages(
+              transcript.current.map((item) =>
+                item.id === message.id ? { ...item, rendered } : item
+              )
+            );
+          }
+        })
+        .catch(() => {
+          /* Raw content stays visible when formatting fails. */
+        });
+    }
+  }
+  function flush(): void {
+    if (stream.current.trim()) {
+      add("assistant", stream.current);
+    }
+    stream.current = "";
+    setLive("");
+  }
+  function append(text: string): void {
+    stream.current += text;
+    setLive(stream.current);
+  }
+  function latest(): void {
+    setScrollKey(String(++scrollGeneration.current));
+  }
+
   useEffect(() => {
-    let cancelled = false;
-    configuredProviderIds()
-      .then((ids) => { if (!cancelled) setConfiguredProviders(ids); })
-      .catch(() => { /* keep the env-seeded set */ });
-    return () => { cancelled = true; };
-  }, []);
-
-  // Fetch available models when provider changes
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      let prov: Awaited<ReturnType<typeof createProvider>>;
-      try {
-        prov = await createProvider(provider);
-      } catch (err) {
-        // The provider couldn't be constructed — almost always a missing API
-        // key. Surface why (and how to fix it) instead of silently showing an
-        // empty model list.
-        if (cancelled) return;
-        setModelList([]);
-        await addMessage(
-          "system",
-          providerSecretKey(provider)
-            ? missingKeyHint(provider)
-            : `${provider}: ${err instanceof Error ? err.message : String(err)}`
-        );
-        return;
-      }
-      try {
-        const models = await prov.getAvailableLanguageModels();
-        if (!cancelled) {
-          setModelList(models.map((m) => ({ id: m.id, name: m.name })));
-        }
-      } catch {
-        if (!cancelled) setModelList([]);
-      }
-    })();
-    return () => { cancelled = true; };
-    // addMessage is a stable useCallback([]) — referenced like the WS effect below.
-  }, [provider]);
-
-  // WebSocket client state (when --url is passed)
-  const wsClientRef = useRef<WebSocketChatClient | null>(null);
-  const [threadId, setThreadId] = useState<string>(() => crypto.randomUUID());
-
-  // Refs to hold latest values without causing re-renders in async callbacks
-  const chatHistoryRef = useRef(chatHistory);
-  const providerRef = useRef(provider);
-  const modelRef = useRef(model);
-  const abortRef = useRef(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  // Guard against double-submit: useInput autocomplete Enter + TextInput onSubmit fire for the same keypress
-  const submittingRef = useRef(false);
-
-  useEffect(() => { chatHistoryRef.current = chatHistory; }, [chatHistory]);
-  useEffect(() => { providerRef.current = provider; }, [provider]);
-  useEffect(() => { modelRef.current = model; }, [model]);
-  useEffect(() => { setAcIndex(0); }, [inputValue]);
-
-  // Connect WebSocket when --url is provided
-  useEffect(() => {
-    if (!wsUrl) return;
-    const client = new WebSocketChatClient(wsUrl);
-    client.connect().then(() => {
-      wsClientRef.current = client;
-    }).catch((err: unknown) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      addMessage("system", `WebSocket connection failed: ${msg}`);
-    });
+    mounted.current = true;
     return () => {
-      client.disconnect();
-      wsClientRef.current = null;
+      mounted.current = false;
+      controller.current?.abort();
+    };
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    if (!wsUrl) {
+      void configuredProviderIds()
+        .then((ids) => {
+          if (!cancelled) {
+            setConfigured(ids);
+          }
+        })
+        .catch(() => {
+          /* Keep environment providers. */
+        });
+    }
+    return () => {
+      cancelled = true;
     };
   }, [wsUrl]);
-
-  const nextId = useRef(0);
-  const genId = () => `msg-${++nextId.current}`;
-
-  // Commits are serialized through this promise chain so an assistant
-  // segment's async markdown render can never land after a tool message that
-  // was added later — the thread always preserves real turn order.
-  const commitChainRef = useRef<Promise<void>>(Promise.resolve());
-
-  // Append a message to the visible thread. Every message commits to <Static>
-  // as soon as it's added, so the thread grows live during streaming and tool
-  // calls — like a normal chat conversation — instead of batching at turn end.
-  const addMessage = useCallback(
-    (
-      role: ChatMessage["role"],
-      content: string,
-      opts?: { toolName?: string; toolArgs?: Record<string, unknown> }
-    ): Promise<void> => {
-      const id = genId();
-      const p = commitChainRef.current
-        .then(async () => {
-          const rendered =
-            role === "assistant" ? await renderMarkdown(content) : undefined;
-          setMessages(prev => [
-            ...prev,
-            { id, role, content, rendered, toolName: opts?.toolName, toolArgs: opts?.toolArgs },
-          ]);
-        })
-        .catch(() => {});
-      commitChainRef.current = p;
-      return p;
-    },
-    []
-  );
-
-  // --- Live (in-flight) turn state ---------------------------------------
-
-  // The current uncommitted assistant text segment (since turn start or the
-  // last tool call), held in a ref so streaming callbacks can read/commit it.
-  const streamRef = useRef("");
-  const appendStream = useCallback((text: string) => {
-    streamRef.current += text;
-    setStreamContent(streamRef.current);
-  }, []);
-  // Commit the current assistant segment to the thread and clear the buffer.
-  // setStreamContent("") (sync) and the chained setMessages (microtask) both
-  // flush before Ink's next paint, so the text hands off without a gap.
-  const commitStreamSegment = useCallback(() => {
-    const seg = streamRef.current;
-    streamRef.current = "";
-    setStreamContent("");
-    if (seg.trim()) void addMessage("assistant", seg);
-  }, [addMessage]);
-
-  // Show a tool call in the live area the moment it starts.
-  const startLiveTool = useCallback(
-    (id: string, name: string, args?: Record<string, unknown>) => {
-      setLiveTools(prev =>
-        prev.some(t => t.id === id)
-          ? prev
-          : [...prev, { id, name, args, done: false }]
-      );
-    },
-    []
-  );
-
-  // A tool finished: append it to the thread and drop it from the live area in
-  // the same chained commit, so it moves into <Static> in one render (no gap,
-  // ordered after any pending assistant segment).
-  const finishLiveTool = useCallback(
-    (
-      id: string,
-      name: string,
-      args: Record<string, unknown> | undefined,
-      summary: string
-    ) => {
-      const msgId = genId();
-      commitChainRef.current = commitChainRef.current
-        .then(() => {
-          setMessages(prev => [
-            ...prev,
-            { id: msgId, role: "tool", content: summary, toolName: name, toolArgs: args },
-          ]);
-          setLiveTools(prev => prev.filter(t => t.id !== id));
-        })
-        .catch(() => {});
-    },
-    []
-  );
-
-  // Create tools from enabled list. The toolMap is keyed by canonical
-  // tool `name` (matching what `BUILTIN_TOOL_CLASSES` exposes), so the
-  // names users put in their settings.json `enabledTools` are the same
-  // IDs the LLM sees and the same IDs other frontends use.
-  function buildTools() {
-    const toolMap: Record<string, import("@nodetool-ai/agents").Tool> = {};
-    for (const tool of getBuiltinTools()) {
-      toolMap[tool.name] = tool;
-    }
-    // NodeTool MCP tools (workflows, nodes, jobs, assets, models).
-    // When a NodeRegistry is in process, this swaps the REST node-search
-    // tools for the local biased versions (and adds `find_model`) so any
-    // agent loop gets the same node-selection bias as the graph author.
-    for (const tool of getAllMcpTools({
-      registry,
-      providers: agentProviders,
-    })) {
-      toolMap[tool.name] = tool;
-    }
-    return enabledTools
-      .filter(name => name in toolMap)
-      .map(name => toolMap[name]);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Command handler
-  // ---------------------------------------------------------------------------
-  const handleCommand = useCallback(async (raw: string): Promise<boolean> => {
-    const parts = raw.trim().split(/\s+/);
-    const cmd = parts[0].toLowerCase();
-    const args = parts.slice(1);
-
-    switch (cmd) {
-      case "/help":
-        setShowHelp(prev => !prev);
-        return true;
-
-      case "/new":
-        abortRef.current = true;
-        abortControllerRef.current?.abort();
-        abortControllerRef.current = null;
-        if (wsClientRef.current) {
-          wsClientRef.current.stop(threadId);
-        }
-        setMessages([{ id: genId(), role: "system", content: "New session started." }]);
-        chatHistoryRef.current = [];
-        setChatHistory([]);
-        setStreaming(false);
-        setLiveTools([]);
-        setError(null);
-        streamRef.current = "";
-        setStreamContent("");
-        setStreamLabel("");
-        setThreadId(crypto.randomUUID());
-        setShowHelp(false);
-        execState.reset();
-        submittingRef.current = false;
-        return true;
-
-      case "/clear":
-        setMessages([{ id: genId(), role: "system", content: "History cleared." }]);
-        setChatHistory([]);
-        setShowHelp(false);
-        if (wsClientRef.current) {
-          setThreadId(crypto.randomUUID()); // next message starts a fresh server thread
-        }
-        return true;
-
-      case "/compact": {
-        const instructions = args.join(" ").trim();
-        const currentHistory = chatHistoryRef.current;
-        if (currentHistory.length === 0) {
-          addMessage("system", "Nothing to compact — conversation is empty.");
-          return true;
-        }
-        // Kick off async compaction without blocking the command handler
-        void (async () => {
-          setStreaming(true);
-          setStreamLabel("compacting");
-          try {
-            const prov = wsClientRef.current
-              ? new WebSocketProvider(
-                  wsClientRef.current,
-                  modelRef.current,
-                  providerRef.current
-                )
-              : await createProvider(providerRef.current);
-
-            // Build a transcript of the conversation for summarization
-            const transcript = currentHistory
-              .map((msg) => {
-                const role = msg.role;
-                let content = "";
-                if (isString(msg.content)) {
-                  content = msg.content;
-                } else if (Array.isArray(msg.content)) {
-                  content = msg.content
-                    .map((c) => (c.type === "text" ? c.text : ""))
-                    .join("");
-                }
-                if (msg.toolCalls && msg.toolCalls.length > 0) {
-                  content += "\n[Tool calls: " + msg.toolCalls.map((tc) => tc.name).join(", ") + "]";
-                }
-                return `${role}: ${content}`;
-              })
-              .join("\n\n");
-
-            const summaryPrompt = instructions
-              ? `Summarize the following conversation, focusing on: ${instructions}\n\n${transcript}\n\nProvide a concise summary that captures the key context, decisions, and state needed to continue this conversation effectively.`
-              : `Summarize the following conversation into a concise retained context. Include key decisions, current state, and any important information needed to continue.\n\n${transcript}`;
-
-            const summaryMessages: Message[] = [
-              { role: "user", content: summaryPrompt }
-            ];
-
-            let summary = "";
-            const stream = prov.generateMessagesTraced({
-              messages: summaryMessages,
-              model: modelRef.current,
-            });
-
-            for await (const item of stream) {
-              // ProviderStreamItem is Chunk | ToolCall; ToolCall has no `type`,
-              // so guard the discriminant before narrowing to a Chunk.
-              if (
-                "type" in item &&
-                item.type === "chunk" &&
-                isString(item.content)
-              ) {
-                summary += item.content;
-              }
-            }
-
-            // Replace chat history with the summary as a system message
-            const compactedHistory: Message[] = [
-              {
-                role: "system",
-                content: `Previous conversation summary:\n${summary.trim()}`
-              }
-            ];
-            chatHistoryRef.current = compactedHistory;
-            setChatHistory(compactedHistory);
-
-            // Update visible messages to show the compacted state
-            setMessages(prev => [
-              ...prev,
-              {
-                id: genId(),
-                role: "system",
-                content: `Conversation compacted. ${instructions ? `Focus: ${instructions}. ` : ""}Previous context summarized and retained.`
-              }
-            ]);
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            await addMessage("system", `Compaction failed: ${msg}`);
-          } finally {
-            setStreaming(false);
-            setStreamLabel("");
+  useEffect(() => {
+    const abort = new AbortController();
+    setModels([]);
+    if (!wsUrl) {
+      void createProvider(provider)
+        .then((prov) => prov.getAvailableLanguageModels())
+        .then((items) => {
+          if (!abort.signal.aborted) {
+            setModels(items.map((item) => ({ id: item.id, name: item.name })));
           }
-        })();
-        return true;
-      }
+        })
+        .catch(() => {
+          /* Explicit model IDs remain available for offline providers. */
+        });
+    }
+    return () => abort.abort();
+  }, [provider, wsUrl]);
+  useEffect(() => {
+    if (!wsUrl) {
+      return;
+    }
+    const socket = new WebSocketChatClient(wsUrl);
+    client.current = socket;
+    let cancelled = false;
+    void socket
+      .connect()
+      .then(() => {
+        if (!cancelled) {
+          setConnection("Connected");
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setConnection("Disconnected");
+          setStatus(`Connection failed: ${errorText(error)}`);
+        }
+      });
+    return () => {
+      cancelled = true;
+      socket.disconnect();
+      client.current = null;
+    };
+  }, [wsUrl]);
+  useEffect(() => {
+    if (!busy) {
+      return;
+    }
+    const started = Date.now();
+    setElapsed(0);
+    const timer = setInterval(
+      () => setElapsed(Math.floor((Date.now() - started) / 1000)),
+      1000
+    );
+    return () => clearInterval(timer);
+  }, [busy]);
+  useEffect(() => {
+    if (!resume) {
+      return;
+    }
+    let cancelled = false;
+    active.current = true;
+    setBusy(true);
+    void store.current
+      .list(workspaceDir, wsUrl)
+      .then((saved) => {
+        if (cancelled) {
+          return;
+        }
+        const selected =
+          resume === true ? saved[0] : saved.find((item) => item.id === resume);
+        if (!selected) {
+          throw new Error("No matching saved session in this workspace.");
+        }
+        restore(selected);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setStatus(errorText(error));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          active.current = false;
+          setBusy(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [resume, workspaceDir, wsUrl]);
 
+  function restore(session: ChatSession): void {
+    history.current = session.history;
+    providerSession.current = session.providerSession ?? null;
+    thread.current = session.threadId;
+    setSessionId(session.id);
+    setProvider(session.provider);
+    setModel(session.model);
+    updateMessages(session.messages);
+    setClearedCount(0);
+    setInputHistory(
+      session.messages
+        .filter((item) => item.role === "user")
+        .map((item) => item.content)
+        .reverse()
+    );
+    sessionAllow.current.clear();
+    setTodos([]);
+    setTasks({});
+    setUsage("");
+    latest();
+    setStatus(`Resumed ${session.title}`);
+  }
+  async function persist(): Promise<void> {
+    if (!transcript.current.length) {
+      return;
+    }
+    await store.current.save({
+      version: 1,
+      id: sessionId,
+      threadId: thread.current,
+      title:
+        transcript.current
+          .find((item) => item.role === "user")
+          ?.content.slice(0, 80) ?? "Conversation",
+      updatedAt: new Date().toISOString(),
+      workspace: resolve(workspaceDir),
+      server: wsUrl,
+      provider,
+      model,
+      history: history.current,
+      messages: transcript.current,
+      providerSession: providerSession.current
+    });
+  }
+  async function quit(): Promise<void> {
+    try {
+      await persist();
+      await saveSettings({ provider, model });
+      exit();
+    } catch (error) {
+      setStatus(`Could not save session: ${errorText(error)}. Try /export.`);
+    }
+  }
+  function tools(): import("@nodetool-ai/agents").Tool[] {
+    const byName = new Map(
+      [
+        ...getBuiltinTools(),
+        ...getAllMcpTools({ registry, providers: agentProviders })
+      ].map((tool) => [tool.name, tool])
+    );
+    return enabledTools.flatMap((name) => {
+      const tool = byName.get(name);
+      return tool ? [tool] : [];
+    });
+  }
+  function processEvent(message: ProcessingMessage): void {
+    if (message.type === "todo_update") {
+      setTodos(message.todos);
+    } else if (message.type === "task_update" && message.task.id) {
+      const id = message.task.id;
+      setTasks((previous) => ({
+        ...previous,
+        [id]: `${message.task.title ?? id}: ${message.event}`
+      }));
+    } else if (message.type === "planning_update") {
+      setStatus(message.content ?? `Planning: ${message.status}`);
+    } else if (message.type === "output_update") {
+      add(
+        "system",
+        `Output ${message.node_id}: ${displayResult("output", undefined, message.value)}`
+      );
+    } else if (message.type === "prediction") {
+      setStatus(`Generation: ${message.status ?? "running"}`);
+    } else if (
+      message.type === "chunk" &&
+      isString(message.content) &&
+      !message.thinking
+    ) {
+      if (message.parent_tool_call_id || message.subtask_depth) {
+        setStatus(`Subtask: ${message.content.slice(-100)}`);
+      }
+    }
+  }
+  function startTool(
+    id: string,
+    name: string,
+    args: Record<string, unknown>
+  ): void {
+    flush();
+    setActiveTools((previous) => ({ ...previous, [id]: { name, args } }));
+    setStatus(friendlyToolName(name));
+  }
+  function finishTool(
+    id: string,
+    name: string,
+    args: Record<string, unknown> | undefined,
+    result: unknown
+  ): void {
+    add("tool", displayResult(name, args, result), name, args);
+    setActiveTools((previous) => {
+      const next = { ...previous };
+      delete next[id];
+      return next;
+    });
+    setStatus("Thinking");
+  }
+  async function remoteEvent(
+    event: ChatEvent,
+    socket: WebSocketChatClient,
+    signal: AbortSignal
+  ): Promise<void> {
+    if (event.type === "chunk") {
+      append(event.content);
+      setStatus("Responding");
+    } else if (event.type === "assistant_message") {
+      if (event.text) {
+        append(event.text);
+      }
+      const attachments = attachmentLines(event.content);
+      if (attachments.length) {
+        flush();
+        add("system", attachments.join("\n"));
+      }
+    } else if (event.type === "processing") {
+      processEvent(event.message);
+    } else if (event.type === "tool_approval_request") {
+      const answer = await prompts.current.ask(
+        {
+          title: `Approve ${event.toolName}`,
+          body: `${event.description || event.message}\n\n${JSON.stringify(event.args, null, 2)}`,
+          choices: APPROVAL_CHOICES
+        },
+        signal
+      );
+      socket.respondToolApproval(
+        event.approvalId,
+        answer === "allow" || answer === "allow_for_chat" ? answer : "deny"
+      );
+    } else if (event.type === "plan_approval_request") {
+      const answer = await prompts.current.ask(
+        {
+          title: event.plan.title,
+          body: event.plan.tasks
+            .map(
+              (task) =>
+                `${task.title}\n${task.steps.map((step) => `  ${step.instructions}`).join("\n")}`
+            )
+            .join("\n\n"),
+          choices: [
+            { key: "y", label: "Execute plan", value: "approve" },
+            { key: "n", label: "Reject", value: "reject" }
+          ]
+        },
+        signal
+      );
+      socket.respondPlanApproval(
+        event.approvalId,
+        answer === "approve" ? "approve" : "reject"
+      );
+    } else if (event.type === "secret_request") {
+      const answer = await prompts.current.ask(
+        {
+          title: `Configure ${event.key}`,
+          body: `${event.description}\n${event.reason}\nConfigure this secret on the connected server, then continue.\n${event.helpUrl ?? ""}`,
+          choices: [
+            { key: "y", label: "Configured, retry", value: "provided" },
+            { key: "n", label: "Cancel", value: "cancelled" }
+          ]
+        },
+        signal
+      );
+      socket.respondSecretRequest(
+        event.approvalId,
+        answer === "provided" ? "saved" : "declined"
+      );
+    } else if (event.type === "client_tool_call") {
+      socket.respondToolResult(
+        event.id,
+        event.threadId,
+        {
+          error: `The terminal does not provide browser tool ${event.name}. Use a server tool.`
+        },
+        false
+      );
+    } else if (event.type === "output_update") {
+      add(
+        "system",
+        `Output ${event.node_id}: ${displayResult("output", undefined, event.value)}`
+      );
+    } else if (event.type === "error") {
+      throw new Error(event.message);
+    }
+  }
+  async function compact(
+    instructions: string,
+    signal: AbortSignal
+  ): Promise<void> {
+    if (wsUrl) {
+      throw new Error(
+        "Remote context is managed by the server. Ask the agent to summarize, or use /new for a fresh thread."
+      );
+    }
+    if (!history.current.length) {
+      setStatus("Nothing to compact");
+      return;
+    }
+    setStatus("Compacting");
+    const prov = await createProvider(provider);
+    let summary = "";
+    for await (const item of prov.generateMessagesTraced({
+      model,
+      signal,
+      messages: [
+        {
+          role: "user",
+          content: `Summarize decisions, files, tool results and outstanding work to continue this conversation. ${instructions}\n\n${JSON.stringify(history.current)}`
+        }
+      ]
+    })) {
+      if (signal.aborted) {
+        return;
+      }
+      if ("type" in item && item.type === "chunk" && isString(item.content)) {
+        summary += item.content;
+      }
+    }
+    if (!summary.trim()) {
+      throw new Error("The model returned an empty summary. Context was kept.");
+    }
+    // The first system message is replaced by applySystemPrompt on each turn.
+    history.current = [
+      { role: "system", content: "" },
+      { role: "system", content: `Retained conversation context:\n${summary}` }
+    ];
+    providerSession.current = null;
+    add("system", "Conversation compacted. Context retained.");
+  }
+  async function command(value: string, signal: AbortSignal): Promise<void> {
+    const [name = "", ...words] = value.split(/\s+/);
+    const argument = words.join(" ");
+    switch (name.toLowerCase()) {
+      case "/help":
+        add(
+          "system",
+          Object.entries(CHAT_COMMANDS)
+            .map(([cmd, description]) => `${cmd.padEnd(12)} ${description}`)
+            .join("\n") +
+            "\n\nEnter send · Alt+Enter or Ctrl+J newline · Tab complete\n↑↓ history · PgUp/PgDn scroll · Ctrl+G latest\nCtrl+O tool details · Esc cancel/dismiss · Ctrl+C cancel/clear/quit"
+        );
+        break;
+      case "/clear":
+        setClearedCount(transcript.current.length);
+        latest();
+        break;
+      case "/new":
+        await persist();
+        history.current = [];
+        providerSession.current = null;
+        updateMessages([]);
+        thread.current = newSessionId();
+        setSessionId(newSessionId());
+        sessionAllow.current.clear();
+        setClearedCount(0);
+        setTodos([]);
+        setTasks({});
+        setUsage("");
+        latest();
+        break;
+      case "/compact":
+        await compact(argument, signal);
+        break;
+      case "/model":
+        if (!argument) {
+          setInput("/model ");
+          break;
+        }
+        setModel(argument);
+        providerSession.current = null;
+        await saveSettings({ model: argument });
+        break;
+      case "/provider": {
+        if (!argument) {
+          setInput("/provider ");
+          break;
+        }
+        const next = argument.toLowerCase();
+        if (
+          !wsUrl &&
+          KNOWN_PROVIDERS.some((id) => id === next) &&
+          !configured.has(next)
+        ) {
+          throw new Error(
+            `${next} needs ${providerSecretKey(next) ?? "configuration"}. Run nodetool secrets store ${providerSecretKey(next) ?? "KEY"}.`
+          );
+        }
+        const nextModel = DEFAULT_MODELS[next] ?? model;
+        setProvider(next);
+        setModel(nextModel);
+        providerSession.current = null;
+        await saveSettings({ provider: next, model: nextModel });
+        break;
+      }
+      case "/mode":
+        setMode(parsePermissionMode(argument) ?? "default");
+        break;
+      case "/sessions": {
+        const saved = await store.current.list(workspaceDir, wsUrl);
+        setSessions(saved);
+        if (!saved.length) {
+          add("system", "No saved conversations in this workspace yet.");
+        } else {
+          setInput("/resume ");
+        }
+        break;
+      }
+      case "/resume": {
+        const saved = await store.current.list(workspaceDir, wsUrl);
+        const selected = argument
+          ? saved.find((item) => item.id === argument)
+          : saved[0];
+        if (!selected) {
+          throw new Error(
+            "Session not found. Use /sessions to choose a saved conversation."
+          );
+        }
+        await persist();
+        restore(selected);
+        break;
+      }
+      case "/export": {
+        const path = resolve(
+          workspaceDir,
+          argument || `nodetool-chat-${sessionId}.md`
+        );
+        await writeFile(path, exportTranscript(transcript.current), {
+          encoding: "utf8",
+          flag: "wx",
+          mode: 0o600
+        });
+        add("system", `Exported ${path}`);
+        break;
+      }
+      case "/tools":
+        add(
+          "system",
+          wsUrl
+            ? "Connected server manages the toolbelt. Ask the agent to list its available tools."
+            : tools()
+                .map(
+                  (tool) => `${tool.name} — ${tool.description.split("\n")[0]}`
+                )
+                .join("\n")
+        );
+        break;
+      case "/details":
+        setDetails((previous) => !previous);
+        break;
       case "/exit":
       case "/quit":
-        await saveSettings({ provider, model });
-        exit();
-        return true;
-
-      case "/model":
-        if (args[0]) {
-          setModel(args[0]);
-          await saveSettings({ model: args[0] });
-          addMessage("system", `Model set to: ${args[0]}`);
-        } else {
-          addMessage("system", `Current model: ${model}. Usage: /model <model-id>`);
-        }
-        return true;
-
-      case "/provider": {
-        if (args[0]) {
-          const newProvider = args[0].toLowerCase();
-          // Refuse curated providers that have no key — they're greyed out in
-          // the picker, so typing one shouldn't sneak past. Non-curated ids
-          // (e.g. vllm) are left to the registry / runtime error path.
-          if (
-            (KNOWN_PROVIDERS as readonly string[]).includes(newProvider) &&
-            !configuredProviders.has(newProvider)
-          ) {
-            addMessage("system", missingKeyHint(newProvider));
-            return true;
-          }
-          const newModel = DEFAULT_MODELS[newProvider] ?? model;
-          setProvider(newProvider);
-          setModel(newModel);
-          await saveSettings({ provider: newProvider, model: newModel });
-          addMessage("system", `Provider: ${newProvider} • Model: ${newModel}`);
-        } else {
-          addMessage("system", `Current provider: ${provider}. Usage: /provider <name>`);
-        }
-        return true;
-      }
-
-      case "/tools":
-        addMessage("system", `Enabled tools: ${enabledTools.join(", ") || "(none)"}`);
-        return true;
-
+        await quit();
+        break;
       default:
-        if (cmd.startsWith("/")) {
-          addMessage("system", `Unknown command: ${cmd}. Type /help for commands.`);
-          return true;
-        }
-        return false;
-    }
-  }, [provider, model, enabledTools, addMessage, exit, configuredProviders, execState, threadId]);
-
-  // ---------------------------------------------------------------------------
-  // Chat submission
-  // ---------------------------------------------------------------------------
-  const handleSubmit = useCallback(async (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    // Deduplicate: useInput autocomplete Enter + TextInput onSubmit both fire for the same keypress
-    if (submittingRef.current) return;
-    submittingRef.current = true;
-
-    // Add to history (deduplicated)
-    setInputHistory(prev => {
-      const filtered = prev.filter(h => h !== trimmed);
-      return [trimmed, ...filtered].slice(0, 100);
-    });
-    setHistoryIndex(-1);
-    setHistoryDraft("");
-    setInputValue("");
-    setError(null);
-    setShowHelp(false);
-
-    // Handle commands
-    if (trimmed.startsWith("/")) {
-      await handleCommand(trimmed);
-      submittingRef.current = false;
-      return;
-    }
-
-    // Add user message to display
-    await addMessage("user", trimmed);
-
-    abortRef.current = false;
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-    streamRef.current = "";
-    setStreaming(true);
-    setStreamContent("");
-    setStreamLabel("thinking");
-
-    try {
-      const ctx = await createChatContext({ workspaceDir });
-      // One budget per turn, as a server chat turn does. It goes on the
-      // context too, so `RunSubtaskTool` and anything else this file never
-      // constructs reserves against it rather than opening its own
-      // (invariant I-2).
-      const budget = await createCliRunBudget({
-        ...(costCap !== undefined && { costCap }),
-        ...(timeout !== undefined && { timeout })
-      });
-      ctx.set(RUN_BUDGET_CONTEXT_KEY, budget);
-      const tools = buildTools();
-
-      // The unified chat loop is used for every turn — there is no longer a
-      // planning vs. loop branch. `run_subtask` is always in the toolset, so
-      // the agent can decompose work itself when it judges it worthwhile.
-      // `registry` and `agentProviders` remain on the props for back-compat;
-      // they're available to subtasks via the shared context.
-      void registry;
-      void agentProviders;
-
-      if (wsClientRef.current) {
-        // --- Regular chat via WebSocket (server handles everything) ---
-        const wsClient = wsClientRef.current;
-        const toolSchemas = tools.map(t => t.toProviderTool());
-        const pendingToolArgs = new Map<string, Record<string, unknown>>();
-        for await (const event of wsClient.chat(trimmed, threadId, modelRef.current, providerRef.current, toolSchemas)) {
-          if (abortRef.current) break;
-          if (event.type === "chunk") {
-            appendStream(event.content);
-            setStreamLabel("streaming");
-          } else if (event.type === "tool_call") {
-            pendingToolArgs.set(event.id, event.args);
-            commitStreamSegment(); // finalize any assistant text before the tool
-            startLiveTool(event.id, event.name, event.args);
-            setStreamLabel(`${toolStatusLabel(event.name, event.args)}…`);
-          } else if (event.type === "tool_result") {
-            const args = pendingToolArgs.get(event.id);
-            pendingToolArgs.delete(event.id);
-            const display = isFormattedTool(event.name)
-              ? formatToolResult(event.name, args, event.content)
-              : event.content.length > 100
-                ? event.content.slice(0, 100) + "…"
-                : event.content;
-            finishLiveTool(event.id, event.name, args, display);
-            setStreamLabel("thinking");
-          } else if (event.type === "error") {
-            throw new Error(event.message);
-          } else if (event.type === "done") {
-            break;
-          }
-        }
-        commitStreamSegment(); // final assistant answer
-
-      } else {
-        // --- Direct provider (or wsClient inference + local tool execution) ---
-        const prov = wsClientRef.current
-          ? new WebSocketProvider(
-              wsClientRef.current,
-              modelRef.current,
-              providerRef.current
-            )
-          : await createProvider(providerRef.current);
-
-        // Inject the unified-loop primitive. Child events stream into the UI
-        // via the same chunk channel; nested cards are a future enhancement.
-        const subtaskForwarder = (msg: ProcessingMessage): void => {
-          if (msg.type === "chunk") {
-            const text = (msg as { content?: string }).content;
-            if (text) {
-              appendStream(text);
-              setStreamLabel("subtask");
-            }
-          } else if (msg.type === "tool_call_update") {
-            const name = msg.name;
-            if (name) setStreamLabel(`subtask tool: ${name}`);
-          }
-        };
-        const toolsWithSubtask = [
-          new RunSubtaskTool({
-            provider: prov,
-            model: modelRef.current,
-            parentTools: () => tools,
-            forwardMessage: subtaskForwarder
-          }),
-          ...tools
-        ];
-
-        // The turn runs in CodeAct, like a server session: the provider sees
-        // `execute_code` (+ `view_image`) and the toolbelt lives in the
-        // sandbox. Bridged calls have no provider tool-call id, so they show
-        // up as the live status label rather than as tool cards.
-        const turn = createCliCodeActTurn({
-          tools: toolsWithSubtask,
-          context: ctx,
-          signal: abortController.signal,
-          onToolCall: ({ name }) => {
-            setStreamLabel(`${friendlyToolName(name)}…`);
-          }
-        });
-
-        const updatedHistory = [...chatHistoryRef.current];
-        applySystemPrompt(updatedHistory, turn.systemPrompt);
-
-        await processChat({
-          userInput: trimmed,
-          messages: updatedHistory,
-          model: modelRef.current,
-          provider: prov,
-          context: ctx,
-          tools: turn.tools,
-          signal: abortController.signal,
-          turnBudget: budget,
-          callbacks: {
-            onChunk: (text) => {
-              if (abortRef.current) throw new Error("aborted");
-              appendStream(text);
-              setStreamLabel("streaming");
-            },
-            onToolCall: (tc: ToolCall) => {
-              commitStreamSegment(); // finalize any assistant text before the tool
-              startLiveTool(tc.id, tc.name, tc.args);
-              setStreamLabel(`${toolStatusLabel(tc.name, tc.args)}…`);
-            },
-            onToolResult: (tc: ToolCall, result: unknown) => {
-              const display = isFormattedTool(tc.name)
-                ? formatToolResult(tc.name, tc.args, result)
-                : isString(result)
-                  ? result
-                  : JSON.stringify(result).slice(0, 100);
-              finishLiveTool(tc.id, tc.name, tc.args, display);
-            },
-          },
-        });
-
-        setChatHistory(updatedHistory);
-        commitStreamSegment(); // final assistant answer
-      }
-      // A ceiling ended the turn, not the model finishing its answer. Shown
-      // nowhere, the two are indistinguishable from a short reply (I-3).
-      const stopReason = budgetStopReason(budget);
-      if (stopReason) await addMessage("system", `Stopped: ${stopReason}`);
-    } catch (err) {
-      if (!abortRef.current) {
-        const msg = err instanceof Error ? err.message : String(err);
-        setError(msg);
-        await addMessage("system", `Error: ${msg}`);
-      }
-    } finally {
-      // Let every queued commit (final answer, tool results) land in <Static>
-      // before tearing down the live frame, so nothing is dropped mid-handoff.
-      await commitChainRef.current;
-      setStreaming(false);
-      streamRef.current = "";
-      setStreamContent("");
-      setStreamLabel("");
-      setLiveTools([]); // drop any tool calls left unfinished by an abort
-      submittingRef.current = false;
-      abortControllerRef.current = null;
-    }
-  }, [handleCommand, addMessage, appendStream, commitStreamSegment, startLiveTool, finishLiveTool, workspaceDir, enabledTools, costCap, timeout]);
-
-  // ---------------------------------------------------------------------------
-  // Keyboard: history navigation and tab completion
-  // ---------------------------------------------------------------------------
-  // Autocomplete: commands (/help, /provider, …) and arguments (/provider <name>)
-  type AcMatch = { cmd: string; desc: string; replaceAll?: string; disabled?: boolean };
-  let acMatches: AcMatch[] = [];
-
-  if (!streaming && inputValue.startsWith("/")) {
-    const lower = inputValue.toLowerCase();
-    const spaceIdx = lower.indexOf(" ");
-
-    if (spaceIdx === -1) {
-      // Command completion: /pro → /provider
-      acMatches = Object.entries(COMMANDS)
-        .filter(([cmd]) => cmd.startsWith(lower))
-        .map(([cmd, desc]) => ({ cmd, desc }));
-    } else {
-      // Argument completion for specific commands
-      const cmd = lower.slice(0, spaceIdx);
-      const arg = lower.slice(spaceIdx + 1);
-
-      if (cmd === "/provider") {
-        acMatches = KNOWN_PROVIDERS
-          .filter((p) => p.startsWith(arg))
-          .map((p) => {
-            const disabled = !configuredProviders.has(p);
-            const key = providerSecretKey(p);
-            return {
-              cmd: p,
-              desc: disabled
-                ? key
-                  ? `needs ${key}`
-                  : "unavailable"
-                : DEFAULT_MODELS[p] ?? "",
-              replaceAll: `/provider ${p}`,
-              disabled,
-            };
-          });
-      } else if (cmd === "/model") {
-        acMatches = modelList
-          .filter((m) => m.id.toLowerCase().startsWith(arg))
-          .map((m) => ({
-            cmd: m.id,
-            desc: m.name !== m.id ? m.name : "",
-            replaceAll: `/model ${m.id}`,
-          }));
-      }
+        throw new Error(`Unknown command: ${name}. Use /help.`);
     }
   }
 
-  const acOpen = acMatches.length > 0;
-
-  // The highlight only ever rests on a selectable (non-disabled) entry. If the
-  // raw index points at a disabled provider, resolve to the first enabled one;
-  // if every match is disabled, stay put so Enter can explain why.
-  const stepAcIndex = (from: number, dir: 1 | -1): number => {
-    const n = acMatches.length;
-    if (n === 0) return 0;
-    for (let s = 1; s <= n; s++) {
-      const i = (((from + dir * s) % n) + n) % n;
-      if (!acMatches[i]?.disabled) return i;
-    }
-    return from;
-  };
-  const acClampedIndex = Math.min(acIndex, Math.max(0, acMatches.length - 1));
-  const acSelectedIndex = acMatches[acClampedIndex]?.disabled
-    ? (() => {
-        const firstEnabled = acMatches.findIndex((m) => !m.disabled);
-        return firstEnabled === -1 ? acClampedIndex : firstEnabled;
-      })()
-    : acClampedIndex;
-
-  useInput((input, key) => {
-    // Escape or Ctrl+C: cancel streaming, or exit when idle
-    if (key.escape || (key.ctrl && input === "c")) {
-      if (streaming) {
-        abortRef.current = true;
-        abortControllerRef.current?.abort();
-        abortControllerRef.current = null;
-        if (wsClientRef.current) {
-          wsClientRef.current.stop(threadId);
-        }
-        // Immediately reset UI — don't wait for async cleanup
-        setStreaming(false);
-        setStreamContent("");
-        setStreamLabel("");
-        setLiveTools([]);
-        submittingRef.current = false;
-      } else {
-        saveSettings({ provider, model }).then(() => exit());
-      }
+  async function submit(value: string): Promise<void> {
+    if (active.current || !value.trim()) {
       return;
     }
-
-    // While a response is streaming, keep the input editable for drafting the
-    // next message, but disable history/autocomplete controls until the current
-    // turn finishes.
-    if (streaming) return;
-
-    // Autocomplete navigation
-    if (acOpen) {
-      if (key.upArrow) {
-        setAcIndex(() => stepAcIndex(acSelectedIndex, -1));
+    active.current = true;
+    const abort = new AbortController();
+    controller.current = abort;
+    setBusy(true);
+    setInput("");
+    setStatus("Thinking");
+    latest();
+    setHistoryIndex(-1);
+    setDraft("");
+    setInputHistory((previous) =>
+      [value, ...previous.filter((item) => item !== value)].slice(0, 100)
+    );
+    let budget: RunBudget | undefined;
+    try {
+      if (value.startsWith("/")) {
+        await command(value.trim(), abort.signal);
         return;
       }
-      if (key.downArrow) {
-        setAcIndex(() => stepAcIndex(acSelectedIndex, 1));
-        return;
-      }
-      if (key.tab) {
-        const selected = acMatches[acSelectedIndex];
-        if (selected?.disabled) {
-          addMessage("system", missingKeyHint(selected.cmd));
-          return;
+      add("user", value);
+      if (wsUrl) {
+        const socket = client.current;
+        if (!socket || connection !== "Connected") {
+          throw new Error(
+            "Server is not connected. Restart chat to reconnect."
+          );
         }
-        if (selected) setInputValue(selected.replaceAll ?? selected.cmd + " ");
-        setAcIndex(0);
-        return;
-      }
-      if (key.return) {
-        const selected = acMatches[acSelectedIndex];
-        if (selected?.disabled) {
-          addMessage("system", missingKeyHint(selected.cmd));
-          return;
-        }
-        if (selected) {
-          const completed = selected.replaceAll ?? selected.cmd + " ";
-          // Submit when:
-          //  - the completion is a bare command in COMMANDS (e.g. "/help"), or
-          //  - the user has already typed it (completion would no-op).
-          // Otherwise fill the input so they can finish typing the argument.
-          if (
-            completed.trimEnd() in COMMANDS ||
-            completed === inputValue ||
-            completed.trimEnd() === inputValue.trimEnd()
-          ) {
-            handleSubmit(inputValue);
-          } else {
-            setInputValue(completed);
+        const calls = new Map<
+          string,
+          { name: string; args: Record<string, unknown> }
+        >();
+        for await (const event of socket.chat(
+          value,
+          thread.current,
+          model,
+          provider,
+          undefined,
+          { permissionMode: mode, signal: abort.signal }
+        )) {
+          if (abort.signal.aborted) {
+            break;
           }
-          setAcIndex(0);
+          if (event.type === "tool_call") {
+            calls.set(event.id, event);
+            startTool(event.id, event.name, event.args);
+          } else if (event.type === "tool_result") {
+            const call = calls.get(event.id);
+            finishTool(
+              event.id,
+              event.name || call?.name || "tool",
+              call?.args,
+              event.content
+            );
+            calls.delete(event.id);
+          } else {
+            await remoteEvent(event, socket, abort.signal);
+          }
         }
+      } else {
+        const ctx = await createChatContext({ workspaceDir });
+        const unsubscribe = ctx.addMessageListener(processEvent);
+        try {
+          budget = await createCliRunBudget({ costCap, timeout });
+          const gate: PermissionGateOptions = {
+            mode,
+            sessionAllow: sessionAllow.current,
+            requestApproval: async (request) => {
+              const answer = await prompts.current.ask(
+                {
+                  title: `Approve ${request.toolName}`,
+                  body: `${request.description || request.message}\n\n${JSON.stringify(request.args, null, 2)}`,
+                  choices: APPROVAL_CHOICES
+                },
+                abort.signal
+              );
+              return answer === "allow" || answer === "allow_for_chat"
+                ? answer
+                : "deny";
+            }
+          };
+          ctx.set(PERMISSION_GATE_CONTEXT_KEY, gate);
+          ctx.set(RUN_BUDGET_CONTEXT_KEY, budget);
+          const prov = await createProvider(provider);
+          const belt = buildCliAgentBelt({
+            baseTools: tools(),
+            provider: prov,
+            model,
+            forwardMessage: processEvent,
+            gate,
+            budget,
+            readOnlySearch: enableReadOnlySearch,
+            planning: true
+          });
+          const turn = createCliCodeActTurn({
+            tools: belt,
+            context: ctx,
+            signal: abort.signal,
+            onToolCall: ({ name }) => setStatus(friendlyToolName(name))
+          });
+          applySystemPrompt(history.current, turn.systemPrompt);
+          const historyStart = history.current.length;
+          let displayedText = "";
+          await processChat({
+            userInput: value,
+            messages: history.current,
+            provider: prov,
+            model,
+            threadId: thread.current,
+            providerSession: providerSession.current,
+            context: ctx,
+            tools: turn.tools,
+            signal: abort.signal,
+            turnBudget: budget,
+            callbacks: {
+              onChunk: (text) => {
+                if (!abort.signal.aborted) {
+                  displayedText += text;
+                  append(text);
+                  setStatus("Responding");
+                }
+              },
+              onToolCall: (call) => startTool(call.id, call.name, call.args),
+              onToolResult: (call, result) =>
+                finishTool(call.id, call.name, call.args, result),
+              onProviderSession: (session) => {
+                providerSession.current = session;
+              }
+            }
+          });
+          const answers = history.current
+            .slice(historyStart)
+            .filter((message) => message.role === "assistant");
+          const finalText = answers
+            .map((message) =>
+              isString(message.content)
+                ? message.content
+                : (message.content
+                    ?.flatMap((part) =>
+                      part.type === "text" ? [part.text] : []
+                    )
+                    .join("") ?? "")
+            )
+            .join("");
+          if (finalText.startsWith(displayedText)) {
+            append(finalText.slice(displayedText.length));
+          } else if (finalText && !abort.signal.aborted) {
+            flush();
+            add("assistant", finalText);
+          }
+          const attachments = answers.flatMap((message) =>
+            attachmentLines(message.content)
+          );
+          if (attachments.length) {
+            flush();
+            add("system", attachments.join("\n"));
+          }
+        } finally {
+          unsubscribe();
+        }
+      }
+      flush();
+      if (budget) {
+        setUsage(budgetSummaryLine(budget));
+        const reason = budgetStopReason(budget);
+        if (reason) {
+          add("system", `Stopped: ${reason}`);
+        }
+      }
+    } catch (error) {
+      if (!abort.signal.aborted) {
+        add("system", `Error: ${errorText(error)}`);
+      }
+    } finally {
+      flush();
+      if (abort.signal.aborted) {
+        add("system", "Stopped. You can continue this conversation.");
+      }
+      setActiveTools({});
+      if (!value.startsWith("/") || value.startsWith("/compact")) {
+        try {
+          await persist();
+        } catch (error) {
+          add("system", `Session could not be saved: ${errorText(error)}`);
+        }
+      }
+      controller.current = null;
+      active.current = false;
+      setBusy(false);
+      setStatus("Ready");
+    }
+  }
+
+  const completions: Completion[] = [];
+  if (!busy && input.startsWith("/")) {
+    const space = input.indexOf(" ");
+    const name = space < 0 ? input : input.slice(0, space);
+    const argument = space < 0 ? "" : input.slice(space + 1).toLowerCase();
+    if (space < 0) {
+      for (const [value, description] of Object.entries(CHAT_COMMANDS)) {
+        if (value.startsWith(name.toLowerCase())) {
+          completions.push({ value, description });
+        }
+      }
+    } else if (name === "/provider") {
+      for (const id of KNOWN_PROVIDERS) {
+        if (id.includes(argument)) {
+          completions.push({
+            value: `/provider ${id}`,
+            description: DEFAULT_MODELS[id] ?? "",
+            disabled: !wsUrl && !configured.has(id)
+          });
+        }
+      }
+    } else if (name === "/model") {
+      for (const item of models) {
+        if (`${item.id} ${item.name}`.toLowerCase().includes(argument)) {
+          completions.push({
+            value: `/model ${item.id}`,
+            description: item.name
+          });
+        }
+      }
+    } else if (name === "/mode") {
+      for (const modeName of ["default", "auto", "plan"]) {
+        if (modeName.startsWith(argument)) {
+          completions.push({
+            value: `/mode ${modeName}`,
+            description: "Permission mode"
+          });
+        }
+      }
+    } else if (name === "/resume") {
+      for (const session of sessions) {
+        if (`${session.id} ${session.title}`.toLowerCase().includes(argument)) {
+          completions.push({
+            value: `/resume ${session.id}`,
+            description: session.title
+          });
+        }
+      }
+    }
+  }
+  const selected = Math.min(
+    completionIndex,
+    Math.max(0, completions.length - 1)
+  );
+  function changeInput(value: string): void {
+    setInput(value);
+    setCompletionIndex(0);
+  }
+  function complete(direction: "up" | "down" | "accept" | "submit"): void {
+    if (direction === "up" || direction === "down") {
+      setCompletionIndex(
+        (selected + (direction === "up" ? -1 : 1) + completions.length) %
+          completions.length
+      );
+      return;
+    }
+    const item = completions[selected];
+    if (!item) {
+      return;
+    }
+    if (item.disabled) {
+      setStatus(
+        `Configure ${providerSecretKey(item.value.slice(10)) ?? "this provider"} first`
+      );
+      return;
+    }
+    if (direction === "accept") {
+      changeInput(item.value + (item.value.includes(" ") ? "" : " "));
+      return;
+    }
+    if (item.value.includes(" ")) {
+      void submit(item.value);
+      return;
+    }
+    if (
+      ["/model", "/provider", "/mode", "/resume", "/export"].includes(
+        item.value
+      )
+    ) {
+      changeInput(`${item.value} `);
+    } else {
+      void submit(item.value);
+    }
+  }
+  function recall(direction: "up" | "down"): void {
+    if (busy || !inputHistory.length) {
+      return;
+    }
+    if (historyIndex < 0) {
+      setDraft(input);
+    }
+    const next =
+      direction === "up"
+        ? Math.min(historyIndex + 1, inputHistory.length - 1)
+        : Math.max(-1, historyIndex - 1);
+    setHistoryIndex(next);
+    changeInput(next < 0 ? draft : (inputHistory[next] ?? ""));
+  }
+  useInput((keyInput, key) => {
+    if (prompt) {
+      const choice = prompt.choices.find(
+        (item) => item.key === keyInput.toLowerCase()
+      );
+      if (choice) {
+        prompts.current.answer(choice.value);
+      }
+      if (key.escape) {
+        prompts.current.answer("cancel");
+      }
+      if (!(key.ctrl && keyInput === "c")) {
         return;
       }
     }
-
-    // History navigation (only when autocomplete is closed)
-    if (!acOpen) {
-      if (key.upArrow) {
-        setInputHistory(hist => {
-          if (hist.length === 0) return hist;
-          setHistoryIndex(prev => {
-            if (prev === -1) setHistoryDraft(inputValue);
-            const next = Math.min(prev + 1, hist.length - 1);
-            setInputValue(hist[next] ?? "");
-            return next;
-          });
-          return hist;
-        });
-        return;
-      }
-
-      if (key.downArrow) {
-        setHistoryIndex(prev => {
-          if (prev <= 0) {
-            setInputValue(historyDraft);
-            return -1;
-          }
-          const next = prev - 1;
-          setInputHistory(hist => {
-            setInputValue(hist[next] ?? "");
-            return hist;
-          });
-          return next;
-        });
-        return;
+    if (key.ctrl && keyInput === "o") {
+      setDetails((previous) => !previous);
+      return;
+    }
+    if (key.escape || (key.ctrl && keyInput === "c")) {
+      if (active.current) {
+        controller.current?.abort();
+        setStatus("Stopping…");
+      } else if (input) {
+        changeInput("");
+      } else if (key.ctrl) {
+        void quit();
       }
     }
   });
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
-
-  const statusParts = [
-    provider,
-    model,
-    wsUrl ? "ws" : null,
-  ].filter(Boolean).join("  ");
-
+  const sidebarWidth = columns >= 112 ? 30 : 0;
+  const width = Math.max(1, columns - 4 - sidebarWidth);
+  const editorRows = Math.min(
+    5,
+    Math.max(1, terminalLines(input || " ", Math.max(1, columns - 6)).length)
+  );
+  const menuRows = Math.min(5, completions.length, Math.max(0, rows - 14));
+  const bodyHeight = Math.max(1, rows - editorRows - menuRows - 8);
+  const menuStart = Math.max(0, selected - menuRows + 1);
+  const work = [
+    ...todos.map(
+      (todo) =>
+        `${todo.status === "completed" ? "✓" : todo.status === "in_progress" ? "›" : "○"} ${todo.content}`
+    ),
+    ...Object.values(tasks),
+    ...Object.values(activeTools).map(
+      (tool) => `› ${friendlyToolName(tool.name)}`
+    )
+  ];
   return (
-    <Box flexDirection="column">
-      {/* Past messages */}
-      <Static items={messages}>
-        {(msg) => (
-          <Box key={msg.id}>
-            <ChatMessageItem msg={msg} />
+    <Box
+      flexDirection="column"
+      width={columns}
+      height={rows}
+      overflow="hidden"
+      paddingX={1}
+    >
+      <Box height={1} justifyContent="space-between">
+        <Text bold color="cyan">
+          NodeTool
+        </Text>
+        <Text dimColor wrap="truncate">
+          {terminalText(provider)} / {terminalText(model)}
+        </Text>
+      </Box>
+      <Text dimColor wrap="truncate">
+        {terminalText(workspaceDir)} · {connection} · {mode}
+      </Text>
+      <Text dimColor>{"─".repeat(Math.max(1, columns - 2))}</Text>
+      <Box height={bodyHeight} flexShrink={0}>
+        {prompt ? (
+          <Box
+            width={width}
+            height={bodyHeight}
+            flexDirection="column"
+            overflow="hidden"
+          >
+            <Text bold color="yellow">
+              {terminalText(prompt.title)}
+            </Text>
+            <Transcript
+              messages={[
+                { id: "prompt", role: "system", content: prompt.body }
+              ]}
+              live=""
+              width={width}
+              height={Math.max(1, bodyHeight - 3)}
+              details={true}
+              resetKey={prompt.title}
+              startAtTop
+            />
+            <Text color="cyan" wrap="truncate">
+              {prompt.choices
+                .map((choice) => `[${choice.key}] ${choice.label}`)
+                .join("  ")}
+            </Text>
+            <Text dimColor>Esc dismiss · Ctrl+C stop</Text>
+          </Box>
+        ) : (
+          <Transcript
+            messages={messages.slice(clearedCount)}
+            live={live}
+            width={width}
+            height={bodyHeight}
+            details={details}
+            resetKey={`${sessionId}-${scrollKey}`}
+          />
+        )}
+        {sidebarWidth > 0 && (
+          <Box
+            width={sidebarWidth}
+            paddingLeft={2}
+            flexDirection="column"
+            overflow="hidden"
+          >
+            <Text bold>Session</Text>
+            <Text dimColor>{sessionId.slice(0, 12)}</Text>
+            <Text> </Text>
+            <Text bold>Work</Text>
+            <Text dimColor>
+              {terminalLines(
+                terminalText(work.join("\n") || "No active tasks"),
+                sidebarWidth - 2
+              )
+                .slice(0, Math.max(1, bodyHeight - 6))
+                .join("\n")}
+            </Text>
           </Box>
         )}
-      </Static>
-
-      {/* Help panel (toggles) */}
-      {showHelp && <HelpPanel />}
-
-      {/* Live streaming area — unified loop. Truncate preview to avoid
-          overflowing the terminal's dynamic area. */}
-      {streaming && (() => {
-        const maxPreviewLines = Math.max((process.stdout.rows ?? 24) - 4, 5);
-        const lines = streamContent ? streamContent.split("\n") : [];
-        const truncated = lines.length > maxPreviewLines
-          ? lines.slice(-maxPreviewLines).join("\n")
-          : streamContent;
-        return (
-          <Box flexDirection="column" marginTop={1}>
-            {truncated ? (
-              <Box>
-                <Text color="green">{"● "}</Text>
-                <Text>{truncated}</Text>
-              </Box>
-            ) : null}
-            {/* Tool calls in flight (and just-finished, pre-flush) for this turn. */}
-            {liveTools.map(tool => (
-              <LiveToolCallItem key={tool.id} tool={tool} />
-            ))}
-            <Box>
-              <Text color="gray" dimColor>{"  "}<Spinner type="dots" /> {streamLabel || "thinking"}</Text>
-            </Box>
-          </Box>
-        );
-      })()}
-
-      {/* Error display */}
-      {error && (
-        <Box marginTop={1}>
-          <Text color="red">{"● "}</Text>
-          <Text color="red">{error}</Text>
+      </Box>
+      <Box height={1}>
+        <Text
+          color={prompt ? "yellow" : busy ? "cyan" : "gray"}
+          wrap="truncate"
+        >
+          {busy && <Spinner type="dots" />} {terminalText(status)}
+          {busy ? ` · ${elapsed}s · Esc stop` : usage ? ` · ${usage}` : ""}
+        </Text>
+      </Box>
+      {menuRows > 0 && (
+        <Box height={menuRows} flexDirection="column">
+          {completions.slice(menuStart, menuStart + menuRows).map((item, i) => (
+            <Text
+              key={item.value}
+              color={menuStart + i === selected ? "cyan" : "gray"}
+              dimColor={item.disabled}
+              wrap="truncate"
+            >
+              {menuStart + i === selected ? "› " : "  "}
+              {terminalText(item.value)} {terminalText(item.description)}
+            </Text>
+          ))}
         </Box>
       )}
-
-      {/* Autocomplete menu */}
-      {acOpen && (
-        <AutocompleteMenu
-          matches={acMatches}
-          selectedIndex={acSelectedIndex}
-        />
-      )}
-
-      {/* Input area — stays visible/editable while streaming so the user can draft the next message. */}
-      <Box>
-        <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
-      </Box>
-      <Box>
-        <Text color="magenta" dimColor bold>{"❯ "}</Text>
+      <Text dimColor>{"─".repeat(Math.max(1, columns - 2))}</Text>
+      <Box height={editorRows}>
+        <Text color="cyan">› </Text>
         <ReadlineInput
-          value={inputValue}
-          onChange={setInputValue}
-          onSubmit={handleSubmit}
+          value={input}
+          onChange={changeInput}
+          onSubmit={submit}
+          onHistory={recall}
+          onComplete={completions.length ? complete : undefined}
+          width={Math.max(1, columns - 6)}
+          maxRows={editorRows}
+          focus={!prompt}
+          placeholder={busy ? "Draft your next message…" : "Ask NodeTool…"}
         />
       </Box>
-      <Box>
-        <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
-      </Box>
-      {/* Status bar */}
-      <Box>
-        <Text color="gray" dimColor>{"  "}{statusParts}</Text>
-      </Box>
+      <Text dimColor>{"─".repeat(Math.max(1, columns - 2))}</Text>
+      <Text dimColor wrap="truncate">
+        {columns < 70
+          ? "Enter send · Ctrl+J newline · /help"
+          : "Enter send · Alt+Enter newline · PgUp/PgDn scroll · Ctrl+O details · /help"}
+      </Text>
     </Box>
   );
 }

@@ -9,6 +9,7 @@ import { isString } from "./predicates.js";
 
 // Cache so we only set the extension once
 let _initialized = false;
+let _available = false;
 export async function renderMarkdown(text: string): Promise<string> {
   if (!_initialized) {
     try {
@@ -24,11 +25,13 @@ export async function renderMarkdown(text: string): Promise<string> {
           reflowText: false
         })
       );
+      _available = true;
     } catch {
-      // marked-terminal unavailable — fall back to plain marked output
+      // Keep Markdown readable rather than returning marked's HTML renderer.
     }
     _initialized = true;
   }
+  if (!_available) return text;
   try {
     const result = marked(text);
     if (isString(result)) return result;

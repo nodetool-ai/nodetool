@@ -465,7 +465,8 @@ program
 
 program
   .command("chat")
-  .description("Start interactive chat (TUI)")
+  .description("Start fullscreen chat")
+  .helpOption(false)
   .option("-p, --provider <provider>", "LLM provider")
   .option("-m, --model <model>", "Model ID")
   .option("-a, --agent", "Agent mode")
@@ -474,17 +475,17 @@ program
   .option("--tools <tools>", "Comma-separated enabled tools")
   .allowUnknownOption()
   .action((_opts, cmd) => {
-    const chatPath = resolve(__dirname, "index.js");
+    const chatPath = resolve(__dirname, import.meta.url.endsWith(".ts") ? "index.ts" : "index.js");
     const args = cmd.args;
     const rawArgs = process.argv;
     // Re-run with the chat entry point, forwarding all flags after "chat"
     const chatIdx = rawArgs.indexOf("chat");
     const forwarded = chatIdx >= 0 ? rawArgs.slice(chatIdx + 1) : args;
-    const result = spawnSync("node", [chatPath, ...forwarded], {
+    const result = spawnSync(process.execPath, [...process.execArgv, chatPath, ...forwarded], {
       stdio: "inherit",
       env: { ...process.env }
     });
-    process.exit(result.status ?? 0);
+    process.exit(result.status ?? 1);
   });
 
 // ---------------------------------------------------------------------------

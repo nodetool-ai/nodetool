@@ -541,6 +541,18 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "packages/agents/AGENTS.md"
   },
   {
+    id: "chat-terminal",
+    title: "Terminal chat (keyboard, viewport, sessions, approvals, transport)",
+    command: "npm run test --workspace=packages/cli -- tests/chat-app.test.ts tests/chat-media.test.ts tests/terminal-keyboard.test.ts tests/terminal-input.test.ts tests/terminal-screen.test.ts tests/chat-prompts.test.ts tests/chat-sessions.test.ts tests/websocket-client.test.ts",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § nodetool chat",
+    selfcheck: {
+      command: "npm run test --workspace=packages/cli -- tests/chat-app.test.ts tests/chat-media.test.ts tests/terminal-keyboard.test.ts tests/terminal-input.test.ts tests/terminal-screen.test.ts tests/chat-prompts.test.ts tests/chat-sessions.test.ts tests/websocket-client.test.ts",
+      cost: "cheap"
+    }
+  },
+  {
     id: "chat-stdin",
     title: "Headless chat agent (piped stdin)",
     command: 'echo "<prompt>" | nodetool-chat -p <provider> -m <model>',
@@ -1436,7 +1448,7 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "chat-agent",
     title: "Chat agent loop (unified tool-calling loop)",
-    harnesses: ["chat-stdin", "eval"],
+    harnesses: ["chat-terminal", "chat-stdin", "eval"],
     paths: ["packages/chat/", "packages/cli/"]
   },
   {

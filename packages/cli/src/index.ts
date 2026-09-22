@@ -15,6 +15,7 @@ import { program } from "commander";
 import { render } from "ink";
 import React from "react";
 import { App } from "./app.js";
+import { enterTerminalScreen } from "./terminal-screen.js";
 import { ALWAYS_ENABLED_TOOLS, loadSettings } from "./settings.js";
 import { installLocalModelInterfaces } from "./local-model-interfaces.js";
 import { runStdinMode } from "./stdin.js";
@@ -23,7 +24,11 @@ import {
   PERMISSION_MODE_NAMES
 } from "./permission-gate.js";
 import type { PermissionMode } from "@nodetool-ai/agents";
-import { buildConfiguredProviders, KNOWN_PROVIDERS } from "./providers.js";
+import {
+  buildConfiguredProviders,
+  DEFAULT_MODELS,
+  KNOWN_PROVIDERS
+} from "./providers.js";
 import { initDb, getSecret } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
@@ -58,6 +63,10 @@ program
   )
   .option("-m, --model <model>", "Model ID")
   .option(
+    "--resume [id]",
+    "Resume a saved session in this workspace (latest when no id is given)"
+  )
+  .option(
     "-a, --agent [mode]",
     "[deprecated] No-op — every chat session runs the unified loop"
   )
@@ -77,8 +86,7 @@ program
   )
   .option(
     "--permission-mode <mode>",
-    `Permission mode for piped input (${PERMISSION_MODE_NAMES.join(" | ")}); ` +
-      "unset runs auto, since stdin carries the messages and not a user"
+    `Permission mode (${PERMISSION_MODE_NAMES.join(" | ")}); interactive defaults to default, piped input to auto`
   )
   .option(
     "--cost-cap <usd>",
@@ -109,6 +117,7 @@ program
 const opts = program.opts<{
   provider?: string;
   model?: string;
+  resume?: string | boolean;
   agent?: boolean | string;
   workspace?: string;
   tools?: string;
@@ -131,6 +140,12 @@ try {
   process.exit(1);
 }
 
+const traceStdout = opts.traceStdout ?? process.env["NODETOOL_TRACE_STDOUT"];
+if (process.stdin.isTTY && traceStdout !== undefined && parseTraceStdout(traceStdout)) {
+  process.stderr.write("Fullscreen chat uses stdout for its screen. Use --trace-file <path> and --no-trace-stdout for tracing.\n");
+  process.exit(1);
+}
+
 // Initialize OpenLLMetry before any LLM SDK calls are made. Honors CLI flags
 // and env vars (TRACELOOP_API_KEY, OTEL_EXPORTER_OTLP_ENDPOINT,
 // NODETOOL_TRACE_FILE, NODETOOL_TRACE_STDOUT). No-op if nothing is configured.
@@ -148,7 +163,8 @@ function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
     const lower = v.toLowerCase();
     if (lower === "false" || lower === "0" || lower === "no") return false;
     if (lower === "json") return "json";
-    if (lower === "pretty" || lower === "true" || lower === "1") return "pretty";
+    if (lower === "pretty" || lower === "true" || lower === "1")
+      return "pretty";
   }
   throw new Error(
     `--trace-stdout must be 'pretty' or 'json' (got ${JSON.stringify(v)})`
@@ -186,7 +202,11 @@ await installLocalModelInterfaces();
 const settings = await loadSettings();
 
 const provider = opts.provider ?? settings.provider;
-const model = opts.model ?? settings.model;
+const model =
+  opts.model ??
+  (opts.provider
+    ? (DEFAULT_MODELS[opts.provider] ?? settings.model)
+    : settings.model);
 
 // `--agent` and the persisted `agentMode` setting are deprecated no-ops —
 // every chat session now runs the unified LLM-with-tools loop, and the
@@ -204,7 +224,7 @@ const workspace = opts.workspace ?? process.cwd();
 const explicitTools = opts.tools
   ? opts.tools.split(",").map((t) => t.trim())
   : null;
-const enabledTools = explicitTools ?? settings.enabledTools;
+const enabledTools = [...(explicitTools ?? settings.enabledTools)];
 
 // Tools that gate on no credential — documents, discovery, generation — added
 // to a settings file written before they existed. `--tools` is left exactly as
@@ -225,14 +245,15 @@ async function autoEnable(key: string, tools: string[]): Promise<void> {
   }
 }
 
-await Promise.all([
-  autoEnable("SERPAPI_API_KEY", ["google_search", "web_search"]),
-  // `generate_image` / `generate_speech` are not here: they route by the model
-  // they are given, so an OpenAI key is not what makes them usable.
-  autoEnable("OPENAI_API_KEY", ["web_search"]),
-  autoEnable("DATA_FOR_SEO_LOGIN", ["web_search"]),
-  autoEnable("IMAP_USERNAME", ["search_email", "archive_email"])
-]);
+if (!explicitTools)
+  await Promise.all([
+    autoEnable("SERPAPI_API_KEY", ["google_search", "web_search"]),
+    // `generate_image` / `generate_speech` are not here: they route by the model
+    // they are given, so an OpenAI key is not what makes them usable.
+    autoEnable("OPENAI_API_KEY", ["web_search"]),
+    autoEnable("DATA_FOR_SEO_LOGIN", ["web_search"]),
+    autoEnable("IMAP_USERNAME", ["search_email", "archive_email"])
+  ]);
 
 // Build a NodeRegistry once per session for the graph-native agent. Only
 // when running locally (no --url): the WebSocket server has its own
@@ -270,30 +291,37 @@ if (!process.stdin.isTTY) {
   process.exit(0);
 }
 
-// The Ink session builds its own belt and runs no permission gate, so a mode
-// asked for here would be accepted and then ignored. Say so instead.
-if (permissionMode !== undefined) {
-  process.stderr.write(
-    "--permission-mode applies to piped input and `nodetool agent run`; " +
-      "the interactive session does not gate its belt.\n"
+const restoreScreen = enterTerminalScreen(process.stdout);
+process.once("exit", restoreScreen);
+const terminate = (): void => {
+  restoreScreen();
+  process.exit(143);
+};
+process.once("SIGTERM", terminate);
+try {
+  const { waitUntilExit } = render(
+    React.createElement(App, {
+      initialProvider: provider,
+      initialModel: model,
+      enabledTools,
+      workspaceDir: workspace,
+      wsUrl: opts.url,
+      registry: cliRegistry,
+      agentProviders: cliAgentProviders,
+      permissionMode,
+      enableReadOnlySearch: opts.readOnlySearch !== false,
+      resume: opts.resume,
+      ...(opts.costCap !== undefined && { costCap: opts.costCap }),
+      ...(opts.timeout !== undefined && { timeout: opts.timeout })
+    }),
+    { exitOnCtrlC: false, kittyKeyboard: { mode: "auto" } }
   );
+
+  await waitUntilExit();
+} finally {
+  restoreScreen();
+  process.off("exit", restoreScreen);
+  process.off("SIGTERM", terminate);
+  await shutdownTelemetry();
 }
-
-const { waitUntilExit } = render(
-  React.createElement(App, {
-    initialProvider: provider,
-    initialModel: model,
-    enabledTools,
-    workspaceDir: workspace,
-    wsUrl: opts.url,
-    registry: cliRegistry,
-    agentProviders: cliAgentProviders,
-    ...(opts.costCap !== undefined && { costCap: opts.costCap }),
-    ...(opts.timeout !== undefined && { timeout: opts.timeout })
-  }),
-  { exitOnCtrlC: false }
-);
-
-await waitUntilExit();
-await shutdownTelemetry();
 process.exit(0);

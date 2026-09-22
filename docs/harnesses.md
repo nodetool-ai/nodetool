@@ -71,7 +71,18 @@ bounds the run rather than each loop. A turn a ceiling refuses says which one:
 flags, bounding the whole command instead of one turn, and exits non-zero on a
 budget stop.
 
-Interactive commands: `/help`, `/new`, `/clear`, `/compact [instructions]`, `/model <id>`, `/provider <name>`, `/tools`, `/exit`, `/quit`
+Interactive chat fills the terminal and restores the previous screen on exit.
+Page Up/Page Down scrolls history, Ctrl+G follows the latest output, and Ctrl+O
+shows tool details. Alt+Enter or Ctrl+J inserts a newline. Escape cancels a
+turn without releasing the next prompt until cleanup finishes.
+
+Interactive commands and session storage are documented in
+[the chat CLI reference](cli.md#nodetool-chat). Use `--resume [id]` to reopen a
+saved conversation, `/sessions` to choose one, and `/export <path.md>` to export
+the transcript. Local and remote approval requests appear in the terminal.
+The `chat-terminal` registry selfcheck drives the Ink UI with terminal streams
+and tests keyboard input, viewport bounds, sessions, approval cancellation, and
+WebSocket event handling without a model key.
 
 ### nodetool serve
 

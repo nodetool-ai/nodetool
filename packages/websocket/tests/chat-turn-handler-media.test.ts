@@ -47,6 +47,18 @@ function assistantFrames(
     .filter((m) => m.role === "assistant");
 }
 
+function expectReplyBeforeDone(harness: ChatTurnHarness): void {
+  const frames = harness.session.messages;
+  const reply = frames.findLastIndex(
+    (frame) => frame.type === "message" && frame.role === "assistant"
+  );
+  const done = frames.findIndex(
+    (frame) => frame.type === "chunk" && frame.done === true
+  );
+  expect(reply).toBeGreaterThanOrEqual(0);
+  expect(done).toBeGreaterThan(reply);
+}
+
 describe("media generation refusals", () => {
   beforeEach(() => {
     initTestDb();
@@ -115,12 +127,13 @@ describe("media generation refusals", () => {
     const [err] = harness.session.messagesOfType("error");
     expect(err.message).toBe("Generation failed: model melted");
     const [assistant] = assistantFrames(harness);
+    expectReplyBeforeDone(harness);
     expect(assistant.content).toBe("Generation failed: model melted");
     expect(assistant.provider).toBe("mock");
     expect(assistant.model).toBe("img-1");
-    expect(
-      (assistant.media_generation as Record<string, unknown>).mode
-    ).toBe("image");
+    expect((assistant.media_generation as Record<string, unknown>).mode).toBe(
+      "image"
+    );
     expect(
       harness.session.messagesOfType("chunk").filter((chunk) => chunk.done)
     ).toHaveLength(1);
@@ -189,6 +202,7 @@ describe("image generation", () => {
     // The variation count is clamped to 8.
     expect(requestedVariations).toBe(8);
     const [assistant] = assistantFrames(harness);
+    expectReplyBeforeDone(harness);
     const content = assistant.content as Array<Record<string, unknown>>;
     expect(content).toHaveLength(2);
     for (const block of content) {
@@ -300,6 +314,7 @@ describe("video generation", () => {
     );
     expect(textToVideoCalled).toBe(true);
     const [assistant] = assistantFrames(harness);
+    expectReplyBeforeDone(harness);
     const [block] = assistant.content as Array<Record<string, unknown>>;
     expect(block.type).toBe("video");
     const video = block.video as Record<string, unknown>;
@@ -404,6 +419,7 @@ describe("image_edit and image_to_video", () => {
     );
     expect(sources).toEqual([PNG, entityBytes]);
     const [assistant] = assistantFrames(harness);
+    expectReplyBeforeDone(harness);
     const content = assistant.content as Array<Record<string, unknown>>;
     expect(content[0].type).toBe("image_url");
   });
@@ -432,6 +448,7 @@ describe("image_edit and image_to_video", () => {
     );
     expect(i2vCalled).toBe(true);
     const [assistant] = assistantFrames(harness);
+    expectReplyBeforeDone(harness);
     const [block] = assistant.content as Array<Record<string, unknown>>;
     expect(block.type).toBe("video");
     expect((block.video as Record<string, unknown>).duration).toBe(3);
@@ -467,6 +484,7 @@ describe("audio generation", () => {
       })
     );
     const [assistant] = assistantFrames(harness);
+    expectReplyBeforeDone(harness);
     const [block] = assistant.content as Array<Record<string, unknown>>;
     expect(block.type).toBe("audio");
     expect((block.audio as Record<string, unknown>).mimeType).toBe(
@@ -481,7 +499,10 @@ describe("audio generation", () => {
           fakeProvider({
             textToSpeechEncoded: async () => null,
             textToSpeech: async function* () {
-              yield { samples: new Int16Array([0, 1000, -1000]), sampleRate: 16000 };
+              yield {
+                samples: new Int16Array([0, 1000, -1000]),
+                sampleRate: 16000
+              };
               yield { samples: new Int16Array([500, -500]) };
             }
           })
@@ -495,10 +516,9 @@ describe("audio generation", () => {
       })
     );
     const [assistant] = assistantFrames(harness);
+    expectReplyBeforeDone(harness);
     const [block] = assistant.content as Array<Record<string, unknown>>;
-    expect((block.audio as Record<string, unknown>).mimeType).toBe(
-      "audio/wav"
-    );
+    expect((block.audio as Record<string, unknown>).mimeType).toBe("audio/wav");
   });
 
   it("returns raw PCM when the client asked for pcm", async () => {
@@ -522,6 +542,7 @@ describe("audio generation", () => {
       })
     );
     const [assistant] = assistantFrames(harness);
+    expectReplyBeforeDone(harness);
     const [block] = assistant.content as Array<Record<string, unknown>>;
     expect((block.audio as Record<string, unknown>).mimeType).toBe("audio/pcm");
   });
@@ -587,11 +608,12 @@ describe("music generation", () => {
       "Generation failed: Provider returned no audio data"
     );
     const [assistant] = assistantFrames(harness);
+    expectReplyBeforeDone(harness);
     expect(assistant.provider).toBe("mock");
     expect(assistant.model).toBe("music-1");
-    expect(
-      (assistant.media_generation as Record<string, unknown>).mode
-    ).toBe("music");
+    expect((assistant.media_generation as Record<string, unknown>).mode).toBe(
+      "music"
+    );
   });
 });
 
@@ -663,6 +685,7 @@ describe("reference_to_video", () => {
     expect(params?.aspectRatio).toBe("9:16");
     expect(params?.useReferenceVideoAudio).toBe(true);
     const [assistant] = assistantFrames(harness);
+    expectReplyBeforeDone(harness);
     const [block] = assistant.content as Array<Record<string, unknown>>;
     expect(block.type).toBe("video");
     expect((block.video as Record<string, unknown>).duration).toBe(6);

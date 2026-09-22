@@ -257,7 +257,9 @@ nodetool db rollback --direct-url "$DIRECT_URL" --steps 1
 
 ### `nodetool chat`
 
-Starts an interactive TUI chat session.
+Starts fullscreen terminal chat with a scrollable transcript, multiline composer,
+tool details, task progress, and approval prompts. The previous terminal screen
+is restored on exit. Piped input keeps its line-based interface.
 
 **Options:**
 
@@ -267,9 +269,11 @@ Starts an interactive TUI chat session.
 - `-u, --url <url>` — WebSocket server URL (default: uses a local provider).
 - `-w, --workspace <path>` — workspace directory for file operations (default: current directory).
 - `--tools <tools>` — comma-separated list of enabled tools.
-- `--permission-mode <default|auto|plan>` — how tool calls are gated when the
-  input is piped (see [Permission mode](#permission-mode)). Unset runs `auto`.
-  The interactive TUI does not gate its belt, and says so if the flag is passed.
+- `--permission-mode <default|auto|plan>` — how tool calls are gated
+  (see [Permission mode](#permission-mode)). Interactive chat defaults to
+  `default`, with approval prompts. Piped input defaults to `auto`.
+- `--resume [id]` — resume a saved conversation in this workspace. Without an
+  ID, resume the most recently saved session.
 - `--cost-cap <usd>` — ceiling on provider spend for one turn; `0` lifts it.
   Default: the `NODETOOL_AGENT_TURN_COST_CAP_USD` setting.
 - `--timeout <s>` — wall-clock bound on one turn, in seconds; `0` leaves it no
@@ -280,8 +284,30 @@ three — concurrency, total turns, unpriced-token ceiling — come from the
 settings alone. The budget is one object per turn, shared by every loop the
 turn starts, so a ceiling bounds the turn rather than each loop separately. A
 turn a ceiling refuses prints the reason: `[stopped] turn budget of $5 reached`
-piped, or a `Stopped:` line in the TUI. Unlike `--permission-mode`, these two
-apply to the interactive session as well.
+piped, or a `Stopped:` line in the TUI. The terminal also displays the local
+turn's provider spend. Connected servers manage their own run budgets.
+
+Fullscreen chat reserves stdout for its screen. Use `--trace-file <path>` for
+tracing and `--no-trace-stdout` when stdout tracing is enabled in the environment.
+
+Enter sends a message. Alt+Enter, Shift+Enter in supported terminals, or Ctrl+J
+inserts a newline. Pasted lines stay in the composer. Up/Down recalls prompts,
+Tab completes commands, and Page Up/Page Down scrolls the transcript. Ctrl+G
+returns to the latest output. Ctrl+O toggles tool details and edit diffs.
+Escape stops a running turn or dismisses input. Ctrl+C stops a turn, clears a
+draft, or saves and quits when idle with an empty composer.
+
+Use `/sessions` and `/resume <id>` to continue a conversation, `/export <path.md>`
+to save a transcript, and `/mode` to change permissions. `/clear` clears the
+screen while retaining context. `/new` starts a fresh conversation. Local
+`/compact [instructions]` retains a summary. Remote context is managed by the
+server. `/help` lists all commands.
+
+Sessions are saved under `~/.nodetool/chat-sessions/` after turns and on exit.
+They include conversation context and provider continuation state. The session
+picker filters by workspace and server. Model and provider selections persist
+in `~/.nodetool/chat-settings.json`. Remote `/model <id>` accepts a server model
+ID without requiring a local API key.
 
 **Examples:**
 
@@ -1647,10 +1673,10 @@ mode decides:
 `--permission-mode` sets it on `nodetool agent run` and on `nodetool-chat`; an
 unrecognized value is refused rather than falling back to a default.
 
-**In a terminal**, `default` is what an unset flag means: each write, execute or
-external call prints on stderr and waits for `y` (this call), `n` (refuse), or
-`a` (this tool for the rest of the session). Stdout carries the run's result, so
-nothing about the prompt goes there.
+**In a terminal**, `default` is what an unset flag means. Each write, execute or
+external call waits for `y` (this call), `n` (refuse), or `a` (this tool for the
+rest of the session). Chat displays the request in its fullscreen interface.
+`nodetool agent run` prints it on stderr, leaving stdout for the run's result.
 
 **Behind a pipe**, nobody is there to answer, so the run takes the headless gate:
 `auto`, printing once up front that escalated calls are denied. An explicit mode

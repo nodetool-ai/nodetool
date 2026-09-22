@@ -1,25 +1,7 @@
-/**
- * Readline-style text input for Ink.
- *
- * Supports standard readline keybindings:
- *   Ctrl+A / Home      — move to beginning of line
- *   Ctrl+E / End       — move to end of line
- *   Ctrl+B / ←         — move back one character
- *   Ctrl+F / →         — move forward one character
- *   Alt+B              — move back one word
- *   Alt+F              — move forward one word
- *   Ctrl+W / Alt+Bksp  — delete word backward
- *   Alt+D              — delete word forward
- *   Ctrl+U             — delete from cursor to start of line
- *   Ctrl+K             — delete from cursor to end of line
- *   Ctrl+D             — delete character under cursor
- *   Ctrl+H / Backspace — delete character before cursor
- *   Ctrl+T             — transpose characters
- */
-
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Text, useInput } from "ink";
+import React, { useState, useEffect, useRef } from "react";
+import { Text, useInput, type Key } from "ink";
 import chalk from "chalk";
+import { terminalLines, terminalText } from "./terminal-screen.js";
 
 interface ReadlineInputProps {
   value: string;
@@ -28,24 +10,128 @@ interface ReadlineInputProps {
   focus?: boolean;
   placeholder?: string;
   showCursor?: boolean;
+  width?: number;
+  maxRows?: number;
+  onHistory?: (direction: "up" | "down") => void;
+  onComplete?: (direction: "up" | "down" | "accept" | "submit") => void;
 }
 
-function findWordBoundaryLeft(value: string, offset: number): number {
-  let i = offset - 1;
-  // skip whitespace
-  while (i > 0 && value[i - 1] === " ") i--;
-  // skip word chars
-  while (i > 0 && value[i - 1] !== " ") i--;
-  return i;
+export interface EditorState {
+  readonly value: string;
+  readonly cursor: number;
+}
+const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+function previousBoundary(value: string, cursor: number): number {
+  let previous = 0;
+  for (const segment of graphemes.segment(value)) {
+    if (segment.index >= cursor) {
+      break;
+    }
+    previous = segment.index;
+  }
+  return previous;
 }
 
-function findWordBoundaryRight(value: string, offset: number): number {
-  let i = offset;
-  // skip word chars
-  while (i < value.length && value[i] !== " ") i++;
-  // skip whitespace
-  while (i < value.length && value[i] === " ") i++;
-  return i;
+function nextBoundary(value: string, cursor: number): number {
+  for (const segment of graphemes.segment(value)) {
+    if (segment.index > cursor) {
+      return segment.index;
+    }
+  }
+  return value.length;
+}
+
+/** Pure editing boundary shared by keyboard handling and terminal tests. */
+export function editInput(
+  state: EditorState,
+  input: string,
+  key: Partial<Key>
+): EditorState {
+  const { value, cursor } = state;
+  const start = value.lastIndexOf("\n", cursor - 1) + 1;
+  const newline = value.indexOf("\n", cursor);
+  const end = newline < 0 ? value.length : newline;
+  const replace = (from: number, to: number, text = ""): EditorState => ({
+    value: value.slice(0, from) + text + value.slice(to),
+    cursor: from + text.length
+  });
+  const left = (): number =>
+    key.meta || (key.ctrl && input === "w")
+      ? (value.slice(0, cursor).match(/\S+\s*$/)?.index ?? 0)
+      : previousBoundary(value, cursor);
+  const right = (): number =>
+    key.meta
+      ? cursor +
+        (value.slice(cursor).match(/^\s*\S+\s*/)?.[0].length ??
+          value.length - cursor)
+      : nextBoundary(value, cursor);
+  if ((key.ctrl && input === "a") || key.home) {
+    return { value, cursor: start };
+  }
+  if ((key.ctrl && input === "e") || key.end) {
+    return { value, cursor: end };
+  }
+  if (key.leftArrow || ((key.ctrl || key.meta) && input === "b")) {
+    return { value, cursor: left() };
+  }
+  if (key.rightArrow || ((key.ctrl || key.meta) && input === "f")) {
+    return { value, cursor: right() };
+  }
+  if (key.upArrow) {
+    const previousEnd = start - 1;
+    const previousStart = value.lastIndexOf("\n", previousEnd - 1) + 1;
+    return {
+      value,
+      cursor: start
+        ? Math.min(previousStart + cursor - start, previousEnd)
+        : cursor
+    };
+  }
+  if (key.downArrow) {
+    const nextStart = end + 1;
+    const nextEnd = value.indexOf("\n", nextStart);
+    return {
+      value,
+      cursor:
+        end < value.length
+          ? Math.min(
+              nextStart + cursor - start,
+              nextEnd < 0 ? value.length : nextEnd
+            )
+          : cursor
+    };
+  }
+  if (key.backspace || (key.ctrl && (input === "h" || input === "w"))) {
+    return replace(left(), cursor);
+  }
+  if (key.delete || ((key.ctrl || key.meta) && input === "d")) {
+    return replace(cursor, right());
+  }
+  if (key.ctrl && input === "u") {
+    return replace(start, cursor);
+  }
+  if (key.ctrl && input === "k") {
+    return replace(
+      cursor,
+      end === cursor ? Math.min(value.length, end + 1) : end
+    );
+  }
+  if ((key.return && (key.meta || key.shift)) || (key.ctrl && input === "j")) {
+    return replace(cursor, cursor, "\n");
+  }
+  if (
+    !key.ctrl &&
+    !key.meta &&
+    !key.escape &&
+    !key.tab &&
+    !key.return &&
+    input
+  ) {
+    // A paste is one insertion, never a sequence of submissions.
+    return replace(cursor, cursor, terminalText(input.replace(/\r\n?/g, "\n")));
+  }
+  return state;
 }
 
 export default function ReadlineInput({
@@ -53,235 +139,107 @@ export default function ReadlineInput({
   onChange,
   onSubmit,
   focus = true,
-  placeholder = "",
+  placeholder = "Ask NodeTool…",
   showCursor = true,
-}: ReadlineInputProps) {
-  const [cursorOffset, setCursorOffset] = useState(value.length);
-  const previousValueRef = useRef(value);
-  const pendingCursorOffsetRef = useRef<number | null>(null);
-
-  // Keep the cursor in bounds when the value changes. If the edit came from
-  // this component, preserve the cursor selected by update(); if the value was
-  // changed externally (for example history recall), move to the end.
+  width = 76,
+  maxRows = 5,
+  onHistory,
+  onComplete
+}: ReadlineInputProps): React.ReactElement {
+  const [editor, setEditor] = useState<EditorState>({
+    value,
+    cursor: value.length
+  });
+  const paste = useRef<string | null>(null);
+  const current =
+    value === editor.value ? editor : { value, cursor: value.length };
   useEffect(() => {
-    const previousValue = previousValueRef.current;
-    previousValueRef.current = value;
-
-    setCursorOffset((offset) => {
-      const pendingCursorOffset = pendingCursorOffsetRef.current;
-      pendingCursorOffsetRef.current = null;
-
-      if (pendingCursorOffset !== null) {
-        return Math.max(0, Math.min(pendingCursorOffset, value.length));
-      }
-      if (value !== previousValue) {
-        return value.length;
-      }
-      return Math.min(offset, value.length);
-    });
-  }, [value]);
-
-  const update = useCallback(
-    (nextValue: string, nextCursor: number) => {
-      const clamped = Math.max(0, Math.min(nextCursor, nextValue.length));
-      setCursorOffset(clamped);
-      if (nextValue !== value) {
-        pendingCursorOffsetRef.current = clamped;
-        onChange(nextValue);
-      } else {
-        pendingCursorOffsetRef.current = null;
-      }
-    },
-    [value, onChange]
-  );
-
+    if (value !== editor.value) {
+      setEditor({ value, cursor: value.length });
+    }
+  }, [value, editor.value]);
   useInput(
     (input, key) => {
-      // Pass through to parent: up/down arrows, Ctrl+C, tab
+      if (input === "[200~") {
+        paste.current = "";
+        return;
+      }
+      if (input === "[201~" && paste.current !== null) {
+        const next = editInput(current, paste.current, {});
+        paste.current = null;
+        setEditor(next);
+        onChange(next.value);
+        return;
+      }
+      if (paste.current !== null) {
+        paste.current += key.return
+          ? "\n"
+          : key.ctrl && input === "j"
+            ? "\n"
+            : key.ctrl || key.meta
+              ? ""
+              : input;
+        return;
+      }
       if (
-        key.upArrow ||
-        key.downArrow ||
-        (key.ctrl && input === "c") ||
-        key.tab ||
-        (key.shift && key.tab)
+        key.pageUp ||
+        key.pageDown ||
+        key.escape ||
+        (key.ctrl && (key.home || key.end))
       ) {
         return;
       }
-
-      // Submit
-      if (key.return) {
+      if (
+        onComplete &&
+        (key.upArrow ||
+          key.downArrow ||
+          key.tab ||
+          (key.return && !key.meta && !key.shift))
+      ) {
+        onComplete(
+          key.upArrow
+            ? "up"
+            : key.downArrow
+              ? "down"
+              : key.return
+                ? "submit"
+                : "accept"
+        );
+        return;
+      }
+      if ((key.upArrow || key.downArrow) && !value.includes("\n")) {
+        onHistory?.(key.upArrow ? "up" : "down");
+        return;
+      }
+      if (key.return && !key.meta && !key.shift) {
         onSubmit?.(value);
         return;
       }
-
-      // --- Movement ---
-
-      // Ctrl+A or Home: beginning of line
-      if (key.ctrl && input === "a") {
-        setCursorOffset(0);
-        return;
-      }
-
-      // Ctrl+E or End: end of line
-      if (key.ctrl && input === "e") {
-        setCursorOffset(value.length);
-        return;
-      }
-
-      // Ctrl+B or Left: back one char
-      if (key.ctrl && input === "b") {
-        setCursorOffset((c) => Math.max(0, c - 1));
-        return;
-      }
-      if (key.leftArrow) {
-        // Alt+Left / Alt+B: back one word
-        if (key.meta) {
-          setCursorOffset(findWordBoundaryLeft(value, cursorOffset));
-        } else {
-          setCursorOffset((c) => Math.max(0, c - 1));
-        }
-        return;
-      }
-
-      // Ctrl+F or Right: forward one char
-      if (key.ctrl && input === "f") {
-        setCursorOffset((c) => Math.min(value.length, c + 1));
-        return;
-      }
-      if (key.rightArrow) {
-        // Alt+Right / Alt+F: forward one word
-        if (key.meta) {
-          setCursorOffset(findWordBoundaryRight(value, cursorOffset));
-        } else {
-          setCursorOffset((c) => Math.min(value.length, c + 1));
-        }
-        return;
-      }
-
-      // Alt+B: back one word (without arrow)
-      if (key.meta && input === "b") {
-        setCursorOffset(findWordBoundaryLeft(value, cursorOffset));
-        return;
-      }
-
-      // Alt+F: forward one word (without arrow)
-      if (key.meta && input === "f") {
-        setCursorOffset(findWordBoundaryRight(value, cursorOffset));
-        return;
-      }
-
-      // --- Deletion ---
-
-      // Ctrl+W: delete word backward
-      if (key.ctrl && input === "w") {
-        const boundary = findWordBoundaryLeft(value, cursorOffset);
-        update(value.slice(0, boundary) + value.slice(cursorOffset), boundary);
-        return;
-      }
-
-      // Alt+Backspace: delete word backward
-      if (key.meta && key.backspace) {
-        const boundary = findWordBoundaryLeft(value, cursorOffset);
-        update(value.slice(0, boundary) + value.slice(cursorOffset), boundary);
-        return;
-      }
-
-      // Alt+D: delete word forward
-      if (key.meta && input === "d") {
-        const boundary = findWordBoundaryRight(value, cursorOffset);
-        update(value.slice(0, cursorOffset) + value.slice(boundary), cursorOffset);
-        return;
-      }
-
-      // Ctrl+U: delete to beginning of line
-      if (key.ctrl && input === "u") {
-        update(value.slice(cursorOffset), 0);
-        return;
-      }
-
-      // Ctrl+K: delete to end of line
-      if (key.ctrl && input === "k") {
-        update(value.slice(0, cursorOffset), cursorOffset);
-        return;
-      }
-
-      // Ctrl+D: delete char at cursor (or noop if empty)
-      if (key.ctrl && input === "d") {
-        if (value.length > 0 && cursorOffset < value.length) {
-          update(
-            value.slice(0, cursorOffset) + value.slice(cursorOffset + 1),
-            cursorOffset
-          );
-        }
-        return;
-      }
-
-      // Ctrl+H or Backspace: delete char before cursor
-      if (key.backspace || key.delete || (key.ctrl && input === "h")) {
-        if (cursorOffset > 0) {
-          update(
-            value.slice(0, cursorOffset - 1) + value.slice(cursorOffset),
-            cursorOffset - 1
-          );
-        }
-        return;
-      }
-
-      // Ctrl+T: transpose characters
-      if (key.ctrl && input === "t") {
-        if (cursorOffset > 0 && value.length > 1) {
-          const pos = cursorOffset === value.length ? cursorOffset - 1 : cursorOffset;
-          if (pos > 0) {
-            const swapped =
-              value.slice(0, pos - 1) +
-              value[pos] +
-              value[pos - 1] +
-              value.slice(pos + 1);
-            update(swapped, Math.min(pos + 1, swapped.length));
-          }
-        }
-        return;
-      }
-
-      // --- Regular character input ---
-      if (!key.ctrl && !key.meta && input) {
-        update(
-          value.slice(0, cursorOffset) + input + value.slice(cursorOffset),
-          cursorOffset + input.length
-        );
+      const next = editInput(current, input, key);
+      setEditor(next);
+      if (next.value !== value) {
+        onChange(next.value);
       }
     },
     { isActive: focus }
   );
-
-  // --- Render ---
-  if (!value && placeholder && showCursor && focus) {
-    return (
-      <Text>
-        {chalk.inverse(placeholder[0] ?? " ")}
-        {placeholder.length > 1 ? chalk.grey(placeholder.slice(1)) : ""}
-      </Text>
-    );
-  }
-
-  if (!value && placeholder) {
-    return <Text color="gray">{placeholder}</Text>;
-  }
-
-  if (!showCursor || !focus) {
-    return <Text>{value}</Text>;
-  }
-
-  // Render with fake cursor
-  const before = value.slice(0, cursorOffset);
-  const cursorChar = cursorOffset < value.length ? value[cursorOffset] : " ";
-  const after = value.slice(cursorOffset + 1);
-
-  return (
-    <Text>
-      {before}
-      {chalk.inverse(cursorChar)}
-      {after}
-    </Text>
-  );
+  const cursorEnd = nextBoundary(value, current.cursor);
+  const cursorText = value.slice(current.cursor, cursorEnd);
+  const display = value
+    ? value.slice(0, current.cursor) +
+      (focus && showCursor
+        ? chalk.inverse(cursorText === "\n" || !cursorText ? " " : cursorText)
+        : cursorText) +
+      (cursorText === "\n" ? "\n" : "") +
+      value.slice(cursorEnd)
+    : chalk.dim(
+        focus && showCursor
+          ? chalk.inverse(placeholder[0] ?? " ") + placeholder.slice(1)
+          : placeholder
+      );
+  const lines = terminalLines(display, width);
+  const cursorLine =
+    terminalLines(value.slice(0, current.cursor) + " ", width).length - 1;
+  const start = Math.max(0, cursorLine - maxRows + 1);
+  return <Text>{lines.slice(start, start + maxRows).join("\n")}</Text>;
 }
