@@ -841,7 +841,8 @@ export const HARNESSES: HarnessEntry[] = [
     selfcheck: {
       command:
         "npm run dev:nodetool -- harness audit && " +
-        "npx vitest run tests/harness-registry.test.ts --root packages/cli",
+        "npm run test --workspace=packages/cli -- harness-registry.test.ts " +
+        "harness-gate-cli.test.ts capability-coverage.test.ts",
       cost: "cheap"
     }
   },
@@ -1661,6 +1662,8 @@ export const SURFACES: SurfaceEntry[] = [
     harnesses: ["harness-audit"],
     paths: [
       "packages/cli/src/harness/",
+      "packages/cli/src/commands/harness.ts",
+      "packages/cli/tests/harness-gate-cli.test.ts",
       "packages/cli/tests/harness-registry.test.ts",
       "packages/cli/tests/capability-coverage.test.ts",
       "scripts/sync-capability-coverage.mjs"

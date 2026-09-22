@@ -1,156 +1,92 @@
-/**
- * Unit tests for the pure helpers behind `nodetool harness gate`
- * (packages/cli/src/harness/changed-files.ts): changed-file collection from
- * git command output, and the code-file predicate `--strict` uses to fail on
- * an unmapped surface.
- */
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, dirname } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   collectChangedFiles,
-  isGateRelevantCodeFile,
-  parsePorcelainLine,
-  parsePorcelainStatus
+  readChangedFiles,
+  isGateRelevantCodeFile
 } from "../src/harness/changed-files.js";
 
-describe("parsePorcelainLine", () => {
-  it("unquotes a path git wrapped for its space", () => {
-    // Every shipped example workflow has a space in its name, so porcelain
-    // quotes it and an unquoted parse maps it to no surface at all.
-    expect(
-      parsePorcelainLine(
-        '?? "packages/base-nodes/nodetool/examples/nodetool-base/Three Ratios.json"'
-      )
-    ).toBe(
-      "packages/base-nodes/nodetool/examples/nodetool-base/Three Ratios.json"
-    );
-  });
-
-  it("unescapes an embedded quote and backslash", () => {
-    expect(parsePorcelainLine('?? "a b/c\\"d\\".ts"')).toBe('a b/c"d".ts');
-  });
-
-  it("leaves an unquoted path alone", () => {
-    expect(parsePorcelainLine(" M packages/cli/src/a.ts")).toBe(
-      "packages/cli/src/a.ts"
-    );
-  });
-
-
-  it("parses an ordinary modified line", () => {
-    expect(parsePorcelainLine(" M packages/cli/src/commands/harness.ts")).toBe(
-      "packages/cli/src/commands/harness.ts"
-    );
-  });
-
-  it("parses an untracked line", () => {
-    expect(parsePorcelainLine("?? packages/cli/src/new-file.ts")).toBe(
-      "packages/cli/src/new-file.ts"
-    );
-  });
-
-  it("resolves a staged+unmodified rename to the NEW path", () => {
-    expect(parsePorcelainLine("R  old.ts -> new.ts")).toBe("new.ts");
-  });
-
-  it("resolves a rename with a modified working copy to the NEW path", () => {
-    expect(parsePorcelainLine("RM old.ts -> new.ts")).toBe("new.ts");
-  });
-
-  it("resolves a copy to the NEW path", () => {
-    expect(parsePorcelainLine("C  a.ts -> b.ts")).toBe("b.ts");
-  });
-
-  it("resolves a rename under a directory to the NEW path", () => {
-    expect(
-      parsePorcelainLine(
-        "R  packages/cli/src/old-dir/foo.ts -> packages/cli/src/new-dir/foo.ts"
-      )
-    ).toBe("packages/cli/src/new-dir/foo.ts");
-  });
-
-  it("still reports a staged delete (status 'D ')", () => {
-    expect(parsePorcelainLine("D  packages/cli/src/deleted.ts")).toBe(
-      "packages/cli/src/deleted.ts"
-    );
-  });
-
-  it("still reports an unstaged delete (status ' D')", () => {
-    expect(parsePorcelainLine(" D packages/cli/src/deleted.ts")).toBe(
-      "packages/cli/src/deleted.ts"
-    );
-  });
-
-  it("returns null for a blank line", () => {
-    expect(parsePorcelainLine("")).toBeNull();
-  });
-
-  it("returns null for a line with no path", () => {
-    expect(parsePorcelainLine(" M ")).toBeNull();
-  });
-});
-
-describe("parsePorcelainStatus", () => {
-  it("parses a multi-line status block, dropping blanks", () => {
-    const status = [
-      " M packages/cli/src/commands/harness.ts",
-      "R  packages/cli/src/old.ts -> packages/cli/src/new.ts",
-      "D  packages/cli/src/gone.ts",
-      "?? packages/cli/src/added.ts",
-      ""
-    ].join("\n");
-    expect(parsePorcelainStatus(status)).toEqual([
-      "packages/cli/src/commands/harness.ts",
-      "packages/cli/src/new.ts",
-      "packages/cli/src/gone.ts",
-      "packages/cli/src/added.ts"
-    ]);
-  });
-});
-
 describe("collectChangedFiles", () => {
-  it("without --base, reads only the working tree (git status)", () => {
-    const statusOutput = [
-      " M packages/cli/src/a.ts",
-      "?? packages/cli/src/b.ts"
-    ].join("\n");
-    expect(collectChangedFiles({ statusOutput })).toEqual([
-      "packages/cli/src/a.ts",
-      "packages/cli/src/b.ts"
-    ]);
+  it.each([" M", "M ", "A ", "D ", " D", "??", "UU"])(
+    "reads status %s",
+    (status) => {
+      expect(
+        collectChangedFiles({
+          statusOutput: `${status} packages/cli/src/file.ts\0`
+        })
+      ).toEqual(["packages/cli/src/file.ts"]);
+    }
+  );
+
+  it.each(["R ", "RM", " C", "C "])(
+    "consumes the source record for status %s",
+    (status) => {
+      expect(
+        collectChangedFiles({
+          statusOutput: `${status} new.ts\0old.ts\0 M next.ts\0`
+        })
+      ).toEqual(["new.ts", "old.ts", "next.ts"]);
+    }
+  );
+
+  it("deduplicates a large diff against the working tree", () => {
+    const paths = Array.from(
+      { length: 10_000 },
+      (_, index) => `packages/agents/src/file-${index}.ts`
+    );
+    expect(
+      collectChangedFiles({
+        base: "main",
+        diffOutput: paths.join("\0") + "\0",
+        statusOutput: paths.map((path) => ` M ${path}\0`).join("")
+      })
+    ).toEqual(paths);
   });
 
-  it("with --base, merges the base diff and the working tree, deduped", () => {
-    const diffOutput = [
-      "packages/cli/src/a.ts",
-      "packages/cli/src/shared.ts"
-    ].join("\n");
-    const statusOutput = [
-      " M packages/cli/src/shared.ts", // already in the diff — deduped
-      "?? packages/cli/src/uncommitted.ts" // only in the working tree
-    ].join("\n");
+  it("preserves both surfaces of a staged rename", () => {
     expect(
-      collectChangedFiles({ base: "origin/main", diffOutput, statusOutput })
+      collectChangedFiles({
+        statusOutput: "R  packages/cli/src/new.ts\0packages/agents/src/old.ts\0"
+      })
+    ).toEqual(["packages/cli/src/new.ts", "packages/agents/src/old.ts"]);
+  });
+
+  it("preserves unusual filenames without interpreting arrows or escapes", () => {
+    const paths = [
+      "packages/agents/src/café.ts",
+      "packages/cli/src/a -> b.ts",
+      'packages/cli/src/a"b.ts',
+      "packages/cli/src/a\nb.ts",
+      "packages/cli/src/a\\t.ts"
+    ];
+    expect(
+      collectChangedFiles({
+        statusOutput: paths.map((path) => `?? ${path}\0`).join("")
+      })
+    ).toEqual(paths);
+  });
+
+  it("merges committed and working changes without duplicates", () => {
+    expect(
+      collectChangedFiles({
+        base: "main",
+        diffOutput: "packages/agents/src/café.ts\0packages/cli/src/a.ts\0",
+        statusOutput: " M packages/cli/src/a.ts\0 D packages/cli/src/gone.ts\0"
+      })
     ).toEqual([
+      "packages/agents/src/café.ts",
       "packages/cli/src/a.ts",
-      "packages/cli/src/shared.ts",
-      "packages/cli/src/uncommitted.ts"
+      "packages/cli/src/gone.ts"
     ]);
   });
 
-  it("with --base, still surfaces working-tree-only files not in the diff", () => {
-    const diffOutput = "";
-    const statusOutput = " M packages/cli/src/only-uncommitted.ts";
+  it("handles empty output", () => {
     expect(
-      collectChangedFiles({ base: "origin/main", diffOutput, statusOutput })
-    ).toEqual(["packages/cli/src/only-uncommitted.ts"]);
-  });
-
-  it("with --base, still resolves renames from the working tree to the NEW path", () => {
-    const diffOutput = "";
-    const statusOutput = "R  packages/cli/src/old.ts -> packages/cli/src/new.ts";
-    expect(
-      collectChangedFiles({ base: "origin/main", diffOutput, statusOutput })
-    ).toEqual(["packages/cli/src/new.ts"]);
+      collectChangedFiles({ statusOutput: "", base: "main", diffOutput: "" })
+    ).toEqual([]);
   });
 });
 
@@ -179,9 +115,7 @@ describe("isGateRelevantCodeFile", () => {
     expect(
       isGateRelevantCodeFile("packages/cli/src/__tests__/harness.ts")
     ).toBe(false);
-    expect(isGateRelevantCodeFile("packages/cli/tests/harness.ts")).toBe(
-      false
-    );
+    expect(isGateRelevantCodeFile("packages/cli/tests/harness.ts")).toBe(false);
   });
 
   it("rejects a file under docs/", () => {
@@ -196,5 +130,45 @@ describe("isGateRelevantCodeFile", () => {
   it("rejects an extension outside the recognized code set", () => {
     expect(isGateRelevantCodeFile("packages/cli/README.txt")).toBe(false);
     expect(isGateRelevantCodeFile("packages/cli/package.json")).toBe(false);
+  });
+});
+
+describe("Git file selection", () => {
+  it("includes renamed source paths and files inside new directories", () => {
+    const root = mkdtempSync(join(tmpdir(), "harness-git-"));
+    const git = (...args: string[]): string =>
+      execFileSync("git", args, { cwd: root, encoding: "utf8" });
+    const write = (path: string): void => {
+      mkdirSync(dirname(join(root, path)), { recursive: true });
+      writeFileSync(join(root, path), "export const value = 1;\n");
+    };
+    try {
+      git("init", "-q");
+      git("config", "user.email", "test@example.invalid");
+      git("config", "user.name", "Harness test");
+      const oldPath = "packages/agents/src/old.ts";
+      const newPath = "packages/cli/src/new.ts";
+      write(oldPath);
+      git("add", ".");
+      git("commit", "-qm", "initial");
+      const base = git("rev-parse", "HEAD").trim();
+      mkdirSync(dirname(join(root, newPath)), { recursive: true });
+      git("mv", oldPath, newPath);
+      const untracked = "packages/new-surface/src/hidden.ts";
+      write(untracked);
+      expect(readChangedFiles(root)).toEqual(
+        expect.arrayContaining([oldPath, newPath, untracked])
+      );
+      git("commit", "-qm", "rename");
+      const unicode = "packages/agents/src/café.ts";
+      write(unicode);
+      git("add", unicode);
+      git("commit", "-qm", "unicode");
+      expect(readChangedFiles(root, base)).toEqual(
+        expect.arrayContaining([oldPath, newPath, untracked, unicode])
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

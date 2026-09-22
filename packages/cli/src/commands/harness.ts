@@ -31,7 +31,7 @@ import {
 import { CAPABILITY_COVERAGE } from "../harness/capability-table.js";
 import { declaredCapabilities } from "../harness/declared-capabilities.js";
 import {
-  collectChangedFiles,
+  readChangedFiles,
   isGateRelevantCodeFile
 } from "../harness/changed-files.js";
 
@@ -228,7 +228,7 @@ export function registerHarnessCommands(program: Command): void {
           timeout?: string;
         }
       ) => {
-        const { execSync, spawnSync } = await import("node:child_process");
+        const { spawnSync } = await import("node:child_process");
         const { fileURLToPath } = await import("node:url");
         const { dirname, resolve } = await import("node:path");
 
@@ -244,21 +244,7 @@ export function registerHarnessCommands(program: Command): void {
 
         let changedFiles = files;
         if (changedFiles.length === 0 && !opts.all) {
-          const statusOutput = execSync("git status --porcelain", {
-            cwd: repoRoot,
-            encoding: "utf8"
-          });
-          const diffOutput = opts.base
-            ? execSync(`git diff --name-only ${opts.base}...HEAD`, {
-                cwd: repoRoot,
-                encoding: "utf8"
-              })
-            : undefined;
-          changedFiles = collectChangedFiles({
-            base: opts.base,
-            statusOutput,
-            diffOutput
-          });
+          changedFiles = readChangedFiles(repoRoot, opts.base);
         }
 
         const mappingViolations = opts.all

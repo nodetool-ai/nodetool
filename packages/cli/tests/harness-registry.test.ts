@@ -37,6 +37,19 @@ import {
 } from "../src/harness/capability-coverage.js";
 
 describe("harness registry", () => {
+  it.each([
+    "packages/cli/src/commands/harness.ts",
+    "packages/cli/src/harness/changed-files.ts",
+    "packages/cli/tests/harness-gate-cli.test.ts",
+    "packages/cli/tests/capability-coverage.test.ts"
+  ])("runs gate and coverage regressions when %s changes", (path) => {
+    const check = planGate([path]).checks.find((entry) => entry.harnessId === "harness-audit");
+    expect(check).toBeDefined();
+    for (const suite of ["harness-registry.test.ts", "harness-gate-cli.test.ts", "capability-coverage.test.ts"]) {
+      expect(check?.command).toContain(suite);
+    }
+  });
+
   it("has unique harness and surface ids", () => {
     const hIds = HARNESSES.map((h) => h.id);
     const sIds = SURFACES.map((s) => s.id);

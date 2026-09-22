@@ -1,96 +1,64 @@
-/**
- * Changed-file collection for `nodetool harness gate` — pure parsing over
- * git command output, so rename handling, deleted-file inclusion, and the
- * base-ref + working-tree merge are unit-testable without a git repo.
- */
+import { execFileSync } from "node:child_process";
 
 export interface CollectChangedFilesInput {
-  /** When set, `diffOutput` must carry `git diff --name-only <base>...HEAD`. */
   base?: string;
-  /**
-   * `git status --porcelain` output for the working tree. Always read —
-   * with `base` set, uncommitted work would otherwise be invisible to a
-   * diff against a merge-base ref.
-   */
+  /** `git status --porcelain=v1 -z --untracked-files=all` output. */
   statusOutput: string;
-  /** `git diff --name-only <base>...HEAD` output. Read only when `base` is set. */
+  /** `git diff --name-only --no-renames -z <base>...HEAD` output. */
   diffOutput?: string;
 }
 
-/**
- * Resolve the files a gate run should consider: the working tree always,
- * plus (with `--base`) everything that differs from that ref, deduped.
- */
+/** Collect both sides of renames, deletions, and uncommitted files. */
 export function collectChangedFiles({
   base,
   statusOutput,
   diffOutput
 }: CollectChangedFilesInput): string[] {
-  const fromStatus = parsePorcelainStatus(statusOutput);
-  if (!base) {
-    return fromStatus;
+  const files = base ? (diffOutput ?? "").split("\0").filter(Boolean) : [];
+  const records = statusOutput.split("\0");
+  for (let i = 0; i < records.length; i += 1) {
+    const record = records[i];
+    if (!record || record.length <= 3) {
+      continue;
+    }
+    files.push(record.slice(3));
+    // In -z status a rename/copy has destination first, then source.
+    if (/[RC]/.test(record.slice(0, 2))) {
+      const source = records[++i];
+      if (source) {
+        files.push(source);
+      }
+    }
   }
-  const fromDiff = parseNameOnlyDiff(diffOutput ?? "");
-  return dedupe([...fromDiff, ...fromStatus]);
-}
-
-/** Parse every line of `git status --porcelain` output into touched paths. */
-export function parsePorcelainStatus(output: string): string[] {
-  return output
-    .split("\n")
-    .map(parsePorcelainLine)
-    .filter((f): f is string => f !== null);
-}
-
-/**
- * One `git status --porcelain` line → the path it touches, or `null` for a
- * blank line. Status codes occupy columns 1-2, a separator space is column
- * 3, and the path starts at column 4 (index 3) — true for ordinary
- * modify/add/delete lines (`D  path`, ` D path`, deletions included) and for
- * rename/copy lines (`R  old -> new`, `RM old -> new`, `C  a -> b`), which
- * resolve to the NEW path: the old path no longer exists on disk, so there
- * is nothing there for a surface check to lint or type-check.
- */
-export function parsePorcelainLine(line: string): string | null {
-  if (line.length <= 3) {
-    return null;
-  }
-  const rest = line.slice(3).trim();
-  if (!rest) {
-    return null;
-  }
-  const arrow = rest.indexOf(" -> ");
-  return unquotePath(arrow >= 0 ? rest.slice(arrow + 4).trim() : rest);
-}
-
-/**
- * Undo git's C-style quoting. Porcelain status wraps a path in double quotes
- * as soon as it holds a space or a non-ASCII byte, and every shipped example
- * workflow has a space in its name — so without this a gate run over
- * uncommitted work sees `"…/Three Ratios.json"`, matches it against no
- * surface, and reports it unmapped. `git diff --name-only` does not quote, so
- * only this half needs it.
- */
-function unquotePath(path: string): string {
-  if (path.length < 2 || !path.startsWith('"') || !path.endsWith('"')) {
-    return path;
-  }
-  return path
-    .slice(1, -1)
-    .replace(/\\(["\\])/g, "$1")
-    .replace(/\\t/g, "\t")
-    .replace(/\\n/g, "\n");
-}
-
-function parseNameOnlyDiff(output: string): string[] {
-  return output
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-}
-
-function dedupe(files: string[]): string[] {
   return [...new Set(files)];
+}
+
+/** Read committed and working-tree paths for harness selection. */
+export function readChangedFiles(repoRoot: string, base?: string): string[] {
+  const git = (args: string[]): string =>
+    execFileSync("git", args, {
+      cwd: repoRoot,
+      encoding: "utf8"
+    });
+  return collectChangedFiles({
+    base,
+    statusOutput: git([
+      "status",
+      "--porcelain=v1",
+      "-z",
+      "--untracked-files=all"
+    ]),
+    diffOutput: base
+      ? git([
+          "diff",
+          "--name-only",
+          "--no-renames",
+          "-z",
+          `${base}...HEAD`,
+          "--"
+        ])
+      : undefined
+  });
 }
 
 const GATE_RELEVANT_CODE_EXTENSIONS = [
