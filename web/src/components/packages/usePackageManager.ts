@@ -318,25 +318,25 @@ export function usePackageManager(params: {
       });
     }
 
+    let languageCount = 0;
+    let mediaCount = 0;
+    let aiCount = 0;
+
+    if (isSoftware) {
+      for (const p of statuses) {
+        const group = runtimeGroup(p.id);
+        if (group === "language") languageCount++;
+        else if (group === "media") mediaCount++;
+        else if (group === "ai") aiCount++;
+      }
+    }
+
     const categories: PMCount[] = isSoftware
       ? [
           { id: "all", label: "All runtimes", count: statuses.length },
-          {
-            id: "language",
-            label: "Languages",
-            count: statuses.filter((p) => runtimeGroup(p.id) === "language")
-              .length
-          },
-          {
-            id: "media",
-            label: "Media & docs",
-            count: statuses.filter((p) => runtimeGroup(p.id) === "media").length
-          },
-          {
-            id: "ai",
-            label: "AI runtimes",
-            count: statuses.filter((p) => runtimeGroup(p.id) === "ai").length
-          }
+          { id: "language", label: "Languages", count: languageCount },
+          { id: "media", label: "Media & docs", count: mediaCount },
+          { id: "ai", label: "AI runtimes", count: aiCount }
         ]
       : [
           { id: "included", label: "Included", count: includedItems.length },

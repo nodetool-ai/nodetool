@@ -93,9 +93,15 @@ export function gradeJsScriptCase(
 export function summarizeJsScriptTests(
   cases: readonly JsScriptTestCaseReport[]
 ): JsScriptTestReport {
+  let passed = 0;
+  let failed = 0;
+  for (const report of cases) {
+    if (report.ok) passed++;
+    else failed++;
+  }
   return {
-    passed: cases.filter((report) => report.ok).length,
-    failed: cases.filter((report) => !report.ok).length,
+    passed,
+    failed,
     cases: [...cases]
   };
 }

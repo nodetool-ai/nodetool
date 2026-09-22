@@ -125,15 +125,15 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
     setRowStates((prev) => ({ ...prev, [id]: patch }));
   }, []);
 
-  const installedCount = useMemo(
-    () =>
-      Object.values(rowStates).filter((s) => s.status === "installed").length,
-    [rowStates]
-  );
-  const failedCount = useMemo(
-    () => Object.values(rowStates).filter((s) => s.status === "failed").length,
-    [rowStates]
-  );
+  const { installedCount, failedCount } = useMemo(() => {
+    let installed = 0;
+    let failed = 0;
+    for (const s of Object.values(rowStates)) {
+      if (s.status === "installed") installed++;
+      else if (s.status === "failed") failed++;
+    }
+    return { installedCount: installed, failedCount: failed };
+  }, [rowStates]);
 
   const allInstalled = missing.length > 0 && installedCount === missing.length;
 
