@@ -36,6 +36,7 @@ import { ASPECT_OPTIONS, aspectOf } from "../../storyboard/aspectOptions";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useLastModelStore } from "../../../stores/lastModelStore";
+import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import {
   STUDIO_CLIP_MODELS,
   STUDIO_VOICES,
@@ -328,7 +329,7 @@ export function useLookStep({
     [clipCount === 0, "Plan the beats first — there is nothing to render yet"],
     [
       needsVideoGeneration && clipModels.noProvider,
-      "No provider is set up to render video. Connect one in Settings."
+      "No provider is set up to render video. Connect one above."
     ],
     [needsVideoGeneration && !video?.model, "Pick a video model"],
     [
@@ -369,6 +370,20 @@ const ModelAvailabilityNote: React.FC<{
   /** True when the providers answered and none of the curated tiles survived. */
   noCompatible: boolean;
 }> = ({ availability, kind, noCompatible }) => {
+  const connect = useCallback(() => {
+    openProviderOnboarding(
+      kind === "video"
+        ? {
+            capability: "text_to_video",
+            reason: "Connect a provider that renders video to keep going."
+          }
+        : {
+            capability: "text_to_speech",
+            reason: "Connect a provider that reads lines aloud to keep going."
+          }
+    );
+  }, [kind]);
+
   if (availability.loading) {
     return (
       <FlexRow gap={GAP.tight} align="center" role="status">
@@ -400,18 +415,32 @@ const ModelAvailabilityNote: React.FC<{
   if (availability.noProvider) {
     return (
       <AlertBanner severity="warning">
-        {kind === "video"
-          ? "No provider is set up to render video. Connect one in Settings, then come back."
-          : "No provider is set up to read lines aloud. Connect one in Settings, or switch Voiceover off."}
+        <FlexRow gap={GAP.normal} align="center" wrap>
+          <Text size="normal" component="span">
+            {kind === "video"
+              ? "No provider is set up to render video."
+              : "No provider is set up to read lines aloud, so switch Voiceover off or connect one."}
+          </Text>
+          <EditorButton variant="outlined" onClick={connect}>
+            Connect a provider
+          </EditorButton>
+        </FlexRow>
       </AlertBanner>
     );
   }
   if (noCompatible) {
     return (
       <AlertBanner severity="warning">
-        {kind === "video"
-          ? "Your providers offer no video model. Connect one that does, then come back."
-          : "Your providers offer no voice. Connect one that does, or switch Voiceover off."}
+        <FlexRow gap={GAP.normal} align="center" wrap>
+          <Text size="normal" component="span">
+            {kind === "video"
+              ? "Your providers offer no video model."
+              : "Your providers offer no voice, so switch Voiceover off or connect one that does."}
+          </Text>
+          <EditorButton variant="outlined" onClick={connect}>
+            Connect a provider
+          </EditorButton>
+        </FlexRow>
       </AlertBanner>
     );
   }

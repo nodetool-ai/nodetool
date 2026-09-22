@@ -8,11 +8,13 @@
  */
 
 import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useLastModelStore } from "../../../../stores/lastModelStore";
+import useProviderOnboardingStore from "../../../../stores/ProviderOnboardingStore";
 import { STUDIO_CLIP_MODELS, STUDIO_VOICES } from "../../../../studio/curatedModels";
 import {
   LookStep,
@@ -89,6 +91,7 @@ const renderBody = (voiceOn = true) =>
 beforeEach(() => {
   useTimelineStore.getState().reset();
   useLastModelStore.setState({ byKind: {} });
+  useProviderOnboardingStore.getState().dismiss();
   mockEstimate = null;
   videoCatalog = {
     models: [{ id: CLIP_MODEL.id, provider: "nodetool" }],
@@ -364,6 +367,29 @@ describe("LookStep body", () => {
     expect(
       screen.getByRole("button", { name: "Try again" })
     ).toBeInTheDocument();
+  });
+
+  it("opens provider onboarding when no curated video model is offered (F14)", async () => {
+    seedPlan();
+    videoCatalog = {
+      models: [{ id: "someone-else/video" }],
+      providers: ["nodetool"],
+      isLoading: false,
+      error: null
+    };
+    renderBody(false);
+
+    expect(
+      screen.getByText("Your providers offer no video model.")
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getAllByRole("button", { name: "Connect a provider" })[0]
+    );
+
+    expect(useProviderOnboardingStore.getState()).toMatchObject({
+      open: true,
+      capability: "text_to_video"
+    });
   });
 
   it("explains a missing voice beside the selector (F11)", () => {
