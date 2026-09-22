@@ -14,6 +14,7 @@ import type { Theme } from "@mui/material/styles";
 
 import {
   dropTargetIndex,
+  isTabInScope,
   useWorkspaceTabsStore,
   type WorkspaceTab,
   type WorkspaceTabType
@@ -355,10 +356,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     (state) => state.activeProjectId
   );
   const visibleTabs = useMemo(
-    () =>
-      activeProjectId
-        ? tabs.filter((tab) => tab.projectId === activeProjectId)
-        : tabs.filter((tab) => tab.projectId === undefined),
+    () => tabs.filter((tab) => isTabInScope(tab, activeProjectId)),
     [activeProjectId, tabs]
   );
 

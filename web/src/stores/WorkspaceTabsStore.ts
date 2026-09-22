@@ -74,6 +74,21 @@ export const isGlobalWorkspaceTab = (tab: WorkspaceTab): boolean =>
   tab.type === "project-new" ||
   tab.type === "skill";
 
+/**
+ * Whether a tab belongs to the scope currently on screen. A global tab carries
+ * no project and stays visible whichever project is active, so scoping by
+ * `projectId` alone would hide the Projects list from its own tab bar and drop
+ * it out of the shell's visible set while it is the active tab.
+ */
+export const isTabInScope = (
+  tab: WorkspaceTab,
+  activeProjectId: string | null
+): boolean =>
+  isGlobalWorkspaceTab(tab) ||
+  (activeProjectId
+    ? tab.projectId === activeProjectId
+    : tab.projectId === undefined);
+
 interface OpenTabInput {
   type: WorkspaceTabType;
   ref: string;

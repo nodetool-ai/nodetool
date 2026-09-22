@@ -3,6 +3,7 @@ import {
   creationProjectId,
   dropTargetIndex,
   gatherProjectTabs,
+  isTabInScope,
   nextActiveAfterClose,
   seedTabsFromLegacy,
   tabId,
@@ -814,5 +815,27 @@ describe("dropTargetIndex", () => {
     expect(dropTargetIndex(tabs, "workflow:a", "text:c", "right")).toBe(2);
     // c moves to the left of a: nothing before it is removed.
     expect(dropTargetIndex(tabs, "text:c", "workflow:a", "left")).toBe(0);
+  });
+});
+
+describe("isTabInScope", () => {
+  const scoped = { ...tab("workflow", "a"), projectId: "p1" };
+  const loose = tab("workflow", "b");
+  const global = tab("project-list", "projects", "view");
+
+  it("keeps a global tab in scope whichever project is active", () => {
+    expect(isTabInScope(global, "p1")).toBe(true);
+    expect(isTabInScope(global, null)).toBe(true);
+  });
+
+  it("scopes a document tab to its own project", () => {
+    expect(isTabInScope(scoped, "p1")).toBe(true);
+    expect(isTabInScope(scoped, "p2")).toBe(false);
+    expect(isTabInScope(scoped, null)).toBe(false);
+  });
+
+  it("shows a loose tab only when no project is active", () => {
+    expect(isTabInScope(loose, null)).toBe(true);
+    expect(isTabInScope(loose, "p1")).toBe(false);
   });
 });
