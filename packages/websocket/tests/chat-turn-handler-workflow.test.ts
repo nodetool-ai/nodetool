@@ -8,10 +8,7 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { initTestDb, Job, Message, Workflow } from "@nodetool-ai/models";
-import {
-  makeChatTurnHarness,
-  fakeProvider
-} from "./chat-turn-test-harness.js";
+import { makeChatTurnHarness, fakeProvider } from "./chat-turn-test-harness.js";
 
 const tick = (): Promise<void> => new Promise((r) => setImmediate(r));
 
@@ -116,15 +113,16 @@ describe("handleWorkflowMessage job accounting", () => {
     expect(updates[0].status).toBe("running");
     expect(updates[updates.length - 1].status).toBe("completed");
     // Completion chunk carries the job id.
-    const done = session
-      .messagesOfType("chunk")
-      .find((c) => c.done === true);
+    const done = session.messagesOfType("chunk").find((c) => c.done === true);
     expect(done?.job_id).toBe(jobId);
     // The turn ends with a persisted assistant response.
     const finalMsg = session
       .messagesOfType("message")
       .find((m) => m.role === "assistant");
     expect(finalMsg).toBeDefined();
+    expect(session.messages.indexOf(done!)).toBeGreaterThan(
+      session.messages.indexOf(finalMsg!)
+    );
     const job = await Job.get(jobId);
     expect(job?.status).toBe("completed");
   });
@@ -168,9 +166,9 @@ describe("handleWorkflowMessage job accounting", () => {
     const [err] = session.messagesOfType("error");
     expect(String(err.message)).toContain("Workflow wf-nope not found");
     // Done chunk still arrives so the client stops spinning.
-    expect(
-      session.messagesOfType("chunk").some((c) => c.done === true)
-    ).toBe(true);
+    expect(session.messagesOfType("chunk").some((c) => c.done === true)).toBe(
+      true
+    );
   });
 
   it("refuses a workflow turn with no workflow_id", async () => {
@@ -225,9 +223,7 @@ describe("handleWorkflowMessage job accounting", () => {
       session.messagesOfType("chunk").filter((c) => c.done === true)
     ).toHaveLength(0);
     expect(
-      session
-        .messagesOfType("message")
-        .filter((m) => m.role === "assistant")
+      session.messagesOfType("message").filter((m) => m.role === "assistant")
     ).toHaveLength(0);
     const job = await Job.get(jobId);
     expect(job?.status).toBe("cancelled");

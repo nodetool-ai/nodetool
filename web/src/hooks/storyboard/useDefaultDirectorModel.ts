@@ -22,7 +22,10 @@ import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import type { Provider } from "@nodetool-ai/protocol";
 import type { LanguageModelValue } from "../../stores/ApiTypes";
 
-export const useDefaultDirectorModel = (boardId: string): void => {
+export const useDefaultDirectorModel = (
+  boardId: string,
+  enabled = true
+): void => {
   const hasModel = useStoryboardStore((state) =>
     state.boards[boardId] ? Boolean(state.boards[boardId].directorModel) : null
   );
@@ -33,14 +36,15 @@ export const useDefaultDirectorModel = (boardId: string): void => {
   const { models, isLoading } = useLanguageModelsByProvider();
 
   useEffect(() => {
-    if (hasModel !== false || isLoading) {
+    if (!enabled || hasModel !== false || isLoading) {
       return;
     }
     const inCatalog = (id: string, provider?: string) =>
       models.find(
         (m) =>
           m.id === id &&
-          (!provider || (m.provider ?? "").toLowerCase() === provider.toLowerCase())
+          (!provider ||
+            (m.provider ?? "").toLowerCase() === provider.toLowerCase())
       );
     const candidate =
       [languageDefault, chatModel]
@@ -56,5 +60,13 @@ export const useDefaultDirectorModel = (boardId: string): void => {
       name: candidate.name ?? candidate.id
     };
     useStoryboardStore.getState().setDirectorModel(boardId, model);
-  }, [boardId, hasModel, isLoading, languageDefault, chatModel, models]);
+  }, [
+    boardId,
+    enabled,
+    hasModel,
+    isLoading,
+    languageDefault,
+    chatModel,
+    models
+  ]);
 };

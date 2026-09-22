@@ -57,11 +57,13 @@ jest.mock("../../../serverState/useAssetUpload", () => ({
 const generateKeyframeMock = jest.fn(async () => undefined);
 const generateClipMock = jest.fn(async () => undefined);
 const generateRevisedClipMock = jest.fn(async () => undefined);
+const retryFailedRequestMock = jest.fn(async () => undefined);
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
     generateKeyframe: generateKeyframeMock,
     generateClip: generateClipMock,
-    generateRevisedClip: generateRevisedClipMock
+    generateRevisedClip: generateRevisedClipMock,
+    retryFailedRequest: retryFailedRequestMock
   })
 }));
 
@@ -100,6 +102,7 @@ describe("ShotCard retry", () => {
     generateKeyframeMock.mockClear();
     generateClipMock.mockClear();
     generateRevisedClipMock.mockClear();
+    retryFailedRequestMock.mockClear();
     act(() => useStoryboardGenerationStore.setState({ shotJobs: {} }));
   });
 
@@ -123,7 +126,8 @@ describe("ShotCard retry", () => {
     renderCard(shot, { onSelect });
 
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
-    expect(generateClipMock).toHaveBeenCalledWith("board-1", shot);
+    expect(retryFailedRequestMock).toHaveBeenCalledWith("job-1");
+    expect(generateClipMock).not.toHaveBeenCalled();
     expect(generateKeyframeMock).not.toHaveBeenCalled();
     expect(onSelect).not.toHaveBeenCalled();
   });
@@ -176,16 +180,8 @@ describe("ShotCard retry", () => {
     renderCard(shot);
 
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
-    expect(generateRevisedClipMock).toHaveBeenCalledWith(
-      "board-1",
-      shot,
-      "remove the fog",
-      {
-        id: "captured-model",
-        provider: "captured-provider",
-        name: "captured-model"
-      }
-    );
+    expect(retryFailedRequestMock).toHaveBeenCalledWith("unstarted:shot-1");
+    expect(generateRevisedClipMock).not.toHaveBeenCalled();
     expect(generateClipMock).not.toHaveBeenCalled();
   });
 
@@ -245,10 +241,12 @@ describe("ShotCard drag to reorder", () => {
 });
 
 describe("ShotCard", () => {
-  it("does not overlay shot metadata or the description", () => {
-    renderCard(makeShot({ index: 4, duration_seconds: 3 }));
-    expect(screen.queryByText("SH 05 · 3s")).not.toBeInTheDocument();
-    expect(screen.queryByText("A lighthouse at dusk")).not.toBeInTheDocument();
+  it("shows compact scene/shot context and the planned action", () => {
+    renderCard(makeShot({ index: 4, duration_seconds: 3 }), {
+      caption: "Scene 2 | Shot 3"
+    });
+    expect(screen.getByText("Scene 2 | Shot 3")).toBeInTheDocument();
+    expect(screen.getByText("A lighthouse at dusk")).toBeInTheDocument();
   });
 
   it("shows why the last render failed", () => {

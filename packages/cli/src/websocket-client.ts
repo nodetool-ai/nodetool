@@ -6,12 +6,67 @@
 
 import WebSocket from "ws";
 import {
-  isNumber,
-  isObjectLike,
-  isString
-} from "./predicates.js";
+  processingMessageSchema,
+  type ProcessingMessage
+} from "@nodetool-ai/protocol";
+import { isNumber, isRecord, isString } from "./predicates.js";
+
+export type ChatPermissionMode = "default" | "auto" | "plan";
+export type ChatApprovalDecision = "allow" | "allow_for_chat" | "deny";
+
+export interface ChatOptions {
+  permissionMode?: ChatPermissionMode;
+  signal?: AbortSignal;
+}
+
+export interface ProposedChatPlan {
+  title: string;
+  tasks: Array<{
+    id: string;
+    title: string;
+    depends_on: string[];
+    steps: Array<{ id: string; instructions: string }>;
+  }>;
+}
+
+type InteractiveChatEvent =
+  | {
+      type: "tool_approval_request";
+      approvalId: string;
+      threadId: string;
+      toolName: string;
+      category: string;
+      message: string;
+      description: string;
+      args: Record<string, unknown>;
+    }
+  | {
+      type: "plan_approval_request";
+      approvalId: string;
+      threadId: string | null;
+      plan: ProposedChatPlan;
+    }
+  | {
+      type: "secret_request";
+      approvalId: string;
+      threadId: string;
+      key: string;
+      description: string | null;
+      reason: string | null;
+      helpUrl: string | null;
+    };
 
 export type ChatEvent =
+  | InteractiveChatEvent
+  | { type: "processing"; message: ProcessingMessage }
+  | { type: "assistant_message"; content: unknown; text: string }
+  | {
+      type: "client_tool_call";
+      id: string;
+      name: string;
+      args: Record<string, unknown>;
+      threadId: string;
+    }
   | { type: "chunk"; content: string }
   | {
       type: "tool_call";
@@ -57,6 +112,7 @@ interface ChatMessageCommandData {
   model: string;
   provider: string;
   tools: unknown[];
+  permission_mode?: ChatPermissionMode;
 }
 
 /** `inference` payload — a stateless turn, history supplied by the caller. */
@@ -106,7 +162,34 @@ type OutboundFrame =
   | { command: "reconnect_job"; data: JobStreamCommandData }
   | { command: "cancel_job"; data: { job_id: string } }
   | { command: "get_status"; data: { job_id?: string } }
-  | { command: "stop"; data: StopCommandData };
+  | { command: "stop"; data: StopCommandData }
+  | {
+      command: "set_permission_mode";
+      data: { thread_id: string; permission_mode: ChatPermissionMode };
+    }
+  | {
+      type: "tool_approval_response";
+      approval_id: string;
+      decision: ChatApprovalDecision;
+    }
+  | {
+      type: "plan_approval_response";
+      approval_id: string;
+      decision: "approve" | "reject";
+      feedback?: string;
+    }
+  | {
+      type: "secret_request_response";
+      approval_id: string;
+      status: "saved" | "declined";
+    }
+  | {
+      type: "tool_result";
+      tool_call_id: string;
+      thread_id: string;
+      result: unknown;
+      ok: boolean;
+    };
 
 // ---------------------------------------------------------------------------
 // Inbound frames
@@ -134,9 +217,11 @@ interface ToolCallFrame {
  * A server frame the CLI acts on. Types the client ignores (`system_stats`,
  * command acks, …) never become one.
  */
-type ServerFrame =
+type ServerFrame = (
+  | InteractiveChatEvent
+  | { type: "processing"; message: ProcessingMessage }
   | { type: "chunk"; content: string; done: boolean }
-  | { type: "assistant_message"; toolCalls: ToolCallFrame[] }
+  | { type: "assistant_message"; toolCalls: ToolCallFrame[]; content: unknown }
   | {
       type: "tool_result";
       toolCallId: string;
@@ -162,7 +247,12 @@ type ServerFrame =
   | { type: "node_progress"; nodeId: string; progress: number; total?: number }
   | { type: "error"; message: string }
   | { type: "inference_done" }
-  | { type: "generation_stopped" };
+  | { type: "generation_stopped" }
+) & {
+  scopeThreadId?: string;
+  parentToolCallId?: string;
+  processing?: ProcessingMessage;
+};
 
 /** Read `key` as a string, or report it absent when the wire says otherwise. */
 function wireString(frame: WireFrame, key: string): string | undefined {
@@ -178,9 +268,7 @@ function wireNumber(frame: WireFrame, key: string): number | undefined {
 
 function toolCallArgs(frame: WireFrame): ToolCallArgs {
   const args = frame["args"];
-  // SAFETY: tool arguments are a JSON object the model produced; the client
-  // only forwards them for display, and a non-object reads as no arguments.
-  return isObjectLike(args) ? (args as ToolCallArgs) : {};
+  return isRecord(args) ? args : {};
 }
 
 /** Read a `message` frame's `tool_calls`; anything else reads as none. */
@@ -189,10 +277,8 @@ function parseToolCalls(frame: WireFrame): ToolCallFrame[] {
   if (!Array.isArray(raw)) return [];
   const calls: ToolCallFrame[] = [];
   for (const entry of raw) {
-    if (!isObjectLike(entry)) continue;
-    // SAFETY: an object read as a bag of wire fields; every field is
-    // re-checked by `wireString`/`toolCallArgs` below.
-    const call = entry as WireFrame;
+    if (!isRecord(entry)) continue;
+    const call = entry;
     calls.push({
       id: wireString(call, "id") ?? "",
       name: wireString(call, "name") ?? "",
@@ -200,6 +286,57 @@ function parseToolCalls(frame: WireFrame): ToolCallFrame[] {
     });
   }
   return calls;
+}
+
+function parsePlan(value: unknown): ProposedChatPlan | null {
+  if (
+    !isRecord(value) ||
+    !isString(value["title"]) ||
+    !Array.isArray(value["tasks"])
+  )
+    return null;
+  const tasks: ProposedChatPlan["tasks"] = [];
+  for (const task of value["tasks"]) {
+    if (
+      !isRecord(task) ||
+      !isString(task["id"]) ||
+      !isString(task["title"]) ||
+      !Array.isArray(task["steps"])
+    )
+      return null;
+    const steps: ProposedChatPlan["tasks"][number]["steps"] = [];
+    for (const step of task["steps"]) {
+      if (
+        !isRecord(step) ||
+        !isString(step["id"]) ||
+        !isString(step["instructions"])
+      )
+        return null;
+      steps.push({ id: step["id"], instructions: step["instructions"] });
+    }
+    const dependencies = task["depends_on"];
+    tasks.push({
+      id: task["id"],
+      title: task["title"],
+      depends_on: Array.isArray(dependencies)
+        ? dependencies.filter(isString)
+        : [],
+      steps
+    });
+  }
+  return { title: value["title"], tasks };
+}
+
+function assistantText(content: unknown): string {
+  if (isString(content)) return content;
+  if (!Array.isArray(content)) return "";
+  return content
+    .flatMap((block) =>
+      isRecord(block) && block["type"] === "text" && isString(block["text"])
+        ? [block["text"]]
+        : []
+    )
+    .join("");
 }
 
 /**
@@ -233,19 +370,56 @@ function parseServerFrame(frame: WireFrame): ServerFrame | null {
           content: wireString(frame, "content") ?? ""
         };
       }
-      // An assistant turn matters only for the tool calls it requests: its
-      // prose already streamed as chunks.
-      if (role === "assistant" && Array.isArray(frame["tool_calls"])) {
-        return { type: "assistant_message", toolCalls: parseToolCalls(frame) };
+      if (role === "assistant") {
+        return {
+          type: "assistant_message",
+          toolCalls: parseToolCalls(frame),
+          content: frame["content"]
+        };
       }
       return null;
     }
     case "tool_call":
       return {
         type: "tool_call",
-        id: wireString(frame, "id") ?? "",
+        id: wireString(frame, "tool_call_id") ?? wireString(frame, "id") ?? "",
         name: wireString(frame, "name") ?? "",
         args: toolCallArgs(frame)
+      };
+    case "tool_approval_request":
+      return {
+        type,
+        approvalId: wireString(frame, "approval_id") ?? "",
+        threadId: wireString(frame, "thread_id") ?? "",
+        toolName: wireString(frame, "tool_name") ?? "",
+        category: wireString(frame, "category") ?? "",
+        message: wireString(frame, "message") ?? "",
+        description: wireString(frame, "description") ?? "",
+        args: toolCallArgs(frame)
+      };
+    case "plan_approval_request": {
+      const plan = parsePlan(frame["plan"]);
+      if (!plan)
+        return {
+          type: "error",
+          message: "The server sent an invalid approval plan."
+        };
+      return {
+        type,
+        approvalId: wireString(frame, "approval_id") ?? "",
+        threadId: wireString(frame, "thread_id") ?? null,
+        plan
+      };
+    }
+    case "secret_request":
+      return {
+        type,
+        approvalId: wireString(frame, "approval_id") ?? "",
+        threadId: wireString(frame, "thread_id") ?? "",
+        key: wireString(frame, "key") ?? "",
+        description: wireString(frame, "description") ?? null,
+        reason: wireString(frame, "reason") ?? null,
+        helpUrl: wireString(frame, "help_url") ?? null
       };
     case "job_update":
       return {
@@ -286,15 +460,18 @@ function parseServerFrame(frame: WireFrame): ServerFrame | null {
       return { type: "inference_done" };
     case "generation_stopped":
       return { type: "generation_stopped" };
-    default:
-      // ping is answered by the caller; system_stats and command acks are
-      // nothing this client acts on.
-      return null;
+    default: {
+      const parsed = processingMessageSchema.safeParse(frame);
+      return parsed.success
+        ? { type: "processing", message: parsed.data }
+        : null;
+    }
   }
 }
 
 export class WebSocketChatClient {
   private ws: WebSocket | null = null;
+  private disconnectedMessage = "Not connected to the NodeTool server.";
   private contentQueue: ServerFrame[] = [];
   private contentWaiters: Array<(event: ServerFrame | null) => void> = [];
 
@@ -303,6 +480,9 @@ export class WebSocketChatClient {
   async connect(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(this.wsUrl);
+      this.ws = ws;
+      this.disconnectedMessage =
+        "Connection to the NodeTool server closed before the response completed.";
       // Guard so the connect promise settles exactly once: the "error" listener
       // stays attached for the socket's lifetime, so without this a post-connect
       // error would call reject() on an already-resolved promise and be silently
@@ -310,7 +490,10 @@ export class WebSocketChatClient {
       let settled = false;
 
       ws.on("open", () => {
-        this.ws = ws;
+        if (this.ws !== ws) {
+          ws.close();
+          return;
+        }
         // Switch server to text/JSON mode
         ws.send(
           JSON.stringify({ command: "set_mode", data: { mode: "text" } })
@@ -322,9 +505,12 @@ export class WebSocketChatClient {
       });
 
       ws.on("error", (err) => {
+        this.disconnectedMessage = `NodeTool connection failed: ${err.message}`;
+        if (this.ws === ws) this.ws = null;
         if (!settled) {
           settled = true;
           reject(err);
+          this.drainWaiters();
           return;
         }
         // Error after a successful connect: tear down and unblock any waiting
@@ -335,29 +521,32 @@ export class WebSocketChatClient {
 
       ws.on("message", (data: Buffer | string) => {
         try {
-          // SAFETY: the server speaks JSON objects in text mode; every field
-          // of the decoded frame is re-checked by `parseServerFrame`.
-          const msg = JSON.parse(
+          const msg: unknown = JSON.parse(
             isString(data) ? data : data.toString("utf8")
-          ) as WireFrame;
-          this.handleMessage(msg);
+          );
+          if (isRecord(msg)) this.handleMessage(msg);
         } catch {
           // ignore malformed messages
         }
       });
 
       ws.on("close", () => {
-        this.ws = null;
+        if (this.ws === ws) this.ws = null;
+        if (!settled) {
+          settled = true;
+          reject(new Error(this.disconnectedMessage));
+        }
         this.drainWaiters();
       });
     });
   }
 
-  /** Unblock all pending content waiters with null (stream end). */
+  /** A dropped connection is a failed response, never a successful completion. */
   private drainWaiters(): void {
     const waiters = this.contentWaiters;
     this.contentWaiters = [];
-    for (const waiter of waiters) waiter(null);
+    for (const waiter of waiters)
+      waiter({ type: "error", message: this.disconnectedMessage });
   }
 
   private handleMessage(msg: WireFrame): void {
@@ -368,8 +557,15 @@ export class WebSocketChatClient {
     }
 
     // Route content events to waiting generators
-    const frame = parseServerFrame(msg);
-    if (!frame) return;
+    const parsed = parseServerFrame(msg);
+    if (!parsed) return;
+    const processing = processingMessageSchema.safeParse(msg);
+    const frame: ServerFrame = {
+      ...parsed,
+      scopeThreadId: wireString(msg, "thread_id"),
+      parentToolCallId: wireString(msg, "parent_tool_call_id"),
+      ...(processing.success && { processing: processing.data })
+    };
     const waiter = this.contentWaiters.shift();
     if (waiter) {
       waiter(frame);
@@ -379,17 +575,34 @@ export class WebSocketChatClient {
   }
 
   private send(data: OutboundFrame): void {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(data));
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error(this.disconnectedMessage);
     }
+    this.ws.send(JSON.stringify(data));
   }
 
-  private nextContent(): Promise<ServerFrame | null> {
-    if (this.contentQueue.length > 0) {
-      return Promise.resolve(this.contentQueue.shift()!);
+  private nextContent(signal?: AbortSignal): Promise<ServerFrame | null> {
+    if (signal?.aborted) return Promise.resolve(null);
+    const queued = this.contentQueue.shift();
+    if (queued) return Promise.resolve(queued);
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      return Promise.resolve({
+        type: "error",
+        message: this.disconnectedMessage
+      });
     }
     return new Promise<ServerFrame | null>((resolve) => {
-      this.contentWaiters.push(resolve);
+      const receive = (event: ServerFrame | null): void => {
+        signal?.removeEventListener("abort", cancel);
+        resolve(event);
+      };
+      const cancel = (): void => {
+        const index = this.contentWaiters.indexOf(receive);
+        if (index !== -1) this.contentWaiters.splice(index, 1);
+        receive(null);
+      };
+      this.contentWaiters.push(receive);
+      signal?.addEventListener("abort", cancel, { once: true });
     });
   }
 
@@ -399,10 +612,13 @@ export class WebSocketChatClient {
     threadId: string,
     model: string,
     provider: string,
-    tools?: unknown[]
+    tools?: unknown[],
+    options: ChatOptions = {}
   ): AsyncGenerator<ChatEvent> {
-    // Drain stale events from previous responses (extra done chunks, final messages, etc.)
-    // that arrived between the previous chat completing and this one starting.
+    if (options.signal?.aborted) {
+      yield { type: "done" };
+      return;
+    }
     this.contentQueue.length = 0;
     this.send({
       command: "chat_message",
@@ -412,54 +628,132 @@ export class WebSocketChatClient {
         thread_id: threadId,
         model,
         provider,
-        tools: tools ?? []
+        tools: tools ?? [],
+        ...(options.permissionMode && {
+          permission_mode: options.permissionMode
+        })
       }
     });
-    while (true) {
-      const event = await this.nextContent();
-      if (!event) {
-        yield { type: "done" };
-        return;
-      }
-      if (event.type === "chunk") {
-        // Yield content from every chunk — including the done chunk which may carry the last piece
-        if (event.content) {
-          yield { type: "chunk", content: event.content };
-        }
-        // Done chunk signals completion — matches Python's {"type": "chunk", "done": true}
-        if (event.done) {
+    const cancel = (): void => {
+      if (this.ws?.readyState === WebSocket.OPEN) this.stop(threadId);
+    };
+    options.signal?.addEventListener("abort", cancel, { once: true });
+    let streamedText = "";
+    const announcedCalls = new Set<string>();
+    const completedCalls = new Set<string>();
+    try {
+      while (true) {
+        const event = await this.nextContent(options.signal);
+        if (!event) {
           yield { type: "done" };
           return;
         }
-      } else if (event.type === "assistant_message") {
-        // Assistant decided to call tool(s) — yield each one
-        for (const call of event.toolCalls) {
-          yield { type: "tool_call", ...call };
+        if (event.scopeThreadId && event.scopeThreadId !== threadId) continue;
+        if (event.type === "chunk") {
+          if (
+            event.processing?.type === "chunk" &&
+            (event.processing.thinking ||
+              event.parentToolCallId ||
+              event.processing.subtask_depth)
+          ) {
+            yield { type: "processing", message: event.processing };
+            continue;
+          }
+          if (event.content) {
+            if (!event.parentToolCallId) streamedText += event.content;
+            yield { type: "chunk", content: event.content };
+          }
+          // A delegated loop finishing does not finish its parent turn.
+          if (event.done && !event.parentToolCallId) {
+            yield { type: "done" };
+            return;
+          }
+        } else if (event.type === "assistant_message") {
+          if (event.content != null) {
+            const fullText = assistantText(event.content);
+            const text = fullText.startsWith(streamedText)
+              ? fullText.slice(streamedText.length)
+              : fullText;
+            if (!event.parentToolCallId) streamedText = "";
+            if (text || Array.isArray(event.content)) {
+              yield { type: "assistant_message", content: event.content, text };
+            }
+          }
+          for (const call of event.toolCalls) {
+            if (announcedCalls.has(call.id)) continue;
+            announcedCalls.add(call.id);
+            yield { type: "tool_call", ...call };
+          }
+        } else if (event.type === "tool_call") {
+          yield {
+            type: "client_tool_call",
+            id: event.id,
+            name: event.name,
+            args: event.args,
+            threadId: event.scopeThreadId ?? threadId
+          };
+        } else if (event.type === "tool_result") {
+          if (completedCalls.has(event.toolCallId)) continue;
+          completedCalls.add(event.toolCallId);
+          yield {
+            type: "tool_result",
+            id: event.toolCallId,
+            name: event.name,
+            content: event.content
+          };
+        } else if (event.type === "output_update") {
+          yield {
+            type: "output_update",
+            node_id: event.nodeId,
+            value: event.value,
+            output_type: event.outputType
+          };
+        } else if (event.type === "generation_stopped") {
+          yield { type: "done" };
+          return;
+        } else if (event.type === "error") {
+          yield { type: "error", message: event.message };
+          return;
+        } else if (
+          event.type === "tool_approval_request" ||
+          event.type === "plan_approval_request" ||
+          event.type === "secret_request"
+        ) {
+          yield event;
+        } else if (event.type === "processing") {
+          const message = event.message;
+          if (
+            message.type === "tool_call_update" &&
+            message.tool_call_id &&
+            !announcedCalls.has(message.tool_call_id)
+          ) {
+            announcedCalls.add(message.tool_call_id);
+            yield {
+              type: "tool_call",
+              id: message.tool_call_id,
+              name: message.name,
+              args: message.args
+            };
+          } else if (
+            message.type === "tool_result_update" &&
+            message.tool_call_id &&
+            !completedCalls.has(message.tool_call_id)
+          ) {
+            completedCalls.add(message.tool_call_id);
+            yield {
+              type: "tool_result",
+              id: message.tool_call_id,
+              name: message.name ?? "",
+              content: JSON.stringify(message.result)
+            };
+          }
+          yield { type: "processing", message };
+        } else if (event.processing) {
+          yield { type: "processing", message: event.processing };
         }
-      } else if (event.type === "tool_result") {
-        yield {
-          type: "tool_result",
-          id: event.toolCallId,
-          name: event.name,
-          content: event.content
-        };
-      } else if (event.type === "output_update") {
-        yield {
-          type: "output_update",
-          node_id: event.nodeId,
-          value: event.value,
-          output_type: event.outputType
-        };
-      } else if (
-        event.type === "job_update" ||
-        event.type === "generation_stopped"
-      ) {
-        yield { type: "done" };
-        return;
-      } else if (event.type === "error") {
-        yield { type: "error", message: event.message };
-        return;
       }
+    } finally {
+      options.signal?.removeEventListener("abort", cancel);
     }
   }
 
@@ -610,10 +904,64 @@ export class WebSocketChatClient {
     this.send({ command: "stop", data });
   }
 
+  respondToolApproval(
+    approvalId: string,
+    decision: ChatApprovalDecision
+  ): void {
+    this.send({
+      type: "tool_approval_response",
+      approval_id: approvalId,
+      decision
+    });
+  }
+
+  respondPlanApproval(
+    approvalId: string,
+    decision: "approve" | "reject",
+    feedback?: string
+  ): void {
+    this.send({
+      type: "plan_approval_response",
+      approval_id: approvalId,
+      decision,
+      ...(feedback && { feedback })
+    });
+  }
+
+  respondSecretRequest(approvalId: string, status: "saved" | "declined"): void {
+    this.send({
+      type: "secret_request_response",
+      approval_id: approvalId,
+      status
+    });
+  }
+
+  respondToolResult(
+    id: string,
+    threadId: string,
+    result: unknown,
+    ok = true
+  ): void {
+    this.send({
+      type: "tool_result",
+      tool_call_id: id,
+      thread_id: threadId,
+      result,
+      ok
+    });
+  }
+
+  setPermissionMode(threadId: string, mode: ChatPermissionMode): void {
+    this.send({
+      command: "set_permission_mode",
+      data: { thread_id: threadId, permission_mode: mode }
+    });
+  }
+
   disconnect(): void {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
+    const ws = this.ws;
+    this.ws = null;
+    ws?.close();
+    this.drainWaiters();
   }
 }

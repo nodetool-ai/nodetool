@@ -6,8 +6,25 @@
  * the field existed has no stage at all and mounts the board too.
  */
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
+
+let mockMobile = false;
+jest.mock("@mui/material", () => ({
+  ...jest.requireActual("@mui/material"),
+  useMediaQuery: () => mockMobile
+}));
+
+const mockDocumentConflicts = {
+  items: [] as Array<{
+    unitId: string;
+    label: string;
+    detail?: string;
+  }>,
+  accept: jest.fn(),
+  discard: jest.fn()
+};
 
 // The look step reaches the generation store, the entity library and the
 // cost estimate. `LookStep.test.tsx` covers what it does; these suites only
@@ -26,7 +43,17 @@ jest.mock("../../../components/setup/storyboard/EntitiesStep", () => ({
 
 jest.mock("../../storyboard/StoryboardBoard", () => ({
   __esModule: true,
-  default: () => <div data-testid="board" />
+  default: ({
+    reviewRequest
+  }: {
+    reviewRequest?: { shotId: string; requestId: string } | null;
+  }) => (
+    <div
+      data-testid="board"
+      data-review-shot={reviewRequest?.shotId}
+      data-review-request={reviewRequest?.requestId}
+    />
+  )
 }));
 jest.mock("../../storyboard/StoryboardAgentPanel", () => ({
   __esModule: true,
@@ -34,7 +61,23 @@ jest.mock("../../storyboard/StoryboardAgentPanel", () => ({
 }));
 jest.mock("../../storyboard/StoryboardQueueOverlay", () => ({
   __esModule: true,
-  default: () => null
+  default: ({
+    onReviewCompleted
+  }: {
+    onReviewCompleted?: (target: { shotId: string; requestId: string }) => void;
+  }) => (
+    <button
+      type="button"
+      onClick={() =>
+        onReviewCompleted?.({
+          shotId: "shot-review",
+          requestId: "request-review"
+        })
+      }
+    >
+      Review completed takes
+    </button>
+  )
 }));
 jest.mock("../../chat/assistant/ResizableSideDock", () => ({
   __esModule: true,
@@ -67,11 +110,7 @@ jest.mock("../../../hooks/storyboard/useAssembleTimeline", () => ({
   })
 }));
 jest.mock("../../../hooks/useDocumentConflicts", () => ({
-  useDocumentConflicts: () => ({
-    items: [],
-    accept: jest.fn(),
-    discard: jest.fn()
-  })
+  useDocumentConflicts: () => mockDocumentConflicts
 }));
 jest.mock("../../../hooks/useDocumentUndoShortcuts", () => ({
   useDocumentUndoShortcuts: jest.fn()
@@ -126,15 +165,19 @@ const seedLegacyBoard = () => {
   });
 };
 
-const renderSurface = () =>
+const renderSurface = (mode: "edit" | "view" = "edit") =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <StoryboardSurface refId={BOARD_ID} mode="edit" active />
+      <StoryboardSurface refId={BOARD_ID} mode={mode} active />
     </ThemeProvider>
   );
 
 beforeEach(() => {
   useStoryboardStore.setState({ boards: {} });
+  mockMobile = false;
+  mockDocumentConflicts.items = [];
+  mockDocumentConflicts.accept.mockClear();
+  mockDocumentConflicts.discard.mockClear();
 });
 
 describe("StoryboardSurface setup stages", () => {
@@ -177,6 +220,42 @@ describe("StoryboardSurface setup stages", () => {
     ).toBeNull();
   });
 
+  it("opens the guarded shot editor target from the queue", async () => {
+    seedBoard("done");
+    renderSurface();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Review completed takes" })
+    );
+
+    expect(screen.getByTestId("board")).toHaveAttribute(
+      "data-review-shot",
+      "shot-review"
+    );
+    expect(screen.getByTestId("board")).toHaveAttribute(
+      "data-review-request",
+      "request-review"
+    );
+  });
+
+  it("reveals the board pane before opening a completed take on mobile", async () => {
+    mockMobile = true;
+    seedBoard("done");
+    renderSurface();
+    await userEvent.click(screen.getByRole("tab", { name: "Assistant" }));
+    expect(screen.getByTestId("board")).not.toBeVisible();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Review completed takes" })
+    );
+
+    expect(screen.getByTestId("board")).toBeVisible();
+    expect(screen.getByTestId("board")).toHaveAttribute(
+      "data-review-shot",
+      "shot-review"
+    );
+  });
+
   it("mounts the board for a document with no stage field", () => {
     seedLegacyBoard();
     renderSurface();
@@ -185,5 +264,37 @@ describe("StoryboardSurface setup stages", () => {
     expect(
       screen.queryByRole("navigation", { name: "Setup steps" })
     ).toBeNull();
+  });
+
+  it("keeps unfinished setup read-only in view mode", () => {
+    seedBoard("idea");
+    renderSurface("view");
+
+    expect(
+      screen.getByRole("heading", { name: "What's your story?" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("View only")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
+    expect(screen.getByRole("textbox")).toBeDisabled();
+  });
+
+  it("shows setup conflicts in the shared surface shell", () => {
+    mockDocumentConflicts.items = [
+      {
+        unitId: "shot-1",
+        label: "Shot 1 action",
+        detail: "External action"
+      }
+    ];
+    seedBoard("review");
+    renderSurface();
+
+    expect(
+      screen.getByText(
+        "1 change made outside the editor conflicts with your edits."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Accept" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Discard" })).toBeInTheDocument();
   });
 });

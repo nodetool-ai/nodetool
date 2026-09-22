@@ -47,6 +47,7 @@ import { SETUP_FIELD_WIDTH } from "../layout";
 
 interface EntitiesStepProps {
   boardId: string;
+  readOnly?: boolean;
 }
 
 const EMPTY_ENTITY_IDS: string[] = [];
@@ -68,11 +69,14 @@ const setIdSelected = (
       : [...ids, entityId]
     : ids.filter((id) => id !== entityId);
 
-export const EntitiesStep = ({ boardId }: EntitiesStepProps) => {
+export const EntitiesStep = ({
+  boardId,
+  readOnly = false
+}: EntitiesStepProps) => {
   const theme = useTheme();
   const { data: entities, isLoading } = useEntities();
   const saveEntity = useSaveEntity();
-  useDefaultStillModel(boardId);
+  useDefaultStillModel(boardId, !readOnly);
   const board = useStoryboardStore((state) => state.boards[boardId]);
   const setEntityIds = useStoryboardStore((state) => state.setEntityIds);
   const updateShot = useStoryboardStore((state) => state.updateShot);
@@ -141,20 +145,17 @@ export const EntitiesStep = ({ boardId }: EntitiesStepProps) => {
     setSuggesting(true);
     setAssistError(null);
     try {
-      const answer = await rpcRequest(
-        "generate_text",
-        {
-          provider: model.provider,
-          model: model.id,
-          system: ENTITY_SUGGESTIONS_SYSTEM_PROMPT,
-          prompt: buildEntitySuggestionsPrompt(screenplay),
-          max_tokens: 2048,
-          schema: ENTITY_SUGGESTIONS_SCHEMA,
-          schema_name: "storyboard_entity_suggestions",
-          schema_description:
-            "Visually important reusable entities found in a storyboard screenplay."
-        }
-      );
+      const answer = await rpcRequest("generate_text", {
+        provider: model.provider,
+        model: model.id,
+        system: ENTITY_SUGGESTIONS_SYSTEM_PROMPT,
+        prompt: buildEntitySuggestionsPrompt(screenplay),
+        max_tokens: 2048,
+        schema: ENTITY_SUGGESTIONS_SCHEMA,
+        schema_name: "storyboard_entity_suggestions",
+        schema_description:
+          "Visually important reusable entities found in a storyboard screenplay."
+      });
       if (!mountedRef.current) return;
       setSuggestions(parseEntitySuggestions(answer.data));
     } catch (error) {
@@ -195,18 +196,15 @@ export const EntitiesStep = ({ boardId }: EntitiesStepProps) => {
     setCreatingName(suggestion.name);
     setAssistError(null);
     try {
-      const answer = await rpcRequest(
-        "generate_media",
-        {
-          mode: "image",
-          provider: model.provider,
-          model: model.id,
-          prompt: suggestion.referencePrompt,
-          aspect_ratio: "1:1",
-          resolution: "1K",
-          variations: 1
-        }
-      );
+      const answer = await rpcRequest("generate_media", {
+        mode: "image",
+        provider: model.provider,
+        model: model.id,
+        prompt: suggestion.referencePrompt,
+        aspect_ratio: "1:1",
+        resolution: "1K",
+        variations: 1
+      });
       const assetId = Array.isArray(answer.asset_ids)
         ? answer.asset_ids.find((id): id is string => typeof id === "string")
         : undefined;
@@ -343,7 +341,12 @@ export const EntitiesStep = ({ boardId }: EntitiesStepProps) => {
                 <ImageModelSelect
                   value={board?.imageModel?.id ?? ""}
                   task="text_to_image"
-                  onChange={(model) => setImageModel(boardId, model)}
+                  onChange={(model) => {
+                    if (!readOnly) {
+                      setImageModel(boardId, model);
+                    }
+                  }}
+                  disabled={readOnly}
                 />
               </FormField>
             ) : null}

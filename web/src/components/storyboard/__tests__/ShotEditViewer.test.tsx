@@ -104,35 +104,47 @@ describe("ShotEditViewer keyboard", () => {
   // PRD § 7.5: `←`/`→` step versions. They live here, not in the dialog shell,
   // because the pager index and the still/clip toggle are this component's
   // state — a copy in the shell would be a second source of truth.
-  it("steps the selected version with the arrow keys", async () => {
-    const view = renderViewer(
+  it("previews with arrows only when the viewer stage owns the interaction", async () => {
+    renderViewer(
       seedShot({
         keyframe: image("still-1"),
         keyframe_versions: [image("still-1"), image("still-2")]
       })
     );
-    const rerender = (shot: Shot) =>
-      view.rerender(
-        <ThemeProvider theme={mockTheme}>
-          <ShotEditViewer boardId={BOARD} shot={shot} />
-        </ThemeProvider>
-      );
 
     expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
     await userEvent.keyboard("{ArrowRight}");
-    await waitFor(() =>
-      expect(storedShot().keyframe?.asset_id).toBe("still-2")
-    );
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
+    expect(storedShot().keyframe?.asset_id).toBe("still-1");
 
-    // The dialog re-renders the viewer from the store after a selection, so
-    // stepping back needs the same fresh shot the real caller would pass.
-    rerender(storedShot());
+    screen.getByTestId("shot-edit-stage").focus();
+    await userEvent.keyboard("{ArrowRight}");
     expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("2 / 2");
+    expect(storedShot().keyframe?.asset_id).toBe("still-1");
 
-    await userEvent.keyboard("{ArrowLeft}");
-    await waitFor(() =>
-      expect(storedShot().keyframe?.asset_id).toBe("still-1")
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set still 2 as current still" })
     );
+    expect(storedShot().keyframe?.asset_id).toBe("still-2");
+  });
+
+  it("respects an arrow event another control already handled", () => {
+    renderViewer(
+      seedShot({
+        keyframe: image("still-1"),
+        keyframe_versions: [image("still-1"), image("still-2")]
+      })
+    );
+    const stage = screen.getByTestId("shot-edit-stage");
+    const event = new KeyboardEvent("keydown", {
+      key: "ArrowRight",
+      bubbles: true,
+      cancelable: true
+    });
+    event.preventDefault();
+    stage.dispatchEvent(event);
+
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
   });
 
   it("leaves the arrows alone on a read-only board", async () => {
@@ -163,12 +175,11 @@ describe("ShotEditViewer versions (criterion 15)", () => {
       })
     );
     expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("2 / 2");
-    expect(
-      screen.getByRole("button", { name: "Next version" })
-    ).toBeDisabled();
+    expect(screen.getByText("Take 2, current still")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next version" })).toBeDisabled();
   });
 
-  it("selects the previous take from the pager", async () => {
+  it("previews the previous take without changing current media", async () => {
     renderViewer(
       seedShot({
         keyframe: image("still-2"),
@@ -178,13 +189,16 @@ describe("ShotEditViewer versions (criterion 15)", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Previous version" })
     );
-    expect(storedShot().keyframe?.asset_id).toBe("still-1");
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
+    expect(storedShot().keyframe?.asset_id).toBe("still-2");
   });
 
   it("adds the flip as a new take, leaving the still it mirrored in place", async () => {
     renderViewer(seedShot());
 
-    await userEvent.click(screen.getByRole("button", { name: "Flip horizontal" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Flip horizontal" })
+    );
     await waitFor(() => expect(uploadAssetMock).toHaveBeenCalled());
     expect(flippedStillMock).toHaveBeenCalledWith(
       "https://assets.test/still-1",
@@ -198,7 +212,7 @@ describe("ShotEditViewer versions (criterion 15)", () => {
       "still-1",
       "still-2"
     ]);
-    expect(shot.keyframe?.asset_id).toBe("still-2");
+    expect(shot.keyframe?.asset_id).toBe("still-1");
   });
 
   it("opens the image editor on a copy, so the edit lands as a new take", async () => {
@@ -223,9 +237,9 @@ describe("ShotEditViewer versions (criterion 15)", () => {
     // The editor opens on the copy — "Save to image" writes back into that
     // asset, never into the still the shot already had.
     const tabs = useWorkspaceTabsStore.getState().tabs;
-    expect(
-      tabs.some((t) => t.type === "image" && t.ref === "still-2")
-    ).toBe(true);
+    expect(tabs.some((t) => t.type === "image" && t.ref === "still-2")).toBe(
+      true
+    );
   });
 
   it("offers no edits on a read-only board", () => {
@@ -240,5 +254,43 @@ describe("ShotEditViewer versions (criterion 15)", () => {
     expect(
       screen.queryByRole("button", { name: "Open in image editor" })
     ).not.toBeInTheDocument();
+  });
+
+  it("offers click and tap controls for every pan direction", async () => {
+    renderViewer(seedShot());
+
+    const transform = screen.getByTestId("shot-edit-media-transform");
+    expect(transform).toHaveStyle({
+      transform: "translate(0px, 0px) scale(1)"
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Pan right" }));
+    await userEvent.click(screen.getByRole("button", { name: "Pan down" }));
+    expect(transform.style.transform).not.toBe("translate(0px, 0px) scale(1)");
+
+    expect(screen.getByRole("button", { name: "Pan up" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Pan left" })
+    ).toBeInTheDocument();
+  });
+
+  it("does not open the image editor when its leave guard refuses", async () => {
+    const onBeforeImageEditor = jest.fn(async () => false);
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ShotEditViewer
+          boardId={BOARD}
+          shot={seedShot()}
+          onBeforeImageEditor={onBeforeImageEditor}
+        />
+      </ThemeProvider>
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open in image editor" })
+    );
+    expect(onBeforeImageEditor).toHaveBeenCalled();
+    expect(copiedStillMock).not.toHaveBeenCalled();
+    expect(uploadAssetMock).not.toHaveBeenCalled();
   });
 });

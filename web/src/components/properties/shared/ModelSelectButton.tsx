@@ -22,6 +22,7 @@ interface ModelSelectButtonProps {
   subLabel?: string; // "Select Model", "Select Image Model", etc.
   onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
   active?: boolean;
+  disabled?: boolean;
   className?: string;
   tooltipTitle?: React.ReactNode;
   sx?: SxProps<Theme>;
@@ -34,6 +35,7 @@ function ModelSelectButton({
   subLabel,
   onClick,
   active,
+  disabled,
   className,
   tooltipTitle,
   sx,
@@ -97,6 +99,7 @@ function ModelSelectButton({
           ...sx
         }}
         onClick={onClick}
+        disabled={disabled}
         size="small"
       >
         <FlexRow

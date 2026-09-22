@@ -3,6 +3,8 @@ import { sourceRate } from "./sourceRate.js";
 import { assertNotTimeRemapped } from "./timeRemap.js";
 import type { TimelineClip } from "./types.js";
 
+const SOURCE_BOUND_TOLERANCE_MS = 0.000001;
+
 /**
  * Move one edge of a clip.
  *
@@ -32,8 +34,16 @@ export function trimClip(
   const sourceDeltaMs = deltaMs * rate;
   const nextStartMs = edge === "start" ? clip.startMs - deltaMs : clip.startMs;
   const nextDurationMs = clip.durationMs + deltaMs;
-  const nextInPointMs = edge === "start" ? inPointMs - sourceDeltaMs : inPointMs;
-  const nextOutPointMs = edge === "end" ? outPointMs + sourceDeltaMs : outPointMs;
+  const nextInPointMs =
+    edge === "start" ? inPointMs - sourceDeltaMs : inPointMs;
+  const calculatedOutPointMs =
+    edge === "end" ? outPointMs + sourceDeltaMs : outPointMs;
+  const nextOutPointMs =
+    maxDurationMs !== undefined &&
+    calculatedOutPointMs > maxDurationMs &&
+    calculatedOutPointMs - maxDurationMs <= SOURCE_BOUND_TOLERANCE_MS
+      ? maxDurationMs
+      : calculatedOutPointMs;
 
   if (nextDurationMs <= 0) {
     throw new Error("trimClip would result in a non-positive duration");
@@ -47,7 +57,11 @@ export function trimClip(
     throw new Error("trimClip cannot start before zero on the timeline");
   }
 
-  if (maxDurationMs !== undefined && nextOutPointMs > maxDurationMs) {
+  if (
+    maxDurationMs !== undefined &&
+    sourceDeltaMs > 0 &&
+    nextOutPointMs > maxDurationMs
+  ) {
     throw new Error("trimClip cannot extend beyond source out-point");
   }
 

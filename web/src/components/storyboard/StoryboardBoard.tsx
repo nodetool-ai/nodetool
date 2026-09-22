@@ -95,14 +95,13 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useEntities } from "../../serverState/useEntities";
 import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
 import { exportStoryboardZip } from "../../utils/storyboardZip";
+import { flushStoryboardSave } from "../../hooks/storyboard/storyboardSaveRegistry";
+import { useTimeline } from "../../hooks/useTimelineSequence";
 import {
   useRenderBatchCostEstimate,
   type RenderBatchCostEstimate
 } from "../../hooks/storyboard/useRenderBatchCostEstimate";
-import {
-  sceneOrder,
-  type SceneGroup
-} from "../../lib/storyboard/sceneOrder";
+import { sceneOrder, type SceneGroup } from "../../lib/storyboard/sceneOrder";
 import BoardGenreChip from "./BoardGenreChip";
 import BoardLineageChip from "./BoardLineageChip";
 import BoardRetryFailed from "./BoardRetryFailed";
@@ -118,10 +117,12 @@ import ShotInspector from "./ShotInspector";
 import StoryboardEntitiesField from "./StoryboardEntitiesField";
 import { sceneDropTarget } from "./sceneDrop";
 import { isShotNavigationKey, navigateShots } from "./shotOrder";
+import { isAssemblableShot } from "./assembleTimeline";
 import {
   getRememberedModel,
   getRememberedModelForTask
 } from "../../stores/lastModelStore";
+import { countOwnedClips } from "../../lib/assembledSequenceMerge";
 
 // The preview mounts the timeline compositor; keep it out of the board bundle.
 const LazyStoryboardPreview = React.lazy(() => import("./StoryboardPreview"));
@@ -141,6 +142,13 @@ interface StoryboardBoardProps {
   assembling?: boolean;
   /** Error from the last assembly, shown under the header fields. */
   assembleError?: string | null;
+  /** Queue request whose unaccepted take should be opened in the shot editor. */
+  reviewRequest?: StoryboardReviewRequest | null;
+}
+
+export interface StoryboardReviewRequest {
+  shotId: string;
+  requestId: string;
 }
 
 const SHOT_COUNT_OPTIONS = [3, 4, 5, 6, 8, 10, 12].map((n) => ({
@@ -286,9 +294,9 @@ const RenderBatchButton: React.FC<RenderBatchButtonProps> = ({
   highlighted,
   onClick
 }) => {
-  const { shotCount, cost, pricedCount, reasons, notes } = estimate;
-  const priced = pricedCount > 0 && cost > 0;
-  const partial = priced && pricedCount < shotCount;
+  const { requestCount, cost, pricedRequestCount, reasons, notes } = estimate;
+  const priced = pricedRequestCount > 0 && cost > 0;
+  const partial = priced && pricedRequestCount < requestCount;
 
   return (
     <Tooltip
@@ -297,12 +305,12 @@ const RenderBatchButton: React.FC<RenderBatchButtonProps> = ({
         <FlexColumn gap={SPACING.micro}>
           <Text size="small">
             {priced
-              ? `${shotCount} shot${shotCount === 1 ? "" : "s"} · about ${formatUsd(cost)}${
+              ? `${requestCount} request${requestCount === 1 ? "" : "s"} · about ${formatUsd(cost)}${
                   partial
-                    ? ` (${pricedCount} of ${shotCount} priced — the rest are not in any catalog)`
+                    ? ` (${pricedRequestCount} of ${requestCount} priced — the rest are not in any catalog)`
                     : ""
                 }`
-              : `${shotCount} shot${shotCount === 1 ? "" : "s"}, none of them priced.`}
+              : `${requestCount} request${requestCount === 1 ? "" : "s"}, none of them priced.`}
           </Text>
           {reasons.map((reason) => (
             <Caption key={reason} color="secondary">
@@ -333,7 +341,7 @@ const RenderBatchButton: React.FC<RenderBatchButtonProps> = ({
           onClick={onClick}
           disabled={disabled}
         >
-          {`${label}${shotCount > 0 ? ` (${shotCount})` : ""}${
+          {`${label}${requestCount > 0 ? ` (${requestCount})` : ""}${
             priced ? ` · ~${formatUsd(cost)}` : ""
           }`}
         </EditorButton>
@@ -345,15 +353,15 @@ const RenderBatchButton: React.FC<RenderBatchButtonProps> = ({
 const RenderCostSummary: React.FC<{
   estimate: RenderBatchCostEstimate;
 }> = ({ estimate }) => {
-  const { shotCount, cost, pricedCount, reasons, notes } = estimate;
-  const priced = pricedCount > 0 && cost > 0;
+  const { requestCount, cost, pricedRequestCount, reasons, notes } = estimate;
+  const priced = pricedRequestCount > 0 && cost > 0;
   return (
     <FlexColumn gap={SPACING.micro}>
       <Text size="small">
         {priced
           ? `Estimated cost: about ${formatUsd(cost)}${
-              pricedCount < shotCount
-                ? ` (${pricedCount} of ${shotCount} shots priced)`
+              pricedRequestCount < requestCount
+                ? ` (${pricedRequestCount} of ${requestCount} requests priced)`
                 : ""
             }`
           : "Select a priced model to see the batch estimate."}
@@ -381,7 +389,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   directError,
   onAssemble,
   assembling,
-  assembleError
+  assembleError,
+  reviewRequest
 }) => {
   const {
     title,
@@ -395,7 +404,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     videoModel,
     screenplay,
     shots,
-    activeShotId
+    activeShotId,
+    timelineId
   } = useBoard(boardId);
 
   // Land on the shot a script line or a cut clip linked to, once it has loaded.
@@ -427,6 +437,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   const togglePreview = useCallback(() => setPreviewOpen((open) => !open), []);
   const [downloading, setDownloading] = useState(false);
+  const [downloadFallbackError, setDownloadFallbackError] = useState<
+    string | null
+  >(null);
+  const [assembleConfirmOpen, setAssembleConfirmOpen] = useState(false);
   const [styleOpen, setStyleOpen] = useState(false);
   const openStyle = useCallback(() => setStyleOpen(true), []);
   const closeStyle = useCallback(() => setStyleOpen(false), []);
@@ -449,22 +463,55 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     shotId: string;
     focus: "fields" | "dialogue";
   } | null>(null);
+  const [leaveRequest, setLeaveRequest] = useState<{
+    id: number;
+    reason: "switch" | "download";
+    shotId?: string;
+    focus?: "fields" | "dialogue";
+  } | null>(null);
+  const nextLeaveRequestId = useRef(0);
   const handleEditShot = useCallback(
     (shotId: string, focus: "fields" | "dialogue" = "fields") => {
+      if (editing && editing.shotId !== shotId) {
+        nextLeaveRequestId.current += 1;
+        setLeaveRequest({
+          id: nextLeaveRequestId.current,
+          reason: "switch",
+          shotId,
+          focus
+        });
+        return;
+      }
+      selectShot(boardId, shotId);
       setEditing({ shotId, focus });
     },
-    []
+    [editing, selectShot, boardId]
   );
   const handleEditShotFields = useCallback(
     (shotId: string) => handleEditShot(shotId, "fields"),
     [handleEditShot]
   );
+  const handledReviewRequest = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      readOnly ||
+      !reviewRequest ||
+      handledReviewRequest.current === reviewRequest.requestId
+    ) {
+      return;
+    }
+    handledReviewRequest.current = reviewRequest.requestId;
+    handleEditShot(reviewRequest.shotId, "fields");
+  }, [handleEditShot, readOnly, reviewRequest]);
   const closeEditing = useCallback(() => setEditing(null), []);
   // Stepping from the panel moves it under the shot it steps to; the focus goes
   // back to the fields, since the dialogue cell was this shot's request.
   const handleEditingShotChange = useCallback(
-    (shotId: string) => setEditing({ shotId, focus: "fields" }),
-    []
+    (shotId: string) => {
+      selectShot(boardId, shotId);
+      setEditing({ shotId, focus: "fields" });
+    },
+    [selectShot, boardId]
   );
 
   // The one grouping pass the render needs: the headers, the cards under each,
@@ -486,25 +533,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const openSettings = useCallback(() => setSettingsOpen(true), []);
   const settingsPanelId = `storyboard-board-settings-${boardId}`;
 
-  // The inspector docks under the grid, so on a board of more than a row or
-  // two it opens below the fold. A selection the user makes here scrolls it
-  // into view; one made from another document (useStoryboardShotFocus) does
-  // not, because that already centres the card.
   const gridRef = useRef<HTMLDivElement>(null);
-  const inspectorRef = useRef<HTMLDivElement>(null);
   const editPanelRef = useRef<HTMLDivElement>(null);
-  const revealInspector = useRef(false);
-  useEffect(() => {
-    if (!revealInspector.current) {
-      return;
-    }
-    revealInspector.current = false;
-    // `scrollIntoView` is absent under jsdom, so the call is guarded.
-    inspectorRef.current?.scrollIntoView?.({
-      block: "nearest",
-      behavior: "smooth"
-    });
-  }, [activeShotId]);
 
   // The editor opens under the card, which on a tall card is partly below the
   // fold; bring it into view on open and whenever it moves to another shot.
@@ -525,7 +555,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const handleSelectShot = useCallback(
     (shotId: string) => {
       const next = shotId === activeShotId ? null : shotId;
-      revealInspector.current = next !== null;
       selectShot(boardId, next);
     },
     [selectShot, boardId, activeShotId]
@@ -573,7 +602,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       }
       event.preventDefault();
       if (next !== activeShotId) {
-        revealInspector.current = true;
         selectShot(boardId, next);
       }
       gridRef.current
@@ -617,7 +645,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
 
   // A shot added by hand opens in the inspector, blank, ready to describe.
   const handleAddShot = useCallback(() => {
-    revealInspector.current = true;
     addShot(boardId);
   }, [addShot, boardId]);
 
@@ -625,7 +652,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   // follows, and the store reindexes the board around it.
   const handleInsertShot = useCallback(
     (afterShotId: string) => {
-      revealInspector.current = true;
       insertShot(boardId, afterShotId);
     },
     [insertShot, boardId]
@@ -650,10 +676,27 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     runDirect();
   }, [runDirect]);
 
-  const hasRenderedShot = useMemo(
-    () => shots.some((s) => s.status === "rendered" && !!s.clip?.asset_id),
-    [shots]
-  );
+  const hasRenderedShot = useMemo(() => shots.some(isAssemblableShot), [shots]);
+  const assemblableShotCount = shots.filter(isAssemblableShot).length;
+  const skippedAssemblyCount = shots.length - assemblableShotCount;
+  const linkedTimeline = useTimeline(timelineId);
+  const replacedClipCount = linkedTimeline.data
+    ? countOwnedClips(linkedTimeline.data.clips, {
+        boardId,
+        scriptId: screenplay?.script_id ?? null
+      })
+    : null;
+  const handleAssembleClick = useCallback(() => {
+    if (timelineId) {
+      setAssembleConfirmOpen(true);
+      return;
+    }
+    onAssemble?.();
+  }, [timelineId, onAssemble]);
+  const handleConfirmAssemble = useCallback(() => {
+    setAssembleConfirmOpen(false);
+    onAssemble?.();
+  }, [onAssemble]);
 
   // The preview plays clips and falls back to held keyframe stills, so any
   // shot carrying either asset is enough to have something to watch.
@@ -854,8 +897,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     }
     setImageModel(boardId, stillSelection);
     setRenderDialog(null);
+    const batchId = crypto.randomUUID();
     for (const shot of pendingStills) {
-      void generateKeyframe(boardId, shot, stillSelection).catch(
+      void generateKeyframe(boardId, shot, stillSelection, batchId).catch(
         () => undefined
       );
     }
@@ -869,9 +913,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       setVideoModel(boardId, lastModel);
     }
     setRenderDialog(null);
+    const batchId = crypto.randomUUID();
     for (const shot of pendingClips) {
       const model = clipSelections[clipTaskForShot(shot)];
-      void generateClip(boardId, shot, model).catch(() => undefined);
+      void generateClip(boardId, shot, model, batchId).catch(() => undefined);
     }
   }, [
     pendingClips,
@@ -908,13 +953,19 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     clipModelForShot
   );
 
-  // The archive is packed server-side from the saved board, so a download
-  // shows what the server holds — the local edits an in-flight save has not
-  // reached it with yet are not in the zip.
-  const handleDownloadZip = useCallback(() => {
-    setDownloading(true);
-    exportStoryboardZip(boardId, title || "storyboard")
-      .catch((error: unknown) => {
+  const downloadZip = useCallback(
+    async (flush: boolean) => {
+      setDownloading(true);
+      try {
+        if (flush) {
+          const saved = await flushStoryboardSave(boardId);
+          if (!saved.ok) {
+            setDownloadFallbackError(saved.error);
+            return;
+          }
+        }
+        await exportStoryboardZip(boardId, title || "storyboard");
+      } catch (error) {
         useNotificationStore.getState().addNotification({
           type: "error",
           alert: true,
@@ -923,9 +974,46 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             error instanceof Error ? error.message : String(error)
           }`
         });
-      })
-      .finally(() => setDownloading(false));
-  }, [boardId, title]);
+      } finally {
+        setDownloading(false);
+      }
+    },
+    [boardId, title]
+  );
+
+  const handleDownloadZip = useCallback(() => {
+    if (editing) {
+      nextLeaveRequestId.current += 1;
+      setLeaveRequest({
+        id: nextLeaveRequestId.current,
+        reason: "download"
+      });
+      return;
+    }
+    void downloadZip(true);
+  }, [editing, downloadZip]);
+
+  const handleLeaveRequestComplete = useCallback(
+    (result: "saved" | "discarded" | "cancelled") => {
+      const request = leaveRequest;
+      setLeaveRequest(null);
+      if (!request || result === "cancelled") {
+        return;
+      }
+      if (request.reason === "switch" && request.shotId) {
+        selectShot(boardId, request.shotId);
+        setEditing({
+          shotId: request.shotId,
+          focus: request.focus ?? "fields"
+        });
+        return;
+      }
+      if (request.reason === "download") {
+        void downloadZip(true);
+      }
+    },
+    [leaveRequest, selectShot, boardId, downloadZip]
+  );
 
   return (
     <ScrollArea
@@ -1144,7 +1232,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
           title="Render stills"
           onConfirm={handleGenerateAllStills}
           confirmText={`Render stills${
-            stillsCost.pricedCount > 0 && stillsCost.cost > 0
+            stillsCost.pricedRequestCount > 0 && stillsCost.cost > 0
               ? ` · ~${formatUsd(stillsCost.cost)}`
               : ""
           }`}
@@ -1175,7 +1263,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
           title="Render clips"
           onConfirm={handleGenerateAllClips}
           confirmText={`Render clips${
-            clipsCost.pricedCount > 0 && clipsCost.cost > 0
+            clipsCost.pricedRequestCount > 0 && clipsCost.cost > 0
               ? ` · ~${formatUsd(clipsCost.cost)}`
               : ""
           }`}
@@ -1224,6 +1312,60 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               Generated stills and clips stay in your asset library, but the
               shots on this board are rebuilt from scratch.
             </Caption>
+          </FlexColumn>
+        </Dialog>
+
+        <Dialog
+          open={assembleConfirmOpen}
+          onClose={() => setAssembleConfirmOpen(false)}
+          title="Rebuild linked timeline?"
+          onConfirm={handleConfirmAssemble}
+          confirmText="Rebuild timeline"
+          destructive
+        >
+          <FlexColumn gap={SPACING.xs}>
+            <Text>
+              {replacedClipCount === null
+                ? "This replaces every clip owned by this storyboard and its linked script, including trims and edits made to those clips."
+                : `This replaces ${replacedClipCount} storyboard-owned clip${replacedClipCount === 1 ? "" : "s"}, including trims and edits made to those clips.`}
+            </Text>
+            <Caption color="secondary">
+              Tracks and clips added outside this storyboard are preserved.
+              {skippedAssemblyCount > 0
+                ? ` ${skippedAssemblyCount} shot${skippedAssemblyCount === 1 ? "" : "s"} without an accepted clip will be skipped.`
+                : ""}
+            </Caption>
+          </FlexColumn>
+        </Dialog>
+
+        <Dialog
+          open={downloadFallbackError !== null}
+          onClose={() => setDownloadFallbackError(null)}
+          title="Latest changes could not be saved"
+          actions={
+            <FlexRow gap={SPACING.sm} align="center">
+              <EditorButton onClick={() => setDownloadFallbackError(null)}>
+                Cancel
+              </EditorButton>
+              <EditorButton
+                variant="contained"
+                color="primary"
+                onClick={() => {
+                  setDownloadFallbackError(null);
+                  void downloadZip(false);
+                }}
+              >
+                Download last saved version
+              </EditorButton>
+            </FlexRow>
+          }
+        >
+          <FlexColumn gap={SPACING.xs}>
+            <Text>
+              Downloading now would use the older version currently stored on
+              the server.
+            </Text>
+            <Caption color="error">{downloadFallbackError}</Caption>
           </FlexColumn>
         </Dialog>
 
@@ -1322,6 +1464,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                           onClose={closeEditing}
                           onShotChange={handleEditingShotChange}
                           onOpenBoardSettings={openSettings}
+                          leaveRequest={leaveRequest}
+                          onLeaveRequestComplete={handleLeaveRequestComplete}
                         />
                       </Box>
                     )}
@@ -1336,17 +1480,28 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             — the script link control and the timeline handoff — and are shown
             here rather than in the spend toolbar, because neither renders. */}
         {!readOnly && (
-          <FlexRow align="flex-start" gap={SPACING.md} wrap>
-            <ScriptLinkControl boardId={boardId} disabled={directing} />
-            <EditorButton
-              variant="contained"
-              color="primary"
-              onClick={onAssemble}
-              disabled={!onAssemble || assembling || !hasRenderedShot}
-            >
-              {assembling ? "Assembling…" : "Assemble timeline"}
-            </EditorButton>
-          </FlexRow>
+          <FlexColumn gap={SPACING.xs}>
+            <FlexRow align="flex-start" gap={SPACING.md} wrap>
+              <ScriptLinkControl boardId={boardId} disabled={directing} />
+              <EditorButton
+                variant="contained"
+                color="primary"
+                onClick={handleAssembleClick}
+                disabled={!onAssemble || assembling || !hasRenderedShot}
+              >
+                {assembling
+                  ? "Assembling…"
+                  : timelineId
+                    ? "Rebuild linked timeline…"
+                    : "Create timeline"}
+              </EditorButton>
+            </FlexRow>
+            {assembleError && (
+              <Caption role="alert" color="error">
+                {assembleError}
+              </Caption>
+            )}
+          </FlexColumn>
         )}
 
         <BoardStyleDialog
@@ -1356,7 +1511,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
         />
 
         {activeShot && (
-          <Box ref={inspectorRef}>
+          <Box>
             <ShotInspector
               key={activeShot.id}
               boardId={boardId}

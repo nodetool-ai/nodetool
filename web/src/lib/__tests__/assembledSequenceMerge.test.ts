@@ -1,6 +1,7 @@
 import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import {
+  countOwnedClips,
   isOwnedClip,
   mergeIntoSequence,
   stampBoardProvenance
@@ -60,6 +61,23 @@ describe("isOwnedClip", () => {
       ).toBe(expected);
     }
   );
+});
+
+describe("countOwnedClips", () => {
+  it("counts every clip the merge will replace, including clips for removed shots", () => {
+    const track = videoTrack("Shots", 0);
+    const clips = [
+      clipOn(track, "current shot", { storyboardBoardId: BOARD }),
+      clipOn(track, "removed shot", { storyboardBoardId: BOARD }),
+      clipOn(track, "linked line", { scriptId: SCRIPT }),
+      clipOn(track, "manual edit"),
+      clipOn(track, "other board", { storyboardBoardId: OTHER_BOARD })
+    ];
+
+    expect(countOwnedClips(clips, { boardId: BOARD, scriptId: SCRIPT })).toBe(
+      3
+    );
+  });
 });
 
 describe("stampBoardProvenance", () => {
@@ -134,7 +152,10 @@ describe("mergeIntoSequence", () => {
         },
         { boardId: BOARD, scriptId: null }
       );
-      expect(merged.tracks.map((t) => t.name)).toEqual(["Shots", "Other board"]);
+      expect(merged.tracks.map((t) => t.name)).toEqual([
+        "Shots",
+        "Other board"
+      ]);
     });
   });
 

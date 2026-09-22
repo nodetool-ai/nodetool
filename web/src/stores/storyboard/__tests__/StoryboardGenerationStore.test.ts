@@ -20,7 +20,7 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
 
 import {
   useStoryboardGenerationStore,
-  settleCancelledShotJob,
+  stopTrackingShotRequest,
   __handleShotJobMessageForTests,
   __resetStoryboardSubscriptionsForTests,
   type DirectShotJobContext
@@ -76,7 +76,7 @@ describe("direct generation responses (generate_media rpc)", () => {
     );
   });
 
-  it("writes the returned asset onto the shot and clears the job", () => {
+  it("records a returned still as a candidate and clears the job", () => {
     seedShot("s-direct");
     useStoryboardGenerationStore
       .getState()
@@ -92,16 +92,19 @@ describe("direct generation responses (generate_media rpc)", () => {
       .getState()
       .getBoard(BOARD)
       ?.shots.find((s) => s.id === "s-direct");
-    expect(shot?.status).toBe("keyframe_ready");
-    expect(shot?.keyframe?.asset_id).toBe("ast-1");
-    expect(shot?.keyframe?.uri).toBe("asset://ast-1");
+    expect(shot?.status).toBe("planned");
+    expect(shot?.keyframe).toBeUndefined();
+    expect(shot?.keyframe_versions?.[0]).toMatchObject({
+      asset_id: "ast-1",
+      uri: "asset://ast-1"
+    });
     // A completed request leaves no row behind — the shot is settled.
     expect(
       useStoryboardGenerationStore.getState().shotJobs["s-direct"]
     ).toBeUndefined();
   });
 
-  it("writes a clip asset and marks the shot rendered", () => {
+  it("records a returned clip as a candidate until it is accepted", () => {
     seedShot("s-direct-clip");
     useStoryboardGenerationStore
       .getState()
@@ -121,8 +124,49 @@ describe("direct generation responses (generate_media rpc)", () => {
       .getState()
       .getBoard(BOARD)
       ?.shots.find((s) => s.id === "s-direct-clip");
-    expect(shot?.status).toBe("rendered");
-    expect(shot?.clip?.asset_id).toBe("ast-clip");
+    expect(shot?.status).toBe("planned");
+    expect(shot?.clip).toBeUndefined();
+    expect(shot?.clip_versions?.[0]?.asset_id).toBe("ast-clip");
+  });
+
+  it("keeps accepted media current when a new direct result arrives", () => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    store.upsertShot(BOARD, {
+      type: "shot",
+      id: "s-regen-preserve",
+      index: 0,
+      action: "test shot",
+      status: "keyframe_ready",
+      keyframe: {
+        type: "image",
+        uri: "asset://accepted",
+        asset_id: "accepted"
+      }
+    });
+    useStoryboardGenerationStore
+      .getState()
+      .registerJob("s-regen-preserve", BOARD, "req-regen-preserve", "keyframe");
+
+    __handleShotJobMessageForTests(
+      "req-regen-preserve",
+      context("s-regen-preserve", "keyframe"),
+      {
+        type: "rpc_response",
+        request_id: "req-regen-preserve",
+        result: { asset_ids: ["candidate"] }
+      } as never
+    );
+
+    const shot = useStoryboardStore
+      .getState()
+      .getBoard(BOARD)
+      ?.shots.find((value) => value.id === "s-regen-preserve");
+    expect(shot?.keyframe?.asset_id).toBe("accepted");
+    expect(shot?.keyframe_versions?.map((version) => version.asset_id)).toEqual(
+      ["accepted", "candidate"]
+    );
+    expect(shot?.status).toBe("keyframe_ready");
   });
 
   it("fails the shot and keeps the reason when the rpc carries an error", () => {
@@ -254,13 +298,13 @@ describe("production candidate responses", () => {
 });
 
 describe("cancelled renders", () => {
-  it("settles a cancelled keyframe render back to planned when the shot has no still", () => {
+  it("stops local tracking without claiming to cancel the provider request", () => {
     seedShot("s-cxl");
     useStoryboardGenerationStore
       .getState()
       .registerJob("s-cxl", BOARD, "req-cxl", "keyframe");
 
-    settleCancelledShotJob("s-cxl");
+    stopTrackingShotRequest("req-cxl");
 
     const shot = useStoryboardStore
       .getState()
@@ -268,8 +312,14 @@ describe("cancelled renders", () => {
       ?.shots.find((s) => s.id === "s-cxl");
     expect(shot?.status).toBe("planned");
     expect(
-      useStoryboardGenerationStore.getState().shotJobs["s-cxl"]
-    ).toBeUndefined();
+      useStoryboardGenerationStore.getState().shotJobs["s-cxl"]?.status
+    ).toBe("stopped");
+    expect(
+      useStoryboardGenerationStore.getState().requestRecords["req-cxl"]?.status
+    ).toBe("stopped");
+    expect(
+      useStoryboardGenerationStore.getState().pendingJobs[BOARD]
+    ).toContainEqual(expect.objectContaining({ jobId: "req-cxl" }));
   });
 
   it("keeps an existing still when a cancelled regenerate settles", () => {
@@ -287,7 +337,7 @@ describe("cancelled renders", () => {
       .getState()
       .registerJob("s-regen", BOARD, "req-regen", "keyframe");
 
-    settleCancelledShotJob("s-regen");
+    stopTrackingShotRequest("req-regen");
 
     const shot = useStoryboardStore
       .getState()
@@ -312,13 +362,65 @@ describe("cancelled renders", () => {
       .getState()
       .registerJob("s-clip-cxl", BOARD, "req-clip-cxl", "clip");
 
-    settleCancelledShotJob("s-clip-cxl");
+    stopTrackingShotRequest("req-clip-cxl");
 
     const shot = useStoryboardStore
       .getState()
       .getBoard(BOARD)
       ?.shots.find((s) => s.id === "s-clip-cxl");
     expect(shot?.status).toBe("keyframe_ready");
+  });
+});
+
+describe("persistent request receipts", () => {
+  it("retains each request outcome after live shot rows settle", () => {
+    seedShot("receipt-1");
+    seedShot("receipt-2");
+    const store = useStoryboardGenerationStore.getState();
+    store.registerJob(
+      "receipt-1",
+      BOARD,
+      "receipt-ok",
+      "keyframe",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      "batch-six"
+    );
+    store.registerJob(
+      "receipt-2",
+      BOARD,
+      "receipt-failed",
+      "clip",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      "batch-six"
+    );
+    store.updateJobStatus("receipt-ok", "completed", { assetId: "asset-ok" });
+    store.updateJobStatus("receipt-failed", "failed", {
+      errorMessage: "provider refused"
+    });
+    store.clear("receipt-1");
+
+    expect(
+      useStoryboardGenerationStore.getState().requestRecords
+    ).toMatchObject({
+      "receipt-ok": {
+        batchId: "batch-six",
+        status: "completed",
+        assetId: "asset-ok"
+      },
+      "receipt-failed": {
+        batchId: "batch-six",
+        status: "failed",
+        errorMessage: "provider refused"
+      }
+    });
   });
 });
 
@@ -438,11 +540,12 @@ describe("render record on enqueue and land", () => {
     );
 
     const landed = shotOf("s-stale");
-    expect(landed.keyframe?.render_inputs).toBeDefined();
-    expect(isVersionStale(landed.keyframe, landed, boardB)).toBe(true);
+    const candidate = landed.keyframe_versions?.at(-1);
+    expect(candidate?.render_inputs).toBeDefined();
+    expect(isVersionStale(candidate, landed, boardB)).toBe(true);
     // Against the board it was enqueued on it is current — which is what
     // proves the record was taken at enqueue and not at landing.
-    expect(isVersionStale(landed.keyframe, landed, boardA)).toBe(false);
+    expect(isVersionStale(candidate, landed, boardA)).toBe(false);
   });
 
   it("records the shot as it read at enqueue, not as it reads on landing", () => {
@@ -471,7 +574,9 @@ describe("render record on enqueue and land", () => {
     );
 
     const landed = shotOf("s-timing");
-    expect(isVersionStale(landed.keyframe, landed, boardA)).toBe(true);
+    expect(
+      isVersionStale(landed.keyframe_versions?.at(-1), landed, boardA)
+    ).toBe(true);
   });
 
   it("a still enqueued and landed on the same board reads current", () => {
@@ -482,7 +587,9 @@ describe("render record on enqueue and land", () => {
     });
 
     const landed = shotOf("s-current");
-    expect(isVersionStale(landed.keyframe, landed, boardA)).toBe(false);
+    expect(
+      isVersionStale(landed.keyframe_versions?.at(-1), landed, boardA)
+    ).toBe(false);
   });
 
   it("a version that lands without a record is never stale", () => {
@@ -490,8 +597,9 @@ describe("render record on enqueue and land", () => {
     enqueueAndLand("s-legacy", "req-legacy", "keyframe");
 
     const landed = shotOf("s-legacy");
-    expect(landed.keyframe?.render_inputs).toBeUndefined();
-    expect(isVersionStale(landed.keyframe, landed, boardB)).toBe(false);
+    const candidate = landed.keyframe_versions?.at(-1);
+    expect(candidate?.render_inputs).toBeUndefined();
+    expect(isVersionStale(candidate, landed, boardB)).toBe(false);
   });
 
   it("records the board's still model for a keyframe", () => {
@@ -501,7 +609,8 @@ describe("render record on enqueue and land", () => {
       board: boardA
     });
 
-    const record = shotOf("s-model-still").keyframe?.render_inputs;
+    const record =
+      shotOf("s-model-still").keyframe_versions?.at(-1)?.render_inputs;
     expect(record?.kind).toBe("keyframe");
     expect(record?.model).toBe(boardA.image_model);
     expect(record?.aspect_ratio).toBe(boardA.aspect_ratio);
@@ -515,7 +624,7 @@ describe("render record on enqueue and land", () => {
       board: boardA
     });
 
-    const record = shotOf("s-model-clip").clip?.render_inputs;
+    const record = shotOf("s-model-clip").clip_versions?.at(-1)?.render_inputs;
     expect(record?.kind).toBe("clip");
     expect(record?.model).toBe(boardA.video_model);
   });

@@ -65,7 +65,7 @@ async function boardWithMeasuredClipDurations(
     board.shots.map(async (shot) => {
       const clip = shot.clip;
       const assetId = clip?.asset_id;
-      if (shot.status !== "rendered" || !assetId) return null;
+      if (!assetId) return null;
       const url = await resolveMediaUri(clip.uri || assetLocator(assetId));
       if (!url) return null;
       const durationMs = await probeMediaDurationMs(url, "video");

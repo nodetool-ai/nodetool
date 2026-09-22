@@ -19,7 +19,7 @@ import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import type { Provider } from "@nodetool-ai/protocol";
 import type { ImageModelValue } from "../../stores/ApiTypes";
 
-export const useDefaultStillModel = (boardId: string): void => {
+export const useDefaultStillModel = (boardId: string, enabled = true): void => {
   const hasModel = useStoryboardStore((state) =>
     state.boards[boardId] ? Boolean(state.boards[boardId].imageModel) : null
   );
@@ -29,7 +29,7 @@ export const useDefaultStillModel = (boardId: string): void => {
   const { models, isLoading } = useImageModelsByProvider();
 
   useEffect(() => {
-    if (hasModel !== false || isLoading || !imageDefault?.id) {
+    if (!enabled || hasModel !== false || isLoading || !imageDefault?.id) {
       return;
     }
     // A saved default the install no longer serves is not a default.
@@ -51,5 +51,5 @@ export const useDefaultStillModel = (boardId: string): void => {
       path: ""
     };
     useStoryboardStore.getState().setImageModel(boardId, model);
-  }, [boardId, hasModel, isLoading, imageDefault, models]);
+  }, [boardId, enabled, hasModel, isLoading, imageDefault, models]);
 };

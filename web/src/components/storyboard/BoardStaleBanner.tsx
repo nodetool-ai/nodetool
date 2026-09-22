@@ -17,13 +17,60 @@
  */
 
 import { memo, useCallback, useMemo } from "react";
-import { isVersionStale } from "@nodetool-ai/protocol";
+import {
+  currentRenderInputs,
+  isVersionStale,
+  type RenderInputs,
+  type RenderInputsDraft
+} from "@nodetool-ai/protocol";
 
 import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
 import { useBoard } from "../../stores/storyboard/StoryboardStore";
 import { useEntities } from "../../serverState/useEntities";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
-import { AlertBanner, EditorButton } from "../ui_primitives";
+import { AlertBanner, EditorButton, FlexRow, SPACING } from "../ui_primitives";
+
+export type StaleInputReason =
+  | "action or prompt"
+  | "model"
+  | "aspect ratio"
+  | "style"
+  | "render mode"
+  | "selected still"
+  | "references";
+
+const renderInputReasons = (
+  recorded: RenderInputs,
+  current: RenderInputsDraft
+): StaleInputReason[] => {
+  const reasons: StaleInputReason[] = [];
+  if (recorded.style_entity_id !== current.style_entity_id) reasons.push("style");
+  if (recorded.prompt_hash !== current.prompt_hash && reasons.length === 0) {
+    reasons.push("action or prompt");
+  }
+  if (recorded.model !== current.model) reasons.push("model");
+  if (recorded.aspect_ratio !== current.aspect_ratio) reasons.push("aspect ratio");
+  const recordedRenderMode =
+    recorded.kind === "clip" && recorded.render_mode === undefined
+      ? recorded.source_version_id === undefined
+        ? "direct"
+        : "keyframe"
+      : recorded.render_mode;
+  if (recordedRenderMode !== current.render_mode) reasons.push("render mode");
+  if (
+    current.source_version_id &&
+    recorded.source_version_id !== current.source_version_id
+  ) {
+    reasons.push("selected still");
+  }
+  if (
+    JSON.stringify(recorded.reference_asset_ids ?? []) !==
+    JSON.stringify(current.reference_asset_ids ?? [])
+  ) {
+    reasons.push("references");
+  }
+  return reasons;
+};
 
 /** "3 stills", "1 clip" — the count and its noun. */
 const countLabel = (count: number, noun: string): string =>
@@ -37,7 +84,8 @@ const countLabel = (count: number, noun: string): string =>
  */
 export const staleBannerMessage = (
   staleStills: number,
-  staleClips: number
+  staleClips: number,
+  reasons: readonly StaleInputReason[] = []
 ): string | null => {
   const parts: string[] = [];
   if (staleStills > 0) {
@@ -50,7 +98,8 @@ export const staleBannerMessage = (
     return null;
   }
   const verb = parts.length === 1 && staleStills + staleClips === 1 ? "is" : "are";
-  return `Style changed. ${parts.join(" and ")} ${verb} stale.`;
+  const reasonText = reasons.length > 0 ? ` (${reasons.join(" and ")})` : "";
+  return `Inputs changed${reasonText}. ${parts.join(" and ")} ${verb} stale.`;
 };
 
 export interface BoardStaleBannerProps {
@@ -74,17 +123,14 @@ const BoardStaleBannerImpl = ({
 }: BoardStaleBannerProps) => {
   const board = useBoard(boardId);
   const { data: allEntities } = useEntities();
-  const { generateKeyframe } = useGenerateShot();
+  const { generateKeyframe, generateClip } = useGenerateShot();
 
   const stale = useMemo(
-    () => board.shots.map((shot) => ({
-      shot,
-      context: boardRenderContext(
-        board,
-        allEntities ?? [],
-        shot
-      )
-    })),
+    () =>
+      board.shots.map((shot) => ({
+        shot,
+        context: boardRenderContext(board, allEntities ?? [], shot)
+      })),
     [board, allEntities]
   );
   const staleStills = useMemo(
@@ -99,6 +145,22 @@ const BoardStaleBannerImpl = ({
       .map(({ shot }) => shot),
     [stale]
   );
+  const reasons = useMemo(() => {
+    const found = new Set<StaleInputReason>();
+    for (const { shot, context } of stale) {
+      for (const version of [shot.keyframe, shot.clip]) {
+        const recorded = version?.render_inputs;
+        if (!recorded || !isVersionStale(version, shot, context)) continue;
+        for (const reason of renderInputReasons(
+          recorded,
+          currentRenderInputs(shot, context, recorded.kind)
+        )) {
+          found.add(reason);
+        }
+      }
+    }
+    return [...found];
+  }, [stale]);
 
   // One shot that cannot start records the reason on itself and is toasted, so
   // a single failure must not stop the rest of the re-render.
@@ -108,7 +170,17 @@ const BoardStaleBannerImpl = ({
     }
   }, [staleStills, generateKeyframe, boardId]);
 
-  const message = staleBannerMessage(staleStills.length, staleClips.length);
+  const handleRerenderClips = useCallback(() => {
+    for (const shot of staleClips) {
+      void generateClip(boardId, shot).catch(() => undefined);
+    }
+  }, [staleClips, generateClip, boardId]);
+
+  const message = staleBannerMessage(
+    staleStills.length,
+    staleClips.length,
+    reasons
+  );
   if (!message) {
     return null;
   }
@@ -119,15 +191,26 @@ const BoardStaleBannerImpl = ({
       compact
       className="board-stale-banner"
       action={
-        staleStills.length > 0 ? (
+        <FlexRow gap={SPACING.xs} wrap>
+          {staleStills.length > 0 && (
           <EditorButton
             variant="outlined"
             onClick={handleRerenderStills}
             disabled={disabled}
           >
-            Re-render stills
+            Regenerate stale stills
           </EditorButton>
-        ) : undefined
+          )}
+          {staleClips.length > 0 && (
+            <EditorButton
+              variant="outlined"
+              onClick={handleRerenderClips}
+              disabled={disabled}
+            >
+              Regenerate stale clips
+            </EditorButton>
+          )}
+        </FlexRow>
       }
     >
       {message}

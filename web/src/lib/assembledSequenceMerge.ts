@@ -34,6 +34,12 @@ export const isOwnedClip = (
   (!!owner.boardId && clip.storyboardBoardId === owner.boardId) ||
   (!!owner.scriptId && clip.scriptId === owner.scriptId);
 
+/** Number of existing clips a re-assemble will remove before writing fresh ones. */
+export const countOwnedClips = (
+  clips: readonly TimelineClip[],
+  owner: AssemblyOwner
+): number => clips.filter((clip) => isOwnedClip(clip, owner)).length;
+
 /** Record the board behind every clip of a fresh build, draft clips included. */
 export const stampBoardProvenance = (
   clips: TimelineClip[],

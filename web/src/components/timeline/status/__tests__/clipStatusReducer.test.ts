@@ -151,6 +151,50 @@ describe("deriveClipStatus — PRD §5.5 mapping table", () => {
     ).toBe("stale");
   });
 
+  it('returns "stale" from the stored lifecycle state when hashes are equal', () => {
+    expect(
+      deriveClipStatus(
+        {
+          ...baseClip(),
+          status: "stale",
+          currentAssetId: "asset-1"
+        },
+        noErrorState,
+        true
+      )
+    ).toBe("stale");
+  });
+
+  it('returns "stale" from the stored lifecycle state when hashes are absent', () => {
+    expect(
+      deriveClipStatus(
+        {
+          ...baseClip(),
+          status: "stale",
+          currentAssetId: "asset-1",
+          dependencyHash: undefined,
+          lastGeneratedHash: undefined
+        },
+        noErrorState,
+        true
+      )
+    ).toBe("stale");
+  });
+
+  it('returns "missing" ahead of a stored stale state', () => {
+    expect(
+      deriveClipStatus(
+        {
+          ...baseClip(),
+          status: "stale",
+          currentAssetId: "asset-gone"
+        },
+        noErrorState,
+        false
+      )
+    ).toBe("missing");
+  });
+
   it('does NOT return "stale" when only one hash is undefined', () => {
     expect(
       deriveClipStatus(

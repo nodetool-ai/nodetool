@@ -30,6 +30,7 @@ import {
   getSpacingPx
 } from "../../ui_primitives";
 import { trackTypeAccent } from "../Tracks/trackVisuals";
+import { useClipSourceDuration } from "../Tracks/useClipSourceDuration";
 import {
   ClipIdentityCard,
   InspectorDivider,
@@ -158,9 +159,13 @@ const TimelineInspectorContent: React.FC = memo(() => {
   const fps = useTimelineStore((s) => s.fps);
   const deleteSelected = useTimelineStore((s) => s.deleteSelected);
   const patchClip = useTimelineStore((s) => s.patchClip);
+  const moveSelectedClips = useTimelineStore((s) => s.moveSelectedClips);
+  const trimClipEnd = useTimelineStore((s) => s.trimClipEnd);
   const addClip = useTimelineStore((s) => s.addClip);
   const storeApi = useTimelineStoreApi();
   const history = useTimelineHistoryBatch();
+  const sourceDurationMs = useClipSourceDuration(clip ?? undefined);
+  const timingLocked = !!clip?.locked || !!track?.locked;
 
   /**
    * Wrap the selection in a group clip (D4): one clip with
@@ -223,22 +228,31 @@ const TimelineInspectorContent: React.FC = memo(() => {
   // identity — otherwise editing one re-renders the other two.
   const handleStartCommit = useCallback(
     (raw: string) => {
-      if (!clipId) return;
+      if (!clipId || !clip || timingLocked) return;
       const ms = parseTimecode(raw, fps);
       if (ms == null) return;
-      patchClip(clipId, { startMs: Math.max(0, ms) });
+      const nextStartMs = Math.max(0, ms);
+      moveSelectedClips(
+        clipId,
+        new Set([clipId]),
+        nextStartMs - clip.startMs,
+        undefined,
+        undefined,
+        undefined,
+        true
+      );
     },
-    [clipId, fps, patchClip]
+    [clip, clipId, fps, moveSelectedClips, timingLocked]
   );
 
   const handleDurationCommit = useCallback(
     (raw: string) => {
-      if (!clipId) return;
+      if (!clipId || !clip || timingLocked) return;
       const ms = parseSeconds(raw);
       if (ms == null || ms < 1) return;
-      patchClip(clipId, { durationMs: ms });
+      trimClipEnd(clipId, ms - clip.durationMs, sourceDurationMs);
     },
-    [clipId, patchClip]
+    [clip, clipId, sourceDurationMs, timingLocked, trimClipEnd]
   );
 
   const handleSpeedCommit = useCallback(
@@ -469,6 +483,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
               <InspectorPillInput
                 value={formatTimecode(clip.startMs, fps)}
                 onCommit={handleStartCommit}
+                disabled={timingLocked}
                 minWidth={112}
                 ariaLabel="Start timecode"
               />
@@ -479,6 +494,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
                 unit="s"
                 scrub={SCRUB_DURATION}
                 onCommit={handleDurationCommit}
+                disabled={timingLocked}
                 ariaLabel="Duration in seconds"
               />
             </InspectorRow>
@@ -686,6 +702,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
             <InspectorPillInput
               value={formatTimecode(clip.startMs, fps)}
               onCommit={handleStartCommit}
+              disabled={timingLocked}
               minWidth={112}
               ariaLabel="Start timecode"
             />
@@ -696,6 +713,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
               unit="s"
               scrub={SCRUB_DURATION}
               onCommit={handleDurationCommit}
+              disabled={timingLocked}
               ariaLabel="Duration in seconds"
             />
           </InspectorRow>

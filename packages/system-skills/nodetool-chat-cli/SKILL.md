@@ -7,7 +7,8 @@ You help users use NodeTool's chat interfaces — the terminal chat CLI and Glob
 
 # Chat CLI
 
-The chat CLI is a terminal UI. Two equivalent entry points:
+The chat CLI fills the terminal with a scrollable transcript, multiline
+composer, tool details, task progress, and approval prompts. Two entry points:
 - `nodetool-chat` (standalone binary)
 - `nodetool chat` (subcommand that forwards to the chat UI)
 
@@ -44,6 +45,8 @@ nodetool chat -u ws://localhost:7777/ws
 | `-w, --workspace <path>` | Workspace directory (default: cwd) |
 | `--tools <list>` | Comma-separated enabled tools |
 | `-u, --url <ws-url>` | Connect to a NodeTool server WebSocket |
+| `--resume [id]` | Resume a saved session in this workspace, latest if no ID is given |
+| `--permission-mode <default|auto|plan>` | Set permissions, interactive default is `default` |
 | `--no-read-only-search` | Disable the read-only `run_search` fan-out primitive |
 | `--trace-file <path>` | Append LLM/agent/workflow spans as JSONL |
 | `--trace-stdout [pretty\|json]` | Stream spans to stdout |
@@ -58,14 +61,29 @@ passed explicitly.
 
 | Command | Purpose |
 |---------|---------|
-| `/help` | Toggle the command help panel |
+| `/help` | Show commands and keyboard shortcuts in the transcript |
 | `/new` | Start a fresh session (clears history + server thread) |
 | `/clear` | Clear the visible history |
 | `/compact` | Summarize and compact the conversation context |
-| `/model [id]` | Show current model, or switch with an id |
-| `/provider [name]` | Show current provider, or switch (loads that provider's default model) |
+| `/model [id]` | Open model completion, or switch with an ID |
+| `/provider [name]` | Open provider completion, or switch and load that provider's default model |
 | `/tools` | List the enabled tools |
+| `/mode <default|auto|plan>` | Change tool permissions |
+| `/sessions` | Browse saved conversations for this workspace and server |
+| `/resume [id]` | Resume a saved conversation |
+| `/export [path.md]` | Save a Markdown transcript without overwriting an existing file |
+| `/details` | Toggle tool arguments, code, and edit diffs |
 | `/exit`, `/quit` | Quit chat |
+
+Enter sends. Alt+Enter, Shift+Enter in supported terminals, or Ctrl+J inserts a
+newline. Up/Down recalls prompts and Tab completes commands. Page Up/Page Down
+scrolls, Ctrl+G returns to the latest output, and Ctrl+O toggles tool details.
+Escape cancels a turn or dismisses input. Ctrl+C cancels, clears a draft, or
+saves and exits when idle with an empty composer. Approval prompts show their
+answer keys and can be scrolled before answering.
+
+`/compact` summarizes local context. Connected servers manage their own
+context. `/clear` only clears the screen, while `/new` resets the conversation.
 
 Non-slash input is sent to the model as a chat message — there is no built-in
 shell (`ls`, `cd`, …) in the chat prompt. File operations happen through the
@@ -74,6 +92,9 @@ agent's file tools in the workspace.
 ## Configuration
 
 - Settings file: `~/.nodetool/chat-settings.json` (persists provider + model)
+- Sessions: `~/.nodetool/chat-sessions/` (transcript, context, provider continuation)
+- Sessions are saved after turns and on exit. The picker filters by workspace
+  and server. Resuming does not carry over approval grants.
 
 # Agent Capabilities
 

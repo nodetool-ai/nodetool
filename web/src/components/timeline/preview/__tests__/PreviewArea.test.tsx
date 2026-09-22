@@ -145,7 +145,9 @@ jest.mock("../../../../stores/timeline/TimelineUIStore", () => {
 jest.mock("../../../../stores/AssetStore", () => ({
   useAssetStore: <T,>(selector: (s: { get: jest.Mock }) => T) => {
     const state = {
-      get: jest.fn().mockResolvedValue(null)
+      get: jest.fn().mockResolvedValue({
+        get_url: "https://cdn.example.com/audio.wav"
+      })
     };
     return selector ? selector(state) : state;
   }
@@ -374,6 +376,114 @@ describe("PreviewArea", () => {
       expect(mockStopClips).toHaveBeenCalledWith(["midi-1"]);
       expect(mockAddClips).not.toHaveBeenCalled();
     });
+
+    it("stops deleted audio without restarting unaffected sources", async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      const audioClip = {
+        id: "audio-deleted",
+        trackId: "audio-track",
+        name: "Deleted audio",
+        mediaType: "audio",
+        sourceType: "imported",
+        status: "generated",
+        currentAssetId: "asset-deleted",
+        startMs: 0,
+        durationMs: 10_000
+      };
+      const unaffectedClip = {
+        ...audioClip,
+        id: "audio-unaffected",
+        name: "Unaffected audio",
+        currentAssetId: "asset-unaffected"
+      };
+      mockClips = [audioClip, unaffectedClip];
+      renderPreview();
+
+      await user.click(screen.getByRole("button", { name: "Play" }));
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      mockStopClips.mockClear();
+      mockAddClips.mockClear();
+      await act(async () => {
+        setMockClips([unaffectedClip]);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(mockStopClips).toHaveBeenCalledWith(["audio-deleted"]);
+      expect(mockAddClips).not.toHaveBeenCalled();
+      expect(mockScheduleClips).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ["source", { currentAssetId: "asset-replaced" }],
+      ["timing", { startMs: 500, inPointMs: 250, outPointMs: 9_000 }],
+      ["rate", { speedMultiplier: 1.5 }],
+      ["mix", { volumeDb: -6, fadeInMs: 250 }]
+    ])(
+      "reschedules an audio %s edit at the live playhead only",
+      async (_, patch) => {
+        jest.useFakeTimers();
+        const user = userEvent.setup({
+          advanceTimers: jest.advanceTimersByTime
+        });
+        const audioClip = {
+          id: "audio-edited",
+          trackId: "audio-track",
+          name: "Edited audio",
+          mediaType: "audio",
+          sourceType: "imported",
+          status: "generated",
+          currentAssetId: "asset-1",
+          startMs: 0,
+          durationMs: 10_000,
+          inPointMs: 0,
+          outPointMs: 10_000,
+          speedMultiplier: 1,
+          volumeDb: 0
+        };
+        const unaffectedClip = {
+          ...audioClip,
+          id: "audio-unaffected",
+          currentAssetId: "asset-2"
+        };
+        mockClips = [audioClip, unaffectedClip];
+        renderPreview();
+
+        await user.click(screen.getByRole("button", { name: "Play" }));
+        await act(async () => {
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+
+        mockCurrentTimeMs = 4_000;
+        mockStopClips.mockClear();
+        mockAddClips.mockClear();
+        await act(async () => {
+          setMockClips([
+            {
+              ...audioClip,
+              ...patch
+            },
+            unaffectedClip
+          ]);
+          await Promise.resolve();
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+
+        expect(mockStopClips).toHaveBeenCalledWith(["audio-edited"]);
+        expect(mockAddClips).toHaveBeenCalledTimes(1);
+        expect(mockAddClips.mock.calls[0][0]).toHaveLength(1);
+        expect(mockAddClips.mock.calls[0][0][0].clip.id).toBe("audio-edited");
+        expect(mockAddClips.mock.calls[0][2]).toBe(4_000);
+        expect(mockScheduleClips).toHaveBeenCalledTimes(1);
+      }
+    );
 
     it("schedules MIDI immediately when it is unmuted during playback", async () => {
       jest.useFakeTimers();

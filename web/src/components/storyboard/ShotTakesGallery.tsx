@@ -67,7 +67,7 @@ const takeThumbSx = {
   // marked by a border rather than a glow.
   opacity: 0.6,
   "&:hover": { opacity: 1 },
-  "&[aria-pressed='true']": {
+  "&[aria-current='true']": {
     opacity: 1,
     borderColor: "primary.main"
   },
@@ -115,12 +115,6 @@ const takeRowLabelSx = { width: getSpacingPx(9), flexShrink: 0 } as const;
 const versionKey = (ref: ImageRef | VideoRef, index: number): string =>
   ref.asset_id ?? ref.uri ?? String(index);
 
-const isProductionCandidate = (value: unknown): boolean =>
-  typeof value === "object" &&
-  value !== null &&
-  "candidateId" in value &&
-  typeof value.candidateId === "string";
-
 const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
   boardId,
   shot,
@@ -131,8 +125,8 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
   const [viewerMedia, setViewerMedia] = useState<ImageRef | VideoRef | null>(
     null
   );
-  const selectKeyframeVersion = useStoryboardStore(
-    (state) => state.selectKeyframeVersion
+  const acceptKeyframeVersion = useStoryboardStore(
+    (state) => state.acceptKeyframeVersion
   );
   const removeKeyframeVersion = useStoryboardStore(
     (state) => state.removeKeyframeVersion
@@ -140,8 +134,8 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
   const removeClipVersion = useStoryboardStore(
     (state) => state.removeClipVersion
   );
-  const selectClipVersion = useStoryboardStore(
-    (state) => state.selectClipVersion
+  const acceptClipVersion = useStoryboardStore(
+    (state) => state.acceptClipVersion
   );
 
   const isGenerating =
@@ -166,38 +160,32 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
     ? clips.findIndex((v) => sameMediaRef(v, shot.clip as VideoRef))
     : -1;
 
-  const handleSelectStill = useCallback(
+  const handleAcceptStill = useCallback(
     (index: number) => {
-      selectKeyframeVersion(boardId, shot.id, index);
+      acceptKeyframeVersion(boardId, shot.id, index);
     },
-    [selectKeyframeVersion, boardId, shot.id]
+    [acceptKeyframeVersion, boardId, shot.id]
   );
 
   const handleUseClip = useCallback(
     (index: number) => {
-      selectClipVersion(boardId, shot.id, index);
+      acceptClipVersion(boardId, shot.id, index);
       // Keep a linked, already-assembled timeline on the newly chosen take.
       const assetId = clips[index]?.asset_id;
-      // Media-edit takes are storyboard candidates. They must not replace the
-      // assembled timeline until the creator explicitly accepts them there.
-      if (assetId && clips[index]?.mediaEdit?.action !== "video_edit") {
+      if (assetId) {
         void syncShotClipToTimeline(boardId, shot.id, assetId);
       }
     },
-    [selectClipVersion, boardId, shot.id, clips]
+    [acceptClipVersion, boardId, shot.id, clips]
   );
 
-  const handleSelectClip = useCallback(
+  const handlePreviewClip = useCallback(
     (index: number) => {
       const clip = clips[index];
       if (!clip) return;
-      if (isProductionCandidate(clip)) {
-        setViewerMedia(clip);
-        return;
-      }
-      handleUseClip(index);
+      setViewerMedia(clip);
     },
-    [clips, handleUseClip]
+    [clips]
   );
 
   const handleRemoveStill = useCallback(
@@ -237,50 +225,70 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
           <Caption color="secondary" sx={takeRowLabelSx}>
             Stills
           </Caption>
-          {stills.map((still, i) => (
-            <Box key={versionKey(still, i)} className="take" sx={takeWrapSx}>
-              <Box
-                component="button"
-                type="button"
-                aria-label={`Use still ${i + 1}`}
-                aria-pressed={i === selectedStill}
-                disabled={readOnly}
-                onClick={() => handleSelectStill(i)}
-                onDoubleClick={() => setViewerMedia(still)}
-                sx={takeThumbSx}
+          {stills.map((still, i) => {
+            const isCurrent = i === selectedStill;
+            return (
+              <FlexRow
+                key={versionKey(still, i)}
+                className="take"
+                align="center"
+                gap={SPACING.micro}
               >
-                {stillThumbSrcs[i] ? (
-                  <ResponsiveImage
-                    locator={still}
-                    preferThumbnail
-                    alt=""
-                    fit="cover"
-                    sx={{ width: "100%", height: "100%" }}
+                <Box sx={takeWrapSx}>
+                  <Box
+                    component="button"
+                    type="button"
+                    aria-label={
+                      isCurrent
+                        ? `Still ${i + 1}, current still`
+                        : `Preview still ${i + 1}`
+                    }
+                    aria-current={isCurrent ? "true" : undefined}
+                    onClick={() => setViewerMedia(still)}
+                    sx={takeThumbSx}
+                  >
+                    {stillThumbSrcs[i] ? (
+                      <ResponsiveImage
+                        locator={still}
+                        preferThumbnail
+                        alt=""
+                        fit="cover"
+                        sx={{ width: "100%", height: "100%" }}
+                      />
+                    ) : (
+                      <span>{i + 1}</span>
+                    )}
+                  </Box>
+                  {!readOnly && (
+                    <ToolbarIconButton
+                      icon={<DeleteOutlineIcon sx={{ fontSize: "1em" }} />}
+                      tooltip="Remove still"
+                      ariaLabel={`Remove still ${i + 1}`}
+                      onClick={() => handleRemoveStill(i)}
+                      disabled={isGenerating}
+                      sx={removeButtonSx}
+                      variant="error"
+                    />
+                  )}
+                  <ToolbarIconButton
+                    icon={<FullscreenIcon sx={{ fontSize: "1em" }} />}
+                    tooltip="View fullscreen"
+                    ariaLabel={`View still ${i + 1} fullscreen`}
+                    onClick={() => setViewerMedia(still)}
+                    sx={viewButtonSx}
                   />
-                ) : (
-                  <span>{i + 1}</span>
+                </Box>
+                {!isCurrent && !readOnly && (
+                  <EditorButton
+                    onClick={() => handleAcceptStill(i)}
+                    aria-label={`Set still ${i + 1} as current still`}
+                  >
+                    Set as current still
+                  </EditorButton>
                 )}
-              </Box>
-              {!readOnly && (
-                <ToolbarIconButton
-                  icon={<DeleteOutlineIcon sx={{ fontSize: "1em" }} />}
-                  tooltip="Remove still"
-                  ariaLabel={`Remove still ${i + 1}`}
-                  onClick={() => handleRemoveStill(i)}
-                  disabled={isGenerating}
-                  sx={removeButtonSx}
-                  variant="error"
-                />
-              )}
-              <ToolbarIconButton
-                icon={<FullscreenIcon sx={{ fontSize: "1em" }} />}
-                tooltip="View fullscreen"
-                ariaLabel={`View still ${i + 1} fullscreen`}
-                onClick={() => setViewerMedia(still)}
-                sx={viewButtonSx}
-              />
-            </Box>
-          ))}
+              </FlexRow>
+            );
+          })}
         </FlexRow>
       )}
 
@@ -289,53 +297,64 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
           <Caption color="secondary" sx={takeRowLabelSx}>
             Clips
           </Caption>
-          {clips.map((clip, i) => (
-            <FlexRow
-              key={versionKey(clip, i)}
-              className="take"
-              align="center"
-              gap={0}
-            >
-              <Chip
-                compact
-                clickable={!readOnly}
-                variant="outlined"
-                label={`${isProductionCandidate(clip) ? "Preview" : "Take"} ${i + 1}`}
-                sx={{
-                  borderRadius: BORDER_RADIUS.pill,
-                  color: i === selectedClip ? "text.primary" : "text.secondary",
-                  borderColor: i === selectedClip ? "primary.main" : "divider"
-                }}
-                onClick={readOnly ? undefined : () => handleSelectClip(i)}
-              />
-              {isProductionCandidate(clip) && !readOnly && (
-                <EditorButton
-                  onClick={() => handleUseClip(i)}
-                  aria-label={`Use take ${i + 1}`}
-                >
-                  Use
-                </EditorButton>
-              )}
-              {!readOnly && (
+          {clips.map((clip, i) => {
+            const isCurrent = i === selectedClip;
+            return (
+              <FlexRow
+                key={versionKey(clip, i)}
+                className="take"
+                align="center"
+                gap={0}
+              >
+                <Chip
+                  compact
+                  clickable
+                  variant="outlined"
+                  label={
+                    isCurrent ? `Take ${i + 1} · Current` : `Preview ${i + 1}`
+                  }
+                  aria-label={
+                    isCurrent
+                      ? `Take ${i + 1}, current clip`
+                      : `Preview clip take ${i + 1}`
+                  }
+                  aria-current={isCurrent ? "true" : undefined}
+                  sx={{
+                    borderRadius: BORDER_RADIUS.pill,
+                    color: isCurrent ? "text.primary" : "text.secondary",
+                    borderColor: isCurrent ? "primary.main" : "divider"
+                  }}
+                  onClick={() => handlePreviewClip(i)}
+                />
+                {!isCurrent && !readOnly && (
+                  <EditorButton
+                    onClick={() => handleUseClip(i)}
+                    aria-label={`Set take ${i + 1} as current clip`}
+                  >
+                    Set as current clip
+                  </EditorButton>
+                )}
+                {!readOnly && (
+                  <ToolbarIconButton
+                    icon={<DeleteOutlineIcon sx={{ fontSize: "1em" }} />}
+                    tooltip="Remove clip"
+                    ariaLabel={`Remove clip ${i + 1}`}
+                    onClick={() => handleRemoveClip(i)}
+                    disabled={isGenerating}
+                    variant="error"
+                    sx={takeActionSx}
+                  />
+                )}
                 <ToolbarIconButton
-                  icon={<DeleteOutlineIcon sx={{ fontSize: "1em" }} />}
-                  tooltip="Remove clip"
-                  ariaLabel={`Remove clip ${i + 1}`}
-                  onClick={() => handleRemoveClip(i)}
-                  disabled={isGenerating}
-                  variant="error"
+                  icon={<FullscreenIcon sx={{ fontSize: "1em" }} />}
+                  tooltip="View fullscreen"
+                  ariaLabel={`View clip take ${i + 1} fullscreen`}
+                  onClick={() => setViewerMedia(clip)}
                   sx={takeActionSx}
                 />
-              )}
-              <ToolbarIconButton
-                icon={<FullscreenIcon sx={{ fontSize: "1em" }} />}
-                tooltip="View fullscreen"
-                ariaLabel={`View clip take ${i + 1} fullscreen`}
-                onClick={() => setViewerMedia(clip)}
-                sx={takeActionSx}
-              />
-            </FlexRow>
-          ))}
+              </FlexRow>
+            );
+          })}
         </FlexRow>
       )}
 

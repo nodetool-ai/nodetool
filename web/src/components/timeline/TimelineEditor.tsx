@@ -563,7 +563,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   useLoadTimelineIntoStore(sequence);
 
   // Persist subsequent edits back via trpc.timeline.update (debounced).
-  useTimelineAutosave();
+  const { flush: flushAutosave } = useTimelineAutosave();
 
   // Take in writes made outside this browser (agent doc-ops, CLI, another tab).
   useTimelineExternalSync(sequenceId ?? null);
@@ -606,25 +606,33 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     [exportVideo, sequence?.name]
   );
 
-  // Whole-project archive: the server packs the saved document plus every
-  // asset it references, so unsaved local edits are not in the zip.
+  // Whole-project archive: save the visible document before the server packs
+  // it with every referenced asset.
   const [isExportingBundle, setIsExportingBundle] = useState(false);
-  const handleExportBundle = useCallback(() => {
+  const handleExportBundle = useCallback(async () => {
     if (!sequenceId) return;
     setIsExportingBundle(true);
-    exportTimelineZip(sequenceId, sequence?.name || "timeline")
-      .catch((error: unknown) => {
-        useNotificationStore.getState().addNotification({
-          type: "error",
-          alert: true,
-          dismissable: true,
-          content: `Project download failed. ${
-            error instanceof Error ? error.message : String(error)
-          }`
-        });
-      })
-      .finally(() => setIsExportingBundle(false));
-  }, [sequenceId, sequence?.name]);
+    try {
+      const saveResult = await flushAutosave();
+      if (!saveResult.ok) {
+        throw new Error(
+          `Could not save the current timeline. ${saveResult.error}`
+        );
+      }
+      await exportTimelineZip(sequenceId, sequence?.name || "timeline");
+    } catch (error) {
+      useNotificationStore.getState().addNotification({
+        type: "error",
+        alert: true,
+        dismissable: true,
+        content: `Project download failed. ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      });
+    } finally {
+      setIsExportingBundle(false);
+    }
+  }, [flushAutosave, sequenceId, sequence?.name]);
 
   // "Save as Asset" — anchor the folder chooser to the TopBar button, then
   // render the timeline into a new asset in the chosen folder.
@@ -885,7 +893,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         {isExporting ? "Cancel" : "Close"}
       </EditorButton>
     ),
-    [isExporting, hasExportError, cancelExport, clearExportError]
+    [isExporting, cancelExport, clearExportError]
   );
 
   // External writes that the dirty draft refused — offered per merge unit.

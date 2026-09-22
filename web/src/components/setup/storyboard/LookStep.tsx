@@ -55,6 +55,7 @@ import { setShotlistImport, useShotlistImportSummary } from "./setupChoices";
 
 export interface LookStepProps {
   boardId: string;
+  readOnly?: boolean;
 }
 
 /** What a keyframe model has to be able to do — the board's own rule. */
@@ -162,8 +163,11 @@ export function useLookStep(boardId: string): LookStepControls {
  * component so the catalog behind it is only fetched by the step that shows
  * it, and so the picker sits with the price it decides.
  */
-const StillModelField: React.FC<{ boardId: string }> = ({ boardId }) => {
-  useDefaultStillModel(boardId);
+const StillModelField: React.FC<{ boardId: string; readOnly?: boolean }> = ({
+  boardId,
+  readOnly
+}) => {
+  useDefaultStillModel(boardId, !readOnly);
   // Studio's curated control prints the model's own blurb under the dropdown,
   // so the field's helper line would be a second line saying a similar thing —
   // and the quieter of the two is the one a reader gives up on.
@@ -176,8 +180,12 @@ const StillModelField: React.FC<{ boardId: string }> = ({ boardId }) => {
   );
   const setImageModel = useStoryboardStore((state) => state.setImageModel);
   const handleChange = useCallback(
-    (value: ImageModelValue) => setImageModel(boardId, value),
-    [boardId, setImageModel]
+    (value: ImageModelValue) => {
+      if (!readOnly) {
+        setImageModel(boardId, value);
+      }
+    },
+    [boardId, readOnly, setImageModel]
   );
   return (
     <FormField
@@ -193,12 +201,16 @@ const StillModelField: React.FC<{ boardId: string }> = ({ boardId }) => {
         value={imageModel?.id ?? ""}
         task={STILL_MODEL_TASKS}
         onChange={handleChange}
+        disabled={readOnly}
       />
     </FormField>
   );
 };
 
-export const LookStep: React.FC<LookStepProps> = ({ boardId }) => {
+export const LookStep: React.FC<LookStepProps> = ({
+  boardId,
+  readOnly = false
+}) => {
   const [addingStyle, setAddingStyle] = useState(false);
   const customStyle = useCustomStyle(boardId);
   const style = useStoryboardStore(
@@ -288,14 +300,20 @@ export const LookStep: React.FC<LookStepProps> = ({ boardId }) => {
 
   const handleSelect = useCallback(
     (entityId: string) => {
-      setStylePreset(boardId, entityId, entities);
+      if (!readOnly) {
+        setStylePreset(boardId, entityId, entities);
+      }
     },
-    [boardId, entities, setStylePreset]
+    [boardId, entities, readOnly, setStylePreset]
   );
 
   const handleAspect = useCallback(
-    (value: string) => setAspectRatio(boardId, value),
-    [boardId, setAspectRatio]
+    (value: string) => {
+      if (!readOnly) {
+        setAspectRatio(boardId, value);
+      }
+    },
+    [boardId, readOnly, setAspectRatio]
   );
 
   // The look in one line: the style entity's own name and descriptor when the
@@ -312,13 +330,18 @@ export const LookStep: React.FC<LookStepProps> = ({ boardId }) => {
         : null;
 
   const shotlistImport = useShotlistImportSummary(boardId);
-  const dismissImportSummary = useCallback(
-    () => setShotlistImport(boardId, null),
-    [boardId]
-  );
+  const dismissImportSummary = useCallback(() => {
+    if (!readOnly) {
+      setShotlistImport(boardId, null);
+    }
+  }, [boardId, readOnly]);
 
   // `PresetTileGrid` is memoized, so both handlers keep a stable identity.
-  const openAddStyle = useCallback(() => setAddingStyle(true), []);
+  const openAddStyle = useCallback(() => {
+    if (!readOnly) {
+      setAddingStyle(true);
+    }
+  }, [readOnly]);
   const clearStyleError = customStyle.clearError;
   const closeAddStyle = useCallback(() => {
     clearStyleError();
@@ -384,6 +407,7 @@ export const LookStep: React.FC<LookStepProps> = ({ boardId }) => {
                 variant="text"
                 size="small"
                 onClick={dismissImportSummary}
+                disabled={readOnly}
               >
                 Dismiss
               </EditorButton>
@@ -397,9 +421,10 @@ export const LookStep: React.FC<LookStepProps> = ({ boardId }) => {
           value={aspectRatio}
           onChange={handleAspect}
           options={ASPECT_OPTIONS}
+          disabled={readOnly}
         />
       </Box>
-      <StillModelField boardId={boardId} />
+      <StillModelField boardId={boardId} readOnly={readOnly} />
       <FlexColumn gap={GAP.normal}>
         <Text size="small" component="h3">
           Art style
@@ -414,12 +439,15 @@ export const LookStep: React.FC<LookStepProps> = ({ boardId }) => {
         ) : null}
         <PresetTileGrid
           label="Art style"
-          presets={tiles}
+          presets={tiles.map((tile) => ({
+            ...tile,
+            disabled: readOnly || tile.disabled
+          }))}
           selectedId={selectedId}
           onSelect={handleSelect}
           onAddOwn={openAddStyle}
           addOwnLabel="Add your own style"
-          addOwnDisabled={customStyle.saving}
+          addOwnDisabled={readOnly || customStyle.saving}
         />
       </FlexColumn>
       <AddStyleDialog

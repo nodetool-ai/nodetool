@@ -23,6 +23,11 @@ export interface SetupOperationContext {
   signal: AbortSignal;
 }
 
+/** Presentation state handed to a step body by the shared setup shell. */
+export interface SetupStepRenderContext {
+  readOnly: boolean;
+}
+
 /**
  * One stage of a flow: what the creator sees, what the primary button says,
  * and what pressing it does before the stage moves on.
@@ -39,7 +44,7 @@ export interface SetupStep<Stage extends string> {
   /** Primary button label. It names the outcome: "Generate your storyboard". */
   primaryLabel: string;
   /** The step body. */
-  render: () => ReactNode;
+  render: (context?: SetupStepRenderContext) => ReactNode;
   /** False disables the primary button — nothing chosen yet. */
   canAdvance?: boolean;
   /**

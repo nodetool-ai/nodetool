@@ -135,9 +135,8 @@ export interface RetimedShot {
   directedMs: number;
 }
 
-/** A shot is assemblable when its clip landed as a persisted asset. */
+/** A shot is assemblable when its explicitly accepted clip is persisted. */
 export const isAssemblableShot = (shot: Shot): boolean =>
-  shot.status === "rendered" &&
   !!shot.clip &&
   typeof shot.clip.asset_id === "string" &&
   shot.clip.asset_id.length > 0;
@@ -195,9 +194,8 @@ export interface ShotSource {
 
 export interface ShotSourceOptions {
   /**
-   * Require the shot's lifecycle status to be `rendered`, as assembly does.
-   * The in-editor preview passes false: it plays a selected take while the
-   * board is still working, and its own tests pin that.
+   * Require an accepted persisted clip, as assembly does. The in-editor
+   * preview passes false so it can also play non-persisted local media.
    */
   requireRendered?: boolean;
   /**

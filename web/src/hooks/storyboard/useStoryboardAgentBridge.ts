@@ -48,6 +48,7 @@ import { linkedScriptId } from "../../lib/scriptStoryboardLink";
 import { assetLocator } from "../../utils/mediaRef";
 import { DEFAULT_SETUP_SHOT_COUNT } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
+import { syncShotClipToTimeline } from "../../stores/storyboard/timelineSync";
 
 /**
  * Shot count a Director run defaults to when neither the caller nor the board
@@ -60,8 +61,11 @@ const DEFAULT_SHOT_COUNT = DEFAULT_SETUP_SHOT_COUNT;
  * board's one style entity — the same id `setStylePreset` writes — so a preset
  * change is what makes a version stale, not every cast edit.
  */
-const renderContext = (board: StoryboardBoard, entities: readonly Entity[], shot?: Shot) =>
-  boardRenderContext(board, entities, shot);
+const renderContext = (
+  board: StoryboardBoard,
+  entities: readonly Entity[],
+  shot?: Shot
+) => boardRenderContext(board, entities, shot);
 
 const toSceneNode = (
   scene: { id: string; slugline: string; lighting?: string },
@@ -201,7 +205,11 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
           .map((group) =>
             toSceneNode(
               // Filtered above: a group with a scene carries one.
-              group.scene as { id: string; slugline: string; lighting?: string },
+              group.scene as {
+                id: string;
+                slugline: string;
+                lighting?: string;
+              },
               group.shots.map((s) => s.id)
             )
           ),
@@ -308,7 +316,9 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
           const after = requireShot(input.afterShotId);
           const id = store().insertShot(boardId, after.id);
           if (!id) {
-            throw new Error(`Could not insert a shot on storyboard ${boardId}.`);
+            throw new Error(
+              `Could not insert a shot on storyboard ${boardId}.`
+            );
           }
           store().updateShot(boardId, id, {
             action: input.action,
@@ -449,9 +459,13 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
       selectVersion(target, kind, version) {
         const shot = requireShot(target);
         if (kind === "keyframe") {
-          store().selectKeyframeVersion(boardId, shot.id, version);
+          store().acceptKeyframeVersion(boardId, shot.id, version);
         } else {
-          store().selectClipVersion(boardId, shot.id, version);
+          store().acceptClipVersion(boardId, shot.id, version);
+          const accepted = reRead(shot.id).clip;
+          if (accepted?.asset_id) {
+            void syncShotClipToTimeline(boardId, shot.id, accepted.asset_id);
+          }
         }
         return toShotNode(reRead(shot.id));
       },
@@ -478,7 +492,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
           // from. It carries no render record, so it never reads stale.
           (keyframe as ImageRef & { flip_of: string }).flip_of = flipOf;
         }
-        store().setShotKeyframe(boardId, shot.id, keyframe);
+        store().appendShotKeyframeVersion(boardId, shot.id, keyframe);
         return toShotNode(reRead(shot.id));
       },
 

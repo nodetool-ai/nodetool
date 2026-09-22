@@ -44,6 +44,25 @@ export interface ShotDraft {
   renderMode: ShotRenderMode;
 }
 
+export type ShotDraftKey = keyof ShotDraft;
+
+const DRAFT_KEYS = [
+  "slug",
+  "sceneId",
+  "lighting",
+  "action",
+  "dialogue",
+  "durationSeconds",
+  "durationSource",
+  "framing",
+  "angle",
+  "movement",
+  "equipment",
+  "lens",
+  "notes",
+  "renderMode"
+] as const satisfies readonly ShotDraftKey[];
+
 /** The draft a freshly opened dialog starts from. */
 export const draftFromShot = (shot: Shot, scene: Scene | null): ShotDraft => ({
   slug: shot.slug ?? "",
@@ -65,8 +84,22 @@ export const draftFromShot = (shot: Shot, scene: Scene | null): ShotDraft => ({
 
 /** Whether the creator has changed anything since the dialog opened. */
 export const isDraftDirty = (draft: ShotDraft, original: ShotDraft): boolean =>
-  (Object.keys(original) as (keyof ShotDraft)[]).some(
-    (key) => draft[key] !== original[key]
+  changedDraftKeys(draft, original).length > 0;
+
+/** Fields changed by the creator since the editor opened. */
+export const changedDraftKeys = (
+  draft: ShotDraft,
+  original: ShotDraft
+): ShotDraftKey[] => DRAFT_KEYS.filter((key) => draft[key] !== original[key]);
+
+/** Locally changed fields whose stored value also changed after open. */
+export const conflictingDraftKeys = (
+  draft: ShotDraft,
+  original: ShotDraft,
+  current: ShotDraft
+): ShotDraftKey[] =>
+  changedDraftKeys(draft, original).filter(
+    (key) => current[key] !== original[key]
   );
 
 /** The header row's two fields; everything else belongs to the shot itself. */
@@ -81,7 +114,7 @@ export const hasShotFieldChanges = (
   draft: ShotDraft,
   original: ShotDraft
 ): boolean =>
-  (Object.keys(original) as (keyof ShotDraft)[]).some(
+  DRAFT_KEYS.some(
     (key) => !HEADER_KEYS.includes(key) && draft[key] !== original[key]
   );
 
@@ -164,6 +197,68 @@ export const shotPatchFromDraft = (draft: ShotDraft): Partial<Shot> => {
     camera: hasCamera ? camera : undefined,
     render_mode: draft.renderMode
   };
+};
+
+const CAMERA_KEYS = [
+  "framing",
+  "angle",
+  "movement",
+  "equipment",
+  "lens"
+] as const satisfies readonly ShotDraftKey[];
+
+/**
+ * Build the minimal shot patch for a draft save.
+ *
+ * Camera fields are stored as one object, so changed camera values are merged
+ * into the current shot's camera rather than rebuilding it from the opening
+ * snapshot. That preserves non-overlapping assistant edits.
+ */
+export const shotPatchFromChangedDraft = (
+  draft: ShotDraft,
+  original: ShotDraft,
+  current: Shot
+): Partial<Shot> => {
+  const changed = new Set(changedDraftKeys(draft, original));
+  const patch: Partial<Shot> = {};
+  if (changed.has("slug")) patch.slug = orUndefined(draft.slug);
+  if (changed.has("action")) patch.action = draft.action.trim();
+  if (changed.has("dialogue")) patch.dialogue = orUndefined(draft.dialogue);
+  if (changed.has("notes")) patch.notes = orUndefined(draft.notes);
+  if (changed.has("durationSeconds")) {
+    patch.duration_seconds = parseDuration(draft.durationSeconds) ?? undefined;
+  }
+  if (changed.has("durationSource")) {
+    patch.duration_source = draft.durationSource;
+  }
+  if (changed.has("renderMode")) patch.render_mode = draft.renderMode;
+
+  if (CAMERA_KEYS.some((key) => changed.has(key))) {
+    const camera = { ...current.camera };
+    for (const key of CAMERA_KEYS) {
+      if (changed.has(key)) {
+        camera[key] = orUndefined(draft[key]);
+      }
+    }
+    patch.camera = Object.values(camera).some((value) => value !== undefined)
+      ? camera
+      : undefined;
+  }
+  return patch;
+};
+
+/** Replace selected local fields with the latest stored values. */
+export const withCurrentDraftFields = (
+  draft: ShotDraft,
+  current: ShotDraft,
+  keys: readonly ShotDraftKey[]
+): ShotDraft => {
+  const next = { ...draft };
+  for (const key of keys) {
+    // Each key indexes the same ShotDraft shape on both sides.
+    next[key] = current[key] as never;
+  }
+  return next;
 };
 
 /** The shot as Save leaves it, for a `Regenerate` that renders saved values. */

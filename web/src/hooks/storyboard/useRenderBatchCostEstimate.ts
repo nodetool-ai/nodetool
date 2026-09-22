@@ -18,9 +18,8 @@
 
 import { useMemo } from "react";
 import type { Shot, ShotModelRef } from "@nodetool-ai/protocol";
-import { effectiveShotDuration } from "@nodetool-ai/timeline";
-
 import { CLIP_RESOLUTION, STILL_RESOLUTION } from "./renderSpec";
+import { compileRenderBatchRequestPlan } from "./renderBatchRequestPlan";
 import { priceRenderStep } from "./shotCostPricing";
 import { useBoardScriptLines } from "./useShotDuration";
 import { useBoardImageModel, useBoardVideoModel } from "./useShotCostEstimate";
@@ -31,10 +30,14 @@ export type RenderStep = "still" | "clip";
 export interface RenderBatchCostEstimate {
   /** Shots the button would render. */
   shotCount: number;
+  /** Paid provider requests after expanding requested takes. */
+  requestCount: number;
   /** Summed USD over the shots that priced. */
   cost: number;
   /** How many of those shots carry a figure. */
   pricedCount: number;
+  /** How many provider requests carry a figure. */
+  pricedRequestCount: number;
   /** Why the rest do not, deduplicated. */
   reasons: string[];
   /** What the catalog assumed, and what it warns the figure omits. */
@@ -43,8 +46,10 @@ export interface RenderBatchCostEstimate {
 
 const EMPTY: RenderBatchCostEstimate = {
   shotCount: 0,
+  requestCount: 0,
   cost: 0,
   pricedCount: 0,
+  pricedRequestCount: 0,
   reasons: [],
   notes: []
 };
@@ -76,24 +81,27 @@ export function useRenderBatchCostEstimate(
     const pickerLabel = isStill ? "still model" : "clip model";
     const resolution = isStill ? STILL_RESOLUTION : CLIP_RESOLUTION;
 
-    for (const shot of shots) {
-      // A still carries no duration; a clip is priced at the length the render
-      // will ask for, which the linked script's takes may decide.
-      const seconds = isStill
-        ? undefined
-        : (effectiveShotDuration(shot, linesById).seconds ??
-          shot.duration_seconds);
-      const model = modelForShot
-        ? modelForShot(shot)
-        : isStill
-          ? (shot.still_model ?? imageModel)
-          : (shot.clip_model ?? videoModel);
+    const plan = compileRenderBatchRequestPlan({
+      shots,
+      step,
+      linesById,
+      modelForShot: (shot) =>
+        modelForShot
+          ? modelForShot(shot)
+          : isStill
+            ? (shot.still_model ?? imageModel)
+            : (shot.clip_model ?? videoModel)
+    });
+    const pricedShotIds = new Set<string>();
+    let pricedRequestCount = 0;
+
+    for (const request of plan) {
       const priced = priceRenderStep(
         label,
-        model,
+        request.model,
         pickerLabel,
         resolution,
-        seconds,
+        request.seconds,
         notes
       );
       if (priced.cost === null) {
@@ -103,13 +111,17 @@ export function useRenderBatchCostEstimate(
         continue;
       }
       cost += priced.cost;
-      pricedCount += 1;
+      pricedRequestCount += 1;
+      pricedShotIds.add(request.shot.id);
     }
+    pricedCount = pricedShotIds.size;
 
     return {
       shotCount: shots.length,
+      requestCount: plan.length,
       cost,
       pricedCount,
+      pricedRequestCount,
       reasons: Array.from(new Set(reasons)),
       notes: Array.from(new Set(notes))
     };

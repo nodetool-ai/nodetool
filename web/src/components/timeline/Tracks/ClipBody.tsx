@@ -52,9 +52,12 @@ import { openPersistedFold } from "../Inspector/usePersistedFold";
 const TRIM_HANDLE_WIDTH_PX = 8;
 /** Hit area for the same grip under a finger; the visible width stays 8px. */
 const TOUCH_TRIM_HANDLE_WIDTH_PX = 22;
-/** Below this the two 8px grips would cover the whole clip and swallow the
- *  body drag, so they are removed and the clip moves by its body alone. */
-const MIN_TRIM_HANDLE_CLIP_WIDTH_PX = 24;
+/** Body width preserved between coarse-pointer trim targets. */
+const MIN_TOUCH_CLIP_BODY_WIDTH_PX = 12;
+/** Below this the two 8px grips cannot leave the minimum body target, so they
+ *  are removed and the clip moves by its body alone. */
+const MIN_TRIM_HANDLE_CLIP_WIDTH_PX =
+  TRIM_HANDLE_WIDTH_PX * 2 + MIN_TOUCH_CLIP_BODY_WIDTH_PX;
 export const MIN_CLIP_WIDTH_PX = 4;
 const CLIP_RADIUS_PX = parseFloat(BORDER_RADIUS.md);
 /** Width below which we suppress secondary chrome (duration label). */
@@ -470,12 +473,26 @@ const HIDDEN_TRIM_HANDLE_STYLE: React.CSSProperties = {
   pointerEvents: "none"
 };
 
+export const clipTrimHandleMetrics = (
+  clipWidthPx: number
+): { visible: boolean; touchHitWidthPx: number } => ({
+  visible: clipWidthPx >= MIN_TRIM_HANDLE_CLIP_WIDTH_PX,
+  touchHitWidthPx: Math.max(
+    TRIM_HANDLE_WIDTH_PX,
+    Math.min(
+      TOUCH_TRIM_HANDLE_WIDTH_PX,
+      (clipWidthPx - MIN_TOUCH_CLIP_BODY_WIDTH_PX) / 2
+    )
+  )
+});
+
 const trimHandleStyles = (
   theme: Theme,
   edge: "start" | "end",
   interactionLocked: boolean,
   selected: boolean,
-  editSelected: boolean
+  editSelected: boolean,
+  touchHitWidthPx: number
 ) =>
   css({
     position: "absolute",
@@ -509,7 +526,7 @@ const trimHandleStyles = (
         top: 0,
         bottom: 0,
         [edge === "start" ? "left" : "right"]: 0,
-        width: TOUCH_TRIM_HANDLE_WIDTH_PX
+        width: touchHitWidthPx
       }
     }
   });
@@ -748,8 +765,9 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         leftPx: Math.min(Math.max(x, inset), widthPx - inset)
       };
     });
+    const trimMetrics = clipTrimHandleMetrics(widthPx);
     const trimHandleStyle =
-      widthPx < MIN_TRIM_HANDLE_CLIP_WIDTH_PX
+      !trimMetrics.visible
         ? HIDDEN_TRIM_HANDLE_STYLE
         : undefined;
     const handleAnimationMarkerClick = (event: React.MouseEvent) => {
@@ -781,7 +799,8 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     );
 
     // Drag, trim, zoom and pan each change leftPx/widthPx, re-rendering this
-    // body once per frame per clip. None of the nine styles read geometry.
+    // body once per frame per clip. Only the coarse-pointer trim hit width
+    // reads geometry.
     const mediaType = clip.mediaType;
     const rootCss = useMemo(
       () => clipStyles(theme, isSelected, interactionLocked, mediaType),
@@ -813,9 +832,10 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           "start",
           interactionLocked,
           isSelected,
-          selectedEdge === "start"
+          selectedEdge === "start",
+          trimMetrics.touchHitWidthPx
         ),
-      [theme, interactionLocked, isSelected, selectedEdge]
+      [theme, interactionLocked, isSelected, selectedEdge, trimMetrics.touchHitWidthPx]
     );
     const trimEndCss = useMemo(
       () =>
@@ -824,9 +844,10 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           "end",
           interactionLocked,
           isSelected,
-          selectedEdge === "end"
+          selectedEdge === "end",
+          trimMetrics.touchHitWidthPx
         ),
-      [theme, interactionLocked, isSelected, selectedEdge]
+      [theme, interactionLocked, isSelected, selectedEdge, trimMetrics.touchHitWidthPx]
     );
     const transitionCss = useMemo(
       () =>

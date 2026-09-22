@@ -11,11 +11,12 @@
  *   one finishing surface.
  */
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import { Box, FlexColumn, FlexRow } from "../components/ui_primitives";
 import StoryboardBoard from "../components/storyboard/StoryboardBoard";
+import type { StoryboardReviewRequest } from "../components/storyboard/StoryboardBoard";
 import StoryboardAgentPanel from "../components/storyboard/StoryboardAgentPanel";
 import StoryboardQueueOverlay from "../components/storyboard/StoryboardQueueOverlay";
 import { useStoryboardStore } from "../stores/storyboard/StoryboardStore";
@@ -61,6 +62,8 @@ const StudioStoryboardPage = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const ensureBoard = useStoryboardStore((state) => state.ensureBoard);
+  const [reviewRequest, setReviewRequest] =
+    useState<StoryboardReviewRequest | null>(null);
   const title = useStoryboardStore(
     (state) => state.boards[boardId]?.title ?? ""
   );
@@ -133,7 +136,13 @@ const StudioStoryboardPage = () => {
           position: "relative"
         }}
       >
-        <StoryboardQueueOverlay boardId={boardId} />
+        <StoryboardQueueOverlay
+          boardId={boardId}
+          onReviewCompleted={(target) => {
+            useStoryboardStore.getState().selectShot(boardId, target.shotId);
+            setReviewRequest(target);
+          }}
+        />
         <Box sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
           <StoryboardBoard
             boardId={boardId}
@@ -144,6 +153,7 @@ const StudioStoryboardPage = () => {
             onAssemble={handleAssemble}
             assembling={assembling}
             assembleError={assembleError}
+            reviewRequest={reviewRequest}
           />
         </Box>
         <FlexColumn

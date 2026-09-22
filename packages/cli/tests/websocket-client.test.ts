@@ -7,6 +7,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { WebSocketChatClient } from "../src/websocket-client.js";
 
+vi.mock("@nodetool-ai/protocol", async () => ({
+  ...(await import("../../protocol/src/predicates.js")),
+  ...(await import("../../protocol/src/messages.js"))
+}));
+
 // ─── Synchronous FakeWebSocket ───────────────────────────────────────────────
 
 type WsListener = (...args: unknown[]) => void;
@@ -140,6 +145,288 @@ describe("WebSocketChatClient ping handling", () => {
 // ─── chat event streaming ─────────────────────────────────────────────────────
 
 describe("WebSocketChatClient.chat", () => {
+  it("does not repeat streamed text when the persisted assistant message arrives", async () => {
+    const client = await makeConnectedClient();
+    const gen = client.chat("hello", "t1", "model", "provider");
+    const chunk = gen.next();
+    currentFakeWs.push({ type: "chunk", content: "Hello" });
+    await chunk;
+    const reply = gen.next();
+    currentFakeWs.push({
+      type: "message",
+      role: "assistant",
+      content: "Hello world"
+    });
+    expect((await reply).value).toMatchObject({
+      type: "assistant_message",
+      text: " world"
+    });
+    await gen.return();
+  });
+
+  it("preserves generated asset references before the terminal chunk", async () => {
+    const client = await makeConnectedClient();
+    const gen = client.chat("draw", "t1", "model", "provider");
+    const reply = gen.next();
+    const content = [
+      {
+        type: "image_url",
+        image: { asset_id: "1234567890abcdef1234567890abcdef12" }
+      }
+    ];
+    currentFakeWs.push({ type: "message", role: "assistant", content });
+    currentFakeWs.push({ type: "chunk", done: true });
+    expect((await reply).value).toMatchObject({
+      type: "assistant_message",
+      content,
+      text: ""
+    });
+    expect((await gen.next()).value).toEqual({ type: "done" });
+  });
+
+  it("aborts a waiting response without waiting for the server", async () => {
+    const client = await makeConnectedClient();
+    const controller = new AbortController();
+    const gen = client.chat("hi", "t1", "model", "provider", undefined, {
+      permissionMode: "plan",
+      signal: controller.signal
+    });
+    const waiting = gen.next();
+    controller.abort();
+    expect((await waiting).value).toEqual({ type: "done" });
+    const commands = currentFakeWs.sent.map((frame) => JSON.parse(frame));
+    expect(commands).toContainEqual({
+      command: "stop",
+      data: { thread_id: "t1" }
+    });
+    expect(commands).toContainEqual(
+      expect.objectContaining({
+        command: "chat_message",
+        data: expect.objectContaining({ permission_mode: "plan" })
+      })
+    );
+    await gen.return();
+  });
+
+  it("does not hang when the connection closes between consumer reads", async () => {
+    const client = await makeConnectedClient();
+    const gen = client.chat("hi", "t1", "model", "provider");
+    const chunk = gen.next();
+    currentFakeWs.push({ type: "chunk", content: "partial" });
+    await chunk;
+    currentFakeWs.close();
+    expect((await gen.next()).value).toMatchObject({ type: "error" });
+  });
+
+  it("keeps the parent turn active when a subtask completes", async () => {
+    const client = await makeConnectedClient();
+    const gen = client.chat("hi", "t1", "model", "provider");
+    const next = gen.next();
+    currentFakeWs.push({
+      type: "chunk",
+      content: "",
+      done: true,
+      parent_tool_call_id: "child"
+    });
+    currentFakeWs.push({ type: "chunk", content: "Parent answer" });
+    expect((await next).value).toMatchObject({
+      type: "processing",
+      message: { done: true, parent_tool_call_id: "child" }
+    });
+    expect((await gen.next()).value).toMatchObject({
+      type: "chunk",
+      content: "Parent answer"
+    });
+    await gen.return();
+  });
+
+  it("forwards tool updates and frontend tool requests with their wire IDs", async () => {
+    const client = await makeConnectedClient();
+    const gen = client.chat("hi", "t1", "model", "provider");
+    const update = gen.next();
+    currentFakeWs.push({
+      type: "tool_call_update",
+      tool_call_id: "tool1",
+      name: "read_file",
+      args: {}
+    });
+    expect((await update).value).toMatchObject({
+      type: "tool_call",
+      id: "tool1"
+    });
+    expect((await gen.next()).value).toMatchObject({
+      type: "processing",
+      message: { type: "tool_call_update", tool_call_id: "tool1" }
+    });
+    const request = gen.next();
+    currentFakeWs.push({
+      type: "tool_call",
+      tool_call_id: "ui1",
+      name: "ui_open",
+      args: {}
+    });
+    expect((await request).value).toMatchObject({
+      type: "client_tool_call",
+      id: "ui1",
+      threadId: "t1"
+    });
+    await gen.return();
+  });
+
+  it("does not duplicate synthetic tool cards and persisted results", async () => {
+    const client = await makeConnectedClient();
+    const gen = client.chat("hi", "t1", "model", "provider");
+    const first = gen.next();
+    currentFakeWs.push({
+      type: "tool_call_update",
+      tool_call_id: "tc1",
+      name: "read_file",
+      args: {}
+    });
+    currentFakeWs.push({
+      type: "message",
+      role: "assistant",
+      content: null,
+      tool_calls: [{ id: "tc1", name: "read_file", args: {} }]
+    });
+    currentFakeWs.push({
+      type: "tool_result_update",
+      node_id: "",
+      tool_call_id: "tc1",
+      name: "read_file",
+      result: { text: "file contents" }
+    });
+    currentFakeWs.push({
+      type: "message",
+      role: "tool",
+      tool_call_id: "tc1",
+      name: "read_file",
+      content: "file contents"
+    });
+    currentFakeWs.push({ type: "chunk", done: true });
+    const events = [(await first).value];
+    for await (const event of gen) events.push(event);
+    expect(events.filter((event) => event?.type === "tool_call")).toHaveLength(
+      1
+    );
+    expect(events.filter((event) => event?.type === "tool_result")).toEqual([
+      {
+        type: "tool_result",
+        id: "tc1",
+        name: "read_file",
+        content: '{"text":"file contents"}'
+      }
+    ]);
+  });
+
+  it("keeps reasoning and subtask text separate from the assistant answer", async () => {
+    const client = await makeConnectedClient();
+    const gen = client.chat("hi", "t1", "model", "provider");
+    const first = gen.next();
+    currentFakeWs.push({
+      type: "chunk",
+      content: "Internal reasoning",
+      thinking: true
+    });
+    expect((await first).value).toMatchObject({
+      type: "processing",
+      message: { thinking: true }
+    });
+    const second = gen.next();
+    currentFakeWs.push({
+      type: "chunk",
+      content: "Child progress",
+      parent_tool_call_id: "tc1"
+    });
+    expect((await second).value).toMatchObject({
+      type: "processing",
+      message: { parent_tool_call_id: "tc1" }
+    });
+    const third = gen.next();
+    currentFakeWs.push({ type: "chunk", content: "Final answer" });
+    expect((await third).value).toEqual({
+      type: "chunk",
+      content: "Final answer"
+    });
+    await gen.return();
+  });
+
+  it("keeps the chat running while a tool's workflow emits job updates", async () => {
+    const client = await makeConnectedClient();
+    const gen = client.chat("run workflow", "t1", "model", "provider");
+    const next = gen.next();
+    currentFakeWs.push({ type: "job_update", status: "running", job_id: "j1" });
+    expect((await next).value).toMatchObject({
+      type: "processing",
+      message: { type: "job_update", status: "running" }
+    });
+    const reply = gen.next();
+    currentFakeWs.push({ type: "chunk", content: "Workflow started" });
+    expect((await reply).value).toMatchObject({
+      type: "chunk",
+      content: "Workflow started"
+    });
+    await gen.return();
+  });
+
+  it("preserves assistant messages that were not streamed", async () => {
+    const client = await makeConnectedClient();
+    const gen = client.chat("hi", "t1", "model", "provider");
+    const next = gen.next();
+    currentFakeWs.push({
+      type: "message",
+      role: "assistant",
+      content: "Stopped: budget reached"
+    });
+    currentFakeWs.push({ type: "chunk", content: "", done: true });
+    expect((await next).value).toMatchObject({
+      type: "assistant_message",
+      text: "Stopped: budget reached",
+      content: "Stopped: budget reached"
+    });
+    await gen.return();
+  });
+
+  it("surfaces approval requests instead of silently waiting", async () => {
+    const client = await makeConnectedClient();
+    const gen = client.chat("write file", "t1", "model", "provider");
+    const next = gen.next();
+    currentFakeWs.push({
+      type: "tool_approval_request",
+      thread_id: "t1",
+      approval_id: "a1",
+      tool_name: "write_file",
+      category: "write",
+      message: "Write notes",
+      args: { path: "notes.txt" }
+    });
+    currentFakeWs.push({ type: "chunk", content: "", done: true });
+    expect((await next).value).toMatchObject({
+      type: "tool_approval_request",
+      approvalId: "a1",
+      toolName: "write_file"
+    });
+    await gen.return();
+  });
+
+  it("does not mistake another thread's done chunk for this turn finishing", async () => {
+    const client = await makeConnectedClient();
+    const gen = client.chat("hi", "t1", "model", "provider");
+    const next = gen.next();
+    currentFakeWs.push({
+      type: "chunk",
+      thread_id: "t2",
+      content: "",
+      done: true
+    });
+    currentFakeWs.push({ type: "chunk", thread_id: "t1", content: "mine" });
+    expect((await next).value).toMatchObject({
+      type: "chunk",
+      content: "mine"
+    });
+    await gen.return();
+  });
+
   it("yields chunk events and terminates on done-chunk", async () => {
     const client = await makeConnectedClient();
     const gen = client.chat("hello", "t1", "gpt-4o", "openai");
@@ -197,12 +484,12 @@ describe("WebSocketChatClient.chat", () => {
     });
   });
 
-  it("yields done when WebSocket closes mid-stream", async () => {
+  it("reports an interrupted response when WebSocket closes mid-stream", async () => {
     const client = await makeConnectedClient();
     const gen = client.chat("hi", "t1", "gpt-4o", "openai");
     const p = gen.next();
     currentFakeWs.close();
-    expect((await p).value).toMatchObject({ type: "done" });
+    expect((await p).value).toMatchObject({ type: "error" });
   });
 
   it("terminates a waiting generator when the socket errors after connect", async () => {
@@ -211,7 +498,10 @@ describe("WebSocketChatClient.chat", () => {
     const p = gen.next();
     // A post-connect error must unblock the waiter instead of hanging forever.
     currentFakeWs.error(new Error("socket reset"));
-    expect((await p).value).toMatchObject({ type: "done" });
+    expect((await p).value).toMatchObject({
+      type: "error",
+      message: expect.stringContaining("socket reset")
+    });
   });
 
   it("yields output_update events", async () => {
@@ -229,12 +519,15 @@ describe("WebSocketChatClient.chat", () => {
     });
   });
 
-  it("yields done on job_update event", async () => {
+  it("keeps chat alive after a workflow completes", async () => {
     const client = await makeConnectedClient();
     const gen = client.chat("hi", "t1", "gpt-4o", "openai");
     const p = gen.next();
     currentFakeWs.push({ type: "job_update", status: "completed" });
-    expect((await p).value).toMatchObject({ type: "done" });
+    expect((await p).value).toMatchObject({
+      type: "processing",
+      message: { type: "job_update", status: "completed" }
+    });
   });
 
   it("treats typeless messages with error field as error events", async () => {
@@ -416,6 +709,42 @@ describe("WebSocketChatClient.reconnectJob", () => {
 // ─── command methods ──────────────────────────────────────────────────────────
 
 describe("WebSocketChatClient command methods", () => {
+  it("answers approvals and tool requests using the server protocol", async () => {
+    const client = await makeConnectedClient();
+    client.respondToolApproval("a1", "allow_for_chat");
+    client.respondPlanApproval("p1", "reject", "Use fewer steps");
+    client.respondSecretRequest("s1", "saved");
+    client.respondToolResult("tc1", "t1", { error: "Unavailable" }, false);
+    client.setPermissionMode("t1", "plan");
+    expect(currentFakeWs.sent.map((frame) => JSON.parse(frame))).toEqual(
+      expect.arrayContaining([
+        {
+          type: "tool_approval_response",
+          approval_id: "a1",
+          decision: "allow_for_chat"
+        },
+        {
+          type: "plan_approval_response",
+          approval_id: "p1",
+          decision: "reject",
+          feedback: "Use fewer steps"
+        },
+        { type: "secret_request_response", approval_id: "s1", status: "saved" },
+        {
+          type: "tool_result",
+          tool_call_id: "tc1",
+          thread_id: "t1",
+          result: { error: "Unavailable" },
+          ok: false
+        },
+        {
+          command: "set_permission_mode",
+          data: { thread_id: "t1", permission_mode: "plan" }
+        }
+      ])
+    );
+  });
+
   it("cancelJob sends cancel_job with job_id", async () => {
     const client = await makeConnectedClient();
     client.cancelJob("job-123");

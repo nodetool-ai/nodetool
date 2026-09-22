@@ -118,7 +118,8 @@ jest.mock("../../../properties/ImageModelSelect", () => ({
   __esModule: true,
   default: ({
     value,
-    onChange
+    onChange,
+    disabled
   }: {
     value: string;
     onChange: (v: {
@@ -128,9 +129,11 @@ jest.mock("../../../properties/ImageModelSelect", () => ({
       name: string;
       path: string;
     }) => void;
+    disabled?: boolean;
   }) => (
     <button
       type="button"
+      disabled={disabled}
       onClick={() =>
         onChange({
           type: "image_model",
@@ -219,10 +222,10 @@ const seed = (): void => {
   });
 };
 
-const renderStep = () =>
+const renderStep = (readOnly = false) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <LookStep boardId={BOARD} />
+      <LookStep boardId={BOARD} readOnly={readOnly} />
     </ThemeProvider>
   );
 
@@ -254,9 +257,30 @@ describe("LookStep — aspect ratio", () => {
     await user.click(screen.getByRole("option", { name: /9:16/ }));
     expect(board().aspectRatio).toBe("9:16");
   });
+
+  it("disables the custom aspect-ratio control in view mode", () => {
+    renderStep(true);
+
+    expect(
+      screen.getByRole("combobox", { name: /Aspect ratio/ })
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("button", { name: /still:/ })).toBeDisabled();
+  });
 });
 
 describe("LookStep — style presets", () => {
+  it("does not offer style mutations in view mode", () => {
+    renderStep(true);
+
+    expect(screen.getByRole("radio", { name: /Noir/ })).toHaveAttribute(
+      "aria-disabled",
+      "true"
+    );
+    expect(
+      screen.getByRole("button", { name: /Add your own style/ })
+    ).toHaveAttribute("aria-disabled", "true");
+  });
+
   it.each([
     [
       "cinematic",

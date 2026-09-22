@@ -13,9 +13,11 @@
 import { css, keyframes } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
+import type { Shot } from "@nodetool-ai/protocol";
 import {
   Box,
   Caption,
+  EditorButton,
   FlexColumn,
   FlexRow,
   ScrollArea,
@@ -34,23 +36,58 @@ import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import RemoveIcon from "@mui/icons-material/Remove";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import CloseIcon from "@mui/icons-material/Close";
-import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import {
+  sameMediaRef,
+  useStoryboardStore
+} from "../../stores/storyboard/StoryboardStore";
+import {
+  reattachBoardJobs,
+  stopTrackingShotRequest,
   useStoryboardGenerationStore,
-  settleCancelledShotJob,
   type ShotJobKind,
-  type ShotJobState
+  type ShotRequestRecord
 } from "../../stores/storyboard/StoryboardGenerationStore";
+import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 
-interface StoryboardQueueOverlayProps {
+export interface StoryboardQueueOverlayProps {
   boardId: string;
+  readOnly?: boolean;
+  onReviewCompleted?: (target: { shotId: string; requestId: string }) => void;
 }
 
-interface JobRow extends ShotJobState {
+interface JobRow extends ShotRequestRecord {
   /** "1. Slug" display name resolved from the board's shots. */
   name: string;
   index: number;
+  awaitingReview: boolean;
 }
+
+const requestAwaitsReview = (
+  row: ShotRequestRecord,
+  shot: Shot | undefined
+): boolean => {
+  if (row.status !== "completed" || !shot) {
+    return false;
+  }
+  const versions =
+    row.kind === "keyframe"
+      ? (shot.keyframe_versions ?? [])
+      : (shot.clip_versions ?? []);
+  const current = row.kind === "keyframe" ? shot.keyframe : shot.clip;
+  const candidate = versions.find((version) => {
+    if (row.assetId) {
+      return version.asset_id === row.assetId;
+    }
+    if (row.production && "candidateId" in version) {
+      return version.candidateId === row.production.identity.candidateId;
+    }
+    if (row.mediaEdit && "mediaEdit" in version) {
+      return version.mediaEdit?.requestId === row.jobId;
+    }
+    return false;
+  });
+  return Boolean(candidate && (!current || !sameMediaRef(candidate, current)));
+};
 
 const KIND_LABEL = {
   keyframe: "Still",
@@ -155,32 +192,43 @@ const KindTag = ({ kind }: { kind: ShotJobKind }) => (
   </Caption>
 );
 
-const RenderingCard = memo(function RenderingCard({
+const RequestCard = memo(function RequestCard({
   row,
-  onCancel
+  onStopTracking
 }: {
   row: JobRow;
-  onCancel: (shotId: string) => void;
+  onStopTracking?: (requestId: string) => void;
 }) {
+  const statusLabel =
+    row.status === "stopped"
+      ? "Stopped tracking; provider may still finish and charge"
+      : row.awaitingReview
+        ? "Completed · awaiting review"
+        : row.status;
   return (
     <Box sx={cardSx}>
       <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
-        <Dot />
+        <Dot color={row.status === "failed" ? "error.main" : "primary.main"} />
         <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
           {row.name}
         </Text>
         <KindTag kind={row.kind} />
-        <ToolbarIconButton
-          icon={<CloseIcon sx={{ fontSize: "1em" }} />}
-          tooltip="Cancel render"
-          ariaLabel="Cancel render"
-          variant="error"
-          onClick={() => onCancel(row.shotId)}
-        />
+        {row.status === "running" && onStopTracking && (
+          <ToolbarIconButton
+            icon={<CloseIcon sx={{ fontSize: "1em" }} />}
+            tooltip="Stop tracking. The provider request may still finish and charge."
+            ariaLabel="Stop tracking render"
+            variant="error"
+            onClick={() => onStopTracking(row.jobId)}
+          />
+        )}
       </FlexRow>
-      <Box sx={{ mt: SPACING.xs }}>
-        <RenderBar progress={row.progress} />
-      </Box>
+      <Caption color="secondary">{statusLabel}</Caption>
+      {row.status === "running" && (
+        <Box sx={{ mt: SPACING.xs }}>
+          <RenderBar progress={row.progress} />
+        </Box>
+      )}
     </Box>
   );
 });
@@ -223,18 +271,34 @@ const overlayStyles = (theme: Theme) =>
   });
 
 const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
-  boardId
+  boardId,
+  readOnly = false,
+  onReviewCompleted
 }: StoryboardQueueOverlayProps) {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   const shots = useStoryboardStore((state) => state.boards[boardId]?.shots);
-  const shotJobs = useStoryboardGenerationStore((state) => state.shotJobs);
+  const requestRecords = useStoryboardGenerationStore(
+    (state) => state.requestRecords
+  );
+  const dismissBatch = useStoryboardGenerationStore(
+    (state) => state.dismissBatch
+  );
+  const { retryFailedRequest } = useGenerateShot();
 
-  const rendering = useMemo(() => {
+  const batch = useMemo(() => {
     const byId = new Map((shots ?? []).map((s) => [s.id, s]));
-    const rows: JobRow[] = Object.values(shotJobs)
+    const boardRecords = Object.values(requestRecords)
       .filter((job) => job.boardId === boardId)
+      .sort((left, right) => (left.startedAt ?? 0) - (right.startedAt ?? 0));
+    const latest =
+      [...boardRecords]
+        .reverse()
+        .find((record) => record.status === "running") ?? boardRecords.at(-1);
+    if (!latest) return null;
+    const rows: JobRow[] = boardRecords
+      .filter((record) => record.batchId === latest.batchId)
       .map((job) => {
         const shot = byId.get(job.shotId);
         return {
@@ -242,40 +306,84 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
           name: shot
             ? `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`
             : "Shot",
-          index: shot?.index ?? Number.MAX_SAFE_INTEGER
+          index: shot?.index ?? Number.MAX_SAFE_INTEGER,
+          awaitingReview: requestAwaitsReview(job, shot)
         };
       })
-      .sort((a, b) => a.index - b.index);
-    return rows.filter((row) => row.status === "running");
-  }, [shotJobs, shots, boardId]);
+      .sort(
+        (a, b) => a.index - b.index || (a.startedAt ?? 0) - (b.startedAt ?? 0)
+      );
+    return { id: latest.batchId, rows };
+  }, [requestRecords, shots, boardId]);
+
+  const counts = useMemo(() => {
+    const rows = batch?.rows ?? [];
+    return {
+      total: rows.length,
+      running: rows.filter((row) => row.status === "running").length,
+      completed: rows.filter((row) => row.status === "completed").length,
+      failed: rows.filter((row) => row.status === "failed").length,
+      stopped: rows.filter((row) => row.status === "stopped").length,
+      awaitingReview: rows.filter((row) => row.awaitingReview).length
+    };
+  }, [batch]);
 
   // A direct request has no server job to cancel: stop tracking and settle,
   // and the provider call runs to completion unwatched.
-  const handleCancel = useCallback((shotId: string) => {
-    settleCancelledShotJob(shotId);
-  }, []);
+  const handleStopTracking = useCallback(
+    (requestId: string) => {
+      if (readOnly) {
+        return;
+      }
+      stopTrackingShotRequest(requestId);
+    },
+    [readOnly]
+  );
 
-  const handleCancelAll = useCallback(() => {
-    for (const row of rendering) {
-      handleCancel(row.shotId);
+  const handleStopAll = useCallback(() => {
+    for (const row of batch?.rows ?? []) {
+      if (row.status === "running") handleStopTracking(row.jobId);
     }
-  }, [rendering, handleCancel]);
+  }, [batch, handleStopTracking]);
 
-  if (rendering.length === 0) {
+  const handleRetryFailed = useCallback(() => {
+    if (readOnly) {
+      return;
+    }
+    const retryBatchId = crypto.randomUUID();
+    for (const row of batch?.rows ?? []) {
+      if (row.status === "failed" && row.retriedAt === undefined) {
+        void retryFailedRequest(row.jobId, retryBatchId).catch(() => undefined);
+      }
+    }
+  }, [batch, readOnly, retryFailedRequest]);
+
+  const handleResumeTracking = useCallback(() => {
+    if (readOnly) {
+      return;
+    }
+    void reattachBoardJobs(boardId);
+  }, [boardId, readOnly]);
+
+  const reviewTarget = batch?.rows.find((row) => row.awaitingReview);
+
+  if (!batch) {
     return null;
   }
 
   if (!expanded) {
-    const single = rendering.length === 1 ? rendering[0] : null;
+    const summary =
+      counts.running > 0
+        ? `${counts.total} request${counts.total === 1 ? "" : "s"} · ${counts.running} running`
+        : `${counts.completed} completed · ${counts.failed} failed${counts.stopped > 0 ? ` · ${counts.stopped} stopped` : ""}`;
     return (
       <Box css={overlayStyles(theme)}>
         <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.sm }}>
           <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
-            <Dot />
+            <Dot color={counts.failed > 0 ? "error.main" : "primary.main"} />
             <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
-              {single ? single.name : `${rendering.length} shots rendering`}
+              {summary}
             </Text>
-            {single && <KindTag kind={single.kind} />}
             <ToolbarIconButton
               icon={<KeyboardArrowUpIcon sx={{ fontSize: "1em" }} />}
               tooltip="Expand render queue"
@@ -283,7 +391,7 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
               onClick={() => setExpanded(true)}
             />
           </FlexRow>
-          <RenderBar progress={single?.progress} />
+          {counts.running > 0 && <RenderBar />}
         </FlexColumn>
       </Box>
     );
@@ -302,15 +410,17 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
         </Text>
         <HeaderCount
           icon={<PlayArrowOutlinedIcon sx={{ fontSize: "1em" }} />}
-          count={rendering.length}
+          count={counts.running}
         />
-        <ToolbarIconButton
-          icon={<CloseIcon sx={{ fontSize: "1em" }} />}
-          tooltip="Cancel all renders"
-          ariaLabel="Cancel all renders"
-          variant="error"
-          onClick={handleCancelAll}
-        />
+        {counts.running > 0 && !readOnly && (
+          <ToolbarIconButton
+            icon={<CloseIcon sx={{ fontSize: "1em" }} />}
+            tooltip="Stop tracking all. Provider requests may still finish and charge."
+            ariaLabel="Stop tracking all renders"
+            variant="error"
+            onClick={handleStopAll}
+          />
+        )}
         <ToolbarIconButton
           icon={<RemoveIcon sx={{ fontSize: "1em" }} />}
           tooltip="Collapse render queue"
@@ -319,13 +429,62 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
         />
       </FlexRow>
 
+      <FlexColumn gap={SPACING.xs} sx={{ px: SPACING.md }}>
+        <Text role="status" aria-live="polite" size="small">
+          {`${counts.total} requests: ${counts.running} running, ${counts.completed} completed, ${counts.failed} failed, ${counts.awaitingReview} awaiting review, ${counts.stopped} stopped.`}
+        </Text>
+        {counts.running > 0 && (
+          <Caption color="secondary">
+            Stop tracking hides local progress only. The provider may still
+            finish the request and charge for it.
+          </Caption>
+        )}
+        <FlexRow gap={SPACING.xs} wrap>
+          {counts.failed > 0 && !readOnly && (
+            <EditorButton variant="outlined" onClick={handleRetryFailed}>
+              {`Retry ${counts.failed} failed`}
+            </EditorButton>
+          )}
+          {reviewTarget && onReviewCompleted && (
+            <EditorButton
+              variant="outlined"
+              onClick={() =>
+                onReviewCompleted({
+                  shotId: reviewTarget.shotId,
+                  requestId: reviewTarget.jobId
+                })
+              }
+            >
+              Review completed takes
+            </EditorButton>
+          )}
+          {counts.stopped > 0 && !readOnly && (
+            <EditorButton variant="outlined" onClick={handleResumeTracking}>
+              Resume tracking
+            </EditorButton>
+          )}
+          {counts.running === 0 && !readOnly && (
+            <EditorButton
+              variant="outlined"
+              onClick={() => dismissBatch(batch.id)}
+            >
+              Dismiss receipt
+            </EditorButton>
+          )}
+        </FlexRow>
+      </FlexColumn>
+
       <ScrollArea
         thin
         sx={{ flex: 1, minHeight: 0, px: SPACING.md, pb: SPACING.md }}
       >
         <FlexColumn gap={SPACING.xs} sx={{ pt: SPACING.sm }}>
-          {rendering.map((row) => (
-            <RenderingCard key={row.jobId} row={row} onCancel={handleCancel} />
+          {batch.rows.map((row) => (
+            <RequestCard
+              key={row.jobId}
+              row={row}
+              onStopTracking={readOnly ? undefined : handleStopTracking}
+            />
           ))}
         </FlexColumn>
       </ScrollArea>

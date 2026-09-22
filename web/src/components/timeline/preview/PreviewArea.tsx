@@ -329,10 +329,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
      *  still need scheduling. */
     const scheduledClipIdsRef = useRef<Set<string>>(new Set());
 
-    /** The render and mix key of every midi clip scheduled this session, so
-     * note, instrument, tempo, mute, volume, and fade edits are heard while
-     * playing. Cleared with the rest of the session. */
-    const scheduledMidiKeysRef = useRef<Map<string, string>>(new Map());
+    /** The source, timing, rate, and mix key of every sounding clip scheduled
+     * this session. A changed key means its WebAudio source must be replaced
+     * at the live playhead. Cleared with the rest of the session. */
+    const scheduledAudioKeysRef = useRef<Map<string, string>>(new Map());
     /** True once the current forward-playback session has started its clock,
      * including sessions that began with every sound clip muted. */
     const audioSessionActiveRef = useRef(false);
@@ -373,7 +373,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       clearTopUpInterval();
       clearSeekDebounce();
       scheduledClipIdsRef.current.clear();
-      scheduledMidiKeysRef.current.clear();
+      scheduledAudioKeysRef.current.clear();
       topUpQueueRef.current = Promise.resolve();
     }, [clearTopUpInterval, clearSeekDebounce]);
 
@@ -429,24 +429,43 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       [getAsset, timelineApi]
     );
 
-    /** The key `clip`'s scheduled sound answers to, or null when not MIDI. */
-    const midiScheduleKeyOf = useCallback(
+    /** The key `clip`'s scheduled sound answers to, or null when it has no
+     * schedulable sound. Track routing is part of the key because a source is
+     * connected to its track chain when it is scheduled. */
+    const audioScheduleKeyOf = useCallback(
       (clip: TimelineClip): string | null => {
-        if (clip.mediaType !== "midi") return null;
-        const state = timelineApi.getState();
-        const renderKey = midiRenderKey({
-          clip,
-          bpm: resolveTempo(state).bpm,
-          instrument: instrumentForTrack(state.tracks, clip.trackId),
-          sampleRate: graphRef.current.context?.sampleRate ?? 48_000
+        if (clip.mediaType !== "audio" && clip.mediaType !== "midi") {
+          return null;
+        }
+        const midiKey = (() => {
+          if (clip.mediaType !== "midi") return null;
+          const state = timelineApi.getState();
+          return midiRenderKey({
+            clip,
+            bpm: resolveTempo(state).bpm,
+            instrument: instrumentForTrack(state.tracks, clip.trackId),
+            sampleRate: graphRef.current.context?.sampleRate ?? 48_000
+          });
+        })();
+        return JSON.stringify({
+          mediaType: clip.mediaType,
+          assetId: clip.currentAssetId ?? null,
+          midiKey,
+          trackId: clip.trackId,
+          startMs: clip.startMs,
+          durationMs: clip.durationMs,
+          inPointMs: clip.inPointMs ?? 0,
+          outPointMs: clip.outPointMs ?? null,
+          speedMultiplier: clip.speedMultiplier ?? 1,
+          speedBaked: clip.speedBaked === true,
+          timeRemap: clip.timeRemap ?? null,
+          muted: clip.muted === true,
+          volumeDb: clip.volumeDb ?? 0,
+          fadeInMs: clip.fadeInMs ?? 0,
+          fadeOutMs: clip.fadeOutMs ?? 0,
+          fadeInShape: clip.fadeInShape ?? "linear",
+          fadeOutShape: clip.fadeOutShape ?? "linear"
         });
-        return [
-          renderKey,
-          clip.muted === true ? 1 : 0,
-          clip.volumeDb ?? 0,
-          clip.fadeInMs ?? 0,
-          clip.fadeOutMs ?? 0
-        ].join(":");
       },
       [timelineApi]
     );
@@ -458,9 +477,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
      * audio is brought in incrementally instead of decoding everything up
      * front.
      *
-     * The same pass re-renders a midi clip whose key moved: an edit while
-     * playing changes what the clip should sound like, and the source already
-     * running holds the pre-edit buffer.
+     * The same pass replaces any scheduled clip whose source, timing, rate,
+     * or mix key moved, and stops sources for clips removed from the document.
      */
     const topUpAudio = useCallback(
       async (isStale: () => boolean) => {
@@ -469,6 +487,18 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         const liveMs = getTimeMs();
         const windowEndMs = liveMs + AUDIO_LOOKAHEAD_MS;
         const clipsNow = timelineApi.getState().clips;
+        const clipIdsNow = new Set(clipsNow.map((c) => c.id));
+
+        const removedClipIds = [...scheduledClipIdsRef.current].filter(
+          (id) => !clipIdsNow.has(id)
+        );
+        if (removedClipIds.length > 0) {
+          graph.stopClips(removedClipIds);
+          for (const id of removedClipIds) {
+            scheduledClipIdsRef.current.delete(id);
+            scheduledAudioKeysRef.current.delete(id);
+          }
+        }
 
         const newlyEnteredClips = clipsNow.filter(
           (c) =>
@@ -477,35 +507,37 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             !scheduledClipIdsRef.current.has(c.id)
         );
 
-        // A MIDI clip already scheduled whose render or mix key changed is
-        // stopped. Audible clips are re-added at the live position; muted or
-        // finished clips are forgotten so unmuting can schedule them again.
-        const changedMidiClips = clipsNow.filter((c) => {
+        // A scheduled clip whose sound key changed is stopped. Audible clips
+        // are re-added at the live position; muted or finished clips are
+        // forgotten so they can be scheduled again after a later edit.
+        const changedAudioClips = clipsNow.filter((c) => {
           if (!scheduledClipIdsRef.current.has(c.id)) return false;
-          const key = midiScheduleKeyOf(c);
-          return key !== null && key !== scheduledMidiKeysRef.current.get(c.id);
+          return (
+            audioScheduleKeyOf(c) !== scheduledAudioKeysRef.current.get(c.id)
+          );
         });
-        if (changedMidiClips.length > 0) {
-          graph.stopClips(changedMidiClips.map((c) => c.id));
+        if (changedAudioClips.length > 0) {
+          graph.stopClips(changedAudioClips.map((c) => c.id));
         }
-        const restaleMidiClips = changedMidiClips.filter((c) =>
+        const restaleAudioClips = changedAudioClips.filter((c) =>
           isPendingAudioClip(c, liveMs)
         );
-        for (const c of changedMidiClips) {
-          if (restaleMidiClips.includes(c)) continue;
+        const restaleAudioIds = new Set(restaleAudioClips.map((c) => c.id));
+        for (const c of changedAudioClips) {
+          if (restaleAudioIds.has(c.id)) continue;
           scheduledClipIdsRef.current.delete(c.id);
-          scheduledMidiKeysRef.current.delete(c.id);
+          scheduledAudioKeysRef.current.delete(c.id);
         }
 
-        const pending = [...newlyEnteredClips, ...restaleMidiClips];
+        const pending = [...newlyEnteredClips, ...restaleAudioClips];
         if (pending.length === 0) return;
 
         // Mark up front so an overlapping tick (a slow asset fetch outliving
         // the 5 s interval) can't attempt the same clip twice.
         for (const c of pending) {
           scheduledClipIdsRef.current.add(c.id);
-          const key = midiScheduleKeyOf(c);
-          if (key !== null) scheduledMidiKeysRef.current.set(c.id, key);
+          const key = audioScheduleKeyOf(c);
+          if (key !== null) scheduledAudioKeysRef.current.set(c.id, key);
         }
 
         const resolved = await Promise.all(pending.map(resolveScheduledClip));
@@ -529,7 +561,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       },
       [
         getTimeMs,
-        midiScheduleKeyOf,
+        audioScheduleKeyOf,
         playbackApi,
         resolveScheduledClip,
         timelineApi
@@ -560,8 +592,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     );
 
     // A timer keeps the lookahead window populated, but edits to a sounding
-    // MIDI clip must be audible immediately. Timeline subscriptions run as
-    // soon as the clip changes, so stop/re-render its source without waiting
+    // sounding clip must be audible immediately. Timeline subscriptions run
+    // as soon as the document changes, so reconcile sources without waiting
     // for the next five-second top-up tick.
     useEffect(
       () =>
@@ -678,8 +710,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
       for (const { clip } of validClips) {
         scheduledClipIdsRef.current.add(clip.id);
-        const key = midiScheduleKeyOf(clip);
-        if (key !== null) scheduledMidiKeysRef.current.set(clip.id, key);
+        const key = audioScheduleKeyOf(clip);
+        if (key !== null) scheduledAudioKeysRef.current.set(clip.id, key);
       }
 
       clock.start(startMs, globalRate, ctx, endMs || Infinity, clockOptions);
@@ -689,7 +721,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       tracks,
       contentEndMs,
       fps,
-      midiScheduleKeyOf,
+      audioScheduleKeyOf,
       resolveScheduledClip,
       setCurrentTimeMs,
       stopAudioSession,
@@ -942,7 +974,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         }
       },
       [
-        handlePlayPauseToggle,
         jumpToPrevBoundary,
         jumpToNextBoundary,
         stepFrame,

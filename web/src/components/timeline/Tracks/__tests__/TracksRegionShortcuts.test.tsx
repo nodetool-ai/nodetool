@@ -25,14 +25,23 @@ import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore"
 
 import { useSettingsStore } from "../../../../stores/SettingsStore";
 import { useTimelinePlaybackStore } from "../../../../stores/timeline/TimelinePlaybackStore";
+import { usePanelStore } from "../../../../stores/PanelStore";
+import { performSourceEdit } from "../../sourceEdit";
 
 afterEach(() => {
   useSettingsStore.getState().updateSettings({ timelineKeyboardPreset: "nodetool" });
+  usePanelStore.getState().setActiveView("documents");
+  mockedPerformSourceEdit.mockClear();
 });
 
 jest.mock("../../../../lib/rest-fetch", () => ({
   restFetch: jest.fn()
 }));
+jest.mock("../../sourceEdit", () => ({
+  performSourceEdit: jest.fn(() => null)
+}));
+
+const mockedPerformSourceEdit = jest.mocked(performSourceEdit);
 
 /** Render the region, then seed three clips and a clean UI baseline into the
  *  mounted instance's stores. */
@@ -173,6 +182,81 @@ describe("TracksRegion keyboard shortcuts", () => {
     });
 
     expect(useTimelineStore.getState().clips[0].opacity).toBe(clip.opacity);
+  });
+
+  it("splits at the transient playback time", () => {
+    setup();
+    const clip = makeClip({
+      trackId: "t1",
+      name: "long",
+      startMs: 0,
+      durationMs: 10_000
+    });
+    act(() => {
+      useTimelineStore.setState({ clips: [clip] });
+      useTimelineUIStore.getState().setSelection([clip.id]);
+      useTimelinePlaybackStore.getState().seek(1000);
+      useTimelinePlaybackStore.getState().setTimeMs(5000);
+      fireEvent.keyDown(window, { key: "s" });
+    });
+
+    expect(
+      useTimelineStore
+        .getState()
+        .clips.map(({ startMs, durationMs }) => ({ startMs, durationMs }))
+    ).toEqual([
+      { startMs: 0, durationMs: 5000 },
+      { startMs: 5000, durationMs: 5000 }
+    ]);
+  });
+
+  it("cuts every track at the transient playback time", () => {
+    setup();
+    const clips = [
+      makeClip({ trackId: "t1", name: "one", startMs: 0, durationMs: 10_000 }),
+      makeClip({ trackId: "t2", name: "two", startMs: 0, durationMs: 10_000 })
+    ];
+    act(() => {
+      useTimelineStore.setState({ clips });
+      useTimelinePlaybackStore.getState().seek(1000);
+      useTimelinePlaybackStore.getState().setTimeMs(5000);
+      fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    });
+
+    expect(
+      useTimelineStore.getState().clips.filter((clip) => clip.startMs === 5000)
+    ).toHaveLength(2);
+  });
+
+  it("pastes at the transient playback time", () => {
+    setup();
+    const clip = useTimelineStore.getState().clips[0];
+    act(() => {
+      useTimelineUIStore.getState().setSelection([clip.id]);
+      fireEvent.keyDown(window, { key: "c", ctrlKey: true });
+      useTimelinePlaybackStore.getState().seek(1000);
+      useTimelinePlaybackStore.getState().setTimeMs(5000);
+      fireEvent.keyDown(window, { key: "v", ctrlKey: true });
+    });
+
+    expect(
+      useTimelineStore.getState().clips.some((candidate) => candidate.startMs === 5000)
+    ).toBe(true);
+  });
+
+  it("passes the transient playback time to source edits", () => {
+    act(() => usePanelStore.getState().setActiveView("assets"));
+    setup();
+    act(() => {
+      useTimelinePlaybackStore.getState().seek(1000);
+      useTimelinePlaybackStore.getState().setTimeMs(5000);
+      fireEvent.keyDown(window, { key: "w" });
+    });
+
+    expect(mockedPerformSourceEdit).toHaveBeenCalledWith(
+      "insert",
+      expect.objectContaining({ playheadMs: 5000 })
+    );
   });
 });
 

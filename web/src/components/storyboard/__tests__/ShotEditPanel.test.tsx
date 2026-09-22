@@ -8,7 +8,7 @@
  * to put every edited field back, which a mocked `updateShot` cannot show.
  */
 import React from "react";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Scene, Shot } from "@nodetool-ai/protocol";
@@ -78,9 +78,13 @@ jest.mock("../../../serverState/useEntities", () => ({
 }));
 
 // Pricing reaches the provider catalogs; the cost line has no bearing here.
+let mockCostShot: Shot | null = null;
 jest.mock("../../../hooks/storyboard/useShotCostEstimate", () => ({
   __esModule: true,
-  useShotCostEstimate: () => ({ source: "models", cost: 0, steps: [], notes: [] }),
+  useShotCostEstimate: (_boardId: string, shot: Shot) => {
+    mockCostShot = shot;
+    return { source: "models", cost: 0, steps: [], notes: [] };
+  },
   default: () => ({ source: "models", cost: 0, steps: [], notes: [] })
 }));
 
@@ -196,6 +200,7 @@ beforeEach(() => {
   onShotChange.mockClear();
   generateKeyframeMock.mockClear();
   generateClipMock.mockClear();
+  mockCostShot = null;
   lineIsVoiced = true;
 });
 
@@ -214,6 +219,15 @@ describe("ShotEditPanel fields (criterion 14)", () => {
     // The ratio is the board's, so it is shown with the way to change it.
     expect(screen.getByTestId("cell-aspect-ratio")).toHaveTextContent("9:16");
     expect(screen.getByText("Set in Board settings")).toBeInTheDocument();
+  });
+
+  it("prices the unsaved draft duration before rendering", async () => {
+    seed([baseShot({ duration_seconds: 3 })]);
+    renderPanel();
+
+    await typeInto("Estimated running time in seconds", "9");
+
+    expect(mockCostShot?.duration_seconds).toBe(9);
   });
 
   it("links to the board's settings form when the caller can open one", () => {
@@ -348,6 +362,56 @@ describe("ShotEditPanel overflow actions", () => {
 });
 
 describe("ShotEditPanel save semantics", () => {
+  it("preserves an external scene move when saving an unrelated field", async () => {
+    seed([baseShot(), baseShot({ id: "shot-2", index: 1, scene_id: "sc1" })]);
+    renderPanel();
+
+    await typeInto("Description", "A lighthouse at dawn");
+    act(() => {
+      useStoryboardStore.getState().moveShot(BOARD, "shot-1", "sc2", 0);
+    });
+    expect(storedShot().scene_id).toBe("sc2");
+
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(storedShot()).toMatchObject({
+      scene_id: "sc2",
+      action: "A lighthouse at dawn"
+    });
+
+    act(() => {
+      useStoryboardStore.getState().undo(BOARD);
+    });
+    expect(storedShot().scene_id).toBe("sc2");
+    expect(storedShot().action).toBe("A lighthouse at dusk");
+  });
+
+  it("keeps scene conflict resolution when both sides moved the shot", async () => {
+    seed([baseShot(), baseShot({ id: "shot-2", index: 1, scene_id: "sc2" })]);
+    renderPanel();
+
+    await choose("Slugline", "INT. LAMP ROOM — NIGHT");
+    act(() => {
+      useStoryboardStore.getState().moveShot(BOARD, "shot-1", null, 0);
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(
+      await screen.findByText("This shot changed elsewhere")
+    ).toBeInTheDocument();
+    expect(storedShot().scene_id).toBeUndefined();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Keep my changes" })
+    );
+    expect(storedShot().scene_id).toBe("sc2");
+
+    act(() => {
+      useStoryboardStore.getState().undo(BOARD);
+    });
+    expect(storedShot().scene_id).toBeUndefined();
+  });
+
   it("asks before closing with unsaved edits, and discards on Discard", async () => {
     seed([baseShot()]);
     renderPanel();

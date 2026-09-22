@@ -199,11 +199,26 @@ export function mergeTimelineDocuments(
   base: TimelineMergeDoc,
   draft: TimelineMergeDoc,
   server: TimelineMergeDoc,
-  ops?: DocumentOp[]
+  ops?: DocumentOp[],
+  options: { mergeWithoutOps?: boolean } = {}
 ): MergeResult<TimelineMergeDoc> {
-  const result = mergeByUnits(base, draft, server, timelineMergeAdapter, {
-    ops
-  });
+  const mergeOptions: {
+    ops?: DocumentOp[];
+    mergeWithoutOps?: boolean;
+  } = {};
+  if (ops) {
+    mergeOptions.ops = ops;
+  }
+  if (options.mergeWithoutOps) {
+    mergeOptions.mergeWithoutOps = true;
+  }
+  const result = mergeByUnits(
+    base,
+    draft,
+    server,
+    timelineMergeAdapter,
+    mergeOptions
+  );
 
   const trackIds = new Set(
     result.doc.tracks.map(
