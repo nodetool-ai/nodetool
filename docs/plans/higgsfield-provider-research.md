@@ -123,9 +123,9 @@ image-to-video siblings, plus Kling 2.5 Turbo Standard text-to-video.
   V6 across the direct modes exposed by their official related-model tables.
 
 The endpoint IDs and field lists are stored in
-[`packages/higgsfield-nodes/src/higgsfield-manifest.json`](../../packages/higgsfield-nodes/src/higgsfield-manifest.json),
+[`packages/higgsfield-nodes/src/higgsfield-manifest.json`](https://github.com/nodetool-ai/nodetool/blob/main/packages/higgsfield-nodes/src/higgsfield-manifest.json),
 with source links and verified field names in
-[`packages/higgsfield-nodes/src/schema-fixtures/catalog.json`](../../packages/higgsfield-nodes/src/schema-fixtures/catalog.json).
+[`packages/higgsfield-nodes/src/schema-fixtures/catalog.json`](https://github.com/nodetool-ai/nodetool/blob/main/packages/higgsfield-nodes/src/schema-fixtures/catalog.json).
 The official [MiniMax H3 family page](https://open.higgsfield.ai/models/minimax/h3/text-to-video/playground),
 [Wan family page](https://open.higgsfield.ai/models/alibaba/wan-3.0-prime/text-to-video/playground),
 [Kling family page](https://open.higgsfield.ai/models/kling-video/v2.6/pro/text-to-video/playground),
@@ -170,7 +170,7 @@ provide the related endpoint tables used for this expansion.
 4. Register the pack in `packages/websocket/src/node-registry-setup.ts` and add
    `@nodetool-ai/higgsfield-nodes` to `packages/websocket/package.json`.
 5. Register `{ pkg: "@nodetool-ai/higgsfield-nodes", path: "higgsfield-manifest.json" }`
-   in [PACKAGE_RUNTIME_ASSETS](../../packages/config/src/package-asset-registry.ts).
+   in [PACKAGE_RUNTIME_ASSETS](https://github.com/nodetool-ai/nodetool/blob/main/packages/config/src/package-asset-registry.ts).
    Copy the manifest into `dist`, expose it from package exports, and load it
    through `loadPackageAssetJson`. Registration is required in development as
    well as the packaged backend because the loader rejects unregistered assets.
@@ -192,7 +192,7 @@ provide the related endpoint tables used for this expansion.
 4. Add generated-output ingestion through NodeTool storage during the same run.
    Retention is not a reason to leave external URLs in persisted workflow state.
 5. Implement `getGeneration(requestId, options)` as a single status lookup using
-   the existing [ProviderGenerationLookup](../../packages/runtime/src/providers/provider-generations.ts)
+   the existing [ProviderGenerationLookup](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/providers/provider-generations.ts)
    interface. For restart recovery or an ID-only lookup, explicitly allow
    `GET https://api.higgsfield.ai/requests/{request_id}/status` and
    `POST https://api.higgsfield.ai/requests/{request_id}/cancel`, as documented

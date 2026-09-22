@@ -141,6 +141,11 @@
               "reason": "disabled by built-in pack configuration"
             },
             {
+              "id": "higgsfield",
+              "name": "Higgsfield",
+              "reason": "disabled by built-in pack configuration"
+            },
+            {
               "id": "minimax",
               "name": "MiniMax",
               "reason": "disabled by built-in pack configuration"
