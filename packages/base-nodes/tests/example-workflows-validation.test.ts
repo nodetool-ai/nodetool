@@ -105,6 +105,7 @@ interface WorkflowFile {
   group: string;
   data: {
     name?: string;
+    tags?: unknown;
     graph: {
       nodes: Array<Record<string, unknown>>;
       edges: Array<Record<string, unknown>>;
@@ -129,6 +130,12 @@ function loadWorkflowsFrom(dir: string, group: string): WorkflowFile[] {
 const baseWorkflows = loadWorkflowsFrom(BASE_EXAMPLES_DIR, "nodetool-base");
 const cliWorkflows = loadWorkflowsFrom(CLI_EXAMPLES_DIR, "examples/workflows");
 const workflows = [...baseWorkflows, ...cliWorkflows];
+
+const starterWorkflows = baseWorkflows.filter(
+  (workflow) =>
+    Array.isArray(workflow.data.tags) &&
+    workflow.data.tags.includes("getting-started")
+);
 
 const registry = new NodeRegistry();
 registerBaseNodes(registry);
@@ -165,6 +172,24 @@ describe("example workflow inventory", () => {
       overlap,
       `Remove from ALLOWED_UNREGISTERED_TYPES — these are now registered:\n  ${overlap.join("\n  ")}`
     ).toEqual([]);
+  });
+
+  it("keeps certified starters self-contained and output-producing", () => {
+    expect(starterWorkflows.length).toBeGreaterThan(0);
+    for (const workflow of starterWorkflows) {
+      const nodes = workflow.data.graph.nodes;
+      const externalInputs = nodes.filter((node) =>
+        typeof node.type === "string" && node.type.includes(".input.")
+      );
+      expect(
+        externalInputs,
+        `${workflow.fileName} must not require an asset or typed input`
+      ).toHaveLength(0);
+      expect(
+        nodes.some((node) => node.type === "nodetool.output.Output"),
+        `${workflow.fileName} must expose a user-visible output`
+      ).toBe(true);
+    }
   });
 });
 

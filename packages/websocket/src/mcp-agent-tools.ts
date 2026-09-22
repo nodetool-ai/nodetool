@@ -98,6 +98,17 @@ import {
 const log = createLogger("nodetool.websocket.mcp-agent-tools");
 
 /**
+ * These capabilities answer readiness questions from the configured-provider
+ * map. Populate that map before dispatch so a first workflow call cannot
+ * mistake lazy loading for a missing provider.
+ */
+const WORKFLOW_READINESS_TOOL_NAMES = new Set([
+  "plan_workflow",
+  "update_workflow_plan_step",
+  "build_workflow_from_plan"
+]);
+
+/**
  * Per-user workspace directory the bridged file tools (read_file, write_file,
  * glob, grep, …) are rooted at. Kept under the NodeTool data dir rather than a
  * temp dir because an MCP session is long-lived and spans many calls — a file
@@ -733,9 +744,15 @@ export function registerAgentMcpTools(
     tool: Tool,
     args: Record<string, unknown>
   ): Promise<unknown> => {
-    // find_model and list_models read the configured-providers map at call
-    // time, so populate it before either handler runs.
-    if (tool.name === "find_model" || tool.name === "list_models") {
+    // Model search and workflow readiness read the configured-providers map at
+    // call time, so populate it before either handler runs. Without the
+    // workflow entries, the first plan/build call sees the lazy map while it
+    // is still empty and reports a false missing-provider blocker.
+    if (
+      tool.name === "find_model" ||
+      tool.name === "list_models" ||
+      WORKFLOW_READINESS_TOOL_NAMES.has(tool.name)
+    ) {
       await ensureProviders();
     }
     const isWorkflowDocumentTool = workflowDocumentToolNames.has(tool.name);

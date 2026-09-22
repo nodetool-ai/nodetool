@@ -182,6 +182,8 @@ export type WorkflowRunner = {
     notification: Omit<Notification, "id" | "timestamp">
   ) => void;
   cancel: () => Promise<void>;
+  /** Cancel a specific run, including a queued run not owned by this store's focus. */
+  cancelJob: (jobId: string) => Promise<void>;
   /**
    * Push property updates into the running job's node executors (live
    * parameters — e.g. synth knobs while a patch plays). No-op when nothing
@@ -715,6 +717,23 @@ export const createWorkflowRunnerStore = (
           workflow_id: workflowId
         }
       });
+    },
+
+    cancelJob: async (jobId: string) => {
+      if (get().job_id === jobId) {
+        await get().cancel();
+        return;
+      }
+      const browserController = browserRunAbortControllers.get(jobId);
+      if (browserController) {
+        browserController.abort();
+        return;
+      }
+      await globalWebSocketManager.send({
+        type: "cancel_job",
+        command: "cancel_job",
+        data: { job_id: jobId, workflow_id: workflowId }
+      });
     }
   }));
 
@@ -769,6 +788,7 @@ const defaultWorkflowRunner: WorkflowRunner = {
   notifications: [],
   addNotification: () => {},
   cancel: async () => {},
+  cancelJob: async () => {},
   updateRunningNodeProperties: () => {},
   run: async () => "",
   reconnect: async () => {},

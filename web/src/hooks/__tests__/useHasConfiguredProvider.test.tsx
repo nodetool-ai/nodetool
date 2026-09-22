@@ -1,70 +1,99 @@
 import { renderHook } from "@testing-library/react";
-import { asMock } from "../../test-utils/doubles";
 
-import { useHasConfiguredProvider } from "../useHasConfiguredProvider";
-import useSecretsStore from "../../stores/SecretsStore";
-import type { SecretResponse } from "../../stores/ApiTypes";
+import {
+  useHasConfiguredProvider,
+  useLanguageProviderReadiness
+} from "../useHasConfiguredProvider";
+import { useLanguageModelsByProvider } from "../useModelsByProvider";
+import type { LanguageModel } from "../../stores/ApiTypes";
 
-jest.mock("../../stores/SecretsStore");
+jest.mock("../useModelsByProvider");
 
-const mockUseSecretsStore = asMock(useSecretsStore);
+const mockUseLanguageModelsByProvider = jest.mocked(useLanguageModelsByProvider);
 
-const fetchSecrets = jest.fn();
-
-const withSecrets = (secrets: SecretResponse[]): void => {
-  mockUseSecretsStore.mockImplementation(
-    <T,>(selector: (s: { secrets: typeof secrets; fetchSecrets: jest.Mock }) => T) =>
-      selector({ secrets, fetchSecrets })
-  );
-};
-
-const secret = (key: string, is_configured: boolean): SecretResponse => ({
-  key,
-  is_configured
+const languageModel = (provider: string): LanguageModel => ({
+  type: "language_model",
+  id: `${provider}-model`,
+  name: `${provider} model`,
+  provider
 });
+
+const withLanguageModels = (
+  overrides: Partial<ReturnType<typeof useLanguageModelsByProvider>> = {}
+): void => {
+  mockUseLanguageModelsByProvider.mockReturnValue({
+    models: [],
+    providers: [],
+    isLoading: false,
+    isFetching: false,
+    error: null,
+    providerErrors: [],
+    loadingProgress: { total: 0, loaded: 0, loading: 0 },
+    allowedProviders: undefined,
+    refetch: jest.fn().mockResolvedValue(undefined),
+    ...overrides
+  });
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
-  withSecrets([]);
+  withLanguageModels();
 });
 
 describe("useHasConfiguredProvider", () => {
-  it("is false with no provider connected at all", () => {
+  it("is false when no configured provider offers a usable language model", () => {
     const { result } = renderHook(() => useHasConfiguredProvider());
     expect(result.current).toBe(false);
-    expect(fetchSecrets).toHaveBeenCalled();
   });
 
-  it.each([
-    "OPENAI_API_KEY",
-    "GROQ_API_KEY",
-    "FAL_API_KEY",
-    "ELEVENLABS_API_KEY",
-    "KIE_API_KEY"
-  ])("is true for a configured %s", (key) => {
-    withSecrets([secret(key, true)]);
+  it.each(["openai", "claude-agent-sdk", "ollama"])(
+    "is true for a usable %s language model",
+    (provider) => {
+      withLanguageModels({
+        models: [languageModel(provider)],
+        providers: [provider]
+      });
+      const { result } = renderHook(() => useHasConfiguredProvider());
+      expect(result.current).toBe(true);
+      expect(mockUseLanguageModelsByProvider).toHaveBeenCalledWith({
+        requireToolSupport: true
+      });
+    }
+  );
+
+  it("counts a local language model without an API secret", () => {
+    withLanguageModels({
+      models: [languageModel("ollama")],
+      providers: ["ollama"]
+    });
     const { result } = renderHook(() => useHasConfiguredProvider());
     expect(result.current).toBe(true);
   });
 
-  it("ignores a configured secret that is not an AI provider", () => {
-    withSecrets([
-      secret("SERPAPI_API_KEY", true),
-      secret("TRACELOOP_API_KEY", true),
-      secret("RUNPOD_API_KEY", true)
-    ]);
+  it("does not count a media-only provider", () => {
+    withLanguageModels({ providers: ["fal"], models: [] });
     const { result } = renderHook(() => useHasConfiguredProvider());
     expect(result.current).toBe(false);
   });
 
-  it("ignores a provider key that is listed but not configured", () => {
-    withSecrets([secret("OPENAI_API_KEY", false)]);
+  it("does not count a configured provider with no usable language model", () => {
+    withLanguageModels({ providers: ["openai"], models: [] });
     const { result } = renderHook(() => useHasConfiguredProvider());
     expect(result.current).toBe(false);
   });
 
-  it("ignores OAuth credentials that are not stored in NodeTool secrets", () => {
-    const { result } = renderHook(() => useHasConfiguredProvider());
-    expect(result.current).toBe(false);
+  it.each([
+    ["provider discovery", { isLoading: true }],
+    ["model discovery", { isFetching: true }]
+  ])("reports loading while %s is unresolved", (_label, state) => {
+    withLanguageModels(state);
+    const { result } = renderHook(() => useLanguageProviderReadiness());
+    expect(result.current).toEqual({ ready: false, loading: true });
+  });
+
+  it("does not hide an unavailable discovery error as readiness", () => {
+    withLanguageModels({ error: new Error("offline") });
+    const { result } = renderHook(() => useLanguageProviderReadiness());
+    expect(result.current).toEqual({ ready: false, loading: false });
   });
 });

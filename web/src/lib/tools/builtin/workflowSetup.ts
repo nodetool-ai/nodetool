@@ -15,7 +15,6 @@ import {
 
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
-import useMetadataStore from "../../../stores/MetadataStore";
 import { resolveWorkflowId } from "./workflow";
 import { docUrl } from "./resourceLinks";
 
@@ -32,9 +31,10 @@ import { docUrl } from "./resourceLinks";
  * Two rules carry the phase:
  *
  * - `ui_workflow_plan` places no node (criterion 3). It writes text.
- * - `ui_workflow_build_from_plan` refuses a plan that still names a node type
- *   the registry does not have (D23), and reports the wiring it could not do,
- *   because a graph with an unwired output validates and produces nothing (R6).
+ * - `ui_workflow_build_from_plan` refuses a plan that names an unknown node
+ *   type or unavailable model role (D23), and reports the wiring it could not
+ *   do, because a graph with an unwired output validates and produces nothing
+ *   (R6).
  */
 
 const workflowIdParam = z
@@ -84,25 +84,29 @@ function requirePlan(
   return setup.plan;
 }
 
-/** Grade a plan against the live registry — the review step's markers (D23). */
-function reviewPlan(plan: WorkflowSetupPlan) {
-  const metadata = useMetadataStore.getState().metadata;
+/** Grade a plan against the live registry and model catalog (D23). */
+function reviewPlan(state: FrontendToolState, plan: WorkflowSetupPlan) {
   const resolved = resolveWorkflowPlan(plan, {
-    knownNodeType: (nodeType) => nodeType in metadata,
-    // The browser cannot enumerate providers here; the review step does that
-    // from the model lists it already loads. An agent gets node-type checking
-    // and is told which roles the plan needs.
-    providerConfigured: () => true
+    knownNodeType: (nodeType) => nodeType in state.nodeMetadata,
+    // This is the same live model catalog used by the guided host. An absent
+    // callback is not readiness: renderer tools must never report an unknown
+    // provider state as ready.
+    providerConfigured: (role) =>
+      state.getModelRoleAvailability?.(role) ?? false
   });
   return {
     can_continue: resolved.canContinue,
     roles: resolved.roles,
+    missing_roles: resolved.missingRoles,
     steps: resolved.steps.map((entry) => ({
       id: entry.step.id,
       title: entry.step.title,
+      summary: entry.step.summary,
       node_type: entry.step.node_type,
       model_role: entry.step.model_role ?? null,
-      unknown_node_type: entry.unknownNodeType
+      unknown_node_type: entry.unknownNodeType,
+      missing_provider: entry.missingProvider,
+      block: entry.block
     }))
   };
 }
@@ -191,7 +195,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_workflow_plan",
   description:
-    "Store the plan for a workflow's brief and move the flow to its review step. Places no node and starts no job: the plan is text the creator reviews before anything is built. Every step names a node type from the registry (use ui_search_nodes to find them) or null when none fits — a named guess that turns out to be the wrong node builds a graph that runs and produces nothing. The result marks any step whose type this install does not have.",
+    "Store the plan for a workflow's brief and move the flow to its review step. Places no node and starts no job: the plan is text the creator reviews before anything is built. Every step names a node type from the registry (use ui_search_nodes to find them) or null when none fits — a named guess that turns out to be the wrong node builds a graph that runs and produces nothing. The result marks steps whose node type or model role this install cannot satisfy.",
   parameters: z.object({
     workflow_id: workflowIdParam,
     plan: planParam
@@ -214,7 +218,7 @@ FrontendToolRegistry.register({
       ok: true,
       workflow_id: workflowId,
       setup,
-      review: reviewPlan(parsed),
+      review: reviewPlan(state, parsed),
       nodes_placed: 0
     };
   }
@@ -299,14 +303,19 @@ FrontendToolRegistry.register({
 
     const next = workflowSetupPlan.parse({ ...plan, steps });
     const setup = await persistSetup(state, workflowId, { plan: next });
-    return { ok: true, workflow_id: workflowId, setup, review: reviewPlan(next) };
+    return {
+      ok: true,
+      workflow_id: workflowId,
+      setup,
+      review: reviewPlan(state, next)
+    };
   }
 });
 
 FrontendToolRegistry.register({
   name: "ui_workflow_build_from_plan",
   description:
-    "Build the workflow's graph from its stored plan: one input node per plan input, one node per step in plan order chained to the one before it, and one output node per plan output, each step's node carrying its plan step id. Refused while any step names a node type the registry does not have. The result lists any wiring it could not do — a plan whose output has nothing upstream builds a graph that validates and produces nothing, so check `issues` before you call it done. Run the workflow afterwards with the plan's sample inputs.",
+    "Build the workflow's graph from its stored plan: one input node per plan input, one node per step in plan order chained to the one before it, and one output node per plan output, each step's node carrying its plan step id. Refused while any step names a node type the registry does not have or requires a model role with no available model. The result explicitly distinguishes a built graph, a submitted workflow, and a verified result, and lists any wiring it could not do — a plan whose output has nothing upstream builds a graph that validates and produces nothing, so check `issues` before you call it done. Run the workflow afterwards with the plan's sample inputs to verify the result.",
   parameters: z.object({
     workflow_id: workflowIdParam,
     models: z
@@ -322,7 +331,7 @@ FrontendToolRegistry.register({
     const plan = requirePlan(state, workflowId);
     const metadata = state.nodeMetadata;
 
-    const review = reviewPlan(plan);
+    const review = reviewPlan(state, plan);
     const unknown = review.steps.filter((step) => step.unknown_node_type);
     if (unknown.length > 0) {
       throw new Error(
@@ -330,6 +339,13 @@ FrontendToolRegistry.register({
           `Unresolved: ${unknown
             .map((step) => `${step.id} (${step.node_type ?? "no type"})`)
             .join(", ")}. Fix them with ui_workflow_update_plan_step.`
+      );
+    }
+    if (!review.can_continue) {
+      throw new Error(
+        "Cannot build until every model role is available in this install. " +
+          `Missing provider roles: ${review.missing_roles.join(", ")}. ` +
+          "Use ui_search_models to inspect available models or connect a provider."
       );
     }
 
@@ -385,6 +401,9 @@ FrontendToolRegistry.register({
     return {
       ok: true,
       workflow_id: workflowId,
+      built: true,
+      submitted: true,
+      verified_result: false,
       setup,
       nodes_placed: placement.nodes.length,
       edges_placed: placement.edges.length,

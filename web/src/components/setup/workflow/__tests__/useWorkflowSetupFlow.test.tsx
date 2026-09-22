@@ -17,10 +17,14 @@ import mockTheme from "../../../../__mocks__/themeMock";
 // Resolves null on success, the refusal's reason otherwise.
 const planWorkflow = jest.fn(async (): Promise<string | null> => null);
 let planError: string | null = null;
+let planningStatus: "idle" | "pending" | "canceled" | "error" = "idle";
 jest.mock("../../../../hooks/workflow/usePlanWorkflow", () => ({
   usePlanWorkflow: () => ({
     planWorkflow,
     planning: false,
+    get planningStatus() {
+      return planningStatus;
+    },
     get error() {
       return planError;
     }
@@ -56,13 +60,20 @@ jest.mock("../../../model_menu/LanguageModelMenuDialog", () => ({
 // Typed with the real input, so `mock.calls[0][0]` is the argument the flow
 // passed rather than an empty tuple.
 const buildFromPlan = jest.fn(async (_input: BuildFromPlanInput) => ({
+  status: "running" as const,
   nodeCount: 3,
   issues: [] as string[],
   validationErrors: [] as string[],
-  testRun: { started: true, error: null as string | null }
+  testRun: { started: true, error: null as string | null },
+  explanation: "The sample run is running. Waiting for its output."
 }));
 jest.mock("../../../../hooks/workflow/useBuildFromPlan", () => ({
-  useBuildFromPlan: () => ({ buildFromPlan, building: false, result: null })
+  useBuildFromPlan: () => ({
+    buildFromPlan,
+    cancelBuild: jest.fn(async () => {}),
+    building: false,
+    result: null
+  })
 }));
 
 // The document lives on the workflow row; the suite stands in for the manager
@@ -208,6 +219,7 @@ const renderFlow = (props: Parameters<typeof Harness>[0] = {}) =>
 beforeEach(() => {
   jest.clearAllMocks();
   planError = null;
+  planningStatus = "idle";
   chosenModelCalls.length = 0;
   startFromExample.mockResolvedValue("w1");
   settings = {};
@@ -380,6 +392,21 @@ describe("useWorkflowSetupFlow", () => {
       screen.getByRole("button", { name: "Plan the steps" })
     );
     expect(await screen.findByRole("alert")).toHaveTextContent("no provider");
+  });
+
+  it("retries planning after canceling from the review step", async () => {
+    planningStatus = "canceled";
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "review", brief: "b", category: "content-pipeline", plan: PLAN }
+    );
+    renderFlow();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    await waitFor(() => expect(planWorkflow).toHaveBeenCalledTimes(1));
+    expect(buildFromPlan).not.toHaveBeenCalled();
+    expect(readWorkflowSetup(settings)?.stage).toBe("review");
   });
 
   it("keeps the picked planner model on the workflow", async () => {

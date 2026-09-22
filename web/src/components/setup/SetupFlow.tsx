@@ -38,7 +38,11 @@ import {
   ThinkingIndicator
 } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
-import type { SetupFlowConfig, SetupStep } from "./types";
+import type {
+  SetupFlowConfig,
+  SetupOperationContext,
+  SetupStep
+} from "./types";
 
 const GenerationSummary = lazy(() => import("./GenerationSummary"));
 
@@ -106,6 +110,8 @@ export function SetupFlow<Stage extends string>({
   const { labels, steps, stage, onStageChange } = config;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [canceledStage, setCanceledStage] = useState<Stage | null>(null);
+  const [cancelingStage, setCancelingStage] = useState<Stage | null>(null);
   const [confirmingChange, setConfirmingChange] = useState(false);
   const blockedReasonId = useId();
 
@@ -121,6 +127,9 @@ export function SetupFlow<Stage extends string>({
   // its failure over what they are reading now.
   const stageRef = useRef(stage);
   const revisionRef = useRef(0);
+  const operationRef = useRef(0);
+  const activeControllerRef = useRef<AbortController | null>(null);
+  const activeOperationRef = useRef<Promise<unknown> | null>(null);
   if (stageRef.current !== stage) {
     stageRef.current = stage;
     revisionRef.current += 1;
@@ -152,6 +161,16 @@ export function SetupFlow<Stage extends string>({
     target.focus({ preventScroll: true });
   }, [stage]);
 
+  useEffect(
+    () => () => {
+      operationRef.current += 1;
+      activeControllerRef.current?.abort();
+      activeControllerRef.current = null;
+      activeOperationRef.current = null;
+    },
+    []
+  );
+
   const handleBack = useCallback(() => {
     setError(null);
     const previous = steps[currentIndex - 1];
@@ -178,33 +197,88 @@ export function SetupFlow<Stage extends string>({
     }
   }, [onChangeFlow]);
 
+  const canceled = canceledStage === stage || step?.canceled === true;
+  const canceling = cancelingStage === stage;
+  const pending =
+    canceling || (!canceled && (busy || step?.pending === true));
+
   const handlePrimary = useCallback(async () => {
     if (!step) {
       return;
     }
     const origin = { stage: step.stage, revision: revisionRef.current };
+    const operation = (operationRef.current += 1);
+    const controller = new AbortController();
+    activeControllerRef.current = controller;
     setError(null);
+    setCanceledStage(null);
+    setCancelingStage(null);
     setBusy(true);
+    const run = (async () => {
+      try {
+        const context: SetupOperationContext = { signal: controller.signal };
+        const shouldAdvance = await step.onAdvance?.(context);
+        if (
+          shouldAdvance === false ||
+          !isCurrent(origin) ||
+          operation !== operationRef.current ||
+          controller.signal.aborted
+        ) {
+          return;
+        }
+        // The last step's action writes the terminal stage itself, so there is
+        // nothing left for the shell to advance.
+        const next = steps[currentIndex + 1];
+        if (next) {
+          onStageChange(next.stage);
+        }
+      } catch (cause) {
+        if (
+          !isCurrent(origin) ||
+          operation !== operationRef.current ||
+          controller.signal.aborted
+        ) {
+          return;
+        }
+        setError(cause instanceof Error ? cause.message : String(cause));
+      } finally {
+        if (activeControllerRef.current === controller) {
+          activeControllerRef.current = null;
+          setBusy(false);
+        }
+      }
+    })();
+    activeOperationRef.current = run;
     try {
-      await step.onAdvance?.();
-      if (!isCurrent(origin)) {
-        return;
-      }
-      // The last step's action writes the terminal stage itself, so there is
-      // nothing left for the shell to advance.
-      const next = steps[currentIndex + 1];
-      if (next) {
-        onStageChange(next.stage);
-      }
-    } catch (cause) {
-      if (!isCurrent(origin)) {
-        return;
-      }
-      setError(cause instanceof Error ? cause.message : String(cause));
+      await run;
     } finally {
-      setBusy(false);
+      if (activeOperationRef.current === run) {
+        activeOperationRef.current = null;
+      }
     }
   }, [currentIndex, isCurrent, onStageChange, step, steps]);
+
+  const handleCancel = useCallback(() => {
+    if (!step || !pending) {
+      return;
+    }
+    operationRef.current += 1;
+    activeControllerRef.current?.abort();
+    activeControllerRef.current = null;
+    setError(null);
+    setCanceledStage(step.stage);
+    setCancelingStage(step.stage);
+    const operation = activeOperationRef.current;
+    void Promise.allSettled([
+      operation ?? Promise.resolve(),
+      Promise.resolve(step.onCancel?.())
+    ]).then(() => {
+      if (stageRef.current === step.stage) {
+        setCancelingStage(null);
+        setBusy(false);
+      }
+    });
+  }, [pending, step]);
 
   const handleSkip = useCallback(async () => {
     if (!step?.onSkip) {
@@ -231,7 +305,6 @@ export function SetupFlow<Stage extends string>({
     }
   }, [currentIndex, isCurrent, onStageChange, step, steps]);
 
-  const pending = busy || step?.pending === true;
   const blocked = step?.canAdvance === false;
 
   // The primary action from the keyboard. Every step's body is a text field or
@@ -361,7 +434,21 @@ export function SetupFlow<Stage extends string>({
         fullHeight
         sx={{ flex: 1, minHeight: 0, paddingBottom: SPACING.xxl }}
       >
-        {error ? (
+        {canceled ? (
+          <FlexColumn gap={GAP.spacious} fullWidth>
+            <Text size="big" component="h1">
+              This step was canceled
+            </Text>
+            <AlertBanner severity="info" title="Canceled">
+              The pending operation was canceled. Your draft is unchanged.
+            </AlertBanner>
+            <Text size="normal" color="secondary">
+              {canceling
+                ? "Stopping the canceled request before retry is available."
+                : "Retry when you are ready. A new request will be started deliberately and the canceled request cannot replace this draft."}
+            </Text>
+          </FlexColumn>
+        ) : error ? (
           <FlexColumn gap={GAP.spacious} fullWidth>
             <Text size="big" component="h1">
               We couldn&apos;t complete this step
@@ -457,6 +544,8 @@ export function SetupFlow<Stage extends string>({
               label={step.pendingLabel ?? "Working"}
               announce
             />
+          ) : canceled ? (
+            <Caption color="secondary">Canceled</Caption>
           ) : blocked && step.blockedReason ? (
             <Caption color="secondary" id={blockedReasonId}>
               {step.blockedReason}
@@ -464,25 +553,37 @@ export function SetupFlow<Stage extends string>({
           ) : step.primaryDetail ? (
             <Text size="normal">{step.primaryDetail}</Text>
           ) : null}
-          <EditorButton
-            variant="contained"
-            size="large"
-            onClick={handlePrimary}
-            disabled={blocked || pending}
-            // The reason a dead button is dead is beside it, where a mouse can
-            // read it; the description says it to a screen reader too.
-            aria-describedby={
-              blocked && step.blockedReason ? blockedReasonId : undefined
-            }
-            aria-keyshortcuts="Meta+Enter Control+Enter"
-            title={`${error ? "Try again" : step.primaryLabel} (\u2318\u21A9 or Ctrl+\u21A9)`}
-            sx={{
-              fontSize: FONT_SIZE_SANS.body,
-              paddingX: SPACING.xxl
-            }}
-          >
-            {error ? "Try again" : step.primaryLabel}
-          </EditorButton>
+          <FlexRow gap={GAP.normal} align="center">
+            {pending && !canceled ? (
+              <EditorButton
+                variant="text"
+                size="large"
+                onClick={handleCancel}
+                sx={{ fontSize: FONT_SIZE_SANS.body }}
+              >
+                Cancel
+              </EditorButton>
+            ) : null}
+            <EditorButton
+              variant="contained"
+              size="large"
+              onClick={handlePrimary}
+              disabled={blocked || pending}
+              // The reason a dead button is dead is beside it, where a mouse can
+              // read it; the description says it to a screen reader too.
+              aria-describedby={
+                blocked && step.blockedReason ? blockedReasonId : undefined
+              }
+              aria-keyshortcuts="Meta+Enter Control+Enter"
+              title={`${canceled ? "Retry" : error ? "Try again" : step.primaryLabel} (\u2318\u21A9 or Ctrl+\u21A9)`}
+              sx={{
+                fontSize: FONT_SIZE_SANS.body,
+                paddingX: SPACING.xxl
+              }}
+            >
+              {canceled ? "Retry" : error ? "Try again" : step.primaryLabel}
+            </EditorButton>
+          </FlexRow>
         </FlexRow>
       </FlexRow>
 

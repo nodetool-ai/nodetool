@@ -107,11 +107,14 @@ export const useWorkflowSetupFlow = ({
   const metadata = useMetadataStore((state) => state.metadata);
   const {
     planWorkflow,
+    cancelPlanning,
     planning,
+    planningStatus,
     error: planError
   } = usePlanWorkflow(workflowId);
   const {
     buildFromPlan,
+    cancelBuild,
     building,
     result: buildResult
   } = useBuildFromPlan(workflowId);
@@ -358,7 +361,9 @@ export const useWorkflowSetupFlow = ({
           if (refusal) {
             throw new Error(refusal);
           }
-        }
+        },
+        onCancel: cancelPlanning,
+        canceled: planningStatus === "canceled"
       },
       {
         stage: "review",
@@ -394,7 +399,25 @@ export const useWorkflowSetupFlow = ({
             replanPending: planning,
             providerConfigured,
             error: planError
-          })
+          }),
+        onAdvance: async () => {
+          if (planningStatus !== "canceled") {
+            return;
+          }
+          const refusal = await planWorkflow({
+            brief,
+            category,
+            model: plannerModel
+          });
+          if (refusal) {
+            throw new Error(refusal);
+          }
+          // Re-planning returns to this review. It must not skip straight to
+          // Build with the previous plan while the new plan is arriving.
+          return false;
+        },
+        onCancel: cancelPlanning,
+        canceled: planningStatus === "canceled"
       },
       {
         stage: "setup",
@@ -430,7 +453,7 @@ export const useWorkflowSetupFlow = ({
           }),
         // `buildFromPlan` writes the terminal stage itself, as soon as the
         // nodes are placed (PRD § 11.3, D3).
-        onAdvance: async () => {
+        onAdvance: async (context) => {
           const built = await buildFromPlan({
             plan,
             models: Object.fromEntries(
@@ -444,9 +467,10 @@ export const useWorkflowSetupFlow = ({
                 .filter((input) => input.sample !== undefined)
                 .map((input) => [input.name, input.sample])
             )
-          });
+          }, context?.signal);
           onFinish?.(built);
-        }
+        },
+        onCancel: cancelBuild
       }
     ],
     [
@@ -457,8 +481,10 @@ export const useWorkflowSetupFlow = ({
       hasPinnedPlan,
       pickingExampleId,
       buildFromPlan,
+      cancelBuild,
       building,
       category,
+      cancelPlanning,
       chosenModel,
       finish,
       handleImport,
@@ -472,6 +498,7 @@ export const useWorkflowSetupFlow = ({
       planWorkflow,
       plannerModel,
       planning,
+      planningStatus,
       providerConfigured,
       review.canContinue,
       roleChoices,

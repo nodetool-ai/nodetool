@@ -29,6 +29,8 @@ export interface FrontendToolDefinition<
 
 export interface FrontendToolState {
   nodeMetadata: Record<string, NodeMetadata>;
+  /** True when the live model catalog offers a model for this workflow role. */
+  getModelRoleAvailability?: (role: string) => boolean;
   currentWorkflowId: string | null;
   getWorkflow: (workflowId: string) => Workflow | undefined;
   addWorkflow: (workflow: Workflow) => void;
@@ -47,8 +49,9 @@ export interface FrontendToolState {
   openWorkflow?: (workflowId: string) => Promise<void>;
   runWorkflow?: (
     workflowId: string,
-    params?: Record<string, unknown>
-  ) => Promise<void>;
+    params?: Record<string, unknown>,
+    signal?: AbortSignal
+  ) => Promise<string>;
   switchTab?: (tabIndex: number) => Promise<string>;
   copyToClipboard?: (text: string) => Promise<void>;
   pasteFromClipboard?: () => Promise<string>;
@@ -108,12 +111,20 @@ export const FrontendToolRegistry = {
     name: string,
     args: unknown,
     toolCallId: string,
-    ctx: Omit<FrontendToolContext, "abortSignal">
+    ctx: Omit<FrontendToolContext, "abortSignal"> & { signal?: AbortSignal }
   ): Promise<unknown> {
     const tool = registry.get(name);
     if (!tool) {throw new Error(`Unknown tool: ${name}`);}
     const controller = new AbortController();
     active.set(toolCallId, { controller });
+    const abort = () => controller.abort();
+    if (ctx.signal) {
+      if (ctx.signal.aborted) {
+        controller.abort();
+      } else {
+        ctx.signal.addEventListener("abort", abort, { once: true });
+      }
+    }
     try {
       const validatedArgs = isZodSchema(tool.parameters)
         ? parseWithTypeCoercion(tool.parameters, args)
@@ -126,6 +137,7 @@ export const FrontendToolRegistry = {
 
       return result;
     } finally {
+      ctx.signal?.removeEventListener("abort", abort);
       active.delete(toolCallId);
     }
   },

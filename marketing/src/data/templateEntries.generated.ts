@@ -86,16 +86,17 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/a-gradient-card-as-png",
     "title": "A Gradient Card as PNG — NodeTool AI Workflow Template",
-    "description": "Build vector art in a Code node, then rasterise it. SVGToImage is the bridge: author resolution-independently, hand a PNG to anything that needs pixels.",
+    "description": "A certified starter that runs as-is with no asset, provider, or API key. Build vector art in a Code node, rasterise it, and inspect the generated 800×480 PNG.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "a-gradient-card-as-png",
     "name": "A Gradient Card as PNG",
-    "summary": "Build vector art in a Code node, then rasterise it. SVGToImage is the bridge: author resolution-independently, hand a PNG to anything that needs pixels.",
+    "summary": "A certified starter that runs as-is with no asset, provider, or API key. Build vector art in a Code node, rasterise it, and inspect the generated 800×480 PNG.",
     "tags": [
       "image",
-      "example"
+      "example",
+      "getting-started"
     ],
     "category": "Image & Design",
     "nodeTypes": [
@@ -874,7 +875,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 120,
-          "width": 300
+          "width": 300,
+          "subtitle": "A reusable water bottle that stays cold all day"
         },
         {
           "id": "ag",

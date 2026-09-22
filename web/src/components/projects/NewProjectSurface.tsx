@@ -85,7 +85,7 @@ import {
   useCreateStoryboard,
   useExampleStoryboards
 } from "../../hooks/storyboard/useStoryboards";
-import { useHasConfiguredProvider } from "../../hooks/useHasConfiguredProvider";
+import { useLanguageProviderReadiness } from "../../hooks/useHasConfiguredProvider";
 import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
 import useOnboardingStore, {
   isOnboardingFinished
@@ -353,7 +353,8 @@ const NewProjectSurface = () => {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const hasConfiguredProvider = useHasConfiguredProvider();
+  const providerReadiness = useLanguageProviderReadiness();
+  const hasConfiguredProvider = providerReadiness.ready;
   const selectedModel = useGlobalChatStore((state) => state.selectedModel);
   const setSelectedModel = useGlobalChatStore(
     (state) => state.setSelectedModel
@@ -376,9 +377,10 @@ const NewProjectSurface = () => {
     createBlankStoryboard,
     installStoryboardExample,
     creating
-  } = useNewDocumentCatalog({ projectId: LOOSE_PROJECT_ID }, () =>
-    setSubmenu(null)
-  );
+  } = useNewDocumentCatalog({ projectId: LOOSE_PROJECT_ID }, () => {
+    setSubmenu(null);
+    useOnboardingStore.getState().markStep("keep-creating");
+  });
   const { data: exampleData, isLoading: examplesLoading } =
     useExampleStoryboards(submenu?.kind === "storyboards");
 
@@ -522,6 +524,14 @@ const NewProjectSurface = () => {
     }
     // The project agent's first turn needs a model; route key-less users
     // through provider onboarding first and resume the start once connected.
+    if (providerReadiness.loading) {
+      addNotification({
+        type: "info",
+        alert: true,
+        content: "Still checking your language models. Try again in a moment."
+      });
+      return;
+    }
     if (!hasConfiguredProvider) {
       setPendingStart(true);
       openProviderOnboarding({
@@ -595,6 +605,7 @@ const NewProjectSurface = () => {
     createProject,
     getFileContents,
     hasConfiguredProvider,
+    providerReadiness.loading,
     openProject,
     prompt,
     selectedEntities,
@@ -608,6 +619,9 @@ const NewProjectSurface = () => {
   const applySetupTarget = useCallback((target: SetupTarget | null) => {
     setupTargetRef.current = target;
     setSetupTarget(target);
+    if (target) {
+      useOnboardingStore.getState().markStep("start-guided-flow");
+    }
   }, []);
 
   /** One message for every card, so a failed create never dead-ends silently. */
@@ -875,6 +889,7 @@ const NewProjectSurface = () => {
         title: name,
         projectId
       });
+      useOnboardingStore.getState().markStep("start-guided-flow");
       closeTab(tabId("project-new", PROJECT_NEW_REF));
     } catch (error) {
       reportEntryFailure("image", error);
@@ -1075,8 +1090,6 @@ const NewProjectSurface = () => {
       // Marked before the first await, so the card reads as busy on the click
       // rather than on the create's first render.
       setPendingFlow(id);
-      // Starting any entry card completes the checklist's guided-flow step.
-      useOnboardingStore.getState().markStep("start-guided-flow");
       // Read at pick time, not at render: a project opened after this mounted
       // is still the one a "current project" start belongs to.
       const existingProjectId =
@@ -1752,9 +1765,6 @@ const NewProjectSurface = () => {
                     });
                     return;
                   }
-                  // A blank document started here is the checklist's
-                  // keep-creating step done the loose-tab way.
-                  useOnboardingStore.getState().markStep("keep-creating");
                   void entry.create?.();
                 }}
                 sx={{
@@ -1843,7 +1853,6 @@ const NewProjectSurface = () => {
                 compact
                 disabled={creating !== null}
                 onClick={() => {
-                  useOnboardingStore.getState().markStep("keep-creating");
                   void createTextFile(template);
                 }}
               />
@@ -1856,7 +1865,6 @@ const NewProjectSurface = () => {
                 dividerAfter
                 disabled={creating !== null}
                 onClick={() => {
-                  useOnboardingStore.getState().markStep("keep-creating");
                   void createBlankStoryboard();
                 }}
               />
@@ -1871,7 +1879,6 @@ const NewProjectSurface = () => {
                     compact
                     disabled={creating !== null}
                     onClick={() => {
-                      useOnboardingStore.getState().markStep("keep-creating");
                       void installStoryboardExample(
                         example.slug,
                         example.name
@@ -1887,6 +1894,7 @@ const NewProjectSurface = () => {
         open={destinationFlow !== null}
         flowTitle={destinationFlowTitle}
         currentProjectName={currentProjectName}
+        quickStart
         busy={starting}
         onPick={handlePickDestination}
         onClose={() => setDestinationFlow(null)}

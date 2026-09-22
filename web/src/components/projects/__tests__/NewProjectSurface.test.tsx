@@ -77,7 +77,7 @@ jest.mock("../../workspace/newDocumentCatalog", () => ({
   TEXT_FILE_TEMPLATES: [
     { label: "Markdown (.md)", filename: "Untitled.md", mimeType: "text/markdown", content: "" }
   ],
-  useNewDocumentCatalog: (options: unknown) => {
+  useNewDocumentCatalog: (options: unknown, onCreated?: () => void) => {
     catalogOptions(options);
     return {
       entries: [
@@ -87,7 +87,10 @@ jest.mock("../../workspace/newDocumentCatalog", () => ({
           menuLabel: "New workflow",
           type: "workflow",
           icon: null,
-          create: createWorkflow
+          create: async () => {
+            await createWorkflow();
+            onCreated?.();
+          }
         },
         {
           key: "text",
@@ -348,7 +351,11 @@ jest.mock("../../model_menu/LanguageModelMenuDialog", () => ({
 
 let hasConfiguredProvider = true;
 jest.mock("../../../hooks/useHasConfiguredProvider", () => ({
-  useHasConfiguredProvider: () => hasConfiguredProvider
+  useHasConfiguredProvider: () => hasConfiguredProvider,
+  useLanguageProviderReadiness: () => ({
+    ready: hasConfiguredProvider,
+    loading: false
+  })
 }));
 
 const openPageTab = jest.fn();
@@ -446,6 +453,12 @@ describe("NewProjectSurface", () => {
   /** Pick the destination a card click asks for. */
   const pickDestination = async (destination: "current" | "new" = "new") => {
     const user = userEvent.setup();
+    const chooseDestination = screen.queryByRole("button", {
+      name: "Choose a destination"
+    });
+    if (chooseDestination) {
+      await user.click(chooseDestination);
+    }
     await user.click(
       await screen.findByRole("button", {
         name:
@@ -1149,7 +1162,7 @@ describe("NewProjectSurface", () => {
     // The click asks where the flow should live first — nothing is created
     // until the destination is picked.
     expect(
-      await screen.findByText("Start Script in…")
+      await screen.findByRole("button", { name: "Choose a destination" })
     ).toBeInTheDocument();
     expect(createProject).not.toHaveBeenCalled();
     await pickDestination();

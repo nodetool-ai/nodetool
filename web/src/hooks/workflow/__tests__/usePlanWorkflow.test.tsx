@@ -242,6 +242,93 @@ describe("planWorkflow", () => {
     expect(setup?.plan).toBeUndefined();
   });
 
+  it("drops an answer after the same-stage draft was resumed", async () => {
+    settings = writeWorkflowSetup({}, { stage: "category", brief: "old" });
+    let release: (value: unknown) => void = () => undefined;
+    rpcRequest.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      })
+    );
+    const { result, rerender } = renderHook(() => usePlanWorkflow("w1"));
+    let pending: Promise<string | null> = Promise.resolve(null);
+    await act(async () => {
+      pending = result.current.planWorkflow({ brief: "old", model: MODEL });
+    });
+
+    // The creator resumes the same stage with a newer draft. A stage-only guard
+    // would accept the old answer and replace this draft.
+    settings = writeWorkflowSetup(settings, {
+      stage: "category",
+      brief: "new"
+    });
+    rerender();
+
+    await act(async () => {
+      release(ANSWER);
+      expect(await pending).toBeNull();
+    });
+    expect(readWorkflowSetup(settings)?.brief).toBe("new");
+    expect(readWorkflowSetup(settings)?.plan).toBeUndefined();
+  });
+
+  it("keeps cancellation terminal until a deliberate retry", async () => {
+    settings = writeWorkflowSetup({}, { stage: "category", brief: "b" });
+    let release: (value: unknown) => void = () => undefined;
+    rpcRequest.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      })
+    );
+    const { result } = renderHook(() => usePlanWorkflow("w1"));
+    let pending: Promise<string | null> = Promise.resolve(null);
+    await act(async () => {
+      pending = result.current.planWorkflow({ brief: "b", model: MODEL });
+    });
+
+    act(() => result.current.cancelPlanning());
+    expect(result.current.planning).toBe(false);
+    expect(result.current.planningStatus).toBe("canceled");
+
+    await act(async () => {
+      release(ANSWER);
+      expect(await pending).toBeNull();
+    });
+    expect(readWorkflowSetup(settings)?.plan).toBeUndefined();
+
+    rpcRequest.mockResolvedValueOnce(ANSWER);
+    await act(async () => {
+      expect(
+        await result.current.planWorkflow({ brief: "b", model: MODEL })
+      ).toBeNull();
+    });
+    expect(readWorkflowSetup(settings)?.stage).toBe("review");
+  });
+
+  it("does not commit a planner reply after the setup hook is remounted", async () => {
+    settings = writeWorkflowSetup({}, { stage: "category", brief: "b" });
+    let release: (value: unknown) => void = () => undefined;
+    rpcRequest.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      })
+    );
+    const first = renderHook(() => usePlanWorkflow("w1"));
+    let pending: Promise<string | null> = Promise.resolve(null);
+    await act(async () => {
+      pending = first.result.current.planWorkflow({ brief: "b", model: MODEL });
+    });
+    first.unmount();
+
+    const resumed = renderHook(() => usePlanWorkflow("w1"));
+    await act(async () => {
+      release(ANSWER);
+      expect(await pending).toBeNull();
+    });
+    expect(resumed.result.current.planning).toBe(false);
+    expect(readWorkflowSetup(settings)?.plan).toBeUndefined();
+  });
+
   it("records what the stored plan answers, so an unchanged brief is not re-planned", async () => {
     rpcRequest.mockResolvedValueOnce(ANSWER);
     const { result } = renderHook(() => usePlanWorkflow("w1"));

@@ -61,7 +61,6 @@ export const useRecipeActions = (): RecipeActions => {
   const openStep = useCallback(
     async (slug: string, step: CopyableStep) => {
       if (busy) return;
-      useOnboardingStore.getState().markStep("keep-creating");
       setCopyingStep(`${slug}:${step.example}`);
       try {
         const created = await createWorkflow(
@@ -70,6 +69,7 @@ export const useRecipeActions = (): RecipeActions => {
           step.example
         );
         navigate(`/editor/${created.id}`);
+        useOnboardingStore.getState().markStep("keep-creating");
       } catch (error) {
         console.error("Error copying recipe step:", error);
       } finally {
@@ -82,7 +82,6 @@ export const useRecipeActions = (): RecipeActions => {
   const installApp = useCallback(
     async (appSlug: string) => {
       if (busy) return;
-      useOnboardingStore.getState().markStep("keep-creating");
       setInstallingApp(appSlug);
       try {
         // The install creates the app and every workflow it binds, so the
@@ -92,6 +91,7 @@ export const useRecipeActions = (): RecipeActions => {
         await queryClient.invalidateQueries({ queryKey: ["applications"] });
         await queryClient.invalidateQueries({ queryKey: ["workflows"] });
         openApplication(installed.id, installed.name);
+        useOnboardingStore.getState().markStep("keep-creating");
       } catch (error) {
         useNotificationStore.getState().addNotification({
           type: "error",
@@ -108,7 +108,6 @@ export const useRecipeActions = (): RecipeActions => {
   const addRecipe = useCallback(
     async (recipe: Recipe) => {
       if (busy) return;
-      useOnboardingStore.getState().markStep("keep-creating");
       setAddingSlug(recipe.slug);
       try {
         let firstId: string | null = null;
@@ -122,6 +121,7 @@ export const useRecipeActions = (): RecipeActions => {
         }
         if (firstId) {
           navigate(`/editor/${firstId}`);
+          useOnboardingStore.getState().markStep("keep-creating");
         }
       } catch (error) {
         console.error("Error adding recipe:", error);

@@ -13,7 +13,8 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { BaseProvider } from "@nodetool-ai/runtime";
+import type { ProcessingContext, ProviderId } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { Workflow, initTestDb } from "@nodetool-ai/models";
 import { readWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
@@ -56,8 +57,22 @@ const registry = {
 
 const context = { userId: "u1" } as unknown as ProcessingContext;
 
+class LocalLanguageProvider extends BaseProvider {
+  constructor() {
+    super("ollama" as ProviderId);
+  }
+}
+
 const run = () =>
   createCapabilityRun({ context, gate: UNGATED, nodeRegistry: registry });
+
+const runWithLanguageProvider = () =>
+  createCapabilityRun({
+    context,
+    gate: UNGATED,
+    nodeRegistry: registry,
+    providers: { ollama: new LocalLanguageProvider() }
+  });
 
 const PLAN = {
   inputs: [{ name: "text", type: "string", sample: "hello" }],
@@ -176,6 +191,42 @@ describe("plan_workflow", () => {
     expect(result.review.can_continue).toBe(false);
   });
 
+  it("marks a missing model role and does not treat absent providers as ready", async () => {
+    const workflow = await makeWorkflow();
+    const result = (await run().invoke("plan_workflow", {
+      workflow_id: workflow.id,
+      plan: {
+        ...PLAN,
+        steps: [{ ...PLAN.steps[0], model_role: "language" }]
+      }
+    })) as {
+      review: {
+        can_continue: boolean;
+        missing_roles: string[];
+        steps: { missing_provider: string | null }[];
+      };
+    };
+    expect(result.review).toMatchObject({
+      can_continue: false,
+      missing_roles: ["language"]
+    });
+    expect(result.review.steps[0].missing_provider).toBe("language");
+  });
+
+  it("accepts a local language provider for the same plan", async () => {
+    const workflow = await makeWorkflow();
+    const result = (await runWithLanguageProvider().invoke("plan_workflow", {
+      workflow_id: workflow.id,
+      plan: {
+        ...PLAN,
+        steps: [{ ...PLAN.steps[0], model_role: "language" }]
+      }
+    })) as { review: { can_continue: boolean; missing_roles: string[] } };
+    expect(result.review).toEqual(
+      expect.objectContaining({ can_continue: true, missing_roles: [] })
+    );
+  });
+
   it("refuses to plan a workflow with no brief and no supplied plan", async () => {
     const workflow = await makeWorkflow();
     const result = (await run().invoke("plan_workflow", {
@@ -272,6 +323,35 @@ describe("build_workflow_from_plan", () => {
     expect(stored.getGraph().nodes).toEqual([]);
   });
 
+  it("refuses to build when a required model role has no provider", async () => {
+    const workflow = await makeWorkflow();
+    await run().invoke("plan_workflow", {
+      workflow_id: workflow.id,
+      plan: {
+        ...PLAN,
+        steps: [{ ...PLAN.steps[0], model_role: "language" }]
+      }
+    });
+    const result = (await run().invoke("build_workflow_from_plan", {
+      workflow_id: workflow.id
+    })) as {
+      built: boolean;
+      submitted: boolean;
+      verified_result: boolean;
+      error?: string;
+      review: { missing_roles: string[] };
+    };
+    expect(result).toMatchObject({
+      built: false,
+      submitted: false,
+      verified_result: false,
+      review: { missing_roles: ["language"] }
+    });
+    expect(result.error).toContain("Missing provider roles: language");
+    const stored = (await Workflow.get(workflow.id)) as Workflow;
+    expect(stored.getGraph().nodes).toEqual([]);
+  });
+
   it("builds the chain, validates it, and writes the terminal stage", async () => {
     const workflow = await makeWorkflow();
     await run().invoke("plan_workflow", {
@@ -288,6 +368,11 @@ describe("build_workflow_from_plan", () => {
       validation: { ok?: boolean };
     };
     expect(result.saved).toBe(true);
+    expect(result).toMatchObject({
+      built: true,
+      submitted: true,
+      verified_result: false
+    });
     expect(result.issues).toEqual([]);
     expect(result.sample_inputs).toEqual({ text: "hello" });
     expect(result.graph.nodes.map((node) => node.id)).toEqual([

@@ -25,9 +25,15 @@ import {
 } from "../../../hooks/useRecommendedModelKeys";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useWorkflowManagerStore } from "../../../contexts/WorkflowManagerContext";
-import { useWorkflowSetupDocument } from "../../../hooks/workflow/useWorkflowSetup";
+import {
+  useWorkflowSetupDocument
+} from "../../../hooks/workflow/useWorkflowSetup";
 import { readWorkflowFile } from "../../../hooks/workflow/importWorkflowFile";
-import type { BuildFromPlanResult } from "../../../hooks/workflow/useBuildFromPlan";
+import {
+  readWorkflowBuild,
+  workflowBuildResult,
+  type BuildFromPlanResult
+} from "../../../hooks/workflow/useBuildFromPlan";
 import type { Workflow } from "../../../stores/ApiTypes";
 import { SetupFlow } from "../SetupFlow";
 import type { OptionCardItem } from "../OptionCardGrid";
@@ -229,6 +235,22 @@ const WorkflowSetupHost: React.FC<WorkflowSetupHostProps> = ({
     [store, workflowId]
   );
 
+  const setup = useWorkflowSetupDocument(workflowId);
+  const persistedBuild = readWorkflowBuild(setup);
+  const handleFinish = useCallback(
+    (result: BuildFromPlanResult | null) => {
+      // The build record lives on settings.setup because this host can be
+      // remounted after the setup flow has already returned. Prefer the
+      // in-memory result for the current build, but do not discard the saved
+      // explanation when the flow has been restored from the document.
+      onFinish(
+        result ??
+          (persistedBuild === null ? null : workflowBuildResult(persistedBuild))
+      );
+    },
+    [onFinish, persistedBuild]
+  );
+
   const config = useWorkflowSetupFlow({
     workflowId,
     defaultPlannerModel,
@@ -237,10 +259,10 @@ const WorkflowSetupHost: React.FC<WorkflowSetupHostProps> = ({
     chosenModel,
     onStartFromExample,
     onImport: handleImport,
-    onFinish
+    onFinish: handleFinish
   });
 
-  const brief = useWorkflowSetupDocument(workflowId)?.brief ?? "";
+  const brief = setup?.brief ?? "";
   const handleChangeFlow = useCallback(
     () => onChangeFlow?.(brief),
     [brief, onChangeFlow]

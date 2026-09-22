@@ -8,13 +8,14 @@
  * is no second button to press. Cancel only closes.
  */
 
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 
 import {
   BORDER_RADIUS,
   Box,
   Caption,
   Dialog,
+  EditorButton,
   FlexColumn,
   SPACING,
   Text
@@ -28,6 +29,8 @@ export interface GuidedFlowProjectDialogProps {
   currentProjectName: string;
   /** A pick is in flight — both rows go quiet until it lands. */
   busy?: boolean;
+  /** Offer a one-click new-project start before showing organization choices. */
+  quickStart?: boolean;
   onPick: (destination: "current" | "new") => void;
   onClose: () => void;
 }
@@ -80,33 +83,67 @@ const GuidedFlowProjectDialogInternal = ({
   flowTitle,
   currentProjectName,
   busy = false,
+  quickStart = false,
   onPick,
   onClose
-}: GuidedFlowProjectDialogProps) => (
-  <Dialog
-    open={open}
-    onClose={onClose}
-    title={`Start ${flowTitle} in…`}
-    minWidth="min(360px, calc(100vw - 32px))"
-  >
-    <FlexColumn gap={SPACING.sm} sx={{ pt: SPACING.sm }}>
-      <DestinationRow
-        label="Current project"
-        secondary={currentProjectName}
-        ariaLabel={`Start in current project, ${currentProjectName}`}
-        disabled={busy}
-        onPick={() => onPick("current")}
-      />
-      <DestinationRow
-        label="New project"
-        secondary={`Create a project for this ${flowTitle.toLowerCase()}`}
-        ariaLabel="Start in a new project"
-        disabled={busy}
-        onPick={() => onPick("new")}
-      />
-    </FlexColumn>
-  </Dialog>
-);
+}: GuidedFlowProjectDialogProps) => {
+  const [showDestinations, setShowDestinations] = useState(!quickStart);
+
+  useEffect(() => {
+    if (open) {
+      setShowDestinations(!quickStart);
+    }
+  }, [open, quickStart]);
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={showDestinations ? `Start ${flowTitle} in…` : `Start ${flowTitle}`}
+      minWidth="min(360px, calc(100vw - 32px))"
+    >
+      {showDestinations ? (
+        <FlexColumn gap={SPACING.sm} sx={{ pt: SPACING.sm }}>
+          <DestinationRow
+            label="Current project"
+            secondary={currentProjectName}
+            ariaLabel={`Start in current project, ${currentProjectName}`}
+            disabled={busy}
+            onPick={() => onPick("current")}
+          />
+          <DestinationRow
+            label="New project"
+            secondary={`Create a project for this ${flowTitle.toLowerCase()}`}
+            ariaLabel="Start in a new project"
+            disabled={busy}
+            onPick={() => onPick("new")}
+          />
+        </FlexColumn>
+      ) : (
+        <FlexColumn gap={SPACING.md} sx={{ pt: SPACING.sm }}>
+          <Caption color="secondary">
+            We&apos;ll put this in a new project so you can start creating now.
+            You can choose a different destination if you need one.
+          </Caption>
+          <EditorButton
+            variant="contained"
+            onClick={() => onPick("new")}
+            disabled={busy}
+          >
+            Start in a new project
+          </EditorButton>
+          <EditorButton
+            variant="text"
+            onClick={() => setShowDestinations(true)}
+            disabled={busy}
+          >
+            Choose a destination
+          </EditorButton>
+        </FlexColumn>
+      )}
+    </Dialog>
+  );
+};
 
 export const GuidedFlowProjectDialog = memo(GuidedFlowProjectDialogInternal);
 GuidedFlowProjectDialog.displayName = "GuidedFlowProjectDialog";

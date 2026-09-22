@@ -382,6 +382,52 @@ describe("SetupFlow", () => {
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
   });
 
+  it("shows cancellation as terminal and requires an explicit retry", async () => {
+    const user = userEvent.setup();
+    let resolveCurrent: () => void = () => undefined;
+    const onAdvance = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveCurrent = resolve;
+        })
+    );
+    const onCancel = jest.fn();
+    const cancellable = steps.map((entry) =>
+      entry.stage === "genre"
+        ? { ...entry, onAdvance, onCancel }
+        : entry
+    );
+    const { onStageChange } = renderFlow({
+      stage: "genre",
+      steps: cancellable
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "Review your screenplay" })
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("heading", { name: "This step was canceled" })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("draft is unchanged");
+    expect(screen.getByRole("button", { name: "Retry" })).toBeDisabled();
+
+    // The canceled request may still resolve, but it cannot advance the draft.
+    resolveCurrent();
+    await waitFor(() => expect(onStageChange).not.toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled()
+    );
+
+    // Only the deliberate retry can start another operation.
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onAdvance).toHaveBeenCalledTimes(2);
+    resolveCurrent();
+    await waitFor(() => expect(onStageChange).toHaveBeenCalledWith("review"));
+  });
+
   it("names the wait generically when a step gives no label", () => {
     const waiting = steps.map((entry) =>
       entry.stage === "idea" ? { ...entry, pending: true } : entry

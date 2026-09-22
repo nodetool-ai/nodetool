@@ -918,8 +918,9 @@ const exportWorkflowDigraph: CapabilityExport = {
 //  - `plan_workflow` places no node (criterion 3). It writes text and nothing
 //    else.
 //  - `build_workflow_from_plan` refuses a plan that still names an unknown node
-//    type (D23), and reports the wiring it could not do rather than reporting a
-//    graph that validates and produces nothing (R6).
+//    type or an unavailable model role (D23), and reports the wiring it could
+//    not do rather than reporting a graph that validates and produces nothing
+//    (R6).
 
 /** How many candidate node types the planner prompt lists. */
 const CANDIDATE_LIMIT = 60;
@@ -1299,6 +1300,9 @@ const buildWorkflowFromPlan: CapabilityExport = {
     const registry = run.nodeRegistry;
     if (!registry) {
       return {
+        built: false,
+        submitted: false,
+        verified_result: false,
         error:
           "Cannot build: no node registry is available in this process, so no node type could be resolved."
       };
@@ -1309,11 +1313,27 @@ const buildWorkflowFromPlan: CapabilityExport = {
     const unknown = resolved.steps.filter((entry) => entry.unknownNodeType);
     if (unknown.length > 0) {
       return {
+        built: false,
+        submitted: false,
+        verified_result: false,
         error:
           "Every step must name a node type the registry has before the graph is built. " +
           `Unresolved: ${unknown
             .map((entry) => `${entry.step.id} (${entry.step.node_type ?? "no type"})`)
             .join(", ")}. Fix them with update_workflow_plan_step.`,
+        review: reviewReport(resolved)
+      };
+    }
+
+    if (resolved.missingRoles.length > 0) {
+      return {
+        built: false,
+        submitted: false,
+        verified_result: false,
+        error:
+          "Cannot build until every model role is available in this install. " +
+          `Missing provider roles: ${resolved.missingRoles.join(", ")}. ` +
+          "Configure a provider or choose a different model role.",
         review: reviewReport(resolved)
       };
     }
@@ -1336,6 +1356,9 @@ const buildWorkflowFromPlan: CapabilityExport = {
 
     return {
       workflow_id: id,
+      built: true,
+      submitted: savedRow !== null,
+      verified_result: false,
       saved: savedRow !== null,
       stage: save ? "done" : owned.setup?.stage ?? "setup",
       graph,

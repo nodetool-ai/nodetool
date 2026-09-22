@@ -109,7 +109,10 @@ jest.mock("../../../stores/MetadataStore", () => ({
   __esModule: true,
   default: Object.assign(
     (selector: (state: unknown) => unknown) => selector({ metadata: {} }),
-    { subscribe: jest.fn(() => jest.fn()) }
+    {
+      getState: () => ({ metadata: {} }),
+      subscribe: jest.fn(() => jest.fn())
+    }
   )
 }));
 jest.mock("../../../hooks/workflow/usePlanWorkflow", () => ({
@@ -124,7 +127,9 @@ jest.mock("../../../hooks/workflow/useBuildFromPlan", () => ({
     buildFromPlan: jest.fn(),
     building: false,
     result: null
-  })
+  }),
+  readWorkflowBuild: () => null,
+  workflowBuildResult: jest.fn()
 }));
 jest.mock("../../../serverState/useEntities", () => ({
   useEntities: () => ({ data: [] })

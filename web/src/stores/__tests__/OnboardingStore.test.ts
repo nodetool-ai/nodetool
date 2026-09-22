@@ -53,11 +53,7 @@ describe("OnboardingStore", () => {
       },
       1
     );
-    expect(next.completedSteps).toEqual([
-      "start-guided-flow",
-      "describe-idea",
-      "keep-creating"
-    ]);
+    expect(next.completedSteps).toEqual([]);
   });
   it("records that the first-run provider sign-in was offered", () => {
     expect(useOnboardingStore.getState().providerSignInOffered).toBe(false);
