@@ -36,6 +36,7 @@ export interface ClipErrorState {
 // | errorState has clip-relevant error                    | "failed"      |
 // | clip.currentAssetId set, asset missing in AssetStore  | "missing"     |
 // | sourceType == "generated" && !currentAssetId          | "draft"       |
+// | clip.status == "stale"                               | "stale"       |
 // | dependencyHash != lastGeneratedHash                   | "stale"       |
 // | default                                               | "generated"   |
 
@@ -100,7 +101,14 @@ export function deriveClipStatus(
     return "draft";
   }
 
-  // 6. Param or dependency change since last successful generation.
+  // 6. An explicit stale lifecycle state is authoritative even when legacy
+  // clips have no hashes or a prompt edit has not changed them. Failed,
+  // missing, and in-flight states retain the higher precedence above.
+  if (clip.status === "stale") {
+    return "stale";
+  }
+
+  // 7. Param or dependency change since last successful generation.
   if (
     clip.dependencyHash !== undefined &&
     clip.lastGeneratedHash !== undefined &&
@@ -109,6 +117,6 @@ export function deriveClipStatus(
     return "stale";
   }
 
-  // 7. Default: clip has been successfully generated and is up to date.
+  // 8. Default: clip has been successfully generated and is up to date.
   return "generated";
 }

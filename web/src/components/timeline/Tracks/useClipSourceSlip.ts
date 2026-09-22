@@ -1,10 +1,10 @@
 /**
- * Horizontal two-finger slip editing for media clips.
+ * Alt+horizontal wheel slip editing for media clips.
  *
- * A swipe over a video or audio clip moves its source window without moving
- * the clip in the sequence. The same source-rate conversion used by trimming
- * keeps the gesture visually consistent for clips playing faster or slower
- * than real time.
+ * An Alt+horizontal wheel gesture over a video or audio clip moves its source
+ * window without moving the clip in the sequence. The same source-rate
+ * conversion used by trimming keeps the gesture visually consistent for clips
+ * playing faster or slower than real time.
  */
 
 import { useCallback, useEffect, useRef } from "react";
@@ -58,8 +58,9 @@ interface UseClipSourceSlipOptions {
 }
 
 /**
- * Binds a non-passive wheel listener to the clip body. It handles a
- * horizontal two-finger swipe before the timeline's scroll listener sees it.
+ * Binds a non-passive wheel listener to the clip body. It handles an explicit
+ * Alt+horizontal wheel gesture before the timeline's scroll listener sees it.
+ * An unmodified horizontal swipe remains timeline navigation.
  */
 export function useClipSourceSlip({
   clip,
@@ -99,9 +100,11 @@ export function useClipSourceSlip({
     }
 
     const onWheel = (event: WheelEvent) => {
-      // Leave pinch-to-zoom, Shift+wheel, and vertical scrolling to the
-      // timeline. A horizontal touchpad gesture has deltaX dominance.
+      // Leave ordinary panning, pinch-to-zoom, Shift+wheel, and vertical
+      // scrolling to the timeline. Alt makes a horizontal gesture an explicit
+      // source-window edit instead of navigation.
       if (
+        !event.altKey ||
         event.ctrlKey ||
         event.metaKey ||
         event.shiftKey ||

@@ -19,10 +19,12 @@ import {
 } from "../useTimelineAutosave";
 import { trpcClient } from "../../../__mocks__/trpcClientMock";
 import { useNotificationStore } from "../../../stores/NotificationStore";
+import { useConflictStore } from "../../../stores/ConflictStore";
 import { useDirectGenPendingStore } from "../directGenPending";
 import { landMediaEdit } from "../useTimelineDirectGenJob";
 
 const updateMutate = asMock(trpcClient.timeline.update.mutate);
+const getQuery = asMock(trpcClient.timeline.get.query);
 
 const seedSequence = (id = "seq-1") => {
   useTimelineStore.getState().loadSequence({
@@ -44,6 +46,7 @@ const seedSequence = (id = "seq-1") => {
 describe("useTimelineAutosave", () => {
   beforeEach(() => {
     updateMutate.mockReset();
+    getQuery.mockReset();
     (updateMutate as any).mockResolvedValue({
       id: "seq-1",
       projectId: "proj-1",
@@ -65,6 +68,7 @@ describe("useTimelineAutosave", () => {
       editSettlements: {}
     });
     useNotificationStore.setState({ notifications: [] });
+    useConflictStore.setState({ byKey: {} });
     jest.useFakeTimers();
   });
 
@@ -135,14 +139,10 @@ describe("useTimelineAutosave", () => {
       bucket: "video_edit:edit-model",
       mediaEdit: request
     });
-    landMediaEdit(
-      useTimelineStore,
-      "clip-1",
-      requestId,
-      "seq-1",
-      request,
-      { assetIds: ["asset-candidate"], errored: false }
-    );
+    landMediaEdit(useTimelineStore, "clip-1", requestId, "seq-1", request, {
+      assetIds: ["asset-candidate"],
+      errored: false
+    });
     expect(
       useDirectGenPendingStore.getState().editSettlements[requestId]
         ?.acknowledgedAt
@@ -549,6 +549,153 @@ describe("useTimelineAutosave", () => {
         true
       );
     });
+  });
+
+  it("merges an external clip before retrying a CAS-conflicted local trim", async () => {
+    const baseClip = makeClip({
+      id: "clip-local",
+      trackId: "track-1",
+      mediaType: "video",
+      sourceType: "imported",
+      durationMs: 4_000
+    });
+    const externalClip = makeClip({
+      id: "clip-external",
+      trackId: "track-1",
+      mediaType: "text",
+      sourceType: "generated",
+      startMs: 4_000,
+      durationMs: 1_000
+    });
+    const sequence = {
+      id: "seq-1",
+      projectId: "proj-1",
+      name: "Seq",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      durationMs: 4_000,
+      tracks: [makeTrack({ id: "track-1", type: "video" })],
+      clips: [baseClip],
+      markers: [],
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z"
+    } satisfies TimelineSequence;
+    useTimelineStore.getState().loadSequence(sequence);
+    updateMutate
+      .mockRejectedValueOnce(new Error("Timeline was modified since last read"))
+      .mockResolvedValueOnce({ updatedAt: "2026-01-01T00:00:02Z" });
+    getQuery.mockResolvedValue({
+      ...sequence,
+      clips: [baseClip, externalClip],
+      durationMs: 5_000,
+      updatedAt: "2026-01-01T00:00:01Z"
+    });
+    renderHook(() => useTimelineAutosave({ debounceMs: 50 }));
+
+    act(() => {
+      useTimelineStore
+        .getState()
+        .patchClip("clip-local", { durationMs: 2_000 });
+      jest.advanceTimersByTime(60);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(useTimelineStore.getState().clips.map((clip) => clip.id)).toEqual([
+        "clip-local",
+        "clip-external"
+      ])
+    );
+
+    act(() => {
+      jest.advanceTimersByTime(60);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(2));
+
+    const retry = updateMutate.mock.calls[1][0] as {
+      baseUpdatedAt?: string;
+      document: { clips: TimelineSequence["clips"] };
+    };
+    expect(retry.baseUpdatedAt).toBe("2026-01-01T00:00:01Z");
+    expect(retry.document.clips.map((clip) => clip.id)).toEqual([
+      "clip-local",
+      "clip-external"
+    ]);
+    expect(
+      retry.document.clips.find((clip) => clip.id === "clip-local")?.durationMs
+    ).toBe(2_000);
+
+    act(() => {
+      getTimelineTemporal().undo();
+    });
+    expect(useTimelineStore.getState().clips.map((clip) => clip.id)).toEqual([
+      "clip-local",
+      "clip-external"
+    ]);
+    expect(
+      useTimelineStore.getState().clips.find((clip) => clip.id === "clip-local")
+        ?.durationMs
+    ).toBe(4_000);
+  });
+
+  it("offers a same-clip CAS conflict for explicit resolution", async () => {
+    const track = makeTrack({ id: "track-1", type: "video" });
+    const baseClip = makeClip({
+      id: "clip-1",
+      trackId: track.id,
+      mediaType: "video",
+      sourceType: "imported",
+      currentAssetId: "asset-base",
+      durationMs: 4_000
+    });
+    const sequence = {
+      id: "seq-1",
+      projectId: "proj-1",
+      name: "Seq",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      durationMs: 4_000,
+      tracks: [track],
+      clips: [baseClip],
+      markers: [],
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z"
+    } satisfies TimelineSequence;
+    useTimelineStore.getState().loadSequence(sequence);
+    updateMutate.mockRejectedValueOnce(
+      new Error("Timeline was modified since last read")
+    );
+    getQuery.mockResolvedValue({
+      ...sequence,
+      clips: [{ ...baseClip, currentAssetId: "asset-external" }],
+      updatedAt: "2026-01-01T00:00:01Z"
+    });
+    renderHook(() => useTimelineAutosave({ debounceMs: 50 }));
+
+    act(() => {
+      useTimelineStore.getState().patchClip(baseClip.id, { durationMs: 2_000 });
+      jest.advanceTimersByTime(60);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+    await waitFor(() => {
+      const conflicts =
+        useConflictStore.getState().byKey["timelinesequence:seq-1"]
+          ?.conflicts ?? [];
+      expect(conflicts.map((conflict) => conflict.unit.id)).toEqual([
+        baseClip.id
+      ]);
+    });
+
+    expect(useTimelineStore.getState().clips[0]?.currentAssetId).toBe(
+      "asset-base"
+    );
+    act(() => {
+      useConflictStore.getState().accept("timelinesequence:seq-1", baseClip.id);
+    });
+    expect(useTimelineStore.getState().clips[0]?.currentAssetId).toBe(
+      "asset-external"
+    );
   });
 
   it("defers the flush while a gesture batch is open, then saves once it ends", async () => {

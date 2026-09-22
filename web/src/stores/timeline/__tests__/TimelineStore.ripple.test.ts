@@ -60,6 +60,16 @@ describe("ripple trims", () => {
     expect(clip(c.id).startMs).toBe(1700);
   });
 
+  it("leaves a downstream clip-locked clip alone", () => {
+    const { store, a, b, c, clip } = storeWithCut();
+    store.getState().patchClip(c.id, { locked: true });
+
+    store.getState().rippleTrimClipEnd(a.id, -300);
+
+    expect(clip(b.id).startMs).toBe(700);
+    expect(clip(c.id).startMs).toBe(2000);
+  });
+
   it("an invalid trim is a no-op", () => {
     const { store, a, b, clip } = storeWithCut();
     store.getState().rippleTrimClipEnd(a.id, -1000);
@@ -87,6 +97,18 @@ describe("rollClipEdge", () => {
 });
 
 describe("rippleDeleteSelected", () => {
+  it("does not shift a clip-locked survivor", () => {
+    const { store, a, b, clip } = storeWithCut();
+    store.getState().patchClip(b.id, { locked: true });
+
+    store.getState().rippleDeleteSelected(new Set([a.id, b.id]));
+
+    expect(
+      store.getState().clips.find((item) => item.id === a.id)
+    ).toBeUndefined();
+    expect(clip(b.id).startMs).toBe(1000);
+  });
+
   it("removes the clips and closes their span in one undo step", () => {
     const { store, b, c, vo, clip } = storeWithCut();
     const before = store.getState().clips;
@@ -220,7 +242,10 @@ describe("transitions on the cut", () => {
     const { store, a, b, clip } = storeWithCut();
     store.getState().applyDefaultTransition(new Set([b.id]), 400);
     expect(clip(a.id).durationMs).toBe(1400);
-    expect(clip(b.id).transitionIn).toEqual({ type: "crossfade", durationMs: 400 });
+    expect(clip(b.id).transitionIn).toEqual({
+      type: "crossfade",
+      durationMs: 400
+    });
   });
 
   it("setTransitionDuration grows the window and removeTransition drops it", () => {

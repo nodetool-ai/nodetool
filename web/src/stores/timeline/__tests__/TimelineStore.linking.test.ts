@@ -39,7 +39,9 @@ describe("getOrCreateAudioTrack", () => {
     const id = store.getState().getOrCreateAudioTrack();
     const track = store.getState().tracks.find((t) => t.id === id);
     expect(track?.type).toBe("audio");
-    expect(store.getState().tracks.filter((t) => t.type === "audio")).toHaveLength(1);
+    expect(
+      store.getState().tracks.filter((t) => t.type === "audio")
+    ).toHaveLength(1);
   });
 
   it("reuses the existing audio track", () => {
@@ -47,7 +49,9 @@ describe("getOrCreateAudioTrack", () => {
     store.getState().addTrack("audio", "Audio 1");
     const existingId = store.getState().tracks[0].id;
     expect(store.getState().getOrCreateAudioTrack()).toBe(existingId);
-    expect(store.getState().tracks.filter((t) => t.type === "audio")).toHaveLength(1);
+    expect(
+      store.getState().tracks.filter((t) => t.type === "audio")
+    ).toHaveLength(1);
   });
 
   it("reuses the audio track when the drop range is free", () => {
@@ -110,7 +114,9 @@ describe("getOrCreateAudioTrack", () => {
       })
     ]);
     expect(
-      store.getState().getOrCreateAudioTrack({ startMs: 1000, durationMs: 3000 })
+      store
+        .getState()
+        .getOrCreateAudioTrack({ startMs: 1000, durationMs: 3000 })
     ).toBe(second.id);
     expect(
       store.getState().tracks.filter((t) => t.type === "audio")
@@ -121,7 +127,9 @@ describe("getOrCreateAudioTrack", () => {
 describe("linked move/trim/delete/unlink", () => {
   it("moveClip moves linked siblings by the same delta", () => {
     const { store, videoId, audioId } = storeWithLinkedPair();
-    store.getState().moveClip(videoId, 500, undefined, undefined, undefined, true);
+    store
+      .getState()
+      .moveClip(videoId, 500, undefined, undefined, undefined, true);
     const clips = store.getState().clips;
     expect(clips.find((c) => c.id === videoId)?.startMs).toBe(1500);
     expect(clips.find((c) => c.id === audioId)?.startMs).toBe(1500);
@@ -130,7 +138,9 @@ describe("linked move/trim/delete/unlink", () => {
   it("moveClip never reassigns the sibling's track", () => {
     const { store, videoId, audioId, audioTrackId } = storeWithLinkedPair();
     const videoTrackId = store.getState().tracks[0].id;
-    store.getState().moveClip(videoId, 0, videoTrackId, undefined, undefined, true);
+    store
+      .getState()
+      .moveClip(videoId, 0, videoTrackId, undefined, undefined, true);
     expect(store.getState().clips.find((c) => c.id === audioId)?.trackId).toBe(
       audioTrackId
     );
@@ -182,7 +192,15 @@ describe("moveSelectedClips link-aware (FIX 1)", () => {
     const selected = new Set([videoId, other.id]);
     store
       .getState()
-      .moveSelectedClips(videoId, selected, 500, undefined, undefined, undefined, true);
+      .moveSelectedClips(
+        videoId,
+        selected,
+        500,
+        undefined,
+        undefined,
+        undefined,
+        true
+      );
 
     const clips = store.getState().clips;
     expect(clips.find((c) => c.id === videoId)?.startMs).toBe(1500);
@@ -196,7 +214,15 @@ describe("moveSelectedClips link-aware (FIX 1)", () => {
     const selected = new Set([videoId]);
     store
       .getState()
-      .moveSelectedClips(videoId, selected, 250, undefined, undefined, undefined, true);
+      .moveSelectedClips(
+        videoId,
+        selected,
+        250,
+        undefined,
+        undefined,
+        undefined,
+        true
+      );
 
     const clips = store.getState().clips;
     expect(clips.find((c) => c.id === videoId)?.startMs).toBe(1250);
@@ -208,11 +234,33 @@ describe("moveSelectedClips link-aware (FIX 1)", () => {
     const selected = new Set([videoId, audioId]);
     store
       .getState()
-      .moveSelectedClips(videoId, selected, 300, undefined, undefined, undefined, true);
+      .moveSelectedClips(
+        videoId,
+        selected,
+        300,
+        undefined,
+        undefined,
+        undefined,
+        true
+      );
 
     const clips = store.getState().clips;
     expect(clips.find((c) => c.id === videoId)?.startMs).toBe(1300);
     expect(clips.find((c) => c.id === audioId)?.startMs).toBe(1300);
+  });
+
+  it("refuses a move when an indirectly affected linked sibling is locked", () => {
+    const { store, videoId, audioId } = storeWithLinkedPair();
+    store.getState().setClipLocked(audioId, true);
+
+    store.getState().moveSelectedClips(videoId, new Set([videoId]), 500);
+
+    expect(store.getState().clips.find((c) => c.id === videoId)?.startMs).toBe(
+      1000
+    );
+    expect(store.getState().clips.find((c) => c.id === audioId)?.startMs).toBe(
+      1000
+    );
   });
 });
 
@@ -224,12 +272,29 @@ describe("deleteSelected link-aware (FIX 2)", () => {
     expect(clips.find((c) => c.id === videoId)).toBeUndefined();
     expect(clips.find((c) => c.id === audioId)?.linkId).toBeUndefined();
   });
+
+  it("refuses deletion when it would unlink a locked sibling", () => {
+    const { store, videoId, audioId } = storeWithLinkedPair();
+    store.getState().setClipLocked(audioId, true);
+
+    store.getState().deleteSelected(new Set([videoId]));
+
+    expect(store.getState().clips).toHaveLength(2);
+    expect(store.getState().clips.find((c) => c.id === videoId)?.linkId).toBe(
+      "lnk-1"
+    );
+    expect(store.getState().clips.find((c) => c.id === audioId)?.linkId).toBe(
+      "lnk-1"
+    );
+  });
 });
 
 describe("duplicate remaps linkId (FIX 3)", () => {
   it("duplicateSelected gives both copies a NEW shared linkId, distinct from originals", () => {
     const { store, videoId, audioId } = storeWithLinkedPair();
-    const newIds = store.getState().duplicateSelected(new Set([videoId, audioId]));
+    const newIds = store
+      .getState()
+      .duplicateSelected(new Set([videoId, audioId]));
     expect(newIds).toHaveLength(2);
     const clips = store.getState().clips;
     const copies = newIds.map((id) => clips.find((c) => c.id === id)!);
@@ -303,9 +368,7 @@ describe("split link-aware (FIX 4)", () => {
 
   it("splitSelectedAtPlayhead splits a linked sibling once (no double split)", () => {
     const { store, videoId, audioId } = storeWithLinkedPair();
-    store
-      .getState()
-      .splitSelectedAtPlayhead(3000, new Set([videoId, audioId]));
+    store.getState().splitSelectedAtPlayhead(3000, new Set([videoId, audioId]));
     const clips = store.getState().clips;
     expect(clips).toHaveLength(4);
     const leftVideo = clips.find(
@@ -319,6 +382,15 @@ describe("split link-aware (FIX 4)", () => {
       (c) => c.mediaType === "video" && c.startMs === 3000
     )!;
     expect(rightVideo.linkId).not.toBe(leftVideo.linkId);
+  });
+
+  it("refuses a split when an indirectly affected linked track is locked", () => {
+    const { store, videoId, audioTrackId } = storeWithLinkedPair();
+    store.getState().setTrackLocked(audioTrackId, true);
+
+    store.getState().splitSelectedAtPlayhead(3000, new Set([videoId]));
+
+    expect(store.getState().clips).toHaveLength(2);
   });
 });
 

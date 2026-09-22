@@ -22,6 +22,8 @@ import type { TimelineClip } from "./types.js";
 export interface RippleOptions {
   /** Tracks whose clips never move. */
   lockedTrackIds?: ReadonlySet<string>;
+  /** Clips whose edit unit is locked and must never move. */
+  lockedClipIds?: ReadonlySet<string>;
   /** Linked siblings follow the edited clip (default). Off, only it moves. */
   followLinks?: boolean;
 }
@@ -58,8 +60,15 @@ export function shiftClipsFrom(
 ): TimelineClip[] {
   if (deltaMs === 0) return [...clips];
   const locked = options.lockedTrackIds;
+  const lockedClips = options.lockedClipIds;
   return clips.map((c) => {
-    if (excludeIds.has(c.id) || locked?.has(c.trackId)) return c;
+    if (
+      excludeIds.has(c.id) ||
+      locked?.has(c.trackId) ||
+      lockedClips?.has(c.id)
+    ) {
+      return c;
+    }
     if (c.startMs < fromMs) return c;
     return { ...c, startMs: Math.max(0, c.startMs + deltaMs) };
   });
@@ -94,7 +103,10 @@ export function rippleTrim(
       deltaMs,
       c.id === clipId ? options.maxSourceDurationMs : undefined
     );
-    trimmed.set(c.id, edge === "start" ? { ...next, startMs: c.startMs } : next);
+    trimmed.set(
+      c.id,
+      edge === "start" ? { ...next, startMs: c.startMs } : next
+    );
   }
 
   const applied = trimmed.get(clipId)!.durationMs - clip.durationMs;
@@ -138,7 +150,8 @@ export function rollEdit(
   const clip = clips.find((c) => c.id === clipId);
   if (!clip) throw new Error(`rollEdit: clip ${clipId} not found`);
   const neighbour = findRollNeighbour(clips, clip, edge);
-  if (!neighbour) throw new Error("rollEdit: no clip on the other side of the cut");
+  if (!neighbour)
+    throw new Error("rollEdit: no clip on the other side of the cut");
 
   const left = edge === "end" ? clip : neighbour;
   const right = edge === "end" ? neighbour : clip;
