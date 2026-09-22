@@ -64,14 +64,21 @@ import ShotTakesGallery from "./ShotTakesGallery";
 import ShotScriptPanel from "./ShotScriptPanel";
 import ShotCostLine from "./ShotCostLine";
 import {
+  changedDraftKeys,
+  conflictingDraftKeys,
   draftFromShot,
-  hasShotFieldChanges,
   isDraftDirty,
   savedShot,
+  shotPatchFromChangedDraft,
   shotPatchFromDraft,
-  type ShotDraft
+  withCurrentDraftFields,
+  type ShotDraft,
+  type ShotDraftKey
 } from "./shotDraft";
-import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import {
+  useStoryboardStore,
+  type ShotDraftCommit
+} from "../../stores/storyboard/StoryboardStore";
 import { entitiesForShot } from "../../stores/storyboard/shotEntities";
 import { displayNumber, sceneOrder } from "../../lib/storyboard/sceneOrder";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
@@ -101,6 +108,9 @@ interface ShotEditPanelProps {
   readOnly?: boolean;
   /** Opens the board's settings form, where the aspect ratio lives. */
   onOpenBoardSettings?: () => void;
+  /** A board-level transition that must pass through this panel's draft guard. */
+  leaveRequest?: { id: number; shotId?: string } | null;
+  onLeaveRequestComplete?: (result: "saved" | "discarded" | "cancelled") => void;
 }
 
 const EMPTY_IDS: string[] = [];
@@ -125,8 +135,29 @@ const columnsSx = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 2fr) minmax(14rem, 1fr)",
   gap: SPACING.xl,
-  minHeight: "22rem"
+  minHeight: "22rem",
+  "@container (max-width: 44rem)": {
+    gridTemplateColumns: "minmax(0, 1fr)",
+    minHeight: 0
+  }
 } as const;
+
+const DRAFT_LABELS: Record<ShotDraftKey, string> = {
+  slug: "Shot title",
+  sceneId: "Slugline",
+  lighting: "Scene lighting",
+  action: "Description",
+  dialogue: "Dialogue",
+  durationSeconds: "Estimated running time",
+  durationSource: "Duration source",
+  framing: "Size",
+  angle: "Perspective",
+  movement: "Movement",
+  equipment: "Equipment",
+  lens: "Focal length",
+  notes: "Notes",
+  renderMode: "Render mode"
+};
 
 const shotNumberSx = {
   ...TYPOGRAPHY.mono.caption,
@@ -141,11 +172,19 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   onShotChange,
   focusDialogue,
   readOnly,
-  onOpenBoardSettings
+  onOpenBoardSettings,
+  leaveRequest,
+  onLeaveRequestComplete
 }) => {
   // What the panel is waiting on an answer for: a close, or a step to another
   // shot. Null while there is nothing pending.
-  const [pending, setPending] = useState<{ shotId?: string } | null>(null);
+  const [pending, setPending] = useState<{
+    shotId?: string;
+    requestId?: number;
+    imageEditor?: boolean;
+  } | null>(null);
+  const [saveConflicts, setSaveConflicts] = useState<ShotDraftKey[]>([]);
+  const imageLeaveResolver = useRef<((allowed: boolean) => void) | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
   const shots = useStoryboardStore(
@@ -163,9 +202,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   const boardEntityIds = useStoryboardStore(
     (state) => state.boards[boardId]?.entityIds ?? EMPTY_IDS
   );
-  const updateShot = useStoryboardStore((state) => state.updateShot);
-  const updateScene = useStoryboardStore((state) => state.updateScene);
-  const moveShot = useStoryboardStore((state) => state.moveShot);
+  const applyShotDraft = useStoryboardStore((state) => state.applyShotDraft);
   const nudgeShot = useStoryboardStore((state) => state.nudgeShot);
   const toggleShotEntity = useStoryboardStore(
     (state) => state.toggleShotEntity
@@ -200,8 +237,15 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
 
   const linksLines =
     !!scriptId && (shot?.script_line_ids?.length ?? 0) > 0;
-  const duration = useShotDuration(boardId, shot ?? PLACEHOLDER_SHOT);
-  const costEstimate = useShotCostEstimate(boardId, shot ?? PLACEHOLDER_SHOT);
+  const previewShot = useMemo(
+    () =>
+      shot && draft
+        ? savedShot(shot, shotPatchFromDraft(draft))
+        : (shot ?? PLACEHOLDER_SHOT),
+    [draft, shot]
+  );
+  const duration = useShotDuration(boardId, previewShot);
+  const costEstimate = useShotCostEstimate(boardId, previewShot);
   const scriptLines = useBoardScriptLines(boardId);
 
   const { boardEntities, appliedIds } = useMemo(() => {
@@ -261,31 +305,44 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
    * the shot as saved, so `Regenerate` renders those values and not the props'
    * stale copy.
    */
-  const commit = useCallback((): Shot | null => {
+  const commit = useCallback((resolution?: "mine" | "current"): Shot | null => {
     if (!shot || !draft || !original || readOnly) {
       return shot ?? null;
     }
-    if (draft.sceneId !== original.sceneId) {
-      // To the end of the chosen scene; `moveShot` clamps the position.
-      moveShot(boardId, shot.id, draft.sceneId, Number.MAX_SAFE_INTEGER);
+    const current = draftFromShot(shot, scene);
+    const conflicts = conflictingDraftKeys(draft, original, current);
+    if (conflicts.length > 0 && resolution === undefined) {
+      setSaveConflicts(conflicts);
+      return null;
     }
-    if (draft.lighting !== original.lighting && draft.sceneId) {
-      updateScene(boardId, draft.sceneId, { lighting: draft.lighting.trim() });
+    const resolvedDraft =
+      resolution === "current"
+        ? withCurrentDraftFields(draft, current, conflicts)
+        : draft;
+    const changed = changedDraftKeys(resolvedDraft, original);
+    const patch = shotPatchFromChangedDraft(resolvedDraft, original, shot);
+    const commit: ShotDraftCommit = {
+      shot: patch,
+      sceneId: changed.includes("sceneId")
+        ? resolvedDraft.sceneId
+        : current.sceneId
+    };
+    if (changed.includes("lighting")) {
+      commit.lighting = resolvedDraft.lighting.trim();
     }
-    const patch = shotPatchFromDraft(draft);
-    if (hasShotFieldChanges(draft, original)) {
-      updateShot(boardId, shot.id, patch);
-    }
-    setOriginal(draft);
+    applyShotDraft(boardId, shot.id, commit);
+    const mergedDraft = withCurrentDraftFields(current, resolvedDraft, changed);
+    setDraft(mergedDraft);
+    setOriginal(mergedDraft);
+    setSaveConflicts([]);
     return savedShot(shot, patch);
   }, [
     shot,
     draft,
     original,
     readOnly,
-    moveShot,
-    updateScene,
-    updateShot,
+    scene,
+    applyShotDraft,
     boardId
   ]);
 
@@ -320,42 +377,107 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     }
   }, [commit, generateClip, boardId]);
 
-  /** Go somewhere — another shot, or out — asking first when dirty. */
-  const leave = useCallback(
-    (target: { shotId?: string }) => {
-      if (dirty) {
-        setPending(target);
-        return;
-      }
-      if (target.shotId) {
+  const completeLeave = useCallback(
+    (
+      target: {
+        shotId?: string;
+        requestId?: number;
+        imageEditor?: boolean;
+      },
+      result: "saved" | "discarded"
+    ) => {
+      if (target.imageEditor) {
+        imageLeaveResolver.current?.(true);
+        imageLeaveResolver.current = null;
+      } else if (target.shotId) {
         draftedFor.current = null;
         onShotChange?.(target.shotId);
       } else {
         onClose();
       }
+      if (target.requestId !== undefined) {
+        onLeaveRequestComplete?.(result);
+      }
     },
-    [dirty, onClose, onShotChange]
+    [onClose, onShotChange, onLeaveRequestComplete]
+  );
+
+  /** Go somewhere — another shot, or out — asking first when dirty. */
+  const leave = useCallback(
+    (target: {
+      shotId?: string;
+      requestId?: number;
+      imageEditor?: boolean;
+    }) => {
+      if (dirty) {
+        setPending(target);
+        return;
+      }
+      completeLeave(target, "discarded");
+    },
+    [dirty, completeLeave]
   );
 
   const runPending = useCallback(
     (save: boolean) => {
       const target = pending;
-      setPending(null);
       if (save) {
-        commit();
+        const saved = commit();
+        if (!saved) {
+          return;
+        }
       }
+      setPending(null);
       if (!target) {
         return;
       }
-      if (target.shotId) {
-        draftedFor.current = null;
-        onShotChange?.(target.shotId);
-      } else {
-        onClose();
+      completeLeave(target, save ? "saved" : "discarded");
+    },
+    [pending, commit, completeLeave]
+  );
+
+  const keepEditing = useCallback(() => {
+    const target = pending;
+    setPending(null);
+    if (target?.imageEditor) {
+      imageLeaveResolver.current?.(false);
+      imageLeaveResolver.current = null;
+    }
+    if (target?.requestId !== undefined) {
+      onLeaveRequestComplete?.("cancelled");
+    }
+  }, [pending, onLeaveRequestComplete]);
+
+  const resolveSaveConflicts = useCallback(
+    (resolution: "mine" | "current") => {
+      const saved = commit(resolution);
+      if (saved && pending) {
+        const target = pending;
+        setPending(null);
+        completeLeave(target, "saved");
       }
     },
-    [pending, commit, onClose, onShotChange]
+    [commit, pending, completeLeave]
   );
+
+  const requestImageEditorLeave = useCallback((): Promise<boolean> => {
+    if (!dirty) {
+      return Promise.resolve(true);
+    }
+    return new Promise<boolean>((resolve) => {
+      imageLeaveResolver.current = resolve;
+      setPending({ imageEditor: true });
+    });
+  }, [dirty]);
+
+  const handledLeaveRequest = useRef<number | null>(null);
+  useEffect(() => {
+    if (!leaveRequest || handledLeaveRequest.current === leaveRequest.id) {
+      return;
+    }
+    handledLeaveRequest.current = leaveRequest.id;
+    leave({ shotId: leaveRequest.shotId, requestId: leaveRequest.id });
+  }, [leaveRequest, leave]);
 
   const handleClose = useCallback(() => leave({}), [leave]);
 
@@ -394,24 +516,39 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     if (!scriptId || !shot) {
       return;
     }
-    const ids = shot.script_line_ids ?? [];
-    const order = [...scriptLines.keys()];
-    const first = ids
-      .map((id) => ({ id, at: order.indexOf(id) }))
-      .filter((entry) => entry.at >= 0)
-      .sort((a, b) => a.at - b.at)[0];
-    if (first) {
-      requestDocumentFocus({
+    void requestImageEditorLeave().then((allowed) => {
+      if (!allowed) {
+        return;
+      }
+      const ids = shot.script_line_ids ?? [];
+      const order = [...scriptLines.keys()];
+      const first = ids
+        .map((id) => ({ id, at: order.indexOf(id) }))
+        .filter((entry) => entry.at >= 0)
+        .sort((a, b) => a.at - b.at)[0];
+      if (first) {
+        requestDocumentFocus({
+          type: "script",
+          ref: scriptId,
+          lineId: first.id
+        });
+      }
+      openTab({
         type: "script",
         ref: scriptId,
-        lineId: first.id
+        mode: "edit",
+        title: "Script"
       });
-    }
-    openTab({ type: "script", ref: scriptId, mode: "edit", title: "Script" });
-    // Leaving for the script closes the dialog, so an unsaved draft has to be
-    // answered for first — the same question `Esc` asks.
-    leave({});
-  }, [scriptId, shot, scriptLines, openTab, leave]);
+      onClose();
+    });
+  }, [
+    scriptId,
+    shot,
+    requestImageEditorLeave,
+    scriptLines,
+    openTab,
+    onClose
+  ]);
 
   if (!shot || !draft) {
     return null;
@@ -428,7 +565,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
       className="shot-edit-panel"
       data-testid="shot-edit-panel"
       data-shot-id={shot.id}
-      sx={{ minWidth: 0 }}
+      sx={{ minWidth: 0, containerType: "inline-size" }}
     >
       <FlexColumn gap={SPACING.xl} sx={{ minWidth: 0 }}>
         <FlexRow align="center" gap={SPACING.md} wrap>
@@ -464,6 +601,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
             shot={shot}
             readOnly={readOnly}
             onLeave={onClose}
+            onBeforeImageEditor={requestImageEditorLeave}
           />
           <ScrollArea>
             <ShotTakesGallery
@@ -646,10 +784,11 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
 
       <Dialog
         open={pending !== null}
-        onClose={() => setPending(null)}
+        onClose={keepEditing}
         title="Discard changes?"
         actions={
           <FlexRow align="center" gap={SPACING.sm}>
+            <EditorButton onClick={keepEditing}>Keep editing</EditorButton>
             <EditorButton onClick={() => runPending(false)}>
               Discard
             </EditorButton>
@@ -667,6 +806,47 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         <Caption color="secondary">
           Version choices, deletions, flips and uploads are already saved.
         </Caption>
+      </Dialog>
+
+      <Dialog
+        open={saveConflicts.length > 0}
+        onClose={() => setSaveConflicts([])}
+        title="This shot changed elsewhere"
+        actions={
+          <FlexRow align="center" gap={SPACING.sm} wrap>
+            <EditorButton onClick={() => setSaveConflicts([])}>
+              Keep editing
+            </EditorButton>
+            <EditorButton onClick={() => resolveSaveConflicts("current")}>
+              Use current values
+            </EditorButton>
+            <EditorButton
+              variant="contained"
+              color="primary"
+              onClick={() => resolveSaveConflicts("mine")}
+            >
+              Keep my changes
+            </EditorButton>
+          </FlexRow>
+        }
+      >
+        <FlexColumn gap={SPACING.md}>
+          <Text>
+            The same fields changed after you opened this editor. Compare them
+            before saving.
+          </Text>
+          {draft && original && shot &&
+            saveConflicts.map((key) => {
+              const current = draftFromShot(shot, scene);
+              return (
+                <FlexColumn key={key} gap={SPACING.xs}>
+                  <Label>{DRAFT_LABELS[key]}</Label>
+                  <Caption color="secondary">{`Your edit: ${String(draft[key] ?? "Not set")}`}</Caption>
+                  <Caption color="secondary">{`Current: ${String(current[key] ?? "Not set")}`}</Caption>
+                </FlexColumn>
+              );
+            })}
+        </FlexColumn>
       </Dialog>
     </Panel>
   );

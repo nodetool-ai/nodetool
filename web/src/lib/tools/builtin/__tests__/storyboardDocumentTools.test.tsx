@@ -459,7 +459,7 @@ describe("version tools", () => {
     expect(target.keyframe?.asset_id).toBe("a1");
   });
 
-  it("ui_storyboard_add_keyframe_version appends and selects, never overwrites", async () => {
+  it("ui_storyboard_add_keyframe_version appends a candidate without changing current", async () => {
     useStoryboardStore.getState().setShotKeyframe(BOARD, "s1", still("a1"));
 
     await call("ui_storyboard_add_keyframe_version", {
@@ -473,10 +473,10 @@ describe("version tools", () => {
       "a1",
       "a2"
     ]);
-    expect(target.keyframe?.asset_id).toBe("a2");
-    expect(target.keyframe).toMatchObject({ flip_of: "a1" });
+    expect(target.keyframe?.asset_id).toBe("a1");
+    expect(target.keyframe_versions?.[1]).toMatchObject({ flip_of: "a1" });
     // An upload or a flip is not a render, so it can never read stale.
-    expect(target.keyframe?.render_inputs).toBeUndefined();
+    expect(target.keyframe_versions?.[1]?.render_inputs).toBeUndefined();
   });
 });
 

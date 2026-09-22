@@ -119,6 +119,52 @@ describe("useRenderBatchCostEstimate", () => {
     // 4 s + 6 s + 8 s at $0.1/s.
     expect(result.current.cost).toBeCloseTo(1.8, 9);
     expect(result.current.pricedCount).toBe(3);
+    expect(result.current.requestCount).toBe(3);
+    expect(result.current.pricedRequestCount).toBe(3);
+  });
+
+  it("prices every requested take with its production-effective duration", () => {
+    mockPrice.mockImplementation(
+      (_model: unknown, params: { seconds?: number }) => ({
+        unit_price: params.seconds ?? 0,
+        billing_unit: "video",
+        currency: "USD",
+        source: "bundle"
+      })
+    );
+    selectClipModel();
+    const requested = [
+      {
+        ...shots[0],
+        production: {
+          schema_version: 1 as const,
+          speech_mode: "none" as const,
+          requested_take_count: 3,
+          duration_ms: 9000
+        }
+      },
+      {
+        ...shots[1],
+        production: {
+          schema_version: 1 as const,
+          speech_mode: "none" as const,
+          requested_take_count: 1
+        }
+      }
+    ];
+
+    const { result } = renderHook(() =>
+      useRenderBatchCostEstimate(BOARD, requested, "clip")
+    );
+
+    expect(result.current).toMatchObject({
+      shotCount: 2,
+      requestCount: 4,
+      pricedCount: 2,
+      pricedRequestCount: 4
+    });
+    expect(result.current.cost).toBeCloseTo(33, 9);
+    expect(mockPrice).toHaveBeenCalledTimes(4);
   });
 
   it("prices remembered shot models instead of the board fallback", () => {

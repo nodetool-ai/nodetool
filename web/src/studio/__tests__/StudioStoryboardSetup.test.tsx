@@ -3,6 +3,7 @@
  * workspace tab follows: the stage on the document decides, and nothing else.
  */
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../__mocks__/themeMock";
 
@@ -28,7 +29,17 @@ jest.mock("../StudioShell", () => {
 });
 jest.mock("../../components/storyboard/StoryboardBoard", () => ({
   __esModule: true,
-  default: () => <div data-testid="board" />
+  default: ({
+    reviewRequest
+  }: {
+    reviewRequest?: { shotId: string; requestId: string } | null;
+  }) => (
+    <div
+      data-testid="board"
+      data-review-shot={reviewRequest?.shotId}
+      data-review-request={reviewRequest?.requestId}
+    />
+  )
 }));
 jest.mock("../../components/storyboard/StoryboardAgentPanel", () => ({
   __esModule: true,
@@ -36,7 +47,23 @@ jest.mock("../../components/storyboard/StoryboardAgentPanel", () => ({
 }));
 jest.mock("../../components/storyboard/StoryboardQueueOverlay", () => ({
   __esModule: true,
-  default: () => null
+  default: ({
+    onReviewCompleted
+  }: {
+    onReviewCompleted?: (target: { shotId: string; requestId: string }) => void;
+  }) => (
+    <button
+      type="button"
+      onClick={() =>
+        onReviewCompleted?.({
+          shotId: "shot-review",
+          requestId: "request-review"
+        })
+      }
+    >
+      Review completed takes
+    </button>
+  )
 }));
 
 jest.mock("../../hooks/storyboard/useStoryboardServerSync", () => ({
@@ -137,6 +164,25 @@ describe("StudioStoryboardPage setup stages", () => {
     renderPage();
 
     expect(screen.getByTestId("board")).toBeInTheDocument();
+  });
+
+  it("opens the completed take in the shot editor", async () => {
+    useStoryboardStore.getState().ensureBoard(BOARD_ID);
+    useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "done" });
+    renderPage();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Review completed takes" })
+    );
+
+    expect(screen.getByTestId("board")).toHaveAttribute(
+      "data-review-shot",
+      "shot-review"
+    );
+    expect(screen.getByTestId("board")).toHaveAttribute(
+      "data-review-request",
+      "request-review"
+    );
   });
 
   it("mounts the board for a document with no stage field", () => {

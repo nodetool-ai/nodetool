@@ -25,6 +25,7 @@ import {
 } from "../ui_primitives";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import StoryboardBoard from "../storyboard/StoryboardBoard";
+import type { StoryboardReviewRequest } from "../storyboard/StoryboardBoard";
 import StoryboardQueueOverlay from "../storyboard/StoryboardQueueOverlay";
 import StoryboardAgentPanel from "../storyboard/StoryboardAgentPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
@@ -70,6 +71,8 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [mobilePane, setMobilePane] = useState<MobilePane>("board");
+  const [reviewRequest, setReviewRequest] =
+    useState<StoryboardReviewRequest | null>(null);
   const ensureBoard = useStoryboardStore((state) => state.ensureBoard);
   const undo = useStoryboardStore((state) => state.undo);
   const redo = useStoryboardStore((state) => state.redo);
@@ -77,6 +80,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     (state) => state.boards[refId]?.title ?? ""
   );
   const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
+  const selectShot = useStoryboardStore((state) => state.selectShot);
 
   useEffect(() => {
     ensureBoard(refId);
@@ -137,6 +141,14 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
       // Surfaced via assembleError; swallow to keep the click handler quiet.
     });
   }, [assemble, refId]);
+  const handleReviewCompleted = useCallback(
+    (target: StoryboardReviewRequest) => {
+      selectShot(refId, target.shotId);
+      setReviewRequest(target);
+      setMobilePane("board");
+    },
+    [refId, selectShot]
+  );
 
   const board = useMemo(
     () => (
@@ -149,6 +161,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
         onAssemble={handleAssemble}
         assembling={assembling}
         assembleError={assembleError}
+        reviewRequest={reviewRequest}
       />
     ),
     [
@@ -159,7 +172,8 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
       error,
       handleAssemble,
       assembling,
-      assembleError
+      assembleError,
+      reviewRequest
     ]
   );
 
@@ -170,7 +184,12 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   }
 
   if (setupStage !== "done") {
-    return <SetupFlow config={setupConfig} />;
+    return (
+      <FlexColumn fullHeight sx={{ minHeight: 0, position: "relative" }}>
+        {conflictBanner}
+        <SetupFlow config={setupConfig} readOnly={mode === "view"} />
+      </FlexColumn>
+    );
   }
 
   if (isMobile && mode !== "view") {
@@ -213,14 +232,21 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
             <StoryboardAgentPanel boardId={refId} />
           </Box>
         </Box>
-        <StoryboardQueueOverlay boardId={refId} />
+        <StoryboardQueueOverlay
+          boardId={refId}
+          onReviewCompleted={handleReviewCompleted}
+        />
       </FlexColumn>
     );
   }
 
   return (
     <FlexRow fullHeight sx={{ minHeight: 0, position: "relative" }}>
-      <StoryboardQueueOverlay boardId={refId} />
+      <StoryboardQueueOverlay
+        boardId={refId}
+        readOnly={mode === "view"}
+        onReviewCompleted={handleReviewCompleted}
+      />
       {conflictBanner}
       <Box sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>{board}</Box>
       {mode !== "view" && (

@@ -30,7 +30,10 @@ import type {
   CompiledProductionCandidate,
   MediaEditRequest
 } from "@nodetool-ai/timeline";
-import { mediaEditTakeMetadata, withResolvedMediaEditReferences } from "@nodetool-ai/timeline";
+import {
+  mediaEditTakeMetadata,
+  withResolvedMediaEditReferences
+} from "@nodetool-ai/timeline";
 import { currentRenderInputs, stampRenderInputs } from "@nodetool-ai/protocol";
 import {
   globalWebSocketManager,
@@ -43,7 +46,6 @@ import {
 import { watchGeneration } from "../../lib/websocket/generationWatch";
 import { useNotificationStore } from "../NotificationStore";
 import { useStoryboardStore } from "./StoryboardStore";
-import { syncShotClipToTimeline } from "./timelineSync";
 import { isNumber } from "../../utils/typePredicates";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -51,11 +53,21 @@ import { isNumber } from "../../utils/typePredicates";
 export type ShotGenerationStatus =
   | "queued"
   | "running"
+  | "stopped"
   | "failed"
   | "completed";
 
 /** Which asset a job produces, so completion writes the right shot field. */
 export type ShotJobKind = "keyframe" | "clip";
+
+/** Immutable provider operation used to repeat one failed request exactly. */
+export interface ShotGenerationOperation {
+  data: Record<string, unknown>;
+  render?: ShotRenderContext;
+  mediaEdit?: MediaEditRequest;
+  acceptedShotStatus?: ShotStatus;
+  production?: CompiledProductionCandidate;
+}
 
 export interface ShotJobState {
   shotId: string;
@@ -86,6 +98,14 @@ export interface ShotJobState {
   acceptedShotStatus?: ShotStatus;
   /** Immutable production candidate captured before provider dispatch. */
   production?: CompiledProductionCandidate;
+}
+
+/** Persistent request-level outcome shown by the batch receipt. */
+export interface ShotRequestRecord extends ShotJobState {
+  batchId: string;
+  operation?: ShotGenerationOperation;
+  settledAt?: number;
+  retriedAt?: number;
 }
 
 /**
@@ -146,6 +166,8 @@ interface StoryboardGenerationStoreState {
   shotJobs: Record<string, ShotJobState>;
   /** requestId → production candidate job; ordinary jobs remain shot-keyed. */
   productionJobs: Record<string, ShotJobState>;
+  /** requestId → durable batch receipt row. */
+  requestRecords: Record<string, ShotRequestRecord>;
   /** jobId → shotId (reverse lookup for incoming job events) */
   jobToShot: Record<string, string>;
 
@@ -182,7 +204,9 @@ interface StoryboardGenerationStoreState {
     render?: ShotRenderContext,
     mediaEdit?: MediaEditRequest,
     acceptedShotStatus?: ShotStatus,
-    production?: CompiledProductionCandidate
+    production?: CompiledProductionCandidate,
+    operation?: ShotGenerationOperation,
+    batchId?: string
   ) => void;
   updateJobStatus: (
     jobId: string,
@@ -201,8 +225,12 @@ interface StoryboardGenerationStoreState {
     kind: ShotJobKind,
     errorMessage: string,
     mediaEdit?: MediaEditRequest,
-    acceptedShotStatus?: ShotStatus
+    acceptedShotStatus?: ShotStatus,
+    operation?: ShotGenerationOperation,
+    batchId?: string
   ) => void;
+  dismissBatch: (batchId: string) => void;
+  markRequestRetried: (requestId: string) => void;
   clear: (shotId: string) => void;
 }
 
@@ -385,6 +413,7 @@ export const useStoryboardGenerationStore =
       (set, get) => ({
         shotJobs: {},
         productionJobs: {},
+        requestRecords: {},
         jobToShot: {},
         generatingShotIds: [],
         failedShotIds: [],
@@ -401,8 +430,10 @@ export const useStoryboardGenerationStore =
           // remount; only the ones this session has no row for are restored.
           const restored = kept.filter((job) =>
             job.production
-              ? !get().productionJobs[job.jobId]
-              : !get().shotJobs[job.shotId]
+              ? !get().productionJobs[job.jobId] ||
+                get().productionJobs[job.jobId]?.status === "stopped"
+              : !get().shotJobs[job.shotId] ||
+                get().shotJobs[job.shotId]?.status === "stopped"
           );
           set((state) => {
             const nextShotJobs = { ...state.shotJobs };
@@ -447,6 +478,19 @@ export const useStoryboardGenerationStore =
             return {
               shotJobs: nextShotJobs,
               productionJobs: nextProductionJobs,
+              requestRecords: restored.reduce(
+                (records, job) =>
+                  records[job.jobId]
+                    ? {
+                        ...records,
+                        [job.jobId]: {
+                          ...records[job.jobId],
+                          status: "running" as const
+                        }
+                      }
+                    : records,
+                state.requestRecords
+              ),
               jobToShot: nextJobToShot,
               pendingJobs: nextPending,
               ...deriveMembership(nextShotJobs, state)
@@ -473,7 +517,9 @@ export const useStoryboardGenerationStore =
           render,
           mediaEdit,
           acceptedShotStatus,
-          production
+          production,
+          operation,
+          batchId
         ) => {
           const startedAt = Date.now();
           // A direct request has no server queue: it is in flight the moment it
@@ -496,6 +542,11 @@ export const useStoryboardGenerationStore =
           if (production) {
             jobState.production = production;
           }
+          const requestRecord: ShotRequestRecord = {
+            ...jobState,
+            batchId: batchId ?? production?.identity.batchId ?? jobId,
+            ...(operation && { operation })
+          };
           // Taken here, not when the asset lands: a render that finishes after a
           // style change has to carry the inputs it was started with, or it would
           // read current against a board it never saw (PRD § 7.7.4).
@@ -540,6 +591,10 @@ export const useStoryboardGenerationStore =
             return {
               shotJobs: nextShotJobs,
               productionJobs: nextProductionJobs,
+              requestRecords: {
+                ...state.requestRecords,
+                [jobId]: requestRecord
+              },
               jobToShot: nextJobToShot,
               pendingJobs: withPendingJob(state.pendingJobs, boardId, pending),
               ...deriveMembership(nextShotJobs, state)
@@ -602,9 +657,26 @@ export const useStoryboardGenerationStore =
               ...state.shotJobs,
               [shotId]: activeSibling ?? updated
             };
+            const existingRequest = state.requestRecords[jobId];
+            let nextRequestRecords = state.requestRecords;
+            if (existingRequest) {
+              const nextRequest: ShotRequestRecord = {
+                ...existingRequest,
+                ...extra,
+                status
+              };
+              if (status === "completed" || status === "failed") {
+                nextRequest.settledAt = Date.now();
+              }
+              nextRequestRecords = {
+                ...state.requestRecords,
+                [jobId]: nextRequest
+              };
+            }
             return {
               shotJobs: nextShotJobs,
               productionJobs: nextProductionJobs,
+              requestRecords: nextRequestRecords,
               // The request settled either way: it is no longer something a
               // reopened board should re-subscribe to.
               pendingJobs: withoutPendingJob(
@@ -704,7 +776,9 @@ export const useStoryboardGenerationStore =
           kind,
           errorMessage,
           mediaEdit,
-          acceptedShotStatus
+          acceptedShotStatus,
+          operation,
+          batchId
         ) => {
           const jobState: ShotJobState = {
             shotId,
@@ -733,6 +807,15 @@ export const useStoryboardGenerationStore =
             nextJobToShot[jobState.jobId] = shotId;
             return {
               shotJobs: nextShotJobs,
+              requestRecords: {
+                ...state.requestRecords,
+                [jobState.jobId]: {
+                  ...jobState,
+                  batchId: batchId ?? jobState.jobId,
+                  ...(operation && { operation }),
+                  settledAt: Date.now()
+                }
+              },
               jobToShot: nextJobToShot,
               // Nothing was sent, so there is nothing to reattach to on reopen.
               pendingJobs: withoutPendingJob(
@@ -764,6 +847,32 @@ export const useStoryboardGenerationStore =
               .setShotStatus(boardId, shotId, "failed");
           }
           notifyShotFailure(jobState);
+        },
+
+        dismissBatch: (batchId) => {
+          set((state) => ({
+            requestRecords: Object.fromEntries(
+              Object.entries(state.requestRecords).filter(
+                ([, record]) => record.batchId !== batchId
+              )
+            )
+          }));
+        },
+
+        markRequestRetried: (requestId) => {
+          set((state) =>
+            state.requestRecords[requestId]
+              ? {
+                  requestRecords: {
+                    ...state.requestRecords,
+                    [requestId]: {
+                      ...state.requestRecords[requestId],
+                      retriedAt: Date.now()
+                    }
+                  }
+                }
+              : state
+          );
         },
 
         clear: (shotId) => {
@@ -801,13 +910,23 @@ export const useStoryboardGenerationStore =
       }),
       {
         name: "nodetool-storyboard-generation",
-        version: 1,
+        version: 2,
         storage: createJSONStorage(() => localStorage),
-        // Only the two facts that must survive a reload: what was in flight, and
-        // what past renders took. Live rows are rebuilt from `pendingJobs`.
+        migrate: (persistedState) => {
+          const state = (persistedState ?? {}) as Partial<StoryboardGenerationStoreState>;
+          return {
+            ...state,
+            pendingJobs: state.pendingJobs ?? {},
+            durationSamples: state.durationSamples ?? {},
+            requestRecords: state.requestRecords ?? {}
+          };
+        },
+        // Persist the facts needed after reload: in-flight requests, measured
+        // durations, and request receipts. Live rows rebuild from `pendingJobs`.
         partialize: (state) => ({
           pendingJobs: state.pendingJobs,
-          durationSamples: state.durationSamples
+          durationSamples: state.durationSamples,
+          requestRecords: state.requestRecords
         })
       }
     )
@@ -827,27 +946,19 @@ const isActiveStatus = (status: ShotGenerationStatus): boolean =>
  * the request from the store, and tear down the WebSocket subscription. Safe to
  * call for a shot with no tracked request.
  */
-export const settleCancelledShotJob = (shotId: string): void => {
-  const job = useStoryboardGenerationStore.getState().shotJobs[shotId];
+export const stopTrackingShotRequest = (requestId: string): void => {
+  const state = useStoryboardGenerationStore.getState();
+  const shotId = state.jobToShot[requestId];
+  const job =
+    state.productionJobs[requestId] ??
+    (shotId ? state.shotJobs[shotId] : undefined);
   if (!job) {
-    return;
-  }
-  if (job.mediaEdit) {
-    // Media edits are candidates. Keep the terminal row and its captured
-    // inputs so the card can inspect and retry the cancelled revision, while
-    // removing only the active subscription.
-    useStoryboardGenerationStore
-      .getState()
-      .updateJobStatus(job.jobId, "failed", {
-        errorMessage: "Revision cancelled."
-      });
-    unsubscribeShotJob(job.jobId);
     return;
   }
   const storyboard = useStoryboardStore.getState();
   const shot = storyboard
     .getBoard(job.boardId)
-    ?.shots.find((s) => s.id === shotId);
+    ?.shots.find((s) => s.id === job.shotId);
   if (shot) {
     const status: ShotStatus =
       job.kind === "keyframe"
@@ -857,10 +968,45 @@ export const settleCancelledShotJob = (shotId: string): void => {
         : shot.clip
           ? "rendered"
           : "keyframe_ready";
-    storyboard.setShotStatus(job.boardId, shotId, status);
+    storyboard.setShotStatus(job.boardId, job.shotId, status);
   }
-  useStoryboardGenerationStore.getState().clear(shotId);
-  unsubscribeShotJob(job.jobId);
+  useStoryboardGenerationStore.setState((current) => {
+    const stopped = { ...job, status: "stopped" as const };
+    const nextProductionJobs = job.production
+      ? { ...current.productionJobs, [requestId]: stopped }
+      : current.productionJobs;
+    const activeSibling = Object.values(nextProductionJobs).find(
+      (candidate) =>
+        candidate.shotId === job.shotId &&
+        candidate.jobId !== requestId &&
+        isActiveStatus(candidate.status)
+    );
+    const nextShotJobs = {
+      ...current.shotJobs,
+      [job.shotId]: activeSibling ?? stopped
+    };
+    return {
+      shotJobs: nextShotJobs,
+      productionJobs: nextProductionJobs,
+      requestRecords: current.requestRecords[requestId]
+        ? {
+            ...current.requestRecords,
+            [requestId]: {
+              ...current.requestRecords[requestId],
+              status: "stopped"
+            }
+          }
+        : current.requestRecords,
+      ...deriveMembership(nextShotJobs, current)
+    };
+  });
+  unsubscribeShotJob(requestId);
+};
+
+/** @deprecated Use request-level stop tracking semantics. */
+export const settleCancelledShotJob = (shotId: string): void => {
+  const job = useStoryboardGenerationStore.getState().shotJobs[shotId];
+  if (job) stopTrackingShotRequest(job.jobId);
 };
 
 /** Drop a request's subscription and cached context. */
@@ -985,18 +1131,38 @@ const settleShotAsset = (
     if (renderInputs) {
       keyframe.render_inputs = renderInputs;
     }
-    storyboard.setShotKeyframe(context.boardId, context.shotId, keyframe);
-    storyboard.setShotStatus(context.boardId, context.shotId, "keyframe_ready");
+    storyboard.appendShotKeyframeVersion(
+      context.boardId,
+      context.shotId,
+      keyframe
+    );
+    const shot = storyboard
+      .getBoard(context.boardId)
+      ?.shots.find((item) => item.id === context.shotId);
+    if (shot) {
+      storyboard.setShotStatus(
+        context.boardId,
+        context.shotId,
+        shot.clip ? "rendered" : shot.keyframe ? "keyframe_ready" : "planned"
+      );
+    }
     return;
   }
   const clip: ClipVersion = { ...(ref as VideoRef) };
   if (renderInputs) {
     clip.render_inputs = renderInputs;
   }
-  storyboard.setShotClip(context.boardId, context.shotId, clip);
-  storyboard.setShotStatus(context.boardId, context.shotId, "rendered");
-  // Round-trip the new clip into an assembled timeline, if one is linked.
-  void syncShotClipToTimeline(context.boardId, context.shotId, assetId);
+  storyboard.appendShotClipVersion(context.boardId, context.shotId, clip);
+  const shot = storyboard
+    .getBoard(context.boardId)
+    ?.shots.find((item) => item.id === context.shotId);
+  if (shot) {
+    storyboard.setShotStatus(
+      context.boardId,
+      context.shotId,
+      shot.clip ? "rendered" : shot.keyframe ? "keyframe_ready" : "planned"
+    );
+  }
 };
 
 /**
@@ -1010,7 +1176,11 @@ const settleShotAsset = (
 const settleDirectShotJob = (
   requestId: string,
   context: DirectShotJobContext,
-  outcome: { assetIds: readonly string[]; errorMessage: string; mediaEditReferences?: unknown }
+  outcome: {
+    assetIds: readonly string[];
+    errorMessage: string;
+    mediaEditReferences?: unknown;
+  }
 ): void => {
   const generationStore = useStoryboardGenerationStore.getState();
   const trackedJob = context.production
@@ -1041,10 +1211,15 @@ const settleDirectShotJob = (
   // newer render already replaced does not lend its record to this one.
   const job = trackedJob;
   settleShotAsset(
-    context.mediaEdit ? {
-      ...context,
-      mediaEdit: withResolvedMediaEditReferences(context.mediaEdit, outcome.mediaEditReferences)
-    } : context,
+    context.mediaEdit
+      ? {
+          ...context,
+          mediaEdit: withResolvedMediaEditReferences(
+            context.mediaEdit,
+            outcome.mediaEditReferences
+          )
+        }
+      : context,
     ref,
     assetId,
     job?.jobId === requestId ? job.renderInputs : undefined,

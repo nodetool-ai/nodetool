@@ -88,14 +88,14 @@ describe("setShotKeyframe", () => {
   });
 });
 
-describe("selectKeyframeVersion", () => {
+describe("acceptKeyframeVersion", () => {
   it("switches the selected still without dropping versions", () => {
     seed();
     const store = useStoryboardStore.getState();
     store.setShotKeyframe(BOARD, SHOT, image(1));
     store.setShotKeyframe(BOARD, SHOT, image(2));
 
-    store.selectKeyframeVersion(BOARD, SHOT, 0);
+    store.acceptKeyframeVersion(BOARD, SHOT, 0);
 
     const shot = getShot();
     expect(shot?.keyframe).toEqual(image(1));
@@ -107,9 +107,50 @@ describe("selectKeyframeVersion", () => {
     const store = useStoryboardStore.getState();
     store.setShotKeyframe(BOARD, SHOT, image(1));
 
-    store.selectKeyframeVersion(BOARD, SHOT, 5);
+    store.acceptKeyframeVersion(BOARD, SHOT, 5);
 
     expect(getShot()?.keyframe).toEqual(image(1));
+  });
+});
+
+describe("media acceptance", () => {
+  it("keeps a generated still inactive until the creator accepts it", () => {
+    seed();
+    const store = useStoryboardStore.getState();
+    store.setShotKeyframe(BOARD, SHOT, image(1));
+    store.setShotStatus(BOARD, SHOT, "keyframe_ready");
+
+    store.appendShotKeyframeVersion(BOARD, SHOT, image(2));
+
+    expect(getShot()).toMatchObject({
+      keyframe: image(1),
+      keyframe_versions: [image(1), image(2)],
+      status: "keyframe_ready"
+    });
+  });
+
+  it("accepts a clip and makes the shot assembly-ready atomically", () => {
+    seed();
+    const store = useStoryboardStore.getState();
+    store.appendShotClipVersion(BOARD, SHOT, video(1));
+
+    store.acceptClipVersion(BOARD, SHOT, 0);
+
+    expect(getShot()).toMatchObject({
+      clip: video(1),
+      clip_versions: [video(1)],
+      status: "rendered"
+    });
+  });
+
+  it("repairs readiness when the accepted clip is already current", () => {
+    seed();
+    const store = useStoryboardStore.getState();
+    store.setShotClip(BOARD, SHOT, video(1));
+
+    store.acceptClipVersion(BOARD, SHOT, 0);
+
+    expect(getShot()).toMatchObject({ clip: video(1), status: "rendered" });
   });
 });
 
@@ -186,7 +227,7 @@ describe("addShot", () => {
   });
 });
 
-describe("setShotClip / selectClipVersion", () => {
+describe("setShotClip / acceptClipVersion", () => {
   it("accumulates takes and switches between them", () => {
     seed();
     const store = useStoryboardStore.getState();
@@ -197,7 +238,7 @@ describe("setShotClip / selectClipVersion", () => {
     expect(shot?.clip).toEqual(video(2));
     expect(shot?.clip_versions).toEqual([video(1), video(2)]);
 
-    store.selectClipVersion(BOARD, SHOT, 0);
+    store.acceptClipVersion(BOARD, SHOT, 0);
     shot = getShot();
     expect(shot?.clip).toEqual(video(1));
     expect(shot?.clip_versions).toEqual([video(1), video(2)]);
@@ -431,10 +472,10 @@ describe("setScreenplay", () => {
     store.setScreenplay(BOARD, screenplay);
     store.setShotKeyframe(BOARD, "sp-shot-1", image(1));
     store.setShotKeyframe(BOARD, "sp-shot-1", image(2));
-    store.selectKeyframeVersion(BOARD, "sp-shot-1", 0);
+    store.acceptKeyframeVersion(BOARD, "sp-shot-1", 0);
     store.setShotClip(BOARD, "sp-shot-1", video(1));
     store.setShotClip(BOARD, "sp-shot-1", video(2));
-    store.selectClipVersion(BOARD, "sp-shot-1", 0);
+    store.acceptClipVersion(BOARD, "sp-shot-1", 0);
     store.setShotStatus(BOARD, "sp-shot-1", "rendered");
     const rendered = useStoryboardStore.getState().boards[BOARD]?.shots[0];
 
@@ -994,12 +1035,10 @@ describe("reorderShots", () => {
 describe("scene operations", () => {
   it("updateScene patches the slugline and lighting", () => {
     seedScenes();
-    useStoryboardStore
-      .getState()
-      .updateScene(SCENE_BOARD, "sc-b", {
-        slugline: "EXT. PIER",
-        lighting: "dusk"
-      });
+    useStoryboardStore.getState().updateScene(SCENE_BOARD, "sc-b", {
+      slugline: "EXT. PIER",
+      lighting: "dusk"
+    });
 
     expect(
       sceneBoard()?.screenplay?.scenes?.find((s) => s.id === "sc-b")

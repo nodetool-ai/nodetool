@@ -40,6 +40,7 @@ import {
 
 export interface GenreStepProps {
   boardId: string;
+  readOnly?: boolean;
   /** How many shots the Director is asked for. */
   shotCount: number;
   onShotCountChange: (shots: number) => void;
@@ -77,9 +78,12 @@ const toOption = (item: StoryboardGenre): OptionCardItem => ({
  * which pins the director, mounts neither the picker nor the model catalog
  * behind it.
  */
-const ScreenplayModelField: React.FC<{ boardId: string }> = ({ boardId }) => {
+const ScreenplayModelField: React.FC<{
+  boardId: string;
+  readOnly?: boolean;
+}> = ({ boardId, readOnly }) => {
   // Pre-fills the picker, so the step directs without a required choice.
-  useDefaultDirectorModel(boardId);
+  useDefaultDirectorModel(boardId, !readOnly);
   const directorModel = useStoryboardStore(
     (state) => state.boards[boardId]?.directorModel ?? null
   );
@@ -87,8 +91,12 @@ const ScreenplayModelField: React.FC<{ boardId: string }> = ({ boardId }) => {
     (state) => state.setDirectorModel
   );
   const handleChange = useCallback(
-    (value: LanguageModelValue) => setDirectorModel(boardId, value),
-    [boardId, setDirectorModel]
+    (value: LanguageModelValue) => {
+      if (!readOnly) {
+        setDirectorModel(boardId, value);
+      }
+    },
+    [boardId, readOnly, setDirectorModel]
   );
   return (
     <FormField
@@ -101,6 +109,7 @@ const ScreenplayModelField: React.FC<{ boardId: string }> = ({ boardId }) => {
         provider={directorModel?.provider}
         placeholder="Select model"
         onChange={handleChange}
+        disabled={readOnly}
       />
     </FormField>
   );
@@ -108,6 +117,7 @@ const ScreenplayModelField: React.FC<{ boardId: string }> = ({ boardId }) => {
 
 const GenreStepInternal: React.FC<GenreStepProps> = ({
   boardId,
+  readOnly = false,
   shotCount,
   onShotCountChange,
   directing = false,
@@ -119,21 +129,32 @@ const GenreStepInternal: React.FC<GenreStepProps> = ({
   const setSetup = useStoryboardStore((state) => state.setSetup);
   const inStudio = useInStudio();
   const handleShotCount = useCallback(
-    (value: string) => onShotCountChange(Number(value)),
-    [onShotCountChange]
+    (value: string) => {
+      if (!readOnly) {
+        onShotCountChange(Number(value));
+      }
+    },
+    [onShotCountChange, readOnly]
   );
 
-  const options = useMemo(() => STORYBOARD_GENRES.map(toOption), []);
+  const options = useMemo(
+    () =>
+      STORYBOARD_GENRES.map((item) => ({
+        ...toOption(item),
+        disabled: readOnly
+      })),
+    [readOnly]
+  );
   const selectedId = genreByLabel(genre)?.id ?? null;
 
   const handleSelect = useCallback(
     (id: string) => {
       const picked = STORYBOARD_GENRES.find((item) => item.id === id);
-      if (picked) {
+      if (picked && !readOnly) {
         setSetup(boardId, { genre: picked.label });
       }
     },
-    [boardId, setSetup]
+    [boardId, readOnly, setSetup]
   );
 
   return (
@@ -171,9 +192,12 @@ const GenreStepInternal: React.FC<GenreStepProps> = ({
             value={String(shotCount)}
             options={SHOT_OPTIONS}
             onChange={handleShotCount}
+            disabled={readOnly}
           />
         </FormField>
-        {!inStudio && <ScreenplayModelField boardId={boardId} />}
+        {!inStudio && (
+          <ScreenplayModelField boardId={boardId} readOnly={readOnly} />
+        )}
       </Box>
       {/* The shell owns the wait — it shows the animated mark and announces
           "Writing N shots" beside the button. This adds the half the mark

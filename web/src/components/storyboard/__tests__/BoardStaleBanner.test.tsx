@@ -70,6 +70,7 @@ const shot = (id: string, index: number): Shot => ({
   id,
   index,
   action: `shot ${index}`,
+  render_mode: "direct",
   status: "keyframe_ready"
 });
 
@@ -100,11 +101,15 @@ describe("staleBannerMessage", () => {
     expect(staleBannerMessage(0, 0)).toBeNull();
   });
 
-  it("counts stills and clips separately and agrees with its verb", () => {
-    expect(staleBannerMessage(1, 0)).toBe("Style changed. 1 still is stale.");
-    expect(staleBannerMessage(0, 2)).toBe("Style changed. 2 clips are stale.");
-    expect(staleBannerMessage(3, 1)).toBe(
-      "Style changed. 3 stills and 1 clip are stale."
+  it("counts stills and clips separately and names the changed input", () => {
+    expect(staleBannerMessage(1, 0, ["action or prompt"])).toBe(
+      "Inputs changed (action or prompt). 1 still is stale."
+    );
+    expect(staleBannerMessage(0, 2, ["model"])).toBe(
+      "Inputs changed (model). 2 clips are stale."
+    );
+    expect(staleBannerMessage(3, 1, ["style", "aspect ratio"])).toBe(
+      "Inputs changed (style and aspect ratio). 3 stills and 1 clip are stale."
     );
   });
 });
@@ -135,7 +140,9 @@ describe("BoardStaleBanner", () => {
     renderBanner();
 
     expect(
-      screen.getByText("Style changed. 1 still and 1 clip are stale.")
+      screen.getByText(
+        "Inputs changed (action or prompt). 1 still and 1 clip are stale."
+      )
     ).toBeInTheDocument();
   });
 
@@ -156,7 +163,9 @@ describe("BoardStaleBanner", () => {
     // Mounting the banner is what a style change does. It must not spend.
     expect(mockGenerateKeyframe).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole("button", { name: "Re-render stills" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Regenerate stale stills" })
+    );
 
     expect(mockGenerateKeyframe).toHaveBeenCalledTimes(1);
     expect(mockGenerateKeyframe).toHaveBeenCalledWith(
@@ -167,7 +176,7 @@ describe("BoardStaleBanner", () => {
     expect(mockGenerateClip).not.toHaveBeenCalled();
   });
 
-  it("offers no re-render action when only clips are stale", () => {
+  it("regenerates only stale clips with a separate action", async () => {
     addShot("s-stale-clip", 0);
     useStoryboardStore
       .getState()
@@ -175,7 +184,19 @@ describe("BoardStaleBanner", () => {
 
     renderBanner();
 
-    expect(screen.getByText("Style changed. 1 clip is stale.")).toBeInTheDocument();
-    expect(screen.queryByRole("button")).toBeNull();
+    expect(
+      screen.getByText(
+        "Inputs changed (action or prompt). 1 clip is stale."
+      )
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Regenerate stale clips" })
+    );
+    expect(mockGenerateClip).toHaveBeenCalledTimes(1);
+    expect(mockGenerateClip).toHaveBeenCalledWith(
+      BOARD,
+      expect.objectContaining({ id: "s-stale-clip" })
+    );
+    expect(mockGenerateKeyframe).not.toHaveBeenCalled();
   });
 });

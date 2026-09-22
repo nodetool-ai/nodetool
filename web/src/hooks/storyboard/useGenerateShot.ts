@@ -25,8 +25,7 @@ import type {
   BoardRenderContext,
   Entity,
   Shot,
-  ShotModelRef,
-  ShotStatus
+  ShotModelRef
 } from "@nodetool-ai/protocol";
 import {
   compileProductionCandidates,
@@ -62,6 +61,7 @@ import {
   subscribeDirectShotJob,
   unsubscribeShotJob,
   useStoryboardGenerationStore,
+  type ShotGenerationOperation,
   type ShotJobKind
 } from "../../stores/storyboard/StoryboardGenerationStore";
 import { fetchShotDurationSeconds } from "./useShotDuration";
@@ -116,12 +116,14 @@ interface UseGenerateShotResult {
   generateKeyframe: (
     boardId: string,
     shot: Shot,
-    model?: ShotModelRef
+    model?: ShotModelRef,
+    batchId?: string
   ) => Promise<void>;
   generateClip: (
     boardId: string,
     shot: Shot,
-    model?: ShotModelRef
+    model?: ShotModelRef,
+    batchId?: string
   ) => Promise<void>;
   generateRevisedClip: (
     boardId: string,
@@ -129,6 +131,7 @@ interface UseGenerateShotResult {
     instruction: string,
     model?: ShotModelRef
   ) => Promise<void>;
+  retryFailedRequest: (requestId: string, batchId?: string) => Promise<void>;
 }
 
 export const useGenerateShot = (): UseGenerateShotResult => {
@@ -181,7 +184,9 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       data: Record<string, unknown>,
       board?: BoardRenderContext,
       mediaEdit?: MediaEditRequest,
-      production?: CompiledProductionCandidate
+      production?: CompiledProductionCandidate,
+      batchId?: string,
+      acceptedShotStatusOverride?: Shot["status"]
     ): Promise<void> => {
       // Single-flight per shot: skip when a job is active or a start is
       // already in the pre-registration window.
@@ -191,13 +196,22 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       startingShots.add(shot.id);
       const requestId = production?.identity.requestId ?? crypto.randomUUID();
       const acceptedShotStatus =
-        mediaEdit || production
+        acceptedShotStatusOverride ??
+        (mediaEdit || production
           ? useStoryboardStore
               .getState()
               .getBoard(boardId)
               ?.shots.find((candidate) => candidate.id === shot.id)?.status
-          : undefined;
+          : undefined);
+      let registered = false;
       try {
+        const operation: ShotGenerationOperation = {
+          data,
+          ...(board && { render: { shot, board } }),
+          ...(mediaEdit && { mediaEdit }),
+          ...(acceptedShotStatus && { acceptedShotStatus }),
+          ...(production && { production })
+        };
         registerJob(
           shot.id,
           boardId,
@@ -206,42 +220,44 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           board ? { shot, board } : undefined,
           mediaEdit,
           acceptedShotStatus,
-          production
+          production,
+          operation,
+          batchId
         );
+        registered = true;
         // Watched from the send, not only from a reattach. A socket that
         // drops and reconnects without a reload — a network blip — leaves the
         // reply addressed to a server session that is gone, exactly as a
         // reload does, and nothing re-runs reattachment in that case. The row
         // is the authority; the subscription just gets there faster.
-        await subscribeDirectShotJob(requestId, {
-          shotId: shot.id,
-          boardId,
-          kind,
-          mediaEdit,
-          acceptedShotStatus,
-          production
-        });
         try {
+          await subscribeDirectShotJob(requestId, {
+            shotId: shot.id,
+            boardId,
+            kind,
+            mediaEdit,
+            acceptedShotStatus,
+            production
+          });
           await globalWebSocketManager.send({
             command: "generate_media",
             request_id: requestId,
             data
           });
         } catch (error) {
-          // The request never left: drop the registration and subscription so
-          // a retry is not blocked by a phantom queued job.
-          if (production) {
-            useStoryboardGenerationStore
-              .getState()
-              .updateJobStatus(requestId, "failed", {
-                errorMessage: getErrorMessage(
-                  error,
-                  "Could not submit the production candidate."
-                )
-              });
-          } else {
-            useStoryboardGenerationStore.getState().clear(shot.id);
-          }
+          // Keep the original registered request as the one failed receipt.
+          // Its immutable operation is the retry source; replacing it with an
+          // unstarted row would orphan a permanently-running receipt.
+          useStoryboardGenerationStore
+            .getState()
+            .updateJobStatus(requestId, "failed", {
+              errorMessage: getErrorMessage(
+                error,
+                production
+                  ? "Could not submit the production candidate."
+                  : "Could not submit the render."
+              )
+            });
           unsubscribeShotJob(requestId);
           throw error;
         }
@@ -249,7 +265,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         // A start that throws has no job and therefore no message stream to
         // report on: record the reason on the shot so the card and a toast
         // can show it, then rethrow for callers that await (the agent tools).
-        if (!production) {
+        if (!registered && !production) {
           recordStartFailure(
             shot.id,
             boardId,
@@ -271,7 +287,8 @@ export const useGenerateShot = (): UseGenerateShotResult => {
     async (
       boardId: string,
       shot: Shot,
-      modelOverride?: ShotModelRef
+      modelOverride?: ShotModelRef,
+      batchId?: string
     ): Promise<void> => {
       const board = useStoryboardStore.getState().getBoard(boardId);
       const model = modelOverride ?? shot.still_model ?? board?.imageModel;
@@ -324,7 +341,10 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         renderShot,
         "keyframe",
         data,
-        renderContext(board, renderShot)
+        renderContext(board, renderShot),
+        undefined,
+        undefined,
+        batchId
       );
     },
     [startDirectGeneration, boardEntities, imageModels, renderContext]
@@ -334,7 +354,8 @@ export const useGenerateShot = (): UseGenerateShotResult => {
     async (
       boardId: string,
       shot: Shot,
-      modelOverride?: ShotModelRef
+      modelOverride?: ShotModelRef,
+      batchId?: string
     ): Promise<void> => {
       if (isShotBusy(shot.id)) {
         return;
@@ -401,7 +422,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         ...(shot.production?.reference_bindings ?? [])
       ];
       const productionCandidates = compileProductionCandidates({
-        batchId: crypto.randomUUID(),
+        batchId: batchId ?? crypto.randomUUID(),
         destinationId: shot.id,
         destinationKind: "storyboard_shot",
         operation: "initial_generation",
@@ -461,8 +482,10 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       if (sourceAssetId && productionRoute !== "reference_to_video") {
         data.source_asset_id = sourceAssetId;
       }
-      if (durationSeconds !== undefined) {
-        data.duration = durationSeconds;
+      const requestedDurationMs =
+        productionCandidates[0]?.snapshot.requestedDurationMs;
+      if (requestedDurationMs !== undefined) {
+        data.duration = requestedDurationMs / 1000;
       }
       if (model) {
         data.provider = model.provider;
@@ -489,7 +512,8 @@ export const useGenerateShot = (): UseGenerateShotResult => {
             data,
             renderContext(board, renderShot),
             undefined,
-            production
+            production,
+            production.identity.batchId
           )
         )
       );
@@ -647,7 +671,84 @@ export const useGenerateShot = (): UseGenerateShotResult => {
     [startDirectGeneration, recordStartFailure, videoModels]
   );
 
-  return { generateKeyframe, generateClip, generateRevisedClip };
+  const retryFailedRequest = useCallback(
+    async (requestId: string, batchId?: string): Promise<void> => {
+      const record =
+        useStoryboardGenerationStore.getState().requestRecords[requestId];
+      if (!record) {
+        throw new Error("The failed render record is no longer available.");
+      }
+      const board = useStoryboardStore.getState().getBoard(record.boardId);
+      const shot = board?.shots.find(
+        (candidate) => candidate.id === record.shotId
+      );
+      if (!shot) {
+        throw new Error("The shot for this failed render no longer exists.");
+      }
+      const operation = record.operation;
+      if (!operation) {
+        if (record.mediaEdit) {
+          await startDirectGeneration(
+            record.boardId,
+            shot,
+            record.kind,
+            mediaEditGenerateMediaData(record.mediaEdit),
+            undefined,
+            record.mediaEdit,
+            undefined,
+            batchId,
+            record.acceptedShotStatus
+          );
+          useStoryboardGenerationStore.getState().markRequestRetried(requestId);
+          return;
+        }
+        if (record.kind === "keyframe") {
+          await generateKeyframe(record.boardId, shot, undefined, batchId);
+        } else {
+          await generateClip(record.boardId, shot, undefined, batchId);
+        }
+        useStoryboardGenerationStore.getState().markRequestRetried(requestId);
+        return;
+      }
+      const retryBatchId = batchId ?? crypto.randomUUID();
+      const retryRequestId = crypto.randomUUID();
+      const production = operation.production
+        ? {
+            ...operation.production,
+            identity: {
+              ...operation.production.identity,
+              batchId: retryBatchId,
+              requestId: retryRequestId
+            },
+            snapshot: {
+              ...operation.production.snapshot,
+              batchId: retryBatchId,
+              requestId: retryRequestId
+            }
+          }
+        : undefined;
+      await startDirectGeneration(
+        record.boardId,
+        operation.render?.shot ?? shot,
+        record.kind,
+        operation.data,
+        operation.render?.board,
+        operation.mediaEdit,
+        production,
+        retryBatchId,
+        operation.acceptedShotStatus
+      );
+      useStoryboardGenerationStore.getState().markRequestRetried(requestId);
+    },
+    [generateClip, generateKeyframe, startDirectGeneration]
+  );
+
+  return {
+    generateKeyframe,
+    generateClip,
+    generateRevisedClip,
+    retryFailedRequest
+  };
 };
 
 export default useGenerateShot;

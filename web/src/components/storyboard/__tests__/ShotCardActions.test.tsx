@@ -44,7 +44,8 @@ jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
     generateKeyframe: jest.fn(async () => undefined),
     generateClip: jest.fn(async () => undefined),
-    generateRevisedClip: jest.fn(async () => undefined)
+    generateRevisedClip: jest.fn(async () => undefined),
+    retryFailedRequest: jest.fn(async () => undefined)
   })
 }));
 
@@ -247,7 +248,7 @@ describe("ShotCard edit affordances", () => {
 });
 
 describe("ShotCard upload (criterion 15)", () => {
-  it("adds the uploaded image as a new still and selects it", async () => {
+  it("adds the uploaded image as a candidate without changing current media", async () => {
     const shot = seedShot({
       status: "keyframe_ready",
       keyframe: image(1),
@@ -274,6 +275,6 @@ describe("ShotCard upload (criterion 15)", () => {
       image(1),
       { type: "image", uri: "asset://img-2", asset_id: "img-2" }
     ]);
-    expect(updated?.keyframe?.asset_id).toBe("img-2");
+    expect(updated?.keyframe?.asset_id).toBe("img-1");
   });
 });

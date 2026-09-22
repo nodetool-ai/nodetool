@@ -15,6 +15,8 @@ let mockScenes: Scene[] = [];
 let mockGenre = "";
 /** The board's selected shot id, driving the inspector's presence. */
 let activeShot: string | null = null;
+let mockTimelineId: string | null = null;
+let mockTimelineClips: Array<Record<string, unknown>> = [];
 /** The board's render models. Null on both leaves the toolbar unpriced. */
 let boardModels: { imageModel: unknown; videoModel: unknown } = {
   imageModel: null,
@@ -54,7 +56,8 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
         ? { type: "screenplay", shots: mockShots, scenes: mockScenes }
         : null,
     shots: mockShots,
-    activeShotId: activeShot
+    activeShotId: activeShot,
+    timelineId: mockTimelineId
   }),
   useStoryboardStore: <T,>(
     selector: (s: {
@@ -113,6 +116,13 @@ jest.mock("../../../trpc/client", () => ({
     // (BoardLineageChip.test.tsx covers the recast case).
     storyboards: {
       get: { useQuery: () => ({ data: undefined }) }
+    },
+    timeline: {
+      get: {
+        useQuery: () => ({
+          data: mockTimelineId ? { clips: mockTimelineClips } : undefined
+        })
+      }
     }
   },
   trpcClient: {}
@@ -338,6 +348,13 @@ jest.mock("../../../utils/storyboardZip", () => ({
   exportStoryboardZip: (boardId: string, name: string) =>
     mockExportStoryboardZip(boardId, name)
 }));
+const mockFlushStoryboardSave = jest.fn(async (_boardId: string) => ({
+  ok: true as const,
+  updatedAt: "saved-revision"
+}));
+jest.mock("../../../hooks/storyboard/storyboardSaveRegistry", () => ({
+  flushStoryboardSave: (boardId: string) => mockFlushStoryboardSave(boardId)
+}));
 
 import StoryboardBoard from "../StoryboardBoard";
 import { StudioProvider } from "../../../studio/StudioContext";
@@ -378,6 +395,8 @@ beforeEach(() => {
     id: "fal-ai/flux/schnell",
     provider: "fal_ai"
   };
+  mockTimelineId = null;
+  mockTimelineClips = [];
   useLastModelStore.setState({ byKind: {}, byTask: {} });
 });
 
@@ -524,6 +543,10 @@ describe("StoryboardBoard download", () => {
 
     await user.click(screen.getByRole("button", { name: "Download ZIP" }));
 
+    expect(mockFlushStoryboardSave).toHaveBeenCalledWith("board-1");
+    expect(mockFlushStoryboardSave.mock.invocationCallOrder[0]).toBeLessThan(
+      mockExportStoryboardZip.mock.invocationCallOrder[0]
+    );
     expect(mockExportStoryboardZip).toHaveBeenCalledWith("board-1", "My film");
   });
 });
@@ -595,7 +618,7 @@ describe("StoryboardBoard toolbar", () => {
     ).toHaveAttribute("aria-current", "step");
     expect(screen.getByRole("button", { name: "Render clips" })).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "Assemble timeline" })
+      screen.getByRole("button", { name: "Create timeline" })
     ).toBeDisabled();
   });
 
@@ -679,7 +702,8 @@ describe("StoryboardBoard toolbar", () => {
     expect(mockGenerateKeyframe).toHaveBeenCalledWith(
       "board-1",
       mockShots[0],
-      expect.objectContaining({ id: "fal-ai/flux/schnell" })
+      expect.objectContaining({ id: "fal-ai/flux/schnell" }),
+      expect.any(String)
     );
   });
 
@@ -694,7 +718,10 @@ describe("StoryboardBoard toolbar", () => {
     expect(mockGenerateKeyframe).toHaveBeenCalledWith(
       "board-1",
       mockShots[0],
-      expect.objectContaining(boardModels.imageModel as Record<string, unknown>)
+      expect.objectContaining(
+        boardModels.imageModel as Record<string, unknown>
+      ),
+      expect.any(String)
     );
   });
 
@@ -730,13 +757,15 @@ describe("StoryboardBoard toolbar", () => {
       1,
       "board-1",
       mockShots[0],
-      expect.objectContaining({ id: "pixverse/720p" })
+      expect.objectContaining({ id: "pixverse/720p" }),
+      expect.any(String)
     );
     expect(mockGenerateClip).toHaveBeenNthCalledWith(
       2,
       "board-1",
       mockShots[1],
-      expect.objectContaining({ id: "atlas/direct-v1" })
+      expect.objectContaining({ id: "atlas/direct-v1" }),
+      expect.any(String)
     );
   });
 
@@ -785,13 +814,15 @@ describe("StoryboardBoard toolbar", () => {
       1,
       "board-1",
       mockShots[0],
-      expect.objectContaining({ id: "pixverse/720p" })
+      expect.objectContaining({ id: "pixverse/720p" }),
+      expect.any(String)
     );
     expect(mockGenerateClip).toHaveBeenNthCalledWith(
       2,
       "board-1",
       mockShots[1],
-      expect.objectContaining({ id: "atlas/direct-v1" })
+      expect.objectContaining({ id: "atlas/direct-v1" }),
+      expect.any(String)
     );
   });
 
@@ -1148,7 +1179,7 @@ describe("StoryboardBoard Change Style", () => {
 });
 
 describe("StoryboardBoard next steps", () => {
-  it("offers Assemble timeline once a shot has a clip", () => {
+  it("offers Create timeline once a shot has a clip", () => {
     mockShots = [
       {
         ...makeShot("s1"),
@@ -1164,8 +1195,58 @@ describe("StoryboardBoard next steps", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "Assemble timeline" })
+      screen.getByRole("button", { name: "Create timeline" })
     ).toBeEnabled();
+  });
+
+  it("enables assembly for an accepted clip even when lifecycle status is stale", () => {
+    mockShots = [
+      {
+        ...makeShot("s1"),
+        status: "keyframe_ready",
+        clip: { type: "video", asset_id: "clip-1" }
+      }
+    ];
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard boardId="board-1" onAssemble={jest.fn()} />
+      </ThemeProvider>
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Create timeline" })
+    ).toBeEnabled();
+  });
+
+  it("previews every owned clip the rebuild will replace", async () => {
+    mockShots = [
+      {
+        ...makeShot("current-shot"),
+        status: "rendered",
+        clip: { type: "video", asset_id: "current-clip" }
+      }
+    ];
+    mockTimelineId = "timeline-1";
+    mockTimelineClips = [
+      { storyboardBoardId: "board-1" },
+      { storyboardBoardId: "board-1", storyboardShotId: "deleted-shot" },
+      { storyboardBoardId: "another-board" }
+    ];
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard boardId="board-1" onAssemble={jest.fn()} />
+      </ThemeProvider>
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Rebuild linked timeline…" })
+    );
+
+    expect(
+      screen.getByText(
+        "This replaces 2 storyboard-owned clips, including trims and edits made to those clips."
+      )
+    ).toBeInTheDocument();
   });
 });
 
@@ -1203,6 +1284,8 @@ describe("StoryboardBoard shot editing placement", () => {
 
     await editCard("s2");
 
+    expect(mockSelectShot).toHaveBeenCalledWith("board-1", "s2");
+
     const panel = screen.getByTestId("shot-edit-panel");
     expect(panel).toHaveAttribute("data-shot-id", "s2");
     const cell = cellOf("s2");
@@ -1212,12 +1295,31 @@ describe("StoryboardBoard shot editing placement", () => {
     expect(row.parentElement).toBe(cell.parentElement);
   });
 
+  it("opens the requested shot editor when the queue has an unreviewed take", () => {
+    mockShots = [makeShot("s1"), makeShot("s2")];
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard
+          boardId="board-1"
+          reviewRequest={{ shotId: "s2", requestId: "request-s2" }}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId("shot-edit-panel")).toHaveAttribute(
+      "data-shot-id",
+      "s2"
+    );
+    expect(mockSelectShot).toHaveBeenCalledWith("board-1", "s2");
+  });
+
   it("closes the editor without touching the selection", async () => {
     mockShots = [makeShot("s1"), makeShot("s2")];
     mockSelectShot.mockClear();
     renderBoard(jest.fn());
 
     await editCard("s1");
+    mockSelectShot.mockClear();
     await userEvent.click(screen.getByRole("button", { name: "Close editor" }));
 
     expect(screen.queryByTestId("shot-edit-panel")).not.toBeInTheDocument();

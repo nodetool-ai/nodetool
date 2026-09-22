@@ -72,7 +72,10 @@ interface ShotCardProps {
    * stale marker on the pill. Passed in from where the board's models, style
    * and scenes already are.
    */
-  renderContext?: BoardRenderContext | ((shot: Shot) => BoardRenderContext) | null;
+  renderContext?:
+    | BoardRenderContext
+    | ((shot: Shot) => BoardRenderContext)
+    | null;
   /** True when this card is the board's selected shot. */
   selected?: boolean;
   /** Selects (or, on the selected card, deselects) this shot. */
@@ -153,30 +156,28 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
 
   // Why the last still or clip failed. Kept on the shot's job state until the
   // next attempt registers, so the card can say more than "failed".
-  const renderError = useStoryboardGenerationStore((state) => {
+  const failedJob = useStoryboardGenerationStore((state) => {
     const job = state.shotJobs[shot.id];
-    return job?.status === "failed" ? job.errorMessage : undefined;
+    return job?.status === "failed" ? job : undefined;
   });
-  // Which step failed, so Retry re-runs that one rather than guessing.
-  const failedKind = useStoryboardGenerationStore((state) => {
-    const job = state.shotJobs[shot.id];
-    return job?.status === "failed" ? job.kind : undefined;
-  });
-  const failedMediaEdit = useStoryboardGenerationStore((state) => {
-    const job = state.shotJobs[shot.id];
-    return job?.status === "failed" ? job.mediaEdit : undefined;
-  });
+  const renderError = failedJob?.errorMessage;
   const progress = useStoryboardGenerationStore(
     (state) => state.shotJobs[shot.id]?.progress
   );
-  const { generateKeyframe, generateClip, generateRevisedClip } =
-    useGenerateShot();
+  const {
+    generateKeyframe,
+    generateClip,
+    generateRevisedClip,
+    retryFailedRequest
+  } = useGenerateShot();
   const duplicateShot = useStoryboardStore((state) => state.duplicateShot);
   const removeShot = useStoryboardStore((state) => state.removeShot);
-  const setShotKeyframe = useStoryboardStore((state) => state.setShotKeyframe);
+  const appendShotKeyframeVersion = useStoryboardStore(
+    (state) => state.appendShotKeyframeVersion
+  );
   const uploadAsset = useAssetUpload((state) => state.uploadAsset);
 
-  const failed = shot.status === "failed" || !!failedMediaEdit;
+  const failed = shot.status === "failed" || !!failedJob?.mediaEdit;
   const isGenerating = isShotGenerating(shot);
   // Whether there is a clip to show at all: the player itself resolves the
   // `asset://` locator, but the card renders the keyframe when it cannot.
@@ -220,35 +221,20 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const handleRetry = useCallback(
     (event: React.MouseEvent) => {
       event.stopPropagation();
-      if (failedMediaEdit) {
-        const retryModel =
-          failedMediaEdit.provider && failedMediaEdit.model
-            ? {
-                id: failedMediaEdit.model,
-                provider: failedMediaEdit.provider,
-                name: failedMediaEdit.model
-              }
-            : undefined;
-        void generateRevisedClip(
-          boardId,
-          shot,
-          failedMediaEdit.instruction,
-          retryModel
-        ).catch(() => undefined);
+      if (failedJob) {
+        void retryFailedRequest(failedJob.jobId).catch(() => undefined);
         return;
       }
-      const retryClip =
-        failedKind === "clip" || (!failedKind && !!shot.keyframe);
+      const retryClip = !!shot.keyframe;
       const run = retryClip ? generateClip : generateKeyframe;
       void run(boardId, shot).catch(() => undefined);
     },
     [
-      failedKind,
-      failedMediaEdit,
+      failedJob,
       shot,
       generateClip,
       generateKeyframe,
-      generateRevisedClip,
+      retryFailedRequest,
       boardId
     ]
   );
@@ -299,8 +285,8 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     setIterateText("");
   }, [iterateText, generateRevisedClip, boardId, shot]);
 
-  // An uploaded image becomes a new take and the selected one — it never
-  // replaces the still that was there (PRD § 7.5, criterion 15).
+  // An uploaded image becomes a candidate take. Current media changes only
+  // when the creator explicitly accepts it in the takes gallery.
   const handleUpload = useCallback(
     (files: File[]) => {
       const file = files[0];
@@ -310,7 +296,11 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       uploadAsset({
         file,
         onCompleted: (asset) =>
-          setShotKeyframe(boardId, shot.id, mediaRefFromAsset(asset, "image")),
+          appendShotKeyframeVersion(
+            boardId,
+            shot.id,
+            mediaRefFromAsset(asset, "image")
+          ),
         onFailed: (error) =>
           useNotificationStore.getState().addNotification({
             type: "error",
@@ -320,7 +310,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           })
       });
     },
-    [uploadAsset, setShotKeyframe, boardId, shot.id]
+    [uploadAsset, appendShotKeyframeVersion, boardId, shot.id]
   );
 
   const handleDragStart = useCallback(
@@ -481,6 +471,24 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             />
           </Box>
         )}
+      </FlexColumn>
+
+      <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.lg, minWidth: 0 }}>
+        <Caption color="secondary">
+          {caption ?? `Shot ${shot.index + 1}`}
+        </Caption>
+        <Text
+          size="small"
+          sx={{
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: 2,
+            overflow: "hidden",
+            minHeight: "2.7em"
+          }}
+        >
+          {shot.action.trim() || "No action described"}
+        </Text>
       </FlexColumn>
 
       {failed && (

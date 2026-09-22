@@ -5,12 +5,15 @@
 import type { Shot } from "@nodetool-ai/protocol";
 
 import {
+  changedDraftKeys,
+  conflictingDraftKeys,
   draftFromShot,
   hasShotFieldChanges,
   isDraftDirty,
   parseDuration,
   savedShot,
   shotPatchFromDraft,
+  shotPatchFromChangedDraft,
   withDuration,
   withDurationSourceToggled
 } from "../shotDraft";
@@ -221,6 +224,46 @@ describe("shotPatchFromDraft", () => {
   it("refuses a length that is not a positive number", () => {
     const draft = { ...draftFromShot(shot(), null), durationSeconds: "-2" };
     expect(shotPatchFromDraft(draft).duration_seconds).toBeUndefined();
+  });
+});
+
+describe("changed-field save", () => {
+  it("patches only fields the creator changed", () => {
+    const original = draftFromShot(shot(), null);
+    const draft = { ...original, notes: "Keep the gulls" };
+    const current = shot({ action: "The assistant changed the action" });
+
+    expect(changedDraftKeys(draft, original)).toEqual(["notes"]);
+    expect(shotPatchFromChangedDraft(draft, original, current)).toEqual({
+      notes: "Keep the gulls"
+    });
+  });
+
+  it("merges one changed camera field with current external camera edits", () => {
+    const original = draftFromShot(
+      shot({ camera: { framing: "wide", angle: "eye level" } }),
+      null
+    );
+    const draft = { ...original, framing: "close-up" };
+    const current = shot({
+      camera: { framing: "wide", angle: "low angle", lens: "85mm" }
+    });
+
+    expect(shotPatchFromChangedDraft(draft, original, current)).toEqual({
+      camera: { framing: "close-up", angle: "low angle", lens: "85mm" }
+    });
+  });
+
+  it("reports only locally changed fields that also changed externally", () => {
+    const original = draftFromShot(shot(), null);
+    const draft = { ...original, action: "My action", notes: "My notes" };
+    const current = {
+      ...original,
+      action: "Assistant action",
+      dialogue: "Assistant dialogue"
+    };
+
+    expect(conflictingDraftKeys(draft, original, current)).toEqual(["action"]);
   });
 });
 

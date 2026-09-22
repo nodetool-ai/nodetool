@@ -25,6 +25,7 @@ interface LanguageModelSelectProps {
   placeholder?: string;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
+  disabled?: boolean;
 }
 
 const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
@@ -35,7 +36,8 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   requireToolSupport,
   placeholder = "Select Model",
   recommendedModels,
-  modelPacks
+  modelPacks,
+  disabled
 }) => {
   const { anchorEl, buttonRef, handleClick, handleClose, handleSelect } =
     useModelSelectMenu("language_model", onChange);
@@ -45,11 +47,15 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   });
 
   const currentSelectedModelDetails = useMemo(() => {
-    if (!fetchedModels || !value) { return null; }
+    if (!fetchedModels || !value) {
+      return null;
+    }
     const matches = fetchedModels.filter((m) => m.id === value);
     if (provider) {
       const exact = matches.find((m) => m.provider === provider);
-      if (exact) { return exact; }
+      if (exact) {
+        return exact;
+      }
     }
     return matches[0] ?? null;
   }, [fetchedModels, value, provider]);
@@ -63,6 +69,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
         secondaryLabel={currentSelectedModelDetails?.provider}
         subLabel={placeholder}
         onClick={handleClick}
+        disabled={disabled}
       />
       <LanguageModelMenuDialog
         open={!!anchorEl}

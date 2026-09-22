@@ -23,6 +23,7 @@ interface ImageModelSelectProps {
   task?: ImageModelTask | ImageModelTask[];
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
+  disabled?: boolean;
 }
 
 const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
@@ -30,7 +31,8 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
   value,
   task,
   recommendedModels,
-  modelPacks
+  modelPacks,
+  disabled
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -134,6 +136,7 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
         options={forTasks(STUDIO_STILL_MODELS, task)}
         value={value}
         onChange={onChange}
+        disabled={disabled}
       />
     );
   }
@@ -147,6 +150,7 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
         secondaryLabel={displayInfo.secondaryLabel}
         subLabel="Select Image Generation Model"
         onClick={handleClick}
+        disabled={disabled}
       />
       <ImageModelMenuDialog
         open={!!anchorEl}
