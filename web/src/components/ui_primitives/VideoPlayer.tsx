@@ -26,12 +26,18 @@ import PauseIcon from "@mui/icons-material/Pause";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { IconButton } from "@mui/material";
-import { MOTION } from "./tokens";
+import { BORDER_RADIUS, MOTION, reducedMotion } from "./tokens";
+import { SPACING, getSpacingPx } from "./spacing";
 import {
   useResolvedMediaUri,
   type MediaLocator
 } from "../../hooks/useResolvedMediaUri";
 import type { ResolvedMediaUrl } from "../../utils/resolveMediaUri";
+
+interface FullscreenVideoElement extends HTMLVideoElement {
+  webkitEnterFullscreen?: () => void;
+  webkitExitFullscreen?: () => void;
+}
 
 const SPEED_OPTIONS = [0.5, 1, 1.5, 2] as const;
 const CONTROLS_HIDE_DELAY_MS = 1800;
@@ -50,7 +56,7 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
     height: "100%",
     backgroundColor: theme.vars.palette.common.black,
     overflow: "hidden",
-    borderRadius: "var(--rounded-sm)",
+    borderRadius: BORDER_RADIUS.sm,
     video: {
       display: "block",
       width: "100%",
@@ -62,15 +68,16 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
       left: 0,
       right: 0,
       bottom: 0,
-      padding: "6px 8px",
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
       display: "flex",
       alignItems: "center",
-      gap: 8,
+      gap: getSpacingPx(SPACING.md),
       background:
-        "linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0))",
+        `linear-gradient(to top, rgb(${theme.vars.palette.common.blackChannel} / 0.65), transparent)`,
       color: theme.vars.palette.common.white,
       opacity: controlsVisible ? 1 : 0,
       transition: MOTION.opacity,
+      ...reducedMotion({ transition: MOTION.none }),
       pointerEvents: controlsVisible ? "auto" : "none",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall
@@ -88,8 +95,9 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
       color: theme.vars.palette.common.white,
       "& svg": { fontSize: 20 },
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.14)",
-        transition: MOTION.background
+        backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.14)`,
+        transition: MOTION.background,
+        ...reducedMotion({ transition: MOTION.none })
       }
     },
     ".seek": {
@@ -97,8 +105,8 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
       minWidth: 0,
       height: 4,
       appearance: "none",
-      background: "rgba(255, 255, 255, 0.25)",
-      borderRadius: 2,
+      background: `rgb(${theme.vars.palette.common.whiteChannel} / 0.25)`,
+      borderRadius: BORDER_RADIUS.xs,
       cursor: "pointer",
       "@media (pointer: coarse)": {
         height: 6,
@@ -109,19 +117,21 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
         appearance: "none",
         width: 10,
         height: 10,
-        borderRadius: "50%",
+        borderRadius: BORDER_RADIUS.circle,
         backgroundColor: theme.vars.palette.primary.main,
         cursor: "pointer",
-        transition: MOTION.transform
+        transition: MOTION.transform,
+        ...reducedMotion({ transition: MOTION.none })
       },
       "&::-moz-range-thumb": {
         width: 10,
         height: 10,
-        borderRadius: "50%",
+        borderRadius: BORDER_RADIUS.circle,
         backgroundColor: theme.vars.palette.primary.main,
         border: "none",
         cursor: "pointer",
-        transition: MOTION.transform
+        transition: MOTION.transform,
+        ...reducedMotion({ transition: MOTION.none })
       }
     },
     ".timestamp": {
@@ -132,17 +142,18 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
     },
     ".speed-select": {
       appearance: "none",
-      background: "rgba(255, 255, 255, 0.1)",
+      background: `rgb(${theme.vars.palette.common.whiteChannel} / 0.1)`,
       color: theme.vars.palette.common.white,
-      border: `1px solid rgba(255, 255, 255, 0.2)`,
-      borderRadius: 4,
-      padding: "2px 6px",
+      border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.2)`,
+      borderRadius: BORDER_RADIUS.sm,
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
       fontSize: theme.fontSizeSmall,
       fontFamily: theme.fontFamily1,
       cursor: "pointer",
       transition: MOTION.background,
+      ...reducedMotion({ transition: MOTION.none }),
       "&:hover": {
-        background: "rgba(255, 255, 255, 0.18)"
+        background: `rgb(${theme.vars.palette.common.whiteChannel} / 0.18)`
       }
     }
   });
@@ -188,7 +199,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   className
 }) => {
   const theme = useTheme();
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<FullscreenVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -254,23 +265,45 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
     setCurrentTime(newTime);
   }, []);
 
-  const handleToggleFullscreen = useCallback(() => {
-    const el = containerRef.current;
-    if (!el) {return;}
-    if (document.fullscreenElement === el) {
-      void document.exitFullscreen();
-    } else {
-      void el.requestFullscreen?.();
-    }
-  }, []);
+  const fullscreenAvailable =
+    "requestFullscreen" in HTMLElement.prototype ||
+    "webkitEnterFullscreen" in HTMLVideoElement.prototype;
 
-  // Fullscreen can also be left with Escape or the browser's own chrome, so the
-  // icon follows the document rather than the click.
+  const handleToggleFullscreen = useCallback(async () => {
+    const el = containerRef.current;
+    const video = videoRef.current;
+    if (!el || !video) {
+      return;
+    }
+    try {
+      if (document.fullscreenElement === el) {
+        await document.exitFullscreen();
+      } else if (isFullscreen) {
+        video.webkitExitFullscreen?.();
+      } else if (el.requestFullscreen) {
+        await el.requestFullscreen();
+      } else {
+        video.webkitEnterFullscreen?.();
+      }
+    } catch (error) {
+      console.warn("Could not change video fullscreen", error);
+    }
+  }, [isFullscreen]);
+
   useEffect(() => {
+    const video = videoRef.current;
     const onChange = () =>
       setIsFullscreen(document.fullscreenElement === containerRef.current);
+    const onVideoEnter = () => setIsFullscreen(true);
+    const onVideoExit = () => setIsFullscreen(false);
     document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
+    video?.addEventListener("webkitbeginfullscreen", onVideoEnter);
+    video?.addEventListener("webkitendfullscreen", onVideoExit);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      video?.removeEventListener("webkitbeginfullscreen", onVideoEnter);
+      video?.removeEventListener("webkitendfullscreen", onVideoExit);
+    };
   }, []);
 
   const handleSpeedChange = useCallback(
@@ -349,14 +382,16 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
             </option>
           ))}
         </select>
-        <IconButton
-          className="fullscreen-button"
-          size="small"
-          onClick={handleToggleFullscreen}
-          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-        >
-          {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
-        </IconButton>
+        {fullscreenAvailable && (
+          <IconButton
+            className="fullscreen-button"
+            size="small"
+            onClick={handleToggleFullscreen}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          >
+            {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+          </IconButton>
+        )}
       </div>
     </div>
   );

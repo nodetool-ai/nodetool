@@ -180,6 +180,18 @@ describe("PreviewArea", () => {
     mockSelectedClipIds = new Set<string>();
   });
 
+  it("expands without the Fullscreen API and keeps the compositor mounted", async () => {
+    renderPreview();
+    const compositor = screen.getByTestId("preview-compositor");
+    await userEvent.click(screen.getByRole("button", { name: "Fullscreen" }));
+    expect(screen.getByRole("button", { name: "Exit fullscreen" })).toBeVisible();
+    expect(screen.getByLabelText("Preview area")).toHaveAttribute("data-expanded", "true");
+    expect(screen.getByTestId("preview-compositor")).toBe(compositor);
+    await userEvent.keyboard("{Escape}");
+    expect(screen.getByRole("button", { name: "Fullscreen" })).toBeVisible();
+    expect(screen.getByTestId("preview-compositor")).toBe(compositor);
+  });
+
   describe("show matte", () => {
     const mattedClip = (status: "ready" | "generating") => ({
       id: "shot",

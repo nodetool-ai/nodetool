@@ -40,7 +40,8 @@ import {
   Slider,
   ToolbarIconButton,
   SPACING,
-  TYPOGRAPHY
+  TYPOGRAPHY,
+  Z_INDEX
 } from "../../ui_primitives";
 
 import {
@@ -120,7 +121,19 @@ const containerStyles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
-    outline: "none"
+    outline: "none",
+    "&[data-expanded='true']": {
+      position: "fixed",
+      inset: 0,
+      width: "100vw",
+      height: "100dvh",
+      maxWidth: "none",
+      maxHeight: "none",
+      margin: 0,
+      padding: 0,
+      border: 0,
+      zIndex: Z_INDEX.modal
+    }
   });
 
 const viewportStyles = css({
@@ -153,7 +166,7 @@ const controlBarStyles = (theme: Theme) =>
       }
     },
     "@container timelinePreviewControls (max-width: 420px)": {
-      ".timeline-preview__duration, .timeline-preview__fullscreen": {
+      ".timeline-preview__duration": {
         display: "none"
       }
     }
@@ -871,12 +884,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     ]);
 
     const containerRef = useRef<HTMLDivElement>(null);
-    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const isFullscreen = isNativeFullscreen || isExpanded;
     const [scrubMs, setScrubMs] = useState<number | null>(null);
 
     useEffect(() => {
       const onFullscreenChange = () => {
-        setIsFullscreen(!!document.fullscreenElement);
+        setIsNativeFullscreen(document.fullscreenElement === containerRef.current);
       };
       document.addEventListener("fullscreenchange", onFullscreenChange);
       return () => {
@@ -884,16 +899,49 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       };
     }, []);
 
-    const handleFullscreen = useCallback(() => {
-      if (!containerRef.current) {
+    useEffect(() => {
+      if (!isExpanded) {
         return;
       }
-      if (!document.fullscreenElement) {
-        void containerRef.current.requestFullscreen();
-      } else {
-        void document.exitFullscreen();
+      const container = containerRef.current;
+      const previousFocus = document.activeElement;
+      // The top layer escapes workspace clipping without remounting the canvas.
+      if (container?.showPopover) {
+        container.setAttribute("popover", "manual");
+        container.showPopover();
       }
-    }, []);
+      container?.focus();
+      return () => {
+        if (container?.hasAttribute("popover")) {
+          container.hidePopover();
+          container.removeAttribute("popover");
+        }
+        if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+          previousFocus.focus();
+        }
+      };
+    }, [isExpanded]);
+
+    const handleFullscreen = useCallback(async () => {
+      const container = containerRef.current;
+      if (!container) {
+        return;
+      }
+      if (isExpanded) {
+        setIsExpanded(false);
+      } else if (document.fullscreenElement === container) {
+        await document.exitFullscreen();
+      } else if (container.requestFullscreen) {
+        try {
+          await container.requestFullscreen();
+        } catch {
+          // Embedded browsers can expose the API while refusing the request.
+          setIsExpanded(true);
+        }
+      } else {
+        setIsExpanded(true);
+      }
+    }, [isExpanded]);
 
     const scrubMax = Math.max(1, contentEndMs);
     const scrubValue = Math.min(scrubMax, scrubMs ?? currentTimeMs);
@@ -939,6 +987,13 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLDivElement>) => {
         switch (e.key) {
+          case "Escape":
+            if (isExpanded) {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsExpanded(false);
+            }
+            break;
           case "ArrowLeft":
             e.preventDefault();
             if (e.shiftKey) {
@@ -974,6 +1029,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         }
       },
       [
+        isExpanded,
         jumpToPrevBoundary,
         jumpToNextBoundary,
         stepFrame,
@@ -1004,6 +1060,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         onKeyDown={handleKeyDown}
         aria-label="Preview area"
         data-testid="preview-area"
+        data-expanded={isExpanded}
       >
         <div css={viewportStyles}>
           <PreviewCompositor />

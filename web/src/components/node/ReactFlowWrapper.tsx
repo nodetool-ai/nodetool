@@ -1164,7 +1164,7 @@ const ReactFlowWrapper = ({
         onMoveEnd={handleMoveEnd}
         panOnDrag={panOnDrag}
         panOnScroll={IS_APPLE_PLATFORM}
-        zoomOnPinch={IS_APPLE_PLATFORM}
+        zoomOnPinch
         zoomOnScroll={!IS_APPLE_PLATFORM}
         elevateEdgesOnSelect={true}
         connectionLineComponent={ConnectionLine}

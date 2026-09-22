@@ -81,43 +81,31 @@ async function copyAssetToClipboardBrowser(
   // Make URL absolute for fetch to work
   const absoluteUrl = makeAbsoluteUrl(url);
   
-  if (isImageType(contentType)) {
-    try {
-      const response = await fetch(absoluteUrl);
+  if (isImageType(contentType) || isTextType(contentType)) {
+    if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) {
+      await navigator.clipboard.writeText(absoluteUrl);
+      return;
+    }
+    const image = isImageType(contentType);
+    const mimeType = image ? "image/png" : "text/plain";
+    const data = fetch(absoluteUrl).then(async (response) => {
+      if (!response.ok) {
+        throw new Error("Could not load the asset to copy");
+      }
+      if (!image) {
+        return new Blob([await response.text()], { type: mimeType });
+      }
       const blob = await response.blob();
-      
-      // Convert to PNG for better compatibility (some browsers only support PNG)
-      const pngBlob = await convertToPngBlob(blob);
-      
-      const clipboardItem = new ClipboardItem({
-        "image/png": pngBlob
-      });
-      
-      await navigator.clipboard.write([clipboardItem]);
-      console.info("Image copied to clipboard via browser API");
-      return;
-    } catch (error) {
-      console.warn("Browser clipboard image write failed, falling back to URL copy:", error);
-      // Fall back to copying the URL as text
-      await navigator.clipboard.writeText(absoluteUrl);
-      console.info("Image URL copied to clipboard as text (fallback)");
-      return;
-    }
-  }
-
-  if (isTextType(contentType)) {
+      return blob.type === "image/png" ? blob : convertToPngBlob(blob);
+    });
+    // Safari requires the write during the tap, before fetch or conversion finishes.
     try {
-      const response = await fetch(absoluteUrl);
-      const text = await response.text();
-      await navigator.clipboard.writeText(text);
-      console.info("Text content copied to clipboard via browser API");
-      return;
+      await navigator.clipboard.write([new ClipboardItem({ [mimeType]: data })]);
     } catch {
-      // Text fetch failed, fall back to copying URL
+      // Retain URL copying on browsers that allow it after a failed content write.
       await navigator.clipboard.writeText(absoluteUrl);
-      console.info("URL copied to clipboard as text (fallback)");
-      return;
     }
+    return;
   }
 
   if (isVideoType(contentType) || isAudioType(contentType)) {

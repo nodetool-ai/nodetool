@@ -124,7 +124,11 @@ export function useClipDrag({
 
   const handleDragPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!clip || interactionLocked) {
+      if (
+        !clip ||
+        interactionLocked ||
+        (e.pointerType === "touch" && !e.isPrimary)
+      ) {
         return;
       }
       // Cut tool: split the clip at the pointer's ms position instead of
@@ -148,6 +152,7 @@ export function useClipDrag({
       // element) because moveClip(id, _, toTrackId) re-parents the clip into
       // a different TrackLane mid-drag, which would unmount the captured
       // element and abort the gesture. Window listeners survive remounts.
+      const pointerId = e.pointerId;
       const dragStartY = e.clientY;
       dragStartXRef.current = e.clientX;
       dragStartMsRef.current = clip.startMs;
@@ -338,6 +343,9 @@ export function useClipDrag({
       };
 
       const onMove = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) {
+          return;
+        }
         longPress.move(ev);
         if (ev.buttons !== 1) return;
         lastPointer = { x: ev.clientX, y: ev.clientY, altKey: ev.altKey };
@@ -353,6 +361,9 @@ export function useClipDrag({
       };
 
       const onUpOrCancel = (ev?: PointerEvent) => {
+        if (ev && ev.pointerId !== pointerId) {
+          return;
+        }
         longPress.cancel();
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUpOrCancel);

@@ -40,7 +40,6 @@ export function useVideoRecorder({
   onChange,
   workflowId
 }: VideoRecorderProps): Readonly<VideoRecorderReturn> {
-  const defaultFileType = "webm";
   const { uploadAsset } = useAssetUpload();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -248,13 +247,8 @@ export function useVideoRecorder({
     chunksRef.current = [];
 
     try {
-      const preferredMimeType = `video/${defaultFileType}`;
-      const actualMimeType = MediaRecorder.isTypeSupported(preferredMimeType)
-        ? preferredMimeType
-        : "video/webm";
-      const mediaRecorder = new MediaRecorder(streamRef.current, {
-        mimeType: actualMimeType
-      });
+      // Let the browser choose its recording container and codecs (MP4 on Safari).
+      const mediaRecorder = new MediaRecorder(streamRef.current);
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -263,7 +257,8 @@ export function useVideoRecorder({
       };
 
       mediaRecorder.onstop = () => {
-        const fileExtension = actualMimeType.split("/")[1] || "webm";
+        const actualMimeType = mediaRecorder.mimeType;
+        const fileExtension = actualMimeType.split(";")[0].split("/")[1] || "webm";
         const blob = new Blob(chunksRef.current, {
           type: actualMimeType
         });
@@ -298,7 +293,6 @@ export function useVideoRecorder({
     }
   }, [
     isRecording,
-    defaultFileType,
     onChange,
     uploadAsset,
     workflowId,

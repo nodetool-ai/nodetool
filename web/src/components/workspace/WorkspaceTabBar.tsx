@@ -259,6 +259,12 @@ const styles = (theme: Theme) =>
       }
     },
 
+    "& .document-actions": {
+      display: "flex",
+      alignItems: "stretch",
+      flexShrink: 0
+    },
+
     "& .right-actions": {
       WebkitAppRegion: "no-drag",
       display: "flex",
@@ -292,6 +298,27 @@ const styles = (theme: Theme) =>
     [theme.breakpoints.down("sm")]: {
       height: "48px",
       paddingLeft: 0,
+      "&.has-document-actions": {
+        height: "auto",
+        flexWrap: "wrap",
+        "& > .mobile-rail-launcher, & > .project-selector, & > .new-tab, & > .document-selector": {
+          height: "48px"
+        },
+        "& .document-actions": {
+          flexBasis: "100%",
+          minWidth: 0,
+          minHeight: "48px",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          borderTop: `1px solid ${theme.vars.palette.divider}`
+        },
+        "& .right-actions": {
+          maxWidth: "100%",
+          flexShrink: 1,
+          flexWrap: "wrap",
+          marginLeft: "auto"
+        }
+      },
       "& .new-tab": {
         padding: `0 ${getSpacingPx(SPACING.md)}`
       },
@@ -608,7 +635,10 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const handleCancelRename = useCallback(() => setEditingTabId(null), []);
 
   return (
-    <div css={tabBarStyles} className="workspace-tabbar">
+    <div
+      css={tabBarStyles}
+      className={`workspace-tabbar${headerActions || (activeTab && SUPPORTS_BOTH_MODES[activeTab.type]) ? " has-document-actions" : ""}`}
+    >
       {/* Mobile has no vertical rail, so the panel toggle rides along in the
         top row instead of floating over the content. The sheet it opens is
         mobile's one navigation surface — document categories plus the app
@@ -683,31 +713,33 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         onClose={() => setMenuOpen(false)}
       />
 
-      {activeTab && SUPPORTS_BOTH_MODES[activeTab.type] && (
-        <div className="mode-toggle">
-          <button
-            type="button"
-            className={activeTab.mode === "view" ? "on" : ""}
-            aria-pressed={activeTab.mode === "view"}
-            onClick={() => setMode(activeTab.id, "view")}
-          >
-            View
-          </button>
-          <button
-            type="button"
-            className={activeTab.mode === "edit" ? "on" : ""}
-            aria-pressed={activeTab.mode === "edit"}
-            onClick={() => setMode(activeTab.id, "edit")}
-          >
-            Edit
-          </button>
-        </div>
-      )}
+      <div className="document-actions">
+        {activeTab && SUPPORTS_BOTH_MODES[activeTab.type] && (
+          <div className="mode-toggle">
+            <button
+              type="button"
+              className={activeTab.mode === "view" ? "on" : ""}
+              aria-pressed={activeTab.mode === "view"}
+              onClick={() => setMode(activeTab.id, "view")}
+            >
+              View
+            </button>
+            <button
+              type="button"
+              className={activeTab.mode === "edit" ? "on" : ""}
+              aria-pressed={activeTab.mode === "edit"}
+              onClick={() => setMode(activeTab.id, "edit")}
+            >
+              Edit
+            </button>
+          </div>
+        )}
 
-      <div className="right-actions">
-        {headerActions}
-        <ActivityIndicator />
-        <NotificationButton />
+        <div className="right-actions">
+          {headerActions}
+          <ActivityIndicator />
+          <NotificationButton />
+        </div>
       </div>
     </div>
   );

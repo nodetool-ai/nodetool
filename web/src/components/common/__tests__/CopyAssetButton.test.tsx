@@ -6,7 +6,7 @@
  */
 
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { CopyAssetButton } from "../CopyAssetButton";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -449,4 +449,86 @@ describe("CopyAssetButton", () => {
       expect(() => unmount()).not.toThrow();
     });
   });
+});
+
+
+describe("browser clipboard activation", () => {
+  it.each([
+    { contentType: "image/png", fetchFails: false },
+    { contentType: "text/plain", fetchFails: false },
+    { contentType: "image/png", fetchFails: true },
+    { contentType: "text/plain", fetchFails: true }
+  ])(
+    "reserves $contentType clipboard access before fetch completes (fetchFails=$fetchFails)",
+    async ({ contentType, fetchFails }) => {
+      const restoreClipboard = Object.getOwnPropertyDescriptor(
+        navigator,
+        "clipboard"
+      );
+      const restoreItem = Object.getOwnPropertyDescriptor(
+        globalThis,
+        "ClipboardItem"
+      );
+      const restoreFetch = globalThis.fetch;
+      let completeFetch!: (response: Response) => void;
+      const fetched = new Promise<Response>((resolve) => {
+        completeFetch = resolve;
+      });
+      const items: Array<Record<string, Blob | Promise<Blob>>> = [];
+      class Item {
+        constructor(data: Record<string, Blob | Promise<Blob>>) {
+          items.push(data);
+        }
+      }
+      const write = jest.fn(async () => {
+        await Promise.all(Object.values(items[0]));
+      });
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { write, writeText }
+      });
+      Object.defineProperty(globalThis, "ClipboardItem", {
+        configurable: true,
+        value: Item
+      });
+      globalThis.fetch = jest.fn(() => fetched);
+      const onCopySuccess = jest.fn();
+      try {
+        renderWithTheme(
+          <CopyAssetButton
+            contentType={contentType}
+            url="https://example.com/asset"
+            onCopySuccess={onCopySuccess}
+          />
+        );
+        fireEvent.click(screen.getByRole("button"));
+        expect(write).toHaveBeenCalledTimes(1);
+        const type = contentType === "image/png" ? "image/png" : "text/plain";
+        expect(items[0][type]).toBeInstanceOf(Promise);
+        await act(async () => {
+          completeFetch({
+            ok: !fetchFails,
+            blob: async () => new Blob(["asset"], { type: contentType }),
+            text: async () => "asset"
+          } as Response);
+        });
+        await waitFor(() => expect(onCopySuccess).toHaveBeenCalledTimes(1));
+        if (fetchFails) {
+          expect(writeText).toHaveBeenCalledWith("https://example.com/asset");
+        } else {
+          expect((await items[0][type]).type).toBe(type);
+          expect(writeText).not.toHaveBeenCalled();
+        }
+      } finally {
+        globalThis.fetch = restoreFetch;
+        if (restoreClipboard)
+          Object.defineProperty(navigator, "clipboard", restoreClipboard);
+        else Reflect.deleteProperty(navigator, "clipboard");
+        if (restoreItem)
+          Object.defineProperty(globalThis, "ClipboardItem", restoreItem);
+        else Reflect.deleteProperty(globalThis, "ClipboardItem");
+      }
+    }
+  );
 });

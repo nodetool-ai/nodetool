@@ -3,6 +3,7 @@
  */
 
 import { renderHook, act, waitFor } from "@testing-library/react";
+import RecordPlugin from "wavesurfer.js/dist/plugins/record";
 import { useWaveRecorder } from "../useWaveRecorder";
 
 // The hook takes the workflow id as a prop, so no NodeProvider is mocked or
@@ -315,6 +316,18 @@ describe("useWaveRecorder", () => {
       rerender({ onChange: jest.fn() });
       return result;
     };
+
+    it("lets the recorder choose a supported format and preserves MP4 output", () => {
+      mountRecorder();
+      const options = jest.mocked(RecordPlugin.create).mock.calls[0]?.[0];
+      expect(options?.mimeType).toBeUndefined();
+      act(() => {
+        mockRecordHandlers.get("record-end")?.(new Blob(["audio"], { type: "audio/mp4;codecs=mp4a.40.2" }));
+      });
+      const file: File = mockUploadAsset.mock.calls[0][0].file;
+      expect(file.name).toBe("recording.mp4");
+      expect(file.type).toBe("audio/mp4;codecs=mp4a.40.2");
+    });
 
     it("stamps the given workflow id on the uploaded recording", () => {
       mountRecorder("wf-77");

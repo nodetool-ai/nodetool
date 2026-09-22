@@ -37,7 +37,6 @@ export function useWaveRecorder({
   onChange,
   workflowId
 }: WaveRecorderProps): Readonly<WaveRecorderReturn> {
-  const defaultFileType = "webm";
   const { uploadAsset } = useAssetUpload();
   const micRef = useRef<HTMLDivElement | null>(null);
   const waveSurferRef = useRef<WaveSurfer | null>(null);
@@ -191,8 +190,8 @@ export function useWaveRecorder({
 
   useEffect(() => {
     if (micRef.current && waveSurferRef.current === null) {
-      const mimeType = `audio/${defaultFileType}`;
-      const recordPlugin = RecordPlugin.create({ mimeType });
+      // RecordPlugin selects a MIME type supported by the current browser.
+      const recordPlugin = RecordPlugin.create();
       recordRef.current = recordPlugin;
 
       waveSurferRef.current = WaveSurfer.create({
@@ -204,9 +203,8 @@ export function useWaveRecorder({
       });
 
       recordRef.current.on("record-end", (blob: Blob) => {
-        const file = new File([blob], "recording.webm", {
-          type: `audio/${defaultFileType}`
-        });
+        const extension = blob.type.split(";")[0].split("/")[1] || "webm";
+        const file = new File([blob], `recording.${extension}`, { type: blob.type });
         uploadAsset({
           file,
           workflow_id: workflowId,
@@ -217,7 +215,7 @@ export function useWaveRecorder({
         });
       });
     }
-  }, [defaultFileType, onChange, uploadAsset, workflowId]);
+  }, [onChange, uploadAsset, workflowId]);
 
   const [isDeviceListVisible, setIsDeviceListVisible] =
     useState<boolean>(false);

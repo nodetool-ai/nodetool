@@ -5,9 +5,11 @@ import { useVideoRecorder } from "../useVideoRecorder";
 // NodeProvider — a published mini app has none, and the hook must still work.
 jest.mock("../../../serverState/useAssetUpload", () => ({
   useAssetUpload: () => ({
-    uploadAsset: jest.fn()
+    uploadAsset: mockUploadAsset
   })
 }));
+const mockUploadAsset = jest.fn();
+
 // Mock navigator.mediaDevices
 const mockGetUserMedia = jest.fn();
 const mockEnumerateDevices = jest.fn();
@@ -153,4 +155,70 @@ describe("useVideoRecorder", () => {
     expect(result.current.videoRef).toBeDefined();
     expect(result.current.videoRef.current).toBeNull();
   });
+});
+
+
+describe("recording format", () => {
+  it.each(["video/mp4;codecs=avc1", "video/webm;codecs=vp8"])(
+    "uploads the browser's %s format without forcing WebM",
+    async (mimeType) => {
+      const original = Object.getOwnPropertyDescriptor(
+        globalThis,
+        "MediaRecorder"
+      );
+      class Recorder {
+        static isTypeSupported = (type: string) =>
+          type === mimeType.split(";")[0];
+        mimeType = mimeType;
+        ondataavailable?: (event: { data: Blob }) => void;
+        onstop?: () => void;
+        constructor(_stream: MediaStream, options?: MediaRecorderOptions) {
+          if (
+            options?.mimeType &&
+            !Recorder.isTypeSupported(options.mimeType)
+          ) {
+            throw new DOMException("Unsupported format", "NotSupportedError");
+          }
+        }
+        start() {}
+        stop() {
+          this.ondataavailable?.({
+            data: new Blob(["recorded bytes"], { type: mimeType })
+          });
+          this.onstop?.();
+        }
+      }
+      Object.defineProperty(globalThis, "MediaRecorder", {
+        configurable: true,
+        value: Recorder
+      });
+      mockGetUserMedia.mockResolvedValue({
+        getTracks: () => [{ stop: jest.fn() }]
+      });
+      mockEnumerateDevices.mockResolvedValue([]);
+      mockUploadAsset.mockClear();
+      try {
+        const { result, unmount } = renderHook(() =>
+          useVideoRecorder({ onChange: jest.fn() })
+        );
+        await act(async () => {
+          await result.current.startPreview();
+        });
+        act(() => result.current.handleRecord());
+        expect(result.current.error).toBeNull();
+        expect(result.current.isRecording).toBe(true);
+        act(() => result.current.handleRecord());
+        const file: File = mockUploadAsset.mock.calls[0][0].file;
+        expect(file.type).toBe(mimeType);
+        expect(file.name).toBe(
+          `recording.${mimeType.split(";")[0].split("/")[1]}`
+        );
+        unmount();
+      } finally {
+        if (original)
+          Object.defineProperty(globalThis, "MediaRecorder", original);
+        else Reflect.deleteProperty(globalThis, "MediaRecorder");
+      }
+    }
+  );
 });
