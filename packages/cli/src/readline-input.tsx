@@ -102,10 +102,16 @@ export function editInput(
           : cursor
     };
   }
-  if (key.backspace || (key.ctrl && (input === "h" || input === "w"))) {
+  // Ink 6 reports the DEL byte emitted by Backspace in most terminals as
+  // `delete`. Keep Ctrl+D as the unambiguous forward-delete shortcut.
+  if (
+    key.backspace ||
+    key.delete ||
+    (key.ctrl && (input === "h" || input === "w"))
+  ) {
     return replace(left(), cursor);
   }
-  if (key.delete || ((key.ctrl || key.meta) && input === "d")) {
+  if ((key.ctrl || key.meta) && input === "d") {
     return replace(cursor, right());
   }
   if (key.ctrl && input === "u") {
@@ -232,11 +238,7 @@ export default function ReadlineInput({
         : cursorText) +
       (cursorText === "\n" ? "\n" : "") +
       value.slice(cursorEnd)
-    : chalk.dim(
-        focus && showCursor
-          ? chalk.inverse(placeholder[0] ?? " ") + placeholder.slice(1)
-          : placeholder
-      );
+    : chalk.dim(placeholder);
   const lines = terminalLines(display, width);
   const cursorLine =
     terminalLines(value.slice(0, current.cursor) + " ", width).length - 1;

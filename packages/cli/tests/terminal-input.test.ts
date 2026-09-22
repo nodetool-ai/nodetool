@@ -2,9 +2,14 @@ import { describe, expect, it } from "vitest";
 import { editInput } from "../src/readline-input.js";
 
 describe("terminal editor", () => {
-  it("deletes forward without eating the character before the cursor", () => {
+  it("treats the terminal Delete key as Backspace", () => {
     expect(
       editInput({ value: "abcd", cursor: 2 }, "", { delete: true })
+    ).toEqual({ value: "acd", cursor: 1 });
+  });
+  it("deletes forward with Ctrl+D", () => {
+    expect(
+      editInput({ value: "abcd", cursor: 2 }, "d", { ctrl: true })
     ).toEqual({ value: "abd", cursor: 2 });
   });
   it("moves Home and End within a multiline prompt", () => {

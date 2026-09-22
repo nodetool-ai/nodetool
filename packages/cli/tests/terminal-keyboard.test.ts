@@ -41,6 +41,25 @@ it("buffers a bracketed paste across input chunks without submitting any pasted 
     expect(submitted).toHaveBeenCalledWith("first\nsecond\n")
   );
 });
+it("handles the Backspace byte emitted by terminals", async () => {
+  const changed = vi.fn();
+  function Editor(): React.ReactElement {
+    const [value, setValue] = useState("");
+    return React.createElement(ReadlineInput, {
+      value,
+      onChange: (next) => {
+        changed(next);
+        setValue(next);
+      }
+    });
+  }
+  const terminal = renderTerminal(React.createElement(Editor));
+  cleanups.push(terminal.close);
+  terminal.stdin.write("ab");
+  await vi.waitFor(() => expect(changed).toHaveBeenLastCalledWith("ab"));
+  terminal.stdin.write("\u007f");
+  await vi.waitFor(() => expect(changed).toHaveBeenLastCalledWith("a"));
+});
 it("keeps scrolled history stationary while output arrives and follows on Ctrl+G", async () => {
   const messages: ChatMessage[] = Array.from({ length: 30 }, (_, i) => ({
     id: String(i),
