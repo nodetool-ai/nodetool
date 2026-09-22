@@ -124,6 +124,8 @@ export interface DocumentMergeAdapter<TDoc> {
 export interface MergeOptions {
   /** The ops the external write was made with, when the writer attached any. */
   ops?: DocumentOp[];
+  /** Merge an unattributed server copy per unit during CAS recovery. */
+  mergeWithoutOps?: boolean;
 }
 
 type TouchMap = Map<string, Set<string> | "all">;
@@ -161,10 +163,15 @@ export function structuralEqual(a: unknown, b: unknown): boolean {
  */
 function buildTouchMap<TDoc>(
   adapter: DocumentMergeAdapter<TDoc>,
-  ops: DocumentOp[] | undefined
+  ops: DocumentOp[] | undefined,
+  mergeWithoutOps: boolean
 ): { touched: TouchMap; hasOps: boolean; attributedAny: boolean } {
   if (!ops || ops.length === 0) {
-    return { touched: new Map(), hasOps: false, attributedAny: false };
+    return {
+      touched: new Map(),
+      hasOps: mergeWithoutOps,
+      attributedAny: false
+    };
   }
   const touched: TouchMap = new Map();
   let attributedAny = false;
@@ -977,7 +984,8 @@ export function mergeByUnits<TDoc>(
 ): MergeResult<TDoc> {
   const { touched, hasOps, attributedAny } = buildTouchMap(
     adapter,
-    options?.ops
+    options?.ops,
+    options?.mergeWithoutOps ?? false
   );
   const touchesSlot = (kind: string, unitId: string): boolean =>
     touches(touched, hasOps, attributedAny, kind, unitId);

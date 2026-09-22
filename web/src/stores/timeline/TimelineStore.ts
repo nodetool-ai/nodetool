@@ -69,6 +69,7 @@ import {
   AUDIO_BAKED_ANIMATION_KIND,
   applyTakeToClip,
   selectTake,
+  sourceRate,
   renameTake as renameTakeOnClip,
   deleteTake as deleteTakeOnClip,
   addReframeKeyframe as addReframeKeyframeOnClip,
@@ -1153,6 +1154,98 @@ function lockedTrackIds(tracks: readonly TimelineTrack[]): Set<string> {
 }
 
 /**
+ * Keep user edits away from locked clips and tracks, including clips the
+ * action would touch indirectly through a link or group. The returned ids are
+ * the requested roots whose complete edit unit is writable. Synchronization
+ * and generation paths do not use this helper, so locks remain a user-edit
+ * policy rather than a document-update policy.
+ */
+function editableUserTargets(
+  clips: readonly TimelineClip[],
+  tracks: readonly TimelineTrack[],
+  targetIds: ReadonlySet<string>,
+  options: {
+    followLinks: boolean;
+    includeGroupDescendants: boolean;
+  }
+): Set<string> {
+  const byId = new Map(clips.map((clip) => [clip.id, clip]));
+  const lockedTracks = lockedTrackIds(tracks);
+  const byLink = new Map<string, TimelineClip[]>();
+  const childrenByParent = new Map<string, TimelineClip[]>();
+
+  for (const clip of clips) {
+    if (clip.linkId !== undefined) {
+      const linked = byLink.get(clip.linkId) ?? [];
+      linked.push(clip);
+      byLink.set(clip.linkId, linked);
+    }
+    if (clip.parentId !== undefined) {
+      const children = childrenByParent.get(clip.parentId) ?? [];
+      children.push(clip);
+      childrenByParent.set(clip.parentId, children);
+    }
+  }
+
+  const editable = new Set<string>();
+  for (const targetId of targetIds) {
+    const target = byId.get(targetId);
+    if (!target) continue;
+
+    const pending = [target];
+    const unit = new Set<string>();
+    let blocked = false;
+    while (pending.length > 0) {
+      const clip = pending.pop();
+      if (!clip || unit.has(clip.id)) continue;
+      unit.add(clip.id);
+      if (clip.locked || lockedTracks.has(clip.trackId)) {
+        blocked = true;
+      }
+      if (options.followLinks && clip.linkId !== undefined) {
+        pending.push(...(byLink.get(clip.linkId) ?? []));
+      }
+      if (options.includeGroupDescendants && isGroupClip(clip)) {
+        pending.push(...(childrenByParent.get(clip.id) ?? []));
+      }
+    }
+    if (!blocked) editable.add(targetId);
+  }
+  return editable;
+}
+
+/** Clips whose complete linked/grouped edit unit contains a lock. */
+function lockedUserTargetIds(
+  clips: readonly TimelineClip[],
+  tracks: readonly TimelineTrack[]
+): Set<string> {
+  const allIds = new Set(clips.map((clip) => clip.id));
+  const editable = editableUserTargets(clips, tracks, allIds, {
+    followLinks: true,
+    includeGroupDescendants: true
+  });
+  return new Set([...allIds].filter((id) => !editable.has(id)));
+}
+
+/** Clamp a timeline-space end trim to the remaining source-space window. */
+function clampEndTrimDeltaToSource(
+  clip: TimelineClip,
+  deltaMs: number,
+  maxSourceDurationMs: number | undefined
+): number {
+  if (maxSourceDurationMs === undefined || deltaMs <= 0) return deltaMs;
+  const rate = sourceRate(clip);
+  const inPointMs = clip.inPointMs ?? 0;
+  const currentOutPointMs =
+    clip.outPointMs ?? inPointMs + clip.durationMs * rate;
+  const maxTimelineGrowMs = Math.max(
+    0,
+    (maxSourceDurationMs - currentOutPointMs) / rate
+  );
+  return Math.min(deltaMs, maxTimelineGrowMs);
+}
+
+/**
  * Remove `ids` from `clips`: a deleted group releases its children, and a
  * link group left with one member drops its linkId.
  */
@@ -2117,8 +2210,30 @@ export const createTimelineStore = (
           disableSnap
         ) =>
           set((state) => {
-            const primary = state.clips.find((c) => c.id === primaryClipId);
-            if (!primary) {
+            const editableSelectedIds = editableUserTargets(
+              state.clips,
+              state.tracks,
+              selectedIds,
+              {
+                followLinks: state.linkedSelection,
+                includeGroupDescendants: true
+              }
+            );
+            const effectivePrimaryId = editableSelectedIds.has(primaryClipId)
+              ? primaryClipId
+              : toTrackId === undefined
+                ? editableSelectedIds.values().next().value
+                : undefined;
+            const primary = state.clips.find(
+              (c) => c.id === effectivePrimaryId
+            );
+            if (
+              !primary ||
+              (toTrackId !== undefined &&
+                state.tracks.some(
+                  (track) => track.id === toTrackId && track.locked
+                ))
+            ) {
               return state;
             }
 
@@ -2139,7 +2254,7 @@ export const createTimelineStore = (
             // preserved when the selection is dragged against t=0.
             const minStartMs = state.clips.reduce(
               (min, c) =>
-                selectedIds.has(c.id) ? Math.min(min, c.startMs) : min,
+                editableSelectedIds.has(c.id) ? Math.min(min, c.startMs) : min,
               primary.startMs
             );
             const effectiveDelta = Math.max(snappedDelta, -minStartMs);
@@ -2152,7 +2267,7 @@ export const createTimelineStore = (
             // (D4), whether or not they are themselves selected.
             const carried = new Set<string>();
             for (const c of state.clips) {
-              if (!selectedIds.has(c.id)) continue;
+              if (!editableSelectedIds.has(c.id)) continue;
               if (state.linkedSelection && c.linkId !== undefined) {
                 selectedLinkIds.add(c.linkId);
               }
@@ -2165,8 +2280,8 @@ export const createTimelineStore = (
 
             return {
               clips: state.clips.map((c) => {
-                if (selectedIds.has(c.id)) {
-                  if (c.id === primaryClipId) {
+                if (editableSelectedIds.has(c.id)) {
+                  if (c.id === effectivePrimaryId) {
                     return {
                       ...c,
                       startMs: c.startMs + effectiveDelta,
@@ -2201,6 +2316,19 @@ export const createTimelineStore = (
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
             if (!clip) {
+              return state;
+            }
+            if (
+              !editableUserTargets(
+                state.clips,
+                state.tracks,
+                new Set([clipId]),
+                {
+                  followLinks: state.linkedSelection,
+                  includeGroupDescendants: true
+                }
+              ).has(clipId)
+            ) {
               return state;
             }
             // Trimming a group pulls its children inside the new window; an
@@ -2241,15 +2369,27 @@ export const createTimelineStore = (
             if (!clip) {
               return state;
             }
-            // Clamp grow deltas so that outPointMs cannot exceed source
-            // duration. Never clamp a shrink.
-            let clampedDelta = deltaMs;
-            if (maxSourceDurationMs !== undefined && deltaMs > 0) {
-              const currentOutPointMs =
-                clip.outPointMs ?? (clip.inPointMs ?? 0) + clip.durationMs;
-              const maxGrow = maxSourceDurationMs - currentOutPointMs;
-              clampedDelta = Math.min(deltaMs, Math.max(0, maxGrow));
+            if (
+              !editableUserTargets(
+                state.clips,
+                state.tracks,
+                new Set([clipId]),
+                {
+                  followLinks: state.linkedSelection,
+                  includeGroupDescendants: true
+                }
+              ).has(clipId)
+            ) {
+              return state;
             }
+            // The gesture delta is timeline time. Source bounds are source
+            // time, so convert the remaining window by the clip's effective
+            // playback rate before clamping.
+            const clampedDelta = clampEndTrimDeltaToSource(
+              clip,
+              deltaMs,
+              maxSourceDurationMs
+            );
             if (isGroupClip(clip)) {
               try {
                 return {
@@ -2264,7 +2404,10 @@ export const createTimelineStore = (
             // first. If any trim is invalid, abort so the link never desyncs.
             const trimmed = new Map<string, TimelineClip>();
             try {
-              trimmed.set(clip.id, trimClip(clip, "end", clampedDelta));
+              trimmed.set(
+                clip.id,
+                trimClip(clip, "end", clampedDelta, maxSourceDurationMs)
+              );
               if (linkId !== undefined) {
                 for (const c of state.clips) {
                   if (c.id !== clipId && c.linkId === linkId) {
@@ -2282,10 +2425,24 @@ export const createTimelineStore = (
 
         rippleTrimClipStart: (clipId, deltaMs) =>
           set((state) => {
+            if (
+              !editableUserTargets(
+                state.clips,
+                state.tracks,
+                new Set([clipId]),
+                {
+                  followLinks: state.linkedSelection,
+                  includeGroupDescendants: true
+                }
+              ).has(clipId)
+            ) {
+              return state;
+            }
             try {
               return {
                 clips: rippleTrim(state.clips, clipId, "start", deltaMs, {
                   lockedTrackIds: lockedTrackIds(state.tracks),
+                  lockedClipIds: lockedUserTargetIds(state.clips, state.tracks),
                   followLinks: state.linkedSelection
                 })
               };
@@ -2296,13 +2453,40 @@ export const createTimelineStore = (
 
         rippleTrimClipEnd: (clipId, deltaMs, maxSourceDurationMs) =>
           set((state) => {
+            const clip = state.clips.find(
+              (candidate) => candidate.id === clipId
+            );
+            if (!clip) return state;
+            if (
+              !editableUserTargets(
+                state.clips,
+                state.tracks,
+                new Set([clipId]),
+                {
+                  followLinks: state.linkedSelection,
+                  includeGroupDescendants: true
+                }
+              ).has(clipId)
+            ) {
+              return state;
+            }
             try {
               return {
-                clips: rippleTrim(state.clips, clipId, "end", deltaMs, {
-                  lockedTrackIds: lockedTrackIds(state.tracks),
-                  followLinks: state.linkedSelection,
-                  maxSourceDurationMs
-                })
+                clips: rippleTrim(
+                  state.clips,
+                  clipId,
+                  "end",
+                  clampEndTrimDeltaToSource(clip, deltaMs, maxSourceDurationMs),
+                  {
+                    lockedTrackIds: lockedTrackIds(state.tracks),
+                    lockedClipIds: lockedUserTargetIds(
+                      state.clips,
+                      state.tracks
+                    ),
+                    followLinks: state.linkedSelection,
+                    maxSourceDurationMs
+                  }
+                )
               };
             } catch {
               return state;
@@ -2324,14 +2508,21 @@ export const createTimelineStore = (
 
         rippleDeleteSelected: (selectedIds) =>
           set((state) => {
+            const editableIds = editableUserTargets(
+              state.clips,
+              state.tracks,
+              selectedIds,
+              { followLinks: true, includeGroupDescendants: true }
+            );
             // Which clips left and the spans they covered come from the
             // pre-delete array; the shift runs over the survivors.
-            const removed = state.clips.filter((c) => selectedIds.has(c.id));
+            const removed = state.clips.filter((c) => editableIds.has(c.id));
             if (removed.length === 0) return state;
-            const survivors = removeClipsLinkAware(state.clips, selectedIds);
+            const survivors = removeClipsLinkAware(state.clips, editableIds);
             return {
-              clips: rippleDelete([...removed, ...survivors], selectedIds, {
-                lockedTrackIds: lockedTrackIds(state.tracks)
+              clips: rippleDelete([...removed, ...survivors], editableIds, {
+                lockedTrackIds: lockedTrackIds(state.tracks),
+                lockedClipIds: lockedUserTargetIds(state.clips, state.tracks)
               })
             };
           }),
@@ -2339,7 +2530,8 @@ export const createTimelineStore = (
         closeGapAt: (trackId, timeMs) =>
           set((state) => {
             const next = closeGap(state.clips, trackId, timeMs, {
-              lockedTrackIds: lockedTrackIds(state.tracks)
+              lockedTrackIds: lockedTrackIds(state.tracks),
+              lockedClipIds: lockedUserTargetIds(state.clips, state.tracks)
             });
             return next.length === state.clips.length &&
               next.every((c, i) => c === state.clips[i])
@@ -2352,7 +2544,8 @@ export const createTimelineStore = (
             if (mode === "overlap") return state;
             return {
               clips: resolveDrop(state.clips, movedIds, mode, {
-                lockedTrackIds: lockedTrackIds(state.tracks)
+                lockedTrackIds: lockedTrackIds(state.tracks),
+                lockedClipIds: lockedUserTargetIds(state.clips, state.tracks)
               })
             };
           }),
@@ -2446,6 +2639,19 @@ export const createTimelineStore = (
 
         splitClipAtTime: (clipId, atMs) =>
           set((state) => {
+            if (
+              !editableUserTargets(
+                state.clips,
+                state.tracks,
+                new Set([clipId]),
+                {
+                  followLinks: true,
+                  includeGroupDescendants: false
+                }
+              ).has(clipId)
+            ) {
+              return state;
+            }
             const next = splitClipsLinkAware(state.clips, atMs, [clipId]);
             return next === state.clips ? state : { clips: next };
           }),
@@ -2455,19 +2661,25 @@ export const createTimelineStore = (
             // Target every selected clip containing the playhead (or all clips
             // when nothing is selected). splitClipsLinkAware dedupes so a
             // sibling that is also selected is split only once.
-            const targetIds = state.clips
-              .filter(
-                (c) =>
-                  (selectedIds.size === 0 || selectedIds.has(c.id)) &&
-                  currentTimeMs > c.startMs &&
-                  currentTimeMs < c.startMs + c.durationMs
-              )
-              .map((c) => c.id);
-            const next = splitClipsLinkAware(
-              state.clips,
-              currentTimeMs,
-              targetIds
+            const requestedTargetIds = new Set(
+              state.clips
+                .filter(
+                  (c) =>
+                    (selectedIds.size === 0 || selectedIds.has(c.id)) &&
+                    currentTimeMs > c.startMs &&
+                    currentTimeMs < c.startMs + c.durationMs
+                )
+                .map((c) => c.id)
             );
+            const targetIds = editableUserTargets(
+              state.clips,
+              state.tracks,
+              requestedTargetIds,
+              { followLinks: true, includeGroupDescendants: false }
+            );
+            const next = splitClipsLinkAware(state.clips, currentTimeMs, [
+              ...targetIds
+            ]);
             return next === state.clips ? state : { clips: next };
           }),
 
@@ -2513,12 +2725,29 @@ export const createTimelineStore = (
         },
 
         deleteSelected: (selectedIds) =>
-          set((state) => ({
-            clips: removeClipsLinkAware(state.clips, selectedIds)
-          })),
+          set((state) => {
+            const editableIds = editableUserTargets(
+              state.clips,
+              state.tracks,
+              selectedIds,
+              { followLinks: true, includeGroupDescendants: true }
+            );
+            if (editableIds.size === 0) return state;
+            return { clips: removeClipsLinkAware(state.clips, editableIds) };
+          }),
 
         deleteClip: (clipId) =>
           set((state) => {
+            if (
+              !editableUserTargets(
+                state.clips,
+                state.tracks,
+                new Set([clipId]),
+                { followLinks: true, includeGroupDescendants: true }
+              ).has(clipId)
+            ) {
+              return state;
+            }
             const target = state.clips.find((c) => c.id === clipId);
             const linkId = target?.linkId;
             // Deleting a group deletes the parent, not the picture: its

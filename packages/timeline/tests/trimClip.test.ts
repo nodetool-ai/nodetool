@@ -57,19 +57,31 @@ describe("trimClip", () => {
 
   it("throws when trim would result in zero or negative duration", () => {
     const clip = makeBaseClip();
-    expect(() => trimClip(clip, "end", -400, 1000)).toThrow(/non-positive duration/);
-    expect(() => trimClip(clip, "start", -500, 1000)).toThrow(/non-positive duration/);
+    expect(() => trimClip(clip, "end", -400, 1000)).toThrow(
+      /non-positive duration/
+    );
+    expect(() => trimClip(clip, "start", -500, 1000)).toThrow(
+      /non-positive duration/
+    );
   });
 
   it("throws when extending beyond source bounds", () => {
     const clip = makeBaseClip();
 
-    expect(() => trimClip(clip, "start", 250, 1000)).toThrow(/before source start/);
-    expect(() => trimClip(clip, "end", 500, 900)).toThrow(/beyond source out-point/);
+    expect(() => trimClip(clip, "start", 250, 1000)).toThrow(
+      /before source start/
+    );
+    expect(() => trimClip(clip, "end", 500, 900)).toThrow(
+      /beyond source out-point/
+    );
   });
 
   it("throws when the start edge would move before zero on the timeline", () => {
-    const clip: TimelineClip = { ...makeBaseClip(), startMs: 50, inPointMs: 200 };
+    const clip: TimelineClip = {
+      ...makeBaseClip(),
+      startMs: 50,
+      inPointMs: 200
+    };
     expect(() => trimClip(clip, "start", 100, 1000)).toThrow(
       /before zero on the timeline/
     );
@@ -94,6 +106,24 @@ describe("trimClip", () => {
     const grownStart = trimClip(clip, "start", 50, 2000);
     expect(grownStart.startMs).toBe(950); // timeline start uses the raw delta
     expect(grownStart.inPointMs).toBe(100); // 200 - 50 * 2 source-ms
+  });
+
+  it("checks the source bound after converting a timeline delta by playback rate", () => {
+    const clip: TimelineClip = { ...makeBaseClip(), speedMultiplier: 2 };
+
+    expect(() => trimClip(clip, "end", 201, 1000)).toThrow(
+      /beyond source out-point/
+    );
+    expect(trimClip(clip, "end", 200, 1000).outPointMs).toBe(1000);
+  });
+
+  it("normalizes a fractional-rate trim that lands on the source bound", () => {
+    const clip: TimelineClip = { ...makeBaseClip(), speedMultiplier: 1.3 };
+    const deltaMs = (1000 - 600) / 1.3;
+
+    const trimmed = trimClip(clip, "end", deltaMs, 1000);
+
+    expect(trimmed.outPointMs).toBe(1000);
   });
 
   it("ignores the multiplier once speed is baked into the asset", () => {

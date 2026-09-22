@@ -1000,12 +1000,12 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
           case "splitAtPlayhead":
             e.preventDefault();
-            splitSelectedAtPlayhead(playback.currentTimeMs, selectedClipIds);
+            splitSelectedAtPlayhead(liveMs, selectedClipIds);
             return;
 
           case "cutAllTracks":
             e.preventDefault();
-            splitSelectedAtPlayhead(playback.currentTimeMs, new Set());
+            splitSelectedAtPlayhead(liveMs, new Set());
             return;
 
           case "extendEdit":
@@ -1138,7 +1138,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             e.preventDefault();
             // The earliest clip lands on the playhead, the rest keep their
             // relative offsets.
-            const pasted = buildPastedClips(doc.tracks, playback.currentTimeMs);
+            const pasted = buildPastedClips(doc.tracks, liveMs);
             if (pasted.length > 0) {
               addClips(pasted);
               setSelection(pasted.map((c) => c.id));
@@ -1264,7 +1264,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             const id = performSourceEdit(kind, {
               doc,
               ui,
-              playheadMs: playback.currentTimeMs,
+              playheadMs: liveMs,
               asset: activeExplorer
                 ? (getSelectedAssetForExplorer(activeExplorer) ?? undefined)
                 : undefined

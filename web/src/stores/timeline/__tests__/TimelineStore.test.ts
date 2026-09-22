@@ -259,9 +259,7 @@ describe("TimelineStore — moveSelectedClips", () => {
     const c2 = makeClip({ trackId: track.id, startMs: 1000, durationMs: 500 });
     store.setState({ tracks: [track], clips: [c1, c2] });
 
-    store
-      .getState()
-      .moveSelectedClips(c1.id, new Set([c1.id, c2.id]), -1000);
+    store.getState().moveSelectedClips(c1.id, new Set([c1.id, c2.id]), -1000);
 
     const clips = store.getState().clips;
     expect(clips.find((c) => c.id === c1.id)!.startMs).toBe(0);
@@ -276,9 +274,7 @@ describe("TimelineStore — moveSelectedClips", () => {
     store.setState({ tracks: [track], clips: [c1, c2] });
 
     // Primary is the later clip; the earlier one still bounds the move.
-    store
-      .getState()
-      .moveSelectedClips(c2.id, new Set([c1.id, c2.id]), -600);
+    store.getState().moveSelectedClips(c2.id, new Set([c1.id, c2.id]), -600);
 
     const clips = store.getState().clips;
     expect(clips.find((c) => c.id === c1.id)!.startMs).toBe(0);
@@ -291,9 +287,7 @@ describe("TimelineStore — moveSelectedClips", () => {
     const c2 = makeClip({ trackId: track.id, startMs: 1000, durationMs: 500 });
     store.setState({ tracks: [track], clips: [c1, c2] });
 
-    store
-      .getState()
-      .moveSelectedClips(c1.id, new Set([c1.id, c2.id]), 300);
+    store.getState().moveSelectedClips(c1.id, new Set([c1.id, c2.id]), 300);
 
     const clips = store.getState().clips;
     expect(clips.find((c) => c.id === c1.id)!.startMs).toBe(500);
@@ -309,7 +303,10 @@ describe("TimelineStore — trimClipStart / trimClipEnd", () => {
   });
 
   it("trimClipStart with negative deltaMs extends start earlier", () => {
-    const { clip } = addTrackAndClip(store, { startMs: 2000, durationMs: 3000 });
+    const { clip } = addTrackAndClip(store, {
+      startMs: 2000,
+      durationMs: 3000
+    });
     // trimClip(edge='start', deltaMs=-500) → startMs - 500 (new start), duration + 500
     store.getState().trimClipStart(clip.id, -500);
     const c = store.getState().clips[0];
@@ -349,8 +346,67 @@ describe("TimelineStore — trimClipStart / trimClipEnd", () => {
     expect(store.getState().clips[0].durationMs).toBe(4500);
   });
 
+  it.each([
+    { speedMultiplier: 2, speedBaked: false, expectedGrowMs: 1000 },
+    { speedMultiplier: 0.5, speedBaked: false, expectedGrowMs: 4000 },
+    { speedMultiplier: 2, speedBaked: true, expectedGrowMs: 2000 }
+  ])(
+    "converts the remaining source window at $speedMultiplier× (baked: $speedBaked)",
+    ({ speedMultiplier, speedBaked, expectedGrowMs }) => {
+      const { clip } = addTrackAndClip(store, {
+        startMs: 0,
+        durationMs: 4000,
+        inPointMs: 0,
+        outPointMs: 8000,
+        speedMultiplier,
+        speedBaked
+      });
+
+      store.getState().trimClipEnd(clip.id, 5000, 10000);
+
+      const trimmed = store.getState().clips[0];
+      expect(trimmed.durationMs).toBe(4000 + expectedGrowMs);
+      expect(trimmed.outPointMs).toBe(10000);
+    }
+  );
+
+  it("uses the effective rate when an explicit out-point is absent", () => {
+    const { clip } = addTrackAndClip(store, {
+      startMs: 0,
+      durationMs: 4000,
+      inPointMs: 1000,
+      outPointMs: undefined,
+      speedMultiplier: 2
+    });
+
+    store.getState().trimClipEnd(clip.id, 5000, 10000);
+
+    const trimmed = store.getState().clips[0];
+    expect(trimmed.durationMs).toBe(4500);
+    expect(trimmed.outPointMs).toBe(10000);
+  });
+
+  it("reaches the source cap at a fractional playback rate", () => {
+    const { clip } = addTrackAndClip(store, {
+      startMs: 0,
+      durationMs: 2_000,
+      inPointMs: 0,
+      outPointMs: 2_600,
+      speedMultiplier: 1.3
+    });
+
+    store.getState().trimClipEnd(clip.id, 10_000, 15_000);
+
+    const trimmed = store.getState().clips[0];
+    expect(trimmed.durationMs).toBeCloseTo(11_538.461538, 6);
+    expect(trimmed.outPointMs).toBeCloseTo(15_000, 10);
+  });
+
   it("trimClipStart no-ops when it would produce zero/negative duration", () => {
-    const { clip } = addTrackAndClip(store, { startMs: 1000, durationMs: 1000 });
+    const { clip } = addTrackAndClip(store, {
+      startMs: 1000,
+      durationMs: 1000
+    });
     const before = store.getState().clips[0].durationMs;
     // delta=-1500 gives nextDurationMs = 1000 - 1500 = -500, so the trim is rejected.
     store.getState().trimClipStart(clip.id, -1500);
@@ -442,9 +498,7 @@ describe("TimelineStore — duplicateSelected", () => {
   it("places duplicate immediately after source when offset is omitted", () => {
     const { clip } = addTrackAndClip(store, { startMs: 100, durationMs: 1500 });
     store.getState().duplicateSelected(new Set([clip.id]));
-    const duplicate = store
-      .getState()
-      .clips.find((c) => c.id !== clip.id)!;
+    const duplicate = store.getState().clips.find((c) => c.id !== clip.id)!;
     expect(duplicate.startMs).toBe(1600);
   });
 
@@ -481,6 +535,66 @@ describe("TimelineStore — deleteSelected / deleteClip", () => {
     const { clip } = addTrackAndClip(store);
     store.getState().deleteClip(clip.id);
     expect(store.getState().clips).toHaveLength(0);
+  });
+});
+
+describe("TimelineStore — locked user edits", () => {
+  function mixedLockedStore() {
+    const store = mkStore();
+    const lockedTrack = makeTrack({ type: "video", locked: true });
+    const openTrack = makeTrack({ type: "video" });
+    const locked = makeClip({
+      trackId: lockedTrack.id,
+      startMs: 0,
+      durationMs: 5000
+    });
+    const editable = makeClip({
+      trackId: openTrack.id,
+      startMs: 0,
+      durationMs: 5000
+    });
+    store.setState({
+      tracks: [lockedTrack, openTrack],
+      clips: [locked, editable]
+    });
+    return { store, locked, editable };
+  }
+
+  it("moves only editable clips in a mixed keyboard selection", () => {
+    const { store, locked, editable } = mixedLockedStore();
+    const selected = new Set([locked.id, editable.id]);
+
+    store.getState().moveSelectedClips(locked.id, selected, 1000);
+
+    expect(
+      store.getState().clips.find((clip) => clip.id === locked.id)?.startMs
+    ).toBe(0);
+    expect(
+      store.getState().clips.find((clip) => clip.id === editable.id)?.startMs
+    ).toBe(1000);
+  });
+
+  it("splits only editable clips in a mixed keyboard selection", () => {
+    const { store, locked, editable } = mixedLockedStore();
+
+    store
+      .getState()
+      .splitSelectedAtPlayhead(2500, new Set([locked.id, editable.id]));
+
+    expect(
+      store.getState().clips.filter((clip) => clip.trackId === locked.trackId)
+    ).toHaveLength(1);
+    expect(
+      store.getState().clips.filter((clip) => clip.trackId === editable.trackId)
+    ).toHaveLength(2);
+  });
+
+  it("deletes only editable clips in a mixed keyboard selection", () => {
+    const { store, locked, editable } = mixedLockedStore();
+
+    store.getState().deleteSelected(new Set([locked.id, editable.id]));
+
+    expect(store.getState().clips.map((clip) => clip.id)).toEqual([locked.id]);
   });
 });
 
@@ -524,7 +638,10 @@ describe("TimelineStore — undo/redo (temporal)", () => {
 
   it("does not record an undo entry for a value-identical remap", () => {
     const store = mkStore();
-    const { clip } = addTrackAndClip(store, { startMs: 1000, durationMs: 2000 });
+    const { clip } = addTrackAndClip(store, {
+      startMs: 1000,
+      durationMs: 2000
+    });
     const before = timelineTemporalOf(store).pastStates.length;
 
     // map() produces a new clip object with identical values.
@@ -596,7 +713,12 @@ describe("TimelineStore — addImportedClip", () => {
     const track = makeTrack({ type: "video" });
     store.setState({ tracks: [track] });
 
-    const asset = makeAsset({ id: "img-asset-1", name: "photo.jpg", content_type: "image/jpeg", duration: null });
+    const asset = makeAsset({
+      id: "img-asset-1",
+      name: "photo.jpg",
+      content_type: "image/jpeg",
+      duration: null
+    });
 
     store.getState().addImportedClip(asset, track.id, 2000);
 
@@ -616,7 +738,12 @@ describe("TimelineStore — addImportedClip", () => {
     const track = makeTrack({ type: "video" });
     store.setState({ tracks: [track] });
 
-    const asset = makeAsset({ id: "vid-asset-1", name: "clip.mp4", content_type: "video/mp4", duration: 10 });
+    const asset = makeAsset({
+      id: "vid-asset-1",
+      name: "clip.mp4",
+      content_type: "video/mp4",
+      duration: 10
+    });
 
     store.getState().addImportedClip(asset, track.id, 0);
 
@@ -630,7 +757,12 @@ describe("TimelineStore — addImportedClip", () => {
     const track = makeTrack({ type: "audio" });
     store.setState({ tracks: [track] });
 
-    const asset = makeAsset({ id: "audio-asset-1", name: "track.mp3", content_type: "audio/mpeg", duration: 120 });
+    const asset = makeAsset({
+      id: "audio-asset-1",
+      name: "track.mp3",
+      content_type: "audio/mpeg",
+      duration: 120
+    });
 
     store.getState().addImportedClip(asset, track.id, 0);
 
@@ -639,7 +771,6 @@ describe("TimelineStore — addImportedClip", () => {
     expect(clips[0].durationMs).toBe(120000);
   });
 });
-
 
 describe("TimelineStore — restoreVersion", () => {
   it("restores currentAssetId, paramOverrides, and lastGeneratedHash from version", () => {
@@ -767,7 +898,9 @@ describe("TimelineStore — applyTake", () => {
         rotation: 0.2,
         anchor: { x: 0.25, y: 0.75 }
       },
-      effects: [{ id: "effect-1", type: "vignette", enabled: true, amount: 0.4 }],
+      effects: [
+        { id: "effect-1", type: "vignette", enabled: true, amount: 0.4 }
+      ],
       animations: [
         {
           id: "animation-1",
@@ -844,7 +977,9 @@ describe("TimelineStore — applyTake", () => {
 
     expect(store.getState().applyTake(original.id, "candidate")).toBeNull();
 
-    const applied = store.getState().clips.find((clip) => clip.id === original.id)!;
+    const applied = store
+      .getState()
+      .clips.find((clip) => clip.id === original.id)!;
     expect(applied.currentAssetId).toBe("asset-candidate");
     expect(applied.activeTakeId).toBe("candidate");
     expect(applied.inPointMs).toBe(0);
@@ -858,16 +993,18 @@ describe("TimelineStore — applyTake", () => {
     expect(applied.caption).toBe(original.caption);
     expect(applied.linkId).toBe(original.linkId);
     expect(applied.muted).toBe(original.muted);
-    expect(store.getState().clips.find((clip) => clip.id === unrelatedAudio.id)).toEqual(
-      unrelatedAudio
-    );
+    expect(
+      store.getState().clips.find((clip) => clip.id === unrelatedAudio.id)
+    ).toEqual(unrelatedAudio);
     expect(timelineTemporalOf(store).pastStates).toHaveLength(1);
 
     timelineTemporalOf(store).undo();
     expect(store.getState().clips).toEqual([original, unrelatedAudio]);
 
     timelineTemporalOf(store).redo();
-    const redone = store.getState().clips.find((clip) => clip.id === original.id)!;
+    const redone = store
+      .getState()
+      .clips.find((clip) => clip.id === original.id)!;
     expect(redone.currentAssetId).toBe("asset-candidate");
     expect(redone.activeTakeId).toBe("candidate");
     expect(redone.inPointMs).toBe(0);
@@ -917,7 +1054,9 @@ describe("TimelineStore — applyTake", () => {
     store.setState({ tracks: [track], clips: [clip] });
     timelineTemporalOf(store).clear();
 
-    expect(store.getState().applyTake(clip.id, "short-candidate")).toMatch(/shorter/i);
+    expect(store.getState().applyTake(clip.id, "short-candidate")).toMatch(
+      /shorter/i
+    );
     expect(store.getState().clips).toEqual([clip]);
     expect(timelineTemporalOf(store).pastStates).toHaveLength(0);
   });
@@ -1015,16 +1154,18 @@ describe("TimelineStore — duplicateClip", () => {
       paramOverrides: { nested: { value: 99 } }
     });
     const original = store.getState().clips.find((c) => c.id === clip.id)!;
-    const nested = original.paramOverrides?.nested as { value: number } | undefined;
+    const nested = original.paramOverrides?.nested as
+      | { value: number }
+      | undefined;
     expect(nested?.value).toBe(42);
   });
 
   it("rejects when source clip does not exist", async () => {
     const store = mkStore();
     addTrackAndClip(store);
-    await expect(
-      store.getState().duplicateClip("nonexistent")
-    ).rejects.toThrow("Clip nonexistent not found");
+    await expect(store.getState().duplicateClip("nonexistent")).rejects.toThrow(
+      "Clip nonexistent not found"
+    );
   });
 });
 
@@ -1065,9 +1206,21 @@ describe("TimelineStore — markClipsStaleForWorkflow", () => {
   it("marks all clips with the given workflowId as stale", () => {
     const store = mkStore();
     const track = makeTrack({ type: "video" });
-    const clipA = makeClip({ trackId: track.id, workflowId: "wf-1", status: "generated" });
-    const clipB = makeClip({ trackId: track.id, workflowId: "wf-1", status: "generated" });
-    const clipC = makeClip({ trackId: track.id, workflowId: "wf-2", status: "generated" });
+    const clipA = makeClip({
+      trackId: track.id,
+      workflowId: "wf-1",
+      status: "generated"
+    });
+    const clipB = makeClip({
+      trackId: track.id,
+      workflowId: "wf-1",
+      status: "generated"
+    });
+    const clipC = makeClip({
+      trackId: track.id,
+      workflowId: "wf-2",
+      status: "generated"
+    });
     store.setState({ tracks: [track], clips: [clipA, clipB, clipC] });
 
     store.getState().markClipsStaleForWorkflow("wf-1");
@@ -1081,7 +1234,10 @@ describe("TimelineStore — markClipsStaleForWorkflow", () => {
 
   it("is a no-op when no clips reference the workflowId", () => {
     const store = mkStore();
-    const { clip } = addTrackAndClip(store, { workflowId: "wf-other", status: "generated" });
+    const { clip } = addTrackAndClip(store, {
+      workflowId: "wf-other",
+      status: "generated"
+    });
 
     store.getState().markClipsStaleForWorkflow("wf-missing");
 
@@ -1101,14 +1257,11 @@ describe("TimelineStore — applyInputDrift", () => {
 
     store
       .getState()
-      .applyInputDrift(
-        "wf-1",
-        [{ name: "newInput", defaultValue: 42 }],
-        []
-      );
+      .applyInputDrift("wf-1", [{ name: "newInput", defaultValue: 42 }], []);
 
-    const overrides = store.getState().clips.find((c) => c.id === clip.id)!
-      .paramOverrides;
+    const overrides = store
+      .getState()
+      .clips.find((c) => c.id === clip.id)!.paramOverrides;
     expect(overrides?.existing).toBe("hello");
     expect(overrides?.newInput).toBe(42);
   });
@@ -1143,8 +1296,9 @@ describe("TimelineStore — applyInputDrift", () => {
 
     store.getState().applyInputDrift("wf-1", [], ["b", "c"]);
 
-    const overrides = store.getState().clips.find((c) => c.id === clip.id)!
-      .paramOverrides;
+    const overrides = store
+      .getState()
+      .clips.find((c) => c.id === clip.id)!.paramOverrides;
     expect(overrides).toEqual({ a: 1 });
   });
 
@@ -1170,7 +1324,11 @@ describe("TimelineStore — applyInputDrift", () => {
 
     store
       .getState()
-      .applyInputDrift("wf-1", [{ name: "brand_new", defaultValue: 0 }], ["old"]);
+      .applyInputDrift(
+        "wf-1",
+        [{ name: "brand_new", defaultValue: 0 }],
+        ["old"]
+      );
 
     const clips = store.getState().clips;
     // wf-1 clips should have "brand_new" added and "old" removed
@@ -1265,7 +1423,9 @@ describe("TimelineStore — addGeneratedClip", () => {
 
     mockTimelineClipsCreate.mockResolvedValue(mockClip);
 
-    const clipId = await store.getState().addGeneratedClip("wf-src", track.id, 0);
+    const clipId = await store
+      .getState()
+      .addGeneratedClip("wf-src", track.id, 0);
 
     expect(mockTimelineClipsCreate).toHaveBeenCalledWith({
       id: "seq-1",

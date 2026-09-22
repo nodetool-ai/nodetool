@@ -39,6 +39,8 @@ a keyboard layout the user picks in the shortcut sheet (`?`):
   trackpad pinch — Chromium reports one as a synthetic ctrlKey wheel, Safari as
   WebKit gesture events, and both land on the same anchored zoom. A two-finger
   horizontal swipe or Shift+wheel pans the lanes.
+- **Source slip**: Alt+horizontal wheel over a video or audio clip moves its
+  source window while leaving its sequence position unchanged.
 
 ## Phone layout
 

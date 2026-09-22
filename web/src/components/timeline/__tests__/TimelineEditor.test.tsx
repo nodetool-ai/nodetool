@@ -6,7 +6,8 @@
  */
 
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { makeSequence } from "@nodetool-ai/timeline";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -38,6 +39,9 @@ jest.mock("../../../hooks/timeline/useLoadTimelineIntoStore", () => ({
 }));
 jest.mock("../../../hooks/timeline/useTimelineAutosave", () => ({
   useTimelineAutosave: jest.fn()
+}));
+jest.mock("../../../utils/timelineBundle", () => ({
+  exportTimelineZip: jest.fn()
 }));
 jest.mock("../../../stores/timeline/TimelineGenerationStore", () => ({
   useGeneratingCount: jest.fn(() => 0),
@@ -90,6 +94,8 @@ import {
   useCreateTimeline
 } from "../../../hooks/useTimelineSequence";
 import { useWorkflowFreshnessCheck } from "../../../hooks/timeline/useWorkflowFreshnessCheck";
+import { useTimelineAutosave } from "../../../hooks/timeline/useTimelineAutosave";
+import { exportTimelineZip } from "../../../utils/timelineBundle";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -98,6 +104,7 @@ const mockRefetch = jest.fn();
 let mockSearchParams: URLSearchParams;
 const mockCreateMutate = jest.fn();
 const mockCreateReset = jest.fn();
+const mockFlushAutosave = jest.fn();
 
 const renderEditor = () =>
   render(
@@ -116,6 +123,14 @@ beforeEach(() => {
   (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
   (useSearchParams as jest.Mock).mockReturnValue([mockSearchParams, jest.fn()]);
   (useWorkflowFreshnessCheck as jest.Mock).mockReturnValue(undefined);
+  (useTimelineAutosave as jest.Mock).mockReturnValue({
+    flush: mockFlushAutosave
+  });
+  mockFlushAutosave.mockResolvedValue({
+    ok: true,
+    updatedAt: "2026-01-01T00:00:01Z"
+  });
+  (exportTimelineZip as jest.Mock).mockResolvedValue(undefined);
   (useTimelines as jest.Mock).mockReturnValue({ data: [] });
   (useCreateTimeline as jest.Mock).mockReturnValue({
     mutate: mockCreateMutate,
@@ -334,6 +349,52 @@ describe("TimelineEditor", () => {
 
       const finalHeight = Number(separator.getAttribute("aria-valuenow"));
       expect(finalHeight).toBeLessThanOrEqual(max);
+    });
+
+    it("waits for pending edits to save before exporting the project archive", async () => {
+      let finishSave: (
+        result:
+          | { ok: true; updatedAt: string | null }
+          | { ok: false; error: string }
+      ) => void = () => {};
+      mockFlushAutosave.mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishSave = resolve;
+        })
+      );
+      renderEditor();
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "More timeline actions" })
+      );
+      await userEvent.click(await screen.findByText("Export project (.zip)"));
+      expect(exportTimelineZip).not.toHaveBeenCalled();
+
+      await act(async () => {
+        finishSave({
+          ok: true,
+          updatedAt: "2026-01-01T00:00:01Z"
+        });
+      });
+      await waitFor(() =>
+        expect(exportTimelineZip).toHaveBeenCalledWith("seq-1", "My Sequence")
+      );
+    });
+
+    it("does not export the project archive when saving fails", async () => {
+      mockFlushAutosave.mockResolvedValueOnce({
+        ok: false,
+        error: "save failed"
+      });
+      renderEditor();
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "More timeline actions" })
+      );
+      await userEvent.click(await screen.findByText("Export project (.zip)"));
+
+      await waitFor(() => expect(mockFlushAutosave).toHaveBeenCalledTimes(1));
+      expect(exportTimelineZip).not.toHaveBeenCalled();
     });
   });
 });

@@ -38,6 +38,9 @@ jest.mock("../useClipThumbnails", () => ({
 jest.mock("../useAudioPeaks", () => ({
   useAudioPeaks: () => ({ peaks: null, durationMs: null })
 }));
+jest.mock("../useAssetUrl", () => ({
+  useAssetUrl: () => undefined
+}));
 jest.mock("../../../../stores/AssetStore", () => ({
   useAssetStore: <T,>(sel: (s: { get: () => Promise<null> }) => T) =>
     sel({ get: () => Promise.resolve(null) })
@@ -65,6 +68,7 @@ import { TrackLane } from "../TrackLane";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../../stores/timeline/TimelinePlaybackStore";
+import { getTimelineTemporal } from "../../../../stores/timeline/TimelineInstance";
 
 // jsdom does not implement pointer capture.
 beforeAll(() => {
@@ -280,16 +284,63 @@ describe("Clip trim", () => {
 });
 
 describe("Clip source slip", () => {
-  it("moves a media clip's source window with a horizontal two-finger swipe", () => {
+  it("leaves an ordinary horizontal two-finger swipe for timeline panning", () => {
     renderLanes();
     const clip = screen.getByTestId("clip-a1");
-    fireEvent.wheel(clip, { deltaX: DRAG_PX, deltaY: 1 });
+    const event = new WheelEvent("wheel", {
+      deltaX: DRAG_PX,
+      deltaY: 1,
+      bubbles: true,
+      cancelable: true
+    });
+    act(() => clip.dispatchEvent(event));
+    expect(event.defaultPrevented).toBe(false);
+    expect(
+      useTimelineStore.getState().clips.find((candidate) => candidate.id === "a1")
+        ?.inPointMs
+    ).toBeUndefined();
+  });
+
+  it("moves a media clip's source window with Alt+horizontal wheel", () => {
+    renderLanes();
+    const clip = screen.getByTestId("clip-a1");
+    const event = new WheelEvent("wheel", {
+      deltaX: DRAG_PX,
+      deltaY: 1,
+      altKey: true,
+      bubbles: true,
+      cancelable: true
+    });
+    act(() => clip.dispatchEvent(event));
+    expect(event.defaultPrevented).toBe(true);
     const edited = useTimelineStore
       .getState()
       .clips.find((candidate) => candidate.id === "a1");
     expect(edited?.startMs).toBe(2000);
     expect(edited?.durationMs).toBe(1000);
     expect(edited?.inPointMs).toBe(DRAG_MS);
+  });
+
+  it("batches an Alt+wheel slip burst into one undo step", () => {
+    jest.useFakeTimers();
+    getTimelineTemporal().clear();
+    renderLanes();
+    const clip = screen.getByTestId("clip-a1");
+
+    fireEvent.wheel(clip, { deltaX: DRAG_PX, deltaY: 1, altKey: true });
+    fireEvent.wheel(clip, { deltaX: DRAG_PX, deltaY: 1, altKey: true });
+    act(() => jest.advanceTimersByTime(151));
+    expect(
+      useTimelineStore.getState().clips.find((candidate) => candidate.id === "a1")
+        ?.inPointMs
+    ).toBe(DRAG_MS * 2);
+
+    act(() => getTimelineTemporal().undo());
+    expect(
+      useTimelineStore.getState().clips.find((candidate) => candidate.id === "a1")
+        ?.inPointMs
+    ).toBeUndefined();
+    jest.useRealTimers();
   });
 
   it("leaves vertical wheel scrolling to the track list", () => {

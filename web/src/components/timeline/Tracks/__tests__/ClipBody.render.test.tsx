@@ -22,7 +22,7 @@ jest.mock("../useAssetUrl", () => ({
   useAssetUrl: (id: string | undefined) => (id ? `blob:${id}` : undefined)
 }));
 
-import { ClipBody, CLIP_STATUS_MAP } from "../ClipBody";
+import { ClipBody, CLIP_STATUS_MAP, clipTrimHandleMetrics } from "../ClipBody";
 
 const makeClip = (overrides: Partial<TimelineClip> = {}): TimelineClip => ({
   id: "c1",
@@ -237,6 +237,22 @@ describe("ClipBody trim handles", () => {
     expect(start).toHaveStyle({ display: "none", pointerEvents: "none" });
     expect(end).toHaveStyle({ display: "none", pointerEvents: "none" });
   });
+
+  it.each([
+    { widthPx: 23, visible: false, hitWidthPx: 8 },
+    { widthPx: 30, visible: true, hitWidthPx: 9 },
+    { widthPx: 44, visible: true, hitWidthPx: 16 },
+    { widthPx: 60, visible: true, hitWidthPx: 22 }
+  ])(
+    "keeps a central body target between coarse trim areas at $widthPx px",
+    ({ widthPx, visible, hitWidthPx }) => {
+      const metrics = clipTrimHandleMetrics(widthPx);
+      expect(metrics).toEqual({ visible, touchHitWidthPx: hitWidthPx });
+      if (visible) {
+        expect(widthPx - metrics.touchHitWidthPx * 2).toBeGreaterThanOrEqual(12);
+      }
+    }
+  );
 
   it("shows the grips on a selected clip and hides them otherwise", () => {
     const { unmount } = renderBody(makeClip(), { isSelected: true });

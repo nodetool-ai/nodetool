@@ -21,180 +21,24 @@ import {
 import {
   isOlderUpdatedAt,
   timelineTemporalOf,
-  useTimelineStoreApi,
-  type TimelinePartializedState,
-  type TimelineStoreState
+  useTimelineStoreApi
 } from "../../stores/timeline/TimelineStore";
 import {
   mergeTimelineDocuments,
   timelineConflictKey,
-  timelineMergeAdapter,
   type TimelineMergeDoc
 } from "../../stores/timeline/merge";
 import { useConflictStore } from "../../stores/ConflictStore";
-import {
-  rebaseDocumentSnapshots,
-  type MergeConflict
-} from "../../stores/documentMerge";
 import { trpc, trpcClient } from "../../trpc/client";
 import type { DocumentOp } from "@nodetool-ai/protocol";
-import type {
-  MediaTrack,
-  TimelineClip,
-  TimelineMarker,
-  TimelineTrack,
-  TranscriptLine
-} from "@nodetool-ai/timeline";
-import { reflowGenerated } from "../../stores/timeline/transcriptOps";
 import { isTimelineDocumentDirty } from "./useTimelineAutosave";
 import { applyTimelineSequenceToStore } from "./useLoadTimelineIntoStore";
-
-/** Name a whole-document replacement so the banner can address it. */
-const listable = (conflicts: MergeConflict[]): MergeConflict[] =>
-  conflicts.map((conflict) =>
-    conflict.unit.id
-      ? conflict
-      : { ...conflict, unit: { ...conflict.unit, id: conflict.unit.kind } }
-  );
-
-/**
- * Take one refused external value into the draft through a normal store
- * mutation, so the accept lands on the undo stack (ADR 0001).
- */
-function replaceById<T extends { id: string }>(items: T[], incoming: T): T[] {
-  return items.some((item) => item.id === incoming.id)
-    ? items.map((item) => (item.id === incoming.id ? incoming : item))
-    : [...items, incoming];
-}
-
-type TimelineTypedDocument = Pick<
-  TimelineStoreState,
-  | "tracks"
-  | "clips"
-  | "markers"
-  | "mediaTracks"
-  | "transcript"
-  | "scriptEnabled"
-  | "fps"
-  | "width"
-  | "height"
->;
-
-/**
- * The timeline merge adapter keeps unit values intact, but exposes them as
- * `unknown[]` so the shared engine can serve other document types. Every
- * document passed here originated from the typed timeline store or fetched
- * timeline response, so this is the single conversion back to store types.
- */
-const timelineTypedDocumentOf = (
-  document: TimelineMergeDoc
-): TimelineTypedDocument => document as unknown as TimelineTypedDocument;
-
-function applyAcceptedConflict(
-  state: TimelineStoreState,
-  conflict: MergeConflict
-): void {
-  // A dangling clip lost the track it sat on, so there is nothing to take:
-  // the external side never held this clip, and re-adding it would put a clip
-  // on a track the document does not have. Accept and discard both leave the
-  // draft as the merge left it and only unlist the offer. Restoring the clip
-  // would mean restoring or reassigning a track, which is a decision the user
-  // makes in the editor, not a banner button.
-  if (conflict.reason === "dangling") return;
-  if (conflict.reason === "replaced" && conflict.external != null) {
-    const doc = conflict.external as TimelineMergeDoc;
-    state.applyExternalMerge({
-      tracks: doc.tracks as TimelineTrack[],
-      clips: doc.clips as TimelineClip[],
-      markers: doc.markers as TimelineMarker[],
-      mediaTracks: doc.mediaTracks as MediaTrack[],
-      transcript: doc.transcript as TranscriptLine[],
-      scriptEnabled: doc.scriptEnabled,
-      fps: doc.fps,
-      width: doc.width,
-      height: doc.height
-    });
-    return;
-  }
-  if (conflict.unit.kind === "clip" && conflict.external != null) {
-    const clip = conflict.external as TimelineClip;
-    if (state.clips.some((cand) => cand.id === clip.id)) {
-      state.patchClip(clip.id, clip);
-    } else {
-      state.addClip(clip);
-    }
-    return;
-  }
-  if (conflict.unit.kind === "track" && conflict.external != null) {
-    state.applyExternalMerge({
-      tracks: replaceById(state.tracks, conflict.external as TimelineTrack)
-    });
-    return;
-  }
-  if (conflict.unit.kind === "marker" && conflict.external != null) {
-    state.applyExternalMerge({
-      markers: replaceById(state.markers, conflict.external as TimelineMarker)
-    });
-    return;
-  }
-  if (conflict.unit.kind === "mediaTrack" && conflict.external != null) {
-    state.applyExternalMerge({
-      mediaTracks: replaceById(
-        state.mediaTracks,
-        conflict.external as MediaTrack
-      )
-    });
-    return;
-  }
-  if (conflict.unit.kind === "transcript" && conflict.external != null) {
-    state.applyExternalMerge({
-      transcript: replaceById(
-        state.transcript,
-        conflict.external as TranscriptLine
-      )
-    });
-    return;
-  }
-  if (conflict.unit.kind === "field") {
-    if (conflict.unit.id === "scriptEnabled") {
-      state.setScriptEnabled(Boolean(conflict.external));
-      return;
-    }
-    if (
-      conflict.unit.id === "fps" ||
-      conflict.unit.id === "width" ||
-      conflict.unit.id === "height"
-    ) {
-      state.setProjectSettings({
-        [conflict.unit.id]: conflict.external as number
-      });
-    }
-    return;
-  }
-  if (conflict.reason === "deleted" && conflict.external === null) {
-    if (conflict.unit.kind === "clip") {
-      if (state.clips.some((clip) => clip.id === conflict.unit.id)) {
-        state.deleteClip(conflict.unit.id);
-      }
-    } else if (conflict.unit.kind === "track") {
-      state.removeTrack(conflict.unit.id);
-    } else if (conflict.unit.kind === "marker") {
-      state.applyExternalMerge({
-        markers: state.markers.filter((m) => m.id !== conflict.unit.id)
-      });
-    } else if (conflict.unit.kind === "mediaTrack") {
-      state.applyExternalMerge({
-        mediaTracks: state.mediaTracks.filter(
-          (track) => track.id !== conflict.unit.id
-        )
-      });
-    } else if (conflict.unit.kind === "transcript") {
-      state.applyExternalMerge({
-        transcript: state.transcript.filter((l) => l.id !== conflict.unit.id)
-      });
-    }
-  }
-}
+import {
+  applyAcceptedTimelineConflict,
+  listableTimelineConflicts,
+  rebaseTimelineSnapshots,
+  timelineTypedDocumentOf
+} from "./timelineExternalMerge";
 
 export function useTimelineExternalSync(sequenceId: string | null): void {
   const store = useTimelineStoreApi();
@@ -331,56 +175,18 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
             width: before.width,
             height: before.height
           };
-          // Use the merge result before applyExternalMerge reflows generated
-          // clips. Reflow is derived state and must be applied independently
-          // to every rebased checkpoint, or it would overwrite a user's
-          // historical clip positions with the current merged layout.
-          const afterDoc: TimelineMergeDoc = doc;
-          const rebaseSnapshots = (
-            snapshots: readonly TimelinePartializedState[]
-          ): TimelinePartializedState[] => {
-            const rebased = rebaseDocumentSnapshots(
-              snapshots.map((snapshot) => ({
-                tracks: snapshot.tracks,
-                clips: snapshot.clips,
-                markers: snapshot.markers,
-                mediaTracks: snapshot.mediaTracks,
-                transcript: snapshot.transcript,
-                scriptEnabled: snapshot.scriptEnabled,
-                fps: before.fps,
-                width: before.width,
-                height: before.height
-              })),
-              beforeDoc,
-              afterDoc,
-              timelineMergeAdapter
-            );
-            return snapshots.map((snapshot, index) => {
-              const next = rebased[index];
-              if (!next) return snapshot;
-              const typedNext = timelineTypedDocumentOf(next);
-              const trackIds = new Set(
-                typedNext.tracks.map((track) => track.id)
-              );
-              const reflowed = reflowGenerated(
-                typedNext.clips.filter((clip) => trackIds.has(clip.trackId))
-              );
-              return {
-                ...snapshot,
-                tracks: typedNext.tracks,
-                clips: reflowed.clips,
-                markers: typedNext.markers,
-                mediaTracks: typedNext.mediaTracks,
-                transcript: typedNext.transcript,
-                scriptEnabled: typedNext.scriptEnabled,
-                durationMs: reflowed.durationMs
-              } satisfies TimelinePartializedState;
-            });
-          };
           const rebasedTemporal = timelineTemporalOf(store);
           store.temporal.setState({
-            pastStates: rebaseSnapshots(rebasedTemporal.pastStates),
-            futureStates: rebaseSnapshots(rebasedTemporal.futureStates)
+            pastStates: rebaseTimelineSnapshots(
+              rebasedTemporal.pastStates,
+              beforeDoc,
+              doc
+            ),
+            futureStates: rebaseTimelineSnapshots(
+              rebasedTemporal.futureStates,
+              beforeDoc,
+              doc
+            )
           });
           // The merge base for the next external change is what the SERVER
           // now holds — not the merged draft; snapshotting the draft here
@@ -401,7 +207,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
             .getState()
             .addConflicts(
               timelineConflictKey(sequenceId),
-              listable(conflicts),
+              listableTimelineConflicts(conflicts),
               {
                 onAccept: (unitId) => {
                   const key = timelineConflictKey(sequenceId);
@@ -410,7 +216,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
                     (c) => c.unit.id === unitId
                   );
                   if (!conflict) return;
-                  applyAcceptedConflict(store.getState(), conflict);
+                  applyAcceptedTimelineConflict(store.getState(), conflict);
                 },
                 // Discard keeps the draft exactly as the merge left it, which
                 // for every reason — dangling included — means changing nothing
