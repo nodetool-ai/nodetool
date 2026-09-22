@@ -86,6 +86,12 @@ vi.mock("@nodetool-ai/chat", () => ({
 }));
 const { App } = await import("../src/app.js");
 const cleanups: Array<() => void | Promise<void>> = [];
+const UI_WAIT = { timeout: 5_000 } as const;
+
+async function waitForUi(assertion: () => void): Promise<void> {
+  await vi.waitFor(assertion, UI_WAIT);
+}
+
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0)) {
     await cleanup();
@@ -115,7 +121,7 @@ async function start(columns = 100, rows = 30) {
     () => terminal.close(),
     () => rm(directory, { recursive: true, force: true })
   );
-  await vi.waitFor(() => expect(terminal.frame()).toContain("Ask NodeTool"));
+  await waitForUi(() => expect(terminal.frame()).toContain("Ask NodeTool"));
   return terminal;
 }
 
@@ -137,49 +143,49 @@ describe("fullscreen chat", () => {
   it("completes a slash command once and keeps Escape from exiting", async () => {
     const terminal = await start();
     terminal.stdin.write("/he");
-    await vi.waitFor(() => expect(terminal.frame()).toContain("› /he"));
+    await waitForUi(() => expect(terminal.frame()).toContain("› /he"));
     terminal.stdin.write("\r");
-    await vi.waitFor(() => expect(terminal.frame()).toContain("/compact"));
+    await waitForUi(() => expect(terminal.frame()).toContain("/compact"));
     expect(run.calls).toBe(0);
     terminal.stdin.write("\u001b");
     await new Promise((resolve) => setTimeout(resolve, 100));
     terminal.stdin.write("still here");
-    await vi.waitFor(() => expect(terminal.frame()).toContain("still here"));
+    await waitForUi(() => expect(terminal.frame()).toContain("still here"));
   });
   it("requires an explicit answer to a tool approval and resumes the turn", async () => {
     run.approval = true;
     const terminal = await start();
     terminal.stdin.write("write a file");
-    await vi.waitFor(() => expect(terminal.frame()).toContain("write a file"));
+    await waitForUi(() => expect(terminal.frame()).toContain("write a file"));
     terminal.stdin.write("\r");
-    await vi.waitFor(() =>
+    await waitForUi(() =>
       expect(terminal.frame()).toContain("Approve write_file")
     );
     expect(run.decision).toBe("");
     expect(run.gate?.mode).toBe("default");
     terminal.stdin.write("y");
-    await vi.waitFor(() => expect(run.decision).toBe("allow"));
-    await vi.waitFor(() => expect(run.finish).toBeDefined());
+    await waitForUi(() => expect(run.decision).toBe("allow"));
+    await waitForUi(() => expect(run.finish).toBeDefined());
     run.finish?.();
-    await vi.waitFor(() =>
+    await waitForUi(() =>
       expect(terminal.frame()).toContain("A partial answer")
     );
   });
   it("holds the turn lock through cancellation cleanup and keeps partial output", async () => {
     const terminal = await start();
     terminal.stdin.write("hello");
-    await vi.waitFor(() => expect(terminal.frame()).toContain("hello"));
+    await waitForUi(() => expect(terminal.frame()).toContain("hello"));
     terminal.stdin.write("\r");
-    await vi.waitFor(() => expect(run.calls).toBe(1));
+    await waitForUi(() => expect(run.calls).toBe(1));
     terminal.stdin.write("\u0003");
-    await vi.waitFor(() => expect(run.aborted).toBe(true));
+    await waitForUi(() => expect(run.aborted).toBe(true));
     terminal.stdin.write("next");
-    await vi.waitFor(() => expect(terminal.frame()).toContain("next"));
+    await waitForUi(() => expect(terminal.frame()).toContain("next"));
     terminal.stdin.write("\r");
     await new Promise((resolve) => setTimeout(resolve, 80));
     expect(run.calls).toBe(1);
     run.finish?.();
-    await vi.waitFor(() =>
+    await waitForUi(() =>
       expect(terminal.frame()).toContain("Stopped. You can continue")
     );
     expect(terminal.frame()).toContain("A partial answer");
