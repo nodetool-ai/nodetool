@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import {
   Application,
+  ApplicationDeployment,
   ModelObserver,
   Workflow,
   initTestDb
@@ -110,6 +111,42 @@ describe("applications router releases", () => {
     ).toBeNull();
   });
 
+  it("keeps the live release when a public-link publish fails preflight", async () => {
+    const app = await seedApp();
+    const caller = createCaller(makeCtx("user-1"));
+    await caller.applications.publish({ id: app.id });
+    await ApplicationDeployment.ensure({
+      applicationId: app.id,
+      userId: "user-1"
+    });
+
+    const current = await caller.applications.get({ id: app.id });
+    await caller.applications.update({
+      id: app.id,
+      baseUpdatedAt: current.updatedAt,
+      document: {
+        ...current.document,
+        resources: [
+          {
+            id: "library",
+            name: "Library",
+            kind: "asset",
+            scope: { projectId: "p1" },
+            operations: ["read"]
+          }
+        ]
+      }
+    });
+
+    await expect(caller.applications.publish({ id: app.id })).rejects.toThrow(
+      /resource bindings cannot be published/i
+    );
+    expect(
+      (await caller.applications.releasedDocument({ id: app.id }))?.version
+    ).toBe(1);
+    expect(await ApplicationDeployment.findLive(app.id)).not.toBeNull();
+  });
+
   it("releasedDocument does not serve another user's app", async () => {
     const app = await seedApp();
     const caller = createCaller(makeCtx("user-2"));
@@ -136,5 +173,42 @@ describe("applications router releases", () => {
     const back = await caller.applications.releasedDocument({ id: app.id });
     expect(back?.version).toBe(1);
     expect(back?.workflows[0]!.graph?.nodes[0]).toMatchObject({ id: "n1" });
+  });
+
+  it("keeps the live release when a public-link rollback fails preflight", async () => {
+    const app = await seedApp();
+    const caller = createCaller(makeCtx("user-1"));
+    await caller.applications.publish({ id: app.id });
+
+    const current = await caller.applications.get({ id: app.id });
+    await caller.applications.update({
+      id: app.id,
+      baseUpdatedAt: current.updatedAt,
+      document: {
+        ...current.document,
+        resources: [
+          {
+            id: "library",
+            name: "Library",
+            kind: "asset",
+            scope: { projectId: "p1" },
+            operations: ["read"]
+          }
+        ]
+      }
+    });
+    await caller.applications.publish({ id: app.id });
+    await caller.applications.release({ id: app.id, version: 1 });
+    await ApplicationDeployment.ensure({
+      applicationId: app.id,
+      userId: "user-1"
+    });
+
+    await expect(
+      caller.applications.release({ id: app.id, version: 2 })
+    ).rejects.toThrow(/resource bindings cannot be published/i);
+    expect(
+      (await caller.applications.releasedDocument({ id: app.id }))?.version
+    ).toBe(1);
   });
 });

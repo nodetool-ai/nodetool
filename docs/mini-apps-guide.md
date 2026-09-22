@@ -184,18 +184,25 @@ then upscale.
 This needs two operations and a variable, so build it with the assistant or by
 editing the document directly.
 
-1. Declare a variable — call it `draft`.
+1. Declare a variable — call it `draft` — and a boolean variable `approved`,
+   defaulting to `false`.
 2. Declare an operation `draft` running the drafting workflow, with its text
-   output wired into that variable (`to: "variable"`).
+   output wired into `draft` (`to: "variable"`).
 3. Declare an operation `publish` running the publishing workflow, with its input
-   reading that variable (`from: "variable"`).
+   reading `draft` (`from: "variable"`).
 4. Place a **Markdown** widget wired to `var:draft`, so the user reads what's
    about to be published.
-5. Place a Run button for the `draft` operation, and a second one for `publish`
-   whose `visibleWhen` is `var:draft` `is not empty`.
+5. Add an explicit approval control bound to `var:approved`, and reset it to
+   `false` whenever a draft input changes. Do not use the draft's non-empty
+   value itself as approval.
+6. Place a Run button for `draft`, and make the `publish` button visible only
+   when `var:approved` equals `true`, `op:draft/exec#running` is empty, and
+   `op:draft/exec#error` is empty.
 
-The second button can't appear until the first produced something. That's the
-whole approval gate, with no app-level logic written to get it.
+The draft output is cleared when its source run starts and after a failed or
+cancelled run, so a partial or stale result cannot satisfy the gate. The
+publishing workflow should still validate that its input is the approved
+artifact before performing an irreversible action.
 
 ## 7. Settings that stick
 
@@ -248,8 +255,10 @@ graph: emit one flag from a node and condition on that.
 4. **Storyboard Scenes** edits the document directly, so it fires no event of its
    own.
 
-`nodetool app debug` can't simulate resource inputs — resources only exist in the
-browser. Test these in the app.
+`nodetool app debug` does not read the browser's resource library. Seed a
+deterministic collection with a `seedResource` interaction or a
+`resource:<binding-id>` parameter to exercise resource inputs headlessly. Test
+picker rendering, focus, and real document writes in the app.
 
 ## 10. A chat app
 

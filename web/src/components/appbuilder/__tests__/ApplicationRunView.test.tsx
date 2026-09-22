@@ -76,11 +76,14 @@ const liveWorkflow: Workflow = {
   updated_at: ""
 };
 
-const renderView = () =>
+const renderView = (previewDraft = false) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <ThemeProvider theme={mockTheme}>
-        <ApplicationRunView applicationId="app-1" />
+        <ApplicationRunView
+          applicationId="app-1"
+          previewDraft={previewDraft}
+        />
       </ThemeProvider>
     </QueryClientProvider>
   );
@@ -125,6 +128,35 @@ describe("ApplicationRunView", () => {
     expect(await screen.findByTestId("title")).toHaveTextContent("Draft");
     expect(screen.queryByText(/no released version/)).not.toBeInTheDocument();
     await waitFor(() => expect(fetchWorkflow).toHaveBeenCalledWith("wf-1"));
+  });
+
+  it("previews the current draft without using the release snapshot", async () => {
+    useReleasedApplicationDocument.mockReturnValue({
+      data: {
+        version: 3,
+        document: appDocument("Released"),
+        workflows: [
+          {
+            workflowId: "wf-1",
+            version: 2,
+            graphHash: null,
+            graph: { nodes: [], edges: [] }
+          }
+        ]
+      },
+      isLoading: false
+    });
+
+    renderView(true);
+
+    expect(await screen.findByTestId("title")).toHaveTextContent("Draft");
+    expect(
+      screen.getByText(
+        "Previewing current draft. This does not change the released app."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Running released version/)).not.toBeInTheDocument();
+    expect(fetchWorkflow).toHaveBeenCalledWith("wf-1");
   });
 
   it("reports a workflow it cannot load rather than rendering an inert app", async () => {

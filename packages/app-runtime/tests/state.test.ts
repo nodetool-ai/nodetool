@@ -99,6 +99,50 @@ describe("invocations", () => {
     expect(operationError(state, "main")).toBe("bad");
   });
 
+  it("promotes a pending reservation without releasing the queue", () => {
+    const state = applyEvents(createInstanceState(), [
+      {
+        type: "runStarted",
+        invocation: {
+          id: "pending-1",
+          operationId: "main",
+          status: "pending",
+          startedAt: 1
+        },
+        outputKeys: ["main:out"]
+      },
+      {
+        type: "runStarted",
+        invocation: {
+          id: "job-1",
+          operationId: "main",
+          status: "running",
+          startedAt: 1
+        },
+        outputKeys: []
+      },
+      {
+        type: "invocationAlias",
+        aliasId: "pending-1",
+        invocationId: "job-1"
+      }
+    ]);
+
+    expect(state.activeInvocation.main).toBe("job-1");
+    expect(state.outputs["main:out"].invocationId).toBe("job-1");
+    expect(liveInvocations(state, "main")).toEqual([
+      expect.objectContaining({ id: "job-1", status: "running" })
+    ]);
+
+    const settled = applyEvent(state, {
+      type: "invocationStatus",
+      invocationId: "job-1",
+      status: "completed"
+    });
+    expect(settled.invocations["pending-1"].status).toBe("completed");
+    expect(isOperationRunning(settled, "main")).toBe(false);
+  });
+
   it("ignores updates for an unknown invocation", () => {
     const state = createInstanceState();
     expect(
@@ -173,6 +217,34 @@ describe("appended variables", () => {
     expect(state.variables.draft).toBe("Bye");
   });
 
+  it("clears a mapped result when its run fails after partial output", () => {
+    let state = applyEvent(createInstanceState(), {
+      type: "runStarted",
+      invocation: {
+        id: "j1",
+        operationId: "draft",
+        status: "running",
+        startedAt: 1
+      },
+      outputKeys: [],
+      variableKeys: ["draft"]
+    });
+    state = applyEvent(state, {
+      type: "setVariable",
+      variableId: "draft",
+      value: "partial",
+      disposition: "replace",
+      invocationId: "j1"
+    });
+    state = applyEvent(state, {
+      type: "invocationStatus",
+      invocationId: "j1",
+      status: "failed",
+      error: "provider failed"
+    });
+    expect(state.variables.draft).toBeUndefined();
+  });
+
   it("collects structured items into a list", () => {
     const state = applyEvents(running("j1"), [
       { type: "setVariable", variableId: "rows", value: { a: 1 }, disposition: "append", invocationId: "j1" },
@@ -235,6 +307,27 @@ describe("superseded runs", () => {
     });
     expect(withStale).toBe(replaced);
     expect(withStale.variables.draft).toBeUndefined();
+  });
+
+  it("drops a late replacement from a superseded run", () => {
+    const state = applyEvents(replaced, [
+      {
+        type: "setVariable",
+        variableId: "draft",
+        value: "new result",
+        disposition: "replace",
+        invocationId: "j2"
+      },
+      {
+        type: "setVariable",
+        variableId: "draft",
+        value: "stale result",
+        disposition: "replace",
+        invocationId: "j1"
+      }
+    ]);
+    expect(state.variables.draft).toBe("new result");
+    expect(state.variableWriters.draft).toBe("j2");
   });
 
   it("lets a genuinely newer run restart the accumulation", () => {

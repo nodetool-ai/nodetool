@@ -173,7 +173,7 @@ const ReadBindingPicker: React.FC<{
 }> = ({ label, value, readOnly, onChange }) => {
   const { operationId, operations, workflow, select } =
     useBindingOperation(value);
-  const { outputs, variables } = workflow;
+  const { outputs } = workflow;
   const scope = useBuilderBindingScope();
   const options: Option[] = [
     ...outputs.map((o) => ({
@@ -184,9 +184,9 @@ const ReadBindingPicker: React.FC<{
         nodeId: o.nodeId
       })
     })),
-    ...variables.map((v) => ({
-      label: `variable · ${v}`,
-      value: encodeBinding({ kind: "variable", variableId: v })
+    ...scope.variables.map((variable) => ({
+      label: `variable · ${variable.name}`,
+      value: encodeBinding({ kind: "variable", variableId: variable.id })
     })),
     ...executionOptions(operationId)
   ];
@@ -207,7 +207,7 @@ const ReadBindingPicker: React.FC<{
         options={options}
         // Execution fields are always bindable, so "nothing to bind" is about
         // the workflow's own outputs and variables.
-        hintVisible={outputs.length === 0 && variables.length === 0}
+        hintVisible={outputs.length === 0 && scope.variables.length === 0}
         emptyHint="Add an Output node or Set Variable node to the workflow."
         readOnly={readOnly}
         onChange={onChange}
@@ -492,15 +492,14 @@ const VariablePicker: React.FC<{
   readOnly?: boolean;
   onChange: (value: string) => void;
 }> = ({ label, value, readOnly, onChange }) => {
-  const { variables } = useBuilderWorkflow();
   const scope = useBuilderBindingScope();
   return (
     <Picker
       label={label}
       value={canonicalBinding(value, scope, "read")}
-      options={variables.map((v) => ({
-        label: v,
-        value: encodeBinding({ kind: "variable", variableId: v })
+      options={scope.variables.map((variable) => ({
+        label: variable.name,
+        value: encodeBinding({ kind: "variable", variableId: variable.id })
       }))}
       emptyHint="Add a Set Variable node to the workflow to create app state."
       readOnly={readOnly}
@@ -578,7 +577,7 @@ const ConditionEditor: React.FC<{
   const { operationId, operations, workflow, select } = useBindingOperation(
     value.binding ?? ""
   );
-  const { inputs, outputs, variables } = workflow;
+  const { inputs, outputs } = workflow;
   const scope = useBuilderBindingScope();
   const options: Option[] = [
     ...outputs.map((o) => ({
@@ -597,9 +596,9 @@ const ConditionEditor: React.FC<{
         nodeId: i.nodeId
       })
     })),
-    ...variables.map((v) => ({
-      label: `variable · ${v}`,
-      value: encodeBinding({ kind: "variable", variableId: v })
+    ...scope.variables.map((variable) => ({
+      label: `variable · ${variable.name}`,
+      value: encodeBinding({ kind: "variable", variableId: variable.id })
     })),
     ...executionOptions(operationId)
   ];
@@ -620,7 +619,7 @@ const ConditionEditor: React.FC<{
         value={canonicalBinding(value.binding ?? "", scope, "none")}
         options={options}
         hintVisible={
-          outputs.length === 0 && inputs.length === 0 && variables.length === 0
+          outputs.length === 0 && inputs.length === 0 && scope.variables.length === 0
         }
         emptyHint="Add an Input, Output, or Set Variable node to condition on."
         readOnly={readOnly}

@@ -21,7 +21,10 @@
  * stands between a shared link and the owner's provider bill.
  */
 
-import { operationTarget } from "@nodetool-ai/app-runtime";
+import {
+  operationTarget,
+  type OperationBinding
+} from "@nodetool-ai/app-runtime";
 import {
   Application,
   ApplicationDeployment,
@@ -92,6 +95,13 @@ function requireEnabled(): void {
 const PUBLIC_BUDGET_REQUIRED =
   "Public app runs require a finite invocation or USD budget. Configure one before deploying.";
 
+type PublicReleaseDocument = {
+  operations: ReadonlyArray<
+    Pick<OperationBinding, "id" | "name" | "workflowId" | "workflowVersion" | "target">
+  >;
+  resources: ReadonlyArray<unknown>;
+};
+
 /**
  * Why a release cannot be served over a public link, or null when it can.
  *
@@ -106,26 +116,9 @@ const PUBLIC_BUDGET_REQUIRED =
 export function releaseBlockedReason(
   release: ApplicationReleaseResponse
 ): string | null {
-  const scripted = release.document.operations.filter(
-    (operation) => operationTarget(operation).kind === "script"
-  );
-  if (scripted.length > 0) {
-    return (
-      `A public link cannot run a script operation (${scripted
-        .map((operation) => operation.name || operation.id)
-        .join(", ")}). Move the step into a workflow and publish again.`
-    );
-  }
-  if (release.document.resources.length > 0) {
-    // A resource binding reads the owner's own library — their assets,
-    // timelines, storyboards, sketches. Serving that to whoever has the link
-    // is not what deploying an app means, and the session cannot make the
-    // call anyway, so the widget would sit empty.
-    return (
-      "A public link cannot open your asset library. Remove the resource " +
-      "bindings and publish again."
-    );
-  }
+  const documentBlocked = publicReleaseDocumentBlockedReason(release.document);
+  if (documentBlocked) return documentBlocked;
+
   const unpinned = release.document.operations.filter((operation) => {
     const pinned = release.workflows.find(
       (entry) => entry.workflowId === operation.workflowId
@@ -139,6 +132,58 @@ export function releaseBlockedReason(
     return "This released version predates pinned graphs. Publish it again to deploy it.";
   }
   return null;
+}
+
+/** Document-level restrictions shared by draft publish and released rollback. */
+export function publicReleaseDocumentBlockedReason(
+  document: PublicReleaseDocument
+): string | null {
+  const scripted = document.operations.filter(
+    (operation) => operationTarget(operation).kind === "script"
+  );
+  if (scripted.length > 0) {
+    return (
+      `A public link cannot run a script operation (${scripted
+        .map((operation) => operation.name || operation.id)
+        .join(", ")}). Move the step into a workflow and publish again.`
+    );
+  }
+  if (document.resources.length > 0) {
+    // A resource binding reads the owner's own library — their assets,
+    // timelines, storyboards, sketches. Serving that to whoever has the link
+    // is not what deploying an app means, and the session cannot make the
+    // call anyway, so the widget would sit empty.
+    return (
+      "A public link cannot open your asset library. Remove the resource " +
+      "bindings and publish again."
+    );
+  }
+  return null;
+}
+
+/** Return the reason a candidate cannot replace a live public release. */
+export async function publicReleasePreflight(
+  applicationId: string,
+  candidate:
+    | ApplicationReleaseResponse
+    | { document: PublicReleaseDocument }
+): Promise<string | null> {
+  const blocked =
+    "workflows" in candidate
+      ? releaseBlockedReason(candidate)
+      : publicReleaseDocumentBlockedReason(candidate.document);
+  if (blocked) {
+    if (blocked.includes("script operation")) {
+      return "This app has a live public link. Script operations cannot be published to that audience.";
+    }
+    if (blocked.includes("asset library")) {
+      return "This app has a live public link. Resource bindings cannot be published to that audience.";
+    }
+    return blocked;
+  }
+  return hasFiniteBudgetLimit(await getApplicationBudget(applicationId))
+    ? null
+    : "This app has a live public link. Configure a finite budget before publishing again.";
 }
 
 const toResponse = (

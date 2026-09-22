@@ -38,6 +38,8 @@ export interface InvocationState {
   progress?: number;
   error?: string;
   startedAt: number;
+  /** Output-mapped variables that this run is responsible for producing. */
+  variableKeys?: ReadonlyArray<string>;
 }
 
 export interface InputSlot {
@@ -69,6 +71,8 @@ export interface AppInstanceState {
   invocations: Record<string, InvocationState>;
   /** Most recent invocation per operation id. */
   activeInvocation: Record<string, string>;
+  /** Client reservations promoted to provider job ids. */
+  invocationAliases: Record<string, string>;
   /** Keyed by invocation id: the latest activity label the run reported. */
   activity: Record<string, string>;
   /**
@@ -86,6 +90,7 @@ export const createInstanceState = (): AppInstanceState => ({
   view: {},
   invocations: {},
   activeInvocation: {},
+  invocationAliases: {},
   activity: {},
   variableWriters: {}
 });
@@ -125,6 +130,12 @@ export type AppStateEvent =
       type: "runStarted";
       invocation: InvocationState;
       outputKeys: ReadonlyArray<string>;
+      variableKeys?: ReadonlyArray<string>;
+    }
+  | {
+      type: "invocationAlias";
+      aliasId: string;
+      invocationId: string;
     }
   | {
       type: "invocationStatus";
@@ -224,25 +235,10 @@ export const applyEvent = (
     }
 
     case "setVariable": {
-      if (event.disposition !== "append") {
-        const { [event.variableId]: _dropped, ...variableWriters } =
-          state.variableWriters;
-        return {
-          ...state,
-          variables: { ...state.variables, [event.variableId]: event.value },
-          variableWriters
-        };
-      }
       const writer = state.variableWriters[event.variableId];
-      // Run identity, the rule the `outputValue` case applies to output slots:
-      // the newest run that writes a variable owns it. A chunk from a run that
-      // a newer one superseded — either the writer that took the variable over
-      // or a newer invocation of the chunk's own operation, which is what a
-      // "replace" policy produces — is dropped, so a cancelled run's tail
-      // cannot overwrite the live run's value. Ordering is by `startedAt`, the
-      // only ordering the reducer has; when either run is unknown to this
-      // instance there is nothing to compare and the write counts as a new run
-      // starting a fresh value.
+      // Execution-originated writes use the same ownership rule for both
+      // dispositions. A late replacement must not bypass the guard that
+      // protects streamed appends from a superseded invocation.
       if (event.invocationId !== undefined) {
         const operationId = state.invocations[event.invocationId]?.operationId;
         const active =
@@ -256,6 +252,28 @@ export const applyEvent = (
           return state;
         }
       }
+
+      if (event.disposition !== "append") {
+        const { [event.variableId]: _dropped, ...variableWriters } =
+          state.variableWriters;
+        return {
+          ...state,
+          variables: { ...state.variables, [event.variableId]: event.value },
+          variableWriters:
+            event.invocationId === undefined
+              ? variableWriters
+              : { ...variableWriters, [event.variableId]: event.invocationId }
+        };
+      }
+      // Run identity, the rule the `outputValue` case applies to output slots:
+      // the newest run that writes a variable owns it. A chunk from a run that
+      // a newer one superseded — either the writer that took the variable over
+      // or a newer invocation of the chunk's own operation, which is what a
+      // "replace" policy produces — is dropped, so a cancelled run's tail
+      // cannot overwrite the live run's value. Ordering is by `startedAt`, the
+      // only ordering the reducer has; when either run is unknown to this
+      // instance there is nothing to compare and the write counts as a new run
+      // starting a fresh value.
       const sameRun = event.invocationId !== undefined && writer === event.invocationId;
       const previous = sameRun ? state.variables[event.variableId] : undefined;
       return {
@@ -288,6 +306,8 @@ export const applyEvent = (
 
     case "runStarted": {
       const outputs = { ...state.outputs };
+      const variables = { ...state.variables };
+      const variableWriters = { ...state.variableWriters };
       for (const key of event.outputKeys) {
         outputs[key] = {
           value: undefined,
@@ -296,71 +316,150 @@ export const applyEvent = (
           revision: (state.outputs[key]?.revision ?? 0) + 1
         };
       }
+      for (const key of event.variableKeys ?? []) {
+        delete variables[key];
+        delete variableWriters[key];
+      }
+      const invocation = event.variableKeys
+        ? { ...event.invocation, variableKeys: event.variableKeys }
+        : event.invocation;
       return {
         ...state,
         outputs,
+        variables,
+        variableWriters,
         invocations: {
           ...state.invocations,
-          [event.invocation.id]: event.invocation
+          [invocation.id]: invocation
         },
         activeInvocation: {
           ...state.activeInvocation,
-          [event.invocation.operationId]: event.invocation.id
+          [invocation.operationId]: invocation.id
+        }
+      };
+    }
+
+    case "invocationAlias": {
+      if (
+        !state.invocations[event.aliasId] ||
+        !state.invocations[event.invocationId]
+      ) {
+        return state;
+      }
+      const outputs = Object.fromEntries(
+        Object.entries(state.outputs).map(([key, slot]) =>
+          slot.invocationId === event.aliasId
+            ? [key, { ...slot, invocationId: event.invocationId }]
+            : [key, slot]
+        )
+      );
+      const variableWriters = Object.fromEntries(
+        Object.entries(state.variableWriters).map(([key, writer]) =>
+          writer === event.aliasId ? [key, event.invocationId] : [key, writer]
+        )
+      );
+      return {
+        ...state,
+        outputs,
+        variableWriters,
+        invocationAliases: {
+          ...state.invocationAliases,
+          [event.aliasId]: event.invocationId
         }
       };
     }
 
     case "invocationStatus": {
-      const invocation = state.invocations[event.invocationId];
+      const canonicalId =
+        state.invocationAliases[event.invocationId] ?? event.invocationId;
+      const invocation = state.invocations[canonicalId];
       if (!invocation) return state;
+      const nextInvocation = {
+        ...invocation,
+        status: event.status,
+        error: event.error ?? invocation.error,
+        // A settled run has no progress left to report.
+        progress:
+          event.status === "pending" || event.status === "running"
+            ? invocation.progress
+            : undefined
+      };
+      const variables = { ...state.variables };
+      const variableWriters = { ...state.variableWriters };
+      if (event.status === "failed" || event.status === "cancelled") {
+        for (const key of invocation.variableKeys ?? []) {
+          if (variableWriters[key] !== canonicalId) continue;
+          delete variables[key];
+          delete variableWriters[key];
+        }
+      }
+      const aliases = Object.fromEntries(
+        Object.keys(state.invocationAliases)
+          .filter((id) => state.invocationAliases[id] === canonicalId)
+          .map((id) => [id, nextInvocation])
+      );
       return {
         ...state,
+        variables,
+        variableWriters,
         invocations: {
           ...state.invocations,
-          [event.invocationId]: {
-            ...invocation,
-            status: event.status,
-            error: event.error ?? invocation.error,
-            // A settled run has no progress left to report.
-            progress:
-              event.status === "pending" || event.status === "running"
-                ? invocation.progress
-                : undefined
-          }
+          [canonicalId]: nextInvocation,
+          ...aliases
         }
       };
     }
 
     case "invocationProgress": {
-      const invocation = state.invocations[event.invocationId];
+      const canonicalId =
+        state.invocationAliases[event.invocationId] ?? event.invocationId;
+      const invocation = state.invocations[canonicalId];
       if (!invocation) return state;
+      const nextInvocation = { ...invocation, progress: event.progress };
+      const aliases = Object.fromEntries(
+        Object.keys(state.invocationAliases)
+          .filter((id) => state.invocationAliases[id] === canonicalId)
+          .map((id) => [id, nextInvocation])
+      );
       return {
         ...state,
         invocations: {
           ...state.invocations,
-          [event.invocationId]: { ...invocation, progress: event.progress }
+          [canonicalId]: nextInvocation,
+          ...aliases
         }
       };
     }
 
     case "invocationError": {
-      const invocation = state.invocations[event.invocationId];
+      const canonicalId =
+        state.invocationAliases[event.invocationId] ?? event.invocationId;
+      const invocation = state.invocations[canonicalId];
       if (!invocation) return state;
+      const nextInvocation = { ...invocation, error: event.error };
+      const aliases = Object.fromEntries(
+        Object.keys(state.invocationAliases)
+          .filter((id) => state.invocationAliases[id] === canonicalId)
+          .map((id) => [id, nextInvocation])
+      );
       return {
         ...state,
         invocations: {
           ...state.invocations,
-          [event.invocationId]: { ...invocation, error: event.error }
+          [canonicalId]: nextInvocation,
+          ...aliases
         }
       };
     }
 
     case "invocationActivity": {
-      if (!state.invocations[event.invocationId]) return state;
-      if (state.activity[event.invocationId] === event.label) return state;
+      const canonicalId =
+        state.invocationAliases[event.invocationId] ?? event.invocationId;
+      if (!state.invocations[canonicalId]) return state;
+      if (state.activity[canonicalId] === event.label) return state;
       return {
         ...state,
-        activity: { ...state.activity, [event.invocationId]: event.label }
+        activity: { ...state.activity, [canonicalId]: event.label }
       };
     }
 
@@ -407,8 +506,13 @@ export const invocationsOf = (
   state: AppInstanceState,
   operationId: string
 ): InvocationState[] =>
-  Object.values(state.invocations)
-    .filter((i) => i.operationId === operationId)
+  Object.entries(state.invocations)
+    .filter(
+      ([id, invocation]) =>
+        invocation.operationId === operationId &&
+        !Object.prototype.hasOwnProperty.call(state.invocationAliases, id)
+    )
+    .map(([, invocation]) => invocation)
     .sort((a, b) => b.startedAt - a.startedAt);
 
 export const isLiveInvocation = (invocation: InvocationState): boolean =>

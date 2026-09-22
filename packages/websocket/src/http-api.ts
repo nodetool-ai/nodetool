@@ -82,6 +82,7 @@ import {
   importWorkflowBundle,
   type BundledWorkflow
 } from "./lib/workflow-bundle.js";
+import { listExampleApps } from "./lib/example-apps.js";
 import {
   createWorkflow,
   deleteWorkflow,
@@ -1753,6 +1754,13 @@ export async function handleApiRequest(
     }
     const valid = /^[a-zA-Z0-9_-]{3,32}$/.test(username);
     return jsonResponse({ valid, available: true });
+  }
+
+  if (pathname === "/api/applications/examples") {
+    if (request.method !== "GET") {
+      return errorResponse(405, "Method not allowed");
+    }
+    return jsonResponse(listExampleApps(options));
   }
 
   if (pathname === "/api/nodes/metadata" || pathname === "/api/node/metadata") {

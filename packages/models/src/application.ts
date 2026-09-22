@@ -686,6 +686,26 @@ export async function releasedApplicationRelease(
   return row ? toReleaseResponse(row) : null;
 }
 
+/** An arbitrary application snapshot plus the graphs it froze. */
+export async function applicationReleaseVersion(
+  applicationId: string,
+  version: number,
+  userId?: string
+): Promise<ApplicationReleaseResponse | null> {
+  const db = getDb();
+  const row = await db
+    .select()
+    .from(applicationVersions)
+    .where(
+      and(
+        ownedBy(applicationId, userId),
+        eq(applicationVersions.version, version)
+      )
+    )
+    .limit(1);
+  return row[0] ? toReleaseResponse(row[0]) : null;
+}
+
 /**
  * Move the release pointer to an existing version (publish or rollback).
  *

@@ -418,7 +418,7 @@ describe("validateApp", () => {
 
 
 
-  it("warns that an unguarded run button lets a second click restart the job", () => {
+  it("recognizes the Button primitive's automatic running-state guard", () => {
     const context: AppContext = {
       defaultOperationId: "main",
       variables: [],
@@ -449,9 +449,7 @@ describe("validateApp", () => {
       context
     );
     const { warnings } = validateApp(spec!, io, context);
-    expect(warnings.join("\n")).toMatch(
-      /Button "Button-1" runs operation "main" but has no disabledWhen on its running state — a second click cancels the running job and starts it again/
-    );
+    expect(warnings.join("\n")).not.toMatch(/no disabledWhen on its running state/);
   });
 
   it("accepts a run button guarded on the operation's running state", () => {

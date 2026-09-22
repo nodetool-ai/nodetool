@@ -382,6 +382,8 @@ export function applyGpuCapability(
 
 let gpuProbe: Promise<boolean> | null = null;
 
+const GPU_PROBE_TIMEOUT_MS = 1_000;
+
 /**
  * Probe whether a usable WebGPU device is available in the current execution
  * context (Web Worker or main thread). Cached for the context's lifetime.
@@ -401,7 +403,13 @@ export function probeBrowserGpu(): Promise<boolean> {
       const gpu = nav?.gpu;
       if (!gpu) return false;
       try {
-        return (await gpu.requestAdapter()) != null;
+        const adapter = await Promise.race([
+          gpu.requestAdapter(),
+          new Promise<null>((resolve) =>
+            setTimeout(() => resolve(null), GPU_PROBE_TIMEOUT_MS)
+          )
+        ]);
+        return adapter != null;
       } catch {
         return false;
       }

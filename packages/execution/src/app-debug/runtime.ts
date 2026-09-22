@@ -20,6 +20,7 @@ import {
   evaluateCondition,
   formatTemplate,
   initialVariableValues,
+  isMissingRequiredMediaValue,
   isLiveInvocation,
   liveInvocations,
   messagesToEvents,
@@ -63,6 +64,8 @@ export interface HeadlessOperationInit {
   inputNodeIds: ReadonlyArray<string>;
   /** Input node id → the param name the run protocol expects. */
   inputNameByNodeId: ReadonlyMap<string, string>;
+  /** Input node id → node type, for shared admission checks. */
+  inputNodeTypeByNodeId?: ReadonlyMap<string, string>;
   /** Input defaults, keyed by input state key. */
   defaults: Record<string, unknown>;
   /**
@@ -625,6 +628,23 @@ export class HeadlessAppRuntime {
     }
   }
 
+  private assertRequiredInputs(operation: HeadlessOperationInit): void {
+    const params = this.collectParams(operation.binding.id);
+    for (const nodeId of operation.inputNodeIds) {
+      const nodeType = operation.inputNodeTypeByNodeId?.get(nodeId);
+      const name = operation.inputNameByNodeId.get(nodeId);
+      if (
+        nodeType &&
+        name &&
+        isMissingRequiredMediaValue(nodeType, params[name])
+      ) {
+        throw new Error(
+          `Input "${name}" requires a media value before operation "${operation.binding.name}" can run.`
+        );
+      }
+    }
+  }
+
   /** Dispatch one action; a `run` executes the workflow and folds its stream. */
   async dispatch(action: AppAction): Promise<void> {
     switch (action.kind) {
@@ -722,6 +742,7 @@ export class HeadlessAppRuntime {
     }
 
     this.assertResourcesSeeded(operation.binding);
+    this.assertRequiredInputs(operation);
 
     const decision = decideRun(this.state, operation.binding);
     const targets =
@@ -765,7 +786,10 @@ export class HeadlessAppRuntime {
     this.state = applyEvent(this.state, {
       type: "runStarted",
       invocation,
-      outputKeys: [...operation.outputKeyByNodeId.values()]
+      outputKeys: [...operation.outputKeyByNodeId.values()],
+      variableKeys: Object.values(operation.binding.outputs)
+        .filter((mapping) => mapping.to === "variable")
+        .map((mapping) => mapping.variableId)
     });
     this.runCount += 1;
 

@@ -105,16 +105,16 @@ jest.mock("../../../hooks/useRecommendedModelKeys", () => ({
   useRecommendedModelKeys: () => [],
   recommendedModelKey: (provider: string, id: string) => `${provider}:${id}`
 }));
-jest.mock("../../../stores/MetadataStore", () => {
-  const useMetadataStore = Object.assign(
+jest.mock("../../../stores/MetadataStore", () => ({
+  __esModule: true,
+  default: Object.assign(
     (selector: (state: unknown) => unknown) => selector({ metadata: {} }),
     {
       getState: () => ({ metadata: {} }),
-      subscribe: () => () => {}
+      subscribe: jest.fn(() => jest.fn())
     }
-  );
-  return { __esModule: true, default: useMetadataStore };
-});
+  )
+}));
 jest.mock("../../../hooks/workflow/usePlanWorkflow", () => ({
   usePlanWorkflow: () => ({
     planWorkflow: jest.fn(),

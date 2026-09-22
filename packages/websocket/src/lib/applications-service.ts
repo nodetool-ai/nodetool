@@ -47,7 +47,7 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/applications.js";
 import { ApiErrorCode } from "../error-codes.js";
 import { throwApiError } from "../trpc/error-formatter.js";
-import { isString } from "./wire-values.js";
+import { isRecord, isString } from "./wire-values.js";
 
 export const listApplicationsInput = z.object({
   projectId: z.string().optional()
@@ -111,12 +111,192 @@ async function documentFromWorkflow(
       )
     : null;
   if (parsed) return parsed;
-  // No app document yet: start empty but still bound to the workflow, so the
-  // app has something to run the moment a widget is placed.
-  const empty = createEmptyDocument();
-  empty.operations = [
+  return scaffoldDocumentFromWorkflow(workflowId, workflow);
+}
+
+interface WorkflowNodeLike {
+  id: string;
+  type: string;
+  data?: Record<string, unknown>;
+}
+
+const workflowNodes = (workflow: Workflow): WorkflowNodeLike[] =>
+  workflow.graph.nodes.flatMap((raw) => {
+    if (!isRecord(raw) || !isString(raw.id) || !isString(raw.type)) {
+      return [];
+    }
+    return [
+      {
+        id: raw.id,
+        type: raw.type,
+        data: isRecord(raw.data) ? raw.data : undefined
+      }
+    ];
+  });
+
+const nodeLabel = (node: WorkflowNodeLike): string =>
+  isString(node.data?.name) && node.data.name.length > 0
+    ? node.data.name
+    : node.id;
+
+const isWorkflowInput = (node: WorkflowNodeLike): boolean =>
+  node.type.startsWith("nodetool.input.");
+
+const isWorkflowOutput = (node: WorkflowNodeLike): boolean =>
+  node.type.startsWith("nodetool.output.") ||
+  node.type === "nodetool.workflows.base_node.Preview";
+
+/**
+ * Build a small, deterministic first screen for workflows that predate the
+ * standalone application document. The widgets intentionally bind by node ID
+ * and let the shared runtime derive their type and defaults from the graph.
+ * That keeps this service independent of the web editor's input-kind catalog
+ * while making the result runnable as soon as it is opened.
+ */
+export function scaffoldDocumentFromWorkflow(
+  workflowId: string,
+  workflow: Workflow
+): ApplicationDocument {
+  const document = createEmptyDocument(workflow.name);
+  const operationId = "main";
+  const nodes = workflowNodes(workflow);
+  const inputs = nodes.filter(isWorkflowInput);
+  const outputs = nodes.filter(isWorkflowOutput);
+  const binding = (kind: "input" | "output" | "execution", nodeId?: string) => {
+    if (kind === "execution") {
+      return `op:${operationId}/exec#${nodeId}`;
+    }
+    return `op:${operationId}/${kind === "input" ? "in" : "out"}:${nodeId}`;
+  };
+
+  const content: unknown[] = [
     {
-      id: "main",
+      type: "Heading",
+      props: { id: "workflow-title", text: workflow.name || "Workflow app", level: "1" }
+    },
+    {
+      type: "Text",
+      props: {
+        id: "workflow-description",
+        text: "This app was created from your workflow. Review the inputs, then run it."
+      }
+    },
+    {
+      type: "Container",
+      props: {
+        id: "workflow-inputs",
+        title: "Inputs",
+        content:
+          inputs.length > 0
+            ? inputs.map((node) => ({
+                type: "WorkflowInput",
+                props: {
+                  id: `workflow-input-${node.id}`,
+                  binding: binding("input", node.id),
+                  label: nodeLabel(node),
+                  events: []
+                }
+              }))
+            : [
+                {
+                  type: "Text",
+                  props: {
+                    id: "workflow-no-inputs",
+                    text: "This workflow has no Input nodes."
+                  }
+                }
+              ]
+      }
+    },
+    {
+      type: "Button",
+      props: {
+        id: "workflow-run",
+        label: "Run workflow",
+        variant: "contained",
+        color: "primary",
+        events: [
+          { trigger: "click", kind: "run", operationId, key: "", value: "" }
+        ],
+        disabledWhen: {
+          binding: binding("execution", "running"),
+          op: "notEmpty"
+        }
+      }
+    },
+    {
+      type: "Button",
+      props: {
+        id: "workflow-cancel",
+        label: "Cancel run",
+        variant: "outlined",
+        color: "warning",
+        events: [
+          { trigger: "click", kind: "cancel", operationId, key: "", value: "" }
+        ],
+        visibleWhen: {
+          binding: binding("execution", "running"),
+          op: "notEmpty"
+        }
+      }
+    },
+    {
+      type: "Container",
+      props: {
+        id: "workflow-results",
+        title: "Results",
+        content: [
+          {
+            type: "Progress",
+            props: {
+              id: "workflow-progress",
+              binding: binding("execution", "progress"),
+              label: "Running…"
+            }
+          },
+          {
+            type: "Alert",
+            props: {
+              id: "workflow-error",
+              binding: binding("execution", "error"),
+              title: "The workflow failed",
+              text: "",
+              severity: "error",
+              visibleWhen: {
+                binding: binding("execution", "error"),
+                op: "notEmpty"
+              }
+            }
+          },
+          ...(outputs.length > 0
+            ? outputs.map((node) => ({
+                type: "Output",
+                props: {
+                  id: `workflow-output-${node.id}`,
+                  binding: binding("output", node.id),
+                  placeholder: `${nodeLabel(node)} will appear here`,
+                  download: true,
+                  filename: ""
+                }
+              }))
+            : [
+                {
+                  type: "Text",
+                  props: {
+                    id: "workflow-no-outputs",
+                    text: "This workflow has no Output nodes. Add one to display a result."
+                  }
+                }
+              ])
+        ]
+      }
+    }
+  ];
+
+  document.ui = { root: { props: {} }, content, zones: {} };
+  document.operations = [
+    {
+      id: operationId,
       name: "Run",
       workflowId,
       inputs: {},
@@ -124,7 +304,7 @@ async function documentFromWorkflow(
       policy: "replace"
     }
   ];
-  return empty;
+  return document;
 }
 
 export async function listApplications(
