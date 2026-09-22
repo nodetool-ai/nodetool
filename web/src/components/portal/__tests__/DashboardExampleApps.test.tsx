@@ -70,7 +70,7 @@ describe("DashboardExampleApps", () => {
     listExampleApps.mockResolvedValue(APPS);
   });
 
-  it("lists each app as a card with its description and workflow count", async () => {
+  it("lists only known app details without unavailable compatibility metadata", async () => {
     renderApps();
 
     const card = await screen.findByRole("button", { name: /vary image/i });
@@ -78,20 +78,7 @@ describe("DashboardExampleApps", () => {
       within(card).getByText("Change one thing about a photo and keep the rest.")
     ).toBeInTheDocument();
     expect(within(card).getByText("1 workflow")).toBeInTheDocument();
-    expect(
-      within(card).getByText("Inputs: Unknown")
-    ).toBeInTheDocument();
-    expect(
-      within(card).getByText(/Provider\/model: Unknown provider \/ Unknown/)
-    ).toBeInTheDocument();
-    expect(
-      within(card).getByText(
-        "Estimated cost: unknown — workflow graphs are not included in the app listing"
-      )
-    ).toBeInTheDocument();
-    expect(
-      within(card).getByText("Duration: unknown — execution time is not declared")
-    ).toBeInTheDocument();
+    expect(within(card).queryByText(/unknown/i)).not.toBeInTheDocument();
 
     const reshoot = screen.getByRole("button", { name: /product reshoot/i });
     expect(within(reshoot).getByText("3 workflows")).toBeInTheDocument();
