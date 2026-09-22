@@ -90,6 +90,8 @@ const SUBSTEP_LABEL = "Review";
 
 export interface SetupFlowProps<Stage extends string> {
   config: SetupFlowConfig<Stage>;
+  /** Show the current setup state without offering document mutations. */
+  readOnly?: boolean;
   /**
    * Take the creator back to the entry surface to pick a different flow. Shown
    * on the first step, where `Back` has nowhere to go and the wrong card would
@@ -105,7 +107,8 @@ export interface SetupFlowProps<Stage extends string> {
 
 export function SetupFlow<Stage extends string>({
   config,
-  onChangeFlow
+  onChangeFlow,
+  readOnly = false
 }: SetupFlowProps<Stage>): React.ReactElement | null {
   const { labels, steps, stage, onStageChange } = config;
   const [busy, setBusy] = useState(false);
@@ -172,19 +175,25 @@ export function SetupFlow<Stage extends string>({
   );
 
   const handleBack = useCallback(() => {
+    if (readOnly) {
+      return;
+    }
     setError(null);
     const previous = steps[currentIndex - 1];
     if (previous) {
       onStageChange(previous.stage);
     }
-  }, [currentIndex, onStageChange, steps]);
+  }, [currentIndex, onStageChange, readOnly, steps]);
 
   const handleRewind = useCallback(
     (index: number) => {
+      if (readOnly) {
+        return;
+      }
       setError(null);
       onStageChange(steps[index].stage);
     },
-    [onStageChange, steps]
+    [onStageChange, readOnly, steps]
   );
 
   const handleChangeFlow = useCallback(async () => {
@@ -199,11 +208,10 @@ export function SetupFlow<Stage extends string>({
 
   const canceled = canceledStage === stage || step?.canceled === true;
   const canceling = cancelingStage === stage;
-  const pending =
-    canceling || (!canceled && (busy || step?.pending === true));
+  const pending = canceling || (!canceled && (busy || step?.pending === true));
 
   const handlePrimary = useCallback(async () => {
-    if (!step) {
+    if (!step || readOnly) {
       return;
     }
     const origin = { stage: step.stage, revision: revisionRef.current };
@@ -256,7 +264,7 @@ export function SetupFlow<Stage extends string>({
         activeOperationRef.current = null;
       }
     }
-  }, [currentIndex, isCurrent, onStageChange, step, steps]);
+  }, [currentIndex, isCurrent, onStageChange, readOnly, step, steps]);
 
   const handleCancel = useCallback(() => {
     if (!step || !pending) {
@@ -281,7 +289,7 @@ export function SetupFlow<Stage extends string>({
   }, [pending, step]);
 
   const handleSkip = useCallback(async () => {
-    if (!step?.onSkip) {
+    if (!step?.onSkip || readOnly) {
       return;
     }
     const origin = { stage: step.stage, revision: revisionRef.current };
@@ -303,7 +311,7 @@ export function SetupFlow<Stage extends string>({
     } finally {
       setBusy(false);
     }
-  }, [currentIndex, isCurrent, onStageChange, step, steps]);
+  }, [currentIndex, isCurrent, onStageChange, readOnly, step, steps]);
 
   const blocked = step?.canAdvance === false;
 
@@ -315,13 +323,13 @@ export function SetupFlow<Stage extends string>({
       if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) {
         return;
       }
-      if (blocked || pending) {
+      if (blocked || pending || readOnly) {
         return;
       }
       event.preventDefault();
       void handlePrimary();
     },
-    [blocked, handlePrimary, pending]
+    [blocked, handlePrimary, pending, readOnly]
   );
 
   // A stage outside the flow (a finished document) belongs to the editor, not
@@ -394,7 +402,7 @@ export function SetupFlow<Stage extends string>({
                     <EditorButton
                       variant="text"
                       onClick={() => handleRewind(entry.lastIndex)}
-                      disabled={pending}
+                      disabled={pending || readOnly}
                       sx={{ fontSize: FONT_SIZE_SANS.body }}
                     >
                       {text}
@@ -426,6 +434,13 @@ export function SetupFlow<Stage extends string>({
         </Text>
       ) : null}
 
+      {readOnly ? (
+        <AlertBanner severity="info" title="View only">
+          This setup can be reviewed here, but it cannot be changed in view
+          mode.
+        </AlertBanner>
+      ) : null}
+
       {/* The step body scrolls under the action row, so it ends on padding
           rather than flush against it — a card cut in half at the bar reads as
           a layout bug, not as "there is more below". */}
@@ -434,48 +449,55 @@ export function SetupFlow<Stage extends string>({
         fullHeight
         sx={{ flex: 1, minHeight: 0, paddingBottom: SPACING.xxl }}
       >
-        {canceled ? (
-          <FlexColumn gap={GAP.spacious} fullWidth>
-            <Text size="big" component="h1">
-              This step was canceled
-            </Text>
-            <AlertBanner severity="info" title="Canceled">
-              The pending operation was canceled. Your draft is unchanged.
-            </AlertBanner>
-            <Text size="normal" color="secondary">
-              {canceling
-                ? "Stopping the canceled request before retry is available."
-                : "Retry when you are ready. A new request will be started deliberately and the canceled request cannot replace this draft."}
-            </Text>
-          </FlexColumn>
-        ) : error ? (
-          <FlexColumn gap={GAP.spacious} fullWidth>
-            <Text size="big" component="h1">
-              We couldn&apos;t complete this step
-            </Text>
-            <AlertBanner severity="error" title="What failed">
-              {error}
-            </AlertBanner>
-            <Text size="normal" color="secondary">
-              Your setup is still here. Try again below, go back to change it,
-              or report the failure with its diagnostics.
-            </Text>
-            <FlexRow gap={GAP.normal} align="center" wrap>
-              <ReportBugButton
-                label="Report this failure"
-                variant="outlined"
-                size="medium"
-                context={{
-                  source: "manual",
-                  summary: `${labels.title} setup failed at ${step.label}`,
-                  errorText: error
-                }}
-              />
-            </FlexRow>
-          </FlexColumn>
-        ) : (
-          step.render()
-        )}
+        <Box
+          component="fieldset"
+          disabled={readOnly}
+          aria-readonly={readOnly || undefined}
+          sx={{ border: 0, margin: 0, padding: 0, minWidth: 0, width: "100%" }}
+        >
+          {canceled ? (
+            <FlexColumn gap={GAP.spacious} fullWidth>
+              <Text size="big" component="h1">
+                This step was canceled
+              </Text>
+              <AlertBanner severity="info" title="Canceled">
+                The pending operation was canceled. Your draft is unchanged.
+              </AlertBanner>
+              <Text size="normal" color="secondary">
+                {canceling
+                  ? "Stopping the canceled request before retry is available."
+                  : "Retry when you are ready. A new request will be started deliberately and the canceled request cannot replace this draft."}
+              </Text>
+            </FlexColumn>
+          ) : error ? (
+            <FlexColumn gap={GAP.spacious} fullWidth>
+              <Text size="big" component="h1">
+                We couldn&apos;t complete this step
+              </Text>
+              <AlertBanner severity="error" title="What failed">
+                {error}
+              </AlertBanner>
+              <Text size="normal" color="secondary">
+                Your setup is still here. Try again below, go back to change it,
+                or report the failure with its diagnostics.
+              </Text>
+              <FlexRow gap={GAP.normal} align="center" wrap>
+                <ReportBugButton
+                  label="Report this failure"
+                  variant="outlined"
+                  size="medium"
+                  context={{
+                    source: "manual",
+                    summary: `${labels.title} setup failed at ${step.label}`,
+                    errorText: error
+                  }}
+                />
+              </FlexRow>
+            </FlexColumn>
+          ) : (
+            step.render({ readOnly })
+          )}
+        </Box>
       </ScrollArea>
 
       {step.generation ? (
@@ -486,106 +508,108 @@ export function SetupFlow<Stage extends string>({
         </Suspense>
       ) : null}
 
-      <FlexRow
-        gap={GAP.normal}
-        align="center"
-        justify="space-between"
-        sx={{
-          paddingTop: SPACING.lg,
-          borderTop: "1px solid",
-          borderColor: "divider"
-        }}
-      >
-        <FlexRow gap={GAP.normal} align="center">
-          {/* Back sits at the primary's height and text size. It is the quieter
+      {!readOnly ? (
+        <FlexRow
+          gap={GAP.normal}
+          align="center"
+          justify="space-between"
+          sx={{
+            paddingTop: SPACING.lg,
+            borderTop: "1px solid",
+            borderColor: "divider"
+          }}
+        >
+          <FlexRow gap={GAP.normal} align="center">
+            {/* Back sits at the primary's height and text size. It is the quieter
               of the two, which the text variant already says; making it smaller
               as well put it under the weight of ordinary body copy. */}
-          <EditorButton
-            variant="text"
-            size="large"
-            onClick={handleBack}
-            disabled={currentIndex === 0 || pending}
-            sx={{ fontSize: FONT_SIZE_SANS.body }}
-          >
-            Back
-          </EditorButton>
-          {/* The way out of the wrong card. It stands where `Back` is dead, on
+            <EditorButton
+              variant="text"
+              size="large"
+              onClick={handleBack}
+              disabled={currentIndex === 0 || pending}
+              sx={{ fontSize: FONT_SIZE_SANS.body }}
+            >
+              Back
+            </EditorButton>
+            {/* The way out of the wrong card. It stands where `Back` is dead, on
               the first step, and only when a host can actually perform the
               switch — an enabled control that does nothing is worse than none. */}
-          {onChangeFlow && currentIndex === 0 ? (
-            <EditorButton
-              variant="text"
-              size="large"
-              onClick={() => setConfirmingChange(true)}
-              disabled={pending}
-              sx={{ fontSize: FONT_SIZE_SANS.body }}
-            >
-              Change flow
-            </EditorButton>
-          ) : null}
-          {step.onSkip ? (
-            <EditorButton
-              variant="text"
-              size="large"
-              onClick={() => void handleSkip()}
-              disabled={pending}
-              sx={{ fontSize: FONT_SIZE_SANS.body }}
-            >
-              {step.skipLabel ?? "Skip"}
-            </EditorButton>
-          ) : null}
-        </FlexRow>
-        <FlexRow gap={GAP.normal} align="center">
-          {/* Why the button is off comes first, and replaces the detail: a
-              cost estimate beside a dead button answers a question nobody
-              asked. */}
-          {pending ? (
-            <ThinkingIndicator
-              label={step.pendingLabel ?? "Working"}
-              announce
-            />
-          ) : canceled ? (
-            <Caption color="secondary">Canceled</Caption>
-          ) : blocked && step.blockedReason ? (
-            <Caption color="secondary" id={blockedReasonId}>
-              {step.blockedReason}
-            </Caption>
-          ) : step.primaryDetail ? (
-            <Text size="normal">{step.primaryDetail}</Text>
-          ) : null}
-          <FlexRow gap={GAP.normal} align="center">
-            {pending && !canceled ? (
+            {onChangeFlow && currentIndex === 0 ? (
               <EditorButton
                 variant="text"
                 size="large"
-                onClick={handleCancel}
+                onClick={() => setConfirmingChange(true)}
+                disabled={pending}
                 sx={{ fontSize: FONT_SIZE_SANS.body }}
               >
-                Cancel
+                Change flow
               </EditorButton>
             ) : null}
-            <EditorButton
-              variant="contained"
-              size="large"
-              onClick={handlePrimary}
-              disabled={blocked || pending}
-              // The reason a dead button is dead is beside it, where a mouse can
-              // read it; the description says it to a screen reader too.
-              aria-describedby={
-                blocked && step.blockedReason ? blockedReasonId : undefined
-              }
-              aria-keyshortcuts="Meta+Enter Control+Enter"
-              title={`${canceled ? "Retry" : error ? "Try again" : step.primaryLabel} (\u2318\u21A9 or Ctrl+\u21A9)`}
-              sx={{
-                fontSize: FONT_SIZE_SANS.body,
-                paddingX: SPACING.xxl
-              }}
-            >
-              {canceled ? "Retry" : error ? "Try again" : step.primaryLabel}
-            </EditorButton>
+            {step.onSkip ? (
+              <EditorButton
+                variant="text"
+                size="large"
+                onClick={() => void handleSkip()}
+                disabled={pending}
+                sx={{ fontSize: FONT_SIZE_SANS.body }}
+              >
+                {step.skipLabel ?? "Skip"}
+              </EditorButton>
+            ) : null}
+          </FlexRow>
+          <FlexRow gap={GAP.normal} align="center">
+            {/* Why the button is off comes first, and replaces the detail: a
+              cost estimate beside a dead button answers a question nobody
+              asked. */}
+            {pending ? (
+              <ThinkingIndicator
+                label={step.pendingLabel ?? "Working"}
+                announce
+              />
+            ) : canceled ? (
+              <Caption color="secondary">Canceled</Caption>
+            ) : blocked && step.blockedReason ? (
+              <Caption color="secondary" id={blockedReasonId}>
+                {step.blockedReason}
+              </Caption>
+            ) : step.primaryDetail ? (
+              <Text size="normal">{step.primaryDetail}</Text>
+            ) : null}
+            <FlexRow gap={GAP.normal} align="center">
+              {pending && !canceled ? (
+                <EditorButton
+                  variant="text"
+                  size="large"
+                  onClick={handleCancel}
+                  sx={{ fontSize: FONT_SIZE_SANS.body }}
+                >
+                  Cancel
+                </EditorButton>
+              ) : null}
+              <EditorButton
+                variant="contained"
+                size="large"
+                onClick={handlePrimary}
+                disabled={blocked || pending}
+                // The reason a dead button is dead is beside it, where a mouse can
+                // read it; the description says it to a screen reader too.
+                aria-describedby={
+                  blocked && step.blockedReason ? blockedReasonId : undefined
+                }
+                aria-keyshortcuts="Meta+Enter Control+Enter"
+                title={`${canceled ? "Retry" : error ? "Try again" : step.primaryLabel} (\u2318\u21A9 or Ctrl+\u21A9)`}
+                sx={{
+                  fontSize: FONT_SIZE_SANS.body,
+                  paddingX: SPACING.xxl
+                }}
+              >
+                {canceled ? "Retry" : error ? "Try again" : step.primaryLabel}
+              </EditorButton>
+            </FlexRow>
           </FlexRow>
         </FlexRow>
-      </FlexRow>
+      ) : null}
 
       <Dialog
         open={confirmingChange}

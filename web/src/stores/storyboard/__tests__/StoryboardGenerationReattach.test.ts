@@ -65,6 +65,9 @@ const boardShot = (shotId: string): Shot | undefined =>
     .getBoard(BOARD)
     ?.shots.find((candidate) => candidate.id === shotId);
 
+const latestKeyframe = (shotId: string) =>
+  boardShot(shotId)?.keyframe_versions?.at(-1);
+
 const seedBoard = (shotId: string): Shot => {
   const store = useStoryboardStore.getState();
   store.ensureBoard(BOARD);
@@ -76,6 +79,8 @@ const seedBoard = (shotId: string): Shot => {
 const resetGeneration = (): void => {
   useStoryboardGenerationStore.setState({
     shotJobs: {},
+    productionJobs: {},
+    requestRecords: {},
     jobToShot: {},
     generatingShotIds: [],
     failedShotIds: [],
@@ -223,10 +228,13 @@ describe("a board closed mid-batch and reopened", () => {
     );
 
     const settled = boardShot(target.id);
-    expect(settled?.keyframe?.asset_id).toBe("asset-late");
-    expect(settled?.status).toBe("keyframe_ready");
+    expect(latestKeyframe(target.id)?.asset_id).toBe("asset-late");
+    expect(settled?.keyframe).toBeUndefined();
+    expect(settled?.status).toBe("planned");
     // The record stamped before the close survived with it.
-    expect(settled?.keyframe?.render_inputs?.model).toBe("provider/still-v1");
+    expect(latestKeyframe(target.id)?.render_inputs?.model).toBe(
+      "provider/still-v1"
+    );
     expect(
       useStoryboardGenerationStore.getState().pendingJobs[BOARD]
     ).toBeUndefined();
@@ -341,10 +349,13 @@ describe("a board reopened after a reload", () => {
     await reattachBoardJobs(BOARD);
 
     const shotNow = boardShot(target.id);
-    expect(shotNow?.keyframe?.asset_id).toBe("asset-recovered");
-    expect(shotNow?.status).toBe("keyframe_ready");
+    expect(latestKeyframe(target.id)?.asset_id).toBe("asset-recovered");
+    expect(shotNow?.keyframe).toBeUndefined();
+    expect(shotNow?.status).toBe("planned");
     // The record stamped before the reload survived onto the version.
-    expect(shotNow?.keyframe?.render_inputs?.model).toBe("provider/still-v1");
+    expect(latestKeyframe(target.id)?.render_inputs?.model).toBe(
+      "provider/still-v1"
+    );
     expect(
       useStoryboardGenerationStore.getState().pendingJobs[BOARD]
     ).toBeUndefined();
@@ -387,8 +398,9 @@ describe("a board reopened after a reload", () => {
       await jest.advanceTimersByTimeAsync(5_000);
 
       const shotNow = boardShot(target.id);
-      expect(shotNow?.keyframe?.asset_id).toBe("asset-recovered");
-      expect(shotNow?.status).toBe("keyframe_ready");
+      expect(latestKeyframe(target.id)?.asset_id).toBe("asset-recovered");
+      expect(shotNow?.keyframe).toBeUndefined();
+      expect(shotNow?.status).toBe("planned");
     } finally {
       jest.useRealTimers();
     }
@@ -411,7 +423,7 @@ describe("a board reopened after a reload", () => {
       expect(useStoryboardGenerationStore.getState().pendingJobs[BOARD]).toHaveLength(1);
       lookupMock.mockResolvedValue(settled("req-stuck"));
       await jest.advanceTimersByTimeAsync(15_000);
-      expect(boardShot(target.id)?.keyframe?.asset_id).toBe("asset-recovered");
+      expect(latestKeyframe(target.id)?.asset_id).toBe("asset-recovered");
     } finally {
       jest.useRealTimers();
     }
@@ -458,7 +470,7 @@ it("recovers after opening a board while the connection is unavailable", async (
       assetIds: ["asset-offline"], error: null
     }]]));
     await jest.advanceTimersByTimeAsync(2000);
-    expect(boardShot(target.id)?.keyframe?.asset_id).toBe("asset-offline");
+    expect(latestKeyframe(target.id)?.asset_id).toBe("asset-offline");
   } finally {
     ensure.mockResolvedValue(undefined);
     jest.useRealTimers();

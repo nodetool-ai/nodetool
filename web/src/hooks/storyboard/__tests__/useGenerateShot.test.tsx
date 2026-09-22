@@ -47,6 +47,7 @@ import {
   useGenerateShot,
   __resetStartingShotsForTests
 } from "../useGenerateShot";
+import { compileRenderBatchRequestPlan } from "../renderBatchRequestPlan";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useStoryboardGenerationStore } from "../../../stores/storyboard/StoryboardGenerationStore";
 import {
@@ -87,6 +88,7 @@ beforeEach(() => {
   mockImageModels.length = 0;
   mockVideoModels.length = 0;
   __resetStartingShotsForTests();
+  useStoryboardGenerationStore.setState({ requestRecords: {} });
   useStoryboardGenerationStore.getState().clear(shot.id);
   useStoryboardStore.getState().ensureBoard(BOARD);
   useStoryboardStore.getState().upsertShot(BOARD, shot);
@@ -178,7 +180,8 @@ describe("production clip generation", () => {
         reference_bindings: [
           { kind: "product", asset_id: "product-reference" }
         ],
-        requested_take_count: 3
+        requested_take_count: 3,
+        duration_ms: 9_000
       }
     };
     useStoryboardStore.getState().setEntityIds(BOARD, [location.id]);
@@ -199,6 +202,14 @@ describe("production clip generation", () => {
         }
     );
     expect(new Set(frames.map((frame) => frame.request_id)).size).toBe(3);
+    const quotedPlan = compileRenderBatchRequestPlan({
+      shots: [productionShot],
+      step: "clip",
+      linesById: new Map(),
+      modelForShot: () => null
+    });
+    expect(quotedPlan.map((request) => request.seconds)).toEqual([9, 9, 9]);
+    expect(frames.map((frame) => frame.data.duration)).toEqual([9, 9, 9]);
     expect(
       frames.map(
         (frame) =>
@@ -822,7 +833,7 @@ describe("clip generation on a script-linked board", () => {
         ?.shots.find((value) => value.id === other.id)?.clip?.asset_id
     ).toBe("other");
 
-    useStoryboardStore.getState().selectClipVersion(LINKED, revised.id, 1);
+    useStoryboardStore.getState().acceptClipVersion(LINKED, revised.id, 1);
     expect(
       useStoryboardStore
         .getState()
@@ -831,7 +842,7 @@ describe("clip generation on a script-linked board", () => {
     ).toBe("candidate");
   });
 
-  it("cancels a revise without changing the accepted shot clip", async () => {
+  it("stops tracking a revise without changing the accepted shot clip", async () => {
     seedBoard(null);
     useStoryboardStore.getState().setVideoModel(LINKED, videoModel);
     const revised: Shot = {
@@ -847,8 +858,7 @@ describe("clip generation on a script-linked board", () => {
     });
     settleCancelledShotJob(revised.id);
     const job = useStoryboardGenerationStore.getState().shotJobs[revised.id];
-    expect(job?.status).toBe("failed");
-    expect(job?.errorMessage).toBe("Revision cancelled.");
+    expect(job?.status).toBe("stopped");
     expect(job?.mediaEdit?.instruction).toBe("cancel me");
     expect(
       useStoryboardStore
@@ -918,6 +928,74 @@ describe("clip generation on a script-linked board", () => {
       mediaEdit: { instruction: "keep the approved framing" }
     });
   });
+
+  it("retries the recorded revision source after another clip becomes current", async () => {
+    seedBoard(null);
+    useStoryboardStore.getState().setVideoModel(LINKED, videoModel);
+    const revised: Shot = {
+      ...linkedShot,
+      id: "shot-retry-recorded-source",
+      status: "rendered",
+      clip: {
+        type: "video",
+        uri: "asset://source-a",
+        asset_id: "source-a",
+        duration: 5
+      }
+    };
+    useStoryboardStore.getState().upsertShot(LINKED, revised);
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateRevisedClip(
+        LINKED,
+        revised,
+        "preserve the first take"
+      );
+    });
+
+    const originalJob =
+      useStoryboardGenerationStore.getState().shotJobs[revised.id];
+    const originalData = send.mock.calls[0][0].data;
+    __handleShotJobMessageForTests(
+      originalJob!.jobId,
+      {
+        shotId: revised.id,
+        boardId: LINKED,
+        kind: "clip",
+        mediaEdit: originalJob!.mediaEdit,
+        acceptedShotStatus: originalJob!.acceptedShotStatus
+      },
+      {
+        type: "rpc_response",
+        request_id: originalJob!.jobId,
+        error: { code: "PROVIDER_ERROR", message: "provider unavailable" }
+      } as never
+    );
+    useStoryboardStore.getState().updateShot(LINKED, revised.id, {
+      clip: {
+        type: "video",
+        uri: "asset://source-b",
+        asset_id: "source-b",
+        duration: 7
+      }
+    });
+
+    await act(async () => {
+      await result.current.retryFailedRequest(originalJob!.jobId);
+    });
+
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(send.mock.calls[1][0].request_id).not.toBe(originalJob!.jobId);
+    expect(send.mock.calls[1][0].data).toEqual(originalData);
+    expect(send.mock.calls[1][0].data).toMatchObject({
+      source_asset_id: "source-a",
+      duration: 5
+    });
+    expect(
+      useStoryboardGenerationStore.getState().requestRecords[originalJob!.jobId]
+        ?.retriedAt
+    ).toEqual(expect.any(Number));
+  });
 });
 
 describe("a start that fails", () => {
@@ -937,6 +1015,19 @@ describe("a start that fails", () => {
     expect(useStoryboardStore.getState().getBoard(BOARD)?.shots[0].status).toBe(
       "failed"
     );
+    const records = Object.values(
+      useStoryboardGenerationStore.getState().requestRecords
+    ).filter((record) => record.shotId === shot.id);
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      jobId: job?.jobId,
+      status: "failed",
+      errorMessage: "No image model configured",
+      operation: {
+        data: expect.objectContaining({ mode: "image", prompt: "a lighthouse" })
+      }
+    });
+    expect(records[0].settledAt).toEqual(expect.any(Number));
   });
 
   it("keeps a failed revise inspectable without changing the accepted shot", async () => {
@@ -1004,6 +1095,22 @@ describe("a start that fails", () => {
     const job = useStoryboardGenerationStore.getState().shotJobs[clipShot.id];
     expect(job?.status).toBe("failed");
     expect(job?.errorMessage).toBe("socket closed");
+    const records = Object.values(
+      useStoryboardGenerationStore.getState().requestRecords
+    ).filter((record) => record.shotId === clipShot.id);
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      jobId: job?.jobId,
+      status: "failed",
+      errorMessage: "socket closed",
+      operation: {
+        data: expect.objectContaining({
+          mode: "video",
+          source_asset_id: "still-2"
+        })
+      }
+    });
+    expect(records[0].settledAt).toEqual(expect.any(Number));
   });
 });
 

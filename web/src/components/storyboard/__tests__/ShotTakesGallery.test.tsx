@@ -1,7 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
-import type { ClipVersion, ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
+import type {
+  ClipVersion,
+  ImageRef,
+  Shot,
+  VideoRef
+} from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
 
 // The gallery reuses the node-results renderer; stub it so this test asserts
@@ -90,6 +95,16 @@ const seedShot = (shot: Shot): void => {
   store.upsertShot(BOARD, shot);
 };
 
+const storedClip = (shotId: string): VideoRef | null | undefined =>
+  useStoryboardStore
+    .getState()
+    .boards[BOARD]?.shots.find((shot) => shot.id === shotId)?.clip;
+
+const storedShotKeyframe = (shotId: string): ImageRef | null | undefined =>
+  useStoryboardStore
+    .getState()
+    .boards[BOARD]?.shots.find((shot) => shot.id === shotId)?.keyframe;
+
 const renderGallery = (shot: Shot, readOnly = false) =>
   render(
     <ThemeProvider theme={mockTheme}>
@@ -113,10 +128,12 @@ describe("ShotTakesGallery", () => {
 
     expect(screen.getByText("Stills")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Use still 1" })
+      screen.getByRole("button", { name: "Still 1, current still" })
     ).toBeInTheDocument();
     expect(screen.getByText("Clips")).toBeInTheDocument();
-    expect(screen.getByText("Take 1")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Take 1, current clip" })
+    ).toHaveAttribute("aria-current", "true");
   });
 
   it("shows counts and reveals both galleries via the node-results renderer", async () => {
@@ -129,9 +146,13 @@ describe("ShotTakesGallery", () => {
     renderGallery(shot);
 
     expect(
-      screen.getAllByRole("button", { name: /^Use still \d$/ })
+      screen.getAllByRole("button", {
+        name: /^(Preview still|Still \d, current still)/
+      })
     ).toHaveLength(2);
-    expect(screen.getAllByText(/^Take \d$/)).toHaveLength(3);
+    expect(
+      screen.getAllByText(/^(Preview \d|Take \d · Current)$/)
+    ).toHaveLength(3);
     expect(screen.queryByTestId("output-renderer")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "View takes" }));
@@ -145,7 +166,7 @@ describe("ShotTakesGallery", () => {
     expect(screen.queryByTestId("output-renderer")).not.toBeInTheDocument();
   });
 
-  it("selects a still by clicking its thumbnail and marks it pressed", async () => {
+  it("previews a still without selecting it, then accepts it explicitly", async () => {
     const shot = makeShot({
       keyframe: image(2),
       keyframe_versions: [image(1), image(2)]
@@ -153,11 +174,17 @@ describe("ShotTakesGallery", () => {
     seedShot(shot);
     renderGallery(shot);
 
-    expect(screen.getByRole("button", { name: "Use still 2" })).toHaveAttribute(
-      "aria-pressed",
-      "true"
+    expect(
+      screen.getByRole("button", { name: "Still 2, current still" })
+    ).toHaveAttribute("aria-current", "true");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Preview still 1" })
     );
-    await userEvent.click(screen.getByRole("button", { name: "Use still 1" }));
+    expect(storedShotKeyframe(shot.id)).toEqual(image(2));
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set still 1 as current still" })
+    );
 
     const updated = useStoryboardStore
       .getState()
@@ -165,7 +192,7 @@ describe("ShotTakesGallery", () => {
     expect(updated?.keyframe).toEqual(image(1));
   });
 
-  it("selects a clip take and syncs it to a linked timeline", async () => {
+  it("accepts a clip take and syncs it to a linked timeline", async () => {
     const shot = makeShot({
       clip: video(2),
       clip_versions: [video(1), video(2)]
@@ -173,7 +200,9 @@ describe("ShotTakesGallery", () => {
     seedShot(shot);
     renderGallery(shot);
 
-    await userEvent.click(screen.getByText("Take 1"));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set take 1 as current clip" })
+    );
 
     const updated = useStoryboardStore
       .getState()
@@ -186,7 +215,31 @@ describe("ShotTakesGallery", () => {
     );
   });
 
-  it("selects a media-edit candidate without syncing the linked timeline", async () => {
+  it("previews a clip without changing current media, then explicitly accepts it", async () => {
+    const shot = makeShot({
+      status: "keyframe_ready",
+      clip: video(2),
+      clip_versions: [video(1), video(2)]
+    });
+    seedShot(shot);
+    renderGallery(shot);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Preview clip take 1" })
+    );
+    expect(storedClip(shot.id)).toEqual(video(2));
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set take 1 as current clip" })
+    );
+    const accepted = useStoryboardStore
+      .getState()
+      .boards[BOARD]?.shots.find((item) => item.id === shot.id);
+    expect(accepted?.clip).toEqual(video(1));
+    expect(accepted?.status).toBe("rendered");
+  });
+
+  it("syncs a media-edit candidate only after explicit acceptance", async () => {
     const candidate = editVideo(1);
     const shot = makeShot({
       clip: video(2),
@@ -195,16 +248,28 @@ describe("ShotTakesGallery", () => {
     seedShot(shot);
     renderGallery(shot);
 
-    await userEvent.click(screen.getByText("Take 1"));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Preview clip take 1" })
+    );
+    expect(storedClip(shot.id)).toEqual(video(2));
+    expect(syncShotClipToTimelineMock).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set take 1 as current clip" })
+    );
 
     const updated = useStoryboardStore
       .getState()
       .boards[BOARD]?.shots.find((s) => s.id === shot.id);
     expect(updated?.clip).toEqual(candidate);
-    expect(syncShotClipToTimelineMock).not.toHaveBeenCalled();
+    expect(syncShotClipToTimelineMock).toHaveBeenCalledWith(
+      BOARD,
+      shot.id,
+      "vid-1"
+    );
   });
 
-  it("previews production candidates without selecting them until Use take", async () => {
+  it("previews production candidates without selecting them until acceptance", async () => {
     const candidate = {
       ...video(1),
       candidateId: "candidate-1",
@@ -217,7 +282,9 @@ describe("ShotTakesGallery", () => {
     seedShot(shot);
     renderGallery(shot);
 
-    await userEvent.click(screen.getByText("Preview 1"));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Preview clip take 1" })
+    );
     expect(
       useStoryboardStore
         .getState()
@@ -225,7 +292,9 @@ describe("ShotTakesGallery", () => {
     ).toEqual(video(2));
     expect(screen.getByTestId("asset-viewer")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Use take 1" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set take 1 as current clip" })
+    );
     expect(
       useStoryboardStore
         .getState()
@@ -284,7 +353,9 @@ describe("ShotTakesGallery", () => {
     seedShot(shot);
     renderGallery(shot, true);
 
-    await userEvent.click(screen.getByRole("button", { name: "Use still 1" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Preview still 1" })
+    );
 
     const updated = useStoryboardStore
       .getState()

@@ -140,24 +140,25 @@ Two things worth knowing on the first try:
 
 This is the step that spends money, so it runs in two passes.
 
-**Stills first.** Press **Generate all stills** — the button counts the shots
-still waiting — or **Generate still** on one card. Each still is saved as an
-asset and becomes that shot's keyframe. Don't like one? Press **New still**; the
-previous take is kept, and the **Takes** row under the card clicks back to it.
-The card shows a `~$` estimate before you commit.
+**Stills first.** Press **Render stills**. The button counts the shots still
+waiting and the confirmation names the number of requests. Each result is saved
+as a still take. Previewing or paging through takes does not change the current
+still. Choose **Set as current still** when you want later clip generation to
+use it.
 
-**Clips second, from the still you chose.** **Generate clip** animates that
-shot's selected still with the video model; **Generate all clips** does every
-shot that has a still and no clip yet. A card that never got a still is reported
-and skipped, not rendered blind.
+**Clips second, from the still you chose.** **Render clips** animates each
+eligible shot's current still with the selected video model. A shot without a
+current still is reported and skipped. Finished clips land as takes to review.
+Preview them, then choose **Set as current clip** for the take the board and
+timeline should use.
 
-**Revise clip** takes a text instruction — "make it darker, add rain" — and runs
-video-to-video on the clip you already have, swapping the result in place. Fixing
-shot 3 never means re-rolling shots 1–5.
+**Iterate** takes a text instruction such as "make it darker, add rain" and
+runs video-to-video on the current clip. The revision is another take. The
+current clip stays in place until you accept the revision.
 
-Cards move through **Planned → Still ready → Rendering → Rendered**, and
-**Preview** plays the whole board in order — each shot's clip where one exists,
-its still held on screen where it doesn't.
+Cards distinguish missing media, generation in progress, takes ready to review,
+and current media. **Preview board** plays each current clip in order and holds
+the current still when a shot has no accepted clip.
 
 The assistant drives all of it:
 
@@ -169,7 +170,7 @@ The assistant drives all of it:
 
 ## Step 4 — Assemble the cut on the timeline
 
-Press **Assemble timeline**. NodeTool creates a saved timeline sequence and
+Press **Create timeline**. NodeTool creates a saved timeline sequence and
 opens it in a tab.
 
 ![The assembled cut in the timeline editor](assets/creative-agent/assembled-timeline.png)
@@ -193,10 +194,10 @@ The **Editor Assistant** is docked here too: *"split the selected clip at the
 playhead"*, *"fade out the last clip"*, *"generate a 5-second clip of a city at
 night"*.
 
-Every assembled clip stays linked to the shot it came from. Go back to the
-storyboard, revise a shot, and the new render replaces that clip in the saved
-cut. Press **Assemble timeline** again after adding shots and the same sequence
-is rewritten in place, keeping tracks you added by hand.
+Every assembled clip stays linked to the shot it came from. Accepting a new
+current clip can update that linked clip. After adding or removing shots, use
+**Rebuild linked timeline…**. The confirmation lists which storyboard-owned
+clips will be rebuilt and which unrelated timeline content will be preserved.
 
 ---
 

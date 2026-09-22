@@ -12,7 +12,7 @@
  *
  * Usage:
  *   const board = useBoard(boardId);           // reactive board view
- *   useStoryboardStore.getState().selectKeyframeVersion(boardId, shotId, 0);
+ *   useStoryboardStore.getState().acceptKeyframeVersion(boardId, shotId, 0);
  */
 
 import { create } from "zustand";
@@ -128,6 +128,12 @@ export interface StoryboardSetupPatch {
 /** The scene fields the surface edits; a scene carries no order of its own. */
 export type ScenePatch = Partial<Pick<Scene, "slugline" | "lighting">>;
 
+export interface ShotDraftCommit {
+  shot: Partial<Shot>;
+  sceneId: string | null;
+  lighting?: string;
+}
+
 interface StoryboardStoreState {
   boards: Record<string, StoryboardBoard>;
   /** Server `updated_at` token per board — the CAS base for the next save. */
@@ -231,6 +237,12 @@ interface StoryboardStoreState {
   upsertShot: (boardId: string, shot: Shot) => void;
   /** Patch fields on a single shot. No-op when the shot is gone. */
   updateShot: (boardId: string, shotId: string, patch: Partial<Shot>) => void;
+  /** Save shot fields, scene placement, and scene lighting as one undo step. */
+  applyShotDraft: (
+    boardId: string,
+    shotId: string,
+    commit: ShotDraftCommit
+  ) => void;
   setShotStatus: (boardId: string, shotId: string, status: ShotStatus) => void;
   setShotKeyframe: (
     boardId: string,
@@ -238,14 +250,20 @@ interface StoryboardStoreState {
     keyframe: ImageRef
   ) => void;
   setShotClip: (boardId: string, shotId: string, clip: VideoRef) => void;
+  /** Append an inactive still candidate without changing the current still. */
+  appendShotKeyframeVersion: (
+    boardId: string,
+    shotId: string,
+    keyframe: ImageRef
+  ) => void;
   /** Append an inactive clip candidate without changing the selected clip. */
   appendShotClipVersion: (
     boardId: string,
     shotId: string,
     clip: ClipVersion
   ) => void;
-  /** Make one of the shot's preserved stills the selected keyframe. */
-  selectKeyframeVersion: (
+  /** Explicitly accept one preserved still as the shot's current keyframe. */
+  acceptKeyframeVersion: (
     boardId: string,
     shotId: string,
     versionIndex: number
@@ -261,8 +279,8 @@ interface StoryboardStoreState {
     shotId: string,
     versionIndex: number
   ) => void;
-  /** Make one of the shot's preserved takes the selected/export clip. */
-  selectClipVersion: (
+  /** Explicitly accept one preserved take as the shot's current/export clip. */
+  acceptClipVersion: (
     boardId: string,
     shotId: string,
     versionIndex: number
@@ -854,7 +872,10 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         boardId,
         (b) => {
           const next: StoryboardBoard = { ...b };
-          if (patch.creative_context !== undefined || patch.production_review_fingerprint !== undefined) {
+          if (
+            patch.creative_context !== undefined ||
+            patch.production_review_fingerprint !== undefined
+          ) {
             const screenplay: Screenplay & {
               creative_context?: CreativeContext;
               production_review_fingerprint?: string;
@@ -870,7 +891,8 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
               screenplay.creative_context = patch.creative_context;
             }
             if (patch.production_review_fingerprint !== undefined) {
-              screenplay.production_review_fingerprint = patch.production_review_fingerprint;
+              screenplay.production_review_fingerprint =
+                patch.production_review_fingerprint;
             }
             next.screenplay = screenplay;
             if (patch.creative_context !== undefined) {
@@ -1068,6 +1090,59 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       })
     ),
 
+  applyShotDraft: (boardId, shotId, commit) =>
+    set((state) =>
+      withBoard(state, boardId, (board) => {
+        const target = board.shots.find((shot) => shot.id === shotId);
+        if (!target) {
+          return null;
+        }
+        let next = patchShot(board, shotId, commit.shot);
+        if ((target.scene_id ?? null) !== commit.sceneId) {
+          const seeded = materializeLegacyScene(next);
+          const targetSceneId = commit.sceneId ?? seeded.sceneId;
+          const ordered = sceneOrder(seeded.shots).flatMap(
+            (group) => group.shots
+          );
+          const from = ordered.findIndex((shot) => shot.id === shotId);
+          const moved = withScene(ordered[from], targetSceneId);
+          const rest = ordered.filter((shot) => shot.id !== shotId);
+          const run = rest.flatMap((shot, index) =>
+            (shot.scene_id ?? null) === targetSceneId ? [index] : []
+          );
+          const at =
+            run.length > 0
+              ? run[0] + run.length
+              : Math.min(Math.max(from, 0), rest.length);
+          next =
+            structural(
+              next,
+              [...rest.slice(0, at), moved, ...rest.slice(at)],
+              seeded.scenes
+            ) ?? next;
+        }
+        if (commit.sceneId && commit.lighting !== undefined) {
+          const scenes = boardScenes(next);
+          const scene = scenes.find(
+            (candidate) => candidate.id === commit.sceneId
+          );
+          if (scene && scene.lighting !== commit.lighting) {
+            next =
+              structural(
+                next,
+                next.shots,
+                scenes.map((candidate) =>
+                  candidate.id === commit.sceneId
+                    ? { ...candidate, lighting: commit.lighting }
+                    : candidate
+                )
+              ) ?? next;
+          }
+        }
+        return next === board ? null : next;
+      })
+    ),
+
   setShotStatus: (boardId, shotId, status) =>
     set((state) =>
       // Generation lifecycle, not an authoring edit — keep it out of undo.
@@ -1111,6 +1186,25 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       })
     ),
 
+  appendShotKeyframeVersion: (boardId, shotId, keyframe) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const target = b.shots.find((s) => s.id === shotId);
+        if (!target) {
+          return null;
+        }
+        const versions =
+          target.keyframe_versions ??
+          (target.keyframe ? [target.keyframe] : []);
+        if (versions.some((version) => sameMediaRef(version, keyframe))) {
+          return null;
+        }
+        return patchShot(b, shotId, {
+          keyframe_versions: [...versions, keyframe]
+        });
+      })
+    ),
+
   appendShotClipVersion: (boardId, shotId, clip) =>
     set((state) =>
       withBoard(state, boardId, (b) => {
@@ -1129,19 +1223,35 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       })
     ),
 
-  selectKeyframeVersion: (boardId, shotId, versionIndex) =>
+  acceptKeyframeVersion: (boardId, shotId, versionIndex) =>
     set((state) =>
-      withBoard(state, boardId, (b) => {
-        const target = b.shots.find((s) => s.id === shotId);
-        const versions =
-          target?.keyframe_versions ??
-          (target?.keyframe ? [target.keyframe] : []);
-        const keyframe = versions[versionIndex];
-        if (!keyframe || keyframe === target?.keyframe) {
-          return null;
-        }
-        return patchShot(b, shotId, { keyframe });
-      })
+      withBoard(
+        state,
+        boardId,
+        (b) => {
+          const target = b.shots.find((s) => s.id === shotId);
+          const versions =
+            target?.keyframe_versions ??
+            (target?.keyframe ? [target.keyframe] : []);
+          const keyframe = versions[versionIndex];
+          if (!keyframe || !target) {
+            return null;
+          }
+          const status = target.clip ? "rendered" : "keyframe_ready";
+          if (
+            target.keyframe &&
+            sameMediaRef(keyframe, target.keyframe) &&
+            target.status === status
+          ) {
+            return null;
+          }
+          return patchShot(b, shotId, {
+            keyframe,
+            status
+          });
+        },
+        false
+      )
     ),
 
   removeKeyframeVersion: (boardId, shotId, versionIndex) =>
@@ -1197,18 +1307,30 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       })
     ),
 
-  selectClipVersion: (boardId, shotId, versionIndex) =>
+  acceptClipVersion: (boardId, shotId, versionIndex) =>
     set((state) =>
-      withBoard(state, boardId, (b) => {
-        const target = b.shots.find((s) => s.id === shotId);
-        const versions =
-          target?.clip_versions ?? (target?.clip ? [target.clip] : []);
-        const clip = versions[versionIndex];
-        if (!clip || clip === target?.clip) {
-          return null;
-        }
-        return patchShot(b, shotId, { clip });
-      })
+      withBoard(
+        state,
+        boardId,
+        (b) => {
+          const target = b.shots.find((s) => s.id === shotId);
+          const versions =
+            target?.clip_versions ?? (target?.clip ? [target.clip] : []);
+          const clip = versions[versionIndex];
+          if (!clip || !target) {
+            return null;
+          }
+          if (
+            target.clip &&
+            sameMediaRef(clip, target.clip) &&
+            target.status === "rendered"
+          ) {
+            return null;
+          }
+          return patchShot(b, shotId, { clip, status: "rendered" });
+        },
+        false
+      )
     ),
 
   removeClipVersion: (boardId, shotId, versionIndex) =>
@@ -1615,6 +1737,7 @@ export const useBoard = (
   imageModel: ImageModelValue | null;
   videoModel: VideoModelValue | null;
   activeShotId: string | null;
+  timelineId: string | null;
 } =>
   useStoryboardStore(
     useShallow((state) => {
@@ -1632,7 +1755,8 @@ export const useBoard = (
         directorModel: b?.directorModel ?? null,
         imageModel: b?.imageModel ?? null,
         videoModel: b?.videoModel ?? null,
-        activeShotId: b?.activeShotId ?? null
+        activeShotId: b?.activeShotId ?? null,
+        timelineId: b?.timelineId ?? null
       };
     })
   );

@@ -3,20 +3,20 @@
  * failed, and retries exactly those shots.
  */
 
-import { act, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Shot } from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
 
-const mockGenerateKeyframe = jest.fn().mockResolvedValue(undefined);
-const mockGenerateClip = jest.fn().mockResolvedValue(undefined);
+const mockRetryFailedRequest = jest.fn().mockResolvedValue(undefined);
 
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
-    generateKeyframe: mockGenerateKeyframe,
-    generateClip: mockGenerateClip,
-    generateRevisedClip: jest.fn()
+    generateKeyframe: jest.fn(),
+    generateClip: jest.fn(),
+    generateRevisedClip: jest.fn(),
+    retryFailedRequest: mockRetryFailedRequest
   })
 }));
 
@@ -24,7 +24,8 @@ import BoardRetryFailed from "../BoardRetryFailed";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import {
   useStoryboardGenerationStore,
-  type ShotJobState
+  type ShotJobState,
+  type ShotRequestRecord
 } from "../../../stores/storyboard/StoryboardGenerationStore";
 
 const BOARD = "board-retry";
@@ -52,7 +53,13 @@ const setJobs = (jobs: ShotJobState[]): void => {
     shotJobs: Object.fromEntries(jobs.map((j) => [j.shotId, j])),
     jobToShot: Object.fromEntries(jobs.map((j) => [j.jobId, j.shotId])),
     failedShotIds: jobs.filter((j) => j.status === "failed").map((j) => j.shotId),
-    generatingShotIds: []
+    generatingShotIds: [],
+    requestRecords: Object.fromEntries(
+      jobs.map((value) => [
+        value.jobId,
+        { ...value, batchId: "original-batch" } satisfies ShotRequestRecord
+      ])
+    )
   });
 };
 
@@ -64,8 +71,7 @@ const renderRetry = () =>
   );
 
 beforeEach(() => {
-  mockGenerateKeyframe.mockClear();
-  mockGenerateClip.mockClear();
+  mockRetryFailedRequest.mockClear();
   useStoryboardStore.setState({ boards: {}, history: {}, serverRevisions: {} });
   const store = useStoryboardStore.getState();
   store.ensureBoard(BOARD);
@@ -97,7 +103,7 @@ describe("BoardRetryFailed", () => {
     ).toBeInTheDocument();
   });
 
-  it("retries exactly the failed shots, each with the kind it failed on", async () => {
+  it("retries exactly the failed requests in one recovery batch", async () => {
     setJobs([
       job({ shotId: "s-failed-still", kind: "keyframe" }),
       job({ shotId: "s-failed-clip", kind: "clip" }),
@@ -109,30 +115,32 @@ describe("BoardRetryFailed", () => {
       screen.getByRole("button", { name: "Retry 2 failed" })
     );
 
-    expect(mockGenerateKeyframe).toHaveBeenCalledTimes(1);
-    expect(mockGenerateKeyframe).toHaveBeenCalledWith(
-      BOARD,
-      expect.objectContaining({ id: "s-failed-still" })
-    );
-    expect(mockGenerateClip).toHaveBeenCalledTimes(1);
-    expect(mockGenerateClip).toHaveBeenCalledWith(
-      BOARD,
-      expect.objectContaining({ id: "s-failed-clip" })
+    expect(mockRetryFailedRequest).toHaveBeenCalledTimes(2);
+    expect(mockRetryFailedRequest.mock.calls.map(([requestId]) => requestId)).toEqual([
+      "req-s-failed-still",
+      "req-s-failed-clip"
+    ]);
+    expect(mockRetryFailedRequest.mock.calls[0]?.[1]).toBe(
+      mockRetryFailedRequest.mock.calls[1]?.[1]
     );
   });
 
-  it("drops a shot from the set once a later render succeeded", () => {
+  it("does not offer an already retried failed request again", () => {
     setJobs([job({ shotId: "s-failed-still" })]);
     const { rerender } = renderRetry();
     expect(
       screen.getByRole("button", { name: "Retry 1 failed" })
     ).toBeInTheDocument();
 
-    // A successful re-render clears the shot's row — its last job is not a
-    // failure any more.
-    act(() => {
-      useStoryboardGenerationStore.getState().clear("s-failed-still");
-    });
+    useStoryboardGenerationStore.setState((state) => ({
+      requestRecords: {
+        ...state.requestRecords,
+        "req-s-failed-still": {
+          ...state.requestRecords["req-s-failed-still"],
+          retriedAt: Date.now()
+        }
+      }
+    }));
     rerender(
       <ThemeProvider theme={mockTheme}>
         <BoardRetryFailed boardId={BOARD} />

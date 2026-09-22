@@ -419,7 +419,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_revise_shot",
   description:
-    "Regenerate a shot's video clip via video-to-video using a text instruction, e.g. 'make it darker, add rain'. Seeds the shot's existing clip and swaps the revised result in place. The shot must already have a clip (generate one first). Kicks off the job and returns the shot; poll ui_storyboard_get_state for the resulting status.",
+    "Create a new clip take from a shot's current clip via video-to-video using a text instruction, e.g. 'make it darker, add rain'. The current clip remains unchanged until the creator explicitly sets the revision as current in the take gallery. The shot must already have a current clip. Kicks off the job and returns the shot; poll ui_storyboard_get_state for the resulting status.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     target: targetParam,
@@ -447,7 +447,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_assemble_timeline",
   description:
-    "Assemble the specified storyboard's rendered shots into a persisted timeline sequence and open it in the timeline editor. Shot clips are laid end to end in order; the screenplay's narration and music become draft audio clips ready to generate. When the board links a script, the words are cut in with the picture instead: each shot runs as long as the takes it covers, every voiced line becomes a voiceover clip inside its shot, and the draft narration clip is dropped (lines that got no clip are returned in skippedLineIds). Shots without a rendered clip are skipped (returned in skippedShotIds). If the board is already linked to a sequence, that sequence is rewritten in place (reassembled), keeping tracks the editor added. Each timeline clip stays linked to its shot, so ui_storyboard_revise_shot updates the cut in place.",
+    "Create a timeline from the specified storyboard's current clips and open it in the timeline editor. Shot clips are laid end to end in order; the screenplay's narration and music become draft audio clips ready to generate. When the board links a script, the words are cut in with the picture instead: each shot runs as long as the takes it covers, every voiced line becomes a voiceover clip inside its shot, and the draft narration clip is dropped (lines that got no clip are returned in skippedLineIds). Shots without a current clip are skipped (returned in skippedShotIds). If the board already links to a sequence, this rebuilds and replaces its storyboard-owned clips while preserving unrelated tracks and clips. Edits to storyboard-owned timeline clips can be replaced by that rebuild.",
   parameters: z.object({ storyboard_id: storyboardIdParam }),
   async execute({ storyboard_id }) {
     const result =
@@ -909,7 +909,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_add_keyframe_version",
   description:
-    "Add a stored asset to a shot as a new still and select it — an upload, a horizontal flip, or an image-editor pass. Existing stills are kept: this never overwrites a version. `flipOf` records which version the image was derived from. A still added this way carries no render record, so it never reads stale.",
+    "Add a stored asset to a shot as a new still take without changing its current still — an upload, a horizontal flip, or an image-editor pass. Existing stills are kept: this never overwrites a version. Use ui_storyboard_select_version to accept it. `flipOf` records which version the image was derived from. A still added this way carries no render record, so it never reads stale.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     target: targetParam,

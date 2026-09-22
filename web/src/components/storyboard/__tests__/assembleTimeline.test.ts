@@ -47,8 +47,16 @@ const board = (overrides: Partial<StoryboardBoard>): StoryboardBoard => ({
 });
 
 describe("isAssemblableShot", () => {
-  it("requires rendered status and a persisted clip asset", () => {
+  it("derives readiness from the accepted persisted clip, not lifecycle status", () => {
     expect(isAssemblableShot(renderedShot("a", 0))).toBe(true);
+    expect(
+      isAssemblableShot(
+        shot({
+          status: "keyframe_ready",
+          clip: { type: "video", asset_id: "accepted-clip" }
+        })
+      )
+    ).toBe(true);
     expect(isAssemblableShot(shot({ status: "approved" }))).toBe(false);
     expect(
       isAssemblableShot(

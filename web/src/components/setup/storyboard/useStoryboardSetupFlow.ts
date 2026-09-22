@@ -324,9 +324,10 @@ export const useStoryboardSetupFlow = ({
               maxOutputTokens: DIRECTOR_MAX_OUTPUT_TOKENS,
               noModelCall: false
             },
-        render: () =>
+        render: (context) =>
           createElement(GenreStep, {
             boardId,
+            readOnly: context?.readOnly,
             shotCount,
             onShotCountChange: setShotCount,
             directing,
@@ -385,7 +386,11 @@ export const useStoryboardSetupFlow = ({
         blockedReason: "Select or create an entity, or skip this step",
         skipLabel: "Skip entities",
         onSkip: () => undefined,
-        render: () => createElement(EntitiesStep, { boardId })
+        render: (context) =>
+          createElement(EntitiesStep, {
+            boardId,
+            readOnly: context?.readOnly
+          })
       },
       {
         stage: "look",
@@ -396,7 +401,8 @@ export const useStoryboardSetupFlow = ({
         primaryDetail: look.primaryDetail,
         canAdvance: !productionBlocker && look.canAdvance,
         blockedReason: productionBlocker ?? look.blockedReason,
-        render: () => createElement(LookStep, { boardId }),
+        render: (context) =>
+          createElement(LookStep, { boardId, readOnly: context?.readOnly }),
         // `generate` writes the terminal stage itself, before it enqueues
         // anything (PRD § 7.3, D3); the host opens the board once the jobs are
         // away.
