@@ -97,7 +97,7 @@ describe("harness registry", () => {
     }
   });
 
-  it("routes tutorial render changes through the demo test harness", () => {
+  it("routes tutorial and marketing render changes through the demo test harness", () => {
     const harness = HARNESSES.find((entry) => entry.id === "tutorial-rendering");
     const surface = SURFACES.find((entry) => entry.id === "tutorial-rendering");
 
@@ -108,12 +108,14 @@ describe("harness registry", () => {
     expect(surface?.harnesses).toEqual(["tutorial-rendering"]);
     expect(surface?.paths).toEqual([
       "demo/src/",
-      "demo/scripts/render-tutorials.ts"
+      "demo/scripts/render-tutorials.ts",
+      "demo/scripts/render-marketing.ts"
     ]);
 
     const plan = planGate([
       "demo/src/components/FocusCamera.tsx",
-      "demo/scripts/render-tutorials.ts"
+      "demo/scripts/render-tutorials.ts",
+      "demo/scripts/render-marketing.ts"
     ]);
     expect(plan.unmappedFiles).toEqual([]);
     expect(plan.surfaces).toEqual([
@@ -121,7 +123,8 @@ describe("harness registry", () => {
         id: "tutorial-rendering",
         files: [
           "demo/src/components/FocusCamera.tsx",
-          "demo/scripts/render-tutorials.ts"
+          "demo/scripts/render-tutorials.ts",
+          "demo/scripts/render-marketing.ts"
         ]
       }
     ]);

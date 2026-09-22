@@ -288,11 +288,45 @@ The promo's casts live with the other synthetic casts —
 `web/src/demo/timeline/promoTimelineCast.ts` (invariants guarded by
 `web/src/demo/__tests__/promoCasts.test.ts`).
 
-## The landing-page hero (`demo/src/hero/`)
+## Published marketing demos (`demo/src/marketing/`)
+
+The homepage serves the projector campaign hero, the conversation demo, and the editor loops from
+`marketing/public/`. Their finishing compositions live in
+[`src/marketing/`](src/marketing/catalog.ts). The accepted footage is pinned
+under `public/casts/marketing/` so repeated renders never process their own
+previous export. The projector campaign's original editable composition was
+not checked in. Its accepted render is the source for this finishing pass.
+
+The shot catalog defines source in and out points, crops, titles, and poster
+frames. The shared composition adds eased camera movement, perspective
+entrances, masked title reveals, a brief light sweep, and chapter progress.
+Effects follow the frame clock. Crops remove the old baked titles and focus
+on the active editor region without regenerating UI pixels.
+
+```bash
+cd demo
+npm run studio:marketing -- --no-open
+npm run render:marketing -- --stills-only
+npm run render:marketing                         # masters and review posters
+npm run render:marketing -- --only surface-sketch
+npm run render:marketing -- --publish            # render, encode, decode, copy to marketing/public
+```
+
+Review frames and masters in `out/marketing/` before publishing. The publish
+option updates local website assets, not the deployed site. It creates silent
+H.264 and VP9 delivery files with limited color range, decodes each complete
+file, and generates WebP posters. Both project demos receive a 960-pixel poster.
+No live product server, provider request, or GPU editor capture is needed.
+
+## Earlier cast-based hero (`demo/src/hero/`)
 
 A silent 44 s loop of one project going from a sentence to a finished cut —
 the same story the landing page tells below the fold, so the reel and the
-section under it are the same session rather than two pitches.
+section under it are the same session rather than two pitches. This older
+SCRAPHEART composition is retained for cast development. It is not the
+projector campaign currently published on the homepage. Its `encode:hero`
+command overwrites the same public hero filenames, so use `render:marketing`
+for the current campaign.
 
 ```bash
 cd demo

@@ -1462,7 +1462,11 @@ export const SURFACES: SurfaceEntry[] = [
     id: "tutorial-rendering",
     title: "Tutorial rendering and inspection",
     harnesses: ["tutorial-rendering"],
-    paths: ["demo/src/", "demo/scripts/render-tutorials.ts"]
+    paths: [
+      "demo/src/",
+      "demo/scripts/render-tutorials.ts",
+      "demo/scripts/render-marketing.ts"
+    ]
   },
   {
     id: "desktop-backend",
