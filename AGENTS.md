@@ -126,6 +126,7 @@ document and nothing else in the directory reaches the product.
 | Turn an agreed discussion into a spec or dependent tickets | [to-spec](.claude/skills/to-spec/SKILL.md), [to-tickets](.claude/skills/to-tickets/SKILL.md) |
 | Create or edit a NodeTool workflow graph | [nodetool-workflow-builder](.claude/skills/nodetool-workflow-builder/SKILL.md) |
 | Create or update a NodeTool node implementation | [nodetool-custom-node-developer](.claude/skills/nodetool-custom-node-developer/SKILL.md) |
+| Higgsfield provider nodes | [higgsfield-nodes](packages/higgsfield-nodes/AGENTS.md) |
 | Diagnose a failed run on any NodeTool surface | [nodetool-troubleshooter](.claude/skills/nodetool-troubleshooter/SKILL.md) |
 | Direct storyboards, render shots, and assemble timelines | [storyboard-core](.claude/skills/storyboard-core/SKILL.md) |
 | Build or repair a mini app | [nodetool-app-builder](.claude/skills/nodetool-app-builder/SKILL.md) |

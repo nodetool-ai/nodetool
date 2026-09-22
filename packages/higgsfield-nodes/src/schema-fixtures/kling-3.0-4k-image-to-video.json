@@ -1,0 +1,5 @@
+{
+  "modelId": "kling-video/v3.0/4k/image-to-video",
+  "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v3.0/4k/image-to-video/api-reference",
+  "verifiedFields": ["prompt", "image_url", "duration", "sound", "multi_shots"]
+}

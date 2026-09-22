@@ -1577,6 +1577,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/gpu/",
       "packages/huggingface/",
       "packages/huggingface-nodes/",
+      "packages/higgsfield-nodes/",
       "packages/image-nodes/",
       "packages/integration-nodes/",
       "packages/kie-nodes/",

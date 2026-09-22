@@ -1,0 +1,847 @@
+[
+  {
+    "modelId": "bytedance/seedance-2.5/reference-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/bytedance/seedance-2.5/reference-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "audio_urls",
+      "image_urls",
+      "video_urls",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "output_format",
+      "generate_audio"
+    ]
+  },
+  {
+    "modelId": "higgsfield-ai/soul/v2/standard",
+    "sourceUrl": "https://open.higgsfield.ai/models/higgsfield-ai/soul/v2/standard/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "style_id",
+      "batch_size",
+      "resolution",
+      "aspect_ratio",
+      "enhance_prompt",
+      "seed"
+    ]
+  },
+  {
+    "modelId": "marketing-studio/image",
+    "sourceUrl": "https://open.higgsfield.ai/models/marketing-studio/image/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "quality",
+      "resolution",
+      "aspect_ratio",
+      "enhance_prompt",
+      "preset_id"
+    ]
+  },
+  {
+    "modelId": "bytedance/seedance-2.5/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/bytedance/seedance-2.5/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "bitrate_mode",
+      "output_format",
+      "generate_audio"
+    ]
+  },
+  {
+    "modelId": "bytedance/seedance-2.5/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/bytedance/seedance-2.5/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "duration",
+      "resolution",
+      "bitrate_mode",
+      "generate_audio",
+      "end_image_url"
+    ]
+  },
+  {
+    "modelId": "kling-video/v3.0/std/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v3.0/std/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "aspect_ratio",
+      "sound",
+      "cfg_scale",
+      "multi_shots"
+    ]
+  },
+  {
+    "modelId": "bytedance/seedance-2.5/video-edit",
+    "sourceUrl": "https://open.higgsfield.ai/models/bytedance/seedance-2.5/video-edit/playground",
+    "verifiedFields": [
+      "prompt",
+      "video_url",
+      "resolution",
+      "output_format",
+      "generate_audio"
+    ]
+  },
+  {
+    "modelId": "bytedance/seedance-2.5/video-extend",
+    "sourceUrl": "https://open.higgsfield.ai/models/bytedance/seedance-2.5/video-extend/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "video_url",
+      "duration",
+      "resolution",
+      "output_format",
+      "generate_audio"
+    ]
+  },
+  {
+    "modelId": "kling-video/v3.0/4k/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v3.0/4k/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "duration",
+      "sound",
+      "cfg_scale",
+      "multi_shots"
+    ]
+  },
+  {
+    "modelId": "ideogram/v4.0",
+    "sourceUrl": "https://open.higgsfield.ai/models/ideogram/v4.0/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "aspect_ratio",
+      "image_weight",
+      "rendering_speed"
+    ]
+  },
+  {
+    "modelId": "recraft/v4.1/text-to-image",
+    "sourceUrl": "https://open.higgsfield.ai/models/recraft/v4.1/text-to-image/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "resolution",
+      "aspect_ratio",
+      "output_format"
+    ]
+  },
+  {
+    "modelId": "higgsfield-ai/soul/standard",
+    "sourceUrl": "https://open.higgsfield.ai/models/higgsfield-ai/soul/standard/api-reference",
+    "verifiedFields": [
+      "seed",
+      "prompt",
+      "style_id",
+      "batch_size",
+      "resolution",
+      "aspect_ratio",
+      "enhance_prompt",
+      "style_strength"
+    ]
+  },
+  {
+    "modelId": "alibaba/qwen-image-3/text-to-image",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/qwen-image-3/text-to-image/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "seed",
+      "resolution",
+      "aspect_ratio",
+      "prompt_extend",
+      "enable_thinking",
+      "prompt_extend_mode",
+      "negative_prompt"
+    ]
+  },
+  {
+    "modelId": "alibaba/qwen-image-3/edit",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/qwen-image-3/edit/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "resolution",
+      "aspect_ratio",
+      "prompt_extend",
+      "enable_thinking",
+      "prompt_extend_mode"
+    ]
+  },
+  {
+    "modelId": "z-image/turbo",
+    "sourceUrl": "https://open.higgsfield.ai/models/z-image/turbo/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "seed",
+      "resolution",
+      "aspect_ratio",
+      "prompt_extend"
+    ]
+  },
+  {
+    "modelId": "minimax/h3/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/minimax/h3/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "aigc_watermark"
+    ]
+  },
+  {
+    "modelId": "alibaba/wan-3.0-prime/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/wan-3.0-prime/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "seed",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio",
+      "enable_thinking"
+    ]
+  },
+  {
+    "modelId": "alibaba/wan-3.0-prime/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/wan-3.0-prime/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "end_image_url",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio",
+      "enable_thinking"
+    ]
+  },
+  {
+    "modelId": "alibaba/wan-3.0-prime/reference-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/wan-3.0-prime/reference-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "video_urls",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio",
+      "enable_thinking"
+    ]
+  },
+  {
+    "modelId": "bytedance/seedance-2.0/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/bytedance/seedance-2.0/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio"
+    ]
+  },
+  {
+    "modelId": "bytedance/seedance-2.0/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/bytedance/seedance-2.0/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "end_image_url",
+      "duration",
+      "resolution",
+      "generate_audio"
+    ]
+  },
+  {
+    "modelId": "bytedance/seedance-2.0/reference-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/bytedance/seedance-2.0/reference-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "video_urls",
+      "audio_urls",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio"
+    ]
+  },
+  {
+    "modelId": "alibaba/wan-3.0/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/wan-3.0/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio",
+      "enable_thinking"
+    ]
+  },
+  {
+    "modelId": "alibaba/wan-3.0/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/wan-3.0/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "end_image_url",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio",
+      "enable_thinking"
+    ]
+  },
+  {
+    "modelId": "alibaba/wan-3.0/reference-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/wan-3.0/reference-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "video_urls",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio",
+      "enable_thinking"
+    ]
+  },
+  {
+    "modelId": "lightricks/ltx-2.5/text-to-video/fast",
+    "sourceUrl": "https://open.higgsfield.ai/models/lightricks/ltx-2.5/text-to-video/fast/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "fps",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio"
+    ]
+  },
+  {
+    "modelId": "lightricks/ltx-2.5/text-to-video/pro",
+    "sourceUrl": "https://open.higgsfield.ai/models/lightricks/ltx-2.5/text-to-video/pro/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "fps",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio"
+    ]
+  },
+  {
+    "modelId": "xai/grok-imagine-video/v1.5/reference-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/xai/grok-imagine-video/v1.5/reference-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "video_urls",
+      "duration",
+      "resolution",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "wan/v2.7/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/wan/v2.7/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "seed",
+      "duration",
+      "audio_url",
+      "resolution",
+      "aspect_ratio",
+      "prompt_extend",
+      "negative_prompt"
+    ]
+  },
+  {
+    "modelId": "wan/v2.6/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/wan/v2.6/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "resolution",
+      "multi_shots",
+      "prompt_extend",
+      "audio_url"
+    ]
+  },
+  {
+    "modelId": "alibaba/happy-horse/v1.1/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/happy-horse/v1.1/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "resolution",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "alibaba/happy-horse/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/happy-horse/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "resolution",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "pixverse/v6/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/pixverse/v6/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio"
+    ]
+  },
+  {
+    "modelId": "kling-video/o3/first-last-frame",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/o3/first-last-frame/api-reference",
+    "verifiedFields": [
+      "mode",
+      "prompt",
+      "first_frame_url",
+      "last_frame_url",
+      "sound",
+      "duration",
+      "multi_shots"
+    ]
+  },
+  {
+    "modelId": "kling-video/v2.6/pro/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v2.6/pro/text-to-video/api-reference",
+    "verifiedFields": [
+      "sound",
+      "prompt",
+      "duration",
+      "cfg_scale",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "kling-video/omni/first-last-frame",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/omni/first-last-frame/api-reference",
+    "verifiedFields": [
+      "mode",
+      "prompt",
+      "first_frame_url",
+      "last_frame_url",
+      "duration",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "minimax/hailuo-2.3/standard/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/minimax/hailuo-2.3/standard/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "duration",
+      "prompt_optimizer"
+    ]
+  },
+  {
+    "modelId": "kling-video/v2.5-turbo/standard/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v2.5-turbo/standard/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "duration",
+      "negative_prompt",
+      "cfg_scale"
+    ]
+  },
+  {
+    "modelId": "xai/grok-imagine-image-2.0",
+    "sourceUrl": "https://console.higgsfield.ai/models/xai/grok-imagine-image-2.0/playground",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "quality",
+      "resolution",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "minimax/h3/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/minimax/h3/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "aigc_watermark"
+    ]
+  },
+  {
+    "modelId": "minimax/h3/reference-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/minimax/h3/reference-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "video_urls",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "aigc_watermark"
+    ]
+  },
+  {
+    "modelId": "minimax/hailuo-2.3/standard/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/minimax/hailuo-2.3/standard/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "prompt_optimizer"
+    ]
+  },
+  {
+    "modelId": "lightricks/ltx-2.5/image-to-video/fast",
+    "sourceUrl": "https://open.higgsfield.ai/models/lightricks/ltx-2.5/image-to-video/fast/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "fps",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio"
+    ]
+  },
+  {
+    "modelId": "lightricks/ltx-2.5/image-to-video/pro",
+    "sourceUrl": "https://open.higgsfield.ai/models/lightricks/ltx-2.5/image-to-video/pro/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "fps",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio"
+    ]
+  },
+  {
+    "modelId": "wan/v2.7/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/wan/v2.7/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "duration",
+      "resolution",
+      "prompt_extend",
+      "negative_prompt"
+    ]
+  },
+  {
+    "modelId": "wan/v2.7/reference-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/wan/v2.7/reference-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "video_urls",
+      "duration",
+      "resolution",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "wan/v2.6/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/wan/v2.6/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "duration",
+      "resolution",
+      "multi_shots",
+      "prompt_extend",
+      "audio_url"
+    ]
+  },
+  {
+    "modelId": "wan/v2.6/reference-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/wan/v2.6/reference-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "video_urls",
+      "duration",
+      "resolution",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "alibaba/happy-horse/v1.1/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/happy-horse/v1.1/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "duration",
+      "resolution",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "alibaba/happy-horse/v1.1/reference-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/happy-horse/v1.1/reference-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "video_urls",
+      "duration",
+      "resolution",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "alibaba/happy-horse/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/happy-horse/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "duration",
+      "resolution",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "alibaba/happy-horse/reference-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/alibaba/happy-horse/reference-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "video_urls",
+      "duration",
+      "resolution",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "kling-video/v3.0/pro/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v3.0/pro/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "duration",
+      "sound",
+      "cfg_scale",
+      "multi_shots"
+    ]
+  },
+  {
+    "modelId": "kling-video/v3.0/pro/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v3.0/pro/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "aspect_ratio",
+      "sound",
+      "cfg_scale",
+      "multi_shots"
+    ]
+  },
+  {
+    "modelId": "kling-video/v3.0/std/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v3.0/std/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "duration",
+      "sound",
+      "cfg_scale",
+      "multi_shots"
+    ]
+  },
+  {
+    "modelId": "kling-video/v3.0/4k/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v3.0/4k/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "aspect_ratio",
+      "sound",
+      "cfg_scale",
+      "multi_shots"
+    ]
+  },
+  {
+    "modelId": "kling-video/v3.0-turbo/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v3.0-turbo/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "duration",
+      "resolution"
+    ]
+  },
+  {
+    "modelId": "kling-video/v3.0-turbo/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v3.0-turbo/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "aspect_ratio",
+      "resolution"
+    ]
+  },
+  {
+    "modelId": "kling-video/o3/image-reference",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/o3/image-reference/api-reference",
+    "verifiedFields": [
+      "mode",
+      "prompt",
+      "image_urls",
+      "duration",
+      "aspect_ratio",
+      "sound",
+      "shot_type",
+      "multi_shots"
+    ]
+  },
+  {
+    "modelId": "kling-video/o3/video-edit",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/o3/video-edit/api-reference",
+    "verifiedFields": [
+      "mode",
+      "prompt",
+      "video_urls",
+      "image_urls"
+    ]
+  },
+  {
+    "modelId": "kling-video/o3/video-reference",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/o3/video-reference/api-reference",
+    "verifiedFields": [
+      "mode",
+      "prompt",
+      "video_urls",
+      "image_urls",
+      "duration",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "kling-video/v3/motion-control/pro",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v3/motion-control/pro/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "video_url",
+      "keep_original_sound",
+      "character_orientation"
+    ]
+  },
+  {
+    "modelId": "kling-video/v3/motion-control/std",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v3/motion-control/std/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "video_url",
+      "keep_original_sound",
+      "character_orientation"
+    ]
+  },
+  {
+    "modelId": "kling-video/v2.6/pro/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v2.6/pro/image-to-video/api-reference",
+    "verifiedFields": [
+      "sound",
+      "prompt",
+      "image_url",
+      "duration",
+      "cfg_scale",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "kling-video/motion-control/pro",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/motion-control/pro/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "video_url",
+      "keep_original_sound",
+      "character_orientation"
+    ]
+  },
+  {
+    "modelId": "kling-video/motion-control/std",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/motion-control/std/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "video_url",
+      "keep_original_sound",
+      "character_orientation"
+    ]
+  },
+  {
+    "modelId": "kling-video/omni/image-reference",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/omni/image-reference/api-reference",
+    "verifiedFields": [
+      "mode",
+      "prompt",
+      "image_urls",
+      "duration",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "kling-video/omni/video-edit",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/omni/video-edit/api-reference",
+    "verifiedFields": [
+      "mode",
+      "prompt",
+      "video_urls",
+      "image_urls"
+    ]
+  },
+  {
+    "modelId": "kling-video/omni/video-reference",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/omni/video-reference/api-reference",
+    "verifiedFields": [
+      "mode",
+      "prompt",
+      "video_urls",
+      "image_urls",
+      "duration",
+      "aspect_ratio"
+    ]
+  },
+  {
+    "modelId": "kling-video/v2.5-turbo/pro/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v2.5-turbo/pro/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "duration",
+      "negative_prompt",
+      "cfg_scale"
+    ]
+  },
+  {
+    "modelId": "kling-video/v2.5-turbo/pro/text-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/kling-video/v2.5-turbo/pro/text-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "duration",
+      "aspect_ratio",
+      "cfg_scale"
+    ]
+  }
+]

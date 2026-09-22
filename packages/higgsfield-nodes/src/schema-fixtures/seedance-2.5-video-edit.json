@@ -1,0 +1,5 @@
+{
+  "modelId": "bytedance/seedance-2.5/video-edit",
+  "sourceUrl": "https://open.higgsfield.ai/models/bytedance/seedance-2.5/video-edit/playground",
+  "verifiedFields": ["prompt", "video_url", "resolution", "generate_audio"]
+}

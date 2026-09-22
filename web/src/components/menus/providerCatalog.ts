@@ -70,6 +70,13 @@ export interface ProviderMeta {
   localOnly?: boolean;
   /** Multi-field credentials (e.g. login + password). Single-field providers omit this. */
   fields?: Array<{ key: string; label: string; secret?: boolean }>;
+  /** One copied value that is parsed into the separately stored credential fields. */
+  combinedCredential?: {
+    label: string;
+    placeholder: string;
+    errorMessage: string;
+    parse: (value: string) => Record<string, string> | null;
+  };
   /**
    * The registry provider this card credentials, when there is one. A card can
    * hold a valid credential for a provider the server does not offer — a cloud
@@ -92,6 +99,26 @@ export interface ProviderMeta {
 /** Hosted deployments can't finish a same-machine sign-in — hide those cards. */
 export const isProviderAvailable = (meta: ProviderMeta): boolean =>
   !meta.localOnly || isLocalhost || isElectron;
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export const parseHiggsfieldCredential = (
+  value: string
+): Record<string, string> | null => {
+  const separatorIndex = value.indexOf(":");
+  if (separatorIndex < 0) return null;
+
+  const keyId = value.slice(0, separatorIndex).trim();
+  const secret = value.slice(separatorIndex + 1).trim();
+  if (!UUID_PATTERN.test(keyId) || !secret) return null;
+
+  return {
+    HIGGSFIELD_API_KEY_ID: keyId,
+    HIGGSFIELD_API_KEY_SECRET: secret
+  };
+};
+
 export const PROVIDER_META: ProviderMeta[] = [
   {
     key: "OPENAI_API_KEY",
@@ -358,6 +385,25 @@ export const PROVIDER_META: ProviderMeta[] = [
     section: "gateways",
     docsUrl: "https://www.atlascloud.ai/",
     icon: atlascloudIcon
+  },
+  {
+    key: "HIGGSFIELD_API_KEY_ID",
+    providerId: PROVIDER_IDS.HIGGSFIELD,
+    name: "Higgsfield",
+    description: "Curated image and video generation models.",
+    section: "media",
+    docsUrl: "https://docs.higgsfield.ai/",
+    fields: [
+      { key: "HIGGSFIELD_API_KEY_ID", label: "API key ID", secret: true },
+      { key: "HIGGSFIELD_API_KEY_SECRET", label: "API key secret", secret: true }
+    ],
+    combinedCredential: {
+      label: "API key",
+      placeholder: "Paste key-id:secret",
+      errorMessage:
+        "Paste the complete Higgsfield API key in the key-id:secret format.",
+      parse: parseHiggsfieldCredential
+    }
   },
   {
     key: "REVE_API_KEY",

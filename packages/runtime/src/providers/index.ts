@@ -76,6 +76,7 @@ import { CohereProvider } from "./cohere-provider.js";
 import { VoyageProvider } from "./voyage-provider.js";
 import { JinaProvider } from "./jina-provider.js";
 import { FakeProvider } from "./fake-provider.js";
+import { HiggsfieldProvider } from "./higgsfield-provider.js";
 export {
   BaseProvider,
   estimatePromptTokens,
@@ -214,6 +215,7 @@ export type {
   AtlasPollOptions
 } from "./provider-transport.js";
 export { AnthropicProvider };
+export { HiggsfieldProvider };
 export { ClaudeAgentProvider };
 export { GeminiProvider };
 export { LlamaProvider };
@@ -529,6 +531,10 @@ registerBuiltinProvider(PROVIDER_IDS.TOPAZ, TopazProvider, {
 registerBuiltinProvider(PROVIDER_IDS.REVE, ReveProvider, { REVE_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.ATLASCLOUD, AtlasCloudProvider, {
   ATLASCLOUD_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.HIGGSFIELD, HiggsfieldProvider, {
+  HIGGSFIELD_API_KEY_ID: "",
+  HIGGSFIELD_API_KEY_SECRET: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.AKI, AkiProvider, { AKI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, {

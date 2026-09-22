@@ -348,6 +348,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Prediction output URLs; submit and poll address the constant API base."
   ),
   guardedSafeFetch(
+    "packages/runtime/src/providers/higgsfield-transport.ts",
+    "Higgsfield upload and result transport",
+    "provider-response",
+    "Presigned upload and provider result URLs; Higgsfield credentials are only sent to the fixed API host."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",
     "Meshy model download",
     "provider-response",
