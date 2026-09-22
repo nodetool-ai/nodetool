@@ -26,9 +26,10 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "a-gradient-card-as-png",
         "name": "A Gradient Card as PNG",
-        "description": "Build vector art in a Code node, then rasterise it. SVGToImage is the bridge: author resolution-independently, hand a PNG to anything that needs pixels.",
+        "description": "A certified starter that runs as-is with no asset, provider, or API key. Build vector art in a Code node, rasterise it, and inspect the generated 800×480 PNG.",
         "tags": [
-          "image"
+          "image",
+          "getting-started"
         ]
       },
       {
