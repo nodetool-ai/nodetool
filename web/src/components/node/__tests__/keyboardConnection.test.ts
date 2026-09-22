@@ -1,6 +1,7 @@
+import { addEdge as xyflowAddEdge } from "@xyflow/react";
 import type { Edge, Node } from "@xyflow/react";
 
-import { stub } from "../../../test-utils/doubles";
+import { asMock, stub } from "../../../test-utils/doubles";
 import type { NodeMetadata, TypeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import useMetadataStore from "../../../stores/MetadataStore";
@@ -62,6 +63,9 @@ describe("keyboard connection application", () => {
   const originalMetadata = useMetadataStore.getState();
 
   beforeEach(() => {
+    asMock(xyflowAddEdge).mockImplementation(
+      (edge: Edge, edges: Edge[]) => [...edges, edge]
+    );
     useMetadataStore.setState(
       {
         ...originalMetadata,
@@ -73,6 +77,7 @@ describe("keyboard connection application", () => {
 
   afterEach(() => {
     useMetadataStore.setState(originalMetadata, true);
+    asMock(xyflowAddEdge).mockReset();
   });
 
   it("excludes an existing port when the shared validator detects a cycle", () => {

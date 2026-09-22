@@ -108,18 +108,21 @@ const LogPanel: React.FC = memo(function LogPanel() {
       .sort((a, b) => b.timestamp - a.timestamp)
       .map((log, index) => {
         const workflowId = log.workflowId;
-        return {
+        const row: Row = {
           key: `${workflowId}:${log.nodeId}:${log.timestamp}:${index}`,
           workflowId,
           workflowName: log.workflowName || wfName[workflowId] || workflowId,
-          ...(log.jobId ? { jobId: log.jobId } : {}),
           nodeId: log.nodeId,
           nodeName: log.nodeName,
           severity: log.severity,
           timestamp: log.timestamp,
           content: log.content,
           data: log.data
-        } as Row;
+        };
+        if (log.jobId) {
+          row.jobId = log.jobId;
+        }
+        return row;
       });
   }, [logs, filter, currentWorkflowId, selectedSeverities, wfName]);
 
@@ -150,12 +153,20 @@ const LogPanel: React.FC = memo(function LogPanel() {
 
   const handleRevealNode = useCallback(
     (workflowId: string, nodeId: string) => {
-      const workflowTabId = openTab({
+      const workflowTab: {
+        type: "workflow";
+        ref: string;
+        mode: "edit";
+        title?: string;
+      } = {
         type: "workflow",
         ref: workflowId,
-        mode: "edit",
-        ...(wfName[workflowId] ? { title: wfName[workflowId] } : {})
-      });
+        mode: "edit"
+      };
+      if (wfName[workflowId]) {
+        workflowTab.title = wfName[workflowId];
+      }
+      const workflowTabId = openTab(workflowTab);
       setActiveTab(workflowTabId);
       if (workflowId !== currentWorkflowId) {
         setCurrentWorkflowId(workflowId);

@@ -9,7 +9,10 @@ import {
   nodeErrorToDisplayString,
   hasNodeError,
 } from "../../stores/ErrorStore";
-import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
+import useLogsStore, {
+  nodeLogKey,
+  type LogFilter
+} from "../../stores/LogStore";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { useNodeError } from "../../hooks/nodes/useNodeExecState";
@@ -170,11 +173,14 @@ const NodeErrorsImpl: React.FC<{
   );
 
   const handleViewLogs = useCallback(() => {
-    setLogFilter({
+    const filter: LogFilter = {
       workflowId: workflow_id,
-      ...(focusedJobId ? { jobId: focusedJobId } : {}),
       nodeId: id
-    });
+    };
+    if (focusedJobId) {
+      filter.jobId = focusedJobId;
+    }
+    setLogFilter(filter);
     setBottomPanelView("logs");
     setBottomPanelVisibility(true);
   }, [

@@ -91,17 +91,22 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
 
     const logRows = useMemo(() => {
       if (!open) return [] as LogRow[];
-      return (logs || []).map((l) => ({
-        severity: l.severity,
-        workflowId: l.workflowId,
-        workflowName: l.workflowName,
-        ...(l.jobId ? { jobId: l.jobId } : {}),
-        nodeId: l.nodeId,
-        nodeName: l.nodeName,
-        timestamp: l.timestamp,
-        content: l.content,
-        data: l.data
-      }));
+      return (logs || []).map((l) => {
+        const row: LogRow = {
+          severity: l.severity,
+          workflowId: l.workflowId,
+          workflowName: l.workflowName,
+          nodeId: l.nodeId,
+          nodeName: l.nodeName,
+          timestamp: l.timestamp,
+          content: l.content,
+          data: l.data
+        };
+        if (l.jobId) {
+          row.jobId = l.jobId;
+        }
+        return row;
+      });
     }, [logs, open]);
 
     useEffect(() => {

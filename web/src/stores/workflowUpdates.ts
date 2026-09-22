@@ -23,7 +23,7 @@ import type { TraceEvent, TraceEventType } from "./TraceStore";
 import useWorkflowRunsStore, { RunState } from "./WorkflowRunsStore";
 import useResultsStore from "./ResultsStore";
 import useStatusStore, { type StatusValue } from "./StatusStore";
-import useLogsStore from "./LogStore";
+import useLogsStore, { type Log } from "./LogStore";
 import useErrorStore, {
   normalizeNodeError,
   nodeErrorToDisplayString,
@@ -368,10 +368,16 @@ const appendTrace = (
   );
 };
 
-const traceScope = (workflowId: string, jobId?: string) => ({
-  workflowId,
-  ...(jobId ? { jobId } : {})
-});
+const traceScope = (
+  workflowId: string,
+  jobId?: string
+): { workflowId: string; jobId?: string } => {
+  const scope: { workflowId: string; jobId?: string } = { workflowId };
+  if (jobId) {
+    scope.jobId = jobId;
+  }
+  return scope;
+};
 
 export const mergeNodeUpdateProperties = ({
   updateProperties,
@@ -1105,16 +1111,19 @@ const reportNodeError = (
       });
   }
 
-  useLogsStore.getState().appendLog({
+  const errorLog: Log = {
     workflowId: workflow.id,
     workflowName: workflow.name,
-    ...(jobId ? { jobId } : {}),
     nodeId: update.node_id,
     nodeName: update.node_name || update.node_id,
     content: `${update.node_name || update.node_id} error: ${errorDisplay}`,
     severity: "error",
     timestamp: Date.now()
-  });
+  };
+  if (jobId) {
+    errorLog.jobId = jobId;
+  }
+  useLogsStore.getState().appendLog(errorLog);
   appendTrace(
     "node_error",
     `${update.node_name || update.node_id} error`,
@@ -1369,18 +1378,22 @@ export const handleUpdate = (
   }
 
   switch (data.type) {
-    case "log_update":
-      useLogsStore.getState().appendLog({
+    case "log_update": {
+      const log: Log = {
         workflowId: workflow.id,
         workflowName: workflow.name,
-        ...(messageJobId ? { jobId: messageJobId } : {}),
         nodeId: data.node_id,
         nodeName: data.node_name,
         content: data.content,
         severity: data.severity,
         timestamp: Date.now()
-      });
+      };
+      if (messageJobId) {
+        log.jobId = messageJobId;
+      }
+      useLogsStore.getState().appendLog(log);
       break;
+    }
 
     case "notification":
       useNotificationStore.getState().addNotification({
@@ -1583,16 +1596,19 @@ export const handleUpdate = (
         : isMediaRef
           ? `<${String((normalizedValue as { type: unknown }).type)}>`
           : JSON.stringify(normalizedValue);
-      useLogsStore.getState().appendLog({
+      const outputLog: Log = {
         workflowId: workflow.id,
         workflowName: workflow.name,
-        ...(messageJobId ? { jobId: messageJobId } : {}),
         nodeId: data.node_id,
         nodeName: data.node_name,
         content: `Output: ${logValue}`,
         severity: "info",
         timestamp: Date.now()
-      });
+      };
+      if (messageJobId) {
+        outputLog.jobId = messageJobId;
+      }
+      useLogsStore.getState().appendLog(outputLog);
       appendTrace(
         "output",
         `${data.node_name || data.node_id} → ${data.output_name}`,
@@ -1657,16 +1673,19 @@ export const handleUpdate = (
       break;
 
     case "prediction": {
-      useLogsStore.getState().appendLog({
+      const predictionLog: Log = {
         workflowId: workflow.id,
         workflowName: workflow.name,
-        ...(messageJobId ? { jobId: messageJobId } : {}),
         nodeId: data.node_id,
         nodeName: "",
         content: data.logs || "",
         severity: "info",
         timestamp: Date.now()
-      });
+      };
+      if (messageJobId) {
+        predictionLog.jobId = messageJobId;
+      }
+      useLogsStore.getState().appendLog(predictionLog);
       break;
     }
 

@@ -58,7 +58,7 @@ describe("useFindInWorkflow", () => {
     },
     {
       id: "node-4",
-      type: "input.text",
+      type: "nodetool.input.StringInput",
       position: { x: 300, y: 0 },
       data: { ...createMockNodeData(), properties: { name: "Another Text Node" } }
     }
@@ -185,10 +185,13 @@ describe("useFindInWorkflow", () => {
       const { result } = renderHook(() => useFindInWorkflow());
 
       act(() => {
-        result.current.immediateSearch("input.text");
+        result.current.immediateSearch("nodetool.input.StringInput");
       });
 
-      expect(result.current.results.length).toBe(2);
+      expect(result.current.results.map(({ node }) => node.id)).toEqual([
+        "node-1",
+        "node-4"
+      ]);
     });
 
     it("should find nodes by node ID", () => {
