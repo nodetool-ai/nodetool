@@ -5,6 +5,7 @@ import { trpc } from "../../lib/trpc";
 import {
   useLanguageModelsByProvider,
   useImageModelsByProvider,
+  useTTSModelsByProvider,
   useVideoModelsByProvider
 } from "../useModelsByProvider";
 
@@ -16,7 +17,8 @@ jest.mock("../../lib/trpc", () => ({
       providers: { query: jest.fn() },
       llmByProvider: { query: jest.fn() },
       imageByProvider: { query: jest.fn() },
-      videoByProvider: { query: jest.fn() }
+      videoByProvider: { query: jest.fn() },
+      ttsByProvider: { query: jest.fn() }
     }
   }
 }));
@@ -24,6 +26,22 @@ jest.mock("../../lib/trpc", () => ({
 // useImageModelsByProvider fans out over the providers returned by
 // useImageModelProviders. Keep every other export real so the language-model
 // tests above still exercise the real useLanguageModelProviders.
+// The video and TTS provider lists are per-test state: a failed provider list
+// is one of the cases under test, and it is indistinguishable from an empty
+// one unless the hook reports the error.
+const OK_VIDEO_PROVIDERS = {
+  providers: [{ provider: "fal_ai", capabilities: ["text_to_video"] }],
+  isLoading: false,
+  error: null as Error | null
+};
+const OK_TTS_PROVIDERS = {
+  providers: [{ provider: "fal_ai", capabilities: ["text_to_speech"] }],
+  isLoading: false,
+  error: null as Error | null
+};
+let videoProvidersState: typeof OK_VIDEO_PROVIDERS = OK_VIDEO_PROVIDERS;
+let ttsProvidersState: typeof OK_TTS_PROVIDERS = OK_TTS_PROVIDERS;
+
 jest.mock("../useProviders", () => ({
   ...jest.requireActual("../useProviders"),
   useImageModelProviders: () => ({
@@ -31,17 +49,15 @@ jest.mock("../useProviders", () => ({
     isLoading: false,
     error: null
   }),
-  useVideoProviders: () => ({
-    providers: [{ provider: "fal_ai", capabilities: ["text_to_video"] }],
-    isLoading: false,
-    error: null
-  })
+  useVideoProviders: () => videoProvidersState,
+  useTTSProviders: () => ttsProvidersState
 }));
 
 const providersQuery = jest.mocked(trpc.models.providers.query);
 const llmByProviderQuery = jest.mocked(trpc.models.llmByProvider.query);
 const imageByProviderQuery = jest.mocked(trpc.models.imageByProvider.query);
 const videoByProviderQuery = jest.mocked(trpc.models.videoByProvider.query);
+const ttsByProviderQuery = jest.mocked(trpc.models.ttsByProvider.query);
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = new QueryClient({
@@ -58,9 +74,51 @@ const wrapper = () => TestWrapper;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  videoProvidersState = OK_VIDEO_PROVIDERS;
+  ttsProvidersState = OK_TTS_PROVIDERS;
   providersQuery.mockResolvedValue([
     { provider: "openai", capabilities: ["generate_message"] }
   ]);
+});
+
+/**
+ * A provider list that could not be read is not a provider list that is empty.
+ * The video flow's look step reads `providers.length === 0` as "no provider is
+ * set up to render video", so swallowing the error told a creator with several
+ * configured providers to go and configure one.
+ */
+describe("a failed provider list is reported, not read as no providers", () => {
+  it("surfaces the video provider-list error", async () => {
+    videoProvidersState = {
+      providers: [],
+      isLoading: false,
+      error: new Error("providers unreachable")
+    };
+    videoByProviderQuery.mockResolvedValue([]);
+
+    const { result } = renderHook(() => useVideoModelsByProvider(), {
+      wrapper: wrapper()
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error?.message).toBe("providers unreachable");
+  });
+
+  it("surfaces the TTS provider-list error", async () => {
+    ttsProvidersState = {
+      providers: [],
+      isLoading: false,
+      error: new Error("providers unreachable")
+    };
+    ttsByProviderQuery.mockResolvedValue([]);
+
+    const { result } = renderHook(() => useTTSModelsByProvider(), {
+      wrapper: wrapper()
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error?.message).toBe("providers unreachable");
+  });
 });
 
 describe("useLanguageModelsByProvider — requireToolSupport filter", () => {

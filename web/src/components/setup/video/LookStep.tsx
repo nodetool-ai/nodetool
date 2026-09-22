@@ -30,6 +30,7 @@ import {
   SelectField,
   Text
 } from "../../ui_primitives";
+import type { SelectOption } from "../../ui_primitives";
 import { SETUP_FIELD_WIDTH } from "../layout";
 import { ASPECT_OPTIONS, aspectOf } from "../../storyboard/aspectOptions";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
@@ -47,6 +48,7 @@ import { videoFormatById } from "./formats";
 import { useModelSamples } from "../modelSamples";
 import {
   isAvailable,
+  reportedKey,
   useClipModelAvailability,
   useVoiceAvailability,
   type CuratedAvailability
@@ -468,10 +470,65 @@ const LookStepInternal: React.FC<LookStepProps> = ({
     [voices]
   );
 
-  // Every curated tile refused by the providers is the fourth state: they
-  // answered, and none of what this flow offers survived.
-  const noCompatibleModel = modelTiles.every((tile) => tile.disabled);
-  const noCompatibleVoice = voiceTiles.every((tile) => tile.disabled);
+  // The curated tiles are NodeTool's own managed models, so only the cloud
+  // `nodetool` provider ever reports them. A desktop, self-hosted or BYOK
+  // install offers none of them however many video providers it has, and the
+  // step used to read that as a setup problem and hold the button. Where no
+  // curated tile survives, the pickers fall back to what the configured
+  // providers do report (the same answer `directorModel.ts` gives for the
+  // model that drafts the beats).
+  const curatedModelOffered = modelTiles.some((tile) => !tile.disabled);
+  const curatedVoiceOffered = voiceTiles.some((tile) => !tile.disabled);
+
+  const reportedModelOptions = useMemo<SelectOption[]>(
+    () =>
+      clipModels.reported.map((option) => ({
+        value: reportedKey(option),
+        label: option.label
+      })),
+    [clipModels.reported]
+  );
+  const reportedVoiceOptions = useMemo<SelectOption[]>(
+    () =>
+      voices.reported.map((option) => ({
+        value: reportedKey(option),
+        label: option.label
+      })),
+    [voices.reported]
+  );
+
+  // A stored pick the catalog does not list is shown as no pick, so the field
+  // never displays a value its own options cannot explain.
+  const reportedModelValue = useMemo(() => {
+    const current = settings.video;
+    const match =
+      current &&
+      clipModels.reported.find(
+        (option) =>
+          option.modelId === current.model && option.provider === current.provider
+      );
+    return match ? reportedKey(match) : "";
+  }, [clipModels.reported, settings.video]);
+  const reportedVoiceValue = useMemo(() => {
+    const current = settings.voice;
+    const match =
+      current &&
+      voices.reported.find(
+        (option) =>
+          option.id === current.voice &&
+          option.modelId === current.model &&
+          option.provider === current.provider
+      );
+    return match ? reportedKey(match) : "";
+  }, [settings.voice, voices.reported]);
+
+  // The providers answered, nothing curated survived, and they offer nothing
+  // of their own either: the fourth state, and the only one that is a gap in
+  // the setup rather than in what this flow curates.
+  const noCompatibleModel =
+    !curatedModelOffered && reportedModelOptions.length === 0;
+  const noCompatibleVoice =
+    !curatedVoiceOffered && reportedVoiceOptions.length === 0;
 
   const pickedVoice = settings.voice?.voice;
   // The reason the final button is dead belongs beside the control that fixes
@@ -488,51 +545,72 @@ const LookStepInternal: React.FC<LookStepProps> = ({
     [saveProjectSettings]
   );
 
+  const applyModel = useCallback(
+    (provider: string, model: string) => {
+      setSetup({
+        generation_settings: { ...settings, video: { provider, model } }
+      });
+      remember("video", { provider, model });
+    },
+    [remember, setSetup, settings]
+  );
+
+  const applyVoice = useCallback(
+    (provider: string, model: string, voice: string) => {
+      setSetup({
+        generation_settings: {
+          ...settings,
+          voice: { provider, model, voice }
+        }
+      });
+      remember("audio", { provider, model, voice });
+      onVoiceChange(true);
+    },
+    [onVoiceChange, remember, setSetup, settings]
+  );
+
   const handleModel = useCallback(
     (id: string) => {
       const picked = CLIP_MODELS.find((option) => option.id === id);
       if (picked) {
-        setSetup({
-          generation_settings: {
-            ...settings,
-            video: {
-              provider: picked.value.provider,
-              model: picked.value.id
-            }
-          }
-        });
-        remember("video", {
-          provider: picked.value.provider,
-          model: picked.value.id
-        });
+        applyModel(picked.value.provider, picked.value.id);
       }
     },
-    [remember, setSetup, settings]
+    [applyModel]
+  );
+
+  const handleReportedModel = useCallback(
+    (key: string) => {
+      const picked = clipModels.reported.find(
+        (option) => reportedKey(option) === key
+      );
+      if (picked) {
+        applyModel(picked.provider, picked.modelId);
+      }
+    },
+    [applyModel, clipModels.reported]
   );
 
   const handleVoice = useCallback(
     (id: string) => {
       const picked = STUDIO_VOICES.find((option) => option.id === id);
       if (picked) {
-        setSetup({
-          generation_settings: {
-            ...settings,
-            voice: {
-              provider: picked.value.provider,
-              model: picked.modelId,
-              voice: id
-            }
-          }
-        });
-        remember("audio", {
-          provider: picked.value.provider,
-          model: picked.modelId,
-          voice: id
-        });
-        onVoiceChange(true);
+        applyVoice(picked.value.provider, picked.modelId, id);
       }
     },
-    [onVoiceChange, remember, setSetup, settings]
+    [applyVoice]
+  );
+
+  const handleReportedVoice = useCallback(
+    (key: string) => {
+      const picked = voices.reported.find(
+        (option) => reportedKey(option) === key
+      );
+      if (picked) {
+        applyVoice(picked.provider, picked.modelId, picked.id);
+      }
+    },
+    [applyVoice, voices.reported]
   );
 
   return (
@@ -565,19 +643,32 @@ const LookStepInternal: React.FC<LookStepProps> = ({
           kind="video"
           noCompatible={noCompatibleModel}
         />
-        {/* The samples are fetched, not shipped, so the preview area is held
-            open from the first paint rather than appearing under the reader. */}
-        <PresetTileGrid
-          label="Video model"
-          presets={modelTiles}
-          selectedId={settings.video?.model ?? null}
-          onSelect={handleModel}
-          onAddOwn={() => undefined}
-          addOwnLabel="More models in the editor"
-          addOwnDisabled
-          addOwnDisabledReason="The timeline's inspector offers every configured provider."
-          reservePreview
-        />
+        {curatedModelOffered ? (
+          /* The samples are fetched, not shipped, so the preview area is held
+             open from the first paint rather than appearing under the reader. */
+          <PresetTileGrid
+            label="Video model"
+            presets={modelTiles}
+            selectedId={settings.video?.model ?? null}
+            onSelect={handleModel}
+            onAddOwn={() => undefined}
+            addOwnLabel="More models in the editor"
+            addOwnDisabled
+            addOwnDisabledReason="The timeline's inspector offers every configured provider."
+            reservePreview
+          />
+        ) : reportedModelOptions.length > 0 ? (
+          <Box sx={{ maxWidth: SETUP_FIELD_WIDTH }}>
+            <SelectField
+              label="Video model"
+              hideLabel
+              value={reportedModelValue}
+              onChange={handleReportedModel}
+              options={reportedModelOptions}
+              description="Every model your configured providers render clips with. You can change it in the editor."
+            />
+          </Box>
+        ) : null}
       </FlexColumn>
 
       {voiceLane ? (
@@ -602,7 +693,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
               ) : null}
             </>
           ) : null}
-          {voiceOn ? (
+          {voiceOn && curatedVoiceOffered ? (
             <PresetTileGrid
               label="Voice"
               presets={voiceTiles}
@@ -614,6 +705,17 @@ const LookStepInternal: React.FC<LookStepProps> = ({
               addOwnDisabledReason="The timeline's inspector offers every configured voice."
               aspectRatio="1/1"
             />
+          ) : null}
+          {voiceOn && !curatedVoiceOffered && reportedVoiceOptions.length > 0 ? (
+            <Box sx={{ maxWidth: SETUP_FIELD_WIDTH }}>
+              <SelectField
+                label="Voice"
+                value={reportedVoiceValue}
+                onChange={handleReportedVoice}
+                options={reportedVoiceOptions}
+                description="Every voice your configured providers read lines with."
+              />
+            </Box>
           ) : null}
         </FlexColumn>
       ) : null}

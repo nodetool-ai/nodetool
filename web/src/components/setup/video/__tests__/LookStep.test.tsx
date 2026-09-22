@@ -41,7 +41,12 @@ jest.mock("../../modelSamples", () => ({
 }));
 
 interface CatalogState {
-  models: Array<{ id: string; voices?: string[] }>;
+  models: Array<{
+    id: string;
+    name?: string;
+    provider?: string;
+    voices?: string[];
+  }>;
   providers: string[];
   isLoading: boolean;
   error: Error | null;
@@ -86,13 +91,15 @@ beforeEach(() => {
   useLastModelStore.setState({ byKind: {} });
   mockEstimate = null;
   videoCatalog = {
-    models: [{ id: CLIP_MODEL.id }],
+    models: [{ id: CLIP_MODEL.id, provider: "nodetool" }],
     providers: ["nodetool"],
     isLoading: false,
     error: null
   };
   voiceCatalog = {
-    models: [{ id: VOICE.modelId, voices: [VOICE.id] }],
+    models: [
+      { id: VOICE.modelId, provider: "nodetool", voices: [VOICE.id] }
+    ],
     providers: ["nodetool"],
     isLoading: false,
     error: null
@@ -372,6 +379,98 @@ describe("LookStep body", () => {
     renderBody(false);
     expect(
       screen.getByText(/Music generation is unavailable/)
+    ).toBeInTheDocument();
+  });
+});
+
+/**
+ * The curated tiles are NodeTool's own managed models, which only the cloud
+ * `nodetool` provider reports. A BYOK or desktop install reports none of them
+ * while offering several video providers of its own, and the step read that as
+ * a setup problem: every tile disabled, "your providers offer no video model",
+ * and a paid button that never unblocked.
+ */
+describe("LookStep on an install without the curated catalog", () => {
+  const byokVideo = () => {
+    videoCatalog = {
+      models: [
+        {
+          id: "fal-ai/kling-video/v2/master/text-to-video",
+          name: "Kling 2 Master",
+          provider: "fal_ai"
+        },
+        {
+          id: "wan-video/wan-2.5-t2v",
+          name: "Wan 2.5",
+          provider: "replicate"
+        }
+      ],
+      providers: ["fal_ai", "replicate"],
+      isLoading: false,
+      error: null
+    };
+  };
+  const byokVoice = () => {
+    voiceCatalog = {
+      models: [
+        {
+          id: "eleven_multilingual_v2",
+          name: "Multilingual v2",
+          provider: "elevenlabs",
+          voices: ["rachel", "adam"]
+        }
+      ],
+      providers: ["elevenlabs"],
+      isLoading: false,
+      error: null
+    };
+  };
+
+  it("does not blame the providers when several report video models", () => {
+    seedPlan();
+    byokVideo();
+    renderBody(false);
+    expect(
+      screen.queryByText(/providers offer no video model/)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/No provider is set up to render video/)
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers the video models the configured providers do report", () => {
+    seedPlan();
+    byokVideo();
+    renderBody(false);
+    expect(
+      screen.getByRole("combobox", { name: /Video model/ })
+    ).toBeInTheDocument();
+  });
+
+  it("does not blame the providers when one reports voices", () => {
+    seedPlan();
+    byokVideo();
+    byokVoice();
+    renderBody(true);
+    expect(
+      screen.queryByText(/providers offer no voice/)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: /Voice/ })
+    ).toBeInTheDocument();
+  });
+
+  it("still says so when nothing at all reports a video model", () => {
+    seedPlan();
+    videoCatalog = {
+      models: [],
+      providers: ["fal_ai"],
+      isLoading: false,
+      error: null
+    };
+    renderBody(false);
+    expect(
+      screen.getByText(/providers offer no video model/)
     ).toBeInTheDocument();
   });
 });

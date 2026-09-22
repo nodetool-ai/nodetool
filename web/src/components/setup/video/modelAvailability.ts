@@ -7,6 +7,12 @@
  * configured provider report the model behind the tile? The four answers a
  * step has to be able to tell apart are loading, failed, no provider at all,
  * and a provider that offers nothing compatible (F14).
+ *
+ * The curated catalog is NodeTool's own managed models, which only the cloud
+ * `nodetool` provider reports. Where it is absent — desktop, self-hosted, or
+ * a BYOK account — no tile is available however many video providers are
+ * configured, so the hooks also hand back what those providers do report and
+ * the step offers that instead of blaming the setup.
  */
 
 import { useMemo } from "react";
@@ -15,6 +21,21 @@ import {
   useTTSModelsByProvider,
   useVideoModelsByProvider
 } from "../../../hooks/useModelsByProvider";
+
+/** A model a configured provider reports, as the fallback picker selects it. */
+export interface ReportedOption {
+  /** What the picker selects on: the model id, or the voice id for a voice. */
+  id: string;
+  /** The model behind the option — the same as {@link id} except for a voice. */
+  modelId: string;
+  provider: string;
+  /** User-facing name, qualified by the provider that offers it. */
+  label: string;
+}
+
+/** A select value: neither a model id nor a voice id is unique on its own. */
+export const reportedKey = (option: ReportedOption): string =>
+  `${option.provider}::${option.modelId}::${option.id}`;
 
 export interface CuratedAvailability {
   /** The provider's model list has not answered yet. */
@@ -29,6 +50,8 @@ export interface CuratedAvailability {
   ids: ReadonlySet<string> | null;
   /** No configured provider offers this kind of model at all. */
   noProvider: boolean;
+  /** Everything the configured providers report, for the fallback picker. */
+  reported: ReportedOption[];
 }
 
 /** Whether a tile can be picked: unknown availability never disables one. */
@@ -48,12 +71,26 @@ export function useClipModelAvailability(): CuratedAvailability {
     [error, isLoading, models]
   );
 
+  const reported = useMemo(
+    () =>
+      isLoading || error
+        ? []
+        : models.map((model) => ({
+            id: model.id,
+            modelId: model.id,
+            provider: model.provider ?? "",
+            label: `${model.name || model.id} (${model.provider ?? ""})`
+          })),
+    [error, isLoading, models]
+  );
+
   return {
     loading: isLoading,
     error: error ? error.message : null,
     refetch: () => void refetch(),
     ids,
-    noProvider: !isLoading && !error && providers.length === 0
+    noProvider: !isLoading && !error && providers.length === 0,
+    reported
   };
 }
 
@@ -79,11 +116,27 @@ export function useVoiceAvailability(): CuratedAvailability {
     return voices;
   }, [error, isLoading, models]);
 
+  const reported = useMemo(
+    () =>
+      isLoading || error
+        ? []
+        : models.flatMap((model) =>
+            (model.voices ?? []).map((voice) => ({
+              id: voice,
+              modelId: model.id,
+              provider: model.provider ?? "",
+              label: `${voice} — ${model.name || model.id} (${model.provider ?? ""})`
+            }))
+          ),
+    [error, isLoading, models]
+  );
+
   return {
     loading: isLoading,
     error: error ? error.message : null,
     refetch: () => void refetch(),
     ids,
-    noProvider: !isLoading && !error && providers.length === 0
+    noProvider: !isLoading && !error && providers.length === 0,
+    reported
   };
 }
