@@ -137,12 +137,12 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="toggle-bypass"
       onClick={handlers.handleToggleBypass}
-      label={conditions.isBypassed ? "Enable Node" : "Bypass Node"}
+      label={conditions.isBypassed ? "Enable Node" : "Disable Node"}
       IconComponent={conditions.isBypassed ? <PowerSettingsNewIcon /> : <BlockIcon />}
       tooltip={
         <div className="tooltip-span">
           <div className="tooltip-title">
-            {conditions.isBypassed ? "Enable Node" : "Bypass Node"}
+            {conditions.isBypassed ? "Enable Node" : "Disable Node"}
           </div>
           <div className="tooltip-key">
             <kbd>B</kbd>

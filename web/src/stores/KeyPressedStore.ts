@@ -37,7 +37,7 @@ const ALLOWED_TEXTAREA_COMBOS: Array<{
   { key: "Escape" } // Allow Escape to close modals/editors
 ];
 
-type ComboScope = "global" | "canvas";
+type ComboScope = "global" | "local" | "canvas";
 
 interface ComboOptions {
   preventDefault?: boolean;
@@ -45,7 +45,9 @@ interface ComboOptions {
   active?: boolean;
   /**
    * Where the combo should fire.
-   * - "canvas" (default): suppressed while typing in inputs/editors.
+   * - "local" (default): available to the component that registered it while
+   *   still respecting the editable-input gate.
+   * - "canvas": additionally suppressed while a focused widget owns the key.
    * - "global": always fires regardless of focus (for app-wide shortcuts
    *   like the command menu).
    */
@@ -86,6 +88,23 @@ const isWorkflowEditorElement = (node: Element | null | undefined): boolean =>
     node.closest(".react-flow__renderer") !== null ||
     node.closest("[data-workflow-editor]") !== null);
 
+const activeWidgetOwnsFocus = (node: Element | null | undefined): boolean => {
+  if (!(node instanceof HTMLElement)) {
+    return false;
+  }
+  if (node === document.body || node === document.documentElement) {
+    return false;
+  }
+  if (node.classList.contains("react-flow__node")) {
+    return false;
+  }
+  return (
+    node.closest(
+      'button, a[href], select, summary, [role="button"], [role="dialog"], [role="menu"], [role="listbox"], [role="tab"], [role="slider"], [data-keyboard-scope], [tabindex]:not([tabindex="-1"])'
+    ) !== null
+  );
+};
+
 /**
  * Registers a combo handler and returns a disposer that removes exactly that
  * handler (by identity), regardless of what else registered the same combo in
@@ -99,6 +118,7 @@ const registerComboCallback = (
   const normalizedCombo = combo.replace(/\bctrl\b/g, "control");
   const registration: ComboRegistration = {
     ...options,
+    scope: options.scope ?? "local",
     token: Symbol(normalizedCombo)
   };
   const stack = comboCallbacks.get(normalizedCombo);
@@ -204,18 +224,21 @@ const unregisterComboCallback = (combo: string) => {
 };
 
 // Resolve which binding handles a combo: the topmost (most recently registered)
-// registration that is active, has a callback, and whose `target` can take
-// focus. Returns undefined when no binding should fire, letting default browser
-// behavior proceed.
+// registration that is active, has a callback, whose `target` can take focus,
+// and whose scope is eligible for the current focus owner. Returns undefined
+// when no binding should fire, letting default browser behavior proceed.
 //
 // The target check belongs here, not at execution time: skipping an unreachable
 // binding lets the next one down the stack win. Space is bound by the node
 // editor (open node menu) and by the timeline (play/pause), and every open
 // workspace tab stays mounted with inactive ones `inert` — swallowing the key
 // on the topmost binding instead meant a background tab ate Space for the
-// visible editor.
+// visible editor. The same fallthrough lets a dialog's local Escape handler
+// win when a later-mounted canvas binding is ineligible while the dialog owns
+// focus.
 const resolveComboRegistration = (
-  combo: string
+  combo: string,
+  activeElement: Element | null
 ): ComboRegistration | undefined => {
   const stack = comboCallbacks.get(combo);
   if (!stack) {
@@ -227,6 +250,12 @@ const resolveComboRegistration = (
       continue;
     }
     if (registration.target && !canTakeFocus(registration.target())) {
+      continue;
+    }
+    if (
+      registration.scope === "canvas" &&
+      activeWidgetOwnsFocus(activeElement)
+    ) {
       continue;
     }
     return registration;
@@ -273,7 +302,7 @@ const executeComboCallbacks = (
     return;
   }
 
-  const options = resolveComboRegistration(pressedKeysString);
+  const options = resolveComboRegistration(pressedKeysString, activeElement);
 
   if (!options) {
     // No active callback for this combo, or combo is inactive.
@@ -624,7 +653,7 @@ const useCombo = (
   }
 ) => {
   const keyboardActive = useContext(KeyboardContext);
-  const scope = options?.scope;
+  const scope = options?.scope ?? "local";
   const allowInInputs = options?.allowInInputs;
   const target = options?.target;
   const memoizedCombo = useMemo(
@@ -709,6 +738,7 @@ const toggleConversationCallback = () => {
 // Lower-case 'o' — toggles the canvas chat conversation overlay.
 registerComboCallback("o", {
   preventDefault: false,
+  scope: "canvas",
   callback: toggleConversationCallback
 });
 

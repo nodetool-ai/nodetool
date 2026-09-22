@@ -29,7 +29,7 @@ describe("TraceStore", () => {
       const timestamp = "2024-03-28T10:00:00.000Z";
 
       // Add some events first
-      useTraceStore.setState({ isRecording: true });
+      startRun("2024-03-28T09:00:00.000Z");
       append({
         id: "te-1",
         timestamp: "2024-03-28T09:00:00.000Z",
@@ -49,6 +49,10 @@ describe("TraceStore", () => {
       startRun(timestamp);
 
       const state = useTraceStore.getState();
+      expect(state.runs).toHaveLength(2);
+      expect(state.runs[1].events).toHaveLength(1);
+      expect(state.activeRunId).toBe(state.runs[0].id);
+      expect(state.selectedRunId).toBe(state.runs[0].id);
       expect(state.events).toEqual([]);
       expect(state.runStartTime).toBe(timestamp);
       expect(state.isRecording).toBe(true);
@@ -306,6 +310,9 @@ describe("TraceStore", () => {
       clear();
 
       const state = useTraceStore.getState();
+      expect(state.runs).toEqual([]);
+      expect(state.activeRunId).toBeNull();
+      expect(state.selectedRunId).toBeNull();
       expect(state.events).toEqual([]);
       expect(state.runStartTime).toBeNull();
       expect(state.isRecording).toBe(false);
@@ -360,6 +367,7 @@ describe("TraceStore", () => {
 
       expect(parsed).toEqual({
         runStartTime: timestamp,
+        runContext: null,
         events: [event]
       });
     });
@@ -372,6 +380,7 @@ describe("TraceStore", () => {
 
       expect(parsed).toEqual({
         runStartTime: null,
+        runContext: null,
         events: []
       });
     });

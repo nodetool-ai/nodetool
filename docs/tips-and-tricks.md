@@ -102,13 +102,13 @@ Shortcuts, hidden features, and workflow efficiency tips.
 2. **Check node errors** – red borders or icons indicate issues
 3. **Verify connections** – ensure types match
 4. **Test incrementally** – run partial workflows first
-5. **Bypass nodes** – right-click → Bypass to skip suspicious nodes
+5. **Disable nodes** – right-click → Disable to exclude suspicious nodes and their connections from the run
 
-### Using Bypass for Debugging
+### Disabling Nodes for Debugging
 
-- **Isolate issues**: Bypass nodes one at a time to find the problem
-- **Compare outputs**: Toggle bypass to see before/after results
-- **Skip slow steps**: Temporarily bypass heavy processing during testing
+- **Isolate issues**: Disable a failing branch to run a smaller graph
+- **Keep unfinished work**: Leave nodes on the canvas without executing them
+- **Skip slow steps**: Temporarily disable heavy processing during testing
 
 ### Common Fixes
 
@@ -118,7 +118,7 @@ Shortcuts, hidden features, and workflow efficiency tips.
 | Wrong output | Check input data and node settings |
 | Workflow won't run | Look for disconnected required inputs |
 | Slow execution | Try cloud providers for heavy tasks |
-| Node causing errors | Bypass it to test downstream nodes |
+| Node causing errors | Disable its branch and run the remaining graph |
 
 ---
 

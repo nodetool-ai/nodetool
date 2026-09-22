@@ -1,5 +1,5 @@
 import { renderHook } from "@testing-library/react";
-import { useFitNodeEvent } from "../useFitNodeEvent";
+import { requestFitNode, useFitNodeEvent } from "../useFitNodeEvent";
 import { useNodes } from "../../contexts/NodeContext";
 import { useFitView } from "../useFitView";
 
@@ -14,7 +14,7 @@ describe("useFitNodeEvent", () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     (useNodes as jest.Mock).mockImplementation((selector) => {
-      const state = { findNode: mockFindNode };
+      const state = { findNode: mockFindNode, workflow: { id: "workflow-1" } };
       return selector(state);
     });
     (useFitView as jest.Mock).mockReturnValue(mockFitView);
@@ -50,6 +50,22 @@ describe("useFitNodeEvent", () => {
   });
 
   describe("event handling", () => {
+    it("delivers a reveal requested before the workflow editor mounts", () => {
+      mockFindNode.mockReturnValue({
+        id: "node-1",
+        position: { x: 100, y: 200 }
+      });
+
+      requestFitNode({ workflowId: "workflow-1", nodeId: "node-1" });
+      renderHook(() => useFitNodeEvent());
+      jest.runAllTimers();
+
+      expect(mockFitView).toHaveBeenCalledWith({
+        padding: 0.4,
+        nodeIds: ["node-1"]
+      });
+    });
+
     it("fits view when node is found via findNode", () => {
       const mockNode = { id: "node-1", position: { x: 100, y: 200 } };
       mockFindNode.mockReturnValue(mockNode);
@@ -68,6 +84,20 @@ describe("useFitNodeEvent", () => {
         padding: 0.4,
         nodeIds: ["node-1"],
       });
+    });
+
+    it("ignores a reveal intended for another mounted workflow", () => {
+      renderHook(() => useFitNodeEvent());
+
+      window.dispatchEvent(
+        new CustomEvent("nodetool:fit-node", {
+          detail: { workflowId: "workflow-2", nodeId: "node-1" }
+        })
+      );
+      jest.runAllTimers();
+
+      expect(mockFindNode).not.toHaveBeenCalled();
+      expect(mockFitView).not.toHaveBeenCalled();
     });
 
     it("fits view when node is provided in event detail", () => {

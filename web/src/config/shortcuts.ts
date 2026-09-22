@@ -372,11 +372,11 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
-    title: "Bypass Node",
+    title: "Disable Node",
     slug: "bypassNode",
     keyCombo: ["B"],
     category: "editor",
-    description: "Toggle bypass on selected nodes",
+    description: "Toggle whether selected nodes are excluded from runs",
     registerCombo: true
   },
   {
@@ -780,7 +780,7 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   {
     title: "Zoom to 50%",
     slug: "zoom50",
-    keyCombo: ["Control", "5", "0"],
+    keyCombo: ["Control", "Alt", "5"],
     category: "editor" as const,
     description: "Set zoom to 50%",
     registerCombo: true
@@ -788,7 +788,7 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   {
     title: "Zoom to 100%",
     slug: "zoom100",
-    keyCombo: ["Control", "1", "0", "0"],
+    keyCombo: ["Control", "Alt", "1"],
     category: "editor" as const,
     description: "Set zoom to 100%",
     registerCombo: true
@@ -796,7 +796,7 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   {
     title: "Zoom to 200%",
     slug: "zoom200",
-    keyCombo: ["Control", "2", "0", "0"],
+    keyCombo: ["Control", "Alt", "2"],
     category: "editor" as const,
     description: "Set zoom to 200%",
     registerCombo: true
@@ -806,7 +806,7 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   {
     title: "Navigate Next Node",
     slug: "navigateNextNode",
-    keyCombo: ["Tab"],
+    keyCombo: ["Control", "Alt", "N"],
     category: "editor" as const,
     description: "Navigate focus to next node in the canvas",
     registerCombo: true
@@ -814,7 +814,7 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   {
     title: "Navigate Previous Node",
     slug: "navigatePrevNode",
-    keyCombo: ["Shift", "Tab"],
+    keyCombo: ["Control", "Alt", "P"],
     category: "editor" as const,
     description: "Navigate focus to previous node in the canvas",
     registerCombo: true
@@ -870,8 +870,7 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   {
     title: "Go Back",
     slug: "goBack",
-    keyCombo: ["Alt", "ArrowLeft"],
-    altKeyCombos: [["Control", "ArrowLeft"]],
+    keyCombo: ["Control", "Alt", "B"],
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true

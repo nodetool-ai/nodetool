@@ -137,7 +137,11 @@ describe("handleUpdate message dispatch", () => {
   });
 
   it("traces step_result and todo_update while a run is recording", () => {
-    useTraceStore.getState().startRun(new Date().toISOString());
+    useTraceStore.getState().startRun(new Date().toISOString(), {
+      workflowId: workflow.id,
+      workflowName: workflow.name,
+      jobId: "job-1"
+    });
 
     dispatch({
       type: "step_result",

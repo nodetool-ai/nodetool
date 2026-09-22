@@ -4,6 +4,7 @@ import { isString } from "../utils/typePredicates";
 export type Log = {
   workflowId: string;
   workflowName: string;
+  jobId?: string;
   nodeId: string;
   nodeName: string;
   content: string;
@@ -11,6 +12,12 @@ export type Log = {
   timestamp: number;
   data?: unknown;
 };
+
+export interface LogFilter {
+  workflowId: string;
+  jobId?: string;
+  nodeId?: string;
+}
 
 type LogsStore = {
   logs: Log[];
@@ -20,8 +27,11 @@ type LogsStore = {
    * over the full flat `logs` array on every store update.
    */
   logsByNode: Record<string, Log[]>;
+  filter: LogFilter | null;
   getLogs: (workflowId: string, nodeId: string) => Log[];
   appendLog: (log: Log) => void;
+  setFilter: (filter: LogFilter) => void;
+  clearFilter: () => void;
   clearLogs: () => void;
 };
 
@@ -52,6 +62,7 @@ const buildLogsByNode = (logs: Log[]) => {
 const useLogsStore = create<LogsStore>((set, get) => ({
   logs: [],
   logsByNode: {},
+  filter: null,
   getLogs: (workflowId: string, nodeId: string) => {
     return get().logsByNode[nodeLogKey(workflowId, nodeId)] ?? [];
   },
@@ -84,6 +95,10 @@ const useLogsStore = create<LogsStore>((set, get) => ({
       return { logs: trimmed, logsByNode: buildLogsByNode(trimmed) };
     });
   },
+
+  setFilter: (filter: LogFilter) => set({ filter }),
+
+  clearFilter: () => set({ filter: null }),
 
   clearLogs: () => {
     set({ logs: [], logsByNode: {} });

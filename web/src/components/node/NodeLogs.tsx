@@ -93,9 +93,13 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
       if (!open) return [] as LogRow[];
       return (logs || []).map((l) => ({
         severity: l.severity,
+        workflowId: l.workflowId,
+        workflowName: l.workflowName,
+        ...(l.jobId ? { jobId: l.jobId } : {}),
+        nodeId: l.nodeId,
+        nodeName: l.nodeName,
         timestamp: l.timestamp,
         content: l.content,
-        workflowName: undefined,
         data: l.data
       }));
     }, [logs, open]);

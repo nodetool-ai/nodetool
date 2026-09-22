@@ -39,7 +39,7 @@ import type { MsgpackData } from "./workflowUpdates";
 import useStatusStore from "./StatusStore";
 import useResultsStore from "./ResultsStore";
 import { queryClient } from "../queryClient";
-import { recordRunSignatures } from "./runSignatures";
+import { clearRunSignatures, recordRunSignatures } from "./runSignatures";
 import { computeRunSignatures } from "../utils/computeRunSignatures";
 import { getNodeGenerations } from "./nodeGenerationAccessor";
 
@@ -77,7 +77,12 @@ export const deriveJobTitle = (
  * `cancel_job` over the websocket. */
 const browserRunAbortControllers = new Map<string, AbortController>();
 
-const buildRunJobData = (opts: {
+/**
+ * Build the submitted graph. Nodes marked with the legacy `bypassed` flag are
+ * disabled: the node and every incident edge are excluded. This boundary must
+ * not invent pass-through edges because input/output mappings can be ambiguous.
+ */
+export const buildRunJobData = (opts: {
   jobId: string;
   jobName: string;
   params: Record<string, unknown>;
@@ -94,17 +99,17 @@ const buildRunJobData = (opts: {
   operationId?: string;
 }): RunJobRequest & { settings?: Record<string, unknown>; job_id: string; concurrent?: boolean; graph: WorkflowGraph } => {
   const activeNodes: Node<NodeData>[] = [];
-  const bypassedNodeIds = new Set<string>();
+  const excludedNodeIds = new Set<string>();
   for (const node of opts.nodes) {
     if (node.data.bypassed) {
-      bypassedNodeIds.add(node.id);
+      excludedNodeIds.add(node.id);
     } else {
       activeNodes.push(node);
     }
   }
   const activeEdges = opts.edges.filter(
     (edge) =>
-      !bypassedNodeIds.has(edge.source) && !bypassedNodeIds.has(edge.target)
+      !excludedNodeIds.has(edge.source) && !excludedNodeIds.has(edge.target)
   );
   return {
     type: "run_job_request",
@@ -215,7 +220,7 @@ export type WorkflowRunner = {
     jobId: string,
     workflow: WorkflowAttributes
   ) => Promise<void>;
-  ensureConnection: () => Promise<void>;
+  ensureConnection: (expectedJobId?: string) => Promise<void>;
   cleanup: () => void;
   // Streaming inputs
   streamInput: (inputName: string, value: unknown, handle?: string) => void;
@@ -244,14 +249,24 @@ export const createWorkflowRunnerStore = (
     },
     notifications: [],
 
-    ensureConnection: async () => {
+    ensureConnection: async (expectedJobId?: string) => {
+      const stillOwnsConnection = () =>
+        expectedJobId === undefined || get().job_id === expectedJobId;
+
+      if (!stillOwnsConnection()) {
+        return;
+      }
       set({ state: "connecting" });
       try {
         await globalWebSocketManager.ensureConnection();
-        set({ state: "connected" });
+        if (stillOwnsConnection() && get().state === "connecting") {
+          set({ state: "connected" });
+        }
       } catch (error) {
         console.error(`WorkflowRunner[${workflowId}]: Connection failed:`, error);
-        set({ state: "error" });
+        if (stillOwnsConnection() && get().state === "connecting") {
+          set({ state: "error" });
+        }
         throw error;
       }
     },
@@ -408,6 +423,20 @@ export const createWorkflowRunnerStore = (
 
       const jobId = crypto.randomUUID();
       const queueRun = busy && !stuck;
+      const stillOwnsStartup = () => {
+        const runner = get();
+        return (
+          runner.job_id === jobId &&
+          (runner.state === "connecting" || runner.state === "connected")
+        );
+      };
+      const startupWasStopped = () => {
+        if (queueRun || stillOwnsStartup()) {
+          return false;
+        }
+        clearRunSignatures(jobId);
+        return true;
+      };
 
       // Stamp registry (spec §3.4): record each active node's input signature —
       // computed against the FULL live graph — under this run's jobId so
@@ -476,7 +505,7 @@ export const createWorkflowRunnerStore = (
           auth_token = session?.access_token || "";
           user = session?.user?.id || "";
         } catch (error) {
-          if (!queueRun) {
+          if (!queueRun && stillOwnsStartup()) {
             set({
               state: "error",
               job_id: null,
@@ -488,6 +517,13 @@ export const createWorkflowRunnerStore = (
           }
           throw error instanceof Error ? error : new Error(String(error));
         }
+      }
+
+      // Stop can be requested while auth/session resolution is pending. Do
+      // not let the continuation submit a job after that startup lost the
+      // store slot or was marked cancelled.
+      if (startupWasStopped()) {
+        return jobId;
       }
 
       const req = buildRunJobData({
@@ -572,6 +608,13 @@ export const createWorkflowRunnerStore = (
         }
       }
 
+      // Browser eligibility may load the browser runner asynchronously. A
+      // cancelled or superseded startup must not resume into either execution
+      // path when that work completes.
+      if (startupWasStopped()) {
+        return jobId;
+      }
+
       if (runsInBrowser) {
         set({ state: "running", isBrowserRun: true });
         console.info(
@@ -605,7 +648,14 @@ export const createWorkflowRunnerStore = (
         return jobId;
       }
 
-      await get().ensureConnection();
+      await get().ensureConnection(jobId);
+
+      // ensureConnection is also asynchronous. Its completion is not proof
+      // that this run still owns the workflow slot: Stop or a replacement run
+      // may have changed the state while the socket was opening.
+      if (startupWasStopped()) {
+        return jobId;
+      }
 
       set({ state: "running" });
 

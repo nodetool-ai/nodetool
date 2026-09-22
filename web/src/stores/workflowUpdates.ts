@@ -243,13 +243,39 @@ globalWebSocketManager.setResumeJobIdProvider(() => {
   return null;
 });
 
-// Per-workflow job_id whose run is currently being recorded into the
-// TraceStore. Used to call startRun() exactly once per run (startRun clears
-// prior events), so the trace panel shows a fresh timeline per execution
-// rather than accumulating. Keyed by workflow id so concurrent runs of
-// different workflows don't ping-pong a shared id and repeatedly wipe the
-// trace timeline.
-const traceRunJobIds = new Map<string, string | null>();
+// Active trace runs keyed by workflow and job. A workflow runner owns one
+// shared UI slot, but a workflow can have several queued/running jobs. Trace
+// routing is job-scoped, so every non-silent job needs its own run independent
+// of which job currently owns that slot.
+const traceRunIds = new Map<string, Map<string, string>>();
+
+const getTraceRunId = (
+  workflowId: string,
+  jobId: string
+): string | undefined => traceRunIds.get(workflowId)?.get(jobId);
+
+const setTraceRunId = (
+  workflowId: string,
+  jobId: string,
+  traceRunId: string
+): void => {
+  const workflowRuns = traceRunIds.get(workflowId) ?? new Map<string, string>();
+  workflowRuns.set(jobId, traceRunId);
+  traceRunIds.set(workflowId, workflowRuns);
+};
+
+const pruneTraceRunIds = (retainedRunIds: ReadonlySet<string>): void => {
+  for (const [workflowId, workflowRuns] of traceRunIds) {
+    for (const [jobId, traceRunId] of workflowRuns) {
+      if (!retainedRunIds.has(traceRunId)) {
+        workflowRuns.delete(jobId);
+      }
+    }
+    if (workflowRuns.size === 0) {
+      traceRunIds.delete(workflowId);
+    }
+  }
+};
 
 /**
  * Runs that already opened provider onboarding. A missing credential usually
@@ -313,23 +339,39 @@ const appendTrace = (
   type: TraceEventType,
   summary: string,
   detail: unknown,
-  meta?: Pick<TraceEvent, "nodeId" | "nodeName" | "nodeType">
+  meta?: Pick<TraceEvent, "nodeId" | "nodeName" | "nodeType">,
+  scope?: { workflowId: string; jobId?: string }
 ): void => {
   const store = useTraceStore.getState();
-  if (!store.isRecording || !store.runStartTime) {
+  const targetRun = scope
+    ? store.runs.find(
+        (run) =>
+          run.context?.workflowId === scope.workflowId &&
+          (!scope.jobId || run.context.jobId === scope.jobId)
+      )
+    : store.getActiveRun();
+  if (!store.isRecording || !targetRun) {
     return;
   }
   const now = Date.now();
-  store.append({
-    id: traceEventId(),
-    timestamp: new Date(now).toISOString(),
-    relativeMs: now - new Date(store.runStartTime).getTime(),
-    type,
-    summary,
-    detail,
-    ...meta
-  });
+  store.append(
+    {
+      id: traceEventId(),
+      timestamp: new Date(now).toISOString(),
+      relativeMs: now - new Date(targetRun.startTime).getTime(),
+      type,
+      summary,
+      detail,
+      ...meta
+    },
+    scope
+  );
 };
+
+const traceScope = (workflowId: string, jobId?: string) => ({
+  workflowId,
+  ...(jobId ? { jobId } : {})
+});
 
 export const mergeNodeUpdateProperties = ({
   updateProperties,
@@ -503,7 +545,7 @@ export const subscribeToWorkflowUpdates = (
         unsubscribeJob = null;
       }
       workflowSubscriptions.delete(workflowId);
-      traceRunJobIds.delete(workflowId);
+      traceRunIds.delete(workflowId);
     }
   });
 
@@ -842,21 +884,45 @@ const handleJobUpdate = (
     // A new run starts: clear any prior pre-flight validation highlights
     // so stale red outlines don't linger after the user fixes them.
     usePropertyValidationStore.getState().clearWorkflow(workflow.id);
-    // Begin a fresh LLM/agent trace timeline for the runner's own run. Guarded
-    // by job_id so startRun (which clears prior events) fires once per run, not
-    // on every running/queued heartbeat.
-    const incomingTraceJobId = job.job_id ?? null;
-    if (isRunnerJob && incomingTraceJobId !== traceRunJobIds.get(workflow.id)) {
-      traceRunJobIds.set(workflow.id, incomingTraceJobId);
-      useTraceStore.getState().startRun(new Date().toISOString());
+    // Begin a fresh LLM/agent trace timeline for every job, not just the job
+    // occupying the workflow runner's singleton UI slot. Guard with the exact
+    // workflow/job pair so queued/running heartbeats cannot duplicate it.
+    const incomingTraceJobId = job.job_id;
+    const traceState = useTraceStore.getState();
+    const knownTraceRunId = incomingTraceJobId
+      ? getTraceRunId(workflow.id, incomingTraceJobId)
+      : undefined;
+    const hasTraceRun =
+      knownTraceRunId !== undefined &&
+      traceState.runs.some((run) => run.id === knownTraceRunId);
+    if (!silentJob && incomingTraceJobId && !hasTraceRun) {
+      // A concurrent/background run must not replace the run the user is
+      // inspecting. Runner-owned jobs follow the latest run only while the
+      // selection still follows the active run; a manual selection is sticky.
+      const select =
+        traceState.selectedRunId === null ||
+        (isRunnerJob && !traceState.isSelectionPinned);
+      traceState.startRun(
+        new Date().toISOString(),
+        {
+          workflowId: workflow.id,
+          workflowName: workflow.name,
+          jobId: incomingTraceJobId
+        },
+        { select }
+      );
+      const retainedTraceRuns = useTraceStore.getState().runs;
+      const newTraceRunId = retainedTraceRuns[0]?.id;
+      if (newTraceRunId) {
+        setTraceRunId(workflow.id, incomingTraceJobId, newTraceRunId);
+        pruneTraceRunIds(new Set(retainedTraceRuns.map((run) => run.id)));
+      }
       // A fresh run gets a fresh chance to surface a credential problem.
-      authPromptedRuns.delete(incomingTraceJobId ?? workflow.id);
+      authPromptedRuns.delete(incomingTraceJobId);
       // Clear the saw-generation_complete flags for this incoming job so a
       // reused jobId can't poison the next run's node_update{completed}
       // fallback (a stale flag would suppress a legitimate synthesis).
-      if (job.job_id) {
-        clearSawGenerationCompleteFor(job.job_id);
-      }
+      clearSawGenerationCompleteFor(incomingTraceJobId);
     }
   }
 
@@ -1042,6 +1108,7 @@ const reportNodeError = (
   useLogsStore.getState().appendLog({
     workflowId: workflow.id,
     workflowName: workflow.name,
+    ...(jobId ? { jobId } : {}),
     nodeId: update.node_id,
     nodeName: update.node_name || update.node_id,
     content: `${update.node_name || update.node_id} error: ${errorDisplay}`,
@@ -1056,7 +1123,8 @@ const reportNodeError = (
       nodeId: update.node_id,
       nodeName: update.node_name,
       nodeType: update.node_type
-    }
+    },
+    traceScope(workflow.id, jobId)
   );
 };
 
@@ -1100,7 +1168,8 @@ const recordNodeProgress = (
           nodeId: update.node_id,
           nodeName: update.node_name,
           nodeType: update.node_type
-        }
+        },
+        traceScope(workflow.id, jobId)
       );
     } else if (TERMINAL_NODE_STATUSES.has(update.status)) {
       timeStore.endExecution(workflow.id, jobId, update.node_id);
@@ -1176,7 +1245,8 @@ const recordNodeProgress = (
       nodeId: update.node_id,
       nodeName: update.node_name,
       nodeType: update.node_type
-    }
+    },
+    traceScope(workflow.id, jobId)
   );
 };
 
@@ -1303,6 +1373,7 @@ export const handleUpdate = (
       useLogsStore.getState().appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,
+        ...(messageJobId ? { jobId: messageJobId } : {}),
         nodeId: data.node_id,
         nodeName: data.node_name,
         content: data.content,
@@ -1360,9 +1431,13 @@ export const handleUpdate = (
           .getState()
           .setToolCall(workflow.id, messageJobId, data.node_id, data);
       }
-      appendTrace("tool_call", data.message || `Tool: ${data.name}`, data, {
-        nodeId: data.node_id ?? undefined
-      });
+      appendTrace(
+        "tool_call",
+        data.message || `Tool: ${data.name}`,
+        data,
+        { nodeId: data.node_id ?? undefined },
+        traceScope(workflow.id, messageJobId)
+      );
       break;
 
     case "tool_result_update":
@@ -1383,7 +1458,8 @@ export const handleUpdate = (
         "tool_result",
         `${data.name ?? "Tool"} result${data.is_error ? " (error)" : ""}`,
         data,
-        { nodeId: data.node_id ?? undefined }
+        { nodeId: data.node_id ?? undefined },
+        traceScope(workflow.id, messageJobId)
       );
       break;
 
@@ -1409,7 +1485,9 @@ export const handleUpdate = (
         `Step ${stepName}${data.is_task_result ? " (task result)" : ""}${
           data.error ? " — error" : ""
         }`,
-        data
+        data,
+        undefined,
+        traceScope(workflow.id, messageJobId)
       );
       break;
     }
@@ -1417,9 +1495,13 @@ export const handleUpdate = (
     case "todo_update": {
       const todos = data.todos ?? [];
       const done = todos.filter((t) => t.status === "completed").length;
-      appendTrace("todo_update", `Todos ${done}/${todos.length}`, data, {
-        nodeId: data.node_id ?? undefined
-      });
+      appendTrace(
+        "todo_update",
+        `Todos ${done}/${todos.length}`,
+        data,
+        { nodeId: data.node_id ?? undefined },
+        traceScope(workflow.id, messageJobId)
+      );
       break;
     }
 
@@ -1434,7 +1516,8 @@ export const handleUpdate = (
           data.error ? " — error" : ""
         }`,
         data,
-        { nodeId: data.node_id, nodeName: data.node_name ?? undefined }
+        { nodeId: data.node_id, nodeName: data.node_name ?? undefined },
+        traceScope(workflow.id, messageJobId)
       );
       break;
     }
@@ -1503,6 +1586,7 @@ export const handleUpdate = (
       useLogsStore.getState().appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,
+        ...(messageJobId ? { jobId: messageJobId } : {}),
         nodeId: data.node_id,
         nodeName: data.node_name,
         content: `Output: ${logValue}`,
@@ -1513,7 +1597,8 @@ export const handleUpdate = (
         "output",
         `${data.node_name || data.node_id} → ${data.output_name}`,
         data,
-        { nodeId: data.node_id, nodeName: data.node_name }
+        { nodeId: data.node_id, nodeName: data.node_name },
+        traceScope(workflow.id, messageJobId)
       );
       break;
     }
@@ -1575,6 +1660,7 @@ export const handleUpdate = (
       useLogsStore.getState().appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,
+        ...(messageJobId ? { jobId: messageJobId } : {}),
         nodeId: data.node_id,
         nodeName: "",
         content: data.logs || "",

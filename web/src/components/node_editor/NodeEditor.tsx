@@ -118,14 +118,14 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
 
   // Auto-reveal the Inspector whenever a node becomes selected.
-  const setActiveView = useRightPanelStore((state) => state.setActiveView);
-  const setPanelVisibility = useRightPanelStore((state) => state.setVisibility);
+  const revealInspectorForSelection = useRightPanelStore(
+    (state) => state.revealForSelection
+  );
   useEffect(() => {
     if (active && selectedNodeCount > 0) {
-      setActiveView("inspector");
-      setPanelVisibility(true);
+      revealInspectorForSelection();
     }
-  }, [active, selectedNodeCount, setActiveView, setPanelVisibility]);
+  }, [active, selectedNodeCount, revealInspectorForSelection]);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux).
   // Global scope: must work even when an input/editor is focused.

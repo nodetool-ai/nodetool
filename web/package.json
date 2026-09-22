@@ -95,6 +95,7 @@
     "test:e2e-runner": "playwright test -c playwright.e2e-runner.config.ts",
     "test:e2e-runner:headed": "playwright test -c playwright.e2e-runner.config.ts --headed",
     "test:benchmark": "playwright test -c playwright.benchmark.config.ts",
+    "test:benchmark:editor": "playwright test -c playwright.editor-benchmark.config.ts",
     "test:benchmark:chat-history": "playwright test -c playwright.benchmark.config.ts tests/benchmarks/chat-history-scroll.spec.ts",
     "test:debug-harness": "playwright test -c playwright.debug-harness.config.ts",
     "e2e-suite:prepare": "tsx tests/e2e-runner/prepareSuite.ts",

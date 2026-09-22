@@ -23,7 +23,7 @@ export const useResizeRightPanel = (
         setVisibility: state.setVisibility,
         setIsDragging: state.setIsDragging,
         setHasDragged: state.setHasDragged,
-        handleViewChange: state.handleViewChange
+        toggleInspector: state.toggleInspector
       })
     )
   );
@@ -68,7 +68,7 @@ export const useResizeRightPanel = (
         const currentSize = useRightPanelStore.getState().panel.panelSize;
 
         if (!hasMoved) {
-          actions.handleViewChange(panel.activeView);
+          actions.toggleInspector();
         } else {
           // Clamp to the minimum width rather than collapsing — resizing small
           // limits the size; closing is done via the toggle button.
@@ -128,7 +128,7 @@ export const useResizeRightPanel = (
     isVisible: panel.isVisible,
     isDragging: panel.isDragging || false,
     handleMouseDown,
-    handlePanelToggle: (view: RightPanelView) => actions.handleViewChange(view)
+    handlePanelToggle: (_view: RightPanelView) => actions.toggleInspector()
   };
 };
 

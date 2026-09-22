@@ -56,7 +56,11 @@ describe("ViewportStatusIndicator", () => {
       zoomTo: mockZoomTo,
       zoomIn: mockZoomIn,
       zoomOut: mockZoomOut,
-      fitView: mockFitView
+      fitView: mockFitView,
+      getNodes: () => [
+        { id: "1", selected: true },
+        { id: "2", selected: false }
+      ]
     }));
 
     (useNodes as jest.Mock).mockImplementation(
@@ -85,10 +89,8 @@ describe("ViewportStatusIndicator", () => {
     expect(screen.getByText("100%")).toBeInTheDocument();
   });
 
-  // Note: Tests involving clicking use pointerEventsCheck: 0 because the panel
-  // now starts hidden (opacity: 0, pointer-events: none) and only shows during zoom changes
   it("opens zoom preset menu when zoom percentage is clicked", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const user = userEvent.setup();
     renderWithTheme(<ViewportStatusIndicator />);
     const zoomButton = screen.getByText("125%");
     await user.click(zoomButton);
@@ -103,7 +105,7 @@ describe("ViewportStatusIndicator", () => {
   });
 
   it("calls zoomTo with preset value when menu item is clicked", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const user = userEvent.setup();
     renderWithTheme(<ViewportStatusIndicator />);
     const zoomButton = screen.getByText("125%");
     await user.click(zoomButton);
@@ -113,7 +115,7 @@ describe("ViewportStatusIndicator", () => {
   });
 
   it("closes menu after selecting preset", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const user = userEvent.setup();
     renderWithTheme(<ViewportStatusIndicator />);
     const zoomButton = screen.getByText("125%");
     await user.click(zoomButton);
@@ -125,7 +127,7 @@ describe("ViewportStatusIndicator", () => {
   });
 
   it("calls zoomTo with adjusted zoom when zoom in button is clicked", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const user = userEvent.setup();
     (useViewport as jest.Mock).mockImplementation(() => ({
       zoom: 1.25
     }));
@@ -139,7 +141,7 @@ describe("ViewportStatusIndicator", () => {
   });
 
   it("calls zoomTo with adjusted zoom when zoom out button is clicked", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const user = userEvent.setup();
     (useViewport as jest.Mock).mockImplementation(() => ({
       zoom: 1.25
     }));
@@ -153,11 +155,41 @@ describe("ViewportStatusIndicator", () => {
   });
 
   it("calls fitView when fit view button is clicked", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const user = userEvent.setup();
     renderWithTheme(<ViewportStatusIndicator />);
     const fitViewButton = screen.getByTestId("CenterFocusStrongIcon");
     await user.click(fitViewButton.closest("button") as HTMLElement);
     expect(mockFitView).toHaveBeenCalledWith({ padding: 0.2, duration: 200 });
+  });
+
+  it("fits selected nodes from the persistent recovery controls", async () => {
+    const user = userEvent.setup();
+    renderWithTheme(<ViewportStatusIndicator />);
+
+    await user.click(
+      screen.getByTestId("FilterCenterFocusIcon").closest("button") as HTMLElement
+    );
+
+    expect(mockFitView).toHaveBeenCalledWith({
+      nodes: [{ id: "1", selected: true }],
+      padding: 0.2,
+      duration: 200
+    });
+  });
+
+  it("exposes a deliberate port-label toggle", async () => {
+    const user = userEvent.setup();
+    const onTogglePortLabels = jest.fn();
+    renderWithTheme(
+      <ViewportStatusIndicator
+        showPortLabels={false}
+        onTogglePortLabels={onTogglePortLabels}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show port labels" }));
+
+    expect(onTogglePortLabels).toHaveBeenCalledTimes(1);
   });
 
   it("hides when visible prop is false", () => {
@@ -198,7 +230,7 @@ describe("ViewportStatusIndicator", () => {
     expect(screen.getByTestId("CenterFocusStrongIcon")).toBeInTheDocument();
   });
 
-  it("starts with panel hidden (opacity 0) when no zoom change has occurred", () => {
+  it("keeps recovery controls visible and pointer-operable before any zoom change", () => {
     (useViewport as jest.Mock).mockImplementation(() => ({
       zoom: 1.0
     }));
@@ -207,8 +239,7 @@ describe("ViewportStatusIndicator", () => {
     );
     renderWithTheme(<ViewportStatusIndicator />);
     
-    // Panel should start hidden (opacity 0)
     const panel = screen.getByTestId("viewport-status-indicator");
-    expect(panel).toHaveStyle({ opacity: "0" });
+    expect(panel).toHaveStyle({ opacity: "1", pointerEvents: "auto" });
   });
 });

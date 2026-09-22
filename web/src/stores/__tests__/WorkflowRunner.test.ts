@@ -1,7 +1,12 @@
-import { createWorkflowRunnerStore, deriveJobTitle } from "../WorkflowRunner";
+import {
+  buildRunJobData,
+  createWorkflowRunnerStore,
+  deriveJobTitle
+} from "../WorkflowRunner";
 import { stub } from "../../test-utils/doubles";
 import useMetadataStore from "../MetadataStore";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
+import { reportBrowserEligibility } from "../../lib/workflow/browserWorkflowRunner";
 import type { WorkflowAttributes } from "../ApiTypes";
 
 jest.mock("../../contexts/EditorInsertionContext", () => ({
@@ -21,6 +26,18 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
     isConnectionOpen: jest.fn().mockReturnValue(true),
     setResumeJobIdProvider: jest.fn(),
   },
+}));
+
+jest.mock("../../lib/workflow/browserWorkflowRunner", () => ({
+  reportBrowserEligibility: jest.fn().mockResolvedValue({
+    eligible: false,
+    runnerAvailable: true,
+    total: 0,
+    browserNodeTypes: [],
+    serverNodeTypes: []
+  }),
+  runBrowserGraphJob: jest.fn(),
+  updateBrowserJobNodeProperties: jest.fn()
 }));
 
 jest.mock("../../lib/env", () => ({
@@ -99,6 +116,38 @@ describe("WorkflowRunner", () => {
 
   afterEach(() => {
     store.getState().cleanup();
+  });
+
+  it("excludes disabled nodes and their incident edges without pass-through rewiring", () => {
+    const node = (id: string, bypassed = false) =>
+      ({
+        id,
+        type: `test.${id}`,
+        position: { x: 0, y: 0 },
+        data: {
+          properties: {},
+          dynamic_properties: {},
+          selectable: true,
+          workflow_id: testWorkflow.id,
+          bypassed
+        }
+      }) as never;
+    const request = buildRunJobData({
+      jobId: "job-disabled",
+      jobName: "Disabled-node contract",
+      params: {},
+      workflow: testWorkflow,
+      nodes: [node("A"), node("B", true), node("C")],
+      edges: [
+        { id: "A-B", source: "A", target: "B" },
+        { id: "B-C", source: "B", target: "C" }
+      ],
+      authToken: "token",
+      userId: "user"
+    });
+
+    expect(request.graph.nodes.map((entry) => entry.id)).toEqual(["A", "C"]);
+    expect(request.graph.edges).toEqual([]);
   });
 
   describe("initial state", () => {
@@ -383,6 +432,37 @@ describe("WorkflowRunner", () => {
       await store.getState().cancel();
 
       expect(store.getState().state).toBe("cancelled");
+    });
+
+    it("does not submit when stopped during the browser eligibility check", async () => {
+      let resolveEligibility!: (
+        result: Awaited<ReturnType<typeof reportBrowserEligibility>>
+      ) => void;
+      jest.mocked(reportBrowserEligibility).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveEligibility = resolve;
+          })
+      );
+
+      const runPromise = store.getState().run({}, testWorkflow, [], []);
+      expect(store.getState().state).toBe("connecting");
+
+      await store.getState().cancel();
+      resolveEligibility({
+        eligible: false,
+        runnerAvailable: true,
+        total: 0,
+        browserNodeTypes: [],
+        serverNodeTypes: []
+      });
+      await expect(runPromise).resolves.toBe("test-job-id-123");
+
+      expect(store.getState().state).toBe("cancelled");
+      expect(globalWebSocketManager.ensureConnection).not.toHaveBeenCalled();
+      expect(globalWebSocketManager.send).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: "run_job" })
+      );
     });
 
     it("submits both the active and the queued run when called consecutively", async () => {

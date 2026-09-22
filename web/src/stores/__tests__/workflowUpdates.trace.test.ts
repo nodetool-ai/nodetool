@@ -36,7 +36,11 @@ describe("handleUpdate → TraceStore wiring", () => {
   });
 
   it("records llm_call, tool_call and tool_result events while recording", () => {
-    useTraceStore.getState().startRun(new Date().toISOString());
+    useTraceStore.getState().startRun(new Date().toISOString(), {
+      workflowId: mockWorkflow.id,
+      workflowName: mockWorkflow.name,
+      jobId: "job-1"
+    });
     const runner = makeRunner("job-1");
 
     handleUpdate(
@@ -52,6 +56,7 @@ describe("handleUpdate → TraceStore wiring", () => {
         tokens_input: 10,
         tokens_output: 5,
         duration_ms: 123,
+        job_id: "job-1",
         timestamp: new Date().toISOString()
       } as never,
       runner as never,
@@ -98,7 +103,7 @@ describe("handleUpdate → TraceStore wiring", () => {
     });
   });
 
-  it("tracks trace runs per workflow so concurrent runs don't restart each other's trace", () => {
+  it("keeps concurrent workflow events out of the visible run trace", () => {
     const wfA = { id: "wf-a", name: "A" } as WorkflowAttributes;
     const wfB = { id: "wf-b", name: "B" } as WorkflowAttributes;
     const runnerA = makeRunner("job-a");
@@ -110,9 +115,8 @@ describe("handleUpdate → TraceStore wiring", () => {
     handleUpdate(wfA, runningUpdate("job-a"), runnerA as never, () => undefined);
     handleUpdate(wfB, runningUpdate("job-b"), runnerB as never, () => undefined);
 
-    // Record an event, then deliver more running heartbeats for both jobs.
-    // With a shared (non-per-workflow) trace job id, each alternating
-    // heartbeat would call startRun again and wipe the recorded events.
+    // The last started run is B, so an event from A must not appear under B's
+    // visible Workflow → Run context.
     handleUpdate(
       wfA,
       {
@@ -123,6 +127,7 @@ describe("handleUpdate → TraceStore wiring", () => {
         messages: [],
         response: "",
         duration_ms: 1,
+        job_id: "job-a",
         timestamp: new Date().toISOString()
       } as never,
       runnerA as never,
@@ -131,8 +136,102 @@ describe("handleUpdate → TraceStore wiring", () => {
     handleUpdate(wfA, runningUpdate("job-a"), runnerA as never, () => undefined);
     handleUpdate(wfB, runningUpdate("job-b"), runnerB as never, () => undefined);
 
-    expect(useTraceStore.getState().events).toHaveLength(1);
+    expect(useTraceStore.getState().events).toHaveLength(0);
+    expect(useTraceStore.getState().runContext).toEqual({
+      workflowId: "wf-b",
+      workflowName: "B",
+      jobId: "job-b"
+    });
     expect(useTraceStore.getState().isRecording).toBe(true);
+
+    const runA = useTraceStore
+      .getState()
+      .runs.find((run) => run.context?.jobId === "job-a");
+    expect(runA).toBeDefined();
+    useTraceStore.getState().selectRun(runA!.id);
+    expect(useTraceStore.getState().events).toEqual([
+      expect.objectContaining({ type: "llm_call" })
+    ]);
+  });
+
+  it("retains separate traces for concurrent jobs in the same workflow", () => {
+    const runner = makeRunner("job-a");
+    const jobUpdate = (jobId: string, status: "queued" | "running") =>
+      ({ type: "job_update", status, job_id: jobId }) as never;
+    const llmCall = (jobId: string, model: string) =>
+      ({
+        type: "llm_call",
+        node_id: "agent-1",
+        node_name: "Agent",
+        provider: "openai",
+        model,
+        messages: [],
+        response: "",
+        duration_ms: 1,
+        job_id: jobId,
+        timestamp: new Date().toISOString()
+      }) as never;
+
+    handleUpdate(
+      mockWorkflow,
+      jobUpdate("job-a", "running"),
+      runner as never,
+      () => undefined
+    );
+    const selectedRunId = useTraceStore.getState().selectedRunId;
+
+    handleUpdate(
+      mockWorkflow,
+      jobUpdate("job-b", "queued"),
+      runner as never,
+      () => undefined
+    );
+    handleUpdate(
+      mockWorkflow,
+      jobUpdate("job-b", "running"),
+      runner as never,
+      () => undefined
+    );
+
+    const traceState = useTraceStore.getState();
+    expect(traceState.runs).toHaveLength(2);
+    expect(traceState.selectedRunId).toBe(selectedRunId);
+    expect(
+      traceState.runs.find((run) => run.id === traceState.activeRunId)?.context
+        ?.jobId
+    ).toBe("job-b");
+
+    handleUpdate(
+      mockWorkflow,
+      llmCall("job-b", "background-model"),
+      runner as never,
+      () => undefined
+    );
+    handleUpdate(
+      mockWorkflow,
+      llmCall("job-a", "foreground-model"),
+      runner as never,
+      () => undefined
+    );
+
+    const runA = useTraceStore
+      .getState()
+      .runs.find((run) => run.context?.jobId === "job-a");
+    const runB = useTraceStore
+      .getState()
+      .runs.find((run) => run.context?.jobId === "job-b");
+    expect(runA?.events).toEqual([
+      expect.objectContaining({
+        type: "llm_call",
+        summary: expect.stringContaining("foreground-model")
+      })
+    ]);
+    expect(runB?.events).toEqual([
+      expect.objectContaining({
+        type: "llm_call",
+        summary: expect.stringContaining("background-model")
+      })
+    ]);
   });
 
   it("does not record events when no run is active", () => {

@@ -4,7 +4,7 @@ import useLogsStore from "../LogStore";
 describe("LogStore", () => {
   beforeEach(() => {
     // Reset store to initial state
-    useLogsStore.setState({ logs: [], logsByNode: {} });
+    useLogsStore.setState({ logs: [], logsByNode: {}, filter: null });
   });
 
   describe("initial state", () => {
@@ -310,6 +310,22 @@ describe("LogStore", () => {
       });
 
       expect(useLogsStore.getState().logs).toHaveLength(0);
+    });
+  });
+
+  describe("filter", () => {
+    it("stores and clears an exact workflow, run, and node filter", () => {
+      const filter = {
+        workflowId: "workflow1",
+        jobId: "job1",
+        nodeId: "node1"
+      };
+
+      act(() => useLogsStore.getState().setFilter(filter));
+      expect(useLogsStore.getState().filter).toEqual(filter);
+
+      act(() => useLogsStore.getState().clearFilter());
+      expect(useLogsStore.getState().filter).toBeNull();
     });
   });
 

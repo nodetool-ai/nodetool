@@ -218,7 +218,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
         },
         {
           icon: <PowerSettingsNew fontSize="small" />,
-          label: "Bypass",
+          label: "Disable",
           slug: "bypassNode",
           action: selectionActions.bypassSelected
         }

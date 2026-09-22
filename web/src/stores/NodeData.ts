@@ -51,7 +51,8 @@ export type NodeData = {
   expandedHeightPx?: number;
   /** Last expanded width (px) before header-only collapse — restore on expand; not in `properties` */
   expandedWidthPx?: number;
-  bypassed?: boolean; // When true, node is bypassed and passes inputs through to outputs
+  /** Legacy persistence name. When true, the node is excluded from runs. */
+  bypassed?: boolean;
   showResultPreference?: boolean; // User preference: true = show results after run, false/undefined = show inputs
   /**
    * Advanced properties promoted as handle-only dots on the left edge (plan §8.4).

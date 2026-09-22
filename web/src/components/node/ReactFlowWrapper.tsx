@@ -90,6 +90,7 @@ import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useReactFlowEvents } from "../../hooks/handlers/useReactFlowEvents";
 import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
 import { useNodeEvents } from "../../hooks/handlers/useNodeEvents";
@@ -99,6 +100,9 @@ import type { NodeData } from "../../stores/NodeData";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import { scheduleNodeInternalsRefresh } from "../../utils/scheduleNodeInternalsRefresh";
 import type { EdgeKey, NodeKey } from "../../stores/nodeKey";
+import FirstWorkflowGuide from "../node_editor/FirstWorkflowGuide";
+import { Slugify } from "../../utils/TypeHandler";
+import { PortLabelVisibilityContext } from "../../contexts/PortLabelVisibilityContext";
 
 /**
  * The dynamic slot tables the layout fingerprint reads a key set from. Only the
@@ -193,8 +197,13 @@ const ReactFlowWrapper = ({
     shouldFitToScreen,
     setShouldFitToScreen,
     storedViewport,
+    workflowIsDirty,
     deleteEdge,
-    setEdgeSelectionState
+    setEdgeSelectionState,
+    createNode,
+    addNode,
+    addEdge,
+    generateEdgeId
   } = useNodes(
     useMemo(
       () => (state) => ({
@@ -205,18 +214,34 @@ const ReactFlowWrapper = ({
         shouldFitToScreen: state.shouldFitToScreen,
         setShouldFitToScreen: state.setShouldFitToScreen,
         storedViewport: state.viewport,
+        workflowIsDirty: state.workflowIsDirty,
         deleteEdge: state.deleteEdge,
-        setEdgeSelectionState: state.setEdgeSelectionState
+        setEdgeSelectionState: state.setEdgeSelectionState,
+        createNode: state.createNode,
+        addNode: state.addNode,
+        addEdge: state.addEdge,
+        generateEdgeId: state.generateEdgeId
       }),
       []
     )
   );
 
   const [isSelecting] = useState(false);
+  const [showFirstWorkflowGuide, setShowFirstWorkflowGuide] = useState(false);
+  const [showPortLabels, setShowPortLabels] = useState(false);
   const [suppressNodeDrivenEdgeSelection, setSuppressNodeDrivenEdgeSelection] =
     useState(false);
 
   const reactFlowInstance = useReactFlow();
+  const starterInputMetadata = useMetadataStore(
+    (state) => state.metadata["nodetool.input.StringInput"]
+  );
+  const starterOutputMetadata = useMetadataStore(
+    (state) => state.metadata["nodetool.output.Output"]
+  );
+  const workflowRuns = useWorkflowRunsStore(
+    (state) => state.runs[workflowId]
+  );
   const { pendingNodeType, cancelPlacement, placementLabel } =
     useNodePlacementStore(
       useShallow((state) => ({
@@ -225,6 +250,79 @@ const ReactFlowWrapper = ({
         placementLabel: state.label
       }))
     );
+
+  useEffect(() => {
+    setShowFirstWorkflowGuide(false);
+  }, [workflowId]);
+
+  const handleStartFirstWorkflow = useCallback(() => {
+    setShowFirstWorkflowGuide(true);
+    if (!starterInputMetadata || !starterOutputMetadata) {
+      useNodeMenuStore.getState().openNodeMenu({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+        searchTerm: "String Input",
+        centerOnScreen: true
+      });
+      return;
+    }
+    const inputNode = createNode(starterInputMetadata, { x: -240, y: 0 });
+    const outputNode = createNode(starterOutputMetadata, { x: 240, y: 0 });
+    addNode(inputNode);
+    addNode(outputNode);
+    addEdge({
+      id: generateEdgeId(),
+      source: inputNode.id,
+      target: outputNode.id,
+      sourceHandle: "output",
+      targetHandle: "value",
+      type: "default",
+      className: Slugify("str")
+    });
+    setShouldFitToScreen(true);
+  }, [
+    addEdge,
+    addNode,
+    createNode,
+    generateEdgeId,
+    setShouldFitToScreen,
+    starterInputMetadata,
+    starterOutputMetadata
+  ]);
+
+  const handleChooseOwnNodes = useCallback(() => {
+    setShowFirstWorkflowGuide(true);
+    useNodeMenuStore.getState().openNodeMenu({
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+      centerOnScreen: true
+    });
+  }, []);
+
+  const firstWorkflowReadiness = useMemo(() => {
+    const inputIds = new Set(
+      nodes
+        .filter((node) => node.type === "nodetool.input.StringInput")
+        .map((node) => node.id)
+    );
+    const outputIds = new Set(
+      nodes
+        .filter((node) => node.type === "nodetool.output.Output")
+        .map((node) => node.id)
+    );
+    return {
+      input: inputIds.size > 0,
+      output: outputIds.size > 0,
+      connection: edges.some(
+        (edge) => inputIds.has(edge.source) && outputIds.has(edge.target)
+      ),
+      saved:
+        inputIds.size > 0 && outputIds.size > 0 && !workflowIsDirty,
+      run: Object.values(workflowRuns ?? {}).some(
+        (run) => run.state === "completed"
+      )
+    };
+  }, [edges, nodes, workflowIsDirty, workflowRuns]);
   const [ghostPosition, setGhostPosition] = useState<{
     x: number;
     y: number;
@@ -818,6 +916,114 @@ const ReactFlowWrapper = ({
     return true;
   });
 
+  const branchNodeIds = useMemo(() => {
+    if (selectedNodeIds.size === 0) {
+      return new Set<string>();
+    }
+    const incoming = new Map<string, string[]>();
+    const outgoing = new Map<string, string[]>();
+    for (const edge of edges) {
+      const sources = incoming.get(edge.target) ?? [];
+      sources.push(edge.source);
+      incoming.set(edge.target, sources);
+      const targets = outgoing.get(edge.source) ?? [];
+      targets.push(edge.target);
+      outgoing.set(edge.source, targets);
+    }
+    const result = new Set(selectedNodeIds);
+    const collectDirection = (adjacency: Map<string, string[]>) => {
+      const queue = [...selectedNodeIds];
+      const visited = new Set(selectedNodeIds);
+      for (let index = 0; index < queue.length; index += 1) {
+        const nodeId = queue[index];
+        for (const neighbor of adjacency.get(nodeId) ?? []) {
+          if (visited.has(neighbor)) {
+            continue;
+          }
+          visited.add(neighbor);
+          result.add(neighbor);
+          queue.push(neighbor);
+        }
+      }
+    };
+    collectDirection(incoming);
+    collectDirection(outgoing);
+    return result;
+  }, [edges, selectedNodeIds]);
+
+  const comprehensionNodeCacheRef = useRef(
+    new Map<
+      string,
+      {
+        source: Node<NodeData>;
+        relation: "related" | "dimmed";
+        result: Node<NodeData>;
+      }
+    >()
+  );
+
+  const comprehensionNodes = useMemo(() => {
+    if (selectedNodeIds.size === 0) {
+      return nodes;
+    }
+    const previous = comprehensionNodeCacheRef.current;
+    const next = new Map<
+      string,
+      {
+        source: Node<NodeData>;
+        relation: "related" | "dimmed";
+        result: Node<NodeData>;
+      }
+    >();
+    const mapped = nodes.map((node) => {
+      const relation: "related" | "dimmed" = branchNodeIds.has(node.id)
+        ? "related"
+        : "dimmed";
+      const cached = previous.get(node.id);
+      if (cached?.source === node && cached.relation === relation) {
+        return cached.result;
+      }
+      const result = {
+        ...node,
+        className: [
+          node.className,
+          relation === "related" ? "branch-related" : "branch-dimmed"
+        ]
+          .filter(Boolean)
+          .join(" ")
+      };
+      next.set(node.id, { source: node, relation, result });
+      return result;
+    });
+    for (const node of nodes) {
+      if (!next.has(node.id)) {
+        const cached = previous.get(node.id);
+        if (cached) {
+          next.set(node.id, cached);
+        }
+      }
+    }
+    comprehensionNodeCacheRef.current = next;
+    return mapped;
+  }, [branchNodeIds, nodes, selectedNodeIds.size]);
+
+  const comprehensionEdges = useMemo(() => {
+    if (selectedNodeIds.size === 0) {
+      return processedEdges;
+    }
+    return processedEdges.map((edge) => ({
+      ...edge,
+      className: [
+        edge.className,
+        branchNodeIds.has(edge.source) && branchNodeIds.has(edge.target)
+          ? "branch-related"
+          : "branch-dimmed"
+      ]
+        .filter(Boolean)
+        .join(" ")
+    }));
+  }, [branchNodeIds, processedEdges, selectedNodeIds.size]);
+
   // Track previous selectedNodeIds to skip edge processing when selection hasn't changed
   const prevSelectedNodeIdsRef = useRef<Set<string> | null>(null);
 
@@ -897,8 +1103,11 @@ const ReactFlowWrapper = ({
     if (isScrubbing) {
       classes.push("live-scrubbing");
     }
+    if (showPortLabels) {
+      classes.push("show-port-labels");
+    }
     return classes.join(" ");
-  }, [zoomedOut, connecting, instantUpdate, isScrubbing]);
+  }, [zoomedOut, connecting, instantUpdate, isScrubbing, showPortLabels]);
 
   const conditionalProps = useMemo(() => {
     const props: { selectionOnDrag?: boolean } = {};
@@ -930,8 +1139,9 @@ const ReactFlowWrapper = ({
   }
 
   return (
-    <div style={CONTAINER_STYLE}>
-      <ReactFlow
+    <PortLabelVisibilityContext.Provider value={showPortLabels}>
+      <div style={CONTAINER_STYLE}>
+        <ReactFlow
         className={reactFlowClasses}
         colorMode={isDarkMode ? "dark" : "light"}
         style={REACT_FLOW_STYLE}
@@ -944,8 +1154,8 @@ const ReactFlowWrapper = ({
         autoPanOnConnect={true}
         autoPanSpeed={50}
         {...conditionalProps}
-        nodes={nodes}
-        edges={processedEdges}
+        nodes={comprehensionNodes}
+        edges={comprehensionEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         snapToGrid={snapToGrid}
@@ -1023,9 +1233,22 @@ const ReactFlowWrapper = ({
         />
       )}
       <MiniMapNavigator />
-      <ViewportStatusIndicator />
-      <CodeGenDialogHost />
-    </div>
+      <ViewportStatusIndicator
+        showPortLabels={showPortLabels}
+        onTogglePortLabels={() => setShowPortLabels((visible) => !visible)}
+      />
+      {(nodes.length === 0 || showFirstWorkflowGuide) && (
+        <FirstWorkflowGuide
+          started={showFirstWorkflowGuide}
+          readiness={firstWorkflowReadiness}
+          onStart={handleStartFirstWorkflow}
+          onChooseOwn={handleChooseOwnNodes}
+          onClose={() => setShowFirstWorkflowGuide(false)}
+        />
+      )}
+        <CodeGenDialogHost />
+      </div>
+    </PortLabelVisibilityContext.Provider>
   );
 };
 

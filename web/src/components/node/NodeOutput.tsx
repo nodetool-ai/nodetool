@@ -144,6 +144,8 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
         className={classConnectable}
         handlePosition="right"
         enableHover={true}
+        nodeId={id}
+        handleDirection="source"
       >
         <Handle
           type="source"

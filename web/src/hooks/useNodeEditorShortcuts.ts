@@ -88,7 +88,7 @@ export const useNodeEditorShortcuts = (
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
+  const inspectorToggle = useRightPanelStore((state) => state.toggleInspector);
   const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
   const openFind = useFindInWorkflowStore((state) => state.openFind);
   const nodeFocus = useNodeFocus();
@@ -404,7 +404,7 @@ export const useNodeEditorShortcuts = (
   );
 
   const handleInspectorToggle = useCallback(() => {
-    inspectorToggle("inspector");
+    inspectorToggle();
   }, [inspectorToggle]);
 
   const handleWorkflowSettingsToggle = useCallback(() => {
@@ -660,6 +660,7 @@ export const useNodeEditorShortcuts = (
             callback: meta.callback,
             preventDefault: meta.preventDefault ?? true,
             active: meta.active ?? true,
+            scope: "canvas",
             target: getRoot
           })
         );

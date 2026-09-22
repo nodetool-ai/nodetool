@@ -306,6 +306,8 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             className="is-connectable"
             handlePosition="left"
             enableHover={false}
+            nodeId={id}
+            handleDirection="target"
           >
             <Handle
               type="target"

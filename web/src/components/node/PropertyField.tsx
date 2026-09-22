@@ -208,6 +208,8 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             className={classConnectable}
             handlePosition="left"
             enableHover={true}
+            nodeId={id}
+            handleDirection="target"
           >
             <Handle
               type="target"

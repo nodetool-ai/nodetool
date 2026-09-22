@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useWebsocketRunner } from "../stores/WorkflowRunner";
 import { useRunningJobs } from "./useRunningJobs";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
@@ -32,6 +32,13 @@ interface FloatingToolbarActions {
   handleToggleTrace: () => void;
   handleToggleMiniMap: () => void;
   isWorkflowRunning: boolean;
+  /** True while a run is starting, queued, running, or stopping. */
+  isWorkflowActive: boolean;
+  /** Visible state shown in the main workflow run control. */
+  runControlLabel: string;
+  /** Detail for the run control tooltip, including startup failures. */
+  runControlDetail: string | null;
+  isStopping: boolean;
   /** 1-based queue position while waiting for a run slot, else null. */
   queuePosition: number | null;
   /** Number of runs the user has queued behind the active run. */
@@ -46,7 +53,10 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
 
   const run = useWebsocketRunner((state) => state.run);
   const state = useWebsocketRunner((state) => state.state);
+  const statusMessage = useWebsocketRunner((state) => state.statusMessage);
   const isWorkflowRunning = state === "running";
+  const isWorkflowBusy =
+    state === "connecting" || state === "connected" || state === "running";
   const queuePosition = useWebsocketRunner((state) => state.queuePosition);
   const { data: jobs } = useRunningJobs();
   const pendingRunCount = useMemo(
@@ -61,6 +71,28 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     [jobs, workflow?.id]
   );
   const cancel = useWebsocketRunner((state) => state.cancel);
+  const [isStopping, setIsStopping] = useState(false);
+  const isWorkflowActive = isWorkflowBusy || isStopping;
+  const runControlLabel = useMemo(() => {
+    if (isStopping) {
+      return "Stopping";
+    }
+    if (queuePosition != null) {
+      return `Queued #${queuePosition}`;
+    }
+    if (state === "connecting" || state === "connected") {
+      return "Starting";
+    }
+    if (state === "running") {
+      return pendingRunCount > 0
+        ? `Running · ${pendingRunCount} queued`
+        : "Running";
+    }
+    if (state === "error") {
+      return "Error · Retry";
+    }
+    return "Run entire workflow";
+  }, [isStopping, pendingRunCount, queuePosition, state]);
 
   const getWorkflowById = useWorkflowManager((state) => state.getWorkflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
@@ -98,6 +130,10 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const toggleMiniMap = useMiniMapStore((state) => state.toggleVisible);
 
   const handleRun = useCallback(async () => {
+    if (isStopping) {
+      return;
+    }
+
     const doRun = async () => {
       // Create a checkpoint version before execution if enabled
       if (autosave?.saveBeforeRun) {
@@ -136,7 +172,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     // inspector shows an inline call-out next to each, and pulse the first one.
     // Only blocks a fresh run — the concurrent path below already has a
     // job going.
-    if (!isWorkflowRunning) {
+    if (!isWorkflowBusy) {
       const { nodes, edges } = nodeStore.getState();
       const missing = findMissingModelNodes(
         nodes,
@@ -200,7 +236,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     // it (for in-browser runs the server queue can't see the active run, so
     // "queued" starts immediately). That's rarely what a double-click meant —
     // always confirm first. Never suppressed.
-    if (isWorkflowRunning) {
+    if (isWorkflowBusy) {
       requestRunConfirmation({
         kind: "concurrent",
         onConfirm: () => {
@@ -242,12 +278,23 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     requestRunConfirmation,
     showModelCallout,
     showSearchProviderDialog,
-    isWorkflowRunning
+    isWorkflowBusy,
+    isStopping
   ]);
 
   const handleStop = useCallback(() => {
-    cancel();
-  }, [cancel]);
+    if (isStopping) {
+      return;
+    }
+    setIsStopping(true);
+    void (async () => {
+      try {
+        await cancel();
+      } finally {
+        setIsStopping(false);
+      }
+    })();
+  }, [cancel, isStopping]);
 
   const handleSave = useCallback(async () => {
     if (!workflow) {
@@ -334,6 +381,10 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
       handleToggleTrace,
       handleToggleMiniMap,
       isWorkflowRunning,
+      isWorkflowActive,
+      runControlLabel,
+      runControlDetail: statusMessage,
+      isStopping,
       queuePosition,
       pendingRunCount
     }),
@@ -348,6 +399,10 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
       handleToggleTrace,
       handleToggleMiniMap,
       isWorkflowRunning,
+      isWorkflowActive,
+      runControlLabel,
+      statusMessage,
+      isStopping,
       queuePosition,
       pendingRunCount
     ]

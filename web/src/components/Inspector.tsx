@@ -7,7 +7,7 @@ import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { NodeMetadata, TypeMetadata, Property, PropertyTypeMetadata } from "../stores/ApiTypes";
+import { NodeMetadata, TypeMetadata, Property } from "../stores/ApiTypes";
 import { findOutputHandle } from "../utils/handleUtils";
 import { normalizeDynamicSlot, slotType } from "../utils/dynamicSlots";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
@@ -49,6 +49,9 @@ import {
   isPropertyConditionSatisfied,
   shouldRenderProperty
 } from "../utils/propertyVisibility";
+import { focusActiveWorkflowEditor } from "../utils/focusWorkflowEditor";
+import { getSharedEditableProperties } from "./inspector/multiEdit";
+import { useRightPanelStore } from "../stores/RightPanelStore";
 
 const DEFAULT_TYPE_METADATA: TypeMetadata = {
   type: "any",
@@ -532,11 +535,10 @@ const Inspector: React.FC = () => {
     (state) => state.getSelectedNodes(),
     areNodesEqualIgnoringPosition
   );
-  const { findNode, updateNodeProperties, setSelectedNodes } = useNodes(
+  const { findNode, updateNodesProperties } = useNodes(
     (state) => ({
       findNode: state.findNode,
-      updateNodeProperties: state.updateNodeProperties,
-      setSelectedNodes: state.setSelectedNodes
+      updateNodesProperties: state.updateNodesProperties
     }),
     shallow
   );
@@ -581,34 +583,20 @@ const Inspector: React.FC = () => {
   const isMultiSelect = selectedNodes.length > 1;
   const metadataCoverageMatches =
     nodesWithMetadata.length === selectedNodes.length;
+  const closeInspector = useRightPanelStore((state) => state.closeInspector);
   const handleInspectorClose = useCallback(() => {
-    setSelectedNodes([]);
-  }, [setSelectedNodes]);
+    closeInspector();
+    requestAnimationFrame(() => {
+      focusActiveWorkflowEditor();
+    });
+  }, [closeInspector]);
 
   const sharedProperties = useMemo(() => {
     if (!isMultiSelect || nodesWithMetadata.length === 0) {
       return [];
     }
-    const [first, ...rest] = nodesWithMetadata;
-    const signatureCache = new Map<PropertyTypeMetadata, string>();
-    const typeSignatureOf = (type: PropertyTypeMetadata): string => {
-      let sig = signatureCache.get(type);
-      if (sig === undefined) {
-        sig = JSON.stringify(type);
-        signatureCache.set(type, sig);
-      }
-      return sig;
-    };
-    const otherPropertySignatures = new Set<string>();
-    for (const { metadata } of rest) {
-      for (const prop of metadata.properties) {
-        otherPropertySignatures.add(`${prop.name}:${typeSignatureOf(prop.type)}`);
-      }
-    }
-    return first.metadata.properties.filter((property) => {
-      return otherPropertySignatures.has(`${property.name}:${typeSignatureOf(property.type)}`);
-    });
-  }, [isMultiSelect, nodesWithMetadata]);
+    return getSharedEditableProperties(nodesWithMetadata, allEdges);
+  }, [allEdges, isMultiSelect, nodesWithMetadata]);
 
   const multiPropertyEntries = useMemo(() => {
     if (!isMultiSelect || nodesWithMetadata.length === 0) {
@@ -635,11 +623,9 @@ const Inspector: React.FC = () => {
 
   const handleMultiPropertyChange = useCallback(
     (propertyName: string, value: unknown) => {
-      multiNodeIds.forEach((nodeId) =>
-        updateNodeProperties(nodeId, { [propertyName]: value })
-      );
+      updateNodesProperties(multiNodeIds, { [propertyName]: value });
     },
-    [multiNodeIds, updateNodeProperties]
+    [multiNodeIds, updateNodesProperties]
   );
 
   const multiPropertyChangeHandlers = useMemo(() => {
@@ -798,7 +784,7 @@ const Inspector: React.FC = () => {
               </div>
               <div className="inspector-namespace">
                 <span className="inspector-namespace-text">
-                  Editing shared properties
+                  Editing shared properties · Changes {selectedNodes.length} nodes
                 </span>
               </div>
             </div>
@@ -841,6 +827,7 @@ const Inspector: React.FC = () => {
                       >
                         <span className="mixed-indicator">
                           <WarningAmberOutlinedIcon fontSize="small" />
+                          <span>Mixed</span>
                         </span>
                       </Tooltip>
                     )}

@@ -345,7 +345,7 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
           </ToolbarIconButton>
         )}
         {data.bypassed && (
-          <span className="bypass-badge">Bypassed</span>
+          <span className="bypass-badge">Disabled</span>
         )}
         {logCount > 0 && !hideLogs && (
           <ToolbarIconButton

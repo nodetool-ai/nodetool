@@ -35,8 +35,11 @@ const propertyStyles = (theme: Theme) =>
       position: "absolute",
       right: 0,
       top: "-3px",
-      opacity: 0.8,
+      opacity: 0,
       zIndex: Z_INDEX.dropdown
+    },
+    ".property-row:hover .string-action-buttons, .property-row:focus-within .string-action-buttons": {
+      opacity: 0.8
     },
     ".string-action-buttons .MuiIconButton-root": {
       margin: `0 0 0 ${theme.spacing(SPACING.sm)}`,
@@ -62,7 +65,6 @@ const StringProperty = ({
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
 
   const isConnectedSelector = useIsConnectedSelector(nodeId, property.name);
   const isConnected = useNodes(isConnectedSelector);
@@ -130,18 +132,14 @@ const StringProperty = ({
 
   return (
     <div className="string-property" css={propertyStyles(theme)}>
-      <div
-        className="property-row"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
+      <div className="property-row">
         <PropertyLabel
           name={property.name}
           description={property.description}
           id={id}
           isDynamicProperty={isDynamicProperty}
         />
-        {!isInspector && isHovered ? (
+        {!isInspector ? (
           <div className="string-action-buttons">
             <ToolbarIconButton
               tooltip="Open Editor"

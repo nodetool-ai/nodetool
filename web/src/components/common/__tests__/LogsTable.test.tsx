@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import LogsTable, { LogRow } from '../LogsTable';
 import { ThemeProvider } from '@mui/material/styles';
 import mockTheme from '../../../__mocks__/themeMock';
+import { formatTimeOfDay } from '../../../utils/formatUtils';
 
 // Mock UI primitives
 jest.mock('../../ui_primitives', () => {
@@ -11,6 +12,8 @@ jest.mock('../../ui_primitives', () => {
   CopyButton.displayName = "CopyButton";
   const Text = ({ children, ...props }: React.ComponentProps<"span">) => <span {...props}>{children}</span>;
   Text.displayName = "Text";
+  const TextLink = ({ children, asButton, ...props }: React.ComponentProps<"button"> & { asButton?: boolean }) => <button data-as-button={asButton} {...props}>{children}</button>;
+  TextLink.displayName = "TextLink";
   const Tooltip = ({ children }: React.PropsWithChildren) => <>{children}</>;
   Tooltip.displayName = "Tooltip";
   const ToolbarIconButton = ({ children, ...props }: React.ComponentProps<"button">) => <button {...props}>{children}</button>;
@@ -58,6 +61,7 @@ jest.mock('../../ui_primitives', () => {
     Z_INDEX: jest.requireActual('../../ui_primitives/tokens').Z_INDEX,
     CopyButton,
     Text,
+    TextLink,
     Tooltip,
     ToolbarIconButton,
     Card,
@@ -184,5 +188,32 @@ describe('LogsTable', () => {
     const row1ContentAfter = screen.getByText('Log 1');
     const row1ContainerAfter = row1ContentAfter.closest('.row');
     expect(row1ContainerAfter).toHaveClass('expanded');
+  });
+
+  it('shows workflow, run, node, and timestamp context and reveals the node', () => {
+    const onRevealNode = jest.fn();
+    renderWithTheme(
+      <LogsTable
+        {...defaultProps}
+        rows={[{
+          severity: 'error',
+          workflowId: 'workflow-1',
+          workflowName: 'Image workflow',
+          jobId: '1234567890abcdef',
+          nodeId: 'node-1',
+          nodeName: 'Generate image',
+          timestamp: 1677657601000,
+          content: 'Provider failed'
+        }]}
+        onRevealNode={onRevealNode}
+      />
+    );
+
+    expect(screen.getByText('Image workflow')).toBeInTheDocument();
+    expect(screen.getByText('Run #12345678')).toHaveAttribute('title', '1234567890abcdef');
+    expect(screen.getByText(formatTimeOfDay(1677657601000))).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reveal node Generate image' }));
+    expect(onRevealNode).toHaveBeenCalledWith('workflow-1', 'node-1');
   });
 });

@@ -80,6 +80,8 @@ const HandleOnlyFieldImpl: React.FC<HandleOnlyFieldProps> = ({
         className={classConnectable}
         handlePosition="left"
         enableHover={true}
+        nodeId={id}
+        handleDirection="target"
       >
         <Handle
           type="target"
