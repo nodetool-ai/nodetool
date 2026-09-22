@@ -71,6 +71,15 @@ jest.mock("../../../hooks/useDocumentConflicts", () => ({
     discard: jest.fn()
   })
 }));
+jest.mock("../../../hooks/useApplications", () => ({
+  useCreateApplication: () => ({
+    mutateAsync: jest.fn(),
+    isPending: false
+  })
+}));
+jest.mock("../../../hooks/useOpenApplication", () => ({
+  useOpenApplication: () => jest.fn()
+}));
 
 // What the flow reads out of the install: models on offer, the shipped
 // manifests, the seeded style presets. Each has its own suite; here they only
@@ -183,7 +192,12 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   __esModule: true,
   tabId: (kind: string, ref: string) => `${kind}:${ref}`,
   useWorkspaceTabsStore: (selector: (state: unknown) => unknown) =>
-    selector({ closeTab: jest.fn(), setTitle: jest.fn() })
+    selector({
+      tabs: [{ type: "workflow", ref: "w1", projectId: "project-1" }],
+      closeTab: jest.fn(),
+      openTab: jest.fn(),
+      setTitle: jest.fn()
+    })
 }));
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
