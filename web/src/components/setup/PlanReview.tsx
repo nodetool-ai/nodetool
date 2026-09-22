@@ -264,14 +264,17 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
       onBlur={(event) => commit(event.target.value)}
       onKeyDown={(event) => {
         // Enter is a line break in a body field, so only a single-line field
-        // commits on it. It commits and nothing else: the key stops here
-        // rather than reaching a form or the shell's primary action.
+        // commits on it. Plain Enter stays local. The shell's advertised
+        // modified shortcut bubbles after the commit so it can validate the
+        // settled value before advancing.
         if (event.key !== "Enter" || row.multiline === true) {
           return;
         }
         event.preventDefault();
-        event.stopPropagation();
         commit((event.target as HTMLInputElement).value);
+        if (!(event.metaKey || event.ctrlKey)) {
+          event.stopPropagation();
+        }
       }}
       slotProps={{ input: { readOnly: row.readOnly } }}
     />

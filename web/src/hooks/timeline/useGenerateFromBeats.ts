@@ -27,7 +27,10 @@ import type {
   TimelineClip,
   TimelineTrack
 } from "@nodetool-ai/timeline";
-import { compileProductionCandidates } from "@nodetool-ai/timeline";
+import {
+  compileProductionCandidates,
+  sourceRate
+} from "@nodetool-ai/timeline";
 
 import {
   useTimelineStoreApi,
@@ -35,7 +38,9 @@ import {
 } from "../../stores/timeline/TimelineStore";
 import { getRememberedModel } from "../../stores/lastModelStore";
 import { aspectOf } from "../../components/storyboard/aspectOptions";
+import { deterministicFingerprint } from "../storyboard/productionContext";
 import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
+import { persistTimelineDocument } from "./useTimelineSave";
 
 /** How long a beat runs when its plan row has no usable length. */
 const FALLBACK_BEAT_MS = 4000;
@@ -47,6 +52,8 @@ const VOICEOVER_TRACK = "Voiceover";
 const MUSIC_TRACK = "Music";
 
 export interface GenerateFromBeatsOptions {
+  /** Stops local preparation or submission when the setup action is canceled. */
+  signal?: AbortSignal;
   /** Video model for the beat clips. */
   provider?: string;
   model?: string;
@@ -67,11 +74,20 @@ export interface GenerateFromBeatsOptions {
   /** Starts each clip's generation. Injected so the counts are testable. */
   startJob?: (
     clipId: string,
-    production?: CompiledProductionCandidate
+    production?: CompiledProductionCandidate,
+    preparedRequestId?: string
   ) => Promise<string | null>;
+  /** Acknowledges the prepared destinations before any paid request starts. */
+  persistPreparedBatch?: () => Promise<void>;
   /** Stable batch id, injectable for recovery and regression tests. */
   productionBatchId?: string;
 }
+
+const throwIfAborted = (signal?: AbortSignal): void => {
+  if (signal?.aborted) {
+    throw new DOMException("Video generation canceled.", "AbortError");
+  }
+};
 
 export interface GenerateFromBeatsResult {
   videoClipIds: string[];
@@ -80,6 +96,88 @@ export interface GenerateFromBeatsResult {
   /** Clips whose generation was actually enqueued. */
   startedClipIds: string[];
 }
+
+type PreparedGenerationStatus = "unsubmitted" | "prepared" | "submitted";
+interface PreparedGenerationRequest {
+  clip_id: string;
+  request_id: string;
+  kind: "video" | "voiceover" | "music";
+  beat_id?: string;
+  variation_index?: number;
+}
+interface PreparedGeneration {
+  batch_id: string;
+  fingerprint: string;
+  status: PreparedGenerationStatus;
+  requests: PreparedGenerationRequest[];
+}
+
+interface PreparedQueueEntry {
+  clipId: string;
+  requestId: string;
+  kind: PreparedGenerationRequest["kind"];
+  beatId?: string;
+  variationIndex?: number;
+  production?: CompiledProductionCandidate;
+}
+
+interface DraftGenerationSettings {
+  video?: { provider: string; model: string };
+  voice?: { provider: string; model: string; voice: string };
+}
+
+const isModelChoice = (
+  value: unknown
+): value is { provider: string; model: string } =>
+  typeof value === "object" &&
+  value !== null &&
+  "provider" in value &&
+  typeof value.provider === "string" &&
+  "model" in value &&
+  typeof value.model === "string";
+
+const isDraftGenerationSettings = (
+  value: unknown
+): value is DraftGenerationSettings =>
+  typeof value === "object" &&
+  value !== null &&
+  (!("video" in value) ||
+    value.video === undefined ||
+    isModelChoice(value.video)) &&
+  (!("voice" in value) ||
+    value.voice === undefined ||
+    (isModelChoice(value.voice) &&
+      "voice" in value.voice &&
+      typeof value.voice.voice === "string"));
+
+const isPreparedGenerationRequest = (
+  value: unknown
+): value is PreparedGenerationRequest =>
+  typeof value === "object" &&
+  value !== null &&
+  "clip_id" in value &&
+  typeof value.clip_id === "string" &&
+  "request_id" in value &&
+  typeof value.request_id === "string" &&
+  "kind" in value &&
+  (value.kind === "video" ||
+    value.kind === "voiceover" ||
+    value.kind === "music");
+
+const isPreparedGeneration = (value: unknown): value is PreparedGeneration =>
+  typeof value === "object" &&
+  value !== null &&
+  "batch_id" in value &&
+  typeof value.batch_id === "string" &&
+  "fingerprint" in value &&
+  typeof value.fingerprint === "string" &&
+  "status" in value &&
+  (value.status === "unsubmitted" ||
+    value.status === "prepared" ||
+    value.status === "submitted") &&
+  "requests" in value &&
+  Array.isArray(value.requests) &&
+  value.requests.every(isPreparedGenerationRequest);
 
 /** A track by name, created at the end of the stack when it is not there. */
 function trackByName(
@@ -116,10 +214,41 @@ const isKnownTransition = (
 const musicPrompt = (brief: string): string =>
   `Instrumental score under: ${brief.trim()}`;
 
+const generationPreparationFingerprint = (input: {
+  beats: readonly TimelineBeat[];
+  width: number;
+  height: number;
+  creativeContext: unknown;
+  provider?: string;
+  model?: string;
+  voiceover: boolean;
+  voice?: string;
+  voiceProvider?: string;
+  voiceModel?: string;
+  music: boolean;
+  musicProvider?: string;
+  musicModel?: string;
+}): string =>
+  deterministicFingerprint({
+    kind: "video-generation-preparation",
+    ...input,
+    beats: input.beats.map((beat) => ({
+      id: beat.id,
+      prompt: beat.prompt,
+      duration_ms: beat.duration_ms,
+      transition: beat.transition,
+      voiceover: beat.voiceover,
+      music: beat.music,
+      source_clip_id: beat.source_clip_id,
+      production: beat.production
+    }))
+  });
+
 export async function generateFromBeats(
   store: TimelineStoreApi,
   options: GenerateFromBeatsOptions = {}
 ): Promise<GenerateFromBeatsResult> {
+  throwIfAborted(options.signal);
   const setup = store.getState().setup;
   const beats = setup?.beats ?? [];
   if (beats.length === 0) {
@@ -127,12 +256,62 @@ export async function generateFromBeats(
   }
   const rememberedVideo = getRememberedModel("video");
   const rememberedAudio = getRememberedModel("audio");
-  const provider = options.provider ?? rememberedVideo?.provider;
-  const model = options.model ?? rememberedVideo?.model;
-  const voice = options.voice ?? rememberedAudio?.voice;
-  const voiceProvider = options.voiceProvider ?? rememberedAudio?.provider;
-  const voiceModel = options.voiceModel ?? rememberedAudio?.model;
-  const productionBatchId = options.productionBatchId ?? crypto.randomUUID();
+  const draftSettingsValue = setup?.generation_settings;
+  const draftSettings = isDraftGenerationSettings(draftSettingsValue)
+    ? draftSettingsValue
+    : undefined;
+  const provider =
+    options.provider ??
+    draftSettings?.video?.provider ??
+    (draftSettings === undefined ? rememberedVideo?.provider : undefined);
+  const model =
+    options.model ??
+    draftSettings?.video?.model ??
+    (draftSettings === undefined ? rememberedVideo?.model : undefined);
+  const voice =
+    options.voice ??
+    draftSettings?.voice?.voice ??
+    (draftSettings === undefined ? rememberedAudio?.voice : undefined);
+  const voiceProvider =
+    options.voiceProvider ??
+    draftSettings?.voice?.provider ??
+    (draftSettings === undefined ? rememberedAudio?.provider : undefined);
+  const voiceModel =
+    options.voiceModel ??
+    draftSettings?.voice?.model ??
+    (draftSettings === undefined ? rememberedAudio?.model : undefined);
+  const wantsVoiceover = options.voiceover !== false;
+  const wantsMusic = options.music ?? beats.some((beat) => beat.music === true);
+  const preparationFingerprint = generationPreparationFingerprint({
+    beats,
+    width: store.getState().width,
+    height: store.getState().height,
+    creativeContext: setup?.creative_context,
+    provider,
+    model,
+    voiceover: wantsVoiceover,
+    voice,
+    voiceProvider,
+    voiceModel,
+    music: wantsMusic,
+    musicProvider: options.musicProvider,
+    musicModel: options.musicModel
+  });
+  const reusableBatchValue = setup?.prepared_generation;
+  const reusableBatch = isPreparedGeneration(reusableBatchValue)
+    ? reusableBatchValue
+    : undefined;
+  const canReuseBatch =
+    reusableBatch !== undefined &&
+    reusableBatch.status === "unsubmitted" &&
+    reusableBatch.fingerprint === preparationFingerprint &&
+    reusableBatch.requests.length > 0 &&
+    reusableBatch.requests.every((request) =>
+      store.getState().clips.some((clip) => clip.id === request.clip_id)
+    );
+  const productionBatchId =
+    options.productionBatchId ??
+    (canReuseBatch ? reusableBatch.batch_id : crypto.randomUUID());
 
   const compileBeat = (
     beat: TimelineBeat,
@@ -161,144 +340,257 @@ export async function generateFromBeats(
   // Reject unsupported reviewed requirements before creating slots or sending
   // any paid request. The real destination ids are compiled after slot creation.
   for (const beat of beats) {
-    compileBeat(beat, beat.id);
+    if (!beat.source_clip_id) {
+      compileBeat(beat, beat.id);
+    }
   }
 
-  const voiced = beats.filter(
-    (beat) => (beat.voiceover ?? "").trim().length > 0
-  );
-  const wantsMusic = options.music ?? beats.some((beat) => beat.music === true);
-
-  const videoTrack = videoTrackId(store);
-  const voiceTrack =
-    options.voiceover !== false && voice && voiced.length > 0
-      ? trackByName(store, VOICEOVER_TRACK, "audio")
-      : null;
-  const musicTrack = wantsMusic
-    ? trackByName(store, MUSIC_TRACK, "audio")
-    : null;
-
-  // The ratio the sequence is actually cut at, not the one the format started
-  // from: the look step's picker writes the sequence dimensions, so a creator
-  // who chose a 16:9 format and then switched to 9:16 has a portrait timeline.
-  // The cost estimate already reads it this way; stamping the format here sent
-  // every paid request at the ratio the creator had moved off.
-  const aspectRatio = aspectOf(store.getState().width, store.getState().height);
+  if (reusableBatch?.status === "unsubmitted" && !canReuseBatch) {
+    for (const clipId of new Set(
+      reusableBatch.requests.map((request) => request.clip_id)
+    )) {
+      store.getState().deleteClip(clipId);
+    }
+  }
 
   const videoClipIds: string[] = [];
   const voiceoverClipIds: string[] = [];
   const beatClipIds = new Map<string, string>();
-  const productionQueue: Array<{
-    clipId: string;
-    production: CompiledProductionCandidate;
-  }> = [];
-  let startMs = 0;
+  let queued: PreparedQueueEntry[] = [];
+  let musicClipId: string | null = null;
+  let preparedRequests: PreparedGenerationRequest[];
 
-  for (const [index, beat] of beats.entries()) {
-    const durationMs = beatDurationMs(beat);
-    const clipId = store.getState().addDirectGenClip({
-      trackId: videoTrack,
-      startMs,
-      durationMs,
-      mediaType: "video",
-      bindingKind: "text-to-video",
-      prompt: beat.prompt,
-      provider,
-      model,
-      aspectRatio,
-      name: `Beat ${index + 1}`
-    });
-    const transition =
-      beat.transition && isKnownTransition(beat.transition)
-        ? buildTransition({
-            type: beat.transition,
-            durationMs: TRANSITION_MS
-          })
-        : undefined;
-    const patch: Partial<TimelineClip> = { beatId: beat.id };
-    if (transition) {
-      patch.transitionIn = transition;
+  if (canReuseBatch && reusableBatch) {
+    preparedRequests = [...reusableBatch.requests];
+    const candidates = new Map<string, CompiledProductionCandidate>();
+    for (const beat of beats) {
+      if (!beat.clip_id) {
+        continue;
+      }
+      beatClipIds.set(beat.id, beat.clip_id);
+      for (const candidate of compileBeat(beat, beat.clip_id)) {
+        candidates.set(candidate.identity.requestId, candidate);
+      }
     }
-    store.getState().patchClip(clipId, patch);
-    videoClipIds.push(clipId);
-    beatClipIds.set(beat.id, clipId);
-    productionQueue.push(
-      ...compileBeat(beat, clipId).map((production) => ({
-        clipId,
-        production
-      }))
+    for (const request of preparedRequests) {
+      const production = candidates.get(request.request_id);
+      if (request.kind === "video" && !production) {
+        throw new Error(
+          "The prepared video no longer matches the reviewed plan. Prepare it again before submitting."
+        );
+      }
+      if (request.kind === "video") {
+        videoClipIds.push(request.clip_id);
+      } else if (request.kind === "voiceover") {
+        voiceoverClipIds.push(request.clip_id);
+      } else {
+        musicClipId = request.clip_id;
+      }
+      queued.push({
+        clipId: request.clip_id,
+        requestId: request.request_id,
+        kind: request.kind,
+        ...(request.beat_id && { beatId: request.beat_id }),
+        ...(request.variation_index && {
+          variationIndex: request.variation_index
+        }),
+        ...(production && { production })
+      });
+    }
+  } else {
+    const voiced = beats.filter(
+      (beat) => (beat.voiceover ?? "").trim().length > 0
     );
+    const videoTrack = videoTrackId(store);
+    const voiceTrack =
+      wantsVoiceover && voice && voiced.length > 0
+        ? trackByName(store, VOICEOVER_TRACK, "audio")
+        : null;
+    const musicTrack = wantsMusic
+      ? trackByName(store, MUSIC_TRACK, "audio")
+      : null;
+    const aspectRatio = aspectOf(
+      store.getState().width,
+      store.getState().height
+    );
+    let startMs = 0;
 
-    const line = (beat.voiceover ?? "").trim();
-    if (voiceTrack && line.length > 0) {
-      const voiceClipId = store.getState().addDirectGenClip({
-        trackId: voiceTrack,
-        startMs,
-        durationMs,
+    for (const [index, beat] of beats.entries()) {
+      const durationMs = beatDurationMs(beat);
+      const sourceClip = beat.source_clip_id
+        ? store.getState().clips.find((clip) => clip.id === beat.source_clip_id)
+        : undefined;
+      if (beat.source_clip_id && !sourceClip) {
+        throw new Error(
+          `The imported source for beat ${index + 1} is no longer on the timeline.`
+        );
+      }
+      const clipId =
+        sourceClip?.id ??
+        store.getState().addDirectGenClip({
+          trackId: videoTrack,
+          startMs,
+          durationMs,
+          mediaType: "video",
+          bindingKind: "text-to-video",
+          prompt: beat.prompt,
+          provider,
+          model,
+          aspectRatio,
+          name: `Beat ${index + 1}`
+        });
+      const transition =
+        beat.transition && isKnownTransition(beat.transition)
+          ? buildTransition({
+              type: beat.transition,
+              durationMs: TRANSITION_MS
+            })
+          : undefined;
+      const patch: Partial<TimelineClip> = sourceClip
+        ? {
+            beatId: beat.id,
+            startMs,
+            durationMs,
+            inPointMs: sourceClip.inPointMs ?? 0,
+            outPointMs:
+              (sourceClip.inPointMs ?? 0) +
+              durationMs * sourceRate(sourceClip)
+          }
+        : { beatId: beat.id };
+      if (transition) {
+        patch.transitionIn = transition;
+      }
+      store.getState().patchClip(clipId, patch);
+      if (sourceClip?.linkId) {
+        for (const linkedClip of store
+          .getState()
+          .clips.filter(
+            (clip) =>
+              clip.id !== sourceClip.id && clip.linkId === sourceClip.linkId
+          )) {
+          const inPointMs = linkedClip.inPointMs ?? 0;
+          store.getState().patchClip(linkedClip.id, {
+            startMs,
+            durationMs,
+            inPointMs,
+            outPointMs: inPointMs + durationMs * sourceRate(linkedClip)
+          });
+        }
+      }
+      videoClipIds.push(clipId);
+      beatClipIds.set(beat.id, clipId);
+      if (!sourceClip) {
+        queued.push(
+          ...compileBeat(beat, clipId).map((production) => ({
+            clipId,
+            requestId: production.identity.requestId,
+            kind: "video" as const,
+            beatId: beat.id,
+            variationIndex: production.identity.variationIndex,
+            production
+          }))
+        );
+      }
+
+      const line = (beat.voiceover ?? "").trim();
+      if (voiceTrack && line.length > 0) {
+        const voiceClipId = store.getState().addDirectGenClip({
+          trackId: voiceTrack,
+          startMs,
+          durationMs,
+          mediaType: "audio",
+          bindingKind: "text-to-audio",
+          prompt: line,
+          provider: voiceProvider,
+          model: voiceModel,
+          voice,
+          name: `Beat ${index + 1} voiceover`
+        });
+        store.getState().patchClip(voiceClipId, { beatId: beat.id });
+        voiceoverClipIds.push(voiceClipId);
+        queued.push({
+          clipId: voiceClipId,
+          requestId: crypto.randomUUID(),
+          kind: "voiceover",
+          beatId: beat.id
+        });
+      }
+      startMs += durationMs;
+    }
+
+    if (musicTrack && options.musicModel) {
+      musicClipId = store.getState().addDirectGenClip({
+        trackId: musicTrack,
+        startMs: 0,
+        durationMs: startMs,
         mediaType: "audio",
         bindingKind: "text-to-audio",
-        prompt: line,
-        provider: voiceProvider,
-        model: voiceModel,
-        voice,
-        name: `Beat ${index + 1} voiceover`
+        prompt: musicPrompt(setup?.brief ?? ""),
+        provider: options.musicProvider,
+        model: options.musicModel,
+        name: "Music"
       });
-      store.getState().patchClip(voiceClipId, { beatId: beat.id });
-      voiceoverClipIds.push(voiceClipId);
+      queued.push({
+        clipId: musicClipId,
+        requestId: crypto.randomUUID(),
+        kind: "music"
+      });
     }
-
-    startMs += durationMs;
+    preparedRequests = queued.map((request) => ({
+      clip_id: request.clipId,
+      request_id: request.requestId,
+      kind: request.kind,
+      ...(request.beatId && { beat_id: request.beatId }),
+      ...(request.variationIndex && {
+        variation_index: request.variationIndex
+      })
+    }));
   }
 
-  // One bed under the whole cut, never one per beat: several overlapping music
-  // clips would play at once.
-  //
-  // And only when there is a model to render it with. A bed created without
-  // one was excluded from the queue below, so the cut finished carrying a
-  // silent placeholder nothing would ever fill. No model, no clip.
-  let musicClipId: string | null = null;
-  if (musicTrack && options.musicModel) {
-    musicClipId = store.getState().addDirectGenClip({
-      trackId: musicTrack,
-      startMs: 0,
-      durationMs: startMs,
-      mediaType: "audio",
-      bindingKind: "text-to-audio",
-      prompt: musicPrompt(setup?.brief ?? ""),
-      provider: options.musicProvider,
-      model: options.musicModel,
-      name: "Music"
-    });
-  }
-
-  // The plan keeps the link to what it produced, and the flow is over: both
-  // land before the first job goes out.
+  const preparedGeneration: PreparedGeneration = {
+    batch_id: productionBatchId,
+    fingerprint: preparationFingerprint,
+    status: "unsubmitted",
+    requests: preparedRequests
+  };
+  const linkedBeats = beats.map((beat) => {
+    const clipId = beatClipIds.get(beat.id);
+    return clipId ? { ...beat, clip_id: clipId } : beat;
+  });
   store.getState().setSetup({
-    stage: "done",
-    beats: beats.map((beat) => {
-      const clipId = beatClipIds.get(beat.id);
-      return clipId ? { ...beat, clip_id: clipId } : beat;
-    })
+    stage: "look",
+    beats: linkedBeats,
+    prepared_generation: preparedGeneration
   });
 
   const startJob = options.startJob;
   const startedClipIds: string[] = [];
   if (startJob) {
-    const queued: Array<{
-      clipId: string;
-      production?: CompiledProductionCandidate;
-    }> = [
-      ...productionQueue,
-      ...voiceoverClipIds.map((clipId) => ({ clipId }))
-    ];
-    if (musicClipId) {
-      queued.push({ clipId: musicClipId });
+    try {
+      await options.persistPreparedBatch?.();
+    } catch (cause) {
+      store.getState().setSetup({
+        stage: "look",
+        prepared_generation: {
+          ...preparedGeneration,
+          status: "unsubmitted"
+        }
+      });
+      throw new Error(
+        "Could not save the prepared video. No generation requests were submitted.",
+        { cause }
+      );
     }
+    throwIfAborted(options.signal);
+    store.getState().setSetup({
+      stage: "done",
+      prepared_generation: preparedGeneration
+    });
     // A clip that cannot start records the reason on itself, so one refusal
     // must not stop the rest of the batch.
     const outcomes = await Promise.all(
-      queued.map(({ clipId, production }) =>
-        startJob(clipId, production)
+      queued.map(({ clipId, production, requestId }) =>
+        startJob(clipId, production, requestId)
           .then((requestId) => (requestId === null ? null : clipId))
           .catch(() => null)
       )
@@ -307,6 +599,14 @@ export async function generateFromBeats(
       ...new Set(outcomes.filter((id): id is string => id !== null))
     );
   }
+
+  store.getState().setSetup({
+    stage: "done",
+    prepared_generation: {
+      ...preparedGeneration,
+      status: "submitted"
+    }
+  });
 
   return { videoClipIds, voiceoverClipIds, musicClipId, startedClipIds };
 }
@@ -317,7 +617,11 @@ export function useGenerateFromBeats() {
   const { start } = useTimelineDirectGenJob();
   return useCallback(
     (options: GenerateFromBeatsOptions = {}) =>
-      generateFromBeats(store, { startJob: start, ...options }),
+      generateFromBeats(store, {
+        startJob: start,
+        persistPreparedBatch: () => persistTimelineDocument(store),
+        ...options
+      }),
     [start, store]
   );
 }

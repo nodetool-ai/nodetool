@@ -6,7 +6,13 @@
  * The label renders above the control via the shared Label primitive.
  */
 
-import React, { createContext, memo, useCallback, useContext, useId } from "react";
+import React, {
+  createContext,
+  memo,
+  useCallback,
+  useContext,
+  useId
+} from "react";
 import {
   FormControl,
   Select,
@@ -20,13 +26,17 @@ import { CONTROL, FONT_SIZE_SANS } from "./tokens";
 import { useFormFieldContext } from "./formFieldContext";
 
 /** Compact editor typography also reaches dropdown menus rendered in portals. */
-export const SelectFieldDensityContext = createContext<"normal" | "compact">("normal");
+export const SelectFieldDensityContext = createContext<"normal" | "compact">(
+  "normal"
+);
 
 export interface SelectOption {
   /** Option value */
   value: string | number;
   /** Display label */
   label: string;
+  /** Keeps an unavailable choice visible without allowing selection. */
+  disabled?: boolean;
 }
 
 export interface SelectFieldProps {
@@ -121,7 +131,7 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
     const autoId = useId();
     // Inside a FormField the context id wins (even over a caller `id`) so the
     // `${controlId}-label` convention below stays aligned with FormField.
-    const selectId = formField ? formField.controlId : id ?? autoId;
+    const selectId = formField ? formField.controlId : (id ?? autoId);
     const labelId = `${selectId}-label`;
     // Inside a labeled FormField, FormField renders the visible label and
     // gives it id `${controlId}-label` (its documented convention). The
@@ -146,7 +156,8 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
     const hasEmptyOption = options.some((option) => option.value === "");
 
     const density = useContext(SelectFieldDensityContext);
-    const fieldFontSize = density === "compact" ? FONT_SIZE_SANS.caption : FONT_SIZE_SANS.body;
+    const fieldFontSize =
+      density === "compact" ? FONT_SIZE_SANS.caption : FONT_SIZE_SANS.body;
     const controlHeight =
       size === "small" ? CONTROL.height.sm : CONTROL.height.lg;
 
@@ -221,6 +232,7 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
               <MenuItem
                 key={option.value}
                 value={option.value}
+                disabled={option.disabled}
                 sx={{ fontSize: fieldFontSize }}
               >
                 {option.label}

@@ -30,19 +30,26 @@ import type {
 const NEXT_STEP: Readonly<
   Record<WorkflowSetupRunMode, { label: string; detail: string }>
 > = {
-  manual: { label: "Run it again", detail: "Change the inputs and press run." },
-  app: { label: "Save as app", detail: "Put a form over these inputs." },
+  manual: {
+    label: "Continue on canvas",
+    detail: "Adjust inputs or run the workflow from the canvas."
+  },
+  app: {
+    label: "Create Mini App",
+    detail: "Create and open a Mini App backed by this workflow."
+  },
   trigger: {
     label: "Add a trigger",
-    detail: "Start it on a schedule or a webhook."
+    detail: "Open the trigger-node picker on this canvas."
   }
 };
 
 export interface WorkflowLandingChecklistProps {
   result: BuildFromPlanResult;
   runMode: WorkflowSetupRunMode;
-  /** Opens the run mode's next step — the app builder, the trigger editor. */
-  onNextStep: () => void;
+  /** Performs the named next operation for the selected run mode. */
+  onNextStep: () => void | Promise<void>;
+  nextStepPending?: boolean;
   /**
    * Hands the agent panel the first message: the error, with the fix proposed.
    * The creator sends it; this component never applies anything itself.
@@ -51,7 +58,9 @@ export interface WorkflowLandingChecklistProps {
 }
 
 /** The message the agent panel opens with when the build did not come out clean. */
-export const buildFailureMessage = (result: BuildFromPlanResult): string | null => {
+export const buildFailureMessage = (
+  result: BuildFromPlanResult
+): string | null => {
   if (result.validationErrors.length > 0) {
     return [
       "The graph I just built does not validate:",
@@ -125,6 +134,7 @@ const ChecklistInternal: React.FC<WorkflowLandingChecklistProps> = ({
   result,
   runMode,
   onNextStep,
+  nextStepPending = false,
   onAskAgent
 }) => {
   const validated = result.validationErrors.length === 0;
@@ -171,16 +181,20 @@ const ChecklistInternal: React.FC<WorkflowLandingChecklistProps> = ({
             ? outputDetail(result.output ?? result.testRun.output)
             : result.status === "running"
               ? "Running with your sample inputs"
-            : (result.testRun.error ??
-              (validated
-                ? "Not started — part of the plan is unwired"
-                : "Not started — the graph did not validate"))
+              : (result.testRun.error ??
+                (validated
+                  ? "Not started — part of the plan is unwired"
+                  : "Not started — the graph did not validate"))
         }
       />
 
       {failure === null ? (
         <FlexRow gap={GAP.normal} align="center">
-          <EditorButton variant="contained" onClick={onNextStep}>
+          <EditorButton
+            variant="contained"
+            onClick={() => void onNextStep()}
+            disabled={nextStepPending}
+          >
             {next.label}
           </EditorButton>
           <Caption color="secondary">{next.detail}</Caption>

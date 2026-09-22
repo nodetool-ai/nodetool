@@ -453,6 +453,7 @@ export const useWorkflowSetupFlow = ({
           }),
         // `buildFromPlan` writes the terminal stage itself, as soon as the
         // nodes are placed (PRD § 11.3, D3).
+        continueAfterUnmount: true,
         onAdvance: async (context) => {
           const built = await buildFromPlan({
             plan,

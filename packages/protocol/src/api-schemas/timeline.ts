@@ -1531,6 +1531,8 @@ export const timelineBeat = z
     voiceover: z.string().optional(),
     music: z.boolean().optional(),
     clip_id: z.string().optional(),
+    /** Imported source footage this beat edits instead of replacing. */
+    source_clip_id: z.string().optional(),
     /** Optional production requirements reviewed before generation. */
     production: productionRequirement.optional()
   })
@@ -1561,6 +1563,37 @@ export const timelineSetup = z
     creative_context: creativeContext.optional(),
     /** Fingerprint of the reviewed production requirements. */
     production_review_fingerprint: z.string().optional(),
+    /** Model and voice intent owned by this draft, seeded from preferences once. */
+    generation_settings: z
+      .object({
+        video: z.object({ provider: z.string(), model: z.string() }).optional(),
+        voice: z
+          .object({
+            provider: z.string(),
+            model: z.string(),
+            voice: z.string()
+          })
+          .optional()
+      })
+      .optional(),
+    /** Durable destinations and request identities saved before paid dispatch. */
+    prepared_generation: z
+      .object({
+        batch_id: z.string(),
+        /** Immutable generation inputs this batch was prepared from. */
+        fingerprint: z.string(),
+        status: z.enum(["unsubmitted", "prepared", "submitted"]),
+        requests: z.array(
+          z.object({
+            clip_id: z.string(),
+            request_id: z.string(),
+            kind: z.enum(["video", "voiceover", "music"]),
+            beat_id: z.string().optional(),
+            variation_index: z.number().int().positive().optional()
+          })
+        )
+      })
+      .optional(),
     beats: z.array(timelineBeat).optional(),
     /**
      * The language model that drafts the beats. Absent means the flow picks

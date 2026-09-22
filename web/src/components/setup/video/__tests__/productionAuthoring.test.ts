@@ -165,10 +165,28 @@ it("explains missing local speech and disables mode selection", () => {
   );
   // The binding reads under the control it explains, not in a read-only field
   // of its own that looks like a value the creator typed.
-  expect(fields.find((field) => field.label === "Speech binding")).toBeUndefined();
   expect(
-    fields.find((field) => field.label === "Speech mode")?.hint
-  ).toContain("Add voiceover or dialogue");
+    fields.find((field) => field.label === "Speech binding")
+  ).toBeUndefined();
+  expect(fields.find((field) => field.label === "Speech mode")?.hint).toContain(
+    "Add voiceover or dialogue"
+  );
+});
+
+it("marks on-camera speech unavailable at selection with an actionable alternative", () => {
+  const fields = productionFields({
+    id: "b",
+    value: {},
+    speechText: "Hello",
+    onChange: jest.fn()
+  });
+  const speech = fields.find((field) => field.label === "Speech mode");
+  expect(speech?.options).toContainEqual({
+    value: "on_camera",
+    label: "On-camera (unavailable in guided flow)",
+    disabled: true
+  });
+  expect(speech?.hint).toContain("Choose Off-camera or None");
 });
 
 it("allows supported references and alternatives but blocks unsupported on-camera speech", () => {
@@ -186,5 +204,7 @@ it("allows supported references and alternatives but blocks unsupported on-camer
       ],
       false
     )
-  ).toContain("audio-driven");
+  ).toBe(
+    "On-camera speech is unavailable in this guided flow. Choose Off-camera or None."
+  );
 });

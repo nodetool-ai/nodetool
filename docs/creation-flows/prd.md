@@ -162,7 +162,7 @@ and a one-line promise:
 
 | Card | Promise |
 | --- | --- |
-| Storyboard | From a sentence to a rendered board in three steps. |
+| Storyboard | From a sentence to a rendered board in four steps. |
 | Video | From a sentence to a cut on the timeline, no board. |
 | Script | From a topic to voiced lines, ready to place. |
 | Image | From a description to a picked variation in the editor. |
@@ -1243,7 +1243,7 @@ Copy follows [BRAND.md § Lexicon](../BRAND.md#5-lexicon): no billing terms, no
 
 | Where | Text |
 | --- | --- |
-| Entry cards | Storyboard · From a sentence to a rendered board in three steps. / Video · From a sentence to a cut on the timeline, no board. / Script · From a topic to voiced lines, ready to place. / Image · From a description to a picked variation in the editor. / Workflow · From a task to a running graph, with the plan reviewed first. |
+| Entry cards | Storyboard · From a sentence to a rendered board in four steps. / Video · From a sentence to a cut on the timeline, no board. / Script · From a topic to voiced lines, ready to place. / Image · From a description to a picked variation in the editor. / Workflow · From a task to a running graph, with the plan reviewed first. |
 | E1 step 1 | What's your story? · We'll turn it into a screenplay and storyboard. · One sentence is enough, or paste a full script. |
 | E1 step 1 cards | Upload your file · PDF, DOCX, FDX / Import your shotlist · Download the template to get started / Start with a blank storyboard · Skip the story and go straight to the board |
 | E1 step 2 | Choose your genre · Back · Review your screenplay · Re-direct · Continue to storyboard |

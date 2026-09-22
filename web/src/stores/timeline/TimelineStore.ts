@@ -364,6 +364,8 @@ export interface TimelineStoreState {
         | "directorModel"
         | "creative_context"
         | "production_review_fingerprint"
+        | "generation_settings"
+        | "prepared_generation"
       >
     >
   ) => void;

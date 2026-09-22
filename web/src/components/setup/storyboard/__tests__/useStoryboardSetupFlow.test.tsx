@@ -1,5 +1,5 @@
 /**
- * The storyboard flow config: three stepper entries for four stages, and a
+ * The storyboard flow config: four stepper entries for five stages, and a
  * last step that writes the terminal stage itself (PRD § 6.2, § 7.3).
  */
 import {
@@ -12,6 +12,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { productionRequirement } from "@nodetool-ai/protocol";
 import mockTheme from "../../../../__mocks__/themeMock";
 
 jest.mock("../../../../hooks/storyboard/useStoryboards", () => ({
@@ -86,6 +87,7 @@ import {
   newStoryboardSetupDocument,
   useStoryboardSetupFlow
 } from "../useStoryboardSetupFlow";
+import { productionReviewFingerprint } from "../../video/productionAuthoring";
 
 const BOARD_ID = "b1";
 
@@ -150,14 +152,43 @@ const seedScreenplay = () =>
   });
 
 describe("useStoryboardSetupFlow", () => {
+  it("does not block still generation for a legacy on-camera requirement", () => {
+    seedScreenplay();
+    const shot = useStoryboardStore.getState().getBoard(BOARD_ID)?.shots[0];
+    if (!shot) {
+      throw new Error("Expected a seeded shot.");
+    }
+    useStoryboardStore.getState().updateShot(BOARD_ID, shot.id, {
+      production: productionRequirement.parse({
+        speech_mode: "on_camera",
+        speech_binding: { text: "Hello" }
+      })
+    });
+    const board = useStoryboardStore.getState().getBoard(BOARD_ID);
+    useStoryboardStore.getState().setSetup(BOARD_ID, {
+      stage: "look",
+      production_review_fingerprint: productionReviewFingerprint({
+        brief: board?.brief ?? "",
+        genre: board?.genre ?? "",
+        creativeContext: board?.creativeContext,
+        shots: board?.shots ?? []
+      })
+    });
+
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+
+    expect(result.current.steps[4].canAdvance).toBe(true);
+    expect(result.current.steps[4].blockedReason).toBeUndefined();
+  });
+
   it("persists production review and requires another review after context changes", async () => {
     seedStepValues();
     seedScreenplay();
-    useStoryboardStore
-      .getState()
-      .setSetup(BOARD_ID, {
-        creative_context: { schema_version: 1, tone: "Direct" }
-      });
+    useStoryboardStore.getState().setSetup(BOARD_ID, {
+      creative_context: { schema_version: 1, tone: "Direct" }
+    });
     const hook = renderHook(() =>
       useStoryboardSetupFlow({ boardId: BOARD_ID })
     );
@@ -172,11 +203,9 @@ describe("useStoryboardSetupFlow", () => {
     );
     expect(resumed.result.current.steps[4].canAdvance).toBe(true);
     act(() =>
-      useStoryboardStore
-        .getState()
-        .setSetup(BOARD_ID, {
-          creative_context: { schema_version: 1, tone: "Playful" }
-        })
+      useStoryboardStore.getState().setSetup(BOARD_ID, {
+        creative_context: { schema_version: 1, tone: "Playful" }
+      })
     );
     expect(resumed.result.current.steps[4].blockedReason).toContain(
       "Production context changed"

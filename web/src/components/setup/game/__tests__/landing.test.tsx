@@ -17,13 +17,18 @@ import {
   GameLandingChecklist,
   gameFailureMessage
 } from "../GameLandingChecklist";
-import { summarizeGameRun, type GameRunSummary } from "../gameRunSummary";
+import {
+  summarizeGameRun,
+  type GameRunSummary,
+  type GameVerificationState
+} from "../gameRunSummary";
 import {
   gameArchiveDownloadPath,
   gamePlayTestTurn,
   gameProjectFileRef
 } from "../nextSteps";
 import type { BuildGameResult } from "../../../../hooks/game/useBuildGame";
+import type { RunState } from "../../../../stores/WorkflowRunsStore";
 
 const CLEAN: BuildGameResult = {
   nodeCount: 6,
@@ -41,12 +46,14 @@ const NODES = [
 
 const summarize = (
   outputs: Record<string, Record<string, unknown>>,
-  errors: Record<string, string> = {}
+  errors: Record<string, string> = {},
+  runState?: RunState
 ): GameRunSummary =>
   summarizeGameRun({
     nodes: NODES,
     outputsFor: (nodeId) => outputs[nodeId],
-    errorFor: (nodeId) => errors[nodeId]
+    errorFor: (nodeId) => errors[nodeId],
+    runState
   });
 
 const renderChecklist = (run: GameRunSummary, result = CLEAN) => {
@@ -88,31 +95,66 @@ describe("summarizeGameRun", () => {
     expect(run.archive).toBe("games/ember-run.zip");
   });
 
-  // Criterion 7, at its own level: nothing but `verified: true` is verified.
   it.each([
-    ["nothing yet", undefined],
-    ["a run that has not exported", { directory: "games/x" }],
-    ["verified false", { directory: "games/x", verified: false }],
-    ["a truthy non-boolean", { directory: "games/x", verified: "yes" }],
-    ["a truthy number", { directory: "games/x", verified: 1 }]
-  ])("does not report %s as verified", (_label, outputs) => {
-    const run = summarize(outputs === undefined ? {} : { export: outputs });
-    expect(run.verified).toBe(false);
-  });
-
-  it("reports verified only for verified: true", () => {
-    expect(summarize({ export: { verified: true } }).verified).toBe(true);
-  });
+    ["a queued run", {}, "queued", "queued"],
+    ["a running export", {}, "running", "running"],
+    ["an interrupted run", {}, "cancelled", "interrupted"],
+    [
+      "a successful verification",
+      { export: { verified: true } },
+      "completed",
+      "passed"
+    ],
+    [
+      "an invalid project",
+      {
+        export: {
+          directory: "games/x",
+          verified: false,
+          verification: { ran: true, errors: ["script parse failed"] }
+        }
+      },
+      "completed",
+      "failed"
+    ],
+    [
+      "a missing executable",
+      {
+        export: {
+          directory: "games/x",
+          verified: false,
+          verification: {
+            ran: false,
+            reason: "No Godot binary found: put godot on PATH.",
+            errors: []
+          }
+        }
+      },
+      "completed",
+      "unavailable"
+    ]
+  ] as const)(
+    "reports %s with an explicit state",
+    (_label, outputs, runState, status) => {
+      expect(summarize(outputs, {}, runState).verification.status).toBe(status);
+    }
+  );
 
   it("carries the reason a skipped verification gave", () => {
     const run = summarize({
       export: {
         directory: "games/x",
         verified: false,
-        verification: { reason: "No Godot binary on this server" }
+        verification: {
+          ran: false,
+          reason: "No Godot binary on this server"
+        }
       }
     });
-    expect(run.verificationReason).toBe("No Godot binary on this server");
+    expect(run.verification).toEqual({
+      status: "unavailable",
+      reason: "No Godot binary on this server"
+    });
   });
 
   it("names a failed node by the slot it was filling", () => {
@@ -142,15 +184,40 @@ describe("GameLandingChecklist", () => {
     expect(screen.getByText("Verified with Godot 4.3")).toBeInTheDocument();
   });
 
-  // Criterion 7, at the surface: a run with no `verified: true` says where the
-  // creator has to look instead, and never shows green.
-  it("never shows Verified without verified: true", () => {
-    renderChecklist(
-      summarize({
-        export: { directory: "games/ember-run", verified: false }
-      })
-    );
-    expect(screen.queryByText("Verified with Godot 4.3")).toBeNull();
+  it.each([
+    ["queued", "Verification queued", "Waiting for the export node"],
+    ["running", "Verification running", "Godot checks are in progress"],
+    ["failed", "Verification failed", "script parse failed"],
+    ["interrupted", "Verification interrupted", "The run was cancelled"],
+    [
+      "passed",
+      "Verified with Godot 4.3",
+      "The project opened and ran headlessly"
+    ]
+  ] as const)(
+    "renders the %s state without a missing-install diagnosis",
+    (status, label, detail) => {
+      const verification: GameVerificationState = { status };
+      if (status === "failed" || status === "interrupted") {
+        verification.reason = detail;
+      }
+      renderChecklist({
+        ...summarize({}),
+        verification
+      });
+      expect(screen.getByText(label)).toBeInTheDocument();
+      expect(screen.queryByText(/Godot not found on this server/)).toBeNull();
+    }
+  );
+
+  it("diagnoses a missing Godot executable only for explicit unavailability", () => {
+    renderChecklist({
+      ...summarize({}),
+      verification: {
+        status: "unavailable",
+        reason: "No Godot binary found: put godot on PATH."
+      }
+    });
     expect(
       screen.getByText(
         "Godot not found on this server — open the folder in Godot 4.3 to verify"
@@ -170,7 +237,9 @@ describe("GameLandingChecklist", () => {
           }
         })
       );
-    await user.click(screen.getByRole("button", { name: "Open project folder" }));
+    await user.click(
+      screen.getByRole("button", { name: "Open project folder" })
+    );
     await user.click(screen.getByRole("button", { name: "Download project" }));
     await user.click(
       screen.getByRole("button", { name: "Play-test with the agent" })
@@ -200,7 +269,9 @@ describe("GameLandingChecklist", () => {
     expect(
       screen.getByText("This needs a fix before it plays")
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Download project" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Download project" })
+    ).toBeNull();
   });
 });
 

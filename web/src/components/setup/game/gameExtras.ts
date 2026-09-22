@@ -33,7 +33,18 @@ export const gameExportSchema = z.object({
   job_id: z.string(),
   directory: z.string().nullable(),
   archive: z.string().nullable(),
-  verified: z.boolean(),
+  verification_status: z
+    .enum([
+      "queued",
+      "running",
+      "passed",
+      "failed",
+      "unavailable",
+      "interrupted"
+    ])
+    .optional(),
+  /** Legacy records used this boolean; new writes use verification_status. */
+  verified: z.boolean().optional(),
   verification_reason: z.string().nullable(),
   checked: z.number(),
   total: z.number()

@@ -7,21 +7,34 @@
  * loading, failure, no provider and nothing compatible apart (F14).
  */
 
-import { render, renderHook, screen } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useLastModelStore } from "../../../../stores/lastModelStore";
 import { STUDIO_CLIP_MODELS, STUDIO_VOICES } from "../../../../studio/curatedModels";
-import { LookStep, useLookStep } from "../LookStep";
+import {
+  LookStep,
+  useDraftGenerationSettings,
+  useLookStep
+} from "../LookStep";
 
 jest.mock("../../../../hooks/useResolvedMediaUri");
 jest.mock("../../../../hooks/timeline/useGenerateFromBeats", () => ({
   useGenerateFromBeats: () => jest.fn()
 }));
+let mockEstimate: {
+  total: number;
+  label: string;
+  destinationCount: number;
+  videoRequestCount: number;
+  voiceRequestCount: number;
+  pricedCount: number;
+  unpricedCount: number;
+} | null = null;
 jest.mock("../../../../hooks/timeline/useBeatPlanCostEstimate", () => ({
-  useBeatPlanCostEstimate: () => null
+  useBeatPlanCostEstimate: () => mockEstimate
 }));
 jest.mock("../../modelSamples", () => ({
   useModelSamples: () => ({})
@@ -71,6 +84,7 @@ const renderBody = (voiceOn = true) =>
 beforeEach(() => {
   useTimelineStore.getState().reset();
   useLastModelStore.setState({ byKind: {} });
+  mockEstimate = null;
   videoCatalog = {
     models: [{ id: CLIP_MODEL.id }],
     providers: ["nodetool"],
@@ -86,6 +100,103 @@ beforeEach(() => {
 });
 
 describe("useLookStep — the gate before the paid button", () => {
+  it("seeds a new draft once, then ignores later global choices", async () => {
+    seedPlan();
+    useLastModelStore.setState({
+      byKind: {
+        video: { provider: "nodetool", model: CLIP_MODEL.id },
+        audio: {
+          provider: "nodetool",
+          model: VOICE.modelId,
+          voice: VOICE.id
+        }
+      }
+    });
+    const { result } = renderHook(() => useDraftGenerationSettings());
+
+    await waitFor(() =>
+      expect(
+        useTimelineStore.getState().setup?.generation_settings
+      ).toEqual({
+        video: { provider: "nodetool", model: CLIP_MODEL.id },
+        voice: {
+          provider: "nodetool",
+          model: VOICE.modelId,
+          voice: VOICE.id
+        }
+      })
+    );
+
+    act(() => {
+      useLastModelStore.setState({
+        byKind: {
+          video: { provider: "other", model: "other/video" },
+          audio: { provider: "other", model: "other/tts", voice: "other" }
+        }
+      });
+    });
+
+    expect(result.current.video?.model).toBe(CLIP_MODEL.id);
+    expect(result.current.voice?.voice).toBe(VOICE.id);
+  });
+
+  it("keeps document A choices after document B changes the global preference", () => {
+    seedPlan();
+    useTimelineStore.getState().setSetup({
+      generation_settings: {
+        video: { provider: "nodetool", model: CLIP_MODEL.id },
+        voice: {
+          provider: "nodetool",
+          model: VOICE.modelId,
+          voice: VOICE.id
+        }
+      }
+    });
+    useLastModelStore.setState({
+      byKind: {
+        video: { provider: "document-b", model: "document-b/video" },
+        audio: {
+          provider: "document-b",
+          model: "document-b/tts",
+          voice: "document-b-voice"
+        }
+      }
+    });
+
+    const { result } = renderHook(() => ({
+      settings: useDraftGenerationSettings(),
+      look: useLookStep({ voiceOn: true, musicOn: false })
+    }));
+
+    expect(result.current.look.canAdvance).toBe(true);
+    expect(result.current.settings.video?.model).toBe(CLIP_MODEL.id);
+    expect(result.current.settings.voice?.voice).toBe(VOICE.id);
+  });
+
+  it("shows request counts and qualifies a partial price as a known subtotal", () => {
+    seedPlan();
+    mockEstimate = {
+      total: 1.25,
+      label: "$1.25",
+      destinationCount: 2,
+      videoRequestCount: 6,
+      voiceRequestCount: 1,
+      pricedCount: 6,
+      unpricedCount: 1
+    };
+    useLastModelStore.setState({
+      byKind: { video: { provider: "nodetool", model: CLIP_MODEL.id } }
+    });
+
+    const { result } = renderHook(() =>
+      useLookStep({ voiceOn: false, musicOn: false })
+    );
+
+    expect(result.current.primaryDetail).toBe(
+      "2 destinations · 6 video takes · 1 voice request · known subtotal $1.25 · 1 unpriced request"
+    );
+  });
+
   it("holds the button while Voiceover is on and no voice is picked (F11)", () => {
     seedPlan();
     useLastModelStore.setState({
@@ -169,6 +280,42 @@ describe("useLookStep — the gate before the paid button", () => {
     );
     expect(result.current.canAdvance).toBe(false);
     expect(result.current.blockedReason).toContain("No provider is set up");
+  });
+
+  it("allows a source-only edit without a video provider and states zero generation cost", () => {
+    useTimelineStore.getState().setSetup({
+      stage: "look",
+      brief: "tighten supplied footage",
+      format: "ad-15",
+      beats: [
+        {
+          id: "b-source",
+          prompt: "trim the supplied shot",
+          duration_ms: 3000,
+          source_clip_id: "source-clip"
+        }
+      ]
+    });
+    videoCatalog = { models: [], providers: [], isLoading: false, error: null };
+    mockEstimate = {
+      total: 0,
+      label: "$0.00",
+      destinationCount: 1,
+      videoRequestCount: 0,
+      voiceRequestCount: 0,
+      pricedCount: 0,
+      unpricedCount: 0
+    };
+
+    const { result } = renderHook(() =>
+      useLookStep({ voiceOn: false, musicOn: false })
+    );
+
+    expect(result.current.canAdvance).toBe(true);
+    expect(result.current.blockedReason).toBeUndefined();
+    expect(result.current.primaryDetail).toBe(
+      "1 destination · 0 video takes · no generation requests · no generation cost"
+    );
   });
 
   it("judges no tile while the catalog is still loading (F14)", () => {

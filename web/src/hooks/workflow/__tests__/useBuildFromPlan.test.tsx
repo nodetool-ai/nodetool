@@ -7,17 +7,25 @@
  * validates *and* has nothing left unwired — because a graph with an output
  * fed by nothing validates and produces nothing, which is R6.
  */
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { WorkflowSetupPlan } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 const calls: Array<{ name: string; args: Record<string, unknown> }> = [];
 let graphValidation: { errors: string[] } = { errors: [] };
 let runThrows: Error | null = null;
 let runResponse: unknown = { ok: true, job_id: "job-1" };
+let deferredToolName: string | null = null;
+let releaseDeferredTool: () => void = () => undefined;
 jest.mock("../../../lib/tools/frontendTools", () => ({
   FrontendToolRegistry: {
     call: jest.fn(async (name: string, args: Record<string, unknown>) => {
       calls.push({ name, args });
+      if (name === deferredToolName) {
+        deferredToolName = null;
+        await new Promise<void>((resolve) => {
+          releaseDeferredTool = resolve;
+        });
+      }
       if (name === "ui_get_graph") {
         return { validation: graphValidation };
       }
@@ -134,6 +142,8 @@ beforeEach(() => {
   graphValidation = { errors: [] };
   runThrows = null;
   runResponse = { ok: true, job_id: "job-1" };
+  deferredToolName = null;
+  releaseDeferredTool = () => undefined;
 });
 
 describe("buildFromPlan", () => {
@@ -262,5 +272,36 @@ describe("buildFromPlan", () => {
       validation_errors: ["Node x: required property missing"],
       explanation: expect.stringContaining("failed validation")
     });
+  });
+
+  it("rolls back placed nodes and the setup stage when explicitly aborted", async () => {
+    deferredToolName = "ui_update_node_data";
+    const controller = new AbortController();
+    const { result } = renderHook(() => useBuildFromPlan("w1"));
+    let buildPromise: Promise<BuildFromPlanResult> | null = null;
+
+    act(() => {
+      buildPromise = result.current.buildFromPlan(
+        { plan: PLAN, sampleInputs: { text: "hello" } },
+        controller.signal
+      );
+    });
+    await waitFor(() =>
+      expect(calls.some((call) => call.name === "ui_update_node_data")).toBe(true)
+    );
+
+    controller.abort();
+    releaseDeferredTool();
+    await act(async () => {
+      await expect(buildPromise).rejects.toMatchObject({ name: "AbortError" });
+    });
+
+    expect(
+      calls
+        .filter((call) => call.name === "ui_delete_node")
+        .map((call) => call.args["node_id"])
+    ).toEqual(["step_1", "input_1"]);
+    expect(readWorkflowSetup(settings)?.stage).toBe("setup");
+    expect(calls.some((call) => call.name === "ui_run_workflow")).toBe(false);
   });
 });

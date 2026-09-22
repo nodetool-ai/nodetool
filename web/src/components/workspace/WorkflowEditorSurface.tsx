@@ -18,13 +18,20 @@ import type { Message, Workflow } from "../../stores/ApiTypes";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
+  creationProjectId,
   tabId,
   useWorkspaceTabsStore,
   type WorkspaceTabMode
 } from "../../stores/WorkspaceTabsStore";
+import { useCreateApplication } from "../../hooks/useApplications";
+import { useOpenApplication } from "../../hooks/useOpenApplication";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 import GameSetupHost from "../setup/game/GameSetupHost";
 import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
-import { examplePackageName, exampleSeedRef } from "../../utils/exampleWorkflow";
+import {
+  examplePackageName,
+  exampleSeedRef
+} from "../../utils/exampleWorkflow";
 import { useGameSetupStage } from "../../hooks/game/useGameSetup";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
@@ -82,12 +89,22 @@ const WorkflowEditorSurface = ({
   mode = "edit",
   active
 }: WorkflowEditorSurfaceProps) => {
-  const nodeStore = useWorkflowManager((state) => state.getNodeStore(workflowId));
+  const nodeStore = useWorkflowManager((state) =>
+    state.getNodeStore(workflowId)
+  );
   const workflow = useWorkflowManager((state) => state.getWorkflow(workflowId));
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
   const createWorkflow = useWorkflowManager((state) => state.create);
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const workflowProjectId = useWorkspaceTabsStore(
+    (state) =>
+      state.tabs.find(
+        (tab) => tab.type === "workflow" && tab.ref === workflowId
+      )?.projectId
+  );
+  const createApplication = useCreateApplication();
+  const openApplication = useOpenApplication();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -196,14 +213,53 @@ const WorkflowEditorSurface = ({
     [addNotification, openTab, openWorkflowThread, sendMessage, workflowId]
   );
 
-  const handleLandingNext = useCallback(() => {
+  const handleLandingNext = useCallback(async () => {
+    if (landingRunMode === "app") {
+      try {
+        const created = await createApplication.mutateAsync({
+          name: workflow?.name || "Untitled app",
+          description: workflow?.description ?? "",
+          projectId: workflowProjectId ?? creationProjectId(),
+          fromWorkflowId: workflowId
+        });
+        setLandingDismissed(true);
+        openApplication(created.id, created.name, created.projectId);
+      } catch (cause) {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Could not create the Mini App: ${
+            cause instanceof Error ? cause.message : String(cause)
+          }`
+        });
+      }
+      return;
+    }
     setLandingDismissed(true);
+    if (landingRunMode === "trigger") {
+      useNodeMenuStore.getState().openNodeMenu({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+        centerOnScreen: true,
+        searchTerm: "trigger"
+      });
+      return;
+    }
     addNotification({
       type: "info",
       alert: true,
-      content: "Your workflow is ready. You can change its inputs and run it again from the canvas."
+      content:
+        "The canvas is ready. Change its inputs and run it again when you are ready."
     });
-  }, [addNotification]);
+  }, [
+    addNotification,
+    createApplication,
+    landingRunMode,
+    openApplication,
+    workflow,
+    workflowId,
+    workflowProjectId
+  ]);
   /**
    * "Start from an example" in step 1's inline browser: the copy lands in a
    * new row (materialized server-side from the example's package), which
@@ -226,8 +282,9 @@ const WorkflowEditorSurface = ({
       );
       const projectId = useWorkspaceTabsStore
         .getState()
-        .tabs.find((tab) => tab.type === "workflow" && tab.ref === workflowId)
-        ?.projectId;
+        .tabs.find(
+          (tab) => tab.type === "workflow" && tab.ref === workflowId
+        )?.projectId;
       openTab({
         type: "workflow",
         ref: copy.id,
@@ -350,6 +407,7 @@ const WorkflowEditorSurface = ({
                     result={visibleLanding}
                     runMode={landingRunMode}
                     onNextStep={handleLandingNext}
+                    nextStepPending={createApplication.isPending}
                     onAskAgent={(message) => void handleAskAgent(message)}
                   />
                 </Box>

@@ -8,9 +8,7 @@ import userEvent from "@testing-library/user-event";
 
 describe("SelectField", () => {
   const renderWithTheme = (component: React.ReactElement) => {
-    return render(
-      <ThemeProvider theme={mockTheme}>{component}</ThemeProvider>
-    );
+    return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
   };
 
   const options = [
@@ -139,6 +137,34 @@ describe("SelectField", () => {
     expect(handleChange).toHaveBeenCalledWith("blue");
   });
 
+  it("keeps unavailable options visible but unselectable", async () => {
+    const user = userEvent.setup();
+    const handleChange = jest.fn();
+    renderWithTheme(
+      <SelectField
+        label="Speech mode"
+        value="none"
+        onChange={handleChange}
+        options={[
+          { value: "none", label: "None" },
+          {
+            value: "on_camera",
+            label: "On-camera (unavailable in guided flow)",
+            disabled: true
+          }
+        ]}
+      />
+    );
+
+    await user.click(screen.getByRole("combobox"));
+    expect(
+      await screen.findByRole("option", {
+        name: "On-camera (unavailable in guided flow)"
+      })
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(handleChange).not.toHaveBeenCalled();
+  });
+
   it("shows the description below the control", () => {
     renderWithTheme(
       <SelectField
@@ -182,9 +208,7 @@ describe("SelectField", () => {
     // Only FormField's label renders; the combobox is named by it through
     // the `${controlId}-label` aria-labelledby convention.
     expect(document.querySelectorAll("label")).toHaveLength(1);
-    expect(
-      screen.getByRole("combobox", { name: "Color" })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Color" })).toBeInTheDocument();
   });
 
   it("forwards ref to the root element", () => {

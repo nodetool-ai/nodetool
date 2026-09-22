@@ -83,7 +83,7 @@ const renderHost = (
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } }
   });
-  render(
+  const view = render(
     <QueryClientProvider client={client}>
       <ThemeProvider theme={mockTheme}>
         <EntitySetupHost
@@ -95,12 +95,13 @@ const renderHost = (
       </ThemeProvider>
     </QueryClientProvider>
   );
-  return onFinish;
+  return { onFinish, ...view };
 };
 
 describe("EntitySetupHost", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
     const asset = {
       id: "asset-7",
       project_id: "default",
@@ -135,7 +136,7 @@ describe("EntitySetupHost", () => {
 
   it("collects details and a reference before creating the entity", async () => {
     const user = userEvent.setup();
-    const onFinish = renderHost();
+    const { onFinish } = renderHost();
 
     expect(
       screen.getByRole("button", { name: "Choose a reference" })
@@ -185,6 +186,9 @@ describe("EntitySetupHost", () => {
     expect(onFinish).toHaveBeenCalledWith(
       expect.objectContaining({ id: "asset-7", name: "Nova" })
     );
+    expect(
+      localStorage.getItem("nodetool-entity-setup-draft:project-1")
+    ).toBeNull();
   });
 
   it("refuses an entity created after the library query", async () => {
@@ -222,7 +226,7 @@ describe("EntitySetupHost", () => {
 
   it("generates a reference image from the entity description", async () => {
     const user = userEvent.setup();
-    const onFinish = renderHost();
+    const { onFinish } = renderHost();
 
     await user.type(screen.getByRole("textbox", { name: "Name" }), "Nova");
     await user.click(
@@ -269,6 +273,39 @@ describe("EntitySetupHost", () => {
     expect(onFinish).toHaveBeenCalledWith(
       expect.objectContaining({ id: "asset-7", name: "Nova" })
     );
+  });
+
+  it("restores draft details, stage, and selected reference after remount", async () => {
+    const user = userEvent.setup();
+    const first = renderHost();
+
+    await user.type(screen.getByRole("textbox", { name: "Name" }), "Nova");
+    await user.type(
+      screen.getByRole("textbox", { name: "Tags (optional)" }),
+      "hero, space"
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Choose a reference" })
+    );
+    await user.click(screen.getByRole("button", { name: "Choose from assets" }));
+    await user.click(await screen.findByRole("button", { name: "nova.png" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    );
+    await user.click(screen.getByRole("button", { name: "Review entity" }));
+
+    first.unmount();
+    renderHost();
+
+    expect(
+      screen.getByRole("heading", { name: "Review your entity" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Nova")).toBeInTheDocument();
+    expect(screen.getByText(/Tags: hero, space/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Nova reference" })
+    ).toBeInTheDocument();
+    expect(rpcRequest).not.toHaveBeenCalled();
   });
 
   it("starts a blank entity from a plain canvas", async () => {

@@ -27,7 +27,10 @@ import { stub } from "../../../../test-utils/doubles";
 import useResultsStore from "../../../../stores/ResultsStore";
 import useErrorStore from "../../../../stores/ErrorStore";
 import useWorkflowRunsStore from "../../../../stores/WorkflowRunsStore";
-import { handleUpdate, type MsgpackData } from "../../../../stores/workflowUpdates";
+import {
+  handleUpdate,
+  type MsgpackData
+} from "../../../../stores/workflowUpdates";
 import type {
   JobUpdate,
   NodeUpdate,
@@ -152,7 +155,10 @@ const emitCompletedExport = () => {
       node_name: "SpriteSheet",
       node_type: "nodetool.game.SpriteSheet",
       status: "completed",
-      result: { output: { type: "image", uri: "a.png" }, fill: { slot: "player" } },
+      result: {
+        output: { type: "image", uri: "a.png" },
+        fill: { slot: "player" }
+      },
       job_id: JOB_ID
     })
   );
@@ -198,7 +204,17 @@ beforeEach(() => {
   } as never);
   useErrorStore.setState({ errors: {} } as never);
   useWorkflowRunsStore.setState({
-    focusedJob: { [WORKFLOW_ID]: JOB_ID }
+    focusedJob: { [WORKFLOW_ID]: JOB_ID },
+    runs: {
+      [WORKFLOW_ID]: {
+        [JOB_ID]: {
+          jobId: JOB_ID,
+          workflowId: WORKFLOW_ID,
+          state: "running",
+          startedAt: 1
+        }
+      }
+    }
   } as never);
 });
 
@@ -211,7 +227,7 @@ describe("the checklist against the run's own messages", () => {
       total: 1,
       directory: "games/ember-run",
       archive: "games/ember-run.zip",
-      verified: true,
+      verification: { status: "passed" },
       failures: []
     });
   });
@@ -237,7 +253,7 @@ describe("the checklist against the run's own messages", () => {
     expect(result.current).toMatchObject({
       directory: null,
       archive: null,
-      verified: false
+      verification: { status: "running" }
     });
   });
 
@@ -252,16 +268,19 @@ describe("the checklist against the run's own messages", () => {
         result: {
           ...EXPORT_OUTPUTS,
           verified: false,
-          verification: { reason: "No Godot binary on this server" }
+          verification: {
+            ran: false,
+            reason: "No Godot binary on this server"
+          }
         },
         job_id: JOB_ID
       })
     );
     const { result } = renderSummary();
-    expect(result.current.verified).toBe(false);
-    expect(result.current.verificationReason).toBe(
-      "No Godot binary on this server"
-    );
+    expect(result.current.verification).toEqual({
+      status: "unavailable",
+      reason: "No Godot binary on this server"
+    });
   });
 
   // The generator, the resize and the checker all carry the slot's
@@ -340,21 +359,27 @@ describe("the checklist against the run's own messages", () => {
   });
 
   it("restores a completed export after the panel was unmounted", async () => {
-    settings = writeGameSetup({}, {
-      stage: "done",
-      build: {
-        node_count: NODES.length,
-        issues: [],
-        validation_errors: [],
-        run_started: true,
-        run_error: null
+    settings = writeGameSetup(
+      {},
+      {
+        stage: "done",
+        build: {
+          node_count: NODES.length,
+          issues: [],
+          validation_errors: [],
+          run_started: true,
+          run_error: null
+        }
       }
-    });
+    );
     const mounted = renderSummary();
     mounted.unmount();
     expect(readGameBuild(readGameSetup(settings))?.export).toBeUndefined();
 
-    useResultsStore.setState({ outputResults: {}, liveGenerations: {} } as never);
+    useResultsStore.setState({
+      outputResults: {},
+      liveGenerations: {}
+    } as never);
     useErrorStore.setState({ errors: {} } as never);
     useWorkflowRunsStore.setState({ focusedJob: {} } as never);
     listJobs.mockResolvedValue({
@@ -375,7 +400,7 @@ describe("the checklist against the run's own messages", () => {
         job_id: JOB_ID,
         directory: "games/ember-run",
         archive: "games/ember-run.zip",
-        verified: true
+        verification_status: "passed"
       })
     );
     reopened.rerender();
@@ -384,7 +409,7 @@ describe("the checklist against the run's own messages", () => {
       total: 1,
       directory: "games/ember-run",
       archive: "games/ember-run.zip",
-      verified: true
+      verification: { status: "passed" }
     });
     expect(listJobs).toHaveBeenCalledWith({
       workflow_id: WORKFLOW_ID,

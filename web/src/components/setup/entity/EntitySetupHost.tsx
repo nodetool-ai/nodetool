@@ -1,4 +1,10 @@
-import { createElement, useCallback, useMemo, useState } from "react";
+import {
+  createElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState
+} from "react";
 import type { Entity } from "@nodetool-ai/protocol";
 
 import {
@@ -15,8 +21,12 @@ import {
 } from "./DetailsStep";
 import { ReferenceStep } from "./ReferenceStep";
 import { ReviewStep } from "./ReviewStep";
-
-type EntitySetupStage = "details" | "reference" | "review";
+import {
+  clearEntitySetupDraft,
+  readEntitySetupDraft,
+  writeEntitySetupDraft,
+  type EntitySetupStage
+} from "./entitySetupDraft";
 
 export interface EntitySetupHostProps {
   readonly projectId?: string;
@@ -61,21 +71,29 @@ const EntitySetupHost = ({
   onFinish,
   onChangeFlow
 }: EntitySetupHostProps) => {
+  const recoveredDraft = useMemo(
+    () => readEntitySetupDraft(projectId),
+    [projectId]
+  );
   const saveEntity = useSaveEntity();
   const {
     data: entities,
     isLoading: entitiesLoading,
     isError: entitiesError
   } = useEntities();
-  const [stage, setStage] = useState<EntitySetupStage>("details");
-  const [details, setDetails] = useState<EntityDetailsValue>({
-    kind: "character",
-    name: "",
-    descriptor: initialDescriptor,
-    tags: ""
-  });
+  const [stage, setStage] = useState<EntitySetupStage>(
+    recoveredDraft?.stage ?? "details"
+  );
+  const [details, setDetails] = useState<EntityDetailsValue>(
+    recoveredDraft?.details ?? {
+      kind: "character",
+      name: "",
+      descriptor: initialDescriptor,
+      tags: ""
+    }
+  );
   const [assetId, setAssetId] = useState<string | null>(
-    initialAssetId ?? null
+    recoveredDraft?.assetId ?? initialAssetId ?? null
   );
   const [pickerOpen, setPickerOpen] = useState(false);
   // The blank reference being made, while the card reads as busy.
@@ -90,6 +108,15 @@ const EntitySetupHost = ({
   );
   const referenceAssetId =
     assetId && !excludedAssetIds.includes(assetId) ? assetId : null;
+
+  useEffect(() => {
+    writeEntitySetupDraft(projectId, {
+      version: 1,
+      stage,
+      details,
+      assetId
+    });
+  }, [assetId, details, projectId, stage]);
 
   const handlePick = useCallback((pickedAssetId: string) => {
     setAssetId(pickedAssetId);
@@ -151,6 +178,7 @@ const EntitySetupHost = ({
     if (!entity) {
       throw new Error("The entity could not be read after it was created.");
     }
+    clearEntitySetupDraft(projectId);
     onFinish(entity);
   }, [
     details,
@@ -251,8 +279,11 @@ const EntitySetupHost = ({
   };
 
   const handleChangeFlow = useCallback(
-    () => onChangeFlow?.(details.descriptor),
-    [details.descriptor, onChangeFlow]
+    async () => {
+      await onChangeFlow?.(details.descriptor);
+      clearEntitySetupDraft(projectId);
+    },
+    [details.descriptor, onChangeFlow, projectId]
   );
 
   return onChangeFlow ? (

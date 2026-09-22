@@ -35,7 +35,7 @@ export const ENTRY_CARDS: readonly EntryCard[] = [
   {
     id: "storyboard",
     title: "Storyboard",
-    description: "From a sentence to a rendered board in three steps."
+    description: "From a sentence to a rendered board in four steps."
   },
   {
     id: "video",
@@ -66,5 +66,6 @@ export const ENTRY_CARDS: readonly EntryCard[] = [
 
 /** Studio's three cards (D24). */
 export const STUDIO_ENTRY_CARDS: readonly EntryCard[] = ENTRY_CARDS.filter(
-  (card) => card.id === "storyboard" || card.id === "video" || card.id === "script"
+  (card) =>
+    card.id === "storyboard" || card.id === "video" || card.id === "script"
 );

@@ -7,16 +7,15 @@
  * beside it and the generate action behind it — while the spend stays here with
  * the pickers it belongs to.
  *
- * Model and voice choices go through the same `lastModelStore` every other
- * direct-generation surface writes, rather than into a field of this flow's
- * own: the timeline's inspector reads them next, and a creator who picks a
- * model here should not have to pick it again in the editor.
+ * A new draft seeds its model and voice once from `lastModelStore`, then owns
+ * those choices in `setup.generation_settings`. The global store remains the
+ * default for the next draft, never the authority for one already in progress.
  *
  * Sample clips are fetched on first use, never shipped (R5) — see
  * `modelSamples.ts`.
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useEffect, useMemo } from "react";
 
 import {
   AlertBanner,
@@ -55,6 +54,48 @@ import {
 
 /** What the button says when no catalog figure covers the plan (PRD § 8.3). */
 export const COST_UNKNOWN_TEXT = "cost unknown until the first clip returns";
+
+const countLabel = (count: number, singular: string, plural: string): string =>
+  `${count} ${count === 1 ? singular : plural}`;
+
+/** The exact request manifest and its priced portion, beside the paid action. */
+export const videoCommitmentDetail = (
+  estimate: NonNullable<ReturnType<typeof useBeatPlanCostEstimate>>
+): string => {
+  const parts = [
+    countLabel(estimate.destinationCount, "destination", "destinations"),
+    countLabel(estimate.videoRequestCount, "video take", "video takes")
+  ];
+  if (estimate.voiceRequestCount > 0) {
+    parts.push(
+      countLabel(estimate.voiceRequestCount, "voice request", "voice requests")
+    );
+  }
+  if (estimate.videoRequestCount + estimate.voiceRequestCount === 0) {
+    parts.push("no generation requests", "no generation cost");
+  } else if (estimate.pricedCount === 0) {
+    parts.push(
+      "cost unknown",
+      countLabel(
+        estimate.unpricedCount,
+        "unpriced request",
+        "unpriced requests"
+      )
+    );
+  } else if (estimate.unpricedCount > 0) {
+    parts.push(
+      `known subtotal ${estimate.label}`,
+      countLabel(
+        estimate.unpricedCount,
+        "unpriced request",
+        "unpriced requests"
+      )
+    );
+  } else {
+    parts.push(`about ${estimate.label}`);
+  }
+  return parts.join(" · ");
+};
 
 /** The frame a ratio describes, keeping the long edge at 1920. */
 export function dimensionsForAspect(aspect: string): {
@@ -102,10 +143,10 @@ export interface LookStepControls {
   canAdvance: boolean;
   /** Why `canAdvance` is false, for the shell to show beside the button. */
   blockedReason: string | undefined;
-  /** The price, or the "unknown" line. Never absent — clips cost dollars. */
+  /** The exact request commitment, including a zero-generation source edit. */
   primaryDetail: string;
   /** Create the clips, enqueue the jobs, hand the timeline back. */
-  generate: () => Promise<void>;
+  generate: (signal?: AbortSignal) => Promise<void>;
   /**
    * Whether a bed can be rendered at all. The toggle is offered disabled
    * rather than hidden, so the absence reads as a gap in what NodeTool
@@ -134,6 +175,98 @@ const firstBlocker = (
   checks: readonly (readonly [boolean, string])[]
 ): string | undefined => checks.find(([blocked]) => blocked)?.[1];
 
+interface DraftGenerationSettings {
+  video?: { provider: string; model: string };
+  voice?: { provider: string; model: string; voice: string };
+}
+
+const isModelChoice = (
+  value: unknown
+): value is { provider: string; model: string } =>
+  typeof value === "object" &&
+  value !== null &&
+  "provider" in value &&
+  typeof value.provider === "string" &&
+  "model" in value &&
+  typeof value.model === "string";
+
+const isDraftGenerationSettings = (
+  value: unknown
+): value is DraftGenerationSettings =>
+  typeof value === "object" &&
+  value !== null &&
+  (!("video" in value) ||
+    value.video === undefined ||
+    isModelChoice(value.video)) &&
+  (!("voice" in value) ||
+    value.voice === undefined ||
+    (isModelChoice(value.voice) &&
+      "voice" in value.voice &&
+      typeof value.voice.voice === "string"));
+
+/** Seed once from the global preference, then read only this document. */
+export function useDraftGenerationSettings(): DraftGenerationSettings {
+  const setup = useTimelineStore((state) => state.setup);
+  const storedValue = setup?.generation_settings;
+  const stored = isDraftGenerationSettings(storedValue)
+    ? storedValue
+    : undefined;
+  const setSetup = useTimelineStore((state) => state.setSetup);
+  const rememberedVideo = useLastModelStore((state) => state.byKind.video);
+  const rememberedVoice = useLastModelStore((state) => state.byKind.audio);
+
+  useEffect(() => {
+    if (setup === null || setup.stage === "done" || stored !== undefined) {
+      return;
+    }
+    const seeded: DraftGenerationSettings = {};
+    if (rememberedVideo?.provider && rememberedVideo.model) {
+      seeded.video = {
+        provider: rememberedVideo.provider,
+        model: rememberedVideo.model
+      };
+    }
+    if (
+      rememberedVoice?.provider &&
+      rememberedVoice.model &&
+      rememberedVoice.voice
+    ) {
+      seeded.voice = {
+        provider: rememberedVoice.provider,
+        model: rememberedVoice.model,
+        voice: rememberedVoice.voice
+      };
+    }
+    setSetup({ generation_settings: seeded });
+  }, [rememberedVideo, rememberedVoice, setSetup, setup, stored]);
+
+  if (stored !== undefined) {
+    return stored;
+  }
+  if (setup === null || setup.stage === "done") {
+    return {};
+  }
+  const seeded: DraftGenerationSettings = {};
+  if (rememberedVideo?.provider && rememberedVideo.model) {
+    seeded.video = {
+      provider: rememberedVideo.provider,
+      model: rememberedVideo.model
+    };
+  }
+  if (
+    rememberedVoice?.provider &&
+    rememberedVoice.model &&
+    rememberedVoice.voice
+  ) {
+    seeded.voice = {
+      provider: rememberedVoice.provider,
+      model: rememberedVoice.model,
+      voice: rememberedVoice.voice
+    };
+  }
+  return seeded;
+}
+
 export function useLookStep({
   voiceOn,
   musicOn
@@ -143,19 +276,21 @@ export function useLookStep({
   const height = useTimelineStore((state) => state.height);
   const generateFromBeats = useGenerateFromBeats();
   const { voiceLane } = useLanes();
-  // Read through the store so the estimate follows a model picked in the grid.
-  const byKind = useLastModelStore((state) => state.byKind);
-  const video = byKind.video;
-  const audio = byKind.audio;
+  const settings = useDraftGenerationSettings();
+  const video = settings.video;
+  const audio = settings.voice;
   const clipModels = useClipModelAvailability();
   const voices = useVoiceAvailability();
   // A switched-on Voiceover with no usable voice used to be silently turned
   // off at generate time, so the cut came out mute while the switch still read
   // on. The switch is the creator's word now: it holds the step until they
   // pick a voice or switch it off themselves (F11).
+  const needsVideoGeneration =
+    beats?.some((beat) => !beat.source_clip_id) ?? false;
   const voiceWanted = voiceLane && voiceOn;
+  const needsVoiceGeneration = voiceWanted;
   const voiced =
-    voiceWanted && !!audio?.voice && isAvailable(voices, audio.voice);
+    needsVoiceGeneration && !!audio?.voice && isAvailable(voices, audio.voice);
 
   const estimate = useBeatPlanCostEstimate(beats ?? [], {
     aspectRatio: aspectOf(width, height),
@@ -166,39 +301,48 @@ export function useLookStep({
     voiced
   });
 
-  const generate = useCallback(async () => {
+  const generate = useCallback(async (signal?: AbortSignal) => {
     // The two toggles are the only look choices that are not already on the
     // document, so they are passed rather than re-derived. Music is not passed
     // at all: see MUSIC_AVAILABLE.
     await generateFromBeats({
+      provider: video?.provider,
+      model: video?.model,
       voiceover: voiced,
       voice: audio?.voice,
-      music: MUSIC_AVAILABLE && musicOn
+      voiceProvider: audio?.provider,
+      voiceModel: audio?.model,
+      music: MUSIC_AVAILABLE && musicOn,
+      signal
     });
-  }, [audio?.voice, generateFromBeats, musicOn, voiced]);
+  }, [audio, generateFromBeats, musicOn, video, voiced]);
 
   const clipCount = beats?.length ?? 0;
   const primaryDetail = estimate
-    ? `${clipCount} clip${clipCount === 1 ? "" : "s"} · about ${estimate.label}`
+    ? videoCommitmentDetail(estimate)
     : COST_UNKNOWN_TEXT;
 
   const blockedReason = firstBlocker([
+    [clipCount === 0, "Plan the beats first — there is nothing to render yet"],
     [
-      clipCount === 0,
-      "Plan the beats first — there is nothing to render yet"
-    ],
-    [
-      clipModels.noProvider,
+      needsVideoGeneration && clipModels.noProvider,
       "No provider is set up to render video. Connect one in Settings."
     ],
-    [!video?.model, "Pick a video model"],
+    [needsVideoGeneration && !video?.model, "Pick a video model"],
     [
-      !!video?.model && !isAvailable(clipModels, video.model),
+      needsVideoGeneration &&
+        !!video?.model &&
+        !isAvailable(clipModels, video.model),
       "Your providers do not offer that video model. Pick another."
     ],
-    [voiceWanted && !audio?.voice, "Pick a voice, or switch Voiceover off"],
     [
-      voiceWanted && !!audio?.voice && !isAvailable(voices, audio.voice),
+      needsVoiceGeneration && !audio?.voice,
+      "Pick a voice, or switch Voiceover off"
+    ],
+    [
+      needsVoiceGeneration &&
+        !!audio?.voice &&
+        !isAvailable(voices, audio.voice),
       "Your providers do not offer that voice. Pick another, or switch Voiceover off."
     ]
   ]);
@@ -211,7 +355,6 @@ export function useLookStep({
     musicAvailable: MUSIC_AVAILABLE
   };
 }
-
 
 /**
  * The state of a curated grid's provider lookup, above the grid: waiting,
@@ -293,7 +436,8 @@ const LookStepInternal: React.FC<LookStepProps> = ({
   // persists, so it goes through the hook that writes those.
   const { save: saveProjectSettings } = useTimelineProjectSettings();
   const remember = useLastModelStore((state) => state.remember);
-  const byKind = useLastModelStore((state) => state.byKind);
+  const settings = useDraftGenerationSettings();
+  const setSetup = useTimelineStore((state) => state.setSetup);
   const { voiceLane, musicLane } = useLanes();
   const clipModels = useClipModelAvailability();
   const voices = useVoiceAvailability();
@@ -329,7 +473,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
   const noCompatibleModel = modelTiles.every((tile) => tile.disabled);
   const noCompatibleVoice = voiceTiles.every((tile) => tile.disabled);
 
-  const pickedVoice = byKind.audio?.voice;
+  const pickedVoice = settings.voice?.voice;
   // The reason the final button is dead belongs beside the control that fixes
   // it as well as beside the button (F11).
   const voiceNote =
@@ -348,19 +492,38 @@ const LookStepInternal: React.FC<LookStepProps> = ({
     (id: string) => {
       const picked = CLIP_MODELS.find((option) => option.id === id);
       if (picked) {
+        setSetup({
+          generation_settings: {
+            ...settings,
+            video: {
+              provider: picked.value.provider,
+              model: picked.value.id
+            }
+          }
+        });
         remember("video", {
           provider: picked.value.provider,
           model: picked.value.id
         });
       }
     },
-    [remember]
+    [remember, setSetup, settings]
   );
 
   const handleVoice = useCallback(
     (id: string) => {
       const picked = STUDIO_VOICES.find((option) => option.id === id);
       if (picked) {
+        setSetup({
+          generation_settings: {
+            ...settings,
+            voice: {
+              provider: picked.value.provider,
+              model: picked.modelId,
+              voice: id
+            }
+          }
+        });
         remember("audio", {
           provider: picked.value.provider,
           model: picked.modelId,
@@ -369,7 +532,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
         onVoiceChange(true);
       }
     },
-    [onVoiceChange, remember]
+    [onVoiceChange, remember, setSetup, settings]
   );
 
   return (
@@ -407,7 +570,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
         <PresetTileGrid
           label="Video model"
           presets={modelTiles}
-          selectedId={byKind.video?.model ?? null}
+          selectedId={settings.video?.model ?? null}
           onSelect={handleModel}
           onAddOwn={() => undefined}
           addOwnLabel="More models in the editor"
@@ -443,7 +606,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
             <PresetTileGrid
               label="Voice"
               presets={voiceTiles}
-              selectedId={byKind.audio?.voice ?? null}
+              selectedId={settings.voice?.voice ?? null}
               onSelect={handleVoice}
               onAddOwn={() => undefined}
               addOwnLabel="More voices in the editor"

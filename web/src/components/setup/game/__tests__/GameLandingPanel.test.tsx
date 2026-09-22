@@ -19,7 +19,11 @@ import mockTheme from "../../../../__mocks__/themeMock";
 
 let settings: Record<string, unknown> = {};
 const nodes = [
-  { id: "check_1", type: "nodetool.game.SpriteSheet", data: { setupStepId: "player" } },
+  {
+    id: "check_1",
+    type: "nodetool.game.SpriteSheet",
+    data: { setupStepId: "player" }
+  },
   { id: "export", type: GAME_EXPORT_NODE_TYPE, data: {} }
 ];
 const saveWorkflow = jest.fn(async () => {});
@@ -82,9 +86,20 @@ jest.mock("../../../../stores/ErrorStore", () => {
 // Mutated per test: a focused job is a run this session is watching, and an
 // empty map is what a reload leaves behind.
 const focusedJob: Record<string, string> = { w1: "job1" };
+const runs: Record<string, Record<string, unknown>> = {
+  w1: {
+    job1: {
+      jobId: "job1",
+      workflowId: "w1",
+      state: "completed",
+      startedAt: 1
+    }
+  }
+};
 jest.mock("../../../../stores/WorkflowRunsStore", () => ({
   __esModule: true,
-  default: (selector: (state: unknown) => unknown) => selector({ focusedJob })
+  default: (selector: (state: unknown) => unknown) =>
+    selector({ focusedJob, runs })
 }));
 
 const openTab = jest.fn();
@@ -188,7 +203,9 @@ const built = (
 const renderPanel = () =>
   render(
     <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
     >
       <ThemeProvider theme={mockTheme}>
         <GameLandingPanel workflowId="w1" />
@@ -210,6 +227,7 @@ const EXPORT = {
 /** A reload: both run stores are in memory only, so both come back empty. */
 const afterReload = () => {
   delete focusedJob["w1"];
+  delete runs["w1"];
   for (const key of Object.keys(liveGenerations)) {
     delete liveGenerations[key];
   }
@@ -219,6 +237,14 @@ beforeEach(() => {
   jest.clearAllMocks();
   settings = built();
   focusedJob["w1"] = "job1";
+  runs["w1"] = {
+    job1: {
+      jobId: "job1",
+      workflowId: "w1",
+      state: "completed",
+      startedAt: 1
+    }
+  };
   liveGenerations["w1:check_1"] = [CHECKED];
   liveGenerations["w1:export"] = [EXPORTED];
 });
@@ -232,7 +258,10 @@ describe("GameLandingPanel", () => {
   });
 
   it.each([
-    ["a workflow that never went through the flow", {} as Record<string, unknown>],
+    [
+      "a workflow that never went through the flow",
+      {} as Record<string, unknown>
+    ],
     [
       "a workflow still mid-flow",
       writeGameSetup({}, { stage: "look", [GAME_BUILD_KEY]: BUILD })
@@ -269,7 +298,7 @@ describe("GameLandingPanel", () => {
       job_id: "job1",
       directory: "games/ember-run",
       archive: "games/ember-run.zip",
-      verified: true,
+      verification_status: "passed",
       checked: 1,
       total: 1
     });
@@ -283,7 +312,7 @@ describe("GameLandingPanel", () => {
     focusedJob["w1"] = "job2";
     renderPanel();
 
-    expect(screen.getByText("Waiting for the export node")).toBeInTheDocument();
+    expect(screen.getByText("Verification queued")).toBeInTheDocument();
     expect(screen.queryByText("games/ember-run")).toBeNull();
     expect(
       screen.getByRole("button", { name: "Open project folder" })
@@ -293,7 +322,9 @@ describe("GameLandingPanel", () => {
   it("opens the project file in a workspace-file tab", async () => {
     const user = userEvent.setup();
     renderPanel();
-    await user.click(screen.getByRole("button", { name: "Open project folder" }));
+    await user.click(
+      screen.getByRole("button", { name: "Open project folder" })
+    );
     expect(openTab).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "workspace-file",
@@ -334,12 +365,17 @@ describe("GameLandingPanel", () => {
 
 describe("readGameBuild", () => {
   it("reads back what the build wrote", () => {
-    expect(readGameBuild(writeGameSetup({}, { [GAME_BUILD_KEY]: BUILD })
-      ["game"] as never)).toEqual(BUILD);
+    expect(
+      readGameBuild(
+        writeGameSetup({}, { [GAME_BUILD_KEY]: BUILD })["game"] as never
+      )
+    ).toEqual(BUILD);
   });
 
   it("reads a malformed record as no build, never as one", () => {
-    expect(readGameBuild({ [GAME_BUILD_KEY]: { node_count: "six" } } as never)).toBeNull();
+    expect(
+      readGameBuild({ [GAME_BUILD_KEY]: { node_count: "six" } } as never)
+    ).toBeNull();
     expect(readGameBuild(null)).toBeNull();
   });
 });

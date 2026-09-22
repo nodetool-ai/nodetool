@@ -68,6 +68,12 @@ export interface SetupStep<Stage extends string> {
    * terminal canceled state immediately, even if this cleanup is asynchronous.
    */
   onCancel?: () => void | Promise<void>;
+  /**
+   * Keep this operation alive when its own document stage deliberately
+   * replaces the setup shell. The document owns the remaining work from that
+   * point. Explicit Cancel still aborts it and runs `onCancel`.
+   */
+  continueAfterUnmount?: boolean;
   /** External terminal cancellation state for operations owned by a flow. */
   canceled?: boolean;
   /**

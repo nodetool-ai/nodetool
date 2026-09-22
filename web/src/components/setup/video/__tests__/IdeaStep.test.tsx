@@ -105,12 +105,20 @@ describe("video IdeaStep", () => {
         stage: "idea",
         brief: "",
         references: [{ uri: "asset://a1.png", name: "kerb.png" }],
-        entityIds: ["e1"]
+        entityIds: ["e1"],
+        creative_context: {
+          schema_version: 1,
+          reference_bindings: [
+            { kind: "product", asset_id: "a1" },
+            { kind: "character", asset_id: "entity-ref", entity_id: "e1" }
+          ]
+        }
       }
     });
     renderStep();
     expect(screen.getByAltText("kerb.png")).toBeInTheDocument();
-    expect(screen.getByText("The paper boat")).toBeInTheDocument();
+    expect(screen.getByText("product conditioning")).toBeInTheDocument();
+    expect(screen.getByText("The paper boat · character")).toBeInTheDocument();
   });
 
   it("shows nothing extra when the composer carried nothing", () => {

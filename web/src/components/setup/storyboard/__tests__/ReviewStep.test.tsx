@@ -145,7 +145,7 @@ describe("ReviewStep", () => {
     });
   });
 
-  it("keeps linked dialogue read-only and binds speech to the existing Script line", async () => {
+  it("keeps linked dialogue read-only, disables on-camera, and binds off-camera speech", async () => {
     useStoryboardStore
       .getState()
       .updateShot(BOARD, "shot-0", { script_line_ids: ["line-1"] });
@@ -154,8 +154,13 @@ describe("ReviewStep", () => {
       "readonly"
     );
     await userEvent.click(screen.getAllByLabelText("Speech mode")[0]);
+    expect(
+      await screen.findByRole("option", {
+        name: "On-camera (unavailable in guided flow)"
+      })
+    ).toHaveAttribute("aria-disabled", "true");
     await userEvent.click(
-      await screen.findByRole("option", { name: "On-camera" })
+      await screen.findByRole("option", { name: "Off-camera" })
     );
     expect(board()?.shots[0]).toHaveProperty("production.speech_binding", {
       script_line_id: "line-1"

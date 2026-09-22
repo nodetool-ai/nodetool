@@ -68,7 +68,8 @@ interface UseTimelineDirectGenJobApi {
   /** Returns the requestId once the RPC has been dispatched (or null on validation failure). */
   start: (
     clipId: string,
-    production?: CompiledProductionCandidate
+    production?: CompiledProductionCandidate,
+    preparedRequestId?: string
   ) => Promise<string | null>;
   /** Replay a known text-to-video recipe as an inactive candidate take. */
   startNewTake: (input: {
@@ -995,7 +996,8 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
   const start = useCallback(
     async (
       clipId: string,
-      productionCandidate?: CompiledProductionCandidate
+      productionCandidate?: CompiledProductionCandidate,
+      preparedRequestId?: string
     ): Promise<string | null> => {
       const clip = timeline.getState().clips.find((c) => c.id === clipId);
       if (!clip) return null;
@@ -1068,7 +1070,8 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         ? productionAttempt(sequenceId, productionCandidate)
         : undefined;
       if (production === null) return null;
-      const requestId = production?.attemptId ?? crypto.randomUUID();
+      const requestId =
+        production?.attemptId ?? preparedRequestId ?? crypto.randomUUID();
       if (!production) {
         timeline.getState().patchClip(clipId, { status: "generating" });
       }
