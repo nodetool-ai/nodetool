@@ -331,7 +331,11 @@ export const useMediaOptions = (opts: {
  * Queries each provider in parallel for better performance.
  */
 export const useTTSModelsByProvider = (): ModelsByProviderResult<TTSModel> => {
-  const { providers, isLoading: providersLoading } = useTTSProviders();
+  const {
+    providers,
+    isLoading: providersLoading,
+    error: providersError
+  } = useTTSProviders();
 
   const fetchModels = useCallback(
     async (provider: string) =>
@@ -357,7 +361,9 @@ export const useTTSModelsByProvider = (): ModelsByProviderResult<TTSModel> => {
     providers: providerNames,
     isLoading: providersLoading || aggregated.isLoading,
     isFetching: aggregated.isFetching,
-    error: aggregated.error,
+    // A provider list that failed reports no providers, which a caller cannot
+    // tell from an account with none configured unless the error travels.
+    error: providersError || aggregated.error,
     refetch: aggregated.refetch
   };
 };
@@ -479,7 +485,11 @@ export const useMusicModelsByProvider = (): ModelsByProviderResult<MusicModel> =
 export const useVideoModelsByProvider = (opts?: {
   task?: VideoModelTask | VideoModelTask[];
 }): ModelsByProviderResult<VideoModel> => {
-  const { providers, isLoading: providersLoading } = useVideoProviders();
+  const {
+    providers,
+    isLoading: providersLoading,
+    error: providersError
+  } = useVideoProviders();
 
   const fetchModels = useCallback(
     async (provider: string) =>
@@ -520,7 +530,9 @@ export const useVideoModelsByProvider = (opts?: {
     providers: providerNames,
     isLoading: providersLoading || aggregated.isLoading,
     isFetching: aggregated.isFetching,
-    error: aggregated.error,
+    // See `useTTSModelsByProvider`: a failed provider list must not read as an
+    // account with no video provider configured.
+    error: providersError || aggregated.error,
     refetch: aggregated.refetch
   };
 };
