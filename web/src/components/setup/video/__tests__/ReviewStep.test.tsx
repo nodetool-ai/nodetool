@@ -43,7 +43,7 @@ beforeEach(() => {
 });
 
 describe("video ReviewStep (criterion 4)", () => {
-  it("persists production direction, speech binding and exactly three takes", async () => {
+  it("persists supported speech direction, its binding, and exactly three takes", async () => {
     seed(beats());
     renderStep();
     await userEvent.type(
@@ -51,8 +51,13 @@ describe("video ReviewStep (criterion 4)", () => {
       "Look at camera"
     );
     await userEvent.click(screen.getAllByLabelText("Speech mode")[1]);
+    expect(
+      await screen.findByRole("option", {
+        name: "On-camera (unavailable in guided flow)"
+      })
+    ).toHaveAttribute("aria-disabled", "true");
     await userEvent.click(
-      await screen.findByRole("option", { name: "On-camera" })
+      await screen.findByRole("option", { name: "Off-camera" })
     );
     await userEvent.click(screen.getAllByLabelText("Requested takes")[1]);
     expect(
@@ -63,7 +68,7 @@ describe("video ReviewStep (criterion 4)", () => {
       useTimelineStore.getState().setup?.beats?.[1].production
     ).toMatchObject({
       local_direction: "Look at camera",
-      speech_mode: "on_camera",
+      speech_mode: "off_camera",
       speech_binding: { text: "Gone." },
       requested_take_count: 3
     });

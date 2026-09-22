@@ -28,6 +28,7 @@ import {
   FlexColumn,
   FlexRow,
   GAP,
+  getSpacingPx,
   ResponsiveImage,
   Text,
   TextInput
@@ -37,6 +38,7 @@ import { useExampleStoryboards } from "../../../hooks/storyboard/useStoryboards"
 import { useEntities } from "../../../serverState/useEntities";
 import { useSetupMediaImport } from "../../../hooks/timeline/useSetupMediaImport";
 import type { SetupMediaImportResult } from "../../../hooks/timeline/useSetupMediaImport";
+import { assetIdFromLocator } from "../../../utils/mediaRef";
 import { ExampleBriefs } from "../ExampleBriefs";
 import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
@@ -44,7 +46,7 @@ import { useVideoSetupContext } from "./setupContext";
 import CreativeContextFields from "./CreativeContextFields";
 
 /** How wide a carried reference thumbnail is drawn. */
-const REFERENCE_THUMBNAIL = "48px";
+const REFERENCE_THUMBNAIL = getSpacingPx(12);
 
 /** How many example loglines are offered as inspiration (PRD § 8.1). */
 const INSPIRATION_COUNT = 3;
@@ -294,27 +296,47 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
             <Caption color="muted">From your project screen</Caption>
             {references.length > 0 ? (
               <FlexRow gap={GAP.tight} wrap>
-                {references.map((reference) => (
-                  <ResponsiveImage
-                    key={reference.uri}
-                    locator={reference.uri}
-                    preferThumbnail
-                    alt={reference.name ?? "Reference image"}
-                    fit="cover"
-                    borderRadius={BORDER_RADIUS.sm}
-                    showErrorFallback
-                    sx={{
-                      width: REFERENCE_THUMBNAIL,
-                      height: REFERENCE_THUMBNAIL
-                    }}
-                  />
-                ))}
+                {references.map((reference) => {
+                  const assetId = assetIdFromLocator(reference.uri);
+                  const binding = creativeContext?.reference_bindings?.find(
+                    (candidate) => candidate.asset_id === assetId
+                  );
+                  return (
+                    <FlexColumn key={reference.uri} gap={GAP.micro}>
+                      <ResponsiveImage
+                        locator={reference.uri}
+                        preferThumbnail
+                        alt={reference.name ?? "Reference image"}
+                        fit="cover"
+                        borderRadius={BORDER_RADIUS.sm}
+                        showErrorFallback
+                        sx={{
+                          width: REFERENCE_THUMBNAIL,
+                          height: REFERENCE_THUMBNAIL
+                        }}
+                      />
+                      <Caption color="secondary">
+                        {binding
+                          ? `${binding.kind} conditioning`
+                          : "inspiration only"}
+                      </Caption>
+                    </FlexColumn>
+                  );
+                })}
               </FlexRow>
             ) : null}
             {carriedEntities.length > 0 ? (
               <FlexRow gap={GAP.tight} wrap>
                 {carriedEntities.map((entity) => (
-                  <Chip key={entity.id} label={entity.name} size="small" />
+                  <Chip
+                    key={entity.id}
+                    label={`${entity.name} · ${
+                      creativeContext?.reference_bindings?.find(
+                        (binding) => binding.entity_id === entity.id
+                      )?.kind ?? "inspiration only"
+                    }`}
+                    size="small"
+                  />
                 ))}
               </FlexRow>
             ) : null}

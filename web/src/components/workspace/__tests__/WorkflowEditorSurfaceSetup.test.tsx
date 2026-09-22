@@ -11,6 +11,7 @@
  * assertion is which surface comes back — that is what "resumes" means.
  */
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
@@ -51,7 +52,9 @@ jest.mock("../WorkflowChainSurface", () => ({
 }));
 jest.mock("../../KeyboardProvider", () => ({
   __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  )
 }));
 jest.mock("../../../providers/ContextMenuProvider", () => ({
   ContextMenuProvider: ({ children }: { children: React.ReactNode }) => (
@@ -122,14 +125,25 @@ jest.mock("../../../hooks/workflow/usePlanWorkflow", () => ({
     error: null
   })
 }));
+let mockPersistedBuild: Record<string, unknown> | null = null;
+const mockBuildResult = {
+  status: "completed-with-output" as const,
+  nodeCount: 3,
+  issues: [],
+  validationErrors: [],
+  testRun: { started: true, error: null },
+  output: { post: "hello" },
+  explanation: "The sample run completed and produced output."
+};
 jest.mock("../../../hooks/workflow/useBuildFromPlan", () => ({
   useBuildFromPlan: () => ({
     buildFromPlan: jest.fn(),
+    cancelBuild: jest.fn(),
     building: false,
     result: null
   }),
-  readWorkflowBuild: () => null,
-  workflowBuildResult: jest.fn()
+  readWorkflowBuild: () => mockPersistedBuild,
+  workflowBuildResult: () => mockBuildResult
 }));
 jest.mock("../../../serverState/useEntities", () => ({
   useEntities: () => ({ data: [] })
@@ -145,6 +159,13 @@ const managerState = {
   updateWorkflow: jest.fn(),
   saveWorkflow: jest.fn(async () => {})
 };
+const mockCreateApplication = jest.fn(async () => ({
+  id: "app-1",
+  name: "W",
+  projectId: "project-1"
+}));
+const mockOpenApplication = jest.fn();
+const mockOpenNodeMenu = jest.fn();
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   useWorkflowManager: (selector: (state: unknown) => unknown) =>
     selector(managerState),
@@ -152,18 +173,33 @@ jest.mock("../../../contexts/WorkflowManagerContext", () => ({
 }));
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   __esModule: true,
+  creationProjectId: () => "default",
   tabId: (kind: string, ref: string) => `${kind}:${ref}`,
   useWorkspaceTabsStore: (selector: (state: unknown) => unknown) =>
     selector({
       closeTab: jest.fn(),
       openTab: jest.fn(),
       setTitle: jest.fn(),
-      tabs: []
+      tabs: [{ type: "workflow", ref: "w1", projectId: "project-1" }]
     })
 }));
+jest.mock("../../../hooks/useApplications", () => ({
+  useCreateApplication: () => ({
+    mutateAsync: mockCreateApplication,
+    isPending: false
+  })
+}));
+jest.mock("../../../hooks/useOpenApplication", () => ({
+  useOpenApplication: () => mockOpenApplication
+}));
+jest.mock("../../../stores/NodeMenuStore", () => ({
+  __esModule: true,
+  default: { getState: () => ({ openNodeMenu: mockOpenNodeMenu }) }
+}));
+const mockAddNotification = jest.fn();
 jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: (selector: (state: unknown) => unknown) =>
-    selector({ addNotification: jest.fn() })
+    selector({ addNotification: mockAddNotification })
 }));
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -180,7 +216,9 @@ const seed = (stage: WorkflowSetupStage) => {
 const renderSurface = () =>
   render(
     <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
     >
       <ThemeProvider theme={mockTheme}>
         <WorkflowEditorSurface workflowId="w1" active />
@@ -190,6 +228,7 @@ const renderSurface = () =>
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockPersistedBuild = null;
 });
 
 describe("WorkflowEditorSurface workflow setup resume", () => {
@@ -218,5 +257,59 @@ describe("WorkflowEditorSurface workflow setup resume", () => {
     renderSurface();
 
     expect(screen.getByTestId("node-editor")).toBeInTheDocument();
+  });
+
+  it("creates and opens an app for a reopened app-mode build", async () => {
+    const user = userEvent.setup();
+    settings = writeWorkflowSetup(
+      {},
+      {
+        stage: "done",
+        brief: "summarize the inbox",
+        run_mode: "app"
+      }
+    );
+    mockPersistedBuild = { status: "completed-with-output" };
+    renderSurface();
+
+    expect(
+      screen.getByRole("button", { name: "Create Mini App" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Create and open a Mini App backed by this workflow.")
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Create Mini App" }));
+
+    expect(mockCreateApplication).toHaveBeenCalledWith({
+      name: "W",
+      description: "",
+      projectId: "project-1",
+      fromWorkflowId: "w1"
+    });
+    expect(mockOpenApplication).toHaveBeenCalledWith("app-1", "W", "project-1");
+  });
+
+  it("opens the trigger-node picker for a reopened trigger-mode build", async () => {
+    const user = userEvent.setup();
+    settings = writeWorkflowSetup(
+      {},
+      {
+        stage: "done",
+        brief: "summarize the inbox",
+        run_mode: "trigger"
+      }
+    );
+    mockPersistedBuild = { status: "completed-with-output" };
+    renderSurface();
+
+    await user.click(screen.getByRole("button", { name: "Add a trigger" }));
+
+    expect(mockOpenNodeMenu).toHaveBeenCalledWith(
+      expect.objectContaining({
+        centerOnScreen: true,
+        searchTerm: "trigger"
+      })
+    );
   });
 });

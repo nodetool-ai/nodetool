@@ -327,12 +327,22 @@ describe("newVideoSetupDocument", () => {
 
   it("carries references and entities when there are some", () => {
     const document = newVideoSetupDocument("a paper boat", {
-      references: [{ uri: "asset://a1.png", name: "kerb.png" }],
+      references: [
+        { uri: "asset://a1.png", name: "kerb.png", role: "product" }
+      ],
       entityIds: ["e1"]
     });
     expect(readVideoSetupContext(document.setup)).toEqual({
-      references: [{ uri: "asset://a1.png", name: "kerb.png" }],
-      entityIds: ["e1"]
+      references: [
+        { uri: "asset://a1.png", name: "kerb.png", role: "product" }
+      ],
+      entityIds: ["e1"],
+      creativeContext: {
+        schema_version: 1,
+        reference_bindings: [
+          { kind: "product", asset_id: "a1", label: "kerb.png" }
+        ]
+      }
     });
   });
 

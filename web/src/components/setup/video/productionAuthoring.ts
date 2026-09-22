@@ -95,7 +95,7 @@ export function productionFields({
   // What the speech is bound to, under the control that binds it. It was a
   // read-only field of its own, which read as a filled-in value and put the
   // explanation a row below the select it explains.
-  const speechHint = !canBind
+  const bindingHint = !canBind
     ? "Add voiceover or dialogue before choosing a speech mode."
     : binding?.script_line_id
       ? "Bound to a Script line. Edit the words and the voice in Script."
@@ -104,6 +104,11 @@ export function productionFields({
         : binding?.text
           ? "Uses local speech. Production voice and audio resolution are unavailable in this setup."
           : undefined;
+  const availabilityHint =
+    "On-camera speech is unavailable in this guided flow. Choose Off-camera or None.";
+  const speechHint = [bindingHint, availabilityHint]
+    .filter((part): part is string => part !== undefined)
+    .join(" ");
   // The enums are short values on a narrow column, so they pack into one row
   // of properties rather than four full-width controls down the card.
   return [
@@ -171,7 +176,11 @@ export function productionFields({
       options: [
         { value: "none", label: "None" },
         { value: "off_camera", label: "Off-camera" },
-        { value: "on_camera", label: "On-camera" }
+        {
+          value: "on_camera",
+          label: "On-camera (unavailable in guided flow)",
+          disabled: true
+        }
       ],
       onChange: (speech_mode) => {
         onChange(
@@ -256,7 +265,8 @@ export function productionAuthoringBlocker(
 /** Guard the setup flow before the shared production compiler runs. */
 export function productionGenerationBlocker(
   items: readonly unknown[],
-  hasReferences: boolean
+  hasReferences: boolean,
+  action: "video" | "stills" = "video"
 ): string | undefined {
   const invalid = productionAuthoringBlocker(items);
   if (invalid) {
@@ -265,6 +275,9 @@ export function productionGenerationBlocker(
   // Reference-conditioned video is an executable route. The compiler and
   // server preflight verify the actual asset IDs before dispatch.
   void hasReferences;
+  if (action === "stills") {
+    return undefined;
+  }
   for (const item of items) {
     const production = productionRequirementsFrom(item);
     if (!production) {
@@ -275,7 +288,7 @@ export function productionGenerationBlocker(
       return "Complete the production requirements: speech needs a line or audio binding, and takes must be 1–3.";
     }
     if (production.speech_mode === "on_camera") {
-      return "On-camera speech requires a supported audio-driven performance route. Choose off-camera speech or provide a supported performance source.";
+      return "On-camera speech is unavailable in this guided flow. Choose Off-camera or None.";
     }
   }
   return undefined;

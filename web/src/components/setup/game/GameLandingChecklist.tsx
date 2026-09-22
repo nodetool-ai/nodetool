@@ -30,7 +30,7 @@ import {
   Text
 } from "../../ui_primitives";
 import type { BuildGameResult } from "../../../hooks/game/useBuildGame";
-import type { GameRunSummary } from "./gameRunSummary";
+import type { GameRunSummary, GameVerificationState } from "./gameRunSummary";
 
 export interface GameLandingChecklistProps {
   result: BuildGameResult;
@@ -79,8 +79,7 @@ export const gameFailureMessage = (
     return [
       "Some of the game's assets failed:",
       ...run.failures.map(
-        (failure) =>
-          `- ${failure.slotId ?? failure.nodeId}: ${failure.error}`
+        (failure) => `- ${failure.slotId ?? failure.nodeId}: ${failure.error}`
       ),
       "",
       "Propose a fix and wait for me before regenerating."
@@ -100,6 +99,7 @@ const ChecklistInternal: React.FC<GameLandingChecklistProps> = ({
 }) => {
   const exported = run.directory !== null;
   const failure = gameFailureMessage(result, run);
+  const verification = verificationLine(run.verification, godot);
   return (
     <FlexColumn gap={GAP.normal}>
       <Line
@@ -123,18 +123,10 @@ const ChecklistInternal: React.FC<GameLandingChecklistProps> = ({
         label="Exported"
         detail={run.directory ?? "Waiting for the export node"}
       />
-      <Line
-        done={run.verified}
-        label={
-          run.verified
-            ? `Verified with Godot ${godot}`
-            : `Godot not found on this server — open the folder in Godot ${godot} to verify`
-        }
-        detail={
-          run.verified
-            ? "The project opened and ran headlessly"
-            : (run.verificationReason ?? "Not verified here")
-        }
+      <VerificationLine
+        state={run.verification.status}
+        label={verification.label}
+        detail={verification.detail}
       />
 
       {run.failures.map((entry) => (
@@ -207,6 +199,91 @@ const Line: React.FC<LineProps> = ({ done, label, detail }) => (
     <Caption color="secondary">{detail}</Caption>
   </FlexRow>
 );
+
+const missingGodot = (reason: string | undefined): boolean => {
+  const normalized = reason?.toLowerCase() ?? "";
+  return (
+    normalized.includes("godot") &&
+    (normalized.includes("binary") ||
+      normalized.includes("executable") ||
+      normalized.includes("path"))
+  );
+};
+
+const verificationLine = (
+  verification: GameVerificationState,
+  godot: string
+): { label: string; detail: string } => {
+  switch (verification.status) {
+    case "passed":
+      return {
+        label: `Verified with Godot ${godot}`,
+        detail: "The project opened and ran headlessly"
+      };
+    case "running":
+      return {
+        label: "Verification running",
+        detail: "Godot checks are in progress"
+      };
+    case "failed":
+      return {
+        label: "Verification failed",
+        detail: verification.reason ?? "Godot rejected the exported project"
+      };
+    case "unavailable":
+      return missingGodot(verification.reason)
+        ? {
+            label: `Godot not found on this server — open the folder in Godot ${godot} to verify`,
+            detail: verification.reason ?? "Godot verification is unavailable"
+          }
+        : {
+            label: "Verification unavailable",
+            detail: verification.reason ?? "Godot verification could not run"
+          };
+    case "interrupted":
+      return {
+        label: "Verification interrupted",
+        detail: verification.reason ?? "The run was cancelled"
+      };
+    default:
+      return {
+        label: "Verification queued",
+        detail: "Waiting for the export node"
+      };
+  }
+};
+
+interface VerificationLineProps {
+  state: GameVerificationState["status"];
+  label: string;
+  detail: string;
+}
+
+const VerificationLine: React.FC<VerificationLineProps> = ({
+  state,
+  label,
+  detail
+}) => {
+  const tone =
+    state === "passed"
+      ? "done"
+      : state === "running"
+        ? "rendering"
+        : state === "queued"
+          ? "neutral"
+          : state === "failed"
+            ? "failed"
+            : "warning";
+  return (
+    <FlexRow gap={GAP.normal} align="center">
+      <StatusPill tone={tone}>{state}</StatusPill>
+      <Text size="small" component="span">
+        {label}
+      </Text>
+      <Caption color="secondary">{detail}</Caption>
+    </FlexRow>
+  );
+};
 
 export const GameLandingChecklist = memo(ChecklistInternal);
 GameLandingChecklist.displayName = "GameLandingChecklist";

@@ -34,15 +34,27 @@ export const randomRequestId = (): string => {
 export async function rpcRequest(
   command: string,
   data: Record<string, unknown>,
-  timeoutMs?: number
+  timeoutMs?: number,
+  signal?: AbortSignal
 ): Promise<Record<string, unknown>> {
+  if (signal?.aborted) {
+    throw new DOMException("The request was aborted.", "AbortError");
+  }
   await globalWebSocketManager.ensureConnection();
+  if (signal?.aborted) {
+    throw new DOMException("The request was aborted.", "AbortError");
+  }
   const requestId = randomRequestId();
   return new Promise((resolve, reject) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const cleanup = (): void => {
       if (timer !== undefined) clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
       unsubscribe();
+    };
+    const onAbort = (): void => {
+      cleanup();
+      reject(new DOMException("The request was aborted.", "AbortError"));
     };
     const unsubscribe = globalWebSocketManager.subscribe(requestId, (msg) => {
       if (msg.type !== "rpc_response") return;
@@ -61,6 +73,7 @@ export async function rpcRequest(
         reject(new Error(`${command} timed out while waiting for its reply`));
       }, timeoutMs);
     }
+    signal?.addEventListener("abort", onAbort, { once: true });
     globalWebSocketManager
       .send({ command, request_id: requestId, data })
       .catch((err) => {

@@ -42,6 +42,7 @@ import useErrorStore, {
   type NodeError
 } from "../../../stores/ErrorStore";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
+import type { RunState } from "../../../stores/WorkflowRunsStore";
 import { trpcClient } from "../../../trpc/client";
 import {
   useGameSetupDocument,
@@ -74,6 +75,19 @@ export interface GameRunFailure {
   error: string;
 }
 
+export type GameVerificationStatus =
+  | "queued"
+  | "running"
+  | "passed"
+  | "failed"
+  | "unavailable"
+  | "interrupted";
+
+export interface GameVerificationState {
+  status: GameVerificationStatus;
+  reason?: string;
+}
+
 export interface GameRunSummary {
   /** Checker nodes that have produced a result, and how many there are. */
   checked: number;
@@ -82,24 +96,32 @@ export interface GameRunSummary {
   directory: string | null;
   /** Its `archive` output — the zip `Download project` hands over. */
   archive: string | null;
-  /** True only when the export node reported `verified: true` (criterion 7). */
-  verified: boolean;
-  /** Why verification did not happen or did not pass, when it says. */
-  verificationReason: string | null;
+  /** Verification lifecycle, kept distinct from installation diagnosis. */
+  verification: GameVerificationState;
   failures: GameRunFailure[];
 }
 
 /** The export node's `output` value, as far as the checklist reads it. */
 const readExportOutput = (
-  value: unknown
+  value: unknown,
+  runState?: RunState
 ): {
   directory: string | null;
   archive: string | null;
-  verified: boolean;
-  reason: string | null;
+  verification: GameVerificationState;
 } => {
   if (!isRecord(value)) {
-    return { directory: null, archive: null, verified: false, reason: null };
+    const status: GameVerificationStatus =
+      runState === "running"
+        ? "running"
+        : runState === "error"
+          ? "failed"
+          : runState === "cancelled"
+            ? "interrupted"
+            : runState === "completed"
+              ? "failed"
+              : "queued";
+    return { directory: null, archive: null, verification: { status } };
   }
   const verification = isRecord(value["verification"])
     ? value["verification"]
@@ -108,14 +130,29 @@ const readExportOutput = (
     verification !== null && typeof verification["reason"] === "string"
       ? verification["reason"]
       : null;
+  let status: GameVerificationStatus;
+  if (value["verified"] === true) {
+    status = "passed";
+  } else if (verification?.["ran"] === false) {
+    status = "unavailable";
+  } else if (
+    verification?.["ran"] === true ||
+    value["verified"] === false ||
+    runState === "error"
+  ) {
+    status = "failed";
+  } else if (runState === "cancelled") {
+    status = "interrupted";
+  } else if (runState === "running") {
+    status = "running";
+  } else {
+    status = "queued";
+  }
   return {
     directory:
       typeof value["directory"] === "string" ? value["directory"] : null,
     archive: typeof value["archive"] === "string" ? value["archive"] : null,
-    // Strict equality, not truthiness: a run that answered with a string, a
-    // number or nothing at all has not verified anything.
-    verified: value["verified"] === true,
-    reason
+    verification: { status, ...(reason !== null && { reason }) }
   };
 };
 
@@ -127,6 +164,8 @@ export interface SummarizeGameRunInput {
   outputsFor: (nodeId: string) => Record<string, unknown> | undefined;
   /** The run's error for one node, if it failed. */
   errorFor: (nodeId: string) => NodeError | undefined;
+  /** The focused workflow run's lifecycle before the export answers. */
+  runState?: RunState;
 }
 
 /**
@@ -138,7 +177,8 @@ export interface SummarizeGameRunInput {
 export const summarizeGameRun = ({
   nodes,
   outputsFor,
-  errorFor
+  errorFor,
+  runState
 }: SummarizeGameRunInput): GameRunSummary => {
   const slotNodes = nodes.filter(
     (node) => node.slotId !== null && node.type !== GAME_EXPORT_NODE_TYPE
@@ -169,7 +209,8 @@ export const summarizeGameRun = ({
   const exportNode =
     nodes.find((node) => node.type === GAME_EXPORT_NODE_TYPE) ?? null;
   const exported = readExportOutput(
-    exportNode === null ? undefined : outputsFor(exportNode.id)
+    exportNode === null ? undefined : outputsFor(exportNode.id),
+    runState
   );
 
   const failures: GameRunFailure[] = [];
@@ -185,16 +226,13 @@ export const summarizeGameRun = ({
     total: bySlot.size,
     directory: exported.directory,
     archive: exported.archive,
-    verified: exported.verified,
-    verificationReason: exported.reason,
+    verification: exported.verification,
     failures
   };
 };
 
 /** The graph the build placed, as the summary reads it. */
-export const toRunNodes = (
-  nodes: readonly Node<NodeData>[]
-): GameRunNode[] =>
+export const toRunNodes = (nodes: readonly Node<NodeData>[]): GameRunNode[] =>
   nodes.map((node) => ({
     id: node.id,
     type: node.type ?? "",
@@ -225,8 +263,14 @@ const storedSummary = (record: GameExportRecord): GameRunSummary => ({
   total: record.total,
   directory: record.directory,
   archive: record.archive,
-  verified: record.verified,
-  verificationReason: record.verification_reason,
+  verification: {
+    status:
+      record.verification_status ??
+      (record.verified === true ? "passed" : "failed"),
+    ...(record.verification_reason !== null && {
+      reason: record.verification_reason
+    })
+  },
   // Not kept: a failure belongs to the run that produced it, and the run is
   // over. What failed is in the job's own logs.
   failures: []
@@ -240,8 +284,8 @@ const exportRecord = (
   job_id: jobId,
   directory: summary.directory,
   archive: summary.archive,
-  verified: summary.verified,
-  verification_reason: summary.verificationReason,
+  verification_status: summary.verification.status,
+  verification_reason: summary.verification.reason ?? null,
   checked: summary.checked,
   total: summary.total
 });
@@ -258,23 +302,21 @@ const completedJobExport = (
   const project = Array.isArray(projectValues)
     ? projectValues.at(-1)
     : projectValues;
-  const exported = readExportOutput(project);
+  const exported = readExportOutput(project, "completed");
   if (exported.directory === null) {
     return null;
   }
   const slots = new Set(
     nodes
-      .filter(
-        (node) => node.slotId !== null && CHECKER_TYPES.has(node.type)
-      )
+      .filter((node) => node.slotId !== null && CHECKER_TYPES.has(node.type))
       .map((node) => node.slotId)
   );
   return {
     job_id: job.id,
     directory: exported.directory,
     archive: exported.archive,
-    verified: exported.verified,
-    verification_reason: exported.reason,
+    verification_status: exported.verification.status,
+    verification_reason: exported.verification.reason ?? null,
     checked: slots.size,
     total: slots.size
   };
@@ -293,6 +335,9 @@ const useLiveGameRunSummary = (workflowId: string): GameRunSummary => {
     state.getNodeStore(workflowId)
   );
   const jobId = useWorkflowRunsStore((state) => state.focusedJob[workflowId]);
+  const runState = useWorkflowRunsStore((state) =>
+    jobId === undefined ? undefined : state.runs[workflowId]?.[jobId]?.state
+  );
   const liveGenerations = useResultsStore((state) => state.liveGenerations);
   const errors = useErrorStore((state) => state.errors);
 
@@ -302,7 +347,8 @@ const useLiveGameRunSummary = (workflowId: string): GameRunSummary => {
       return summarizeGameRun({
         nodes,
         outputsFor: () => undefined,
-        errorFor: () => undefined
+        errorFor: () => undefined,
+        runState
       });
     }
     return summarizeGameRun({
@@ -310,9 +356,10 @@ const useLiveGameRunSummary = (workflowId: string): GameRunSummary => {
       outputsFor: (nodeId) =>
         completedOutputs(liveGenerations[`${workflowId}:${nodeId}`], jobId),
       errorFor: (nodeId) =>
-        errors[`${workflowId}:${jobId}:${nodeId}` as keyof typeof errors]
+        errors[`${workflowId}:${jobId}:${nodeId}` as keyof typeof errors],
+      runState
     });
-  }, [errors, jobId, liveGenerations, nodeStore, workflowId]);
+  }, [errors, jobId, liveGenerations, nodeStore, runState, workflowId]);
 };
 
 /**

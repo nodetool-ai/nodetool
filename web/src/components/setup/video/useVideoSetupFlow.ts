@@ -15,9 +15,14 @@ import type { TimelineSetupStage } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
   usePlanBeats,
-  videoPlanFingerprint
+  videoPlanFingerprint,
+  type PlanBeatsContext
 } from "../../../hooks/timeline/usePlanBeats";
-import type { SetupFlowConfig, SetupStep } from "../types";
+import type {
+  SetupFlowConfig,
+  SetupOperationContext,
+  SetupStep
+} from "../types";
 import type { VideoSetupContext, VideoSetupReference } from "./setupContext";
 import { useVideoSetupContext } from "./setupContext";
 
@@ -34,6 +39,7 @@ import {
   productionReviewFingerprint,
   REVIEW_REQUIRED
 } from "./productionAuthoring";
+import { assetIdFromLocator } from "../../../utils/mediaRef";
 
 /**
  * A sequence's stage, with the field's absence read as `done` — an old
@@ -71,24 +77,47 @@ export const newVideoSetupDocument = (
   if (context.entityIds && context.entityIds.length > 0) {
     carried.entityIds = [...context.entityIds];
   }
-  if (context.creativeContext) {
+  const carriedBindings = (context.references ?? []).flatMap((reference) => {
+    const assetId = assetIdFromLocator(reference.uri);
+    if (!assetId || reference.role === "inspiration") {
+      return [];
+    }
+    return [
+      {
+        kind: reference.role ?? "product",
+        asset_id: assetId,
+        ...(reference.name && { label: reference.name })
+      }
+    ];
+  });
+  if (context.creativeContext || carriedBindings.length > 0) {
     const creativeContext: NonNullable<VideoSetupContext["creativeContext"]> = {
+      schema_version: 1,
       ...context.creativeContext
     };
-    if (context.creativeContext.approved_claims) {
+    if (context.creativeContext?.approved_claims) {
       creativeContext.approved_claims = [
         ...context.creativeContext.approved_claims
       ];
     }
-    if (context.creativeContext.prohibited_claims) {
+    if (context.creativeContext?.prohibited_claims) {
       creativeContext.prohibited_claims = [
         ...context.creativeContext.prohibited_claims
       ];
     }
-    if (context.creativeContext.reference_bindings) {
-      creativeContext.reference_bindings = [
-        ...context.creativeContext.reference_bindings
-      ];
+    const bindings = [
+      ...(context.creativeContext?.reference_bindings ?? []),
+      ...carriedBindings
+    ].filter(
+      (binding, index, all) =>
+        all.findIndex(
+          (candidate) =>
+            candidate.kind === binding.kind &&
+            candidate.asset_id === binding.asset_id
+        ) === index
+    );
+    if (bindings.length > 0) {
+      creativeContext.reference_bindings = bindings;
     }
     carried.creative_context = creativeContext;
   }
@@ -138,7 +167,7 @@ export const useVideoSetupFlow = ({
   const clips = useTimelineStore((state) => state.clips);
   const beats = useTimelineStore((state) => state.setup?.beats);
   const updateBeat = useTimelineStore((state) => state.updateBeat);
-  const { plan, planning } = usePlanBeats();
+  const { plan, cancel: cancelPlan, planning } = usePlanBeats();
   // The beats are drafted by whichever model the format step picked, so the
   // estimate, the block and the run all read the one field it writes.
   const director = useDirectorModel();
@@ -156,7 +185,7 @@ export const useVideoSetupFlow = ({
   const look = useLookStep({ voiceOn, musicOn });
 
   const { references, entityIds, creativeContext } = useVideoSetupContext();
-  const planContext = useMemo(
+  const planContext = useMemo<PlanBeatsContext>(
     () => ({
       references,
       entityIds,
@@ -169,7 +198,12 @@ export const useVideoSetupFlow = ({
         )
         .slice()
         .sort((left, right) => left.startMs - right.startMs)
-        .map((clip) => clip.name)
+        .map((clip) => ({
+          clipId: clip.id,
+          name: clip.name,
+          mediaType: clip.mediaType === "image" ? "image" : "video",
+          ...(clip.currentAssetId && { assetId: clip.currentAssetId })
+        }))
     }),
     [clips, creativeContext, entityIds, references]
   );
@@ -247,14 +281,17 @@ export const useVideoSetupFlow = ({
     [brief, onStartFromScript]
   );
 
-  const runPlan = useCallback(async () => {
-    // A second run over an edited plan sends that plan back as context, so the
-    // creator's edits shape the rewrite instead of being discarded (F15).
-    // Nothing else is passed: `plan` reads its own context off the sequence —
-    // the composer's references and entities, and any clips the creator
-    // dropped on step 1 (F4, F10, PRD § 8.1).
-    await plan({ replan: hasPlan });
-  }, [hasPlan, plan]);
+  const runPlan = useCallback(
+    async (operation?: SetupOperationContext) => {
+      // A second run over an edited plan sends that plan back as context, so the
+      // creator's edits shape the rewrite instead of being discarded (F15).
+      // Nothing else is passed: `plan` reads its own context off the sequence —
+      // the composer's references and entities, and any clips the creator
+      // dropped on step 1 (F4, F10, PRD § 8.1).
+      await plan({ replan: hasPlan, signal: operation?.signal });
+    },
+    [hasPlan, plan]
+  );
 
   const replan = useCallback(() => {
     // The review's own `Re-plan` runs outside the shell's primary button, so a
@@ -348,6 +385,7 @@ export const useVideoSetupFlow = ({
         // is being rewritten under them (F2).
         pending: planning,
         pendingLabel: "Re-planning the beats",
+        onCancel: cancelPlan,
         render: () =>
           createElement(ReviewStep, {
             onReplan: replan,
@@ -375,11 +413,11 @@ export const useVideoSetupFlow = ({
           }),
         // `generate` writes the terminal stage itself, before it enqueues
         // anything (D3); the host opens the timeline once the jobs are away.
-        onAdvance: async () => {
+        onAdvance: async (operation) => {
           if (productionBlocker) {
             throw new Error(productionBlocker);
           }
-          await look.generate();
+          await look.generate(operation?.signal);
           onFinish?.();
         }
       }
@@ -387,6 +425,7 @@ export const useVideoSetupFlow = ({
     [
       brief,
       beats,
+      cancelPlan,
       director.model,
       contextError,
       emptyBeats,

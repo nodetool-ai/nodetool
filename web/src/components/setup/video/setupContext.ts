@@ -9,7 +9,10 @@
  */
 
 import { useMemo } from "react";
-import { creativeContext as creativeContextSchema } from "@nodetool-ai/protocol";
+import {
+  creativeContext as creativeContextSchema,
+  type ProductionReferenceKind
+} from "@nodetool-ai/protocol";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
@@ -31,6 +34,8 @@ export interface VideoSetupReference extends ProductionReference {
   uri: string;
   /** The file's name, for the list on step 1. */
   name?: string;
+  /** How generation may use this source. Inspiration is prompt-only. */
+  role?: ProductionReferenceKind | "inspiration";
 }
 
 /**
@@ -53,7 +58,16 @@ const isReference = (value: unknown): value is VideoSetupReference => {
   if (!isRecord(value)) {
     return false;
   }
-  return typeof value.uri === "string";
+  const role = value["role"];
+  return (
+    typeof value.uri === "string" &&
+    (role === undefined ||
+      role === "product" ||
+      role === "character" ||
+      role === "location" ||
+      role === "style" ||
+      role === "inspiration")
+  );
 };
 
 /**

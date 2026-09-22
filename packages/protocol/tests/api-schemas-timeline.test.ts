@@ -73,6 +73,44 @@ describe("timeline setup (PRD § 8.5)", () => {
     expect(parsed.setup?.beats).toEqual([beat]);
   });
 
+  it("round-trips draft-specific generation choices and a prepared batch", () => {
+    const parsed = timelineSetup.parse({
+      stage: "look",
+      brief: "a pier at dawn",
+      generation_settings: {
+        video: { provider: "fal", model: "fal/video-a" },
+        voice: {
+          provider: "openai",
+          model: "gpt-4o-mini-tts",
+          voice: "alloy"
+        }
+      },
+      prepared_generation: {
+        batch_id: "batch-1",
+        fingerprint: "v1:prepared",
+        status: "prepared",
+        requests: [
+          {
+            clip_id: "clip-1",
+            request_id: "request-1",
+            kind: "video",
+            variation_index: 1
+          }
+        ]
+      }
+    });
+
+    expect(parsed.generation_settings?.video?.model).toBe("fal/video-a");
+    expect(parsed.generation_settings?.voice?.voice).toBe("alloy");
+    expect(parsed.prepared_generation?.requests[0]).toEqual({
+      clip_id: "clip-1",
+      request_id: "request-1",
+      kind: "video",
+      variation_index: 1
+    });
+    expect(parsed.prepared_generation?.fingerprint).toBe("v1:prepared");
+  });
+
   it("keeps fields it does not know, on the setup and on a beat", () => {
     const parsed = timelineSetup.parse({
       stage: "look",
@@ -85,7 +123,9 @@ describe("timeline setup (PRD § 8.5)", () => {
   });
 
   it("refuses a stage that is not one of the five", () => {
-    expect(() => timelineSetup.parse({ stage: "shipping", brief: "" })).toThrow();
+    expect(() =>
+      timelineSetup.parse({ stage: "shipping", brief: "" })
+    ).toThrow();
   });
 
   it("keeps the beat id a generated clip was cut from", () => {
@@ -174,7 +214,13 @@ describe("model3d clips", () => {
     const parsed = timelineClip.parse({
       ...model3dClip,
       model3dStyle: {
-        camera: { mode: "orbit", azimuthDeg: 45, elevationDeg: 25, fovDeg: 35, zoom: 1 },
+        camera: {
+          mode: "orbit",
+          azimuthDeg: 45,
+          elevationDeg: 25,
+          fovDeg: 35,
+          zoom: 1
+        },
         animation: { loop: true, speed: 1 },
         lighting: "studio",
         lightIntensity: 1,

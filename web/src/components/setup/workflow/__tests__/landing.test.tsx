@@ -58,29 +58,44 @@ describe("WorkflowLandingChecklist", () => {
     expect(screen.getByText("Graph built")).toBeInTheDocument();
     expect(screen.getByText("3 nodes placed")).toBeInTheDocument();
     expect(screen.getByText("No problems found")).toBeInTheDocument();
-    expect(
-      screen.getByText("Output is ready (post)")
-    ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Save as app" }));
+    expect(screen.getByText("Output is ready (post)")).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Create Mini App" })
+    );
     expect(onNextStep).toHaveBeenCalledTimes(1);
   });
 
   it.each([
-    ["manual" as const, "Run it again"],
-    ["app" as const, "Save as app"],
-    ["trigger" as const, "Add a trigger"]
-  ])("offers %s's own next step", async (runMode, label) => {
+    [
+      "manual" as const,
+      "Continue on canvas",
+      "Adjust inputs or run the workflow from the canvas."
+    ],
+    [
+      "app" as const,
+      "Create Mini App",
+      "Create and open a Mini App backed by this workflow."
+    ],
+    [
+      "trigger" as const,
+      "Add a trigger",
+      "Open the trigger-node picker on this canvas."
+    ]
+  ])("performs %s's named next step", async (runMode, label, detail) => {
     renderChecklist(CLEAN, runMode);
     expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+    expect(screen.getByText(detail)).toBeInTheDocument();
   });
 
   it("hands a validation error to the agent and applies nothing", async () => {
     const { onAskAgent, onNextStep } = renderChecklist({
       ...CLEAN,
-      validationErrors: ["Node step_1: required property \"text\" is not set."],
+      validationErrors: ['Node step_1: required property "text" is not set.'],
       testRun: { started: false, error: null }
     });
-    await userEvent.click(screen.getByRole("button", { name: "Ask the agent" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Ask the agent" })
+    );
     expect(onAskAgent).toHaveBeenCalledTimes(1);
     expect(onAskAgent.mock.calls[0][0]).toContain("does not validate");
     expect(onAskAgent.mock.calls[0][0]).toContain("wait for me");
@@ -91,7 +106,9 @@ describe("WorkflowLandingChecklist", () => {
   it("says so when the graph validates but the plan was not fully wired", () => {
     renderChecklist({
       ...CLEAN,
-      issues: ['output "post" has no step upstream, so the workflow produces nothing.'],
+      issues: [
+        'output "post" has no step upstream, so the workflow produces nothing.'
+      ],
       testRun: { started: false, error: null }
     });
     expect(
@@ -104,7 +121,9 @@ describe("WorkflowLandingChecklist", () => {
       ...CLEAN,
       testRun: { started: false, error: "no worker available" }
     });
-    await userEvent.click(screen.getByRole("button", { name: "Ask the agent" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Ask the agent" })
+    );
     expect(onAskAgent.mock.calls[0][0]).toContain("no worker available");
     expect(onAskAgent.mock.calls[0][0]).toContain("check the named provider");
   });

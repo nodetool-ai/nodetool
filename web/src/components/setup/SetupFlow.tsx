@@ -130,6 +130,8 @@ export function SetupFlow<Stage extends string>({
   const operationRef = useRef(0);
   const activeControllerRef = useRef<AbortController | null>(null);
   const activeOperationRef = useRef<Promise<unknown> | null>(null);
+  const continueAfterUnmountRef = useRef(false);
+  const shortcutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   if (stageRef.current !== stage) {
     stageRef.current = stage;
     revisionRef.current += 1;
@@ -164,9 +166,14 @@ export function SetupFlow<Stage extends string>({
   useEffect(
     () => () => {
       operationRef.current += 1;
-      activeControllerRef.current?.abort();
+      if (!continueAfterUnmountRef.current) {
+        activeControllerRef.current?.abort();
+      }
       activeControllerRef.current = null;
       activeOperationRef.current = null;
+      if (shortcutTimerRef.current !== null) {
+        clearTimeout(shortcutTimerRef.current);
+      }
     },
     []
   );
@@ -210,6 +217,7 @@ export function SetupFlow<Stage extends string>({
     const operation = (operationRef.current += 1);
     const controller = new AbortController();
     activeControllerRef.current = controller;
+    continueAfterUnmountRef.current = step.continueAfterUnmount === true;
     setError(null);
     setCanceledStage(null);
     setCancelingStage(null);
@@ -244,6 +252,7 @@ export function SetupFlow<Stage extends string>({
       } finally {
         if (activeControllerRef.current === controller) {
           activeControllerRef.current = null;
+          continueAfterUnmountRef.current = false;
           setBusy(false);
         }
       }
@@ -263,6 +272,7 @@ export function SetupFlow<Stage extends string>({
       return;
     }
     operationRef.current += 1;
+    continueAfterUnmountRef.current = false;
     activeControllerRef.current?.abort();
     activeControllerRef.current = null;
     setError(null);
@@ -306,22 +316,33 @@ export function SetupFlow<Stage extends string>({
   }, [currentIndex, isCurrent, onStageChange, step, steps]);
 
   const blocked = step?.canAdvance === false;
+  const shortcutActionRef = useRef({ blocked, pending, handlePrimary });
+  shortcutActionRef.current = { blocked, pending, handlePrimary };
 
   // The primary action from the keyboard. Every step's body is a text field or
   // a picker, and a plain Enter belongs to whatever has focus — a line break in
   // a brief, a choice in a grid — so the modifier carries the step instead.
+  // The delayed read is intentional: a single-line review field commits on
+  // this same keydown, and that committed value must re-render validation
+  // before the shell decides whether the step may advance.
   const handleShortcut = useCallback(
     (event: React.KeyboardEvent) => {
       if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) {
         return;
       }
-      if (blocked || pending) {
-        return;
-      }
       event.preventDefault();
-      void handlePrimary();
+      if (shortcutTimerRef.current !== null) {
+        clearTimeout(shortcutTimerRef.current);
+      }
+      shortcutTimerRef.current = setTimeout(() => {
+        shortcutTimerRef.current = null;
+        const action = shortcutActionRef.current;
+        if (!action.blocked && !action.pending) {
+          void action.handlePrimary();
+        }
+      }, 0);
     },
-    [blocked, handlePrimary, pending]
+    []
   );
 
   // A stage outside the flow (a finished document) belongs to the editor, not

@@ -230,7 +230,8 @@ export const useStoryboardSetupFlow = ({
       ? REVIEW_REQUIRED
       : productionGenerationBlocker(
           shots ?? [],
-          (creativeContext?.reference_bindings?.length ?? 0) > 0
+          (creativeContext?.reference_bindings?.length ?? 0) > 0,
+          "stills"
         );
 
   /**

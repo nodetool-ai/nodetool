@@ -22,7 +22,11 @@ import {
   useRef,
   useState
 } from "react";
-import { isModelSelected, type Entity } from "@nodetool-ai/protocol";
+import {
+  isModelSelected,
+  type Entity,
+  type ProductionReferenceBinding
+} from "@nodetool-ai/protocol";
 
 import {
   BORDER_RADIUS,
@@ -59,7 +63,7 @@ import { useFileHandling } from "../chat/hooks/useFileHandling";
 import { useTextareaAssetMention } from "../chat/composer/useTextareaAssetMention";
 import { useTextareaSkillMention } from "../chat/composer/useTextareaSkillMention";
 import { assetToUri } from "../node_types/editing/promptComposer/promptTokens";
-import { assetIdFromLocator } from "../../utils/mediaRef";
+import { assetIdFromLocator, assetIdOf } from "../../utils/mediaRef";
 import { useEntities } from "../../serverState/useEntities";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -193,6 +197,80 @@ interface SetupTarget {
   initialAssetId?: string;
 }
 
+const SETUP_TARGET_STORAGE_KEY = "nodetool-guided-setup-target";
+const SETUP_TARGET_KINDS: ReadonlySet<string> = new Set([
+  "entity",
+  "storyboard",
+  "video",
+  "script",
+  "workflow",
+  "game"
+]);
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** Restore the document route the New Project tab was hosting before reload. */
+const readSetupTarget = (): SetupTarget | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const raw = window.sessionStorage.getItem(SETUP_TARGET_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const stored: unknown = JSON.parse(raw);
+    if (!isRecord(stored) || stored["version"] !== 1) {
+      return null;
+    }
+    const value = stored["target"];
+    if (
+      !isRecord(value) ||
+      typeof value["kind"] !== "string" ||
+      !SETUP_TARGET_KINDS.has(value["kind"]) ||
+      typeof value["id"] !== "string" ||
+      typeof value["projectId"] !== "string" ||
+      typeof value["name"] !== "string" ||
+      typeof value["ownsProject"] !== "boolean" ||
+      (value["initialAssetId"] !== undefined &&
+        typeof value["initialAssetId"] !== "string")
+    ) {
+      return null;
+    }
+    return {
+      kind: value["kind"] as SetupTarget["kind"],
+      id: value["id"],
+      projectId: value["projectId"],
+      name: value["name"],
+      ownsProject: value["ownsProject"],
+      ...(typeof value["initialAssetId"] === "string" && {
+        initialAssetId: value["initialAssetId"]
+      })
+    };
+  } catch {
+    return null;
+  }
+};
+
+const writeSetupTarget = (target: SetupTarget | null): void => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    if (target) {
+      window.sessionStorage.setItem(
+        SETUP_TARGET_STORAGE_KEY,
+        JSON.stringify({ version: 1, target })
+      );
+    } else {
+      window.sessionStorage.removeItem(SETUP_TARGET_STORAGE_KEY);
+    }
+  } catch {
+    // Storage may be unavailable. The current mounted flow remains usable.
+  }
+};
+
 /** Which tab a finished flow opens. */
 const SETUP_TAB_TYPE = {
   storyboard: "storyboard",
@@ -288,7 +366,9 @@ const buildFailures = (
     );
   }
   if (result.validationErrors.length > 0) {
-    lines.push(`The graph did not validate: ${result.validationErrors.join("; ")}`);
+    lines.push(
+      `The graph did not validate: ${result.validationErrors.join("; ")}`
+    );
   }
   const run = "testRun" in result ? result.testRun : result.run;
   if (run.error) {
@@ -296,7 +376,6 @@ const buildFailures = (
   }
   return lines;
 };
-
 
 const NewProjectSurface = () => {
   const [prompt, setPrompt] = useState("");
@@ -317,7 +396,9 @@ const NewProjectSurface = () => {
     null
   );
   // The board an entry card created. Set, and this surface is the flow.
-  const [setupTarget, setSetupTarget] = useState<SetupTarget | null>(null);
+  const [setupTarget, setSetupTarget] = useState<SetupTarget | null>(
+    readSetupTarget
+  );
   // The model the project agent will run on, picked here — the prompt box has
   // no model chip, so this menu is the only place to pick one before Start.
   const [modelAnchor, setModelAnchor] = useState<HTMLElement | null>(null);
@@ -326,7 +407,7 @@ const NewProjectSurface = () => {
   // The flow can swap its own target and finish in the same tick — the example
   // route replaces the placeholder workflow with the copy, then finishes — so
   // the handlers read this rather than the render's copy of the state.
-  const setupTargetRef = useRef<SetupTarget | null>(null);
+  const setupTargetRef = useRef<SetupTarget | null>(setupTarget);
   const refInputRef = useRef<HTMLInputElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
@@ -334,8 +415,13 @@ const NewProjectSurface = () => {
   // box, at the end, so the user keeps typing without a click.
   const pendingCaretRef = useRef<number | null>(null);
 
-  const { droppedFiles, addFiles, addDroppedFiles, removeFile, getFileContents } =
-    useFileHandling();
+  const {
+    droppedFiles,
+    addFiles,
+    addDroppedFiles,
+    removeFile,
+    getFileContents
+  } = useFileHandling();
   const { data: entities } = useEntities();
   // Both the user's own skills and the ones NodeTool ships: either is a
   // starter, and either is invoked the same way.
@@ -619,6 +705,7 @@ const NewProjectSurface = () => {
   const applySetupTarget = useCallback((target: SetupTarget | null) => {
     setupTargetRef.current = target;
     setSetupTarget(target);
+    writeSetupTarget(target);
     if (target) {
       useOnboardingStore.getState().markStep("start-guided-flow");
     }
@@ -647,10 +734,7 @@ const NewProjectSurface = () => {
    * word.
    */
   const noteUncarriedContext = useCallback(
-    (
-      flow: string,
-      carries: { entities: boolean; references: boolean }
-    ) => {
+    (flow: string, carries: { entities: boolean; references: boolean }) => {
       const left: string[] = [];
       if (!carries.references && droppedFiles.length > 0) {
         left.push(
@@ -689,275 +773,311 @@ const NewProjectSurface = () => {
   // the board is filed into the open project instead.
   const startStoryboardFlow = useCallback(
     async (existingProjectId?: string) => {
-    if (starting) {
-      return;
-    }
-    const text = prompt.trim();
-    const name =
-      text.length > 0 ? projectNameFromPrompt(text, null) : "New storyboard";
-    setStarting(true);
-    try {
-      const projectId =
-        existingProjectId ??
-        (
-          await createProject.mutateAsync({
-            name,
-            kind: "storyboard"
-          })
-        ).id;
-      const board = await createStoryboard.mutateAsync({
-        name,
-        projectId,
-        document: {
-          ...newStoryboardSetupDocument(text),
-          // The one setup document with a cast field, so the entities picked
-          // in the composer come along.
-          entityIds
-        }
-      });
-      noteUncarriedContext("storyboard", {
-        entities: true,
-        references: false
-      });
-      applySetupTarget({
-        kind: "storyboard",
-        id: board.id,
-        projectId,
-        name,
-        ownsProject: existingProjectId === undefined
-      });
-    } catch (error) {
-      reportEntryFailure("storyboard", error);
-    } finally {
-      setStarting(false);
-    }
-  }, [
-    applySetupTarget,
-    createProject,
-    createStoryboard,
-    entityIds,
-    noteUncarriedContext,
-    prompt,
-    reportEntryFailure,
-    starting
-  ]);
-
+      if (starting) {
+        return;
+      }
+      const text = prompt.trim();
+      const name =
+        text.length > 0 ? projectNameFromPrompt(text, null) : "New storyboard";
+      setStarting(true);
+      try {
+        const projectId =
+          existingProjectId ??
+          (
+            await createProject.mutateAsync({
+              name,
+              kind: "storyboard"
+            })
+          ).id;
+        const board = await createStoryboard.mutateAsync({
+          name,
+          projectId,
+          document: {
+            ...newStoryboardSetupDocument(text),
+            // The one setup document with a cast field, so the entities picked
+            // in the composer come along.
+            entityIds
+          }
+        });
+        noteUncarriedContext("storyboard", {
+          entities: true,
+          references: false
+        });
+        applySetupTarget({
+          kind: "storyboard",
+          id: board.id,
+          projectId,
+          name,
+          ownsProject: existingProjectId === undefined
+        });
+      } catch (error) {
+        reportEntryFailure("storyboard", error);
+      } finally {
+        setStarting(false);
+      }
+    },
+    [
+      applySetupTarget,
+      createProject,
+      createStoryboard,
+      entityIds,
+      noteUncarriedContext,
+      prompt,
+      reportEntryFailure,
+      starting
+    ]
+  );
 
   // The Video card. `timeline.create` takes no document, so the setup goes in
   // as one PATCH straight after — the flow reads it off the loaded sequence.
-  const startVideoFlow = useCallback(async (existingProjectId?: string) => {
-    if (starting) {
-      return;
-    }
-    const text = prompt.trim();
-    const name =
-      text.length > 0 ? projectNameFromPrompt(text, null) : "New video";
-    setStarting(true);
-    try {
-      // Before the project row, so a failed upload costs nothing to clean up.
-      const references = await uploadComposerReferences(droppedFiles);
-      const projectId =
-        existingProjectId ??
-        (
-          await createProject.mutateAsync({
-            name,
-            kind: "timeline"
+  const startVideoFlow = useCallback(
+    async (existingProjectId?: string) => {
+      if (starting) {
+        return;
+      }
+      const text = prompt.trim();
+      const name =
+        text.length > 0 ? projectNameFromPrompt(text, null) : "New video";
+      setStarting(true);
+      try {
+        // Before the project row, so a failed upload costs nothing to clean up.
+        const references = await uploadComposerReferences(droppedFiles);
+        const projectId =
+          existingProjectId ??
+          (
+            await createProject.mutateAsync({
+              name,
+              kind: "timeline"
+            })
+          ).id;
+        const sequence = await createTimeline.mutateAsync({
+          name,
+          projectId
+        });
+        const entityReferenceBindings: ProductionReferenceBinding[] =
+          selectedEntities.flatMap((entity) => {
+            const assetId = assetIdOf(entity.reference_images?.[0]);
+            if (!assetId) {
+              return [];
+            }
+            return [
+              {
+                kind: entity.kind === "prop" ? "product" : entity.kind,
+                asset_id: assetId,
+                entity_id: entity.id,
+                label: entity.name
+              }
+            ];
+          });
+        const withSetup = await trpcClient.timeline.update.mutate({
+          id: sequence.id,
+          document: newVideoSetupDocument(text, {
+            references: references.map(({ uri, name: fileName }) => ({
+              uri,
+              name: fileName,
+              role: "product"
+            })),
+            entityIds,
+            ...(entityReferenceBindings.length > 0 && {
+              creativeContext: {
+                schema_version: 1,
+                reference_bindings: entityReferenceBindings
+              }
+            })
           })
-        ).id;
-      const sequence = await createTimeline.mutateAsync({
-        name,
-        projectId
-      });
-      const withSetup = await trpcClient.timeline.update.mutate({
-        id: sequence.id,
-        document: newVideoSetupDocument(text, {
-          references: references.map(({ uri, name: fileName }) => ({
-            uri,
-            name: fileName
-          })),
-          entityIds
-        })
-      });
-      // The create seeded the detail cache with a sequence that has no setup;
-      // the flow's first render must not read that copy (see
-      // `useSeedTimelineDetail`).
-      seedTimelineDetail(withSetup);
-      noteUncarriedContext("video", { entities: true, references: true });
-      applySetupTarget({
-        kind: "video",
-        id: sequence.id,
-        projectId,
-        name,
-        ownsProject: existingProjectId === undefined
-      });
-    } catch (error) {
-      reportEntryFailure("video", error);
-    } finally {
-      setStarting(false);
-    }
-  }, [
-    applySetupTarget,
-    createProject,
-    createTimeline,
-    droppedFiles,
-    entityIds,
-    noteUncarriedContext,
-    prompt,
-    reportEntryFailure,
-    seedTimelineDetail,
-    starting
-  ]);
+        });
+        // The create seeded the detail cache with a sequence that has no setup;
+        // the flow's first render must not read that copy (see
+        // `useSeedTimelineDetail`).
+        seedTimelineDetail(withSetup);
+        noteUncarriedContext("video", { entities: true, references: true });
+        applySetupTarget({
+          kind: "video",
+          id: sequence.id,
+          projectId,
+          name,
+          ownsProject: existingProjectId === undefined
+        });
+      } catch (error) {
+        reportEntryFailure("video", error);
+      } finally {
+        setStarting(false);
+      }
+    },
+    [
+      applySetupTarget,
+      createProject,
+      createTimeline,
+      droppedFiles,
+      entityIds,
+      noteUncarriedContext,
+      prompt,
+      reportEntryFailure,
+      seedTimelineDetail,
+      selectedEntities,
+      starting
+    ]
+  );
 
-  const startScriptFlow = useCallback(async (existingProjectId?: string) => {
-    if (starting) {
-      return;
-    }
-    const text = prompt.trim();
-    const name =
-      text.length > 0 ? projectNameFromPrompt(text, null) : "New script";
-    setStarting(true);
-    try {
-      const references = await uploadComposerReferences(droppedFiles);
-      const projectId =
-        existingProjectId ??
-        (await createProject.mutateAsync({ name, kind: "script" })).id;
-      const script = await createScript.mutateAsync({
-        name,
-        projectId,
-        document: newScriptSetupDocument(text, {
-          attachments: references.map(({ uri, name: fileName, type }) => ({
-            uri,
-            name: fileName,
-            contentType: type
-          })),
-          entityIds
-        })
-      });
-      noteUncarriedContext("script", { entities: true, references: true });
-      applySetupTarget({
-        kind: "script",
-        id: script.id,
-        projectId,
-        name,
-        ownsProject: existingProjectId === undefined
-      });
-    } catch (error) {
-      reportEntryFailure("script", error);
-    } finally {
-      setStarting(false);
-    }
-  }, [
-    applySetupTarget,
-    createProject,
-    createScript,
-    droppedFiles,
-    entityIds,
-    noteUncarriedContext,
-    prompt,
-    reportEntryFailure,
-    starting
-  ]);
+  const startScriptFlow = useCallback(
+    async (existingProjectId?: string) => {
+      if (starting) {
+        return;
+      }
+      const text = prompt.trim();
+      const name =
+        text.length > 0 ? projectNameFromPrompt(text, null) : "New script";
+      setStarting(true);
+      try {
+        const references = await uploadComposerReferences(droppedFiles);
+        const projectId =
+          existingProjectId ??
+          (await createProject.mutateAsync({ name, kind: "script" })).id;
+        const script = await createScript.mutateAsync({
+          name,
+          projectId,
+          document: newScriptSetupDocument(text, {
+            attachments: references.map(({ uri, name: fileName, type }) => ({
+              uri,
+              name: fileName,
+              contentType: type
+            })),
+            entityIds
+          })
+        });
+        noteUncarriedContext("script", { entities: true, references: true });
+        applySetupTarget({
+          kind: "script",
+          id: script.id,
+          projectId,
+          name,
+          ownsProject: existingProjectId === undefined
+        });
+      } catch (error) {
+        reportEntryFailure("script", error);
+      } finally {
+        setStarting(false);
+      }
+    },
+    [
+      applySetupTarget,
+      createProject,
+      createScript,
+      droppedFiles,
+      entityIds,
+      noteUncarriedContext,
+      prompt,
+      reportEntryFailure,
+      starting
+    ]
+  );
 
   // Image has no step host: its flow is an overlay the sketch editor renders,
   // so the card opens the editor and the overlay resumes from the document's
   // stage (PRD § 10.4).
-  const startImageProject = useCallback(async (existingProjectId?: string) => {
-    if (starting) {
-      return;
-    }
-    const text = prompt.trim();
-    const name =
-      text.length > 0 ? projectNameFromPrompt(text, null) : "New image";
-    setStarting(true);
-    try {
-      const references = await uploadComposerReferences(droppedFiles);
-      const projectId =
-        existingProjectId ??
-        (await createProject.mutateAsync({ name, kind: "image" })).id;
-      const started = await startImageFlow({
-        name,
-        projectId,
-        brief: text,
-        references,
-        entityIds
-      });
-      noteUncarriedContext("image", { entities: true, references: true });
-      openTab({
-        type: "sketch",
-        ref: started.documentId,
-        mode: "edit",
-        title: name,
-        projectId
-      });
-      useOnboardingStore.getState().markStep("start-guided-flow");
-      closeTab(tabId("project-new", PROJECT_NEW_REF));
-    } catch (error) {
-      reportEntryFailure("image", error);
-    } finally {
-      setStarting(false);
-    }
-  }, [
-    closeTab,
-    createProject,
-    droppedFiles,
-    entityIds,
-    noteUncarriedContext,
-    openTab,
-    prompt,
-    reportEntryFailure,
-    starting
-  ]);
+  const startImageProject = useCallback(
+    async (existingProjectId?: string) => {
+      if (starting) {
+        return;
+      }
+      const text = prompt.trim();
+      const name =
+        text.length > 0 ? projectNameFromPrompt(text, null) : "New image";
+      setStarting(true);
+      try {
+        const references = await uploadComposerReferences(droppedFiles);
+        const projectId =
+          existingProjectId ??
+          (await createProject.mutateAsync({ name, kind: "image" })).id;
+        const started = await startImageFlow({
+          name,
+          projectId,
+          brief: text,
+          references,
+          entityIds
+        });
+        noteUncarriedContext("image", { entities: true, references: true });
+        openTab({
+          type: "sketch",
+          ref: started.documentId,
+          mode: "edit",
+          title: name,
+          projectId
+        });
+        useOnboardingStore.getState().markStep("start-guided-flow");
+        closeTab(tabId("project-new", PROJECT_NEW_REF));
+      } catch (error) {
+        reportEntryFailure("image", error);
+      } finally {
+        setStarting(false);
+      }
+    },
+    [
+      closeTab,
+      createProject,
+      droppedFiles,
+      entityIds,
+      noteUncarriedContext,
+      openTab,
+      prompt,
+      reportEntryFailure,
+      starting
+    ]
+  );
 
-  const startWorkflowFlow = useCallback(async (existingProjectId?: string) => {
-    if (starting) {
-      return;
-    }
-    const text = prompt.trim();
-    const name =
-      text.length > 0 ? projectNameFromPrompt(text, null) : "New workflow";
-    setStarting(true);
-    try {
-      const projectId =
-        existingProjectId ??
-        (
-          await createProject.mutateAsync({
-            name,
-            kind: "workflow"
-          })
-        ).id;
-      const created = await createWorkflow({
-        name,
-        description: "",
-        tags: [],
-        access: "private",
-        project_id: projectId,
-        settings: writeWorkflowSetup({}, { stage: "idea", brief: text })
-      });
-      noteUncarriedContext("workflow", {
-        entities: false,
-        references: false
-      });
-      applySetupTarget({
-        kind: "workflow",
-        id: created.id,
-        projectId,
-        name,
-        ownsProject: existingProjectId === undefined
-      });
-    } catch (error) {
-      reportEntryFailure("workflow", error);
-    } finally {
-      setStarting(false);
-    }
-  }, [
-    applySetupTarget,
-    createProject,
-    createWorkflow,
-    noteUncarriedContext,
-    prompt,
-    reportEntryFailure,
-    starting
-  ]);
+  const startWorkflowFlow = useCallback(
+    async (existingProjectId?: string) => {
+      if (starting) {
+        return;
+      }
+      const text = prompt.trim();
+      const name =
+        text.length > 0 ? projectNameFromPrompt(text, null) : "New workflow";
+      setStarting(true);
+      try {
+        const projectId =
+          existingProjectId ??
+          (
+            await createProject.mutateAsync({
+              name,
+              kind: "workflow"
+            })
+          ).id;
+        const created = await createWorkflow({
+          name,
+          description: "",
+          tags: [],
+          access: "private",
+          project_id: projectId,
+          settings: writeWorkflowSetup({}, { stage: "idea", brief: text })
+        });
+        noteUncarriedContext("workflow", {
+          entities: false,
+          references: false
+        });
+        applySetupTarget({
+          kind: "workflow",
+          id: created.id,
+          projectId,
+          name,
+          ownsProject: existingProjectId === undefined
+        });
+      } catch (error) {
+        reportEntryFailure("workflow", error);
+      } finally {
+        setStarting(false);
+      }
+    },
+    [
+      applySetupTarget,
+      createProject,
+      createWorkflow,
+      noteUncarriedContext,
+      prompt,
+      reportEntryFailure,
+      starting
+    ]
+  );
 
   /**
    * The Game card (game-prd § 4, D25/D30).
@@ -967,106 +1087,114 @@ const NewProjectSurface = () => {
    * with the brief the composer holds. The project row carries `kind: "game"`,
    * which is what its spend history is read back by.
    */
-  const startGameFlow = useCallback(async (existingProjectId?: string) => {
-    if (starting) {
-      return;
-    }
-    const text = prompt.trim();
-    const name = text.length > 0 ? projectNameFromPrompt(text, null) : "New game";
-    setStarting(true);
-    try {
-      const projectId =
-        existingProjectId ??
-        (
-          await createProject.mutateAsync({
-            name,
-            kind: "game"
-          })
-        ).id;
-      const created = await createWorkflow({
-        name,
-        description: "",
-        tags: [],
-        access: "private",
-        project_id: projectId,
-        settings: writeGameSetup({}, { stage: "idea", brief: text })
-      });
-      noteUncarriedContext("game", {
-        entities: false,
-        references: false
-      });
-      applySetupTarget({
-        kind: "game",
-        id: created.id,
-        projectId,
-        name,
-        ownsProject: existingProjectId === undefined
-      });
-    } catch (error) {
-      reportEntryFailure("game", error);
-    } finally {
-      setStarting(false);
-    }
-  }, [
-    applySetupTarget,
-    createProject,
-    createWorkflow,
-    noteUncarriedContext,
-    prompt,
-    reportEntryFailure,
-    starting
-  ]);
-
-  const startEntityFlow = useCallback(async (existingProjectId?: string) => {
-    if (starting) {
-      return;
-    }
-    const text = prompt.trim();
-    const name =
-      text.length > 0 ? projectNameFromPrompt(text, null) : "New entity";
-    setStarting(true);
-    try {
-      const references = await uploadComposerReferences(droppedFiles);
-      const initialAssetId = assetIdFromLocator(
-        references.find((reference) => reference.type.startsWith("image/"))?.uri
-      );
-      const projectId =
-        existingProjectId ??
-        (
-          await createProject.mutateAsync({
-            name,
-            kind: "entity"
-          })
-        ).id;
-      noteUncarriedContext("entity", {
-        entities: false,
-        references: initialAssetId !== undefined
-      });
-      const target: SetupTarget = {
-        kind: "entity",
-        id: projectId,
-        projectId,
-        name,
-        ownsProject: existingProjectId === undefined
-      };
-      if (initialAssetId) {
-        target.initialAssetId = initialAssetId;
+  const startGameFlow = useCallback(
+    async (existingProjectId?: string) => {
+      if (starting) {
+        return;
       }
-      applySetupTarget(target);
-    } catch (error) {
-      reportEntryFailure("entity flow", error);
-    } finally {
-      setStarting(false);
-    }
-  }, [
-    applySetupTarget,
-    createProject,
-    droppedFiles,
-    noteUncarriedContext,
-    prompt,
-    reportEntryFailure,
-    starting
-  ]);
+      const text = prompt.trim();
+      const name =
+        text.length > 0 ? projectNameFromPrompt(text, null) : "New game";
+      setStarting(true);
+      try {
+        const projectId =
+          existingProjectId ??
+          (
+            await createProject.mutateAsync({
+              name,
+              kind: "game"
+            })
+          ).id;
+        const created = await createWorkflow({
+          name,
+          description: "",
+          tags: [],
+          access: "private",
+          project_id: projectId,
+          settings: writeGameSetup({}, { stage: "idea", brief: text })
+        });
+        noteUncarriedContext("game", {
+          entities: false,
+          references: false
+        });
+        applySetupTarget({
+          kind: "game",
+          id: created.id,
+          projectId,
+          name,
+          ownsProject: existingProjectId === undefined
+        });
+      } catch (error) {
+        reportEntryFailure("game", error);
+      } finally {
+        setStarting(false);
+      }
+    },
+    [
+      applySetupTarget,
+      createProject,
+      createWorkflow,
+      noteUncarriedContext,
+      prompt,
+      reportEntryFailure,
+      starting
+    ]
+  );
+
+  const startEntityFlow = useCallback(
+    async (existingProjectId?: string) => {
+      if (starting) {
+        return;
+      }
+      const text = prompt.trim();
+      const name =
+        text.length > 0 ? projectNameFromPrompt(text, null) : "New entity";
+      setStarting(true);
+      try {
+        const references = await uploadComposerReferences(droppedFiles);
+        const initialAssetId = assetIdFromLocator(
+          references.find((reference) => reference.type.startsWith("image/"))
+            ?.uri
+        );
+        const projectId =
+          existingProjectId ??
+          (
+            await createProject.mutateAsync({
+              name,
+              kind: "entity"
+            })
+          ).id;
+        noteUncarriedContext("entity", {
+          entities: false,
+          references: initialAssetId !== undefined
+        });
+        const target: SetupTarget = {
+          kind: "entity",
+          id: projectId,
+          projectId,
+          name,
+          ownsProject: existingProjectId === undefined
+        };
+        if (initialAssetId) {
+          target.initialAssetId = initialAssetId;
+        }
+        applySetupTarget(target);
+      } catch (error) {
+        reportEntryFailure("entity flow", error);
+      } finally {
+        setStarting(false);
+      }
+    },
+    [
+      applySetupTarget,
+      createProject,
+      droppedFiles,
+      noteUncarriedContext,
+      prompt,
+      reportEntryFailure,
+      starting
+    ]
+  );
 
   /**
    * Run the card's flow into its destination. "New" makes the project row
@@ -1194,15 +1322,17 @@ const NewProjectSurface = () => {
         title: target.name,
         projectId: target.projectId
       });
+      applySetupTarget(null);
       closeTab(tabId("project-new", PROJECT_NEW_REF));
     },
-    [addNotification, closeTab, openTab]
+    [addNotification, applySetupTarget, closeTab, openTab]
   );
 
   const handleEntityFinished = useCallback(() => {
+    applySetupTarget(null);
     openPageTab("entities");
     closeTab(tabId("project-new", PROJECT_NEW_REF));
-  }, [closeTab]);
+  }, [applySetupTarget, closeTab]);
 
   /**
    * "Change flow" on step 1 — the shell asks first, this runs on confirm.
@@ -1344,7 +1474,8 @@ const NewProjectSurface = () => {
   // starts, the way a multi-line composer submits everywhere else.
   const handlePromptKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      const keyEvent = event as unknown as React.KeyboardEvent<HTMLTextAreaElement>;
+      const keyEvent =
+        event as unknown as React.KeyboardEvent<HTMLTextAreaElement>;
       if (handleSkillKeyDown(keyEvent)) {
         return;
       }
@@ -1463,7 +1594,11 @@ const NewProjectSurface = () => {
       <FlexColumn align="center" sx={{ minHeight: "100%", px: SPACING.xl }}>
         <FlexColumn
           gap={SPACING.xxl}
-          sx={{ width: "100%", maxWidth: `${COLUMN_WIDTH}px`, pt: SPACING.xxxl }}
+          sx={{
+            width: "100%",
+            maxWidth: `${COLUMN_WIDTH}px`,
+            pt: SPACING.xxxl
+          }}
         >
           {/* The getting-started steps read as a thin bar above the page rather
               than a block wedged between the composer and the footer. */}
@@ -1493,7 +1628,7 @@ const NewProjectSurface = () => {
             gap={SPACING.md}
             sx={{
               "& button": { bgcolor: "common.black" },
-              "& button:not([aria-disabled=\"true\"]):hover": {
+              '& button:not([aria-disabled="true"]):hover': {
                 bgcolor: "common.black",
                 borderColor: "primary.main"
               },
@@ -1513,10 +1648,7 @@ const NewProjectSurface = () => {
             />
           </FlexColumn>
 
-          <DashboardExampleApps
-            compact
-            onBrowseAll={handleOpenExamples}
-          />
+          <DashboardExampleApps compact onBrowseAll={handleOpenExamples} />
 
           {/* The composer sits below the cards, not above them: its `/` and `@`
               menus open upward from the box's top edge
@@ -1634,7 +1766,11 @@ const NewProjectSurface = () => {
           </FlexColumn>
 
           {starters.length > 0 && (
-            <FlexColumn gap={SPACING.md} align="center" sx={{ mt: -SPACING.lg }}>
+            <FlexColumn
+              gap={SPACING.md}
+              align="center"
+              sx={{ mt: -SPACING.lg }}
+            >
               <FlexRow
                 justify="center"
                 gap={SPACING.sm}
@@ -1696,7 +1832,6 @@ const NewProjectSurface = () => {
               )}
             </FlexColumn>
           )}
-
         </FlexColumn>
 
         <Box sx={{ flex: 1, minHeight: SPACING.xxxl }} />
@@ -1879,10 +2014,7 @@ const NewProjectSurface = () => {
                     compact
                     disabled={creating !== null}
                     onClick={() => {
-                      void installStoryboardExample(
-                        example.slug,
-                        example.name
-                      );
+                      void installStoryboardExample(example.slug, example.name);
                     }}
                   />
                 ))}

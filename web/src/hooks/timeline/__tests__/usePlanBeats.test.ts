@@ -199,7 +199,12 @@ describe("planBeats (criterion 3)", () => {
     await planBeats({
       brief: "a paper boat's last voyage",
       format: AD_15,
-      context: { clips: ["kerb.mp4", "drain.mp4"] },
+      context: {
+        clips: [
+          { clipId: "clip-1", name: "kerb.mp4", mediaType: "video" },
+          { clipId: "clip-2", name: "drain.mp4", mediaType: "video" }
+        ]
+      },
       request: async (_command, data) => {
         sentPrompts.push(String(data["prompt"]));
         return { data: screenplay };
@@ -237,11 +242,14 @@ describe("planBeats (criterion 3)", () => {
     const beats = await planBeats({
       brief: "a paper boat's last voyage",
       format: AD_15,
-      context: { clips: ["kerb.mp4"] },
+      context: {
+        clips: [{ clipId: "clip-1", name: "kerb.mp4", mediaType: "video" }]
+      },
       request: async () => ({ data: screenplay })
     });
 
     expect(beats).toHaveLength(1);
+    expect(beats[0].source_clip_id).toBe("clip-1");
   });
 
   it("sends no context block when the creator brought nothing", async () => {
@@ -341,6 +349,84 @@ describe("usePlanBeats staleness", () => {
     expect(mockStore.getState().setup?.beats ?? []).toHaveLength(0);
     await waitFor(() => expect(result.current.planning).toBe(false));
   });
+
+  it("does not adopt a plan after the owning setup operation is canceled", async () => {
+    setup("format");
+    let answer: (value: Record<string, unknown>) => void = () => undefined;
+    mockRequest.mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      })
+    );
+    const { result } = renderHook(() => usePlanBeats());
+    const controller = new AbortController();
+
+    let planned: Promise<void> = Promise.resolve();
+    act(() => {
+      planned = result.current.plan({ signal: controller.signal });
+    });
+    controller.abort();
+    await act(async () => {
+      answer({ data: screenplay });
+      await planned;
+    });
+
+    expect(mockStore.getState().setup?.stage).toBe("format");
+    expect(mockStore.getState().setup?.beats).toBeUndefined();
+    await waitFor(() => expect(result.current.planning).toBe(false));
+  });
+
+  it("cancels a review re-plan owned by the planner hook", async () => {
+    setup("review");
+    let answer: (value: Record<string, unknown>) => void = () => undefined;
+    mockRequest.mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      })
+    );
+    const { result } = renderHook(() => usePlanBeats());
+
+    let planned: Promise<void> = Promise.resolve();
+    act(() => {
+      planned = result.current.plan({ replan: true });
+    });
+    act(() => result.current.cancel());
+    await act(async () => {
+      answer({ data: screenplay });
+      await planned;
+    });
+
+    expect(mockStore.getState().setup?.stage).toBe("review");
+    expect(mockStore.getState().setup?.beats).toBeUndefined();
+    expect(result.current.planning).toBe(false);
+  });
+
+  it("does not adopt a plan after the draft changes at the same stage", async () => {
+    setup("format");
+    let answer: (value: Record<string, unknown>) => void = () => undefined;
+    mockRequest.mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      })
+    );
+    const { result } = renderHook(() => usePlanBeats());
+
+    let planned: Promise<void> = Promise.resolve();
+    act(() => {
+      planned = result.current.plan();
+    });
+    act(() => {
+      mockStore.getState().setSetup({ brief: "a different draft" });
+    });
+    await act(async () => {
+      answer({ data: screenplay });
+      await planned;
+    });
+
+    expect(mockStore.getState().setup?.brief).toBe("a different draft");
+    expect(mockStore.getState().setup?.stage).toBe("format");
+    expect(mockStore.getState().setup?.beats).toBeUndefined();
+  });
 });
 
 /**
@@ -364,6 +450,7 @@ describe("planContextOf", () => {
         durationMs: 3200,
         mediaType: "video",
         sourceType: "imported",
+        currentAssetId: "asset-kerb",
         linkId: "l1"
       },
       {
@@ -377,7 +464,14 @@ describe("planContextOf", () => {
       }
     ]);
 
-    expect(planContextOf(store).clips).toEqual(["kerb.mp4"]);
+    expect(planContextOf(store).clips).toEqual([
+      {
+        clipId: "c1",
+        name: "kerb.mp4",
+        mediaType: "video",
+        assetId: "asset-kerb"
+      }
+    ]);
   });
 
   it("plans one beat for one dropped video with an audio track", async () => {
@@ -408,6 +502,7 @@ describe("planContextOf", () => {
     });
 
     expect(beats).toHaveLength(1);
+    expect(beats[0].source_clip_id).toBe("c1");
   });
 
   it("keeps a dropped still, and leaves generated clips out", () => {
@@ -430,6 +525,8 @@ describe("planContextOf", () => {
       }
     ]);
 
-    expect(planContextOf(store).clips).toEqual(["kerb.png"]);
+    expect(planContextOf(store).clips).toEqual([
+      { clipId: "c1", name: "kerb.png", mediaType: "image" }
+    ]);
   });
 });

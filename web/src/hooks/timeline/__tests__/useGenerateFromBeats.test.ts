@@ -1,6 +1,6 @@
 import { describe, it, expect, jest } from "@jest/globals";
 import { createTimelineStore } from "../../../stores/timeline/TimelineStore";
-import type { TimelineBeat } from "@nodetool-ai/timeline";
+import { makeClip, makeTrack, type TimelineBeat } from "@nodetool-ai/timeline";
 import { generateFromBeats } from "../useGenerateFromBeats";
 
 /**
@@ -167,6 +167,150 @@ describe("generateFromBeats (criterion 5)", () => {
     expect(result.startedClipIds).toHaveLength(7);
   });
 
+  it("awaits prepared-draft persistence before dispatching any request", async () => {
+    const store = seeded();
+    let acknowledge: () => void = () => undefined;
+    const persistPreparedBatch = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          acknowledge = resolve;
+        })
+    );
+    const startJob = jest.fn(async (clipId: string) => clipId);
+
+    const generating = generateFromBeats(store, {
+      ...options,
+      persistPreparedBatch,
+      startJob
+    });
+    await Promise.resolve();
+
+    expect(persistPreparedBatch).toHaveBeenCalledTimes(1);
+    expect(startJob).not.toHaveBeenCalled();
+    expect(store.getState().setup?.prepared_generation).toMatchObject({
+      status: "unsubmitted",
+      requests: expect.any(Array)
+    });
+    expect(store.getState().setup?.stage).toBe("look");
+    acknowledge();
+    await generating;
+    expect(startJob).toHaveBeenCalledTimes(7);
+  });
+
+  it("does not submit after canceling while the prepared draft is saving", async () => {
+    const store = seeded();
+    const controller = new AbortController();
+    let acknowledge: () => void = () => undefined;
+    const persistPreparedBatch = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          acknowledge = resolve;
+        })
+    );
+    const startJob = jest.fn(async (clipId: string) => clipId);
+
+    const generating = generateFromBeats(store, {
+      ...options,
+      signal: controller.signal,
+      persistPreparedBatch,
+      startJob
+    });
+    await Promise.resolve();
+    controller.abort();
+    acknowledge();
+
+    await expect(generating).rejects.toMatchObject({ name: "AbortError" });
+    expect(startJob).not.toHaveBeenCalled();
+    expect(store.getState().setup).toMatchObject({
+      stage: "look",
+      prepared_generation: { status: "unsubmitted" }
+    });
+  });
+
+  it("keeps a retryable unsubmitted draft when preparation persistence fails", async () => {
+    const store = seeded();
+    const startJob = jest.fn(async (clipId: string) => clipId);
+
+    await expect(
+      generateFromBeats(store, {
+        ...options,
+        persistPreparedBatch: async () => {
+          throw new Error("save failed");
+        },
+        startJob
+      })
+    ).rejects.toThrow(/No generation requests were submitted/i);
+
+    const preparedClipIds = store.getState().clips.map((clip) => clip.id);
+    expect(startJob).not.toHaveBeenCalled();
+    expect(store.getState().setup?.stage).toBe("look");
+    expect(store.getState().setup?.prepared_generation).toMatchObject({
+      status: "unsubmitted"
+    });
+
+    await generateFromBeats(store, {
+      ...options,
+      persistPreparedBatch: async () => undefined,
+      startJob
+    });
+
+    expect(store.getState().clips.map((clip) => clip.id)).toEqual(
+      preparedClipIds
+    );
+    expect(store.getState().setup?.stage).toBe("done");
+    expect(startJob).toHaveBeenCalledTimes(7);
+  });
+
+  it("rebuilds a failed preparation when reviewed generation inputs change", async () => {
+    const store = seeded();
+    const startJob = jest.fn(async (clipId: string) => clipId);
+
+    await expect(
+      generateFromBeats(store, {
+        ...options,
+        persistPreparedBatch: async () => {
+          throw new Error("save failed");
+        },
+        startJob
+      })
+    ).rejects.toThrow(/No generation requests were submitted/i);
+    const staleClipIds = new Set(store.getState().clips.map((clip) => clip.id));
+
+    store.getState().updateBeat("b1", {
+      production: {
+        schema_version: 1,
+        speech_mode: "none",
+        requested_take_count: 3
+      }
+    });
+    startJob.mockClear();
+    await generateFromBeats(store, {
+      ...options,
+      provider: "other-provider",
+      model: "other/video-model",
+      voiceover: false,
+      music: false,
+      persistPreparedBatch: async () => undefined,
+      startJob
+    });
+
+    expect(
+      store
+        .getState()
+        .clips.filter((clip) => clip.mediaType === "video")
+        .every(
+          (clip) =>
+            clip.provider === "other-provider" &&
+            clip.model === "other/video-model" &&
+            !staleClipIds.has(clip.id)
+        )
+    ).toBe(true);
+    expect(
+      store.getState().clips.some((clip) => clip.name.includes("voiceover"))
+    ).toBe(false);
+    expect(startJob).toHaveBeenCalledTimes(6);
+  });
+
   it("does not let one refusal stop the rest of the batch", async () => {
     const store = seeded();
     let call = 0;
@@ -264,6 +408,75 @@ describe("generateFromBeats (criterion 5)", () => {
       generateFromBeats(store, { ...options, startJob })
     ).rejects.toThrow(/speech duration/i);
     expect(store.getState().clips).toHaveLength(0);
+    expect(startJob).not.toHaveBeenCalled();
+  });
+});
+
+describe("generateFromBeats imported source reuse", () => {
+  it("keeps supplied footage as the beat destination without replacement generation", async () => {
+    const store = seeded([
+      {
+        id: "b-source",
+        prompt: "tighten the supplied product shot",
+        duration_ms: 4_000,
+        source_clip_id: "source-clip"
+      }
+    ]);
+    const track = makeTrack({ id: "source-track", type: "video" });
+    const audioTrack = makeTrack({ id: "source-audio-track", type: "audio" });
+    const source = makeClip({
+      id: "source-clip",
+      trackId: track.id,
+      name: "product-footage.mp4",
+      startMs: 10_000,
+      durationMs: 10_000,
+      inPointMs: 2_000,
+      outPointMs: 12_000,
+      mediaType: "video",
+      sourceType: "imported",
+      currentAssetId: "asset-product-footage",
+      linkId: "source-link"
+    });
+    const sourceAudio = makeClip({
+      id: "source-audio",
+      trackId: audioTrack.id,
+      name: "product-footage audio",
+      startMs: 10_000,
+      durationMs: 10_000,
+      inPointMs: 2_000,
+      outPointMs: 12_000,
+      mediaType: "audio",
+      sourceType: "imported",
+      currentAssetId: "asset-product-audio",
+      linkId: "source-link"
+    });
+    store.setState({ tracks: [track, audioTrack], clips: [source, sourceAudio] });
+    const startJob = jest.fn(async (clipId: string) => clipId);
+
+    const result = await generateFromBeats(store, {
+      ...options,
+      voiceover: false,
+      music: false,
+      startJob,
+      persistPreparedBatch: async () => undefined
+    });
+
+    expect(result.videoClipIds).toEqual(["source-clip"]);
+    expect(store.getState().clips).toHaveLength(2);
+    expect(store.getState().setup?.beats?.[0].clip_id).toBe("source-clip");
+    expect(store.getState().clips[0]).toMatchObject({
+      startMs: 0,
+      durationMs: 4_000,
+      inPointMs: 2_000,
+      outPointMs: 6_000,
+      beatId: "b-source"
+    });
+    expect(store.getState().clips[1]).toMatchObject({
+      startMs: 0,
+      durationMs: 4_000,
+      inPointMs: 2_000,
+      outPointMs: 6_000
+    });
     expect(startJob).not.toHaveBeenCalled();
   });
 });

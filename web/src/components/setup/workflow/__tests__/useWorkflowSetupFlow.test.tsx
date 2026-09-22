@@ -59,18 +59,22 @@ jest.mock("../../../model_menu/LanguageModelMenuDialog", () => ({
 
 // Typed with the real input, so `mock.calls[0][0]` is the argument the flow
 // passed rather than an empty tuple.
-const buildFromPlan = jest.fn(async (_input: BuildFromPlanInput) => ({
+const BUILD_RESULT = {
   status: "running" as const,
   nodeCount: 3,
   issues: [] as string[],
   validationErrors: [] as string[],
   testRun: { started: true, error: null as string | null },
   explanation: "The sample run is running. Waiting for its output."
-}));
+};
+const buildFromPlan = jest.fn(
+  async (_input: BuildFromPlanInput, _signal?: AbortSignal) => BUILD_RESULT
+);
+const cancelBuild = jest.fn(async () => {});
 jest.mock("../../../../hooks/workflow/useBuildFromPlan", () => ({
   useBuildFromPlan: () => ({
     buildFromPlan,
-    cancelBuild: jest.fn(async () => {}),
+    cancelBuild,
     building: false,
     result: null
   })
@@ -709,5 +713,61 @@ describe("useWorkflowSetupFlow", () => {
       sampleInputs: { text: "hello" }
     });
     expect(onFinish).toHaveBeenCalled();
+  });
+
+  it("keeps the workflow build alive when the setup shell hands off", async () => {
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "setup", brief: "b", plan: PLAN }
+    );
+    let operationSignal: AbortSignal | undefined;
+    let finish: (result: typeof BUILD_RESULT) => void = () => undefined;
+    buildFromPlan.mockImplementationOnce(
+      (_input, signal) =>
+        new Promise((resolve) => {
+          operationSignal = signal;
+          finish = resolve;
+        })
+    );
+    const view = renderFlow();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Build your workflow" })
+    );
+    await waitFor(() => expect(operationSignal).toBeDefined());
+    view.unmount();
+
+    expect(operationSignal?.aborted).toBe(false);
+    finish(BUILD_RESULT);
+  });
+
+  it("aborts and invokes workflow cancellation on explicit Cancel", async () => {
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "setup", brief: "b", plan: PLAN }
+    );
+    let operationSignal: AbortSignal | undefined;
+    let finish: (result: typeof BUILD_RESULT) => void = () => undefined;
+    buildFromPlan.mockImplementationOnce(
+      (_input, signal) =>
+        new Promise((resolve) => {
+          operationSignal = signal;
+          finish = resolve;
+        })
+    );
+    renderFlow();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Build your workflow" })
+    );
+    await waitFor(() => expect(operationSignal).toBeDefined());
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(operationSignal?.aborted).toBe(true);
+    expect(cancelBuild).toHaveBeenCalledTimes(1);
+    finish(BUILD_RESULT);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled()
+    );
   });
 });

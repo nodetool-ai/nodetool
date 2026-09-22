@@ -5,8 +5,13 @@ import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
 import { useBugReportStore } from "../../../stores/BugReportStore";
+import { PlanReview } from "../PlanReview";
 import { SetupFlow } from "../SetupFlow";
-import type { SetupFlowConfig, SetupStep } from "../types";
+import type {
+  SetupFlowConfig,
+  SetupOperationContext,
+  SetupStep
+} from "../types";
 
 type Stage = "idea" | "genre" | "review" | "look";
 
@@ -113,6 +118,119 @@ describe("SetupFlow", () => {
     await user.click(screen.getByRole("textbox", { name: "Genre" }));
     await user.keyboard("{Control>}{Enter}{/Control}");
 
+    expect(onAdvance).not.toHaveBeenCalled();
+    expect(onStageChange).not.toHaveBeenCalled();
+  });
+
+  it("commits a single-line review edit before Cmd+Enter advances", async () => {
+    const user = userEvent.setup();
+    const onAdvance = jest.fn();
+    const onStageChange = jest.fn();
+    const Host = () => {
+      const [draft, setDraft] = React.useState("3");
+      const [committed, setCommitted] = React.useState("3");
+      const reviewSteps = steps.map((entry) =>
+        entry.stage === "review"
+          ? {
+              ...entry,
+              canAdvance: committed === "9",
+              blockedReason: committed === "9" ? undefined : "Enter 9 seconds",
+              onAdvance,
+              render: () => (
+                <PlanReview
+                  sections={[
+                    {
+                      id: "beat-1",
+                      header: "Beat 1",
+                      rows: [
+                        {
+                          id: "duration",
+                          label: "Seconds",
+                          value: draft,
+                          onChange: setDraft,
+                          onCommit: setCommitted
+                        }
+                      ]
+                    }
+                  ]}
+                />
+              )
+            }
+          : entry
+      );
+      return flow({
+        labels: { title: "Video" },
+        steps: reviewSteps,
+        stage: "review",
+        onStageChange
+      });
+    };
+    render(<Host />);
+
+    const field = screen.getByRole("textbox", { name: "Seconds" });
+    await user.clear(field);
+    await user.type(field, "9");
+    await user.keyboard("{Control>}{Enter}{/Control}");
+
+    await waitFor(() => expect(onAdvance).toHaveBeenCalledTimes(1));
+    expect(onStageChange).toHaveBeenCalledWith("look");
+  });
+
+  it("keeps an invalid single-line review edit blocked on Cmd+Enter", async () => {
+    const user = userEvent.setup();
+    const onAdvance = jest.fn();
+    const onStageChange = jest.fn();
+    const Host = () => {
+      const [draft, setDraft] = React.useState("9");
+      const [valid, setValid] = React.useState(true);
+      const reviewSteps = steps.map((entry) =>
+        entry.stage === "review"
+          ? {
+              ...entry,
+              canAdvance: valid,
+              blockedReason: valid ? undefined : "Enter a valid duration",
+              onAdvance,
+              render: () => (
+                <PlanReview
+                  sections={[
+                    {
+                      id: "beat-1",
+                      header: "Beat 1",
+                      rows: [
+                        {
+                          id: "duration",
+                          label: "Seconds",
+                          value: draft,
+                          onChange: setDraft,
+                          onCommit: (value) => setValid(value === "9")
+                        }
+                      ]
+                    }
+                  ]}
+                />
+              )
+            }
+          : entry
+      );
+      return flow({
+        labels: { title: "Video" },
+        steps: reviewSteps,
+        stage: "review",
+        onStageChange
+      });
+    };
+    render(<Host />);
+
+    const field = screen.getByRole("textbox", { name: "Seconds" });
+    await user.clear(field);
+    await user.type(field, "bad");
+    await user.keyboard("{Meta>}{Enter}{/Meta}");
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Continue to storyboard" })
+      ).toBeDisabled()
+    );
     expect(onAdvance).not.toHaveBeenCalled();
     expect(onStageChange).not.toHaveBeenCalled();
   });
@@ -334,6 +452,87 @@ describe("SetupFlow", () => {
       expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled()
     );
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("keeps a document-owned operation alive when its setup shell hands off", async () => {
+    const user = userEvent.setup();
+    let operationSignal: AbortSignal | null = null;
+    let finish: () => void = () => undefined;
+    const remainingWork = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const Host = () => {
+      const [showSetup, setShowSetup] = React.useState(true);
+      if (!showSetup) {
+        return <div>Workflow canvas</div>;
+      }
+      return flow({
+        labels: { title: "Workflow" },
+        steps: [
+          step({
+            stage: "idea",
+            label: "Build",
+            primaryLabel: "Build your workflow",
+            continueAfterUnmount: true,
+            onAdvance: async (context) => {
+              operationSignal = context?.signal ?? null;
+              setShowSetup(false);
+              await remainingWork;
+            }
+          })
+        ],
+        stage: "idea",
+        onStageChange: jest.fn()
+      });
+    };
+    render(<Host />);
+
+    await user.click(
+      screen.getByRole("button", { name: "Build your workflow" })
+    );
+    await screen.findByText("Workflow canvas");
+
+    expect(operationSignal).not.toBeNull();
+    const operationWasAborted = (): boolean => operationSignal?.aborted ?? false;
+    expect(operationWasAborted()).toBe(false);
+    finish();
+  });
+
+  it("still aborts a document-owned operation on explicit Cancel", async () => {
+    const user = userEvent.setup();
+    let operationSignal: AbortSignal | null = null;
+    let finish: () => void = () => undefined;
+    const remainingWork = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const onCancel = jest.fn();
+    const cancellable = steps.map((entry) =>
+      entry.stage === "genre"
+        ? {
+            ...entry,
+            continueAfterUnmount: true,
+            onAdvance: async (context?: SetupOperationContext) => {
+              operationSignal = context?.signal ?? null;
+              await remainingWork;
+            },
+            onCancel
+          }
+        : entry
+    );
+    renderFlow({ stage: "genre", steps: cancellable });
+
+    await user.click(
+      screen.getByRole("button", { name: "Review your screenplay" })
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    const operationWasAborted = (): boolean => operationSignal?.aborted ?? false;
+    expect(operationWasAborted()).toBe(true);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    finish();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled()
+    );
   });
 
   // Navigation while a replacement is unresolved is what lets a late answer

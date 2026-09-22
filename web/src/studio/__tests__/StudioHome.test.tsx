@@ -15,7 +15,9 @@ jest.mock("react-router-dom", () => ({
 
 jest.mock("../StudioShell", () => ({
   __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  )
 }));
 
 jest.mock("../../hooks/storyboard/useStoryboards", () => ({
@@ -128,7 +130,9 @@ describe("StudioHome", () => {
     const card = screen.getByTestId("studio-project-card");
     expect(card).toHaveTextContent("Tides");
     expect(
-      within(card).getAllByRole("button").map((b) => b.textContent)
+      within(card)
+        .getAllByRole("button")
+        .map((b) => b.textContent)
     ).toEqual(["Storyboard", "Script", "Video"]);
   });
 
@@ -160,7 +164,7 @@ describe("StudioHome", () => {
         .getAllByRole("button")
         .map((card) => card.textContent)
     ).toEqual([
-      "StoryboardFrom a sentence to a rendered board in three steps.",
+      "StoryboardFrom a sentence to a rendered board in four steps.",
       "VideoFrom a sentence to a cut on the timeline, no board.",
       "ScriptFrom a topic to voiced lines, ready to place."
     ]);

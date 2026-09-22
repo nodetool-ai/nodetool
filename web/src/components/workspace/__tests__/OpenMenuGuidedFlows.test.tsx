@@ -26,7 +26,7 @@ describe("OpenMenu guided flows", () => {
       {
         id: "storyboard",
         title: "Storyboard",
-        description: "From a sentence to a rendered board in three steps.",
+        description: "From a sentence to a rendered board in four steps.",
         start: startStoryboard
       },
       {
@@ -48,7 +48,7 @@ describe("OpenMenu guided flows", () => {
     expect(screen.getByText("Guided flows")).toBeInTheDocument();
     expect(screen.getByText("Storyboard")).toBeInTheDocument();
     expect(
-      screen.getByText("From a sentence to a rendered board in three steps.")
+      screen.getByText("From a sentence to a rendered board in four steps.")
     ).toBeInTheDocument();
     expect(screen.getByText("Blank documents")).toBeInTheDocument();
   });
@@ -58,7 +58,7 @@ describe("OpenMenu guided flows", () => {
       {
         id: "storyboard",
         title: "Storyboard",
-        description: "From a sentence to a rendered board in three steps.",
+        description: "From a sentence to a rendered board in four steps.",
         icon: <span data-testid="guided-icon" />,
         start: startStoryboard
       }

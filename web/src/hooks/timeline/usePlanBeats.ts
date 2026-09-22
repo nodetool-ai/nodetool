@@ -12,7 +12,7 @@
  * RPC — `generate_text`. Nothing costs a render until `generateFromBeats` runs.
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DIRECTOR_SYSTEM_PROMPT,
   SCREENPLAY_TOOL_DESCRIPTION,
@@ -53,7 +53,8 @@ import {
 /** What asks the model. Injectable so the planner is testable without a socket. */
 export type PlanRequest = (
   command: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
+  signal?: AbortSignal
 ) => Promise<Record<string, unknown>>;
 
 /**
@@ -70,8 +71,13 @@ export interface PlanBeatsContext {
   references?: readonly VideoSetupReference[];
   entityIds?: readonly string[];
   creativeContext?: CreativeContext;
-  /** Names of the clips already placed, in timeline order. */
-  clips?: readonly string[];
+  /** Imported clips already placed, in timeline order and kept as edit sources. */
+  clips?: readonly {
+    clipId: string;
+    name: string;
+    mediaType: "video" | "image";
+    assetId?: string;
+  }[];
 }
 
 export interface VideoPlanFingerprintInputs {
@@ -113,6 +119,8 @@ export interface PlanBeatsOptions {
    */
   context?: PlanBeatsContext;
   request?: PlanRequest;
+  /** Stops both the provider wait and adoption into the document. */
+  signal?: AbortSignal;
 }
 
 /** A beat's spoken line, or nothing when the format has no voice lane. */
@@ -174,7 +182,10 @@ const contextNote = ({
   if (clips.length > 0) {
     lines.push(
       "The creator has already placed this media on the timeline, in this order. Write one beat per clip, describing the clip that is there — do not invent shots to render instead:",
-      ...clips.map((name, index) => `${index + 1}. ${name}`)
+      ...clips.map(
+        (clip, index) =>
+          `${index + 1}. ${clip.name} (source clip ${clip.clipId})`
+      )
     );
   }
   if (references.length > 0) {
@@ -231,7 +242,9 @@ export async function planBeats({
   model = STUDIO_DIRECTOR_MODEL,
   previous,
   context,
-  request = rpcRequest
+  request = (command, data, signal) =>
+    rpcRequest(command, data, undefined, signal),
+  signal
 }: PlanBeatsOptions): Promise<TimelineBeat[]> {
   const trimmed = brief.trim();
   if (trimmed.length === 0) {
@@ -249,22 +262,26 @@ export async function planBeats({
     .filter((part) => part.length > 0)
     .join("\n");
 
-  const result = await request("generate_text", {
-    provider: model.provider,
-    model: model.id,
-    system: DIRECTOR_SYSTEM_PROMPT,
-    prompt: buildDirectorPrompt(
-      directedBrief,
-      "",
-      shotCount,
-      format.aspectRatio,
-      ""
-    ),
-    max_tokens: 8192,
-    schema: buildScreenplaySchema(shotCount),
-    schema_name: SCREENPLAY_TOOL_NAME,
-    schema_description: SCREENPLAY_TOOL_DESCRIPTION
-  });
+  const result = await request(
+    "generate_text",
+    {
+      provider: model.provider,
+      model: model.id,
+      system: DIRECTOR_SYSTEM_PROMPT,
+      prompt: buildDirectorPrompt(
+        directedBrief,
+        "",
+        shotCount,
+        format.aspectRatio,
+        ""
+      ),
+      max_tokens: 8192,
+      schema: buildScreenplaySchema(shotCount),
+      schema_name: SCREENPLAY_TOOL_NAME,
+      schema_description: SCREENPLAY_TOOL_DESCRIPTION
+    },
+    signal
+  );
 
   const parsed = result["data"]
     ? parseScreenplay(result["data"], {
@@ -284,9 +301,14 @@ export async function planBeats({
           aspectRatio: format.aspectRatio
         });
   const wantsMusic = format.tracks.some((track) => track.name === "Music");
-  return screenplay.shots.map((shot) =>
-    beatFromShot(shot, screenplay, format, wantsMusic)
-  );
+  return screenplay.shots.map((shot, index) => {
+    const beat = beatFromShot(shot, screenplay, format, wantsMusic);
+    const source = context?.clips?.[index];
+    if (source) {
+      beat.source_clip_id = source.clipId;
+    }
+    return beat;
+  });
 }
 
 /** Write a drafted plan onto the sequence and stop at the review (PRD § 8.2). */
@@ -311,7 +333,11 @@ export function applyBeatPlan(
   // this one boundary until the shared store contract is widened.
   store
     .getState()
-    .setSetup(patch as unknown as Parameters<ReturnType<TimelineStoreApi["getState"]>["setSetup"]>[0]);
+    .setSetup(
+      patch as unknown as Parameters<
+        ReturnType<TimelineStoreApi["getState"]>["setSetup"]
+      >[0]
+    );
 }
 
 /**
@@ -344,7 +370,12 @@ export const planContextOf = (store: TimelineStoreApi): PlanBeatsContext => {
       )
       .slice()
       .sort((left, right) => left.startMs - right.startMs)
-      .map((clip) => clip.name)
+      .map((clip) => ({
+        clipId: clip.id,
+        name: clip.name,
+        mediaType: clip.mediaType === "image" ? "image" : "video",
+        ...(clip.currentAssetId && { assetId: clip.currentAssetId })
+      }))
   };
 };
 
@@ -357,7 +388,10 @@ export interface UsePlanBeatsResult {
   plan: (options?: {
     replan?: boolean;
     context?: PlanBeatsContext;
+    signal?: AbortSignal;
   }) => Promise<void>;
+  /** Stop the active request and prevent any late result from being adopted. */
+  cancel: () => void;
   planning: boolean;
   error: string | null;
 }
@@ -370,12 +404,34 @@ export function usePlanBeats(): UsePlanBeatsResult {
   // the stage that asked for it, so an older answer must not overwrite the
   // beats a newer one wrote, nor clear the wait a newer one owns.
   const requestRef = useRef(0);
+  const activeControllerRef = useRef<AbortController | null>(null);
+
+  const cancel = useCallback(() => {
+    requestRef.current += 1;
+    activeControllerRef.current?.abort();
+    activeControllerRef.current = null;
+    setPlanning(false);
+  }, []);
+
+  useEffect(
+    () => () => {
+      requestRef.current += 1;
+      activeControllerRef.current?.abort();
+      activeControllerRef.current = null;
+    },
+    []
+  );
 
   const plan = useCallback(
     async ({
       replan = false,
-      context
-    }: { replan?: boolean; context?: PlanBeatsContext } = {}) => {
+      context,
+      signal
+    }: {
+      replan?: boolean;
+      context?: PlanBeatsContext;
+      signal?: AbortSignal;
+    } = {}) => {
       const setup = store.getState().setup;
       const format = videoFormatById(setup?.format);
       if (!format) {
@@ -384,6 +440,15 @@ export function usePlanBeats(): UsePlanBeatsResult {
         throw new Error(message);
       }
       const token = (requestRef.current += 1);
+      activeControllerRef.current?.abort();
+      const controller = new AbortController();
+      activeControllerRef.current = controller;
+      const abortOwnedRequest = () => controller.abort();
+      if (signal?.aborted === true) {
+        controller.abort();
+      } else {
+        signal?.addEventListener("abort", abortOwnedRequest, { once: true });
+      }
       const originStage = setup?.stage;
       const selectedModel = setup?.directorModel
         ? {
@@ -410,25 +475,32 @@ export function usePlanBeats(): UsePlanBeatsResult {
           // keeps the curated director.
           model: selectedModel,
           previous: replan ? setup?.beats : undefined,
-          context: planContext
+          context: planContext,
+          signal: controller.signal
         });
         // The creator left the stage this plan was asked from, so the plan
         // they are looking at now stays: a late answer neither replaces their
         // draft nor pulls them back to the review.
         if (
           token !== requestRef.current ||
+          controller.signal.aborted ||
+          store.getState().setup !== setup ||
           store.getState().setup?.stage !== originStage
         ) {
           return;
         }
         applyBeatPlan(store, beats, fingerprint);
       } catch (cause) {
-        if (token !== requestRef.current) {
+        if (token !== requestRef.current || controller.signal.aborted) {
           return;
         }
         setError(cause instanceof Error ? cause.message : String(cause));
         throw cause;
       } finally {
+        signal?.removeEventListener("abort", abortOwnedRequest);
+        if (activeControllerRef.current === controller) {
+          activeControllerRef.current = null;
+        }
         if (token === requestRef.current) {
           setPlanning(false);
         }
@@ -437,7 +509,7 @@ export function usePlanBeats(): UsePlanBeatsResult {
     [store]
   );
 
-  return { plan, planning, error };
+  return { plan, cancel, planning, error };
 }
 
 export default usePlanBeats;

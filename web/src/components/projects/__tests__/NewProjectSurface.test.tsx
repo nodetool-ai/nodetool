@@ -65,7 +65,13 @@ jest.mock("../../../serverState/useEntities", () => ({
         kind: "prop",
         name: "Aurora lamp",
         descriptor: "a warm desk lamp",
-        reference_images: []
+        reference_images: [
+          {
+            type: "image",
+            uri: "asset://entity-ref",
+            asset_id: "entity-ref"
+          }
+        ]
       }
     ]
   })
@@ -423,6 +429,8 @@ const renderSurface = () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  localStorage.clear();
+  sessionStorage.clear();
   openProject.mockResolvedValue(true);
   hasConfiguredProvider = true;
   selectedModel = { provider: "anthropic", id: "claude-sonnet-5" };
@@ -962,6 +970,25 @@ describe("NewProjectSurface", () => {
     expect(openProject).not.toHaveBeenCalled();
   });
 
+  it("restores the hosted guided document after the New Project tab remounts", async () => {
+    const first = renderSurface();
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: /^Storyboard From a sentence to a rendered board/
+      })
+    );
+    await pickDestination();
+
+    expect(await screen.findByTestId("setup-flow")).toHaveTextContent("b7");
+    expect(createStoryboard).toHaveBeenCalledTimes(1);
+
+    first.unmount();
+    renderSurface();
+
+    expect(await screen.findByTestId("setup-flow")).toHaveTextContent("b7");
+    expect(createStoryboard).toHaveBeenCalledTimes(1);
+  });
+
   // All seven flows are built, so no card names a phase any more. The check
   // that matters now is that each one starts its own document kind rather than
   // falling through to the project agent (D2).
@@ -1291,6 +1318,41 @@ describe("NewProjectSurface", () => {
           document: expect.objectContaining({ entityIds: ["e1"] })
         })
       )
+    );
+  });
+
+  it("resolves picked entities into executable video reference bindings", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+    await user.click(screen.getByRole("button", { name: /^Entities · none/ }));
+    await user.click(screen.getByRole("menuitem", { name: /Aurora lamp/ }));
+    await user.keyboard("{Escape}");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /^Video From a sentence to a cut on the timeline/
+      })
+    );
+    await pickDestination();
+
+    await waitFor(() =>
+      expect(timelineUpdate).toHaveBeenCalledWith({
+        id: "seq-1",
+        document: expect.objectContaining({
+          setup: expect.objectContaining({
+            entityIds: ["e1"],
+            creative_context: expect.objectContaining({
+              reference_bindings: [
+                expect.objectContaining({
+                  kind: "product",
+                  asset_id: "entity-ref",
+                  entity_id: "e1"
+                })
+              ]
+            })
+          })
+        })
+      })
     );
   });
 

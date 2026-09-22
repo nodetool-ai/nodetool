@@ -10,9 +10,9 @@
  * `Generate` and the figure the status bar shows afterwards come from one
  * catalog and cannot disagree.
  *
- * Null when nothing could be priced. The button stays enabled either way: a
- * model with no published rate is a reason to say so, not a reason to block
- * the creator (PRD § 8.3).
+ * Null only when there is no plan. A source-only edit returns an explicit
+ * zero-request commitment. When a model has no published rate, the estimate
+ * reports unpriced requests instead of blocking the creator (PRD § 8.3).
  */
 
 import { useMemo } from "react";
@@ -36,6 +36,12 @@ export interface BeatPlanCostEstimate {
   total: number;
   /** "$1.24". */
   label: string;
+  /** Timeline destinations created by the reviewed plan. */
+  destinationCount: number;
+  /** Compiled video candidates, including every requested take. */
+  videoRequestCount: number;
+  /** Voice requests created alongside the video candidates. */
+  voiceRequestCount: number;
   /** How many of the planned clips a catalog figure covered. */
   pricedCount: number;
   /** Planned clips no figure covered — the total is a floor. */
@@ -49,13 +55,27 @@ export function plannedClipFields(
 ): ClipCostFields[] {
   const fields: ClipCostFields[] = [];
   for (const beat of beats) {
-    fields.push({
-      bindingKind: "text-to-video",
-      provider: inputs.videoProvider,
-      model: inputs.videoModel,
-      aspectRatio: inputs.aspectRatio,
-      durationMs: beat.duration_ms
-    });
+    // Review is an authoring surface. Empty prompts and transient take values
+    // are reported by its validation instead of letting pricing throw during
+    // render. For a valid plan this is the same expansion the production
+    // compiler performs. Imported-source beats reuse existing footage, so
+    // they have a destination but no paid video request.
+    const requestedTakes = beat.production?.requested_take_count;
+    const takeCount =
+      Number.isInteger(requestedTakes) && (requestedTakes ?? 0) > 0
+        ? (requestedTakes as number)
+        : 1;
+    if (!beat.source_clip_id) {
+      fields.push(
+        ...Array.from({ length: takeCount }, () => ({
+          bindingKind: "text-to-video" as const,
+          provider: inputs.videoProvider,
+          model: inputs.videoModel,
+          aspectRatio: inputs.aspectRatio,
+          durationMs: beat.duration_ms
+        }))
+      );
+    }
     if (inputs.voiced && (beat.voiceover ?? "").trim().length > 0) {
       fields.push({
         bindingKind: "text-to-audio",
@@ -72,10 +92,11 @@ export function summarizeBeatPlanCost(
   beats: readonly TimelineBeat[],
   inputs: BeatPlanCostInputs
 ): BeatPlanCostEstimate | null {
+  const planned = plannedClipFields(beats, inputs);
   let total = 0;
   let pricedCount = 0;
   let unpricedCount = 0;
-  for (const clip of plannedClipFields(beats, inputs)) {
+  for (const clip of planned) {
     const spec = clipGenerationSpec(clip);
     const estimate = spec ? estimateGenerationCost(spec) : null;
     if (!estimate) {
@@ -85,10 +106,22 @@ export function summarizeBeatPlanCost(
     total += estimate.total;
     pricedCount += 1;
   }
-  if (pricedCount === 0) {
+  if (beats.length === 0) {
     return null;
   }
-  return { total, label: formatUsd(total), pricedCount, unpricedCount };
+  return {
+    total,
+    label: formatUsd(total),
+    destinationCount: beats.length,
+    videoRequestCount: planned.filter(
+      (clip) => clip.bindingKind === "text-to-video"
+    ).length,
+    voiceRequestCount: planned.filter(
+      (clip) => clip.bindingKind === "text-to-audio"
+    ).length,
+    pricedCount,
+    unpricedCount
+  };
 }
 
 export function useBeatPlanCostEstimate(
@@ -113,7 +146,15 @@ export function useBeatPlanCostEstimate(
         voiceModel,
         voiced
       }),
-    [aspectRatio, beats, videoModel, videoProvider, voiceModel, voiceProvider, voiced]
+    [
+      aspectRatio,
+      beats,
+      videoModel,
+      videoProvider,
+      voiceModel,
+      voiceProvider,
+      voiced
+    ]
   );
 }
 
