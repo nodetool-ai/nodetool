@@ -6,7 +6,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
-  isGlobalWorkspaceTab,
+  isTabInScope,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -134,20 +134,15 @@ const WorkspaceShell = () => {
   const activeTab = useMemo(
     () =>
       tabs.find(
-        (tab) =>
-          tab.id === activeTabId &&
-          (isGlobalWorkspaceTab(tab) ||
-            (activeProjectId
-              ? tab.projectId === activeProjectId
-              : tab.projectId === undefined))
+        (tab) => tab.id === activeTabId && isTabInScope(tab, activeProjectId)
       ) ?? null,
     [activeProjectId, tabs, activeTabId]
   );
+  // The empty state keys off this, so it must count global tabs too. Scoping
+  // by project alone left the Projects list out of the set while it was the
+  // active tab, and the New Project surface rendered stacked underneath it.
   const visibleTabs = useMemo(
-    () =>
-      activeProjectId
-        ? tabs.filter((tab) => tab.projectId === activeProjectId)
-        : tabs.filter((tab) => tab.projectId === undefined),
+    () => tabs.filter((tab) => isTabInScope(tab, activeProjectId)),
     [activeProjectId, tabs]
   );
 
@@ -217,11 +212,7 @@ const WorkspaceShell = () => {
               )}
               {tabs.map((tab) => {
                 const isActive =
-                  tab.id === activeTabId &&
-                  (isGlobalWorkspaceTab(tab) ||
-                    (activeProjectId
-                      ? tab.projectId === activeProjectId
-                      : tab.projectId === undefined));
+                  tab.id === activeTabId && isTabInScope(tab, activeProjectId);
                 return (
                   <WorkspaceTabLayer key={tab.id} active={isActive}>
                     <TabContent tab={tab} active={isActive} />
