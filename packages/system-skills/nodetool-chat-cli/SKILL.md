@@ -65,8 +65,8 @@ passed explicitly.
 | `/new` | Start a fresh session (clears history + server thread) |
 | `/clear` | Clear the visible history |
 | `/compact` | Summarize and compact the conversation context |
-| `/model [id]` | Open model completion, or switch with an ID |
-| `/provider [name]` | Open provider completion, or switch and load that provider's default model |
+| `/model [provider/id]` | Browse models from all configured providers, or switch with a provider/model ID |
+| `/agent [id\|main]` | Browse sub-agent threads, inspect one, or return to the main conversation |
 | `/tools` | List the enabled tools |
 | `/mode <default|auto|plan>` | Change tool permissions |
 | `/sessions` | Browse saved conversations for this workspace and server |
@@ -173,7 +173,8 @@ curl -X POST http://localhost:7777/v1/chat/completions \
 
 # Common Pitfalls
 
-- **No provider configured**: store a key first (`nodetool secrets store OPENAI_API_KEY`). Providers without a key are greyed out and `/provider <name>` refuses them.
-- **Wrong model ID**: switch with `/model <id>`; each provider's default is loaded when you switch providers.
+- **No provider configured**: store a key first (`nodetool secrets store OPENAI_API_KEY`). The `/model` picker lists models only from configured providers.
+- **Wrong model ID**: switch with `/model <provider>/<id>`; the picker searches every configured provider.
 - **Expecting a shell**: bare commands like `ls` are sent to the model, not run. Use the agent's file tools instead.
 - **Looking for `/agent`**: agent mode is always on; there is no toggle.
+- **Using `/agent`**: the command inspects delegated sub-agent threads; it does not toggle agent mode.

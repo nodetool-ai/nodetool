@@ -18,11 +18,9 @@ import {
 } from "@nodetool-ai/agents";
 import {
   availableProviders,
-  configuredProviderIds,
   createProvider,
-  DEFAULT_MODELS,
-  KNOWN_PROVIDERS,
-  providerSecretKey
+  listConfiguredLanguageModels,
+  type ConfiguredLanguageModel
 } from "./providers.js";
 import { WebSocketChatClient, type ChatEvent } from "./websocket-client.js";
 import {
@@ -43,7 +41,7 @@ import {
   createCliCodeActTurn
 } from "./chat-codeact.js";
 import { createChatContext } from "./chat-context.js";
-import { isString } from "./predicates.js";
+import { isNumber, isRecord, isString } from "./predicates.js";
 import { parsePermissionMode } from "./permission-gate.js";
 import ReadlineInput from "./readline-input.js";
 import {
@@ -89,7 +87,7 @@ export const CHAT_COMMANDS = {
   "/clear": "Clear the screen, keep conversation context",
   "/compact": "Summarize retained context",
   "/model": "Choose a model",
-  "/provider": "Choose a provider",
+  "/agent": "Inspect sub-agent threads: /agent [id|main]",
   "/mode": "Permissions: default, auto, plan",
   "/sessions": "Browse saved conversations",
   "/resume": "Resume a session: /resume <id>",
@@ -107,8 +105,39 @@ const APPROVAL_CHOICES = [
 interface Completion {
   readonly value: string;
   readonly description: string;
-  readonly disabled?: boolean;
 }
+
+type AgentThreadStatus = "running" | "completed" | "failed";
+
+interface AgentThread {
+  readonly id: string;
+  readonly title: string;
+  readonly parentId?: string;
+  readonly depth: number;
+  readonly status: AgentThreadStatus;
+  readonly messages: readonly ChatMessage[];
+}
+
+interface SubAgentEventTags {
+  readonly parentId: string;
+  readonly depth: number;
+}
+
+function parseSubAgentEventTags(message: unknown): SubAgentEventTags | null {
+  if (!isRecord(message) || !isString(message.parent_tool_call_id)) {
+    return null;
+  }
+  return {
+    parentId: message.parent_tool_call_id,
+    depth: isNumber(message.subtask_depth) ? message.subtask_depth : 1
+  };
+}
+
+const DELEGATION_TOOLS = new Set([
+  "run_subtask",
+  "start_subtask",
+  "run_search"
+]);
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -154,10 +183,14 @@ export function App({
   const [details, setDetails] = useState(false);
   const [prompt, setPrompt] = useState<ChatPrompt | null>(null);
   const [completionIndex, setCompletionIndex] = useState(0);
-  const [models, setModels] = useState<Array<{ id: string; name: string }>>([]);
-  const [configured, setConfigured] = useState(
+  const [models, setModels] = useState<readonly ConfiguredLanguageModel[]>([]);
+  const [configuredProviders, setConfiguredProviders] = useState(
     () => new Set(availableProviders())
   );
+  const [agentThreads, setAgentThreads] = useState<
+    Record<string, AgentThread>
+  >({});
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [tasks, setTasks] = useState<Record<string, string>>({});
@@ -177,6 +210,7 @@ export function App({
   const client = useRef<WebSocketChatClient | null>(null);
   const history = useRef<Message[]>([]);
   const transcript = useRef<ChatMessage[]>([]);
+  const agentThreadsRef = useRef<Record<string, AgentThread>>({});
   const stream = useRef("");
   const thread = useRef(newSessionId());
   const providerSession = useRef<ProviderSession | null>(null);
@@ -189,6 +223,118 @@ export function App({
   function updateMessages(next: ChatMessage[]): void {
     transcript.current = next;
     setMessages(next);
+  }
+  function updateAgentThread(
+    id: string,
+    update: (thread: AgentThread | undefined) => AgentThread
+  ): void {
+    const next = {
+      ...agentThreadsRef.current,
+      [id]: update(agentThreadsRef.current[id])
+    };
+    agentThreadsRef.current = next;
+    setAgentThreads(next);
+  }
+  function startAgentThread(
+    id: string,
+    name: string,
+    args: Record<string, unknown>,
+    parentId?: string,
+    depth = 1
+  ): void {
+    if (!DELEGATION_TOOLS.has(name) || agentThreadsRef.current[id]) {
+      return;
+    }
+    const title = [args.description, args.query, args.task].find(isString);
+    const thread: AgentThread = {
+      id,
+      title: title || friendlyToolName(name),
+      depth,
+      status: "running",
+      messages: []
+    };
+    if (parentId) {
+      Object.assign(thread, { parentId });
+    }
+    updateAgentThread(id, () => thread);
+  }
+  function appendAgentMessage(
+    id: string,
+    message: ChatMessage,
+    status?: AgentThreadStatus
+  ): void {
+    updateAgentThread(id, (thread) => {
+      const next: AgentThread = {
+        ...(thread ?? {
+        id,
+        title: "Sub-agent",
+        depth: 1,
+        status: "running",
+        messages: []
+      }),
+      messages: [...(thread?.messages ?? []), message]
+      };
+      if (status) {
+        Object.assign(next, { status });
+      }
+      return next;
+    });
+  }
+  function agentEvent(message: ProcessingMessage): void {
+    const tags = parseSubAgentEventTags(message);
+    if (!tags) {
+      return;
+    }
+    const { parentId, depth } = tags;
+    if (
+      message.type === "tool_call_update" &&
+      message.tool_call_id &&
+      DELEGATION_TOOLS.has(message.name)
+    ) {
+      startAgentThread(
+        message.tool_call_id,
+        message.name,
+        message.args,
+        parentId,
+        depth + 1
+      );
+    }
+    let content: string | undefined;
+    let role: ChatMessage["role"] = "system";
+    let status: AgentThreadStatus | undefined;
+    if (message.type === "chunk" && isString(message.content)) {
+      if (!message.thinking && message.content) {
+        content = message.content;
+        role = "assistant";
+      }
+    } else if (message.type === "tool_call_update") {
+      content = `${friendlyToolName(message.name)}\n${JSON.stringify(message.args, null, 2)}`;
+      role = "tool";
+    } else if (message.type === "tool_result_update") {
+      content = displayResult(message.name ?? "tool", undefined, message.result);
+      role = "tool";
+    } else if (message.type === "planning_update") {
+      content = message.content ?? `Planning: ${message.status}`;
+    } else if (message.type === "task_update") {
+      content = `${message.task.title ?? message.task.id}: ${message.event}`;
+    } else if (message.type === "step_result") {
+      content = message.error
+        ? `Error: ${message.error}`
+        : displayResult("result", undefined, message.result);
+      if (message.is_task_result) {
+        status = message.error ? "failed" : "completed";
+      }
+    } else if (message.type === "error") {
+      content = `Error: ${message.message}`;
+      status = "failed";
+    }
+    if (content) {
+      appendAgentMessage(
+        parentId,
+        { id: newSessionId(), role, content },
+        status
+      );
+    }
   }
   function add(
     role: ChatMessage["role"],
@@ -243,39 +389,22 @@ export function App({
     };
   }, []);
   useEffect(() => {
-    let cancelled = false;
-    if (!wsUrl) {
-      void configuredProviderIds()
-        .then((ids) => {
-          if (!cancelled) {
-            setConfigured(ids);
-          }
-        })
-        .catch(() => {
-          /* Keep environment providers. */
-        });
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [wsUrl]);
-  useEffect(() => {
     const abort = new AbortController();
     setModels([]);
     if (!wsUrl) {
-      void createProvider(provider)
-        .then((prov) => prov.getAvailableLanguageModels())
-        .then((items) => {
+      void listConfiguredLanguageModels()
+        .then((catalog) => {
           if (!abort.signal.aborted) {
-            setModels(items.map((item) => ({ id: item.id, name: item.name })));
+            setConfiguredProviders(new Set(catalog.providers));
+            setModels(catalog.models);
           }
         })
         .catch(() => {
-          /* Explicit model IDs remain available for offline providers. */
+          /* Explicit provider/model specs remain available. */
         });
     }
     return () => abort.abort();
-  }, [provider, wsUrl]);
+  }, [wsUrl]);
   useEffect(() => {
     if (!wsUrl) {
       return;
@@ -416,6 +545,7 @@ export function App({
     });
   }
   function processEvent(message: ProcessingMessage): void {
+    agentEvent(message);
     if (message.type === "todo_update") {
       setTodos(message.todos);
     } else if (message.type === "task_update" && message.task.id) {
@@ -449,6 +579,7 @@ export function App({
     args: Record<string, unknown>
   ): void {
     flush();
+    startAgentThread(id, name, args);
     setActiveTools((previous) => ({ ...previous, [id]: { name, args } }));
     setStatus(friendlyToolName(name));
   }
@@ -458,6 +589,18 @@ export function App({
     args: Record<string, unknown> | undefined,
     result: unknown
   ): void {
+    if (DELEGATION_TOOLS.has(name) && name !== "start_subtask") {
+      const failed = isRecord(result) && isString(result.error);
+      updateAgentThread(id, (thread) => ({
+        ...(thread ?? {
+          id,
+          title: friendlyToolName(name),
+          depth: 1,
+          messages: []
+        }),
+        status: failed ? "failed" : "completed"
+      }));
+    }
     add("tool", displayResult(name, args, result), name, args);
     setActiveTools((previous) => {
       const next = { ...previous };
@@ -625,6 +768,9 @@ export function App({
         setClearedCount(0);
         setTodos([]);
         setTasks({});
+        agentThreadsRef.current = {};
+        setAgentThreads({});
+        setSelectedAgentId(null);
         setUsage("");
         latest();
         break;
@@ -636,30 +782,38 @@ export function App({
           setInput("/model ");
           break;
         }
-        setModel(argument);
-        providerSession.current = null;
-        await saveSettings({ model: argument });
-        break;
-      case "/provider": {
-        if (!argument) {
-          setInput("/provider ");
-          break;
-        }
-        const next = argument.toLowerCase();
-        if (
-          !wsUrl &&
-          KNOWN_PROVIDERS.some((id) => id === next) &&
-          !configured.has(next)
-        ) {
-          throw new Error(
-            `${next} needs ${providerSecretKey(next) ?? "configuration"}. Run nodetool secrets store ${providerSecretKey(next) ?? "KEY"}.`
+        {
+          const qualified = models.find(
+            (item) => `${item.provider}/${item.id}` === argument
           );
+          const matchingIds = models.filter((item) => item.id === argument);
+          if (!qualified && matchingIds.length > 1) {
+            throw new Error(
+              `Model "${argument}" is available from multiple providers. Choose a provider/model entry.`
+            );
+          }
+          const inferred = qualified ?? matchingIds[0];
+          const separator = argument.indexOf("/");
+          const explicitProvider =
+            separator > 0 &&
+            configuredProviders.has(argument.slice(0, separator))
+              ? argument.slice(0, separator)
+              : undefined;
+          const nextProvider =
+            inferred?.provider ?? explicitProvider ?? provider;
+          const nextModel = inferred
+            ? inferred.id
+            : explicitProvider
+              ? argument.slice(separator + 1)
+              : argument;
+          setProvider(nextProvider);
+          setModel(nextModel);
+          providerSession.current = null;
+          await saveSettings({ provider: nextProvider, model: nextModel });
         }
-        const nextModel = DEFAULT_MODELS[next] ?? model;
-        setProvider(next);
-        setModel(nextModel);
-        providerSession.current = null;
-        await saveSettings({ provider: next, model: nextModel });
+        break;
+      case "/agent": {
+        inspectAgent(argument);
         break;
       }
       case "/mode":
@@ -726,8 +880,44 @@ export function App({
     }
   }
 
+  function inspectAgent(argument: string): void {
+    if (!argument) {
+      const threads = Object.values(agentThreadsRef.current);
+      if (!threads.length) {
+        add("system", "No sub-agent threads in this conversation yet.");
+      } else {
+        setInput("/agent ");
+      }
+      return;
+    }
+    if (argument === "main") {
+      setSelectedAgentId(null);
+      latest();
+      return;
+    }
+    const selectedThread = agentThreadsRef.current[argument];
+    if (!selectedThread) {
+      throw new Error(`Unknown sub-agent thread: ${argument}. Use /agent.`);
+    }
+    setSelectedAgentId(selectedThread.id);
+    latest();
+  }
+
   async function submit(value: string): Promise<void> {
-    if (active.current || !value.trim()) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return;
+    }
+    if (active.current) {
+      const [name = "", ...words] = trimmed.split(/\s+/);
+      if (name.toLowerCase() === "/agent") {
+        setInput("");
+        try {
+          inspectAgent(words.join(" "));
+        } catch (error) {
+          setStatus(errorText(error));
+        }
+      }
       return;
     }
     active.current = true;
@@ -922,7 +1112,7 @@ export function App({
   }
 
   const completions: Completion[] = [];
-  if (!busy && input.startsWith("/")) {
+  if (input.startsWith("/") && (!busy || input.startsWith("/agent"))) {
     const space = input.indexOf(" ");
     const name = space < 0 ? input : input.slice(0, space);
     const argument = space < 0 ? "" : input.slice(space + 1).toLowerCase();
@@ -932,22 +1122,31 @@ export function App({
           completions.push({ value, description });
         }
       }
-    } else if (name === "/provider") {
-      for (const id of KNOWN_PROVIDERS) {
-        if (id.includes(argument)) {
+    } else if (name === "/model") {
+      for (const item of models) {
+        if (
+          `${item.provider} ${item.id} ${item.name}`
+            .toLowerCase()
+            .includes(argument)
+        ) {
           completions.push({
-            value: `/provider ${id}`,
-            description: DEFAULT_MODELS[id] ?? "",
-            disabled: !wsUrl && !configured.has(id)
+            value: `/model ${item.provider}/${item.id}`,
+            description: item.name
           });
         }
       }
-    } else if (name === "/model") {
-      for (const item of models) {
-        if (`${item.id} ${item.name}`.toLowerCase().includes(argument)) {
+    } else if (name === "/agent") {
+      if (selectedAgentId && "main".includes(argument)) {
+        completions.push({
+          value: "/agent main",
+          description: "Return to the main conversation"
+        });
+      }
+      for (const thread of Object.values(agentThreads)) {
+        if (`${thread.id} ${thread.title}`.toLowerCase().includes(argument)) {
           completions.push({
-            value: `/model ${item.id}`,
-            description: item.name
+            value: `/agent ${thread.id}`,
+            description: `${thread.status} · ${thread.title}`
           });
         }
       }
@@ -991,12 +1190,6 @@ export function App({
     if (!item) {
       return;
     }
-    if (item.disabled) {
-      setStatus(
-        `Configure ${providerSecretKey(item.value.slice(10)) ?? "this provider"} first`
-      );
-      return;
-    }
     if (direction === "accept") {
       changeInput(item.value + (item.value.includes(" ") ? "" : " "));
       return;
@@ -1006,7 +1199,7 @@ export function App({
       return;
     }
     if (
-      ["/model", "/provider", "/mode", "/resume", "/export"].includes(
+      ["/model", "/agent", "/mode", "/resume", "/export"].includes(
         item.value
       )
     ) {
@@ -1079,6 +1272,9 @@ export function App({
       (tool) => `› ${friendlyToolName(tool.name)}`
     )
   ];
+  const selectedAgent = selectedAgentId
+    ? agentThreads[selectedAgentId]
+    : undefined;
   return (
     <Box
       flexDirection="column"
@@ -1128,6 +1324,26 @@ export function App({
             </Text>
             <Text dimColor>Esc dismiss · Ctrl+C stop</Text>
           </Box>
+        ) : selectedAgent ? (
+          <Box
+            width={width}
+            height={bodyHeight}
+            flexDirection="column"
+            overflow="hidden"
+          >
+            <Text bold color="cyan" wrap="truncate">
+              {terminalText(selectedAgent.title)} · {selectedAgent.status}
+            </Text>
+            <Transcript
+              messages={selectedAgent.messages}
+              live=""
+              width={width}
+              height={Math.max(1, bodyHeight - 2)}
+              details={details}
+              resetKey={`${selectedAgent.id}-${scrollKey}`}
+            />
+            <Text dimColor>/agent main returns to the conversation</Text>
+          </Box>
         ) : (
           <Transcript
             messages={messages.slice(clearedCount)}
@@ -1157,6 +1373,23 @@ export function App({
                 .slice(0, Math.max(1, bodyHeight - 6))
                 .join("\n")}
             </Text>
+            <Text> </Text>
+            <Text bold>Agents</Text>
+            <Text dimColor>
+              {terminalLines(
+                terminalText(
+                  Object.values(agentThreads)
+                    .map(
+                      (thread) =>
+                        `${thread.status === "running" ? "›" : thread.status === "completed" ? "✓" : "×"} ${thread.title}`
+                    )
+                    .join("\n") || "No sub-agents"
+                ),
+                sidebarWidth - 2
+              )
+                .slice(0, 5)
+                .join("\n")}
+            </Text>
           </Box>
         )}
       </Box>
@@ -1175,7 +1408,6 @@ export function App({
             <Text
               key={item.value}
               color={menuStart + i === selected ? "cyan" : "gray"}
-              dimColor={item.disabled}
               wrap="truncate"
             >
               {menuStart + i === selected ? "› " : "  "}

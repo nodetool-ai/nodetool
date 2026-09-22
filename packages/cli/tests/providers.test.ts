@@ -426,6 +426,27 @@ describe("direct provider model commands", () => {
     });
   });
 
+  it("lists language models across every configured provider", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "test-gemini");
+    vi.stubEnv("OPENAI_API_KEY", "test-openai");
+    const { listConfiguredLanguageModels } = await import(
+      "../src/providers.js"
+    );
+
+    const catalog = await listConfiguredLanguageModels();
+
+    expect(catalog.providers).toEqual(
+      expect.arrayContaining(["gemini", "openai", "ollama"])
+    );
+    expect(catalog.models).toEqual(
+      expect.arrayContaining([
+        { id: "gemini-chat", name: "Chat", provider: "gemini" },
+        { id: "openai-chat", name: "Chat", provider: "openai" },
+        { id: "ollama-chat", name: "Chat", provider: "ollama" }
+      ])
+    );
+  });
+
   it("lists language models directly with tool support metadata", async () => {
     vi.stubEnv("GEMINI_API_KEY", "test-gemini");
     const { listProviderModels } = await import("../src/providers.js");

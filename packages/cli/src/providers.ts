@@ -277,6 +277,45 @@ export async function listConfiguredProviderInfo(): Promise<
   }));
 }
 
+export interface ConfiguredLanguageModel {
+  readonly id: string;
+  readonly name: string;
+  readonly provider: string;
+}
+
+export interface ConfiguredLanguageModelCatalog {
+  readonly providers: readonly string[];
+  readonly models: readonly ConfiguredLanguageModel[];
+}
+
+/**
+ * Language models exposed by every configured provider. A provider whose
+ * catalog is temporarily unavailable remains selectable by an explicit
+ * `provider/model` spec, while the other providers still populate the picker.
+ */
+export async function listConfiguredLanguageModels(): Promise<
+  ConfiguredLanguageModelCatalog
+> {
+  const providers = await buildConfiguredProviders();
+  const models = await Promise.all(
+    Object.entries(providers).map(async ([provider, instance]) => {
+      try {
+        return (await instance.getAvailableLanguageModels()).map((model) => ({
+          id: model.id,
+          name: model.name,
+          provider
+        }));
+      } catch {
+        return [];
+      }
+    })
+  );
+  return {
+    providers: Object.keys(providers),
+    models: models.flat()
+  };
+}
+
 function toUnifiedModel(
   model: {
     id: string;

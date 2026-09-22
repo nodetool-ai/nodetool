@@ -575,17 +575,17 @@ echo "Summarize this codebase" | nodetool-chat --provider anthropic
 
 ### Interactive Commands
 
-`COMMANDS` in `packages/cli/src/app.tsx` is the list; anything else prints
-`Unknown command`. There is no `/agent`: every session runs the unified agent
-loop.
+`CHAT_COMMANDS` in `packages/cli/src/app.tsx` is the list; anything else prints
+`Unknown command`. Every session runs the unified agent loop. `/agent` inspects
+the sub-agent threads created by that loop. It does not switch agent modes.
 
 ```
 /help     — Show available commands
 /new      — Start a new chat session
 /clear    — Clear conversation history
 /compact  — Summarize conversation into retained context: /compact [instructions]
-/model    — Set model: /model <model-id>
-/provider — Set provider: /provider <name>
+/model    — Set provider and model: /model <provider/model-id>
+/agent    — Inspect sub-agent threads: /agent [id|main]
 /tools    — List enabled tools
 /exit     — Exit the chat
 /quit     — Exit the chat

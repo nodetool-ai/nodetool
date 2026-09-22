@@ -1,5 +1,6 @@
 import React from "react";
 import type { PermissionGateOptions } from "@nodetool-ai/agents";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderTerminal } from "./terminal-harness.js";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -12,8 +13,10 @@ const run = vi.hoisted(() => ({
   finish: undefined as (() => void) | undefined,
   aborted: false,
   approval: false,
+  subagent: false,
   decision: "",
-  gate: undefined as PermissionGateOptions | undefined
+  gate: undefined as PermissionGateOptions | undefined,
+  forward: undefined as ((message: ProcessingMessage) => void) | undefined
 }));
 vi.mock("@nodetool-ai/runtime", () => ({
   PERMISSION_GATE_CONTEXT_KEY: "gate",
@@ -28,15 +31,18 @@ vi.mock("../src/permission-gate.js", () => ({
 }));
 vi.mock("../src/providers.js", () => ({
   availableProviders: () => ["ollama"],
-  configuredProviderIds: async () => new Set(["ollama"]),
+  listConfiguredLanguageModels: async () => ({
+    providers: ["ollama", "openai"],
+    models: [
+      { id: "local-model", name: "Local model", provider: "ollama" },
+      { id: "gpt-test", name: "GPT Test", provider: "openai" }
+    ]
+  }),
   createProvider: async () => ({
     getAvailableLanguageModels: async () => [
       { id: "local-model", name: "Local model" }
     ]
   }),
-  KNOWN_PROVIDERS: ["ollama"],
-  DEFAULT_MODELS: { ollama: "local-model" },
-  providerSecretKey: () => undefined
 }));
 vi.mock("../src/settings.js", () => ({ saveSettings: async () => {} }));
 vi.mock("../src/markdown.js", () => ({
@@ -54,8 +60,15 @@ vi.mock("../src/run-budget.js", () => ({
   budgetStopReason: () => null
 }));
 vi.mock("../src/chat-codeact.js", () => ({
-  buildCliAgentBelt: ({ gate }: { gate: PermissionGateOptions }) => {
+  buildCliAgentBelt: ({
+    gate,
+    forwardMessage
+  }: {
+    gate: PermissionGateOptions;
+    forwardMessage: (message: ProcessingMessage) => void;
+  }) => {
     run.gate = gate;
+    run.forward = forwardMessage;
     return [];
   },
   createCliCodeActTurn: () => ({ tools: [], systemPrompt: "catalog" }),
@@ -64,7 +77,22 @@ vi.mock("../src/chat-codeact.js", () => ({
 vi.mock("@nodetool-ai/chat", () => ({
   processChat: async (options: {
     signal: AbortSignal;
-    callbacks: { onChunk: (text: string) => void };
+    callbacks: {
+      onChunk: (text: string) => void;
+      onToolCall: (call: {
+        id: string;
+        name: string;
+        args: Record<string, unknown>;
+      }) => void;
+      onToolResult: (
+        call: {
+          id: string;
+          name: string;
+          args: Record<string, unknown>;
+        },
+        result: unknown
+      ) => void;
+    };
   }) => {
     run.calls++;
     if (run.approval && run.gate?.requestApproval) {
@@ -76,12 +104,31 @@ vi.mock("@nodetool-ai/chat", () => ({
       });
     }
     options.callbacks.onChunk("A partial answer");
+    const subagentCall = run.subagent
+      ? {
+        id: "agent-call-1",
+        name: "run_subtask",
+        args: { description: "Audit authentication" }
+      }
+      : undefined;
+    if (subagentCall) {
+      options.callbacks.onToolCall(subagentCall);
+      run.forward?.({
+        type: "chunk",
+        content: "Found an authentication issue.",
+        parent_tool_call_id: subagentCall.id,
+        subtask_depth: 1
+      });
+    }
     options.signal.addEventListener("abort", () => {
       run.aborted = true;
     });
     await new Promise<void>((resolve) => {
       run.finish = resolve;
     });
+    if (subagentCall) {
+      options.callbacks.onToolResult(subagentCall, "Audit complete");
+    }
   }
 }));
 const { App } = await import("../src/app.js");
@@ -100,8 +147,10 @@ afterEach(async () => {
   run.finish = undefined;
   run.aborted = false;
   run.approval = false;
+  run.subagent = false;
   run.decision = "";
   run.gate = undefined;
+  run.forward = undefined;
 });
 
 async function start(columns = 100, rows = 30) {
@@ -119,7 +168,13 @@ async function start(columns = 100, rows = 30) {
   );
   cleanups.push(
     () => terminal.close(),
-    () => rm(directory, { recursive: true, force: true })
+    () =>
+      rm(directory, {
+        recursive: true,
+        force: true,
+        maxRetries: 3,
+        retryDelay: 10
+      })
   );
   await waitForUi(() => expect(terminal.frame()).toContain("Ask NodeTool"));
   return terminal;
@@ -151,6 +206,51 @@ describe("fullscreen chat", () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     terminal.stdin.write("still here");
     await waitForUi(() => expect(terminal.frame()).toContain("still here"));
+  });
+  it("selects a model and its provider from the combined model picker", async () => {
+    const terminal = await start();
+    terminal.stdin.write("/model gpt");
+    await vi.waitFor(() =>
+      expect(terminal.frame()).toContain("/model openai/gpt-test")
+    );
+    terminal.stdin.write("\r");
+    await vi.waitFor(() =>
+      expect(terminal.frame()).toContain("openai / gpt-test")
+    );
+  });
+  it("does not offer the removed provider command", async () => {
+    const terminal = await start();
+    terminal.stdin.write("/prov");
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(terminal.frame()).not.toContain("/provider");
+  });
+  it("opens a running sub-agent thread and updates its status", async () => {
+    run.subagent = true;
+    const terminal = await start();
+    terminal.stdin.write("delegate an audit");
+    await vi.waitFor(() =>
+      expect(terminal.frame()).toContain("delegate an audit")
+    );
+    terminal.stdin.write("\r");
+    await vi.waitFor(() => expect(run.finish).toBeDefined());
+
+    terminal.stdin.write("/agent ");
+    await vi.waitFor(() =>
+      expect(terminal.frame()).toContain("running · Audit authentication")
+    );
+    terminal.stdin.write("\r");
+    await vi.waitFor(() => {
+      expect(terminal.frame()).toContain("Audit authentication · running");
+      expect(terminal.frame()).toContain("Found an authentication issue.");
+      expect(terminal.frame()).toContain("/agent main returns");
+    });
+    run.finish?.();
+    await vi.waitFor(() =>
+      expect(terminal.frame()).toContain("Audit authentication · completed")
+    );
+    await vi.waitFor(() => expect(terminal.frame()).toContain("spent $0.01"), {
+      timeout: 5_000
+    });
   });
   it("requires an explicit answer to a tool approval and resumes the turn", async () => {
     run.approval = true;
