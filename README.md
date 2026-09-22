@@ -18,7 +18,7 @@ like.
 **[Documentation](https://docs.nodetool.ai/)** · **[MCP setup](#mcp)** ·
 **[Contribute](#contributing)**
 
-![NodeTool: one sentence becomes a storyboard, rendered stills and clips, and a cut on the timeline](marketing/public/hero-project-readme.gif)
+![NodeTool: shape a product brief into a reusable workflow and campaign assets](marketing/public/hero-project-readme.gif)
 
 ## Every model you need, on your own keys
 
