@@ -399,11 +399,11 @@ test.describe("marketing smoke", () => {
   }) => {
     await page.goto("/alternatives/comfyui");
     await expect(page).toHaveTitle(
-      "Easier ComfyUI Alternatives for Mac | NodeTool"
+      "ComfyUI Alternatives for Creative Workflows | NodeTool"
     );
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       "content",
-      "Easier ComfyUI Alternatives for Mac | NodeTool"
+      "ComfyUI Alternatives for Creative Workflows | NodeTool"
     );
 
     await page.goto("/alternatives/lm-studio");
