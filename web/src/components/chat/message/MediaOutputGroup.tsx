@@ -203,9 +203,8 @@ const styles = (theme: Theme) =>
       display: "revert"
     },
 
-    // Same shell every generating surface uses to host `MagicGenerationFill`
-    // (sketch canvas/layers panel, timeline clips + preview compositor): a
-    // positioned, clipped box the wash + shimmer sweep fills edge to edge.
+    // A pending tile: a positioned box `MagicGenerationFill` covers edge to
+    // edge until the media arrives.
     ".media-tile-shimmer": {
       position: "relative",
       minHeight: 96,

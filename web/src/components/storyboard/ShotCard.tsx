@@ -31,6 +31,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  MagicGenerationFill,
   ProgressBar,
   ResponsiveImage,
   Text,
@@ -433,6 +434,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             No still yet
           </Caption>
         )}
+        {isGenerating && <MagicGenerationFill />}
         <ShotHoverToolbar
           showDragHandle={draggable}
           onFullscreen={

@@ -180,14 +180,6 @@ const placeholderLayerStyles = (theme: Theme) =>
 // over the whole preview frame while a generating clip is live at the
 // playhead — so the preview animates in lockstep with its track clip. Sits
 // below the corner status badges (PREVIEW_OVERLAY_Z.badge).
-const previewMagicOverlayStyles = css({
-  position: "absolute",
-  inset: 0,
-  zIndex: PREVIEW_OVERLAY_Z.magicWash,
-  overflow: "hidden",
-  pointerEvents: "none"
-});
-
 /**
  * A video layer the element pool has to hold open this frame. The pixels are
  * all the pool owns; everything else about the layer stays in the scene model,
@@ -1698,9 +1690,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         ))}
 
         {generatingClips.length > 0 && (
-          <div css={previewMagicOverlayStyles} aria-hidden>
-            <MagicGenerationFill />
-          </div>
+          <MagicGenerationFill zIndex={PREVIEW_OVERLAY_Z.magicWash} />
         )}
 
         {generatingClips.map((c) => (
