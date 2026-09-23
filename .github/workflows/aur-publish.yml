@@ -1,72 +1,159 @@
-name: Publish AUR package
+name: AUR package
 
-# Publishes the `nodetool-bin` package to the Arch User Repository (AUR) from
-# the Linux AppImage attached to each stable GitHub Release. Runs automatically
-# when a release is published, and can be dispatched manually to (re)publish a
-# specific version.
+# Builds and tests the `nodetool-bin` Arch User Repository package from the
+# Linux AppImage of a stable GitHub Release, then publishes it to the AUR.
+#
+# - Pull requests that touch the packaging build and test the package against
+#   the latest stable release. They never publish.
+# - A successful Release run for a stable X.Y.Z tag builds, tests and
+#   publishes. Release assets are uploaded with GITHUB_TOKEN, which does not
+#   fire `release` events, so this follows the Release workflow instead.
+# - Manual dispatch tests any stable version and publishes when asked.
+#
+# See packaging/aur/README.md.
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  pull_request:
+    paths:
+      - "packaging/aur/**"
+      - ".github/workflows/aur-publish.yml"
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to publish (without leading v), e.g. 0.7.0"
-        required: true
+        description: "Stable version without leading v, e.g. 0.7.0. Empty selects the latest stable release."
+        required: false
         type: string
+      publish:
+        description: "Push the tested package to the AUR"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
-jobs:
-  publish-aur:
-    name: Publish nodetool-bin to AUR
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
+concurrency:
+  group: aur-${{ github.event.pull_request.number || github.ref }}-${{ github.event.workflow_run.head_branch || '' }}
+  cancel-in-progress: true
 
+jobs:
+  resolve:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      publish: ${{ steps.meta.outputs.publish }}
+    steps:
       - name: Resolve version
         id: meta
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          INPUT_PUBLISH: ${{ github.event.inputs.publish }}
         run: |
           set -euo pipefail
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            version="${{ github.event.inputs.version }}"
-          else
-            version="${{ github.event.release.tag_name }}"
+          publish=false
+          case "${EVENT}" in
+            workflow_run)
+              # For a tag push, head_branch is the tag name.
+              version="${RUN_BRANCH#v}"
+              publish=true
+              ;;
+            workflow_dispatch)
+              version="${INPUT_VERSION#v}"
+              [[ "${INPUT_PUBLISH}" == "true" ]] && publish=true
+              ;;
+            *)
+              version=""
+              ;;
+          esac
+          if [[ -z "${version}" ]]; then
+            version="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              --jq '[.[] | select(.draft | not) | .tag_name | ltrimstr("v")
+                     | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))][0] // ""')"
+            [[ -n "${version}" ]] || { echo "No stable release found." >&2; exit 1; }
           fi
-          version="${version#v}"
-          # Only publish plain stable releases (X.Y.Z). Skip nightlies and
-          # pre-releases (e.g. rc, beta) — the AUR package tracks stable.
+          # The AUR package tracks plain X.Y.Z releases only. Release
+          # candidates, nightlies and branch runs are skipped.
           if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Version '${version}' is not a stable X.Y.Z release; skipping AUR publish."
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "'${version}' is not a stable X.Y.Z release; nothing to do."
+            version=""
+            publish=false
           fi
-          echo "Publishing nodetool-bin ${version} to AUR."
-          echo "publish=true" >> "$GITHUB_OUTPUT"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "publish=${publish}" >> "$GITHUB_OUTPUT"
+          echo "version='${version}' publish=${publish}"
+
+  test:
+    name: Build and test nodetool-bin
+    needs: resolve
+    if: needs.resolve.outputs.version != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      # The extracted Electron tree, the package and the install each take
+      # several GB. Drop preinstalled SDKs this job does not use.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
 
       - name: Render PKGBUILD
-        if: steps.meta.outputs.publish == 'true'
-        shell: bash
         env:
-          VERSION: ${{ steps.meta.outputs.version }}
-        run: |
-          set -euo pipefail
-          mkdir -p aur-pkg
-          sed "s|@PKGVER@|${VERSION}|g" packaging/aur/PKGBUILD > aur-pkg/PKGBUILD
-          echo "----- rendered PKGBUILD -----"
-          cat aur-pkg/PKGBUILD
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: packaging/aur/render.sh "${VERSION}" aur-pkg
 
+      - name: Build, install and launch in Arch Linux
+        run: |
+          docker run --rm \
+            -v "${PWD}/aur-pkg:/pkg" \
+            -v "${PWD}/packaging/aur:/aur:ro" \
+            archlinux:latest /aur/test-package.sh /pkg
+
+      - name: Show package files
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" aur-pkg
+          cat aur-pkg/PKGBUILD aur-pkg/.SRCINFO
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: aur-nodetool-bin-${{ needs.resolve.outputs.version }}
+          path: |
+            aur-pkg/PKGBUILD
+            aur-pkg/.SRCINFO
+            aur-pkg/nodetool.sh
+            aur-pkg/nodetool-electron.desktop
+          include-hidden-files: true
+          if-no-files-found: error
+
+  publish:
+    name: Publish nodetool-bin to AUR
+    needs: [resolve, test]
+    if: needs.resolve.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: aur-nodetool-bin-${{ needs.resolve.outputs.version }}
+          path: aur-pkg
+
+      # Publishes the exact PKGBUILD and checksums the test job verified.
       - name: Publish to AUR
-        if: steps.meta.outputs.publish == 'true'
         uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
         with:
           pkgname: nodetool-bin
-          pkgbuild: aur-pkg/PKGBUILD
+          asset_dir: aur-pkg
           commit_username: ${{ secrets.AUR_USERNAME }}
           commit_email: ${{ secrets.AUR_EMAIL }}
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "Update to ${{ steps.meta.outputs.version }}"
-          updpkgsums: true
+          commit_message: "Update to ${{ needs.resolve.outputs.version }}"
+          updpkgsums: false
           ssh_keyscan_types: rsa,ecdsa,ed25519

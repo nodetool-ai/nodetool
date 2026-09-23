@@ -42,7 +42,7 @@ hatch. The same workflow's **`reliability-ring1`** job runs on every push to
 | `abstraction-police.yaml` | Scheduled agent fixes layering violations found by `check:*` plus the import greps no script covers | none/maintenance | Advisory (`continue-on-error`) |
 | `anti-slop-ratchet.yaml` | Daily agent drives anti-slop (rule, tree) pairs to zero, regenerates the enforced overrides, and proves the new ratchet can fail. Every fourth run takes a large pair instead of a nearly-done tree — this is where the app trees' `as any` and missing return types are worked, since `type-safety.yaml` folded into it | none/maintenance | Advisory |
 | `app-build-eval.yml` | Nightly `app-build` eval suite; reports the one-shot rate, gates nothing | none/maintenance | Advisory (report only) |
-| `aur-publish.yml` | Publish the AUR package on a GitHub release | none/maintenance | Required for its own job |
+| `aur-publish.yml` | Build, install and launch-test the `nodetool-bin` AUR package in Arch Linux on packaging PRs, then publish it after a stable release | none/maintenance | Required for its own job |
 | `claude-code-review.yml` | Claude reviews new/updated PRs | none/maintenance | Advisory |
 | `claude.yml` | Claude responds to `@claude` mentions and comments | none/maintenance | Advisory |
 | `copilot-setup-steps.yml` | Environment setup for the Copilot coding agent | none/maintenance | n/a (setup only) |
