@@ -23,6 +23,28 @@ if_.stream = function (inputs: IfInputs): AsyncIterable<Partial<IfOutputs>> {
   return streamNode<Partial<IfOutputs>>("nodetool.control.If", inputs);
 };
 
+// Loop — nodetool.control.Loop
+export type LoopInputs = {
+  initial?: unknown;
+  next?: unknown;
+  condition?: boolean;
+  max_iterations?: number;
+};
+
+export interface LoopOutputs {
+  value: unknown;
+  index: number;
+  done: unknown;
+}
+
+export function loop(inputs: LoopInputs): Promise<LoopOutputs> {
+  return callNode<LoopOutputs>("nodetool.control.Loop", inputs);
+}
+
+loop.stream = function (inputs: LoopInputs): AsyncIterable<Partial<LoopOutputs>> {
+  return streamNode<Partial<LoopOutputs>>("nodetool.control.Loop", inputs);
+};
+
 // For Each — nodetool.control.ForEach
 export type ForEachInputs = {
   input_list?: unknown[];

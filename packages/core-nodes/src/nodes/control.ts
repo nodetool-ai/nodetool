@@ -3,6 +3,11 @@ import type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 import { compileSafePredicate, compileSafeKey } from "./safe-expression.js";
+import { LOOP_ITERATION_GROUP } from "@nodetool-ai/protocol";
+import {
+  DEFAULT_MAX_ITERATIONS,
+  MAX_ITERATIONS_LIMIT
+} from "@nodetool-ai/kernel";
 
 export class IfNode extends BaseNode {
   static readonly nodeType = "nodetool.control.If";
@@ -51,6 +56,77 @@ export class IfNode extends BaseNode {
       return { if_true: value };
     }
     return { if_false: value };
+  }
+}
+
+/**
+ * Runs a loop body until a condition turns false. The body is wired from
+ * `value`/`index` back into `next`/`condition`, the only way a workflow graph
+ * may contain a cycle. The kernel runs this node in its own actor mode
+ * (`packages/kernel/src/loop.ts`); `process()` is never called during a run.
+ * Design: docs/workflow-loops.md.
+ */
+export class LoopNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Loop";
+  static readonly title = "Loop";
+  static readonly description =
+    "Repeat a section of the workflow, feeding each result back in, until a condition turns false.\n    loop, repeat, while, until, iterate, retry, refine, feedback, cycle, flow-control\n\n    Wire value and index into the loop body, and wire the body's result back into next and its decision into condition. Each iteration runs the body once. When condition is false, or after max_iterations, the last next value leaves through done.\n\n    Use cases:\n    - Refine a draft until a judge accepts it\n    - Retry a generation until it passes a check\n    - Apply a step a fixed number of times, feeding each result into the next";
+  static readonly metadataOutputTypes = {
+    value: "any",
+    index: "int",
+    done: "any"
+  };
+  static readonly inlineFields = ["max_iterations"];
+  static readonly inputFields = ["initial", "next", "condition"];
+
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    value: { kind: "iteration", source: "initial", group: LOOP_ITERATION_GROUP },
+    index: { kind: "iteration", source: "initial", group: LOOP_ITERATION_GROUP },
+    done: { kind: "single", source: "initial" }
+  } satisfies Record<string, OutputCorrelation>;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Initial",
+    description: "The value the first iteration starts from."
+  })
+  declare initial: unknown;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Next",
+    description:
+      "The value for the next iteration. Wire it from the end of the loop body."
+  })
+  declare next: unknown;
+
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Condition",
+    description:
+      "Loop again while true. Wire it from the loop body. Unwired, the body runs max_iterations times."
+  })
+  declare condition: boolean;
+
+  @prop({
+    type: "int",
+    default: DEFAULT_MAX_ITERATIONS,
+    min: 1,
+    max: MAX_ITERATIONS_LIMIT,
+    title: "Max Iterations",
+    description:
+      "Upper bound on how many times the body runs. The loop exits through done when it is reached."
+  })
+  declare max_iterations: number;
+
+  async process(): Promise<Record<string, unknown>> {
+    throw new Error(
+      "Loop runs only inside a workflow: wire its value into a loop body and the body's result back into next."
+    );
   }
 }
 
@@ -1424,6 +1500,7 @@ export class CrossNode extends BaseNode {
 
 export const CONTROL_NODES = tagAsUniversal([
   IfNode,
+  LoopNode,
   ForEachNode,
   AssetCollectionNode,
   RepeatCountNode,

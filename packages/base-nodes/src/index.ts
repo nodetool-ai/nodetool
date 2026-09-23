@@ -2,6 +2,7 @@ import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
 
 export {
   IfNode,
+  LoopNode,
   ForEachNode,
   RepeatCountNode,
   RepeatValueStreamNode,
