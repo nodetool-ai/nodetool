@@ -292,8 +292,10 @@ tracing and `--no-trace-stdout` when stdout tracing is enabled in the environmen
 
 Enter sends a message. Alt+Enter, Shift+Enter in supported terminals, or Ctrl+J
 inserts a newline. Pasted lines stay in the composer. Up/Down recalls prompts,
-Tab completes commands, and Page Up/Page Down scrolls the transcript. Ctrl+G
-returns to the latest output. Ctrl+O toggles tool details and edit diffs.
+Tab completes commands. Page Up/Page Down and the mouse wheel scroll the
+transcript. Drag across transcript text to select and copy it to the clipboard
+on release. Ctrl+G returns to the latest output. Ctrl+O toggles tool details
+and edit diffs.
 Escape stops a running turn or dismisses input. Ctrl+C stops a turn, clears a
 draft, or saves and quits when idle with an empty composer.
 
