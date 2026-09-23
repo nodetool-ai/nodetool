@@ -1,3 +1,18 @@
+/// <reference types="node" />
+import os from "node:os";
+
+// jsdom suites are CPU-bound, so the web suite scales with cores: on a 4-core
+// runner four workers finish in about two thirds of the time two do. Each
+// worker peaks near 1.7 GB, so memory caps the count on many-core machines.
+const WORKER_MEMORY_BYTES = 2 * 1024 ** 3;
+const maxWorkers = Math.max(
+  1,
+  Math.min(
+    os.availableParallelism(),
+    Math.floor(os.totalmem() / WORKER_MEMORY_BYTES)
+  )
+);
+
 export default {
   preset: "ts-jest",
   testEnvironment: "jsdom",
@@ -7,7 +22,7 @@ export default {
     resources: "usable"
   },
   testTimeout: 10000,
-  maxWorkers: "50%",
+  maxWorkers,
   moduleNameMapper: {
     "^@nodetool-ai/gpu/webgpu$": "<rootDir>/../packages/gpu/src/webgpu/index.ts",
     "^@nodetool-ai/gpu/pool$": "<rootDir>/../packages/gpu/src/pool.ts",
