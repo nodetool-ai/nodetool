@@ -98,7 +98,7 @@ export function createCliCodeActTurn(
 ): CliCodeActTurn {
   const byName = new Map(options.tools.map((tool) => [tool.name, tool]));
   const directTools = options.tools.filter(
-    (t) => t.name !== VIEW_IMAGE_TOOL && DIRECT_TOOL_NAMES.has(t.name)
+    (t) => t.name !== VIEW_IMAGE_TOOL && (t.name === "bash" || DIRECT_TOOL_NAMES.has(t.name))
   );
   const beltTools = options.tools.filter((t) => t.name !== VIEW_IMAGE_TOOL);
 

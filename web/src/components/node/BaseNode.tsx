@@ -22,6 +22,8 @@ import {
   SPACING,
   getSpacingPx,
   reducedMotion,
+  runningGradientAnimation,
+  runningGradientBackground,
   Z_INDEX
 } from "../ui_primitives";
 import FalPricingFooter from "./FalPricingFooter";
@@ -143,15 +145,6 @@ const ResizeOverlay = memo(function ResizeOverlay({
  * @param props
  */
 
-const gradientAnimationKeyframes = keyframes`
-  from {
-    --gradient-angle: 90deg;
-  }
-  to {
-    --gradient-angle: 450deg;
-  }
-`;
-
 // Ambient-liveness ring: a breathing halo shown when a node is executing in one
 // or more runs the user is NOT currently focused on. Visually distinct from the
 // primary running ring (a tight, rotating type-color conic gradient): this one
@@ -218,15 +211,7 @@ const getNodeStyles = (colors: string[]) =>
         left: "var(--glow-offset)",
         right: "var(--glow-offset)",
         bottom: "var(--glow-offset)",
-        background: `conic-gradient(
-        from var(--gradient-angle),
-        ${colors[0]},
-        ${colors[1]},
-        ${colors[2]},
-        ${colors[3]},
-        ${colors[4]},
-        ${colors[0]}
-      )`,
+        background: runningGradientBackground(colors),
         borderRadius: BORDER_RADIUS.lg,
         zIndex: -20,
         pointerEvents: "none",
@@ -238,7 +223,7 @@ const getNodeStyles = (colors: string[]) =>
         maskComposite: "exclude",
         padding: "var(--ring)",
         backgroundClip: "border-box",
-        animation: `${gradientAnimationKeyframes} ${MOTION.pulse} infinite`,
+        animation: `${runningGradientAnimation} ${MOTION.pulse} infinite`,
         ...reducedMotion({ animation: "none" }),
         transition: MOTION.opacity
       }

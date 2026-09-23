@@ -64,7 +64,7 @@
                       "props": {
                         "id": "in-faithful-picture",
                         "binding": "op:faithful/in:in",
-                        "label": "The image to enlarge",
+                        "label": "The image to enlarge (faithful)",
                         "events": []
                       }
                     },
@@ -169,7 +169,7 @@
                       "props": {
                         "id": "in-clarity-photo",
                         "binding": "op:clarity/in:in",
-                        "label": "The image to enlarge",
+                        "label": "The image to enlarge (clarity)",
                         "events": []
                       }
                     },

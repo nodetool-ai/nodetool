@@ -55,6 +55,44 @@ afterEach(() => {
 });
 
 describe("setShotKeyframe", () => {
+  it("selects a sole legacy candidate when loading a finished board", () => {
+    seed();
+    const board = useStoryboardStore.getState().getBoard(BOARD);
+    if (!board) {
+      throw new Error("Expected a seeded board");
+    }
+    useStoryboardStore.getState().loadBoard(BOARD, {
+      ...board,
+      setupStage: "done",
+      shots: [
+        {
+          ...board.shots[0],
+          status: "planned",
+          keyframe_versions: [image(1)]
+        }
+      ]
+    });
+
+    expect(getShot()?.keyframe).toEqual(image(1));
+    expect(getShot()?.status).toBe("keyframe_ready");
+  });
+
+  it("leaves multiple unselected legacy takes for the creator to choose", () => {
+    seed();
+    const board = useStoryboardStore.getState().getBoard(BOARD);
+    if (!board) {
+      throw new Error("Expected a seeded board");
+    }
+    useStoryboardStore.getState().loadBoard(BOARD, {
+      ...board,
+      setupStage: "done",
+      shots: [{ ...board.shots[0], keyframe_versions: [image(1), image(2)] }]
+    });
+
+    expect(getShot()?.keyframe).toBeUndefined();
+    expect(getShot()?.keyframe_versions).toHaveLength(2);
+  });
+
   it("accumulates every still into keyframe_versions", () => {
     seed();
     const store = useStoryboardStore.getState();

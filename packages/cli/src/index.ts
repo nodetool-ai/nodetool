@@ -16,6 +16,7 @@ import { render } from "ink";
 import React from "react";
 import { App } from "./app.js";
 import { enterTerminalScreen } from "./terminal-screen.js";
+import { MouseInput } from "./terminal-mouse.js";
 import { ALWAYS_ENABLED_TOOLS, loadSettings } from "./settings.js";
 import { installLocalModelInterfaces } from "./local-model-interfaces.js";
 import { runStdinMode } from "./stdin.js";
@@ -292,6 +293,7 @@ if (!process.stdin.isTTY) {
 }
 
 const restoreScreen = enterTerminalScreen(process.stdout);
+const mouseInput = new MouseInput(process.stdin);
 process.once("exit", restoreScreen);
 const terminate = (): void => {
   restoreScreen();
@@ -311,15 +313,23 @@ try {
       permissionMode,
       enableReadOnlySearch: opts.readOnlySearch !== false,
       resume: opts.resume,
+      mouseEvents: mouseInput.events,
       ...(opts.costCap !== undefined && { costCap: opts.costCap }),
       ...(opts.timeout !== undefined && { timeout: opts.timeout })
     }),
-    { exitOnCtrlC: false, kittyKeyboard: { mode: "auto" } }
+    {
+      // Ink requires ReadStream, while this forwarding stream supplies its TTY methods.
+      // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+      stdin: mouseInput as unknown as NodeJS.ReadStream,
+      exitOnCtrlC: false,
+      kittyKeyboard: { mode: "auto" }
+    }
   );
 
   await waitUntilExit();
 } finally {
   restoreScreen();
+  mouseInput.close();
   process.off("exit", restoreScreen);
   process.off("SIGTERM", terminate);
   await shutdownTelemetry();

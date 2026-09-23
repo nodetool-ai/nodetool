@@ -56,6 +56,7 @@ import { setShotlistImport, useShotlistImportSummary } from "./setupChoices";
 export interface LookStepProps {
   boardId: string;
   readOnly?: boolean;
+  blockedReason?: string;
 }
 
 /** What a keyframe model has to be able to do — the board's own rule. */
@@ -209,7 +210,8 @@ const StillModelField: React.FC<{ boardId: string; readOnly?: boolean }> = ({
 
 export const LookStep: React.FC<LookStepProps> = ({
   boardId,
-  readOnly = false
+  readOnly = false,
+  blockedReason
 }) => {
   const [addingStyle, setAddingStyle] = useState(false);
   const customStyle = useCustomStyle(boardId);
@@ -361,6 +363,11 @@ export const LookStep: React.FC<LookStepProps> = ({
           later.
         </Text>
       </FlexColumn>
+      {blockedReason && !readOnly ? (
+        <AlertBanner severity="info" title="Before you generate">
+          {blockedReason}
+        </AlertBanner>
+      ) : null}
       {/* A shotlist import lands here rather than on the story steps, so what
           it wrote is said here — inline, and only expanded on request (F29). */}
       {shotlistImport ? (

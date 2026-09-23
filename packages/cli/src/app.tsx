@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import type { EventEmitter } from "node:events";
 import { Box, Text, useApp, useInput } from "ink";
 import Spinner from "ink-spinner";
 import { writeFile } from "node:fs/promises";
@@ -6,7 +7,8 @@ import { resolve } from "node:path";
 import type { Message, ProviderSession, RunBudget } from "@nodetool-ai/runtime";
 import {
   PERMISSION_GATE_CONTEXT_KEY,
-  RUN_BUDGET_CONTEXT_KEY
+  RUN_BUDGET_CONTEXT_KEY,
+  estimatePromptTokens
 } from "@nodetool-ai/runtime";
 import type { ProcessingMessage, TodoItem } from "@nodetool-ai/protocol";
 import { processChat } from "@nodetool-ai/chat";
@@ -35,6 +37,7 @@ import {
   isFormattedTool
 } from "./tool-format.js";
 import { saveSettings } from "./settings.js";
+import { BashTool } from "./bash-tool.js";
 import {
   applySystemPrompt,
   buildCliAgentBelt,
@@ -63,6 +66,7 @@ import { attachmentLines } from "./chat-media.js";
 export type { ChatMessage } from "./terminal-screen.js";
 
 export interface AppProps {
+  readonly mouseEvents?: EventEmitter;
   readonly initialProvider: string;
   readonly initialModel: string;
   readonly enabledTools: string[];
@@ -167,7 +171,8 @@ export function App({
   permissionMode = "default",
   enableReadOnlySearch = true,
   resume,
-  sessionStore
+  sessionStore,
+  mouseEvents
 }: AppProps): React.ReactElement {
   const { exit } = useApp();
   const { columns, rows } = useTerminalSize();
@@ -199,6 +204,10 @@ export function App({
   >({});
   const [elapsed, setElapsed] = useState(0);
   const [usage, setUsage] = useState("");
+  const [contextTokens, setContextTokens] = useState<number | null>(null);
+  const refreshContextTokens = (): void => {
+    setContextTokens(wsUrl ? null : estimatePromptTokens(history.current));
+  };
   const [connection, setConnection] = useState(wsUrl ? "Connecting" : "Local");
   const [sessionId, setSessionId] = useState(newSessionId);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -481,6 +490,7 @@ export function App({
 
   function restore(session: ChatSession): void {
     history.current = session.history;
+    refreshContextTokens();
     providerSession.current = session.providerSession ?? null;
     thread.current = session.threadId;
     setSessionId(session.id);
@@ -536,7 +546,8 @@ export function App({
     const byName = new Map(
       [
         ...getBuiltinTools(),
-        ...getAllMcpTools({ registry, providers: agentProviders })
+        ...getAllMcpTools({ registry, providers: agentProviders }),
+        new BashTool(workspaceDir)
       ].map((tool) => [tool.name, tool])
     );
     return enabledTools.flatMap((name) => {
@@ -738,6 +749,7 @@ export function App({
       { role: "system", content: `Retained conversation context:\n${summary}` }
     ];
     providerSession.current = null;
+    refreshContextTokens();
     add("system", "Conversation compacted. Context retained.");
   }
   async function command(value: string, signal: AbortSignal): Promise<void> {
@@ -750,7 +762,7 @@ export function App({
           Object.entries(CHAT_COMMANDS)
             .map(([cmd, description]) => `${cmd.padEnd(12)} ${description}`)
             .join("\n") +
-            "\n\nEnter send · Alt+Enter or Ctrl+J newline · Tab complete\n↑↓ history · PgUp/PgDn scroll · Ctrl+G latest\nCtrl+O tool details · Esc cancel/dismiss · Ctrl+C cancel/clear/quit"
+            "\n\nEnter send · Alt+Enter or Ctrl+J newline · Tab complete\n↑↓ history · PgUp/PgDn or wheel scroll · Ctrl+G latest\nDrag transcript text to copy · Ctrl+O tool details\nEsc cancel/dismiss · Ctrl+C cancel/clear/quit"
         );
         break;
       case "/clear":
@@ -760,6 +772,7 @@ export function App({
       case "/new":
         await persist();
         history.current = [];
+        refreshContextTokens();
         providerSession.current = null;
         updateMessages([]);
         thread.current = newSessionId();
@@ -1019,6 +1032,7 @@ export function App({
             onToolCall: ({ name }) => setStatus(friendlyToolName(name))
           });
           applySystemPrompt(history.current, turn.systemPrompt);
+          refreshContextTokens();
           const historyStart = history.current.length;
           let displayedText = "";
           await processChat({
@@ -1080,6 +1094,7 @@ export function App({
         }
       }
       flush();
+      refreshContextTokens();
       if (budget) {
         setUsage(budgetSummaryLine(budget));
         const reason = budgetStopReason(budget);
@@ -1093,6 +1108,7 @@ export function App({
       }
     } finally {
       flush();
+      refreshContextTokens();
       if (abort.signal.aborted) {
         add("system", "Stopped. You can continue this conversation.");
       }
@@ -1307,6 +1323,8 @@ export function App({
               {terminalText(prompt.title)}
             </Text>
             <Transcript
+              mouseEvents={mouseEvents}
+              screenY={5}
               messages={[
                 { id: "prompt", role: "system", content: prompt.body }
               ]}
@@ -1335,6 +1353,8 @@ export function App({
               {terminalText(selectedAgent.title)} · {selectedAgent.status}
             </Text>
             <Transcript
+              mouseEvents={mouseEvents}
+              screenY={5}
               messages={selectedAgent.messages}
               live=""
               width={width}
@@ -1346,6 +1366,7 @@ export function App({
           </Box>
         ) : (
           <Transcript
+            mouseEvents={mouseEvents}
             messages={messages.slice(clearedCount)}
             live={live}
             width={width}
@@ -1364,13 +1385,22 @@ export function App({
             <Text bold>Session</Text>
             <Text dimColor>{sessionId.slice(0, 12)}</Text>
             <Text> </Text>
+            <Text bold>Context</Text>
+            <Text dimColor>
+              {wsUrl
+                ? "Managed by server"
+                : contextTokens === null
+                  ? "Not measured yet"
+                  : `~${contextTokens.toLocaleString()} tokens`}
+            </Text>
+            <Text> </Text>
             <Text bold>Work</Text>
             <Text dimColor>
               {terminalLines(
                 terminalText(work.join("\n") || "No active tasks"),
                 sidebarWidth - 2
               )
-                .slice(0, Math.max(1, bodyHeight - 6))
+                .slice(0, Math.max(1, bodyHeight - 9))
                 .join("\n")}
             </Text>
             <Text> </Text>
@@ -1435,7 +1465,7 @@ export function App({
       <Text dimColor wrap="truncate">
         {columns < 70
           ? "Enter send · Ctrl+J newline · /help"
-          : "Enter send · Alt+Enter newline · PgUp/PgDn scroll · Ctrl+O details · /help"}
+          : "Enter send · Alt+Enter newline · Wheel scroll · Drag to copy · /help"}
       </Text>
     </Box>
   );

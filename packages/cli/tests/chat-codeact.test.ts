@@ -83,6 +83,11 @@ class EchoTool extends StubTool {
   }
 }
 
+class BashToolStub extends StubTool {
+  override readonly name = "bash";
+  override readonly description = "Execute a local bash command.";
+}
+
 class ViewImageTool extends StubTool {
   override readonly name = "view_image";
   override readonly description = "Load an image into view.";
@@ -91,6 +96,15 @@ class ViewImageTool extends StubTool {
 const context = {} as never;
 
 describe("createCliCodeActTurn", () => {
+  it("offers bash directly when the local CLI belt includes it", () => {
+    const turn = createCliCodeActTurn({
+      tools: [new BashToolStub() as never],
+      context
+    });
+    expect(turn.tools.map((tool) => tool.name)).toEqual(["execute_code", "bash"]);
+    expect(sessionsCreated.at(-1)?.toolNames).toEqual(["bash"]);
+  });
+
   it("offers execute_code and view_image, never the raw toolbelt", () => {
     const turn = createCliCodeActTurn({
       tools: [new EchoTool() as never, new ViewImageTool() as never],

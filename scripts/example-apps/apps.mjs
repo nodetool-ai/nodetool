@@ -1,6 +1,6 @@
 // The curated example apps, as data.
 //
-// One entry per app in docs/plans/example-apps.md. `scripts/build-example-apps.mjs`
+// `scripts/build-example-apps.mjs`
 // turns each entry into an ApplicationBundle in
 // packages/base-nodes/nodetool/examples/apps/, resolving every workflow,
 // input, and output **by name** against the shipped template graphs — a name
@@ -19,14 +19,17 @@
 //   content    Optional authored widget tree, used instead of sections.
 //
 // Control kinds: input, text, model, number, slider, select, image, video, audio,
-// switch, color, run, note. Result kinds: progress, error, show, showVar,
+// switch, color, run, note. Result kinds: progress, activity, error, show, showVar,
 // heading, note.
 // `text`, `model`, `select` and `slider` take an input name or `{ node, prop }` to drive
 // a node property inside the graph; `default` seeds the preview value.
+// `image`, `video`, and `audio` take a variable id or `{ input }`.
 // See buildControl() in the builder for the exact props each one emits.
 
 import { DIRECTED_CAMPAIGN_KIT_APP } from "./directed-campaign-kit.mjs";
+import { PODCAST_PRODUCTION_DESK_APP } from "./podcast-production-desk.mjs";
 import { UGC_PRODUCT_VIDEO_APP } from "./ugc-product-video.mjs";
+import { VIDEO_POST_HOUSE_APP } from "./video-post-house.mjs";
 
 const SLIDERS_IMAGE_ENHANCE = [
   { slider: { node: "denoise-node", prop: "radius" }, label: "Denoise", min: 0, max: 16, step: 0.5, default: 0 },
@@ -1151,7 +1154,7 @@ export const EXAMPLE_APPS = [
           {
             image: { input: "picture", op: "faithful" },
             op: "faithful",
-            label: "The image to enlarge"
+            label: "The image to enlarge (faithful)"
           },
           {
             slider: { node: "up", prop: "scale" },
@@ -1183,7 +1186,7 @@ export const EXAMPLE_APPS = [
           {
             image: { input: "photo", op: "clarity" },
             op: "clarity",
-            label: "The image to enlarge"
+            label: "The image to enlarge (clarity)"
           },
           {
             slider: { node: "up", prop: "scale" },
@@ -1959,5 +1962,7 @@ export const EXAMPLE_APPS = [
       }
     ]
   },
-  DIRECTED_CAMPAIGN_KIT_APP
+  DIRECTED_CAMPAIGN_KIT_APP,
+  PODCAST_PRODUCTION_DESK_APP,
+  VIDEO_POST_HOUSE_APP
 ];

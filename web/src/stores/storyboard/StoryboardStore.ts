@@ -685,13 +685,33 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         // write shots one at a time and forget the board. Widen the cast on
         // load so the chips, the pickers and the prompts agree.
         entityIds: [...boardEntityIdsWithShots(merged.entityIds, merged.shots)],
-        shots: board.shots.map((s) =>
-          s.status === "keyframe_generating"
-            ? { ...s, status: "planned" as const }
-            : s.status === "clip_generating"
-              ? { ...s, status: "keyframe_ready" as const }
-              : s
-        ),
+        shots: board.shots.map((s) => {
+          // Older boards stored the first completed still only as a take.
+          // A sole take on a finished board has an unambiguous shot match.
+          const firstStill =
+            merged.setupStage === "done" &&
+            !s.keyframe &&
+            s.keyframe_versions?.length === 1
+              ? s.keyframe_versions[0]
+              : undefined;
+          const restored: Shot = {
+            ...s,
+            status:
+              s.status === "keyframe_generating"
+                ? firstStill
+                  ? ("keyframe_ready" as const)
+                  : ("planned" as const)
+                : s.status === "clip_generating"
+                  ? ("keyframe_ready" as const)
+                  : firstStill && s.status === "planned"
+                    ? ("keyframe_ready" as const)
+                    : s.status
+          };
+          if (firstStill) {
+            restored.keyframe = firstStill;
+          }
+          return restored;
+        }),
         updatedAt: Date.now()
       };
       const patch: Partial<StoryboardStoreState> = {

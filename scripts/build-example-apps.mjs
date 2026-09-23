@@ -330,6 +330,7 @@ function buildControl(control, ctx) {
       typeof control.video === "string"
         ? variableTarget(control.video)
         : inputTarget("video", control.video.input);
+    if (control.demo !== undefined) ctx.values[binding] = control.demo;
     return {
       type: "VideoInput",
       props: {
@@ -453,13 +454,15 @@ function buildControl(control, ctx) {
   }
 
   if (control.audio !== undefined) {
-    const { operation, node } = opInput(control.op, control.audio);
-    const portId = operation.kind === "script" ? node.name : node.id;
+    const { binding, idParts } =
+      typeof control.audio === "string"
+        ? variableTarget(control.audio)
+        : inputTarget("audio", control.audio.input);
     return {
       type: "AudioInput",
       props: {
-        id: nextId(["in", control.op, control.audio]),
-        binding: inputBinding(control.op, portId),
+        id: nextId(idParts),
+        binding,
         label: control.label,
         events: control.run ? changeRun(control.op, "release") : []
       }
@@ -506,6 +509,21 @@ function buildResult(result, ctx) {
         id: nextId(["progress", result.progress]),
         binding: execBinding(result.progress, "progress"),
         label: result.label
+      }
+    });
+    return items;
+  }
+
+  if (result.activity !== undefined) {
+    if (!ctx.operations.has(result.activity)) {
+      fail(`${ctx.app.name}: activity names unknown operation "${result.activity}"`);
+    }
+    items.push({
+      type: "Text",
+      props: {
+        id: nextId(["activity", result.activity]),
+        binding: execBinding(result.activity, "activity"),
+        text: ""
       }
     });
     return items;

@@ -1,0 +1,771 @@
+{
+  "slug": "podcast-production-desk",
+  "name": "Podcast Production Desk",
+  "emoji": "🎙️",
+  "description": "A podcast workspace for cleaning or mastering a recording and making show notes, a newsletter, social posts, and quote cards from the same source.",
+  "tagline": "One recording becomes two audio treatments and a publishable content pack.",
+  "note": "Audio cleanup and mastering run locally. The content pack uses configured transcription, writing, and image models. Download a treatment and upload it as the source to use it in another pass.",
+  "featured": true,
+  "image": "/app-preview/img/podcast-production-desk.jpg",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🎙️ Podcast Production Desk",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One recording becomes two audio treatments and a publishable content pack."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "Audio cleanup and mastering run locally. The content pack uses configured transcription, writing, and image models. Download a treatment and upload it as the source to use it in another pass."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-prepare-the-recording",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-prepare-the-recording",
+                  "title": "Prepare the recording",
+                  "content": [
+                    {
+                      "type": "AudioInput",
+                      "props": {
+                        "id": "in-sourceaudio",
+                        "binding": "var:sourceAudio",
+                        "label": "Episode audio",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-clean",
+                        "label": "Clean the recording",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "clean",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:clean/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-master",
+                        "label": "Master the recording",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "master",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:master/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-prepare-the-recording-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-clean",
+                        "binding": "op:clean/exec#progress",
+                        "label": "Removing room noise…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-clean",
+                        "binding": "op:clean/exec#error",
+                        "title": "Generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:clean/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-clean-cleaned",
+                        "text": "Cleaned recording",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Audio",
+                      "props": {
+                        "id": "out-clean-cleaned",
+                        "binding": "op:clean/out:out",
+                        "placeholder": "Your audio appears here"
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-master",
+                        "binding": "op:master/exec#progress",
+                        "label": "Balancing the voice…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-master",
+                        "binding": "op:master/exec#error",
+                        "title": "Generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:master/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-master-mastered",
+                        "text": "Mastered recording",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Audio",
+                      "props": {
+                        "id": "out-master-mastered",
+                        "binding": "op:master/out:out",
+                        "placeholder": "Your audio appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-make-the-content-pack",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-make-the-content-pack",
+                  "title": "Make the content pack",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "Uses the episode audio uploaded above. Upload a cleaned or mastered download there to use it here."
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-publish-transcribe-model",
+                        "binding": "op:publish/prop:transcribe#model",
+                        "label": "Transcription model",
+                        "modelKind": "asr_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-publish-shownotes-agent-model",
+                        "binding": "op:publish/prop:shownotes_agent#model",
+                        "label": "Show notes writer",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-publish-newsletter-agent-model",
+                        "binding": "op:publish/prop:newsletter_agent#model",
+                        "label": "Newsletter writer",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-publish-posts-list-model",
+                        "binding": "op:publish/prop:posts_list#model",
+                        "label": "Social post writer",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-publish-quotes-list-model",
+                        "binding": "op:publish/prop:quotes_list#model",
+                        "label": "Quote selector",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-publish-quote-card-model",
+                        "binding": "op:publish/prop:quote_card#model",
+                        "label": "Quote card image model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-publish-show-context",
+                        "binding": "op:publish/in:show_context",
+                        "label": "Show, audience, and call to action",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-publish-quote-count",
+                        "binding": "op:publish/in:quote_count",
+                        "label": "Quote cards",
+                        "min": 1,
+                        "max": 8,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-publish",
+                        "label": "Create the content pack",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "publish",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:publish/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-make-the-content-pack-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-publish",
+                        "binding": "op:publish/exec#progress",
+                        "label": "Transcribing and drafting…"
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "activity-publish",
+                        "binding": "op:publish/exec#activity",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-publish",
+                        "binding": "op:publish/exec#error",
+                        "title": "Generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:publish/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-publish-show-notes",
+                        "text": "Episode notes",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-publish-show-notes",
+                        "binding": "op:publish/out:preview_shownotes",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-publish-newsletter",
+                        "text": "Newsletter",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-publish-newsletter",
+                        "binding": "op:publish/out:preview_newsletter",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-publish-social-posts",
+                        "text": "Social posts",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-publish-social-posts",
+                        "binding": "op:publish/out:preview_posts",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-publish-quote-cards",
+                        "text": "Quote cards",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-publish-quote-cards",
+                        "binding": "op:publish/out:preview_cards",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "clean",
+        "name": "Clean recording",
+        "workflowId": "clean",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "sourceAudio"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "master",
+        "name": "Master episode",
+        "workflowId": "master",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "sourceAudio"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "publish",
+        "name": "Make content pack",
+        "workflowId": "publish",
+        "inputs": {
+          "episode_audio": {
+            "from": "variable",
+            "variableId": "sourceAudio"
+          }
+        },
+        "outputs": {},
+        "policy": "replace",
+        "timeoutMs": 900000
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "sourceAudio",
+        "name": "Episode recording",
+        "type": {
+          "type": "audio",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "clean",
+      "name": "Clean Up a Rough Voice Recording",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.AudioInput",
+            "data": {
+              "name": "audio",
+              "value": null,
+              "description": "The rough recording"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Recording"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "cleaned"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 330,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "6  Cleaned"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "master",
+      "name": "Master a Voice Track",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.AudioInput",
+            "data": {
+              "name": "audio",
+              "value": null,
+              "description": "The recorded voice"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Audio"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "mastered"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 340
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "5  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "publish",
+      "name": "Podcast Repurposing Studio",
+      "graph": {
+        "nodes": [
+          {
+            "id": "episode_audio",
+            "type": "nodetool.input.AudioInput",
+            "data": {
+              "name": "episode_audio",
+              "value": {
+                "type": "audio",
+                "uri": "https://app.nodetool.ai/examples/remove_silence.mp3"
+              },
+              "description": "The full episode recording (any common audio format)"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 80
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Episode audio",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "show_context",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "show_context",
+              "value": "Trailhead — a weekly hiking and outdoor-gear podcast hosted by Maya. Voice: warm, practical, a little irreverent. CTA: subscribe and grab the free gear checklist at trailhead.fm",
+              "description": "Show name, host, voice, and call to action — every writer branch uses this"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "2️⃣ Show context",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "quote_count",
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "quote_count",
+              "value": 4,
+              "description": "How many quote cards to render",
+              "min": 2,
+              "max": 8
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 580
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "3️⃣ Quote-card count",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "preview_shownotes",
+            "type": "nodetool.workflows.base_node.Preview",
+            "data": {
+              "name": "show_notes"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1530,
+                "y": -200
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 300,
+              "title": "📝 Show notes & titles",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "preview_newsletter",
+            "type": "nodetool.workflows.base_node.Preview",
+            "data": {
+              "name": "newsletter"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1530,
+                "y": 220
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 300,
+              "title": "✉️ Newsletter edition",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "preview_posts",
+            "type": "nodetool.workflows.base_node.Preview",
+            "data": {
+              "name": "social_posts"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1530,
+                "y": 660
+              },
+              "zIndex": 0,
+              "width": 300,
+              "height": 260,
+              "title": "📣 Social posts",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "preview_cards",
+            "type": "nodetool.workflows.base_node.Preview",
+            "data": {
+              "name": "quote_cards"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2270,
+                "y": 1090
+              },
+              "zIndex": 0,
+              "width": 360,
+              "height": 380,
+              "title": "🖼️ Quote cards",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "values": {
+    "op:clean/out:out": {
+      "$demo": "audio"
+    },
+    "op:master/out:out": {
+      "$demo": "audio"
+    },
+    "op:publish/in:show_context": "Trailhead — a weekly hiking and outdoor-gear podcast hosted by Maya. Voice: warm, practical, a little irreverent. CTA: subscribe and grab the free gear checklist at trailhead.fm",
+    "op:publish/in:quote_count": 4,
+    "op:publish/out:preview_shownotes": "### Trailhead: Finding Your First Long Trail\nA practical guide to choosing a route, packing light, and staying flexible when weather changes.",
+    "op:publish/out:preview_newsletter": "**This week on Trailhead:** the small decisions that make a first long hike feel possible. Listen to the episode, then download the free gear checklist.",
+    "op:publish/out:preview_posts": "1. Your first long trail starts with one good route, not a perfect pack.\n2. The gear you leave behind matters as much as what you bring.",
+    "op:publish/out:preview_cards": {
+      "$demo": "image"
+    }
+  }
+}
