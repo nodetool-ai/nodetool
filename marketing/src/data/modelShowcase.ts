@@ -1,5 +1,5 @@
 /**
- * Query helpers that join `showcaseEntries` (and duel fixtures) to model pages.
+ * Query helpers that join `showcaseEntries` to model pages.
  *
  * A model page shows the top showcase items for its model; a pair page shows
  * same-prompt duel pairs (from W-2, keyed by `params.duelId`). Both resolve a
@@ -8,7 +8,6 @@
  */
 import { showcaseEntries, type ShowcaseEntry } from "./showcase";
 import { modelEntries } from "./modelEntries";
-import { duelFixtures } from "./showcaseDuelFixtures";
 
 /** Resolve a showcase `modelSlug` to the model page slug it belongs to. */
 export function modelSlugToPage(modelSlug: string): string | undefined {
@@ -52,17 +51,14 @@ interface DuelPair {
 }
 
 /**
- * Same-prompt pairs for a comparison `a` vs `b`. Prefers generated duel rows in
- * `showcaseEntries`; falls back to committed fixtures when a pair has none yet.
+ * Same-prompt pairs for a comparison `a` vs `b` from recorded showcase runs.
  */
 export function duelPairsForComparison(a: string, b: string): DuelPair[] {
-  const generated = matchDuels(
+  return matchDuels(
     showcaseEntries.filter((e) => e.params?.duelId),
     a,
     b
   );
-  if (generated.length > 0) return generated;
-  return matchDuels(duelFixtures, a, b);
 }
 
 function matchDuels(rows: ShowcaseEntry[], a: string, b: string): DuelPair[] {

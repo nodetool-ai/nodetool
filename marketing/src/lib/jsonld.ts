@@ -80,35 +80,6 @@ export function faqPageSchema(items: readonly QaPair[]): FaqPageSchema {
   };
 }
 
-/** A page that *is* one question — the standalone `/faq/<slug>` pages. */
-export type QaPageSchema = {
-  "@context": "https://schema.org";
-  "@type": "QAPage";
-  mainEntity: {
-    "@type": "Question";
-    name: string;
-    answerCount: 1;
-    acceptedAnswer: { "@type": "Answer"; text: string; url?: string };
-  };
-};
-
-export function qaPageSchema(item: QaPair): QaPageSchema {
-  return {
-    "@context": "https://schema.org",
-    "@type": "QAPage",
-    mainEntity: {
-      "@type": "Question",
-      name: item.question,
-      answerCount: 1,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: plainText(item.answer),
-        ...(item.url ? { url: absoluteUrl(item.url) } : {}),
-      },
-    },
-  };
-}
-
 // --- BreadcrumbList ------------------------------------------------------
 
 export type Crumb = {

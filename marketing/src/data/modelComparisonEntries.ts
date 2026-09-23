@@ -1,8 +1,7 @@
 /**
  * Model-vs-model pages (`/models/<a>-vs-<b>`). Hand-written verdict copy per
- * pair; the same-prompt showcase pairs come from W-2 (Model Duel) via
- * `showcaseEntries` joined on `params.duelId` (see `modelShowcase.ts`). Until a
- * duel batch is seeded, committed fixtures stand in so the side-by-side renders.
+ * pair; the same-prompt showcase pairs come from recorded runs in
+ * `showcaseEntries` joined on `params.duelId` (see `modelShowcase.ts`).
  *
  * The pair slug uses `-vs-` as the delimiter (model slugs may themselves contain
  * hyphens, e.g. `veo-3`), so `/models/veo-3-vs-sora` splits to `veo-3` + `sora`.
@@ -11,6 +10,7 @@ import type { PageEntry } from "./types";
 import { yearToken } from "./types";
 import type { Accent, ModelFaq } from "./modelEntries";
 import { modelBySlug } from "./modelEntries";
+import { duelPairsForComparison } from "./modelShowcase";
 
 export interface ModelComparison extends PageEntry {
   slug: string;
@@ -34,6 +34,8 @@ type ComparisonContent = {
   verdict: string[];
   faq: ModelFaq[];
   priority?: number;
+  /** Set only after the paired outputs, model settings, and verdict are reviewed. */
+  evidenceReviewed?: true;
 };
 
 function comparison(c: ComparisonContent): ModelComparison {
@@ -59,7 +61,9 @@ function comparison(c: ComparisonContent): ModelComparison {
     description: c.tagline,
     priority: c.priority ?? 0.6,
     changeFrequency: "monthly",
-    indexable: true,
+    indexable:
+      c.evidenceReviewed === true &&
+      duelPairsForComparison(c.a, c.b).length > 0,
   };
 }
 

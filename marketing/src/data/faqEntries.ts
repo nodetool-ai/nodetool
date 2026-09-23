@@ -5,7 +5,7 @@ import type { PageEntry } from "./types";
  *
  * Each row is authored once here and shows up in three places:
  *   1. the `/faq` hub (grouped by category),
- *   2. its own standalone `/faq/<slug>` page (with `QAPage` JSON-LD), and
+ *   2. its own standalone `/faq/<slug>` page, and
  *   3. as an inline FAQ block on landing / comparison / model pages — any page
  *      that renders `<FaqBlock surface="…" />` (see components/FaqBlock.tsx).
  *
@@ -42,7 +42,7 @@ export type FaqSurface =
 export interface FaqEntry extends PageEntry {
   /** URL slug, e.g. "what-is-byok" → /faq/what-is-byok. */
   slug: string;
-  /** The question, verbatim. Used as the <h1> and the JSON-LD question name. */
+  /** The question, verbatim. Used as the <h1>. */
   question: string;
   /** The answer as Markdown (short paragraphs, links, emphasis). */
   answerMd: string;

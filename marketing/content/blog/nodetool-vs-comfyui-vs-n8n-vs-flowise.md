@@ -18,7 +18,7 @@ This post is the short, honest version. The [full comparison pages](/alternative
 
 ## The one-line version
 
-- **ComfyUI** — a diffusion image pipeline exposed down to the sampler and the latents. Unmatched control inside that boundary.
+- **ComfyUI** — an image and video generation graph with detailed control over models, samplers, and latents.
 - **n8n** — business automation. Hundreds of app connectors, schedules, retries, branching. AI is a node in someone else's pipeline.
 - **Flowise** — the fastest drag-and-drop path from zero to a chatbot that answers from your documents.
 - **NodeTool** — an agent-first creative workspace: image, video, audio, and text on one canvas, with a node graph, a video timeline, and a layered sketch editor sharing the same workspace.
@@ -27,14 +27,14 @@ This post is the short, honest version. The [full comparison pages](/alternative
 
 | | NodeTool | ComfyUI | n8n | Flowise |
 | :--- | :--- | :--- | :--- | :--- |
-| Built for | AI-generated media and agent work | Stable Diffusion pipelines | App-to-app automation | LangChain chatbots over documents |
-| Media types | Image, video, audio, text | Diffusion images (video via extensions) | Text, data | Text |
-| Media generation | Built-in nodes per provider | Native for diffusion | Generic HTTP node | Generic HTTP node |
-| Editing tools | Masks, inpaint, outpaint, relight, upscale, layers, compositing | Via extensions | – | – |
+| Built for | AI-generated media and agent work | Generation graphs with detailed model control | App-to-app automation | LangChain chatbots over documents |
+| Media types | Image, video, audio, text | Image, video, audio through supported workflows | Text, data | Text |
+| Media generation | Built-in nodes per provider | Local and partner model workflows | Generic HTTP node | Generic HTTP node |
+| Editing tools | Masks, inpaint, outpaint, relight, upscale, layers, compositing | Nodes and workflows for image and video editing | – | – |
 | Retrieval / vector store | Built-in `vector.*` nodes | – | Via integrations | Built-in |
-| Agents that build the workflow | Yes — every editor is an agent tool | Community extensions | AI nodes inside a flow | Agent flows you assemble |
+| Agent tooling | Agents can edit the workflow and other project surfaces | MCP and agent tools | AI nodes inside a flow | Agent flows you assemble |
 | License | AGPL-3.0 | Open source | Sustainable Use (fair-code) | Apache 2.0, credit-metered cloud |
-| Model access | Your own keys, every major provider | Local diffusion checkpoints | Provider integrations | Provider integrations |
+| Model access | Your own keys across providers | Local and partner models | Provider integrations | Provider integrations |
 | Desktop app | macOS, Windows, Linux | Local install | – | – |
 | Local inference | Ollama, MLX, llama.cpp, vLLM, LM Studio | Local by default | Text models via Ollama | Text models via Ollama |
 
@@ -44,7 +44,7 @@ Nothing in that table says one tool wins. It says they answer different question
 
 If the deliverable is a diffusion image and you care about the sampler, the scheduler, the VAE, and the exact ControlNet stack, ComfyUI hands you all of it. Nobody should switch away from a tuned ComfyUI graph for the sake of switching.
 
-The wall is the boundary of the medium. The still becomes a clip, the clip needs a voice, the voice needs music, and each of those steps means leaving the graph. NodeTool keeps that arc on one canvas: `nodetool.image.TextToImage` into `nodetool.video.ImageToVideo` into `nodetool.video.Concat`, with the editing nodes — mask, inpaint, relight, upscale — sitting on the same surface. The trade is control depth for span: NodeTool does not expose latents.
+ComfyUI also supports [text-to-video and image-to-video workflows](https://docs.comfy.org/tutorials/video/wan/wan2_2). The distinction is in the surrounding project. NodeTool puts generation workflows beside a storyboard, layered sketch editor, script, and video timeline. ComfyUI gives you more direct control over the generation graph, including latents and sampler settings.
 
 ## Where n8n is still the right answer
 

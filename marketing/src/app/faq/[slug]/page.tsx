@@ -6,7 +6,7 @@ import remarkGfm from "remark-gfm";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
-import { breadcrumbSchema, qaPageSchema } from "@/lib/jsonld";
+import { breadcrumbSchema } from "@/lib/jsonld";
 import {
   faqEntries,
   getFaq,
@@ -74,13 +74,6 @@ export default async function FaqStandalonePage({
   const faq = getFaq(slug);
   if (!faq) notFound();
 
-  // QAPage — the standalone-page schema for a single visible Q&A.
-  const qaPage = qaPageSchema({
-    question: faq.question,
-    answer: faq.answerMd,
-    url: faq.route,
-  });
-
   const breadcrumb = breadcrumbSchema([
     { name: "FAQ", url: "/faq" },
     { name: faq.question, url: faq.route },
@@ -90,7 +83,6 @@ export default async function FaqStandalonePage({
 
   return (
     <main className="relative min-h-screen overflow-hidden text-white">
-      <JsonLd data={qaPage} />
       <JsonLd data={breadcrumb} />
 
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">

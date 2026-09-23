@@ -141,9 +141,9 @@ export const competitors: Competitor[] = [
     slug: "comfyui",
     name: "ComfyUI",
     seo: {
-      title: "Easier ComfyUI Alternatives for Mac | NodeTool",
+      title: "ComfyUI Alternatives for Creative Workflows | NodeTool",
       description:
-        "Compare easier ComfyUI alternatives for Mac and other platforms. See how NodeTool brings image, video, audio, and text workflows to one open-source canvas.",
+        "Compare ComfyUI and NodeTool for image, video, audio, and editable creative projects. See where each workflow editor fits.",
     },
     theme: "blue",
     category: "Node editor",
@@ -154,8 +154,8 @@ export const competitors: Competitor[] = [
         "The studio around the node editor — every medium, every provider.",
     },
     heroParagraph:
-      "Ask around the ComfyUI community and the same complaints keep coming back: a workflow that ran fine yesterday throws \"missing custom nodes\" after an update, an extension's pinned PyTorch version quietly breaks a different extension, and a graph that took an afternoon to build turns into a wall of red, disconnected boxes the moment you open it on another machine. That fragility is the tax on ComfyUI's real strength — an open plugin system with deep, node-by-node control over every sampler and VAE. NodeTool ships its editing tools as maintained, first-party nodes instead: image, video, music, and words on one canvas, every major provider on your own keys at provider prices, and an agent that can wire the graph for you. Both are open source.",
-    competitorTagline: "Node editor for diffusion images",
+      "ComfyUI gives you detailed control over image and video generation in a node graph, including native video workflows. Shared graphs can require matching models and custom nodes on another machine. NodeTool combines a workflow canvas with storyboard, sketch, script, and timeline editors in an editable project. Both products are open source; the better fit depends on whether graph-level generation control or a broader production workspace matters more to you.",
+    competitorTagline: "Node editor for image and video generation",
     competitorBullets: [
       "Deep control over Stable Diffusion pipelines",
       "Engineer-first, graph-based UX",
@@ -171,19 +171,19 @@ export const competitors: Competitor[] = [
       "Your own keys at provider prices — no credits, no markup",
     ],
     rows: [
-      { label: "Media types", competitor: "Diffusion images", nodetool: "Image, video, audio, text" },
-      { label: "Models", competitor: "Stable Diffusion / diffusion", nodetool: "Every major provider and media type" },
-      { label: "Your own API keys", competitor: false, nodetool: true },
-      { label: "Editing tools (masks, inpaint, relight, layers)", competitor: false, nodetool: true },
+      { label: "Media types", competitor: "Image, video, audio via supported workflows", nodetool: "Image, video, audio, text" },
+      { label: "Models", competitor: "Local and partner image/video models", nodetool: "Local and hosted models across media types" },
+      { label: "Provider access", competitor: "Local and partner models", nodetool: "Local and hosted models on your accounts" },
+      { label: "Editing tools (masks, inpaint, relight, layers)", competitor: "Available through workflows and nodes", nodetool: "Integrated editors and nodes" },
       { label: "Local models", competitor: true, nodetool: true },
-      { label: "Desktop + browser", competitor: false, nodetool: true },
+      { label: "Desktop + browser", competitor: "Local web interface and Comfy Cloud", nodetool: "Studio and Cloud (alpha)" },
       { label: "Open source", competitor: true, nodetool: true },
       { label: "Custom-node stability", competitor: "Third-party, versions can conflict", nodetool: "Built-in, one maintained codebase" },
-      { label: "Workflow portability across machines", competitor: "Can fail on missing custom nodes", nodetool: "Opens the same way everywhere" },
+      { label: "Workflow portability across machines", competitor: "Custom nodes may need installation", nodetool: "Requires matching models and provider access" },
     ],
-    explainerHeading: "One canvas for everything, not just images",
+    explainerHeading: "From generation graph to editable project",
     explainerParagraph:
-      "If your work starts and ends with Stable Diffusion images, ComfyUI gives you fine-grained control, and nothing here will pry it from your hands. But the same plugin architecture that makes it powerful is what makes it brittle: custom nodes pin their own PyTorch versions and step on each other, an update to the core app or its frontend can turn a working graph into a wall of red error nodes overnight, and a workflow built on one machine often won't open on another until you've tracked down every missing custom node by hand. Big graphs also mean big VRAM bills — spill past what your card holds and ComfyUI falls back to slow system-memory swapping or an out-of-memory crash mid-render. NodeTool keeps every editing tool — masks, inpaint, outpaint, relight, upscale, layers, compositing — as a first-party node maintained in one codebase, so a workflow that runs today keeps running, and one you share opens the same way on any machine. You don't have to place every node yourself either — NodeTool is agent-first, so you can describe the pipeline and an agent authors the graph, picks the models, and repairs what fails, leaving behind a workflow you can inspect and rerun. You call every major model with your own keys at provider prices, and run locally via Ollama, MLX, and llama.cpp.",
+      "ComfyUI supports text-to-video and image-to-video as well as diffusion images. Choose it when you need detailed control of a generation graph and its model settings. NodeTool places generation workflows beside a storyboard, layered sketch, script, and video timeline. An agent can help build and revise the workflow, while the project remains editable. Both tools need the relevant models, extensions, or provider access for a shared workflow to run on another machine.",
     ctaHeading: "Open, complete, and yours.",
     ctaParagraph:
       "Download Studio and build across image, video, audio, and text in one place.",
@@ -191,12 +191,12 @@ export const competitors: Competitor[] = [
       {
         question: "What is the difference between NodeTool and ComfyUI?",
         answer:
-          "ComfyUI is a node editor focused on Stable Diffusion and diffusion image generation with an interface built for engineers. NodeTool is the studio around it: image, video, music, and text on one visual canvas, a much wider list of models across providers and media types, and editing tools creatives actually use — called with your own keys at provider prices. Both are open source, and both work by connecting blocks on a canvas.",
+          "ComfyUI supports image and video generation with detailed graph control. NodeTool combines a workflow canvas with storyboard, sketch, script, and timeline editors in a saved creative project. Both are open source, and both can run local models.",
       },
       {
         question: "Why do ComfyUI workflows break after sharing or updating?",
         answer:
-          "Two separate things usually collide. Sharing: a workflow file references custom nodes by name, and if the machine opening it doesn't have that exact extension installed, ComfyUI shows \"missing custom nodes\" errors and won't load the graph until you track each one down — ComfyUI Manager's \"Install Missing Nodes\" automates the search, but it's a fix per workflow, not a guarantee it stays fixed. Updating: the core app, its frontend, and every third-party extension version independently, so a core update can outrun a node that hasn't caught up, and a node update can pin a PyTorch version that breaks a different extension. NodeTool ships its editing tools as first-party nodes in one maintained codebase, so there's no extension compatibility matrix to manage.",
+          "A shared ComfyUI graph may refer to custom nodes or models that are missing on another machine. ComfyUI Manager can help install missing nodes. Check extension and model requirements before sharing. NodeTool workflows also need matching models and provider access, although its core editing surfaces ship with the app.",
       },
       {
         question: "Is NodeTool open source like ComfyUI?",
@@ -206,7 +206,7 @@ export const competitors: Competitor[] = [
       {
         question: "Can NodeTool do more than image generation?",
         answer:
-          "Yes. NodeTool works across image, video, audio, and text on one canvas, with editing tools built in — masks, inpaint, outpaint, relight, upscale, layers, and compositing. ComfyUI is centered on diffusion image generation.",
+          "Yes. NodeTool connects image, video, audio, and text workflows to editable projects, including a storyboard and timeline. ComfyUI also supports text-to-video and image-to-video workflows; the products differ in their editing surfaces and project structure.",
       },
       {
         question: "How does NodeTool handle model pricing?",
@@ -215,7 +215,7 @@ export const competitors: Competitor[] = [
       },
     ],
     limitation:
-      "ComfyUI's open plugin system is also its biggest liability: custom nodes conflict on dependencies, workflows break after updates or when a required custom node goes missing on another machine, and anything past a diffusion image means leaving the graph.",
+      "ComfyUI supports image and video workflows, but shared graphs that use custom nodes may require matching extensions and models on another machine. NodeTool adds a storyboard, timeline, and other editors around the workflow canvas.",
   },
   {
     slug: "weavy",
@@ -864,12 +864,13 @@ export const competitors: Competitor[] = [
       subtitle: "Run local models, then build the whole workflow around them.",
     },
     heroParagraph:
-      "LM Studio nails the first hour of local AI: browse a model, download it, chat with it, serve it over an OpenAI-compatible endpoint. The question is the second hour — when you want that model to read your documents, drive an agent, or feed a prompt into image and video generation, and the chat window has no answer. NodeTool runs local models too, via Ollama, MLX, and llama.cpp, but on a visual canvas that builds whole workflows around them — with an agent that can do the building.",
+      "LM Studio lets you download local models, chat with documents, connect MCP tools, and serve models through an API. NodeTool focuses on editable creative projects: its visual workflows connect local models to image, video, audio, and document-processing steps, with agents that can edit the canvas.",
     competitorTagline: "Desktop local-language model runtime",
     competitorBullets: [
       "Polished model browser and one-click local language models",
       "OpenAI-compatible local server",
-      "Great chat UI for a single model",
+      "Chat with models and local documents",
+      "MCP tool support",
       "Proprietary (free), text-language model focused",
     ],
     nodetoolTagline: "The AI-native canvas",
@@ -884,14 +885,14 @@ export const competitors: Competitor[] = [
       { label: "Local language model chat & model browser", competitor: "Purpose-built, polished", nodetool: "Supported via Ollama/MLX/llama.cpp" },
       { label: "OpenAI-compatible local server", competitor: true, nodetool: "Via provider integrations" },
       { label: "Native media generation (image, video, music)", competitor: false, nodetool: true },
-      { label: "Agents, document search, multi-step workflows", competitor: false, nodetool: true },
+      { label: "Agents and document search", competitor: "Document chat and MCP tools", nodetool: "Editable agent and retrieval workflows" },
       { label: "Cloud providers (your own keys)", competitor: false, nodetool: true },
       { label: "Source", competitor: "Proprietary (free)", nodetool: "AGPL-3.0 (open source)" },
       { label: "Visual canvas", competitor: false, nodetool: true },
     ],
     explainerHeading: "The runtime, and the workflow around it",
     explainerParagraph:
-      "For downloading a local model and chatting with it, LM Studio is excellent — the model browser is best in class, and the OpenAI-compatible server makes it easy to point other tools at a local endpoint. If that's the whole job, LM Studio is more specialized than NodeTool and a great pick. But once you want the model to do something in a pipeline — retrieve from your documents, drive an agent, feed a prompt into image or video generation — you need a canvas. NodeTool runs the same class of local models via Ollama, MLX, and llama.cpp and puts them next to native generation nodes, agents, and document search. It's agent-first, so you can describe the workflow and an agent wires it and runs it — open source, with your own keys for any cloud models you add.",
+      "LM Studio is a focused choice for downloading local models, chatting with documents, connecting MCP tools, and serving an OpenAI-compatible endpoint. NodeTool can use local models in a visual workflow alongside retrieval, image, video, and audio steps. Its agents can build and revise that workflow, and its editors keep the resulting media in an editable project.",
     ctaHeading: "From local chat to full workflow.",
     ctaParagraph:
       "Download Studio and put your local models on a canvas with generation, agents, and document search.",
@@ -913,7 +914,7 @@ export const competitors: Competitor[] = [
       },
     ],
     limitation:
-      "LM Studio is a specialized local-language model runtime — no media generation, no agents or document search workflows, and it's proprietary.",
+      "LM Studio supports document retrieval and MCP tools, but its desktop interface centers on local-model chat and serving. NodeTool centers on editable creative workflows and media production.",
   },
   {
     slug: "jan",

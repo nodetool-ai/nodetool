@@ -188,6 +188,16 @@ export default async function AlternativesPage({
           <p className="mx-auto mb-8 max-w-3xl text-center leading-relaxed text-slate-400">
             {c.heroParagraph}
           </p>
+          {c.slug === "comfyui" && (
+            <p className="mx-auto mb-8 max-w-3xl text-center text-sm text-slate-400">
+              ComfyUI video support: <a className="text-blue-300 underline" href="https://docs.comfy.org/tutorials/video/wan/wan2_2">official Wan workflow guide</a>.
+            </p>
+          )}
+          {c.slug === "lm-studio" && (
+            <p className="mx-auto mb-8 max-w-3xl text-center text-sm text-slate-400">
+              LM Studio capabilities: <a className="text-blue-300 underline" href="https://lmstudio.ai/docs/app/basics/rag">document chat</a> and <a className="text-blue-300 underline" href="https://lmstudio.ai/docs/developer/core/mcp">MCP tools</a>.
+            </p>
+          )}
           <div className="grid gap-6 md:grid-cols-2">
             <div className="relative flex flex-col rounded-2xl border border-slate-800/70 bg-slate-900/60 p-8 ring-1 ring-white/5 backdrop-blur-md">
               <h3 className="text-xl font-semibold text-white">{c.name}</h3>
