@@ -620,6 +620,14 @@ describe("GeminiProvider – model listing", () => {
     expect(models[0].voices).toContain("Puck");
   });
 
+  it("lists the Gemini 3.8 TTS models first", async () => {
+    const models = await provider.getAvailableTTSModels();
+    expect(models.slice(0, 2).map((m) => m.id)).toEqual([
+      "gemini-3.8-flash-tts",
+      "gemini-3.8-flash-lite-tts"
+    ]);
+  });
+
   it("returns ASR models", async () => {
     const models = await provider.getAvailableASRModels();
     expect(models.length).toBeGreaterThanOrEqual(2);

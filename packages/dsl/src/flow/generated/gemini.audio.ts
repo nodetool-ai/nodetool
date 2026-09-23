@@ -8,7 +8,7 @@ import type { AudioRef } from "../../types.js";
 // Text To Speech — gemini.audio.TextToSpeech
 export type TextToSpeechInputs = {
   text?: string;
-  model?: "gemini-3.1-flash-tts-preview" | "gemini-2.5-flash-preview-tts" | "gemini-2.5-pro-preview-tts";
+  model?: "gemini-3.8-flash-tts" | "gemini-3.8-flash-lite-tts" | "gemini-3.1-flash-tts-preview" | "gemini-2.5-flash-preview-tts" | "gemini-2.5-pro-preview-tts";
   voice_name?: "achernar" | "achird" | "algenib" | "algieba" | "alnilam" | "aoede" | "autonoe" | "callirrhoe" | "charon" | "despina" | "enceladus" | "erinome" | "fenrir" | "gacrux" | "iapetus" | "kore" | "laomedeia" | "leda" | "orus" | "puck" | "pulcherrima" | "rasalgethi" | "sadachbia" | "sadaltager" | "schedar" | "sulafat" | "umbriel" | "vindemiatrix" | "zephyr" | "zubenelgenubi";
   style_prompt?: string;
 };
