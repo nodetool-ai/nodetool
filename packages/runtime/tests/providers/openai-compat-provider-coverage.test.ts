@@ -571,12 +571,20 @@ describe("OpenAICompatProvider inherits OpenAI's catalog guard", () => {
     ["gmi", new GMIProvider({ GMI_API_KEY: "k" })],
     ["meta", new MetaProvider({ META_API_KEY: "k" })],
     ["alibaba", new AlibabaProvider({ DASHSCOPE_API_KEY: "k" })],
-    ["evolink", new EvolinkProvider({ EVOLINK_API_KEY: "k" })],
-    ["atlascloud", new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" })]
+    ["evolink", new EvolinkProvider({ EVOLINK_API_KEY: "k" })]
   ])("%s serves no OpenAI TTS, ASR or embedding models", async (_id, p) => {
     expect(await p.getAvailableTTSModels()).toEqual([]);
     expect(await p.getAvailableASRModels()).toEqual([]);
     expect(await p.getAvailableEmbeddingModels()).toEqual([]);
+  });
+
+  it("serves AtlasCloud's native audio and 3D model catalogs", async () => {
+    const provider = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    expect(await provider.getAvailableTTSModels()).not.toEqual([]);
+    expect(await provider.getAvailableMusicModels()).not.toEqual([]);
+    expect(await provider.getAvailableASRModels()).not.toEqual([]);
+    expect(await provider.getAvailable3DModels()).not.toEqual([]);
+    expect(await provider.getAvailableEmbeddingModels()).toEqual([]);
   });
 
   // MiniMax serves its own TTS catalog; only ASR and embeddings are empty.

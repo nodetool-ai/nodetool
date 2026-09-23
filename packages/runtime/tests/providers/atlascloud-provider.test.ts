@@ -24,6 +24,7 @@ interface MockFetchOptions {
   capture?: { submitUrl?: string; submitBody?: unknown; uploads?: FormData[] };
   outputUrl?: string;
   resultBytes?: Uint8Array;
+  transcript?: string;
   /** Predicate to make the poll loop iterate before completing. */
   pollsUntilDone?: number;
 }
@@ -58,7 +59,11 @@ function mockAtlasFetch(opts: MockFetchOptions = {}): void {
           })
       } as Response;
     }
-    if (u.endsWith("/generateImage") || u.endsWith("/generateVideo")) {
+    if (
+      u.endsWith("/generateImage") ||
+      u.endsWith("/generateVideo") ||
+      u.endsWith("/generateAudio")
+    ) {
       if (opts.capture) {
         opts.capture.submitUrl = u;
         opts.capture.submitBody = JSON.parse(init!.body as string);
@@ -79,7 +84,11 @@ function mockAtlasFetch(opts: MockFetchOptions = {}): void {
         headers: new Headers(),
         text: async () =>
           JSON.stringify({
-            data: { status, outputs: [outputUrl] }
+            data: {
+              status,
+              outputs: [opts.transcript ?? outputUrl],
+              ...(opts.transcript ? { stt_result: { text: opts.transcript } } : {})
+            }
           })
       } as Response;
     }
@@ -166,10 +175,21 @@ describe("AtlasCloudProvider — language models", () => {
     expect(await p.getAvailableLanguageModels()).toEqual([]);
   });
 
-  it("does not advertise audio or embedding models", async () => {
+  it("advertises AtlasCloud audio models and no embedding models", async () => {
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
-    expect(await p.getAvailableTTSModels()).toEqual([]);
-    expect(await p.getAvailableASRModels()).toEqual([]);
+    expect((await p.getAvailableTTSModels()).map((model) => model.id)).toContain(
+      "elevenlabs/v3/text-to-speech"
+    );
+    expect((await p.getAvailableMusicModels()).map((model) => model.id)).toContain(
+      "suno/chirp-v6"
+    );
+    expect((await p.getAvailableASRModels()).map((model) => model.id)).toEqual([
+      "bytedance/seed-asr-2.0",
+      "xai/stt-v1"
+    ]);
+    expect((await p.getAvailable3DModels()).map((model) => model.id)).toContain(
+      "meshy-v7/multi-image-to-3d"
+    );
     expect(await p.getAvailableEmbeddingModels()).toEqual([]);
   });
 });
@@ -212,7 +232,82 @@ describe("AtlasCloudProvider — getAvailableVideoModels", () => {
     expect(
       byId.get("google/gemini-omni-1.1-flash/video-extend")?.supportedTasks
     ).toEqual(["extend_video", "extend_video_end"]);
+    for (const id of [
+      "alibaba/happyhorse-1.0/reference-to-video",
+      "pixverse/c1/reference-to-video",
+      "pixverse/v6/reference-to-video",
+      "vidu/q2-pro/reference-to-video",
+      "vidu/q2/reference-to-video",
+      "vidu/q1/reference-to-video"
+    ]) {
+      expect(byId.get(id)?.supportedTasks).toContain("reference_to_video");
+    }
     expect(p.getCapabilities()).toContain("extend_video");
+  });
+});
+
+describe("AtlasCloudProvider — audio predictions", () => {
+  it("synthesizes speech through generateAudio and downloads the result", async () => {
+    const capture: NonNullable<MockFetchOptions["capture"]> = {};
+    mockAtlasFetch({ capture });
+    const provider = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+
+    const result = await provider.textToSpeechEncoded({
+      model: "elevenlabs/v3/text-to-speech",
+      text: "Hello from NodeTool",
+      voice: "voice-id"
+    });
+
+    expect(capture.submitUrl).toBe(
+      "https://api.atlascloud.ai/api/v1/model/generateAudio"
+    );
+    expect(capture.submitBody).toMatchObject({
+      model: "elevenlabs/v3/text-to-speech",
+      text: "Hello from NodeTool",
+      voice: "voice-id"
+    });
+    expect(result?.data).toEqual(Uint8Array.from([1, 2, 3]));
+  });
+
+  it("sends Suno custom lyrics through prompt mode", async () => {
+    const capture: NonNullable<MockFetchOptions["capture"]> = {};
+    mockAtlasFetch({ capture });
+    const provider = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    const model = (await provider.getAvailableMusicModels()).find((item) =>
+      item.id === "suno/chirp-v6"
+    )!;
+
+    await provider.textToMusic({
+      model,
+      prompt: "an upbeat song about summer",
+      lyrics: "[Verse]\nDriving down the coast"
+    });
+
+    expect(capture.submitBody).toMatchObject({
+      model: "suno/chirp-v6",
+      prompt: "[Verse]\nDriving down the coast",
+      custom: true
+    });
+    expect(capture.submitBody).not.toHaveProperty("lyrics");
+  });
+
+  it("transcribes Seed ASR audio and sends prompt as JSON hotwords", async () => {
+    const capture: NonNullable<MockFetchOptions["capture"]> = {};
+    mockAtlasFetch({ capture, transcript: "A transcript" });
+    const provider = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+
+    const result = await provider.automaticSpeechRecognition({
+      model: "bytedance/seed-asr-2.0",
+      audio: Uint8Array.from([1, 2, 3]),
+      prompt: "NodeTool"
+    });
+
+    expect(capture.submitBody).toMatchObject({
+      model: "bytedance/seed-asr-2.0",
+      audio_url: "https://uploads.atlas/input-1",
+      context: JSON.stringify({ hotwords: [{ word: "NodeTool" }] })
+    });
+    expect(result).toEqual({ text: "A transcript" });
   });
 });
 
@@ -432,6 +527,24 @@ describe("AtlasCloudProvider — textToImage", () => {
 });
 
 describe("AtlasCloudProvider — imageToImage", () => {
+  it("maps guidance, inference steps, and strength to their declared image fields", async () => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    await p.imageToImage([Uint8Array.from([1, 2, 3])], {
+      model: imageModel("black-forest-labs/flux-dev"),
+      prompt: "a cat",
+      guidanceScale: 4.5,
+      numInferenceSteps: 22,
+      strength: 0.35
+    });
+    expect(capture.submitBody).toMatchObject({
+      guidance_scale: 4.5,
+      num_inference_steps: 22,
+      strength: 0.35
+    });
+  });
+
   it("wraps bytes into a data: URI under `images: [...]` for /edit endpoints", async () => {
     const capture: { submitBody?: Record<string, unknown> } = {};
     mockAtlasFetch({ capture });
@@ -498,6 +611,34 @@ describe("AtlasCloudProvider — removeBackground", () => {
 });
 
 describe("AtlasCloudProvider — textToVideo", () => {
+  it("maps frame count and resolution to each model's declared video field", async () => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    await p.textToVideo({
+      model: videoModel("ltx-2.3-quality/text-to-video"),
+      prompt: "a flying cat",
+      numFrames: 41,
+      resolution: "portrait_9_16"
+    });
+    expect(capture.submitBody).toMatchObject({
+      num_frames: 41,
+      resolution: "portrait_9_16"
+    });
+  });
+
+  it("maps resolution to PixVerse's quality field", async () => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    await p.textToVideo({
+      model: videoModel("pixverse/v6/text-to-video"),
+      prompt: "a flying cat",
+      resolution: "1080p"
+    });
+    expect(capture.submitBody).toMatchObject({ quality: "1080p" });
+  });
+
   it("maps aspectRatio to `ratio` and clamps durationSeconds to int", async () => {
     const capture: { submitBody?: unknown; submitUrl?: string } = {};
     mockAtlasFetch({ capture });
@@ -572,6 +713,28 @@ describe("AtlasCloudProvider — lipSync", () => {
 });
 
 describe("AtlasCloudProvider — imageToVideo", () => {
+  it("requires and sends the required end frame for Veo start/end generation", async () => {
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    await expect(
+      p.imageToVideo(Uint8Array.from([1, 2, 3]), {
+        model: videoModel("google/veo3.1-lite/start-end-frame-to-video"),
+        prompt: "move between frames"
+      })
+    ).rejects.toThrow(/requires last_image; pass it as endImage/);
+
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    await p.imageToVideo(Uint8Array.from([1, 2, 3]), {
+      model: videoModel("google/veo3.1-lite/start-end-frame-to-video"),
+      prompt: "move between frames",
+      endImage: Uint8Array.from([0x89, 0x50, 0x4e, 0x47])
+    });
+    expect(capture.submitBody).toMatchObject({
+      image: "data:image/png;base64,AQID",
+      last_image: "data:image/png;base64,iVBORw=="
+    });
+  });
+
   it("sets `image` (singular) on the Seedance i2v endpoint", async () => {
     const capture: { submitBody?: Record<string, unknown> } = {};
     mockAtlasFetch({ capture });
@@ -637,6 +800,34 @@ describe("AtlasCloudProvider — imageToVideo", () => {
     ]);
   });
 
+  it.each([
+    ["pixverse/c1/reference-to-video", "pixverse"],
+    ["pixverse/v6/reference-to-video", "pixverse"],
+    ["vidu/q2-pro/reference-to-video", "vidu"],
+    ["vidu/q2/reference-to-video", "vidu"],
+    ["vidu/q1/reference-to-video", "vidu"]
+  ])("maps %s image references to its API shape", async (modelId, family) => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    const image = Uint8Array.from([0x89, 0x50, 0x4e, 0x47]);
+
+    await p.referenceToVideo(
+      { images: [image], videos: [] },
+      { model: videoModel(modelId), prompt: "keep the subject consistent" }
+    );
+
+    if (family === "pixverse") {
+      expect(capture.submitBody?.images).toEqual([
+        { image: "data:image/png;base64,iVBORw==" }
+      ]);
+    } else {
+      expect(capture.submitBody?.subjects).toEqual([
+        { id: "1", images: ["data:image/png;base64,iVBORw=="] }
+      ]);
+    }
+  });
+
   it("uses the model default when a persisted resolution is unsupported", async () => {
     const capture: { submitBody?: Record<string, unknown> } = {};
     mockAtlasFetch({ capture });
@@ -652,6 +843,70 @@ describe("AtlasCloudProvider — imageToVideo", () => {
     );
 
     expect(capture.submitBody?.resolution).toBe("480P");
+  });
+});
+
+describe("AtlasCloudProvider — referenceToVideo", () => {
+  it("uploads audio references and includes them in the multimodal refers group", async () => {
+    const capture: NonNullable<MockFetchOptions["capture"]> = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+
+    await p.referenceToVideo(
+      {
+        images: [Uint8Array.from([0xff, 0xd8, 0xff])],
+        videos: [],
+        audios: [Uint8Array.from([0x49, 0x44, 0x33])]
+      },
+      {
+        model: videoModel("minimax/h3-fast/reference-to-video"),
+        prompt: "use the image and audio"
+      }
+    );
+
+    expect(capture.submitBody).toMatchObject({
+      refers: [
+        { type: "image", url: expect.stringMatching(/^data:image\//) },
+        { type: "audio", url: "https://uploads.atlas/input-1" }
+      ]
+    });
+    expect(capture.uploads).toHaveLength(1);
+  });
+
+  it("splits Vidu references into subjects of at most three images and caps total images", async () => {
+    const capture: NonNullable<MockFetchOptions["capture"]> = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    const images = Array.from({ length: 4 }, () => Uint8Array.from([1, 2, 3]));
+
+    await p.referenceToVideo(
+      { images, videos: [] },
+      {
+        model: videoModel("vidu/q2-pro/reference-to-video"),
+        prompt: "keep the subject consistent"
+      }
+    );
+
+    expect(capture.submitBody).toMatchObject({
+      subjects: [
+        { id: "1", images: expect.arrayContaining([expect.stringMatching(/^data:/)]) },
+        { id: "2", images: expect.arrayContaining([expect.stringMatching(/^data:/)]) }
+      ]
+    });
+    expect((capture.submitBody?.subjects as Array<{ images: string[] }>).map((subject) => subject.images.length)).toEqual([3, 1]);
+
+    const noUploadCapture: NonNullable<MockFetchOptions["capture"]> = {};
+    mockAtlasFetch({ capture: noUploadCapture });
+    await expect(
+      p.referenceToVideo(
+        { images: Array.from({ length: 8 }, () => Uint8Array.from([1])), videos: [] },
+        {
+          model: videoModel("vidu/q2-pro/reference-to-video"),
+          prompt: "too many images"
+        }
+      )
+    ).rejects.toThrow("accepts at most 7 reference images");
+    expect(noUploadCapture.submitBody).toBeUndefined();
   });
 });
 

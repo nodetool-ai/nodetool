@@ -924,6 +924,121 @@ describe("createAtlasNodeClass.process", () => {
     expect((out.output as Record<string, unknown>).data).toBeTruthy();
   });
 
+  it("groups Vidu Q2 subject images in ordered batches of at most three", async () => {
+    const submitted: { body: unknown } = { body: null };
+    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u.endsWith("/generateVideo")) {
+        submitted.body = JSON.parse(init!.body as string);
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ data: { id: "v" } })
+        } as Response;
+      }
+      if (u.includes("/prediction/v")) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          text: async () =>
+            JSON.stringify({
+              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
+            })
+        } as Response;
+      }
+      if (u === "https://cdn/out.mp4") {
+        return {
+          ok: true,
+          arrayBuffer: async () => Uint8Array.from([1]).buffer
+        } as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    const Cls = createAtlasNodeClass(
+      makeSpec({
+        modality: "video",
+        outputType: "video",
+        modelId: "vidu/q2-pro/reference-to-video",
+        fields: [
+          { name: "prompt", type: "str", default: "" },
+          { name: "subjects", type: "list[image]", default: [] }
+        ]
+      })
+    ) as unknown as new () => {
+      prompt: string;
+      subjects: unknown;
+      process: (ctx: unknown) => Promise<Record<string, unknown>>;
+      setDynamic: (k: string, v: unknown) => void;
+    };
+    const node = new Cls();
+    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    node.prompt = "compose";
+    node.subjects = Array.from({ length: 7 }, (_, index) => ({
+      uri: `https://input/${index + 1}.jpg`
+    }));
+
+    await node.process({ storage: null });
+
+    expect(submitted.body).toEqual({
+      model: "vidu/q2-pro/reference-to-video",
+      prompt: "compose",
+      subjects: [
+        {
+          id: "1",
+          images: [
+            "https://input/1.jpg",
+            "https://input/2.jpg",
+            "https://input/3.jpg"
+          ]
+        },
+        {
+          id: "2",
+          images: [
+            "https://input/4.jpg",
+            "https://input/5.jpg",
+            "https://input/6.jpg"
+          ]
+        },
+        { id: "3", images: ["https://input/7.jpg"] }
+      ]
+    });
+  });
+
+  it("rejects more than seven Vidu Q2 subject images", async () => {
+    const fetchSpy = vi.fn();
+    global.fetch = fetchSpy as unknown as typeof fetch;
+
+    const Cls = createAtlasNodeClass(
+      makeSpec({
+        modality: "video",
+        outputType: "video",
+        modelId: "vidu/q2-pro/reference-to-video",
+        fields: [
+          { name: "prompt", type: "str", default: "" },
+          { name: "subjects", type: "list[image]", default: [] }
+        ]
+      })
+    ) as unknown as new () => {
+      prompt: string;
+      subjects: unknown;
+      process: (ctx: unknown) => Promise<Record<string, unknown>>;
+      setDynamic: (k: string, v: unknown) => void;
+    };
+    const node = new Cls();
+    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    node.prompt = "compose";
+    node.subjects = Array.from({ length: 8 }, (_, index) => ({
+      uri: `https://input/${index + 1}.jpg`
+    }));
+
+    await expect(node.process({ storage: null })).rejects.toThrow(
+      'Test: "subjects" accepts at most 7 images'
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it("routes prompt @-mentions onto image / audio / video inputs", async () => {
     const submitted: { body: Record<string, unknown> } = { body: {} };
     global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {

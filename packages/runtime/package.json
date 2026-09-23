@@ -28,6 +28,7 @@
     "@opentelemetry/sdk-trace-base": "^2.10.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "@pydantic/genai-prices": "^0.0.69",
+    "fflate": "^0.8.2",
     "js-tiktoken": "^1.0.21",
     "msgpackr": "^1.11.2",
     "openai": "^6.35.0",

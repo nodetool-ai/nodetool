@@ -260,8 +260,10 @@
         "description": "Output image dimensions. Choose a preset up to 3840x2160 or let the model select the size.",
         "values": [
           "auto",
+          "1024x1024",
           "1024x768",
           "768x1024",
+          "1024x1280",
           "1024x1536",
           "1536x1024",
           "2048x2048",
@@ -8655,7 +8657,10 @@
         "values": [
           "480P",
           "768P",
-          "2K"
+          "2K",
+          "1080p-esr",
+          "1440p-esr",
+          "4k-esr"
         ],
         "required": true
       },
@@ -8755,7 +8760,10 @@
         "values": [
           "480P",
           "768P",
-          "2K"
+          "2K",
+          "1080p-esr",
+          "1440p-esr",
+          "4k-esr"
         ],
         "required": true
       },
@@ -13775,6 +13783,581 @@
         "title": "Audio",
         "description": "Driving audio the lips are synced to.",
         "required": true
+      }
+    ]
+  },
+  {
+    "className": "AlibabaHappyhorse10ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/happyhorse-1.0/reference-to-video",
+    "outputType": "video",
+    "supportedTasks": [
+      "reference_to_video"
+    ],
+    "title": "Alibaba HappyHorse 1.0 — Reference to Video",
+    "description": "AtlasCloud / Alibaba HappyHorse 1.0 — generates video from image references.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Reference Images",
+        "required": true,
+        "minItems": 1
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "Output video resolution.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Ratio",
+        "description": "Aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration",
+        "description": "Video duration in seconds.",
+        "min": 3,
+        "max": 15
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": -1,
+        "title": "Seed",
+        "description": "Random seed for video generation. Use -1 for a random seed.",
+        "min": -1,
+        "max": 2147483647
+      }
+    ]
+  },
+  {
+    "className": "PixverseC1ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "pixverse/c1/reference-to-video",
+    "outputType": "video",
+    "supportedTasks": [
+      "reference_to_video"
+    ],
+    "title": "PixVerse C1 — Reference to Video",
+    "description": "AtlasCloud / PixVerse C1 — generates video from image references.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Reference Images",
+        "required": true,
+        "minItems": 1
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds (1-15).",
+        "values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Sound",
+        "description": "Whether sound is generated simultaneously when generating a video."
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "720p",
+        "title": "Quality",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "360p",
+          "540p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "2:3",
+          "3:2",
+          "21:9"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Random seed for reproducibility."
+      }
+    ]
+  },
+  {
+    "className": "PixverseV6ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "pixverse/v6/reference-to-video",
+    "outputType": "video",
+    "supportedTasks": [
+      "reference_to_video"
+    ],
+    "title": "PixVerse v6 — Reference to Video",
+    "description": "AtlasCloud / PixVerse v6 — generates video from image references.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Reference Images",
+        "required": true,
+        "minItems": 1
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds (1-15).",
+        "values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Sound",
+        "description": "Whether sound is generated simultaneously when generating a video."
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "720p",
+        "title": "Quality",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "360p",
+          "540p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "2:3",
+          "3:2",
+          "21:9"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Random seed for reproducibility."
+      }
+    ]
+  },
+  {
+    "className": "ViduQ2ProReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "vidu/q2-pro/reference-to-video",
+    "outputType": "video",
+    "supportedTasks": [
+      "reference_to_video"
+    ],
+    "title": "Vidu Q2 Pro — Reference to Video",
+    "description": "AtlasCloud / Vidu Q2 Pro — generates consistent video from subject image references.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "subjects",
+        "type": "list[image]",
+        "default": [],
+        "title": "Subject Images",
+        "required": true,
+        "minItems": 1
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate audio."
+      },
+      {
+        "name": "bgm",
+        "type": "bool",
+        "default": true,
+        "title": "Bgm",
+        "description": "The background music for generating the output."
+      },
+      {
+        "name": "audio_type",
+        "type": "enum",
+        "default": "all",
+        "title": "Audio Type",
+        "description": "Audio type, required when audio is true, defaults to all.",
+        "values": [
+          "all",
+          "speech_only",
+          "sound_effect_only"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "float",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds.",
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "The random seed to use for the generation."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the output video. Defaults to 16:9, accepted: 16:9 9:16 1:1.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated media.",
+        "values": [
+          "540p",
+          "720p",
+          "1080p"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "ViduQ2ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "vidu/q2/reference-to-video",
+    "outputType": "video",
+    "supportedTasks": [
+      "reference_to_video"
+    ],
+    "title": "Vidu Q2 — Reference to Video",
+    "description": "AtlasCloud / Vidu Q2 — generates consistent video from subject image references.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "subjects",
+        "type": "list[image]",
+        "default": [],
+        "title": "Subject Images",
+        "required": true,
+        "minItems": 1
+      },
+      {
+        "name": "duration",
+        "type": "float",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds.",
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated media.",
+        "values": [
+          "540p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "audio_type",
+        "type": "enum",
+        "default": "all",
+        "title": "Audio Type",
+        "description": "Audio type, required when audio is true, defaults to all.",
+        "values": [
+          "all",
+          "speech_only",
+          "sound_effect_only"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated media.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "movement_amplitude",
+        "type": "enum",
+        "default": "auto",
+        "title": "Movement Amplitude",
+        "description": "The movement amplitude of objects in the frame.",
+        "values": [
+          "auto",
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate audio for the video."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "ViduQ1ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "vidu/q1/reference-to-video",
+    "outputType": "video",
+    "supportedTasks": [
+      "reference_to_video"
+    ],
+    "title": "Vidu Q1 — Reference to Video",
+    "description": "AtlasCloud / Vidu Q1 — generates consistent video from subject image references.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "subjects",
+        "type": "list[image]",
+        "default": [],
+        "title": "Subject Images",
+        "required": true,
+        "minItems": 1
+      },
+      {
+        "name": "duration",
+        "type": "float",
+        "default": 5,
+        "title": "Duration",
+        "description": "The duration of the generated media in seconds. Fixed at 5 for this model.",
+        "min": 5,
+        "max": 5
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "The resolution of the generated media.",
+        "values": [
+          "1080p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated media.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "movement_amplitude",
+        "type": "enum",
+        "default": "auto",
+        "title": "Movement Amplitude",
+        "description": "The movement amplitude of objects in the frame.",
+        "values": [
+          "auto",
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate audio for the video."
+      },
+      {
+        "name": "audio_type",
+        "type": "enum",
+        "default": "all",
+        "title": "Audio Type",
+        "description": "Audio type, required when audio is true, defaults to all.",
+        "values": [
+          "all",
+          "speech_only",
+          "sound_effect_only"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "The random seed to use for the generation. -1 means a random seed will be used."
       }
     ]
   }
