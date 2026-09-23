@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -156,7 +156,18 @@ it("assigns a selected entity to matching shots, then allows shot refinement", a
   expect(board?.entityIds).toEqual(["mara"]);
   expect(board?.shots.map((shot) => shot.entity_ids)).toEqual([["mara"], []]);
 
-  const shotAssignments = screen.getAllByRole("checkbox", { name: "Mara" });
+  const shotAssignments = [1, 2].map((number) =>
+    within(screen.getByRole("region", { name: `Shot ${number}` })).getByRole(
+      "checkbox",
+      { name: "Mara" }
+    )
+  );
+  expect(shotAssignments).toHaveLength(2);
+  for (const assignment of shotAssignments) {
+    expect(
+      assignment.closest("label")?.querySelector("img")
+    ).toBeInTheDocument();
+  }
   await user.click(shotAssignments[1]);
 
   board = useStoryboardStore.getState().getBoard(BOARD_ID);
@@ -173,6 +184,11 @@ it("assigns a selected entity to matching shots, then allows shot refinement", a
     ["mara", "station"],
     ["mara", "station"]
   ]);
+  for (const assignment of screen.getAllByRole("checkbox", {
+    name: "Station"
+  })) {
+    expect(assignment.closest("label")?.querySelector("img")).toBeNull();
+  }
 });
 
 it("filters the library without losing selections or shot assignments", async () => {
@@ -197,7 +213,7 @@ it("filters the library without losing selections or shot assignments", async ()
   );
 
   await user.click(screen.getByRole("button", { name: "Clear search" }));
-  await user.click(screen.getByRole("button", { name: "Selected (1)" }));
+  await user.click(screen.getByRole("button", { name: "Selected only" }));
   expect(
     screen.getByRole("checkbox", { name: "Mara · character" })
   ).toBeChecked();
@@ -205,6 +221,28 @@ it("filters the library without losing selections or shot assignments", async ()
     screen.queryByRole("checkbox", { name: "Station · location" })
   ).not.toBeInTheDocument();
   expect(screen.getAllByRole("checkbox", { name: "Mara" })[0]).toBeChecked();
+});
+
+it("opens a reference image without selecting the entity", async () => {
+  const user = userEvent.setup();
+  renderStep();
+
+  const checkbox = await screen.findByRole("checkbox", {
+    name: "Mara · character"
+  });
+  await user.click(
+    screen.getByRole("button", { name: "View Mara reference image" })
+  );
+
+  expect(checkbox).not.toBeChecked();
+  expect(screen.getByRole("dialog", { name: /Mara/ })).toBeInTheDocument();
+  expect(
+    screen.getByRole("img", { name: "Mara reference image" })
+  ).toBeInTheDocument();
+  await user.keyboard("{Escape}");
+  expect(
+    screen.queryByRole("dialog", { name: /Mara/ })
+  ).not.toBeInTheDocument();
 });
 
 it("finds entities in the screenplay and creates a selected reference", async () => {
@@ -270,6 +308,78 @@ it("finds entities in the screenplay and creates a selected reference", async ()
   ]);
 });
 
+it("creates suggested references in parallel with a generating mark on each active button", async () => {
+  let finishLantern: (value: { asset_ids: string[] }) => void = () => {};
+  let finishStation: (value: { asset_ids: string[] }) => void = () => {};
+  const lanternResult = new Promise<{ asset_ids: string[] }>((resolve) => {
+    finishLantern = resolve;
+  });
+  const stationResult = new Promise<{ asset_ids: string[] }>((resolve) => {
+    finishStation = resolve;
+  });
+  rpcRequest
+    .mockResolvedValueOnce({
+      data: {
+        entities: [
+          {
+            name: "The Lantern",
+            kind: "prop",
+            descriptor: "A brass lantern",
+            reference_prompt: "A brass lantern on a neutral background"
+          },
+          {
+            name: "Night Platform",
+            kind: "location",
+            descriptor: "A rain-soaked train platform",
+            reference_prompt: "A rain-soaked platform at night"
+          }
+        ]
+      }
+    })
+    .mockReturnValueOnce(lanternResult)
+    .mockReturnValueOnce(stationResult);
+  const user = userEvent.setup();
+  renderStep();
+
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Create The Lantern" })
+  );
+  expect(
+    screen.getByRole("button", { name: "Creating The Lantern" })
+  ).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Create Night Platform" })
+  ).toBeEnabled();
+  await user.click(
+    screen.getByRole("button", { name: "Create Night Platform" })
+  );
+
+  expect(rpcRequest).toHaveBeenCalledTimes(3);
+  expect(screen.getAllByTestId("thinking-mark")).toHaveLength(2);
+  expect(
+    screen.getByRole("button", { name: "Creating Night Platform" })
+  ).toBeDisabled();
+
+  finishStation({ asset_ids: ["platform-asset"] });
+  await waitFor(() =>
+    expect(useStoryboardStore.getState().getBoard(BOARD_ID)?.entityIds).toEqual(
+      ["platform-asset"]
+    )
+  );
+  expect(
+    screen.getByRole("button", { name: "Creating The Lantern" })
+  ).toBeDisabled();
+
+  finishLantern({ asset_ids: ["lantern-asset"] });
+  await waitFor(() =>
+    expect(useStoryboardStore.getState().getBoard(BOARD_ID)?.entityIds).toEqual(
+      ["platform-asset", "lantern-asset"]
+    )
+  );
+  expect(screen.queryAllByTestId("thinking-mark")).toHaveLength(0);
+});
+
 it("does not change the storyboard after the step is left", async () => {
   let finishImage: (value: { asset_ids: string[] }) => void = () => {};
   rpcRequest
@@ -301,7 +411,7 @@ it("does not change the storyboard after the step is left", async () => {
   finishImage({ asset_ids: ["lantern-asset"] });
 
   await waitFor(() => expect(updateAsset).toHaveBeenCalled());
-  expect(
-    useStoryboardStore.getState().getBoard(BOARD_ID)?.entityIds
-  ).toEqual([]);
+  expect(useStoryboardStore.getState().getBoard(BOARD_ID)?.entityIds).toEqual(
+    []
+  );
 });

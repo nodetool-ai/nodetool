@@ -23,6 +23,7 @@ import {
   BORDER_RADIUS,
   Caption,
   Checkbox,
+  Dialog,
   EditorButton,
   EmptyState,
   FlexColumn,
@@ -34,7 +35,9 @@ import {
   ScrollArea,
   SearchInput,
   SPACING,
-  Text
+  SPACING_PX,
+  Text,
+  ThinkingIndicator
 } from "../../ui_primitives";
 import {
   buildEntitySuggestionsPrompt,
@@ -43,7 +46,11 @@ import {
   parseEntitySuggestions,
   type EntitySuggestion
 } from "./entitySuggestions";
-import { SETUP_FIELD_WIDTH } from "../layout";
+import {
+  SETUP_FIELD_WIDTH,
+  SETUP_MEDIA_WIDTH,
+  SETUP_WIDE_CONTENT_WIDTH
+} from "../layout";
 
 interface EntitiesStepProps {
   boardId: string;
@@ -51,6 +58,7 @@ interface EntitiesStepProps {
 }
 
 const EMPTY_ENTITY_IDS: string[] = [];
+const ENTITY_PREVIEW_SIZE = SPACING_PX.xxxl * 4;
 const ENTITY_GROUPS = [
   { kind: "character", label: "Characters" },
   { kind: "location", label: "Locations" },
@@ -82,13 +90,16 @@ export const EntitiesStep = ({
   const updateShot = useStoryboardStore((state) => state.updateShot);
   const setImageModel = useStoryboardStore((state) => state.setImageModel);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [previewEntity, setPreviewEntity] = useState<Entity | null>(null);
   const [newAssetId, setNewAssetId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [onlySelected, setOnlySelected] = useState(false);
   const [createdEntities, setCreatedEntities] = useState<Entity[]>([]);
   const [suggestions, setSuggestions] = useState<EntitySuggestion[]>([]);
   const [suggesting, setSuggesting] = useState(false);
-  const [creatingName, setCreatingName] = useState<string | null>(null);
+  const [creatingKeys, setCreatingKeys] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
   const [assistError, setAssistError] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
@@ -175,6 +186,10 @@ export const EntitiesStep = ({
   const createSuggestion = async (
     suggestion: EntitySuggestion
   ): Promise<void> => {
+    const key = `${suggestion.kind}:${suggestion.name}`;
+    if (creatingKeys.has(key)) {
+      return;
+    }
     const existing = availableEntities.find(
       (entity) =>
         entity.kind === suggestion.kind &&
@@ -183,7 +198,9 @@ export const EntitiesStep = ({
     if (existing) {
       setBoardEntity(existing, true);
       setSuggestions((current) =>
-        current.filter((candidate) => candidate.name !== suggestion.name)
+        current.filter(
+          (candidate) => `${candidate.kind}:${candidate.name}` !== key
+        )
       );
       return;
     }
@@ -193,7 +210,7 @@ export const EntitiesStep = ({
       setAssistError("Pick a reference image model first.");
       return;
     }
-    setCreatingName(suggestion.name);
+    setCreatingKeys((current) => new Set(current).add(key));
     setAssistError(null);
     try {
       const answer = await rpcRequest("generate_media", {
@@ -226,7 +243,9 @@ export const EntitiesStep = ({
       setCreatedEntities((current) => [...current, entity]);
       setBoardEntity(entity, true);
       setSuggestions((current) =>
-        current.filter((candidate) => candidate.name !== suggestion.name)
+        current.filter(
+          (candidate) => `${candidate.kind}:${candidate.name}` !== key
+        )
       );
     } catch (error) {
       if (!mountedRef.current) return;
@@ -235,7 +254,11 @@ export const EntitiesStep = ({
       );
     } finally {
       if (mountedRef.current) {
-        setCreatingName(null);
+        setCreatingKeys((current) => {
+          const next = new Set(current);
+          next.delete(key);
+          return next;
+        });
       }
     }
   };
@@ -277,18 +300,26 @@ export const EntitiesStep = ({
           Keep people and places consistent
         </Text>
         <Text color="secondary" sx={{ maxWidth: "65ch" }}>
-          Choose reusable references for your shots. Each entity carries an
-          image and description to keep its appearance consistent.
+          Choose the characters, places, and props that need to look consistent
+          across shots.
         </Text>
       </FlexColumn>
 
       <FlexColumn gap={SPACING.lg}>
-        <FlexRow gap={SPACING.lg} wrap align="center" justify="space-between">
-          <FlexColumn gap={SPACING.xs}>
+        <FlexRow
+          gap={SPACING.xxl}
+          wrap
+          align="center"
+          sx={{ maxWidth: SETUP_WIDE_CONTENT_WIDTH }}
+        >
+          <FlexColumn
+            gap={SPACING.xs}
+            sx={{ flexGrow: 1, flexShrink: 1, flexBasis: SETUP_MEDIA_WIDTH }}
+          >
             <Label component="h2">Suggested from your story</Label>
             <Caption>
-              The Director can identify the recurring references worth keeping
-              consistent. Nothing is generated until you choose one.
+              Find recurring references in your screenplay. Create only the ones
+              you want to use.
             </Caption>
           </FlexColumn>
           <EditorButton
@@ -352,6 +383,9 @@ export const EntitiesStep = ({
             ) : null}
             <FlexColumn gap={SPACING.md}>
               {suggestions.map((suggestion) => {
+                const creating = creatingKeys.has(
+                  `${suggestion.kind}:${suggestion.name}`
+                );
                 const existing = availableEntities.some(
                   (entity) =>
                     entity.kind === suggestion.kind &&
@@ -382,16 +416,19 @@ export const EntitiesStep = ({
                     <EditorButton
                       variant="contained"
                       disabled={
-                        (!existing && !board?.imageModel?.id) ||
-                        creatingName !== null
+                        (!existing && !board?.imageModel?.id) || creating
                       }
                       onClick={() => void createSuggestion(suggestion)}
                     >
-                      {creatingName === suggestion.name
-                        ? `Creating ${suggestion.name}`
-                        : existing
-                          ? `Use ${suggestion.name}`
-                          : `Create ${suggestion.name}`}
+                      {creating ? (
+                        <ThinkingIndicator
+                          label={`Creating ${suggestion.name}`}
+                        />
+                      ) : existing ? (
+                        `Use ${suggestion.name}`
+                      ) : (
+                        `Create ${suggestion.name}`
+                      )}
                     </EditorButton>
                   </FlexRow>
                 );
@@ -401,13 +438,13 @@ export const EntitiesStep = ({
         ) : null}
       </FlexColumn>
 
-      <FlexRow gap={SPACING.lg} wrap align="center" justify="space-between">
-        <FlexColumn gap={SPACING.xs}>
+      <FlexRow gap={SPACING.xl} wrap align="center">
+        <FlexRow gap={SPACING.md} wrap align="baseline">
           <Label component="h2">Your entity library</Label>
           <Caption role="status">
             {selectedEntities.length} selected for this storyboard
           </Caption>
-        </FlexColumn>
+        </FlexRow>
         <EditorButton
           variant="outlined"
           startIcon={<AddPhotoAlternateOutlinedIcon />}
@@ -428,8 +465,20 @@ export const EntitiesStep = ({
         />
       ) : (
         <FlexColumn gap={SPACING.xl}>
-          <FlexRow gap={SPACING.lg} wrap align="center">
-            <FlexColumn sx={{ flex: "1 1 240px" }}>
+          <FlexRow
+            gap={SPACING.md}
+            wrap
+            align="center"
+            sx={{ maxWidth: SETUP_WIDE_CONTENT_WIDTH }}
+          >
+            <FlexColumn
+              sx={{
+                flexGrow: 1,
+                flexShrink: 1,
+                flexBasis: SETUP_FIELD_WIDTH,
+                maxWidth: SETUP_MEDIA_WIDTH
+              }}
+            >
               <SearchInput
                 value={search}
                 onChange={setSearch}
@@ -442,7 +491,7 @@ export const EntitiesStep = ({
               aria-pressed={onlySelected}
               onClick={() => setOnlySelected(!onlySelected)}
             >
-              Selected ({selectedEntities.length})
+              Selected only
             </EditorButton>
           </FlexRow>
           <ScrollArea maxHeight="min(48vh, 480px)">
@@ -490,76 +539,90 @@ export const EntitiesStep = ({
                         }}
                       >
                         {group.map((entity) => (
-                          <Checkbox
+                          <FlexRow
                             key={entity.id}
-                            size="small"
-                            checked={selectedSet.has(entity.id)}
-                            onChange={(_, checked) =>
-                              setBoardEntity(entity, checked)
-                            }
-                            slotProps={{
-                              input: {
-                                "aria-label": `${entity.name} · ${entity.kind}`
+                            gap={SPACING.lg}
+                            align="center"
+                            sx={{
+                              p: SPACING.md,
+                              minWidth: 0,
+                              borderBottom: "1px solid",
+                              borderColor: "divider",
+                              borderRadius: BORDER_RADIUS.sm,
+                              backgroundColor: selectedSet.has(entity.id)
+                                ? theme.vars.palette.action.selected
+                                : "transparent",
+                              "&:hover": {
+                                backgroundColor: theme.vars.palette.action.hover
+                              },
+                              "&:focus-within": {
+                                outline: `2px solid ${theme.vars.palette.primary.main}`,
+                                outlineOffset: -2
                               }
                             }}
-                            labelProps={{
-                              sx: {
-                                m: SPACING.none,
-                                p: SPACING.md,
-                                gap: SPACING.md,
-                                minWidth: 0,
-                                borderBottom: "1px solid",
-                                borderColor: "divider",
-                                borderRadius: BORDER_RADIUS.sm,
-                                backgroundColor: selectedSet.has(entity.id)
-                                  ? theme.vars.palette.action.selected
-                                  : "transparent",
-                                "&:hover": {
-                                  backgroundColor:
-                                    theme.vars.palette.action.hover
-                                },
-                                "&:focus-within": {
-                                  outline: `2px solid ${theme.vars.palette.primary.main}`,
-                                  outlineOffset: -2
-                                },
-                                "& .MuiFormControlLabel-label": {
-                                  flex: 1,
-                                  minWidth: 0
+                          >
+                            {entity.reference_images?.[0] ? (
+                              <EditorButton
+                                variant="text"
+                                aria-label={`View ${entity.name} reference image`}
+                                onClick={() => setPreviewEntity(entity)}
+                                sx={{
+                                  p: SPACING.none,
+                                  width: ENTITY_PREVIEW_SIZE,
+                                  height: ENTITY_PREVIEW_SIZE,
+                                  flexShrink: 0,
+                                  overflow: "hidden"
+                                }}
+                              >
+                                <ResponsiveImage
+                                  locator={entity.reference_images[0]}
+                                  preferThumbnail
+                                  loading="lazy"
+                                  alt=""
+                                  aspectRatio="1/1"
+                                  borderRadius={BORDER_RADIUS.sm}
+                                />
+                              </EditorButton>
+                            ) : (
+                              <FlexRow
+                                aria-hidden
+                                justify="center"
+                                align="center"
+                                sx={{
+                                  width: ENTITY_PREVIEW_SIZE,
+                                  height: ENTITY_PREVIEW_SIZE,
+                                  flexShrink: 0,
+                                  borderRadius: BORDER_RADIUS.sm,
+                                  bgcolor: "action.hover",
+                                  color: "text.secondary"
+                                }}
+                              >
+                                <AddPhotoAlternateOutlinedIcon fontSize="small" />
+                              </FlexRow>
+                            )}
+                            <Checkbox
+                              size="small"
+                              checked={selectedSet.has(entity.id)}
+                              onChange={(_, checked) =>
+                                setBoardEntity(entity, checked)
+                              }
+                              slotProps={{
+                                input: {
+                                  "aria-label": `${entity.name} · ${entity.kind}`
                                 }
-                              }
-                            }}
-                            label={
-                              <FlexRow gap={SPACING.lg} align="center">
-                                {entity.reference_images?.[0] ? (
-                                  <ResponsiveImage
-                                    locator={entity.reference_images[0]}
-                                    preferThumbnail
-                                    alt=""
-                                    aspectRatio="1/1"
-                                    borderRadius={BORDER_RADIUS.sm}
-                                    sx={{
-                                      width: 56,
-                                      height: 56,
-                                      flexShrink: 0
-                                    }}
-                                  />
-                                ) : (
-                                  <FlexRow
-                                    aria-hidden
-                                    justify="center"
-                                    align="center"
-                                    sx={{
-                                      width: 56,
-                                      height: 56,
-                                      flexShrink: 0,
-                                      borderRadius: BORDER_RADIUS.sm,
-                                      bgcolor: "action.hover",
-                                      color: "text.secondary"
-                                    }}
-                                  >
-                                    <AddPhotoAlternateOutlinedIcon fontSize="small" />
-                                  </FlexRow>
-                                )}
+                              }}
+                              labelProps={{
+                                sx: {
+                                  m: SPACING.none,
+                                  flex: 1,
+                                  minWidth: 0,
+                                  "& .MuiFormControlLabel-label": {
+                                    flex: 1,
+                                    minWidth: 0
+                                  }
+                                }
+                              }}
+                              label={
                                 <FlexColumn
                                   gap={SPACING.xs}
                                   sx={{ minWidth: 0 }}
@@ -586,9 +649,9 @@ export const EntitiesStep = ({
                                     {entity.descriptor || "No description"}
                                   </Caption>
                                 </FlexColumn>
-                              </FlexRow>
-                            }
-                          />
+                              }
+                            />
+                          </FlexRow>
                         ))}
                       </FlexColumn>
                     </FlexColumn>
@@ -601,45 +664,119 @@ export const EntitiesStep = ({
       )}
 
       {selectedEntities.length > 0 ? (
-        <FlexColumn gap={SPACING.md}>
-          <Text size="big" component="h2">
-            Assign each shot
-          </Text>
-          <Text color="secondary">
-            Remove an entity from shots where it should not appear.
-          </Text>
-          {(board?.shots ?? []).map((shot) => {
-            const shotIds = new Set(shot.entity_ids ?? selectedIds);
-            return (
-              <FlexColumn
-                key={shot.id}
-                sx={{
-                  py: SPACING.lg,
-                  borderBottom: "1px solid",
-                  borderColor: "divider"
-                }}
-              >
-                <FlexColumn gap={SPACING.sm}>
-                  <Text>{`${shot.index + 1}. ${shot.slug ?? shot.action}`}</Text>
-                  <FlexRow gap={SPACING.lg} wrap>
+        <FlexColumn gap={SPACING.xl}>
+          <FlexColumn gap={SPACING.xs}>
+            <Text size="big" component="h2">
+              Assign each shot
+            </Text>
+            <Text color="secondary">
+              Remove an entity from shots where it should not appear.
+            </Text>
+          </FlexColumn>
+          <FlexColumn
+            gap={SPACING.lg}
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "minmax(0, 1fr)",
+                md: "repeat(2, minmax(0, 1fr))"
+              }
+            }}
+          >
+            {(board?.shots ?? []).map((shot) => {
+              const shotIds = new Set(shot.entity_ids ?? selectedIds);
+              return (
+                <FlexColumn
+                  key={shot.id}
+                  component="section"
+                  aria-label={`Shot ${shot.index + 1}`}
+                  gap={SPACING.xl}
+                  justify="space-between"
+                  sx={{
+                    p: SPACING.xl,
+                    minWidth: 0,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: BORDER_RADIUS.md,
+                    bgcolor: "background.paper"
+                  }}
+                >
+                  <FlexColumn gap={SPACING.sm}>
+                    <Label component="h3">Shot {shot.index + 1}</Label>
+                    <Text>{shot.slug ?? shot.action}</Text>
+                  </FlexColumn>
+                  <FlexRow gap={SPACING.md} wrap>
                     {selectedEntities.map((entity) => (
                       <Checkbox
                         key={entity.id}
-                        label={entity.name}
+                        label={
+                          <FlexRow gap={SPACING.sm} align="center">
+                            {entity.kind === "character" &&
+                            entity.reference_images?.[0] ? (
+                              <ResponsiveImage
+                                locator={entity.reference_images[0]}
+                                preferThumbnail
+                                loading="lazy"
+                                alt=""
+                                aspectRatio="1/1"
+                                borderRadius={BORDER_RADIUS.sm}
+                                sx={{
+                                  width: SPACING_PX.xxxl,
+                                  height: SPACING_PX.xxxl,
+                                  flexShrink: 0
+                                }}
+                              />
+                            ) : null}
+                            <Text component="span">{entity.name}</Text>
+                          </FlexRow>
+                        }
                         checked={shotIds.has(entity.id)}
                         onChange={(_, checked) =>
                           toggleShot(shot.id, entity.id, checked)
                         }
+                        labelProps={{
+                          sx: {
+                            m: SPACING.none,
+                            pr: SPACING.md,
+                            border: "1px solid",
+                            borderColor: shotIds.has(entity.id)
+                              ? "primary.main"
+                              : "divider",
+                            borderRadius: BORDER_RADIUS.sm,
+                            bgcolor: shotIds.has(entity.id)
+                              ? "action.selected"
+                              : "transparent"
+                          }
+                        }}
                       />
                     ))}
                   </FlexRow>
                 </FlexColumn>
-              </FlexColumn>
-            );
-          })}
+              );
+            })}
+          </FlexColumn>
         </FlexColumn>
       ) : null}
 
+      <Dialog
+        open={previewEntity !== null}
+        onClose={() => setPreviewEntity(null)}
+        title={previewEntity?.name}
+        maxWidth="md"
+        fullWidth
+      >
+        {previewEntity?.reference_images?.[0] ? (
+          <FlexColumn gap={SPACING.lg}>
+            <ResponsiveImage
+              locator={previewEntity.reference_images[0]}
+              alt={`${previewEntity.name} reference image`}
+              fit="contain"
+              sx={{ height: "70vh", bgcolor: "background.default" }}
+            />
+            <Text color="secondary">{previewEntity.descriptor}</Text>
+          </FlexColumn>
+        ) : null}
+      </Dialog>
       <EntityAssetPickerDialog
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}

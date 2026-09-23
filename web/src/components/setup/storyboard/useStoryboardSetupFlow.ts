@@ -403,7 +403,11 @@ export const useStoryboardSetupFlow = ({
         canAdvance: !productionBlocker && look.canAdvance,
         blockedReason: productionBlocker ?? look.blockedReason,
         render: (context) =>
-          createElement(LookStep, { boardId, readOnly: context?.readOnly }),
+          createElement(LookStep, {
+            boardId,
+            readOnly: context?.readOnly,
+            blockedReason: productionBlocker ?? look.blockedReason
+          }),
         // `generate` writes the terminal stage itself, before it enqueues
         // anything (PRD § 7.3, D3); the host opens the board once the jobs are
         // away.

@@ -243,6 +243,16 @@ beforeEach(() => {
 });
 
 describe("LookStep — aspect ratio", () => {
+  it("explains the disabled generate action in the step body", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <LookStep boardId={BOARD} blockedReason="Pick a still model" />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByText("Pick a still model")).toBeInTheDocument();
+  });
+
   it("offers the board's five ratios and writes the choice", async () => {
     const user = userEvent.setup();
     renderStep();

@@ -476,6 +476,22 @@ describe("ShotCard media viewer", () => {
 });
 
 describe("ShotCard render state", () => {
+  it("shows the shared gradient only while a still is rendering", () => {
+    const { unmount } = renderCard(
+      makeShot({ status: "keyframe_generating" })
+    );
+    expect(screen.getByTestId("still-render-gradient")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Rendering still…");
+    unmount();
+
+    const clip = renderCard(makeShot({ status: "clip_generating" }));
+    expect(screen.queryByTestId("still-render-gradient")).not.toBeInTheDocument();
+    clip.unmount();
+
+    renderCard(makeShot({ status: "keyframe_ready" }));
+    expect(screen.queryByTestId("still-render-gradient")).not.toBeInTheDocument();
+  });
+
   it("marks the card as generating so the render border renders", () => {
     const statuses: ShotStatus[] = [
       "planned",

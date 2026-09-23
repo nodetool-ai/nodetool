@@ -1131,11 +1131,23 @@ const settleShotAsset = (
     if (renderInputs) {
       keyframe.render_inputs = renderInputs;
     }
-    storyboard.appendShotKeyframeVersion(
-      context.boardId,
-      context.shotId,
-      keyframe
-    );
+    const current = storyboard
+      .getBoard(context.boardId)
+      ?.shots.find((item) => item.id === context.shotId);
+    if (!current) {
+      return;
+    }
+    // The first still belongs on the shot immediately. Later renders are
+    // alternate takes and must not replace a creator's current selection.
+    if (!current.keyframe && (current.keyframe_versions?.length ?? 0) === 0) {
+      storyboard.setShotKeyframe(context.boardId, context.shotId, keyframe);
+    } else {
+      storyboard.appendShotKeyframeVersion(
+        context.boardId,
+        context.shotId,
+        keyframe
+      );
+    }
     const shot = storyboard
       .getBoard(context.boardId)
       ?.shots.find((item) => item.id === context.shotId);

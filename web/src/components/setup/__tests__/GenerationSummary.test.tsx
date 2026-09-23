@@ -57,3 +57,23 @@ it("distinguishes a preset with no call from an unpriced generation", () => {
   expect(screen.getByText("$0, no model call")).toBeVisible();
   expect(screen.getByText("Ready immediately")).toBeVisible();
 });
+
+it("keeps rewrite details visible without repeating the action label", () => {
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <GenerationSummary
+        result="Rewrite screenplay"
+        next="Unchanged shots keep their stills."
+        model={{ id: "unknown-model", provider: "openai" }}
+        brief="test"
+        maxOutputTokens={8192}
+        compact
+      />
+    </ThemeProvider>
+  );
+
+  expect(screen.queryByText("Rewrite screenplay")).not.toBeInTheDocument();
+  expect(screen.getByText("Unchanged shots keep their stills.")).toBeVisible();
+  expect(screen.getByText("Model: unknown-model (openai)")).toBeVisible();
+  expect(screen.getByText("Rough wait: 30–60s or longer")).toBeVisible();
+});
