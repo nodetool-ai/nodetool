@@ -48,13 +48,23 @@ export async function generateMetadata({
   const entry = modelBySlug(slug) ?? comparisonBySlug(slug);
   if (!entry) return {};
   const route = `/models/${slug}`;
+  const comparison = comparisonBySlug(slug);
+  const unpublishedComparison =
+    comparison && !comparison.indexable;
+  const title = unpublishedComparison
+    ? `${comparison.aName} vs ${comparison.bName} in NodeTool`
+    : entry.title;
+  const description = unpublishedComparison
+    ? `Run ${comparison.aName} and ${comparison.bName} on the same prompt in NodeTool and compare your own results.`
+    : entry.description;
   return {
-    title: entry.title,
-    description: entry.description,
+    title,
+    description,
+    ...(unpublishedComparison ? { robots: { index: false, follow: true } } : {}),
     alternates: { canonical: route },
     openGraph: {
-      title: entry.title,
-      description: entry.description,
+      title,
+      description,
       url: `${BASE_URL}${route}`,
       type: "website",
     },
@@ -397,7 +407,9 @@ function ProviderTable({ model }: { model: ModelEntry }) {
 
 function ComparisonPage({ comparison }: { comparison: ModelComparison }) {
   const accent = ACCENT[comparison.accent];
-  const pairs = duelPairsForComparison(comparison.a, comparison.b);
+  const pairs = comparison.indexable
+    ? duelPairsForComparison(comparison.a, comparison.b)
+    : [];
 
   const breadcrumbLd = {
     "@context": "https://schema.org",
@@ -434,7 +446,7 @@ function ComparisonPage({ comparison }: { comparison: ModelComparison }) {
           <span
             className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${accent.badge}`}
           >
-            Same prompt · side by side
+            {pairs.length > 0 ? "Same prompt · side by side" : "Compare in NodeTool"}
           </span>
           <h1
             id="compare-title"
@@ -443,7 +455,9 @@ function ComparisonPage({ comparison }: { comparison: ModelComparison }) {
             {comparison.aName} vs {comparison.bName}
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            {comparison.description}
+            {pairs.length > 0
+              ? comparison.description
+              : `Run ${comparison.aName} and ${comparison.bName} on the same prompt in NodeTool and compare your own results.`}
           </p>
         </section>
 
@@ -483,20 +497,20 @@ function ComparisonPage({ comparison }: { comparison: ModelComparison }) {
             </div>
           ) : (
             <div className="rounded-2xl border border-slate-800/70 bg-slate-900/40 px-6 py-8 text-center text-sm text-slate-400">
-              Same-prompt {comparison.aName} vs {comparison.bName} pairs are
-              generating. Run the duel yourself in NodeTool: one prompt, both
-              models, outputs side by side.
+              No verified same-prompt outputs are published for this pair yet.
+              Run both models in NodeTool to compare your own results.
             </div>
           )}
         </section>
 
-        {/* Verdict */}
-        <section aria-label="Verdict" className="mx-auto mt-20 max-w-3xl px-6">
-          <div className="space-y-5 text-lg leading-relaxed text-slate-300">
-            {comparison.verdict.map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
-          </div>
+        <section aria-label="Model details" className="mx-auto mt-20 max-w-3xl px-6">
+          {pairs.length > 0 && (
+            <div className="space-y-5 text-lg leading-relaxed text-slate-300">
+              {comparison.verdict.map((p, i) => (
+                <p key={i}>{p}</p>
+              ))}
+            </div>
+          )}
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href={`/models/${comparison.a}`}
@@ -516,7 +530,9 @@ function ComparisonPage({ comparison }: { comparison: ModelComparison }) {
         </section>
 
         {/* FAQ */}
-        <FaqSection items={toQaPairs(comparison.faq)} className="mx-auto mt-20 max-w-3xl px-6" />
+        {pairs.length > 0 && (
+          <FaqSection items={toQaPairs(comparison.faq)} className="mx-auto mt-20 max-w-3xl px-6" />
+        )}
 
         <DownloadCta
           heading="Run the duel yourself."
