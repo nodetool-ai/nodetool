@@ -82,6 +82,7 @@ export default defineConfig({
   },
   test: {
     include: ["tests/**/*.test.ts", "src/**/__tests__/**/*.test.ts"],
+    fileParallelism: false,
     maxWorkers: 2,
     testTimeout: 30000
   }
