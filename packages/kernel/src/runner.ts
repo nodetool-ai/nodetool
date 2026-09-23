@@ -97,11 +97,15 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 // so thin consumers (e.g. the in-browser workflow runner) don't drag the
 // provider / python-bridge barrel into their bundle.
 import { withWorkflowSpan } from "@nodetool-ai/runtime/tracing";
-import { isControlEdge, isDataEdge } from "@nodetool-ai/protocol";
+import {
+  LOOP_NODE_TYPE,
+  isControlEdge,
+  isDataEdge
+} from "@nodetool-ai/protocol";
 import { Graph, GraphValidationError } from "./graph.js";
 import { rewriteBypassedNodes } from "./graph-utils.js";
 import { dynamicSlotPropertyTypes } from "./dynamic-slots.js";
-import { NodeInbox } from "./inbox.js";
+import { NodeInbox, type InboxObserver } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
 import { syntheticEdgeId } from "./edge-ids.js";
 import {
@@ -352,6 +356,16 @@ export class WorkflowRunner {
    */
   private _liveActors = 0;
 
+  /** Node ids of actors still running; read by quiescence detection. */
+  private _liveActorIds = new Set<string>();
+
+  /**
+   * Outgoing data edges of streaming input nodes that `finishInputStream`
+   * has not closed yet. While any is open, values can still arrive from
+   * outside the graph, so the graph is never quiescent.
+   */
+  private _openExternalStreamEdges = new Set<string>();
+
   /**
    * Latch set by `cancel()` and never cleared by `_resetRunState`. A cancel
    * that lands between construction and `run()` would otherwise be dropped —
@@ -560,6 +574,15 @@ export class WorkflowRunner {
         if (sourceHandle && edge.sourceHandle !== sourceHandle) {
           continue;
         }
+        this._openExternalStreamEdges.delete(
+          edge.id ??
+            syntheticEdgeId(
+              edge.source,
+              edge.sourceHandle,
+              edge.target,
+              edge.targetHandle
+            )
+        );
         const targetInbox = this._inboxes.get(edge.target);
         if (!targetInbox) continue;
         targetInbox.markSourceDone(edge.targetHandle);
@@ -813,6 +836,8 @@ export class WorkflowRunner {
     this._nodeErrors = new Map();
     this._correlation = undefined;
     this._eosSentEdges = new Set();
+    this._liveActorIds = new Set();
+    this._openExternalStreamEdges = new Set();
     this._interventions = [];
     this._recordedOutputs = new Map();
   }
@@ -1312,6 +1337,22 @@ export class WorkflowRunner {
       const hasRuntimeParam = hasDefinedOwnProperty(params, inputName);
       const hasDefaultValue = hasDefinedOwnProperty(properties, "value");
 
+      // A streaming input keeps its edges open for pushInputValue().
+      if (node.is_streaming_output) {
+        for (const edge of this._graph.findOutgoingEdges(node.id)) {
+          if (!isDataEdge(edge)) continue;
+          this._openExternalStreamEdges.add(
+            edge.id ??
+              syntheticEdgeId(
+                edge.source,
+                edge.sourceHandle,
+                edge.target,
+                edge.targetHandle
+              )
+          );
+        }
+      }
+
       // Streaming output input nodes (e.g. RealtimeAudioInput) should NOT
       // push empty defaults — real data will arrive later via pushInputValue().
       // Non-streaming inputs must push their default so downstream nodes can run.
@@ -1421,6 +1462,8 @@ export class WorkflowRunner {
       });
     }
 
+    this._installQuiescenceDetection();
+
     const actorPromises: Array<Promise<void>> = [];
     /** Parallel to `actorPromises` — maps a settled index back to its node. */
     const actorNodeIds: string[] = [];
@@ -1472,6 +1515,7 @@ export class WorkflowRunner {
 
       actorNodeIds.push(node.id);
       this._liveActors++;
+      this._liveActorIds.add(node.id);
       actorPromises.push(
         actor
           .run()
@@ -1537,6 +1581,7 @@ export class WorkflowRunner {
           // messages, so an actor is not "gone" before it finishes.
           .finally(() => {
             this._liveActors--;
+            this._liveActorIds.delete(node.id);
           })
       );
     }
@@ -1612,6 +1657,59 @@ export class WorkflowRunner {
           pendingControlNodes
         }
       );
+    }
+  }
+
+  /**
+   * Detect a quiescent graph for Loop nodes (docs/workflow-loops.md).
+   *
+   * A loop body can finish an iteration without feeding anything back (an
+   * `If` routes the value elsewhere, a filter drops it). EOS cannot announce
+   * that, because the body's EOS waits for the loop to close. So when every
+   * live actor is parked on its inbox, no external stream is open, and some
+   * inbox activity happened since the last notice, each Loop is told the
+   * graph is quiescent and ends the runs still waiting for feedback. A parked
+   * actor is not inside a provider call, a timer, or a write, so nothing can
+   * still produce the value those runs wait for.
+   *
+   * Installed only for graphs that contain a Loop node.
+   */
+  private _installQuiescenceDetection(): void {
+    const loopIds = this._graph.nodes
+      .filter((n) => n.type === LOOP_NODE_TYPE)
+      .map((n) => n.id);
+    if (loopIds.length === 0) return;
+
+    let checkScheduled = false;
+    let activitySinceNotice = true;
+    const check = () => {
+      checkScheduled = false;
+      if (this._cancelled || !activitySinceNotice) return;
+      if (this._openExternalStreamEdges.size > 0) return;
+      const liveLoops = loopIds.filter((id) => this._liveActorIds.has(id));
+      if (liveLoops.length === 0) return;
+      for (const id of this._liveActorIds) {
+        if (!this._inboxes.get(id)?.isParked()) return;
+      }
+      activitySinceNotice = false;
+      for (const id of liveLoops) {
+        this._inboxes.get(id)!.notifyQuiescent();
+      }
+    };
+    const observer: InboxObserver = {
+      onPark: () => {
+        if (checkScheduled) return;
+        checkScheduled = true;
+        // After pending I/O and microtasks: an actor that is about to resume
+        // is no longer parked by the time the check runs.
+        setTimeout(check, 0);
+      },
+      onActivity: () => {
+        activitySinceNotice = true;
+      }
+    };
+    for (const inbox of this._inboxes.values()) {
+      inbox.setObserver(observer);
     }
   }
 

@@ -8,6 +8,7 @@
  *   2. Streaming input: node drains inbox via iterInput / iterAny.
  *   3. Streaming output: call genProcess() which yields items.
  *   4. Controlled: accept control events, cache inputs for replay.
+ *   5. Loop: `nodetool.control.Loop`, run by `runLoop` (loop.ts).
  *
  * Sync modes:
  *   - on_any: fire when ANY input handle has data.
@@ -22,7 +23,11 @@ import type {
   ControlEvent,
   NodeErrorDetail
 } from "@nodetool-ai/protocol";
-import { EMPTY_LINEAGE, TypeMetadata } from "@nodetool-ai/protocol";
+import {
+  EMPTY_LINEAGE,
+  LOOP_NODE_TYPE,
+  TypeMetadata
+} from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.actor");
@@ -64,6 +69,7 @@ import { NodeInbox, type MessageEnvelope } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
 import type { NodeAnalysis } from "./correlation-analysis.js";
 import { applyDynamicSlotTypes } from "./dynamic-slots.js";
+import { runLoop } from "./loop.js";
 import {
   iterationRootId,
   projectLineageKey,
@@ -467,6 +473,9 @@ export class NodeActor {
     ) {
       return this._runTriggerEntry(triggerEvent);
     }
+    if (this.node.type === LOOP_NODE_TYPE) {
+      return this._runLoopMode();
+    }
     if (this.node.is_streaming_input) {
       return this._executor.run
         ? this._runStreamingInputMode()
@@ -482,6 +491,32 @@ export class NodeActor {
       );
     }
     return this._runCorrelated(this._correlation);
+  }
+
+  /**
+   * Loop mode: the kernel owns iteration, feedback matching, and termination
+   * for `nodetool.control.Loop`; the node's process() is never called.
+   * docs/workflow-loops.md.
+   */
+  private async _runLoopMode(): Promise<void> {
+    if (!this._correlation) {
+      throw new Error(
+        `Missing correlation analysis for node "${this.node.id}"`
+      );
+    }
+    const result: Record<string, unknown> = {};
+    await runLoop({
+      node: this.node,
+      inbox: this.inbox,
+      analysis: this._correlation,
+      emit: async (slot, value, lineage) => {
+        result[slot] = value;
+        await this._route({ [slot]: value }, { perSlotLineage: { [slot]: lineage } });
+      },
+      closeSlot: (slot) => this._signalSlotEos?.(this.node.id, slot),
+      warn: (message) => this._emitNodeStatus("warning", undefined, message)
+    });
+    this._latestResult = result;
   }
 
   /**
