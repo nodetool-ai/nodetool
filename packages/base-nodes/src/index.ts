@@ -286,6 +286,7 @@ export {
   CreateThreadNode,
   ExtractorNode,
   ClassifierNode,
+  DecisionNode,
   AgentNode,
   AGENT_NODES
 } from "@nodetool-ai/llm-nodes/nodes/agents";

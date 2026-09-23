@@ -13,7 +13,8 @@ import {
 } from "@nodetool-ai/node-sdk";
 import type { Edge, NodeDescriptor } from "@nodetool-ai/protocol";
 import { LOOP_NODE_TYPE } from "@nodetool-ai/protocol";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
+import { DecisionNode, registerBaseNodes } from "@nodetool-ai/base-nodes";
+import { FakeProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import {
   CollectNode,
   ForEachNode,
@@ -53,7 +54,11 @@ class RecordNode extends BaseNode {
 
 let recorded: unknown[] = [];
 
-async function runHydrated(nodes: NodeDescriptor[], edges: Edge[]) {
+async function runHydrated(
+  nodes: NodeDescriptor[],
+  edges: Edge[],
+  executionContext?: ProcessingContext
+) {
   recorded = [];
   const registry = new NodeRegistry();
   registerBaseNodes(registry);
@@ -64,7 +69,8 @@ async function runHydrated(nodes: NodeDescriptor[], edges: Edge[]) {
     { resolver: createGraphNodeTypeResolver(registry) }
   );
   const runner = new WorkflowRunner("loop-node", {
-    resolveExecutor: (node) => registry.resolve(node)
+    resolveExecutor: (node) => registry.resolve(node),
+    executionContext
   });
   return runner.run(
     { job_id: "loop-node" },
@@ -150,6 +156,55 @@ describe("LoopNode", () => {
     expect(result.status).toBe("completed");
     expect(recorded).toContainEqual(3);
     expect(recorded).toContainEqual([0, 1, 2]);
+  });
+
+  it("loops until a Decision node says the value needs no further step", async () => {
+    const asked: number[] = [];
+    // Answers "does the count still need another step?" with count < 3.
+    const provider = new FakeProvider({
+      customResponseFn: (messages) => {
+        const user = messages.find((m) => m.role === "user");
+        const text = typeof user?.content === "string" ? user.content : "";
+        const count = Number(/<input name="value">\n(\d+)/.exec(text)?.[1]);
+        asked.push(count);
+        return [
+          {
+            id: `call-${count}`,
+            name: "decision_result",
+            args: { decision: count < 3, reason: `count is ${count}` }
+          }
+        ];
+      }
+    });
+    const context = new ProcessingContext({ jobId: "loop-node" });
+    context.registerProvider("fake", provider);
+
+    const result = await runHydrated(
+      [
+        { id: "loop", type: LoopNode.nodeType, properties: { initial: 0 } },
+        { id: "inc", type: IncrementNode.nodeType, properties: { limit: 1000 } },
+        {
+          id: "decide",
+          type: DecisionNode.nodeType,
+          properties: {
+            prompt: "Does the count still need another step?",
+            model: { type: "language_model", provider: "fake", id: "fake-model-v1" }
+          }
+        },
+        { id: "rec", type: RecordNode.nodeType }
+      ],
+      [
+        edge("loop", "value", "inc", "value"),
+        edge("inc", "output", "loop", "next"),
+        edge("inc", "output", "decide", "value"),
+        edge("decide", "decision", "loop", "condition"),
+        edge("loop", "done", "rec", "value")
+      ],
+      context
+    );
+    expect(result.status).toBe("completed");
+    expect(asked).toEqual([1, 2, 3]);
+    expect(recorded).toEqual([3]);
   });
 
   it("rejects a Collect inside the loop body", async () => {

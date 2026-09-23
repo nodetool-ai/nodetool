@@ -557,6 +557,7 @@ The agent system surfaces in the workflow editor through several node types defi
 | **SummarizerNode** | Summarize text with streaming output |
 | **ExtractorNode** | Extract structured data from text |
 | **ClassifierNode** | Classify text into categories |
+| **DecisionNode** | Answer a yes/no question about its inputs and route `value` to `if_true` or `if_false`. Its `decision` output can drive a `Loop` ([Workflow Loops](workflow-loops.md)) |
 | **CreateThreadNode** | Manage multi-turn conversation threads |
 
 ### Control Edges

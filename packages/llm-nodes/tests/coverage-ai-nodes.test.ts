@@ -97,7 +97,7 @@ describe("text agents persist generations", () => {
 
 describe("AGENT_NODES export", () => {
   it("contains all 7 agent node classes", () => {
-    expect(AGENT_NODES).toHaveLength(6);
+    expect(AGENT_NODES).toHaveLength(7);
     expect(AGENT_NODES).toContain(SummarizerNode);
     expect(AGENT_NODES).toContain(EnhancePromptNode);
     expect(AGENT_NODES).toContain(CreateThreadNode);

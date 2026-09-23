@@ -68,14 +68,44 @@ makes the node a fold. Reaching `max_iterations` while `condition` is still
 true ends the loop normally and posts a node warning, so a runaway loop is
 visible.
 
-Example: refine a draft until a judge accepts it.
+Example: refine a draft until a model judges it ready.
 
 ```
 Prompt ──► Loop.initial
-           Loop.value ──► Rewrite ──► Judge ──► Not ──► Loop.condition
-                          Rewrite ─────────────────────► Loop.next
+           Loop.value ──► Rewrite ──► Decision.value
+                          Rewrite ──────────────────► Loop.next
+                          Decision.decision ────────► Loop.condition
            Loop.done  ──► Output
 ```
+
+The Decision prompt is phrased so that yes means "loop again", for example
+"Does the draft still miss a point from the brief?".
+
+## The `Decision` node
+
+`nodetool.agents.Decision` asks a language model a yes/no question about its
+inputs. It is the agent counterpart of `If`: the condition is a prompt instead
+of a bool.
+
+| Handle | Direction | Type | Meaning |
+|---|---|---|---|
+| `prompt` | input | str | The yes/no question. |
+| `value` | input | any | The value the decision is about. Shown to the model and routed to the taken branch. |
+| dynamic inputs | input | any | Extra context, each shown to the model under its input name. |
+| `model`, `system_prompt`, `max_tokens` | property | | Model call settings. |
+| `decision` | output | bool | The answer. |
+| `reason` | output | str | One sentence from the model explaining the answer. |
+| `if_true`, `if_false` | output | any | `value`, emitted only on the taken branch, like `If`. |
+
+The model answers through one structured tool call (`decision_result` with a
+boolean `decision` and a string `reason`), the same mechanism `Classifier` and
+`Extractor` use. Image and audio values are attached to the message, so a
+Decision can judge a generated image. An answer that is not a yes/no fails
+the node.
+
+Every output carries the invocation lineage, so inside a loop body the
+Decision answers once per iteration and `decision` can feed `Loop.condition`
+directly. For more than two outcomes, use `Classifier` and `Switch`.
 
 ## Graph rules
 
@@ -157,9 +187,9 @@ A run that ends this way emits nothing on `done`. That supports exiting a loop
 from inside the body:
 
 ```
-Loop.value ──► Generate ──► Judge ──► If(condition = good, value = Generate)
-                                        if_false ──► Loop.next
-                                        if_true  ──► Output
+Loop.value ──► Generate ──► Decision(prompt = "Is it good?", value = Generate)
+                              if_false ──► Loop.next
+                              if_true  ──► Output
 ```
 
 The accepted value leaves through `if_true` at loop scope, and the loop ends at
