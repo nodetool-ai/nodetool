@@ -9,6 +9,7 @@ const renderGuide = (
   overrides: Partial<React.ComponentProps<typeof FirstWorkflowGuide>> = {}
 ) => {
   const props: React.ComponentProps<typeof FirstWorkflowGuide> = {
+    hasSavedWorkflows: false,
     started: false,
     readiness: {
       input: false,
@@ -31,6 +32,20 @@ const renderGuide = (
 };
 
 describe("FirstWorkflowGuide", () => {
+  it("appears only when the saved workflow list is empty", () => {
+    renderGuide({ hasSavedWorkflows: true });
+    expect(
+      screen.queryByText("Build your first useful workflow")
+    ).not.toBeInTheDocument();
+  });
+
+  it("waits for the saved workflow count before appearing", () => {
+    renderGuide({ hasSavedWorkflows: undefined });
+    expect(
+      screen.queryByText("Build your first useful workflow")
+    ).not.toBeInTheDocument();
+  });
+
   it("offers an outcome-based starter and a manual path", async () => {
     const user = userEvent.setup();
     const props = renderGuide();
@@ -65,6 +80,8 @@ describe("FirstWorkflowGuide", () => {
     expect(screen.getByText("Input connected to output")).toBeInTheDocument();
     expect(screen.getByText("Workflow saved")).toBeInTheDocument();
     expect(screen.getByText("Workflow run completed")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Close guide" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Close guide" })
+    ).toBeInTheDocument();
   });
 });

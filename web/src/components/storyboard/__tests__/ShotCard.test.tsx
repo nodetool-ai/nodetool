@@ -416,6 +416,50 @@ describe("ShotCard still", () => {
 });
 
 describe("ShotCard media viewer", () => {
+  it("plays a rendered clip from its card without selecting the shot", async () => {
+    const onSelect = jest.fn();
+    const play = jest
+      .spyOn(HTMLMediaElement.prototype, "play")
+      .mockResolvedValue(undefined);
+    try {
+      renderCard(
+        makeShot({
+          status: "rendered",
+          clip: { type: "video", uri: "asset://vid-9", asset_id: "vid-9" }
+        }),
+        { onSelect }
+      );
+
+      await userEvent.click(screen.getByRole("button", { name: "Play clip" }));
+
+      expect(play).toHaveBeenCalledTimes(1);
+      expect(onSelect).not.toHaveBeenCalled();
+    } finally {
+      play.mockRestore();
+    }
+  });
+
+  it("offers playback for a clip take before it is accepted", () => {
+    renderCard(
+      makeShot({
+        status: "keyframe_ready",
+        clip: null,
+        clip_versions: [
+          { type: "video", uri: "asset://vid-9", asset_id: "vid-9" }
+        ]
+      })
+    );
+
+    expect(screen.getByRole("button", { name: "Play clip" })).toBeVisible();
+  });
+
+  it("does not show a clip play action for an unrendered shot", () => {
+    renderCard(makeShot());
+    expect(
+      screen.queryByRole("button", { name: "Play clip" })
+    ).not.toBeInTheDocument();
+  });
+
   it("opens the still fullscreen from the preview", async () => {
     renderCard(
       makeShot({

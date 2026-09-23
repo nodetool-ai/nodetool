@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import type { Theme } from "@mui/material/styles";
+import { alpha, type Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,6 +16,7 @@ import {
   BORDER_RADIUS,
   EditorButton,
   EmptyState,
+  GAP,
   LoadingSpinner,
   MOTION,
   SPACING,
@@ -26,9 +27,10 @@ import { useSectionWrap, SectionHeader } from "./dashboardChrome";
 /** Query key for the shipped example apps, shared with any invalidation. */
 export const EXAMPLE_APPS_QUERY_KEY = ["applications", "examples"] as const;
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, compact: boolean) =>
   css({
-    paddingTop: getSpacingPx(SPACING.xxl),
+    paddingTop: compact ? 0 : getSpacingPx(SPACING.xxl),
+    ".sec-title h2": compact ? { fontSize: "var(--fontSizeNormal)" } : {},
     ".apps-lede": {
       margin: `0 0 ${getSpacingPx(SPACING.sm)}`,
       fontSize: "var(--fontSizeSmall)",
@@ -36,8 +38,10 @@ const styles = (theme: Theme) =>
     },
     ".apps-strip": {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-      gap: getSpacingPx(SPACING.md),
+      gridTemplateColumns: compact
+        ? "repeat(auto-fill, minmax(min(100%, 190px), 1fr))"
+        : "repeat(auto-fit, minmax(220px, 1fr))",
+      gap: getSpacingPx(compact ? GAP.comfortable : SPACING.md),
       paddingBottom: getSpacingPx(SPACING.sm)
     },
     ".app-card": {
@@ -51,6 +55,8 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       cursor: "pointer",
       overflow: "hidden",
+      minWidth: 0,
+      ...(compact && { position: "relative", aspectRatio: "16 / 9" }),
       transition: `border-color ${MOTION.fast}, background ${MOTION.fast}`,
       "&:hover": {
         borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
@@ -67,6 +73,7 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.c_node_bg_group,
       color: theme.vars.palette.primary.main,
       overflow: "hidden",
+      ...(compact && { position: "absolute", inset: 0, height: "100%" }),
       img: {
         width: "100%",
         height: "100%",
@@ -77,26 +84,36 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       gap: getSpacingPx(SPACING.xs),
-      padding: getSpacingPx(SPACING.md)
+      padding: getSpacingPx(SPACING.md),
+      ...(compact && {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        color: theme.vars.palette.common.white,
+        background: `linear-gradient(to top, ${alpha(theme.palette.common.black, 0.82)}, ${alpha(theme.palette.common.black, 0)})`
+      })
     },
     ".app-name": {
       fontSize: "var(--fontSizeNormal)",
       overflow: "hidden",
       textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
+      whiteSpace: "nowrap",
+      ...(compact && { color: "inherit" })
     },
     ".app-desc": {
       fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.text.secondary,
+      color: compact ? "inherit" : theme.vars.palette.text.secondary,
       display: "-webkit-box",
-      WebkitLineClamp: 2,
+      WebkitLineClamp: compact ? 1 : 2,
       WebkitBoxOrient: "vertical",
       overflow: "hidden"
     },
     ".app-meta": {
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.text.disabled
+      color: theme.vars.palette.text.disabled,
+      ...(compact && { display: "none" })
     },
     ".apps-loading, .apps-empty": {
       display: "flex",
@@ -239,11 +256,11 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
   const apps = data ?? [];
   const installingSlug = install.isPending ? install.variables?.slug : null;
   const countLabel = `${apps.length} app${apps.length === 1 ? "" : "s"}`;
-  const visibleApps = compact ? apps.slice(0, 3) : apps;
+  const visibleApps = compact ? apps.slice(0, 4) : apps;
 
   return (
-    <section css={styles(theme)} aria-labelledby="dashboard-example-apps-title">
-      <div css={sectionWrap}>
+    <section css={styles(theme, compact)} aria-labelledby="dashboard-example-apps-title">
+      <div css={compact ? css({ maxWidth: "none", padding: 0 }) : sectionWrap}>
         <SectionHeader title="Start from an app" count={countLabel}>
           {compact && onBrowseAll && apps.length > visibleApps.length && (
             <EditorButton variant="text" density="compact" onClick={onBrowseAll}>

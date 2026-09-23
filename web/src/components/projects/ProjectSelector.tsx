@@ -6,6 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 
 import {
+  BORDER_RADIUS,
   Caption,
   ContextMenu,
   MenuItemPrimitive,
@@ -26,24 +27,27 @@ import {
 import { useAuth } from "../../stores/useAuth";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
 
-const selectorStyles = (theme: Theme) =>
+const selectorStyles = (theme: Theme, inline: boolean) =>
   css({
     WebkitAppRegion: "no-drag",
     display: "flex",
     alignItems: "stretch",
     flexShrink: 0,
-    height: "100%",
-    maxWidth: "220px",
+    height: inline ? "auto" : "100%",
+    maxWidth: inline ? "100%" : "220px",
     "& .selector-button": {
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.md),
       minWidth: 0,
       maxWidth: "100%",
-      height: "100%",
-      padding: `0 ${getSpacingPx(SPACING.lg)}`,
-      border: "none",
+      height: inline ? "auto" : "100%",
+      padding: inline
+        ? `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`
+        : `0 ${getSpacingPx(SPACING.lg)}`,
+      border: inline ? `1px solid ${theme.vars.palette.divider}` : "none",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: inline ? BORDER_RADIUS.md : 0,
       background: "transparent",
       color: theme.vars.palette.text.primary,
       cursor: "pointer",
@@ -71,15 +75,21 @@ const selectorStyles = (theme: Theme) =>
       flexShrink: 0,
       lineHeight: 1
     },
-    [theme.breakpoints.down("sm")]: {
-      "& .selector-name": { display: "none" },
-      "& .selector-button": {
-        padding: `0 ${getSpacingPx(SPACING.md)}`
-      }
-    }
+    [theme.breakpoints.down("sm")]: inline
+      ? {}
+      : {
+          "& .selector-name": { display: "none" },
+          "& .selector-button": {
+            padding: `0 ${getSpacingPx(SPACING.md)}`
+          }
+        }
   });
 
-const ProjectSelector = () => {
+interface ProjectSelectorProps {
+  inline?: boolean;
+}
+
+const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
   const anchorRef = useRef<HTMLButtonElement>(null);
   const theme = useTheme();
   const [open, setOpen] = useState(false);
@@ -131,18 +141,31 @@ const ProjectSelector = () => {
   const selectPersonal = useCallback(() => {
     close();
     if (resolvedPersonalId) {
-      void openProject({ id: resolvedPersonalId, name: "Personal" });
+      void openProject({ id: resolvedPersonalId, name: "Personal" }).then(
+        (opened) => {
+          if (opened && inline) openNewProjectTab();
+        }
+      );
     } else {
       setActiveProjectId(null);
     }
-  }, [close, openProject, resolvedPersonalId, setActiveProjectId]);
+  }, [
+    close,
+    inline,
+    openNewProjectTab,
+    openProject,
+    resolvedPersonalId,
+    setActiveProjectId
+  ]);
 
   const selectProject = useCallback(
     (project: { id: string; name: string }) => {
       close();
-      void openProject(project);
+      void openProject(project).then((opened) => {
+        if (opened && inline) openNewProjectTab();
+      });
     },
-    [close, openProject]
+    [close, inline, openNewProjectTab, openProject]
   );
 
   const openNewProject = useCallback(() => {
@@ -158,7 +181,7 @@ const ProjectSelector = () => {
   );
 
   return (
-    <div css={selectorStyles(theme)} className="project-selector">
+    <div css={selectorStyles(theme, inline)} className="project-selector">
       <button
         ref={anchorRef}
         type="button"
@@ -191,14 +214,16 @@ const ProjectSelector = () => {
           }
         }}
       >
-        <MenuItemPrimitive
-          label="New project"
-          icon={<AddRoundedIcon />}
-          onClick={openNewProject}
-          color="primary"
-          dense
-          dividerAfter
-        />
+        {!inline && (
+          <MenuItemPrimitive
+            label="New project"
+            icon={<AddRoundedIcon />}
+            onClick={openNewProject}
+            color="primary"
+            dense
+            dividerAfter
+          />
+        )}
         <SearchInput
           value={search}
           onChange={setSearch}

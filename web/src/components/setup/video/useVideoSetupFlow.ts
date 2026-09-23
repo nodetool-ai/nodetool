@@ -28,6 +28,7 @@ import { useVideoSetupContext } from "./setupContext";
 
 export type { VideoSetupContext, VideoSetupReference } from "./setupContext";
 import { FormatStep } from "./FormatStep";
+import { DirectorModelPicker } from "./DirectorModelPicker";
 import { IdeaStep } from "./IdeaStep";
 import { LookStep, useLookStep } from "./LookStep";
 import { ReviewStep } from "./ReviewStep";
@@ -347,15 +348,18 @@ export const useVideoSetupFlow = ({
         generation: planIsCurrent
           ? undefined
           : {
-              result: `Draft ${videoFormatById(formatId)?.beatCount ?? "the"} beats as an editable text outline`,
+              result: `Draft ${videoFormatById(formatId)?.beatCount ?? "the"} beats`,
               next: hasPlan
-                ? "The brief or the template changed, so the beats are drafted again with your edited plan as context. No generated clips, voice or music yet."
-                : "Review the beat descriptions and timing next. No generated clips, voice or music yet; media generation is a separate step in Look.",
+                ? "The brief or template changed. Your edited plan will guide the new beats."
+                : "Review the beats and timing. Media comes later in Look.",
               model: director.model
                 ? toLanguageModelValue(director.model)
                 : null,
               brief,
-              maxOutputTokens: 8192
+              maxOutputTokens: 8192,
+              concise: true,
+              hideTokenEstimate: true,
+              modelPicker: createElement(DirectorModelPicker)
             },
         pending: planning,
         pendingLabel: "Planning the beats",

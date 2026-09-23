@@ -21,11 +21,7 @@ jest.mock("../../workspace/useGuidedFlowStarters", () => ({
       { id: "video", start: mockStartGuidedFlow },
       { id: "workflow", start: mockStartGuidedFlow }
     ],
-    starting: null,
-    pendingDestination: null,
-    currentProject: { id: "project-1", name: "Personal" },
-    pickDestination: jest.fn(),
-    cancelDestination: jest.fn()
+    starting: null
   })
 }));
 
@@ -36,6 +32,7 @@ jest.mock("../../../stores/GlobalChatStore", () => ({
 }));
 
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
+  creationProjectId: () => "project-1",
   useWorkspaceTabsStore: <T,>(selector: (state: { openTab: typeof mockOpenTab }) => T): T =>
     selector({ openTab: mockOpenTab })
 }));

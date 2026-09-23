@@ -168,10 +168,10 @@ and a one-line promise:
 | Image | From a description to a picked variation in the editor. |
 | Workflow | From a task to a running graph, with the plan reviewed first. |
 
-Clicking a card creates the project row (`kind` set to the flow name) and the
-flow's document with its stage at `idea`, then renders the stepper in the same
-tab. The prompt already typed, if any, is carried into step 1. The blank
-document strip stays at the foot, unchanged.
+Clicking a card creates the flow's document in the selected project with its
+stage at `idea`, then opens its stepper in a separate tab. The prompt already
+typed, if any, is carried into step 1. The `+ New` menu starts the same flows
+in the selected project. Neither entry point asks for a project destination.
 
 Studio home shows three cards (Storyboard, Video, Script) in place of the
 single "Make a video" card, with curated models and no model pickers.
@@ -610,11 +610,11 @@ never changes under a user.
 
 ### 7.8 Decisions
 
-- **D1 — One setup component, all hosts.** `SetupFlow` renders inside the New
-  Project tab and Studio home. The document's stage and fields are the flow's
+- **D1 — One setup component, all hosts.** `SetupFlow` renders inside a guided
+  flow tab and Studio home. The document's stage and fields are the flow's
   state. No wizard store.
 - **D2 — Explicit entry only.** Flows start from the entry cards. A plain or
-  `/skill` prompt on the New Project surface keeps going to the project agent.
+  `/skill` prompt on the editor home surface opens normal chat.
   (Resolves F1.)
 - **D3 — Persisted stage, not inferred state.** § 6.4. No content value is
   read as progress. (Resolves F2.)

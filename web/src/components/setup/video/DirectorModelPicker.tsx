@@ -13,10 +13,9 @@ import {
   AlertBanner,
   FlexColumn,
   GAP,
-  SelectField,
   Text
 } from "../../ui_primitives";
-import type { SelectOption } from "../../ui_primitives";
+import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import { directorModelKey, useDirectorModel } from "./directorModel";
 
 const DirectorModelPickerInternal: React.FC = () => {
@@ -39,22 +38,14 @@ const DirectorModelPickerInternal: React.FC = () => {
     );
   }
 
-  const items: SelectOption[] = options.map((option) => ({
-    value: directorModelKey(option),
-    label: option.name
-      ? `${option.name} (${option.provider})`
-      : `${option.id} (${option.provider})`
-  }));
-
   return (
     <FlexColumn gap={GAP.tight}>
-      <SelectField
-        label="Model for the beats"
-        value={model ? directorModelKey(model) : ""}
-        onChange={select}
-        options={items}
-        disabled={loading || items.length === 0}
-        description="Writes the beat outline as text. You can change it before every plan."
+      <LanguageModelSelect
+        value={model?.id ?? ""}
+        provider={model?.provider}
+        placeholder="Model for the beats"
+        onChange={(value) => select(directorModelKey(value))}
+        disabled={loading || options.length === 0}
       />
       {loading ? (
         <Text size="small" color="secondary">

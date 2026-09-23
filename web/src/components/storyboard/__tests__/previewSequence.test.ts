@@ -80,6 +80,28 @@ describe("previewDimensions", () => {
 });
 
 describe("buildPreviewSequence", () => {
+  it("plays a rendered clip take before it is accepted instead of holding the still", () => {
+    const preview = buildPreviewSequence(
+      board({
+        shots: [
+          stillShot("a", 0, {
+            clip: null,
+            clip_versions: [
+              { type: "video", asset_id: "clip-first" },
+              { type: "video", asset_id: "clip-latest" }
+            ]
+          })
+        ]
+      })
+    );
+
+    expect(preview?.sequence.clips[0]).toMatchObject({
+      mediaType: "video",
+      currentAssetId: "clip-latest"
+    });
+    expect(preview?.stillShotIds).toEqual([]);
+  });
+
   it("plays clips, holds keyframe stills, and drops shots with neither", () => {
     const preview = buildPreviewSequence(
       board({
@@ -145,6 +167,19 @@ describe("buildPreviewSequence", () => {
 });
 
 describe("previewSignature", () => {
+  it("changes when an unaccepted clip take is added", () => {
+    const base = board({ shots: [stillShot("a", 0)] });
+    const withTake = board({
+      shots: [
+        stillShot("a", 0, {
+          clip_versions: [{ type: "video", asset_id: "clip-a" }]
+        })
+      ]
+    });
+
+    expect(previewSignature(withTake)).not.toBe(previewSignature(base));
+  });
+
   it("ignores board edits that do not change the cut", () => {
     const shots = [clipShot("a", 0), stillShot("b", 1)];
     const base = board({ shots });

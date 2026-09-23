@@ -104,7 +104,7 @@ describe("direct generation responses (generate_media rpc)", () => {
     ).toBeUndefined();
   });
 
-  it("records a returned clip as a candidate until it is accepted", () => {
+  it("selects the first returned clip for timeline assembly", () => {
     seedShot("s-direct-clip");
     useStoryboardGenerationStore
       .getState()
@@ -124,8 +124,8 @@ describe("direct generation responses (generate_media rpc)", () => {
       .getState()
       .getBoard(BOARD)
       ?.shots.find((s) => s.id === "s-direct-clip");
-    expect(shot?.status).toBe("planned");
-    expect(shot?.clip).toBeUndefined();
+    expect(shot?.status).toBe("rendered");
+    expect(shot?.clip?.asset_id).toBe("ast-clip");
     expect(shot?.clip_versions?.[0]?.asset_id).toBe("ast-clip");
   });
 
@@ -242,7 +242,7 @@ describe("production candidate responses", () => {
       }
     });
 
-  it("lands out-of-order takes as inactive candidates in variation order", () => {
+  it("selects the first finished take and keeps later variations as candidates", () => {
     const shotId = "s-production-order";
     seedShot(shotId);
     const candidates = candidatesFor(shotId);
@@ -289,11 +289,11 @@ describe("production candidate responses", () => {
       .getState()
       .getBoard(BOARD)
       ?.shots.find((candidate) => candidate.id === shotId);
-    expect(landed?.clip).toBeUndefined();
+    expect(landed?.clip?.asset_id).toBe("asset-3");
     expect(
       landed?.clip_versions?.map((version) => version.variationIndex)
     ).toEqual([1, 3]);
-    expect(landed?.status).toBe("planned");
+    expect(landed?.status).toBe("rendered");
   });
 });
 

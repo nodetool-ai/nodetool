@@ -25,7 +25,8 @@ import { useCurrentWorkspace } from "../../../hooks/useCurrentWorkspace";
 import { useOpenProject, useProjectSummaries } from "../../../hooks/useProjects";
 import { useGameSetupDocument } from "../../../hooks/game/useGameSetup";
 import { useGameTemplates } from "../../../hooks/game/useGameTemplates";
-import { stageProjectFirstTurn } from "../../projects/projectAgent";
+import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import { stageChatTurn } from "../../chat/pendingChatTurn";
 import { GameLandingChecklist } from "./GameLandingChecklist";
 import { useGameRunSummary } from "./gameRunSummary";
 import { gameBuildResult, readGameBuild } from "./gameExtras";
@@ -51,6 +52,7 @@ const GameLandingPanelInternal: React.FC<GameLandingPanelProps> = ({
   const { data: templates } = useGameTemplates();
   const { workspaceId } = useCurrentWorkspace();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
   // The project the workflow's tab belongs to, so the play-test hand-over goes
   // to that project's agent rather than to whichever project is active.
   const projectId = useWorkspaceTabsStore(
@@ -91,21 +93,20 @@ const GameLandingPanelInternal: React.FC<GameLandingPanelProps> = ({
     );
   }, [archive, workspaceId]);
 
-  const handlePlayTest = useCallback(() => {
+  const handlePlayTest = useCallback(async () => {
     const design = game?.design;
-    // A summary wraps the row; the overview takes the row itself.
     const project = projects?.find(
       (entry) => entry.project.id === projectId
     )?.project;
     if (!design || directory === null || !project) {
       return;
     }
-    // Staged, then the overview opened — the same order `handleStart` uses on
-    // the New Project surface, because only the project's own panel can send
-    // the turn and it has to be waiting there before that panel mounts (D29).
-    stageProjectFirstTurn(project.id, gamePlayTestTurn(design, directory));
-    void openProject(project);
-  }, [directory, game?.design, openProject, projectId, projects]);
+    const opened = await openProject(project);
+    if (!opened) return;
+    const threadId = await createNewThread(undefined, null, { projectId: project.id });
+    stageChatTurn(threadId, gamePlayTestTurn(design, directory));
+    openTab({ type: "chat", ref: threadId, mode: "view", title: "Play test", projectId: project.id });
+  }, [createNewThread, directory, game?.design, openProject, openTab, projectId, projects]);
 
   const handleRegenerate = useCallback(() => {
     void FrontendToolRegistry.call(

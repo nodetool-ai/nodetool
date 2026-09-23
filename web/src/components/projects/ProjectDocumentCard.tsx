@@ -32,12 +32,14 @@ interface ProjectDocumentCardProps {
   document: ProjectDocument;
   sourceProjectId: string;
   onOpen: (document: ProjectDocument) => void;
+  compact?: boolean;
 }
 
 const ProjectDocumentCard = ({
   document,
   sourceProjectId,
-  onOpen
+  onOpen,
+  compact = false
 }: ProjectDocumentCardProps) => {
   const handleOpen = useCallback(() => onOpen(document), [onOpen, document]);
   const progress = documentProgress(document);
@@ -49,11 +51,21 @@ const ProjectDocumentCard = ({
       clickable
       onClick={handleOpen}
       aria-label={document.name}
-      sx={{ overflow: "hidden", borderRadius: BORDER_RADIUS.md }}
+      sx={{
+        overflow: "hidden",
+        minWidth: 0,
+        borderRadius: BORDER_RADIUS.md,
+        ...(compact && {
+          "& > :first-child": { height: "auto", aspectRatio: "3 / 1" }
+        })
+      }}
     >
       <ProjectDocumentPreview document={document} />
-      <FlexColumn gap={SPACING.sm} sx={{ p: SPACING.lg }}>
-        <FlexRow align="center" gap={SPACING.md}>
+      <FlexColumn
+        gap={SPACING.sm}
+        sx={{ p: compact ? SPACING.md : SPACING.lg }}
+      >
+        <FlexRow align="center" gap={SPACING.md} sx={{ minWidth: 0 }}>
           <Box
             component="span"
             aria-hidden
@@ -61,8 +73,20 @@ const ProjectDocumentCard = ({
           >
             {TYPE_GLYPH[document.type]}
           </Box>
-          <Label sx={{ flex: 1, minWidth: 0 }}>{document.name}</Label>
-          {progress && (
+          <Label
+            title={document.name}
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              mb: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {document.name}
+          </Label>
+          {progress && !compact && (
             <StatusPill
               tone={progress.tone}
               accent={TYPE_COLOR[document.type]}
@@ -73,20 +97,33 @@ const ProjectDocumentCard = ({
           )}
         </FlexRow>
         <FlexRow align="baseline" gap={SPACING.md}>
-          <Caption color="secondary" sx={{ flex: 1, minWidth: 0 }}>
+          <Caption
+            color="secondary"
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
+          >
             {documentStatusLine(document)}
           </Caption>
-          <Box
-            component="span"
-            sx={{ ...TYPOGRAPHY.mono.caption, color: "text.secondary" }}
-          >
-            {formatDocumentSpend(document)}
-          </Box>
+          {!compact && (
+            <Box
+              component="span"
+              sx={{ ...TYPOGRAPHY.mono.caption, color: "text.secondary" }}
+            >
+              {formatDocumentSpend(document)}
+            </Box>
+          )}
         </FlexRow>
-        <CopyProjectDocumentAction
-          document={document}
-          sourceProjectId={sourceProjectId}
-        />
+        {!compact && (
+          <CopyProjectDocumentAction
+            document={document}
+            sourceProjectId={sourceProjectId}
+          />
+        )}
       </FlexColumn>
     </Card>
   );

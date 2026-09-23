@@ -9,7 +9,7 @@
  * and one whose graph was placed by hand all render nothing.
  */
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";
@@ -114,6 +114,12 @@ jest.mock("../../../../hooks/useCurrentWorkspace", () => ({
   useCurrentWorkspace: () => ({ workspaceId: "ws1" })
 }));
 const openProject = jest.fn();
+const createNewThread = jest.fn(async () => "playtest-chat");
+jest.mock("../../../../stores/GlobalChatStore", () => ({
+  __esModule: true,
+  default: <T,>(selector: (state: { createNewThread: jest.Mock }) => T) =>
+    selector({ createNewThread })
+}));
 jest.mock("../../../../hooks/useProjects", () => ({
   useOpenProject: () => openProject,
   useProjectSummaries: () => ({
@@ -158,12 +164,7 @@ import {
   readGameBuild,
   readGameExport
 } from "../gameExtras";
-import { stageProjectFirstTurn } from "../../../projects/projectAgent";
-
-jest.mock("../../../projects/projectAgent", () => ({
-  ...jest.requireActual("../../../projects/projectAgent"),
-  stageProjectFirstTurn: jest.fn()
-}));
+import { clearChatTurn, peekChatTurn } from "../../../chat/pendingChatTurn";
 
 const BUILD = gameBuildRecord({
   nodeCount: 6,
@@ -333,20 +334,25 @@ describe("GameLandingPanel", () => {
     );
   });
 
-  it("stages the play-test turn on the workflow's own project", async () => {
+  it("opens a normal chat with the play-test turn in the workflow's project", async () => {
+    openProject.mockResolvedValueOnce(true);
     const user = userEvent.setup();
     renderPanel();
     await user.click(
       screen.getByRole("button", { name: "Play-test with the agent" })
     );
-    expect(stageProjectFirstTurn).toHaveBeenCalledWith(
-      "p9",
-      expect.arrayContaining([
-        expect.objectContaining({
-          text: expect.stringContaining("games/ember-run")
-        })
-      ])
-    );
+    await waitFor(() => expect(createNewThread).toHaveBeenCalledWith(undefined, null, { projectId: "p9" }));
+    expect(openTab).toHaveBeenCalledWith({
+      type: "chat",
+      ref: "playtest-chat",
+      mode: "view",
+      title: "Play test",
+      projectId: "p9"
+    });
+    expect(peekChatTurn("playtest-chat")).toEqual(expect.arrayContaining([
+      expect.objectContaining({ text: expect.stringContaining("games/ember-run") })
+    ]));
+    clearChatTurn("playtest-chat");
     expect(openProject).toHaveBeenCalledWith({ id: "p9", name: "Ember Run" });
   });
 

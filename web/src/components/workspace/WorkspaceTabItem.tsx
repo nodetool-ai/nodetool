@@ -30,13 +30,9 @@ const TAB_TITLE_TOOLTIP_NEXT_DELAY = 0;
 interface WorkspaceTabItemProps {
   tab: WorkspaceTab;
   isActive: boolean;
-  /** Part of the open project's tab group — carries the group's underline. */
-  inProject?: boolean;
   isEditing: boolean;
   canRename: boolean;
   dropPosition: "left" | "right" | null;
-  typeColor: string;
-  typeGlyph: string;
   onActivate: (tabId: string) => void;
   onBeginRename: (tab: WorkspaceTab) => void;
   onClose: (tab: WorkspaceTab) => void;
@@ -53,12 +49,9 @@ interface WorkspaceTabItemProps {
 const WorkspaceTabItem = ({
   tab,
   isActive,
-  inProject = false,
   isEditing,
   canRename,
   dropPosition,
-  typeColor,
-  typeGlyph,
   onActivate,
   onBeginRename,
   onClose,
@@ -163,9 +156,7 @@ const WorkspaceTabItem = ({
   return (
     <>
       <div
-        className={`tab${isActive ? " active" : ""}${
-          inProject ? " in-project" : ""
-        }${tab.type === "project" ? " is-home" : ""}${dropClass}`}
+        className={`tab${isActive ? " active" : ""}${tab.type === "project" ? " is-home" : ""}${dropClass}`}
         role="tab"
         aria-selected={isActive}
         tabIndex={0}
@@ -185,9 +176,6 @@ const WorkspaceTabItem = ({
         onDragLeave={(event) => onDragLeave(event)}
         onDrop={(event) => onDrop(event, tab)}
       >
-        <span className="glyph" style={{ color: typeColor }}>
-          {typeGlyph}
-        </span>
         {isEditing ? (
           <InlineEditableText
             className="tab-input"

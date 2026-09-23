@@ -20,7 +20,7 @@ Godot binary is present.
 
 The flow lands in the node editor, the way the Workflow flow does, with a
 game checklist in the agent panel: assets checked, project exported, verified
-or not, and the play-test hand-off to the project agent.
+or not, and the play-test hand-off to chat.
 
 Nothing below the new chrome is invented. The templates, the slot manifest,
 the five `nodetool.game.*` checker nodes, the resource writer, the headless
@@ -174,9 +174,9 @@ top of the panel:
 Next steps under the rows: **Open project folder** (opens a `workspace-file`
 tab on `games/<slug>/project.godot`), **Download project** (the
 `games/<slug>.zip` the export node writes, through the workspace download
-endpoint), **Play-test with the agent** (stages a first turn for the project
-agent: the design, the directory, and the skill's P4 instructions, then
-opens the project overview), **Regenerate** (re-runs the graph).
+endpoint), **Play-test with the agent** (stages a first turn in a project chat:
+the design, the directory, and the skill's P4 instructions), **Regenerate**
+(re-runs the graph).
 
 A validation error or a failed run lands as the checklist's failure rows and
 as the agent panel's first message with the error. Nothing is auto-fixed

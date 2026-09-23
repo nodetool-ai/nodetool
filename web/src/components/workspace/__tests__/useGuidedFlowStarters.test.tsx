@@ -1,8 +1,5 @@
 /**
- * The `+ New` menu's guided starters ask where the flow should live before
- * creating anything: "current" files into the open project, "new" makes a
- * project row first and opens its group. The menu suites mock this hook
- * wholesale; this suite drives the real one through that choice.
+ * The `+ New` menu's guided starters file into the selected project directly.
  */
 import { act, renderHook, waitFor } from "@testing-library/react";
 
@@ -107,102 +104,39 @@ beforeEach(() => {
   openProject.mockResolvedValue(true);
 });
 
-describe("useGuidedFlowStarters destinations", () => {
-  it("holds the flow as pending instead of creating", () => {
-    const { hook, storyboard } = renderStarters();
-    act(() => {
-      void storyboard().start();
-    });
-
-    expect(hook.result.current.pendingDestination).toEqual({
-      id: "storyboard",
-      title: "Storyboard"
-    });
-    expect(createStoryboard).not.toHaveBeenCalled();
-    expect(createProject).not.toHaveBeenCalled();
-  });
-
-  it("closes the menu when the picker takes over", () => {
-    const { storyboard, onStarted } = renderStarters();
-    act(() => {
-      void storyboard().start();
-    });
-
-    expect(onStarted).toHaveBeenCalledTimes(1);
-  });
-
-  it("names the open project for the picker", () => {
-    const { hook } = renderStarters();
-    expect(hook.result.current.currentProject).toEqual({
-      id: "p-current",
-      name: "Aurora launch"
-    });
-  });
-
-  it("files into the open project on current, and closes the menu", async () => {
+describe("useGuidedFlowStarters", () => {
+  it("starts a storyboard in the selected project without making a project", async () => {
     const { hook, storyboard, onStarted } = renderStarters();
-    act(() => {
-      void storyboard().start();
-    });
-    act(() => {
-      hook.result.current.pickDestination("current");
+    await act(async () => {
+      await storyboard().start();
     });
 
-    await waitFor(() =>
-      expect(createStoryboard).toHaveBeenCalledWith({
-        name: "Untitled storyboard",
-        projectId: "p-current",
-        document: expect.objectContaining({ setupStage: "idea" })
-      })
+    expect(createStoryboard).toHaveBeenCalledWith({
+      name: "Untitled storyboard",
+      projectId: "p-current",
+      document: expect.objectContaining({ setupStage: "idea" })
+    });
+    expect(openTab).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "storyboard", projectId: "p-current" })
     );
     expect(createProject).not.toHaveBeenCalled();
     expect(openProject).not.toHaveBeenCalled();
-    expect(hook.result.current.pendingDestination).toBeNull();
-    expect(onStarted).toHaveBeenCalled();
+    expect(onStarted).toHaveBeenCalledTimes(1);
+    expect(hook.result.current.starting).toBeNull();
   });
 
-  it("makes a project row and opens its group on new", async () => {
-    const { hook, storyboard, onStarted } = renderStarters();
-    act(() => {
-      void storyboard().start();
-    });
-    act(() => {
-      hook.result.current.pickDestination("new");
+  it("uses an explicitly supplied project id", async () => {
+    const { storyboard } = renderStarters();
+    await act(async () => {
+      await storyboard().start("p-other");
     });
 
-    await waitFor(() =>
-      expect(createProject).toHaveBeenCalledWith({
-        name: "New storyboard",
-        kind: "storyboard"
-      })
+    expect(createStoryboard).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: "p-other" })
     );
-    expect(openProject).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "p-new" })
-    );
-    await waitFor(() =>
-      expect(createStoryboard).toHaveBeenCalledWith(
-        expect.objectContaining({ projectId: "p-new" })
-      )
-    );
-    expect(hook.result.current.pendingDestination).toBeNull();
-    expect(onStarted).toHaveBeenCalled();
   });
 
-  it("drops the wait when the picker closes", () => {
-    const { hook, storyboard } = renderStarters();
-    act(() => {
-      void storyboard().start();
-    });
-    act(() => {
-      hook.result.current.cancelDestination();
-    });
-
-    expect(hook.result.current.pendingDestination).toBeNull();
-    expect(createStoryboard).not.toHaveBeenCalled();
-    expect(createProject).not.toHaveBeenCalled();
-  });
-
-  it("starts the entity flow straight away — there is no document to file", async () => {
+  it("opens the entity library directly", async () => {
     const { hook } = renderStarters();
     const entity = hook.result.current.starters.find(
       (entry) => entry.id === "entity"
@@ -211,7 +145,7 @@ describe("useGuidedFlowStarters destinations", () => {
       void entity.start();
     });
 
-    expect(hook.result.current.pendingDestination).toBeNull();
     await waitFor(() => expect(openPageTab).toHaveBeenCalledWith("entities"));
+    expect(createProject).not.toHaveBeenCalled();
   });
 });

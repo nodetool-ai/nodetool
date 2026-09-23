@@ -2,11 +2,17 @@
  * Starting a project: what Start creates, what the agent is handed, and that
  * the blank-document strip still opens loose tabs.
  */
+import { useState } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../../__mocks__/themeMock";
+
+jest.mock("../CurrentProjectDocuments", () => ({
+  __esModule: true,
+  default: () => <div data-testid="current-project-documents" />
+}));
 
 const createProject = jest.fn(async () => ({
   id: "p9",
@@ -17,6 +23,7 @@ const createProject = jest.fn(async () => ({
   updatedAt: ""
 }));
 const openProject = jest.fn(async () => true);
+const createNewThread = jest.fn(async () => "chat-1");
 
 // The Workflow card creates through the manager store, as the workspace's own
 // surfaces do; the provider is mounted app-wide in `index.tsx`.
@@ -295,11 +302,14 @@ jest.mock("../../setup/storyboard/StoryboardSetupHost", () => ({
 
 const closeTab = jest.fn();
 const openTab = jest.fn();
+const setActiveTab = jest.fn();
+const setActiveProjectId = jest.fn();
+const setGuidedFlowTarget = jest.fn();
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   ...jest.requireActual("../../../stores/WorkspaceTabsStore"),
   useWorkspaceTabsStore: <T,>(
-    selector: (s: { closeTab: jest.Mock; openTab: jest.Mock }) => T
-  ) => selector({ closeTab, openTab })
+    selector: (s: { closeTab: jest.Mock; openTab: jest.Mock; tabs: []; personalProjectId: null; setActiveTab: jest.Mock; setActiveProjectId: jest.Mock; setGuidedFlowTarget: jest.Mock }) => T
+  ) => selector({ closeTab, openTab, tabs: [], personalProjectId: null, setActiveTab, setActiveProjectId, setGuidedFlowTarget })
 }));
 
 const addNotification = jest.fn();
@@ -323,8 +333,9 @@ jest.mock("../../../stores/GlobalChatStore", () => ({
     selector: (s: {
       selectedModel: unknown;
       setSelectedModel: jest.Mock;
+      createNewThread: jest.Mock;
     }) => T
-  ) => selector({ selectedModel, setSelectedModel })
+  ) => selector({ selectedModel, setSelectedModel, createNewThread })
 }));
 
 // The real dialog fans out a query per provider; this surface only needs the
@@ -404,7 +415,7 @@ jest.mock("../../../hooks/useWorkflowActions", () => ({
 
 import { readGameSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import NewProjectSurface from "../NewProjectSurface";
-import { takeProjectFirstTurn } from "../projectAgent";
+import { clearChatTurn, peekChatTurn } from "../../chat/pendingChatTurn";
 import useOnboardingStore from "../../../stores/OnboardingStore";
 import { useProviderOnboardingStore } from "../../../stores/ProviderOnboardingStore";
 
@@ -413,11 +424,27 @@ import { useProviderOnboardingStore } from "../../../stores/ProviderOnboardingSt
 const actualTabsStore: typeof import("../../../stores/WorkspaceTabsStore") =
   jest.requireActual("../../../stores/WorkspaceTabsStore");
 
-const renderSurface = () => {
+type FlowTab = { ref: string; setupTarget: NonNullable<import("../../../stores/WorkspaceTabsStore").WorkspaceTab["setupTarget"]> };
+
+const renderSurface = (initialFlowTab: FlowTab | null = null) => {
   const client = new QueryClient();
-  return render(
+  let activateFlowTab: (tab: FlowTab) => void = () => {};
+  const Surface = () => {
+    const [flowTab, setFlowTab] = useState(initialFlowTab);
+    activateFlowTab = setFlowTab;
+    return flowTab
+      ? <NewProjectSurface key={flowTab.ref} flowRef={flowTab.ref} initialSetupTarget={flowTab.setupTarget} />
+      : <NewProjectSurface />;
+  };
+  openTab.mockImplementation((input: { type: string; ref: string; setupTarget?: FlowTab["setupTarget"] }) => {
+    if (input.type === "guided-flow" && input.setupTarget) {
+      activateFlowTab({ ref: input.ref, setupTarget: input.setupTarget });
+    }
+    return `${input.type}:${input.ref}`;
+  });
+  const view = render(
     <ThemeProvider theme={mockTheme}>
-      <NewProjectSurface />
+      <Surface />
     </ThemeProvider>,
     {
       wrapper: ({ children }) => (
@@ -425,6 +452,14 @@ const renderSurface = () => {
       )
     }
   );
+  return {
+    ...view,
+    refresh: () => view.rerender(
+      <ThemeProvider theme={mockTheme}>
+        <Surface />
+      </ThemeProvider>
+    )
+  };
 };
 
 beforeEach(() => {
@@ -434,9 +469,8 @@ beforeEach(() => {
   openProject.mockResolvedValue(true);
   hasConfiguredProvider = true;
   selectedModel = { provider: "anthropic", id: "claude-sonnet-5" };
-  actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: null });
-  // An earlier test's start may have left a turn staged for this project id.
-  takeProjectFirstTurn("p9");
+  actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: null, personalProjectId: null });
+  clearChatTurn("chat-1");
   useOnboardingStore.setState({ completedSteps: [], dismissed: false });
   skills = [
     {
@@ -458,24 +492,6 @@ beforeEach(() => {
 });
 
 describe("NewProjectSurface", () => {
-  /** Pick the destination a card click asks for. */
-  const pickDestination = async (destination: "current" | "new" = "new") => {
-    const user = userEvent.setup();
-    const chooseDestination = screen.queryByRole("button", {
-      name: "Choose a destination"
-    });
-    if (chooseDestination) {
-      await user.click(chooseDestination);
-    }
-    await user.click(
-      await screen.findByRole("button", {
-        name:
-          destination === "new"
-            ? "Start in a new project"
-            : /Start in current project/
-      })
-    );
-  };
   it("offers every skill as a starter, the user's own and the shipped ones", () => {
     renderSurface();
     expect(useSkillsOptions).toHaveBeenCalledWith({ includeSystem: true });
@@ -599,15 +615,16 @@ describe("NewProjectSurface", () => {
 
   it("cannot start until something is asked for", async () => {
     renderSurface();
-    expect(screen.getByRole("button", { name: "Start" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Send to chat" })).toBeDisabled();
     await userEvent.type(
       screen.getByPlaceholderText(/30-second launch spot/),
       "A spot for our desk lamp"
     );
-    expect(screen.getByRole("button", { name: "Start" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Send to chat" })).toBeEnabled();
   });
 
-  it("creates the project, stages its first turn, and opens its group", async () => {
+  it("opens a normal chat in the current project with the composed turn", async () => {
+    actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "current-project" });
     renderSurface();
     await userEvent.click(
       screen.getByRole("button", { name: "Launch commercial" })
@@ -619,26 +636,25 @@ describe("NewProjectSurface", () => {
     await userEvent.click(screen.getByRole("button", { name: "Entities · none" }));
     await userEvent.click(screen.getByText("Aurora lamp"));
     await userEvent.keyboard("{Escape}");
-    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
 
-    // The starter is the project's kind, which is what its spend history is
-    // read back by.
-    await waitFor(() =>
-      expect(createProject).toHaveBeenCalledWith({
-        name: "A spot for our desk lamp",
-        kind: "launch-commercial"
-      })
-    );
-    await waitFor(() =>
-      expect(openProject).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "p9" })
-      )
-    );
+    await waitFor(() => expect(createNewThread).toHaveBeenCalledWith(
+      undefined, null, { projectId: "current-project" }
+    ));
+    expect(openTab).toHaveBeenCalledWith({
+      type: "chat",
+      ref: "chat-1",
+      mode: "view",
+      title: "New chat",
+      projectId: "current-project"
+    });
+    expect(createProject).not.toHaveBeenCalled();
+    expect(openProject).not.toHaveBeenCalled();
     expect(closeTab).toHaveBeenCalledWith("project-new:new");
 
     // The staged turn is the prompt as written, command and all, plus the
     // entities picked from the button.
-    const staged = takeProjectFirstTurn("p9");
+    const staged = peekChatTurn("chat-1");
     expect(staged).not.toBeNull();
     const text = staged?.[0].type === "text" ? staged[0].text : "";
     expect(text).toBe(
@@ -651,16 +667,11 @@ describe("NewProjectSurface", () => {
     renderSurface();
     const prompt = screen.getByPlaceholderText(/30-second launch spot/);
     await userEvent.type(prompt, "A spot for our desk lamp{Enter}warm");
-    expect(createProject).not.toHaveBeenCalled();
+    expect(createNewThread).not.toHaveBeenCalled();
     expect(prompt).toHaveValue("A spot for our desk lamp\nwarm");
 
     await userEvent.keyboard("{Control>}{Enter}{/Control}");
-    await waitFor(() =>
-      expect(createProject).toHaveBeenCalledWith({
-        name: "A spot for our desk lamp",
-        kind: ""
-      })
-    );
+    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
   });
 
   it("starts with no starter, and then sends the prompt alone", async () => {
@@ -669,15 +680,10 @@ describe("NewProjectSurface", () => {
       screen.getByPlaceholderText(/30-second launch spot/),
       "A spot for our desk lamp"
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
 
-    await waitFor(() =>
-      expect(createProject).toHaveBeenCalledWith({
-        name: "A spot for our desk lamp",
-        kind: ""
-      })
-    );
-    const staged = takeProjectFirstTurn("p9");
+    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
+    const staged = peekChatTurn("chat-1");
     const text = staged?.[0].type === "text" ? staged[0].text : "";
     expect(text).toBe("A spot for our desk lamp");
   });
@@ -689,16 +695,16 @@ describe("NewProjectSurface", () => {
     expect(createWorkflow).toHaveBeenCalled();
   });
 
-  it("marks describe-idea when a project starts from the prompt", async () => {
+  it("marks describe-idea when chat starts from the prompt", async () => {
     renderSurface();
     await userEvent.type(
       screen.getByPlaceholderText(/30-second launch spot/),
       "A spot for our desk lamp"
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
 
-    await waitFor(() => expect(createProject).toHaveBeenCalled());
-    expect(openProject).toHaveBeenCalled();
+    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
+    expect(openProject).not.toHaveBeenCalled();
     expect(useOnboardingStore.getState().completedSteps).toContain(
       "describe-idea"
     );
@@ -713,7 +719,7 @@ describe("NewProjectSurface", () => {
     await user.click(
       within(cards).getByRole("button", { name: /^Storyboard / })
     );
-    await pickDestination();
+
 
     await waitFor(() => expect(createStoryboard).toHaveBeenCalled());
     expect(useOnboardingStore.getState().completedSteps).toContain(
@@ -775,32 +781,22 @@ describe("NewProjectSurface", () => {
 
   it("parks a start on provider onboarding and resumes once connected", async () => {
     hasConfiguredProvider = false;
-    const { rerender } = renderSurface();
+    const { refresh } = renderSurface();
     await userEvent.type(
       screen.getByPlaceholderText(/30-second launch spot/),
       "A spot for our desk lamp"
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
 
-    expect(createProject).not.toHaveBeenCalled();
+    expect(createNewThread).not.toHaveBeenCalled();
     expect(useProviderOnboardingStore.getState().open).toBe(true);
 
     hasConfiguredProvider = true;
-    rerender(
-      <ThemeProvider theme={mockTheme}>
-        <NewProjectSurface />
-      </ThemeProvider>
-    );
-    await waitFor(() =>
-      expect(createProject).toHaveBeenCalledWith({
-        name: "A spot for our desk lamp",
-        kind: ""
-      })
-    );
+    refresh();
+    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
   });
 
-  // BUG F2: a configured provider does not mean a model was picked. Starting
-  // anyway created the project and staged a prompt no send could deliver.
+  // A configured provider does not mean a model was picked.
   it("refuses to start with no model selected, and stages nothing", async () => {
     selectedModel = { provider: "empty", id: "gpt-4o" };
     renderSurface();
@@ -808,11 +804,11 @@ describe("NewProjectSurface", () => {
       screen.getByPlaceholderText(/30-second launch spot/),
       "A spot for our desk lamp"
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
 
-    expect(createProject).not.toHaveBeenCalled();
+    expect(createNewThread).not.toHaveBeenCalled();
     expect(openProject).not.toHaveBeenCalled();
-    expect(takeProjectFirstTurn("p9")).toBeNull();
+    expect(peekChatTurn("chat-1")).toBeNull();
     expect(addNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "error",
@@ -834,7 +830,7 @@ describe("NewProjectSurface", () => {
       screen.getByPlaceholderText(/30-second launch spot/),
       "A spot for our desk lamp"
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Pick Claude" })
@@ -856,21 +852,18 @@ describe("NewProjectSurface", () => {
     ).toBeInTheDocument();
   });
 
-  // BUG F2 (follow-up): closing the compose tab is what makes the staged turn
-  // unreachable, so it must not close when the project group never opened.
-  it("keeps the compose tab and drops the stage when the group cannot open", async () => {
-    openProject.mockResolvedValue(false);
+  it("keeps the compose tab when a chat cannot be created", async () => {
+    createNewThread.mockRejectedValueOnce(new Error("offline"));
     renderSurface();
     await userEvent.type(
       screen.getByPlaceholderText(/30-second launch spot/),
       "A spot for our desk lamp"
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
 
-    await waitFor(() => expect(openProject).toHaveBeenCalled());
+    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
     expect(closeTab).not.toHaveBeenCalled();
-    // No orphan left in the module map for a later project to pick up.
-    expect(takeProjectFirstTurn("p9")).toBeNull();
+    expect(peekChatTurn("chat-1")).toBeNull();
     // The prompt is still on the screen, so Start can be pressed again.
     expect(
       screen.getByPlaceholderText(/30-second launch spot/)
@@ -889,14 +882,11 @@ describe("NewProjectSurface", () => {
     expect(prompt).toHaveValue("/launch-commercial ");
 
     await userEvent.type(prompt, "A spot for our desk lamp");
-    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
 
-    await waitFor(() => expect(createProject).toHaveBeenCalled());
-    // Picked from the prompt, the skill is still the project's kind.
-    expect(createProject).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "launch-commercial" })
-    );
-    const staged = takeProjectFirstTurn("p9");
+    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
+    expect(createProject).not.toHaveBeenCalled();
+    const staged = peekChatTurn("chat-1");
     // The `/name` the user typed is the only one — the starter is not written
     // in a second time.
     expect(staged?.[0]).toEqual({
@@ -916,12 +906,11 @@ describe("NewProjectSurface", () => {
     expect(prompt).toHaveValue("A spot lit by entity://e1 ");
   });
 
-  // D2 — explicit entry only. Whatever is in the prompt box, `Start` is the
-  // project agent's door and the flow's is the card.
+  // The composer opens chat; the guided cards open their own flows.
   it.each([
     ["a plain prompt", "A spot for our desk lamp"],
     ["a `/skill` prompt", "/launch-commercial A spot for our desk lamp"]
-  ])("starts the project agent for %s and never mounts the flow", async (
+  ])("opens normal chat for %s and never mounts the flow", async (
     _name,
     typed
   ) => {
@@ -930,12 +919,47 @@ describe("NewProjectSurface", () => {
       screen.getByPlaceholderText(/30-second launch spot/),
       typed
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
 
-    await waitFor(() => expect(createProject).toHaveBeenCalled());
-    expect(openProject).toHaveBeenCalled();
+    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
+    expect(createProject).not.toHaveBeenCalled();
+    expect(openProject).not.toHaveBeenCalled();
     expect(createStoryboard).not.toHaveBeenCalled();
     expect(screen.queryByTestId("setup-flow")).not.toBeInTheDocument();
+  });
+
+  it("keeps home available while two guided flows open in separate tabs", async () => {
+    openTab.mockImplementation((input: { type: string; ref: string }) => `${input.type}:${input.ref}`);
+    const client = new QueryClient();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <NewProjectSurface />
+      </ThemeProvider>,
+      { wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider> }
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /^Storyboard From a sentence/ }));
+
+    await waitFor(() => expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "guided-flow", setupTarget: expect.objectContaining({ kind: "storyboard" }) })));
+
+    await userEvent.click(await screen.findByRole("button", { name: /^Video From a sentence/ }));
+
+    await waitFor(() => expect(openTab.mock.calls.filter(([input]) => input.type === "guided-flow")).toHaveLength(2));
+
+    const flowTabs = openTab.mock.calls.filter(([input]) => input.type === "guided-flow").map(([input]) => input);
+    expect(flowTabs[0].ref).not.toBe(flowTabs[1].ref);
+    expect(flowTabs.map((tab) => tab.setupTarget.kind)).toEqual(["storyboard", "video"]);
+    expect(await screen.findByRole("group", { name: "Guided creation flows" })).toBeInTheDocument();
+  });
+
+  it("starts a guided card in the current project without a destination dialog", async () => {
+    renderSurface();
+    await userEvent.click(
+      screen.getByRole("button", { name: /^Storyboard From a sentence/ })
+    );
+    expect(screen.queryByText("Start Storyboard in…")).not.toBeInTheDocument();
+    await waitFor(() => expect(createStoryboard).toHaveBeenCalled());
+    expect(createProject).not.toHaveBeenCalled();
   });
 
   it("opens the storyboard flow on the card, carrying the typed prompt", async () => {
@@ -949,17 +973,12 @@ describe("NewProjectSurface", () => {
         name: /^Storyboard From a sentence to a rendered board/
       })
     );
-    await pickDestination();
 
-    await waitFor(() =>
-      expect(createProject).toHaveBeenCalledWith({
-        name: "A spot for our desk lamp",
-        kind: "storyboard"
-      })
-    );
+
+    expect(createProject).not.toHaveBeenCalled();
     expect(createStoryboard).toHaveBeenCalledWith({
       name: "A spot for our desk lamp",
-      projectId: "p9",
+      projectId: "default",
       document: expect.objectContaining({
         brief: "A spot for our desk lamp",
         setupStage: "idea"
@@ -970,20 +989,23 @@ describe("NewProjectSurface", () => {
     expect(openProject).not.toHaveBeenCalled();
   });
 
-  it("restores the hosted guided document after the New Project tab remounts", async () => {
+  it("restores a guided tab from its saved target after remounting", async () => {
     const first = renderSurface();
     await userEvent.click(
       screen.getByRole("button", {
         name: /^Storyboard From a sentence to a rendered board/
       })
     );
-    await pickDestination();
+
 
     expect(await screen.findByTestId("setup-flow")).toHaveTextContent("b7");
     expect(createStoryboard).toHaveBeenCalledTimes(1);
 
+    const createdTab = openTab.mock.calls.find(([input]) => input.type === "guided-flow")?.[0] as FlowTab | undefined;
+    expect(createdTab).toBeDefined();
+
     first.unmount();
-    renderSurface();
+    renderSurface(createdTab ? { ref: createdTab.ref, setupTarget: createdTab.setupTarget } : null);
 
     expect(await screen.findByTestId("setup-flow")).toHaveTextContent("b7");
     expect(createStoryboard).toHaveBeenCalledTimes(1);
@@ -1026,7 +1048,7 @@ describe("NewProjectSurface", () => {
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Video / }));
-    await pickDestination();
+
 
     await waitFor(() =>
       expect(seedTimelineDetail).toHaveBeenCalledWith(patchedSequence)
@@ -1034,7 +1056,7 @@ describe("NewProjectSurface", () => {
   });
 
   it.each([
-    ["Entity", () => createProject],
+    ["Entity", () => openTab],
     ["Video", () => createTimeline],
     ["Script", () => createScript],
     ["Image", () => startImageFlowMock],
@@ -1050,9 +1072,9 @@ describe("NewProjectSurface", () => {
     await user.click(
       within(cards).getByRole("button", { name: new RegExp(`^${title} `) })
     );
-    await pickDestination();
 
-    await waitFor(() => expect(mock()).toHaveBeenCalledTimes(1));
+
+    await waitFor(() => expect(mock()).toHaveBeenCalled());
   });
 
   it("starts the entity flow with the project prompt as its descriptor", async () => {
@@ -1068,14 +1090,9 @@ describe("NewProjectSurface", () => {
         name: /^Entity Create a reusable character/
       })
     );
-    await pickDestination();
 
-    await waitFor(() =>
-      expect(createProject).toHaveBeenCalledWith({
-        name: "A red fox in a blue coat",
-        kind: "entity"
-      })
-    );
+
+    expect(createProject).not.toHaveBeenCalled();
     expect(await screen.findByTestId("setup-flow")).toHaveTextContent(
       "entity:A red fox in a blue coat"
     );
@@ -1092,12 +1109,10 @@ describe("NewProjectSurface", () => {
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Game / }));
-    await pickDestination();
+
 
     await waitFor(() => expect(managerCreateWorkflow).toHaveBeenCalled());
-    expect(createProject).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "game" })
-    );
+    expect(createProject).not.toHaveBeenCalled();
     const [[created]] = managerCreateWorkflow.mock.calls as unknown as Array<
       [{ settings: Record<string, unknown> }]
     >;
@@ -1125,7 +1140,7 @@ describe("NewProjectSurface", () => {
       await user.click(
         within(cards).getByRole("button", { name: new RegExp(`^${title} `) })
       );
-      await pickDestination("current");
+
 
       await waitFor(() =>
         expect(managerCreateWorkflow).toHaveBeenCalledWith(
@@ -1145,7 +1160,7 @@ describe("NewProjectSurface", () => {
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Video / }));
-    await pickDestination();
+
     await screen.findByTestId("setup-flow");
     await user.click(
       screen.getByRole("button", { name: "Start from a script" })
@@ -1154,8 +1169,7 @@ describe("NewProjectSurface", () => {
     await waitFor(() =>
       expect(createScript).toHaveBeenCalledWith({
         name: "A spot for our desk lamp",
-        // The project the Video card already made, not a second one.
-        projectId: "p9",
+        projectId: "default",
         document: expect.objectContaining({
           setup: { stage: "idea", brief: "A spot for our desk lamp" }
         })
@@ -1171,11 +1185,10 @@ describe("NewProjectSurface", () => {
   // no-op, so a second click looked accepted and did nothing.
   it("marks the chosen card busy and turns the other cards off", async () => {
     const user = userEvent.setup();
-    type NewProject = Awaited<ReturnType<typeof createProject>>;
-    let release: (project: NewProject) => void = () => {};
-    createProject.mockImplementationOnce(
+    let release: (script: { id: string }) => void = () => {};
+    createScript.mockImplementationOnce(
       () =>
-        new Promise<NewProject>((resolve) => {
+        new Promise<{ id: string }>((resolve) => {
           release = resolve;
         })
     );
@@ -1186,17 +1199,7 @@ describe("NewProjectSurface", () => {
 
     await user.click(within(cards).getByRole("button", { name: /^Script / }));
 
-    // The click asks where the flow should live first — nothing is created
-    // until the destination is picked.
-    expect(
-      await screen.findByRole("button", { name: "Choose a destination" })
-    ).toBeInTheDocument();
     expect(createProject).not.toHaveBeenCalled();
-    await pickDestination();
-
-    // The picker unmounts before the cards report the work in flight — its
-    // modal keeps the background out of the accessibility tree while open,
-    // so these wait rather than read it straight away.
     await waitFor(() =>
       expect(
         within(cards).getByRole("button", { name: /^Script / })
@@ -1214,14 +1217,7 @@ describe("NewProjectSurface", () => {
     await user.click(within(cards).getByRole("button", { name: /^Video / }));
     expect(createTimeline).not.toHaveBeenCalled();
 
-    release({
-      id: "p9",
-      name: "New script",
-      kind: "script",
-      threadId: null,
-      createdAt: "",
-      updatedAt: ""
-    });
+    release({ id: "script-1" });
     expect(await screen.findByTestId("setup-flow")).toHaveTextContent(
       "script-1"
     );
@@ -1237,7 +1233,7 @@ describe("NewProjectSurface", () => {
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
-    await pickDestination();
+
     await screen.findByTestId("setup-flow");
     // The copy is a second create, and it lands in its own row.
     managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
@@ -1248,7 +1244,7 @@ describe("NewProjectSurface", () => {
     expect(managerCreateWorkflow).toHaveBeenLastCalledWith(
       expect.objectContaining({
         name: "Movie Posters",
-        project_id: "p9"
+        project_id: "default"
       }),
       "nodetool-base",
       "movie_posters"
@@ -1261,15 +1257,12 @@ describe("NewProjectSurface", () => {
       expect.objectContaining({
         type: "workflow",
         ref: "wf-example",
-        projectId: "p9"
+        projectId: "default"
       })
     );
   });
 
-  // The shell shows only the active project's tabs. A finished flow filed
-  // into a project that is not open has to open that project first, or its
-  // tab is hidden and closing this one lands on the start page.
-  it("opens the new project before the finished document's tab", async () => {
+  it("opens the finished document without switching projects", async () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
@@ -1277,41 +1270,19 @@ describe("NewProjectSurface", () => {
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
-    await pickDestination();
+
     await screen.findByTestId("setup-flow");
     managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
     await user.click(screen.getByRole("button", { name: "Copy the example" }));
 
     await waitFor(() => expect(openTab).toHaveBeenCalled());
-    expect(openProject).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "p9" })
-    );
-    expect(openProject.mock.invocationCallOrder[0]).toBeLessThan(
-      openTab.mock.invocationCallOrder[0]
-    );
+    expect(openProject).not.toHaveBeenCalled();
+    const documentCall = openTab.mock.calls.findIndex(([input]) => input.type === "workflow");
+    expect(documentCall).toBeGreaterThan(-1);
     expect(closeTab).toHaveBeenCalled();
   });
 
-  it("keeps the surface when the finished document's project does not open", async () => {
-    const user = userEvent.setup();
-    renderSurface();
-    const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
-    });
-
-    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
-    await pickDestination();
-    await screen.findByTestId("setup-flow");
-    openProject.mockResolvedValueOnce(false);
-    managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
-    await user.click(screen.getByRole("button", { name: "Copy the example" }));
-
-    await waitFor(() => expect(openProject).toHaveBeenCalled());
-    expect(openTab).not.toHaveBeenCalled();
-    expect(closeTab).not.toHaveBeenCalled();
-  });
-
-  it("opens the new project before the image flow's sketch tab", async () => {
+  it("opens the image flow's sketch tab in the selected project", async () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
@@ -1319,19 +1290,14 @@ describe("NewProjectSurface", () => {
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Image / }));
-    await pickDestination();
+
 
     await waitFor(() =>
       expect(openTab).toHaveBeenCalledWith(
-        expect.objectContaining({ type: "sketch", projectId: "p9" })
+        expect.objectContaining({ type: "sketch", projectId: "default" })
       )
     );
-    expect(openProject).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "p9" })
-    );
-    expect(openProject.mock.invocationCallOrder[0]).toBeLessThan(
-      openTab.mock.invocationCallOrder[0]
-    );
+    expect(openProject).not.toHaveBeenCalled();
   });
 
   // "Change flow" on step 1: the brief comes back to the composer and the
@@ -1344,14 +1310,12 @@ describe("NewProjectSurface", () => {
         name: /^Storyboard From a sentence to a rendered board/
       })
     );
-    await pickDestination();
+
     await screen.findByTestId("setup-flow");
 
     await user.click(screen.getByRole("button", { name: "Change flow" }));
 
-    await waitFor(() =>
-      expect(projectDelete).toHaveBeenCalledWith({ id: "p9" })
-    );
+    expect(projectDelete).not.toHaveBeenCalled();
     expect(storyboardDelete).toHaveBeenCalledWith({ id: "b7" });
     // The entry cards are back, with what was typed in step 1 in the box.
     expect(
@@ -1378,7 +1342,7 @@ describe("NewProjectSurface", () => {
         name: /^Storyboard From a sentence to a rendered board/
       })
     );
-    await pickDestination();
+
 
     await waitFor(() =>
       expect(createStoryboard).toHaveBeenCalledWith(
@@ -1401,7 +1365,7 @@ describe("NewProjectSurface", () => {
         name: /^Video From a sentence to a cut on the timeline/
       })
     );
-    await pickDestination();
+
 
     await waitFor(() =>
       expect(timelineUpdate).toHaveBeenCalledWith({
@@ -1440,7 +1404,7 @@ describe("NewProjectSurface", () => {
         name: /^Storyboard From a sentence to a rendered board/
       })
     );
-    await pickDestination("current");
+
 
     // No project row is made — the board is filed into the open project.
     await waitFor(() =>

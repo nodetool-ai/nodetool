@@ -138,14 +138,6 @@ const WorkspaceShell = () => {
       ) ?? null,
     [activeProjectId, tabs, activeTabId]
   );
-  // The empty state keys off this, so it must count global tabs too. Scoping
-  // by project alone left the Projects list out of the set while it was the
-  // active tab, and the New Project surface rendered stacked underneath it.
-  const visibleTabs = useMemo(
-    () => tabs.filter((tab) => isTabInScope(tab, activeProjectId)),
-    [activeProjectId, tabs]
-  );
-
   // The left rail (PanelLeft) is position:fixed, so its open drawer normally
   // floats over the content. The node canvas keeps the overlay so it stays
   // full-bleed; every other surface reserves the drawer's width and sits
@@ -203,7 +195,7 @@ const WorkspaceShell = () => {
               className="workspace-content"
               style={{ marginLeft: contentMarginLeft }}
             >
-              {visibleTabs.length === 0 && (
+              {!activeTab && (
                 <div className="workspace-empty">
                   <Suspense fallback={null}>
                     <NewProjectSurface />

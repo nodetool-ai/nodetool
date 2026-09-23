@@ -30,6 +30,7 @@ import {
 
 export interface EntitySetupHostProps {
   readonly projectId?: string;
+  readonly draftKey?: string;
   readonly initialDescriptor?: string;
   readonly initialAssetId?: string;
   readonly onFinish: (entity: Entity) => void;
@@ -66,14 +67,15 @@ const createBlankReferenceFile = (): Promise<File> =>
 
 const EntitySetupHost = ({
   projectId,
+  draftKey,
   initialDescriptor = "",
   initialAssetId,
   onFinish,
   onChangeFlow
 }: EntitySetupHostProps) => {
   const recoveredDraft = useMemo(
-    () => readEntitySetupDraft(projectId),
-    [projectId]
+    () => readEntitySetupDraft(draftKey ?? projectId),
+    [draftKey, projectId]
   );
   const saveEntity = useSaveEntity();
   const {
@@ -110,13 +112,13 @@ const EntitySetupHost = ({
     assetId && !excludedAssetIds.includes(assetId) ? assetId : null;
 
   useEffect(() => {
-    writeEntitySetupDraft(projectId, {
+    writeEntitySetupDraft(draftKey ?? projectId, {
       version: 1,
       stage,
       details,
       assetId
     });
-  }, [assetId, details, projectId, stage]);
+  }, [assetId, details, draftKey, projectId, stage]);
 
   const handlePick = useCallback((pickedAssetId: string) => {
     setAssetId(pickedAssetId);
@@ -178,10 +180,11 @@ const EntitySetupHost = ({
     if (!entity) {
       throw new Error("The entity could not be read after it was created.");
     }
-    clearEntitySetupDraft(projectId);
+    clearEntitySetupDraft(draftKey ?? projectId);
     onFinish(entity);
   }, [
     details,
+    draftKey,
     entitiesError,
     entitiesLoading,
     onFinish,
@@ -281,9 +284,9 @@ const EntitySetupHost = ({
   const handleChangeFlow = useCallback(
     async () => {
       await onChangeFlow?.(details.descriptor);
-      clearEntitySetupDraft(projectId);
+      clearEntitySetupDraft(draftKey ?? projectId);
     },
-    [details.descriptor, onChangeFlow, projectId]
+    [details.descriptor, draftKey, onChangeFlow, projectId]
   );
 
   return onChangeFlow ? (

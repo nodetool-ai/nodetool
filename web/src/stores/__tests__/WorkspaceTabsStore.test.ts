@@ -295,9 +295,7 @@ describe("creationProjectId", () => {
       id: "personal:u1",
       name: "Personal"
     });
-    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(
-      "project:personal:u1"
-    );
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBeNull();
   });
 
   it("follows the project that was opened after the caller was created", () => {
@@ -320,6 +318,36 @@ describe("creationProjectId", () => {
 });
 
 describe("openProject", () => {
+  it("keeps several guided flow tabs and their targets across project switches", () => {
+    const store = useWorkspaceTabsStore.getState();
+    store.openProject({ id: "p1", name: "One", documents: [] });
+    const first = {
+      kind: "storyboard" as const,
+      id: "board-1",
+      projectId: "p1",
+      name: "First board",
+      ownsProject: false
+    };
+    const second = {
+      kind: "storyboard" as const,
+      id: "board-2",
+      projectId: "p1",
+      name: "Second board",
+      ownsProject: false
+    };
+    store.openTab({ type: "guided-flow", ref: "flow-1", title: first.name, projectId: "p1", setupTarget: first });
+    store.openTab({ type: "guided-flow", ref: "flow-2", title: second.name, projectId: "p1", setupTarget: second });
+    store.setGuidedFlowTarget("flow-1", { ...first, name: "Revised board" });
+
+    store.openProject({ id: "p2", name: "Two", documents: [] });
+    store.openProject({ id: "p1", name: "One", documents: [] });
+
+    expect(useWorkspaceTabsStore.getState().tabs.filter((tab) => tab.type === "guided-flow")).toEqual([
+      expect.objectContaining({ ref: "flow-1", title: "Revised board", setupTarget: expect.objectContaining({ id: "board-1" }) }),
+      expect.objectContaining({ ref: "flow-2", title: "Second board", setupTarget: second })
+    ]);
+  });
+
   it("keeps A's chat and output session separate from B's upload through a round trip", () => {
     const store = useWorkspaceTabsStore.getState();
     store.openProject({
@@ -361,13 +389,11 @@ describe("openProject", () => {
     expect(state.activeProjectId).toBe("a");
     expect(state.projectSessions.a.selectedChatThreadId).toBe("a-chat");
     expect(state.projectSessions.a.tabIds).toEqual([
-      "project:a",
       "chat:a-chat",
       "script:a-script",
       "image:a-output"
     ]);
     expect(state.projectSessions.b.tabIds).toEqual([
-      "project:b",
       "image:b-upload"
     ]);
     expect(
@@ -378,7 +404,7 @@ describe("openProject", () => {
     ).toBe("b");
   });
 
-  it("opens only the overview on first opening", () => {
+  it("opens the project with editor home as its empty state", () => {
     useWorkspaceTabsStore.getState().openProject({
       id: "p1",
       name: "Aurora",
@@ -389,9 +415,9 @@ describe("openProject", () => {
     });
 
     const state = useWorkspaceTabsStore.getState();
-    expect(state.tabs.map((t) => t.id)).toEqual(["project:p1"]);
+    expect(state.tabs.map((t) => t.id)).toEqual([]);
     expect(state.tabs.every((t) => t.projectId === "p1")).toBe(true);
-    expect(state.activeTabId).toBe("project:p1");
+    expect(state.activeTabId).toBeNull();
     expect(state.activeProjectId).toBe("p1");
   });
 
@@ -441,8 +467,7 @@ describe("openProject", () => {
     const state = useWorkspaceTabsStore.getState();
     expect(state.tabs.map((t) => t.id)).toEqual([
       "workflow:a",
-      "storyboard:b1",
-      "project:p1"
+      "storyboard:b1"
     ]);
   });
 
@@ -458,8 +483,7 @@ describe("openProject", () => {
     expect(useWorkspaceTabsStore.getState().tabs.map((t) => t.id)).toEqual([
       "workflow:a",
       "storyboard:b1",
-      "text:c",
-      "project:p1"
+      "text:c"
     ]);
   });
 
@@ -495,7 +519,7 @@ describe("openProject", () => {
     const state = useWorkspaceTabsStore.getState();
     expect(state.activeProjectId).toBe("p1");
     expect(state.activeTabId).toBe("text:one");
-    expect(state.projectSessions.p1.tabIds).toEqual(["project:p1", "text:one"]);
+    expect(state.projectSessions.p1.tabIds).toEqual(["text:one"]);
     expect(state.projectSessions.p2.activeTabId).toBe("text:two");
     expect(state.tabs).toEqual(
       expect.arrayContaining([
@@ -634,7 +658,7 @@ describe("closeProject", () => {
     useWorkspaceTabsStore.getState().closeProject("p1");
 
     const state = useWorkspaceTabsStore.getState();
-    expect(state.tabs.map((t) => t.id)).toEqual(["project:p2"]);
+    expect(state.tabs.map((t) => t.id)).toEqual([]);
     expect(state.activeProjectId).toBe("p2");
   });
 });

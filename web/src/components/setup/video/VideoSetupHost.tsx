@@ -1,7 +1,6 @@
 /**
  * The video flow for a host that is not already a timeline editor — the New
- * Project tab, which swaps itself for the flow once the entry card creates the
- * sequence (PRD § 6.1).
+ * guided flow tab opened when the entry card creates the sequence (PRD § 6.1).
  *
  * A timeline tab and the Studio page already run the sequence's load, autosave
  * and agent bridge, so they render `SetupFlow` themselves against their own

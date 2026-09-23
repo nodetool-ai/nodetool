@@ -1,4 +1,5 @@
 import React from "react";
+import type { ReactNode } from "react";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 import {
   Caption,
@@ -20,6 +21,12 @@ export interface GenerationSummaryProps {
   noModelCall?: boolean;
   /** Keep a secondary action's estimate compact beside its own controls. */
   compact?: boolean;
+  /** Use shorter copy for the video flow's inline generation summary. */
+  concise?: boolean;
+  /** Hide the token assumptions when the estimate adds clutter. */
+  hideTokenEstimate?: boolean;
+  /** A model control to show beside the estimate. */
+  modelPicker?: ReactNode;
 }
 
 export default function GenerationSummary({
@@ -29,7 +36,10 @@ export default function GenerationSummary({
   brief,
   maxOutputTokens,
   noModelCall,
-  compact = false
+  compact = false,
+  concise = false,
+  hideTokenEstimate = false,
+  modelPicker
 }: GenerationSummaryProps) {
   const estimate = noModelCall
     ? null
@@ -52,22 +62,28 @@ export default function GenerationSummary({
         {next}
       </Text>
       <FlexRow gap={GAP.spacious} wrap>
-        <Text size="small">
-          {noModelCall
-            ? "Uses the existing text or preset"
-            : `Model: ${model?.name ?? model?.id ?? "Not selected"}${model ? ` (${model.provider})` : ""}`}
-        </Text>
+        {modelPicker ?? (
+          <Text size="small">
+            {noModelCall
+              ? "Uses the existing text or preset"
+              : `Model: ${model?.name ?? model?.id ?? "Not selected"}${model ? ` (${model.provider})` : ""}`}
+          </Text>
+        )}
         <Text size="small">{cost}</Text>
         <Text size="small">
           {noModelCall
             ? "Ready immediately"
-            : compact
+            : concise || compact
               ? "Rough wait: 30–60s or longer"
               : "Rough wait: 30–60 seconds; longer for large requests or slower models"}
         </Text>
       </FlexRow>
-      {estimate && estimate.high > 0 ? (
-        <Caption color="secondary">{`Assumes about ${estimate.inputTokens.toLocaleString()} input tokens and 1,000–${maxOutputTokens.toLocaleString()} output tokens. Actual usage, including reasoning, may cost more.`}</Caption>
+      {estimate && estimate.high > 0 && !hideTokenEstimate ? (
+        <Caption color="secondary">
+          {concise
+            ? `Estimate: ~${estimate.inputTokens.toLocaleString()} input tokens and 1,000–${maxOutputTokens.toLocaleString()} output tokens. Actual usage may cost more.`
+            : `Assumes about ${estimate.inputTokens.toLocaleString()} input tokens and 1,000–${maxOutputTokens.toLocaleString()} output tokens. Actual usage, including reasoning, may cost more.`}
+        </Caption>
       ) : null}
     </FlexColumn>
   );

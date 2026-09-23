@@ -41,7 +41,7 @@ export interface GameLandingChecklistProps {
   onOpenFolder: () => void;
   /** Downloads the `games/<slug>.zip` the export node wrote. */
   onDownload: () => void;
-  /** Stages the agent's first turn and opens the project overview. */
+  /** Stages the first turn and opens a project chat tab. */
   onPlayTest: () => void;
   /** Runs the graph again. */
   onRegenerate: () => void;

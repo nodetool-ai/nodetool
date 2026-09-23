@@ -171,6 +171,8 @@ type ChatViewProps = {
    * with its own new-chat button leave it off. Defaults to off.
    */
   showNewChatButton?: boolean;
+  /** Workspace chat keeps its current project's documents in the right rail. */
+  projectDocumentsSidebar?: React.ReactNode;
   /**
    * Bind thread-scoped store reads (todos) to this thread instead of the
    * store's current one. Pass it when the surface renders a specific thread
@@ -231,6 +233,7 @@ const ChatView = ({
   hideModePicker,
   hideModelPicker,
   showNewChatButton = false,
+  projectDocumentsSidebar,
   threadId
 }: ChatViewProps) => {
   const theme = useTheme();
@@ -310,9 +313,12 @@ const ChatView = ({
   });
   const clearError = useGlobalChatStore((state) => state.clearError);
 
-  // Right rails use fixed widths. Below `md` they leave the conversation
-  // almost no room, so they move behind the segmented picker instead.
-  const railsFit = useMediaQuery(theme.breakpoints.up("md"));
+  // Keep documents visible beside chat from `md` upward. Task rails need
+  // more room when documents are present, so they use the picker until `xl`.
+  const documentsFit = useMediaQuery(theme.breakpoints.up("md"));
+  const railsFit = useMediaQuery(
+    theme.breakpoints.up(projectDocumentsSidebar ? "xl" : "md")
+  );
   // Copying a conversation is a desktop gesture and the button crowds the
   // phone header. New chat stays: the composer has no new-chat action.
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -329,15 +335,18 @@ const ChatView = ({
   const [mobileRail, setMobileRail] = useState<MobileRail>("chat");
   const mobileRails = useMemo<MobileRail[]>(() => {
     const rails: MobileRail[] = ["chat"];
-    if (todos.length > 0) {
+    if (projectDocumentsSidebar && !documentsFit) {
+      rails.push("documents");
+    }
+    if (!railsFit && todos.length > 0) {
       rails.push("todos");
     }
-    if (hasTaskRail) {
+    if (!railsFit && hasTaskRail) {
       rails.push("task");
     }
     return rails;
-  }, [todos.length, hasTaskRail]);
-  const showMobileRails = !railsFit && mobileRails.length > 1;
+  }, [todos.length, hasTaskRail, projectDocumentsSidebar, documentsFit, railsFit]);
+  const showMobileRails = mobileRails.length > 1;
   // A rail whose content went away leaves the conversation hidden behind an
   // option that is no longer offered.
   useEffect(() => {
@@ -496,6 +505,7 @@ const ChatView = ({
             sx={{ flex: 1, minHeight: 0, width: "100%" }}
           >
             {activeMobileRail === "todos" && <TodoSidebar todos={todos} />}
+            {activeMobileRail === "documents" && projectDocumentsSidebar}
             {activeMobileRail === "task" && currentTaskUpdate && (
               <TaskUpdateSidebar taskUpdate={currentTaskUpdate} />
             )}
@@ -537,6 +547,7 @@ const ChatView = ({
         <TaskUpdateSidebar taskUpdate={currentTaskUpdate} />
       )}
       {showTodoSidebar && <TodoSidebar todos={todos} />}
+      {documentsFit && projectDocumentsSidebar}
     </div>
   );
 };

@@ -1,7 +1,6 @@
 /**
  * The storyboard flow for a host that is not already a board editor — the New
- * Project tab, which swaps itself for the flow once an entry card creates the
- * board (PRD § 6.1).
+ * guided flow tab opened when an entry card creates the board (PRD § 6.1).
  *
  * A storyboard tab and the Studio page already run the board's server sync and
  * agent bridge, so they render `SetupFlow` themselves. This host adds them, so

@@ -694,21 +694,34 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
             s.keyframe_versions?.length === 1
               ? s.keyframe_versions[0]
               : undefined;
+          // Older boards also left a sole finished clip unselected.
+          const firstClip =
+            merged.setupStage === "done" &&
+            !s.clip &&
+            s.clip_versions?.length === 1 &&
+            s.clip_versions[0]?.asset_id
+              ? s.clip_versions[0]
+              : undefined;
           const restored: Shot = {
             ...s,
             status:
-              s.status === "keyframe_generating"
-                ? firstStill
-                  ? ("keyframe_ready" as const)
-                  : ("planned" as const)
-                : s.status === "clip_generating"
-                  ? ("keyframe_ready" as const)
-                  : firstStill && s.status === "planned"
+              firstClip
+                ? ("rendered" as const)
+                : s.status === "keyframe_generating"
+                  ? firstStill
                     ? ("keyframe_ready" as const)
-                    : s.status
+                    : ("planned" as const)
+                  : s.status === "clip_generating"
+                    ? ("keyframe_ready" as const)
+                    : firstStill && s.status === "planned"
+                      ? ("keyframe_ready" as const)
+                      : s.status
           };
           if (firstStill) {
             restored.keyframe = firstStill;
+          }
+          if (firstClip) {
+            restored.clip = firstClip;
           }
           return restored;
         }),

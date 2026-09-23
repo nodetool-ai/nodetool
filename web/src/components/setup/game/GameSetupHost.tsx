@@ -1,7 +1,7 @@
 /**
  * The Game flow for a host that is not already the node editor — the New
- * Project tab, which swaps itself for the flow once the Game entry card
- * creates the workflow (game-prd § 4, D30: the card is on the workspace
+ * guided flow tab opened when the Game entry card creates the workflow
+ * (game-prd § 4, D30: the card is on the workspace
  * surface, not in Studio).
  *
  * This host supplies the one thing the flow cannot read off the document or

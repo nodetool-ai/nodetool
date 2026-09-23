@@ -19,7 +19,6 @@ import { OptionCardGrid } from "../OptionCardGrid";
 import type { OptionCardItem } from "../OptionCardGrid";
 import { SETUP_STILL_GROUPS, setupStill } from "../stills";
 import { VIDEO_FORMATS, videoFormatById, tracksForFormat } from "./formats";
-import { DirectorModelPicker } from "./DirectorModelPicker";
 
 /** "15s · 16:9 · 30fps" — the numbers the card decides, said out loud. */
 const formatSpec = (durationMs: number, aspect: string, fps: number): string =>
@@ -91,10 +90,6 @@ const FormatStepInternal: React.FC = () => {
         onSelect={handleSelect}
         mode="single-select"
       />
-      {/* The beats are drafted by a model, so the step that starts that run is
-          where the model is chosen (F14: a step never reaches a button whose
-          model this server cannot serve). */}
-      <DirectorModelPicker />
     </FlexColumn>
   );
 };

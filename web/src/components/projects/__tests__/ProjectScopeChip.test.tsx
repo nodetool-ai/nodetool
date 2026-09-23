@@ -13,9 +13,11 @@ const projects = [
 ];
 
 const openProject = jest.fn();
+const openHome = jest.fn();
 jest.mock("../../../hooks/useProjects", () => ({
   useProjects: () => ({ data: projects }),
-  useOpenProject: () => openProject
+  useOpenProject: () => openProject,
+  useOpenNewProjectTab: () => openHome
 }));
 
 const openTab = jest.fn();
@@ -43,17 +45,11 @@ describe("ProjectScopeChip", () => {
     expect(screen.getByRole("button", { name: "Project Aurora" })).toBeInTheDocument();
   });
 
-  it("opens the overview into the same group", async () => {
+  it("opens editor home", async () => {
     renderChip();
     await userEvent.click(screen.getByRole("button", { name: "Project Aurora" }));
-    await userEvent.click(screen.getByText("Open overview"));
-    expect(openTab).toHaveBeenCalledWith({
-      type: "project",
-      ref: "p1",
-      mode: "view",
-      title: "Aurora",
-      projectId: "p1"
-    });
+    await userEvent.click(screen.getByText("Open editor home"));
+    expect(openHome).toHaveBeenCalledTimes(1);
   });
 
   it("closes the group", async () => {

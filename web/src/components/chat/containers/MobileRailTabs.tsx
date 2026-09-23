@@ -1,5 +1,5 @@
 /**
- * Segmented picker that gives the right rails somewhere to live below `md`.
+ * Segmented picker that gives the right rails somewhere to live on narrow screens.
  *
  * The todo and task rails have fixed widths, so on a phone they used to drop
  * out of the layout entirely and their content was unreachable. Here they take
@@ -9,10 +9,11 @@ import { memo } from "react";
 
 import { ToggleGroup, ToggleOption } from "../../ui_primitives";
 
-export type MobileRail = "chat" | "todos" | "task";
+export type MobileRail = "chat" | "documents" | "todos" | "task";
 
 const RAIL_LABELS: Record<MobileRail, string> = {
   chat: "Chat",
+  documents: "Documents",
   todos: "Tasks",
   task: "Task"
 };

@@ -215,21 +215,17 @@ const settingsRailSx = {
   }
 } as const;
 
-/** Four cards across at desktop width, down to one on a phone. */
+/** Let cards follow the width of their scene, including narrow split views. */
 const shotGridSx = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 36ch), 1fr))",
   gap: SPACING.xl,
-  alignItems: "start",
-  "@media (max-width: 1280px)": {
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))"
-  },
-  "@media (max-width: 960px)": {
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))"
-  },
-  "@media (max-width: 600px)": {
-    gridTemplateColumns: "minmax(0, 1fr)"
-  }
+  alignItems: "start"
+} as const;
+
+const sceneSx = {
+  ...shotGridSx,
+  minWidth: 0
 } as const;
 
 /**
@@ -679,6 +675,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const hasRenderedShot = useMemo(() => shots.some(isAssemblableShot), [shots]);
   const assemblableShotCount = shots.filter(isAssemblableShot).length;
   const skippedAssemblyCount = shots.length - assemblableShotCount;
+  const hasUnselectedClip = shots.some(
+    (shot) => !shot.clip && shot.clip_versions?.some((version) => !!version.asset_id)
+  );
   const linkedTimeline = useTimeline(timelineId);
   const replacedClipCount = linkedTimeline.data
     ? countOwnedClips(linkedTimeline.data.clips, {
@@ -1410,17 +1409,29 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             }
           />
         ) : (
-          <Box
+          <FlexRow
             ref={gridRef}
             role="group"
             aria-label="Shots"
             onKeyDown={handleGridKeyDown}
-            sx={shotGridSx}
+            align="flex-start"
+            wrap
+            gap={SPACING.xl}
+            sx={{ minWidth: 0 }}
           >
             {sceneGroups.map((group, sceneIndex) => (
               // A legacy board has one group with no scene record; it gets the
               // implicit header, and no `Scene` is written to get it.
-              <React.Fragment key={group.sceneId ?? "unscened"}>
+              <Box
+                key={group.sceneId ?? "unscened"}
+                role="group"
+                aria-label={`Scene ${sceneIndex + 1}`}
+                sx={{
+                  ...sceneSx,
+                  flex: group.shots.length > 1 ? "1 1 100%" : "1 1 36ch",
+                  maxWidth: group.shots.length === 1 ? "80ch" : undefined
+                }}
+              >
                 <SceneHeader
                   number={sceneIndex + 1}
                   slugline={group.scene?.slugline || undefined}
@@ -1471,9 +1482,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     )}
                   </React.Fragment>
                 ))}
-              </React.Fragment>
+              </Box>
             ))}
-          </Box>
+          </FlexRow>
         )}
 
         {/* What comes after the board (PRD § 7.4). Both actions already exist
@@ -1496,6 +1507,13 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     : "Create timeline"}
               </EditorButton>
             </FlexRow>
+            {!hasRenderedShot && (
+              <Caption color="secondary">
+                {hasUnselectedClip
+                  ? "Set a clip take as current to create a timeline."
+                  : "Render a clip to create a timeline."}
+              </Caption>
+            )}
             {assembleError && (
               <Caption role="alert" color="error">
                 {assembleError}

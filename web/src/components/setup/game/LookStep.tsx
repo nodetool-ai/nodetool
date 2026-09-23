@@ -39,7 +39,11 @@ import {
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import type { OnboardingCapability } from "../../../stores/ProviderOnboardingStore";
 import ImageModelSelect from "../../properties/ImageModelSelect";
-import type { ImageModelValue } from "../../../stores/ApiTypes";
+import MusicModelSelect from "../../properties/MusicModelSelect";
+import type {
+  ImageModelValue,
+  MusicModelValue
+} from "../../../stores/ApiTypes";
 import type { ImageModelTask } from "../../../hooks/useModelsByProvider";
 import { OptionCardGrid } from "../OptionCardGrid";
 import type { OptionCardItem } from "../OptionCardGrid";
@@ -375,13 +379,38 @@ const ModelTileRow: React.FC<{ row: GameModelRow }> = ({ row }) => {
           <Caption component="span">{row.emptyMessage}</Caption>
         </AlertBanner>
       ) : (
-        <OptionCardGrid
-          label={row.label}
-          options={tiles}
-          selectedId={row.selectedId}
-          onSelect={row.onSelect}
-          minColumnWidth={220}
-        />
+        row.label === "Music model" ? (
+          <FlexRow gap={GAP.normal} align="center">
+            {canOfferPlaceholder ? (
+              <EditorButton
+                variant={
+                  row.selectedId === GAME_PLACEHOLDER_TILE_ID
+                    ? "contained"
+                    : "outlined"
+                }
+                onClick={() => row.onSelect(GAME_PLACEHOLDER_TILE_ID)}
+              >
+                {row.placeholderLabel}
+              </EditorButton>
+            ) : null}
+            {row.status === "ready" && row.tiles.length > 0 ? (
+              <MusicModelSelect
+                value={splitTileId(row.selectedId)?.id ?? ""}
+                onChange={(model: MusicModelValue) =>
+                  row.onSelect(`${model.provider}:${model.id}`)
+                }
+              />
+            ) : null}
+          </FlexRow>
+        ) : (
+          <OptionCardGrid
+            label={row.label}
+            options={tiles}
+            selectedId={row.selectedId}
+            onSelect={row.onSelect}
+            minColumnWidth={220}
+          />
+        )
       )}
     </FlexColumn>
   );

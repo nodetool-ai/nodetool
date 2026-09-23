@@ -51,8 +51,6 @@ const renderTab = (overrides: Partial<React.ComponentProps<typeof WorkspaceTabIt
         isEditing={false}
         canRename={true}
         dropPosition={null}
-        typeColor="#fff"
-        typeGlyph="◆"
         {...handlers}
         {...overrides}
       />
@@ -62,6 +60,12 @@ const renderTab = (overrides: Partial<React.ComponentProps<typeof WorkspaceTabIt
 };
 
 describe("WorkspaceTabItem rename input", () => {
+  it("uses a text label without a decorative glyph", () => {
+    renderTab();
+    expect(screen.getByRole("tab", { name: /My Workflow/ })).toBeInTheDocument();
+    expect(screen.getByRole("tab").querySelector(".glyph")).toBeNull();
+  });
+
   it("shows the full tab name on hover well before the chrome delay", async () => {
     jest.useFakeTimers();
     try {
@@ -169,7 +173,6 @@ describe("WorkspaceTabItem rename input", () => {
     } as WorkspaceTab;
     renderTab({
       tab: projectTab,
-      inProject: false,
       canRename: tabCanRename("project")
     });
 
@@ -177,7 +180,6 @@ describe("WorkspaceTabItem rename input", () => {
     expect(screen.getByText("Home")).toBeInTheDocument();
     expect(screen.queryByText("Marketing recipes")).not.toBeInTheDocument();
     expect(homeTab.className).toContain("is-home");
-    expect(homeTab.className).not.toContain("in-project");
   });
 
   it("offers Rename in the tab menu when the tab can be renamed", async () => {

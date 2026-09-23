@@ -26,6 +26,7 @@ import {
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useShallow } from "zustand/react/shallow";
+import { useQuery } from "@tanstack/react-query";
 import { useLiveRunStore } from "../../stores/LiveRunStore";
 import ContextMenus from "../context_menus/ContextMenus";
 import CodeGenDialogHost from "../code_gen/CodeGenDialogHost";
@@ -83,6 +84,8 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkflow } from "../../serverState/useWorkflow";
+import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
+import { trpcClient } from "../../trpc/client";
 import { Text, LoadingSpinner } from "../ui_primitives";
 import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
@@ -228,6 +231,12 @@ const ReactFlowWrapper = ({
 
   const [isSelecting] = useState(false);
   const [showFirstWorkflowGuide, setShowFirstWorkflowGuide] = useState(false);
+  const { data: savedWorkflows } = useQuery({
+    queryKey: workflowListQueryKey(1),
+    queryFn: () => trpcClient.workflows.list.query({ limit: 1 }),
+    enabled: nodes.length === 0 || showFirstWorkflowGuide,
+    staleTime: 60_000
+  });
   const [showPortLabels, setShowPortLabels] = useState(false);
   const [suppressNodeDrivenEdgeSelection, setSuppressNodeDrivenEdgeSelection] =
     useState(false);
@@ -1239,6 +1248,9 @@ const ReactFlowWrapper = ({
       />
       {(nodes.length === 0 || showFirstWorkflowGuide) && (
         <FirstWorkflowGuide
+          hasSavedWorkflows={
+            savedWorkflows ? savedWorkflows.workflows.length > 0 : undefined
+          }
           started={showFirstWorkflowGuide}
           readiness={firstWorkflowReadiness}
           onStart={handleStartFirstWorkflow}

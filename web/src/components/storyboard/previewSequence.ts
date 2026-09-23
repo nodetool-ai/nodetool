@@ -12,6 +12,7 @@ import {
   makeSequence,
   type TimelineSequence
 } from "@nodetool-ai/timeline";
+import type { Shot } from "@nodetool-ai/protocol";
 import type { StoryboardBoard } from "../../stores/storyboard/StoryboardStore";
 
 export interface StoryboardPreview {
@@ -27,6 +28,8 @@ const LONG_EDGE = 1080;
 
 /** Round to an even number — codecs and the compositor dislike odd sizes. */
 const even = (n: number): number => Math.max(2, Math.round(n / 2) * 2);
+
+const previewClip = (shot: Shot) => shot.clip ?? shot.clip_versions?.at(-1);
 
 /**
  * Frame size for an aspect ratio written "W:H". Landscape and square boards
@@ -58,7 +61,7 @@ export function previewSignature(board: StoryboardBoard | undefined): string {
     .sort((a, b) => a.index - b.index)
     .map(
       (s) =>
-        `${s.id}:${s.clip?.asset_id ?? ""}:${s.keyframe?.asset_id ?? ""}:${
+        `${s.id}:${previewClip(s)?.asset_id ?? ""}:${s.keyframe?.asset_id ?? ""}:${
           s.duration_seconds ?? ""
         }`
     )
@@ -75,7 +78,10 @@ export function buildPreviewSequence(
 ): StoryboardPreview | null {
   const built = buildStoryboardPreviewTimeline({
     boardId: board.id,
-    shots: board.shots
+    shots: board.shots.map((shot) => ({
+      ...shot,
+      clip: previewClip(shot) ?? null
+    }))
   });
   if (built.clips.length === 0) {
     return null;

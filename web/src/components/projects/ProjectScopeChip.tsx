@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { ContextMenu, MenuItemPrimitive } from "../ui_primitives";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
-import { useOpenProject, useProjects } from "../../hooks/useProjects";
+import { useOpenNewProjectTab, useOpenProject, useProjects } from "../../hooks/useProjects";
 import { PROJECT_GLYPH } from "./projectIdentity";
 
 interface ProjectScopeChipProps {
@@ -13,30 +13,24 @@ interface ProjectScopeChipProps {
 
 /**
  * The tab bar's project scope: the name the grouped tabs belong to, and the
- * menu that switches project, opens the overview, or closes the group.
+ * menu that switches project, opens editor home, or closes the group.
  */
 const ProjectScopeChip = ({ projectId, fallbackName }: ProjectScopeChipProps) => {
   const anchorRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const { data: projects } = useProjects();
   const openProject = useOpenProject();
-  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const openHome = useOpenNewProjectTab();
   const closeProject = useWorkspaceTabsStore((state) => state.closeProject);
 
   const project = projects?.find((entry) => entry.id === projectId);
   const name = project?.name ?? fallbackName;
   const close = useCallback(() => setOpen(false), []);
 
-  const handleOpenOverview = useCallback(() => {
+  const handleOpenHome = useCallback(() => {
     close();
-    openTab({
-      type: "project",
-      ref: projectId,
-      mode: "view",
-      title: name,
-      projectId
-    });
-  }, [close, name, openTab, projectId]);
+    openHome();
+  }, [close, openHome]);
 
   return (
     <>
@@ -64,9 +58,9 @@ const ProjectScopeChip = ({ projectId, fallbackName }: ProjectScopeChipProps) =>
         compact
       >
         <MenuItemPrimitive
-          label="Open overview"
+          label="Open editor home"
           compact
-          onClick={handleOpenOverview}
+          onClick={handleOpenHome}
         />
         <MenuItemPrimitive
           label="Close group"

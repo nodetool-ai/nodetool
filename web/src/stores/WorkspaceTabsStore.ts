@@ -45,6 +45,8 @@ export type WorkspaceTabType =
   | "project-list"
   // A project's overview. `ref` is a project id (trpc.projects.*).
   | "project"
+  // An in-progress guided flow. Its draft document and target travel with the tab.
+  | "guided-flow"
   // The surface a project is started from. One per workspace — `ref` is the
   // constant below, and the tab closes once the project it described exists.
   | "project-new";
@@ -66,6 +68,17 @@ export interface WorkspaceTab {
    * never claims membership in a project that does not exist.
    */
   projectId?: string;
+  setupTarget?: GuidedFlowTarget | null;
+}
+
+export interface GuidedFlowTarget {
+  kind: "entity" | "storyboard" | "video" | "script" | "workflow" | "game";
+  id: string;
+  projectId: string;
+  name: string;
+  ownsProject: boolean;
+  initialAssetId?: string;
+  initialDescriptor?: string;
 }
 
 export const isGlobalWorkspaceTab = (tab: WorkspaceTab): boolean =>
@@ -104,6 +117,7 @@ interface OpenTabInput {
    * through. Omitted leaves an existing tab's project alone.
    */
   projectId?: string;
+  setupTarget?: GuidedFlowTarget;
 }
 
 /** A saved tab reference that the server validated before restoration. */
@@ -157,14 +171,15 @@ interface WorkspaceTabsState {
   setMode: (id: string, mode: WorkspaceTabMode) => void;
   toggleMode: (id: string) => void;
   setTitle: (ref: string, type: WorkspaceTabType, title: string) => void;
+  setGuidedFlowTarget: (ref: string, target: GuidedFlowTarget | null) => void;
   moveTab: (id: string, toIndex: number) => void;
   getActiveTab: () => WorkspaceTab | null;
   setActiveProjectId: (projectId: string | null) => void;
   resolvePersonalProject: (projectId: string) => void;
   setSelectedChatThread: (projectId: string | null, threadId: string) => void;
   /**
-   * Make `input.id` active. A first opening creates only its overview. Later
-   * openings restore the saved session, narrowed by validated `documents`.
+   * Make `input.id` active and restore its saved tabs, narrowed by validated
+   * `documents`. Guided tabs keep their own draft targets in the session.
    */
   openProject: (input: OpenProjectInput) => void;
   /** Close every tab belonging to a project, and leave it if it was active. */
@@ -380,7 +395,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
       personalProjectId: null,
       projectSessions: {},
 
-      openTab: ({ type, ref, mode, title, projectId }) => {
+      openTab: ({ type, ref, mode, title, projectId, setupTarget }) => {
         const id = tabId(type, ref);
         const existing = get().tabs.find((t) => t.id === id);
         const project =
@@ -425,6 +440,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
                         ...t,
                         mode: mode ?? t.mode,
                         title: title ?? t.title,
+                        setupTarget: setupTarget ?? t.setupTarget,
                         projectId:
                           projectId === undefined ? t.projectId : project
                       }
@@ -445,6 +461,9 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
         };
         if (project) {
           tab.projectId = project;
+        }
+        if (setupTarget) {
+          tab.setupTarget = setupTarget;
         }
         set((state) => ({
           tabs: gatherProjectTabs([...state.tabs, tab], state.activeProjectId),
@@ -585,6 +604,15 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           };
         }),
 
+      setGuidedFlowTarget: (ref, target) =>
+        set((state) => ({
+          tabs: state.tabs.map((tab) =>
+            tab.type === "guided-flow" && tab.ref === ref
+              ? { ...tab, setupTarget: target, title: target?.name ?? "New flow" }
+              : tab
+          )
+        })),
+
       moveTab: (id, toIndex) =>
         set((state) => {
           const from = state.tabs.findIndex((t) => t.id === id);
@@ -708,21 +736,13 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           )
         })),
 
-      openProject: ({ id, name, documents }) =>
+      openProject: ({ id, documents }) =>
         set((state) => {
           const previous = sessionFor(state.projectSessions, id);
           const hasSession = Object.prototype.hasOwnProperty.call(
             state.projectSessions,
             id
           );
-          const overview: WorkspaceTab = {
-            id: tabId("project", id),
-            type: "project",
-            ref: id,
-            mode: "view",
-            title: name,
-            projectId: id
-          };
           const owned = new Map(
             state.tabs
               .filter((tab) => tab.projectId === id)
@@ -736,31 +756,31 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           );
           const restored = hasSession
             ? previous.tabIds
-                .map((tabId) =>
-                  tabId === overview.id
-                    ? overview
-                    : documents === undefined
-                      ? owned.get(tabId)
-                      : available.has(tabId)
-                        ? owned.get(tabId)
-                        : undefined
+                .map((savedTabId) =>
+                  documents === undefined
+                    ? owned.get(savedTabId)
+                    : owned.get(savedTabId)?.type === "guided-flow" || available.has(savedTabId)
+                      ? owned.get(savedTabId)
+                      : undefined
                 )
-                .filter((tab): tab is WorkspaceTab => tab !== undefined)
-            : [overview];
+                .filter(
+                  (tab): tab is WorkspaceTab =>
+                    tab !== undefined && tab.type !== "project"
+                )
+            : [];
           const finalProjectTabs = restored;
           const finalIds = new Set(finalProjectTabs.map((tab) => tab.id));
           const others = state.tabs.filter(
-            (t) => t.projectId !== id && !finalIds.has(t.id)
+            (t) => t.type !== "project" && t.projectId !== id && !finalIds.has(t.id)
           );
           // The group lands where its first member already sat, so opening a
           // project the user has tabs from does not reshuffle the bar.
           const at = state.tabs.findIndex((t) => finalIds.has(t.id));
           const head = at === -1 ? others.length : Math.min(at, others.length);
-          const activeTabId = hasSession
-            ? previous.activeTabId && finalIds.has(previous.activeTabId)
+          const activeTabId =
+            previous.activeTabId && finalIds.has(previous.activeTabId)
               ? previous.activeTabId
-              : null
-            : overview.id;
+              : null;
           return {
             tabs: gatherProjectTabs(
               [

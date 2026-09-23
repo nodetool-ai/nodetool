@@ -243,8 +243,7 @@ export const projectNextStep = (
 /**
  * `$4.12`, and what the ledger could not price rather than a silent zero. A
  * `partial` ledger read means rows were capped out of the sum, so the figure
- * is a lower bound — marked with a leading `≥`, the same convention
- * {@link ProjectSpendBar} draws.
+ * is a lower bound, marked with a leading `≥`.
  */
 export const formatSpend = (spend: ProjectDetail["spend"]): string => {
   const amount = `${spend.partial ? "≥" : ""}$${spend.totalUsd.toFixed(2)}`;

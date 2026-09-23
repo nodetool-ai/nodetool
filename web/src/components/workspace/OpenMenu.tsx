@@ -12,7 +12,6 @@ import {
   LoadingSpinner
 } from "../ui_primitives";
 import { useExampleStoryboards } from "../../hooks/storyboard/useStoryboards";
-import GuidedFlowProjectDialog from "../setup/GuidedFlowProjectDialog";
 import {
   TEXT_FILE_TEMPLATES,
   useNewDocumentCatalog,
@@ -37,9 +36,8 @@ const MenuSectionLabel = ({ children }: { children: string }) => (
 
 /**
  * The `[+]` menu for the workspace tab bar. Two sections: the guided
- * creation flows (one click asks where the flow should live — the open
- * project or a project made for it — then creates the document at stage
- * `idea` and opens its tab on the flow) and the blank documents (as before).
+ * creation flows (one click creates in the selected project and opens its
+ * flow tab) and blank documents.
  * Starting a project lives on the project selector to the left of New.
  */
 const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
@@ -57,18 +55,15 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
     installStoryboardExample,
     creating
   } = useNewDocumentCatalog({}, close);
-  const { starters, starting, pendingDestination, currentProject, pickDestination, cancelDestination } =
-    useGuidedFlowStarters(close);
+  const { starters, starting } = useGuidedFlowStarters(close);
 
-  const busy =
-    creating !== null || starting !== null || pendingDestination !== null;
+  const busy = creating !== null || starting !== null;
 
   const { data: exampleData, isLoading: examplesLoading } =
     useExampleStoryboards(open && view === "storyboards");
   const exampleStoryboards = useMemo(() => exampleData ?? [], [exampleData]);
 
   return (
-    <>
     <Popover
       open={open}
       anchorEl={anchorEl}
@@ -180,15 +175,6 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
         )}
       </FlexColumn>
     </Popover>
-    <GuidedFlowProjectDialog
-      open={pendingDestination !== null}
-      flowTitle={pendingDestination?.title ?? ""}
-      currentProjectName={currentProject.name}
-      busy={starting !== null}
-      onPick={pickDestination}
-      onClose={cancelDestination}
-    />
-    </>
   );
 };
 

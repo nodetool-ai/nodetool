@@ -18,7 +18,7 @@ import {
   VideoPlayer
 } from "../ui_primitives";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { creationProjectId, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { openPageTab } from "../workspace/openPageTab";
 import { useGuidedFlowStarters } from "../workspace/useGuidedFlowStarters";
 import { TutorialCard } from "./TutorialCard";
@@ -284,7 +284,7 @@ const TutorialsPage: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const stacked = useMediaQuery(theme.breakpoints.down("md"));
   const bodyRef = useRef<HTMLDivElement>(null);
-  const { starters, currentProject } = useGuidedFlowStarters();
+  const { starters } = useGuidedFlowStarters();
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
 
@@ -307,23 +307,24 @@ const TutorialsPage: React.FC = () => {
 
     setOpeningTask(true);
     try {
+      const projectId = creationProjectId();
       if (launch.kind === "guided-flow") {
         const starter = starters.find((entry) => entry.id === launch.flow);
         if (!starter) {
           throw new Error(`No starter is registered for ${launch.flow}`);
         }
-        await starter.start(currentProject.id);
+        await starter.start(projectId);
         navigate("/workspace");
       } else if (launch.kind === "chat") {
         const threadId = await createNewThread(undefined, undefined, {
-          projectId: currentProject.id
+          projectId
         });
         openTab({
           type: "chat",
           ref: threadId,
           mode: "view",
           title: "New chat",
-          projectId: currentProject.id
+          projectId
         });
         navigate("/workspace");
       } else {
@@ -335,7 +336,6 @@ const TutorialsPage: React.FC = () => {
   }, [
     active.launch,
     createNewThread,
-    currentProject.id,
     navigate,
     openTab,
     starters

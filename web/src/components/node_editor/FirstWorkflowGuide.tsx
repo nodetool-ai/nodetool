@@ -22,6 +22,7 @@ interface FirstWorkflowReadiness {
 }
 
 interface FirstWorkflowGuideProps {
+  readonly hasSavedWorkflows: boolean | undefined;
   readonly started: boolean;
   readonly readiness: FirstWorkflowReadiness;
   readonly onStart: () => void;
@@ -47,61 +48,76 @@ const ReadinessItem = ({
 );
 
 const FirstWorkflowGuide = ({
+  hasSavedWorkflows,
   started,
   readiness,
   onStart,
   onChooseOwn,
   onClose
-}: FirstWorkflowGuideProps) => (
-  <Surface
-    aria-label="First workflow guide"
-    bordered
-    elevation={3}
-    padding={SPACING.xl}
-    sx={{
-      position: "absolute",
-      top: SPACING.xxl,
-      left: "50%",
-      transform: "translateX(-50%)",
-      zIndex: Z_INDEX.overlay
-    }}
-  >
-    <FlexColumn gap={SPACING.lg}>
-      <FlexRow align="start" justify="space-between" gap={SPACING.lg}>
-        <FlexColumn gap={SPACING.xs}>
-          <Text size="big">Build your first useful workflow</Text>
-          <Caption>
-            Connect a text input to an output, run it, and see the result. This
-            starter needs no model or provider setup.
-          </Caption>
-        </FlexColumn>
-        {started ? <CloseButton onClick={onClose} tooltip="Close guide" /> : null}
-      </FlexRow>
+}: FirstWorkflowGuideProps) => {
+  if (hasSavedWorkflows !== false) {
+    return null;
+  }
 
-      {started ? (
-        <FlexColumn component="ol" gap={SPACING.sm} sx={{ m: 0, p: 0 }}>
-          <ReadinessItem complete={readiness.input}>Input added</ReadinessItem>
-          <ReadinessItem complete={readiness.output}>Output added</ReadinessItem>
-          <ReadinessItem complete={readiness.connection}>
-            Input connected to output
-          </ReadinessItem>
-          <ReadinessItem complete={readiness.saved}>Workflow saved</ReadinessItem>
-          <ReadinessItem complete={readiness.run}>
-            Workflow run completed
-          </ReadinessItem>
-        </FlexColumn>
-      ) : (
-        <FlexRow gap={SPACING.md} wrap="wrap">
-          <EditorButton variant="contained" onClick={onStart}>
-            Add the two-node starter
-          </EditorButton>
-          <EditorButton variant="outlined" onClick={onChooseOwn}>
-            Choose my own nodes
-          </EditorButton>
+  return (
+    <Surface
+      aria-label="First workflow guide"
+      bordered
+      elevation={3}
+      padding={SPACING.xl}
+      sx={{
+        position: "absolute",
+        top: SPACING.xxl,
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: Z_INDEX.overlay
+      }}
+    >
+      <FlexColumn gap={SPACING.lg}>
+        <FlexRow align="flex-start" justify="space-between" gap={SPACING.lg}>
+          <FlexColumn gap={SPACING.xs}>
+            <Text size="big">Build your first useful workflow</Text>
+            <Caption>
+              Connect a text input to an output, run it, and see the result.
+              This starter needs no model or provider setup.
+            </Caption>
+          </FlexColumn>
+          {started ? (
+            <CloseButton onClick={onClose} tooltip="Close guide" />
+          ) : null}
         </FlexRow>
-      )}
-    </FlexColumn>
-  </Surface>
-);
+
+        {started ? (
+          <FlexColumn component="ol" gap={SPACING.sm} sx={{ m: 0, p: 0 }}>
+            <ReadinessItem complete={readiness.input}>
+              Input added
+            </ReadinessItem>
+            <ReadinessItem complete={readiness.output}>
+              Output added
+            </ReadinessItem>
+            <ReadinessItem complete={readiness.connection}>
+              Input connected to output
+            </ReadinessItem>
+            <ReadinessItem complete={readiness.saved}>
+              Workflow saved
+            </ReadinessItem>
+            <ReadinessItem complete={readiness.run}>
+              Workflow run completed
+            </ReadinessItem>
+          </FlexColumn>
+        ) : (
+          <FlexRow gap={SPACING.md} wrap>
+            <EditorButton variant="contained" onClick={onStart}>
+              Add the two-node starter
+            </EditorButton>
+            <EditorButton variant="outlined" onClick={onChooseOwn}>
+              Choose my own nodes
+            </EditorButton>
+          </FlexRow>
+        )}
+      </FlexColumn>
+    </Surface>
+  );
+};
 
 export default FirstWorkflowGuide;

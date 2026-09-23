@@ -17,6 +17,16 @@
 import React, { memo, useMemo } from "react";
 import type { WorkflowSetupPlan } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import type { WorkflowSetupRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import LanguageModelSelect from "../../properties/LanguageModelSelect";
+import ImageModelSelect from "../../properties/ImageModelSelect";
+import VideoModelSelect from "../../properties/VideoModelSelect";
+import TTSModelSelect from "../../properties/TTSModelSelect";
+import type {
+  ImageModelValue,
+  LanguageModelValue,
+  TTSModelValue,
+  VideoModelValue
+} from "../../../stores/ApiTypes";
 
 import {
   AlertBanner,
@@ -223,6 +233,18 @@ const BuildDisclosure: React.FC<{
 /** One role's tile row, with the four states a model query can be in (F14). */
 const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
   const label = MODEL_ROLE_LABEL[role.role] ?? role.role;
+  const selection = role.selectedId?.split(":") ?? [];
+  const selectedProvider = selection.length > 1 ? selection[0] : undefined;
+  const selectedModel = selection.length > 1 ? selection.slice(1).join(":") : "";
+  const handleLanguageChange = (model: LanguageModelValue) =>
+    role.onSelect(`${model.provider}:${model.id}`);
+  const handleImageChange = (model: ImageModelValue) =>
+    role.onSelect(`${model.provider}:${model.id}`);
+  const handleVideoChange = (model: VideoModelValue) =>
+    role.onSelect(`${model.provider}:${model.id}`);
+  const handleAudioChange = (model: TTSModelValue) =>
+    role.onSelect(`${model.provider}:${model.id}`);
+
   return (
     <FlexColumn gap={GAP.normal}>
       <Text size="normal" component="h3">
@@ -280,13 +302,28 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
               </Caption>
             </AlertBanner>
           ) : null}
-          <OptionCardGrid
-            label={label}
-            options={role.tiles}
-            selectedId={role.selectedId}
-            onSelect={role.onSelect}
-            minColumnWidth={220}
-          />
+          {role.role === "language" ? (
+            <LanguageModelSelect
+              value={selectedModel}
+              provider={selectedProvider}
+              placeholder={`Select ${label.toLowerCase()}`}
+              onChange={handleLanguageChange}
+            />
+          ) : role.role === "image" ? (
+            <ImageModelSelect value={selectedModel} onChange={handleImageChange} />
+          ) : role.role === "video" ? (
+            <VideoModelSelect value={selectedModel} onChange={handleVideoChange} />
+          ) : role.role === "audio" ? (
+            <TTSModelSelect value={selectedModel} onChange={handleAudioChange} />
+          ) : (
+            <OptionCardGrid
+              label={label}
+              options={role.tiles}
+              selectedId={role.selectedId}
+              onSelect={role.onSelect}
+              minColumnWidth={220}
+            />
+          )}
         </>
       )}
     </FlexColumn>

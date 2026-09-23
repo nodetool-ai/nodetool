@@ -29,9 +29,6 @@ const WorkspaceFileSurface = React.lazy(
 const ProjectListSurface = React.lazy(
   () => import("../projects/ProjectListSurface")
 );
-const ProjectOverviewSurface = React.lazy(
-  () => import("../projects/ProjectOverviewSurface")
-);
 const NewProjectSurface = React.lazy(
   () => import("../projects/NewProjectSurface")
 );
@@ -94,7 +91,10 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
     case "project-list":
       return <ProjectListSurface />;
     case "project":
-      return <ProjectOverviewSurface refId={tab.ref} />;
+      // Old persisted overview tabs land on editor home.
+      return <NewProjectSurface />;
+    case "guided-flow":
+      return <NewProjectSurface flowRef={tab.ref} initialSetupTarget={tab.setupTarget} />;
     case "project-new":
       return <NewProjectSurface />;
     default: {

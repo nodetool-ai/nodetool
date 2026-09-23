@@ -1076,6 +1076,11 @@ const settleShotAsset = (
       .getBoard(context.boardId)
       ?.shots.find((item) => item.id === context.shotId);
     if (!shot) return;
+    // The first successful render is ready to use. Further variations remain
+    // takes until the creator chooses one.
+    if (!shot.clip && candidate.asset_id) {
+      storyboard.setShotClip(context.boardId, context.shotId, candidate);
+    }
     const versions = [...(shot.clip_versions ?? [])].sort((left, right) => {
       const leftIndex =
         "variationIndex" in left && typeof left.variationIndex === "number"
@@ -1089,9 +1094,10 @@ const settleShotAsset = (
     });
     storyboard.updateShot(context.boardId, context.shotId, {
       clip_versions: versions,
-      status:
-        context.acceptedShotStatus ??
-        (shot.clip ? "rendered" : shot.keyframe ? "keyframe_ready" : "planned")
+      status: shot.clip || candidate.asset_id
+        ? "rendered"
+        : context.acceptedShotStatus ??
+          (shot.keyframe ? "keyframe_ready" : "planned")
     });
     return;
   }
@@ -1169,10 +1175,15 @@ const settleShotAsset = (
     .getBoard(context.boardId)
     ?.shots.find((item) => item.id === context.shotId);
   if (shot) {
+    if (!shot.clip && clip.asset_id) {
+      storyboard.setShotClip(context.boardId, context.shotId, clip);
+    }
     storyboard.setShotStatus(
       context.boardId,
       context.shotId,
-      shot.clip ? "rendered" : shot.keyframe ? "keyframe_ready" : "planned"
+      shot.clip || clip.asset_id
+        ? "rendered"
+        : shot.keyframe ? "keyframe_ready" : "planned"
     );
   }
 };

@@ -37,10 +37,10 @@ jest.mock("../../../trpc/client", () => ({
 
 import ProjectSelector from "../ProjectSelector";
 
-const renderSelector = () =>
+const renderSelector = (inline = false) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <ProjectSelector />
+      <ProjectSelector inline={inline} />
     </ThemeProvider>
   );
 
@@ -59,6 +59,19 @@ beforeEach(() => {
 });
 
 describe("ProjectSelector", () => {
+  it("switches projects while keeping the home surface open in inline mode", async () => {
+    const user = userEvent.setup();
+    renderSelector(true);
+    await user.click(screen.getByRole("button", { name: "Selected project: Personal" }));
+    await user.click(screen.getByRole("menuitem", { name: "Aurora" }));
+
+    await waitFor(() => {
+      expect(useWorkspaceTabsStore.getState().activeProjectId).toBe("a");
+      expect(useWorkspaceTabsStore.getState().activeTabId).toBe("project-new:new");
+    });
+    expect(screen.getByRole("button", { name: "Selected project: Aurora" })).toBeInTheDocument();
+  });
+
   it("opens and selects a project with the keyboard", async () => {
     const user = userEvent.setup();
     renderSelector();
@@ -100,9 +113,7 @@ describe("ProjectSelector", () => {
     expect(useWorkspaceTabsStore.getState().personalProjectId).toBe(
       "personal:u1"
     );
-    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(
-      "project:personal:u1"
-    );
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBeNull();
   });
 
   it("names the selected project on the tab bar", () => {

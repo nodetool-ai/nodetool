@@ -191,9 +191,10 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const failed = shot.status === "failed" || !!failedJob?.mediaEdit;
   const isGenerating = isShotGenerating(shot);
   const stillRendering = shot.status === "keyframe_generating";
-  // Whether there is a clip to show at all: the player itself resolves the
-  // `asset://` locator, but the card renders the keyframe when it cannot.
-  const clipUri = useResolvedMediaUri(shot.clip);
+  // A rendered take can be previewed before the creator accepts it as the
+  // shot's clip. Use the latest take when there is no accepted clip yet.
+  const previewClip = shot.clip ?? shot.clip_versions?.at(-1);
+  const clipUri = useResolvedMediaUri(previewClip);
   // Download needs a URL, not a locator, and the still's is not otherwise
   // resolved here — the preview primitive resolves its own. Both forms of the
   // still come off one asset lookup: the full one is what a download and the
@@ -209,9 +210,8 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const shotName = `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`;
   // What the preview shows is what fullscreen opens: the clip once there is
   // one, the selected still before that.
-  const previewMedia: ImageRef | VideoRef | null = clipUri
-    ? (shot.clip as VideoRef)
-    : (shot.keyframe ?? null);
+  const previewMedia: ImageRef | VideoRef | null =
+    previewClip ?? shot.keyframe ?? null;
 
   const handleOpenViewer = useCallback(
     (event?: React.SyntheticEvent) => {
@@ -421,11 +421,15 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         }}
         onDoubleClick={previewMedia ? handleOpenViewer : undefined}
       >
-        {clipUri ? (
-          <VideoPlayer
-            locator={shot.clip}
-            poster={keyframeThumbUri ?? undefined}
-          />
+        {previewClip ? (
+          <Box sx={{ width: "100%", height: "100%" }} onClick={swallowClick}>
+            <VideoPlayer
+              locator={previewClip}
+              poster={keyframeThumbUri ?? undefined}
+              label={`${shotName} clip`}
+              prominentPlay
+            />
+          </Box>
         ) : hasKeyframe ? (
           // The card is a few hundred pixels wide and a board holds dozens of
           // them, so it shows the asset's thumbnail, not the full still, and
@@ -476,7 +480,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             previewMedia && !isGenerating ? handleOpenViewer : undefined
           }
           fullscreenLabel={
-            clipUri ? "View clip fullscreen" : "View still fullscreen"
+            previewClip ? "View clip fullscreen" : "View still fullscreen"
           }
           onDownload={downloadUri ? handleDownload : undefined}
           downloadLabel={downloadKind}
@@ -489,7 +493,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           sx={{
             position: "absolute",
             right: SPACING.md,
-            bottom: clipUri ? SPACING.xxxl : SPACING.md
+            bottom: previewClip ? SPACING.xxxl : SPACING.md
           }}
         />
         {isGenerating && (

@@ -35,11 +35,7 @@ jest.mock("../../../hooks/storyboard/useStoryboards", () => ({
 jest.mock("../useGuidedFlowStarters", () => ({
   useGuidedFlowStarters: () => ({
     starters: [],
-    starting: null,
-    pendingDestination: null,
-    currentProject: { id: "p-current", name: "Personal" },
-    pickDestination: jest.fn(),
-    cancelDestination: jest.fn()
+    starting: null
   })
 }));
 

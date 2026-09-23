@@ -184,6 +184,8 @@ export interface VideoPlayerProps {
   onDurationChange?: (duration: number) => void;
   /** Accessible name for the player. */
   label?: string;
+  /** Keep a large play action visible over an idle preview. */
+  prominentPlay?: boolean;
   className?: string;
 }
 
@@ -196,6 +198,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   onTimeUpdate,
   onDurationChange,
   label = "Video player",
+  prominentPlay = false,
   className
 }) => {
   const theme = useTheme();
@@ -348,6 +351,25 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
         onTimeUpdate={handleVideoTimeUpdate}
         onClick={handleTogglePlay}
       />
+      {prominentPlay && !isPlaying && (
+        <IconButton
+          aria-label="Play clip"
+          onClick={handleTogglePlay}
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            p: SPACING.md,
+            color: theme.vars.palette.common.white,
+            bgcolor: theme.vars.palette.common.black,
+            borderRadius: BORDER_RADIUS.circle,
+            "& svg": { fontSize: "2em" }
+          }}
+        >
+          <PlayArrowIcon />
+        </IconButton>
+      )}
       <div className="controls">
         <IconButton
           className="play-button"

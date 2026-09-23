@@ -152,6 +152,42 @@ describe("acceptKeyframeVersion", () => {
 });
 
 describe("media acceptance", () => {
+  it("restores a sole unselected clip take on an existing board", () => {
+    seed();
+    const board = useStoryboardStore.getState().getBoard(BOARD);
+    if (!board) {
+      throw new Error("Expected a seeded board");
+    }
+    useStoryboardStore.getState().loadBoard(BOARD, {
+      ...board,
+      setupStage: "done",
+      shots: [{ ...board.shots[0], clip_versions: [video(1)] }]
+    });
+
+    expect(getShot()).toMatchObject({
+      clip: video(1),
+      status: "rendered"
+    });
+  });
+
+  it("leaves multiple unselected clip takes for the creator to choose", () => {
+    seed();
+    const board = useStoryboardStore.getState().getBoard(BOARD);
+    if (!board) {
+      throw new Error("Expected a seeded board");
+    }
+    useStoryboardStore.getState().loadBoard(BOARD, {
+      ...board,
+      setupStage: "done",
+      shots: [
+        { ...board.shots[0], clip_versions: [video(1), video(2)] }
+      ]
+    });
+
+    expect(getShot()?.clip).toBeUndefined();
+    expect(getShot()?.clip_versions).toHaveLength(2);
+  });
+
   it("keeps a generated still inactive until the creator accepts it", () => {
     seed();
     const store = useStoryboardStore.getState();

@@ -28,7 +28,7 @@ export const useOpenNewProjectTab = () => {
         type: "project-new",
         ref: PROJECT_NEW_REF,
         mode: "view",
-        title: "New project"
+        title: "Home"
       }),
     [openTab]
   );
@@ -104,7 +104,7 @@ let latestRequestedId: string | null = null;
 
 type RestorableTabType = Exclude<
   WorkspaceTabType,
-  "skill" | "page" | "project-list" | "project" | "project-new"
+  "skill" | "page" | "project-list" | "project" | "project-new" | "guided-flow"
 >;
 
 const isRestorableType = (

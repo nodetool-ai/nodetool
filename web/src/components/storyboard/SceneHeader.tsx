@@ -7,8 +7,7 @@
  * under one implicit header with no slugline — so the slugline is optional
  * rather than a reason to materialize a scene.
  *
- * The header spans the whole grid so the scene below it starts on a fresh row
- * and the four-column rhythm survives a scene that does not fill its last row.
+ * The header spans its scene's shot grid, above that scene's cards.
  */
 
 import React, { memo } from "react";

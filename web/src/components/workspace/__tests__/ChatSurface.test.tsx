@@ -5,6 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 
 import ChatSurface from "../ChatSurface";
 import useChatDraftStore from "../../../stores/ChatDraftStore";
+import { clearChatTurn, peekChatTurn, stageChatTurn } from "../../chat/pendingChatTurn";
 import mockTheme from "../../../__mocks__/themeMock";
 
 const fetchThread = jest.fn();
@@ -14,6 +15,7 @@ const connect = jest.fn().mockResolvedValue(undefined);
 const switchThread = jest.fn();
 const createNewThread = jest.fn().mockResolvedValue("thread-other");
 const sendMessage = jest.fn();
+const trySendMessage = jest.fn().mockResolvedValue({ ok: true, threadId: "thread-new" });
 const stopGeneration = jest.fn();
 const setSelectedModel = jest.fn();
 const openTab = jest.fn();
@@ -42,6 +44,8 @@ const chatState = {
   loadMessages,
   createNewThread,
   sendMessage,
+  trySendMessage,
+  status: "connected",
   stopGeneration,
   setSelectedModel
 };
@@ -75,9 +79,11 @@ jest.mock("../../../stores/GlobalChatStore", () => {
 
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   __esModule: true,
-  useWorkspaceTabsStore: <T,>(
-    selector: (state: { openTab: jest.Mock; setTitle: jest.Mock }) => T
-  ) => selector({ openTab, setTitle })
+  useWorkspaceTabsStore: Object.assign(
+    <T,>(selector: (state: { openTab: jest.Mock; setTitle: jest.Mock }) => T) =>
+      selector({ openTab, setTitle }),
+    { getState: () => ({ tabs: [], activeTabId: null }) }
+  )
 }));
 
 jest.mock("../../chat/containers/ChatView", () => ({
@@ -117,6 +123,8 @@ describe("ChatSurface", () => {
     chatState.threads = {};
     chatState.messageCache = {};
     fetchThread.mockResolvedValue(null);
+    clearChatTurn("thread-new");
+    trySendMessage.mockResolvedValue({ ok: true, threadId: "thread-new" });
   });
 
   it("shows the composer when a new thread is not on the server yet", async () => {
@@ -142,6 +150,23 @@ describe("ChatSurface", () => {
     await waitFor(() => expect(loadMessages).toHaveBeenCalledWith("thread-new"));
     expect(fetchThread).not.toHaveBeenCalled();
     expect(ensureLocalThread).not.toHaveBeenCalled();
+  });
+
+  it("sends the home prompt in the normal chat after loading its history", async () => {
+    stageChatTurn("thread-new", [{ type: "text", text: "Make a storyboard" }]);
+    renderSurface();
+
+    await waitFor(() => expect(trySendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: "user",
+        content: [{ type: "text", text: "Make a storyboard" }]
+      }),
+      "thread-new"
+    ));
+    expect(loadMessages.mock.invocationCallOrder[0]).toBeLessThan(
+      trySendMessage.mock.invocationCallOrder[0]
+    );
+    await waitFor(() => expect(peekChatTurn("thread-new")).toBeNull());
   });
 
   it("seeds the composer with a welcome suggestion instead of sending it", async () => {

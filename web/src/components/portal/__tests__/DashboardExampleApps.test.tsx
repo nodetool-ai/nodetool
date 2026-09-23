@@ -51,14 +51,14 @@ const APPS = [
   }
 ];
 
-const renderApps = () => {
+const renderApps = (compact = false, onBrowseAll?: () => void) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
   });
   return render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={mockTheme}>
-        <DashboardExampleApps />
+        <DashboardExampleApps compact={compact} onBrowseAll={onBrowseAll} />
       </ThemeProvider>
     </QueryClientProvider>
   );
@@ -83,6 +83,24 @@ describe("DashboardExampleApps", () => {
     const reshoot = screen.getByRole("button", { name: /product reshoot/i });
     expect(within(reshoot).getByText("3 workflows")).toBeInTheDocument();
     expect(screen.getByText("2 apps")).toBeInTheDocument();
+  });
+
+  it("shows four compact app tiles and a way to browse the rest", async () => {
+    const onBrowseAll = jest.fn();
+    listExampleApps.mockResolvedValue(
+      Array.from({ length: 5 }, (_, index) => ({
+        ...APPS[0],
+        slug: `app-${index + 1}`,
+        name: `App ${index + 1}`
+      }))
+    );
+    renderApps(true, onBrowseAll);
+
+    await screen.findByRole("button", { name: /app 1/i });
+    expect(screen.getAllByRole("button", { name: /app \d/i })).toHaveLength(4);
+    expect(screen.queryByRole("button", { name: /app 5/i })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "See all apps" }));
+    expect(onBrowseAll).toHaveBeenCalledTimes(1);
   });
 
   it("installs an app on click and opens it", async () => {

@@ -1,7 +1,7 @@
 /**
  * The Workflow flow for a host that is not already the node editor — the New
- * Project tab, which swaps itself for the flow once the Workflow entry card
- * creates the workflow (PRD § 6.1, D24: the card is on the workspace surface,
+ * guided flow tab opened when the Workflow entry card creates the workflow
+ * (PRD § 6.1, D24: the card is on the workspace surface,
  * not in Studio).
  *
  * This host supplies the three things the flow cannot read off the document:

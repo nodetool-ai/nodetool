@@ -87,6 +87,44 @@ const mountLoaded = async (): Promise<
   return rendered;
 };
 
+it("persists automatic selection of a sole existing clip take", async () => {
+  getQuery.mockResolvedValue({
+    id: "board-1",
+    name: "Saved board",
+    document: {
+      ...emptyDocument,
+      shots: [{
+        type: "shot",
+        id: "shot-1",
+        index: 0,
+        action: "A scene",
+        status: "keyframe_ready",
+        clip_versions: [{ type: "video", uri: "asset://clip-1", asset_id: "clip-1" }]
+      }]
+    },
+    timelineId: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "rev-1"
+  });
+  const rendered = await mountLoaded();
+
+  await act(async () => {
+    await flushStoryboardSave("board-1");
+  });
+
+  expect(updateMutate).toHaveBeenCalledWith(
+    expect.objectContaining({
+      document: expect.objectContaining({
+        shots: [expect.objectContaining({
+          clip: expect.objectContaining({ asset_id: "clip-1" }),
+          status: "rendered"
+        })]
+      })
+    })
+  );
+  rendered.unmount();
+});
+
 describe("useStoryboardServerSync — a rejected save must not fail silently", () => {
   it("reports a validation rejection to the user and stops retrying", async () => {
     jest.useFakeTimers();

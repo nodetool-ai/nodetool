@@ -16,6 +16,12 @@ describe("tabDisplayTitle", () => {
     ).toBe(PROJECT_HOME_TAB_TITLE);
   });
 
+  it("labels the editor landing surface Home", () => {
+    expect(
+      tabDisplayTitle({ type: "project-new", title: "Editor home" })
+    ).toBe("Home");
+  });
+
   it("keeps document tab titles unchanged", () => {
     expect(
       tabDisplayTitle({ type: "timeline", title: "The Next Tide" })

@@ -118,16 +118,32 @@ export const useStoryboardServerSync = (
     const store = useStoryboardStore;
     setLoadState("loading");
     const pendingNotices: ExternalNotice[] = [];
+    let controller: DocumentSyncController;
 
     const isDirty = (): boolean =>
       (store.getState().boards[boardId] ?? null) !== syncedRef.current;
 
     const applyResponse = (res: StoryboardResponse): void => {
       if (disposed) return;
+      const serverShots = res.document.shots as Shot[];
+      const restoredClip =
+        res.document.setupStage === "done" &&
+        serverShots.some(
+          (shot) =>
+            !shot.clip &&
+            shot.clip_versions?.length === 1 &&
+            !!shot.clip_versions[0]?.asset_id
+        );
       store.getState().loadBoard(boardId, responseToBoard(res));
       revisionRef.current = res.updatedAt;
       store.getState().setServerRevision(boardId, res.updatedAt);
-      syncedRef.current = store.getState().boards[boardId] ?? null;
+      const loaded = store.getState().boards[boardId] ?? null;
+      syncedRef.current = restoredClip && loaded
+        ? { ...loaded, shots: serverShots }
+        : loaded;
+      if (restoredClip) {
+        controller.markDirty();
+      }
     };
 
     const load = async (): Promise<void> => {
@@ -288,8 +304,6 @@ export const useStoryboardServerSync = (
 
     const currentRevision = (): string | null =>
       store.getState().serverRevisions[boardId] ?? null;
-    let controller: DocumentSyncController;
-
     const flushNow = async (): Promise<StoryboardSaveResult> => {
       await loadPromiseRef.current;
       return controller.flush();

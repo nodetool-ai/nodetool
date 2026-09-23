@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { FlexColumn } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
+import ProjectDocumentsSidebar from "../chat/sidebar/ProjectDocumentsSidebar";
+import { clearChatTurn, peekChatTurn } from "../chat/pendingChatTurn";
 import WelcomePlaceholder from "../chat/containers/WelcomePlaceholder";
 import useGlobalChatStore, {
   useThreadRuntime
@@ -11,10 +13,12 @@ import useChatDraftStore from "../../stores/ChatDraftStore";
 import useThreadModel from "../../hooks/chat/useThreadModel";
 import type { Message } from "../../stores/ApiTypes";
 import {
+  LOOSE_PROJECT_ID,
   creationProjectId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
 import DocumentLoadStatus from "./DocumentLoadStatus";
+import { buildUiContext } from "../../lib/chat/uiContext";
 
 const whenChatStoreHydrated = (): Promise<void> => {
   const persistApi = useGlobalChatStore.persist;
@@ -67,6 +71,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
     loadMessages,
     createNewThread,
     sendMessage,
+    trySendMessage,
     stopGeneration
   } = useGlobalChatStore(
     useShallow((state) => ({
@@ -77,12 +82,15 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
       loadMessages: state.loadMessages,
       createNewThread: state.createNewThread,
       sendMessage: state.sendMessage,
+      trySendMessage: state.trySendMessage,
       stopGeneration: state.stopGeneration
     }))
   );
 
   // Each tab keeps its own model: a pick here never moves another tab's.
   const { model, setModel } = useThreadModel(refId);
+  const connectionStatus = useGlobalChatStore((state) => state.status);
+  const pendingTurnInFlight = useRef(false);
 
   const workflowId = useGlobalChatStore(
     (state) =>
@@ -91,6 +99,11 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
 
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
+  const activeProjectId = useWorkspaceTabsStore((state) => state.activeProjectId);
+  const personalProjectId = useWorkspaceTabsStore((state) => state.personalProjectId);
+  const projectId = activeProjectId && activeProjectId !== LOOSE_PROJECT_ID
+    ? activeProjectId
+    : personalProjectId;
 
   // Connect the shared chat WebSocket. Deliberately no disconnect on unmount:
   // the connection is a singleton shared by every mounted chat tab, so closing
@@ -139,6 +152,38 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
       cancelled = true;
     };
   }, [refId, fetchThread, ensureLocalThread, loadMessages]);
+
+  // The home composer hands its turn to the normal chat after this tab has
+  // loaded history, so the initial refresh cannot replace the optimistic send.
+  useEffect(() => {
+    if (loadingThread || pendingTurnInFlight.current) return;
+    const content = peekChatTurn(refId);
+    if (!content) return;
+    pendingTurnInFlight.current = true;
+    void trySendMessage(
+      {
+        type: "message",
+        name: "",
+        role: "user",
+        provider: model.provider,
+        model: model.id,
+        content,
+        ui_context: buildUiContext({ source: "workspace_chat" })
+      },
+      refId
+    )
+      .then((outcome) => {
+        if (outcome.ok) clearChatTurn(refId);
+      })
+      .catch((error) => {
+        // A thrown send has already placed the turn in the local transcript.
+        clearChatTurn(refId);
+        console.error("Failed to send the opening chat turn:", error);
+      })
+      .finally(() => {
+        pendingTurnInFlight.current = false;
+      });
+  }, [loadingThread, refId, model, connectionStatus, trySendMessage]);
 
   // The active tab's thread becomes the store's current one (sidebar
   // selection, header, persistent composer default). Generation itself is
@@ -232,6 +277,9 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         chatSource="workspace_chat"
         noMessagesPlaceholder={noMessagesPlaceholder}
         showNewChatButton
+        projectDocumentsSidebar={
+          <ProjectDocumentsSidebar projectId={projectId} active={active} />
+        }
       />
     </FlexColumn>
   );

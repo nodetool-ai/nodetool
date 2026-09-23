@@ -40,6 +40,7 @@ import ProjectSelector from "../projects/ProjectSelector";
 import { ActivityIndicator } from "../timeline/ActivityIndicator";
 import { PROJECT_COLOR } from "../projects/projectIdentity";
 import { TYPE_COLOR, TYPE_GLYPH } from "./tabTypeIdentity";
+import { useOpenNewProjectTab } from "../../hooks/useProjects";
 import { useWorkspaceHeaderActions } from "./WorkspaceHeaderActionsContext";
 
 /** Whether a document type supports both View and Edit (vs view-only). */
@@ -62,6 +63,7 @@ const SUPPORTS_BOTH_MODES = {
   page: false,
   "project-list": false,
   project: false,
+  "guided-flow": false,
   "project-new": false
 } satisfies Record<WorkspaceTabType, boolean>;
 
@@ -95,11 +97,11 @@ const styles = (theme: Theme) =>
       WebkitAppRegion: "no-drag",
       display: "flex",
       alignItems: "center",
-      gap: getSpacingPx(SPACING.md),
-      minWidth: "150px",
-      maxWidth: "240px",
+      gap: getSpacingPx(SPACING.sm),
+      minWidth: "120px",
+      maxWidth: "220px",
       flex: "0 0 auto",
-      padding: `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.xl)}`,
+      padding: `0 ${getSpacingPx(SPACING.lg)}`,
       cursor: "pointer",
       color: theme.vars.palette.text.secondary,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
@@ -111,12 +113,8 @@ const styles = (theme: Theme) =>
       },
       "&.active": {
         color: theme.vars.palette.text.primary,
-        backgroundColor: "var(--c_editor_bg_color)"
-      },
-      // Document tabs in the selected project share a cyan underline. Home
-      // does not: the selector already marks the project.
-      "&.in-project": {
-        boxShadow: `inset 0 -2px 0 color-mix(in srgb, ${PROJECT_COLOR} 35%, transparent)`
+        backgroundColor: "var(--c_editor_bg_color)",
+        boxShadow: `inset 0 -2px 0 ${theme.vars.palette.primary.main}`
       },
       "&.is-home": {
         minWidth: 0,
@@ -236,6 +234,30 @@ const styles = (theme: Theme) =>
       }
     },
 
+    "& .home-button": {
+      WebkitAppRegion: "no-drag",
+      flexShrink: 0,
+      display: "flex",
+      alignItems: "center",
+      gap: getSpacingPx(SPACING.sm),
+      padding: `0 ${getSpacingPx(SPACING.lg)}`,
+      border: "none",
+      borderRight: `1px solid ${theme.vars.palette.divider}`,
+      background: "transparent",
+      color: theme.vars.palette.text.secondary,
+      cursor: "pointer",
+      fontSize: "var(--fontSizeSmall)",
+      "&:hover": {
+        color: theme.vars.palette.text.primary,
+        backgroundColor: theme.vars.palette.action.hover
+      },
+      "&.active": {
+        color: theme.vars.palette.text.primary,
+        backgroundColor: "var(--c_editor_bg_color)",
+        fontWeight: 600
+      }
+    },
+
     "& .mode-toggle": {
       WebkitAppRegion: "no-drag",
       display: "flex",
@@ -302,7 +324,7 @@ const styles = (theme: Theme) =>
       "&.has-document-actions": {
         height: "auto",
         flexWrap: "wrap",
-        "& > .mobile-rail-launcher, & > .project-selector, & > .new-tab, & > .document-selector": {
+        "& > .mobile-rail-launcher, & > .project-selector, & > .home-button, & > .new-tab, & > .document-selector": {
           height: "48px"
         },
         "& .document-actions": {
@@ -321,6 +343,9 @@ const styles = (theme: Theme) =>
         }
       },
       "& .new-tab": {
+        padding: `0 ${getSpacingPx(SPACING.md)}`
+      },
+      "& .home-button": {
         padding: `0 ${getSpacingPx(SPACING.md)}`
       },
       "& .new-tab .new-tab-label": { display: "none" },
@@ -345,6 +370,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const updateApplication = useUpdateApplication();
   const trpcUtils = trpc.useUtils();
   const headerActions = useWorkspaceHeaderActions()?.actions;
+  const openHome = useOpenNewProjectTab();
 
   const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
   const workflowManagerStore = useWorkflowManagerStore();
@@ -356,7 +382,10 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     (state) => state.activeProjectId
   );
   const visibleTabs = useMemo(
-    () => tabs.filter((tab) => isTabInScope(tab, activeProjectId)),
+    () =>
+      tabs.filter(
+        (tab) => tab.type !== "project-new" && isTabInScope(tab, activeProjectId)
+      ),
     [activeProjectId, tabs]
   );
 
@@ -364,6 +393,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     () => tabs.find((tab) => tab.id === activeTabId) ?? null,
     [tabs, activeTabId]
   );
+  const homeIsActive = !activeTab || activeTab.type === "project-new";
 
   const newTabButtonRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -644,6 +674,15 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
       {isMobile && <MobileRailLauncher />}
       <ProjectSelector />
       <button
+        type="button"
+        className={`home-button${homeIsActive ? " active" : ""}`}
+        aria-label="Home"
+        aria-current={homeIsActive ? "page" : undefined}
+        onClick={openHome}
+      >
+        <span className="home-button-label">Home</span>
+      </button>
+      <button
         ref={newTabButtonRef}
         type="button"
         className="new-tab"
@@ -676,18 +715,12 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             <Fragment key={tab.id}>
               <WorkspaceTabItem
                 tab={tab}
-                inProject={
-                  tab.type !== "project" &&
-                  tab.projectId === activeProjectId
-                }
                 isActive={tab.id === activeTabId}
                 isEditing={editingTabId === tab.id}
                 canRename={tabCanRename(tab.type)}
                 dropPosition={
                   dropTarget?.id === tab.id ? dropTarget.position : null
                 }
-                typeColor={TYPE_COLOR[tab.type]}
-                typeGlyph={TYPE_GLYPH[tab.type]}
                 onActivate={setActiveTab}
                 onBeginRename={handleBeginRename}
                 onClose={handleClose}

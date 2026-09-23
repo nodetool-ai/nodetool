@@ -18,7 +18,7 @@ export const PROJECT_HOME_GLYPH = "⌂";
 export const tabDisplayTitle = (tab: {
   type: WorkspaceTabType;
   title: string;
-}): string => (tab.type === "project" ? PROJECT_HOME_TAB_TITLE : tab.title);
+}): string => (tab.type === "project" || tab.type === "project-new" ? PROJECT_HOME_TAB_TITLE : tab.title);
 
 export const TYPE_GLYPH = {
   workflow: "⬡",
@@ -39,6 +39,7 @@ export const TYPE_GLYPH = {
   page: "☰",
   "project-list": PROJECT_GLYPH,
   project: PROJECT_HOME_GLYPH,
+  "guided-flow": "✦",
   "project-new": PROJECT_GLYPH
 } satisfies Record<WorkspaceTabType, string>;
 
@@ -62,5 +63,6 @@ export const TYPE_COLOR = {
   page: colorForType("any"),
   "project-list": PROJECT_COLOR,
   project: PROJECT_COLOR,
+  "guided-flow": PROJECT_COLOR,
   "project-new": PROJECT_COLOR
 } satisfies Record<WorkspaceTabType, string>;

@@ -1,7 +1,6 @@
 /**
  * The script flow for a host that is not already a script editor — the New
- * Project tab, which swaps itself for the flow once an entry card creates the
- * script (PRD § 6.1).
+ * guided flow tab opened when an entry card creates the script (PRD § 6.1).
  *
  * A script tab and the Studio page already run the script's server sync and
  * agent bridge, so they render `SetupFlow` themselves. This host adds them, so
