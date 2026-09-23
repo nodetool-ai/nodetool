@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 /**
  * GeneratingLayerOverlay
  *
@@ -8,23 +7,16 @@
  * positioned in raw document coordinates and the shared pan/zoom transform maps
  * it onto the artboard automatically.
  *
- * Pure CSS effects (emotion keyframes): a hue-flowing border, a breathing
- * multi-colour aura, a diagonal shimmer sweep, a soft inner tint, and a few
- * twinkling sparkles. All suppressed under prefers-reduced-motion.
+ * Each box is the shared framed `MagicGenerationFill`, the same effect every
+ * other generating surface shows.
  */
 
-import { css, keyframes } from "@emotion/react";
 import { memo } from "react";
 
 import { useSketchStore } from "./state";
 import { useSketchSessionStore } from "../../stores/sketch/SketchInstance";
 import { computeTransformedCorners } from "./transform/geometry/layerGeometry";
-import {
-  BORDER_RADIUS,
-  MagicGenerationFill,
-  MOTION,
-  reducedMotion
-} from "../ui_primitives";
+import { BORDER_RADIUS, MagicGenerationFill } from "../ui_primitives";
 
 interface Rect {
   x: number;
@@ -49,90 +41,17 @@ const aabbOf = (corners: ReadonlyArray<{ x: number; y: number }>): Rect => {
   };
 };
 
-// ─── Animations ────────────────────────────────────────────────────────────
-
-const borderFlow = keyframes`
-  0%   { border-color: rgba(110, 231, 255, 0.9); }
-  33%  { border-color: rgba(168, 85, 247, 0.9); }
-  66%  { border-color: rgba(236, 72, 153, 0.9); }
-  100% { border-color: rgba(110, 231, 255, 0.9); }
-`;
-
-const auraPulse = keyframes`
-  0%, 100% {
-    box-shadow:
-      0 0 0 1.5px rgba(167, 139, 250, 0.6),
-      0 0 16px 2px rgba(99, 102, 241, 0.4),
-      inset 0 0 22px rgba(168, 85, 247, 0.15);
-  }
-  50% {
-    box-shadow:
-      0 0 0 2px rgba(110, 231, 255, 0.85),
-      0 0 34px 6px rgba(168, 85, 247, 0.55),
-      inset 0 0 38px rgba(110, 231, 255, 0.25);
-  }
-`;
-
-const sparkleTwinkle = keyframes`
-  0%, 100% { opacity: 0; transform: scale(0.3); }
-  50%      { opacity: 1; transform: scale(1); }
-`;
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-const boxCss = css({
-  position: "absolute",
-  boxSizing: "border-box",
-  borderRadius: BORDER_RADIUS.sm,
-  border: "2px solid rgba(110, 231, 255, 0.9)",
-  overflow: "hidden",
-  pointerEvents: "none",
-  willChange: "box-shadow, border-color",
-  animation: `${borderFlow} ${MOTION.spin} infinite, ${auraPulse} ${MOTION.pulse} infinite`,
-  // The flowing wash + shimmer fill (MagicGenerationFill) is rendered as
-  // children below; the box itself contributes the border + aura glow.
-  ...reducedMotion({ animation: "none" })
-});
-
-const sparkleCss = css({
-  position: "absolute",
-  width: 6,
-  height: 6,
-  borderRadius: BORDER_RADIUS.circle,
-  background:
-    "radial-gradient(circle, #fff 0%, rgba(110, 231, 255, 0.9) 40%, transparent 70%)",
-  animation: `${sparkleTwinkle} ${MOTION.pulse} infinite`,
-  ...reducedMotion({ animation: "none", opacity: 0 })
-});
-
-const SPARKLES = [
-  { top: "10%", left: "14%", delay: "0s" },
-  { top: "20%", left: "80%", delay: "0.3s" },
-  { top: "70%", left: "24%", delay: "0.6s" },
-  { top: "62%", left: "72%", delay: "0.15s" },
-  { top: "44%", left: "52%", delay: "0.45s" }
-] as const;
-
-// ─── Component ───────────────────────────────────────────────────────────────
-
 const MagicBox = ({ rect }: { rect: Rect }) => (
   <div
-    css={boxCss}
     style={{
+      position: "absolute",
       left: rect.x,
       top: rect.y,
       width: rect.width,
       height: rect.height
     }}
   >
-    <MagicGenerationFill />
-    {SPARKLES.map((s) => (
-      <span
-        key={`${s.top}-${s.left}`}
-        css={sparkleCss}
-        style={{ top: s.top, left: s.left, animationDelay: s.delay }}
-      />
-    ))}
+    <MagicGenerationFill framed borderRadius={BORDER_RADIUS.sm} />
   </div>
 );
 

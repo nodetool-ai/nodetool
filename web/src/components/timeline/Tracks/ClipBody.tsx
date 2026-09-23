@@ -208,15 +208,6 @@ const waveformStyles = css({
 // the shared "magic" wash + shimmer reused from the sketch editor, so a
 // generating clip in the timeline reads identically to a generating layer
 // on the canvas. Clips to the clip's rounded body.
-const generatingOverlayStyles = css({
-  position: "absolute",
-  inset: 0,
-  pointerEvents: "none",
-  zIndex: Z_INDEX.base + 3,
-  overflow: "hidden",
-  borderRadius: CLIP_RADIUS_PX
-});
-
 interface WaveformCanvasProps {
   url: string | undefined;
   inPointMs: number;
@@ -1128,13 +1119,11 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         )}
 
         {(derivedStatus === "queued" || derivedStatus === "generating") && (
-          <div
-            css={generatingOverlayStyles}
-            aria-hidden
+          <MagicGenerationFill
+            borderRadius={CLIP_RADIUS_PX}
+            zIndex={Z_INDEX.base + 3}
             data-testid={`clip-generating-${clipId}`}
-          >
-            <MagicGenerationFill />
-          </div>
+          />
         )}
 
         {/* The badge surfaces lifecycle state for generated clips. Once a

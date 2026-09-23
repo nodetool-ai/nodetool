@@ -308,18 +308,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
               <Box className="layer-thumbnail-empty" />
             )}
             {isLayerGenerating && (
-              <Box
-                aria-hidden
-                sx={{
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: BORDER_RADIUS.xs,
-                  overflow: "hidden",
-                  pointerEvents: "none"
-                }}
-              >
-                <MagicGenerationFill />
-              </Box>
+              <MagicGenerationFill borderRadius={BORDER_RADIUS.xs} />
             )}
           </FlexRow>
         )}

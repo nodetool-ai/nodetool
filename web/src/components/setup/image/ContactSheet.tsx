@@ -298,7 +298,9 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
                   </Caption>
                 </Box>
               )}
-              {tile.pending ? <MagicGenerationFill /> : null}
+              {tile.pending ? (
+                <MagicGenerationFill borderRadius={BORDER_RADIUS.sm} />
+              ) : null}
             </Box>
             <Text size="small" component="span">
               {tile.label}

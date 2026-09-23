@@ -73,6 +73,8 @@ These primitives exist but are barely adopted:
 ### Feedback & Status (replace raw CircularProgress/Alert)
 `LoadingSpinner` | `ProgressBar` | `Skeleton` | `StatusIndicator` | `StatusPill` | `EmptyState` | `AlertBanner` | `WarningBanner` | `Toast` | `NotificationBadge` | `ConflictBanner`
 
+Media that is being generated shows `MagicGenerationFill` over its host: the sketch canvas and layer thumbnails, timeline clips and preview, storyboard shots, chat's pending media tiles and the contact sheet. Do not build a separate generating animation.
+
 ### Document merge (external-change offers)
 `ConflictBanner` — the one document-level notice listing the external values a dirty draft refused, with per-value Accept/Discard and an optional viewer. A string `detail` shows the external value; with `draftDetail` too, the viewer is a two-pane Your-edit / External view (JS script `code`). Mounted by every document editor shell; fed by `useDocumentConflicts`.
 
@@ -171,6 +173,7 @@ Need feedback?
 ├── Loading → LoadingSpinner
 ├── Progress → ProgressBar
 ├── Placeholder → Skeleton
+├── Media being generated → MagicGenerationFill
 ├── Nothing to show → EmptyState
 ├── Warning/error → AlertBanner / WarningBanner
 ├── Temporary message → Toast
