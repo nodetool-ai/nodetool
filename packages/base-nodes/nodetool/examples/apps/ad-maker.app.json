@@ -431,7 +431,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "offer",
-              "value": "",
+              "value": "A reusable water bottle that stays cold all day",
               "description": "The offer to advertise"
             },
             "ui_properties": {

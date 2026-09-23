@@ -655,7 +655,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "One presenter clip, spoken in another language, checked and subtitled.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "dubbing-desk",
     "name": "Dubbing Desk",
     "summary": "The Multilingual Video Dubber chain behind one surface. Transcribing writes the script into a variable the revoice and back-translation steps both read, so the words that get dubbed are the words you can see.",
@@ -689,7 +689,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/transcribe-a-clip",
-    "screenshot": null,
+    "screenshot": "/apps/dubbing-desk.png",
     "outputExamples": [],
     "tags": [
       "audio",
@@ -1192,6 +1192,115 @@ export const miniAppEntries: MiniAppEntry[] = [
     "widgetCount": 27
   },
   {
+    "route": "/apps/podcast-production-desk",
+    "title": "Podcast Production Desk — Free AI Mini App | NodeTool",
+    "description": "One recording becomes two audio treatments and a publishable content pack.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "podcast-production-desk",
+    "name": "Podcast Production Desk",
+    "summary": "A podcast workspace for cleaning or mastering a recording and making show notes, a newsletter, social posts, and quote cards from the same source.",
+    "featured": true,
+    "note": "Audio cleanup and mastering run locally. The content pack uses configured transcription, writing, and image models. Download a treatment and upload it as the source to use it in another pass.",
+    "workflows": [
+      {
+        "name": "Clean Up a Rough Voice Recording",
+        "slug": "clean-up-a-rough-voice-recording",
+        "route": "/templates/clean-up-a-rough-voice-recording"
+      },
+      {
+        "name": "Master a Voice Track",
+        "slug": "master-a-voice-track",
+        "route": "/templates/master-a-voice-track"
+      },
+      {
+        "name": "Podcast Repurposing Studio",
+        "slug": "podcast-repurposing-studio",
+        "route": "/templates/podcast-repurposing-studio"
+      }
+    ],
+    "templateRoute": "/templates/clean-up-a-rough-voice-recording",
+    "screenshot": "/apps/podcast-production-desk.png",
+    "outputExamples": [],
+    "tags": [
+      "agents",
+      "audio",
+      "content",
+      "example",
+      "marketing",
+      "podcast"
+    ],
+    "heading": "🎙️ Podcast Production Desk",
+    "tagline": "One recording becomes two audio treatments and a publishable content pack.",
+    "buttonLabel": "Clean the recording",
+    "inputs": [
+      {
+        "label": "Episode audio",
+        "kind": "audio"
+      },
+      {
+        "label": "Transcription model",
+        "kind": "model"
+      },
+      {
+        "label": "Show notes writer",
+        "kind": "model"
+      },
+      {
+        "label": "Newsletter writer",
+        "kind": "model"
+      },
+      {
+        "label": "Social post writer",
+        "kind": "model"
+      },
+      {
+        "label": "Quote selector",
+        "kind": "model"
+      },
+      {
+        "label": "Quote card image model",
+        "kind": "model"
+      },
+      {
+        "label": "Show, audience, and call to action",
+        "kind": "text"
+      },
+      {
+        "label": "Quote cards",
+        "kind": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Cleaned recording",
+        "kind": "audio"
+      },
+      {
+        "label": "Mastered recording",
+        "kind": "audio"
+      },
+      {
+        "label": "Episode notes",
+        "kind": "text"
+      },
+      {
+        "label": "Newsletter",
+        "kind": "text"
+      },
+      {
+        "label": "Social posts",
+        "kind": "text"
+      },
+      {
+        "label": "Quote cards",
+        "kind": "image"
+      }
+    ],
+    "widgetCount": 41
+  },
+  {
     "route": "/apps/product-launch-kit",
     "title": "Product Launch Kit — Free AI Mini App | NodeTool",
     "description": "One product photo in, mockups and a launch video out.",
@@ -1604,7 +1713,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "One packshot in, the whole channel set out.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "sku-factory",
     "name": "SKU Factory",
     "summary": "The E-commerce SKU Visual Factory chain behind one surface. Drop a product photo once and the cutout, the studio scene, the seasonal relight and the listing copy all read the same image; motion and print resolution stay on their own buttons because they cost more.",
@@ -1643,7 +1752,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/cut-a-product-out-of-its-background",
-    "screenshot": null,
+    "screenshot": "/apps/sku-factory.png",
     "outputExamples": [
       {
         "label": "Live Cutout Cutout",
@@ -1752,7 +1861,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Premise to beat sheet to shot list to a scored teaser, on one page.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "trailer-room",
     "name": "Trailer Room",
     "summary": "The Storyboard to Trailer chain behind one surface. Rewrite the beat sheet and the shot list while they still cost one text call each, then spend once on the footage and lay a score under the cut.",
@@ -1781,7 +1890,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/trailer-beats-from-a-premise",
-    "screenshot": null,
+    "screenshot": "/apps/trailer-room.png",
     "outputExamples": [
       {
         "label": "Live Beats Beats",
@@ -2085,7 +2194,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "model"
       },
       {
-        "label": "The image to enlarge",
+        "label": "The image to enlarge (faithful)",
         "kind": "image"
       },
       {
@@ -2097,7 +2206,7 @@ export const miniAppEntries: MiniAppEntry[] = [
         "kind": "model"
       },
       {
-        "label": "The image to enlarge",
+        "label": "The image to enlarge (clarity)",
         "kind": "image"
       },
       {
@@ -2243,6 +2352,135 @@ export const miniAppEntries: MiniAppEntry[] = [
     "widgetCount": 14
   },
   {
+    "route": "/apps/video-post-house",
+    "title": "AI Video Post House — Free AI Mini App | NodeTool",
+    "description": "One clip becomes a new look, a short cut, and an AI voiced performance.",
+    "priority": 0.4,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "video-post-house",
+    "name": "AI Video Post House",
+    "summary": "Upload a clip once. Restyle its picture with AI, grade the source, trim a teaser, and pull a cover still. If the clip has a visible presenter, voice a new script and sync the lips.",
+    "featured": true,
+    "note": "The AI restyle and revoice use configured models and incur provider charges. Grading, trimming, and frame extraction run locally. Each result starts from the uploaded source; upload a result to make another pass.",
+    "workflows": [
+      {
+        "name": "Video Restyle Studio",
+        "slug": "video-restyle-studio",
+        "route": "/templates/video-restyle-studio"
+      },
+      {
+        "name": "AI Spokesperson",
+        "slug": "ai-spokesperson",
+        "route": "/templates/ai-spokesperson"
+      },
+      {
+        "name": "Color Boost Video",
+        "slug": "color-boost-video",
+        "route": "/templates/color-boost-video"
+      },
+      {
+        "name": "Trim a Clip",
+        "slug": "trim-a-clip",
+        "route": "/templates/trim-a-clip"
+      },
+      {
+        "name": "Pull a Still from a Clip",
+        "slug": "pull-a-still-from-a-clip",
+        "route": "/templates/pull-a-still-from-a-clip"
+      }
+    ],
+    "templateRoute": "/templates/video-restyle-studio",
+    "screenshot": "/apps/video-post-house.png",
+    "outputExamples": [],
+    "tags": [
+      "audio",
+      "design",
+      "example",
+      "image",
+      "marketing",
+      "start",
+      "utility",
+      "video"
+    ],
+    "heading": "🎞️ AI Video Post House",
+    "tagline": "One clip becomes a new look, a short cut, and an AI voiced performance.",
+    "buttonLabel": "Grade the clip",
+    "inputs": [
+      {
+        "label": "Source clip",
+        "kind": "video"
+      },
+      {
+        "label": "Color intensity",
+        "kind": "number"
+      },
+      {
+        "label": "Teaser starts at second",
+        "kind": "number"
+      },
+      {
+        "label": "Teaser ends at second",
+        "kind": "number"
+      },
+      {
+        "label": "Cover frame at second",
+        "kind": "number"
+      },
+      {
+        "label": "Restyle model",
+        "kind": "model"
+      },
+      {
+        "label": "New visual style",
+        "kind": "text"
+      },
+      {
+        "label": "Details to preserve",
+        "kind": "text"
+      },
+      {
+        "label": "Style strength",
+        "kind": "number"
+      },
+      {
+        "label": "Voice model",
+        "kind": "model"
+      },
+      {
+        "label": "Lip-sync model",
+        "kind": "model"
+      },
+      {
+        "label": "New script",
+        "kind": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "label": "Color graded cut",
+        "kind": "video"
+      },
+      {
+        "label": "Teaser cut",
+        "kind": "video"
+      },
+      {
+        "label": "Cover still",
+        "kind": "image"
+      },
+      {
+        "label": "Restyled cut",
+        "kind": "video"
+      },
+      {
+        "label": "Revoiced performance",
+        "kind": "video"
+      }
+    ],
+    "widgetCount": 53
+  },
+  {
     "route": "/apps/video-restyle",
     "title": "Video Restyle — Free AI Mini App | NodeTool",
     "description": "Repaint a clip in a new style while its motion stays put.",
@@ -2310,7 +2548,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "description": "Settle the line, fan it into a test set, then put the product in motion.",
     "priority": 0.4,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "viral-ad-engine",
     "name": "Viral Ad Engine",
     "summary": "The Viral Video Ad Engine chain behind one surface. The offer drives both the copy registers and the hook-and-thumbnail set, so the line you pick and the thumbnails you test come from the same brief.",
@@ -2339,7 +2577,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       }
     ],
     "templateRoute": "/templates/ad-copy-in-three-registers",
-    "screenshot": null,
+    "screenshot": "/apps/viral-ad-engine.png",
     "outputExamples": [
       {
         "label": "Live Copy Variants",
