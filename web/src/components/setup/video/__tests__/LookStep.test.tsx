@@ -369,10 +369,12 @@ describe("LookStep body", () => {
     ).toBeInTheDocument();
   });
 
-  it("opens provider onboarding when no curated video model is offered (F14)", async () => {
+  it("opens provider onboarding when the providers offer no video model (F14)", async () => {
     seedPlan();
+    // An uncurated model the providers report is still pickable, so the note
+    // only shows when they report none.
     videoCatalog = {
-      models: [{ id: "someone-else/video" }],
+      models: [],
       providers: ["nodetool"],
       isLoading: false,
       error: null
