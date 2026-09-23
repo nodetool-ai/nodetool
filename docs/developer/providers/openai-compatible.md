@@ -34,22 +34,45 @@ CUSTOM_MYPROXY_API_KEY=sk-…
 
 Include the version path the endpoint serves (usually `/v1`) in the URL, the
 same way you would set `baseURL` on an OpenAI client. Models come from
-`GET <base_url>/models`; endpoints without that route take a hand-written list
+`GET <base_url>/models`. Endpoints without that route take a hand-written list
 of model ids instead.
+
+An aggregator often lists chat, image and video models side by side. Each
+listed model goes to the matching node pickers:
+
+- A vendor field decides first. A `type`, `model_type`, `task`, `category` or
+  `mode` naming image or video counts, as does OpenRouter-style
+  `output_modalities`. A model whose output is image and text stays a chat
+  model.
+- Otherwise the id decides. Family names such as `flux`, `dall-e`, `seedream`
+  and `imagen` mean image, and `kling`, `veo`, `sora` and `seedance` mean
+  video. A model classified only by its id also stays in the chat picker, so a
+  misread chat model can still be picked.
+- The **Image models** and **Video models** fields in the endpoint dialog
+  override both, for ids the detection misses. They are stored in the catalog
+  as `image_models` and `video_models`.
+
+Image models call `POST <base_url>/images/generations` and `/images/edits`
+with the requested size passed through unchanged. Video models call the
+OpenAI video API: `POST <base_url>/videos`, then poll until the clip is done.
+No resolution or duration limits are declared, so the node's own options
+apply. **Test** reports how many chat, image and video models the endpoint
+serves, and runs on its own after each save.
 
 | What | Path |
 |------|------|
 | Ids, secret names, validation | `packages/protocol/src/custom-providers.ts` |
+| Chat, image and video classification | `packages/runtime/src/providers/custom-model-kinds.ts` |
 | The provider | `packages/runtime/src/providers/custom-openai-provider.ts` |
 | Registration | `packages/runtime/src/providers/custom-provider-registry.ts` |
 | Storage + registry sync | `packages/websocket/src/custom-providers.ts` |
 | API | `packages/websocket/src/trpc/routers/custom-providers.ts` (`customProviders.list\|save\|delete\|test`) |
 | UI | `web/src/components/menus/CustomProvidersSection.tsx` |
 
-Write a provider file instead when the endpoint needs more than chat over a
-base URL — its own media API, non-standard request fields, per-model tool
-support, or a curated model list that ships with NodeTool. That is the rest of
-this guide.
+Write a provider file instead when the endpoint needs more than the OpenAI
+routes over a base URL: its own media API, non-standard request fields,
+per-model tool support or size limits, or a curated model list that ships
+with NodeTool. That is the rest of this guide.
 
 ---
 

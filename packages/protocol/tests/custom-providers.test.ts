@@ -85,13 +85,19 @@ describe("parseCustomProviderCatalog", () => {
       { slug: "myproxy", name: "My Proxy", models: ["a", "b"] }
     ]);
     expect(parseCustomProviderCatalog(raw)).toEqual([
-      { slug: "myproxy", name: "My Proxy", models: ["a", "b"] }
+      {
+        slug: "myproxy",
+        name: "My Proxy",
+        models: ["a", "b"],
+        image_models: [],
+        video_models: []
+      }
     ]);
   });
 
   it("falls back to the slug when the name is missing", () => {
     expect(parseCustomProviderCatalog(JSON.stringify([{ slug: "myproxy" }]))).toEqual([
-      { slug: "myproxy", name: "myproxy", models: [] }
+      { slug: "myproxy", name: "myproxy", models: [], image_models: [], video_models: [] }
     ]);
   });
 
@@ -112,6 +118,19 @@ describe("parseCustomProviderCatalog", () => {
       { slug: "myproxy", name: "My Proxy", models: ["ok", 7, null] }
     ]);
     expect(parseCustomProviderCatalog(raw)[0]?.models).toEqual(["ok"]);
+  });
+
+  it("reads image and video model ids, dropping non-strings", () => {
+    const raw = JSON.stringify([
+      {
+        slug: "myproxy",
+        image_models: ["flux-dev", 3],
+        video_models: ["kling-v2", null]
+      }
+    ]);
+    const [definition] = parseCustomProviderCatalog(raw);
+    expect(definition?.image_models).toEqual(["flux-dev"]);
+    expect(definition?.video_models).toEqual(["kling-v2"]);
   });
 
   it("returns an empty catalog for unusable JSON", () => {

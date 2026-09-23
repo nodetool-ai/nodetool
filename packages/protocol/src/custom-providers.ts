@@ -32,6 +32,17 @@ export interface CustomProvider {
    * "ask the endpoint", which is what most OpenAI-compatible proxies support.
    */
   models?: string[];
+  /**
+   * Model ids to offer as image models (`POST <base_url>/images/generations`).
+   * Adds to what the endpoint's listing is detected to serve, for ids the
+   * detection misses.
+   */
+  image_models?: string[];
+  /**
+   * Model ids to offer as video models (`POST <base_url>/videos`). Adds to
+   * what the endpoint's listing is detected to serve.
+   */
+  video_models?: string[];
 }
 
 /** Wire provider id for a slug (`"myproxy"` → `"custom_myproxy"`). */
@@ -103,6 +114,10 @@ export function normalizeBaseUrl(url: string): string {
   return url.trim().replace(/\/+$/, "");
 }
 
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter(isString) : [];
+}
+
 /**
  * Read a stored catalog. The row is plaintext and hand-editable, so every shape
  * that is not a usable definition is dropped rather than thrown on — one bad
@@ -118,13 +133,15 @@ export function parseCustomProviderCatalog(raw: string): CustomProvider[] {
   if (!Array.isArray(parsed)) return [];
   return parsed.flatMap((entry) => {
     if (!isRecord(entry)) return [];
-    const { slug, name, models } = entry;
+    const { slug, name, models, image_models, video_models } = entry;
     if (!isString(slug) || customProviderSlugError(slug)) return [];
     return [
       {
         slug,
         name: isNonEmptyString(name) ? name : slug,
-        models: Array.isArray(models) ? models.filter(isString) : []
+        models: stringList(models),
+        image_models: stringList(image_models),
+        video_models: stringList(video_models)
       }
     ];
   });
