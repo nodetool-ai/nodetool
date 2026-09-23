@@ -153,6 +153,11 @@ declare module "@web-demo" {
   export const heroStoryboardCast: DocDemoCast;
   /** Stage 4 — the six clips assemble into a cut. */
   export const heroTimelineCast: TimelineDemoCast;
+  /** The agents-section redo: the board, then one shot sent back (demo/src/redo/Redo.tsx). */
+  export const heroRedoCast: DocDemoCast;
+  export const heroRedoTimelineCast: TimelineDemoCast;
+  export const HERO_REDO_NOTE: string;
+  export const HERO_REDO_NOTE_MS: number;
 
   /** Mirror of web/src/demo/doc/docCastTypes.ts `DocSurface`. */
   export type DocSurface =

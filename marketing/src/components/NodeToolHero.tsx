@@ -79,8 +79,9 @@ export default function NodeToolHero() {
           />
           <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
             <HeroDemoPlayer
-              alt="NodeTool: one sentence becomes a storyboard, rendered stills and clips, a cut on the timeline, and a finished film"
-              caption="One sentence becomes a storyboard, stills and clips, a cut on the timeline, and a finished film. Recorded in the app. Open it full screen to read the panels."
+              mediaBase="/hero-sizzle"
+              alt="NodeTool: one brief becomes a project across the agent chat, storyboard, graph canvas, sketch, script and timeline"
+              caption="Direct, board, render, compare, paint, voice, cut: one workspace, recorded in the app."
             />
           </div>
         </div>

@@ -57,6 +57,8 @@
     "sync:posters": "cp ../docs/assets/tutorials/*.jpg ../web/public/tutorials/",
     "render:promo": "remotion render src/index.ts Promo-Master out/promo-master.mp4",
     "render:promo:landing": "remotion render src/index.ts Promo-Landing out/promo-landing.mp4",
+    "render:sizzle": "remotion render src/index.ts Sizzle out/sizzle.mp4",
+    "render:redo": "remotion render src/index.ts Redo out/redo.mp4",
     "render:hero": "remotion render src/index.ts Hero-Project out/hero-project.mp4",
     "render:hero:vertical": "remotion render src/index.ts Hero-Project-Vertical out/hero-project-vertical.mp4",
     "encode:hero": "node scripts/encode-hero.mjs",
