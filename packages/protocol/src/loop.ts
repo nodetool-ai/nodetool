@@ -36,8 +36,7 @@ export function isLoopFeedbackHandle(
 ): boolean {
   return (
     nodeType === LOOP_NODE_TYPE &&
-    typeof handle === "string" &&
-    LOOP_FEEDBACK_HANDLES.includes(handle)
+    LOOP_FEEDBACK_HANDLES.some((feedback) => feedback === handle)
   );
 }
 
