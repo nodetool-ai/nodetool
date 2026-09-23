@@ -178,6 +178,43 @@ describe("Loop runtime", () => {
     expect(out.seen).toEqual([]);
   }, 5000);
 
+  it("detects quiescence when the last busy actor exits instead of parking", async () => {
+    const accepted = recorder();
+    const nodes = [
+      loop({ initial: 0, max_iterations: 50 }),
+      node("inc", "test.Inc", { output: "int" }),
+      node("gate", "test.Gate", { retry: "int", accept: "int" }),
+      node("accepted", "test.Sink", {}),
+      node("seed", "test.Const", { output: "int" }),
+      node("slow", "test.Sink", {})
+    ];
+    const edges = [
+      edge("loop", "value", "inc", "input"),
+      edge("inc", "output", "gate", "input"),
+      edge("gate", "retry", "loop", "next"),
+      edge("gate", "accept", "accepted", "input"),
+      edge("seed", "output", "slow", "input")
+    ];
+    const { result } = await run(nodes, edges, {
+      inc: exec((i) => ({ output: Number(i.input) + 1 })),
+      gate: exec((i) =>
+        Number(i.input) >= 2 ? { accept: i.input } : { retry: i.input }
+      ),
+      accepted: accepted.executor,
+      seed: exec(() => ({ output: 1 })),
+      // Busy while the loop stalls, then exits: its only input has closed
+      // and it has no outgoing edges, so it never parks again.
+      slow: {
+        async process() {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          return {};
+        }
+      }
+    });
+    expect(result.status).toBe("completed");
+    expect(accepted.seen).toEqual([2]);
+  }, 5000);
+
   it("ends the run when the body fails instead of hanging", async () => {
     const nodes = [
       loop({ initial: 0, max_iterations: 50 }),

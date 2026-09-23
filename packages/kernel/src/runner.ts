@@ -366,6 +366,9 @@ export class WorkflowRunner {
    */
   private _openExternalStreamEdges = new Set<string>();
 
+  /** Schedules a quiescence check; set only for graphs with a Loop node. */
+  private _scheduleQuiescenceCheck: (() => void) | null = null;
+
   /**
    * Latch set by `cancel()` and never cleared by `_resetRunState`. A cancel
    * that lands between construction and `run()` would otherwise be dropped —
@@ -838,6 +841,7 @@ export class WorkflowRunner {
     this._eosSentEdges = new Set();
     this._liveActorIds = new Set();
     this._openExternalStreamEdges = new Set();
+    this._scheduleQuiescenceCheck = null;
     this._interventions = [];
     this._recordedOutputs = new Map();
   }
@@ -1582,6 +1586,9 @@ export class WorkflowRunner {
           .finally(() => {
             this._liveActors--;
             this._liveActorIds.delete(node.id);
+            // An actor that exits instead of parking may have been the last
+            // busy one.
+            this._scheduleQuiescenceCheck?.();
           })
       );
     }
@@ -1696,14 +1703,16 @@ export class WorkflowRunner {
         this._inboxes.get(id)!.notifyQuiescent();
       }
     };
+    const schedule = () => {
+      if (checkScheduled) return;
+      checkScheduled = true;
+      // After pending I/O and microtasks: an actor that is about to resume
+      // is no longer parked by the time the check runs.
+      setTimeout(check, 0);
+    };
+    this._scheduleQuiescenceCheck = schedule;
     const observer: InboxObserver = {
-      onPark: () => {
-        if (checkScheduled) return;
-        checkScheduled = true;
-        // After pending I/O and microtasks: an actor that is about to resume
-        // is no longer parked by the time the check runs.
-        setTimeout(check, 0);
-      },
+      onPark: schedule,
       onActivity: () => {
         activitySinceNotice = true;
       }
