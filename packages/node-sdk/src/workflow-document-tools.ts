@@ -1,4 +1,5 @@
 import type { Graph } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import { wouldCreateLoopUnsafeCycle } from "@nodetool-ai/protocol";
 import {
   inferredCodeInputNames,
   inferredCodeOutputNames
@@ -50,7 +51,6 @@ export interface WorkflowDocumentToolResult {
 }
 
 type GraphNode = Graph["nodes"][number];
-type GraphEdge = Graph["edges"][number];
 
 const DYNAMIC_NODE_DATA_FIELDS = new Set([
   "dynamic_properties",
@@ -119,29 +119,6 @@ function normalizePosition(
   };
 }
 
-function wouldCreateCycle(
-  edges: GraphEdge[],
-  source: string,
-  target: string
-): boolean {
-  const outgoing = new Map<string, string[]>();
-  for (const edge of edges) {
-    const next = outgoing.get(edge.source) ?? [];
-    next.push(edge.target);
-    outgoing.set(edge.source, next);
-  }
-  const pending = [target];
-  const seen = new Set<string>();
-  while (pending.length > 0) {
-    const nodeId = pending.pop();
-    if (!nodeId) continue;
-    if (nodeId === source) return true;
-    if (seen.has(nodeId)) continue;
-    seen.add(nodeId);
-    pending.push(...(outgoing.get(nodeId) ?? []));
-  }
-  return false;
-}
 
 function nodeCode(node: GraphNode): string {
   const data = nodeData(node);
@@ -388,9 +365,19 @@ export function applyWorkflowDocumentTool(
         changed: false
       };
     }
-    if (wouldCreateCycle(graph.edges, sourceId, targetId)) {
+    const nodeTypeOf = (id: string) =>
+      graph.nodes.find((node) => node.id === id)?.type;
+    if (
+      wouldCreateLoopUnsafeCycle(
+        graph.edges,
+        sourceId,
+        targetId,
+        targetHandle,
+        nodeTypeOf
+      )
+    ) {
       throw new Error(
-        `Connecting ${sourceId} → ${targetId} would create a cycle.`
+        `Connecting ${sourceId} → ${targetId} would create a cycle. A cycle may only close on the "next" or "condition" input of a Loop node (nodetool.control.Loop).`
       );
     }
     const sourceTypeName = typeMetaToString(sourceType);

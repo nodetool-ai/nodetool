@@ -17,7 +17,7 @@ describe("useConnectionEvents", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedUseNodeStoreRef.mockReturnValue({
-      getState: () => ({ edges: mockEdges })
+      getState: () => ({ edges: mockEdges, nodes: [] })
     });
   });
 
@@ -97,5 +97,24 @@ describe("useConnectionEvents", () => {
 
       expect(isValid).toBe(true);
     });
+  });
+  it("allows the edge that closes a loop on a Loop node's next input", () => {
+    const loopEdges = [
+      { id: "e1", source: "loop", target: "step", targetHandle: "input" }
+    ] as Edge[];
+    mockedUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        edges: loopEdges,
+        nodes: [
+          { id: "loop", type: "nodetool.control.Loop" },
+          { id: "step", type: "test.Step" }
+        ]
+      })
+    });
+    const { result } = renderHook(() => useConnectionEvents());
+    const back = { source: "step", target: "loop", targetHandle: "next" } as any;
+    const forward = { source: "step", target: "loop", targetHandle: "initial" } as any;
+    expect(result.current.isConnectionValid(back)).toBe(true);
+    expect(result.current.isConnectionValid(forward)).toBe(false);
   });
 });

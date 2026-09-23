@@ -206,7 +206,12 @@ export default function useConnectionHandlers() {
           true
         )
       ) {
-        if (wouldCreateCycle(edges, source, target)) {
+        if (
+          wouldCreateCycle(edges, source, target, {
+            targetHandle,
+            nodeTypeOf: (id) => findNode(id)?.type
+          })
+        ) {
           addNotification({
             type: "warning",
             alert: true,

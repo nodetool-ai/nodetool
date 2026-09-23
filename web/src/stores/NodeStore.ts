@@ -32,7 +32,7 @@ import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { isTypedSlot, normalizeDynamicSlots } from "../utils/dynamicSlots";
 import { addExposedInput } from "../utils/exposedInputs";
 import { WorkflowAttributes } from "./ApiTypes";
-import { wouldCreateCycle } from "../utils/graphCycle";
+import { nodeTypeLookup, wouldCreateCycle } from "../utils/graphCycle";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
@@ -727,7 +727,12 @@ export const createNodeStore = (
                     )
                 );
 
-            if (wouldCreateCycle(filteredEdges, source, target)) {
+            if (
+              wouldCreateCycle(filteredEdges, source, target, {
+                targetHandle,
+                nodeTypeOf: nodeTypeLookup(get().nodes)
+              })
+            ) {
               return;
             }
 
@@ -1448,7 +1453,11 @@ export const createNodeStore = (
               wouldCreateCycle(
                 get().edges,
                 connection.source,
-                connection.target
+                connection.target,
+                {
+                  targetHandle: connection.targetHandle,
+                  nodeTypeOf: nodeTypeLookup(get().nodes)
+                }
               )
             ) {
               return false;

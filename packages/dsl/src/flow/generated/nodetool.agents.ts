@@ -99,6 +99,26 @@ export function classifier(inputs: ClassifierInputs): Promise<ClassifierOutputs>
   return callNode<ClassifierOutputs>("nodetool.agents.Classifier", inputs);
 }
 
+// Decision — nodetool.agents.Decision
+export type DecisionInputs = {
+  model?: unknown;
+  prompt?: string;
+  value?: unknown;
+  system_prompt?: string;
+  max_tokens?: number;
+};
+
+export interface DecisionOutputs {
+  decision: boolean;
+  reason: string;
+  if_true: unknown;
+  if_false: unknown;
+}
+
+export function decision(inputs: DecisionInputs): Promise<DecisionOutputs> {
+  return callNode<DecisionOutputs>("nodetool.agents.Decision", inputs);
+}
+
 // Agent — nodetool.agents.Agent
 export type AgentInputs = {
   model?: unknown;

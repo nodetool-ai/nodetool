@@ -99,14 +99,14 @@ When using `ui_add_node` or `ui_graph`, the `data` object supports:
 
 | Namespace | Key Nodes | Purpose |
 |-----------|-----------|---------|
-| `nodetool.agents` | Agent, ResearchAgent, Summarizer, Extractor, Classifier | LLM-powered processing |
+| `nodetool.agents` | Agent, ResearchAgent, Summarizer, Extractor, Classifier, Decision | LLM-powered processing |
 | `nodetool.text` | Concat, Join, Replace, Template, Split, Regex, Compare, Slugify | Text manipulation |
 | `nodetool.code` | Code (JS sandbox with lodash, dayjs, cheerio, csvParse, validator) | Custom logic via JavaScript |
 | `nodetool.data` | Filter, Schema, GroupBy, Sort | Dataframe operations |
 | `nodetool.image` | Load, Save, Resize, Crop, Rotate, Composite | Image processing |
 | `nodetool.audio` | Load, Mix, Encode | Audio processing |
 | `nodetool.video` | Load, Extract, Metadata, Frames | Video processing |
-| `nodetool.control` | If, ForEach, Collect, Switch | Control flow |
+| `nodetool.control` | If, ForEach, Collect, Switch, Loop | Control flow |
 | `nodetool.constant` | String, Integer, Float, Bool, Image, Audio | Constant values |
 | `nodetool.input` | FloatInput, StringInput, ImageInput, ChatInput | Workflow parameters |
 | `nodetool.output` | Output, Preview | Results and debugging |
@@ -236,6 +236,16 @@ Any node can become a tool for an Agent via `dynamic_outputs`:
 - Everything is a stream; single values are one-item streams.
 - Use `nodetool.control.Collect` to gather a stream into a list.
 - Use `nodetool.control.ForEach` to process each item in a list.
+- Use `nodetool.control.Loop` to repeat part of the graph: wire `value` into
+  the body, the body's result back into `next`, and a bool into `condition`
+  (loop again while true). `max_iterations` bounds it and `done` carries the
+  final value. It is the only way to close a cycle. The DSL cannot express the
+  back edge, so build loops with the graph tools or workflow JSON.
+- Use `nodetool.agents.Decision` when a model should make the call: `prompt`
+  is a yes/no question, `value` is what it judges (images are shown to the
+  model), `decision` is the bool and `if_true`/`if_false` route `value` like
+  `If`. Wire `decision` into `Loop.condition` to loop until a model is
+  satisfied; phrase the question so yes means "loop again".
 - Use `Preview` nodes to inspect intermediate streaming results.
 - `sync_mode: "on_any"` fires on each incoming value; `"on_all"` waits for all inputs.
 

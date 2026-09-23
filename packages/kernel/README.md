@@ -1,8 +1,8 @@
 # @nodetool-ai/kernel
 
 The workflow kernel: the `Graph` model, `NodeInbox`, the actor runtime, and
-`WorkflowRunner`. Executes a workflow DAG via message-passing between node
-actors.
+`WorkflowRunner`. Executes a workflow graph via message-passing between node
+actors. The graph is acyclic except for loops that close on a `Loop` node.
 
 ## Responsibilities
 
@@ -19,6 +19,17 @@ closes its own outputs with nothing, which cascades down the untaken subgraph.
 
 Partial input still fires: a node that got a value on one handle and nothing on
 another runs, with the declared default filling in the empty handle.
+
+## Loops
+
+A cycle is valid only when it closes on the `next` or `condition` input of a
+`nodetool.control.Loop` node. Correlation analysis leaves those back edges out
+of the topological order and gives the loop body its own iteration scope. The
+Loop runs in its own actor mode (`src/loop.ts`) and closes its iteration
+outputs itself, because the body's EOS cannot reach it first. For graphs with
+a Loop, the runner reports a quiescent graph (every actor parked on its inbox)
+so a Loop can end runs whose body stopped feeding back. Design:
+[docs/workflow-loops.md](../../docs/workflow-loops.md).
 
 ## Usage
 
