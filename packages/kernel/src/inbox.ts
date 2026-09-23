@@ -101,6 +101,18 @@ function deferred<T = void>(): Deferred<T> {
 // NodeInbox
 // ---------------------------------------------------------------------------
 
+/**
+ * Runner hooks used to detect a quiescent graph (every actor parked on its
+ * inbox). Only installed for graphs that contain a Loop node.
+ * docs/workflow-loops.md.
+ */
+export interface InboxObserver {
+  /** The consumer started waiting for input. */
+  onPark(): void;
+  /** Something arrived: a value, an upstream close, or a lineage signal. */
+  onActivity(): void;
+}
+
 export class NodeInbox {
   /** Per-handle FIFO of envelopes. */
   private _buffers = new Map<string, MessageEnvelope[]>();
@@ -157,6 +169,12 @@ export class NodeInbox {
    * close/done?" without scanning every edge.
    */
   private _signalEdgesByHandle = new Map<string, Set<string>>();
+
+  /** Runner hooks for quiescence detection; see {@link setObserver}. */
+  private _observer: InboxObserver | null = null;
+
+  /** Set by {@link notifyQuiescent}, cleared by {@link takeQuiescent}. */
+  private _quiescent = false;
 
   constructor(
     bufferLimit: number | null = null,
@@ -231,6 +249,7 @@ export class NodeInbox {
     const envelope = makeEnvelope(item, opts);
     this._buffers.get(handle)!.push(envelope);
     this._arrival.push(handle);
+    this._observer?.onActivity();
     this._notifyWaiters();
   }
 
@@ -272,6 +291,7 @@ export class NodeInbox {
     }
     set.add(finalKey);
     this._registerSignalEdge(handle, signal.source_edge_id);
+    this._observer?.onActivity();
     this._notifyWaiters();
   }
 
@@ -302,6 +322,7 @@ export class NodeInbox {
     }
     roots.add(signal.closed_root);
     this._registerSignalEdge(handle, signal.source_edge_id);
+    this._observer?.onActivity();
     this._notifyWaiters();
   }
 
@@ -355,6 +376,7 @@ export class NodeInbox {
     if (cur > 0) {
       this._openCounts.set(handle, cur - 1);
     }
+    this._observer?.onActivity();
     this._notifyWaiters();
   }
 
@@ -605,7 +627,38 @@ export class NodeInbox {
   private _waitForData(): Promise<void> {
     const d = deferred<void>();
     this._waiters.push(d);
+    this._observer?.onPark();
     return d.promise;
+  }
+
+  // -----------------------------------------------------------------------
+  // Quiescence (workflow loops, docs/workflow-loops.md)
+  // -----------------------------------------------------------------------
+
+  /** Install the runner's park/activity hooks. */
+  setObserver(observer: InboxObserver | null): void {
+    this._observer = observer;
+  }
+
+  /** True while the consumer is parked waiting for input. */
+  isParked(): boolean {
+    return this._waiters.length > 0;
+  }
+
+  /**
+   * Tell the consumer the whole graph is quiescent: every actor is parked,
+   * so no input it is waiting for can still arrive. Wakes the consumer.
+   */
+  notifyQuiescent(): void {
+    this._quiescent = true;
+    this._notifyWaiters();
+  }
+
+  /** Read and clear the quiescent flag set by {@link notifyQuiescent}. */
+  takeQuiescent(): boolean {
+    const was = this._quiescent;
+    this._quiescent = false;
+    return was;
   }
 
   /**

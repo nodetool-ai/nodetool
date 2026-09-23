@@ -8,6 +8,7 @@ export * from "./supervisor.js";
 export * from "./ws-commands.js";
 export * from "./bridge-frames.js";
 export * from "./graph.js";
+export * from "./loop.js";
 export * from "./api-types.js";
 export * from "./custom-providers.js";
 export * from "./package-assets.js";

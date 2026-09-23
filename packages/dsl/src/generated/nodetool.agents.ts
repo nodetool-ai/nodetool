@@ -89,6 +89,26 @@ export function classifier(inputs: ClassifierInputs): DslNode<ClassifierOutputs,
   return createNode("nodetool.agents.Classifier", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
 
+// Decision — nodetool.agents.Decision
+export type DecisionInputs = {
+  model?: Connectable<unknown>;
+  prompt?: Connectable<string>;
+  value?: Connectable<unknown>;
+  system_prompt?: Connectable<string>;
+  max_tokens?: Connectable<number>;
+};
+
+export interface DecisionOutputs {
+  decision: boolean;
+  reason: string;
+  if_true: unknown;
+  if_false: unknown;
+}
+
+export function decision(inputs: DecisionInputs): DslNode<DecisionOutputs> {
+  return createNode("nodetool.agents.Decision", inputs, { outputNames: ["decision", "reason", "if_true", "if_false"] });
+}
+
 // Agent — nodetool.agents.Agent
 export type AgentInputs = {
   model?: Connectable<unknown>;

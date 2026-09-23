@@ -3,6 +3,9 @@ import { createNode } from "../core.js";
 function if_(inputs) {
   return createNode("nodetool.control.If", inputs, { outputNames: ["if_true", "if_false"], streaming: true });
 }
+function loop(inputs) {
+  return createNode("nodetool.control.Loop", inputs, { outputNames: ["value", "index", "done"], streaming: true });
+}
 function forEach(inputs) {
   return createNode("nodetool.control.ForEach", inputs, { outputNames: ["output", "index"], streaming: true });
 }
@@ -80,6 +83,7 @@ export {
   forEach,
   if_,
   last,
+  loop,
   repeatCount,
   repeatValue,
   reroute,

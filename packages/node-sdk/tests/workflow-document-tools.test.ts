@@ -211,6 +211,52 @@ describe("applyWorkflowDocumentTool", () => {
         options
       )
     ).toThrow("would create a cycle");
+
+    const looped: Graph = {
+      nodes: [
+        { id: "loop", type: "nodetool.control.Loop", data: {} },
+        { id: "b", type: "test.Sink", data: {} }
+      ],
+      edges: [
+        {
+          id: "body",
+          source: "loop",
+          sourceHandle: "output",
+          target: "b",
+          targetHandle: "value"
+        }
+      ]
+    };
+    metadataByType["nodetool.control.Loop"] = metadata(
+      "nodetool.control.Loop",
+      { initial: "str", next: "str" },
+      { output: "str" }
+    );
+    const closed = applyWorkflowDocumentTool(
+      looped,
+      "ui_connect_nodes",
+      {
+        source_node_id: "b",
+        source_handle: "output",
+        target_node_id: "loop",
+        target_handle: "next"
+      },
+      options
+    );
+    expect(closed.changed).toBe(true);
+    expect(() =>
+      applyWorkflowDocumentTool(
+        looped,
+        "ui_connect_nodes",
+        {
+          source_node_id: "b",
+          source_handle: "output",
+          target_node_id: "loop",
+          target_handle: "initial"
+        },
+        options
+      )
+    ).toThrow("would create a cycle");
   });
 
   it("deletes incident edges with a node", () => {

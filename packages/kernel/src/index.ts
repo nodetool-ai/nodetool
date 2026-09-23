@@ -13,7 +13,16 @@ export {
   type NodeTypeResolver,
   type ResolvedNodeType
 } from "./graph.js";
-export { NodeInbox, type MessageEnvelope } from "./inbox.js";
+export {
+  NodeInbox,
+  type InboxObserver,
+  type MessageEnvelope
+} from "./inbox.js";
+export {
+  DEFAULT_MAX_ITERATIONS,
+  MAX_ITERATIONS_LIMIT,
+  resolveMaxIterations
+} from "./loop.js";
 export { syntheticEdgeId, externalEdgeId } from "./edge-ids.js";
 export {
   analyzeCorrelation,

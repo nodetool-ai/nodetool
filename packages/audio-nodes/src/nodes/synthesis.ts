@@ -16,8 +16,9 @@
  * audio chunk streams, Eurorack-style. Pitch CV is volts/octave equivalent:
  * `freq = base_frequency * 2^cv`, cv in octaves.
  *
- * Limitation: the workflow graph is a strict DAG — feedback patching (e.g.
- * an envelope modulating its own gate) is not supported.
+ * Limitation: audio-rate feedback patching (e.g. an envelope modulating its
+ * own gate) is not supported. The only cycles a workflow graph may contain
+ * are Loop node iterations (docs/workflow-loops.md), one value per iteration.
  */
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {

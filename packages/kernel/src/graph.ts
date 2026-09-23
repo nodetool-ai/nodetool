@@ -24,6 +24,7 @@ const log = createLogger("nodetool.kernel.graph");
 import {
   isControlEdge,
   isDataEdge,
+  isLoopBackEdge,
   migrateGraphNodeTypes,
   TypeMetadata
 } from "@nodetool-ai/protocol";
@@ -738,9 +739,13 @@ export class Graph {
     // edges would turn a legal data-A→B + control-B→A controller feedback
     // pattern into a mixed cycle, silently dropping both nodes from the
     // returned levels.
+    // Loop back edges close the only cycles a graph may contain; leaving them
+    // out keeps loop bodies in the levels (docs/workflow-loops.md).
+    const nodeTypeOf = (id: string) => this.findNode(id)?.type;
     const filteredEdges = this.edges.filter(
       (edge) =>
         isDataEdge(edge) &&
+        !isLoopBackEdge(edge, nodeTypeOf) &&
         filteredNodeIds.has(edge.source) &&
         filteredNodeIds.has(edge.target)
     );

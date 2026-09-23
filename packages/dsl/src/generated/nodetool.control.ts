@@ -17,6 +17,24 @@ export function if_(inputs: IfInputs): DslNode<IfOutputs> {
   return createNode("nodetool.control.If", inputs, { outputNames: ["if_true", "if_false"], streaming: true });
 }
 
+// Loop — nodetool.control.Loop
+export type LoopInputs = {
+  initial?: Connectable<unknown>;
+  next?: Connectable<unknown>;
+  condition?: Connectable<boolean>;
+  max_iterations?: Connectable<number>;
+};
+
+export interface LoopOutputs {
+  value: unknown;
+  index: number;
+  done: unknown;
+}
+
+export function loop(inputs: LoopInputs): DslNode<LoopOutputs> {
+  return createNode("nodetool.control.Loop", inputs, { outputNames: ["value", "index", "done"], streaming: true });
+}
+
 // For Each — nodetool.control.ForEach
 export type ForEachInputs = {
   input_list?: Connectable<unknown[]>;

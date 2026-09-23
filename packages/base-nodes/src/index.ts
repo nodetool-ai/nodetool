@@ -2,6 +2,7 @@ import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
 
 export {
   IfNode,
+  LoopNode,
   ForEachNode,
   RepeatCountNode,
   RepeatValueStreamNode,
@@ -285,6 +286,7 @@ export {
   CreateThreadNode,
   ExtractorNode,
   ClassifierNode,
+  DecisionNode,
   AgentNode,
   AGENT_NODES
 } from "@nodetool-ai/llm-nodes/nodes/agents";

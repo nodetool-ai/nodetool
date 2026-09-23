@@ -15,6 +15,9 @@ function extractor(inputs) {
 function classifier(inputs) {
   return createNode("nodetool.agents.Classifier", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
+function decision(inputs) {
+  return createNode("nodetool.agents.Decision", inputs, { outputNames: ["decision", "reason", "if_true", "if_false"] });
+}
 function agent(inputs) {
   return createNode("nodetool.agents.Agent", inputs, { outputNames: ["text", "chunk", "thinking", "audio"], streaming: true });
 }
@@ -22,6 +25,7 @@ export {
   agent,
   classifier,
   createThread,
+  decision,
   enhancePrompt,
   extractor,
   summarizer

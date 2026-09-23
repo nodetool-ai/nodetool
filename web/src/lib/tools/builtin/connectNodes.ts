@@ -112,9 +112,15 @@ FrontendToolRegistry.register({
       return { ok: true, edge_id: duplicate.id, note: "edge already exists" };
     }
 
-    if (wouldCreateCycle(nodeStore.edges, source_node_id, target_node_id)) {
+    if (
+      wouldCreateCycle(nodeStore.edges, source_node_id, target_node_id, {
+        targetHandle: target_handle,
+        nodeTypeOf: (id) => nodeStore.findNode(id)?.type
+      })
+    ) {
       throw new Error(
-        `Connecting ${source_node_id} → ${target_node_id} would create a cycle.`
+        `Connecting ${source_node_id} → ${target_node_id} would create a cycle. ` +
+          `A cycle may only close on the "next" or "condition" input of a Loop node (nodetool.control.Loop).`
       );
     }
 

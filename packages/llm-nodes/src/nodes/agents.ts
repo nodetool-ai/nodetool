@@ -109,6 +109,13 @@ const CLASSIFIER_SYSTEM_PROMPT = [
   "Choose exactly one category from the allowed list.",
   'Return only JSON matching {"category":"<allowed-category>"} with no extra text.'
 ].join(" ");
+const DECISION_SYSTEM_PROMPT = [
+  "You make one yes/no decision about the inputs you are given.",
+  "Answer the question by calling the decision tool exactly once:",
+  "decision is true for yes and false for no, and reason is one short sentence explaining it.",
+  "Base the decision only on the inputs. If the inputs do not settle the question, answer false."
+].join(" ");
+const DECISION_MAX_TOKENS = 512;
 const SUMMARIZER_SYSTEM_PROMPT =
   "You are an expert summarizer. Produce a concise, accurate summary.";
 const ENHANCE_PROMPT_SYSTEM_PROMPT = [
@@ -816,6 +823,216 @@ export class ClassifierNode extends BaseNode {
   }
 }
 
+/** Output handles DecisionNode.process() emits. `if_true`/`if_false`: only the taken one. */
+type DecisionNodeOutputs = {
+  decision: boolean;
+  reason: string;
+  if_true?: unknown;
+  if_false?: unknown;
+};
+
+function isMediaRef(value: unknown, type: "image" | "audio"): boolean {
+  return isObjectLike(value) && (value as { type?: unknown }).type === type;
+}
+
+/** A model's decision field as a boolean, or null when it is not one. */
+function parseDecision(value: unknown): boolean | null {
+  if (value === true || value === false) return value;
+  const text = asText(value).trim().toLowerCase();
+  if (["true", "yes", "y", "1"].includes(text)) return true;
+  if (["false", "no", "n", "0"].includes(text)) return false;
+  return null;
+}
+
+/**
+ * The inputs a decision is about, as prompt text plus attached media. Image
+ * and audio refs (and lists of them) are attached to the message; every
+ * other value is rendered into an `<input>` block, JSON for structured data.
+ */
+function describeDecisionInputs(inputs: ReadonlyArray<[string, unknown]>): {
+  text: string;
+  images: unknown[];
+  audios: unknown[];
+} {
+  const images: unknown[] = [];
+  const audios: unknown[] = [];
+  const blocks: string[] = [];
+  for (const [name, value] of inputs) {
+    if (value === null || value === undefined || value === "") continue;
+    const items = Array.isArray(value) ? value : [value];
+    if (items.length > 0 && items.every((v) => isMediaRef(v, "image"))) {
+      images.push(...items);
+      blocks.push(`<input name="${name}">[${items.length} image(s) attached]</input>`);
+      continue;
+    }
+    if (items.length > 0 && items.every((v) => isMediaRef(v, "audio"))) {
+      audios.push(...items);
+      blocks.push(`<input name="${name}">[${items.length} audio clip(s) attached]</input>`);
+      continue;
+    }
+    const rendered = isString(value) ? value : JSON.stringify(value, null, 2);
+    blocks.push(`<input name="${name}">\n${rendered}\n</input>`);
+  }
+  return { text: blocks.join("\n"), images, audios };
+}
+
+/**
+ * An LLM answers a yes/no question about its inputs and routes `value` down
+ * the matching branch, like `If` with the condition written as a prompt.
+ * `decision` is the bool itself, so it can drive `If`, `Loop.condition`, or
+ * any bool input. Wire extra inputs as dynamic inputs; each is shown to the
+ * model by name. docs/workflow-loops.md.
+ */
+export class DecisionNode extends BaseNode {
+  static readonly nodeType = "nodetool.agents.Decision";
+  static readonly body = "content_card";
+  static readonly title = "Decision";
+  static readonly description =
+    "Let an LLM make a yes/no decision about the inputs, then route the value down the matching branch.\n    decision, judge, condition, branch, if, evaluate, approve, verify, gate, loop, agent\n\n    Write the question in prompt. Wire the value to route into value, and any other context as extra inputs; images and audio are shown to the model. decision carries the answer as a bool, reason explains it, and only the taken branch (if_true or if_false) emits value.\n\n    Use cases:\n    - Judge whether a draft or generated image meets a brief\n    - Drive a Loop's condition from a model's judgement\n    - Route items to different branches by a natural-language rule";
+  static readonly metadataOutputTypes = {
+    decision: "bool",
+    reason: "str",
+    if_true: "any",
+    if_false: "any"
+  };
+  static readonly inlineFields = ["prompt"];
+  static readonly inputFields = ["value", "prompt", "system_prompt"];
+  static readonly supportsDynamicInputs = true;
+  static readonly recommendedModels = CLASSIFIER_RECOMMENDED_MODELS;
+
+  // Every output keys to the invocation, so a Decision inside a loop body or
+  // behind a ForEach answers once per item. `if_true`/`if_false` are not
+  // `forward` from `value`: `value` may be unwired.
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    decision: { kind: "single", source: "__execution__" },
+    reason: { kind: "single", source: "__execution__" },
+    if_true: { kind: "single", source: "__execution__" },
+    if_false: { kind: "single", source: "__execution__" }
+  } satisfies Record<string, OutputCorrelation>;
+
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model that makes the decision"
+  })
+  declare model: LanguageModel;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description:
+      'The yes/no question to decide, e.g. "Does the draft answer every point in the brief?"'
+  })
+  declare prompt: string;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Value",
+    description:
+      "The value the decision is about. Shown to the model and passed through on the taken branch."
+  })
+  declare value: unknown;
+
+  @prop({
+    type: "str",
+    default: DECISION_SYSTEM_PROMPT,
+    title: "System Prompt",
+    description: "Instructions for how the model decides"
+  })
+  declare system_prompt: string;
+
+  @prop({
+    type: "int",
+    default: DECISION_MAX_TOKENS,
+    title: "Max Tokens",
+    description: "The maximum number of tokens to generate.",
+    min: 1,
+    max: 100000
+  })
+  declare max_tokens: number;
+
+  async process(context?: ProcessingContext): Promise<DecisionNodeOutputs> {
+    const question = asText(this.prompt ?? "").trim();
+    if (!question) {
+      throw new Error("Decision needs a prompt: write the yes/no question to decide.");
+    }
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (!providerId || !modelId) {
+      throw new Error("Select a model");
+    }
+    if (!hasProviderAccess(context)) {
+      throw new Error("Processing context is required");
+    }
+
+    const value = this.value ?? null;
+    const inputs = describeDecisionInputs([
+      ["value", value],
+      ...this.dynamicProps.entries()
+    ]);
+    const userText = inputs.text
+      ? `Question: ${question}\n\nInputs:\n${inputs.text}`
+      : `Question: ${question}`;
+
+    const provider = await context.getProvider(providerId);
+    const spend = meterProviderSpend(context, provider, modelId);
+    let result: Record<string, unknown> | null;
+    try {
+      result = await generateStructured(provider, {
+        model: modelId,
+        maxTokens: Number(this.max_tokens ?? DECISION_MAX_TOKENS),
+        messages: [
+          {
+            role: "system",
+            content:
+              asText(this.system_prompt ?? "").trim() || DECISION_SYSTEM_PROMPT
+          },
+          userMessageWithMedia(userText, inputs.images, inputs.audios)
+        ],
+        toolName: "decision_result",
+        toolDescription: "Submit the yes/no decision and its reason.",
+        schema: {
+          type: "object",
+          properties: {
+            decision: {
+              type: "boolean",
+              description: "true for yes, false for no"
+            },
+            reason: {
+              type: "string",
+              description: "One short sentence explaining the decision"
+            }
+          },
+          required: ["decision", "reason"]
+        }
+      });
+    } finally {
+      spend.report();
+    }
+    const decision = result ? parseDecision(result.decision) : null;
+    if (decision === null) {
+      throw new Error(
+        "Decision: the model did not return a yes/no decision for the decision tool."
+      );
+    }
+    const reason = result ? asText(result.reason ?? "").trim() : "";
+    // Emit only the taken branch, like If: the other branch's inbox closes
+    // empty and its nodes are skipped.
+    return decision
+      ? { decision, reason, if_true: value }
+      : { decision, reason, if_false: value };
+  }
+}
+
 export class AgentNode extends BaseNode {
   static readonly nodeType: string = "nodetool.agents.Agent";
   static readonly body = "content_card";
@@ -1500,5 +1717,6 @@ export const AGENT_NODES = tagAsServer([
   CreateThreadNode,
   ExtractorNode,
   ClassifierNode,
+  DecisionNode,
   AgentNode
 ]);

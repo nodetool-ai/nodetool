@@ -3,7 +3,7 @@ layout: page
 title: "nodetool.control Nodes"
 ---
 
-This namespace contains 22 node(s).
+This namespace contains 23 node(s).
 
 ## Available Nodes
 
@@ -21,6 +21,7 @@ This namespace contains 22 node(s).
 - **[For Each](foreach.md)** - Iterate over a list and emit each item sequentially.
 - **[If](if.md)** - Conditionally executes one of two branches based on a condition.
 - **[Last](last.md)** - Emit only the final item of a stream.
+- **[Loop](loop.md)** - Repeat a section of the workflow, feeding each result back in, until a condit...
 - **[Repeat Count](repeatcount.md)** - Emit N sequential ticks without needing an input list.
 - **[Repeat Value](repeatvalue.md)** - Emit the same value N times without building a list first.
 - **[Reroute](reroute.md)** - Pass data through unchanged for tidier workflow layouts.

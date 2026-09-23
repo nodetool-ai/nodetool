@@ -246,6 +246,7 @@ describe("ShotEditPanel fields (criterion 14)", () => {
     expect(screen.getByTestId("cell-shot")).toHaveTextContent("1");
   });
 
+  // Eleven fields typed one key at a time exceed Jest's default on CI runners.
   it("edits every § 7.7.2 field and saves them in one write", async () => {
     seed([baseShot()]);
     renderPanel();
@@ -281,7 +282,7 @@ describe("ShotEditPanel fields (criterion 14)", () => {
         lens: "35mm"
       }
     });
-  });
+  }, 30_000);
 
   it("puts every edited field back with a single undo", async () => {
     seed([baseShot()]);

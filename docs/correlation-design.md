@@ -259,7 +259,8 @@ fixed-point pass over the DAG:
   roots.
 - `Zip` and `Cross` outputs contribute their newly minted root.
 
-Cycles in this analysis reject the graph. The runner passes contributor sets,
+Cycles in this analysis reject the graph, except loops that close on a `Loop`
+node's feedback input; see [Workflow Loops](workflow-loops.md). The runner passes contributor sets,
 possible child roots, ordered input scopes, ordered output scopes, and
 `repeats_per_key` flags to each inbox/actor. Inboxes never infer prefix order
 from `CorrelationLineage`'s record shape; every projection uses the ordered
