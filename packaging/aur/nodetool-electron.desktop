@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=NodeTool
+GenericName=AI Workflow Editor
+Comment=Visual builder for AI workflows and agents
+Exec=nodetool %U
+Icon=nodetool-electron
+Terminal=false
+Categories=Development;IDE;
+Keywords=AI;Workflow;Node;Editor;Agent;Machine Learning;
+MimeType=x-scheme-handler/nodetool;
+StartupWMClass=Nodetool
+StartupNotify=true

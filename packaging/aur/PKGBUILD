@@ -1,56 +1,61 @@
 # Maintainer: Nodetool <hello@nodetool.ai>
-# This PKGBUILD is generated from packaging/aur/PKGBUILD by the
-# "Publish AUR package" GitHub workflow, which substitutes @PKGVER@ with the
-# release version and runs updpkgsums to fill in the checksum. Keep the
-# @PKGVER@ placeholder intact so the workflow can render it.
+# This PKGBUILD is generated from packaging/aur/PKGBUILD by the "AUR package"
+# GitHub workflow, which substitutes @PKGVER@ with the release version and
+# fills in the checksums. Keep the @PKGVER@ placeholder intact.
 pkgname=nodetool-bin
+_appname=nodetool-electron
 pkgver=@PKGVER@
 pkgrel=1
-pkgdesc="Visual Builder for AI Workflows and Agents"
+pkgdesc="Visual builder for AI workflows and agents"
 arch=('x86_64')
 url="https://nodetool.ai"
 license=('AGPL-3.0-only')
-depends=('gtk3' 'nss' 'alsa-lib' 'hicolor-icon-theme')
-optdepends=('libnotify: desktop notifications')
+depends=('gtk3' 'nss' 'alsa-lib' 'libsecret' 'hicolor-icon-theme')
+optdepends=('gnome-keyring: Secret Service provider that stores the credential encryption key'
+            'kwallet: alternative Secret Service provider'
+            'vulkan-icd-loader: GPU inference for local models'
+            'libnotify: desktop notifications'
+            'xdg-utils: open links and files in other applications')
 provides=('nodetool')
 conflicts=('nodetool')
-options=('!strip')
+options=('!strip' '!debug')
 _releasetag="v${pkgver}"
-source=("nodetool-${pkgver}.AppImage::https://github.com/nodetool-ai/nodetool/releases/download/${_releasetag}/Nodetool-${pkgver}-x86_64.AppImage")
-sha256sums=('SKIP')
+source=("nodetool-${pkgver}.AppImage::https://github.com/nodetool-ai/nodetool/releases/download/${_releasetag}/Nodetool-${pkgver}-x86_64.AppImage"
+        "nodetool.sh"
+        "${_appname}.desktop")
+noextract=("nodetool-${pkgver}.AppImage")
+sha256sums=('SKIP'
+            'SKIP'
+            'SKIP')
 
 prepare() {
+  rm -rf squashfs-root
   chmod +x "nodetool-${pkgver}.AppImage"
   "./nodetool-${pkgver}.AppImage" --appimage-extract >/dev/null
 }
 
 package() {
-  # Install the extracted AppImage tree under /opt.
   install -dm755 "${pkgdir}/opt/${pkgname}"
   cp -a squashfs-root/. "${pkgdir}/opt/${pkgname}/"
 
+  # AppImage-only launch and integration files. /usr/bin/nodetool replaces them.
+  rm -f "${pkgdir}/opt/${pkgname}/AppRun" \
+        "${pkgdir}/opt/${pkgname}/${_appname}.desktop" \
+        "${pkgdir}/opt/${pkgname}/${_appname}.png" \
+        "${pkgdir}/opt/${pkgname}/.DirIcon"
+  rm -rf "${pkgdir}/opt/${pkgname}/usr"
+
+  # The AppImage stores its directories as 0700, which would hide the app from
+  # every user except root.
+  chmod -R u+rwX,go+rX,go-w "${pkgdir}/opt/${pkgname}"
   # The Electron sandbox helper must be setuid root.
-  if [[ -f "${pkgdir}/opt/${pkgname}/chrome-sandbox" ]]; then
-    chmod 4755 "${pkgdir}/opt/${pkgname}/chrome-sandbox"
-  fi
+  chmod 4755 "${pkgdir}/opt/${pkgname}/chrome-sandbox"
 
-  # Launcher: AppRun sets APPDIR and execs the bundled Electron binary.
-  install -dm755 "${pkgdir}/usr/bin"
-  ln -s "/opt/${pkgname}/AppRun" "${pkgdir}/usr/bin/nodetool"
-
-  # Desktop entry: reuse the bundled .desktop, pointing Exec at the launcher.
-  # Leave Icon untouched so it matches the icon names shipped in the AppImage.
-  local desktop
-  desktop="$(find squashfs-root -maxdepth 1 -name '*.desktop' | head -n1)"
-  if [[ -n "${desktop}" ]]; then
-    install -dm755 "${pkgdir}/usr/share/applications"
-    sed 's|^Exec=.*|Exec=nodetool %U|' "${desktop}" \
-      > "${pkgdir}/usr/share/applications/${pkgname}.desktop"
-  fi
-
-  # Hicolor icons for desktop integration.
-  if [[ -d squashfs-root/usr/share/icons ]]; then
-    install -dm755 "${pkgdir}/usr/share/icons"
-    cp -a squashfs-root/usr/share/icons/. "${pkgdir}/usr/share/icons/"
-  fi
+  install -Dm755 nodetool.sh "${pkgdir}/usr/bin/nodetool"
+  install -Dm644 "${_appname}.desktop" \
+    "${pkgdir}/usr/share/applications/${_appname}.desktop"
+  install -Dm644 "squashfs-root/usr/share/icons/hicolor/512x512/apps/${_appname}.png" \
+    "${pkgdir}/usr/share/icons/hicolor/512x512/apps/${_appname}.png"
+  install -Dm644 squashfs-root/LICENSE.electron.txt \
+    "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE.electron.txt"
 }
