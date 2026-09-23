@@ -10,6 +10,7 @@
 
 import {
   Asset,
+  ImageDocument,
   Script,
   Storyboard,
   TimelineSequence,
@@ -199,7 +200,14 @@ export function entityModelInterfaces(): Pick<
   "listEntities" | "getEntity" | "upsertEntity"
 > {
   return {
-    listEntities: async ({ userId, projectId, kind, tags, nameContains, limit }) => {
+    listEntities: async ({
+      userId,
+      projectId,
+      kind,
+      tags,
+      nameContains,
+      limit
+    }) => {
       const [assets] = await Asset.paginate(userId, {
         contentType: "image",
         projectId,
@@ -218,7 +226,9 @@ export function entityModelInterfaces(): Pick<
           }
           return true;
         });
-      return limit !== undefined ? matched.slice(0, Math.max(limit, 0)) : matched;
+      return limit !== undefined
+        ? matched.slice(0, Math.max(limit, 0))
+        : matched;
     },
     getEntity: async ({ userId, id }) => {
       // An asset owned by someone else reads as missing, and an untagged one is
@@ -229,7 +239,10 @@ export function entityModelInterfaces(): Pick<
     upsertEntity: async (args) => {
       const existing = await findUpsertTarget(args);
       if (existing) {
-        return { entity: await writeEntityMarker(existing, args), created: false };
+        return {
+          entity: await writeEntityMarker(existing, args),
+          created: false
+        };
       }
       const asset = await Asset.find(args.userId, args.imageAssetId);
       if (!asset) {
@@ -356,6 +369,30 @@ export function scriptModelInterfaces(): Pick<
 
 export function documentModelInterfaces(): ProcessingContextModelInterfaces {
   return {
+    getImageDocument: async ({ userId, id }) => {
+      const doc = await ImageDocument.findById(id);
+      if (!doc || doc.user_id !== userId) return null;
+      return doc.toResponse();
+    },
+    createImageDocument: async ({
+      userId,
+      name,
+      projectId,
+      width,
+      height,
+      document
+    }) => {
+      const doc = new ImageDocument({
+        user_id: userId,
+        project_id: projectId ?? "default",
+        name,
+        width,
+        height,
+        document: JSON.stringify(document)
+      });
+      await doc.save();
+      return doc.toResponse();
+    },
     ...scriptModelInterfaces(),
     ...storyboardModelInterfaces(),
     ...entityModelInterfaces(),

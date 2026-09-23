@@ -3,7 +3,11 @@ import {
   initTestDb,
   ModelObserver,
   Workflow,
-  Job
+  Job,
+  ImageDocument,
+  Script,
+  Storyboard,
+  TimelineSequence
 } from "@nodetool-ai/models";
 import type { Workflow as WorkflowModel } from "@nodetool-ai/models";
 import { NodeRegistry, BaseNode } from "@nodetool-ai/node-sdk";
@@ -28,9 +32,7 @@ class CaptureNode extends BaseNode {
   static readonly title = "Capture";
   static readonly description = "Captures context.triggerEvent";
 
-  async process(
-    context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     capturedTriggerEvent = context?.triggerEvent ?? null;
     capturedGate = context?.get(PERMISSION_GATE_CONTEXT_KEY) ?? null;
     return { out: "done" };
@@ -62,11 +64,90 @@ class FailNode extends BaseNode {
   }
 }
 
+class CreateSketchRecordNode extends BaseNode {
+  static readonly nodeType = "test.headless.CreateSketchRecord";
+  static readonly title = "Create Sketch Record";
+  static readonly description =
+    "Persists a sketch through the workflow context";
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    if (!context) throw new Error("Missing processing context");
+    const created = await context.createImageDocument({
+      name: "Headless sketch",
+      width: 16,
+      height: 12,
+      document: { sketch: { version: 3 }, layerBindings: [] }
+    });
+    return { out: created.id };
+  }
+}
+
+class CreateStoryboardRecordNode extends BaseNode {
+  static readonly nodeType = "test.headless.CreateStoryboardRecord";
+  static readonly title = "Create Storyboard Record";
+  static readonly description =
+    "Persists a storyboard through the workflow context";
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    if (!context) throw new Error("Missing processing context");
+    const created = await context.createStoryboard({
+      name: "Headless storyboard",
+      projectId: "project-1",
+      document: { shots: [], brief: "Test storyboard" }
+    });
+    return { out: created.id };
+  }
+}
+
+class CreateScriptRecordNode extends BaseNode {
+  static readonly nodeType = "test.headless.CreateScriptRecord";
+  static readonly title = "Create Script Record";
+  static readonly description =
+    "Persists a script through the workflow context";
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    if (!context) throw new Error("Missing processing context");
+    const created = await context.createScript({
+      name: "Headless script",
+      projectId: "project-1",
+      document: { cast: [], sections: [] }
+    });
+    return { out: created.id };
+  }
+}
+
+class CreateTimelineRecordNode extends BaseNode {
+  static readonly nodeType = "test.headless.CreateTimelineRecord";
+  static readonly title = "Create Timeline Record";
+  static readonly description =
+    "Persists a timeline through the workflow context";
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    if (!context) throw new Error("Missing processing context");
+    const created = await context.createTimelineSequence({
+      projectId: "project-1",
+      name: "Headless timeline",
+      fps: 30,
+      width: 640,
+      height: 480,
+      durationMs: 0,
+      tracks: [],
+      clips: [],
+      markers: []
+    });
+    return { out: created.id };
+  }
+}
+
 function makeRegistry(): NodeRegistry {
   const registry = new NodeRegistry();
   registry.register(CaptureNode);
   registry.register(GateNode);
   registry.register(FailNode);
+  registry.register(CreateSketchRecordNode);
+  registry.register(CreateStoryboardRecordNode);
+  registry.register(CreateScriptRecordNode);
+  registry.register(CreateTimelineRecordNode);
   return registry;
 }
 
@@ -104,6 +185,65 @@ describe("startHeadlessJob", () => {
     });
   });
   afterEach(() => ModelObserver.clear());
+
+  it("persists image documents from headless workflow nodes", async () => {
+    const wf = await makeWorkflow("test.headless.CreateSketchRecord");
+    const result = await startHeadlessJob({
+      workflowId: wf.id,
+      userId: USER_ID,
+      registry: makeRegistry()
+    });
+    expect(result.status).toBe("completed");
+    const [sketch] = await ImageDocument.listByUser(USER_ID);
+    expect(sketch?.name).toBe("Headless sketch");
+    expect(sketch?.width).toBe(16);
+    expect(sketch?.toResponse().document).toEqual({
+      sketch: { version: 3 },
+      layerBindings: []
+    });
+  });
+
+  it("persists storyboards from headless workflow nodes", async () => {
+    const wf = await makeWorkflow("test.headless.CreateStoryboardRecord");
+    const result = await startHeadlessJob({
+      workflowId: wf.id,
+      userId: USER_ID,
+      registry: makeRegistry()
+    });
+    expect(result.status).toBe("completed");
+    const [board] = await Storyboard.listByUser(USER_ID);
+    expect(board?.name).toBe("Headless storyboard");
+    expect(board?.project_id).toBe("project-1");
+    expect(board?.toResponse().document.brief).toBe("Test storyboard");
+  });
+
+  it("persists scripts from headless workflow nodes", async () => {
+    const wf = await makeWorkflow("test.headless.CreateScriptRecord");
+    const result = await startHeadlessJob({
+      workflowId: wf.id,
+      userId: USER_ID,
+      registry: makeRegistry()
+    });
+    expect(result.status).toBe("completed");
+    const [script] = await Script.listByUser(USER_ID);
+    expect(script?.name).toBe("Headless script");
+    expect(script?.project_id).toBe("project-1");
+    expect(script?.toResponse().document.sections).toEqual([]);
+  });
+
+  it("persists timelines from headless workflow nodes", async () => {
+    const wf = await makeWorkflow("test.headless.CreateTimelineRecord");
+    const result = await startHeadlessJob({
+      workflowId: wf.id,
+      userId: USER_ID,
+      registry: makeRegistry()
+    });
+    expect(result.status).toBe("completed");
+    const [timeline] = await TimelineSequence.listByUser(USER_ID);
+    expect(timeline?.name).toBe("Headless timeline");
+    expect(timeline?.project_id).toBe("project-1");
+    expect(timeline?.toTimelineSequence().clips).toEqual([]);
+  });
 
   it("creates a Job row, runs the graph, and resolves with the terminal status", async () => {
     const wf = await makeWorkflow("test.headless.Capture");
