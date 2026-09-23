@@ -31,6 +31,12 @@ import {
   SURFACE_LOOP_FRAMES,
   SurfaceLoop,
 } from "./hero/SurfaceLoop";
+import {
+  SIZZLE_DURATION_FRAMES,
+  SIZZLE_FPS,
+  Sizzle,
+} from "./sizzle/Sizzle";
+import { REDO_DURATION_FRAMES, REDO_FPS, Redo } from "./redo/Redo";
 import type { DemoCast } from "@web-demo";
 
 const WIDTH = 1920;
@@ -203,6 +209,26 @@ export const Root: React.FC = () => {
         width={WIDTH}
         height={HEIGHT}
         durationInFrames={TAB_CHAOS_FRAMES}
+      />
+
+      {/* The 25-second beat-cut brand spot for social and launches. */}
+      <Composition
+        id="Sizzle"
+        component={Sizzle}
+        fps={SIZZLE_FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        durationInFrames={SIZZLE_DURATION_FRAMES}
+      />
+
+      {/* The landing page's agents-section film: build, one note, one redo. */}
+      <Composition
+        id="Redo"
+        component={Redo}
+        fps={REDO_FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        durationInFrames={REDO_DURATION_FRAMES}
       />
 
       <Composition

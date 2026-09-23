@@ -6,4 +6,6 @@
 export { heroBriefCast } from "./heroBriefCast";
 export { heroStoryboardCast } from "./heroStoryboardCast";
 export { heroTimelineCast } from "./heroTimelineCast";
+export { heroRedoCast, HERO_REDO_NOTE, HERO_REDO_NOTE_MS } from "./heroRedoCast";
+export { heroRedoTimelineCast } from "./heroRedoTimelineCast";
 export { HERO_BRIEF, HERO_MODEL, HERO_SHOTS, HERO_TITLE } from "./shared";

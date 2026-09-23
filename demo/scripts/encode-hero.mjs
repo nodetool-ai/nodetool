@@ -1,12 +1,13 @@
-// Turns the rendered hero masters into what the landing page serves.
+// Turns the rendered landing-page masters into what the page serves: the
+// hero reel and the agents section's redo reel.
 //
-//   node scripts/encode-hero.mjs [--frame <n>]
+//   node scripts/encode-hero.mjs [--only <slug>] [--frame <n>]
 //
 // `remotion render` writes visually lossless masters (a 22 s reel comes out
 // around 12 MB); the hero autoplays on first paint, so it ships re-encoded at
 // roughly a third of that, in both codecs, with the WebP posters the
-// <img> srcSet needs. Reads `out/hero-project*.mp4` and writes into
-// `marketing/public/`.
+// <img> srcSet needs. Reads `out/hero-project*.mp4`, `out/sizzle.mp4` and `out/redo.mp4`, and
+// writes into `marketing/public/`.
 //
 // ffmpeg comes from Remotion's bundled binary, so this needs nothing on PATH
 // beyond what a render already needs.
@@ -21,9 +22,10 @@ const DEMO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = path.join(DEMO, "out");
 const PUBLIC = path.resolve(DEMO, "../marketing/public");
 
-/** Frame the 16:9 poster is taken from. The default is the assembled cut. */
+/** Overrides the hero's poster frame. The default is the assembled cut. */
 const frameArg = process.argv.indexOf("--frame");
-const POSTER_FRAME = frameArg === -1 ? 1040 : Number(process.argv[frameArg + 1]);
+const HERO_POSTER_FRAME =
+  frameArg === -1 ? 1040 : Number(process.argv[frameArg + 1]);
 const FPS = 30;
 
 const ffmpeg = (args) =>
@@ -64,10 +66,10 @@ function encode(master, slug) {
 }
 
 /** The poster the hero paints before the video is anywhere near loaded. */
-async function poster(master, slug, widths) {
+async function poster(master, slug, widths, frame) {
   const still = path.join(OUT, `${slug}-poster.png`);
   ffmpeg([
-    "-ss", String(POSTER_FRAME / FPS),
+    "-ss", String(frame / FPS),
     "-i", master, "-frames:v", "1", still
   ]);
   for (const [width, suffix] of widths) {
@@ -82,20 +84,36 @@ async function poster(master, slug, widths) {
 const size = (file) =>
   `${(fs.statSync(file).size / 1e6).toFixed(1)} MB`;
 
-for (const [slug, widths] of [
-  ["hero-project", [[1920, ""], [960, "-960"]]],
-  ["hero-project-vertical", [[1080, ""]]]
-]) {
-  const master = path.join(OUT, `${slug}.mp4`);
+const REELS = [
+  { master: "hero-project", slug: "hero-project", frame: HERO_POSTER_FRAME, widths: [[1920, ""], [960, "-960"]] },
+  { master: "hero-project-vertical", slug: "hero-project-vertical", frame: HERO_POSTER_FRAME, widths: [[1080, ""]] },
+  // The landing hero: the beat-cut spot, posted on its "Cut." shot. The
+  // page plays it muted, so the score is dropped with the rest.
+  { master: "sizzle", slug: "hero-sizzle", frame: 612, widths: [[1920, ""], [960, "-960"]] },
+  // The agents section: the wide shot of the board after the redo, with the
+  // night card among five unchanged ones.
+  { master: "redo", slug: "agent-redo", frame: 395, widths: [[1920, ""], [960, "-960"]] }
+];
+
+/** Encodes one reel, so publishing it leaves the others' files alone. */
+const onlyArg = process.argv.indexOf("--only");
+const ONLY = onlyArg === -1 ? null : process.argv[onlyArg + 1];
+const selected = ONLY ? REELS.filter((r) => r.slug === ONLY) : REELS;
+if (selected.length === 0) {
+  throw new Error(`No reel named ${ONLY}`);
+}
+
+for (const { master: name, slug, frame, widths } of selected) {
+  const master = path.join(OUT, `${name}.mp4`);
   if (!fs.existsSync(master)) {
-    console.log(`skip ${slug}: no master at out/${slug}.mp4`);
+    console.log(`skip ${slug}: no master at out/${name}.mp4`);
     continue;
   }
   encode(master, slug);
-  await poster(master, slug, widths);
+  await poster(master, slug, widths, frame);
   console.log(
     `${slug}: ${size(path.join(PUBLIC, `${slug}.mp4`))} mp4, ` +
       `${size(path.join(PUBLIC, `${slug}.webm`))} webm, ` +
-      `poster from frame ${POSTER_FRAME}`
+      `poster from frame ${frame}`
   );
 }
