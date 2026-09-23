@@ -170,7 +170,7 @@ const GenreStepInternal: React.FC<GenreStepProps> = ({
       <OptionCardGrid
         label="Genre"
         variant="media"
-        minColumnWidth={180}
+        minColumnWidth={320}
         options={options}
         selectedId={selectedId}
         onSelect={handleSelect}

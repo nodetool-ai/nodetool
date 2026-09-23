@@ -217,11 +217,12 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
     const groups = sceneOrder(shots, scenes);
     const screenplaySection: PlanReviewSection = {
       id: "screenplay",
-      header: "Screenplay",
+      header: "Title",
       rows: [
         {
           id: "title",
           label: "Title",
+          hideLabel: true,
           value: title,
           onChange: (value: string) => setTitle(boardId, value)
         }
@@ -490,35 +491,35 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           </FlexRow>
         </AlertBanner>
       ) : null}
-      {/* The retry sits with the heading, not below every shot: it is what a
-          creator reaches for after reading the first two shots, and at the
-          bottom of a twelve-field page it was never found. */}
-      <FlexRow gap={GAP.normal} align="center" justify="space-between" wrap>
-        <Caption component="p" color="muted">
-          {summary}
-        </Caption>
-        <EditorButton
-          variant="outlined"
-          size="small"
-          disabled={rewriting}
-          onClick={onRewrite}
+      {/* Keep the rewrite action and its spend details together at the same
+          reading width as the screenplay. */}
+      <FlexColumn gap={GAP.normal} sx={{ maxWidth: REVIEW_WIDE_WIDTH }}>
+        <FlexRow gap={GAP.normal} align="center" justify="space-between" wrap>
+          <Caption component="p" color="muted">
+            {summary}
+          </Caption>
+          <EditorButton
+            variant="outlined"
+            size="small"
+            disabled={rewriting}
+            onClick={onRewrite}
+          >
+            {rewriting ? "Rewriting screenplay…" : "Rewrite from brief"}
+          </EditorButton>
+        </FlexRow>
+        <Suspense
+          fallback={<Caption color="secondary">Loading estimate…</Caption>}
         >
-          {rewriting ? "Rewriting screenplay…" : "Rewrite from brief"}
-        </EditorButton>
-      </FlexRow>
-      {/* A rewrite is another model call, so it carries the same summary the
-          first one did rather than spending on a quieter button (F23). */}
-      <Suspense
-        fallback={<Caption color="secondary">Loading estimate…</Caption>}
-      >
-        <GenerationSummary
-          result="Rewrite the screenplay from your brief"
-          next="Shots this rewrite keeps keep their ids and any stills. No stills are rendered here."
-          model={model}
-          brief={brief}
-          maxOutputTokens={maxOutputTokens}
-        />
-      </Suspense>
+          <GenerationSummary
+            result="Rewrite the screenplay from your brief"
+            next="Retained shots keep their stills. No images are generated."
+            model={model}
+            brief={brief}
+            maxOutputTokens={maxOutputTokens}
+            compact
+          />
+        </Suspense>
+      </FlexColumn>
       {validationReason ? (
         <Caption role="alert" color="warning">
           {validationReason}

@@ -543,12 +543,12 @@ export const HARNESSES: HarnessEntry[] = [
   {
     id: "chat-terminal",
     title: "Terminal chat (keyboard, viewport, sessions, approvals, transport)",
-    command: "npm run test --workspace=packages/cli -- tests/chat-app.test.ts tests/chat-media.test.ts tests/terminal-keyboard.test.ts tests/terminal-input.test.ts tests/terminal-screen.test.ts tests/chat-prompts.test.ts tests/chat-sessions.test.ts tests/websocket-client.test.ts",
+    command: "npm run test --workspace=packages/cli -- tests/chat-app.test.ts tests/chat-media.test.ts tests/terminal-keyboard.test.ts tests/terminal-input.test.ts tests/terminal-mouse.test.ts tests/terminal-screen.test.ts tests/chat-prompts.test.ts tests/chat-sessions.test.ts tests/websocket-client.test.ts",
     kind: "execution",
     capabilities: ["no-db"],
     docs: "docs/harnesses.md § nodetool chat",
     selfcheck: {
-      command: "npm run test --workspace=packages/cli -- tests/chat-app.test.ts tests/chat-media.test.ts tests/terminal-keyboard.test.ts tests/terminal-input.test.ts tests/terminal-screen.test.ts tests/chat-prompts.test.ts tests/chat-sessions.test.ts tests/websocket-client.test.ts",
+      command: "npm run test --workspace=packages/cli -- tests/chat-app.test.ts tests/chat-media.test.ts tests/terminal-keyboard.test.ts tests/terminal-input.test.ts tests/terminal-mouse.test.ts tests/terminal-screen.test.ts tests/chat-prompts.test.ts tests/chat-sessions.test.ts tests/websocket-client.test.ts",
       cost: "cheap"
     }
   },

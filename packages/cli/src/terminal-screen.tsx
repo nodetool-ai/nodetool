@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Box, Text, useInput, useStdout } from "ink";
+import type { EventEmitter } from "node:events";
 import { stripVTControlCharacters } from "node:util";
 import chalk from "chalk";
 import wrapAnsi from "wrap-ansi";
+import stringWidth from "string-width";
+import { copyTerminalText } from "./terminal-clipboard.js";
+import type { MouseEvent } from "./terminal-mouse.js";
 import {
   friendlyToolName,
   formatToolParams,
@@ -54,14 +58,14 @@ export function enterTerminalScreen(output: NodeJS.WriteStream): () => void {
   if (!output.isTTY) {
     return () => {};
   }
-  output.write("\u001b[?1049h\u001b[H\u001b[?25l\u001b[?2004h");
+  output.write("\u001b[?1049h\u001b[H\u001b[?25l\u001b[?2004h\u001b[?1000h\u001b[?1002h\u001b[?1006h");
   let restored = false;
   return () => {
     if (restored) {
       return;
     }
     restored = true;
-    output.write("\u001b[?2004l\u001b[?25h\u001b[?1049l");
+    output.write("\u001b[?1006l\u001b[?1002l\u001b[?1000l\u001b[?2004l\u001b[?25h\u001b[?1049l");
   };
 }
 
@@ -122,6 +126,46 @@ interface TranscriptProps {
   readonly details: boolean;
   readonly resetKey: string;
   readonly startAtTop?: boolean;
+  readonly mouseEvents?: EventEmitter;
+  readonly screenY?: number;
+  readonly screenX?: number;
+}
+
+interface Position { readonly line: number; readonly column: number }
+const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+function plainLine(line: string): string {
+  return stripVTControlCharacters(line);
+}
+
+function columnIndex(line: string, column: number): number {
+  let cell = 0;
+  for (const part of graphemes.segment(line)) {
+    if (cell >= column) return part.index;
+    cell += stringWidth(part.segment);
+  }
+  return line.length;
+}
+
+export function selectedTranscriptText(lines: readonly string[], from: Position, to: Position): string {
+  const [first, last] = from.line < to.line || (from.line === to.line && from.column <= to.column)
+    ? [from, to] : [to, from];
+  return lines.slice(first.line, last.line + 1).map((raw, offset) => {
+    const line = plainLine(raw);
+    const start = offset === 0 ? columnIndex(line, first.column) : 0;
+    const end = first.line + offset === last.line ? columnIndex(line, last.column) : line.length;
+    return line.slice(start, end);
+  }).join("\n");
+}
+
+function highlightLine(raw: string, lineNumber: number, from: Position, to: Position): string {
+  const [first, last] = from.line < to.line || (from.line === to.line && from.column <= to.column)
+    ? [from, to] : [to, from];
+  if (lineNumber < first.line || lineNumber > last.line) return raw;
+  const line = plainLine(raw);
+  const start = lineNumber === first.line ? columnIndex(line, first.column) : 0;
+  const end = lineNumber === last.line ? columnIndex(line, last.column) : line.length;
+  return line.slice(0, start) + chalk.inverse(line.slice(start, end)) + line.slice(end);
 }
 
 const layoutCache = new WeakMap<
@@ -155,11 +199,24 @@ export function Transcript({
   height,
   details,
   resetKey,
-  startAtTop = false
+  startAtTop = false,
+  mouseEvents,
+  screenY = 4,
+  screenX = 2
 }: TranscriptProps): React.ReactElement {
   const [top, setTop] = useState<number | null>(startAtTop ? 0 : null);
+  const [selection, setSelection] = useState<{ from: Position; to: Position } | null>(null);
+  const [copyNotice, setCopyNotice] = useState(false);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragging = useRef<Position | null>(null);
+  useEffect(() => () => {
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+  }, []);
   useEffect(() => {
     setTop(startAtTop ? 0 : null);
+    setSelection(null);
+    setCopyNotice(false);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
   }, [resetKey, startAtTop]);
   const lines = transcriptLines(messages, width, details);
   if (live) {
@@ -187,6 +244,51 @@ export function Transcript({
   const contentHeight = Math.max(1, height - 1);
   const bottom = Math.max(0, lines.length - contentHeight);
   const start = top === null ? bottom : Math.min(top, bottom);
+  const current = useRef({ lines, start, bottom, contentHeight, width });
+  current.current = { lines, start, bottom, contentHeight, width };
+  useEffect(() => {
+    if (!mouseEvents) return;
+    const onMouse = (event: MouseEvent): void => {
+      const view = current.current;
+      if (event.action === "wheel") {
+        if (event.y >= screenY && event.y < screenY + view.contentHeight && event.x >= screenX && event.x < screenX + view.width) {
+          const next = Math.max(0, Math.min(view.bottom, view.start + (event.direction ?? 1) * 3));
+          setTop(next === view.bottom ? null : next);
+          setSelection(null);
+        }
+        return;
+      }
+      const inside = event.y >= screenY && event.y < screenY + view.contentHeight && event.x >= screenX && event.x < screenX + view.width;
+      if (!inside && !dragging.current) return;
+      const position = {
+        line: Math.max(0, Math.min(view.lines.length - 1, view.start + event.y - screenY)),
+        column: Math.max(0, Math.min(view.width, event.x - screenX))
+      };
+      if (event.action === "down" && inside) {
+        dragging.current = position;
+        setSelection({ from: position, to: position });
+      } else if (dragging.current && event.action === "move") {
+        setSelection({ from: dragging.current, to: position });
+      } else if (dragging.current && event.action === "up") {
+        const from = dragging.current;
+        dragging.current = null;
+        setSelection(null);
+        const value = selectedTranscriptText(view.lines, from, position);
+        if (value) {
+          void copyTerminalText(value, process.stdout).then(() => {
+            setCopyNotice(true);
+            if (noticeTimer.current) clearTimeout(noticeTimer.current);
+            noticeTimer.current = setTimeout(() => {
+              setCopyNotice(false);
+              noticeTimer.current = null;
+            }, 1800);
+          });
+        }
+      }
+    };
+    mouseEvents.on("mouse", onMouse);
+    return () => { mouseEvents.off("mouse", onMouse); };
+  }, [mouseEvents, screenX, screenY]);
   useInput((input, key) => {
     if (key.pageUp) {
       setTop(Math.max(0, start - contentHeight));
@@ -204,12 +306,14 @@ export function Transcript({
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
       <Box height={contentHeight} flexDirection="column" flexShrink={0}>
-        <Text>{lines.slice(start, start + contentHeight).join("\n")}</Text>
+        <Text>{lines.slice(start, start + contentHeight).map((line, offset) => selection ? highlightLine(line, start + offset, selection.from, selection.to) : line).join("\n")}</Text>
       </Box>
       <Text dimColor wrap="truncate">
-        {start < bottom
-          ? `History · ${bottom - start} lines below · Ctrl+G latest`
-          : ""}
+        {copyNotice
+          ? "Copied to clipboard"
+          : start < bottom
+            ? `History · ${bottom - start} lines below · Ctrl+G latest`
+            : ""}
       </Text>
     </Box>
   );

@@ -1,0 +1,1529 @@
+{
+  "schemaVersion": 1,
+  "name": "Podcast Production Desk",
+  "description": "A podcast workspace for cleaning or mastering a recording and making show notes, a newsletter, social posts, and quote cards from the same source.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🎙️ Podcast Production Desk",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One recording becomes two audio treatments and a publishable content pack."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "Audio cleanup and mastering run locally. The content pack uses configured transcription, writing, and image models. Download a treatment and upload it as the source to use it in another pass."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-prepare-the-recording",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-prepare-the-recording",
+                  "title": "Prepare the recording",
+                  "content": [
+                    {
+                      "type": "AudioInput",
+                      "props": {
+                        "id": "in-sourceaudio",
+                        "binding": "var:sourceAudio",
+                        "label": "Episode audio",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-clean",
+                        "label": "Clean the recording",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "clean",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:clean/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-master",
+                        "label": "Master the recording",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "master",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:master/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-prepare-the-recording-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-clean",
+                        "binding": "op:clean/exec#progress",
+                        "label": "Removing room noise…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-clean",
+                        "binding": "op:clean/exec#error",
+                        "title": "Generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:clean/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-clean-cleaned",
+                        "text": "Cleaned recording",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Audio",
+                      "props": {
+                        "id": "out-clean-cleaned",
+                        "binding": "op:clean/out:out",
+                        "placeholder": "Your audio appears here"
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-master",
+                        "binding": "op:master/exec#progress",
+                        "label": "Balancing the voice…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-master",
+                        "binding": "op:master/exec#error",
+                        "title": "Generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:master/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-master-mastered",
+                        "text": "Mastered recording",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Audio",
+                      "props": {
+                        "id": "out-master-mastered",
+                        "binding": "op:master/out:out",
+                        "placeholder": "Your audio appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-make-the-content-pack",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-make-the-content-pack",
+                  "title": "Make the content pack",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "Uses the episode audio uploaded above. Upload a cleaned or mastered download there to use it here."
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-publish-transcribe-model",
+                        "binding": "op:publish/prop:transcribe#model",
+                        "label": "Transcription model",
+                        "modelKind": "asr_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-publish-shownotes-agent-model",
+                        "binding": "op:publish/prop:shownotes_agent#model",
+                        "label": "Show notes writer",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-publish-newsletter-agent-model",
+                        "binding": "op:publish/prop:newsletter_agent#model",
+                        "label": "Newsletter writer",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-publish-posts-list-model",
+                        "binding": "op:publish/prop:posts_list#model",
+                        "label": "Social post writer",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-publish-quotes-list-model",
+                        "binding": "op:publish/prop:quotes_list#model",
+                        "label": "Quote selector",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-publish-quote-card-model",
+                        "binding": "op:publish/prop:quote_card#model",
+                        "label": "Quote card image model",
+                        "modelKind": "image_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-publish-show-context",
+                        "binding": "op:publish/in:show_context",
+                        "label": "Show, audience, and call to action",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-publish-quote-count",
+                        "binding": "op:publish/in:quote_count",
+                        "label": "Quote cards",
+                        "min": 1,
+                        "max": 8,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-publish",
+                        "label": "Create the content pack",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "publish",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:publish/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-make-the-content-pack-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-publish",
+                        "binding": "op:publish/exec#progress",
+                        "label": "Transcribing and drafting…"
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "activity-publish",
+                        "binding": "op:publish/exec#activity",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-publish",
+                        "binding": "op:publish/exec#error",
+                        "title": "Generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:publish/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-publish-show-notes",
+                        "text": "Episode notes",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-publish-show-notes",
+                        "binding": "op:publish/out:preview_shownotes",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-publish-newsletter",
+                        "text": "Newsletter",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-publish-newsletter",
+                        "binding": "op:publish/out:preview_newsletter",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-publish-social-posts",
+                        "text": "Social posts",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-publish-social-posts",
+                        "binding": "op:publish/out:preview_posts",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-publish-quote-cards",
+                        "text": "Quote cards",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-publish-quote-cards",
+                        "binding": "op:publish/out:preview_cards",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "clean",
+        "name": "Clean recording",
+        "workflowId": "clean",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "sourceAudio"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "master",
+        "name": "Master episode",
+        "workflowId": "master",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "sourceAudio"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "publish",
+        "name": "Make content pack",
+        "workflowId": "publish",
+        "inputs": {
+          "episode_audio": {
+            "from": "variable",
+            "variableId": "sourceAudio"
+          }
+        },
+        "outputs": {},
+        "policy": "replace",
+        "timeoutMs": 900000
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "sourceAudio",
+        "name": "Episode recording",
+        "type": {
+          "type": "audio",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "clean",
+      "name": "Clean Up a Rough Voice Recording",
+      "description": "The repair chain for a recording made in a real room: gate the noise floor, cut the rumble below speech, even out the level, then stop it clipping. Every step is cheap and local — no model involved.",
+      "sourceId": "nodetool-base/Clean Up a Rough Voice Recording",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.AudioInput",
+            "data": {
+              "name": "audio",
+              "value": null,
+              "description": "The rough recording"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Recording"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "ng",
+            "type": "lib.audio.NoiseGate",
+            "data": {
+              "threshold_db": -48,
+              "attack_ms": 1,
+              "release_ms": 120
+            },
+            "ui_properties": {
+              "position": {
+                "x": 330,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "2  Gate"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "hp",
+            "type": "lib.audio.HighPassFilter",
+            "data": {
+              "cutoff_frequency_hz": 90
+            },
+            "ui_properties": {
+              "position": {
+                "x": 660,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Cut rumble"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "cmp",
+            "type": "lib.audio.Compress",
+            "data": {
+              "threshold": -18,
+              "ratio": 3,
+              "attack": 5,
+              "release": 60,
+              "auto_gain": true
+            },
+            "ui_properties": {
+              "position": {
+                "x": 990,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "4  Even it out"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "lim",
+            "type": "lib.audio.Limiter",
+            "data": {
+              "threshold_db": -1,
+              "release_ms": 200,
+              "auto_gain": true
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "5  Limit"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "cleaned"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 330,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "6  Cleaned"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in",
+            "sourceHandle": "output",
+            "target": "ng",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "e2",
+            "source": "ng",
+            "sourceHandle": "output",
+            "target": "hp",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "e3",
+            "source": "hp",
+            "sourceHandle": "output",
+            "target": "cmp",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "e4",
+            "source": "cmp",
+            "sourceHandle": "output",
+            "target": "lim",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "e5",
+            "source": "lim",
+            "sourceHandle": "output",
+            "target": "out",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "master",
+      "name": "Master a Voice Track",
+      "description": "The three-stage chain a voice gets before it ships: compress to even out the peaks, lift the level, then limit so nothing clips. Order matters — limiting first would leave nothing for the compressor.",
+      "sourceId": "nodetool-base/Master a Voice Track",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.AudioInput",
+            "data": {
+              "name": "audio",
+              "value": null,
+              "description": "The recorded voice"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Audio"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "cmp",
+            "type": "lib.audio.Compress",
+            "data": {
+              "threshold": -18,
+              "ratio": 3,
+              "attack": 5,
+              "release": 60,
+              "auto_gain": true
+            },
+            "ui_properties": {
+              "position": {
+                "x": 320,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Compress"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "gain",
+            "type": "lib.audio.Gain",
+            "data": {
+              "gain_db": 3
+            },
+            "ui_properties": {
+              "position": {
+                "x": 640,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Lift 3 dB"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "lim",
+            "type": "lib.audio.Limiter",
+            "data": {
+              "threshold_db": -1,
+              "release_ms": 200,
+              "auto_gain": true
+            },
+            "ui_properties": {
+              "position": {
+                "x": 960,
+                "y": 120
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4  Limit"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "mastered"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 340
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "5  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in",
+            "sourceHandle": "output",
+            "target": "cmp",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "e2",
+            "source": "cmp",
+            "sourceHandle": "output",
+            "target": "gain",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "e3",
+            "source": "gain",
+            "sourceHandle": "output",
+            "target": "lim",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "e4",
+            "source": "lim",
+            "sourceHandle": "output",
+            "target": "out",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "publish",
+      "name": "Podcast Repurposing Studio",
+      "description": "Drop in one podcast episode and ship the whole content pack: episode titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. Whisper transcribes once; four writer branches fan out from the transcript.",
+      "sourceId": "nodetool-base/Podcast Repurposing Studio",
+      "graph": {
+        "edges": [
+          {
+            "id": "p1",
+            "source": "episode_audio",
+            "sourceHandle": "output",
+            "target": "transcribe",
+            "targetHandle": "audio",
+            "ui_properties": {
+              "className": "audio"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p2",
+            "source": "transcribe",
+            "sourceHandle": "text",
+            "target": "shownotes_prompt",
+            "targetHandle": "TRANSCRIPT",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p3",
+            "source": "show_context",
+            "sourceHandle": "output",
+            "target": "shownotes_prompt",
+            "targetHandle": "SHOW",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p4",
+            "source": "shownotes_prompt",
+            "sourceHandle": "output",
+            "target": "shownotes_agent",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p5",
+            "source": "shownotes_agent",
+            "sourceHandle": "text",
+            "target": "preview_shownotes",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p6",
+            "source": "transcribe",
+            "sourceHandle": "text",
+            "target": "newsletter_prompt",
+            "targetHandle": "TRANSCRIPT",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p7",
+            "source": "show_context",
+            "sourceHandle": "output",
+            "target": "newsletter_prompt",
+            "targetHandle": "SHOW",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p8",
+            "source": "newsletter_prompt",
+            "sourceHandle": "output",
+            "target": "newsletter_agent",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p9",
+            "source": "newsletter_agent",
+            "sourceHandle": "text",
+            "target": "preview_newsletter",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p10",
+            "source": "transcribe",
+            "sourceHandle": "text",
+            "target": "posts_prompt",
+            "targetHandle": "TRANSCRIPT",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p11",
+            "source": "show_context",
+            "sourceHandle": "output",
+            "target": "posts_prompt",
+            "targetHandle": "SHOW",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p12",
+            "source": "posts_prompt",
+            "sourceHandle": "output",
+            "target": "posts_list",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p13",
+            "source": "posts_list",
+            "sourceHandle": "item",
+            "target": "preview_posts",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p14",
+            "source": "transcribe",
+            "sourceHandle": "text",
+            "target": "quotes_prompt",
+            "targetHandle": "TRANSCRIPT",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p15",
+            "source": "quote_count",
+            "sourceHandle": "output",
+            "target": "quotes_prompt",
+            "targetHandle": "COUNT",
+            "ui_properties": {
+              "className": "int"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p16",
+            "source": "quotes_prompt",
+            "sourceHandle": "output",
+            "target": "quotes_list",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p17",
+            "source": "quotes_list",
+            "sourceHandle": "item",
+            "target": "card_prompt",
+            "targetHandle": "QUOTE",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p18",
+            "source": "show_context",
+            "sourceHandle": "output",
+            "target": "card_prompt",
+            "targetHandle": "SHOW",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p19",
+            "source": "card_prompt",
+            "sourceHandle": "output",
+            "target": "quote_card",
+            "targetHandle": "prompt",
+            "ui_properties": {
+              "className": "str"
+            },
+            "edge_type": "data"
+          },
+          {
+            "id": "p20",
+            "source": "quote_card",
+            "sourceHandle": "output",
+            "target": "preview_cards",
+            "targetHandle": "value",
+            "ui_properties": {
+              "className": "image"
+            },
+            "edge_type": "data"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 🎙️ Podcast Repurposing Studio\n\nDrop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. The episode is transcribed once; four writer branches fan out from the transcript.\n\n**Pipeline:** Episode audio → Transcript → Show notes · Newsletter · Posts · Quotes → Quote cards\n\n**Try this:** pick the ASR, language, and image models, then tune each writer's prompt to your show's voice."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 40,
+                "y": -260
+              },
+              "zIndex": 0,
+              "width": 480,
+              "height": 220,
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "episode_audio",
+            "type": "nodetool.input.AudioInput",
+            "data": {
+              "name": "episode_audio",
+              "value": {
+                "type": "audio",
+                "uri": "https://app.nodetool.ai/examples/remove_silence.mp3"
+              },
+              "description": "The full episode recording (any common audio format)"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 80
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "1️⃣ Episode audio",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "show_context",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "show_context",
+              "value": "Trailhead — a weekly hiking and outdoor-gear podcast hosted by Maya. Voice: warm, practical, a little irreverent. CTA: subscribe and grab the free gear checklist at trailhead.fm",
+              "description": "Show name, host, voice, and call to action — every writer branch uses this"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 330
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "2️⃣ Show context",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "quote_count",
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "quote_count",
+              "value": 4,
+              "description": "How many quote cards to render",
+              "min": 2,
+              "max": 8
+            },
+            "ui_properties": {
+              "position": {
+                "x": 50,
+                "y": 580
+              },
+              "zIndex": 0,
+              "width": 280,
+              "title": "3️⃣ Quote-card count",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "transcribe",
+            "type": "nodetool.text.AutomaticSpeechRecognition",
+            "data": {
+              "model": {
+                "type": "asr_model",
+                "provider": "fal_ai",
+                "id": "openai/whisper-large-v3",
+                "name": "Whisper Large v3",
+                "path": null
+              }
+            },
+            "ui_properties": {
+              "position": {
+                "x": 410,
+                "y": 100
+              },
+              "zIndex": 0,
+              "width": 300,
+              "height": 240,
+              "title": "4️⃣ Transcribe the episode",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "shownotes_prompt",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "You are producing the episode page for this podcast.\n\nShow: {{ SHOW }}\n\nFrom the transcript below, return Markdown, no commentary:\n\nTitles: 3 episode title options — specific, curiosity-driven, under 60 characters.\nSummary: one paragraph, 3-4 sentences, written for the episode page.\nShow notes: 6-10 bullet chapters in listening order — each a short phrase naming what gets discussed.\nResources: anything mentioned worth linking — books, tools, people, places.\nCTA: one closing line using the show's call to action.\n\nTranscript:\n{{ TRANSCRIPT }}"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 790,
+                "y": -240
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 360,
+              "title": "Build show-notes prompt",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "SHOW": "",
+              "TRANSCRIPT": ""
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "shownotes_agent",
+            "type": "nodetool.agents.Agent",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "system": "You are a podcast producer who writes episode pages people actually read. Specific and concrete, in the show's voice, no filler.",
+              "audio": {
+                "type": "audio",
+                "uri": "",
+                "asset_id": null,
+                "data": null
+              },
+              "history": [],
+              "thread_id": null,
+              "max_tokens": 100000
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1150,
+                "y": -220
+              },
+              "zIndex": 0,
+              "width": 330,
+              "height": 330,
+              "title": "5️⃣ Write show notes & titles",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "preview_shownotes",
+            "type": "nodetool.workflows.base_node.Preview",
+            "data": {
+              "name": "show_notes"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1530,
+                "y": -200
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 300,
+              "title": "📝 Show notes & titles",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "newsletter_prompt",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "Turn this podcast episode into the show's email newsletter edition.\n\nShow: {{ SHOW }}\n\nReturn Markdown, no commentary:\n\nSubject: 3 subject-line options under 50 characters.\nBody: 150-250 words in the host's voice — open on the episode's single most surprising idea, tease two more takeaways without spoiling them, close with the show's call to action and a listen-link placeholder.\n\nTranscript:\n{{ TRANSCRIPT }}"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 790,
+                "y": 180
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 360,
+              "title": "Build newsletter prompt",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "SHOW": "",
+              "TRANSCRIPT": ""
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "newsletter_agent",
+            "type": "nodetool.agents.Agent",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "system": "You write email newsletters for podcasters. Short, personal, in the host's voice — the reader should feel the episode, not a summary of it.",
+              "audio": {
+                "type": "audio",
+                "uri": "",
+                "asset_id": null,
+                "data": null
+              },
+              "history": [],
+              "thread_id": null,
+              "max_tokens": 100000
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1150,
+                "y": 200
+              },
+              "zIndex": 0,
+              "width": 330,
+              "height": 330,
+              "title": "6️⃣ Draft the newsletter",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "preview_newsletter",
+            "type": "nodetool.workflows.base_node.Preview",
+            "data": {
+              "name": "newsletter"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1530,
+                "y": 220
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 300,
+              "title": "✉️ Newsletter edition",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "posts_prompt",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "From this podcast episode transcript, write exactly 5 social posts, one per line — no numbering, no labels, no hashtags unless they earn their place.\n\nRules:\n- Each post stands alone: one idea, claim, or moment from the episode, written to stop the scroll.\n- Mix formats across the five: a bold take, a question, a mini-story, a concrete stat or detail, a one-line lesson.\n- Plain language in the show's voice ({{ SHOW }}). 280 characters maximum each.\n\nTranscript:\n{{ TRANSCRIPT }}"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 790,
+                "y": 600
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 340,
+              "title": "Build posts prompt",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "SHOW": "",
+              "TRANSCRIPT": ""
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "posts_list",
+            "type": "nodetool.generators.ListGenerator",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "input_text": "",
+              "max_tokens": 100000
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1150,
+                "y": 640
+              },
+              "zIndex": 0,
+              "width": 330,
+              "height": 245,
+              "title": "7️⃣ Generate social posts",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "preview_posts",
+            "type": "nodetool.workflows.base_node.Preview",
+            "data": {
+              "name": "social_posts"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1530,
+                "y": 660
+              },
+              "zIndex": 0,
+              "width": 300,
+              "height": 260,
+              "title": "📣 Social posts",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "quotes_prompt",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "From this transcript, pick exactly {{ COUNT }} verbatim quotes worth putting on a quote card, one per line — no numbering, no attribution, no surrounding quotation marks.\n\nRules:\n- Verbatim from the transcript, lightly trimmed for readability only.\n- 8 to 25 words: punchy, self-contained, meaningful without context.\n- Prefer strong opinions, hard-won lessons, and vivid phrasing over pleasantries.\n\nTranscript:\n{{ TRANSCRIPT }}"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 790,
+                "y": 1010
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 340,
+              "title": "Build quotes prompt",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "COUNT": "4",
+              "TRANSCRIPT": ""
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "quotes_list",
+            "type": "nodetool.generators.ListGenerator",
+            "data": {
+              "model": {
+                "type": "language_model",
+                "provider": "openai",
+                "id": "gpt-5-mini",
+                "name": "GPT-5 mini",
+                "path": null,
+                "supported_tasks": []
+              },
+              "input_text": "",
+              "max_tokens": 100000
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1150,
+                "y": 1050
+              },
+              "zIndex": 0,
+              "width": 330,
+              "height": 245,
+              "title": "8️⃣ Pull the best quotes",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "card_prompt",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "Minimal typographic quote card, square 1:1, for this podcast: {{ SHOW }}\n\nRender exactly this text as the centerpiece, large and perfectly legible, spelled exactly as written:\n\"{{ QUOTE }}\"\n\nClean editorial design: bold modern sans-serif type on a calm, softly textured background, generous margins, one subtle accent color, a small quotation-mark motif. No people, no photos, no logos, no watermark, no words beyond the quote."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1530,
+                "y": 1080
+              },
+              "zIndex": 0,
+              "width": 340,
+              "height": 360,
+              "title": "Build quote-card prompt",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {
+              "QUOTE": "",
+              "SHOW": ""
+            },
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "quote_card",
+            "type": "nodetool.image.TextToImage",
+            "data": {
+              "model": {
+                "type": "image_model",
+                "provider": "fal_ai",
+                "id": "fal-ai/flux/schnell",
+                "name": "FLUX.1 Schnell",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "",
+              "aspect_ratio": "1:1",
+              "resolution": "1K"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1910,
+                "y": 1100
+              },
+              "zIndex": 0,
+              "width": 320,
+              "height": 340,
+              "title": "9️⃣ Render quote cards",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "preview_cards",
+            "type": "nodetool.workflows.base_node.Preview",
+            "data": {
+              "name": "quote_cards"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2270,
+                "y": 1090
+              },
+              "zIndex": 0,
+              "width": 360,
+              "height": 380,
+              "title": "🖼️ Quote cards",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}

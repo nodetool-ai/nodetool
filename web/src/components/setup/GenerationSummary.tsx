@@ -18,6 +18,8 @@ export interface GenerationSummaryProps {
   maxOutputTokens: number;
   /** Imported attributed text or a preset plan needs no model call. */
   noModelCall?: boolean;
+  /** Keep a secondary action's estimate compact beside its own controls. */
+  compact?: boolean;
 }
 
 export default function GenerationSummary({
@@ -26,7 +28,8 @@ export default function GenerationSummary({
   model,
   brief,
   maxOutputTokens,
-  noModelCall
+  noModelCall,
+  compact = false
 }: GenerationSummaryProps) {
   const estimate = noModelCall
     ? null
@@ -39,8 +42,12 @@ export default function GenerationSummary({
         : `Rough cost: ${formatUsd(estimate.low)}–${formatUsd(estimate.high)}`
       : "Cost estimate unavailable for this model";
   return (
-    <FlexColumn gap={GAP.tight} role="region" aria-label="Before you generate">
-      <Label>{result}</Label>
+    <FlexColumn
+      gap={GAP.tight}
+      role="region"
+      aria-label={compact ? result : "Before you generate"}
+    >
+      {!compact ? <Label>{result}</Label> : null}
       <Text size="small" color="secondary">
         {next}
       </Text>
@@ -54,7 +61,9 @@ export default function GenerationSummary({
         <Text size="small">
           {noModelCall
             ? "Ready immediately"
-            : "Rough wait: 30–60 seconds; longer for large requests or slower models"}
+            : compact
+              ? "Rough wait: 30–60s or longer"
+              : "Rough wait: 30–60 seconds; longer for large requests or slower models"}
         </Text>
       </FlexRow>
       {estimate && estimate.high > 0 ? (

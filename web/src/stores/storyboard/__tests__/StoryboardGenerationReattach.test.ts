@@ -229,8 +229,8 @@ describe("a board closed mid-batch and reopened", () => {
 
     const settled = boardShot(target.id);
     expect(latestKeyframe(target.id)?.asset_id).toBe("asset-late");
-    expect(settled?.keyframe).toBeUndefined();
-    expect(settled?.status).toBe("planned");
+    expect(settled?.keyframe?.asset_id).toBe("asset-late");
+    expect(settled?.status).toBe("keyframe_ready");
     // The record stamped before the close survived with it.
     expect(latestKeyframe(target.id)?.render_inputs?.model).toBe(
       "provider/still-v1"
@@ -350,8 +350,8 @@ describe("a board reopened after a reload", () => {
 
     const shotNow = boardShot(target.id);
     expect(latestKeyframe(target.id)?.asset_id).toBe("asset-recovered");
-    expect(shotNow?.keyframe).toBeUndefined();
-    expect(shotNow?.status).toBe("planned");
+    expect(shotNow?.keyframe?.asset_id).toBe("asset-recovered");
+    expect(shotNow?.status).toBe("keyframe_ready");
     // The record stamped before the reload survived onto the version.
     expect(latestKeyframe(target.id)?.render_inputs?.model).toBe(
       "provider/still-v1"
@@ -359,6 +359,51 @@ describe("a board reopened after a reload", () => {
     expect(
       useStoryboardGenerationStore.getState().pendingJobs[BOARD]
     ).toBeUndefined();
+  });
+
+  it("reattaches three completed stills to their original shots", async () => {
+    const targets = [
+      seedBoard("s-batch-a"),
+      seedBoard("s-batch-b"),
+      seedBoard("s-batch-c")
+    ];
+    for (const [index, target] of targets.entries()) {
+      useStoryboardGenerationStore.getState().registerJob(
+        target.id,
+        BOARD,
+        `req-batch-${index}`,
+        "keyframe",
+        { shot: target, board }
+      );
+    }
+    const written = localStorage.getItem(STORAGE_KEY) as string;
+    resetGeneration();
+    useStoryboardGenerationStore.setState({
+      pendingJobs: JSON.parse(written).state.pendingJobs
+    });
+    lookupMock.mockResolvedValue(
+      new Map(
+        targets.map((_, index) => [
+          `req-batch-${index}`,
+          {
+            requestId: `req-batch-${index}`,
+            generationId: `gen-batch-${index}`,
+            status: "completed",
+            assetIds: [`asset-batch-${index}`],
+            error: null
+          }
+        ])
+      )
+    );
+
+    await reattachBoardJobs(BOARD);
+
+    for (const [index, target] of targets.entries()) {
+      expect(boardShot(target.id)?.keyframe?.asset_id).toBe(
+        `asset-batch-${index}`
+      );
+      expect(boardShot(target.id)?.keyframe_versions).toHaveLength(1);
+    }
   });
 
   it("marks the shot failed when the row says the render failed", async () => {
@@ -399,8 +444,8 @@ describe("a board reopened after a reload", () => {
 
       const shotNow = boardShot(target.id);
       expect(latestKeyframe(target.id)?.asset_id).toBe("asset-recovered");
-      expect(shotNow?.keyframe).toBeUndefined();
-      expect(shotNow?.status).toBe("planned");
+      expect(shotNow?.keyframe?.asset_id).toBe("asset-recovered");
+      expect(shotNow?.status).toBe("keyframe_ready");
     } finally {
       jest.useRealTimers();
     }

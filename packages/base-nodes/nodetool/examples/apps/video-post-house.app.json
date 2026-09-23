@@ -1,0 +1,1541 @@
+{
+  "schemaVersion": 1,
+  "name": "AI Video Post House",
+  "description": "Upload a clip once. Restyle its picture with AI, grade the source, trim a teaser, and pull a cover still. If the clip has a visible presenter, voice a new script and sync the lips.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🎞️ AI Video Post House",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "tagline",
+            "text": "One clip becomes a new look, a short cut, and an AI voiced performance."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "The AI restyle and revoice use configured models and incur provider charges. Grading, trimming, and frame extraction run locally. Each result starts from the uploaded source; upload a result to make another pass."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-source-and-quick-cuts",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-source-and-quick-cuts",
+                  "title": "Source and quick cuts",
+                  "content": [
+                    {
+                      "type": "VideoInput",
+                      "props": {
+                        "id": "in-sourceclip",
+                        "binding": "var:sourceClip",
+                        "label": "Source clip",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-grade-grading-intensity",
+                        "binding": "op:grade/in:grading-intensity",
+                        "label": "Color intensity",
+                        "min": 0,
+                        "max": 1,
+                        "step": 0.05,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-grade",
+                        "label": "Grade the clip",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "grade",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:grade/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-teaser-op-start-time",
+                        "binding": "op:teaser/prop:op#start_time",
+                        "label": "Teaser starts at second",
+                        "min": 0,
+                        "max": 60,
+                        "step": 0.25,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-teaser-op-end-time",
+                        "binding": "op:teaser/prop:op#end_time",
+                        "label": "Teaser ends at second",
+                        "min": 1,
+                        "max": 120,
+                        "step": 0.25,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-teaser",
+                        "label": "Cut a teaser",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "teaser",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:teaser/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-cover-frame-time",
+                        "binding": "op:cover/prop:frame#time",
+                        "label": "Cover frame at second",
+                        "min": 0,
+                        "max": 30,
+                        "step": 0.25,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-cover",
+                        "label": "Pull a cover still",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "cover",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:cover/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-source-and-quick-cuts-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-grade",
+                        "binding": "op:grade/exec#progress",
+                        "label": "Grading frames…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-grade",
+                        "binding": "op:grade/exec#error",
+                        "title": "Generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:grade/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-grade-graded-video",
+                        "text": "Color graded cut",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-grade-graded-video",
+                        "binding": "op:grade/out:output-graded-video",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-teaser",
+                        "binding": "op:teaser/exec#progress",
+                        "label": "Cutting the clip…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-teaser",
+                        "binding": "op:teaser/exec#error",
+                        "title": "Generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:teaser/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-teaser-result",
+                        "text": "Teaser cut",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-teaser-result",
+                        "binding": "op:teaser/out:out",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-cover",
+                        "binding": "op:cover/exec#progress",
+                        "label": "Selecting frame…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-cover",
+                        "binding": "op:cover/exec#error",
+                        "title": "Generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:cover/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-cover-still",
+                        "text": "Cover still",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-cover-still",
+                        "binding": "op:cover/out:out",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-ai-picture-treatment",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-ai-picture-treatment",
+                  "title": "AI picture treatment",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "Keep the camera move and timing. Change the visual style."
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-restyle-restyle-model",
+                        "binding": "op:restyle/prop:restyle#model",
+                        "label": "Restyle model",
+                        "modelKind": "video_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-restyle-style",
+                        "binding": "op:restyle/in:in-style",
+                        "label": "New visual style",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-restyle-preserve",
+                        "binding": "op:restyle/in:in-keep",
+                        "label": "Details to preserve",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-restyle-restyle-strength",
+                        "binding": "op:restyle/prop:restyle#strength",
+                        "label": "Style strength",
+                        "min": 0.2,
+                        "max": 0.8,
+                        "step": 0.05,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-restyle",
+                        "label": "Restyle the clip",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "restyle",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:restyle/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-ai-picture-treatment-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-restyle",
+                        "binding": "op:restyle/exec#progress",
+                        "label": "Repainting the footage…"
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "activity-restyle",
+                        "binding": "op:restyle/exec#activity",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-restyle",
+                        "binding": "op:restyle/exec#error",
+                        "title": "Generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:restyle/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-restyle-restyled",
+                        "text": "Restyled cut",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-restyle-restyled",
+                        "binding": "op:restyle/out:output-video",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-ai-voiced-performance",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-ai-voiced-performance",
+                  "title": "AI voiced performance",
+                  "content": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-2",
+                        "text": "Use a clip with a visible presenter. The script becomes speech, then the picture is lip-synced."
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-revoice-speech-model",
+                        "binding": "op:revoice/prop:speech#model",
+                        "label": "Voice model",
+                        "modelKind": "tts_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-revoice-sync-model",
+                        "binding": "op:revoice/prop:sync#model",
+                        "label": "Lip-sync model",
+                        "modelKind": "video_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-revoice-script",
+                        "binding": "op:revoice/in:in-script",
+                        "label": "New script",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-revoice",
+                        "label": "Revoice the presenter",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "revoice",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:revoice/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-ai-voiced-performance-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-revoice",
+                        "binding": "op:revoice/exec#progress",
+                        "label": "Voicing and syncing…"
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "activity-revoice",
+                        "binding": "op:revoice/exec#activity",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-revoice",
+                        "binding": "op:revoice/exec#error",
+                        "title": "Generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:revoice/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-revoice-revoiced-clip",
+                        "text": "Revoiced performance",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-revoice-revoiced-clip",
+                        "binding": "op:revoice/out:output-clip",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "restyle",
+        "name": "AI restyle",
+        "workflowId": "restyle",
+        "inputs": {
+          "in-video": {
+            "from": "variable",
+            "variableId": "sourceClip"
+          }
+        },
+        "outputs": {},
+        "policy": "replace",
+        "timeoutMs": 900000
+      },
+      {
+        "id": "revoice",
+        "name": "AI revoice",
+        "workflowId": "revoice",
+        "inputs": {
+          "in-clip": {
+            "from": "variable",
+            "variableId": "sourceClip"
+          }
+        },
+        "outputs": {},
+        "policy": "replace",
+        "timeoutMs": 900000
+      },
+      {
+        "id": "grade",
+        "name": "Color grade",
+        "workflowId": "grade",
+        "inputs": {
+          "7074f109-83b1-4864-8e37-17a89fcbf46d": {
+            "from": "variable",
+            "variableId": "sourceClip"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "teaser",
+        "name": "Teaser cut",
+        "workflowId": "teaser",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "sourceClip"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "cover",
+        "name": "Cover still",
+        "workflowId": "cover",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "sourceClip"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "sourceClip",
+        "name": "Source clip",
+        "type": {
+          "type": "video",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "restyle",
+      "name": "Video Restyle Studio",
+      "description": "Repaint an existing clip in a new visual style while its motion stays put. A prompt node turns a short style note into a full restyle brief, then a video-to-video model applies it. Strength is the dial: low keeps the original read, high commits to the new look.",
+      "sourceId": "nodetool-base/Video Restyle Studio",
+      "graph": {
+        "nodes": [
+          {
+            "id": "comment-1",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "headline": "Video Restyle Studio",
+              "comment": [
+                "Restyle a clip without re-shooting or re-animating it.\n\n",
+                "Motion, timing and framing come from the source video. Only the look changes.\n\n",
+                "Strength is the dial to turn: 0.3-0.5 keeps faces and text legible, 0.7+ commits to the style and will drift."
+              ]
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 170
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-video",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "source_video",
+              "value": null,
+              "description": "The clip to restyle"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 240
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Source clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-style",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "style",
+              "value": "1980s anime cel animation, hand-inked outlines, flat gouache colour, visible film grain",
+              "description": "The look to apply"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 400
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Target style"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-keep",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "preserve",
+              "value": "faces, text, and the position of every subject in frame",
+              "description": "What must survive the restyle"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Preserve"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "brief",
+            "type": "nodetool.text.Prompt",
+            "data": {
+              "prompt": "Restyle this footage.\n\nTarget style: {{ style }}\n\nPreserve exactly: {{ preserve }}\n\nApply the style uniformly across every frame so the look does not flicker or drift shot to shot. Do not change camera movement, subject motion, timing, or composition."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 380,
+                "y": 420
+              },
+              "zIndex": 0,
+              "width": 320,
+              "selectable": true,
+              "title": "Restyle brief"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "restyle",
+            "type": "nodetool.video.VideoToVideo",
+            "data": {
+              "model": {
+                "type": "video_model",
+                "provider": "replicate",
+                "id": "decart/lucy-edit-2",
+                "name": "Lucy Edit 2",
+                "path": null,
+                "supported_tasks": []
+              },
+              "negative_prompt": "flicker, warping, melting faces, unreadable text, frame-to-frame drift",
+              "strength": 0.45
+            },
+            "ui_properties": {
+              "position": {
+                "x": 780,
+                "y": 320
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4  Restyle"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-video",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "restyled"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1140,
+                "y": 340
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "5  Restyled clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in-style",
+            "sourceHandle": "output",
+            "target": "brief",
+            "targetHandle": "style"
+          },
+          {
+            "id": "e2",
+            "source": "in-keep",
+            "sourceHandle": "output",
+            "target": "brief",
+            "targetHandle": "preserve"
+          },
+          {
+            "id": "e3",
+            "source": "in-video",
+            "sourceHandle": "output",
+            "target": "restyle",
+            "targetHandle": "video"
+          },
+          {
+            "id": "e4",
+            "source": "brief",
+            "sourceHandle": "output",
+            "target": "restyle",
+            "targetHandle": "prompt"
+          },
+          {
+            "id": "e5",
+            "source": "restyle",
+            "sourceHandle": "output",
+            "target": "output-video",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "revoice",
+      "name": "AI Spokesperson",
+      "description": "Turn a script into speech, normalise the volume, and soften the audio edges before syncing it to your presenter clip.",
+      "sourceId": "nodetool-base/AI Spokesperson",
+      "graph": {
+        "nodes": [
+          {
+            "id": "comment-1",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "headline": "AI Spokesperson",
+              "comment": "Turn a script into speech, normalise the volume, and soften the audio edges before syncing it to your presenter clip."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 170
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-clip",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "presenter_clip",
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+              },
+              "description": "Footage of a person speaking to camera"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 240
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Presenter clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-script",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "script",
+              "value": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend.",
+              "description": "The new words the presenter should say"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 400
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  New script"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "speech",
+            "type": "nodetool.audio.TextToSpeech",
+            "data": {
+              "model": {
+                "type": "tts_model",
+                "provider": "replicate",
+                "id": "inworld/realtime-tts-1.5-max",
+                "name": "Inworld Realtime TTS 1.5 Max",
+                "path": null,
+                "voices": []
+              },
+              "speed": 1
+            },
+            "ui_properties": {
+              "position": {
+                "x": 380,
+                "y": 380
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "3  Voice the script"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "sync",
+            "type": "nodetool.video.LipSync",
+            "data": {
+              "model": {
+                "type": "video_model",
+                "provider": "fal_ai",
+                "id": "fal-ai/sync-lipsync/v2/pro",
+                "name": "Sync Lipsync v2 Pro",
+                "path": null,
+                "supported_tasks": []
+              }
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1750,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "4  Lip-sync to the new audio"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "output-clip",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "revoiced_clip"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2110,
+                "y": 320
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "5  Re-voiced clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "level",
+            "type": "nodetool.audio.Normalize",
+            "data": {},
+            "ui_properties": {
+              "position": {
+                "x": 710,
+                "y": 380
+              },
+              "width": 300,
+              "title": "Even out volume"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "fade-in",
+            "type": "nodetool.audio.FadeIn",
+            "data": {
+              "duration": 0.01
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1040,
+                "y": 380
+              },
+              "width": 300,
+              "title": "Soften the start"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "fade-out",
+            "type": "nodetool.audio.FadeOut",
+            "data": {
+              "duration": 0.03
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1370,
+                "y": 380
+              },
+              "width": 300,
+              "title": "Soften the ending"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in-script",
+            "sourceHandle": "output",
+            "target": "speech",
+            "targetHandle": "text"
+          },
+          {
+            "id": "e2",
+            "source": "in-clip",
+            "sourceHandle": "output",
+            "target": "sync",
+            "targetHandle": "video"
+          },
+          {
+            "id": "e4",
+            "source": "sync",
+            "sourceHandle": "output",
+            "target": "output-clip",
+            "targetHandle": "value"
+          },
+          {
+            "id": "speech-level-audio",
+            "source": "speech",
+            "sourceHandle": "audio",
+            "target": "level",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "level-fade-in-audio",
+            "source": "level",
+            "sourceHandle": "output",
+            "target": "fade-in",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "fade-in-fade-out-audio",
+            "source": "fade-in",
+            "sourceHandle": "output",
+            "target": "fade-out",
+            "targetHandle": "audio"
+          },
+          {
+            "id": "e3",
+            "source": "fade-out",
+            "sourceHandle": "output",
+            "target": "sync",
+            "targetHandle": "audio"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "grade",
+      "name": "Color Boost Video",
+      "description": "Grade a video by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result — differentiator: bring your own clip and a single Grading Intensity slider drives the saturation pass live, no per-node tweaking.",
+      "sourceId": "nodetool-base/Color Boost Video",
+      "graph": {
+        "nodes": [
+          {
+            "id": "7074f109-83b1-4864-8e37-17a89fcbf46d",
+            "parent_id": null,
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "source_video",
+              "description": "The clip to color-grade. Defaults to a short demo clip so Run works immediately.",
+              "value": {
+                "type": "video",
+                "asset_id": "727208e4dbe811ef97c1000071d82eaa",
+                "uri": "http://127.0.0.1:8000/api/storage/727208e4dbe811ef97c1000071d82eaa.mp4"
+              }
+            },
+            "ui_properties": {
+              "title": "1️⃣ Source video",
+              "position": {
+                "x": 50,
+                "y": 50
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {}
+          },
+          {
+            "id": "grading-intensity",
+            "parent_id": null,
+            "type": "nodetool.input.FloatInput",
+            "data": {
+              "name": "grading_intensity",
+              "description": "How strong the saturation pass is. 0 = grayscale, 0.5 = the default boost, 1 = maximum, fully saturated look.",
+              "value": 0.5,
+              "min": -1,
+              "max": 1
+            },
+            "ui_properties": {
+              "title": "Grading intensity",
+              "position": {
+                "x": 680,
+                "y": 320
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {}
+          },
+          {
+            "id": "abb8ee0b-dbf0-4969-8046-c2e690b7d1e4",
+            "parent_id": null,
+            "type": "nodetool.video.ForEachFrame",
+            "data": {
+              "start": 0,
+              "end": 2
+            },
+            "ui_properties": {
+              "title": "2️⃣ Split into frames",
+              "position": {
+                "x": 360,
+                "y": 54
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {}
+          },
+          {
+            "id": "e30d1d60-0a2a-4c28-9844-3d9a1e09c85b",
+            "parent_id": null,
+            "type": "lib.image.color_grading.Exposure",
+            "data": {
+              "exposure": 0.2,
+              "contrast": 0.1,
+              "highlights": -0.1,
+              "shadows": 0.1
+            },
+            "ui_properties": {
+              "title": "3️⃣ Exposure & contrast",
+              "position": {
+                "x": 680,
+                "y": 60
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {}
+          },
+          {
+            "id": "s41e2d70-1b3b-5d39-0955-4e0b2f1ac96c",
+            "parent_id": null,
+            "type": "lib.image.color_grading.SaturationVibrance",
+            "data": {
+              "vibrance": 0.4
+            },
+            "ui_properties": {
+              "title": "4️⃣ Saturation & vibrance",
+              "position": {
+                "x": 1000,
+                "y": 140
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {}
+          },
+          {
+            "id": "4ca8874f-5caa-413c-a329-936d90358e8e",
+            "parent_id": null,
+            "type": "nodetool.video.FrameToVideo",
+            "data": {},
+            "ui_properties": {
+              "title": "5️⃣ Reassemble video",
+              "position": {
+                "x": 1320,
+                "y": 112
+              },
+              "zIndex": 0,
+              "width": 416,
+              "selectable": true,
+              "height": 360
+            },
+            "dynamic_properties": {}
+          },
+          {
+            "id": "60677785-41d5-4795-bdba-15003d0dec86",
+            "parent_id": null,
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 🎨 Color Boost Video\n\nGrade a clip frame-by-frame, then reassemble it. Each frame gets an exposure and saturation pass; the Grading Intensity input feeds the saturation strength so it can be bound to a slider in the app view.\n\n**Pipeline:** Video → Split frames → Exposure → Saturation (driven by Grading intensity) → Reassemble\n\n**Try this:** drag Grading intensity, tweak the exposure settings, or set a start/end frame range."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 48,
+                "y": -209
+              },
+              "zIndex": 0,
+              "width": 520,
+              "height": 220,
+              "selectable": true
+            },
+            "dynamic_properties": {}
+          },
+          {
+            "id": "output-graded-video",
+            "parent_id": null,
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "graded_video"
+            },
+            "ui_properties": {
+              "title": "6️⃣ Graded output",
+              "position": {
+                "x": 1640,
+                "y": 112
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true
+            },
+            "dynamic_properties": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "19458a09-f1f7-4496-bb74-6bed2bf53532",
+            "source": "7074f109-83b1-4864-8e37-17a89fcbf46d",
+            "sourceHandle": "output",
+            "target": "abb8ee0b-dbf0-4969-8046-c2e690b7d1e4",
+            "targetHandle": "video",
+            "ui_properties": null
+          },
+          {
+            "id": "5239206d-e632-47cb-878c-4568d9ee0d3e",
+            "source": "abb8ee0b-dbf0-4969-8046-c2e690b7d1e4",
+            "sourceHandle": "frame",
+            "target": "e30d1d60-0a2a-4c28-9844-3d9a1e09c85b",
+            "targetHandle": "image",
+            "ui_properties": {
+              "className": "image"
+            }
+          },
+          {
+            "id": "f52b58cb-77ce-42fe-a412-2aef5dfd79be",
+            "source": "e30d1d60-0a2a-4c28-9844-3d9a1e09c85b",
+            "sourceHandle": "output",
+            "target": "s41e2d70-1b3b-5d39-0955-4e0b2f1ac96c",
+            "targetHandle": "image",
+            "ui_properties": {
+              "className": "image"
+            }
+          },
+          {
+            "id": "edge-grading-intensity",
+            "source": "grading-intensity",
+            "sourceHandle": "output",
+            "target": "s41e2d70-1b3b-5d39-0955-4e0b2f1ac96c",
+            "targetHandle": "saturation",
+            "ui_properties": null
+          },
+          {
+            "id": "b14f7601-b826-4b1c-8298-90f55b6022e1",
+            "source": "s41e2d70-1b3b-5d39-0955-4e0b2f1ac96c",
+            "sourceHandle": "output",
+            "target": "4ca8874f-5caa-413c-a329-936d90358e8e",
+            "targetHandle": "frame",
+            "ui_properties": null
+          },
+          {
+            "id": "f9de3335-3122-4d71-8f28-f6c7ada89c84",
+            "source": "abb8ee0b-dbf0-4969-8046-c2e690b7d1e4",
+            "sourceHandle": "fps",
+            "target": "4ca8874f-5caa-413c-a329-936d90358e8e",
+            "targetHandle": "fps",
+            "ui_properties": null
+          },
+          {
+            "id": "edge-output-graded-video",
+            "source": "4ca8874f-5caa-413c-a329-936d90358e8e",
+            "sourceHandle": "output",
+            "target": "output-graded-video",
+            "targetHandle": "value",
+            "ui_properties": null
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "teaser",
+      "name": "Trim a Clip",
+      "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs locally through ffmpeg - no API key and no per-run cost.",
+      "sourceId": "nodetool-base/Trim a Clip",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "clip",
+              "value": null,
+              "description": "The clip to process"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 180
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "op",
+            "type": "nodetool.video.Trim",
+            "data": {
+              "start_time": 1,
+              "end_time": 5,
+              "accurate": true
+            },
+            "ui_properties": {
+              "position": {
+                "x": 360,
+                "y": 180
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Trim"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "result"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 720,
+                "y": 200
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "3  Result"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in",
+            "sourceHandle": "output",
+            "target": "op",
+            "targetHandle": "video"
+          },
+          {
+            "id": "e2",
+            "source": "op",
+            "sourceHandle": "output",
+            "target": "out",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "cover",
+      "name": "Pull a Still from a Clip",
+      "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
+      "sourceId": "nodetool-base/Pull a Still from a Clip",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.VideoInput",
+            "data": {
+              "name": "clip",
+              "value": null,
+              "description": "The clip to sample"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 180
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "frame",
+            "type": "nodetool.video.ExtractFrame",
+            "data": {
+              "time": 2
+            },
+            "ui_properties": {
+              "position": {
+                "x": 360,
+                "y": 180
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "2  Grab a frame"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "still"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 720,
+                "y": 200
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "3  Still"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "in",
+            "sourceHandle": "output",
+            "target": "frame",
+            "targetHandle": "video"
+          },
+          {
+            "id": "e2",
+            "source": "frame",
+            "sourceHandle": "output",
+            "target": "out",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}

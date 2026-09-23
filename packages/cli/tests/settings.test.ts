@@ -164,6 +164,7 @@ describe("DEFAULT_SETTINGS structure", () => {
       "../src/settings.js"
     );
     for (const name of [
+      "bash",
       "find_model",
       "list_models",
       "list_provider_models",
@@ -180,7 +181,14 @@ describe("DEFAULT_SETTINGS structure", () => {
       "render_storyboard_clips",
       "revise_storyboard_clip",
       "assemble_storyboard_timeline",
-      "extract_script_from_storyboard"
+      "extract_script_from_storyboard",
+      "list_scripts",
+      "create_script",
+      "get_script",
+      "edit_script",
+      "voice_script_lines",
+      "assemble_script_timeline",
+      "derive_storyboard_from_script"
     ]) {
       expect(ALWAYS_ENABLED_TOOLS, `${name} must be always-on`).toContain(name);
       expect(DEFAULT_SETTINGS.enabledTools).toContain(name);

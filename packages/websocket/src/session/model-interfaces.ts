@@ -1,10 +1,4 @@
-import {
-  Asset,
-  getSecret,
-  ImageDocument,
-  Message,
-  Setting
-} from "@nodetool-ai/models";
+import { Asset, getSecret, Message, Setting } from "@nodetool-ai/models";
 import {
   ProcessingContext as RuntimeProcessingContext,
   type ProcessingContextModelInterfaces,
@@ -103,30 +97,6 @@ export function serverModelInterfaces(): ProcessingContextModelInterfaces {
         name: asset.name,
         metadata: asset.metadata ?? null
       };
-    },
-    getImageDocument: async ({ userId, id }) => {
-      const doc = await ImageDocument.findById(id);
-      if (!doc || doc.user_id !== userId) return null;
-      return doc.toResponse();
-    },
-    createImageDocument: async ({
-      userId,
-      name,
-      projectId,
-      width,
-      height,
-      document
-    }) => {
-      const doc = new ImageDocument({
-        user_id: userId,
-        project_id: projectId ?? "default",
-        name,
-        width,
-        height,
-        document: JSON.stringify(document)
-      });
-      await doc.save();
-      return doc.toResponse();
     },
     // Documents, the entity library and the game templates: shared with the
     // CLI's local runs so a harness run writes the rows the server writes.

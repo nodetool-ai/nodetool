@@ -72,7 +72,8 @@ jest.mock("../../../../hooks/useModelsByProvider", () => ({
 const generate = jest.fn(async () => {});
 let renderPrice: string | undefined;
 jest.mock("../LookStep", () => ({
-  LookStep: () => null,
+  LookStep: ({ blockedReason }: { blockedReason?: string }) =>
+    blockedReason ? <div data-testid="look-blocker">{blockedReason}</div> : null,
   useLookStep: () => ({
     canAdvance: true,
     primaryDetail: renderPrice,
@@ -152,6 +153,23 @@ const seedScreenplay = () =>
   });
 
 describe("useStoryboardSetupFlow", () => {
+  it("passes the reason for a disabled Look action into the step body", () => {
+    seedScreenplay();
+    useStoryboardStore.getState().setSetup(BOARD_ID, {
+      stage: "look",
+      creative_context: { schema_version: 1, tone: "Direct" }
+    });
+
+    renderFlow();
+
+    expect(
+      screen.getByRole("button", { name: "Generate your storyboard" })
+    ).toBeDisabled();
+    expect(screen.getByTestId("look-blocker")).toHaveTextContent(
+      "Production context changed"
+    );
+  });
+
   it("does not block still generation for a legacy on-camera requirement", () => {
     seedScreenplay();
     const shot = useStoryboardStore.getState().getBoard(BOARD_ID)?.shots[0];

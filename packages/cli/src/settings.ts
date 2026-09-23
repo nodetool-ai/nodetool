@@ -17,6 +17,8 @@ interface ChatSettings {
  * model it is handed, or reports that none is configured.
  */
 export const ALWAYS_ENABLED_TOOLS: readonly string[] = [
+  // Local interactive chat only; the stdin and server belts never register it.
+  "bash",
   // Documents.
   "extract_pdf_text",
   "convert_pdf_to_markdown",
@@ -46,7 +48,15 @@ export const ALWAYS_ENABLED_TOOLS: readonly string[] = [
   "render_storyboard_clips",
   "revise_storyboard_clip",
   "assemble_storyboard_timeline",
-  "extract_script_from_storyboard"
+  "extract_script_from_storyboard",
+  // Headless script lifecycle (also available for older saved settings).
+  "list_scripts",
+  "create_script",
+  "get_script",
+  "edit_script",
+  "voice_script_lines",
+  "assemble_script_timeline",
+  "derive_storyboard_from_script"
 ];
 
 export const DEFAULT_SETTINGS: ChatSettings = {

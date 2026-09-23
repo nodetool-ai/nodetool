@@ -152,5 +152,19 @@
     "emoji": "🎯",
     "featured": false,
     "workflows": 4
+  },
+  {
+    "slug": "podcast-production-desk",
+    "name": "Podcast Production Desk",
+    "emoji": "🎙️",
+    "featured": true,
+    "workflows": 3
+  },
+  {
+    "slug": "video-post-house",
+    "name": "AI Video Post House",
+    "emoji": "🎞️",
+    "featured": true,
+    "workflows": 5
   }
 ]

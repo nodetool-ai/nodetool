@@ -51,7 +51,7 @@ Press `↑`/`↓` to navigate input history, `Tab` to complete, and `Esc` or `Ct
 
 The assistant runs with a set of enabled tools (file operations, web search, browser, NodeTool MCP
 tools, and more). Tools are auto-enabled based on the API keys available in your environment or the encrypted secret
-store. Use `--tools` to override the set explicitly, or `/tools` to see what is currently enabled.
+store. Use `--tools` to override the set explicitly, or `/tools` to see what is currently enabled. Local interactive chat also enables `bash` for host commands in the chat workspace. It is not available in piped stdin chat or server-connected chat (`--url`). Bash commands are not sandboxed: default permission mode asks before running one, plan mode blocks it, and auto mode permits it without a prompt.
 
 ```bash
 nodetool chat --tools read_file,write_file,grep,web_search

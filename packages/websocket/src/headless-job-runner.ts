@@ -30,9 +30,14 @@ import {
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
 import type { SupervisorRunOptions } from "@nodetool-ai/protocol";
-import { PERMISSION_GATE_CONTEXT_KEY, ProcessingContext, headlessGate } from "@nodetool-ai/runtime";
+import {
+  PERMISSION_GATE_CONTEXT_KEY,
+  ProcessingContext,
+  headlessGate
+} from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { createRunSupervisor } from "./run-supervisor.js";
+import { documentModelInterfaces } from "./lib/document-model-interfaces.js";
 import { resolveWorkflowWorkspace } from "./lib/workflow-workspace.js";
 import { getAssetAdapter } from "./lib/storage.js";
 
@@ -186,6 +191,7 @@ export async function startHeadlessJob(
     assetStorage: getAssetAdapter(),
     workspace
   });
+  context.setModelInterfaces(documentModelInterfaces());
   // Nobody is watching a triggered run, so an agent loop inside it gates in
   // `auto` and every escalation is denied. Set here, not left for a fallback:
   // `gateFromContext` treats a context with no gate as a host bug.

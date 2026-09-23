@@ -88,6 +88,10 @@ export { LoadingSpinner } from "./LoadingSpinner";
 export type { LoadingSpinnerProps, LoadingVariant } from "./LoadingSpinner";
 
 export { default as MagicGenerationFill } from "./MagicGenerationFill";
+export {
+  runningGradientAnimation,
+  runningGradientBackground
+} from "./runningGradient";
 
 export { ShimmerText } from "./ShimmerText";
 export type { ShimmerTextProps } from "./ShimmerText";

@@ -42,8 +42,11 @@ import {
   BORDER_RADIUS,
   SPACING,
   MOTION,
-  reducedMotion
+  reducedMotion,
+  runningGradientAnimation,
+  runningGradientBackground
 } from "../ui_primitives";
+import { colorForType } from "../../config/data_types";
 import ShotHoverToolbar from "./ShotHoverToolbar";
 import ShotMediaViewer from "./ShotMediaViewer";
 import ShotStatusPill, { CLIP_COLOR, isShotGenerating } from "./ShotStatusPill";
@@ -127,6 +130,13 @@ const footerButtonSx = { minWidth: 0, px: SPACING.xs } as const;
 
 /** The render bar sits on the thumbnail's bottom edge, 3px per the design. */
 const RENDER_BAR_HEIGHT = 3;
+const STILL_RENDER_COLORS = [
+  colorForType("image"),
+  colorForType("video"),
+  colorForType("audio"),
+  colorForType("text"),
+  colorForType("image")
+];
 
 const ShotCardInner: React.FC<ShotCardProps> = ({
   boardId,
@@ -180,6 +190,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
 
   const failed = shot.status === "failed" || !!failedJob?.mediaEdit;
   const isGenerating = isShotGenerating(shot);
+  const stillRendering = shot.status === "keyframe_generating";
   // Whether there is a clip to show at all: the player itself resolves the
   // `asset://` locator, but the card renders the keyframe when it cannot.
   const clipUri = useResolvedMediaUri(shot.clip);
@@ -430,11 +441,35 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             sx={{ height: "100%" }}
           />
         ) : (
-          <Caption color="muted" sx={{ textAlign: "center", p: SPACING.md }}>
-            No still yet
+          <Caption
+            color="muted"
+            role={stillRendering ? "status" : undefined}
+            sx={{ textAlign: "center", p: SPACING.md }}
+          >
+            {stillRendering ? "Rendering still…" : "No still yet"}
           </Caption>
         )}
         {isGenerating && <MagicGenerationFill />}
+        {stillRendering && (
+          <Box
+            data-testid="still-render-gradient"
+            aria-hidden
+            sx={{
+              position: "absolute",
+              inset: 0,
+              p: SPACING.xs,
+              borderRadius: BORDER_RADIUS.lg,
+              pointerEvents: "none",
+              background: runningGradientBackground(STILL_RENDER_COLORS),
+              WebkitMask:
+                "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+              WebkitMaskComposite: "xor",
+              maskComposite: "exclude",
+              animation: `${runningGradientAnimation} ${MOTION.pulse} infinite`,
+              ...reducedMotion({ animation: "none" })
+            }}
+          />
+        )}
         <ShotHoverToolbar
           showDragHandle={draggable}
           onFullscreen={

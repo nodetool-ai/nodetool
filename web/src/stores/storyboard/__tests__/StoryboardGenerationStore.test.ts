@@ -76,7 +76,7 @@ describe("direct generation responses (generate_media rpc)", () => {
     );
   });
 
-  it("records a returned still as a candidate and clears the job", () => {
+  it("selects the first returned still on its shot and clears the job", () => {
     seedShot("s-direct");
     useStoryboardGenerationStore
       .getState()
@@ -92,8 +92,8 @@ describe("direct generation responses (generate_media rpc)", () => {
       .getState()
       .getBoard(BOARD)
       ?.shots.find((s) => s.id === "s-direct");
-    expect(shot?.status).toBe("planned");
-    expect(shot?.keyframe).toBeUndefined();
+    expect(shot?.status).toBe("keyframe_ready");
+    expect(shot?.keyframe?.asset_id).toBe("ast-1");
     expect(shot?.keyframe_versions?.[0]).toMatchObject({
       asset_id: "ast-1",
       uri: "asset://ast-1"
