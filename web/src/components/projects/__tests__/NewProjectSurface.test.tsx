@@ -1266,6 +1266,74 @@ describe("NewProjectSurface", () => {
     );
   });
 
+  // The shell shows only the active project's tabs. A finished flow filed
+  // into a project that is not open has to open that project first, or its
+  // tab is hidden and closing this one lands on the start page.
+  it("opens the new project before the finished document's tab", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+
+    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await pickDestination();
+    await screen.findByTestId("setup-flow");
+    managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
+    await user.click(screen.getByRole("button", { name: "Copy the example" }));
+
+    await waitFor(() => expect(openTab).toHaveBeenCalled());
+    expect(openProject).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "p9" })
+    );
+    expect(openProject.mock.invocationCallOrder[0]).toBeLessThan(
+      openTab.mock.invocationCallOrder[0]
+    );
+    expect(closeTab).toHaveBeenCalled();
+  });
+
+  it("keeps the surface when the finished document's project does not open", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+
+    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await pickDestination();
+    await screen.findByTestId("setup-flow");
+    openProject.mockResolvedValueOnce(false);
+    managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
+    await user.click(screen.getByRole("button", { name: "Copy the example" }));
+
+    await waitFor(() => expect(openProject).toHaveBeenCalled());
+    expect(openTab).not.toHaveBeenCalled();
+    expect(closeTab).not.toHaveBeenCalled();
+  });
+
+  it("opens the new project before the image flow's sketch tab", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+
+    await user.click(within(cards).getByRole("button", { name: /^Image / }));
+    await pickDestination();
+
+    await waitFor(() =>
+      expect(openTab).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "sketch", projectId: "p9" })
+      )
+    );
+    expect(openProject).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "p9" })
+    );
+    expect(openProject.mock.invocationCallOrder[0]).toBeLessThan(
+      openTab.mock.invocationCallOrder[0]
+    );
+  });
+
   // "Change flow" on step 1: the brief comes back to the composer and the
   // draft leaves nothing behind — no document, and no empty project row.
   it("returns to the composer with the brief, and deletes the draft", async () => {
