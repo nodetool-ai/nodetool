@@ -10,7 +10,11 @@
  * never constructed on the chat path.
  */
 import OpenAI from "openai";
-import type { Chunk } from "@nodetool-ai/protocol";
+import {
+  isNonEmptyString,
+  isRecord,
+  type Chunk
+} from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { OpenAIProvider } from "./openai-provider.js";
 import {
@@ -48,6 +52,9 @@ export interface OpenAICompatProviderOptions {
   /** Internal chat client override (tests). */
   compatClient?: OpenAICompatClient;
 }
+
+/** One row of a `GET /models` listing: an id plus whatever else the vendor sent. */
+export type CompatModelRow = Record<string, unknown> & { id: string };
 
 interface MutableToolCall {
   id: string;
@@ -112,6 +119,25 @@ export class OpenAICompatProvider extends OpenAIProvider {
     url: string = `${this._compatConfig.baseURL}/models`,
     init: { headers?: Record<string, string>; signal?: AbortSignal } = {}
   ): Promise<LanguageModel[]> {
+    const rows = await this.fetchCompatModelRows(url, init);
+    return rows.map((row) => ({
+      id: row.id,
+      name: isNonEmptyString(row.name) ? row.name : row.id,
+      provider: this.provider
+    }));
+  }
+
+  /**
+   * The raw rows of an OpenAI-shaped `GET /models` listing, keeping every
+   * field the endpoint sent so callers can read vendor metadata (a `type`,
+   * output modalities) beyond the id. Rows without a string id are dropped;
+   * a failed request answers `[]` for the reason given on
+   * {@link listCompatModels}.
+   */
+  protected async fetchCompatModelRows(
+    url: string = `${this._compatConfig.baseURL}/models`,
+    init: { headers?: Record<string, string>; signal?: AbortSignal } = {}
+  ): Promise<CompatModelRow[]> {
     const request: RequestInit = {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
@@ -135,20 +161,12 @@ export class OpenAICompatProvider extends OpenAIProvider {
       return [];
     }
 
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string; name?: string }>;
-    };
+    const payload: unknown = await response.json();
+    const rows = isRecord(payload) ? payload.data : undefined;
     // Stryker disable next-line ArrayDeclaration: the fallback is filtered downstream (rows need a string id), so [] vs any array is observably identical.
-    return (payload.data ?? [])
-      .filter(
-        (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
-      )
-      .map((row) => ({
-        id: row.id,
-        name: row.name ?? row.id,
-        provider: this.provider
-      }));
+    return (Array.isArray(rows) ? rows : [])
+      .filter(isRecord)
+      .filter((row): row is CompatModelRow => isNonEmptyString(row.id));
   }
 
   protected getCompatClient(): OpenAICompatClient {

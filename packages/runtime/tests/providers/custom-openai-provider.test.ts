@@ -88,6 +88,98 @@ describe("CustomOpenAIProvider", () => {
     expect(await provider.getAvailableLanguageModels()).toEqual([]);
   });
 
+  it("sorts an aggregator listing into chat, image and video models", async () => {
+    const fetchFn = mockChatFetch(
+      chatJsonResponse({
+        data: [
+          { id: "gpt-4o-mini" },
+          { id: "flux-dev" },
+          { id: "kling-v2" },
+          { id: "agnes-canvas", type: "image" },
+          { id: "agnes-chat", type: "chat" }
+        ]
+      })
+    );
+    const provider = new CustomOpenAIProvider(CONFIG, { fetchFn });
+
+    const [language, image, video] = await Promise.all([
+      provider.getAvailableLanguageModels(),
+      provider.getAvailableImageModels(),
+      provider.getAvailableVideoModels()
+    ]);
+
+    // A kind decided by metadata leaves the chat list; one guessed from the id
+    // stays there too, so a misread chat model is never unreachable.
+    expect(language.map((m) => m.id)).toEqual([
+      "gpt-4o-mini",
+      "flux-dev",
+      "kling-v2",
+      "agnes-chat"
+    ]);
+    expect(image).toEqual([
+      {
+        id: "flux-dev",
+        name: "flux-dev",
+        provider: "custom_myproxy",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      },
+      {
+        id: "agnes-canvas",
+        name: "agnes-canvas",
+        provider: "custom_myproxy",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      }
+    ]);
+    expect(video).toEqual([
+      {
+        id: "kling-v2",
+        name: "kling-v2",
+        provider: "custom_myproxy",
+        supportedTasks: ["text_to_video", "image_to_video"]
+      }
+    ]);
+    // The three pickers share one listing request.
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers models the user marked as image or video, listed or not", async () => {
+    const fetchFn = mockChatFetch(
+      chatJsonResponse({ data: [{ id: "gpt-4o-mini" }, { id: "agnes-pro" }] })
+    );
+    const provider = new CustomOpenAIProvider(
+      { ...CONFIG, _imageModels: ["agnes-pro"], _videoModels: ["agnes-motion"] },
+      { fetchFn }
+    );
+
+    expect((await provider.getAvailableImageModels()).map((m) => m.id)).toEqual([
+      "agnes-pro"
+    ]);
+    expect((await provider.getAvailableVideoModels()).map((m) => m.id)).toEqual([
+      "agnes-motion"
+    ]);
+    expect(
+      (await provider.getAvailableLanguageModels()).map((m) => m.id)
+    ).toEqual(["gpt-4o-mini"]);
+  });
+
+  it("classifies hand-listed models without calling the endpoint", async () => {
+    const fetchFn = vi.fn();
+    const provider = new CustomOpenAIProvider(
+      { ...CONFIG, _models: ["llama-3", "seedream-4"] },
+      { fetchFn }
+    );
+    expect((await provider.getAvailableImageModels()).map((m) => m.id)).toEqual([
+      "seedream-4"
+    ]);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("sends the requested image size instead of snapping to OpenAI's sizes", () => {
+    const provider = new CustomOpenAIProvider(CONFIG);
+    expect(provider.resolveImageSize(1820, 1024)).toBe("1820x1024");
+    expect(provider.resolveImageSize(null, 1024)).toBeNull();
+  });
+
   it("exports both settings to a container, and omits a placeholder key", () => {
     const withKey = new CustomOpenAIProvider(CONFIG);
     expect(withKey.getContainerEnv()).toEqual({
@@ -106,6 +198,27 @@ describe("CustomOpenAIProvider", () => {
 });
 
 describe("custom provider registry", () => {
+  it("hands the marked image and video models to the provider", async () => {
+    syncCustomProviders([
+      {
+        slug: "myproxy",
+        name: "My Proxy",
+        models: ["llama-3"],
+        image_models: ["agnes-pro"],
+        video_models: ["agnes-motion"]
+      }
+    ]);
+    const provider = await getProvider("custom_myproxy", (key) =>
+      key === "CUSTOM_MYPROXY_BASE_URL" ? "https://p.example.com/v1" : undefined
+    );
+    expect((await provider.getAvailableImageModels()).map((m) => m.id)).toEqual([
+      "agnes-pro"
+    ]);
+    expect((await provider.getAvailableVideoModels()).map((m) => m.id)).toEqual([
+      "agnes-motion"
+    ]);
+  });
+
   it("resolves both settings through getSecret at instantiation", async () => {
     syncCustomProviders([{ slug: "myproxy", name: "My Proxy" }]);
     const secrets: Record<string, string> = {

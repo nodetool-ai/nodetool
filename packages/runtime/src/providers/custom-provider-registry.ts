@@ -3,7 +3,7 @@
  *
  * The host loads the catalog — from the database, a config file, whatever it
  * has — and calls {@link syncCustomProviders} with it. Only the slug and its
- * optional model list are baked in; the base URL and API key are declared as
+ * optional model lists are baked in; the base URL and API key are declared as
  * kwarg *names*, so the registry resolves them per user through the caller's
  * `getSecret` on every `getProvider()` call, and an env var of the same name
  * works with no database row at all.
@@ -36,6 +36,8 @@ function register(definition: CustomProvider): string {
       _baseUrlKey: baseUrlKey,
       _apiKeyKey: apiKeyKey,
       _models: definition.models ?? [],
+      _imageModels: definition.image_models ?? [],
+      _videoModels: definition.video_models ?? [],
       // Empty declares "resolve me": the registry asks getSecret, then env, on
       // every instantiation. It is also the only required kwarg, so a user who
       // has not set a URL sees the provider as unconfigured rather than broken.

@@ -29,11 +29,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient, type RouterOutputs } from "../../trpc/client";
 
 type CustomProviderRow = RouterOutputs["customProviders"]["list"][number];
-
-interface TestResult {
-  ok: boolean;
-  message: string;
-}
+type TestResult = RouterOutputs["customProviders"]["test"];
 
 interface SaveInput {
   slug: string;
@@ -42,6 +38,8 @@ interface SaveInput {
   /** Omitted keeps the stored key; empty string clears it. */
   api_key?: string;
   models?: string[];
+  image_models?: string[];
+  video_models?: string[];
 }
 
 const QUERY_KEY = ["custom-providers"];
@@ -52,6 +50,8 @@ interface DraftState {
   baseUrl: string;
   apiKey: string;
   models: string;
+  imageModels: string;
+  videoModels: string;
 }
 
 const EMPTY_DRAFT: DraftState = {
@@ -59,7 +59,9 @@ const EMPTY_DRAFT: DraftState = {
   name: "",
   baseUrl: "",
   apiKey: "",
-  models: ""
+  models: "",
+  imageModels: "",
+  videoModels: ""
 };
 
 const parseModels = (value: string): string[] =>
@@ -87,6 +89,10 @@ const ProviderRow = memo(function ProviderRow({
   const handleEdit = useCallback(() => onEdit(provider), [onEdit, provider]);
   const handleDelete = useCallback(() => onDelete(provider), [onDelete, provider]);
   const handleTest = useCallback(() => onTest(provider), [onTest, provider]);
+  const handListed =
+    provider.models.length +
+    provider.image_models.length +
+    provider.video_models.length;
 
   return (
     <Card
@@ -130,11 +136,29 @@ const ProviderRow = memo(function ProviderRow({
           <Caption sx={{ opacity: 0.55, wordBreak: "break-all" }}>
             {provider.base_url || "No endpoint set"}
           </Caption>
-          {provider.models.length > 0 && (
+          {handListed > 0 && (
             <Caption size="smaller" sx={{ opacity: 0.45 }}>
-              {provider.models.length} model
-              {provider.models.length === 1 ? "" : "s"} listed by hand
+              {handListed} model{handListed === 1 ? "" : "s"} listed by hand
             </Caption>
+          )}
+          {testResult?.counts && testResult.ok && (
+            <FlexRow align="center" gap={0.5} sx={{ flexWrap: "wrap" }}>
+              <Chip
+                label={`Chat ${testResult.counts.language}`}
+                compact
+                variant="outlined"
+              />
+              <Chip
+                label={`Image ${testResult.counts.image}`}
+                compact
+                variant="outlined"
+              />
+              <Chip
+                label={`Video ${testResult.counts.video}`}
+                compact
+                variant="outlined"
+              />
+            </FlexRow>
           )}
           {testResult && (
             <Caption
@@ -211,6 +235,20 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
     queryClient.invalidateQueries({ queryKey: ["providers"] });
   }, [queryClient]);
 
+  const runTest = useCallback(async (slug: string) => {
+    setTestingSlug(slug);
+    let result: TestResult;
+    try {
+      result = await trpcClient.customProviders.test.mutate({ slug });
+    } catch (err) {
+      // The procedure answers a bad endpoint with a message of its own; only a
+      // transport failure reaches here, and it is an answer too.
+      result = { ok: false, message: err instanceof Error ? err.message : String(err) };
+    }
+    setTestResults((prev) => ({ ...prev, [slug]: result }));
+    setTestingSlug(null);
+  }, []);
+
   const saveMutation = useMutation({
     mutationFn: (input: SaveInput) =>
       trpcClient.customProviders.save.mutate(input),
@@ -222,6 +260,10 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
         alert: true,
         content: `${saved.name} saved as ${saved.provider_id}`
       });
+      // Show right away which chat, image and video models the endpoint
+      // serves, so a missed image or video model is visible before the user
+      // goes looking for it in a node's picker.
+      void runTest(saved.slug);
     },
     onError: (err: Error) => {
       addNotification({
@@ -258,26 +300,19 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
       name: provider.name,
       baseUrl: provider.base_url,
       apiKey: "",
-      models: provider.models.join(", ")
+      models: provider.models.join(", "),
+      imageModels: provider.image_models.join(", "),
+      videoModels: provider.video_models.join(", ")
     });
     setDialogOpen(true);
   }, []);
 
-  const handleTest = useCallback(async (provider: CustomProviderRow) => {
-    setTestingSlug(provider.slug);
-    let result: TestResult;
-    try {
-      result = await trpcClient.customProviders.test.mutate({
-        slug: provider.slug
-      });
-    } catch (err) {
-      // The procedure answers a bad endpoint with a message of its own; only a
-      // transport failure reaches here, and it is an answer too.
-      result = { ok: false, message: err instanceof Error ? err.message : String(err) };
-    }
-    setTestResults((prev) => ({ ...prev, [provider.slug]: result }));
-    setTestingSlug(null);
-  }, []);
+  const handleTest = useCallback(
+    (provider: CustomProviderRow) => {
+      void runTest(provider.slug);
+    },
+    [runTest]
+  );
 
   const handleClose = useCallback(() => setDialogOpen(false), []);
 
@@ -316,6 +351,22 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
     setDraft((prev) => ({ ...prev, models }));
   }, []);
 
+  const handleImageModelsChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const imageModels = e.target.value;
+      setDraft((prev) => ({ ...prev, imageModels }));
+    },
+    []
+  );
+
+  const handleVideoModelsChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const videoModels = e.target.value;
+      setDraft((prev) => ({ ...prev, videoModels }));
+    },
+    []
+  );
+
   const slugError = customProviderSlugError(draft.slug);
   const urlError = customProviderBaseUrlError(draft.baseUrl);
   const duplicateSlug =
@@ -326,7 +377,9 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
       slug: draft.slug,
       name: draft.name.trim() || draft.slug,
       base_url: draft.baseUrl,
-      models: parseModels(draft.models)
+      models: parseModels(draft.models),
+      image_models: parseModels(draft.imageModels),
+      video_models: parseModels(draft.videoModels)
     };
     // An untouched key field on an edit means "keep what is stored"; on a new
     // provider it means "no key", which the empty string also expresses.
@@ -358,8 +411,8 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
             OpenAI-compatible endpoints
           </Text>
           <Caption sx={{ opacity: 0.55 }}>
-            Point NodeTool at any proxy or gateway that speaks the OpenAI Chat
-            Completions API.
+            Point NodeTool at any proxy or gateway that speaks the OpenAI API.
+            Its chat, image and video models appear in the matching nodes.
           </Caption>
         </FlexColumn>
         <EditorButton
@@ -473,6 +526,26 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
             variant="outlined"
             size="small"
             helperText="Comma-separated model ids, for endpoints with no /models route."
+          />
+          <TextInput
+            label="Image models"
+            value={draft.imageModels}
+            onChange={handleImageModelsChange}
+            fullWidth
+            placeholder="Optional, e.g. flux-dev, seedream-4"
+            variant="outlined"
+            size="small"
+            helperText="Detected from the model list. Add ids that Test misses. Calls go to /images/generations."
+          />
+          <TextInput
+            label="Video models"
+            value={draft.videoModels}
+            onChange={handleVideoModelsChange}
+            fullWidth
+            placeholder="Optional, e.g. kling-v2, veo-3"
+            variant="outlined"
+            size="small"
+            helperText="Detected from the model list. Add ids that Test misses. Calls go to /videos."
           />
           <Caption sx={{ opacity: 0.6 }}>
             The URL and key are encrypted and stored per account. The same

@@ -100,6 +100,8 @@ export interface SaveCustomProviderInput {
   /** Omit to leave a stored key untouched; empty string clears it. */
   api_key?: string;
   models?: string[];
+  image_models?: string[];
+  video_models?: string[];
 }
 
 /**
@@ -118,7 +120,9 @@ export async function saveCustomProvider(
   const definition: CustomProvider = {
     slug: input.slug,
     name: input.name.trim() || input.slug,
-    models: input.models ?? []
+    models: input.models ?? [],
+    image_models: input.image_models ?? [],
+    video_models: input.video_models ?? []
   };
 
   const catalog = await loadCustomProviderCatalog(userId);
