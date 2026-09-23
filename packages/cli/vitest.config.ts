@@ -71,19 +71,42 @@ function nodetoolStubPlugin(): Plugin {
   };
 }
 
+// Tests that persist rows through the real @nodetool-ai/models database. They
+// run in their own project without the stub plugin.
+const realPackageTests = ["tests/local-model-interfaces-sketch.test.ts"];
+
 export default defineConfig({
-  plugins: [nodetoolStubPlugin()],
-  resolve: {
-    // app-runtime is dependency-free source, so tests exercise the real
-    // runtime core rather than a stub.
-    alias: {
-      "@nodetool-ai/app-runtime": resolve(__dirname, "../app-runtime/src/index.ts")
-    }
-  },
   test: {
-    include: ["tests/**/*.test.ts", "src/**/__tests__/**/*.test.ts"],
     fileParallelism: false,
     maxWorkers: 2,
-    testTimeout: 30000
+    testTimeout: 30000,
+    projects: [
+      {
+        extends: true,
+        plugins: [nodetoolStubPlugin()],
+        resolve: {
+          // app-runtime is dependency-free source, so tests exercise the real
+          // runtime core rather than a stub.
+          alias: {
+            "@nodetool-ai/app-runtime": resolve(
+              __dirname,
+              "../app-runtime/src/index.ts"
+            )
+          }
+        },
+        test: {
+          name: "unit",
+          include: ["tests/**/*.test.ts", "src/**/__tests__/**/*.test.ts"],
+          exclude: realPackageTests
+        }
+      },
+      {
+        extends: true,
+        test: {
+          name: "real-packages",
+          include: realPackageTests
+        }
+      }
+    ]
   }
 });
