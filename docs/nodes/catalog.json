@@ -446,7 +446,7 @@
           "type": "enum",
           "description": "The text-to-speech model to use",
           "required": false,
-          "default": "gemini-3.1-flash-tts-preview"
+          "default": "gemini-3.8-flash-tts"
         },
         {
           "name": "voice_name",

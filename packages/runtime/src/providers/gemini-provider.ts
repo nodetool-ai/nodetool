@@ -1706,6 +1706,18 @@ export class GeminiProvider extends BaseProvider {
     ];
     return [
       {
+        id: "gemini-3.8-flash-tts",
+        name: "Gemini 3.8 Flash TTS",
+        provider: "gemini",
+        voices
+      },
+      {
+        id: "gemini-3.8-flash-lite-tts",
+        name: "Gemini 3.8 Flash-Lite TTS",
+        provider: "gemini",
+        voices
+      },
+      {
         id: "gemini-3.1-flash-tts-preview",
         name: "Gemini 3.1 Flash TTS Preview",
         provider: "gemini",

@@ -1186,7 +1186,7 @@ describe("Node defaults coverage", () => {
     const node = new TextToSpeechGeminiNode();
     const d = node.serialize();
     expect(d.text).toBe("");
-    expect(d.model).toBe("gemini-3.1-flash-tts-preview");
+    expect(d.model).toBe("gemini-3.8-flash-tts");
     expect(d.voice_name).toBe("kore");
     expect(d.style_prompt).toBe("");
   });
