@@ -9,7 +9,10 @@ import {
   getAllOutputHandles
 } from "../../../utils/handleUtils";
 import { isConnectable } from "../../../utils/TypeHandler";
-import { wouldCreateCycle } from "../../../utils/graphCycle";
+import {
+  nodeTypeLookup,
+  wouldCreateCycle
+} from "../../../utils/graphCycle";
 import { isCodeNodeType } from "../../../utils/codeNodeHandles";
 import useMetadataStore from "../../../stores/MetadataStore";
 
@@ -112,9 +115,15 @@ FrontendToolRegistry.register({
       return { ok: true, edge_id: duplicate.id, note: "edge already exists" };
     }
 
-    if (wouldCreateCycle(nodeStore.edges, source_node_id, target_node_id)) {
+    if (
+      wouldCreateCycle(nodeStore.edges, source_node_id, target_node_id, {
+        targetHandle: target_handle,
+        nodeTypeOf: nodeTypeLookup(nodeStore.nodes)
+      })
+    ) {
       throw new Error(
-        `Connecting ${source_node_id} → ${target_node_id} would create a cycle.`
+        `Connecting ${source_node_id} → ${target_node_id} would create a cycle. ` +
+          `A cycle may only close on the "next" or "condition" input of a Loop node (nodetool.control.Loop).`
       );
     }
 

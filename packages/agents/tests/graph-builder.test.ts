@@ -53,6 +53,19 @@ describe("GraphBuilder", () => {
     expect(errors.some((e) => e.includes("cycle"))).toBe(true);
   });
 
+  it("accepts a cycle that closes on a Loop node's feedback input", () => {
+    const builder = new GraphBuilder();
+    builder.addNode("loop", "nodetool.control.Loop");
+    builder.addNode("step", "test.Node");
+    expect(builder.addEdge("loop", "value", "step", "in")).toHaveLength(0);
+    expect(builder.addEdge("step", "out", "loop", "next")).toHaveLength(0);
+    expect(builder.validate()).toEqual([]);
+
+    // Closing the same loop on a non-feedback input is still a cycle.
+    const errors = builder.addEdge("step", "out", "loop", "initial");
+    expect(errors.some((e) => e.includes("cycle"))).toBe(true);
+  });
+
   it("requires at least one node", () => {
     const builder = new GraphBuilder();
     const errors = builder.validate();

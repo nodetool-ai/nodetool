@@ -12,6 +12,10 @@ import type {
   GraphData,
   DynamicSlotMeta
 } from "@nodetool-ai/protocol";
+import {
+  isLoopBackEdge,
+  wouldCreateLoopUnsafeCycle
+} from "@nodetool-ai/protocol";
 import { isNonEmptyString, isString } from "./utils/type-guards.js";
 
 /** The node type used for LLM-driven steps in planned graphs. */
@@ -276,11 +280,21 @@ export class GraphBuilder {
 
     // Reject an edge that would introduce a cycle: if `source` is already
     // reachable from `target`, adding source→target closes a loop
-    // (target→…→source→target). Caught here so the model gets an actionable
-    // error at the moment it adds the edge, not only at finish_graph.
-    if (this.isReachable(target, source)) {
+    // (target→…→source→target). A cycle may close only on a Loop node's
+    // feedback input (docs/workflow-loops.md). Caught here so the model gets
+    // an actionable error at the moment it adds the edge, not only at
+    // finish_graph.
+    if (
+      wouldCreateLoopUnsafeCycle(
+        this._edges,
+        source,
+        target,
+        targetHandle,
+        this.nodeTypeOf
+      )
+    ) {
       errors.push(
-        `Edge ${source}.${sourceHandle} → ${target}.${targetHandle} would create a cycle: '${source}' is already reachable from '${target}'.`
+        `Edge ${source}.${sourceHandle} → ${target}.${targetHandle} would create a cycle: '${source}' is already reachable from '${target}'. A cycle may only close on the "next" or "condition" input of a Loop node (nodetool.control.Loop).`
       );
       return errors;
     }
@@ -304,26 +318,8 @@ export class GraphBuilder {
     return errors;
   }
 
-  /**
-   * Whether `to` is reachable from `from` following the current directed edges.
-   * A node is trivially reachable from itself. Used by {@link addEdge} for a
-   * cheap incremental cycle check.
-   */
-  private isReachable(from: string, to: string): boolean {
-    if (from === to) return true;
-    const visited = new Set<string>([from]);
-    const stack = [from];
-    while (stack.length > 0) {
-      const current = stack.pop()!;
-      for (const edge of this._edges) {
-        if (edge.source !== current || visited.has(edge.target)) continue;
-        if (edge.target === to) return true;
-        visited.add(edge.target);
-        stack.push(edge.target);
-      }
-    }
-    return false;
-  }
+  private readonly nodeTypeOf = (id: string): string | undefined =>
+    this._nodes.get(id)?.type;
 
   /**
    * Validate the full graph: cycle detection, dangling edge references,
@@ -377,6 +373,7 @@ export class GraphBuilder {
       adjList.set(id, []);
     }
     for (const edge of this._edges) {
+      if (isLoopBackEdge(edge, this.nodeTypeOf)) continue;
       if (adjList.has(edge.source) && inDegree.has(edge.target)) {
         adjList.get(edge.source)!.push(edge.target);
         inDegree.set(edge.target, (inDegree.get(edge.target) ?? 0) + 1);

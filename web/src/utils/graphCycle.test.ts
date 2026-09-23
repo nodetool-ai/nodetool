@@ -1,5 +1,5 @@
 import { Edge } from "@xyflow/react";
-import { wouldCreateCycle } from "./graphCycle";
+import { nodeTypeLookup, wouldCreateCycle } from "./graphCycle";
 
 describe("graphCycle", () => {
   describe("wouldCreateCycle", () => {
@@ -82,6 +82,47 @@ describe("graphCycle", () => {
       ];
       expect(wouldCreateCycle(edges, "d", "a")).toBe(true);
       expect(wouldCreateCycle(edges, "d", "b")).toBe(true);
+    });
+  });
+  describe("loops", () => {
+    const nodeTypeOf = nodeTypeLookup([
+      { id: "loop", type: "nodetool.control.Loop" },
+      { id: "a", type: "test.A" },
+      { id: "b", type: "test.B" }
+    ]);
+    const body: Edge[] = [
+      { id: "1", source: "loop", target: "a", sourceHandle: "value", targetHandle: "in" },
+      { id: "2", source: "a", target: "b", sourceHandle: "out", targetHandle: "in" }
+    ];
+
+    it("allows the edge that closes a loop on Loop.next", () => {
+      expect(
+        wouldCreateCycle(body, "b", "loop", { targetHandle: "next", nodeTypeOf })
+      ).toBe(false);
+      expect(
+        wouldCreateCycle(body, "b", "loop", { targetHandle: "condition", nodeTypeOf })
+      ).toBe(false);
+    });
+
+    it("rejects a cycle that closes on another Loop input", () => {
+      expect(
+        wouldCreateCycle(body, "b", "loop", { targetHandle: "initial", nodeTypeOf })
+      ).toBe(true);
+    });
+
+    it("ignores existing back edges when checking a forward edge", () => {
+      const looped: Edge[] = [
+        ...body,
+        { id: "3", source: "b", target: "loop", sourceHandle: "out", targetHandle: "next" }
+      ];
+      expect(
+        wouldCreateCycle(looped, "loop", "b", { targetHandle: "in2", nodeTypeOf })
+      ).toBe(false);
+      expect(
+        wouldCreateCycle(looped, "b", "a", { targetHandle: "in2", nodeTypeOf })
+      ).toBe(true);
+      // Without the loop option every cycle is still rejected.
+      expect(wouldCreateCycle(looped, "loop", "b")).toBe(true);
     });
   });
 });
