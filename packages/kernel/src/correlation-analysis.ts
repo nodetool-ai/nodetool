@@ -22,7 +22,14 @@ import type {
   NodeDescriptor,
   OutputKind
 } from "@nodetool-ai/protocol";
-import { TypeMetadata, isDataEdge } from "@nodetool-ai/protocol";
+import {
+  LOOP_FEEDBACK_HANDLES,
+  LOOP_NODE_TYPE,
+  TypeMetadata,
+  isDataEdge,
+  isLoopBackEdge,
+  loopRootId
+} from "@nodetool-ai/protocol";
 import { isNonEmptyString } from "./predicates.js";
 
 /** Ordered chain of iteration-root ids, outermost parent first. */
@@ -311,12 +318,23 @@ export function analyzeCorrelation(
   const edgeFacts = new Map<string, EdgeAnalysis>();
   const nodeFacts = new Map<string, NodeAnalysis>();
 
-  const dataEdges = graphData.edges.filter(isDataEdge);
-  const { order, cycle } = topoSort(graphData.nodes, graphData.edges);
+  // Loop back edges (into a Loop node's feedback inputs) close the only
+  // cycles a graph may contain. They are left out of the topological order;
+  // the Loop node assigns its feedback inputs the loop scope and each back
+  // edge is checked against it once its source has been analyzed.
+  // docs/workflow-loops.md.
+  const nodeTypeById = new Map<string, string>();
+  for (const n of graphData.nodes) nodeTypeById.set(n.id, n.type);
+  const nodeTypeOf = (id: string) => nodeTypeById.get(id);
+  const backEdges = graphData.edges.filter((e) => isLoopBackEdge(e, nodeTypeOf));
+  const backEdgeSet = new Set(backEdges);
+  const forwardEdges = graphData.edges.filter((e) => !backEdgeSet.has(e));
+  const dataEdges = forwardEdges.filter(isDataEdge);
+  const { order, cycle } = topoSort(graphData.nodes, forwardEdges);
   // Stryker disable next-line ConditionalExpression,EqualityOperator: equivalent — topoSort returns either null or a non-empty cycle, so `> 0` vs `>= 0`/true do not differ
   if (cycle && cycle.length > 0) {
     issues.push({
-      message: `Cycle detected in graph; correlation analysis requires a DAG. Involved nodes: ${cycle.join(", ")}`
+      message: `Cycle detected in graph; a cycle may only close on the "next" or "condition" input of a Loop node. Involved nodes: ${cycle.join(", ")}`
     });
     if (options.throwOnIssue) {
       throw new CorrelationAnalysisError(issues);
@@ -336,7 +354,52 @@ export function analyzeCorrelation(
     arr.push(edge);
   }
 
+  const backEdgesByLoop = new Map<string, Edge[]>();
+  for (const edge of backEdges) {
+    const arr = backEdgesByLoop.get(edge.target);
+    if (arr) arr.push(edge);
+    else backEdgesByLoop.set(edge.target, [edge]);
+  }
+
+  const recordNode = (node: NodeDescriptor, facts: NodeAnalysis): void => {
+    nodeFacts.set(node.id, facts);
+    // Write outgoing edge facts (back edges included: their source is
+    // analyzed here like any other edge's).
+    const outgoing = graphData.edges.filter(
+      (e) => isDataEdge(e) && e.source === node.id
+    );
+    for (const edge of outgoing) {
+      const outInfo = facts.outputs.get(edge.sourceHandle);
+      if (!outInfo) {
+        edgeFacts.set(edgeKey(edge), {
+          scope: [],
+          repeatsPerKey: false,
+          possibleChildRoots: EMPTY_SET
+        });
+        continue;
+      }
+      edgeFacts.set(edgeKey(edge), {
+        scope: outInfo.scope,
+        repeatsPerKey: outInfo.repeatsPerKey,
+        possibleChildRoots: outInfo.possibleChildRoots
+      });
+    }
+  };
+
   for (const node of order) {
+    if (node.type === LOOP_NODE_TYPE) {
+      recordNode(
+        node,
+        analyzeLoopNode(
+          node,
+          incomingByNode.get(node.id) ?? [],
+          backEdgesByLoop.get(node.id) ?? [],
+          edgeFacts,
+          issues
+        )
+      );
+      continue;
+    }
     const inputs = new Map<string, InputAnalysis>();
     const outputs = new Map<string, OutputAnalysis>();
     // Stryker disable next-line ArrayDeclaration: defensive ?? fallback equivalent — a bogus incoming entry has an undefined handle and empty scope, contributing nothing
@@ -679,39 +742,233 @@ export function analyzeCorrelation(
       }
     }
 
-    nodeFacts.set(node.id, {
-      invocationScope,
-      inputs,
-      outputs
-    });
-
-    // Write outgoing edge facts.
-    const outgoing = graphData.edges.filter(
-      (e) => isDataEdge(e) && e.source === node.id
-    );
-    for (const edge of outgoing) {
-      const outInfo = outputs.get(edge.sourceHandle);
-      if (!outInfo) {
-        edgeFacts.set(edgeKey(edge), {
-          scope: [],
-          repeatsPerKey: false,
-          possibleChildRoots: EMPTY_SET
-        });
-        continue;
-      }
-      edgeFacts.set(edgeKey(edge), {
-        scope: outInfo.scope,
-        repeatsPerKey: outInfo.repeatsPerKey,
-        possibleChildRoots: outInfo.possibleChildRoots
-      });
-    }
+    recordNode(node, { invocationScope, inputs, outputs });
   }
+
+  validateLoops(
+    graphData.nodes,
+    dataEdges,
+    backEdgesByLoop,
+    edgeFacts,
+    nodeFacts,
+    issues
+  );
 
   if (options.throwOnIssue && issues.length > 0) {
     throw new CorrelationAnalysisError(issues);
   }
 
   return { edges: edgeFacts, nodes: nodeFacts, issues };
+}
+
+// ---------------------------------------------------------------------------
+// Loops (docs/workflow-loops.md)
+// ---------------------------------------------------------------------------
+
+/**
+ * Static facts for a Loop node. Its invocation scope is the scope of
+ * `initial`; `value`/`index` add the loop root on top of it and `done`
+ * returns to it. The feedback inputs are assigned the loop scope up front,
+ * before the body that feeds them has been analyzed.
+ */
+function analyzeLoopNode(
+  node: NodeDescriptor,
+  incoming: ReadonlyArray<Edge>,
+  backEdges: ReadonlyArray<Edge>,
+  edgeFacts: ReadonlyMap<string, EdgeAnalysis>,
+  issues: CorrelationAnalysisIssue[]
+): NodeAnalysis {
+  const inputs = new Map<string, InputAnalysis>();
+  const outputs = new Map<string, OutputAnalysis>();
+  const issue = (message: string, handle?: string) =>
+    issues.push({ nodeId: node.id, nodeType: node.type, handle, message });
+
+  let invocationScope: Scope = [];
+  let initialRoots: ReadonlySet<string> = EMPTY_SET;
+  const initialContributors = new Set<string>();
+  const initialEdges = incoming.filter((e) => e.targetHandle === "initial");
+  if (initialEdges.length > 1) {
+    issue(
+      `Loop input "initial" receives ${initialEdges.length} edges; a loop run starts from one value.`,
+      "initial"
+    );
+  }
+  const initialEdge = initialEdges[0];
+  if (initialEdge) {
+    const ef = edgeFacts.get(edgeKey(initialEdge));
+    if (ef) {
+      invocationScope = ef.scope;
+      initialRoots = ef.possibleChildRoots;
+      if (ef.repeatsPerKey) {
+        issue(
+          `Loop input "initial" receives a chunk stream; a loop run starts from one value. Collect the stream first.`,
+          "initial"
+        );
+      }
+      if (ef.scope.length > 0) initialContributors.add(edgeKey(initialEdge));
+    }
+    inputs.set("initial", {
+      scope: invocationScope,
+      repeatsPerKey: false,
+      isMultiEdge: false,
+      possibleChildRoots: initialRoots
+    });
+  }
+  for (const edge of incoming) {
+    if (edge.targetHandle === "initial") continue;
+    issue(
+      `Loop input "${edge.targetHandle}" cannot be wired; set it as a property.`,
+      edge.targetHandle
+    );
+  }
+
+  const root = loopRootId(node.id);
+  const loopScope: Scope = [...invocationScope, root];
+  const loopRoots = new Set<string>(initialRoots);
+  loopRoots.add(root);
+
+  for (const handle of LOOP_FEEDBACK_HANDLES) {
+    const edges = backEdges.filter((e) => e.targetHandle === handle);
+    if (edges.length === 0) continue;
+    if (edges.length > 1) {
+      issue(
+        `Loop input "${handle}" receives ${edges.length} edges; each iteration feeds back one value.`,
+        handle
+      );
+    }
+    inputs.set(handle, {
+      scope: loopScope,
+      repeatsPerKey: false,
+      isMultiEdge: edges.length > 1,
+      possibleChildRoots: loopRoots
+    });
+  }
+  if (!backEdges.some((e) => e.targetHandle === "next")) {
+    issue(
+      `Loop has no feedback: connect the loop body's result to its "next" input.`,
+      "next"
+    );
+  }
+
+  const iterationFacts: OutputAnalysis = {
+    scope: loopScope,
+    repeatsPerKey: false,
+    possibleChildRoots: loopRoots,
+    closeBarrierContributors: initialContributors
+  };
+  outputs.set("value", iterationFacts);
+  outputs.set("index", iterationFacts);
+  outputs.set("done", {
+    scope: invocationScope,
+    repeatsPerKey: false,
+    possibleChildRoots: initialRoots,
+    closeBarrierContributors: initialContributors
+  });
+  return { invocationScope, inputs, outputs };
+}
+
+/**
+ * Checks that need the whole graph analyzed: every back edge carries its
+ * loop's scope, and no node in a loop body aggregates a stream.
+ */
+function validateLoops(
+  nodes: ReadonlyArray<NodeDescriptor>,
+  forwardDataEdges: ReadonlyArray<Edge>,
+  backEdgesByLoop: ReadonlyMap<string, Edge[]>,
+  edgeFacts: ReadonlyMap<string, EdgeAnalysis>,
+  nodeFacts: ReadonlyMap<string, NodeAnalysis>,
+  issues: CorrelationAnalysisIssue[]
+): void {
+  if (backEdgesByLoop.size === 0) return;
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const successors = new Map<string, string[]>();
+  const predecessors = new Map<string, string[]>();
+  const link = (adj: Map<string, string[]>, from: string, to: string) => {
+    const list = adj.get(from);
+    if (list) list.push(to);
+    else adj.set(from, [to]);
+  };
+  for (const edge of forwardDataEdges) {
+    link(successors, edge.source, edge.target);
+    link(predecessors, edge.target, edge.source);
+  }
+  const reach = (starts: Iterable<string>, adj: Map<string, string[]>) => {
+    const seen = new Set<string>();
+    const pending = [...starts];
+    while (pending.length > 0) {
+      const id = pending.pop()!;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      pending.push(...(adj.get(id) ?? []));
+    }
+    return seen;
+  };
+
+  for (const [loopId, backEdges] of backEdgesByLoop) {
+    const loop = byId.get(loopId);
+    const loopFacts = nodeFacts.get(loopId);
+    if (!loop || !loopFacts) continue;
+    const loopName = loop.name ?? loopId;
+
+    for (const edge of backEdges) {
+      const ef = edgeFacts.get(edgeKey(edge));
+      const expected = loopFacts.inputs.get(edge.targetHandle)?.scope;
+      if (!ef || !expected) continue;
+      const issue = (message: string) =>
+        issues.push({
+          nodeId: loopId,
+          nodeType: loop.type,
+          handle: edge.targetHandle,
+          message
+        });
+      if (ef.repeatsPerKey) {
+        issue(
+          `Loop "${loopName}" input "${edge.targetHandle}" receives a chunk stream from "${edge.source}"; each iteration must feed back one value.`
+        );
+      }
+      if (sameScope(ef.scope, expected)) continue;
+      if (ef.scope.length < expected.length && isPrefixOf(ef.scope, expected)) {
+        issue(
+          `Loop "${loopName}" input "${edge.targetHandle}" is wired from "${edge.source}", which is outside the loop body (scope ${formatScope(ef.scope)}, expected ${formatScope(expected)}). Wire it from a node downstream of the loop's "value" or "index" output, or set it as a property.`
+        );
+      } else if (isPrefixOf(expected, ef.scope)) {
+        issue(
+          `Loop "${loopName}" input "${edge.targetHandle}" receives one value per item of a nested iteration (scope ${formatScope(ef.scope)}, expected ${formatScope(expected)}). Each iteration must feed back exactly one value.`
+        );
+      } else {
+        issue(
+          `Loop "${loopName}" input "${edge.targetHandle}" is wired from "${edge.source}", which belongs to a different iteration (scope ${formatScope(ef.scope)}, expected ${formatScope(expected)}).`
+        );
+      }
+    }
+
+    // Body: reachable from the loop and able to reach one of its back edges.
+    const fromLoop = reach(successors.get(loopId) ?? [], successors);
+    const toBack = reach(
+      backEdges.map((e) => e.source),
+      predecessors
+    );
+    for (const id of fromLoop) {
+      if (id === loopId || !toBack.has(id)) continue;
+      const bodyNode = byId.get(id);
+      if (!bodyNode) continue;
+      for (const [handle, corr] of Object.entries(
+        bodyNode.output_correlation ?? {}
+      )) {
+        if (corr.kind !== "aggregate") continue;
+        issues.push({
+          nodeId: id,
+          nodeType: bodyNode.type,
+          handle,
+          message: `Node "${bodyNode.name ?? id}" aggregates a stream inside the body of loop "${loopName}". An aggregate emits when its input stream ends, which inside a loop body happens only after the loop has finished.`
+        });
+      }
+    }
+  }
+}
+
+function sameScope(a: Scope, b: Scope): boolean {
+  return a.length === b.length && isPrefixOf(a, b);
 }
 
 function formatScope(scope: Scope): string {
