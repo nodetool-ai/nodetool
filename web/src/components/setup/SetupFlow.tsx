@@ -19,6 +19,8 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 import {
   AlertBanner,
@@ -117,6 +119,10 @@ export function SetupFlow<Stage extends string>({
   const [cancelingStage, setCancelingStage] = useState<Stage | null>(null);
   const [confirmingChange, setConfirmingChange] = useState(false);
   const blockedReasonId = useId();
+  // A phone has no height to spare for chrome pinned around the step: the
+  // estimate scrolls with the step there, and the action row stacks.
+  const theme = useTheme();
+  const narrow = useMediaQuery(theme.breakpoints.down("sm"));
 
   const currentIndex = steps.findIndex((step) => step.stage === stage);
   const entries = useMemo(() => stepperEntries(steps), [steps]);
@@ -367,14 +373,34 @@ export function SetupFlow<Stage extends string>({
     0
   );
 
+  const generationSummary = step.generation ? (
+    <Suspense fallback={<Text size="small">Loading generation estimate…</Text>}>
+      <GenerationSummary {...step.generation} />
+    </Suspense>
+  ) : null;
+
+  // Why the button is off comes first, and replaces the detail: a cost
+  // estimate beside a dead button answers a question nobody asked.
+  const status = pending ? (
+    <ThinkingIndicator label={step.pendingLabel ?? "Working"} announce />
+  ) : canceled ? (
+    <Caption color="secondary">Canceled</Caption>
+  ) : blocked && step.blockedReason ? (
+    <Caption color="secondary" id={blockedReasonId}>
+      {step.blockedReason}
+    </Caption>
+  ) : step.primaryDetail ? (
+    <Text size="normal">{step.primaryDetail}</Text>
+  ) : null;
+
   return (
     <FlexColumn
       data-setup-flow
       onKeyDown={handleShortcut}
       fullWidth
       fullHeight
-      gap={GAP.spacious}
-      padding={PADDING.section}
+      gap={narrow ? GAP.comfortable : GAP.spacious}
+      padding={narrow ? PADDING.spacious : PADDING.section}
       sx={{ minHeight: 0 }}
     >
       {/* The flow's name is an eyebrow on the stepper's row, not a heading:
@@ -522,117 +548,107 @@ export function SetupFlow<Stage extends string>({
             step.render({ readOnly })
           )}
         </Box>
+        {step.generation && narrow ? (
+          <Box sx={{ marginTop: SPACING.xl }}>{generationSummary}</Box>
+        ) : null}
       </ScrollArea>
 
-      {step.generation ? (
-        <Suspense
-          fallback={<Text size="small">Loading generation estimate…</Text>}
-        >
-          <GenerationSummary {...step.generation} />
-        </Suspense>
-      ) : null}
+      {step.generation && !narrow ? generationSummary : null}
 
       {!readOnly ? (
-        <FlexRow
-          gap={GAP.normal}
-          align="center"
-          justify="space-between"
+        <FlexColumn
+          gap={GAP.tight}
+          fullWidth
           sx={{
-            paddingTop: SPACING.lg,
+            paddingTop: narrow ? SPACING.md : SPACING.lg,
             borderTop: "1px solid",
             borderColor: "divider"
           }}
         >
-          <FlexRow gap={GAP.normal} align="center">
-            {/* Back sits at the primary's height and text size. It is the quieter
-              of the two, which the text variant already says; making it smaller
-              as well put it under the weight of ordinary body copy. */}
-            <EditorButton
-              variant="text"
-              size="large"
-              onClick={handleBack}
-              disabled={currentIndex === 0 || pending}
-              sx={{ fontSize: FONT_SIZE_SANS.body }}
-            >
-              Back
-            </EditorButton>
-            {/* The way out of the wrong card. It stands where `Back` is dead, on
-              the first step, and only when a host can actually perform the
-              switch — an enabled control that does nothing is worse than none. */}
-            {onChangeFlow && currentIndex === 0 ? (
+          {/* A phone cannot fit the status beside the buttons, so it takes
+              its own line above them rather than crushing them. */}
+          {narrow && status ? (
+            <FlexRow justify="flex-end" sx={{ textAlign: "right" }}>
+              {status}
+            </FlexRow>
+          ) : null}
+          <FlexRow gap={GAP.normal} align="center" justify="space-between">
+            <FlexRow gap={narrow ? GAP.none : GAP.normal} align="center">
+              {/* Back sits at the primary's height and text size. It is the quieter
+                of the two, which the text variant already says; making it smaller
+                as well put it under the weight of ordinary body copy. */}
               <EditorButton
                 variant="text"
                 size="large"
-                onClick={() => setConfirmingChange(true)}
-                disabled={pending}
+                onClick={handleBack}
+                disabled={currentIndex === 0 || pending}
                 sx={{ fontSize: FONT_SIZE_SANS.body }}
               >
-                Change flow
+                Back
               </EditorButton>
-            ) : null}
-            {step.onSkip ? (
-              <EditorButton
-                variant="text"
-                size="large"
-                onClick={() => void handleSkip()}
-                disabled={pending}
-                sx={{ fontSize: FONT_SIZE_SANS.body }}
-              >
-                {step.skipLabel ?? "Skip"}
-              </EditorButton>
-            ) : null}
-          </FlexRow>
-          <FlexRow gap={GAP.normal} align="center">
-            {/* Why the button is off comes first, and replaces the detail: a
-              cost estimate beside a dead button answers a question nobody
-              asked. */}
-            {pending ? (
-              <ThinkingIndicator
-                label={step.pendingLabel ?? "Working"}
-                announce
-              />
-            ) : canceled ? (
-              <Caption color="secondary">Canceled</Caption>
-            ) : blocked && step.blockedReason ? (
-              <Caption color="secondary" id={blockedReasonId}>
-                {step.blockedReason}
-              </Caption>
-            ) : step.primaryDetail ? (
-              <Text size="normal">{step.primaryDetail}</Text>
-            ) : null}
-            <FlexRow gap={GAP.normal} align="center">
-              {pending && !canceled ? (
+              {/* The way out of the wrong card. It stands where `Back` is dead, on
+                the first step, and only when a host can actually perform the
+                switch — an enabled control that does nothing is worse than none. */}
+              {onChangeFlow && currentIndex === 0 ? (
                 <EditorButton
                   variant="text"
                   size="large"
-                  onClick={handleCancel}
+                  onClick={() => setConfirmingChange(true)}
+                  disabled={pending}
                   sx={{ fontSize: FONT_SIZE_SANS.body }}
                 >
-                  Cancel
+                  Change flow
                 </EditorButton>
               ) : null}
-              <EditorButton
-                variant="contained"
-                size="large"
-                onClick={handlePrimary}
-                disabled={blocked || pending}
-                // The reason a dead button is dead is beside it, where a mouse can
-                // read it; the description says it to a screen reader too.
-                aria-describedby={
-                  blocked && step.blockedReason ? blockedReasonId : undefined
-                }
-                aria-keyshortcuts="Meta+Enter Control+Enter"
-                title={`${canceled ? "Retry" : error ? "Try again" : step.primaryLabel} (\u2318\u21A9 or Ctrl+\u21A9)`}
-                sx={{
-                  fontSize: FONT_SIZE_SANS.body,
-                  paddingX: SPACING.xxl
-                }}
-              >
-                {canceled ? "Retry" : error ? "Try again" : step.primaryLabel}
-              </EditorButton>
+              {step.onSkip ? (
+                <EditorButton
+                  variant="text"
+                  size="large"
+                  onClick={() => void handleSkip()}
+                  disabled={pending}
+                  sx={{ fontSize: FONT_SIZE_SANS.body }}
+                >
+                  {step.skipLabel ?? "Skip"}
+                </EditorButton>
+              ) : null}
+            </FlexRow>
+            <FlexRow gap={GAP.normal} align="center">
+              {narrow ? null : status}
+              <FlexRow gap={GAP.normal} align="center">
+                {pending && !canceled ? (
+                  <EditorButton
+                    variant="text"
+                    size="large"
+                    onClick={handleCancel}
+                    sx={{ fontSize: FONT_SIZE_SANS.body }}
+                  >
+                    Cancel
+                  </EditorButton>
+                ) : null}
+                <EditorButton
+                  variant="contained"
+                  size="large"
+                  onClick={handlePrimary}
+                  disabled={blocked || pending}
+                  // The reason a dead button is dead is beside it, where a mouse can
+                  // read it; the description says it to a screen reader too.
+                  aria-describedby={
+                    blocked && step.blockedReason ? blockedReasonId : undefined
+                  }
+                  aria-keyshortcuts="Meta+Enter Control+Enter"
+                  title={`${canceled ? "Retry" : error ? "Try again" : step.primaryLabel} (\u2318\u21A9 or Ctrl+\u21A9)`}
+                  sx={{
+                    fontSize: FONT_SIZE_SANS.body,
+                    paddingX: narrow ? SPACING.xl : SPACING.xxl,
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  {canceled ? "Retry" : error ? "Try again" : step.primaryLabel}
+                </EditorButton>
+              </FlexRow>
             </FlexRow>
           </FlexRow>
-        </FlexRow>
+        </FlexColumn>
       ) : null}
 
       <Dialog

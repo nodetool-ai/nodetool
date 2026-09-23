@@ -581,6 +581,59 @@ describe("SetupFlow", () => {
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
   });
 
+  // On a phone the step body gets the height: the estimate scrolls with the
+  // step instead of pinning above the action row, and the status sits on its
+  // own line so it does not crush the buttons.
+  describe("on a phone-width viewport", () => {
+    const originalMatchMedia = window.matchMedia;
+    beforeEach(() => {
+      window.matchMedia = ((query: string) => ({
+        matches: query.includes("max-width"),
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn()
+      })) as typeof window.matchMedia;
+    });
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    it("scrolls the estimate with the step body", async () => {
+      const withEstimate = steps.map((entry) =>
+        entry.stage === "genre"
+          ? {
+              ...entry,
+              canAdvance: false,
+              blockedReason: "Pick a genre",
+              generation: {
+                result: "Write a 6-shot screenplay",
+                next: "Review it next.",
+                model: null,
+                brief: "",
+                maxOutputTokens: 1000,
+                noModelCall: true
+              }
+            }
+          : entry
+      );
+      renderFlow({ stage: "genre", steps: withEstimate });
+
+      const estimate = await screen.findByRole("region", {
+        name: "Before you generate"
+      });
+      const body = screen.getByText("genre body").closest("fieldset");
+      expect(body?.parentElement).toContainElement(estimate);
+      expect(screen.getByText("Pick a genre")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Review your screenplay" })
+      ).toHaveAccessibleDescription("Pick a genre");
+    });
+  });
+
   it("shows cancellation as terminal and requires an explicit retry", async () => {
     const user = userEvent.setup();
     let resolveCurrent: () => void = () => undefined;
