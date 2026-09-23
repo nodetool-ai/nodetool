@@ -489,6 +489,28 @@ const NewProjectSurface = () => {
     return match?.project.name ?? "Personal";
   }, [activeProjectId, summaries.data]);
 
+  /**
+   * Make a document's project the one on screen before its tab opens. The
+   * shell shows only the active project's tabs, so a tab filed into a project
+   * that is not open stays hidden, and closing this tab then leaves the start
+   * page. False when the project did not open; `openProject` says why.
+   */
+  const showDocumentProject = useCallback(
+    async (projectId: string, fallbackName: string): Promise<boolean> => {
+      if (projectId === LOOSE_PROJECT_ID || projectId === activeProjectId) {
+        return true;
+      }
+      const match = (summaries.data ?? []).find(
+        (summary) => summary.project.id === projectId
+      );
+      return openProject({
+        id: projectId,
+        name: match?.project.name ?? fallbackName
+      });
+    },
+    [activeProjectId, openProject, summaries.data]
+  );
+
   const starters = useMemo(
     () => rankStarters(skills ?? [], summaries.data ?? []),
     [skills, summaries.data]
@@ -997,6 +1019,9 @@ const NewProjectSurface = () => {
           entityIds
         });
         noteUncarriedContext("image", { entities: true, references: true });
+        if (!(await showDocumentProject(projectId, name))) {
+          return;
+        }
         openTab({
           type: "sketch",
           ref: started.documentId,
@@ -1021,6 +1046,7 @@ const NewProjectSurface = () => {
       openTab,
       prompt,
       reportEntryFailure,
+      showDocumentProject,
       starting
     ]
   );
@@ -1302,9 +1328,12 @@ const NewProjectSurface = () => {
    * here, because this tab is the last place that holds them.
    */
   const handleSetupFinished = useCallback(
-    (result?: BuildFromPlanResult | BuildGameResult | null) => {
+    async (result?: BuildFromPlanResult | BuildGameResult | null) => {
       const target = setupTargetRef.current;
       if (!target || target.kind === "entity") {
+        return;
+      }
+      if (!(await showDocumentProject(target.projectId, target.name))) {
         return;
       }
       const failures = result ? buildFailures(result) : [];
@@ -1325,7 +1354,7 @@ const NewProjectSurface = () => {
       applySetupTarget(null);
       closeTab(tabId("project-new", PROJECT_NEW_REF));
     },
-    [addNotification, applySetupTarget, closeTab, openTab]
+    [addNotification, applySetupTarget, closeTab, openTab, showDocumentProject]
   );
 
   const handleEntityFinished = useCallback(() => {
