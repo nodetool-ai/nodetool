@@ -3582,14 +3582,15 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "atlascloud": {
     "id": "atlascloud",
-    "total": 174,
+    "total": 180,
     "counts": {
       "image": 80,
-      "video": 94
+      "video": 100
     },
     "topTags": [
       "video",
-      "image"
+      "image",
+      "reference to video"
     ],
     "models": [
       {
@@ -3953,6 +3954,15 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "alibaba/happyhorse-1.0/reference-to-video",
+        "name": "Alibaba Happy Horse 1.0 — Reference to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Alibaba HappyHorse 1.0 — generates video from image references.",
+        "tags": [
+          "reference to video"
+        ]
+      },
+      {
         "id": "alibaba/happyhorse-1.1/image-to-video",
         "name": "Happy Horse 1.1 — Image to Video",
         "kind": "video",
@@ -4299,15 +4309,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Gemini Omni Flash — Text to Video",
         "kind": "video",
         "desc": "AtlasCloud / Google Gemini Omni Flash — cinematic text-to-video with synchronized native audio.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "id": "google/gemini-omni-flash/video-edit",
-        "name": "Gemini Omni Flash — Video Edit",
-        "kind": "video",
-        "desc": "AtlasCloud / Google Gemini Omni Flash — edits an existing video from a text prompt with optional reference images.",
         "tags": [
           "video"
         ]
