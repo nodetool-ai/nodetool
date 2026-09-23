@@ -1,10 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { modelEntries } from "../../src/data/modelEntries";
 import { modelComparisonEntries } from "../../src/data/modelComparisonEntries";
-import {
-  heroShowcaseForModel,
-  duelPairsForComparison,
-} from "../../src/data/modelShowcase";
+import { heroShowcaseForModel } from "../../src/data/modelShowcase";
 
 // PR-4 acceptance criteria, exercised against the real prerendered pages.
 
@@ -55,25 +52,24 @@ test.describe("model pages", () => {
     expect(joined).toContain("FAQPage");
   });
 
-  test("pair page renders both outputs side by side", async ({ page }) => {
-    const pair = modelComparisonEntries.find(
-      (c) => duelPairsForComparison(c.a, c.b).length > 0
-    );
-    expect(
-      pair,
-      "comparison fixture must include a paired same-prompt media fixture"
-    ).toBeDefined();
-    if (!pair) throw new Error("No comparison media fixture is available");
-    const fixture = duelPairsForComparison(pair.a, pair.b)[0];
-    expect(fixture?.duelId, "comparison fixture duel id").toBeTruthy();
-    expect(fixture?.first.params?.duelId).toBe(fixture?.duelId);
-    expect(fixture?.second.params?.duelId).toBe(fixture?.duelId);
+  // Comparisons without reviewed same-prompt evidence stay out of search and
+  // publish no duel media or verdict.
+  test("unpublished comparison page is noindex without duel media", async ({
+    page,
+  }) => {
+    const pair = modelComparisonEntries.find((c) => !c.indexable);
+    expect(pair, "comparison fixture must include an unpublished pair").toBeDefined();
+    if (!pair) throw new Error("No unpublished comparison fixture is available");
     const res = await page.goto(pair.route);
     expect(res?.status() ?? 0).toBeLessThan(400);
     await expect(page.locator("h1")).toHaveCount(1);
-    // At least one duel figure with two media elements (the fixture manifest
-    // guarantees content for the first comparisons).
-    const media = page.locator("main figure img, main figure video");
-    expect(await media.count()).toBeGreaterThanOrEqual(2);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      "content",
+      /noindex/
+    );
+    await expect(page.locator("main figure img, main figure video")).toHaveCount(0);
+    await expect(
+      page.getByText("No verified same-prompt outputs are published")
+    ).toBeVisible();
   });
 });
