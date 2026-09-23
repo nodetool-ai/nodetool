@@ -789,6 +789,30 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
         );
       }
 
+      if (
+        specRef.modelId.startsWith("pixverse/") &&
+        Array.isArray(input.images)
+      ) {
+        input.images = input.images.map((image) => ({ image }));
+      } else if (
+        specRef.modelId.startsWith("vidu/") &&
+        Array.isArray(input.subjects)
+      ) {
+        const images = input.subjects;
+        if (images.length > 7) {
+          throw new Error(
+            `${specRef.title}: "subjects" accepts at most 7 images`
+          );
+        }
+        input.subjects = Array.from(
+          { length: Math.ceil(images.length / 3) },
+          (_, index) => ({
+            id: String(index + 1),
+            images: images.slice(index * 3, index * 3 + 3)
+          })
+        );
+      }
+
       const predictionId = await atlasSubmit(
         apiKey,
         specRef.modality,

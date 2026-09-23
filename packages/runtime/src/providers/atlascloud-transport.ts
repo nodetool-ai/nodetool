@@ -38,11 +38,12 @@ const log = createLogger("nodetool.runtime.providers.atlascloud-transport");
 
 export const ATLAS_BASE = "https://api.atlascloud.ai";
 
-export type AtlasModality = "image" | "video";
+export type AtlasModality = "image" | "video" | "audio";
 
 export const SUBMIT_PATH = {
   image: "/api/v1/model/generateImage",
-  video: "/api/v1/model/generateVideo"
+  video: "/api/v1/model/generateVideo",
+  audio: "/api/v1/model/generateAudio"
 } satisfies Record<AtlasModality, string>;
 
 export const UPLOAD_MEDIA_PATH = "/api/v1/model/uploadMedia";
@@ -237,6 +238,7 @@ export interface AtlasPollResult {
   outputs?: Array<string | { url?: string }>;
   output?: string;
   url?: string;
+  stt_result?: { text?: string };
   error?: string;
 }
 

@@ -749,20 +749,26 @@ export interface ModelImageInput {
 
 /** A typed media input declared by a manifest. */
 export interface ModelMediaInput extends ModelImageInput {
-  kind: "image" | "video";
+  kind: "image" | "video" | "audio";
 }
 
 export function manifestEntryMediaInputs(entry: ManifestNode): ModelMediaInput[] {
   const fromUploads = (entry.uploads ?? [])
-    .filter((u) => u.kind === "image" || u.kind === "video")
+    .filter(
+      (u) => u.kind === "image" || u.kind === "video" || u.kind === "audio"
+    )
     .map((u) => {
       const field = (entry.fields ?? []).find((f) => f.name === u.field);
-      const input = (entry.inputFields ?? []).find((f) => f.name === u.field || (f.apiParamName ?? f.name) === (u.paramName ?? u.field));
+      const input = (entry.inputFields ?? []).find(
+        (f) =>
+          f.name === u.field ||
+          (f.apiParamName ?? f.name) === (u.paramName ?? u.field)
+      );
       return {
       apiName: u.paramName ?? `${u.field}_url${u.isList ? "s" : ""}`,
       isList: Boolean(u.isList),
       name: u.field,
-      kind: u.kind as "image" | "video",
+      kind: u.kind as "image" | "video" | "audio",
       required: field?.required ?? input?.required,
       min: field?.min ?? input?.min,
       max: field?.max ?? input?.max,
@@ -773,7 +779,14 @@ export function manifestEntryMediaInputs(entry: ManifestNode): ModelMediaInput[]
   const fromInput = (entry.inputFields ?? [])
     .filter((f) => {
       const type = f.propType.toLowerCase();
-      return type === "image" || type === "list[image]" || type === "video" || type === "list[video]";
+      return [
+        "image",
+        "list[image]",
+        "video",
+        "list[video]",
+        "audio",
+        "list[audio]"
+      ].includes(type);
     })
     .map((f) => {
       const type = f.propType.toLowerCase();
@@ -781,7 +794,13 @@ export function manifestEntryMediaInputs(entry: ManifestNode): ModelMediaInput[]
         apiName: f.apiParamName ?? f.name,
         isList: type.startsWith("list["),
         name: f.name,
-        kind: (type.includes("video") ? "video" : "image") as "image" | "video",
+        kind: (
+          type.includes("video")
+            ? "video"
+            : type.includes("audio")
+              ? "audio"
+              : "image"
+        ) as "image" | "video" | "audio",
         required: f.required,
         min: f.min,
         max: f.max
@@ -789,12 +808,16 @@ export function manifestEntryMediaInputs(entry: ManifestNode): ModelMediaInput[]
     });
   if (fromInput.length > 0) return fromInput;
   return (entry.fields ?? [])
-    .filter((f) => /^(image|video|list\[(image|video)\])$/i.test(f.type))
+    .filter((f) => /^(image|video|audio|list\[(image|video|audio)\])$/i.test(f.type))
     .map((f) => ({
       apiName: f.name,
       isList: f.type.toLowerCase().startsWith("list["),
       name: f.name,
-      kind: f.type.toLowerCase().includes("video") ? "video" : "image",
+      kind: f.type.toLowerCase().includes("video")
+        ? "video"
+        : f.type.toLowerCase().includes("audio")
+          ? "audio"
+          : "image",
       required: f.required,
       min: f.min,
       max: f.max,
@@ -837,23 +860,42 @@ function manifestEntryReferenceInputs(entry: ManifestNode): ModelMediaInput[] {
 export function validateReferenceInputs(
   provider: string,
   modelId: string,
-  inputs: { images: readonly Uint8Array[]; videos: readonly Uint8Array[] },
+  inputs: {
+    images: readonly Uint8Array[];
+    videos: readonly Uint8Array[];
+    audios?: readonly Uint8Array[];
+  },
   fields: readonly ModelMediaInput[]
 ): void {
   const images = inputs.images.filter((b) => b.length > 0);
   const videos = inputs.videos.filter((b) => b.length > 0);
-  if (images.length === 0 && videos.length === 0) {
-    throw new Error("reference_to_video requires at least one reference image or video");
+  const audios = inputs.audios?.filter((b) => b.length > 0) ?? [];
+  if (images.length === 0 && videos.length === 0 && audios.length === 0) {
+    throw new Error(
+      "reference_to_video requires at least one reference image, video, or audio"
+    );
   }
-  for (const [kind, count] of [["image", images.length], ["video", videos.length]] as const) {
+  for (const [kind, count] of [
+    ["image", images.length],
+    ["video", videos.length],
+    ["audio", audios.length]
+  ] as const) {
     if (count === 0) continue;
     const matching = fields.filter((field) => field.kind === kind);
     if (matching.length > 1) throw new Error(`${provider} model ${modelId} has ambiguous reference ${kind} inputs`);
     const field = matching[0];
     if (!field) throw new Error(`${provider} model ${modelId} does not support reference ${kind}s`);
     if (!field.isList && count > 1) throw new Error(`${provider} model ${modelId} accepts only one reference ${kind}`);
-    if (!field.wrapInto && field.min !== undefined && count < field.min) throw new Error(`${provider} model ${modelId} requires at least ${field.min} reference ${kind}(s)`);
-    if (!field.wrapInto && field.max !== undefined && count > field.max) throw new Error(`${provider} model ${modelId} accepts at most ${field.max} reference ${kind}(s)`);
+    if (!field.wrapInto && field.min !== undefined && count < field.min) {
+      throw new Error(
+        `${provider} model ${modelId} requires at least ${field.min} reference ${kind}(s)`
+      );
+    }
+    if (!field.wrapInto && field.max !== undefined && count > field.max) {
+      throw new Error(
+        `${provider} model ${modelId} accepts at most ${field.max} reference ${kind}(s)`
+      );
+    }
   }
   const requiredGroups = new Set<string>();
   for (const field of fields) {
@@ -862,7 +904,16 @@ export function validateReferenceInputs(
   }
   for (const group of requiredGroups) {
     const groupFields = fields.filter((field) => (field.wrapInto ?? `${field.kind}:${field.apiName}`) === group);
-    const count = groupFields.reduce((total, field) => total + (field.kind === "image" ? images.length : videos.length), 0);
+    const count = groupFields.reduce(
+      (total, field) =>
+        total +
+        (field.kind === "image"
+          ? images.length
+          : field.kind === "video"
+            ? videos.length
+            : audios.length),
+      0
+    );
     if (count === 0) throw new Error(`${provider} model ${modelId} requires at least one reference image or video`);
   }
 }

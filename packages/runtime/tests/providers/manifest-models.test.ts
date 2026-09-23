@@ -59,7 +59,11 @@ describe("reference-to-video discovery and validation", () => {
     const fal = loadVideoModels(FAL_PKG, FAL_MANIFEST, "fal_ai");
     expect(fal.find((m) => m.id === "fal-ai/pika/v2.2/pikaframes")?.supportedTasks).not.toContain("reference_to_video");
     const fields = getModelReferenceInputs(FAL_PKG, FAL_MANIFEST, "alibaba/wan-3.0-prime/reference-to-video");
-    expect(fields.map((field) => field.apiName).sort()).toEqual(["reference_image_urls", "reference_video_urls"]);
+    expect(fields.map((field) => field.apiName).sort()).toEqual([
+      "reference_audio_urls",
+      "reference_image_urls",
+      "reference_video_urls"
+    ]);
   });
 
   it("distinguishes Sora's optional first frame from role-specific references", () => {

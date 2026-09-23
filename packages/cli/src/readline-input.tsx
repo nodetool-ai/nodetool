@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState
+} from "react";
 import { Text, useInput, type Key } from "ink";
 import chalk from "chalk";
 import { terminalLines, terminalText } from "./terminal-screen.js";
@@ -20,6 +26,18 @@ export interface EditorState {
   readonly value: string;
   readonly cursor: number;
 }
+
+interface InputHandlerState {
+  readonly current: EditorState;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly onSubmit?: (value: string) => void;
+  readonly onHistory?: (direction: "up" | "down") => void;
+  readonly onComplete?: (
+    direction: "up" | "down" | "accept" | "submit"
+  ) => void;
+}
+
 const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
 function previousBoundary(value: string, cursor: number): number {
@@ -159,76 +177,95 @@ export default function ReadlineInput({
   const paste = useRef<string | null>(null);
   const current =
     value === editor.value ? editor : { value, cursor: value.length };
+  const handlerState = useRef<InputHandlerState>({
+    current,
+    value,
+    onChange,
+    onSubmit,
+    onHistory,
+    onComplete
+  });
+  // Ink subscribes to useInput handlers in a passive effect. Keep the latest
+  // render's callbacks ready before it publishes the committed terminal frame.
+  useLayoutEffect(() => {
+    handlerState.current = {
+      current,
+      value,
+      onChange,
+      onSubmit,
+      onHistory,
+      onComplete
+    };
+  });
   useEffect(() => {
     if (value !== editor.value) {
       setEditor({ value, cursor: value.length });
     }
   }, [value, editor.value]);
-  useInput(
-    (input, key) => {
-      if (input === "[200~") {
-        paste.current = "";
-        return;
-      }
-      if (input === "[201~" && paste.current !== null) {
-        const next = editInput(current, paste.current, {});
-        paste.current = null;
-        setEditor(next);
-        onChange(next.value);
-        return;
-      }
-      if (paste.current !== null) {
-        paste.current += key.return
-          ? "\n"
-          : key.ctrl && input === "j"
-            ? "\n"
-            : key.ctrl || key.meta
-              ? ""
-              : input;
-        return;
-      }
-      if (
-        key.pageUp ||
-        key.pageDown ||
-        key.escape ||
-        (key.ctrl && (key.home || key.end))
-      ) {
-        return;
-      }
-      if (
-        onComplete &&
-        (key.upArrow ||
-          key.downArrow ||
-          key.tab ||
-          (key.return && !key.meta && !key.shift))
-      ) {
-        onComplete(
-          key.upArrow
-            ? "up"
-            : key.downArrow
-              ? "down"
-              : key.return
-                ? "submit"
-                : "accept"
-        );
-        return;
-      }
-      if ((key.upArrow || key.downArrow) && !value.includes("\n")) {
-        onHistory?.(key.upArrow ? "up" : "down");
-        return;
-      }
-      if (key.return && !key.meta && !key.shift) {
-        onSubmit?.(value);
-        return;
-      }
-      const next = editInput(current, input, key);
+  const handleInput = useCallback((input: string, key: Key): void => {
+    const latest = handlerState.current;
+    if (input === "[200~") {
+      paste.current = "";
+      return;
+    }
+    if (input === "[201~" && paste.current !== null) {
+      const next = editInput(latest.current, paste.current, {});
+      paste.current = null;
       setEditor(next);
-      if (next.value !== value) {
-        onChange(next.value);
-      }
-    },
-    { isActive: focus }
-  );
+      latest.onChange(next.value);
+      return;
+    }
+    if (paste.current !== null) {
+      paste.current += key.return
+        ? "\n"
+        : key.ctrl && input === "j"
+          ? "\n"
+          : key.ctrl || key.meta
+            ? ""
+            : input;
+      return;
+    }
+    if (
+      key.pageUp ||
+      key.pageDown ||
+      key.escape ||
+      (key.ctrl && (key.home || key.end))
+    ) {
+      return;
+    }
+    if (
+      latest.onComplete &&
+      (key.upArrow ||
+        key.downArrow ||
+        key.tab ||
+        (key.return && !key.meta && !key.shift))
+    ) {
+      latest.onComplete(
+        key.upArrow
+          ? "up"
+          : key.downArrow
+            ? "down"
+            : key.return
+              ? "submit"
+              : "accept"
+      );
+      return;
+    }
+    if ((key.upArrow || key.downArrow) && !latest.value.includes("\n")) {
+      latest.onHistory?.(key.upArrow ? "up" : "down");
+      return;
+    }
+    if (key.return && !key.meta && !key.shift) {
+      latest.onSubmit?.(latest.value);
+      return;
+    }
+    const next = editInput(latest.current, input, key);
+    setEditor(next);
+    if (next.value !== latest.value) {
+      latest.onChange(next.value);
+    }
+  }, []);
+  useInput(handleInput, { isActive: focus });
   const cursorEnd = nextBoundary(value, current.cursor);
   const cursorText = value.slice(current.cursor, cursorEnd);
   const display = value

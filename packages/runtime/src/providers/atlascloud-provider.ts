@@ -26,6 +26,7 @@
  * accepts `1K`/`2K`, or an 10s duration into a model that only allows 4/6/8.
  */
 
+import { unzipSync } from "fflate";
 import { OpenAICompatProvider } from "./openai-compat-provider.js";
 import { bytesToImageDataUri } from "./image-mime.js";
 import { sniffMediaMime } from "./media-mime.js";
@@ -62,15 +63,24 @@ import {
   loadVideoModels
 } from "./manifest-models.js";
 import type {
+  ASRModel,
+  EncodedAudioResult,
   ExtendVideoParams,
+  ImageTo3DParams,
   ImageModel,
   ImageToImageParams,
   ImageToVideoParams,
   LanguageModel,
   LipSyncParams,
+  Model3D,
+  MusicModel,
   RemoveBackgroundParams,
+  TextTo3DParams,
   TextToImageParams,
+  TextToMusicParams,
+  TextToSpeechParams,
   TextToVideoParams,
+  TTSModel,
   UpscaleVideoParams,
   VideoToVideoParams,
   VideoModel
@@ -89,6 +99,76 @@ const ATLAS_CHAT_BASE_URL = `${ATLAS_BASE}/v1`;
 const DEFAULT_POLL_INTERVAL_MS = 3000;
 const DEFAULT_MAX_POLL_ATTEMPTS = 600;
 
+const ATLASCLOUD_TTS_MODELS: readonly TTSModel[] = [
+  ["bytedance/seed-audio-1.0", "Seed Audio 1.0"],
+  ["minimax/speech-2.6-turbo", "MiniMax Speech 2.6 Turbo"],
+  ["minimax/speech-2.6-hd", "MiniMax Speech 2.6 HD"],
+  ["xai/tts-v1", "xAI TTS v1"],
+  ["elevenlabs/v3/text-to-speech", "ElevenLabs v3 Text-to-Speech"],
+  ["google/gemini-3.1-flash-tts", "Gemini 3.1 Flash TTS"],
+  ["google/gemini-2.5-flash-tts", "Gemini 2.5 Flash TTS"],
+  ["google/gemini-2.5-pro-tts", "Gemini 2.5 Pro TTS"]
+].map(([id, name]) => ({ id, name, provider: "atlascloud" }));
+
+const ATLASCLOUD_MUSIC_MODELS: readonly MusicModel[] = [
+  ["minimax/music-3.0", "MiniMax Music 3.0"],
+  ["minimax/music-2.6", "MiniMax Music 2.6"],
+  ["suno/chirp-v6", "Suno chirp-v6"],
+  ["suno/chirp-v6-wild", "Suno chirp-v6-wild"],
+  ["suno/chirp-v6-mini", "Suno chirp-v6-mini"]
+].map(([id, name]) => ({
+  id,
+  name,
+  provider: "atlascloud",
+  supportedTasks: ["text_to_music"]
+}));
+
+const ATLASCLOUD_ASR_MODELS: readonly ASRModel[] = [
+  { id: "bytedance/seed-asr-2.0", name: "Seed ASR 2.0", provider: "atlascloud" },
+  { id: "xai/stt-v1", name: "xAI STT v1", provider: "atlascloud" }
+];
+
+const ATLASCLOUD_3D_MODELS: readonly Model3D[] = (
+  [
+    ["tripo-h3.1/text-to-3d", "Tripo H3.1 Text-to-3D", ["text_to_3d"]],
+    ["tencent/hunyuan3d-rapid/text-to-3d", "Hunyuan 3D Rapid Text-to-3D", ["text_to_3d"]],
+    ["tencent/hunyuan3d-pro/text-to-3d", "Hunyuan 3D Pro Text-to-3D", ["text_to_3d"]],
+    ["meshy-v7/text-to-3d", "Meshy v7 Text-to-3D", ["text_to_3d"]],
+    ["bytedance/seed3d-v2.0/image-to-3d", "Seed3D 2.0 Image-to-3D", ["image_to_3d"]],
+    ["tripo-h3.1/image-to-3d", "Tripo H3.1 Image-to-3D", ["image_to_3d"]],
+    ["tencent/hunyuan3d-rapid/image-to-3d", "Hunyuan 3D Rapid Image-to-3D", ["image_to_3d"]],
+    ["tencent/hunyuan3d-pro/image-to-3d", "Hunyuan 3D Pro Image-to-3D", ["image_to_3d"]],
+    ["hi3d/v3.0-master/image-to-3d", "HI3D v3.0 Master", ["image_to_3d"]],
+    ["hi3d/v3.0-quality/image-to-3d", "HI3D v3.0 Quality", ["image_to_3d"]],
+    ["hi3d/v2.1-pro/image-to-3d", "HI3D v2.1 Pro", ["image_to_3d"]],
+    ["hi3d/v2.1-fast/image-to-3d", "HI3D v2.1 Fast", ["image_to_3d"]],
+    ["meshy-v7/multi-image-to-3d", "Meshy v7 Multi-Image-to-3D", ["image_to_3d"]],
+    ["meshy-v7/image-to-3d", "Meshy v7 Image-to-3D", ["image_to_3d"]]
+  ] as Array<[string, string, NonNullable<Model3D["supportedTasks"]>]>
+).map(([id, name, supportedTasks]) => ({
+  id,
+  name,
+  provider: "atlascloud",
+  supportedTasks,
+  outputFormats: ["glb"]
+}));
+
+function glbFromAtlasOutput(bytes: Uint8Array, modelId: string): Uint8Array {
+  if (bytes[0] !== 0x50 || bytes[1] !== 0x4b) return bytes;
+  try {
+    const files = unzipSync(bytes);
+    const glbName = Object.keys(files).find((name) => name.toLowerCase().endsWith(".glb"));
+    const glb = glbName ? files[glbName] : undefined;
+    if (!glb || glb.length < 12 || glb[0] !== 0x67 || glb[1] !== 0x6c || glb[2] !== 0x54 || glb[3] !== 0x46) {
+      throw new Error("archive did not contain a valid GLB file");
+    }
+    return glb;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`AtlasCloud 3D model ${modelId} returned an unreadable ZIP archive: ${detail}`);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Manifest peek — model id → declared fields + modality
 // ---------------------------------------------------------------------------
@@ -99,6 +179,7 @@ interface FieldInfo {
   /** Allowed values when the field is an enum. Numbers stay numbers. */
   values?: Array<string | number>;
   default?: unknown;
+  required?: boolean;
   /** Request array this field belongs in, as `{url, type}` — see the manifest. */
   wrapInto?: string;
 }
@@ -108,6 +189,15 @@ interface ModelInfo {
   fields: Map<string, FieldInfo>;
   pollInterval: number;
   maxAttempts: number;
+}
+
+function defaultModelInfo(modality: "image" | "video"): ModelInfo {
+  return {
+    modality,
+    fields: new Map(),
+    pollInterval: DEFAULT_POLL_INTERVAL_MS,
+    maxAttempts: DEFAULT_MAX_POLL_ATTEMPTS
+  };
 }
 
 interface AtlasManifestEntry {
@@ -139,6 +229,9 @@ function buildModelMap(): Map<string, ModelInfo> {
       }
       if (f.default !== undefined) {
         field.default = f.default;
+      }
+      if (f.required !== undefined) {
+        field.required = f.required;
       }
       if (f.wrapInto !== undefined) {
         field.wrapInto = f.wrapInto;
@@ -357,7 +450,17 @@ function mapImageParams(
   setIfDeclared(input, info, params.quality, "quality");
   setIfDeclared(input, info, params.negativePrompt, "negative_prompt");
   setIfDeclared(input, info, params.seed, "seed");
-  setIfDeclared(input, info, params.guidanceScale, "cfg_scale");
+  setIfDeclared(
+    input,
+    info,
+    params.guidanceScale,
+    "guidance_scale",
+    "cfg_scale"
+  );
+  setIfDeclared(input, info, params.numInferenceSteps, "num_inference_steps");
+  if ("strength" in params) {
+    setIfDeclared(input, info, params.strength, "strength");
+  }
   const sizeField = info.fields.get("size");
   // Wan expresses resolution as a `size` enum (`1K`/`2K`/`4K`), so a named tier
   // belongs there — but only when the enum declares it. A free-string `size`
@@ -391,10 +494,18 @@ function mapVideoParams(
   const input: Record<string, unknown> = {};
   if (params.prompt) input.prompt = params.prompt;
   setIfDeclared(input, info, params.aspectRatio, "ratio", "aspect_ratio");
-  setIfDeclared(input, info, params.resolution, "resolution");
+  setIfDeclared(input, info, params.resolution, "resolution", "quality");
   setIfDeclared(input, info, params.negativePrompt, "negative_prompt");
   setIfDeclared(input, info, params.seed, "seed");
-  setIfDeclared(input, info, params.guidanceScale, "cfg_scale");
+  setIfDeclared(
+    input,
+    info,
+    params.guidanceScale,
+    "guidance_scale",
+    "cfg_scale"
+  );
+  setIfDeclared(input, info, params.numInferenceSteps, "num_inference_steps");
+  setIfDeclared(input, info, params.numFrames, "num_frames");
   // Duration is an integer count of seconds; the enums differ per model
   // (Seedance takes 4–15, Veo only 4/6/8), so resolveForField snaps it.
   if (params.durationSeconds != null) {
@@ -502,6 +613,29 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       }));
   }
 
+  override async getAvailableTTSModels(): Promise<TTSModel[]> {
+    return ATLASCLOUD_TTS_MODELS.map((model) => ({ ...model }));
+  }
+
+  override async getAvailableMusicModels(): Promise<MusicModel[]> {
+    return ATLASCLOUD_MUSIC_MODELS.map((model) => ({
+      ...model,
+      supportedTasks: [...(model.supportedTasks ?? [])]
+    }));
+  }
+
+  override async getAvailableASRModels(): Promise<ASRModel[]> {
+    return ATLASCLOUD_ASR_MODELS.map((model) => ({ ...model }));
+  }
+
+  override async getAvailable3DModels(): Promise<Model3D[]> {
+    return ATLASCLOUD_3D_MODELS.map((model) => ({
+      ...model,
+      supportedTasks: [...(model.supportedTasks ?? [])],
+      outputFormats: [...(model.outputFormats ?? [])]
+    }));
+  }
+
   /** AtlasCloud declares tool support per model in `supported_features`. */
   override async hasToolSupport(model: string): Promise<boolean> {
     const rows = await this.listChatModels();
@@ -537,6 +671,208 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       log.warn(`Failed to load AtlasCloud video models: ${err}`);
       return [];
     }
+  }
+
+  /** AtlasCloud's audio APIs use the same asynchronous prediction lifecycle. */
+  private async runAudioPrediction(
+    modelId: string,
+    input: Record<string, unknown>,
+    timeoutSeconds?: number | null
+  ): Promise<Awaited<ReturnType<typeof atlasAwaitResult>>> {
+    const predictionId = await atlasSubmit(
+      this.apiKey,
+      "audio",
+      modelId,
+      input
+    );
+    const maxAttempts = timeoutSeconds
+      ? Math.max(1, Math.ceil((timeoutSeconds * 1000) / DEFAULT_POLL_INTERVAL_MS))
+      : DEFAULT_MAX_POLL_ATTEMPTS;
+    return atlasAwaitResult(this.apiKey, predictionId, {
+      pollInterval: DEFAULT_POLL_INTERVAL_MS,
+      maxAttempts
+    });
+  }
+
+  override async textToSpeechEncoded(
+    params: TextToSpeechParams
+  ): Promise<EncodedAudioResult | null> {
+    if (!params.text.trim()) throw new Error("Text is required");
+    const models = await this.getAvailableTTSModels();
+    if (!models.some((model) => model.id === params.model)) {
+      throw new Error(`Unknown AtlasCloud TTS model: ${params.model}`);
+    }
+    const input: Record<string, unknown> = { model: params.model, text: params.text };
+    if (params.voice) {
+      if (params.model === "xai/tts-v1") input.voice_id = params.voice;
+      else if (params.model !== "bytedance/seed-audio-1.0") {
+        input.voice = params.voice;
+      }
+    }
+    if (params.language && params.model === "xai/tts-v1") {
+      input.language = params.language;
+    } else if (params.model === "xai/tts-v1") {
+      input.language = "auto";
+    }
+    if (params.speed !== undefined) {
+      if (params.model.startsWith("minimax/speech-")) {
+        input.speed = params.speed;
+      } else if (params.model === "xai/tts-v1") {
+        input.speed = params.speed;
+      }
+    }
+    if (
+      params.audioFormat &&
+      (params.model === "bytedance/seed-audio-1.0" ||
+        params.model.startsWith("minimax/speech-"))
+    ) {
+      input.format = params.audioFormat;
+    }
+    if (params.model === "bytedance/seed-audio-1.0" && params.speed != null) {
+      input.speech_rate = Math.round((params.speed - 1) * 100);
+    }
+    if (params.model === "bytedance/seed-audio-1.0" && params.referenceAudio) {
+      const referenceUrl = await this.uploadMedia(
+        params.referenceAudio,
+        sniffMediaMime(params.referenceAudio, "audio/mpeg"),
+        "reference-voice"
+      );
+      input.references = [{ audio_url: referenceUrl }];
+      input.text = `Use the voice of @audio1 and say: ${params.text}`;
+    }
+
+    const result = await this.runAudioPrediction(params.model, input);
+    const output = pickOutputUrl(result);
+    if (!output) {
+      throw new Error(`AtlasCloud TTS returned no downloadable audio URL for ${params.model}`);
+    }
+    const data = await atlasDownload(output);
+    return { data, mimeType: sniffMediaMime(data, "audio/mpeg") };
+  }
+
+  override async textToMusic(
+    params: TextToMusicParams
+  ): Promise<EncodedAudioResult> {
+    if (!params.prompt.trim()) throw new Error("Music prompt is required");
+    const models = await this.getAvailableMusicModels();
+    if (!models.some((model) => model.id === params.model.id)) {
+      throw new Error(`Unknown AtlasCloud music model: ${params.model.id}`);
+    }
+    const input: Record<string, unknown> = {
+      model: params.model.id,
+      prompt: params.model.id.startsWith("suno/")
+        ? (params.lyrics || params.prompt)
+        : params.prompt
+    };
+    if (params.model.id.startsWith("suno/")) {
+      input.custom = Boolean(params.lyrics);
+    } else if (params.lyrics) {
+      input.lyrics = params.lyrics;
+    }
+    if (params.audioFormat && params.model.id.startsWith("minimax/")) {
+      input.format = params.audioFormat;
+    }
+    const result = await this.runAudioPrediction(
+      params.model.id,
+      input,
+      params.timeoutSeconds
+    );
+    const output = result.outputs?.find(
+      (item): item is string => typeof item === "string" && /^https:\/\//i.test(item)
+    );
+    if (!output) {
+      throw new Error(`AtlasCloud music model ${params.model.id} returned no audio URL`);
+    }
+    const data = await atlasDownload(output);
+    return { data, mimeType: sniffMediaMime(data, "audio/mpeg") };
+  }
+
+  override async automaticSpeechRecognition(args: {
+    audio: Uint8Array;
+    model: string;
+    language?: string;
+    prompt?: string;
+    temperature?: number;
+    word_timestamps?: boolean;
+  }): Promise<{ text: string }> {
+    if (args.audio.length === 0) throw new Error("audio must not be empty");
+    if (!ATLASCLOUD_ASR_MODELS.some((model) => model.id === args.model)) {
+      throw new Error(`Unknown AtlasCloud ASR model: ${args.model}`);
+    }
+    const audioUrl = await this.uploadMedia(
+      args.audio,
+      sniffMediaMime(args.audio, "audio/mpeg"),
+      "input-audio"
+    );
+    const input: Record<string, unknown> = {
+      model: args.model,
+      [args.model === "bytedance/seed-asr-2.0" ? "audio_url" : "audio"]: audioUrl
+    };
+    if (args.language) input.language = args.language;
+    if (args.prompt && args.model === "bytedance/seed-asr-2.0") {
+      input.context = JSON.stringify({ hotwords: [{ word: args.prompt }] });
+    }
+    const result = await this.runAudioPrediction(args.model, input);
+    const transcript = result.stt_result?.text ?? result.outputs?.[0];
+    if (typeof transcript !== "string") {
+      throw new Error(`AtlasCloud ASR model ${args.model} returned no transcript`);
+    }
+    return { text: transcript };
+  }
+
+  override async textTo3D(params: TextTo3DParams): Promise<Uint8Array> {
+    if (!params.prompt.trim()) throw new Error("Prompt is required");
+    const model = ATLASCLOUD_3D_MODELS.find(
+      (item) => item.id === params.model.id && item.supportedTasks?.includes("text_to_3d")
+    );
+    if (!model) throw new Error(`AtlasCloud model ${params.model.id} does not support text_to_3d`);
+    const input: Record<string, unknown> = { model: model.id, prompt: params.prompt };
+    if (model.id.startsWith("tencent/hunyuan3d-")) input.format = "GLB";
+    if (model.id.startsWith("meshy-v7/")) input.target_formats = ["glb"];
+    const bytes = await this.runJob(
+      "image",
+      model.id,
+      defaultModelInfo("image"),
+      input,
+      { timeoutSeconds: params.timeoutSeconds }
+    );
+    return glbFromAtlasOutput(bytes, model.id);
+  }
+
+  override async imageTo3D(
+    image: Uint8Array,
+    params: ImageTo3DParams
+  ): Promise<Uint8Array> {
+    if (image.length === 0) throw new Error("image must not be empty");
+    const model = ATLASCLOUD_3D_MODELS.find(
+      (item) => item.id === params.model.id && item.supportedTasks?.includes("image_to_3d")
+    );
+    if (!model) throw new Error(`AtlasCloud model ${params.model.id} does not support image_to_3d`);
+    const imageUrl = await this.uploadMedia(image, "image/png", "input-image");
+    const input: Record<string, unknown> = { model: model.id };
+    if (model.id === "bytedance/seed3d-v2.0/image-to-3d") {
+      input.image = imageUrl;
+      input.file_format = params.outputFormat?.toLowerCase() ?? "glb";
+    } else if (model.id.includes("tripo-h3.1")) {
+      input.image_url = imageUrl;
+    } else if (model.id === "meshy-v7/multi-image-to-3d") {
+      input.reference_images = [imageUrl];
+      input.target_formats = ["glb"];
+    } else {
+      input.image = imageUrl;
+      if (model.id.startsWith("tencent/hunyuan3d-rapid/")) input.format = "GLB";
+      if (model.id.startsWith("hi3d/")) input.output_format = "glb";
+      if (model.id.startsWith("meshy-v7/")) input.target_formats = ["glb"];
+    }
+    if (params.prompt) input.prompt = params.prompt;
+    const bytes = await this.runJob(
+      "image",
+      model.id,
+      defaultModelInfo("image"),
+      input,
+      { timeoutSeconds: params.timeoutSeconds }
+    );
+    return glbFromAtlasOutput(bytes, model.id);
   }
 
   /**
@@ -796,6 +1132,23 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     }
     const info = this.resolveModel(params.model.id, "video");
     const input = mapVideoParams(info, params);
+    const endImageField = ["last_image", "end_image", "end_frame_image"].find(
+      (name) => info.fields.has(name)
+    );
+    if (endImageField) {
+      if (info.fields.get(endImageField)?.required && !params.endImage?.length) {
+        throw new Error(
+          `AtlasCloud model ${params.model.id} requires ${endImageField}; pass it as endImage`
+        );
+      }
+      if (params.endImage?.length) {
+        input[endImageField] = bytesToImageDataUri(params.endImage);
+      }
+    } else if (params.endImage?.length) {
+      throw new Error(
+        `AtlasCloud model ${params.model.id} does not accept an end image`
+      );
+    }
     const dataUri = bytesToImageDataUri(image);
     const imageField = [
       "first_frame_image",
@@ -890,9 +1243,15 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     );
     const references = {
       images: inputs.images.filter((bytes) => bytes.length > 0),
-      videos: inputs.videos.filter((bytes) => bytes.length > 0)
+      videos: inputs.videos.filter((bytes) => bytes.length > 0),
+      audios: (inputs.audios ?? []).filter((bytes) => bytes.length > 0)
     };
     validateReferenceInputs("AtlasCloud", modelId, references, fields);
+    if (modelId.startsWith("vidu/") && references.images.length > 7) {
+      throw new Error(
+        `AtlasCloud model ${modelId} accepts at most 7 reference images`
+      );
+    }
     const info = this.resolveModel(modelId, "video");
     const audioField = info.fields.get("use_reference_video_audio");
     if (
@@ -906,11 +1265,14 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     const input = mapVideoParams(info, params);
     const groups = new Map<
       string,
-      Array<{ url: string; type: "image" | "video" }>
+      Array<{ url: string; type: "image" | "video" | "audio" }>
     >();
     for (const field of fields) {
-      const buffers =
-        field.kind === "image" ? references.images : references.videos;
+      const buffers = field.kind === "image"
+        ? references.images
+        : field.kind === "video"
+          ? references.videos
+          : references.audios;
       if (buffers.length === 0) continue;
       const urls =
         field.kind === "image"
@@ -919,8 +1281,8 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
               buffers.map((bytes, index) =>
                 this.uploadMedia(
                   bytes,
-                  "video/mp4",
-                  `reference-video-${index + 1}`,
+                  field.kind === "video" ? "video/mp4" : sniffMediaMime(bytes, "audio/mpeg"),
+                  `reference-${field.kind}-${index + 1}`,
                   params.signal
                 )
               )
@@ -929,6 +1291,24 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
         const group = groups.get(field.wrapInto) ?? [];
         group.push(...urls.map((url) => ({ url, type: field.kind })));
         groups.set(field.wrapInto, group);
+      } else if (
+        field.kind === "image" &&
+        modelId.startsWith("pixverse/") &&
+        field.apiName === "images"
+      ) {
+        input[field.apiName] = urls.map((url) => ({ image: url }));
+      } else if (
+        field.kind === "image" &&
+        modelId.startsWith("vidu/") &&
+        field.apiName === "subjects"
+      ) {
+        input[field.apiName] = Array.from(
+          { length: Math.ceil(urls.length / 3) },
+          (_, subjectIndex) => ({
+            id: String(subjectIndex + 1),
+            images: urls.slice(subjectIndex * 3, subjectIndex * 3 + 3)
+          })
+        );
       } else {
         input[field.apiName] = field.isList ? urls : urls[0];
       }

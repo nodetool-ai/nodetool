@@ -645,6 +645,8 @@ export interface TextToVideoParams {
 export interface ImageToVideoParams {
   model: VideoModel;
   prompt?: string | null;
+  /** Optional final frame for models that interpolate between two images. */
+  endImage?: Uint8Array | null;
   /**
    * Consistency entities; descriptors join the prompt. Images are NOT appended
    * here — the image list's first frame drives the animation, so extra images
