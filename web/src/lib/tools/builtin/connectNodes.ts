@@ -9,10 +9,7 @@ import {
   getAllOutputHandles
 } from "../../../utils/handleUtils";
 import { isConnectable } from "../../../utils/TypeHandler";
-import {
-  nodeTypeLookup,
-  wouldCreateCycle
-} from "../../../utils/graphCycle";
+import { wouldCreateCycle } from "../../../utils/graphCycle";
 import { isCodeNodeType } from "../../../utils/codeNodeHandles";
 import useMetadataStore from "../../../stores/MetadataStore";
 
@@ -118,7 +115,7 @@ FrontendToolRegistry.register({
     if (
       wouldCreateCycle(nodeStore.edges, source_node_id, target_node_id, {
         targetHandle: target_handle,
-        nodeTypeOf: nodeTypeLookup(nodeStore.nodes)
+        nodeTypeOf: (id) => nodeStore.findNode(id)?.type
       })
     ) {
       throw new Error(
