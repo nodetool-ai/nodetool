@@ -1,5 +1,5 @@
 /**
- * The sizzle cut: a 25-second, beat-cut brand spot for social and launches.
+ * The sizzle cut: a 32-second, beat-cut brand spot for social and launches.
  *
  * Cut to the trailer score (136 BPM). The score has a hit at 4.1 s, a
  * silence from 6.5 s, and a drop at 8.15 s, and the picture follows it:
@@ -7,9 +7,13 @@
  *   Open      0–4.1 s    "Every model. One canvas." over the takes
  *   Hit       4.1 s      the mark slams in
  *   Brief     6.5–8.15   one sentence is typed into the quiet
- *   Montage   8.15 s     seven product surfaces, one per bar
- *   Honesty   four beats, four words-cards
+ *   Montage   8.15 s     seven product surfaces, six beats each
+ *   Honesty   three word cards, two beats each
  *   Close     mark, tagline, URL
+ *
+ * The score is `trailer-music-long.mp3`: the original track with a copy of
+ * groove bars 1–4 spliced in after bar 3, on the grid. The four extra bars
+ * give each shot six beats instead of four, which a viewer can read.
  *
  * Every surface shot replays a real cast through the real product UI, sped
  * up. Replay is a deterministic seek, so compression costs nothing.
@@ -61,9 +65,12 @@ const beat = (k: number): number =>
 const HIT = Math.round(4.09 * SIZZLE_FPS);
 const BRIEF_FROM = Math.round(6.4 * SIZZLE_FPS);
 const DROP = beat(0);
-const HONESTY_FROM = beat(28);
-const CLOSE_FROM = beat(32);
-const MUSIC_END = Math.round(24.32 * SIZZLE_FPS);
+const SHOT_BEATS = 6;
+const HONESTY_BEATS = 2;
+const HONESTY_FROM = beat(7 * SHOT_BEATS);
+const CLOSE_FROM = beat(7 * SHOT_BEATS + 3 * HONESTY_BEATS);
+/** The original 24.32 s track plus the four spliced bars. */
+const MUSIC_END = Math.round((24.32 + 16 * BEAT_S) * SIZZLE_FPS);
 export const SIZZLE_DURATION_FRAMES = MUSIC_END + 36;
 
 const BG = "#04060d";
@@ -359,7 +366,7 @@ const Brief: React.FC = () => {
 
 // ─── Montage ────────────────────────────────────────────────────────────────
 
-const SHOT_FRAMES = beat(4) - beat(0);
+const SHOT_FRAMES = beat(SHOT_BEATS) - beat(0);
 
 /**
  * A product surface in a floating, tilted window. The surface is laid out at
@@ -574,8 +581,8 @@ const SHOTS: MontageShot[] = [
 const Montage: React.FC = () => (
   <>
     {SHOTS.map((shot, i) => {
-      const from = beat(i * 4) - DROP;
-      const length = beat(i * 4 + 4) - beat(i * 4);
+      const from = beat(i * SHOT_BEATS) - DROP;
+      const length = beat((i + 1) * SHOT_BEATS) - beat(i * SHOT_BEATS);
       return (
         <Sequence key={shot.word} from={from} durationInFrames={length} name={`Shot ${shot.word}`}>
           <Backdrop energy={1} />
@@ -592,13 +599,14 @@ const Montage: React.FC = () => (
 
 // ─── Honesty ────────────────────────────────────────────────────────────────
 
-const HONESTY = ["Your keys.", "No credits.", "No markup.", "Open source."];
+const HONESTY = ["Your keys.", "No markup.", "Open source."];
 
 const Honesty: React.FC = () => (
   <>
     {HONESTY.map((word, i) => {
-      const from = beat(28 + i) - HONESTY_FROM;
-      const length = beat(29 + i) - beat(28 + i);
+      const start = beat(7 * SHOT_BEATS + i * HONESTY_BEATS);
+      const from = start - HONESTY_FROM;
+      const length = beat(7 * SHOT_BEATS + (i + 1) * HONESTY_BEATS) - start;
       return (
         <Sequence key={word} from={from} durationInFrames={length}>
           <AbsoluteFill style={{ background: BG }}>
@@ -613,7 +621,7 @@ const Honesty: React.FC = () => (
             <AbsoluteFill
               style={{ background: "radial-gradient(60% 60% at 50% 50%, rgba(4,6,13,0.4), rgba(4,6,13,0.9))" }}
             />
-            <Slam text={word} size={220} gradient={i === 3} />
+            <Slam text={word} size={220} gradient={i === HONESTY.length - 1} />
             <Flash strength={0.18} frames={3} />
           </AbsoluteFill>
         </Sequence>
@@ -708,7 +716,7 @@ export const Sizzle: React.FC = () => {
         <Close />
       </Sequence>
       <Audio
-        src={asset("trailer-music.mp3")}
+        src={asset("trailer-music-long.mp3")}
         volume={(f) => interpolate(f, [0, 3, MUSIC_END - 20, MUSIC_END], [0, 0.9, 0.9, 0], clamp)}
       />
     </AbsoluteFill>

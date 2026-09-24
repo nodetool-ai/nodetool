@@ -86,6 +86,7 @@ export function AssistantDock({
       <div data-focus-id="assistant-thread" style={{ flex: 1, minHeight: 0 }}>
         <ChatView
           status={state.status}
+          replayElapsedSeconds={state.elapsedSeconds}
           messages={state.messages}
           sendMessage={async () => {}}
           progress={state.progress}

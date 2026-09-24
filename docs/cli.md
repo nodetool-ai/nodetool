@@ -1563,11 +1563,15 @@ nodetool mcp uninstall
 ```
 
 HTTP MCP (`/mcp`) needs the API server (`nodetool serve`). `nodetool mcp serve`
-is stdio and does not.
+uses stdio for the client and forwards to the local API server when its MCP
+endpoint is available on port 7777 (or `PORT` when set). Actions then run in the API process, so
+connected UI clients receive live updates. When the endpoint is unavailable,
+the command runs its own local MCP server.
 
 ### What the MCP server exposes
 
-Exactly two tools land on `/mcp` and on `nodetool mcp serve`:
+The MCP mount offers these direct tools alongside the promoted discovery and
+browser tools:
 
 - **`execute_code`** — the CodeAct action tool, built by the same
   `createChatCodeActSession` the in-app chat agent runs on, so the two surfaces cannot drift.
@@ -1581,6 +1585,23 @@ Exactly two tools land on `/mcp` and on `nodetool mcp serve`:
   deployments with a Google login.
 - **`view_image`** — direct, because image content cannot ride a sandbox action's JSON
   observation envelope.
+- **`upload_asset`** — save base64 bytes in the user's asset library, or read an
+  absolute path on the local NodeTool server. It returns the asset ID and URI.
+- **`download_asset`** — return an owned asset's bytes as base64, or write them
+  to an absolute path on the local NodeTool server. Remote MCP sessions use base64.
+
+Inside `execute_code`, `import_asset` accepts an HTTP(S) URL or an absolute
+server-local path on a local MCP connection. It returns an `asset://` URI,
+byte size, and media duration when the source can be probed. Find its import
+line with `nodetool.searchTools("import asset")`.
+
+`render_demo_surface` renders a storyboard, script, sketch, timeline, graph, or 3D
+surface from a source checkout with Remotion installed. It returns a silent MP4
+asset, with the baked corner label hidden by default. The tool also accepts a
+document cast ID. With both `from_ms` and `to_ms`, the exported clip plays that
+source range at normal speed and has its duration. Without a range, it renders
+the designed six-second loop. The 3D surface accepts ranges within its six-second
+camera orbit.
 
 MCP has no system prompt. The guest contract (QuickJS, not Node; `nodetool.*`;
 no `finish()`) is the server `instructions` string and the first lines of the

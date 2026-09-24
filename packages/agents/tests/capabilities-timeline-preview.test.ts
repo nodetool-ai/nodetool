@@ -24,7 +24,10 @@ import { resolveAnimatedLayerProps } from "@nodetool-ai/timeline/scene";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { renderTimelineFrames } from "../src/timeline-preview/frames.js";
 
-function track(index: number, over: Partial<TimelineTrack> = {}): TimelineTrack {
+function track(
+  index: number,
+  over: Partial<TimelineTrack> = {}
+): TimelineTrack {
   return {
     id: `track-${index}`,
     name: `Track ${index}`,
@@ -124,8 +127,12 @@ async function brightColumns(
   const canvas = createCanvas(image.width, image.height);
   const ctx = canvas.getContext("2d");
   ctx.drawImage(image, 0, 0);
-  const row = ctx.getImageData(0, Math.floor(image.height / 2), image.width, 1)
-    .data;
+  const row = ctx.getImageData(
+    0,
+    Math.floor(image.height / 2),
+    image.width,
+    1
+  ).data;
   let first = -1;
   let last = -1;
   let count = 0;
@@ -141,12 +148,105 @@ async function brightColumns(
 }
 
 describe("renderTimelineFrames", () => {
+  it("keeps text bounds proportional across preview widths", async () => {
+    const doc = sequence(
+      [track(0)],
+      [
+        {
+          ...shapeClip("title", "track-0", "#000000"),
+          mediaType: "text",
+          shapeStyle: undefined,
+          textStyle: {
+            text: "One canvas.",
+            fontFamily: "Inter",
+            fontSizePx: 190,
+            fontWeight: 800,
+            color: "#ffffff"
+          }
+        }
+      ]
+    );
+    doc.width = 1920;
+    doc.height = 1080;
+    const bounds = async (width: number) => {
+      const { frames } = await renderTimelineFrames({
+        sequence: doc,
+        timesMs: [1500],
+        width,
+        loadAsset: noAssets
+      });
+      const image = await loadImage(Buffer.from(frames[0].png));
+      const canvas = createCanvas(image.width, image.height);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(image, 0, 0);
+      const pixels = ctx.getImageData(0, 0, image.width, image.height).data;
+      let minX = image.width,
+        maxX = -1,
+        minY = image.height,
+        maxY = -1;
+      for (let y = 0; y < image.height; y++) {
+        for (let x = 0; x < image.width; x++) {
+          const i = (y * image.width + x) * 4;
+          if (pixels[i] < 100 || pixels[i + 1] < 100 || pixels[i + 2] < 100)
+            continue;
+          minX = Math.min(minX, x);
+          maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+        }
+      }
+      expect(maxX).toBeGreaterThan(minX);
+      return {
+        width: (maxX - minX + 1) / image.width,
+        height: (maxY - minY + 1) / image.height
+      };
+    };
+    const small = await bounds(320);
+    const large = await bounds(640);
+    expect(Math.abs(small.width - large.width)).toBeLessThan(0.02);
+    expect(Math.abs(small.height - large.height)).toBeLessThan(0.02);
+  });
+
+  it("draws a heavier Inter title with more ink", async () => {
+    const ink = async (fontWeight: number) => {
+      const doc = sequence(
+        [track(0)],
+        [
+          {
+            ...shapeClip("title", "track-0", "#000000"),
+            mediaType: "text",
+            shapeStyle: undefined,
+            textStyle: {
+              text: "IIII",
+              fontFamily: "Inter",
+              fontSizePx: 150,
+              fontWeight,
+              color: "#ffffff"
+            }
+          }
+        ]
+      );
+      const { frames } = await renderTimelineFrames({
+        sequence: doc,
+        timesMs: [1000],
+        width: 640,
+        loadAsset: noAssets
+      });
+      const image = await loadImage(Buffer.from(frames[0].png));
+      const canvas = createCanvas(image.width, image.height);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(image, 0, 0);
+      const pixels = ctx.getImageData(0, 0, image.width, image.height).data;
+      let count = 0;
+      for (let i = 0; i < pixels.length; i += 4) if (pixels[i] > 100) count++;
+      return count;
+    };
+    expect(await ink(800)).toBeGreaterThan((await ink(400)) * 1.1);
+  });
+
   it("composites a shape clip's pixels into the frame", async () => {
     const { frames } = await renderTimelineFrames({
-      sequence: sequence(
-        [track(0)],
-        [shapeClip("red", "track-0", "#ff0000")]
-      ),
+      sequence: sequence([track(0)], [shapeClip("red", "track-0", "#ff0000")]),
       timesMs: [1000],
       width: 160,
       loadAsset: noAssets
@@ -266,8 +366,12 @@ describe("renderTimelineFrames", () => {
     const canvas = createCanvas(image.width, image.height);
     const ctx = canvas.getContext("2d");
     ctx.drawImage(image, 0, 0);
-    const row = ctx.getImageData(0, Math.floor(image.height / 2), image.width, 1)
-      .data;
+    const row = ctx.getImageData(
+      0,
+      Math.floor(image.height / 2),
+      image.width,
+      1
+    ).data;
     let brightest = 0;
     for (let i = 0; i < row.length; i += 4) {
       brightest = Math.max(brightest, row[i]);
@@ -514,7 +618,11 @@ describe("renderTimelineFrames", () => {
   it("names the effects Canvas 2D cannot draw", async () => {
     const { effectsNotApplied } = await renderTimelineFrames({
       sequence: sequence(
-        [track(0, { effects: [{ type: "vignette", enabled: true, amount: 0.5 }] })],
+        [
+          track(0, {
+            effects: [{ type: "vignette", enabled: true, amount: 0.5 }]
+          })
+        ],
         [shapeClip("shot", "track-0", "#ff0000")]
       ),
       timesMs: [1000],
@@ -597,7 +705,14 @@ describe("renderTimelineFrames", () => {
         [track(0)],
         [
           shapeClip("shot", "track-0", "#ff0000", {
-            mask: { kind: "rect", x: 0.25, y: 0, width: 0.5, height: 1, featherPx: 16 }
+            mask: {
+              kind: "rect",
+              x: 0.25,
+              y: 0,
+              width: 0.5,
+              height: 1,
+              featherPx: 16
+            }
           })
         ]
       ),
@@ -707,7 +822,10 @@ describe("preview_timeline_frame", () => {
     tracks: [track(0)],
     clips: [
       shapeClip("red", "track-0", "#ff0000", { startMs: 0, durationMs: 2000 }),
-      shapeClip("blue", "track-0", "#0000ff", { startMs: 2000, durationMs: 2000 })
+      shapeClip("blue", "track-0", "#0000ff", {
+        startMs: 2000,
+        durationMs: 2000
+      })
     ],
     markers: []
   };
@@ -732,7 +850,10 @@ describe("preview_timeline_frame", () => {
     const frames = result.frames as Array<Record<string, unknown>>;
     expect(frames.map((f) => f.time_ms)).toEqual([1000, 3000]);
     for (const frame of frames) {
-      expect(frame.image).toMatchObject({ type: "image", mime_type: "image/png" });
+      expect(frame.image).toMatchObject({
+        type: "image",
+        mime_type: "image/png"
+      });
       expect(Number(frame.width)).toBe(160);
     }
   });
@@ -814,7 +935,10 @@ describe("preview_timeline_frame contact sheet", () => {
     tracks: [track(0)],
     clips: [
       shapeClip("red", "track-0", "#ff0000", { startMs: 0, durationMs: 2000 }),
-      shapeClip("blue", "track-0", "#0000ff", { startMs: 2000, durationMs: 2000 })
+      shapeClip("blue", "track-0", "#0000ff", {
+        startMs: 2000,
+        durationMs: 2000
+      })
     ],
     markers: []
   };
@@ -921,31 +1045,34 @@ describe("edit_timeline custom curves through preview_timeline_frame", () => {
     });
 
     const { context, stored } = contextWithAssets();
-    const edit = (await toolForCapabilityName("edit_timeline").process(context, {
-      timeline_id: row.id,
-      ops: [
-        {
-          op: "animate_clip",
-          target: "plate",
-          animations: [
-            {
-              role: "in",
-              preset: "custom",
-              durationMs: 2000,
-              curves: [
-                {
-                  property: "opacity",
-                  keyframes: [
-                    { t: 0, value: 0 },
-                    { t: 1, value: 1 }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    })) as { applied: number; failed: number };
+    const edit = (await toolForCapabilityName("edit_timeline").process(
+      context,
+      {
+        timeline_id: row.id,
+        ops: [
+          {
+            op: "animate_clip",
+            target: "plate",
+            animations: [
+              {
+                role: "in",
+                preset: "custom",
+                durationMs: 2000,
+                curves: [
+                  {
+                    property: "opacity",
+                    keyframes: [
+                      { t: 0, value: 0 },
+                      { t: 1, value: 1 }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    )) as { applied: number; failed: number };
     expect(edit).toMatchObject({ applied: 1, failed: 0 });
 
     const saved = await TimelineSequence.findById(row.id);

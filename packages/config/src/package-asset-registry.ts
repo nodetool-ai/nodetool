@@ -103,7 +103,9 @@ export const PACKAGE_RUNTIME_ASSET_DIRS: readonly PackageAssetDirRef[] = [
     bundleDir: "fonts",
     files: [
       "BebasNeue-Regular.ttf",
+      "Inter-ExtraBold.ttf",
       "Inter-Italic-Variable.ttf",
+      "Inter-SemiBold.ttf",
       "Inter-Variable.ttf",
       "JetBrainsMono-Italic-Variable.ttf",
       "JetBrainsMono-Variable.ttf",

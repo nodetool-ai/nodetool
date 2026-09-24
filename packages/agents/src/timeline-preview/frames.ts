@@ -317,6 +317,11 @@ export async function renderTimelineFrames(
   };
 
   const rasterizer = new PreviewRasterizer(width, height);
+  // Text size, tracking, and wrapping are authored in sequence pixels.
+  const referenceRasterizer = new PreviewRasterizer(
+    animationCanvas.width,
+    animationCanvas.height
+  );
   const animCache = createAnimationCompileCache();
   /**
    * The scene options every resolve in this pass shares. `model3dBakeHash` is
@@ -572,7 +577,7 @@ export async function renderTimelineFrames(
           animationCanvas,
           animCache
         );
-        const raster = rasterizer.text(layer.textStyle, stagger);
+        const raster = referenceRasterizer.text(layer.textStyle, stagger);
         if (!raster) return { skipped: "nothing to draw" };
         return { source: raster, width: raster.width, height: raster.height };
       }
@@ -800,6 +805,7 @@ export async function renderTimelineFrames(
 
     const drawReport = drawTimelineFrame(ctx, drawLayers, geometry, {
       maskScratch: scratchFor,
+      projectiveSurface: precompositeSurfaceFor,
       precomposites: drawPrecomposites,
       precompositeSurface: precompositeSurfaceFor,
       maskSurface: maskSurfaceFor,

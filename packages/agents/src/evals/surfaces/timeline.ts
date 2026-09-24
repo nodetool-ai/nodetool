@@ -54,6 +54,7 @@ import {
   trackTypeForMediaType,
   STAGGER_UNITS,
   parseStaggerUnit,
+  typewriterTiming,
   parseEasing,
   DEFAULT_BEAT_TOLERANCE_MS,
   buildBeatGrid,
@@ -74,6 +75,7 @@ import {
   resliceTracksForTrimmedClip,
   type TimelineBeat,
   type TimelineClip,
+  type ClipTransform,
   type TimelineMarker,
   type TimelineSetup,
   type TimelineSetupStage,
@@ -784,6 +786,31 @@ export function unwrapClipParams(
 
 const isRecordValue = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+type ClipTransformPatch = {
+  position?: Partial<ClipTransform["position"]>;
+  scale?: Partial<ClipTransform["scale"]>;
+  rotation?: number;
+  rotationX?: number;
+  rotationY?: number;
+  perspective?: number;
+  anchor?: Partial<ClipTransform["anchor"]>;
+};
+
+function mergeClipTransform(
+  current: ClipTransform | undefined,
+  patch: ClipTransformPatch
+): ClipTransform {
+  return {
+    position: { x: 0, y: 0, ...current?.position, ...patch.position },
+    scale: { x: 1, y: 1, ...current?.scale, ...patch.scale },
+    rotation: patch.rotation ?? current?.rotation ?? 0,
+    rotationX: patch.rotationX ?? current?.rotationX,
+    rotationY: patch.rotationY ?? current?.rotationY,
+    perspective: patch.perspective ?? current?.perspective,
+    anchor: { x: 0.5, y: 0.5, ...current?.anchor, ...patch.anchor }
+  };
+}
 
 /**
  * A text style patch, merged over the clip's own and checked for a family that
@@ -1535,6 +1562,7 @@ export function createTimelineToolBridge(
       muted: c.muted ?? false,
       locked: c.locked,
       opacity: c.opacity,
+      transform: c.transform,
       textStyle: c.textStyle,
       shapeStyle: c.shapeStyle,
       captionStyle: c.caption?.style,
@@ -1725,6 +1753,8 @@ export function createTimelineToolBridge(
       "ui_timeline_add_text_clip",
       async ({
         text,
+        name,
+        transform,
         trackId,
         startMs,
         durationMs,
@@ -1745,7 +1775,7 @@ export function createTimelineToolBridge(
         const clip = makeClip({
           id: nextClipId(),
           trackId: track.id,
-          name: text as string,
+          name: (name as string | undefined) ?? (text as string),
           startMs: (startMs as number | undefined) ?? trackEndMs(track.id),
           durationMs:
             (durationMs as number | undefined) ?? DEFAULT_TEXT_CLIP_DURATION_MS,
@@ -1755,6 +1785,7 @@ export function createTimelineToolBridge(
           textStyle: textStyleWithDefaults(text as string, s)
         });
         if (opacity !== undefined) clip.opacity = opacity as number;
+        if (transform) clip.transform = mergeClipTransform(clip.transform, transform as ClipTransformPatch);
         clips.push(clip);
         selectedClipIds = [clip.id];
         return { ok: true, clip: serializeClip(clip) };
@@ -1807,7 +1838,7 @@ export function createTimelineToolBridge(
 
     sharedTool(
       "ui_timeline_add_media_clip",
-      async ({ asset, trackId, startMs, durationMs, name }) => {
+      async ({ asset, trackId, startMs, durationMs, name, transform }) => {
         if (!resolveAsset) {
           throw new Error(
             "This timeline surface cannot look up assets, so an existing asset cannot be placed here."
@@ -1825,6 +1856,9 @@ export function createTimelineToolBridge(
           throw new Error(
             `Asset "${found.name}" is ${found.contentType}, which is not video, image, or audio and cannot go on a timeline.`
           );
+        }
+        if (mediaType !== "image" && durationMs === undefined && !found.durationMs) {
+          throw new Error(`Asset "${found.name}" has no known duration. Supply durationMs or import media that can be probed.`);
         }
         const track = trackId
           ? resolveTrack(trackId as string)
@@ -1847,6 +1881,7 @@ export function createTimelineToolBridge(
           init.thumbnailAssetId = found.thumbnailAssetId;
         }
         const clip = makeClip(init);
+        if (transform) clip.transform = mergeClipTransform(clip.transform, transform as ClipTransformPatch);
         clips.push(clip);
         selectedClipIds = [clip.id];
         return { ok: true, clip: serializeClip(clip) };
@@ -1858,6 +1893,8 @@ export function createTimelineToolBridge(
       async ({
         shape,
         shapeStyle,
+        name,
+        transform,
         trackId,
         startMs,
         durationMs,
@@ -1871,7 +1908,7 @@ export function createTimelineToolBridge(
         const clip = makeClip({
           id: nextClipId(),
           trackId: track.id,
-          name: capitalize(shapeArg.kind),
+          name: (name as string | undefined) ?? capitalize(shapeArg.kind),
           startMs: (startMs as number | undefined) ?? trackEndMs(track.id),
           durationMs:
             (durationMs as number | undefined) ?? DEFAULT_TEXT_CLIP_DURATION_MS,
@@ -1881,6 +1918,7 @@ export function createTimelineToolBridge(
           shapeStyle: shapeStyleWithDefaults(shapeArg)
         });
         if (opacity !== undefined) clip.opacity = opacity as number;
+        if (transform) clip.transform = mergeClipTransform(clip.transform, transform as ClipTransformPatch);
         clips.push(clip);
         selectedClipIds = [clip.id];
         return { ok: true, clip: serializeClip(clip) };
@@ -1889,7 +1927,7 @@ export function createTimelineToolBridge(
 
     sharedTool(
       "ui_timeline_add_model3d_clip",
-      async ({ assetId, trackId, startMs, durationMs, style }) => {
+      async ({ assetId, trackId, startMs, durationMs, style, transform }) => {
         // 3D is picture (D1), so it lands where a title lands.
         const track = trackId
           ? resolveTrack(trackId as string)
@@ -1911,6 +1949,7 @@ export function createTimelineToolBridge(
             style as ClipModel3DStylePatch | undefined
           )
         });
+        if (transform) clip.transform = mergeClipTransform(clip.transform, transform as ClipTransformPatch);
         clips.push(clip);
         selectedClipIds = [clip.id];
         return { ok: true, clip: serializeClip(clip) };
@@ -2266,6 +2305,8 @@ export function createTimelineToolBridge(
           patch.textStyle = { ...style, fontSizePx: size };
         }
         if (patch.name !== undefined) clip.name = patch.name as string;
+        if (patch.transform !== undefined)
+          clip.transform = mergeClipTransform(clip.transform, patch.transform as ClipTransformPatch);
         if (patch.opacity !== undefined) clip.opacity = patch.opacity as number;
         if (patch.speedMultiplier !== undefined)
           clip.speedMultiplier = patch.speedMultiplier as number;
@@ -2307,7 +2348,7 @@ export function createTimelineToolBridge(
 
     sharedTool(
       "ui_timeline_add_group",
-      async ({ name, startMs, durationMs, trackId, children }) => {
+      async ({ name, startMs, durationMs, trackId, children, transform }) => {
         // Resolve every child before anything is written: a half-applied group
         // leaves the caller with an empty group and no idea which of its clips
         // moved.
@@ -2327,6 +2368,7 @@ export function createTimelineToolBridge(
           sourceType: "imported",
           status: "generated"
         });
+        if (transform) group.transform = mergeClipTransform(group.transform, transform as ClipTransformPatch);
         clips.push(group);
         for (const child of targets) {
           child.parentId = group.id;
@@ -2600,6 +2642,7 @@ export function createTimelineToolBridge(
           mask?: unknown;
           custom?: { curves?: unknown; code?: string; mask?: unknown };
           stagger?: ClipAnimation["stagger"];
+          caret?: ClipAnimation["caret"];
         }>;
         const built: ClipAnimation[] = [];
         for (const input of inputs) {
@@ -2621,15 +2664,27 @@ export function createTimelineToolBridge(
               `Preset "${input.preset}" does not support role "${input.role}". Valid roles for "${input.preset}": ${preset.roles.join(", ")}.`
             );
           }
+          if (input.preset === "typewriter" && clip.mediaType !== "text") {
+            throw new Error('Preset "typewriter" requires a text clip.');
+          }
+          const timing = input.preset === "typewriter"
+            ? typewriterTiming(
+                clip.textStyle?.text ?? "",
+                clip.durationMs - (input.delayMs ?? 0),
+                input.durationMs,
+                input.stagger
+              )
+            : null;
           built.push({
             id: nextAnimId(),
             role: input.role,
             preset: input.preset,
-            durationMs: input.durationMs ?? preset.defaultDurationMs,
+            durationMs: timing?.durationMs ?? input.durationMs ?? preset.defaultDurationMs,
             delayMs: input.delayMs,
             easing: input.easing,
             params: input.params,
-            stagger: input.stagger
+            stagger: timing?.stagger ?? input.stagger,
+            caret: input.preset === "typewriter" ? input.caret : undefined
           });
         }
         clip.animations =

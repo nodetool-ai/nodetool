@@ -70,6 +70,7 @@ export function ChatDemoPlayer({
             >
               <ChatView
                 status={state.status}
+                replayElapsedSeconds={state.elapsedSeconds}
                 messages={state.messages}
                 sendMessage={async () => {}}
                 progress={state.progress}
