@@ -615,12 +615,12 @@ describe("renderTimelineFrames", () => {
     expect(after.count).toBeCloseTo(before.count, -1);
   });
 
-  it("names the effects Canvas 2D cannot draw", async () => {
-    const { effectsNotApplied } = await renderTimelineFrames({
+  it("draws a legacy track vignette without reporting it as unsupported", async () => {
+    const { effectsNotApplied, frames } = await renderTimelineFrames({
       sequence: sequence(
         [
           track(0, {
-            effects: [{ type: "vignette", enabled: true, amount: 0.5 }]
+            effects: [{ id: "v", type: "vignette", enabled: true, intensity: 0.5, radius: 0.9, softness: 0.5 }]
           })
         ],
         [shapeClip("shot", "track-0", "#ff0000")]
@@ -630,7 +630,10 @@ describe("renderTimelineFrames", () => {
       loadAsset: noAssets
     });
 
-    expect(effectsNotApplied).toContain("vignette");
+    expect(effectsNotApplied).toEqual([]);
+    const center = await pixelAt(frames[0]!.png, 80, 45);
+    const corner = await pixelAt(frames[0]!.png, 5, 5);
+    expect(corner[0]).toBeLessThan(center[0]!);
   });
 
   it("adds a brightness lift the way the GPU grade does", async () => {
@@ -659,10 +662,7 @@ describe("renderTimelineFrames", () => {
     expect(frames[0]!.degraded).toEqual([]);
   });
 
-  it("names what it drew differently from the export, and the clip", async () => {
-    // `ctx.shadow*` is one set of fields, so the second cast in the chain is
-    // not drawn. That is a picture that differs from the export with nothing
-    // in `effects_not_applied` to read about it — hence `degraded` (I7).
+  it("draws multiple drop shadows without dropping the second shadow", async () => {
     const shadow = (id: string, offset: number) => ({
       id,
       type: "dropShadow" as const,
@@ -687,13 +687,7 @@ describe("renderTimelineFrames", () => {
       loadAsset: noAssets
     });
 
-    expect(frames[0]!.degraded).toEqual([
-      {
-        clip_id: "shot",
-        clip_name: "Hero",
-        reason: "drop_shadow_extra_ignored"
-      }
-    ]);
+    expect(frames[0]!.degraded).toEqual([]);
   });
 
   it("reports nothing degraded for a feathered mask it draws in full", async () => {
@@ -724,7 +718,7 @@ describe("renderTimelineFrames", () => {
     expect(frames[0]!.degraded).toEqual([]);
   });
 
-  it("names every clip effect from the shader catalog it cannot draw", async () => {
+  it("draws the legacy shader effect catalog through CPU counterparts", async () => {
     // The whole catalog on one clip (D7). Canvas 2D draws `dropShadow` through
     // `ctx.shadow*` and approximates `color`/`blur` with `ctx.filter`; the
     // other seven have no equivalent, and a caller learns that here rather
@@ -799,15 +793,7 @@ describe("renderTimelineFrames", () => {
       loadAsset: noAssets
     });
 
-    expect(effectsNotApplied).toEqual([
-      "chromaKey",
-      "curves",
-      "glow",
-      "levels",
-      "liftGammaGain",
-      "sharpen",
-      "vignette"
-    ]);
+    expect(effectsNotApplied).toEqual([]);
   });
 });
 
@@ -856,6 +842,17 @@ describe("preview_timeline_frame", () => {
       });
       expect(Number(frame.width)).toBe(160);
     }
+  });
+
+  it("previews an early frame when a later clip requests motion blur", async () => {
+    const future = { ...shapeClip("future", "track-0", "#ffffff", { startMs: 4000, durationMs: 1000 }), motionBlur: { samplesPerFrame: 8 } };
+    const result = await call({
+      document: { ...document, clips: [...document.clips, future] },
+      times_ms: [1000], width: 160, width_px: 640, height_px: 360
+    });
+    expect(result.error).toBeUndefined();
+    const frames = result.frames as Array<{ layers: Array<{ clip_id: string }> }>;
+    expect(frames[0]?.layers.map((layer) => layer.clip_id)).toEqual(["red"]);
   });
 
   it("samples inside the sequence when no timecodes are given", async () => {

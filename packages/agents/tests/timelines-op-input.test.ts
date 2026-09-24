@@ -363,6 +363,75 @@ describe("animate_clip custom curves", () => {
   });
 });
 
+describe("stagger_animations shared op", () => {
+  it("offsets ordered clip animations without moving media and rejects missing clips before editing", async () => {
+    const prepared = createTimelineToolBridge({
+      tracks: [{ type: "video" }],
+      clips: ["logo", "wordmark", "tagline"].map((name) => ({
+        name,
+        trackIndex: 0,
+        mediaType: "video" as const,
+        startMs: 0,
+        durationMs: 2000
+      }))
+    });
+    const prepareTools = Object.fromEntries(prepared.tools.map((tool) => [tool.name, tool]));
+    for (const name of ["logo", "wordmark", "tagline"]) {
+      await prepareTools["ui_timeline_animate_clip"].execute({
+        target: name,
+        animations: [{ role: "in", preset: "fade", durationMs: 400 }]
+      });
+    }
+    const ids = [
+      "11111111111100000000000000000001",
+      "22222222222200000000000000000002",
+      "33333333333300000000000000000003"
+    ];
+    const seeded = prepared.finalState();
+    const bridge = createTimelineToolBridge({ sequence: {
+      tracks: seeded.documentTracks,
+      clips: seeded.documentClips.map((clip, index) => ({ ...clip, id: ids[index] }))
+    } });
+    const tools = Object.fromEntries(bridge.tools.map((tool) => [tool.name, tool]));
+    ids.forEach((id) => expect(id).toMatch(/^[0-9a-f]{32}$/));
+    await expect(tools["ui_timeline_stagger_animations"].execute({
+      clip_ids: [ids[0].slice(0, 12), "missing", ids[2]], offset_ms: 120
+    })).rejects.toThrow(/No clip found/);
+    expect(bridge.finalState().documentClips.map((clip) => clip.animations?.[0].delayMs ?? 0)).toEqual([0, 0, 0]);
+    await tools["ui_timeline_stagger_animations"].execute({
+      clip_ids: [ids[0].slice(0, 12), ids[1].slice(0, 12), ids[2]], offset_ms: 120
+    });
+    const clips = bridge.finalState().documentClips;
+    expect(clips.map((clip) => clip.animations?.[0].delayMs ?? 0)).toEqual([0, 120, 240]);
+    expect(clips.map((clip) => clip.startMs)).toEqual([0, 0, 0]);
+    await expect(tools["ui_timeline_stagger_animations"].execute({
+      clip_ids: [ids[0], ids[0].slice(0, 12)], offset_ms: 120
+    })).rejects.toThrow(/distinct clip IDs/);
+  });
+
+  it("rejects an ambiguous 12-character prefix before editing", async () => {
+    const idA = "abcdef01234500000000000000000001";
+    const idB = "abcdef01234500000000000000000002";
+    const initial = createTimelineToolBridge({
+      tracks: [{ type: "video" }],
+      clips: ["a", "b"].map((name) => ({ name, trackIndex: 0, mediaType: "video", startMs: 0, durationMs: 1000 }))
+    }).finalState();
+    const bridge = createTimelineToolBridge({ sequence: {
+      tracks: initial.documentTracks,
+      clips: initial.documentClips.map((clip, index) => ({
+        ...clip,
+        id: index === 0 ? idA : idB,
+        animations: [{ id: `animation-${index}`, role: "in", preset: "fade", durationMs: 300 }]
+      }))
+    } });
+    const tools = Object.fromEntries(bridge.tools.map((tool) => [tool.name, tool]));
+    await expect(tools["ui_timeline_stagger_animations"].execute({
+      clip_ids: [idA.slice(0, 12), idB], offset_ms: 120
+    })).rejects.toThrow(/matches more than one clip/);
+    expect(bridge.finalState().documentClips.map((clip) => clip.animations?.[0].delayMs ?? 0)).toEqual([0, 0]);
+  });
+});
+
 describe("set_transition", () => {
   async function bridgeWithTwoClips() {
     const bridge = createTimelineToolBridge({

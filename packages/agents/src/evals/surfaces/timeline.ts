@@ -60,6 +60,7 @@ import {
   buildBeatGrid,
   beatCountToCover,
   snapClipsToGrid,
+  staggerClipAnimations,
   isGroupClip,
   moveGroup,
   ungroup,
@@ -327,6 +328,7 @@ export interface TimelineBridgeSequenceSeed {
    * `set_tempo` is called, and the bridge writes none back.
    */
   tempo?: TimelineTempo;
+  camera2d?: TimelineSequence["camera2d"];
   /** Guided video-flow state. Absent reads as a sequence never in the flow. */
   setup?: TimelineSetup;
   /**
@@ -501,6 +503,7 @@ export interface TimelineBridgeFinalState {
    * plays at the wrong speed on the next read.
    */
   tempo?: TimelineTempo;
+  camera2d?: TimelineSequence["camera2d"];
   /**
    * Guided video-flow state, or null on a sequence that was never in it.
    * `edit_timeline` writes it back, so the flow's stage and plan survive an
@@ -2722,6 +2725,24 @@ export function createTimelineToolBridge(
     ),
 
     sharedTool(
+      "ui_timeline_stagger_animations",
+      async ({ clip_ids, offset_ms }) => {
+        const selected = (clip_ids as string[]).map(resolveClip);
+        const ids = selected.map((clip) => clip.id);
+        if (new Set(ids).size !== ids.length) {
+          throw new Error("clip_ids must contain distinct clip IDs.");
+        }
+        for (const clip of selected) {
+          if (!clip.animations?.length) throw new Error(`Clip "${clip.name}" has no animations to stagger.`);
+        }
+        const staggered = staggerClipAnimations(clips, ids, offset_ms as number);
+        const byId = new Map(staggered.map((clip) => [clip.id, clip]));
+        clips.splice(0, clips.length, ...staggered);
+        return { ok: true, clips: ids.map((id) => serializeClip(byId.get(id)!)) };
+      }
+    ),
+
+    sharedTool(
       "ui_timeline_clear_animations",
       async ({ target, role }) => {
         const clip = resolveClip(target as string);
@@ -3735,6 +3756,7 @@ export function createTimelineToolBridge(
         }
         if (seed?.templateId !== undefined) source.templateId = seed.templateId;
         if (tempo) source.tempo = structuredClone(tempo);
+        source.camera2d = structuredClone(seed?.camera2d ?? null);
         if (setup) source.setup = structuredClone(setup);
         const adapted = adaptSequenceFormat(source, aspect_ratio as string, {
           strategy: strategy as "center" | "smart" | "track",
@@ -3956,6 +3978,7 @@ export function createTimelineToolBridge(
         structuredClone(sequence)
       ),
       tempo: tempo ? structuredClone(tempo) : undefined,
+      camera2d: structuredClone(seed?.camera2d ?? null),
       setup: setup ? structuredClone(setup) : null,
       transitionCandidates: structuredClone(transitionCandidates),
       auditionedTransitionCandidateId,

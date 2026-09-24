@@ -15,9 +15,9 @@
  * shared Canvas 2D rules. So it needs no GPU, no ffmpeg and no browser, and it
  * runs anywhere the agent runs.
  *
- * What it is not: the GPU compositor. Color and blur adjustments map onto the
- * canvas filter; chroma key, vignette and sharpen have no Canvas 2D equivalent
- * and are reported in `effects_not_applied` rather than silently dropped.
+ * Effects run through CPU pixel passes matching the GPU chain. Unknown effect
+ * types are reported in `effects_not_applied`, and missing render resources
+ * are reported on each frame.
  */
 
 import { createCanvas, loadImage, type Canvas } from "@napi-rs/canvas";
@@ -31,6 +31,7 @@ import {
 import type {
   ActiveLayer,
   AnimatedLayerProps,
+  Canvas2DAdjustment,
   Canvas2DLayer,
   Canvas2DPrecomposite,
   Canvas2DDegradationReason,
@@ -38,6 +39,7 @@ import type {
   CompositeSurface,
   DroppedLayerReason,
   MotionBlurOptions,
+  ResolvedMotionBlur,
   RasterContext2D
 } from "@nodetool-ai/timeline/scene";
 import {
@@ -49,8 +51,9 @@ import {
   hasActiveAnimation,
   measureTextWith,
   motionBlurSampleTimes,
+  layerShutterTime,
+  resolveFrameMotionBlur,
   resolveAnimatedLayerProps,
-  resolveMotionBlur,
   resolveTextStaggerContext,
   seedBlurAccumulation,
   shutterWindowIsStatic,
@@ -333,6 +336,8 @@ export async function renderTimelineFrames(
     canvas: animationCanvas,
     animationCache: animCache,
     mediaTracks: sequence.mediaTracks,
+    camera2d: sequence.camera2d,
+    tempo: sequence.tempo,
     model3dBakeHash: (clip: TimelineClip): string =>
       computeModel3DBakeHash(clip, {
         fps: Math.max(1, sequence.fps || 30),
@@ -466,14 +471,14 @@ export async function renderTimelineFrames(
   const frames: PreviewFrame[] = [];
   const effectsNotApplied = new Set<string>();
 
-  const blur = resolveMotionBlur(options.motionBlur);
   const frameMs = 1000 / Math.max(1, sequence.fps || 30);
+  const frameBlurs = options.timesMs.map((timeMs) => resolveFrameMotionBlur(sequence.clips, options.motionBlur, timeMs, frameMs, sequence.tracks));
   /**
    * Where the shutter window is summed. Allocated only for a blurred render:
    * with blur off the main canvas is the frame, exactly as it was before.
    */
   const blurAccumulator =
-    blur.samplesPerFrame > 1 ? createCanvas(width, height) : null;
+    frameBlurs.some((blur) => blur.samplesPerFrame > 1) ? createCanvas(width, height) : null;
   const blurCtx = blurAccumulator
     ? // SAFETY: `CompositeContext2D` is the subset of the 2D canvas API the
       // accumulation uses, and a skia context provides all of it.
@@ -490,7 +495,10 @@ export async function renderTimelineFrames(
    * keeps a blurred preview from drifting from an unblurred one.
    */
   const composeAt = async (
-    timeMs: number
+    timeMs: number,
+    frameTimeMs = timeMs,
+    sampleIndex = 0,
+    sampleCount = 1
   ): Promise<{
     reports: PreviewLayerReport[];
     dropped: PreviewDroppedLayer[];
@@ -498,6 +506,7 @@ export async function renderTimelineFrames(
   }> => {
     const {
       layers: active,
+      adjustments,
       precomposites,
       droppedLayers
     } = computeActiveLayersWithHorizon(
@@ -506,16 +515,32 @@ export async function renderTimelineFrames(
       timeMs,
       // Group transforms are authored against the sequence resolution, the
       // same space the animations are sampled in.
-      sceneOptions
+      {
+        ...sceneOptions,
+        layerTimeMs: (clip) => layerShutterTime(clip, frameTimeMs, sampleIndex, sampleCount, frameMs, options.motionBlur)
+      }
     );
     const drawPrecomposites: Canvas2DPrecomposite[] = precomposites.map(
       (group) => ({
         id: group.clipId,
         zIndex: trackZ(group.trackIndex),
+        stackOrder: group.stackOrder,
         opacity: group.opacity,
         blendMode: group.blendMode,
         effects: group.effects,
+        transition: group.transition,
         precomposeGroupId: group.precomposeGroupId
+      })
+    );
+    const drawAdjustments: Canvas2DAdjustment[] = adjustments.map(
+      (adjustment) => ({
+        clipId: adjustment.clipId,
+        zIndex: trackZ(adjustment.trackIndex),
+        opacity: adjustment.opacity,
+        effects: adjustment.effects,
+        mask: adjustment.mask,
+        wipe: adjustment.wipe,
+        precomposeGroupId: adjustment.precomposeGroupId
       })
     );
     // A group's effects run on its composed surface, so they are named here
@@ -523,7 +548,8 @@ export async function renderTimelineFrames(
     // would go unreported (I7).
     for (const type of unsupportedEffectTypes([
       ...active,
-      ...drawPrecomposites
+      ...drawPrecomposites,
+      ...drawAdjustments
     ])) {
       effectsNotApplied.add(type);
     }
@@ -558,7 +584,8 @@ export async function renderTimelineFrames(
 
     const sourceForLayer = async (
       layer: ActiveLayer,
-      anim: AnimatedLayerProps
+      anim: AnimatedLayerProps,
+      layerTimeMs: number
     ): Promise<LayerSource> => {
       if (layer.kind === "caption" && layer.caption) {
         const raster = rasterizer.caption(layer.caption);
@@ -570,14 +597,15 @@ export async function renderTimelineFrames(
           untransformed: true
         };
       }
-      if (layer.kind === "text" && layer.textStyle) {
+      if (layer.kind === "text" && anim.textStyle) {
         const stagger = resolveTextStaggerContext(
           layer.clip,
-          timeMs,
+          layerTimeMs,
           animationCanvas,
-          animCache
+          animCache,
+          sequence.tempo
         );
-        const raster = referenceRasterizer.text(layer.textStyle, stagger);
+        const raster = referenceRasterizer.text(anim.textStyle, stagger);
         if (!raster) return { skipped: "nothing to draw" };
         return { source: raster, width: raster.width, height: raster.height };
       }
@@ -644,7 +672,7 @@ export async function renderTimelineFrames(
 
       if (layer.kind === "video") {
         const sourceTimeSec =
-          layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, timeMs);
+          layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, layerTimeMs);
         const frame = await decodeVideoFrameAt(bytes, sourceTimeSec);
         if (!frame) {
           return {
@@ -691,13 +719,15 @@ export async function renderTimelineFrames(
       layer: ActiveLayer,
       sampled?: AnimatedLayerProps
     ): Promise<Canvas2DLayer<PreviewSource> | string> => {
+      const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, frameMs, options.motionBlur);
       const anim =
         sampled ??
-        resolveAnimatedLayerProps(layer, timeMs, animationCanvas, animCache, {
+        resolveAnimatedLayerProps(layer, layerTimeMs, animationCanvas, animCache, {
           mediaTracks: sequence.mediaTracks ?? [],
-          clips: sequence.clips
+          clips: sequence.clips,
+          tempo: sequence.tempo
         });
-      const resolved = await sourceForLayer(layer, anim);
+      const resolved = await sourceForLayer(layer, anim, layerTimeMs);
       if ("skipped" in resolved) return resolved.skipped;
       const drawn: Canvas2DLayer<PreviewSource> = {
         clipId: layer.clipId,
@@ -707,6 +737,7 @@ export async function renderTimelineFrames(
         opacity: anim.opacity,
         blendMode: layer.blendMode,
         zIndex: trackZ(layer.trackIndex),
+        stackOrder: layer.stackOrder,
         precomposeGroupId: layer.precomposeGroupId,
         mask: anim.mask
       };
@@ -720,9 +751,9 @@ export async function renderTimelineFrames(
       }
       drawn.transform = anim.transform;
       drawn.parentMatrix = layer.parentMatrix;
-      drawn.borderRadius = layer.borderRadius;
+      drawn.borderRadius = anim.borderRadius ?? layer.borderRadius;
       drawn.crop = layer.crop;
-      drawn.shapeMask = layer.shapeMask;
+      drawn.shapeMask = anim.clipMask;
       drawn.effects = anim.effects ?? layer.effects;
       drawn.trackEffects = layer.trackEffects;
       drawn.transition = layer.transition;
@@ -744,12 +775,13 @@ export async function renderTimelineFrames(
     };
 
     for (const layer of active) {
+      const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, frameMs, options.motionBlur);
       const anim = resolveAnimatedLayerProps(
         layer,
-        timeMs,
+        layerTimeMs,
         animationCanvas,
         animCache,
-        { mediaTracks: sequence.mediaTracks ?? [], clips: sequence.clips }
+        { mediaTracks: sequence.mediaTracks ?? [], clips: sequence.clips, tempo: sequence.tempo }
       );
       const zIndex = trackZ(layer.trackIndex);
       const report: PreviewLayerReport = {
@@ -760,7 +792,7 @@ export async function renderTimelineFrames(
         z_index: zIndex,
         opacity: Number(anim.opacity.toFixed(3)),
         blend_mode: String(layer.blendMode),
-        text: layerText(layer)
+        text: anim.textStyle?.text ?? layerText(layer)
       };
       const wipeMask = anim.mask ?? layer.transition?.mask;
       if (wipeMask) {
@@ -806,6 +838,9 @@ export async function renderTimelineFrames(
     const drawReport = drawTimelineFrame(ctx, drawLayers, geometry, {
       maskScratch: scratchFor,
       projectiveSurface: precompositeSurfaceFor,
+      effectSurface: precompositeSurfaceFor,
+      adjustments: drawAdjustments,
+      adjustmentSurface: scratchFor,
       precomposites: drawPrecomposites,
       precompositeSurface: precompositeSurfaceFor,
       maskSurface: maskSurfaceFor,
@@ -878,7 +913,7 @@ export async function renderTimelineFrames(
    * decodes nothing, so the check costs a fraction of the N decodes and N
    * composites it saves on a still frame.
    */
-  const shutterIsStatic = (timeMs: number): boolean => {
+  const shutterIsStatic = (timeMs: number, blur: ResolvedMotionBlur): boolean => {
     if (blur.samplesPerFrame <= 1) return false;
     const { layers } = computeActiveLayersWithHorizon(
       sequence.tracks,
@@ -893,7 +928,8 @@ export async function renderTimelineFrames(
         timeMs,
         animationCanvas,
         animCache,
-        sequence.clips
+        sequence.clips,
+        sequence.tempo
       )
     );
   };
@@ -903,11 +939,12 @@ export async function renderTimelineFrames(
    * shutter window's samples with it on. Resolved up front because the 3D
    * pre-pass below has to know every instant before it renders any of them.
    */
-  const frameInstants = options.timesMs.map((timeMs) => ({
+  const frameInstants = options.timesMs.map((timeMs, index) => ({
     timeMs,
-    sampleTimes: shutterIsStatic(timeMs)
+    blur: frameBlurs[index],
+    sampleTimes: shutterIsStatic(timeMs, frameBlurs[index])
       ? [timeMs]
-      : motionBlurSampleTimes(timeMs, frameMs, options.motionBlur)
+      : motionBlurSampleTimes(timeMs, frameMs, frameBlurs[index])
   }));
 
   // Only a document that has a 3D clip pays for the extra layer resolve: a
@@ -919,7 +956,7 @@ export async function renderTimelineFrames(
     await model3d.run();
   }
 
-  for (const { timeMs, sampleTimes } of frameInstants) {
+  for (const { timeMs, sampleTimes, blur } of frameInstants) {
     let composed: Awaited<ReturnType<typeof composeAt>>;
     if (!blurCtx || !blurAccumulator || sampleTimes.length === 1) {
       composed = await composeAt(timeMs);
@@ -927,17 +964,17 @@ export async function renderTimelineFrames(
       seedBlurAccumulation(blurCtx, geometry);
       // The report describes the first instant of the shutter window, since no
       // single set of numbers describes a picture that is N instants averaged.
-      composed = await composeAt(sampleTimes[0]);
+      composed = await composeAt(sampleTimes[0], timeMs, 0, sampleTimes.length);
       accumulateBlurSample(blurCtx, canvas, blur.weight, geometry);
-      for (const sampleMs of sampleTimes.slice(1)) {
-        await composeAt(sampleMs);
+      for (const [index, sampleMs] of sampleTimes.slice(1).entries()) {
+        await composeAt(sampleMs, timeMs, index + 1, sampleTimes.length);
         accumulateBlurSample(blurCtx, canvas, blur.weight, geometry);
       }
     }
 
     frames.push({
       time_ms: timeMs,
-      png: new Uint8Array((blurAccumulator ?? canvas).toBuffer("image/png")),
+      png: new Uint8Array((sampleTimes.length > 1 && blurAccumulator ? blurAccumulator : canvas).toBuffer("image/png")),
       width,
       height,
       layers: composed.reports,

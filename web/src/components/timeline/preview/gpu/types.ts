@@ -35,6 +35,8 @@ export interface CompositeLayer {
   opacity: number;
   blendMode: CompositorBlendMode;
   zIndex: number;
+  /** Bottom-to-top order among clips and group surfaces at this zIndex. */
+  stackOrder?: number;
   /** Optional 2D placement. Default: identity (centered, contain-fit). */
   transform?: ClipTransform;
   /**
@@ -114,11 +116,26 @@ export interface CompositePrecomposite {
   id: string;
   /** Composite order of the blended result, ascending. */
   zIndex: number;
+  /** Bottom-to-top order among clips and group surfaces at this zIndex. */
+  stackOrder?: number;
   opacity: number;
   blendMode: CompositorBlendMode;
   /** Run once on the composed surface, not once per child. */
   effects?: ClipEffect[];
+  /** Applied once to the composed group. */
+  transition?: ResolvedTransition;
   /** Set when a precompositing group holds this one: the surface it draws into. */
+  precomposeGroupId?: string;
+}
+
+/** A scene adjustment at its resolved z-order, shared by both backends. */
+export interface CompositeAdjustment {
+  id: string;
+  zIndex: number;
+  opacity: number;
+  effects: ClipEffect[];
+  mask?: ClipMask;
+  wipe?: AnimationSampleMask;
   precomposeGroupId?: string;
 }
 
@@ -150,7 +167,8 @@ export interface TimelineCompositor {
    */
   setLayers(
     layers: CompositeLayer[],
-    precomposites?: CompositePrecomposite[]
+    precomposites?: CompositePrecomposite[],
+    adjustments?: CompositeAdjustment[]
   ): void;
   render(): void;
   /** Resolve once all submitted GPU work has completed (no-op on Canvas2D). */

@@ -22,7 +22,8 @@ import {
   previewTake,
   renderableReframe,
   resolveReframeCrop,
-  sampleReframeAt
+  sampleReframeAt,
+  sourceRate
 } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
@@ -40,7 +41,7 @@ import {
 } from "../../ui_primitives";
 
 import { createCompositor } from "./gpu/createCompositor";
-import type { CompositeLayer, TimelineCompositor } from "./gpu/types";
+import type { CompositeLayer, CompositePrecomposite, TimelineCompositor } from "./gpu/types";
 import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
 import { ReframeFocusOverlay } from "./ReframeFocusOverlay";
 import { ClipTrackingOverlay } from "./ClipTrackingOverlay";
@@ -57,7 +58,13 @@ import {
   resolveTextStaggerContext,
   trackZ,
   PREVIEW_OVERLAY_Z,
-  MAX_VIDEO_LAYERS
+  MAX_VIDEO_LAYERS,
+  accumulateBlurSample,
+  layerShutterTime,
+  motionBlurSampleTimes,
+  resolveFrameMotionBlur,
+  resolveSceneMotionBlur,
+  seedBlurAccumulation
 } from "@nodetool-ai/timeline/render";
 import type {
   ActiveLayer,
@@ -65,6 +72,7 @@ import type {
 } from "@nodetool-ai/timeline/render";
 import {
   buildCompositeLayers,
+  buildCompositeAdjustments,
   buildCompositePrecomposites,
   type ResolvedCompositeSource
 } from "./compositeLayers";
@@ -108,12 +116,29 @@ const UNCROPPED = { left: 0, right: 0, top: 0, bottom: 0 } as const;
 
 /** Scene properties that the shared model, rather than animation sampling, resolves. */
 export function sceneRequiresPerFrameResolution(
-  layers: readonly ActiveLayer[]
+  layers: readonly ActiveLayer[],
+  animatedLayout = false,
+  precomposites: readonly CompositePrecomposite[] = []
 ): boolean {
-  return layers.some(
+  return animatedLayout || precomposites.some((group) => group.transition !== undefined) || layers.some(
     (layer) =>
-      layer.transition !== undefined || layer.clip.reframe !== undefined
+      layer.transition !== undefined || layer.clip.reframe !== undefined ||
+      layer.camera2d?.keyframes !== undefined
   );
+}
+
+export function layoutDependsOnAnimatedText(clips: readonly TimelineClip[]): boolean {
+  const animatedTextIds = new Set(
+    clips
+      .filter((clip) => clip.textStyle && clip.animations?.some((animation) => animation.enabled !== false))
+      .map((clip) => clip.id)
+  );
+  if (animatedTextIds.size === 0) return false;
+  return clips.some((clip) => {
+    const layout = clip.layout;
+    return (layout?.targetClipId !== undefined && animatedTextIds.has(layout.targetClipId)) ||
+      layout?.children?.some((id) => animatedTextIds.has(id)) === true;
+  });
 }
 
 const compositorStyles = (theme: Theme) =>
@@ -186,6 +211,7 @@ const placeholderLayerStyles = (theme: Theme) =>
  * where every host reads it.
  */
 interface ActiveVideoSlot {
+  clip: TimelineClip;
   clipId: string;
   assetUrl: string;
   /**
@@ -265,6 +291,8 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     tracks,
     clips,
     mediaTracks,
+    camera2d,
+    tempo,
     sequenceWidth,
     sequenceHeight,
     sequenceFps
@@ -273,6 +301,8 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       tracks: s.tracks,
       clips: s.clips,
       mediaTracks: s.mediaTracks,
+      camera2d: s.camera2d,
+      tempo: s.tempo,
       sequenceWidth: s.width,
       sequenceHeight: s.height,
       sequenceFps: s.fps
@@ -411,6 +441,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const blurCanvasRef = useRef<HTMLCanvasElement>(null);
   const compositorRef = useRef<TimelineCompositor | null>(null);
   const captionRasterizerRef = useRef<CaptionRasterizer>(
     new CaptionRasterizer()
@@ -418,6 +449,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   const textRasterizerRef = useRef<TextRasterizer>(new TextRasterizer());
   const shapeRasterizerRef = useRef<ShapeRasterizer>(new ShapeRasterizer());
   const [gpuReady, setGpuReady] = useState(false);
+  const previewBlur = useMemo(() => resolveSceneMotionBlur(previewClips, undefined), [previewClips]);
   const [gpuFailed, setGpuFailed] = useState(false);
 
   // Frame element CSS size, mirrored into state so the transform gizmo
@@ -553,13 +585,19 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         const dpr = window.devicePixelRatio || 1;
         const w = Math.max(1, Math.floor(fit.w * dpr));
         const h = Math.max(1, Math.floor(fit.h * dpr));
+        const blurCanvas = blurCanvasRef.current;
+        if (blurCanvas && (blurCanvas.width !== w || blurCanvas.height !== h)) {
+          blurCanvas.width = w;
+          blurCanvas.height = h;
+        }
         if (canvas.width !== w || canvas.height !== h) {
           canvas.width = w;
           canvas.height = h;
           compositorRef.current?.resize(w, h);
           compositorRef.current?.setLayers(
             buildLayersRef.current(currentTimeMsRef.current),
-            precompositesRef.current
+            framePrecompositesRef.current,
+            buildAdjustmentsRef.current(currentTimeMsRef.current)
           );
           compositorRef.current?.render();
         }
@@ -593,6 +631,10 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
 
   const clipById = useMemo(
     () => new Map(previewClips.map((c) => [c.id, c])),
+    [previewClips]
+  );
+  const animatedLayout = useMemo(
+    () => layoutDependsOnAnimatedText(previewClips),
     [previewClips]
   );
 
@@ -683,7 +725,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   // the query time stays inside the current clip/word boundaries.
   const sceneSignature = useCallback(
     (timeMs: number) => {
-      const { layers, nextChangeMs } = computeActiveLayersWithHorizon(
+      const { layers, precomposites, adjustments, nextChangeMs } = computeActiveLayersWithHorizon(
         tracks,
         previewClips,
         timeMs,
@@ -692,7 +734,9 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           canvas: sceneCanvas,
           animationCache: animCacheRef.current,
           model3dBakeHash,
-          mediaTracks
+          mediaTracks,
+          camera2d,
+          tempo
         }
       );
       let sig = "";
@@ -704,26 +748,33 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         if (l.kind === "caption" && l.caption) {
           sig += `#${l.caption.words.findIndex((w) => w.active)}`;
         }
+        if (l.transition) sig += `~${l.transition.role}`;
         sig += "|";
       }
+      for (const group of precomposites) {
+        sig += `group:${group.clipId}:${group.transition?.role ?? ""}|`;
+      }
+      for (const adjustment of adjustments) sig += `adjustment:${adjustment.clipId}|`;
       return { signature: sig, nextChangeMs, layers };
     },
-    [tracks, previewClips, mediaTracks, sceneCanvas, model3dBakeHash]
+    [tracks, previewClips, mediaTracks, camera2d, tempo, sceneCanvas, model3dBakeHash]
   );
 
-  const { sceneLayers, precomposites, activeVideoSlots, placeholderLayers } =
+  const { sceneLayers, precomposites, adjustments, activeVideoSlots, placeholderLayers } =
     useMemo(() => {
       // The same scene description the offline exporter and the server render
       // consume, kept whole: what a layer draws with — its group's matrix and
       // precomposite, its cut, its shape mask, its track matte — is resolved
       // here once and read by `buildLayers` below.
-      const { layers: composite, precomposites: groups } =
+      const { layers: composite, precomposites: groups, adjustments: treatments } =
         computeActiveLayersWithHorizon(tracks, previewClips, currentTimeMs, {
           maxVideoLayers: HOT_POOL_SIZE,
           canvas: sceneCanvas,
           animationCache: animCacheRef.current,
           model3dBakeHash,
-          mediaTracks
+          mediaTracks,
+          camera2d,
+          tempo
         });
       const layers = matteViewEnabled
         ? matteOnlyLayers(composite, selectedClipId)
@@ -755,6 +806,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         }
         if (layer.kind === "video") {
           const slot: ActiveVideoSlot = {
+            clip: layer.clip,
             clipId: layer.clipId,
             assetUrl: url
           };
@@ -778,9 +830,39 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       };
       for (const layer of layers) visit(layer);
 
+      if (previewBlur.samplesPerFrame > 1) {
+        const frameMs = 1000 / Math.max(1, sequenceFps);
+        const frameBlur = resolveFrameMotionBlur(previewClips, undefined, currentTimeMs, frameMs, tracks);
+        const sampleTimes = motionBlurSampleTimes(currentTimeMs, frameMs, frameBlur);
+        const bound = new Set(videoSlots.map((slot) => videoSlotKey(slot.clipId, slot.assetUrl)));
+        const bindShutterVideo = (layer: ActiveLayer): void => {
+          if (layer.matte) bindShutterVideo(layer.matte.layer);
+          if (layer.kind !== "video" || !layer.assetId) return;
+          const url = resolveUrl(layer.assetId);
+          if (!url) return;
+          const key = videoSlotKey(layer.clipId, url);
+          if (bound.has(key)) return;
+          bound.add(key);
+          videoSlots.push({ clip: layer.clip, clipId: layer.clipId, assetUrl: url });
+        };
+        for (const sampleMs of [sampleTimes[0], sampleTimes[sampleTimes.length - 1]]) {
+          const shutterLayers = computeActiveLayers(tracks, previewClips, sampleMs, {
+            maxVideoLayers: HOT_POOL_SIZE,
+            canvas: sceneCanvas,
+            animationCache: animCacheRef.current,
+            model3dBakeHash,
+            mediaTracks,
+            camera2d,
+            tempo
+          });
+          shutterLayers.forEach(bindShutterVideo);
+        }
+      }
+
       return {
         sceneLayers: layers,
         precomposites: buildCompositePrecomposites(groups),
+        adjustments: buildCompositeAdjustments(treatments),
         activeVideoSlots: videoSlots,
         placeholderLayers: placeholders
       };
@@ -788,7 +870,11 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       tracks,
       previewClips,
       mediaTracks,
+      camera2d,
+      tempo,
       currentTimeMs,
+      sequenceFps,
+      previewBlur,
       resolveUrl,
       urlCacheVersion,
       sceneCanvas,
@@ -943,18 +1029,16 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           el.load();
         }
 
-        const clip = clipById.get(slot.clipId);
+        const clip = slot.clip;
         // If the speed change has been baked into the asset, the asset already
         // plays at the right rate; otherwise the source media is at original
         // speed and 1 timeline second consumes `rate` source seconds.
-        const rate = clip?.speedBaked
-          ? 1
-          : Math.max(0.0001, clip?.speedMultiplier ?? 1);
+        const rate = sourceRate(clip);
         // A remapped clip has no constant rate to hand the element: the curve can
         // hold, accelerate, or run backwards, and `playbackRate` is positive-only.
         // Its element stays paused and is seeked to the curve instead — here on
         // every scene bump, and once per rAF tick while playing (below).
-        const remapped = clip !== undefined && hasTimeRemap(clip);
+        const remapped = hasTimeRemap(clip);
 
         // Setting currentTime before HAVE_METADATA is silently clamped to 0 and
         // a subsequent play() can reject with AbortError. Defer until the
@@ -971,11 +1055,9 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             // call time, not effect-run time) so the loadedmetadata-deferred
             // path also gets a fresh value rather than a stale closure.
             const atMs = isPlaying ? getTimeMs() : currentTimeMs;
-            const rawTargetSec = !clip
-              ? 0
-              : slot.baked
-                ? bakedClipSourceTimeSec(clip, atMs)
-                : clipSourceTimeSec(clip, atMs);
+            const rawTargetSec = slot.baked
+              ? bakedClipSourceTimeSec(clip, atMs)
+              : clipSourceTimeSec(clip, atMs);
             const targetSec = rawTargetSec;
             // A remapped element never runs on its own clock, so its position is
             // always wrong by more than a playing element's tolerance would allow.
@@ -1075,7 +1157,6 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     isPlaying,
     getTimeMs,
     previewClips,
-    clipById,
     resolveUrl,
     // Not read directly — bumped every 2s during playback purely to
     // re-evaluate cold-pool preloads mid-clip (see the effect above).
@@ -1128,29 +1209,38 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
    * host uses. What this owns is only where a layer's pixels come from — a
    * pooled `<video>`, a decoded `<img>`, a rasterized bitmap.
    */
+  const framePrecompositesRef = useRef(precomposites);
   const buildLayers = useCallback(
-    (atMs: number): CompositeLayer[] => {
+    (atMs: number, frameTimeMs = atMs, sampleIndex = 0, sampleCount = 1): CompositeLayer[] => {
       const pool = videoRefs.current;
       const cache = animCacheRef.current;
       // A cut is the one thing whose picture changes every tick while the
       // active clip set stands still, and its record is resolved by the scene
       // model rather than sampled here — so while one is running the scene is
       // re-derived at the drawn time instead of reused from the last boundary.
-      const recomputed = sceneRequiresPerFrameResolution(sceneLayers)
-        ? computeActiveLayers(tracks, previewClips, atMs, {
+      const recomputed = sceneRequiresPerFrameResolution(sceneLayers, animatedLayout, precomposites) || sampleCount > 1
+        ? computeActiveLayersWithHorizon(tracks, previewClips, atMs, {
             maxVideoLayers: HOT_POOL_SIZE,
             canvas: sceneCanvas,
             animationCache: cache,
             model3dBakeHash,
-            mediaTracks
+            mediaTracks,
+            camera2d,
+            tempo,
+            layerTimeMs: (clip) => layerShutterTime(clip, frameTimeMs, sampleIndex, sampleCount, 1000 / Math.max(1, sequenceFps), undefined)
           })
         : null;
+      framePrecompositesRef.current = recomputed
+        ? buildCompositePrecomposites(recomputed.precomposites)
+        : precomposites;
       const layers =
         recomputed === null
           ? sceneLayers
           : matteViewEnabled
-            ? matteOnlyLayers(recomputed, selectedClipId)
-            : recomputed;
+            ? matteOnlyLayers(recomputed.layers, selectedClipId)
+            : recomputed.layers;
+      const layerTime = (layer: ActiveLayer): number =>
+        layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, 1000 / Math.max(1, sequenceFps), undefined);
 
       const resolveSource = (
         layer: ActiveLayer,
@@ -1166,17 +1256,18 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           return bitmap ? { source: bitmap, untransformed: true } : null;
         }
         if (layer.kind === "text") {
-          if (!layer.textStyle) return null;
+          if (!anim.textStyle) return null;
           // Staggered per-word motion is drawn into the raster itself; block
           // animations still resolve at the layer.
           const stagger = resolveTextStaggerContext(
             layer.clip,
-            atMs,
+            layerTime(layer),
             sceneCanvas,
-            cache
+            cache,
+            tempo
           );
           const bitmap = textRasterizerRef.current.rasterize(
-            layer.textStyle,
+            anim.textStyle,
             sequenceWidth,
             sequenceHeight,
             stagger
@@ -1239,17 +1330,22 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
 
       return buildCompositeLayers(layers, {
         atMs,
+        atMsForLayer: layerTime,
         canvas: sceneCanvas,
         animationCache: cache,
-        tracking: { mediaTracks, clips: previewClips },
+        tracking: { mediaTracks, clips: previewClips, tempo },
         resolveSource
       });
     },
     [
       sceneLayers,
+      precomposites,
+      animatedLayout,
       tracks,
       previewClips,
       mediaTracks,
+      camera2d,
+      tempo,
       ensureImageElement,
       resolveUrl,
       model3dSource,
@@ -1257,6 +1353,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       sceneCanvas,
       sequenceWidth,
       sequenceHeight,
+      sequenceFps,
       matteViewEnabled,
       selectedClipId
     ]
@@ -1264,6 +1361,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
 
   const presented = useRef(false);
   const presenting = useRef(false);
+  const paintingBlur = useRef(false);
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (!presented.current)
@@ -1280,10 +1378,81 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     if (!gpuReady) return;
     const compositor = compositorRef.current;
     if (!compositor) return;
+    const blurCanvas = blurCanvasRef.current;
+    const frameTimeMs = currentTimeMsRef.current;
+    const frameMs = 1000 / Math.max(1, sequenceFps);
+    const frameBlur = resolveFrameMotionBlur(previewClips, undefined, frameTimeMs, frameMs, tracks);
+    if (frameBlur.samplesPerFrame > 1 && blurCanvas) {
+      if (paintingBlur.current) return;
+      const ctx = blurCanvas.getContext("2d");
+      const source = canvasRef.current;
+      if (!ctx || !source) return;
+      paintingBlur.current = true;
+      const samples = motionBlurSampleTimes(frameTimeMs, frameMs, frameBlur);
+      const geometry = { canvasWidth: blurCanvas.width, canvasHeight: blurCanvas.height };
+      void (async () => {
+        seedBlurAccumulation(ctx, geometry);
+        for (const [index, sampleMs] of samples.entries()) {
+          const shutterLayers = computeActiveLayers(tracks, previewClips, sampleMs, {
+            maxVideoLayers: HOT_POOL_SIZE,
+            canvas: sceneCanvas,
+            animationCache: animCacheRef.current,
+            model3dBakeHash,
+            mediaTracks,
+            camera2d,
+            tempo,
+            layerTimeMs: (clip) => layerShutterTime(clip, frameTimeMs, index, samples.length, frameMs, undefined)
+          });
+          const sought = new Set<string>();
+          for (const layer of [...shutterLayers, ...sceneLayers]) {
+            if (layer.kind !== "video" || !layer.assetId) continue;
+            const url = resolveUrl(layer.assetId);
+            if (!url) continue;
+            const key = videoSlotKey(layer.clipId, url);
+            if (sought.has(key)) continue;
+            sought.add(key);
+            const binding = clipSlotMap.current.get(key);
+            const video = binding === undefined ? undefined : videoRefs.current[binding.index];
+            if (!video || video.readyState < 1) continue;
+            const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, index, samples.length, frameMs, undefined);
+            const sourceSec = layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, layerTimeMs);
+            if (Math.abs(video.currentTime - sourceSec) < 0.001) continue;
+            await new Promise<void>((resolve, reject) => {
+              const timeout = window.setTimeout(() => { cleanup(); reject(new Error(`Preview seek timed out for ${layer.clipId}`)); }, 2000);
+              const cleanup = (): void => {
+                window.clearTimeout(timeout);
+                video.removeEventListener("seeked", onSeeked);
+                video.removeEventListener("error", onError);
+              };
+              const onSeeked = (): void => { cleanup(); resolve(); };
+              const onError = (): void => { cleanup(); reject(new Error(`Preview seek failed for ${layer.clipId}`)); };
+              video.addEventListener("seeked", onSeeked);
+              video.addEventListener("error", onError);
+              video.currentTime = sourceSec;
+            });
+          }
+          compositor.setLayers(
+            buildLayersRef.current(sampleMs, frameTimeMs, index, samples.length),
+            framePrecompositesRef.current,
+            buildAdjustmentsRef.current(sampleMs)
+          );
+          compositor.render();
+          await compositor.flush();
+          accumulateBlurSample(ctx, source, 1 / samples.length, geometry);
+        }
+        if (!presented.current && alive.current) {
+          presented.current = true;
+          onReady();
+        }
+      })().catch((error: unknown) => onFailure({ stage: "renderer-frame", error }))
+        .finally(() => { paintingBlur.current = false; });
+      return;
+    }
     try {
       compositor.setLayers(
         buildLayersRef.current(currentTimeMsRef.current),
-        precompositesRef.current
+        framePrecompositesRef.current,
+        buildAdjustmentsRef.current(currentTimeMsRef.current)
       );
       compositor.render();
       if (
@@ -1314,7 +1483,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     } catch (error) {
       onFailure({ stage: "renderer-frame", error });
     }
-  }, [gpuReady, onFailure, onReady]);
+  }, [gpuReady, onFailure, onReady, previewBlur, sequenceFps, sceneLayers, resolveUrl, tracks, previewClips, sceneCanvas, model3dBakeHash, mediaTracks, camera2d, tempo]);
 
   // Latest-frame builder ref so renderFrame and the rAF loop can always call
   // the current buildLayers without listing it as a dep (it changes identity
@@ -1324,6 +1493,24 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   buildLayersRef.current = buildLayers;
   const precompositesRef = useRef(precomposites);
   precompositesRef.current = precomposites;
+  const hasAnimatedAdjustments = previewClips.some((clip) => clip.mediaType === "adjustment" && clip.animations?.length);
+  const hasAnimatedAdjustmentsRef = useRef(hasAnimatedAdjustments);
+  hasAnimatedAdjustmentsRef.current = hasAnimatedAdjustments;
+  const adjustmentsRef = useRef(adjustments);
+  adjustmentsRef.current = adjustments;
+  const buildAdjustments = (atMs: number) => hasAnimatedAdjustments
+    ? buildCompositeAdjustments(computeActiveLayersWithHorizon(tracks, previewClips, atMs, {
+        maxVideoLayers: HOT_POOL_SIZE,
+        canvas: sceneCanvas,
+        animationCache: animCacheRef.current,
+        model3dBakeHash,
+        mediaTracks,
+        camera2d,
+        tempo
+      }).adjustments)
+    : adjustments;
+  const buildAdjustmentsRef = useRef(buildAdjustments);
+  buildAdjustmentsRef.current = buildAdjustments;
 
   // One-shot render whenever scene state changes (paused mode + scrubbing +
   // inspector edits). `buildLayers` is the dep that matters: its identity
@@ -1376,8 +1563,10 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   latestTracksRef.current = tracks;
   const latestClipsRef = useRef(previewClips);
   latestClipsRef.current = previewClips;
-  const clipByIdRef = useRef(clipById);
-  clipByIdRef.current = clipById;
+  const animatedLayoutRef = useRef(animatedLayout);
+  animatedLayoutRef.current = animatedLayout;
+  const activeVideoClipsRef = useRef(new Map<string, TimelineClip>());
+  activeVideoClipsRef.current = new Map(activeVideoSlots.map((slot) => [slot.clipId, slot.clip]));
 
   // Change-horizon bookkeeping for the tick loop below: the `tracks`/`clips`
   // identities and playhead position the last signature+horizon computation
@@ -1447,7 +1636,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         // decoding-video check below would call the scene static.
         let remapSeeked = false;
         for (const binding of clipSlotMap.current.values()) {
-          const clip = clipByIdRef.current.get(binding.clipId);
+          const clip = activeVideoClipsRef.current.get(binding.clipId);
           if (!clip || !hasTimeRemap(clip)) continue;
           const el = videoRefs.current[binding.index];
           if (!el || el.readyState < 1) continue;
@@ -1479,23 +1668,32 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         // necessarily has a decoding video, so still scenes must also redraw.
         if (
           !dirty &&
-          (sceneRequiresPerFrameResolution(lastLayersRef.current) ||
+          (sceneRequiresPerFrameResolution(lastLayersRef.current, animatedLayoutRef.current, precompositesRef.current) ||
+            (adjustmentsRef.current.length > 0 && hasAnimatedAdjustmentsRef.current) ||
             hasActiveAnimation(
               lastLayersRef.current,
               liveMs,
               canvasSizeRef.current,
-              animCacheRef.current
+              animCacheRef.current,
+              latestClipsRef.current,
+              tempo
             ))
         ) {
           dirty = true;
         }
 
         if (dirty) {
-          compositor.setLayers(
-            buildLayersRef.current(liveMs),
-            precompositesRef.current
-          );
-          compositor.render();
+          currentTimeMsRef.current = liveMs;
+          if (previewBlur.samplesPerFrame > 1) {
+            renderFrame();
+          } else {
+            compositor.setLayers(
+              buildLayersRef.current(liveMs),
+              framePrecompositesRef.current,
+              buildAdjustmentsRef.current(liveMs)
+            );
+            compositor.render();
+          }
         }
         raf = requestAnimationFrame(tick);
       } catch (error) {
@@ -1504,7 +1702,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [gpuReady, isPlaying, onFailure]);
+  }, [gpuReady, isPlaying, onFailure, previewBlur, renderFrame]);
 
   const hasAnything = sceneLayers.length > 0 || placeholderLayers.length > 0;
 
@@ -1554,6 +1752,12 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     >
       <div ref={frameRef} css={frameStyles}>
         <canvas ref={canvasRef} css={canvasStyles} aria-hidden />
+        <canvas
+          ref={blurCanvasRef}
+          css={canvasStyles}
+          style={{ position: "absolute", inset: 0, display: previewBlur.samplesPerFrame > 1 ? "block" : "none", pointerEvents: "none" }}
+          aria-hidden
+        />
 
         <div
           ref={poolContainerRef}

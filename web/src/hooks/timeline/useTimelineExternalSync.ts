@@ -125,7 +125,8 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
             scriptEnabled: before.scriptEnabled,
             fps: before.fps,
             width: before.width,
-            height: before.height
+            height: before.height,
+            camera2d: before.camera2d ?? null
           };
           const serverDoc: TimelineMergeDoc = {
             tracks: sequence.tracks ?? [],
@@ -136,7 +137,8 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
             scriptEnabled: sequence.scriptEnabled ?? false,
             fps: sequence.fps,
             width: sequence.width,
-            height: sequence.height
+            height: sequence.height,
+            camera2d: sequence.camera2d ?? null
           };
           // The document as this editor last read or wrote it; without one
           // (a merge racing the initial load) the draft stands in as base.
@@ -173,7 +175,8 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
             scriptEnabled: before.scriptEnabled,
             fps: before.fps,
             width: before.width,
-            height: before.height
+            height: before.height,
+            camera2d: before.camera2d ?? null
           };
           const rebasedTemporal = timelineTemporalOf(store);
           store.temporal.setState({

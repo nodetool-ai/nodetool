@@ -664,6 +664,7 @@ async function applyOps(
       scriptEnabled: document.scriptEnabled,
       templateId: document.templateId,
       tempo: document.tempo,
+      camera2d: document.camera2d,
       setup: document.setup,
       mediaTracks: document.mediaTracks
     },
@@ -687,6 +688,7 @@ async function applyOps(
         derivedDocument.scriptEnabled = adapted.scriptEnabled;
       }
       if (adapted.tempo !== undefined) derivedDocument.tempo = adapted.tempo;
+      if (adapted.camera2d !== undefined) derivedDocument.camera2d = adapted.camera2d;
       if (adapted.setup !== undefined) derivedDocument.setup = adapted.setup;
       if (adapted.templateId !== undefined) {
         derivedDocument.templateId = adapted.templateId;

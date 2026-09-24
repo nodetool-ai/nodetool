@@ -1,9 +1,11 @@
 import {
   GpuFrameCompositor,
+  type FrameAdjustment,
   type FrameLayer,
   type GpuSourceTexture
 } from "@nodetool-ai/timeline/render";
 import type {
+  CompositeAdjustment,
   CompositeLayer,
   CompositePrecomposite,
   CompositeSource,
@@ -93,6 +95,7 @@ export class WebGPUCompositor implements TimelineCompositor {
 
   private sourceTextures = new Map<string, SourceTexture>();
   private layers: CompositeLayer[] = [];
+  private adjustments: CompositeAdjustment[] = [];
   private precomposites: CompositePrecomposite[] = [];
   private alpha = false;
   /** Shape masks rasterized to coverage bitmaps for the GPU mask pass. */
@@ -192,10 +195,12 @@ export class WebGPUCompositor implements TimelineCompositor {
 
   setLayers(
     layers: CompositeLayer[],
-    precomposites: CompositePrecomposite[] = []
+    precomposites: CompositePrecomposite[] = [],
+    adjustments: CompositeAdjustment[] = []
   ): void {
     this.layers = layers;
     this.precomposites = precomposites;
+    this.adjustments = adjustments;
   }
 
   private pruneStale(live: ReadonlySet<string>): void {
@@ -308,7 +313,8 @@ export class WebGPUCompositor implements TimelineCompositor {
         : undefined,
       effects: layer.effects,
       trackEffects: layer.trackEffects,
-      transition: layer.transition
+      transition: layer.transition,
+      stackOrder: layer.stackOrder
     };
   }
 
@@ -320,12 +326,23 @@ export class WebGPUCompositor implements TimelineCompositor {
     }
 
     const frameLayers = this.layers.map((layer) => this.toFrameLayer(layer));
+    const frameAdjustments: FrameAdjustment<CompositeSource>[] = this.adjustments.map((adjustment) => ({
+      id: adjustment.id,
+      zIndex: adjustment.zIndex,
+      opacity: adjustment.opacity,
+      effects: adjustment.effects,
+      shapeMask: adjustment.mask && typeof OffscreenCanvas !== "undefined"
+        ? this.masks.rasterize(adjustment.mask, new OffscreenCanvas(this.canvasWidth, this.canvasHeight)) ?? undefined
+        : undefined,
+      wipe: adjustment.wipe,
+      precomposeGroupId: adjustment.precomposeGroupId
+    }));
     const { texture, drawn } = core.composite(frameLayers, this.precomposites, {
       r: 0,
       g: 0,
       b: 0,
       a: this.alpha ? 0 : 1
-    });
+    }, frameAdjustments);
 
     // Every active clip was mid-decode (e.g. the incoming clip at a cut is
     // still seeking). Skip the present so the swap chain keeps showing the last

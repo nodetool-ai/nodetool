@@ -32,6 +32,7 @@ const makeMockHandler = (): TimelineAgentHandler => ({
   setClipParams: jest.fn(),
   setClipBinding: jest.fn(),
   setClipAnimations: jest.fn(),
+  staggerAnimations: jest.fn(),
   clearClipAnimations: jest.fn(),
   getClipFrames: jest.fn(),
   addGroup: jest.fn(),

@@ -31,6 +31,7 @@ import type {
   MediaTrack,
   TimelineClip,
   TimelineTempo,
+  TimelineCamera2D,
   TimelineTrack
 } from "@nodetool-ai/timeline";
 
@@ -41,8 +42,9 @@ import {
   computeActiveLayersWithHorizon,
   createAnimationCompileCache,
   motionBlurSampleTimes,
+  layerShutterTime,
   resolveAnimatedLayerProps,
-  resolveMotionBlur,
+  resolveFrameMotionBlur,
   resolveTextStaggerContext,
   seedBlurAccumulation
 } from "@nodetool-ai/timeline/render";
@@ -53,6 +55,7 @@ import type {
 } from "@nodetool-ai/timeline/render";
 import {
   buildCompositeLayer,
+  buildCompositeAdjustments,
   buildCompositePrecomposites,
   type ResolvedCompositeSource
 } from "../preview/compositeLayers";
@@ -96,6 +99,7 @@ interface RenderTimelineOptions {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   mediaTracks?: MediaTrack[];
+  camera2d?: TimelineCamera2D | null;
   /** Sequence resolution in pixels. */
   width: number;
   height: number;
@@ -316,7 +320,8 @@ export async function renderTimeline(
   canvas.width = width;
   canvas.height = height;
 
-  const blur = resolveMotionBlur(opts.motionBlur);
+  const frameMs = 1000 / fps;
+  const hasMotionBlur = clips.some((clip) => (clip.motionBlur?.samplesPerFrame ?? 1) > 1) || (opts.motionBlur?.samplesPerFrame ?? 1) > 1;
   /**
    * Where the shutter window is summed, and what the encoder then reads.
    *
@@ -326,7 +331,7 @@ export async function renderTimeline(
    * as it did before.
    */
   const blurCanvas =
-    blur.samplesPerFrame > 1 ? document.createElement("canvas") : null;
+    hasMotionBlur ? document.createElement("canvas") : null;
   if (blurCanvas) {
     blurCanvas.width = width;
     blurCanvas.height = height;
@@ -464,8 +469,8 @@ export async function renderTimeline(
      * shutter window with it on — the same resolve, seek and composite either
      * way, so a blurred export is N of the export it would otherwise have been.
      */
-    const composeAt = async (timeMs: number): Promise<void> => {
-      const { layers, precomposites } = computeActiveLayersWithHorizon(
+    const composeAt = async (timeMs: number, frameTimeMs = timeMs, sampleIndex = 0, sampleCount = 1): Promise<void> => {
+      const { layers, precomposites, adjustments } = computeActiveLayersWithHorizon(
         tracks,
         clips,
         timeMs,
@@ -474,7 +479,10 @@ export async function renderTimeline(
           canvas: animCanvas,
           animationCache: animCache,
           model3dBakeHash,
-          mediaTracks: opts.mediaTracks
+          mediaTracks: opts.mediaTracks,
+          camera2d: opts.camera2d,
+          tempo: opts.tempo,
+          layerTimeMs: (clip) => layerShutterTime(clip, frameTimeMs, sampleIndex, sampleCount, frameMs, opts.motionBlur)
         }
       );
 
@@ -487,6 +495,7 @@ export async function renderTimeline(
         layer: ActiveLayer,
         anim: AnimatedLayerProps
       ): Promise<ResolvedCompositeSource | null> => {
+        const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, frameMs, opts.motionBlur);
         if (layer.kind === "caption" && layer.caption) {
           const bitmap = captionRasterizer.rasterize(
             layer.caption,
@@ -495,17 +504,18 @@ export async function renderTimeline(
           );
           return bitmap ? { source: bitmap, untransformed: true } : null;
         }
-        if (layer.kind === "text" && layer.textStyle) {
+        if (layer.kind === "text" && anim.textStyle) {
           // Staggered per-word motion is drawn into the raster itself,
           // through the same rasterizer the live preview uses.
           const stagger = resolveTextStaggerContext(
             layer.clip,
-            timeMs,
+            layerTimeMs,
             animCanvas,
-            animCache
+            animCache,
+            opts.tempo
           );
           const bitmap = textRasterizer.rasterize(
-            layer.textStyle,
+            anim.textStyle,
             width,
             height,
             stagger
@@ -541,7 +551,7 @@ export async function renderTimeline(
           const el = await videoPool.seek(
             layer.clipId,
             url,
-            layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, timeMs),
+            layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, layerTimeMs),
             signal
           );
           return el.videoWidth === 0 ? null : { source: el };
@@ -558,15 +568,17 @@ export async function renderTimeline(
       const sources = new Map<ActiveLayer, ResolvedCompositeSource>();
       await Promise.all(
         needed.map(async (layer) => {
+          const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, frameMs, opts.motionBlur);
           // Rasterizing a layer can depend on its sampled props (a shape's trim
           // range), and this prefetch runs before `buildCompositeLayer` samples
           // them, so it samples them itself. The compile cache makes the second
           // call a lookup.
           const source = await sourceFor(
             layer,
-            resolveAnimatedLayerProps(layer, timeMs, animCanvas, animCache, {
+            resolveAnimatedLayerProps(layer, layerTimeMs, animCanvas, animCache, {
               mediaTracks: opts.mediaTracks ?? [],
-              clips
+              clips,
+              tempo: opts.tempo
             })
           );
           if (source) sources.set(layer, source);
@@ -575,11 +587,12 @@ export async function renderTimeline(
 
       const composite: CompositeLayer[] = [];
       for (const layer of layers) {
+        const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, frameMs, opts.motionBlur);
         const built = buildCompositeLayer(layer, {
-          atMs: timeMs,
+          atMs: layerTimeMs,
           canvas: animCanvas,
           animationCache: animCache,
-          tracking: { mediaTracks: opts.mediaTracks ?? [], clips },
+          tracking: { mediaTracks: opts.mediaTracks ?? [], clips, tempo: opts.tempo },
           resolveSource: (target) => sources.get(target) ?? null
         });
         if (built) composite.push(built);
@@ -587,7 +600,8 @@ export async function renderTimeline(
 
       compositor.setLayers(
         composite,
-        buildCompositePrecomposites(precomposites)
+        buildCompositePrecomposites(precomposites),
+        buildCompositeAdjustments(adjustments)
       );
       compositor.render();
       await compositor.flush();
@@ -607,18 +621,26 @@ export async function renderTimeline(
         releasePastIndex++;
       }
 
+      const blur = resolveFrameMotionBlur(clips, opts.motionBlur, timeMs, frameMs, tracks);
       const sampleTimes = motionBlurSampleTimes(
         timeMs,
         frameMs,
-        opts.motionBlur
+        blur
       );
       if (!blurCtx || sampleTimes.length === 1) {
         await composeAt(timeMs);
+        if (blurCtx) {
+          blurCtx.setTransform(1, 0, 0, 1, 0, 0);
+          blurCtx.globalCompositeOperation = "copy";
+          blurCtx.globalAlpha = 1;
+          blurCtx.drawImage(canvas, 0, 0);
+          blurCtx.globalCompositeOperation = "source-over";
+        }
       } else {
         seedBlurAccumulation(blurCtx, blurGeometry);
-        for (const sampleMs of sampleTimes) {
+        for (const [sampleIndex, sampleMs] of sampleTimes.entries()) {
           throwIfAborted(signal);
-          await composeAt(sampleMs);
+          await composeAt(sampleMs, timeMs, sampleIndex, sampleTimes.length);
           accumulateBlurSample(blurCtx, canvas, blur.weight, blurGeometry);
         }
       }

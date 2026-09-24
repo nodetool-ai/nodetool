@@ -8,6 +8,7 @@ import {
 import { toCanvas2DLayer } from "../compositeLayers";
 import { isSourceReady, shouldPresentFrame, sourceDimensions } from "./source";
 import type {
+  CompositeAdjustment,
   CompositeLayer,
   CompositePrecomposite,
   CompositeSource,
@@ -38,6 +39,7 @@ export class Canvas2DCompositor implements TimelineCompositor {
   private refHeight = 0;
   private layers: CompositeLayer[] = [];
   private precomposites: CompositePrecomposite[] = [];
+  private adjustments: CompositeAdjustment[] = [];
   private alpha = false;
   /** Scratch canvas for feathered wipe masks, reused across layers/frames. */
   private maskScratch: HTMLCanvasElement | null = null;
@@ -82,10 +84,12 @@ export class Canvas2DCompositor implements TimelineCompositor {
 
   setLayers(
     layers: CompositeLayer[],
-    precomposites: CompositePrecomposite[] = []
+    precomposites: CompositePrecomposite[] = [],
+    adjustments: CompositeAdjustment[] = []
   ): void {
     this.layers = layers;
     this.precomposites = precomposites;
+    this.adjustments = adjustments;
   }
 
   render(): void {
@@ -116,6 +120,17 @@ export class Canvas2DCompositor implements TimelineCompositor {
       {
         maskScratch: (width, height) => this.scratchFor(width, height),
         projectiveSurface: (width, height) => this.takeSurface(width, height),
+        effectSurface: (width, height) => this.takeSurface(width, height),
+        adjustments: this.adjustments.map((adjustment) => ({
+          clipId: adjustment.id,
+          zIndex: adjustment.zIndex,
+          opacity: adjustment.opacity,
+          effects: adjustment.effects,
+          mask: adjustment.mask,
+          wipe: adjustment.wipe,
+          precomposeGroupId: adjustment.precomposeGroupId
+        })),
+        adjustmentSurface: (width, height) => this.scratchFor(width, height),
         precomposites: this.precomposites,
         precompositeSurface: (width, height) => this.takeSurface(width, height),
         maskSurface: (width, height) => this.takeSurface(width, height),
@@ -139,7 +154,8 @@ export class Canvas2DCompositor implements TimelineCompositor {
   ): void {
     const dropped = unsupportedEffectTypes([
       ...layers,
-      ...this.precomposites
+      ...this.precomposites,
+      ...this.adjustments
     ]).filter((type) => !this.reportedUnsupported.has(type));
     if (dropped.length === 0) return;
     for (const type of dropped) this.reportedUnsupported.add(type);

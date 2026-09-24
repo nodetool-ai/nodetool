@@ -176,6 +176,35 @@ describe("runTimelineValidate", () => {
 });
 
 describe("runTimelineDebug", () => {
+  it("preserves camera2d through a read-only session", async () => {
+    const camera2d = {
+      position: { x: 10, y: -20 }, depthPx: 50, focalLengthPx: 1800,
+      focusDepthPx: 0, aperturePx: 14,
+      keyframes: [{ timeMs: 0, position: { x: 10, y: -20 }, depthPx: 50 }]
+    };
+    const file = join(mkdtempSync(join(tmpdir(), "timeline-camera-")), "timeline.json");
+    writeFileSync(file, JSON.stringify({
+      fps: 24, width: 1280, height: 720,
+      document: { tracks: [track], clips: [clip], markers: [], camera2d }
+    }));
+    const core = fakeCore();
+    const createBridge = vi.fn((initial: { sequence: { camera2d?: typeof camera2d } }) => ({
+      tools: [{ name: "ui_timeline_get_state", execute: async () => ({ ok: true }) }],
+      finalState: () => ({
+        documentTracks: [track], documentClips: [clip], markers: [],
+        camera2d: initial.sequence.camera2d
+      })
+    }));
+    await runTimelineDebug(file, {
+      interact: parseInteractionScript('[{"tool":"get_state"}]'),
+      outDir: outDir()
+    }, { loadSequence: async () => null, core, createBridge });
+
+    expect(createBridge.mock.calls[0]?.[0].sequence.camera2d).toEqual(camera2d);
+    expect((core.calls.build[0] as { finalDocument?: { camera2d?: unknown } }).finalDocument?.camera2d)
+      .toEqual(camera2d);
+  });
+
   it("seeds the bridge from the document and records each step", async () => {
     const createBridge = vi.fn(() => fakeBridge());
     const dir = outDir();

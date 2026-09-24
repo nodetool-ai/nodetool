@@ -97,6 +97,7 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   setClipParams: jest.fn(),
   setClipBinding: jest.fn(),
   setClipAnimations: jest.fn(),
+  staggerAnimations: jest.fn(),
   clearClipAnimations: jest.fn(),
   getClipFrames: jest.fn(),
   addGroup: jest.fn(),
@@ -632,6 +633,21 @@ describe("ui_timeline_* tools", () => {
       [{ role: "loop", preset: "float" }],
       "add"
     );
+  });
+
+  it("passes ordered clip IDs and offset to cross-clip stagger", async () => {
+    const handler = createMockHandler();
+    handler.staggerAnimations.mockReturnValue([clipNode()]);
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_stagger_animations",
+      { timeline_id: SEQ_ID, clip_ids: ["logo", "wordmark"], offset_ms: 120 },
+      "tc-stagger",
+      ctx
+    );
+
+    expect(handler.staggerAnimations).toHaveBeenCalledWith(["logo", "wordmark"], 120);
   });
 
   it("rejects an animation with an unknown role during validation", async () => {

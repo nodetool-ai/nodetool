@@ -60,7 +60,8 @@ export async function persistTimelineDocument(
       scriptEnabled: state.scriptEnabled,
       fps: state.fps,
       width: state.width,
-      height: state.height
+      height: state.height,
+      camera2d: state.camera2d ?? null
     });
   }
 }

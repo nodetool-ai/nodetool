@@ -39,6 +39,7 @@ import {
 } from "@nodetool-ai/timeline/render";
 
 import {
+  buildCompositeAdjustments,
   buildCompositeLayers,
   buildCompositePrecomposites,
   toCanvas2DLayer
@@ -236,6 +237,26 @@ function browserFrame(
 }
 
 describe("the browser layer list carries what the scene model resolved", () => {
+  it("forwards an adjustment's animated clip mask", () => {
+    const tracks = [videoTrack(), videoTrack({ id: "adjustment", index: 1 })];
+    const clips = [
+      imageClip({ id: "under" }),
+      imageClip({
+        id: "adj", trackId: "adjustment", mediaType: "adjustment",
+        effects: [neutralGrade], mask: { kind: "rect", radiusPx: 0 },
+        animations: [{
+          id: "round", role: "emphasis", preset: "custom", durationMs: 1000,
+          styleTracks: [{ target: "mask.radiusPx", keyframes: [
+            { t: 0, value: 0 }, { t: 1, value: 20 }
+          ] }]
+        }]
+      })
+    ];
+    const scene = computeActiveLayersWithHorizon(tracks, clips, 500, { canvas: FRAME });
+    expect(buildCompositeAdjustments(scene.adjustments)[0]?.mask)
+      .toMatchObject({ kind: "rect", radiusPx: 10 });
+  });
+
   it("copies transition, shape mask, matte and precomposite across untouched", () => {
     const tracks = [videoTrack()];
     const clips = [
@@ -263,6 +284,7 @@ describe("the browser layer list carries what the scene model resolved", () => {
     for (const [index, active] of scene.layers.entries()) {
       const built = layers[index];
       expect(built.zIndex).toBe(trackZ(active.trackIndex));
+      expect(built.stackOrder).toBe(active.stackOrder);
       expect(built.opacity).toBeCloseTo(active.opacity);
       expect(built.precomposeGroupId).toBe(active.precomposeGroupId);
       expect(built.transition).toBe(active.transition);
@@ -371,6 +393,38 @@ describe("a group's effects and blend act on its children together", () => {
 
     expect(ctx.draws.map((d) => d.source)).toEqual(["left", "right"]);
     for (const draw of ctx.draws) expect(draw.alpha).toBeCloseTo(1);
+  });
+});
+
+describe("a group cut reaches the browser compositor", () => {
+  it("forwards the whole-group transition and draws its surface once", () => {
+    const tracks = [videoTrack(), videoTrack({ id: "overlay", index: 1 })];
+    const clips = [
+      imageClip({ id: "outgoing", startMs: 0, durationMs: 600 }),
+      imageClip({
+        id: "group", mediaType: "group", startMs: 400, durationMs: 600,
+        transitionIn: { type: "crossfade", durationMs: 200 }
+      }),
+      imageClip({
+        id: "child", trackId: "overlay", parentId: "group",
+        startMs: 400, durationMs: 600
+      })
+    ];
+    const { scene, drawable, precomposites } = browserFrame(tracks, clips, 500);
+    expect(precomposites).toHaveLength(1);
+    expect(precomposites[0].transition).toBe(scene.precomposites[0].transition);
+    expect(precomposites[0].stackOrder).toBe(scene.precomposites[0].stackOrder);
+
+    const ctx = new RecordingContext("frame");
+    const pool = new SurfacePool();
+    pool.reset();
+    drawTimelineFrame(ctx, drawable, GEOMETRY, {
+      precomposites,
+      precompositeSurface: pool.take,
+      maskScratch: pool.take
+    });
+    expect(pool.taken[0].draws.map((draw) => draw.source)).toEqual(["child"]);
+    expect(ctx.draws.find((draw) => draw.source === "surface-0")?.alpha).toBeCloseTo(0.5);
   });
 });
 

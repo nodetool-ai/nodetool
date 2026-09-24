@@ -126,7 +126,7 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "Ops: get_state, add_track, move_track, add_media_clip, add_text_clip, add_shape_clip, " +
         "add_group, split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
         "set_clip_params, set_parent, set_clip_binding, set_transition, set_mask, " +
-        "set_matte, set_time_remap, set_effects, animate_clip, " +
+        "set_matte, set_time_remap, set_effects, animate_clip, stagger_animations, " +
         "set_baked_animation, " +
         "clear_animations, list_animation_presets, select_clip, seek, " +
         "add_marker, delete_marker, set_markers_from_beats, snap_to_beats, " +
@@ -488,7 +488,7 @@ export const SET_TIMELINE_DOCUMENT_SCHEMA: JsonSchema = {
       type: "object",
       description:
         "The whole document to store: {tracks, clips, markers, transcript?, " +
-        "scriptEnabled?}. It replaces the stored one field for field, so " +
+        "scriptEnabled?, camera2d?}. Set camera2d to null to clear the camera. It replaces the stored one field for field, so " +
         "anything you leave out is dropped — read the current document with " +
         "get_timeline and send it back changed, rather than sending only the " +
         "part you edited. `markers` may be omitted and defaults to an empty " +

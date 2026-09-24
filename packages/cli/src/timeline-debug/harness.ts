@@ -63,6 +63,7 @@ export interface TimelineBridgeSnapshot {
   markers?: TimelineDocument["markers"];
   /** The tempo the session ended on — `set_tempo`, or the first midi track. */
   tempo?: TimelineDocument["tempo"];
+  camera2d?: TimelineDocument["camera2d"];
 }
 
 export interface TimelineBridge {
@@ -76,6 +77,7 @@ export type CreateTimelineBridge = (initial: {
     clips: TimelineDocument["clips"];
     markers?: TimelineDocument["markers"];
     tempo?: TimelineDocument["tempo"];
+    camera2d?: TimelineDocument["camera2d"];
   };
 }) => TimelineBridge;
 
@@ -170,17 +172,19 @@ export async function runTimelineDebug(
 
   if (steps.length > 0) {
     const createBridge = deps.createBridge ?? (await loadBridgeFactory());
-    const bridge = createBridge({
-      sequence: {
-        ...resolved.meta,
-        tracks: resolved.document.tracks,
-        clips: resolved.document.clips,
-        markers: resolved.document.markers,
-        // Ticks are read against it, so a session that never sees the stored
-        // tempo rescales the midi clips off the 120 BPM default.
-        tempo: resolved.document.tempo
-      }
-    });
+    const sequence: Parameters<CreateTimelineBridge>[0]["sequence"] = {
+      ...resolved.meta,
+      tracks: resolved.document.tracks,
+      clips: resolved.document.clips,
+      markers: resolved.document.markers,
+      // Ticks are read against it, so a session that never sees the stored
+      // tempo rescales the midi clips off the 120 BPM default.
+      tempo: resolved.document.tempo
+    };
+    if (resolved.document.camera2d !== undefined) {
+      sequence.camera2d = resolved.document.camera2d;
+    }
+    const bridge = createBridge({ sequence });
     const byName = new Map(bridge.tools.map((t) => [t.name, t]));
 
     for (const step of steps) {
@@ -222,15 +226,21 @@ export async function runTimelineDebug(
   // The bridge hands back its full tracks, clips and markers, so the document
   // the session ended with is a real document. Markers fall back to the ones
   // the target carried, for a bridge that does not report them.
-  const finalDocument: TimelineDocument | undefined =
-    snapshot?.documentTracks && snapshot.documentClips
-      ? {
-          tracks: snapshot.documentTracks,
-          clips: snapshot.documentClips,
-          markers: snapshot.markers ?? resolved.document.markers,
-          tempo: snapshot.tempo ?? resolved.document.tempo
-        }
-      : undefined;
+  const finalCamera2d = snapshot?.camera2d !== undefined
+    ? snapshot.camera2d
+    : resolved.document.camera2d;
+  let finalDocument: TimelineDocument | undefined;
+  if (snapshot?.documentTracks && snapshot.documentClips) {
+    finalDocument = {
+      tracks: snapshot.documentTracks,
+      clips: snapshot.documentClips,
+      markers: snapshot.markers ?? resolved.document.markers,
+      tempo: snapshot.tempo ?? resolved.document.tempo
+    };
+    if (finalCamera2d !== undefined) {
+      finalDocument.camera2d = finalCamera2d;
+    }
+  }
 
   const reportInput: Parameters<typeof core.buildTimelineDebugReport>[0] = {
     target: resolved.target,

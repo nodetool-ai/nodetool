@@ -895,6 +895,26 @@ describe("set_timeline_document", () => {
     markers: []
   });
 
+  it("preserves wiggle envelopes and grid repeater settings", async () => {
+    const row = await makeTimeline();
+    const base = replacement();
+    const first = {
+      ...base.clips[0],
+      animationLinks: [{ target: "positionX", kind: "wiggle", amplitude: 6, frequencyHz: 8,
+        amplitudeKeyframes: [{ timeMs: 0, value: 0 }, { timeMs: 800, value: 6 }] }],
+      repeater: { count: 6, columns: 3, positionStep: { x: 100, y: 0 }, rowStep: { x: 0, y: 60 }, timeStepMs: 0 }
+    };
+    const result = await run().invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: { ...base, clips: [first, base.clips[1]] }
+    });
+    expect(result).toMatchObject({ ok: true, written: true });
+    expect((await TimelineSequence.findById(row.id))?.toDocument().clips[0]).toMatchObject({
+      animationLinks: first.animationLinks,
+      repeater: first.repeater
+    });
+  });
+
   it("writes the document, restamps the duration, and re-validates it", async () => {
     const row = await makeTimeline();
     const result = (await run().invoke("set_timeline_document", {

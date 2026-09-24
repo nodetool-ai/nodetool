@@ -167,12 +167,14 @@ function stubMediaElement(): void {
     configurable: true,
     get: () => 1
   });
-  let time = 0;
+  const times = new WeakMap<HTMLMediaElement, number>();
   Object.defineProperty(HTMLMediaElement.prototype, "currentTime", {
     configurable: true,
-    get: () => time,
-    set: (value: number) => {
-      time = value;
+    get(this: HTMLMediaElement) {
+      return times.get(this) ?? 0;
+    },
+    set(this: HTMLMediaElement, value: number) {
+      times.set(this, value);
     }
   });
   HTMLMediaElement.prototype.load = jest.fn();
@@ -181,7 +183,7 @@ function stubMediaElement(): void {
 }
 
 /** Render the preview at `atMs` and answer the bound element's seek time. */
-async function seekAt(atMs: number): Promise<number | undefined> {
+async function seekAt(atMs: number, asset = "asset-bake", clipId?: string): Promise<number | undefined> {
   mockTimeMs = atMs;
   const view = render(
     <ThemeProvider theme={mockTheme}>
@@ -195,7 +197,8 @@ async function seekAt(atMs: number): Promise<number | undefined> {
     await Promise.resolve();
   });
   const bound = [...view.container.querySelectorAll("video")].find(
-    (el) => el.getAttribute("data-asset") === "blob:asset-bake"
+    (el) => el.getAttribute("data-asset") === `blob:${asset}` &&
+      (clipId === undefined || el.dataset.clipId === clipId)
   );
   const seeked = bound?.currentTime;
   view.unmount();
@@ -225,5 +228,28 @@ describe("PreviewCompositor — a baked 3D clip", () => {
     };
     mockClips = [stale];
     expect(await seekAt(2000)).toBeUndefined();
+  });
+});
+
+describe("PreviewCompositor — repeated video", () => {
+  beforeAll(stubMediaElement);
+
+  it("seeks each expanded copy using its own shifted start", async () => {
+    mockClips = [makeClip({
+      id: "shot",
+      trackId: track.id,
+      name: "Shot",
+      mediaType: "video",
+      sourceType: "imported",
+      status: "generated",
+      startMs: 0,
+      durationMs: 2000,
+      inPointMs: 1000,
+      currentAssetId: "asset-video",
+      repeater: { count: 2, positionStep: { x: 20, y: 0 }, timeStepMs: 100 },
+      temporalEcho: { copies: 1, intervalMs: 200, opacityDecay: 0.5 }
+    })];
+    expect(await seekAt(500, "asset-video", "shot:repeat:1")).toBeCloseTo(1.4);
+    expect(await seekAt(500, "asset-video", "shot:repeat:1:echo:1")).toBeCloseTo(1.2);
   });
 });
