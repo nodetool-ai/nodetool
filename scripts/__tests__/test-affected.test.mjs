@@ -35,7 +35,7 @@ describe("buildPlan", () => {
     expect(steps).toHaveLength(2);
     // web is an app, so it gets a jest step instead of a turbo filter.
     expect(steps[0].args).toEqual([
-      "turbo",
+      "scripts/run-turbo.mjs",
       "run",
       "test",
       "--filter=@nodetool-ai/kernel"

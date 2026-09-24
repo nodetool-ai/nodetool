@@ -16,8 +16,8 @@
     "dev:fast": "node ../../scripts/run-websocket-dev.mjs server stale",
     "test-ui": "node ../../scripts/run-websocket-dev.mjs test-ui",
     "devserver": "npm run test-ui",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "test:watch": "node ../../scripts/run-vitest.mjs",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {

@@ -17,7 +17,7 @@
   },
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
-    "test": "vitest run",
+    "test": "node ../../scripts/run-vitest.mjs run",
     "test:mutation": "stryker run",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },

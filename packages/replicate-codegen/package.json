@@ -12,7 +12,7 @@
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "generate": "tsx src/generate.ts",
-    "test": "vitest run",
+    "test": "node ../../scripts/run-vitest.mjs run",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "devDependencies": {

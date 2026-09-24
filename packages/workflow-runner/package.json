@@ -10,8 +10,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "test:watch": "node ../../scripts/run-vitest.mjs",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
     "typecheck:e2e": "node ../../scripts/run-tsc.mjs --noEmit -p e2e/tsconfig.json",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"

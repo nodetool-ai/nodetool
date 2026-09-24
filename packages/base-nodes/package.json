@@ -10,11 +10,11 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
-    "test": "vitest run",
-    "test:all": "vitest run --config vitest.config.all.ts",
-    "test:e2e": "vitest run --config vitest.config.e2e.ts",
-    "test:metadata-parity": "vitest run tests/metadata-parity.test.ts",
-    "test:watch": "vitest",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "test:all": "node ../../scripts/run-vitest.mjs run --config vitest.config.all.ts",
+    "test:e2e": "node ../../scripts/run-vitest.mjs run --config vitest.config.e2e.ts",
+    "test:metadata-parity": "node ../../scripts/run-vitest.mjs run tests/metadata-parity.test.ts",
+    "test:watch": "node ../../scripts/run-vitest.mjs",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {

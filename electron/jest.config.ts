@@ -1,10 +1,14 @@
 const isCi = process.env.CI === 'true';
+const configuredWorkers = process.env.NODETOOL_TEST_WORKERS;
+if (configuredWorkers && (!/^[1-9]\d*$/.test(configuredWorkers) || !Number.isSafeInteger(Number(configuredWorkers)))) {
+  throw new Error('NODETOOL_TEST_WORKERS must be a positive integer.');
+}
 
 export default {
   // GitHub-hosted runners (7 GB RAM) OOM-kill ts-jest workers when several
-  // large Electron test files compile in parallel. Run serially in CI —
-  // slower but deterministic. Local dev keeps full parallelism.
-  ...(isCi ? { maxWorkers: 1, workerIdleMemoryLimit: '1GB' } : {}),
+  // large Electron test files compile in parallel. Keep local runs small too.
+  maxWorkers: configuredWorkers ? Number(configuredWorkers) : isCi ? 1 : 2,
+  workerIdleMemoryLimit: '1GB',
   preset: 'ts-jest',
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/src/__mocks__/setup.ts'],

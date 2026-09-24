@@ -10,12 +10,12 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
-    "test": "vitest run",
-    "test:metadata": "vitest run tests/metadata.test.ts",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "test:metadata": "node ../../scripts/run-vitest.mjs run tests/metadata.test.ts",
     "test:mutation": "stryker run",
     "test:mutation:crash": "stryker run stryker.crash.config.json",
-    "test:crash-fuzz": "vitest run --config vitest.crash.config.ts",
-    "test:watch": "vitest",
+    "test:crash-fuzz": "node ../../scripts/run-vitest.mjs run --config vitest.crash.config.ts",
+    "test:watch": "node ../../scripts/run-vitest.mjs",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {

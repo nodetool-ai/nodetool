@@ -26,9 +26,9 @@
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "pretest": "node scripts/ensure-deps-built.mjs",
-    "test": "vitest run",
+    "test": "node ../../scripts/run-vitest.mjs run",
     "pretest:watch": "node scripts/ensure-deps-built.mjs",
-    "test:watch": "vitest",
+    "test:watch": "node ../../scripts/run-vitest.mjs",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit",
     "codegen": "tsx scripts/codegen.ts",
     "codegen:check": "tsx scripts/codegen.ts --check"

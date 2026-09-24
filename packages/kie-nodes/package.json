@@ -10,7 +10,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"const fs=require('node:fs'); fs.cpSync('src/kie-manifest.json','dist/kie-manifest.json'); if (fs.existsSync('src/generated')) fs.cpSync('src/generated','dist/generated',{recursive:true});\"",
-    "test": "vitest run",
+    "test": "node ../../scripts/run-vitest.mjs run",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {

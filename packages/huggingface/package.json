@@ -10,7 +10,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
-    "test": "vitest run",
+    "test": "node ../../scripts/run-vitest.mjs run",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {

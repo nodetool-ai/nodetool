@@ -11,8 +11,8 @@
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "check": "npm run lint && npm run test",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "test:watch": "node ../../scripts/run-vitest.mjs",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit",
     "placeholders": "node scripts/make-placeholders.mjs"
   },
