@@ -11,7 +11,7 @@ import {
 } from "../src/graph-validation.js";
 import type { NodeMetadata } from "../src/metadata.js";
 import type { NodePropertyValidationIssue } from "../src/validation.js";
-import { NODE_TYPE_MIGRATIONS } from "@nodetool-ai/protocol";
+import { LOOP_NODE_TYPE, NODE_TYPE_MIGRATIONS } from "@nodetool-ai/protocol";
 import {
   refuseSandboxDelivery,
   setProcessSandboxModuleCatalog,
@@ -1541,6 +1541,55 @@ describe("validateGraph — cycles", () => {
       registry
     );
     expect(report.issues.some((i) => i.code === "cycle")).toBe(false);
+  });
+
+  it("accepts feedback into Loop.next and Loop.condition", () => {
+    const loopRegistry = fakeRegistry({
+      "a.N": meta("a.N", { in: "any" }, { out: "any", again: "bool" }),
+      [LOOP_NODE_TYPE]: meta(
+        LOOP_NODE_TYPE,
+        { initial: "any", next: "any", condition: "bool" },
+        { value: "any", done: "any" }
+      )
+    });
+    const report = validateGraph(
+      {
+        nodes: [{ id: "loop", type: LOOP_NODE_TYPE }, node("body")],
+        edges: [
+          { ...edge("forward", "loop", "body"), sourceHandle: "value" },
+          { ...edge("next", "body", "loop"), targetHandle: "next" },
+          {
+            ...edge("condition", "body", "loop"),
+            sourceHandle: "again",
+            targetHandle: "condition"
+          }
+        ]
+      },
+      loopRegistry
+    );
+    expect(report.issues.some((i) => i.code === "cycle")).toBe(false);
+  });
+
+  it("rejects a cycle into Loop.initial", () => {
+    const loopRegistry = fakeRegistry({
+      "a.N": meta("a.N", { in: "any" }, { out: "any" }),
+      [LOOP_NODE_TYPE]: meta(
+        LOOP_NODE_TYPE,
+        { initial: "any", next: "any" },
+        { value: "any" }
+      )
+    });
+    const report = validateGraph(
+      {
+        nodes: [{ id: "loop", type: LOOP_NODE_TYPE }, node("body")],
+        edges: [
+          { ...edge("forward", "loop", "body"), sourceHandle: "value" },
+          { ...edge("back", "body", "loop"), targetHandle: "initial" }
+        ]
+      },
+      loopRegistry
+    );
+    expect(report.issues.some((i) => i.code === "cycle")).toBe(true);
   });
 
   it("does not flag a diamond", () => {

@@ -70,7 +70,7 @@ export class LoopNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Loop";
   static readonly title = "Loop";
   static readonly description =
-    "Repeat a section of the workflow, feeding each result back in, until a condition turns false.\n    loop, repeat, while, until, iterate, retry, refine, feedback, cycle, flow-control\n\n    Wire value and index into the loop body, and wire the body's result back into next and its decision into condition. Each iteration runs the body once. When condition is false, or after max_iterations, the last next value leaves through done.\n\n    Use cases:\n    - Refine a draft until a judge accepts it\n    - Retry a generation until it passes a check\n    - Apply a step a fixed number of times, feeding each result into the next";
+    "Repeat part of a workflow, using each result as the input for the next pass.\n    loop, repeat, while, until, iterate, retry, refine, feedback, cycle, flow-control\n\n    Set Initial to the starting value. Connect Value to the nodes you want to repeat, then connect their result to Next. Index counts passes from 0.\n\n    Connect a boolean result to Condition: true runs another pass, false sends the current Next value through Done. The nodes run at least once. Max Iterations also stops the loop. If Condition is unwired, the nodes run exactly Max Iterations times.\n\n    Example: Start at 0, add 1 to Value, send the sum to Next, and send whether the sum is less than 3 to Condition. Done outputs 3.";
   static readonly metadataOutputTypes = {
     value: "any",
     index: "int",
