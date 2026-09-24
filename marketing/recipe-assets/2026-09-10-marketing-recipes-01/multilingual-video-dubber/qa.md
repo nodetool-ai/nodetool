@@ -10,6 +10,7 @@
 - V8: PARTIAL. Decode and geometry probes passed; human side-by-side encode review remains pending.
 - V9: PASS for the narrowly scoped capture claims in `asset-manifest.json`. Do not turn them into playback-quality, project-persistence, or end-to-end delivery claims.
 - V10: PASS for produced media. No graph was created or shown.
+- V11: PASS for the English comparison revision's technical checks. The AtlasCloud TTS and lip-sync outputs decoded, local transcription recovered the complete English script, and representative frames were inspected. The replacement English section runs for 15.760 seconds, down from 22.625 seconds. Human audition and full-motion sync review remain open.
 
 Capture observations:
 
