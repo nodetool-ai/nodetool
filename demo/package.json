@@ -58,6 +58,7 @@
     "render:promo": "remotion render src/index.ts Promo-Master out/promo-master.mp4",
     "render:promo:landing": "remotion render src/index.ts Promo-Landing out/promo-landing.mp4",
     "render:sizzle": "remotion render src/index.ts Sizzle out/sizzle.mp4",
+    "render:serein-reference": "remotion render src/serein/index.tsx SereinReference out/serein-reference.mp4 --concurrency=8 --jpeg-quality=95 --crf=16 --muted",
     "render:redo": "remotion render src/index.ts Redo out/redo.mp4",
     "render:hero": "remotion render src/index.ts Hero-Project out/hero-project.mp4",
     "render:hero:vertical": "remotion render src/index.ts Hero-Project-Vertical out/hero-project-vertical.mp4",
