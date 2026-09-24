@@ -17,6 +17,8 @@ import type {
   ClipMask,
   ClipModel3DStyle,
   ClipTransform,
+  TimelineCamera2D,
+  TimelineTempo,
   MediaTrack,
   TimelineClip,
   TimelineTrack,
@@ -41,10 +43,15 @@ import {
   parseStaggerUnit,
   sampleAnimations
 } from "../animation/index.js";
+import { resolveAnimatedStyleTracks, resolveAnimatedTextContent, resolveAnimationLinks } from "../animation/index.js";
 import { clipSourceMsAt } from "../timeRemap.js";
+import { resolveBeatAnimations } from "../animation/beat.js";
 import type { ResolvedCaption, TextRenderStagger } from "./draw.js";
 import { countTextStaggerUnits, type RenderCanvas } from "./textLayout.js";
 import { buildTransformMatrix } from "./transform.js";
+import { resolveClipLayouts } from "./layout.js";
+import { resolveCamera2D, sampleCamera2D } from "./spatial.js";
+import { expandTemporalClips, clipSteppedTime } from "./temporal.js";
 import { resolveTransition, type ResolvedTransition } from "./transition.js";
 
 /** Clamp a resolved opacity into the range both compositors agree on. */
@@ -186,6 +193,37 @@ function resolveTrackTransitions(
   return byClipId;
 }
 
+/** Resolve cuts within a track and a shared group parent before any layers draw. */
+function resolveDocumentTransitions(
+  clips: readonly TimelineClip[],
+  currentTimeMs: number
+): Map<string, ResolvedTransition> {
+  const groupIds = new Set(clips.filter((clip) => clip.mediaType === "group").map((clip) => clip.id));
+  const byTrack = new Map<string, Map<string | undefined, TimelineClip[]>>();
+  for (const clip of clips) {
+    if (clip.mediaType === "adjustment" || !isClipActive(clip, currentTimeMs)) continue;
+    const parentId = clip.parentId && groupIds.has(clip.parentId) ? clip.parentId : undefined;
+    let byParent = byTrack.get(clip.trackId);
+    if (!byParent) {
+      byParent = new Map();
+      byTrack.set(clip.trackId, byParent);
+    }
+    const siblings = byParent.get(parentId);
+    if (siblings) siblings.push(clip);
+    else byParent.set(parentId, [clip]);
+  }
+  const transitions = new Map<string, ResolvedTransition>();
+  for (const byParent of byTrack.values()) {
+    for (const siblings of byParent.values()) {
+      siblings.sort((a, b) => a.startMs - b.startMs);
+      for (const [id, transition] of resolveTrackTransitions(siblings, currentTimeMs)) {
+        transitions.set(id, transition);
+      }
+    }
+  }
+  return transitions;
+}
+
 /** The asset id that should be drawn for a clip in its current status. */
 export function effectiveAssetId(clip: TimelineClip): string | undefined {
   switch (clip.status) {
@@ -223,7 +261,7 @@ export function clipSourceTimeSec(
   clip: TimelineClip,
   currentTimeMs: number
 ): number {
-  return clipSourceMsAt(clip, currentTimeMs) / 1000;
+  return clipSourceMsAt(clip, clipSteppedTime(clip, currentTimeMs)) / 1000;
 }
 
 /**
@@ -298,15 +336,19 @@ export interface ResolvedGroup {
   surfaceId?: string;
   /** Set when this group composites its children before blending them. */
   precomposite?: GroupPrecomposite;
+  /** The parent matrix already includes the scene camera. */
+  cameraApplied?: boolean;
 }
 
 /** How a precompositing group's composed surface blends into what is beneath. */
 export interface GroupPrecomposite {
-  /** The group's own opacity, its ancestors' already multiplied in. */
+  /** The group's opacity, ancestor opacity and transition ramp applied once. */
   opacity: number;
   blendMode: CompositorBlendMode;
   /** The group's effect chain, run once on the composed surface. */
   effects?: ClipEffect[];
+  /** The cut applied once to the composed group picture. */
+  transition?: ResolvedTransition;
   /**
    * The surface this one blends into, when a precompositing group holds this
    * group. Absent when it blends onto the frame.
@@ -318,23 +360,22 @@ export interface GroupPrecomposite {
  * Whether a group has to composite its children into an intermediate surface
  * before they blend.
  *
- * Only two things make that necessary: an effect, which has to run on the
- * composed picture rather than on each child, and a blend mode, which has to
- * meet the frame once rather than once per child. Opacity is deliberately not
- * one of them — multiplying it into each child is what the group already does,
- * and a surface per group would cost a frame-sized allocation on every
- * document that uses grouping at all.
+ * An effect and a non-normal blend mode must run once on the composed picture.
+ * A transition also needs one surface so its geometry and coverage apply to
+ * the assembly, not each child. Opacity alone does not require a surface.
  *
- * `holdsAdjustment` is the third: an adjustment child treats the composite of
- * the siblings beneath it, and "the siblings" only exists as a picture once the
+ * An adjustment child treats the composite of the siblings beneath it, and
+ * "the siblings" only exists as a picture once the
  * group has a surface of its own. Without it the adjustment would reach the
  * whole frame below the group, which is not what putting it inside says.
  */
 export function groupNeedsPrecomposite(
   group: TimelineClip,
-  holdsAdjustment = false
+  holdsAdjustment = false,
+  hasTransition = false
 ): boolean {
   if (holdsAdjustment) return true;
+  if (hasTransition || (group.transitionIn?.durationMs ?? 0) > 0) return true;
   if (resolveBlendMode(group.blendMode) !== "normal") return true;
   return (group.effects ?? []).some((effect) => effect.enabled);
 }
@@ -347,7 +388,8 @@ function groupProps(
   group: TimelineClip,
   currentTimeMs: number,
   canvas: RenderCanvas | undefined,
-  cache: AnimationCompileCache | undefined
+  cache: AnimationCompileCache | undefined,
+  tempo?: TimelineTempo
 ): { transform?: ClipTransform; opacity: number } {
   const layer = {
     clip: group,
@@ -359,7 +401,8 @@ function groupProps(
     layer,
     currentTimeMs,
     canvas,
-    cache
+    cache,
+    { mediaTracks: [], clips: [], tempo }
   );
   return { transform: animated.transform, opacity: animated.opacity };
 }
@@ -382,8 +425,12 @@ export function resolveGroups(
   clips: readonly TimelineClip[],
   currentTimeMs: number,
   canvas?: RenderCanvas,
-  cache?: AnimationCompileCache
+  cache?: AnimationCompileCache,
+  tempo?: TimelineTempo,
+  transitions?: ReadonlyMap<string, ResolvedTransition>,
+  camera?: TimelineCamera2D | null
 ): ResolvedGroups {
+  const groupTransitions = transitions ?? resolveDocumentTransitions(clips, currentTimeMs);
   const groupById = new Map<string, TimelineClip>();
   for (const clip of clips) {
     if (clip.mediaType === "group") groupById.set(clip.id, clip);
@@ -425,10 +472,16 @@ export function resolveGroups(
       // A chain that reaches a cycle cannot say what any of its links inherit,
       // so none of them inherit anything.
       const parent = cycle ? undefined : inherited;
-      const own = groupProps(current, currentTimeMs, canvas, cache);
+      const own = groupProps(current, currentTimeMs, canvas, cache, tempo);
+      const spatial = camera && !parent?.cameraApplied && own.transform?.depthPx !== undefined
+        ? resolveCamera2D(own.transform ?? IDENTITY_TRANSFORM, sampleCamera2D(camera, currentTimeMs), current.effects)
+        : null;
+      const effects = spatial?.effects ?? current.effects;
+      const transition = groupTransitions.get(current.id);
       const precompose = groupNeedsPrecomposite(
-        current,
-        adjusted.has(current.id)
+        effects === current.effects ? current : { ...current, effects },
+        adjusted.has(current.id),
+        transition !== undefined
       );
       const folded = (parent?.opacity ?? 1) * own.opacity;
       const entry: ResolvedGroup = {
@@ -447,9 +500,10 @@ export function resolveGroups(
           )
         }
       };
+      if (spatial || parent?.cameraApplied) entry.cameraApplied = true;
       if (canvas) {
         entry.matrix = buildTransformMatrix(
-          own.transform ?? IDENTITY_TRANSFORM,
+          spatial?.transform ?? own.transform ?? IDENTITY_TRANSFORM,
           // A group has no source to fit, so its matrix is a pure clip-space
           // transform: the identity base makes its anchor and position mean
           // the frame, not a bitmap.
@@ -463,11 +517,12 @@ export function resolveGroups(
       if (precompose) {
         entry.surfaceId = current.id;
         entry.precomposite = {
-          opacity: folded,
+          opacity: clamp01(folded * (transition?.opacity ?? 1)),
           blendMode: resolveBlendMode(current.blendMode),
-          effects: current.effects,
+          effects,
           parentSurfaceId: parent?.surfaceId
         };
+        if (transition) entry.precomposite.transition = transition;
       } else {
         entry.surfaceId = parent?.surfaceId;
       }
@@ -523,12 +578,17 @@ export interface ActiveLayer {
   clip: TimelineClip;
   clipId: string;
   trackIndex: number;
+  /** Bottom-to-top order among clips and group surfaces on this track. */
+  stackOrder?: number;
   blendMode: CompositorBlendMode;
   /** Final opacity including the clip base opacity and any transition ramp. */
   opacity: number;
+  /** Parent and transition coverage retained when an opacity link replaces the clip's own opacity. */
+  opacityCoverage?: number;
   /** Asset to draw, or undefined when the clip has no usable render yet. */
   assetId: string | undefined;
   transform?: ClipTransform;
+  camera2d?: TimelineCamera2D | null;
   /**
    * The resolved matrix of the group this clip names with `parentId`, or
    * absent when it names none. A compositor passes it to
@@ -615,8 +675,12 @@ export interface ComputeActiveLayersOptions {
    * window still clips them and the group's opacity still multiplies.
    */
   canvas?: RenderCanvas;
+  camera2d?: TimelineCamera2D | null;
   /** Compile cache for the group clips' own animations. */
   animationCache?: AnimationCompileCache;
+  tempo?: TimelineTempo;
+  /** Per-clip shutter clock used for active-window membership. */
+  layerTimeMs?: (clip: TimelineClip) => number;
   /**
    * The live bake hash of a `model3d` clip — `computeModel3DBakeHash` from
    * `@nodetool-ai/timeline/dependencyHash`, which this module cannot call
@@ -676,11 +740,15 @@ export interface PrecompositeLayer {
   clipId: string;
   /** The group clip's own track — the z the surface blends at (I9). */
   trackIndex: number;
-  /** The group's opacity, its ancestors' already folded in. */
+  /** Bottom-to-top order among clips and group surfaces on this track. */
+  stackOrder?: number;
+  /** The group's opacity, ancestor opacity and transition ramp applied once. */
   opacity: number;
   blendMode: CompositorBlendMode;
   /** Run once on the composed surface, not once per child. */
   effects?: ClipEffect[];
+  /** The group cut, applied once after its children have composed. */
+  transition?: ResolvedTransition;
   /** Set when a precompositing group holds this one: the surface it draws into. */
   precomposeGroupId?: string;
 }
@@ -743,7 +811,8 @@ export interface ActiveLayersResult {
   /**
    * The groups that composite their children before blending, innermost first
    * — so a host can build each surface in array order and always find a nested
-   * one already finished. Empty unless a group carries effects or a blend mode.
+   * one already finished. Empty unless a group carries effects, a blend mode,
+   * a transition, or an adjustment child.
    */
   precomposites: PrecompositeLayer[];
   /**
@@ -784,9 +853,10 @@ export interface ActiveLayersResult {
  * A group clip contributes no layer of its own. Every clip naming one with
  * `parentId` carries the group's matrix as `parentMatrix`, has the group's
  * opacity multiplied into its own, and is left out entirely while the query
- * time sits outside the group's window. A group carrying effects or a blend
- * mode instead contributes a {@link PrecompositeLayer}: its children name it in
- * `precomposeGroupId` and draw into its surface, and the surface blends once.
+ * time sits outside the group's window. A group carrying effects, a blend
+ * mode, or a transition instead contributes a {@link PrecompositeLayer}: its
+ * children name it in `precomposeGroupId` and draw into its surface, and the
+ * surface blends once.
  *
  * An adjustment clip contributes no layer either. It becomes an
  * {@link AdjustmentLayer}: the effect chain a compositor runs on whatever the
@@ -801,13 +871,14 @@ export interface ActiveLayersResult {
  * away is named in `droppedLayers` so a host can say what is missing from the
  * frame instead of showing a picture that quietly lost a layer.
  */
-export function computeActiveLayersWithHorizon(
+function computeActiveLayersWithHorizonBase(
   tracks: TimelineTrack[],
   clips: TimelineClip[],
   currentTimeMs: number,
   options: ComputeActiveLayersOptions = {}
 ): ActiveLayersResult {
   const maxVideoLayers = options.maxVideoLayers ?? MAX_VIDEO_LAYERS;
+  const transitions = resolveDocumentTransitions(clips, currentTimeMs);
 
   // Parents before children: a child's opacity, matrix and window all come
   // from a group that may sit on any track, so every group is resolved before
@@ -816,10 +887,28 @@ export function computeActiveLayersWithHorizon(
     clips,
     currentTimeMs,
     options.canvas,
-    options.animationCache
+    options.animationCache,
+    options.tempo,
+    transitions,
+    options.camera2d
   );
 
   const sortedTracks = [...tracks].sort((a, b) => a.index - b.index);
+  const layoutCanvas = options.canvas;
+  const layoutClips = layoutCanvas
+    ? clips.map((clip) => {
+        if (!clip.textStyle || !clip.animations?.length) return clip;
+        const animated = resolveAnimatedLayerProps(
+          { clip, transform: clip.transform, opacity: clip.opacity ?? 1 },
+          currentTimeMs,
+          layoutCanvas,
+          options.animationCache,
+          { mediaTracks: options.mediaTracks ?? [], clips, tempo: options.tempo }
+        );
+        return animated.textStyle ? { ...clip, textStyle: animated.textStyle } : clip;
+      })
+    : clips;
+  const layouts = layoutCanvas ? resolveClipLayouts(layoutClips, layoutCanvas) : new Map<string, ClipTransform>();
   const clipsByTrackId = new Map<string, TimelineClip[]>();
   for (const c of clips) {
     const arr = clipsByTrackId.get(c.trackId);
@@ -852,6 +941,10 @@ export function computeActiveLayersWithHorizon(
   }
   const matteLayers = new Map<string, ActiveLayer>();
   const emitMedia = (layer: ActiveLayer): void => {
+    layer.transform = layouts.get(layer.clipId) ?? layer.transform;
+    layer.camera2d = layer.parentMatrix && layer.clip.parentId && groups.get(layer.clip.parentId)?.cameraApplied
+      ? null
+      : options.camera2d;
     if (matteSourceIds.has(layer.clipId)) matteLayers.set(layer.clipId, layer);
     else mediaLayers.push(layer);
   };
@@ -877,6 +970,11 @@ export function computeActiveLayersWithHorizon(
     considerBoundary(group.window.startMs);
     considerBoundary(group.window.endMs);
   }
+  for (const clip of clips) {
+    if ((clip.transitionIn?.durationMs ?? 0) > 0) {
+      considerBoundary(clip.startMs + clip.transitionIn!.durationMs);
+    }
+  }
 
   for (const track of sortedTracks) {
     if (!track.visible) continue;
@@ -890,19 +988,29 @@ export function computeActiveLayersWithHorizon(
     }
 
     // A group draws nothing itself: it is a transform parent, and its children
-    // carry its contribution to the frame. Leaving it out here also keeps it
-    // out of the auto-crossfade's partner list, where an earlier-starting group
-    // would otherwise read as the clip beneath its own child. An adjustment is
-    // held out for the same reason: it is a treatment of the picture beneath,
+    // carry its contribution to the frame. The transition resolver handles
+    // group clips as siblings separately, without pairing them with children.
+    // An adjustment is held out for the same reason: it treats the picture beneath,
     // so it can be neither side of a cut.
     const activeClips = trackClips
       .filter(
         (c) =>
           c.mediaType !== "group" &&
           c.mediaType !== "adjustment" &&
-          isClipActive(c, currentTimeMs)
+          isClipActive(c, options.layerTimeMs?.(c) ?? currentTimeMs)
       )
       .sort((a, b) => a.startMs - b.startMs);
+
+    const drawClips = [...activeClips].sort((a, b) => {
+        // Echoes sit below the present image even though their source clock
+        // starts later. The same rule places farther 2.5D cards behind nearer.
+        const depth = (a.transform?.depthPx ?? 0) - (b.transform?.depthPx ?? 0);
+        if (depth !== 0) return depth;
+        const aEcho = a.id.includes(":echo:") ? 0 : 1;
+        const bEcho = b.id.includes(":echo:") ? 0 : 1;
+        if (aEcho !== bEcho) return aEcho - bEcho;
+        return a.startMs - b.startMs;
+    });
 
     // Adjustments: resolved here so they carry this track's index, which is the
     // z their treatment runs at. Only a visual track has a composite to treat.
@@ -924,18 +1032,14 @@ export function computeActiveLayersWithHorizon(
           track.index,
           parent,
           currentTimeMs,
-          options
+          options,
+          clips
         );
         if (resolved) resolvedAdjustments.push(resolved);
       }
     }
 
-    // Both sides of every cut in flight on this track, resolved before any
-    // layer is emitted: the outgoing record belongs to a clip that was already
-    // walked past by the time its partner declares the transition (D5).
-    const transitionFor = resolveTrackTransitions(activeClips, currentTimeMs);
-
-    for (const clip of activeClips) {
+    for (const clip of drawClips) {
       // Mirrors `isClipActive`'s `<` boundary: the clip stops being active
       // (and its layer disappears) exactly at its end.
       considerBoundary(clip.startMs + clip.durationMs);
@@ -954,13 +1058,14 @@ export function computeActiveLayersWithHorizon(
       const precomposeGroupId = parent?.surfaceId;
       if (precomposeGroupId) usedSurfaces.add(precomposeGroupId);
 
-      const transition = transitionFor.get(clip.id);
+      const transition = transitions.get(clip.id);
       const baseOpacity = (clip.opacity ?? 1) * (parent?.opacity ?? 1);
       // Clamped here and nowhere else: the GPU compositor multiplies this into
       // the shader raw while Canvas 2D clamps it, so an out-of-range clip or
       // group opacity drew a different picture on each host. Animations still
       // multiply on top afterwards (I3) — `clampSample` settles those.
       const opacity = clamp01(baseOpacity * (transition?.opacity ?? 1));
+      const opacityCoverage = clamp01((parent?.opacity ?? 1) * (transition?.opacity ?? 1));
 
       // Captions ride on their media clip and always render on top.
       const caption = resolveCaptionAtTime(clip, currentTimeMs);
@@ -986,6 +1091,7 @@ export function computeActiveLayersWithHorizon(
           trackIndex: CAPTION_TRACK_INDEX,
           blendMode: resolveBlendMode(clip.blendMode),
           opacity,
+          opacityCoverage,
           assetId: undefined,
           transform: clip.transform,
           parentMatrix,
@@ -1011,6 +1117,7 @@ export function computeActiveLayersWithHorizon(
           trackIndex: track.index,
           blendMode: resolveBlendMode(clip.blendMode),
           opacity,
+          opacityCoverage,
           assetId: undefined,
           transform: clip.transform,
           parentMatrix,
@@ -1035,6 +1142,7 @@ export function computeActiveLayersWithHorizon(
           trackIndex: track.index,
           blendMode: resolveBlendMode(clip.blendMode),
           opacity,
+          opacityCoverage,
           assetId: undefined,
           transform: clip.transform,
           parentMatrix,
@@ -1061,6 +1169,7 @@ export function computeActiveLayersWithHorizon(
           trackIndex: track.index,
           blendMode: resolveBlendMode(clip.blendMode),
           opacity,
+          opacityCoverage,
           transform: clip.transform,
           parentMatrix,
           precomposeGroupId,
@@ -1157,6 +1266,7 @@ export function computeActiveLayersWithHorizon(
         trackIndex: track.index,
         blendMode: resolveBlendMode(clip.blendMode),
         opacity,
+        opacityCoverage,
         assetId,
         transform: clip.transform,
         parentMatrix,
@@ -1201,6 +1311,28 @@ export function computeActiveLayersWithHorizon(
     groups,
     usedSurfaces
   );
+  if (precomposites.length > 0) {
+    const stackOrderByClipId = new Map<string, number>();
+    for (const trackClips of clipsByTrackId.values()) {
+      const ordered = trackClips
+        .filter((clip) => clip.mediaType !== "adjustment")
+        .sort((a, b) => {
+          const depth = (a.transform?.depthPx ?? 0) - (b.transform?.depthPx ?? 0);
+          if (depth !== 0) return depth;
+          const aEcho = a.id.includes(":echo:") ? 0 : 1;
+          const bEcho = b.id.includes(":echo:") ? 0 : 1;
+          if (aEcho !== bEcho) return aEcho - bEcho;
+          return a.startMs - b.startMs;
+        });
+      ordered.forEach((clip, index) => stackOrderByClipId.set(clip.id, index));
+    }
+    for (const layer of drawn) {
+      layer.stackOrder = stackOrderByClipId.get(layer.clipId);
+    }
+    for (const group of precomposites) {
+      group.stackOrder = stackOrderByClipId.get(group.clipId);
+    }
+  }
   // An adjustment inside a group treats that group's surface. A group with
   // nothing else on screen composites nothing, so the adjustment has nothing to
   // treat — dropped here rather than left naming a surface no host builds.
@@ -1218,6 +1350,15 @@ export function computeActiveLayersWithHorizon(
   };
 }
 
+export function computeActiveLayersWithHorizon(
+  tracks: TimelineTrack[],
+  clips: TimelineClip[],
+  currentTimeMs: number,
+  options: ComputeActiveLayersOptions = {}
+): ActiveLayersResult {
+  return computeActiveLayersWithHorizonBase(tracks, expandTemporalClips(clips), currentTimeMs, options);
+}
+
 /**
  * One adjustment clip as a plan record, or null when its chain would treat
  * nothing.
@@ -1233,15 +1374,17 @@ function resolveAdjustment(
   trackIndex: number,
   parent: ResolvedGroup | undefined,
   currentTimeMs: number,
-  options: ComputeActiveLayersOptions
+  options: ComputeActiveLayersOptions,
+  clips: TimelineClip[]
 ): AdjustmentLayer | null {
   const base = (clip.opacity ?? 1) * (parent?.opacity ?? 1);
   const animated = options.canvas
     ? resolveAnimatedLayerProps(
-        { clip, opacity: base },
+        { clip, opacity: base, opacityCoverage: parent?.opacity ?? 1 },
         currentTimeMs,
         options.canvas,
-        options.animationCache
+        options.animationCache,
+        { mediaTracks: options.mediaTracks ?? [], clips, tempo: options.tempo }
       )
     : null;
   const effects = (animated?.effects ?? clip.effects ?? []).filter(
@@ -1255,7 +1398,8 @@ function resolveAdjustment(
     opacity: clamp01(animated?.opacity ?? base),
     effects
   };
-  if (clip.mask) out.mask = clip.mask;
+  const mask = animated?.clipMask ?? clip.mask;
+  if (mask) out.mask = mask;
   if (animated?.mask) out.wipe = animated.mask;
   if (parent?.surfaceId) out.precomposeGroupId = parent.surfaceId;
   return out;
@@ -1381,8 +1525,9 @@ function attachMattes(
  * A surface only reaches the frame through the one holding it, so a nested
  * group is pulled in even when no layer drew straight into its parent. Ordering
  * by how deep a surface sits means a host building them in array order always
- * finds a nested surface already composed — the tree has no other constraint,
- * so depth is a sufficient topological order.
+ * finds a nested surface already composed. At equal depth, sort by track and
+ * group start time; child-track discovery order does not determine where two
+ * group surfaces stack.
  */
 function collectPrecomposites(
   clips: readonly TimelineClip[],
@@ -1423,7 +1568,7 @@ function collectPrecomposites(
     const precomposite = groups.get(id)?.precomposite;
     const clip = groupClipById.get(id);
     if (!precomposite || !clip) continue;
-    out.push({
+    const layer: PrecompositeLayer = {
       clipId: id,
       // A group always sits on a track; falling back to the caption index
       // rather than 0 keeps a surface whose track went missing on top of the
@@ -1433,9 +1578,17 @@ function collectPrecomposites(
       blendMode: precomposite.blendMode,
       effects: precomposite.effects,
       precomposeGroupId: precomposite.parentSurfaceId
-    });
+    };
+    if (precomposite.transition) layer.transition = precomposite.transition;
+    out.push(layer);
   }
-  return out.sort((a, b) => depthOf(b.clipId) - depthOf(a.clipId));
+  return out.sort((a, b) => {
+    const depth = depthOf(b.clipId) - depthOf(a.clipId);
+    if (depth !== 0) return depth;
+    const track = b.trackIndex - a.trackIndex;
+    if (track !== 0) return track;
+    return groupClipById.get(a.clipId)!.startMs - groupClipById.get(b.clipId)!.startMs;
+  });
 }
 
 /**
@@ -1464,6 +1617,7 @@ export function computeActiveLayers(
 export interface AnimatedLayerProps extends Model3DCameraChannels {
   transform?: ClipTransform;
   opacity: number;
+  borderRadius?: number;
   /** Wipe mask to apply in the compositor. Absent means unmasked. */
   mask?: AnimationSampleMask;
   /**
@@ -1478,6 +1632,8 @@ export interface AnimatedLayerProps extends Model3DCameraChannels {
    * not read the trim range yet, so today this is carried, not drawn.
    */
   shapeStyle?: TimelineClip["shapeStyle"];
+  textStyle?: TimelineClip["textStyle"];
+  clipMask?: ClipMask;
   // The four camera channels come from {@link Model3DCameraChannels}. They are
   // at identity on every layer that is not `model3d`, which is what makes them
   // free to ignore there — `resolveModel3DCamera` is the only reader.
@@ -1494,6 +1650,7 @@ interface CompileCacheEntry {
   staggerUnit: StaggerUnit;
   /** Unit count of a text clip (stagger span math depends on it). 0 otherwise. */
   staggerCount: number;
+  beatSignature: string;
   compiled: CompiledAnimation[];
 }
 
@@ -1535,7 +1692,8 @@ export function clipStaggerCount(
 function compiledFor(
   clip: TimelineClip,
   canvas: RenderCanvas,
-  cache?: AnimationCompileCache
+  cache?: AnimationCompileCache,
+  tempo?: TimelineTempo
 ): CompiledAnimation[] {
   const animations = clip.animations;
   if (!animations || animations.length === 0) return [];
@@ -1543,6 +1701,10 @@ function compiledFor(
     clip,
     canvas
   );
+  const beatSignature = animations.some((animation) => animation.beat)
+    ? `${clip.startMs}:${tempo?.bpm ?? 120}:${tempo?.offsetMs ?? 0}`
+    : "";
+  const timedAnimations = resolveBeatAnimations(clip, tempo);
   if (cache) {
     const hit = cache.get(clip.id);
     if (
@@ -1553,11 +1715,12 @@ function compiledFor(
       hit.canvasH === canvas.height &&
       hit.staggerUnit === staggerUnit &&
       hit.staggerCount === staggerCount
+      && hit.beatSignature === beatSignature
     ) {
       return hit.compiled;
     }
     const compiled = compileClipAnimations(
-      animations,
+      timedAnimations,
       clip.durationMs,
       canvas,
       {
@@ -1572,11 +1735,12 @@ function compiledFor(
       canvasH: canvas.height,
       staggerUnit,
       staggerCount,
+      beatSignature,
       compiled
     });
     return compiled;
   }
-  return compileClipAnimations(animations, clip.durationMs, canvas, {
+  return compileClipAnimations(timedAnimations, clip.durationMs, canvas, {
     staggerCount,
     staggerUnit
   });
@@ -1656,35 +1820,50 @@ function resolveTrackBindingOffset(
 export interface RenderTrackingContext {
   mediaTracks: readonly MediaTrack[];
   clips: readonly TimelineClip[];
+  tempo?: TimelineTempo;
 }
 
 export function resolveAnimatedLayerProps(
-  layer: { clip: TimelineClip; transform?: ClipTransform; opacity: number },
+  layer: { clip: TimelineClip; transform?: ClipTransform; opacity: number; opacityCoverage?: number; camera2d?: TimelineCamera2D | null },
   currentTimeMs: number,
   canvas: RenderCanvas,
   cache?: AnimationCompileCache,
   tracking?: RenderTrackingContext
 ): AnimatedLayerProps {
   const clip = layer.clip;
+  currentTimeMs = clipSteppedTime(clip, currentTimeMs);
   const trackOffset = resolveTrackBindingOffset(
     clip,
     tracking,
     currentTimeMs,
     canvas
   );
-  const compiled = compiledFor(clip, canvas, cache);
-  if (compiled.length === 0) {
-    return staticProps(layer, currentTimeMs, trackOffset);
+  const compiled = compiledFor(clip, canvas, cache, tracking?.tempo);
+  const links = resolveAnimationLinks(clip, currentTimeMs, tracking?.clips ?? [], canvas, tracking?.tempo);
+  if (compiled.length === 0 && Object.keys(links).length === 0) {
+    return cameraProps(staticProps(layer, currentTimeMs, trackOffset), layer.camera2d, currentTimeMs);
   }
 
+  const localMs = currentTimeMs - clip.startMs;
+  const styles = resolveAnimatedStyleTracks(clip, compiled, localMs);
+  const textContent = resolveAnimatedTextContent({ animations: clip.animations, textStyle: styles.textStyle }, compiled, localMs);
+  const textStyle = styles.textStyle && textContent !== undefined && textContent !== styles.textStyle.text
+    ? { ...styles.textStyle, text: textContent }
+    : styles.textStyle;
   const s = sampleAnimations(
     compiled,
-    currentTimeMs - clip.startMs,
+    localMs,
     undefined,
-    clipSourceMsAt(clip, currentTimeMs)
+    clipSourceMsAt(clip, clipSteppedTime(clip, currentTimeMs))
   );
-  if (isIdentitySample(s) && !trackOffset) {
-    return staticProps(layer, currentTimeMs, trackOffset);
+  if (
+    isIdentitySample(s) && !trackOffset &&
+    styles.shapeStyle === clip.shapeStyle && textStyle === clip.textStyle &&
+    styles.effects === clip.effects && styles.clipMask === clip.mask &&
+    styles.borderRadius === clip.borderRadius &&
+    Object.keys(links).length === 0
+  ) {
+    return cameraProps(staticProps(layer, currentTimeMs, trackOffset), layer.camera2d, currentTimeMs);
   }
 
   const base = layer.transform ?? IDENTITY_TRANSFORM;
@@ -1694,19 +1873,20 @@ export function resolveAnimatedLayerProps(
   // the same way `offsetX/Y` does — additive, not replacing.
   const transform: ClipTransform = {
     position: {
-      x: (s.positionX ?? base.position.x) + s.offsetX + (trackOffset?.x ?? 0),
-      y: (s.positionY ?? base.position.y) + s.offsetY + (trackOffset?.y ?? 0)
+      x: links.positionX ?? ((s.positionX ?? base.position.x) + s.offsetX + (trackOffset?.x ?? 0)),
+      y: links.positionY ?? ((s.positionY ?? base.position.y) + s.offsetY + (trackOffset?.y ?? 0))
     },
     scale: {
-      x: base.scale.x * s.scale * s.scaleX * (trackOffset?.scale ?? 1),
-      y: base.scale.y * s.scale * s.scaleY * (trackOffset?.scale ?? 1)
+      x: links.scale ?? (base.scale.x * s.scale * s.scaleX * (trackOffset?.scale ?? 1)),
+      y: links.scale ?? (base.scale.y * s.scale * s.scaleY * (trackOffset?.scale ?? 1))
     },
-    rotation: base.rotation + s.rotation + (trackOffset?.rotation ?? 0),
+    rotation: links.rotation ?? (base.rotation + s.rotation + (trackOffset?.rotation ?? 0)),
     anchor:
       s.anchorX === undefined && s.anchorY === undefined
         ? base.anchor
         : { x: s.anchorX ?? base.anchor.x, y: s.anchorY ?? base.anchor.y }
   };
+  if (base.depthPx !== undefined) transform.depthPx = base.depthPx;
   if (base.rotationX !== undefined || s.rotationX !== 0) {
     transform.rotationX = (base.rotationX ?? 0) + s.rotationX;
   }
@@ -1716,20 +1896,31 @@ export function resolveAnimatedLayerProps(
   if (base.perspective !== undefined) transform.perspective = base.perspective;
   // `s.mask` is freshly allocated per sampleAnimations call here (no scratch
   // is passed), so handing it out is safe.
-  return {
+  return cameraProps({
     transform,
-    opacity: layer.opacity * s.opacity,
+    opacity: links.opacity === undefined
+      ? layer.opacity * s.opacity
+      : clamp01(links.opacity * (layer.opacityCoverage ?? 1)),
     mask: s.mask,
     effects: seedAnimatedGrain(
-      composeAnimatedEffects(clip.effects, s),
+      composeAnimatedEffects(styles?.effects ?? clip.effects, s),
       currentTimeMs
     ),
-    shapeStyle: composeAnimatedShapeStyle(clip.shapeStyle, s),
+    shapeStyle: composeAnimatedShapeStyle(styles?.shapeStyle ?? clip.shapeStyle, s),
+    textStyle,
+    clipMask: styles?.clipMask ?? clip.mask,
+    borderRadius: styles.borderRadius ?? clip.borderRadius,
     cameraAzimuth: s.cameraAzimuth,
     cameraElevation: s.cameraElevation,
     cameraZoom: s.cameraZoom,
     cameraFov: s.cameraFov
-  };
+  }, layer.camera2d, currentTimeMs);
+}
+
+function cameraProps(props: AnimatedLayerProps, camera: TimelineCamera2D | null | undefined, timeMs: number): AnimatedLayerProps {
+  if (!camera || !props.transform) return props;
+  const placed = resolveCamera2D(props.transform, sampleCamera2D(camera, timeMs), props.effects);
+  return { ...props, transform: placed.transform, effects: placed.effects };
 }
 
 /**
@@ -1766,12 +1957,16 @@ function staticProps(
     if (base.rotationX !== undefined) transform.rotationX = base.rotationX;
     if (base.rotationY !== undefined) transform.rotationY = base.rotationY;
     if (base.perspective !== undefined) transform.perspective = base.perspective;
+    if (base.depthPx !== undefined) transform.depthPx = base.depthPx;
   }
   return {
     transform,
     opacity: layer.opacity,
     effects: seedAnimatedGrain(layer.clip.effects, currentTimeMs),
     shapeStyle: layer.clip.shapeStyle,
+    textStyle: layer.clip.textStyle,
+    clipMask: layer.clip.mask,
+    borderRadius: layer.clip.borderRadius,
     cameraAzimuth: 0,
     cameraElevation: 0,
     cameraZoom: 1,
@@ -1837,13 +2032,16 @@ function seedAnimatedGrain(
   effects: ClipEffect[] | undefined,
   currentTimeMs: number
 ): ClipEffect[] | undefined {
-  if (!effects?.some((e) => e.enabled && isClipGrainEffect(e) && e.animate)) {
+  if (!effects?.some((e) => e.enabled && ((isClipGrainEffect(e) && e.animate) || ((e.type === "generator" || e.type === "stylize") && e.animate)))) {
     return effects;
   }
   const seed = Math.floor(currentTimeMs);
-  return effects.map((e) =>
-    e.enabled && isClipGrainEffect(e) && e.animate ? { ...e, seed } : e
-  );
+  return effects.map((e) => {
+    if (!e.enabled) return e;
+    if (isClipGrainEffect(e) && e.animate) return { ...e, seed };
+    if ((e.type === "generator" || e.type === "stylize") && e.animate) return { ...e, time: currentTimeMs / 1000 };
+    return e;
+  });
 }
 
 /**
@@ -1874,10 +2072,11 @@ export function resolveTextStaggerContext(
   clip: TimelineClip,
   currentTimeMs: number,
   canvas: RenderCanvas,
-  cache?: AnimationCompileCache
+  cache?: AnimationCompileCache,
+  tempo?: TimelineTempo
 ): TextRenderStagger | null {
   if (clip.mediaType !== "text") return null;
-  const compiled = compiledFor(clip, canvas, cache);
+  const compiled = compiledFor(clip, canvas, cache, tempo);
   if (compiled.length === 0 || !hasStaggeredAnimation(compiled)) return null;
   return {
     compiled,
@@ -1896,7 +2095,8 @@ export function hasActiveAnimation(
   currentTimeMs: number,
   canvas: RenderCanvas,
   cache?: AnimationCompileCache,
-  clips?: readonly TimelineClip[]
+  clips?: readonly TimelineClip[],
+  tempo?: TimelineTempo
 ): boolean {
   // Group clips never appear in `layers`, but their motion rides into every
   // child through `parentMatrix`, so a still child of a moving group is a
@@ -1904,8 +2104,10 @@ export function hasActiveAnimation(
   // the layers' own animations are seen.
   const byId = clips ? new Map(clips.map((clip) => [clip.id, clip])) : null;
   const animating = (clip: TimelineClip): boolean => {
+    if (clip.animationLinks?.length) return true;
+    if (clip.effects?.some((effect) => effect.enabled && (effect.type === "generator" || effect.type === "stylize" || isClipGrainEffect(effect)) && effect.animate)) return true;
     if (!clip.animations || clip.animations.length === 0) return false;
-    const compiled = compiledFor(clip, canvas, cache);
+    const compiled = compiledFor(clip, canvas, cache, tempo);
     return hasActiveAnimationWindow(compiled, currentTimeMs - clip.startMs);
   };
   const chainAnimating = (clip: TimelineClip): boolean => {
@@ -1918,6 +2120,7 @@ export function hasActiveAnimation(
     return false;
   };
   for (const layer of layers) {
+    if (layer.camera2d?.keyframes?.length) return true;
     if (chainAnimating(layer.clip)) return true;
     if (layer.matte && chainAnimating(layer.matte.layer.clip)) return true;
   }

@@ -1,4 +1,5 @@
-import type { ClipEffect, CurvePoint, TrackEffect } from "../types.js";
+import { fitCurve, channelMidtones } from "./curveFitting.js";
+import { GENERATOR_MODES, STYLIZE_MODES, type ClipEffect, type TrackEffect } from "../types.js";
 import {
   isClipBlurEffect,
   isClipChromaKeyEffect,
@@ -30,6 +31,11 @@ import {
   sharpenUnsharpMaskV1,
   vignetteV1,
   filtersGrainV1,
+  filtersPixelateV1,
+  colorPosterizeV1,
+  colorCubeLutV1,
+  transformSpherizeV1,
+  filtersVisualFxV1,
   chromaKeyV1,
   maskApplyV1,
   maskFromImageV1,
@@ -46,6 +52,7 @@ import {
 import * as d from "typegpu/data";
 import type { AnyWgslStruct, Infer } from "typegpu/data";
 import { parseCssColorOrBlack } from "./color.js";
+import { parseCubeLut, type CubeLut } from "./cubeLut.js";
 import { trackEffectsAsClipEffects } from "./trackEffects.js";
 
 interface AggregatedColor {
@@ -76,6 +83,28 @@ interface IntermediatePool {
   textures: [LabeledTexture, LabeledTexture];
   /** Currently holds the latest pixel state (input to next pass). */
   currentIndex: 0 | 1;
+}
+
+interface CachedLut {
+  texture: LabeledTexture;
+  parsed: CubeLut;
+}
+
+const floatBits = new DataView(new ArrayBuffer(4));
+
+function float16Bits(value: number): number {
+  floatBits.setFloat32(0, value, true);
+  const bits = floatBits.getUint32(0, true);
+  const sign = (bits >>> 16) & 0x8000;
+  const exponent = ((bits >>> 23) & 0xff) - 112;
+  const fraction = bits & 0x7fffff;
+  if (exponent <= 0) {
+    if (exponent < -10) return sign;
+    const subnormal = (fraction | 0x800000) >>> (1 - exponent);
+    return sign | ((subnormal + 0x1000) >>> 13);
+  }
+  if (exponent >= 31) return sign | 0x7bff;
+  return sign | ((exponent << 10) + ((fraction + 0x1000) >>> 13));
 }
 
 /**
@@ -121,6 +150,7 @@ export class WebGPUEffectsProcessor {
   private registry: ShaderRegistry;
 
   private pools = new Map<string, IntermediatePool>();
+  private lutTextures = new Map<string, CachedLut>();
 
   constructor(device: GPUDevice) {
     this.device = device;
@@ -290,7 +320,27 @@ export class WebGPUEffectsProcessor {
       this.stepClipEffect(chromaKey, width, height, step, stepRecipe);
     }
     for (const effect of shaderClip) {
-      this.stepClipEffect(effect, width, height, step, stepRecipe);
+      if (effect.type === "lut" && typeof effect.cube === "string") {
+        const { texture: lut, parsed } = this.getLutTexture(effect.cube);
+        const { input, outIdx } = pick();
+        this.executor.encode({
+          ctx: this.ctx,
+          module: colorCubeLutV1,
+          encoder,
+          inputs: { source: input, lut },
+          output: pool.textures[outIdx],
+          params: {
+            size: parsed.size,
+            intensity: typeof effect.intensity === "number" ? effect.intensity : 1,
+            domainMin: d.vec4f(...parsed.domainMin, 0),
+            domainMax: d.vec4f(...parsed.domainMax, 0)
+          },
+          dispatch: { kind: "fragment" }
+        });
+        settle(outIdx, colorCubeLutV1.io.output.alpha);
+      } else {
+        this.stepClipEffect(effect, width, height, step, stepRecipe);
+      }
     }
     if (colorActive) {
       step(colorGradeV1, { ...color });
@@ -346,6 +396,64 @@ export class WebGPUEffectsProcessor {
     ) => void,
     stepRecipe: <P>(module: RecipeModule<P>, params: P) => void
   ): void {
+    if (effect.type === "stylize" && typeof effect.mode === "string") {
+      const index = (STYLIZE_MODES as readonly string[]).indexOf(effect.mode);
+      if (index >= 0) {
+        const [r, g, b] = colorChannels(typeof effect.color === "string" ? effect.color : "#ffffff");
+        step(filtersVisualFxV1, {
+          mode: index,
+          amount: typeof effect.amount === "number" ? effect.amount : 0.5,
+          scale: typeof effect.scale === "number" ? effect.scale : 8,
+          angle: (typeof effect.angle === "number" ? effect.angle : 0) * Math.PI / 180,
+          time: typeof effect.time === "number" ? effect.time : 0,
+          seed: typeof effect.seed === "number" ? effect.seed : 0,
+          softness: typeof effect.softness === "number" ? effect.softness : 0.1,
+          colorA: d.vec4f(0, 0, 0, 1),
+          colorB: d.vec4f(r, g, b, 1)
+        });
+      }
+      return;
+    }
+    if (effect.type === "generator" && typeof effect.mode === "string") {
+      const index = (GENERATOR_MODES as readonly string[]).indexOf(effect.mode);
+      if (index >= 0) {
+        const [ar, ag, ab] = colorChannels(typeof effect.colorA === "string" ? effect.colorA : "#101a33");
+        const [br, bg, bb] = colorChannels(typeof effect.colorB === "string" ? effect.colorB : "#ffb45e");
+        step(filtersVisualFxV1, {
+          mode: index + STYLIZE_MODES.length,
+          amount: typeof effect.amount === "number" ? effect.amount : 1,
+          scale: typeof effect.scale === "number" ? effect.scale : 8,
+          angle: (typeof effect.angle === "number" ? effect.angle : 0) * Math.PI / 180,
+          time: typeof effect.time === "number" ? effect.time : 0,
+          seed: typeof effect.seed === "number" ? effect.seed : 0,
+          softness: 0.1,
+          colorA: d.vec4f(ar, ag, ab, 1),
+          colorB: d.vec4f(br, bg, bb, 1)
+        });
+      }
+      return;
+    }
+    if (effect.type === "pixelate" && typeof effect.cellSize === "number") {
+      step(filtersPixelateV1, { cellSize: effect.cellSize });
+      return;
+    }
+    if (effect.type === "posterize" && typeof effect.levels === "number") {
+      step(colorPosterizeV1, { levels: effect.levels });
+      return;
+    }
+    if (effect.type === "directionalBlur" && typeof effect.radius === "number" && typeof effect.angle === "number") {
+      const angle = (effect.angle * Math.PI) / 180;
+      step(blurGaussianV1, {
+        radius: effect.radius,
+        sigma: Math.max(0.001, effect.radius / 3),
+        direction: d.vec2f(Math.cos(angle), Math.sin(angle))
+      });
+      return;
+    }
+    if (effect.type === "lensDistortion" && typeof effect.amount === "number") {
+      step(transformSpherizeV1, { amount: effect.amount });
+      return;
+    }
     if (isClipGlowEffect(effect)) {
       // `color` tints the bloom, which `filters.glow@1` has no knob for; the
       // bloom takes the source's own colour. Threshold and softness are the
@@ -707,6 +815,50 @@ export class WebGPUEffectsProcessor {
     return pool;
   }
 
+  private getLutTexture(cube: string): CachedLut {
+    const cached = this.lutTextures.get(cube);
+    if (cached) return cached;
+    const parsed = parseCubeLut(cube);
+    const width = parsed.size * parsed.size;
+    const height = parsed.size;
+    const bytesPerRow = Math.ceil(width * 8 / 256) * 256;
+    const halvesPerRow = bytesPerRow / Uint16Array.BYTES_PER_ELEMENT;
+    const pixels = new Uint16Array(halvesPerRow * height);
+    for (let b = 0; b < parsed.size; b++) {
+      for (let g = 0; g < parsed.size; g++) {
+        for (let r = 0; r < parsed.size; r++) {
+          const source = ((b * parsed.size + g) * parsed.size + r) * 3;
+          const target = g * halvesPerRow + (b * parsed.size + r) * 4;
+          for (let channel = 0; channel < 3; channel++) {
+            pixels[target + channel] = float16Bits(parsed.rgb[source + channel] ?? 0);
+          }
+          pixels[target + 3] = float16Bits(1);
+        }
+      }
+    }
+    const texture = this.device.createTexture({
+      label: "timeline-cube-lut",
+      size: [width, height],
+      format: "rgba16float",
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    });
+    this.device.queue.writeTexture(
+      { texture }, new Uint8Array(pixels.buffer),
+      { bytesPerRow, rowsPerImage: height },
+      { width, height }
+    );
+    const labeled = new LabeledTexture(texture, {
+      label: "timeline-cube-lut",
+      format: "rgba16float",
+      width,
+      height,
+      meta: { colorSpace: "srgb", alpha: "premultiplied", bindingKind: "texture_2d" }
+    });
+    const entry = { texture: labeled, parsed };
+    this.lutTextures.set(cube, entry);
+    return entry;
+  }
+
   releasePool(key: string): void {
     const pool = this.pools.get(key);
     if (!pool) return;
@@ -728,6 +880,8 @@ export class WebGPUEffectsProcessor {
       pool.textures[1].destroy();
     }
     this.pools.clear();
+    for (const lut of this.lutTextures.values()) lut.texture.destroy();
+    this.lutTextures.clear();
     this.ctx.scratch.dispose();
     this.ctx.uniformRing.dispose();
   }
@@ -817,6 +971,13 @@ function clamp(v: number, lo: number, hi: number): number {
  */
 function isShaderStepEffect(effect: ClipEffect): boolean {
   return (
+    effect.type === "lut" ||
+    effect.type === "stylize" ||
+    effect.type === "generator" ||
+    effect.type === "pixelate" ||
+    effect.type === "posterize" ||
+    effect.type === "directionalBlur" ||
+    effect.type === "lensDistortion" ||
     isClipGlowEffect(effect) ||
     isClipDropShadowEffect(effect) ||
     isClipVignetteEffect(effect) ||
@@ -827,106 +988,4 @@ function isShaderStepEffect(effect: ClipEffect): boolean {
     isClipLiftGammaGainEffect(effect) ||
     isClipGrainEffect(effect)
   );
-}
-
-/** The parametric knobs `color.curves@1` takes, fitted to a point list. */
-interface CurveKnobs {
-  blackPoint: number;
-  whitePoint: number;
-  shadows: number;
-  midtones: number;
-  highlights: number;
-}
-
-const IDENTITY_CURVE: CurveKnobs = {
-  blackPoint: 0,
-  whitePoint: 1,
-  shadows: 0,
-  midtones: 0,
-  highlights: 0
-};
-
-/** Read a control-point curve at `x`: piecewise linear, flat past the ends. */
-function sampleCurve(points: readonly CurvePoint[], x: number): number {
-  const first = points[0];
-  const last = points[points.length - 1];
-  if (!first || !last) return x;
-  if (x <= first.x) return first.y;
-  if (x >= last.x) return last.y;
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1];
-    const b = points[i];
-    if (!a || !b || x > b.x) continue;
-    const span = b.x - a.x;
-    return span <= 0 ? b.y : a.y + ((x - a.x) / span) * (b.y - a.y);
-  }
-  return last.y;
-}
-
-/**
- * Fit a point list onto `color.curves@1`, which is parametric rather than a
- * LUT: a black/white remap, then a shadow lift, a midtone gamma and a
- * highlight roll.
- *
- * The toe and shoulder come from the knots that sit at 0 and 1 — a levels-style
- * curve is exact. The three bends are then solved in the shader's own order
- * from the quarter, mid and three-quarter samples, so a curve that moves only
- * one of them reproduces exactly and one that moves several is close. It is a
- * fit, not a translation: no set of three parameters draws an arbitrary curve.
- */
-function fitCurve(points: readonly CurvePoint[]): CurveKnobs {
-  const sorted = points
-    .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y))
-    .slice()
-    .sort((a, b) => a.x - b.x);
-  if (sorted.length < 2) return IDENTITY_CURVE;
-
-  let blackPoint = 0;
-  let whitePoint = 1;
-  for (const p of sorted) {
-    if (p.y <= 0.001) blackPoint = clamp(p.x, 0, 1);
-  }
-  for (let i = sorted.length - 1; i >= 0; i--) {
-    const p = sorted[i];
-    if (p && p.y >= 0.999) whitePoint = clamp(p.x, 0, 1);
-  }
-  if (whitePoint - blackPoint < 0.01) return IDENTITY_CURVE;
-
-  // Residual curve after the remap: what the three bends have to produce.
-  const at = (u: number): number =>
-    clamp(sampleCurve(sorted, blackPoint + u * (whitePoint - blackPoint)), 0, 1);
-  const t25 = at(0.25);
-  const t50 = at(0.5);
-  const t75 = at(0.75);
-
-  // Gamma first, from the midpoint: `pow(0.5, 1 / (1 + midtones)) = t50`.
-  const midtones = clamp(Math.log(0.5) / Math.log(safeUnit(t50)) - 1, -0.9, 9);
-  const gamma = 1 / (1 + midtones);
-
-  // Shadows next: undo the gamma at the quarter tone to read what the lift
-  // `u + shadows × u × (1 - u)` must have produced there.
-  const shadows = clamp((Math.pow(t25, 1 / gamma) - 0.25) / 0.1875, -1, 1);
-
-  // Highlights last, on the three-quarter tone the first two have already bent.
-  const lifted = 0.75 + shadows * 0.75 * 0.25;
-  const bent = Math.pow(clamp(lifted, 0, 1), gamma);
-  const room = bent * (1 - bent);
-  const highlights = room > 0.001 ? clamp((t75 - bent) / room, -1, 1) : 0;
-
-  return { blackPoint, whitePoint, shadows, midtones, highlights };
-}
-
-/**
- * A per-channel curve reduces to that channel's midtone gamma, which is the
- * only per-channel knob `color.curves@1` has. Absent means neutral.
- */
-function channelMidtones(points: readonly CurvePoint[] | undefined): number {
-  if (!points || points.length < 2) return 0;
-  const mid = clamp(sampleCurve(points, 0.5), 0, 1);
-  return clamp(Math.log(0.5) / Math.log(safeUnit(mid)) - 1, -0.9, 9);
-}
-
-/** Keep a sample off 0 and 1, where the log solve has no answer. */
-function safeUnit(v: number): number {
-  return Math.min(0.999, Math.max(0.001, v));
 }

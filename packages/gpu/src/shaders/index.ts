@@ -19,6 +19,7 @@ import { colorBrightnessContrastV1 } from "./color/brightnessContrast/v1/module.
 import { colorHsbV1 } from "./color/hsb/v1/module.js";
 import { colorExposureV1 } from "./color/exposure/v1/module.js";
 import { colorPosterizeV1 } from "./color/posterize/v1/module.js";
+import { colorCubeLutV1 } from "./color/cubeLut/v1/module.js";
 import { colorChannelSplitV1 } from "./color/channelSplit/v1/module.js";
 import { colorChannelShuffleV1 } from "./color/channelShuffle/v1/module.js";
 import { colorChannelMergeV1 } from "./color/channelMerge/v1/module.js";
@@ -39,6 +40,7 @@ import { sharpenUnsharpMaskV1 } from "./filters/sharpen/unsharpMask/v1/module.js
 import { vignetteV1 } from "./filters/vignette/v1/module.js";
 import { filtersGrainV1 } from "./filters/grain/v1/module.js";
 import { filtersPixelateV1 } from "./filters/pixelate/v1/module.js";
+import { filtersVisualFxV1 } from "./filters/visualFx/v1/module.js";
 import { filtersThresholdV1 } from "./filters/threshold/v1/module.js";
 import { filtersConvolve3x3V1 } from "./filters/convolve3x3/v1/module.js";
 import { filtersGlowV1 } from "./filters/glow/v1/module.js";
@@ -90,6 +92,7 @@ export {
   colorHsbV1,
   colorExposureV1,
   colorPosterizeV1,
+  colorCubeLutV1,
   colorChannelSplitV1,
   colorChannelShuffleV1,
   colorChannelMergeV1,
@@ -109,6 +112,7 @@ export {
   vignetteV1,
   filtersGrainV1,
   filtersPixelateV1,
+  filtersVisualFxV1,
   filtersThresholdV1,
   filtersConvolve3x3V1,
   filtersGlowV1,
@@ -160,6 +164,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   colorHsbV1,
   colorExposureV1,
   colorPosterizeV1,
+  colorCubeLutV1,
   colorChannelSplitV1,
   colorChannelShuffleV1,
   colorChannelMergeV1,
@@ -180,6 +185,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   vignetteV1,
   filtersGrainV1,
   filtersPixelateV1,
+  filtersVisualFxV1,
   filtersThresholdV1,
   filtersConvolve3x3V1,
   // keyer

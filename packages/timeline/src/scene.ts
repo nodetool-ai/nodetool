@@ -23,3 +23,6 @@ export * from "./render/textLayout.js";
 export * from "./render/canvas2d.js";
 export * from "./render/trackEffects.js";
 export * from "./render/motionBlur.js";
+export * from "./render/layout.js";
+export * from "./render/spatial.js";
+export * from "./render/temporal.js";

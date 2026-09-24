@@ -10,16 +10,12 @@
  * written against `RasterContext2D`: one implementation serves an
  * `OffscreenCanvas`, a DOM canvas and `@napi-rs/canvas`.
  *
- * Effects are the one place this path is an approximation rather than a
- * translation: the color and blur adjustments map onto `ctx.filter`, and the
- * GPU-only effects (chroma key, vignette, sharpen) have no Canvas 2D
- * equivalent. {@link unsupportedEffectTypes} names the ones a given layer set
- * drops, so a caller can say so rather than silently showing a different
- * picture.
+ * Pixel effects run on a scratch surface shared by browser and Node hosts.
+ * If a host cannot provide that surface, the frame reports the degradation.
  *
- * A group carrying effects or a blend mode composites its children onto an
- * intermediate surface first, so the effect chain runs on the composed picture
- * and the blend meets the frame once. The host vends that surface through
+ * A group carrying effects, a blend mode, or a transition composites its
+ * children onto an intermediate surface first, so the effect chain and cut
+ * run on the composed picture and the blend meets the frame once. The host vends that surface through
  * {@link CompositeSurfaceFactory}, because there is no way to make one that
  * exists in both a browser and Node.
  *
@@ -44,10 +40,16 @@ import type {
 } from "../types.js";
 import {
   isClipBlurEffect,
+  isClipChromaKeyEffect,
   isClipColorEffect,
-  isClipDropShadowEffect
+  isClipDropShadowEffect,
+  isClipSharpenEffect,
+  isClipVignetteEffect
 } from "../types.js";
 import { clipMask, drawMask, maskIsHard, type MaskContext2D } from "./draw.js";
+import { applyCpuDropShadows, applyCpuIris, applyCpuVisualEffects, isCpuVisualEffect } from "./cpuVisualEffects.js";
+import { alphaBounds, applyCpuColorGrade, applyCpuGaussianBlur, applyCpuLegacyEffects, isCpuLegacyEffect } from "./cpuLegacyEffects.js";
+import { aggregateBlurRadius } from "./effects.js";
 import type { MatteMode } from "./sceneModel.js";
 import { trackEffectsAsClipEffects } from "./trackEffects.js";
 import {
@@ -121,6 +123,8 @@ export interface Canvas2DLayer<TSource> {
   blendMode: unknown;
   /** Composite order, ascending. */
   zIndex: number;
+  /** Order among clips and group surfaces with the same zIndex. */
+  stackOrder?: number;
   transform?: ClipTransform;
   /** The layer's group matrix, from the scene model. Composes as `parent × own`. */
   parentMatrix?: Float32Array;
@@ -189,10 +193,14 @@ export interface Canvas2DPrecomposite {
   id: string;
   /** Composite order of the blended result, ascending. */
   zIndex: number;
+  /** Order among clips and group surfaces with the same zIndex. */
+  stackOrder?: number;
   opacity: number;
   blendMode: unknown;
   /** Run once on the composed surface, not once per child. */
   effects?: ClipEffect[];
+  /** Applied to the composed surface, not separately to its children. */
+  transition?: ResolvedTransition;
   /** Set when a precompositing group holds this one: the surface it draws into. */
   precomposeGroupId?: string;
 }
@@ -271,6 +279,8 @@ export type MaskScratchFactory<TSource> = CompositeSurfaceFactory<TSource>;
 
 /** The optional halves of a frame draw: the surfaces, and the group stack. */
 export interface DrawTimelineFrameOptions<TSource> {
+  /** Scratch for procedural and spatial effects before placement. */
+  effectSurface?: CompositeSurfaceFactory<TSource>;
   /** Scratch for filtering and masking a source before its perspective warp. */
   projectiveSurface?: CompositeSurfaceFactory<TSource>;
   /**
@@ -334,12 +344,12 @@ export interface DrawTimelineFrameOptions<TSource> {
  * where the difference is not an effect type {@link unsupportedEffectTypes}
  * could name (I7).
  *
- * Every one of these is a *host* shortfall rather than a missing rule: the
- * drawing exists, and the surface it needs to run on does not — except
- * `drop_shadow_extra_ignored`, which is `ctx.shadow*` being one set of fields
- * where the GPU recipe runs once per effect.
+ * Most are host shortfalls: the drawing exists, but the surface it needs is
+ * unavailable. Extra drop shadows and near-plane fallback are approximations
+ * of GPU behavior even when the host provides every surface.
  */
 export type Canvas2DDegradationReason =
+  | "effect_surface_missing"
   /** A feathered shape mask drawn as its hard edge. */
   | "mask_hard_edge"
   /** A feathered wipe drawn as a hard edge. */
@@ -357,6 +367,8 @@ export type Canvas2DDegradationReason =
   /** A tilted layer rendered without its requested shadow. */
   | "drop_shadow_skipped"
   | "perspective_skipped"
+  /** Near-plane crossing uses tessellation rather than pixel sampling. */
+  | "perspective_near_plane_fallback"
   /** Brightness applied as a CSS multiply instead of the GPU's addition. */
   | "brightness_multiplicative"
   /** A crop skipped: the layer drew its whole source, at its whole-source fit. */
@@ -378,16 +390,32 @@ export interface Canvas2DFrameReport<TSource> {
 }
 
 /**
- * Effect types this path draws; everything else is dropped and reported.
- *
- * `dropShadow` is here because `ctx.shadow*` casts from the layer's own
- * silhouette, which is what the GPU recipe blurs too. The other clip effects
- * from the shader catalog (D7) have no Canvas 2D equivalent at all: there is no
- * filter for a key, a tone curve, an output range or a three-way grade, and
- * `drop-shadow()` on `ctx.filter` is not one of them either — it would apply to
- * the shadow as well.
+ * Effect types handled by the Canvas pixel path or a native draw operation.
  */
-const CANVAS_EFFECT_TYPES = new Set(["color", "blur", "dropShadow"]);
+const CANVAS_EFFECT_TYPES = new Set(["color", "blur", "dropShadow", "glow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"]);
+
+function applyCpuEffectChain(pixels: ImagePixels, clipEffects: readonly ClipEffect[], trackEffects: readonly ClipEffect[] = []): void {
+  const trackKey = trackEffects.find((effect) => effect.enabled && isClipChromaKeyEffect(effect) && effect.tolerance > 0.001);
+  if (trackKey) applyCpuLegacyEffects(pixels, [trackKey]);
+  for (const effect of clipEffects) {
+    if (!effect.enabled) continue;
+    if (isClipDropShadowEffect(effect)) applyCpuDropShadows(pixels, [effect]);
+    else if (isCpuVisualEffect(effect)) applyCpuVisualEffects(pixels, [effect]);
+    else if (isCpuLegacyEffect(effect)) applyCpuLegacyEffects(pixels, [effect]);
+  }
+  const combinedEffects = [...clipEffects, ...trackEffects];
+  const blurRadius = aggregateBlurRadius(clipEffects.filter((effect) => effect.enabled), trackEffects.filter((effect) => effect.enabled));
+  const sharedBounds = blurRadius >= 0.5 && combinedEffects.some((effect) => effect.enabled && isClipColorEffect(effect))
+    && pixels.data.length === pixels.width * pixels.height * 4
+    ? alphaBounds(pixels)
+    : undefined;
+  applyCpuColorGrade(pixels, combinedEffects, sharedBounds);
+  applyCpuGaussianBlur(pixels, blurRadius, sharedBounds);
+  const trackSharpen = trackEffects.find((effect) => effect.enabled && isClipSharpenEffect(effect) && effect.amount > 0.001);
+  const trackVignette = trackEffects.find((effect) => effect.enabled && isClipVignetteEffect(effect) && effect.amount > 0.001);
+  if (trackSharpen) applyCpuLegacyEffects(pixels, [trackSharpen]);
+  if (trackVignette) applyCpuLegacyEffects(pixels, [trackVignette]);
+}
 
 /**
  * The effect types present on these layers that Canvas 2D cannot draw. A
@@ -401,19 +429,8 @@ const CANVAS_EFFECT_TYPES = new Set(["color", "blur", "dropShadow"]);
  * adjustments in as well. Leaving either out is how a group blur, or a keyed
  * adjustment, that this path never applied would go unreported.
  *
- * A grade is reported per channel rather than per type: `ctx.filter` carries
- * brightness, contrast, saturation and hue, and has no white balance at all, so
- * a `color` or `colorCorrection` effect that moves temperature, tint, shadows
- * or highlights is partly applied. Those come back as `color.temperature`,
- * `color.tint`, `color.shadows` and `color.highlights`, at the identity the GPU
- * grade uses (0 for all four) — including on the effect the scene model
- * synthesizes for an animated grade, which arrives here as an ordinary enabled
- * `color`.
- *
- * Brightness is not on this list: this path applies the GPU's addition itself
- * when the host vends a scratch surface, and reports the CSS-multiply fallback
- * as a {@link Canvas2DDegradation} instead, because whether it degraded is a
- * property of the frame draw and not of the effect list.
+ * A missing scratch surface is reported by the frame draw, because support
+ * depends on the host rather than the effect document.
  */
 export function unsupportedEffectTypes(
   layers: readonly {
@@ -422,22 +439,10 @@ export function unsupportedEffectTypes(
   }[]
 ): string[] {
   const found = new Set<string>();
-  const grade = (channel: {
-    temperature?: number;
-    tint?: number;
-    shadows?: number;
-    highlights?: number;
-  }): void => {
-    if (Math.abs(channel.temperature ?? 0) > 0.001) found.add("color.temperature");
-    if (Math.abs(channel.tint ?? 0) > 0.001) found.add("color.tint");
-    if (Math.abs(channel.shadows ?? 0) > 0.001) found.add("color.shadows");
-    if (Math.abs(channel.highlights ?? 0) > 0.001) found.add("color.highlights");
-  };
   const scan = (effects: readonly ClipEffect[]): void => {
     for (const e of effects) {
       if (!e.enabled) continue;
       if (!CANVAS_EFFECT_TYPES.has(e.type)) found.add(e.type);
-      if (isClipColorEffect(e)) grade(e);
     }
   };
   for (const layer of layers) {
@@ -522,12 +527,28 @@ function drawProjectiveTriangle<TSource>(
   const c = ((q2.x - q0.x) * dx1 - (q1.x - q0.x) * dx2) / det;
   const b = ((q1.y - q0.y) * dy2 - (q2.y - q0.y) * dy1) / det;
   const d = ((q2.y - q0.y) * dx1 - (q1.y - q0.y) * dx2) / det;
+  // Canvas antialiases each independently clipped triangle. Adjacent clips
+  // can both leave subpixel coverage at their shared edge, exposing a dark
+  // diagonal through a projected card. Two pixels of overlap cover that edge
+  // even with a skewed clip; the affine image mapping stays put. The caller
+  // assembles these overlaps with copy, preserving the source's own alpha.
+  const centroidX = (q0.x + q1.x + q2.x) / 3;
+  const centroidY = (q0.y + q1.y + q2.y) / 3;
+  const clipPoint = (point: ProjectivePoint): ProjectivePoint => {
+    const dx = point.x - centroidX;
+    const dy = point.y - centroidY;
+    const length = Math.hypot(dx, dy) || 1;
+    return { x: point.x + 2 * dx / length, y: point.y + 2 * dy / length };
+  };
+  const c0 = clipPoint(q0);
+  const c1 = clipPoint(q1);
+  const c2 = clipPoint(q2);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.beginPath();
-  ctx.moveTo(q0.x, q0.y);
-  ctx.lineTo(q1.x, q1.y);
-  ctx.lineTo(q2.x, q2.y);
+  ctx.moveTo(c0.x, c0.y);
+  ctx.lineTo(c1.x, c1.y);
+  ctx.lineTo(c2.x, c2.y);
   ctx.closePath();
   ctx.clip();
   ctx.setTransform(a, b, c, d, q0.x - a * p0.x - c * p0.y, q0.y - b * p0.x - d * p0.y);
@@ -568,6 +589,122 @@ function drawProjectiveImage<TSource>(
   }
 }
 
+type ProjectiveRasterResult = "drawn" | "unreadable" | "near_plane";
+
+/** Sample the prepared source once per destination pixel, without tile clips. */
+function rasterizeProjectiveImage<TSource>(
+  sourceCtx: CompositeContext2D<TSource>,
+  destinationCtx: CompositeContext2D<TSource>,
+  sourceWidth: number,
+  sourceHeight: number,
+  matrix: Float32Array,
+  geometry: Canvas2DFrameGeometry
+): ProjectiveRasterResult {
+  let sourcePixels: ImagePixels;
+  try {
+    sourcePixels = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight);
+  } catch {
+    // A cross-origin canvas may still draw, but it cannot be read back.
+    return "unreadable";
+  }
+  const source = sourcePixels.data;
+  let left = sourceWidth;
+  let top = sourceHeight;
+  let right = -1;
+  let bottom = -1;
+  for (let y = 0; y < sourceHeight; y++) {
+    for (let x = 0; x < sourceWidth; x++) {
+      if (source[(y * sourceWidth + x) * 4 + 3] === 0) continue;
+      left = Math.min(left, x);
+      top = Math.min(top, y);
+      right = Math.max(right, x);
+      bottom = Math.max(bottom, y);
+    }
+  }
+  if (right < left) return "drawn";
+
+  // A rational projection is unbounded when its homogeneous denominator
+  // changes sign across the visible source rectangle. Four corners cannot
+  // bound that image, so use the tessellated near-plane fallback.
+  const g = matrix[3], h = matrix[7], i = matrix[15];
+  const u0 = 2 * left / sourceWidth - 1;
+  const u1 = 2 * (right + 1) / sourceWidth - 1;
+  const v0 = 1 - 2 * top / sourceHeight;
+  const v1 = 1 - 2 * (bottom + 1) / sourceHeight;
+  const cornerW = [i + g * u0 + h * v0, i + g * u1 + h * v0,
+    i + g * u1 + h * v1, i + g * u0 + h * v1];
+  if (Math.min(...cornerW) <= 1e-5 && Math.max(...cornerW) >= -1e-5) {
+    return "near_plane";
+  }
+
+  const corners = [
+    projectSourcePoint(matrix, left, top, sourceWidth, sourceHeight, geometry.canvasWidth, geometry.canvasHeight),
+    projectSourcePoint(matrix, right + 1, top, sourceWidth, sourceHeight, geometry.canvasWidth, geometry.canvasHeight),
+    projectSourcePoint(matrix, right + 1, bottom + 1, sourceWidth, sourceHeight, geometry.canvasWidth, geometry.canvasHeight),
+    projectSourcePoint(matrix, left, bottom + 1, sourceWidth, sourceHeight, geometry.canvasWidth, geometry.canvasHeight)
+  ];
+  if (corners.some((corner) => !Number.isFinite(corner.x) || !Number.isFinite(corner.y))) return "unreadable";
+  const x0 = Math.max(0, Math.floor(Math.min(...corners.map((corner) => corner.x))) - 1);
+  const y0 = Math.max(0, Math.floor(Math.min(...corners.map((corner) => corner.y))) - 1);
+  const x1 = Math.min(geometry.canvasWidth, Math.ceil(Math.max(...corners.map((corner) => corner.x))) + 1);
+  const y1 = Math.min(geometry.canvasHeight, Math.ceil(Math.max(...corners.map((corner) => corner.y))) + 1);
+  if (x1 <= x0 || y1 <= y0) return "drawn";
+
+  const pixels = destinationCtx.getImageData(x0, y0, x1 - x0, y1 - y0);
+  const output = pixels.data;
+  const a = matrix[0], b = matrix[4], c = matrix[12];
+  const d = matrix[1], e = matrix[5], f = matrix[13];
+  for (let y = y0; y < y1; y++) {
+    const normalizedY = 1 - 2 * (y + 0.5) / geometry.canvasHeight;
+    for (let x = x0; x < x1; x++) {
+      const normalizedX = 2 * (x + 0.5) / geometry.canvasWidth - 1;
+      const aa = a - normalizedX * g;
+      const bb = b - normalizedX * h;
+      const dd = d - normalizedY * g;
+      const ee = e - normalizedY * h;
+      const determinant = aa * ee - bb * dd;
+      if (Math.abs(determinant) < 1e-12) continue;
+      const cc = normalizedX * i - c;
+      const ff = normalizedY * i - f;
+      const u = (cc * ee - bb * ff) / determinant;
+      const v = (aa * ff - cc * dd) / determinant;
+      const sourceX = (u + 1) * sourceWidth / 2 - 0.5;
+      const sourceY = (1 - v) * sourceHeight / 2 - 0.5;
+      const sampleX = Math.floor(sourceX);
+      const sampleY = Math.floor(sourceY);
+      const fractionX = sourceX - sampleX;
+      const fractionY = sourceY - sampleY;
+      let alpha = 0;
+      let red = 0;
+      let green = 0;
+      let blue = 0;
+      for (let row = 0; row < 2; row++) {
+        const sy = sampleY + row;
+        if (sy < 0 || sy >= sourceHeight) continue;
+        for (let col = 0; col < 2; col++) {
+          const sx = sampleX + col;
+          if (sx < 0 || sx >= sourceWidth) continue;
+          const weight = (col ? fractionX : 1 - fractionX) * (row ? fractionY : 1 - fractionY);
+          const sourceOffset = (sy * sourceWidth + sx) * 4;
+          const weightedAlpha = source[sourceOffset + 3] * weight;
+          alpha += weightedAlpha;
+          red += source[sourceOffset] * weightedAlpha;
+          green += source[sourceOffset + 1] * weightedAlpha;
+          blue += source[sourceOffset + 2] * weightedAlpha;
+        }
+      }
+      if (alpha <= 0) continue;
+      const offset = ((y - y0) * pixels.width + x - x0) * 4;
+      output[offset] = red / alpha;
+      output[offset + 1] = green / alpha;
+      output[offset + 2] = blue / alpha;
+      output[offset + 3] = alpha;
+    }
+  }
+  destinationCtx.putImageData(pixels, x0, y0);
+  return "drawn";
+}
+
 /** Reset a context to the state each layer draw assumes. */
 function resetContext<TSource>(ctx: CompositeContext2D<TSource>): void {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -606,6 +743,31 @@ export function drawTimelineFrame<TSource>(
   geometry: Canvas2DFrameGeometry,
   options: DrawTimelineFrameOptions<TSource> = {}
 ): Canvas2DFrameReport<TSource> {
+  // A projective layer needs its prepared source and its warped result at the
+  // same time, but the next layer does not. Reuse that pair for every layer of
+  // the same size instead of retaining two full-frame surfaces per card.
+  const projectiveFactory = options.projectiveSurface;
+  const projectivePool = new Map<string, CompositeSurface<TSource>[]>();
+  const projectiveUses = new Map<string, number>();
+  const frameOptions: DrawTimelineFrameOptions<TSource> = projectiveFactory
+    ? {
+        ...options,
+        projectiveSurface: (width, height) => {
+          const key = `${width}x${height}`;
+          const slot = (projectiveUses.get(key) ?? 0) % 2;
+          projectiveUses.set(key, slot + 1);
+          const pair = projectivePool.get(key) ?? [];
+          const existing = pair[slot];
+          if (existing) return existing;
+          const surface = projectiveFactory(width, height);
+          if (surface) {
+            pair[slot] = surface;
+            projectivePool.set(key, pair);
+          }
+          return surface;
+        }
+      }
+    : options;
   resetContext(ctx);
   if (options.alpha === true) {
     ctx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
@@ -631,11 +793,11 @@ export function drawTimelineFrame<TSource>(
   const stack = composePrecomposites(
     layers,
     geometry,
-    options,
+    frameOptions,
     skipped,
     degraded
   );
-  drawStack(ctx, stack, onFrame, geometry, options, skipped, degraded);
+  drawStack(ctx, stack, onFrame, geometry, frameOptions, skipped, degraded);
   resetContext(ctx);
   return { skipped, degraded };
 }
@@ -668,7 +830,14 @@ function drawStack<TSource>(
   for (const adjustment of adjustments) {
     items.push({ adjustment, zIndex: adjustment.zIndex });
   }
-  for (const item of items.sort((a, b) => a.zIndex - b.zIndex)) {
+  for (const item of items.sort((a, b) => {
+    const z = a.zIndex - b.zIndex;
+    if (z !== 0) return z;
+    const first = a.layer?.stackOrder;
+    const second = b.layer?.stackOrder;
+    if (first === second) return 0;
+    return (first ?? Number.POSITIVE_INFINITY) - (second ?? Number.POSITIVE_INFINITY);
+  })) {
     if (item.adjustment) {
       applyAdjustment(ctx, item.adjustment, geometry, options, degraded);
       continue;
@@ -735,9 +904,12 @@ function applyAdjustment<TSource>(
   sctx.clearRect(0, 0, w, h);
   sctx.putImageData(original, 0, 0);
 
-  const brightness = brightnessForEffects(adjustment.effects, undefined);
-  const lifts = Math.abs(brightness) > 0.001;
-  if (lifts) addBrightness(sctx, w, h, brightness);
+  const pixelEffects = (adjustment.effects ?? []).filter((effect) => effect.enabled);
+  if (pixelEffects.length > 0) {
+    const pixels = sctx.getImageData(0, 0, w, h);
+    applyCpuEffectChain(pixels, pixelEffects);
+    sctx.putImageData(pixels, 0, 0);
+  }
 
   // A soft mask and a feathered wipe rasterize their coverage together on one
   // surface, because the mix needs `mask * wipe` as one number per pixel. A
@@ -795,7 +967,7 @@ function applyAdjustment<TSource>(
     // one it was copied from. The chain is armed after the clear, so no host
     // can read it as something to run on one.
     ctx.clearRect(0, 0, w, h);
-    ctx.filter = filterForEffects(adjustment.effects, undefined, lifts);
+    ctx.filter = "none";
     ctx.drawImage(scratch.surface, 0, 0, w, h);
   } catch {
     // The host's surface refused to draw. The snapshot the copy was made from
@@ -972,7 +1144,9 @@ function composePrecomposites<TSource>(
       opacity: group.opacity,
       blendMode: group.blendMode,
       zIndex: group.zIndex,
-      effects: group.effects
+      stackOrder: group.stackOrder,
+      effects: group.effects,
+      transition: group.transition
     });
   }
   return stack;
@@ -997,8 +1171,39 @@ export function drawTimelineLayer<TSource>(
   degraded: Canvas2DDegradation[] = []
 ): boolean {
   const cropped = cropLayerSource(layer, surfaces, degraded);
-  const { source: layerSource, width, height } = cropped;
+  let { source: layerSource } = cropped;
+  const { width, height } = cropped;
   if (width <= 0 || height <= 0) return false;
+
+  const clipEffects = [
+    ...(layer.effects ?? []),
+    ...(layer.transition?.effect ? [layer.transition.effect] : [])
+  ].filter((effect) => effect.enabled);
+  const trackEffects = trackEffectsAsClipEffects(layer.trackEffects).filter((effect) => effect.enabled);
+  const shadows = (layer.effects ?? []).filter(
+    (effect): effect is ClipDropShadowEffect => effect.enabled && isClipDropShadowEffect(effect)
+  );
+  let stackedShadows = false;
+  let cpuTreated = false;
+  const iris = layer.transition?.iris;
+  if (clipEffects.some((effect) => !isClipDropShadowEffect(effect)) || trackEffects.length > 0 || iris || shadows.length > 1) {
+    const surface = surfaces.effectSurface?.(width, height);
+    if (surface) {
+      const ectx = surface.ctx;
+      resetContext(ectx);
+      ectx.clearRect(0, 0, width, height);
+      ectx.drawImage(layerSource, 0, 0, width, height);
+      const pixels = ectx.getImageData(0, 0, width, height);
+      applyCpuEffectChain(pixels, clipEffects, trackEffects);
+      stackedShadows = shadows.length > 0;
+      if (iris) applyCpuIris(pixels, iris.progress, iris.softness);
+      ectx.putImageData(pixels, 0, 0);
+      layerSource = surface.surface;
+      cpuTreated = true;
+    } else {
+      degraded.push({ clipId: layer.clipId, reason: "effect_surface_missing" });
+    }
+  }
 
   if (layer.matte) {
     const matted = drawMattedLayer(
@@ -1082,7 +1287,7 @@ export function drawTimelineLayer<TSource>(
   const shape = layer.shapeMask;
   const softWipe = wipe !== undefined && wipe.softness > 0;
   const softShape = shape !== undefined && !maskIsHard(shape);
-  const brightness = brightnessForEffects(layer.effects, layer.trackEffects);
+  const brightness = cpuTreated ? 0 : brightnessForEffects(layer.effects, layer.trackEffects);
   const lifts = Math.abs(brightness) > 0.001;
   let applied = { shape: false, wipe: false, brightness: false };
   if (softWipe || softShape || lifts) {
@@ -1110,10 +1315,10 @@ export function drawTimelineLayer<TSource>(
       if (radiusPx > 0) clipRoundedRect(pctx, 0, 0, width, height, Math.min(radiusPx, width / 2, height / 2));
       if (shape && !applied.shape) clipMask(pctx, shape, width, height);
       if (wipe && !applied.wipe) clipWipeRect(pctx, width, height, wipe);
-      pctx.filter = filterForEffects(layer.effects, layer.trackEffects, applied.brightness);
+      pctx.filter = cpuTreated ? "none" : filterForEffects(layer.effects, layer.trackEffects, applied.brightness);
       pctx.drawImage(source, 0, 0, width, height);
       pctx.restore();
-      if (countDropShadows(layer.effects) > 0) {
+      if (countDropShadows(layer.effects) > 0 && !stackedShadows) {
         const shadowSurface = surfaces.projectiveSurface?.(geometry.canvasWidth, geometry.canvasHeight);
         if (shadowSurface) {
           const sctx = shadowSurface.ctx;
@@ -1122,22 +1327,49 @@ export function drawTimelineLayer<TSource>(
           sctx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
           sctx.filter = "none";
           sctx.globalAlpha = 1;
-          sctx.globalCompositeOperation = "source-over";
-          drawProjectiveImage(sctx, target.surface, width, height, placement, geometry);
+          const rasterResult = rasterizeProjectiveImage(pctx, sctx, width, height, placement, geometry);
+          if (rasterResult !== "drawn") {
+            drawProjectiveImage(sctx, target.surface, width, height, placement, geometry);
+            if (rasterResult === "near_plane") {
+              degraded.push({ clipId: layer.clipId, reason: "perspective_near_plane_fallback" });
+            }
+          }
           sctx.restore();
           ctx.setTransform(1, 0, 0, 1, 0, 0);
           ctx.filter = "none";
           applyDropShadow(ctx, layer.effects, t);
           ctx.drawImage(shadowSurface.surface, 0, 0, geometry.canvasWidth, geometry.canvasHeight);
-          if (countDropShadows(layer.effects) > 1) {
-            degraded.push({ clipId: layer.clipId, reason: "drop_shadow_extra_ignored" });
-          }
+          if (countDropShadows(layer.effects) > 1) degraded.push({ clipId: layer.clipId, reason: "drop_shadow_extra_ignored" });
         } else {
           drawProjectiveImage(ctx, target.surface, width, height, placement, geometry);
           degraded.push({ clipId: layer.clipId, reason: "drop_shadow_skipped" });
         }
       } else {
-        drawProjectiveImage(ctx, target.surface, width, height, placement, geometry);
+        // Assemble the perspective image at full opacity, then blend it once
+        // at the layer's opacity. Canvas triangle clips leave seams in some
+        // browsers even when their paths overlap, so sample the inverse
+        // projective mapping directly when the prepared source is readable.
+        const projected = surfaces.projectiveSurface?.(geometry.canvasWidth, geometry.canvasHeight);
+        if (projected) {
+          const projectedCtx = projected.ctx;
+          projectedCtx.save();
+          projectedCtx.setTransform(1, 0, 0, 1, 0, 0);
+          projectedCtx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
+          projectedCtx.filter = "none";
+          projectedCtx.globalAlpha = 1;
+          const rasterResult = rasterizeProjectiveImage(pctx, projectedCtx, width, height, placement, geometry);
+          if (rasterResult !== "drawn") {
+            drawProjectiveImage(projectedCtx, target.surface, width, height, placement, geometry);
+            if (rasterResult === "near_plane") {
+              degraded.push({ clipId: layer.clipId, reason: "perspective_near_plane_fallback" });
+            }
+          }
+          projectedCtx.restore();
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.drawImage(projected.surface, 0, 0, geometry.canvasWidth, geometry.canvasHeight);
+        } else {
+          drawProjectiveImage(ctx, target.surface, width, height, placement, geometry);
+        }
       }
       ctx.restore();
       resetContext(ctx);
@@ -1161,13 +1393,9 @@ export function drawTimelineLayer<TSource>(
     degraded.push({ clipId: layer.clipId, reason: "brightness_multiplicative" });
   }
 
-  ctx.filter = filterForEffects(
-    layer.effects,
-    layer.trackEffects,
-    applied.brightness
-  );
-  applyDropShadow(ctx, layer.effects, t);
-  if (countDropShadows(layer.effects) > 1) {
+  ctx.filter = cpuTreated ? "none" : filterForEffects(layer.effects, layer.trackEffects, applied.brightness);
+  if (!stackedShadows) applyDropShadow(ctx, layer.effects, t);
+  if (countDropShadows(layer.effects) > 1 && !stackedShadows) {
     degraded.push({
       clipId: layer.clipId,
       reason: "drop_shadow_extra_ignored"

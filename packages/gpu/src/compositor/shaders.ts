@@ -168,12 +168,28 @@ fn fs_blend(@location(0) uv: vec2f) -> @location(0) vec4f {
     sa = sa * (1.0 - smoothstep(e - softness, e, c));
   }
 
+  // Radial iris reveal, in the layer's own normalized space.
+  let irisProgress = u.params2.w;
+  if (irisProgress >= 0.0) {
+    let p = (texel / dimsF - vec2f(0.5)) * 2.0;
+    let radial = length(p);
+    let feather = max(u.params1.w, 0.0001);
+    let edge = irisProgress * (1.41421356 + feather);
+    let iris = 1.0 - smoothstep(edge - feather, edge, radial);
+    sa = sa * select(iris, 0.0, irisProgress <= 0.0);
+  }
+
   if (sa <= 0.0) {
     return dst;
   }
 
   let da = dst.a;
   let sc = srcRaw.rgb;
+  // Canvas lighter adds premultiplied channels and alpha. Applying a
+  // saturated straight-color sum inside source-over loses translucent light.
+  if (blendMode == 12u) {
+    return min(vec4f(sc * sa + dst.rgb, sa + da), vec4f(1.0));
+  }
   // The accumulator stores premultiplied color (ad*Cd); the W3C formula needs
   // straight Cd, so divide RGB by alpha before calling the blend functions.
   // Non-normal modes (multiply, overlay, ...) silently produced wrong values

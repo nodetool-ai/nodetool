@@ -26,6 +26,8 @@ import {
   hasActiveAnimation,
   measureTextWith,
   motionBlurSampleTimes,
+  layerShutterTime,
+  resolveSceneMotionBlur,
   shutterWindowIsStatic,
   resolveAnimatedLayerProps,
   resolveTextStaggerContext,
@@ -142,7 +144,7 @@ export async function renderTimelineComposited(
   // Resolved with the format rather than passed separately, so one object
   // carries every render choice. N samples cost N× this render — every layer
   // is decoded, rasterized and composited once per sample.
-  const motionBlur = output.motionBlur;
+  const motionBlur = resolveSceneMotionBlur(sequence.clips, output.motionBlur);
   const canvas = {
     width,
     height,
@@ -287,7 +289,7 @@ export async function renderTimelineComposited(
      * shutter window with it on — the layers are resolved the same way either
      * way, so a blurred render is N of the render it would otherwise have been.
      */
-    const sampleAt = async (timeMs: number): Promise<FrameSample> => {
+    const sampleAt = async (timeMs: number, frameTimeMs = timeMs, sampleIndex = 0, sampleCount = 1): Promise<FrameSample> => {
       const layers: FrameLayer[] = [];
       const { layers: active, precomposites } = computeActiveLayersWithHorizon(
         sequence.tracks,
@@ -296,7 +298,10 @@ export async function renderTimelineComposited(
         {
           canvas,
           animationCache: animCache,
-          mediaTracks: sequence.mediaTracks
+          mediaTracks: sequence.mediaTracks,
+          camera2d: sequence.camera2d,
+          tempo: sequence.tempo,
+          layerTimeMs: (clip) => layerShutterTime(clip, frameTimeMs, sampleIndex, sampleCount, frameMs, output.motionBlur)
         }
       );
       /**
@@ -311,22 +316,24 @@ export async function renderTimelineComposited(
         layer: (typeof active)[number],
         idPrefix = ""
       ): Promise<FrameLayer | null> => {
+        const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, frameMs, output.motionBlur);
         const anim = resolveAnimatedLayerProps(
           layer,
-          timeMs,
+          layerTimeMs,
           canvas,
           animCache,
-          { mediaTracks: sequence.mediaTracks ?? [], clips: sequence.clips }
+          { mediaTracks: sequence.mediaTracks ?? [], clips: sequence.clips, tempo: sequence.tempo }
         );
         const common = {
           opacity: anim.opacity,
           blendMode: layer.blendMode,
           zIndex: trackZ(layer.trackIndex),
+          stackOrder: layer.stackOrder,
           transform: anim.transform,
           parentMatrix: layer.parentMatrix,
           precomposeGroupId: layer.precomposeGroupId,
           mask: anim.mask,
-          borderRadius: layer.borderRadius,
+          borderRadius: anim.borderRadius ?? layer.borderRadius,
           crop: layer.crop,
           effects: anim.effects ?? layer.effects,
           trackEffects: layer.trackEffects,
@@ -335,7 +342,7 @@ export async function renderTimelineComposited(
 
         /** Attach the layer's own shape mask, rasterized at its source size. */
         const finish = (built: FrameLayer): FrameLayer => {
-          const shape = layer.shapeMask;
+          const shape = anim.clipMask;
           if (!shape) return built;
           const raster = rasterizer.mask(
             shape,
@@ -371,14 +378,15 @@ export async function renderTimelineComposited(
           });
         }
 
-        if (layer.kind === "text" && layer.textStyle) {
+        if (layer.kind === "text" && anim.textStyle) {
           const stagger = resolveTextStaggerContext(
             layer.clip,
-            timeMs,
+            layerTimeMs,
             canvas,
-            animCache
+            animCache,
+            sequence.tempo
           );
-          const raster = rasterizer.text(layer.textStyle, stagger);
+          const raster = rasterizer.text(anim.textStyle, stagger);
           if (!raster) return null;
           return finish({ ...common, id: id("t"), source: raster });
         }
@@ -401,7 +409,7 @@ export async function renderTimelineComposited(
             skippedClips.add(layer.clip.name);
             return null;
           }
-          const decoded = await stream.frameAt(timeMs);
+          const decoded = await stream.frameAt(layerTimeMs);
           if (!decoded) return null;
           return finish({
             ...common,
@@ -451,9 +459,11 @@ export async function renderTimelineComposited(
           (group): FramePrecomposite => ({
             id: group.clipId,
             zIndex: trackZ(group.trackIndex),
+            stackOrder: group.stackOrder,
             opacity: group.opacity,
             blendMode: group.blendMode,
             effects: group.effects,
+            transition: group.transition,
             precomposeGroupId: group.precomposeGroupId
           })
         )
@@ -478,12 +488,14 @@ export async function renderTimelineComposited(
         {
           canvas,
           animationCache: animCache,
-          mediaTracks: sequence.mediaTracks
+          mediaTracks: sequence.mediaTracks,
+          camera2d: sequence.camera2d,
+          tempo: sequence.tempo
         }
       );
       return shutterWindowIsStatic(
         layers,
-        hasActiveAnimation(layers, timeMs, canvas, animCache, sequence.clips)
+        hasActiveAnimation(layers, timeMs, canvas, animCache, sequence.clips, sequence.tempo)
       );
     };
 
@@ -508,7 +520,7 @@ export async function renderTimelineComposited(
         // Per sample, not per frame: with 32 samples a cancelled render would
         // otherwise finish 32 composites and decodes before it noticed.
         if (signal?.aborted) throw abortError();
-        samples.push(await sampleAt(sampleMs));
+        samples.push(await sampleAt(sampleMs, timeMs, samples.length, sampleTimes.length));
       }
 
       await encoder.write(

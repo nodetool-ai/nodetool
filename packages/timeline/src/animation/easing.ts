@@ -72,6 +72,48 @@ function easeOutBounce(t: number): number {
   return n1 * u * u + 0.984375;
 }
 
+function easeInExpo(t: number): number {
+  return t <= 0 ? 0 : Math.pow(2, 10 * t - 10);
+}
+
+function easeOutExpo(t: number): number {
+  return t >= 1 ? 1 : 1 - Math.pow(2, -10 * t);
+}
+
+function easeInOutExpo(t: number): number {
+  if (t <= 0) return 0;
+  if (t >= 1) return 1;
+  return t < 0.5
+    ? Math.pow(2, 20 * t - 10) / 2
+    : (2 - Math.pow(2, -20 * t + 10)) / 2;
+}
+
+function easeInQuint(t: number): number {
+  return t ** 5;
+}
+
+function easeOutQuint(t: number): number {
+  return 1 - (1 - t) ** 5;
+}
+
+function easeInOutQuint(t: number): number {
+  return t < 0.5 ? 16 * t ** 5 : 1 - (-2 * t + 2) ** 5 / 2;
+}
+
+function easeInCirc(t: number): number {
+  return 1 - Math.sqrt(1 - t * t);
+}
+
+function easeOutCirc(t: number): number {
+  return Math.sqrt(1 - (t - 1) ** 2);
+}
+
+function easeInOutCirc(t: number): number {
+  return t < 0.5
+    ? (1 - Math.sqrt(1 - (2 * t) ** 2)) / 2
+    : (Math.sqrt(1 - (-2 * t + 2) ** 2) + 1) / 2;
+}
+
 /**
  * A step: no progress until the segment's own (ending) keyframe, then all of
  * it. A curve segment eased by `hold` therefore shows the PREVIOUS keyframe's
@@ -90,6 +132,15 @@ const NAMED_EASINGS: Record<EasingId, EasingFn> = {
   easeOutBack,
   easeOutElastic,
   easeOutBounce,
+  easeInExpo,
+  easeOutExpo,
+  easeInOutExpo,
+  easeInQuint,
+  easeOutQuint,
+  easeInOutQuint,
+  easeInCirc,
+  easeOutCirc,
+  easeInOutCirc,
   hold
 };
 

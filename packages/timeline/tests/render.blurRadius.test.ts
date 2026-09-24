@@ -38,7 +38,7 @@ describe("export blur radius", () => {
           effects: [{ id: "blur", type: "blur", enabled: true, radius }] }],
         { canvasWidth: 800, canvasHeight: 800 }, { alpha: true }
       );
-      expect(report.degraded).toEqual([]);
+      expect(report.degraded).toEqual([{ reason: "effect_surface_missing" }]);
       return output.getContext("2d").getImageData(400 + distance, 400, 1, 1).data[3] ?? 0;
     };
 

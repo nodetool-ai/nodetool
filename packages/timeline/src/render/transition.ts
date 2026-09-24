@@ -16,7 +16,7 @@
 
 import type { AnimationSampleMask, WipeDirection } from "../animation/index.js";
 import { ease } from "../animation/index.js";
-import type { ClipTransform, TimelineClip } from "../types.js";
+import type { ClipEffect, ClipTransform, TimelineClip } from "../types.js";
 import { IDENTITY_TRANSFORM } from "./transform.js";
 
 /** Transition types this build draws. Anything else falls back (I2). */
@@ -26,7 +26,13 @@ export const TRANSITION_TYPES = [
   "wipe",
   "push",
   "slide",
-  "zoom"
+  "zoom",
+  "whip",
+  "zoomBlur",
+  "glitch",
+  "gradientWipe",
+  "iris",
+  "lightLeak"
 ] as const;
 
 export type TransitionType = (typeof TRANSITION_TYPES)[number];
@@ -116,6 +122,10 @@ export interface ResolvedTransition {
    * only, and only on the incoming role, so it is drawn once per cut.
    */
   solid?: { color: string; opacity: number };
+  /** Transient treatment that peaks in the middle of the cut. */
+  effect?: ClipEffect;
+  /** Radial reveal from the centre, with normalized feather width. */
+  iris?: { progress: number; softness: number };
 }
 
 /** Both sides of one cut, and the clip the outgoing record belongs to. */
@@ -243,6 +253,45 @@ function softnessOf(transition: TimelineClip["transitionIn"]): number {
   return typeof softness === "number" ? softness : 0;
 }
 
+function numericOf(transition: TimelineClip["transitionIn"], key: "blur" | "amount" | "scale" | "seed", fallback: number): number {
+  const value: unknown = transition ? Object.getOwnPropertyDescriptor(transition, key)?.value : undefined;
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function gradientMapOf(transition: TimelineClip["transitionIn"]): number {
+  const value: unknown = transition ? Object.getOwnPropertyDescriptor(transition, "map")?.value : undefined;
+  return value === "radial" ? 1 : value === "noise" ? 2 : 0;
+}
+
+function directionAngle(direction: WipeDirection): number {
+  switch (direction) {
+    case "left": return 180;
+    case "right": return 0;
+    case "up": return 270;
+    case "down": return 90;
+  }
+}
+
+function cutEffect(type: TransitionType, progress: number, transition: TimelineClip["transitionIn"]): ClipEffect | undefined {
+  const envelope = Math.sin(Math.PI * clamp01(progress));
+  if (type === "whip") {
+    return { id: "transition-whip", type: "directionalBlur", enabled: true, radius: numericOf(transition, "blur", 24) * envelope, angle: directionAngle(directionOf(transition)) };
+  }
+  if (type === "zoomBlur") {
+    return { id: "transition-zoom-blur", type: "stylize", enabled: true, mode: "zoomBlur", amount: numericOf(transition, "blur", 24) * envelope, scale: 8 };
+  }
+  if (type === "glitch") {
+    return { id: "transition-glitch", type: "stylize", enabled: true, mode: "glitch", amount: numericOf(transition, "amount", 1) * envelope, time: progress, seed: 7 };
+  }
+  if (type === "gradientWipe") {
+    return { id: "transition-gradient-wipe", type: "stylize", enabled: true, mode: "gradientWipe", amount: clamp01(progress), angle: directionAngle(directionOf(transition)), time: gradientMapOf(transition), scale: numericOf(transition, "scale", 6), seed: numericOf(transition, "seed", 0), softness: softnessOf(transition) || 0.1 };
+  }
+  if (type === "lightLeak") {
+    return { id: "transition-light-leak", type: "stylize", enabled: true, mode: "lightLeakOverlay", amount: envelope * 0.9, scale: numericOf(transition, "scale", 4), seed: numericOf(transition, "seed", 0), time: progress, color: solidColorOf(transition) === DEFAULT_DIP_COLOR ? "#ff9f43" : solidColorOf(transition) };
+  }
+  return undefined;
+}
+
 function scaled(
   direction: WipeDirection,
   amount: number
@@ -281,19 +330,31 @@ function incomingRecord(
           softness: softnessOf(transition)
         }
       };
+    case "gradientWipe":
+      return { ...base, opacity: 1, effect: cutEffect(type, progress, transition) };
     case "push":
     case "slide":
+    case "whip":
       return {
         ...base,
         opacity: 1,
-        offset: scaled(directionOf(transition), 1 - progress)
+        offset: scaled(directionOf(transition), 1 - progress),
+        effect: cutEffect(type, progress, transition)
       };
     case "zoom":
+    case "zoomBlur":
       return {
         ...base,
         opacity: clamp01(progress),
-        scale: ZOOM_IN_START_SCALE + (1 - ZOOM_IN_START_SCALE) * progress
+        scale: ZOOM_IN_START_SCALE + (1 - ZOOM_IN_START_SCALE) * progress,
+        effect: cutEffect(type, progress, transition)
       };
+    case "glitch":
+      return { ...base, opacity: clamp01(progress), effect: cutEffect(type, progress, transition) };
+    case "iris":
+      return { ...base, opacity: 1, iris: { progress: clamp01(progress), softness: softnessOf(transition) } };
+    case "lightLeak":
+      return { ...base, opacity: clamp01(progress), effect: cutEffect(type, progress, transition) };
     case "crossfade":
       return { ...base, opacity: clamp01(progress) };
   }
@@ -309,21 +370,31 @@ function outgoingRecord(
     case "dipToColor":
       return { ...base, opacity: clamp01(1 - 2 * progress) };
     case "push":
+    case "whip":
       // The one type that moves both: the outgoing clip leaves along the same
       // axis the incoming arrives on, so the two travel as one picture.
       return {
         ...base,
         opacity: 1,
-        offset: scaled(directionOf(transition), -progress)
+        offset: scaled(directionOf(transition), -progress),
+        effect: cutEffect(type, progress, transition)
       };
     case "zoom":
+    case "zoomBlur":
       return {
         ...base,
         opacity: 1,
-        scale: 1 + (ZOOM_OUT_END_SCALE - 1) * progress
+        scale: 1 + (ZOOM_OUT_END_SCALE - 1) * progress,
+        effect: cutEffect(type, progress, transition)
       };
+    case "glitch":
+      return { ...base, opacity: 1, effect: cutEffect(type, progress, transition) };
+    case "lightLeak":
+      return { ...base, opacity: 1, effect: cutEffect(type, progress, transition) };
     case "crossfade":
     case "wipe":
+    case "gradientWipe":
+    case "iris":
     case "slide":
       // The outgoing clip sits still at full strength and the incoming one
       // covers it. Fading it as well would bleed the black ground through the

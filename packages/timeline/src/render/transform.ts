@@ -147,7 +147,7 @@ export function buildTransformMatrix(
   const sx = base.x * transform.scale.x;
   const sy = base.y * transform.scale.y;
   const cos = Math.cos(transform.rotation);
-  const sin = Math.sin(transform.rotation);
+  const sin = -Math.sin(transform.rotation);
 
   // Aspect-corrected rotation: R' = A⁻¹ · R · A with A = diag(W/2, H/2)
   // (NDC → pixels). Collapses to plain R when the canvas is square.

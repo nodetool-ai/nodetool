@@ -575,6 +575,15 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
       }
     },
 
+    ui_timeline_stagger_animations: {
+      description:
+        "Offset existing animations across clips in the order listed. clip_ids are ordered clip IDs, not names. Each clip's animation delay increases by its zero-based index times offset_ms; media timing stays fixed. Every clip must have an animation.",
+      shape: {
+        clip_ids: z.array(z.string().min(1)).min(2),
+        offset_ms: z.number().finite().min(0)
+      }
+    },
+
     ui_timeline_clear_animations: {
       description:
         "Remove motion-design animations from a clip. Pass `role` to clear only that role (in/out/emphasis/loop); omit it to clear all.",

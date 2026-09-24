@@ -289,6 +289,14 @@ function windowT(anim: CompiledAnimation, localMs: number): number | null {
   return span > 0 ? (localMs - anim.windowStartMs) / span : 0;
 }
 
+/** Animation-window progress for visual style tracks and declarative links. */
+export function animationProgressAt(
+  animation: CompiledAnimation,
+  localMs: number
+): number | null {
+  return windowT(animation, localMs);
+}
+
 /**
  * Which of an animation's curves a fold pass applies. A staggered animation is
  * split across two passes: the block-level sampler folds its effect/mask
@@ -458,7 +466,7 @@ export function hasStaggeredAnimation(compiled: CompiledAnimation[]): boolean {
  * {@link windowT} with the unit's own window: shifted by the unit's delay and
  * `unitDurationMs` long (a pure phase shift for loops).
  */
-function staggerUnitT(
+export function staggerUnitT(
   anim: CompiledAnimation,
   stagger: CompiledStagger,
   localMs: number,

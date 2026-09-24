@@ -124,8 +124,8 @@ describe("buildTransformMatrix", () => {
     };
     const m = buildTransformMatrix(transform, { x: 1, y: 1 }, 100, 100);
     expect(m[0]).toBeCloseTo(0);
-    expect(m[1]).toBeCloseTo(1);
-    expect(m[4]).toBeCloseTo(-1);
+    expect(m[1]).toBeCloseTo(-1);
+    expect(m[4]).toBeCloseTo(1);
     expect(m[5]).toBeCloseTo(0);
   });
 
@@ -387,7 +387,7 @@ describe("buildTransformMatrix — parent composition", () => {
       parent
     );
     expect(child[12]).toBeCloseTo(-1);
-    expect(child[13]).toBeCloseTo(1);
+    expect(child[13]).toBeCloseTo(-1);
   });
 
   it("leaves the child alone under an identity parent", () => {

@@ -175,6 +175,8 @@ export interface FrameLayer<TSource = FrameLayerPixels> {
   opacity: number;
   blendMode: CompositorBlendMode;
   zIndex: number;
+  /** Order among clips and group surfaces with the same zIndex. */
+  stackOrder?: number;
   transform?: ClipTransform;
   /** The layer's group matrix, from the scene model. Composes as `parent × own`. */
   parentMatrix?: Float32Array;
@@ -242,10 +244,14 @@ export interface FramePrecomposite {
   id: string;
   /** Composite order of the blended result, ascending. */
   zIndex: number;
+  /** Order among clips and group surfaces with the same zIndex. */
+  stackOrder?: number;
   opacity: number;
   blendMode: CompositorBlendMode;
   /** Run once on the composed texture, not once per child. */
   effects?: ClipEffect[];
+  /** The cut applied to the composed group texture. */
+  transition?: ResolvedTransition;
   /** Set when a precompositing group holds this one: the texture it renders into. */
   precomposeGroupId?: string;
 }
@@ -285,9 +291,11 @@ interface ResolvedLayer {
   opacity: number;
   blendMode: CompositorBlendMode;
   zIndex: number;
+  stackOrder?: number;
   invAffine: InverseAffine;
   borderRadius: number;
   mask?: AnimationSampleMask;
+  iris?: { progress: number; softness: number };
 }
 
 /**
@@ -322,7 +330,14 @@ const isAdjustment = (item: StackItem): item is ResolvedAdjustment =>
  * everything.
  */
 const sortStack = (items: StackItem[]): StackItem[] =>
-  items.sort((a, b) => a.zIndex - b.zIndex);
+  items.sort((a, b) => {
+    const z = a.zIndex - b.zIndex;
+    if (z !== 0) return z;
+    const first = "stackOrder" in a ? a.stackOrder : undefined;
+    const second = "stackOrder" in b ? b.stackOrder : undefined;
+    if (first === second) return 0;
+    return (first ?? Number.POSITIVE_INFINITY) - (second ?? Number.POSITIVE_INFINITY);
+  });
 
 const TEXTURE_FORMAT: GPUTextureFormat = "rgba8unorm";
 
@@ -583,7 +598,8 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         canvasH: this.height,
         invAffine: item.invAffine,
         borderRadius: item.borderRadius,
-        wipe: wipeParams(item.mask)
+        wipe: wipeParams(item.mask),
+        iris: item.iris
       });
       const tmp = readTex;
       readTex = writeTex;
@@ -698,6 +714,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       opacity: layer.opacity * (matte.strength ?? 1),
       blendMode: layer.blendMode,
       zIndex: layer.zIndex,
+      stackOrder: layer.stackOrder,
       // The composite is frame-sized, so it blends 1:1: the layer's placement
       // already ran when it was drawn onto its own texture.
       invAffine: this.placementOf({}, this.width, this.height),
@@ -720,7 +737,9 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     // layer's whole picture, which is what a crop means.
     const src = this.cropSource(layer, uploaded, encoder);
 
-    const clipEffects = layer.effects ?? [];
+    const clipEffects = layer.transition?.effect
+      ? [...(layer.effects ?? []), layer.transition.effect]
+      : layer.effects ?? [];
     const trackEffects = layer.trackEffects ?? [];
     const graded =
       clipEffects.length > 0 || trackEffects.length > 0
@@ -763,6 +782,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       opacity: layer.opacity,
       blendMode: layer.blendMode,
       zIndex: layer.zIndex,
+      stackOrder: layer.stackOrder,
       invAffine: this.placementOf(
         {
           transform: transitionTransform(
@@ -783,7 +803,8 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       // An animated wipe on the clip and a wipe transition both reduce to one
       // reveal; the clip's own wins, because it is the motion the author put
       // there.
-      mask: layer.mask ?? layer.transition?.mask
+      mask: layer.mask ?? layer.transition?.mask,
+      iris: layer.transition?.iris
     };
   }
 
@@ -818,7 +839,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
    * inverse affine maps screen pixels to texels, and every pixel of a solid
    * samples the same one.
    */
-  private dipSolidFor(layer: FrameLayer<TSource>): ResolvedLayer | null {
+  private dipSolidFor(layer: Pick<FrameLayer<TSource>, "transition" | "zIndex" | "stackOrder">): ResolvedLayer | null {
     const solid = layer.transition?.solid;
     if (!solid || solid.opacity <= 0) return null;
     const texture = this.solidTexture(solid.color);
@@ -828,6 +849,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       opacity: Math.min(1, solid.opacity),
       blendMode: "normal",
       zIndex: layer.zIndex,
+      stackOrder: layer.stackOrder,
       // The identity base makes the single texel cover clip space [-1,1]².
       invAffine: forwardClipMatrixToInverseAffine(
         buildTransformMatrix(
@@ -995,15 +1017,27 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       // there is nothing to treat and no texture worth allocating.
       if (children.length === 0 || children.every(isAdjustment)) continue;
       const texture = this.renderPrecomposite(group, children, encoder);
+      const solid = this.dipSolidFor(group);
+      if (solid) assign(group.precomposeGroupId, solid);
       assign(group.precomposeGroupId, {
         texture,
         opacity: group.opacity,
         blendMode: group.blendMode,
         zIndex: group.zIndex,
+        stackOrder: group.stackOrder,
         // The texture is frame-sized, so it composites 1:1: the group's own
         // matrix already rode into each child through `parentMatrix`.
-        invAffine: this.placementOf({}, this.width, this.height),
-        borderRadius: 0
+        invAffine: this.placementOf({
+          transform: transitionTransform(
+            undefined,
+            group.transition,
+            this.referenceWidth,
+            this.referenceHeight
+          )
+        }, this.width, this.height),
+        borderRadius: 0,
+        mask: group.transition?.mask,
+        iris: group.transition?.iris
       });
     }
     return { stack: sortStack(stack), drawn };
@@ -1040,7 +1074,9 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     return this.composeToTexture(
       group.id,
       children,
-      group.effects ?? [],
+      group.transition?.effect
+        ? [...(group.effects ?? []), group.transition.effect]
+        : group.effects ?? [],
       encoder
     );
   }
@@ -1574,13 +1610,11 @@ export class HeadlessFrameCompositor {
     );
     this.device.queue.submit([encoder.finish()]);
 
-    // The accumulation is premultiplied. Over an opaque-black seed every pixel
-    // ends at alpha 1, where premultiplied and straight alpha coincide, so
-    // dropping the 256-byte row padding is all that is left to do. Over a
-    // transparent seed they do not coincide: the colour has to be divided back
-    // out, or every partly-transparent pixel exports darkened.
+    // The accumulation is premultiplied. An effect such as chroma key can
+    // lower alpha even over the opaque seed, so both export modes must divide
+    // colour back out to honor this method's straight-alpha contract.
     const rgba = await this.readMapped(readback);
-    if (alpha) unpremultiplyInPlace(rgba);
+    unpremultiplyInPlace(rgba);
     return rgba;
   }
 

@@ -9,7 +9,10 @@ const ALL: EasingId[] = [
   "easeInOut",
   "easeOutBack",
   "easeOutElastic",
-  "easeOutBounce"
+  "easeOutBounce",
+  "easeInExpo", "easeOutExpo", "easeInOutExpo",
+  "easeInQuint", "easeOutQuint", "easeInOutQuint",
+  "easeInCirc", "easeOutCirc", "easeInOutCirc"
 ];
 
 describe("ease", () => {

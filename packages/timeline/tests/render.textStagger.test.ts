@@ -30,6 +30,7 @@ const GLYPH_PX = 10;
 
 interface DrawnUnit {
   text: string;
+  fill: string | object;
   x: number;
   y: number;
   alpha: number;
@@ -84,6 +85,7 @@ class RecordingContext implements RasterContext2D {
   fillText(text: string, x: number, y: number): void {
     this.drawn.push({
       text,
+      fill: this.fillStyle,
       x: this.state.x + x * this.state.scaleX,
       y: this.state.y + y * this.state.scaleY,
       alpha: this.globalAlpha,
@@ -458,7 +460,42 @@ describe("drawStaggeredText", () => {
   });
 });
 
+describe("glyph visual tracks", () => {
+  it("lets per-glyph color override a block gradient and tracking move later characters", () => {
+    const animation: ClipAnimation = {
+      id: "glyph", role: "emphasis", preset: "custom", durationMs: 500,
+      stagger: { unit: "character", offsetMs: 1 },
+      styleTracks: [
+        { target: "glyph.color", keyframes: [{ t: 0, value: "blue" }, { t: 1, value: "blue" }] },
+        { target: "glyph.trackingPx", keyframes: [{ t: 0, value: 6 }, { t: 1, value: 6 }] }
+      ]
+    };
+    const styled = style({
+      text: "AB",
+      fill: { type: "linear", angle: 0, stops: [
+        { offset: 0, color: "#000000" }, { offset: 1, color: "#ffffff" }
+      ] }
+    });
+    const compiled = compileClipAnimations([animation], 1000, { width: WIDTH, height: HEIGHT },
+      { staggerCount: 2, staggerUnit: "character" });
+    const ctx = new RecordingContext();
+    drawStaggeredText(ctx, styled, WIDTH, HEIGHT,
+      { compiled, localMs: 500 }, createStaggerScratch());
+    expect(ctx.drawn).toHaveLength(2);
+    expect(ctx.drawn.every((draw) => typeof draw.fill === "string")).toBe(true);
+    expect(ctx.drawn[1].x - ctx.drawn[0].x).toBeCloseTo(GLYPH_PX + 6, 4);
+  });
+});
+
 describe("drawText on a context with no letter spacing of its own", () => {
+  it("places glyphs along an authored path", () => {
+    const ctx = new RecordingContext();
+    drawText(ctx, style({ text: "ABC", path: "M 0 0.5 L 1 0.5" }), WIDTH, HEIGHT);
+    expect(ctx.drawn.map((draw) => draw.text)).toEqual(["A", "B", "C"]);
+    expect(ctx.drawn[0].x).toBeLessThan(ctx.drawn[1].x);
+    expect(ctx.drawn[1].x).toBeLessThan(ctx.drawn[2].x);
+    expect(ctx.drawn[0].y).toBeCloseTo(HEIGHT / 2);
+  });
   // Both shipping contexts have `letterSpacing`, so this fallback is the path
   // nothing else exercises — and the one that has to land the glyphs where the
   // native path lands them.

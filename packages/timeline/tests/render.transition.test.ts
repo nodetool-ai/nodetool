@@ -187,6 +187,43 @@ describe("resolveTransition — roles", () => {
     expect(pairAt(t, 0.999).incoming.scale).toBeCloseTo(1, 2);
   });
 
+  it("whip moves both clips and blurs them at the midpoint", () => {
+    const middle = pairAt(cut({ type: "whip", direction: "right", blur: 20 }), 0.5);
+    expect(middle.incoming.offset?.x).toBeCloseTo(0.5);
+    expect(middle.outgoing.offset?.x).toBeCloseTo(-0.5);
+    expect(middle.incoming.effect).toMatchObject({ type: "directionalBlur", radius: 20 });
+    expect(middle.outgoing.effect).toMatchObject({ type: "directionalBlur", radius: 20 });
+    expect(pairAt(cut({ type: "whip", blur: 20 }), 0).incoming.effect).toMatchObject({ radius: 0 });
+  });
+
+  it("zoom blur and glitch peak their pixel treatment midway", () => {
+    const zoom = pairAt(cut({ type: "zoomBlur", blur: 18 }), 0.5);
+    expect(zoom.incoming.scale).toBeCloseTo(0.9);
+    expect(zoom.incoming.effect).toMatchObject({ type: "stylize", mode: "zoomBlur", amount: 18 });
+    expect(zoom.outgoing.effect).toMatchObject({ type: "stylize", mode: "zoomBlur", amount: 18 });
+    const glitch = pairAt(cut({ type: "glitch", amount: 0.8 }), 0.5);
+    expect(glitch.incoming.effect).toMatchObject({ type: "stylize", mode: "glitch", amount: 0.8 });
+    expect(glitch.outgoing.effect).toMatchObject({ type: "stylize", mode: "glitch", amount: 0.8 });
+  });
+
+  it("gradient-map wipe and iris reveal incoming without fading outgoing", () => {
+    const wipe = pairAt(cut({ type: "gradientWipe", direction: "down", softness: 0.3, map: "noise", scale: 7, seed: 3 }), 0.5);
+    expect(wipe.incoming.mask).toBeUndefined();
+    expect(wipe.incoming.effect).toMatchObject({ type: "stylize", mode: "gradientWipe", amount: 0.5, time: 2, softness: 0.3, scale: 7, seed: 3 });
+    expect(wipe.outgoing.opacity).toBe(1);
+    const iris = pairAt(cut({ type: "iris", softness: 0.2 }), 0.5);
+    expect(iris.incoming.iris).toEqual({ progress: 0.5, softness: 0.2 });
+    expect(iris.outgoing.opacity).toBe(1);
+  });
+
+  it("light leak creates a localized amber field at the midpoint", () => {
+    const middle = pairAt(cut({ type: "lightLeak" }), 0.5);
+    expect(middle.incoming.solid).toBeUndefined();
+    expect(middle.incoming.effect).toMatchObject({ type: "stylize", mode: "lightLeakOverlay", color: "#ff9f43", amount: 0.9 });
+    expect(middle.incoming.opacity).toBeCloseTo(0.5);
+    expect(middle.outgoing.effect).toMatchObject({ mode: "lightLeakOverlay" });
+  });
+
   it("names the role on both records", () => {
     const { incoming: i, outgoing: o } = pairAt(cut({ type: "push" }), 0.5);
     expect([i.role, o.role]).toEqual(["in", "out"]);

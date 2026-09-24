@@ -172,7 +172,7 @@ describe("legacy track effects on the Canvas 2D path", () => {
     expect(unsupportedEffectTypes([{ trackEffects: audio }])).toEqual([]);
   });
 
-  it("names the legacy video kinds this path cannot draw", () => {
+  it("supports legacy track keying, sharpen and vignette", () => {
     const track: TrackEffect[] = [
       { id: "s", type: "sharpen", enabled: true, amount: 1, threshold: 0.3 },
       {
@@ -193,10 +193,6 @@ describe("legacy track effects on the Canvas 2D path", () => {
         spill: 0.5
       }
     ];
-    expect(unsupportedEffectTypes([{ trackEffects: track }])).toEqual([
-      "chromaKey",
-      "sharpen",
-      "vignette"
-    ]);
+    expect(unsupportedEffectTypes([{ trackEffects: track }])).toEqual([]);
   });
 });

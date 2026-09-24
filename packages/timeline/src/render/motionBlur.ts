@@ -21,6 +21,9 @@
  */
 
 /** What a caller asks for. Both fields optional; absent means blur off. */
+import type { TimelineClip } from "../types.js";
+import { expandTemporalClips } from "./temporal.js";
+
 export interface MotionBlurOptions {
   /**
    * How many instants inside the shutter window to composite and average. 1 or
@@ -121,6 +124,77 @@ export function motionBlurSampleTimes(
     times.push(timeMs + ((i + 0.5) / samples) * windowMs);
   }
   return times;
+}
+
+/** The widest shutter required by the scene; individual layers may use less. */
+export function resolveSceneMotionBlur(
+  clips: readonly { motionBlur?: MotionBlurOptions }[],
+  global: MotionBlurOptions | undefined
+): ResolvedMotionBlur {
+  let samples = resolveMotionBlur(global).samplesPerFrame;
+  let angle = samples > 1 ? resolveMotionBlur(global).shutterAngle : 0;
+  for (const clip of clips) {
+    if (!clip.motionBlur) continue;
+    const own = resolveMotionBlur(clip.motionBlur);
+    samples = Math.max(samples, own.samplesPerFrame);
+    if (own.samplesPerFrame > 1) angle = Math.max(angle, own.shutterAngle);
+  }
+  return { samplesPerFrame: samples, shutterAngle: angle, weight: 1 / samples };
+}
+
+/** Resolve only blur requests whose clip overlaps this frame's shutter window. */
+export function resolveFrameMotionBlur(
+  clips: readonly TimelineClip[],
+  global: MotionBlurOptions | undefined,
+  timeMs: number,
+  frameMs: number,
+  tracks?: readonly { id: string; visible: boolean }[]
+): ResolvedMotionBlur {
+  const visibleTracks = tracks ? new Set(tracks.filter((track) => track.visible).map((track) => track.id)) : null;
+  const groups = new Map(clips.filter((clip) => clip.mediaType === "group").map((clip) => [clip.id, clip]));
+  const onScreen = (clip: TimelineClip): boolean => {
+    const shutterEndMs = timeMs + resolveMotionBlur(clip.motionBlur).shutterAngle / 360 * frameMs;
+    const overlaps = (candidate: TimelineClip): boolean =>
+      (candidate.startMs < shutterEndMs || (shutterEndMs === timeMs && candidate.startMs <= timeMs)) &&
+      candidate.startMs + candidate.durationMs > timeMs;
+    if (visibleTracks && !visibleTracks.has(clip.trackId)) {
+      return false;
+    }
+    if (!overlaps(clip)) {
+      return false;
+    }
+    const visited = new Set<string>();
+    let parentId = clip.parentId;
+    while (parentId && groups.has(parentId)) {
+      if (visited.has(parentId)) {
+        return false;
+      }
+      visited.add(parentId);
+      const parent = groups.get(parentId)!;
+      if (!overlaps(parent)) {
+        return false;
+      }
+      parentId = parent.parentId;
+    }
+    return true;
+  };
+  const blurred = clips.filter((clip) => clip.motionBlur && (!visibleTracks || visibleTracks.has(clip.trackId)));
+  const active = expandTemporalClips(blurred).filter(onScreen);
+  return resolveSceneMotionBlur(active, global);
+}
+
+/** One layer's scene tap within its own shutter window. */
+export function layerShutterTime(
+  clip: { motionBlur?: MotionBlurOptions },
+  frameTimeMs: number,
+  sampleIndex: number,
+  sceneSamples: number,
+  frameMs: number,
+  global: MotionBlurOptions | undefined
+): number {
+  const own = resolveMotionBlur(clip.motionBlur ?? global);
+  if (sceneSamples <= 1 || own.samplesPerFrame <= 1) return frameTimeMs;
+  return frameTimeMs + (sampleIndex + 0.5) / sceneSamples * (own.shutterAngle / 360) * frameMs;
 }
 
 /** Where a blur accumulation draws: the destination's backing-store size. */

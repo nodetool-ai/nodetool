@@ -80,6 +80,7 @@ export interface TimelineDocument {
   scriptEnabled?: boolean;
   /** Document tempo for midi clips. Unset until the first midi track. */
   tempo?: TimelineTempo;
+  camera2d?: TimelineSequenceDoc["camera2d"];
   /** Guided video-flow state (PRD § 8.5). Unset outside the flow. */
   setup?: TimelineSetup;
   /** Sequence this one was retargeted from. Unset on a sequence built directly. */
@@ -161,6 +162,7 @@ export class TimelineSequence extends DBModel {
       transcript: doc.transcript ?? [],
       scriptEnabled: doc.scriptEnabled,
       tempo: doc.tempo,
+      camera2d: doc.camera2d,
       setup: doc.setup,
       templateId: doc.templateId,
       mediaTracks: doc.mediaTracks,
@@ -180,6 +182,7 @@ export class TimelineSequence extends DBModel {
       transcript: seq.transcript ?? [],
       scriptEnabled: seq.scriptEnabled,
       tempo: seq.tempo,
+      camera2d: seq.camera2d,
       setup: seq.setup,
       templateId: seq.templateId,
       mediaTracks: seq.mediaTracks
