@@ -281,8 +281,8 @@ export function verifyBackendBundle(bundleDir) {
     }
   }
 
-  // Every shot of a shipped storyboard points at a `package://` still and
-  // clip. Those live under assets/nodetool-base/storyboards/<slug>/, one
+  // Every shot of a shipped storyboard points at a `package://` still.
+  // Those live under assets/nodetool-base/storyboards/<slug>/, one
   // directory deeper than anything else staged here — so check the files the
   // bundles actually name rather than that the directory exists.
   const storyboardDir = path.join(bundleDir, "examples", "storyboards");
@@ -305,7 +305,7 @@ export function verifyBackendBundle(bundleDir) {
         continue;
       }
       for (const shot of bundle?.document?.shots ?? []) {
-        for (const uri of [shot?.keyframe?.uri, shot?.clip?.uri]) {
+        for (const uri of [shot?.keyframe?.uri]) {
           const match = /^package:\/\/([^/]+)\/(.+)$/.exec(uri ?? "");
           if (!match) {
             missingMedia.push(`${file}: shot ${shot?.id} has no package:// media`);
@@ -321,7 +321,7 @@ export function verifyBackendBundle(bundleDir) {
     if (missingMedia.length > 0) {
       errors.push(
         "example storyboard media not staged — the boards would install with " +
-          `broken stills and clips:\n  ${missingMedia.join("\n  ")}`
+          `broken stills:\n  ${missingMedia.join("\n  ")}`
       );
     } else {
       summary.push(`${storyboards.length} example storyboard(s) staged with their media`);

@@ -10,7 +10,7 @@ import { docsLink, type DocsTopic } from "../../config/docsLinks";
 interface ManagerPageLayoutProps {
   /** Icon shown in the tinted chip beside the title. */
   icon?: React.ReactNode;
-  title: string;
+  title?: string;
   subtitle?: string;
   /** Documentation page for this manager, rendered as a button in the hero. */
   docsTopic?: DocsTopic;
@@ -24,6 +24,10 @@ interface ManagerPageLayoutProps {
    * model list) that own their own layout, sidebars, and scrolling.
    */
   padded?: boolean;
+  /** Let the page content scroll without adding manager padding. */
+  scrollable?: boolean;
+  /** Hide the standard manager hero while keeping its content layout. */
+  showHeader?: boolean;
   children: React.ReactNode;
 }
 
@@ -93,6 +97,9 @@ const styles = (theme: Theme) =>
     ".manager-page-content--padded": {
       overflowY: "auto",
       padding: theme.spacing(3, 4)
+    },
+    ".manager-page-content--scrollable": {
+      overflowY: "auto"
     }
   });
 
@@ -110,6 +117,8 @@ const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
   docsLabel = "Documentation",
   actions,
   padded = true,
+  scrollable = false,
+  showHeader = true,
   children
 }) => {
   const theme = useTheme();
@@ -118,38 +127,40 @@ const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
 
   return (
     <Box css={cssStyles} className="manager-page">
-      <header className="manager-page-hero">
-        {icon && <span className="manager-page-icon">{icon}</span>}
-        <FlexColumn className="manager-page-titles" gap={0}>
-          <h1 className="manager-page-title">{title}</h1>
-          {subtitle && <p className="manager-page-subtitle">{subtitle}</p>}
-        </FlexColumn>
-        {(resolvedDocsUrl || actions) && (
-          <FlexRow className="manager-page-actions">
-            {actions}
-            {resolvedDocsUrl && (
-              <EditorButton
-                variant="outlined"
-                density="normal"
-                endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
-                onClick={() =>
-                  window.open(
-                    resolvedDocsUrl,
-                    "_blank",
-                    "noopener,noreferrer"
-                  )
-                }
-              >
-                {docsLabel}
-              </EditorButton>
-            )}
-          </FlexRow>
-        )}
-      </header>
+      {showHeader && title && (
+        <header className="manager-page-hero">
+          {icon && <span className="manager-page-icon">{icon}</span>}
+          <FlexColumn className="manager-page-titles" gap={0}>
+            <h1 className="manager-page-title">{title}</h1>
+            {subtitle && <p className="manager-page-subtitle">{subtitle}</p>}
+          </FlexColumn>
+          {(resolvedDocsUrl || actions) && (
+            <FlexRow className="manager-page-actions">
+              {actions}
+              {resolvedDocsUrl && (
+                <EditorButton
+                  variant="outlined"
+                  density="normal"
+                  endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
+                  onClick={() =>
+                    window.open(
+                      resolvedDocsUrl,
+                      "_blank",
+                      "noopener,noreferrer"
+                    )
+                  }
+                >
+                  {docsLabel}
+                </EditorButton>
+              )}
+            </FlexRow>
+          )}
+        </header>
+      )}
       <Box
         className={`manager-page-content${
           padded ? " manager-page-content--padded" : ""
-        }`}
+        }${scrollable ? " manager-page-content--scrollable" : ""}`}
       >
         {children}
       </Box>

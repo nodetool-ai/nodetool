@@ -292,9 +292,6 @@ interface CompatibilityDetailsProps {
 export const CompatibilityDetails = ({
   compatibility
 }: CompatibilityDetailsProps): ReactNode => {
-  const inputRequirementsUnknown = compatibility.unknowns.some((unknown) =>
-    unknown.startsWith("Input requirements are unknown")
-  );
   const inputLabel = compatibility.inputs.length
     ? compatibility.inputs
         .map((input) =>
@@ -305,36 +302,33 @@ export const CompatibilityDetails = ({
               : `${input.name} (requirement unknown)`
         )
         .join(", ")
-    : inputRequirementsUnknown
-      ? "Unknown"
-      : "None declared";
-  const modelLabel = compatibility.selectedModels.length
-    ? compatibility.selectedModels.map(formatRequiredModel).join(", ")
-    : compatibility.compatibleModels.length
-      ? `${compatibility.compatibleModels.map(formatRequiredModel).join(", ")} (not selected)`
-      : "Unknown";
-  const providerLabel = compatibility.providers.length
-    ? compatibility.providers.map(formatGenericProviderName).join(", ")
-    : "Unknown provider";
+    : "None declared";
   const providerModelLabel = compatibility.selectedModels.length
     ? compatibility.selectedModels.map(formatRequiredModel).join(", ")
     : compatibility.compatibleModels.length
       ? `${compatibility.compatibleModels.map(formatRequiredModel).join(", ")} (not selected)`
-      : `${providerLabel} / ${modelLabel}`;
+      : compatibility.providers.length
+        ? compatibility.providers.map(formatGenericProviderName).join(", ")
+        : null;
+
+  const details = [
+    `Inputs: ${inputLabel}`,
+    providerModelLabel ? `Provider/model: ${providerModelLabel}` : null,
+    compatibility.executionLocation.startsWith("Unknown")
+      ? null
+      : `Execution: ${compatibility.executionLocation}`,
+    compatibility.requiredSettings.length > 0
+      ? `Required setup: ${compatibility.requiredSettings.join(", ")}`
+      : null,
+    compatibility.requiredRuntimes.length > 0
+      ? `Runtime: ${compatibility.requiredRuntimes.join(", ")}`
+      : null
+  ].filter((detail): detail is string => detail !== null);
 
   return (
     <span className="entry-compat" aria-label="Compatibility details">
-      <span>Inputs: {inputLabel}</span>
-      <span>Provider/model: {providerModelLabel}</span>
-      <span>Execution: {compatibility.executionLocation}</span>
-      {compatibility.requiredSettings.length > 0 && (
-        <span>Required setup: {compatibility.requiredSettings.join(", ")}</span>
-      )}
-      {compatibility.requiredRuntimes.length > 0 && (
-        <span>Runtime: {compatibility.requiredRuntimes.join(", ")}</span>
-      )}
-      {compatibility.unknowns.map((unknown) => (
-        <span key={unknown}>Unknown: {unknown}</span>
+      {details.map((detail) => (
+        <span key={detail}>{detail}</span>
       ))}
     </span>
   );

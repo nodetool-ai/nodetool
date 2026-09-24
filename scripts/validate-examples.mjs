@@ -251,7 +251,7 @@ async function checkComposition(file) {
 
 /**
  * Check one shipped storyboard: it parses, every shot carries the text a
- * director writes, and every `package://` still and clip it names is a file
+ * director writes, and every `package://` still it names is a file
  * that exists. Returns a problem description, or null when the board is sound.
  */
 function checkStoryboard(file) {
@@ -271,10 +271,10 @@ function checkStoryboard(file) {
     if (typeof shot?.action !== "string" || shot.action.trim() === "") {
       problems.push(`${where} has no action text`);
     }
-    for (const [what, ref] of [
-      ["still", shot?.keyframe],
-      ["clip", shot?.clip]
-    ]) {
+    if (shot?.clip != null || (shot?.clip_versions?.length ?? 0) > 0) {
+      problems.push(`${where} includes video in a still-only example`);
+    }
+    for (const [what, ref] of [["still", shot?.keyframe]]) {
       const match = /^package:\/\/([^/]+)\/(.+)$/.exec(ref?.uri ?? "");
       if (!match) {
         problems.push(`${where} has no package:// ${what}`);

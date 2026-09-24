@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "Lighthouse Keeper — Opening",
-  "description": "A four-shot opening for a short film about the last keeper of a coastal light. Every shot arrives with its still and clip already rendered.",
+  "description": "A four-shot opening for a short film about the last keeper of a coastal light. Every shot includes a rendered still.",
   "tags": [
     "film",
     "narrative",
@@ -44,21 +44,9 @@
               "asset_id": null
             }
           ],
-          "clip": {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/headland-at-dusk.mp4",
-            "asset_id": null,
-            "duration": 5
-          },
-          "clip_versions": [
-            {
-              "type": "video",
-              "uri": "package://nodetool-base/storyboards/lighthouse-keeper/headland-at-dusk.mp4",
-              "asset_id": null,
-              "duration": 5
-            }
-          ],
-          "status": "rendered"
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
         },
         {
           "type": "shot",
@@ -87,21 +75,9 @@
               "asset_id": null
             }
           ],
-          "clip": {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-lamp-turns.mp4",
-            "asset_id": null,
-            "duration": 4
-          },
-          "clip_versions": [
-            {
-              "type": "video",
-              "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-lamp-turns.mp4",
-              "asset_id": null,
-              "duration": 4
-            }
-          ],
-          "status": "rendered"
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
         },
         {
           "type": "shot",
@@ -130,21 +106,9 @@
               "asset_id": null
             }
           ],
-          "clip": {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-stair.mp4",
-            "asset_id": null,
-            "duration": 5
-          },
-          "clip_versions": [
-            {
-              "type": "video",
-              "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-stair.mp4",
-              "asset_id": null,
-              "duration": 5
-            }
-          ],
-          "status": "rendered"
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
         },
         {
           "type": "shot",
@@ -173,21 +137,9 @@
               "asset_id": null
             }
           ],
-          "clip": {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/beam-over-water.mp4",
-            "asset_id": null,
-            "duration": 6
-          },
-          "clip_versions": [
-            {
-              "type": "video",
-              "uri": "package://nodetool-base/storyboards/lighthouse-keeper/beam-over-water.mp4",
-              "asset_id": null,
-              "duration": 6
-            }
-          ],
-          "status": "rendered"
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
         }
       ]
     },
@@ -219,21 +171,9 @@
             "asset_id": null
           }
         ],
-        "clip": {
-          "type": "video",
-          "uri": "package://nodetool-base/storyboards/lighthouse-keeper/headland-at-dusk.mp4",
-          "asset_id": null,
-          "duration": 5
-        },
-        "clip_versions": [
-          {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/headland-at-dusk.mp4",
-            "asset_id": null,
-            "duration": 5
-          }
-        ],
-        "status": "rendered"
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
       },
       {
         "type": "shot",
@@ -262,21 +202,9 @@
             "asset_id": null
           }
         ],
-        "clip": {
-          "type": "video",
-          "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-lamp-turns.mp4",
-          "asset_id": null,
-          "duration": 4
-        },
-        "clip_versions": [
-          {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-lamp-turns.mp4",
-            "asset_id": null,
-            "duration": 4
-          }
-        ],
-        "status": "rendered"
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
       },
       {
         "type": "shot",
@@ -305,21 +233,9 @@
             "asset_id": null
           }
         ],
-        "clip": {
-          "type": "video",
-          "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-stair.mp4",
-          "asset_id": null,
-          "duration": 5
-        },
-        "clip_versions": [
-          {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/the-stair.mp4",
-            "asset_id": null,
-            "duration": 5
-          }
-        ],
-        "status": "rendered"
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
       },
       {
         "type": "shot",
@@ -348,21 +264,9 @@
             "asset_id": null
           }
         ],
-        "clip": {
-          "type": "video",
-          "uri": "package://nodetool-base/storyboards/lighthouse-keeper/beam-over-water.mp4",
-          "asset_id": null,
-          "duration": 6
-        },
-        "clip_versions": [
-          {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/lighthouse-keeper/beam-over-water.mp4",
-            "asset_id": null,
-            "duration": 6
-          }
-        ],
-        "status": "rendered"
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
       }
     ],
     "brief": "Open a short film about the last keeper of a coastal light. Twenty seconds, no dialogue, the sea doing the talking.",

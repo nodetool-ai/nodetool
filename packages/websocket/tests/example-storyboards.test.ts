@@ -51,15 +51,15 @@ describe("example storyboards", () => {
     expect(getExampleStoryboardBundle({}, "lighthouse-keeper")).toBeNull();
   });
 
-  it("lists every shipped board with its shot and clip counts", () => {
+  it("lists every shipped board with its shot stills", () => {
     const examples = listExampleStoryboards(options);
     expect(examples.length).toBeGreaterThan(0);
     for (const example of examples) {
       expect(example.name).not.toBe("");
       expect(example.description).not.toBe("");
       expect(example.shotCount).toBeGreaterThan(0);
-      // Prefilled means prefilled: every shot ships a clip, not just a still.
-      expect(example.clipCount).toBe(example.shotCount);
+      expect(example.clipCount).toBe(0);
+      expect(example.stillUrls).toHaveLength(example.shotCount);
       expect(example.thumbnailUrl).toMatch(
         /^\/api\/assets\/packages\/nodetool-base\/storyboards\//
       );
@@ -79,8 +79,9 @@ describe("example storyboards", () => {
       expect(document.screenplay?.shots, slug).toEqual(document.shots);
       for (const shot of document.shots) {
         expect(shot.action.trim(), `${slug}/${shot.id}`).not.toBe("");
-        expect(shot.status, `${slug}/${shot.id}`).toBe("rendered");
-        for (const uri of [shot.keyframe?.uri, shot.clip?.uri]) {
+        expect(shot.status, `${slug}/${shot.id}`).toBe("keyframe_ready");
+        expect(shot.clip, `${slug}/${shot.id}`).toBeNull();
+        for (const uri of [shot.keyframe?.uri]) {
           const ref = parsePackageAssetUri(uri);
           expect(ref, `${slug}/${shot.id} → ${uri}`).not.toBeNull();
           const onDisk = nodePath.join(

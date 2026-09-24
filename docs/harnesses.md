@@ -973,22 +973,25 @@ user, installed into a library with one insert. The bundles are
 (the `storyboards` sibling of the example workflows, which is where
 `exampleStoryboardsDir` looks by default in the monorepo, the packaged
 backend, and the server image). `storyboards.examples` lists them and
-`storyboards.installExample` installs one; the web offers both under
-**New → New storyboard…**.
+`storyboards.installExample` installs one; the web offers them under
+**Examples → Storyboards** and **New → New storyboard…**.
 
-What makes them worth shipping is that the shots arrive finished: action text,
-a still, and a clip on every one. The media are `package://` assets under
+Each shot includes its direction and a rendered still. The boards ship without
+video clips. The media are `package://` assets under
 `assets/nodetool-base/storyboards/<slug>/`, so one copy on disk serves every
 user and an install writes no bytes.
 
 `node scripts/build-example-storyboards.mjs` builds them from
-`scripts/example-storyboards/boards.mjs`: it draws each shot's frame (layers
-declared in the spec → SVG → sharp) and animates it into a clip with ffmpeg,
-so the build needs no API key and produces the same frames every time. Add
+`scripts/example-storyboards/boards.mjs` and preserves the checked-in stills.
+The stills were rendered through the NodeTool CLI, then resized to 1280×720
+JPEGs for shipping. To render a new shot, run
+`npm run dev:nodetool -- generate atlascloud bytedance/seedream-v4.5 "<shot prompt>" --aspect-ratio 16:9 -o <shot>.jpg`.
+`--draw-stills` draws a vector fallback from the spec when no image provider is
+available. Add
 `--check` for the CI shape (bundles unchanged, every named media file
-present), `--board <slug>` for one, `--skip-media` for the JSON alone.
+present), or `--board <slug>` for one.
 `npm run validate:examples` checks each shipped board's shot text and that
-every still and clip it names is on disk, and
+every still it names is on disk, and
 `scripts/verify-backend-bundle.mjs` checks the same files were staged into the
 packaged bundle.
 
