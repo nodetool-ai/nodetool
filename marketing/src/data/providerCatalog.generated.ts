@@ -31,13 +31,13 @@ export interface ProviderCatalog {
 export const providerCatalog: Record<string, ProviderCatalog> = {
   "fal_ai": {
     "id": "fal_ai",
-    "total": 1579,
+    "total": 1615,
     "counts": {
-      "3d": 60,
-      "image": 743,
-      "audio": 127,
+      "3d": 65,
+      "image": 751,
+      "audio": 131,
       "text": 18,
-      "video": 631
+      "video": 650
     },
     "topTags": [
       "generation",
@@ -51,7 +51,7 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
       "image to video",
       "vid2vid",
       "txt2img",
-      "lora"
+      "img2vid"
     ],
     "models": [
       {
@@ -129,6 +129,28 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "image to image",
           "img2img",
           "image"
+        ]
+      },
+      {
+        "id": "bria/fibo-edit-1.5/product-holding",
+        "name": "Bria Fibo Edit15 Product Holding",
+        "kind": "image",
+        "desc": "Bria FIBO-Edit 1.5 edits a person photo so the subject holds or carries one to three reference products, guided by an optional instruction.",
+        "tags": [
+          "image",
+          "editing",
+          "image to image"
+        ]
+      },
+      {
+        "id": "bria/fibo-edit-1.5/virtual-try-on",
+        "name": "Bria Fibo Edit15 Virtual Try On",
+        "kind": "image",
+        "desc": "Bria FIBO-Edit 1.5 dresses the person in a photo in one to three reference garments or accessories, guided by an optional instruction.",
+        "tags": [
+          "image",
+          "editing",
+          "image to image"
         ]
       },
       {
@@ -385,6 +407,39 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "bytedance/seedream/v5/flash/edit",
+        "name": "Seedream V5 Flash Edit",
+        "kind": "image",
+        "desc": "Seedream 5.0 Flash edits images from a text instruction, tuned for speed and low cost.",
+        "tags": [
+          "image",
+          "editing",
+          "image to image"
+        ]
+      },
+      {
+        "id": "bytedance/seedream/v5/flash/layerize",
+        "name": "Seedream V5 Flash Layerize",
+        "kind": "image",
+        "desc": "Seedream 5.0 Flash splits an image into separate layers, tuned for speed and low cost.",
+        "tags": [
+          "image",
+          "layers",
+          "image to image"
+        ]
+      },
+      {
+        "id": "bytedance/seedream/v5/flash/text-to-image",
+        "name": "Seedream V5 Flash Text To Image",
+        "kind": "image",
+        "desc": "Seedream 5.0 Flash generates images from text, tuned for speed and low cost.",
+        "tags": [
+          "image",
+          "generation",
+          "text to image"
+        ]
+      },
+      {
         "id": "bytedance/seedream/v5/lite/edit",
         "name": "Seedream V5 Lite Edit",
         "kind": "image",
@@ -437,61 +492,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "generation",
           "text to image",
           "txt2img"
-        ]
-      },
-      {
-        "id": "clarityai/crystal-upscaler",
-        "name": "Clarityai Crystal Upscaler",
-        "kind": "image",
-        "desc": "Crystal Upscaler",
-        "tags": [
-          "editing",
-          "transformation",
-          "image to image"
-        ]
-      },
-      {
-        "id": "decart/lucy-2-5/realtime",
-        "name": "Lucy25 Realtime",
-        "kind": "image",
-        "desc": "Real-time, prompt-driven video editing over WebRTC.",
-        "tags": [
-          "editing",
-          "video to video",
-          "vid2vid"
-        ]
-      },
-      {
-        "id": "fal-ai/arbiter/image",
-        "name": "Arbiter Image",
-        "kind": "image",
-        "desc": "Arbiter provides comprehensive image analysis and quality metrics.",
-        "tags": [
-          "vision",
-          "analysis",
-          "quality"
-        ]
-      },
-      {
-        "id": "fal-ai/arbiter/image/image",
-        "name": "Arbiter Image Image",
-        "kind": "image",
-        "desc": "Arbiter measures similarity and alignment between reference images.",
-        "tags": [
-          "vision",
-          "similarity",
-          "comparison"
-        ]
-      },
-      {
-        "id": "fal-ai/arbiter/image/text",
-        "name": "Arbiter Image Text",
-        "kind": "image",
-        "desc": "Arbiter measures semantic alignment between images and text descriptions.",
-        "tags": [
-          "vision",
-          "alignment",
-          "similarity"
         ]
       },
       {
@@ -1012,6 +1012,28 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "elevenlabs/music/v2",
+        "name": "Eleven Labs Music V2",
+        "kind": "audio",
+        "desc": "ElevenLabs Music v2 generates music from a prompt or a section-by-section composition plan, with length and instrumental controls.",
+        "tags": [
+          "audio",
+          "music",
+          "generation"
+        ]
+      },
+      {
+        "id": "elevenlabs/music/v2.5",
+        "name": "Eleven Labs Music V25",
+        "kind": "audio",
+        "desc": "ElevenLabs Music v2.5 generates music from a prompt or a section-by-section composition plan, with length and instrumental controls.",
+        "tags": [
+          "audio",
+          "music",
+          "generation"
+        ]
+      },
+      {
         "id": "fal-ai/ace-step",
         "name": "ACEStep",
         "kind": "audio",
@@ -1174,28 +1196,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "audio",
           "music",
           "generation"
-        ]
-      },
-      {
-        "id": "fal-ai/elevenlabs/sound-effects/v2",
-        "name": "Eleven Labs Sound Effects V2",
-        "kind": "audio",
-        "desc": "ElevenLabs Sound Effects v2 generates custom sound effects from text descriptions.",
-        "tags": [
-          "audio",
-          "sound effects",
-          "sfx"
-        ]
-      },
-      {
-        "id": "fal-ai/elevenlabs/text-to-dialogue/eleven-v3",
-        "name": "Eleven Labs Text To Dialogue V3",
-        "kind": "audio",
-        "desc": "ElevenLabs Text to Dialogue v3 generates conversational dialogue with multiple speakers.",
-        "tags": [
-          "audio",
-          "dialogue",
-          "conversation"
         ]
       },
       {
