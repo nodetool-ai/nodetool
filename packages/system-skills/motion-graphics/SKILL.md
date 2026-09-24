@@ -1,6 +1,6 @@
 ---
 name: motion-graphics
-description: Animate typography, clips and transitions on a NodeTool timeline, and check the result by looking at rendered frames. Use for title cards, kinetic text, lower-third motion, clip entrances and exits, transitions between shots, and track layering. Not for writing the copy, cutting the picture, or rendering video.
+description: Author and inspect NodeTool timeline motion, including clip animations, document-level style tracks, links, layout, camera, effects, transitions, and reusable compositions. Use for title cards, kinetic text, lower thirds, clip entrances and exits, and layered motion.
 ---
 
 # Motion Graphics → Timeline Agent
@@ -49,6 +49,36 @@ until you have clip ids from the document — never a guessed one.
 Snapshot with `create_timeline_version` before your first edit. Motion work is
 iterative and a wrong `mode: "replace"` wipes animations somebody wrote.
 
+## Choose the authoring surface
+
+`edit_timeline` takes a timeline ID and an `ops` array. Its ops run in
+order, up to 60 per call. Inspect each op's `ok` and the batch's `failed`
+result before a dependent edit. In an in-product agent, use the matching
+`ui_timeline_*` tool for an individual op. For example, this is a valid
+headless call:
+
+```json
+{"timeline_id":"<id>","ops":[{"op":"animate_clip","target":"Title","animations":[{"role":"in","preset":"fade","durationMs":400}]}]}
+```
+
+The `animate_clip` input accepts catalog presets or `custom` curves and code,
+plus `stagger` and a typewriter `caret`. It does **not** author `styleTracks`,
+`textAnimator`, or `beat`. `set_clip_params` does **not** author `layout`,
+`repeater`, `motionBlur`, `steppedTime`, `temporalEcho`, `animationLinks`, or
+`transform.depthPx`. Adding those keys to an op does not write those features.
+
+For those fields, read `get_timeline`'s `timeline` object, change the needed
+clip or sequence fields, and call `set_timeline_document` with a complete
+document assembled from it. Preserve tracks, clips, markers, tempo, setup, templateId,
+mediaTracks, transcript, scriptEnabled, and camera2d when present. Include
+`timeline.updatedAt` as
+`expected_updated_at` so a concurrent edit is refused. A whole-document write
+validates the result and snapshots the prior version. Omitted document fields
+are removed, so never send only the changed clip. The JSON objects in the
+document sections below are fields to merge into that complete document, not
+`edit_timeline` ops. The editor may lack controls for them even though they
+render and survive a save.
+
 ## Track layering
 
 **Lowest `index` renders on top.** Track 0 covers track 1, which covers track 2
@@ -88,11 +118,10 @@ Rules that follow from the ordering:
 The clips you animate are made with the same `edit_timeline` op list.
 
 ```json
-{"op": "add_text_clip", "text": "Maya Chen", "trackId": "<overlay>",
- "startMs": 4000, "durationMs": 3000, "fontSizePx": 64}
-{"op": "add_shape_clip", "shape": {"kind": "rect", "x": 0, "y": 0.72,
- "width": 1, "height": 0.18, "fill": "#000000"}, "startMs": 4000,
- "durationMs": 3000, "opacity": 0.55}
+[
+  {"op":"add_text_clip","text":"Maya Chen","trackId":"<overlay>","startMs":4000,"durationMs":3000,"fontSizePx":64},
+  {"op":"add_shape_clip","shape":{"kind":"rect","x":0,"y":0.72,"width":1,"height":0.18,"fill":"#000000"},"startMs":4000,"durationMs":3000,"opacity":0.55}
+]
 ```
 
 `add_text_clip` needs only `text`; the style fields (`fontSizePx`, `color`,
@@ -105,8 +134,10 @@ full-frame rect, which is the scrim you usually want.
 Tracks are the z-order, so how they are made matters:
 
 ```json
-{"op": "add_track", "type": "overlay", "name": "Titles"}
-{"op": "move_track", "target": "Picture", "toIndex": 2}
+[
+  {"op":"add_track","type":"overlay","name":"Titles"},
+  {"op":"move_track","target":"Picture","toIndex":2}
+]
 ```
 
 `add_track` takes `type` (`video`, `audio`, `overlay`, `subtitle`) and an
@@ -160,8 +191,11 @@ cycles per period default 1, `seed` 0 = pure sine, else drift), `breathe`
 default 360, `direction` cw/ccw) — which sweeps a 3D clip's camera and does
 nothing on any other clip.
 
-Easing: `linear`, `easeIn`, `easeOut`, `easeInOut`, `easeOutBack`,
-`easeOutElastic`, `easeOutBounce`. Unset means the preset's own default, and
+Named easing includes `linear`, `easeIn`, `easeOut`, `easeInOut`,
+`easeOutBack`, `easeOutElastic`, `easeOutBounce`, exponential, quintic, and
+circular variants (`easeOutExpo`, `easeInOutQuint`, `easeOutCirc`), and `hold`
+for a segment that keeps its prior keyframe value until the segment ends.
+Unset means the preset's own default, and
 failing that the role's — `in` gets `easeOut`, `out` gets `easeIn`. That
 default is almost always right: an entrance decelerates into place, an exit
 accelerates away. Reach for `easeOutBack` or `easeOutElastic` only when the
@@ -284,7 +318,8 @@ does.
 engine shrinks the per-step offset — never the per-word duration — so the last
 word still completes inside the clip. Ask for 200ms of offset on a clip with
 room for 60ms and you get 60ms: every word still animates, the motion is
-simply tighter and more simultaneous than you wrote, and nothing reports it.
+simply tighter and more simultaneous than you wrote. `validate_timeline`
+reports `stagger_compressed`.
 This is the most common reason staggered type "doesn't look staggered". Work
 out the span, compare it against `durationMs` minus any `delayMs`, and if it
 does not fit, lengthen the clip or lower the offset yourself rather than
@@ -296,6 +331,15 @@ neither stretched nor clamped.
 Which offset reads as texture and which reads as one word at a time is in
 `motion-principles`, with the line-length limit that goes with it.
 
+For several separate clips, `stagger_animations` shifts existing animation
+delays in the order of `clip_ids` without moving the clips. Give at least two
+distinct clip IDs, each already animated, and a non-negative `offset_ms`.
+The in-product tool is `ui_timeline_stagger_animations` with the same fields.
+
+```json
+{"op":"stagger_animations","clip_ids":["logo-id","title-id","tagline-id"],"offset_ms":80}
+```
+
 Stagger applies only to text clips and only to transform and opacity motion.
 `wipe`, `blur` and `colorFade` stay block-level even with a stagger set — the
 mask and effect curves are per-layer, not per-word. A stagger on a media clip
@@ -305,10 +349,94 @@ that is not `mediaType: "text"`.
 Type sizes are authored against the sequence resolution: `fontSizePx` on a
 1920×1080 sequence means the same thing at any preview width.
 
+## Document motion fields
+
+The fields below belong to clips in the complete timeline document. Merge
+them into the clip read by `get_timeline`, retaining its other fields and
+animations, then write the full document with `set_timeline_document`.
+`edit_timeline` and `ui_timeline_animate_clip` do not accept them as animation
+inputs.
+
+`styleTracks` animate visual properties in the same animation window as a
+preset. Each stored animation needs `id`, `role`, `preset`, and `durationMs`.
+Targets include `text.color`, `shape.fill`, `shape.cornerRadius`,
+`clip.borderRadius`, `mask.featherPx`, `effect.<effect-id>.<numeric-field>`,
+supported effect colors such as `effect.bg-field.colorB`,
+gradient stops, and compatible `shape.d` or `mask.d` paths. The clip must
+already have the targeted style, mask, or effect. A per-glyph target such as
+`glyph.color` also needs text `stagger`.
+
+```json
+{"animations":[{"id":"title-color","role":"in","preset":"fade","durationMs":600,"styleTracks":[{"target":"text.color","keyframes":[{"t":0,"value":"#8bd5ff"},{"t":1,"value":"#ffffff","easing":"easeOutExpo"}]}]}]}
+```
+
+`textAnimator` changes text content over its animation window. `ticker`
+supports `from`, `to`, `decimals`, `padTo`, `prefix`, and `suffix`.
+Set `groupSeparator` to `","` for grouped thousands such as `2,847`;
+without it the output stays ungrouped. `scramble` supports `charset` and
+deterministic `seed`. It needs a text clip.
+An animation's `beat` binds its start to a one-based beat index at the live
+sequence tempo; `scope` is `clip` or `sequence`, and `offsetMs` moves it around
+that beat. `delayMs` still applies on top.
+
+```json
+{"id":"count-up","role":"emphasis","preset":"custom","durationMs":900,"beat":{"index":3,"scope":"sequence","offsetMs":-20},"textAnimator":{"kind":"ticker","from":1,"to":7,"padTo":2}}
+```
+
+`animationLinks` copy a source clip's authored `positionX`, `positionY`,
+`scale`, `rotation`, or `opacity` channel, with optional time offset, loop,
+scale, and offset. A `wiggle` link supplies seeded motion without a render-time
+script. Links do not follow the source's own links. Resolve each
+`sourceClipId` against the document's clip IDs before writing it. An opacity
+link replaces the target clip's own opacity while its group and transition
+coverage still multiply the result.
+
+```json
+{"animationLinks":[{"target":"positionX","sourceClipId":"leader-id","source":"positionX","scale":0.35},{"target":"rotation","kind":"wiggle","amplitude":0.025,"frequencyHz":1.4,"seed":8}]}
+```
+
+`layout` places clips as a `row`, `stack`, or `relative` relation. A row or
+stack lists child clip IDs; a relative clip uses `targetClipId`, `side`, and
+optional `fitText` padding. `repeater.count` includes the original clip and
+is capped at 128. `timeStepMs` offsets each copy in time. These are fields on
+a clip, not new clip records to add by hand.
+
+```json
+{"layout":{"kind":"row","children":["logo-id","wordmark-id"],"gapPx":24},"repeater":{"count":3,"positionStep":{"x":180,"y":0},"timeStepMs":67}}
+```
+
+`camera2d` is a sequence document field. It needs `position`, `depthPx`, and
+positive `focalLengthPx`. Keyframes use absolute `timeMs` and include position
+and depth. Add `depthPx` to a clip's existing `transform` for perspective;
+`focusDepthPx` and `aperturePx` add depth-of-field blur. `camera2d: null`
+clears the camera.
+
+For a tilted wall of cards, use a parent group's `rotation`, `rotationX`, and
+`perspective` for the shared tilt, each card's `depthPx` and scroll animation
+for the separate planes, and `camera2d` for the push and depth blur. Keep a
+shape's normalized geometry inside the frame-sized source raster. Move the
+clip or group with `transform.position` or custom `offsetX`/`offsetY` curves
+to scroll or fly it across the frame; geometry outside that raster is clipped
+before the transform places it.
+
+```json
+{"camera2d":{"position":{"x":0,"y":0},"depthPx":0,"focalLengthPx":1400,"keyframes":[{"timeMs":0,"position":{"x":0,"y":0},"depthPx":0},{"timeMs":1200,"position":{"x":90,"y":-20},"depthPx":120}]}}
+```
+
+`motionBlur` is per clip: `samplesPerFrame` is 1–32 and `shutterAngle` is
+0–360 degrees. One sample disables blur for that clip. A higher count sets a
+minimum; the scene renders at its highest requested count, with evenly
+weighted samples across each layer's own shutter window. `steppedTime.fps`
+quantizes a clip's source and animation clock. `temporalEcho` adds delayed
+copies through `copies`, `intervalMs`, and `opacityDecay`.
+
+```json
+{"motionBlur":{"samplesPerFrame":8,"shutterAngle":180},"steppedTime":{"fps":12},"temporalEcho":{"copies":3,"intervalMs":80,"opacityDecay":0.5}}
+```
+
 ## Groups
 
-`{"op": "add_group", "name": "Lower third", "startMs": 4000, "durationMs":
-4000, "children": [...]}` makes a clip with no media whose transform, opacity
+`{"op":"add_group","name":"Lower third","startMs":4000,"durationMs":4000,"children":["name-id","role-id"]}` makes a clip with no media whose transform, opacity
 and window every clip naming it inherits. `{"op": "set_parent", "target":
 "Name plate", "parentId": "<group id>"}` adopts a clip that already exists;
 `"parentId": null` releases it, and a cycle is refused.
@@ -320,11 +448,11 @@ locked to each other, where animating them separately is three chances to
 drift.
 
 Children keep their own tracks, so grouping does not change what covers what.
-The group's opacity multiplies into each child, and that is all a plain group
-does — but a group carrying an effect or a blend mode other than `normal`
-composites its children into one surface first, so the effect runs on the
-assembled picture rather than once per child. Put a `glow` on the group for the
-whole look, on a child for that child alone.
+A plain group's opacity multiplies into each child. A group with an effect,
+non-`normal` blend mode, or transition precomposes its children into one
+surface first. The effect or transition then runs once on the assembled
+picture. Put a `glow` on the group for the whole look, on a child for that
+child alone.
 
 `parent_missing`, `parent_not_group` and `parent_cycle` all mean the child
 renders unparented, losing the group's transform, opacity and window.
@@ -334,6 +462,10 @@ renders unparented, losing the group's transform, opacity and window.
 A transition is between clips, not on one clip. It is authored on the
 **incoming** clip and resolved for both: the compositor finds the clip beneath
 it on the same track and gives that one the complementary half of the cut.
+The incoming clip may be a group: `set_transition` on the group transitions
+its whole precomposed assembly, with children still parented on their own
+tracks. Its outgoing partner is the previous overlapping sibling on the
+group's track under the same parent.
 
 Two clips on the same track whose times overlap dissolve across the overlap
 with no tool call at all. The corollary: **an accidental overlap is an
@@ -356,10 +488,16 @@ from black.
 | `push` | Both clips travel one frame width | Lateral energy; the two read as one moving picture |
 | `slide` | Only the incoming travels | The new shot arrives over a shot that holds |
 | `zoom` | Outgoing grows, incoming comes in from 0.8 | A push into the next beat |
+| `whip`, `zoomBlur` | Motion blur across a directional or zooming cut | Fast camera energy |
+| `glitch` | Displaced digital cut | A deliberate electronic break |
+| `gradientWipe`, `iris` | Spatial threshold or aperture reveal | Designed graphic transitions |
+| `lightLeak` | Localized color field across the cut | A flare-like bridge |
 
-`direction` on `wipe`, `push` and `slide` names the **edge the incoming clip
-arrives from**, the same vocabulary the `wipe` animation uses. `easing` takes
-the full grammar — a named id, `cubic-bezier(...)` or `spring(...)`.
+`direction` on `wipe`, `push`, `slide`, `whip`, and `gradientWipe` names the
+incoming edge. `gradientWipe` also takes `map: "linear" | "radial" |
+"noise"`, `scale`, `seed`, and `softness`. `iris` takes `softness`;
+`lightLeak` takes `color`, `scale`, and `seed`. `easing` takes a named id,
+`cubic-bezier(...)`, or `spring(...)`.
 
 `fadeInMs` and `fadeOutMs` on `set_clip_params` are audio fades. The compositor
 does not read them, so they will not fade a picture — for that, animate the
@@ -395,18 +533,21 @@ then draws unmatted, showing everything the matte was hiding.
 
 ## Clip effects
 
-`{"op": "set_effects", "target": "Shot 2", "effects": [{"type": "glow", ...},
-{"type": "vignette", ...}]}` replaces the whole chain and applies it in the
-order given; an empty list clears it. The types are `color`, `blur`, `glow`,
-`dropShadow`, `vignette`, `sharpen`, `chromaKey`, `curves`, `levels` and
-`liftGammaGain`. One this build cannot apply reports `unknown_effect` and the
-layer draws ungraded.
+`set_effects` replaces the whole chain and applies it in the
+order given; an empty list clears it. The tool also accepts `pixelate`,
+`posterize`, `directionalBlur`, `lensDistortion`, `stylize`, `generator`, `lut`,
+and `grain` alongside `color`, `blur`, `glow`, `dropShadow`, `vignette`,
+`sharpen`, `chromaKey`, `curves`, `levels`, and `liftGammaGain`. Its flat input
+uses `{type, ...typeFields}`. It assigns effect IDs and enables each effect;
+it does not accept stored `id` or `enabled` fields. `validate_timeline`
+reports `unknown_effect` for an unrecognized type. The Canvas 2D preview
+applies all known effects through CPU passes when its host supplies scratch
+surfaces. `preview_timeline_frame.effects_not_applied` lists unknown types;
+`degraded` reports missing surfaces and other draw limitations.
 
-The frame preview is a 2D compositor, not the GPU one. It maps color and blur
-onto the canvas filter and has no equivalent for `chromaKey`, `vignette`,
-`sharpen`, or the `temperature` and `tint` fields of a `color` effect, so it
-names them in `effects_not_applied` instead of dropping them quietly. Motion is
-unaffected. Judge those looks from a render, not from a previewed frame.
+```json
+{"op":"set_effects","target":"Shot 2","effects":[{"type":"grain","amount":0.12,"size":1.1},{"type":"stylize","mode":"dither","amount":1,"seed":4}]}
+```
 
 ## Time remap
 
@@ -427,21 +568,26 @@ different move. Clear the remap, cut, re-apply.
 
 A composition is a group saved as a reusable rig with named parameters.
 `list_compositions` reports what is available, `get_composition` shows one
-rig's parameters and their defaults, and `{"op": "insert_composition",
-"composition_id": "lower-third", "startMs": 4000, "trackId": "<id>", "params":
-{...}}` instantiates it into the document with fresh clip ids.
+rig's parameters and their defaults, and
+`{"op":"insert_composition","composition_id":"lower-third","startMs":4000,"params":{"name":"Ada"}}`
+instantiates it into the document with fresh clip ids. Use parameter names
+returned by `get_composition`; `name` here is an example.
 
-Six ship: `title-card`, `lower-third`, `caption-bar`, `callout`,
-`cta-end-card`, `logo-sting`.
+Bundled examples include `title-card`, `lower-third`, `caption-bar`,
+`callout`, `cta-end-card`, `logo-sting`, `title-slam`, `word-cards`,
+`window-frame`, and `number-ticker`. Use `list_compositions` for the
+templates available in the current workspace.
 
 Insert first, then override `params`. The rig's timing and motion are already
 balanced against each other, and rebuilding it from bare clips throws that
 away. Edit the instantiated clips only where the brief actually differs.
 
-Once the user approves a look you built by hand, `save_composition
-{timeline_id, group_target, name, params}` extracts that group as a
-composition you can insert again. Extract on approval, not on the first
-version.
+When a group should be reused, `save_composition
+{timeline_id, group_target, name, params}` extracts it as a composition.
+`params` map names to typed defaults and JSON pointers into child fields.
+`insert_composition` remaps the group and child clip IDs, including internal
+layout and animation links, while preserving references to clips outside the
+composition.
 
 ## Cutting to the beat
 
@@ -450,7 +596,7 @@ version.
 1000. Read the tempo's `reliable` flag before building a grid from `bpm`:
 speech and room tone produce a confident-looking number from nothing.
 
-`{"op": "set_markers_from_beats", "onsets_ms": [...], "count": 32}` lays the
+`{"op":"set_markers_from_beats","onsets_ms":[0,500,1000],"count":3}` lays the
 grid down so you can see it. `{"op": "snap_to_beats", "targets": "all",
 "tolerance_ms": 60, "mode": "start", "action": "move"}` pulls clip edges onto
 it. Either takes `onsets_ms` or a `bpm` with an `offset_ms`.
@@ -485,7 +631,8 @@ not perform the motion you wrote:
 | `parent_cycle` | error | A `parentId` chain loops, so the group cannot be resolved at all. Break the loop |
 | `matte_source_missing` | error | The matte names a clip the document lacks, or itself. The layer draws unmatted, showing everything the matte was there to hide |
 | `time_remap_not_monotonic` | error | `t` repeats or goes backwards. `sourceMs` may descend — that is a reverse — but `t` may not |
-| `custom_animation_invalid` | error | A `preset: "custom"` animation carries neither `curves` nor `code`, or both, or a curve the compiler cannot read. Nothing of that animation runs. Send exactly one, with `t` ascending from 0 to 1 |
+| `custom_animation_invalid` | error | A stored `preset: "custom"` animation has unusable baked numeric curves and no style track or text animator to render. Re-bake its curves or add a valid typed track |
+| `animation_style_invalid` | error | A style target has no matching clip style, a path cannot morph, a color cannot parse, or a glyph track lacks text stagger. Fix the target or the clip style |
 | `animation_exceeds_clip` | warning | The window does not fit the clip after its delay, so the motion is clamped or never runs. Shorten `durationMs`, cut the delay, or lengthen the clip |
 | `stagger_compressed` | warning | The units did not fit, so the per-unit offset was shrunk. The line lands faster and flatter than you wrote it. Shorten the per-unit `durationMs` or give the clip more time |
 | `replace_curves_overlap` | warning | Two animations drive one absolute channel (`positionX/Y`, `anchorX/Y`, `trimStart/End`) at once. The last in document order wins and the other is discarded. Separate them in time or fold them into one curve |
@@ -545,21 +692,19 @@ way round, a title that has slid outside the frame, a stagger still finishing
 when the clip ends, a scrim covering the face it was supposed to sit beside, an
 element that never appears because its clip is on an audio track.
 
-Each frame also carries a `degraded` list: what the 2D compositor drew
-differently from the GPU. A mask edge drawn hard because it could not feather,
-a matte skipped, a group's blend mode lost, a wipe with no soft edge, drop
-shadows beyond the one it can stack — each is named there rather than dropped
-quietly. When Canvas 2D cannot match the GPU's additive grade it reports the
-brightness it drew instead. Motion and layout are unaffected; judge those
-looks from a render.
+Each frame carries `degraded` entries for a difference the Canvas 2D host
+could not draw, such as a missing scratch surface, a hard mask edge, or an
+unsupported perspective transform. Read the actual entries before deciding
+which part of the frame needs a GPU render. Known clip effects have CPU passes.
 
 Read the `skipped` field on any layer that drew nothing — it says whether the
 clip is still `draft`, its asset would not read, or the source had no frame at
 that time. A missing picture is usually an unrendered clip, not a motion bug.
 
-`effects_not_applied` names effect types the frame preview cannot draw —
-chroma key, vignette, sharpen. Motion is unaffected; do not judge those looks
-from a previewed frame.
+`effects_not_applied` names enabled effect types the Canvas 2D compositor does
+not recognize. A known effect such as chroma key, vignette, sharpen, or LUT
+should render in the frame preview; a missing scratch surface instead appears
+in `degraded`.
 
 ## The render loop
 

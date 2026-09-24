@@ -1,6 +1,6 @@
 ---
 name: motion-principles
-description: Decide how something should move before you animate it — durations, easing curves, stagger offsets, weight, anticipation and follow-through, given as numbers ready to paste into a NodeTool timeline animation. Use when motion feels stiff, floaty, robotic or cheap, when picking a duration or an easing for an entrance, exit or transition, or when reviewing whether a cut's motion reads. Not for the tool contract — that is motion-graphics.
+description: Choose timing, easing, stagger, anticipation, and follow-through for a NodeTool timeline. Use when motion feels stiff, floaty, busy, or late, or when an entrance, transition, or beat-bound animation needs a duration and curve. The tool contract lives in motion-graphics.
 ---
 
 # Motion Principles → the numbers before the call
@@ -21,7 +21,8 @@ A number chosen before the intent is a number you will change twice.
 
 ## Three layers, or the frame reads flat
 
-Believable motion runs three at once, and each maps onto a track index:
+Plan three levels of attention. Track index controls their z-order, while
+timing decides which one the eye follows:
 
 - **Primary** — the one move the eye follows. The clip the shot is about.
 - **Secondary** — supporting motion reacting to the primary: a scrim settling
@@ -47,6 +48,7 @@ into rest.
 | A move that stays on screen | `easeInOut`, or `cubic-bezier(0.65,0,0.35,1)` | Symmetric, no false weight |
 | Playful landing | `easeOutBack`, or `cubic-bezier(0.34,1.56,0.64,1)` | The value past 1 is the overshoot |
 | Physical settle | `spring(180,12,1)` one overshoot, `spring(180,26,1)` none | Solves a real spring; all three constants positive |
+| Held pose, then jump | `hold` on the ending keyframe's segment | Keeps the prior value until the segment ends |
 
 The role defaults already do the right thing: `in` gets `easeOut`, `out` gets
 `easeIn`. Leave `easing` unset unless you want something the default is not.
@@ -151,24 +153,46 @@ return { samples };
 ```
 
 Land the last sample on the identity value — 0 for an offset, 1 for a scale or
-an opacity — or the clip holds at whatever the curve stopped on.
+an opacity — when the motion should settle. An `in` curve contributes nothing
+after its window, an `out` curve holds its last value after the window, and an
+`emphasis` curve returns to its base outside the window.
 
 ## Rhythm against audio
 
-Land impact keyframes on the beat, never between. At 120 BPM a beat is 500ms and
-the eighth grid is 250ms. `beat-sync-editing` turns detected onsets into the
-markers and snaps; this is only the rule that a move ending 80ms after the hit
-reads as late, and one ending 80ms early reads as wrong.
+Land impact keyframes on the beat. At 120 BPM a beat is 500ms and the eighth
+grid is 250ms. `beat-sync-editing` turns detected onsets into markers and
+snaps. For motion that should follow later tempo edits, store `beat` on the
+animation in the full timeline document. Its `index` is one-based, `scope`
+is `clip` or `sequence`, and `offsetMs` can place anticipation before the hit.
+`edit_timeline`'s `animate_clip` input does not author this field; use
+`get_timeline` and `set_timeline_document` as described in `motion-graphics`.
+
+```json
+{"id":"impact","role":"emphasis","preset":"pulse","durationMs":240,"beat":{"index":3,"scope":"sequence","offsetMs":-20}}
+```
+
+A move ending 80ms after a hit reads late, and one ending 80ms before it can
+weaken the impact. Use `offsetMs` deliberately for anticipation.
 
 With no music, keep one major event per 500–800ms so the piece breathes at a
 constant pulse.
 
 ## Spring or duration
 
-`spring(stiffness,damping,mass)` self-determines its settle and reads as
-physical. Use it on one element landing. Use a duration and a curve for anything
-that must hit a timecode — a title over a cut, a stagger inside a fixed clip —
-because the spring's tail is not something you can time to a frame.
+`spring(stiffness,damping,mass)` shapes the motion inside the animation's
+`durationMs`; it is scaled to settle near the end of that window. Use it for a
+physical-looking landing, then set `durationMs` against the cut as you would
+for any other easing. For a precise held pose or hard timecode, write
+keyframes and put `hold` on the segment that should stay still.
+
+## Frame texture
+
+Use per-clip `motionBlur` when a fast move strobes. Start with a 180-degree
+shutter and raise `samplesPerFrame` only as far as the frame needs; the highest
+requested sample count is shared by the scene. Use `steppedTime.fps` for a
+deliberate low-frame-rate look, or `temporalEcho` for delayed copies. These are
+stored clip fields written through `set_timeline_document`, not
+`animate_clip` parameters.
 
 ## Diagnosing
 
@@ -191,5 +215,5 @@ because the spring's tail is not something you can time to a frame.
 | Playful landing | `easeOutBack`, 400–600ms |
 | Word stagger | 60–100ms, five words or fewer |
 | Clip-to-clip stagger | 60–80ms `delayMs` steps, whole reveal ≤ 700ms |
-| Loop only | `linear` |
+| Continuous loop | `linear` when constant speed is intended |
 | Travel cap | `distance` ≤ 0.35 without a second channel |

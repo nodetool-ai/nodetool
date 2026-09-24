@@ -59,6 +59,17 @@ reports every target including the ones nothing was in reach of, with the reason
 "trim"` changes the length and leaves the neighbours alone. Move a title that has
 to land on a hit; trim a picture clip whose out point has to meet the next shot.
 
+For an animation that should follow tempo changes, store a `beat` anchor on the
+animation: `{index: 3, scope: "clip", offsetMs: -20}` counts from the clip's
+start; `scope: "sequence"` counts from the document tempo's `offsetMs`.
+`index` is one-based, and `delayMs` adds another offset. This is distinct from
+snapping a clip edge or baking a measured audio curve. `animate_clip` does not
+accept `beat` in its tool input; write the animation's `beat` through the full
+document with `set_timeline_document`. A stored animation needs its `id`,
+`role`, `preset`, and `durationMs`; keep those and the rest of the animation
+when adding `beat`. Keep the document's tempo, setup, media tracks, template
+identity, clips, tracks, and markers in the write.
+
 ## Cut on phrases, not on beats
 
 A cut on every beat is relentless and the viewer fatigues by beat eight. Cut on
@@ -144,6 +155,20 @@ different move — clear the remap, cut, re-apply.
 
 `speedMultiplier` on `set_clip_params` is the flat alternative: one rate for the
 whole clip, no curve. Use it when nothing needs to ramp.
+
+For rhythmic texture, `steppedTime: {fps}` quantizes one clip's sampling
+clock. `temporalEcho: {copies, intervalMs, opacityDecay}` draws delayed copies,
+which can trail a hit without duplicating clips by hand. A clip's `motionBlur`
+sets `samplesPerFrame` and `shutterAngle` for its own shutter window. Values
+above one request a minimum scene sample count; the scene uses the highest
+request, capped at 32, and samples each layer evenly over its own shutter.
+Set these fields in the full timeline document. `set_clip_params` refuses them.
+
+If motion must follow the actual audio envelope or detected onsets, use
+`bake_audio_animation`. It writes a source-anchored curve with `bakedFrom`
+provenance through `set_baked_animation`; re-baking replaces that measured
+curve. A beat anchor instead recomputes timing from the document tempo, while
+markers and `snap_to_beats` move edit points.
 
 ## The plan, before the calls
 
