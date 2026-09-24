@@ -1,0 +1,125 @@
+{
+  "id": "number-ticker",
+  "name": "Number ticker",
+  "description": "A formatted numeric counter with an exponential finish and a caption.",
+  "params": {
+    "value": {
+      "type": "number",
+      "default": 100,
+      "path": "/0/animations/0/textAnimator/to"
+    },
+    "suffix": {
+      "type": "string",
+      "default": "%",
+      "path": "/0/animations/0/textAnimator/suffix"
+    },
+    "label": {
+      "type": "string",
+      "default": "Made by you",
+      "path": "/1/textStyle/text"
+    }
+  },
+  "group": {
+    "sourceType": "imported",
+    "status": "generated",
+    "locked": false,
+    "versions": [],
+    "id": "number-ticker-group",
+    "trackId": "Plate",
+    "name": "Number ticker",
+    "startMs": 0,
+    "durationMs": 3500,
+    "mediaType": "group"
+  },
+  "children": [
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "number-ticker-0-value",
+      "trackId": "Value",
+      "name": "Value",
+      "startMs": 0,
+      "durationMs": 3500,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "00",
+        "fontFamily": "JetBrains Mono",
+        "fontSizePx": 160,
+        "fontWeight": 600,
+        "color": "#B5FF55",
+        "align": "center",
+        "maxWidthFrac": 0.8
+      },
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": -65
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "animations": [
+        {
+          "id": "ticker",
+          "role": "emphasis",
+          "preset": "custom",
+          "durationMs": 1600,
+          "easing": "easeOutExpo",
+          "textAnimator": {
+            "kind": "ticker",
+            "from": 0,
+            "to": 100,
+            "decimals": 0,
+            "padTo": 2,
+            "suffix": "%"
+          }
+        }
+      ]
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "number-ticker-1-label",
+      "trackId": "Label",
+      "name": "Label",
+      "startMs": 0,
+      "durationMs": 3500,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "Made by you",
+        "fontFamily": "Inter",
+        "fontSizePx": 40,
+        "fontWeight": 500,
+        "color": "#FFFFFF",
+        "align": "center",
+        "maxWidthFrac": 0.8
+      },
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 130
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    }
+  ]
+}

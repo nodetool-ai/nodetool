@@ -1,0 +1,104 @@
+{
+  "id": "title-slam",
+  "name": "Title slam",
+  "description": "An exponential title entrance with a settling scale and accent rule.",
+  "params": {
+    "title": {
+      "type": "string",
+      "default": "MAKE IT MOVE",
+      "path": "/1/textStyle/text"
+    },
+    "accentColor": {
+      "type": "color",
+      "default": "#B5FF55",
+      "path": "/0/shapeStyle/fill"
+    }
+  },
+  "group": {
+    "sourceType": "imported",
+    "status": "generated",
+    "locked": false,
+    "versions": [],
+    "id": "title-slam-group",
+    "trackId": "Plate",
+    "name": "Title slam",
+    "startMs": 0,
+    "durationMs": 3000,
+    "mediaType": "group"
+  },
+  "children": [
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "title-slam-0-rule",
+      "trackId": "Accent",
+      "name": "Rule",
+      "startMs": 0,
+      "durationMs": 3000,
+      "mediaType": "shape",
+      "shapeStyle": {
+        "kind": "rect",
+        "fill": "#B5FF55",
+        "x": 0.35,
+        "y": 0.64,
+        "width": 0.3,
+        "height": 0.012
+      },
+      "animations": [
+        {
+          "id": "slam-rule",
+          "role": "in",
+          "preset": "slide",
+          "durationMs": 420,
+          "delayMs": 140,
+          "easing": "easeOutExpo",
+          "params": {
+            "direction": "right",
+            "distance": 0.12
+          }
+        }
+      ]
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "title-slam-1-title",
+      "trackId": "Text",
+      "name": "Title",
+      "startMs": 0,
+      "durationMs": 3000,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "MAKE IT MOVE",
+        "fontFamily": "Space Grotesk",
+        "fontSizePx": 142,
+        "fontWeight": 600,
+        "color": "#FFFFFF",
+        "align": "center",
+        "maxWidthFrac": 0.85
+      },
+      "animations": [
+        {
+          "id": "slam-in",
+          "role": "in",
+          "preset": "pop",
+          "durationMs": 480,
+          "easing": "easeOutExpo",
+          "params": {
+            "overshoot": 1.04
+          }
+        },
+        {
+          "id": "slam-out",
+          "role": "out",
+          "preset": "fade",
+          "durationMs": 250
+        }
+      ]
+    }
+  ]
+}

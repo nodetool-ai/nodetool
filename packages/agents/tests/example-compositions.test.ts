@@ -1,5 +1,5 @@
 /**
- * The six compositions NodeTool ships.
+ * The compositions NodeTool ships.
  *
  * A shipped template is only worth shipping if it lands as a valid document and
  * actually draws, so both are checked here rather than assumed: every one is
@@ -28,7 +28,11 @@ const SLUGS = [
   "cta-end-card",
   "logo-sting",
   "lower-third",
-  "title-card"
+  "number-ticker",
+  "title-card",
+  "title-slam",
+  "window-frame",
+  "word-cards"
 ];
 
 /** Insert one composition into an empty sequence and hand back the document. */
@@ -53,7 +57,7 @@ async function insertInto(
 }
 
 describe("the shipped compositions", () => {
-  it("ships all six, each with parameters", () => {
+  it("ships the catalogue, each with parameters", () => {
     expect(SHIPPED.map((c) => c.id).sort()).toEqual(SLUGS);
     for (const composition of SHIPPED) {
       expect(Object.keys(composition.params).length).toBeGreaterThan(0);
@@ -79,6 +83,40 @@ describe("the shipped compositions", () => {
       );
       expect(validation.errors).toEqual([]);
       expect(validation.warnings).toEqual([]);
+    });
+  }
+
+  for (const slug of ["title-slam", "word-cards", "window-frame", "number-ticker"]) {
+    it(`renders ${slug} after insertion`, async () => {
+      const composition = SHIPPED.find((entry) => entry.id === slug);
+      expect(composition).toBeDefined();
+      const document = await insertInto(composition!, { width: 1920, height: 1080 });
+      const sequence: TimelineSequence = {
+        id: "template-preview", projectId: "project", name: slug,
+        fps: 30, width: 1920, height: 1080, durationMs: 5000,
+        tracks: document.documentTracks, clips: document.documentClips,
+        markers: [], createdAt: "", updatedAt: ""
+      };
+      const result = await renderTimelineFrames({
+        sequence, timesMs: [100, 1700], width: 480, loadAsset: async () => null
+      });
+      expect(result.effectsNotApplied).toEqual([]);
+      expect(result.frames).toHaveLength(2);
+      for (const frame of result.frames) {
+        const image = await loadImage(Buffer.from(frame.png));
+        const canvas = createCanvas(image.width, image.height);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(image, 0, 0);
+        const pixels = ctx.getImageData(0, 0, image.width, image.height).data;
+        let colored = 0;
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (Math.max(pixels[i]!, pixels[i + 1]!, pixels[i + 2]!) > 30) colored++;
+        }
+        expect(colored).toBeGreaterThan(100);
+      }
+      if (slug !== "window-frame") {
+        expect(result.frames[0]!.png).not.toEqual(result.frames[1]!.png);
+      }
     });
   }
 });

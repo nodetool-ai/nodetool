@@ -1,0 +1,207 @@
+{
+  "id": "word-cards",
+  "name": "Word cards",
+  "description": "Three typographic cards entering four frames apart at 30 fps.",
+  "params": {
+    "word1": {
+      "type": "string",
+      "default": "MAKE",
+      "path": "/0/textStyle/text"
+    },
+    "word2": {
+      "type": "string",
+      "default": "IT",
+      "path": "/1/textStyle/text"
+    },
+    "word3": {
+      "type": "string",
+      "default": "MOVE",
+      "path": "/2/textStyle/text"
+    }
+  },
+  "group": {
+    "sourceType": "imported",
+    "status": "generated",
+    "locked": false,
+    "versions": [],
+    "id": "word-cards-group",
+    "trackId": "Plate",
+    "name": "Word cards",
+    "startMs": 0,
+    "durationMs": 3200,
+    "mediaType": "group"
+  },
+  "children": [
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "word-cards-0-word1",
+      "trackId": "Word1",
+      "name": "Word1",
+      "startMs": 0,
+      "durationMs": 3200,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "MAKE",
+        "fontFamily": "Space Grotesk",
+        "fontSizePx": 80,
+        "fontWeight": 600,
+        "color": "#101418",
+        "align": "center",
+        "maxWidthFrac": 0.25,
+        "background": {
+          "color": "#B5FF55",
+          "paddingPx": 32,
+          "radiusPx": 16
+        }
+      },
+      "transform": {
+        "position": {
+          "x": -557,
+          "y": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "animations": [
+        {
+          "id": "word-0-in",
+          "role": "in",
+          "preset": "pop",
+          "durationMs": 460,
+          "delayMs": 0,
+          "easing": "spring(180,18,1)"
+        },
+        {
+          "id": "word-0-out",
+          "role": "out",
+          "preset": "fade",
+          "durationMs": 250
+        }
+      ]
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "word-cards-1-word2",
+      "trackId": "Word2",
+      "name": "Word2",
+      "startMs": 0,
+      "durationMs": 3200,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "IT",
+        "fontFamily": "Space Grotesk",
+        "fontSizePx": 80,
+        "fontWeight": 600,
+        "color": "#101418",
+        "align": "center",
+        "maxWidthFrac": 0.25,
+        "background": {
+          "color": "#B5FF55",
+          "paddingPx": 32,
+          "radiusPx": 16
+        }
+      },
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "animations": [
+        {
+          "id": "word-1-in",
+          "role": "in",
+          "preset": "pop",
+          "durationMs": 460,
+          "delayMs": 133.33333333333334,
+          "easing": "spring(180,18,1)"
+        },
+        {
+          "id": "word-1-out",
+          "role": "out",
+          "preset": "fade",
+          "durationMs": 250
+        }
+      ]
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "word-cards-2-word3",
+      "trackId": "Word3",
+      "name": "Word3",
+      "startMs": 0,
+      "durationMs": 3200,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "MOVE",
+        "fontFamily": "Space Grotesk",
+        "fontSizePx": 80,
+        "fontWeight": 600,
+        "color": "#101418",
+        "align": "center",
+        "maxWidthFrac": 0.25,
+        "background": {
+          "color": "#B5FF55",
+          "paddingPx": 32,
+          "radiusPx": 16
+        }
+      },
+      "transform": {
+        "position": {
+          "x": 557,
+          "y": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "animations": [
+        {
+          "id": "word-2-in",
+          "role": "in",
+          "preset": "pop",
+          "durationMs": 460,
+          "delayMs": 266.6666666666667,
+          "easing": "spring(180,18,1)"
+        },
+        {
+          "id": "word-2-out",
+          "role": "out",
+          "preset": "fade",
+          "durationMs": 250
+        }
+      ]
+    }
+  ]
+}
