@@ -173,7 +173,7 @@ describe("useVideoSetupFlow (criterion 2)", () => {
     expect(result.current.steps[1].canAdvance).toBe(true);
     expect(result.current.steps[1].generation?.result).toContain("8 beats");
     expect(result.current.steps[1].generation?.next).toContain(
-      "No generated clips"
+      "Media comes later in Look"
     );
     expect(result.current.steps[1].generation?.model?.id).toBeTruthy();
   });
