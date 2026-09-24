@@ -960,18 +960,18 @@
       "id": "DU-F041",
       "role": "masters/language-comparison.mp4",
       "relativePath": "masters/language-comparison.mp4",
-      "sha256": "d343dd693545f58235b35a9d8e6beec11630944e16511909eecd63a9d8b0eb34",
+      "sha256": "26fd68647763fcce88044aecc7a299ec906a782cc0205368b0dbbc7a1f9e2e80",
       "mimeType": "video/mp4",
-      "bytes": 16911547,
+      "bytes": 16369495,
       "width": 1920,
       "height": 1088,
-      "duration": 45.238,
+      "duration": 38.434,
       "fps": "24/1",
       "hasAudio": true,
       "provenance": "derived",
       "sourceIds": [
-        "DU-F051",
-        "DU-F038"
+        "DU-F079",
+        "DU-F037"
       ],
       "producingDocumentId": null,
       "shotOrLineIds": [
@@ -979,7 +979,7 @@
         "DU-L2",
         "DU-L3"
       ],
-      "transformation": "Composed a labeled sequential English-source and Spanish-lip-sync comparison with non-competing speech."
+      "transformation": "Composed a labeled English take generated and lip-synced through AtlasCloud, followed by the existing captioned Spanish lip-sync version. Speech is sequential and loudness matched."
     },
     {
       "id": "DU-F042",
@@ -1361,12 +1361,12 @@
       "id": "DU-F060",
       "role": "web/language-comparison.mp4",
       "relativePath": "web/language-comparison.mp4",
-      "sha256": "d343dd693545f58235b35a9d8e6beec11630944e16511909eecd63a9d8b0eb34",
+      "sha256": "26fd68647763fcce88044aecc7a299ec906a782cc0205368b0dbbc7a1f9e2e80",
       "mimeType": "video/mp4",
-      "bytes": 16911547,
+      "bytes": 16369495,
       "width": 1920,
       "height": 1088,
-      "duration": 45.238,
+      "duration": 38.434,
       "fps": "24/1",
       "hasAudio": true,
       "provenance": "derived",
@@ -1379,18 +1379,18 @@
         "DU-L2",
         "DU-L3"
       ],
-      "transformation": "H.264 web delivery encode of the language-comparison master."
+      "transformation": "Copied the H.264 language-comparison master for web delivery."
     },
     {
       "id": "DU-F061",
       "role": "web/language-comparison.webm",
       "relativePath": "web/language-comparison.webm",
-      "sha256": "e492e637883a670b531aaaa7296f22736f6ddc0c72cb0226efcc36aff50b9f65",
+      "sha256": "4d52625a7413e9eaec33a63d0d7b622deeeb453788e7424117dfcf9ae2eba881",
       "mimeType": "video/webm",
-      "bytes": 4703297,
+      "bytes": 4344417,
       "width": 1920,
       "height": 1088,
-      "duration": 45.256,
+      "duration": 38.462,
       "fps": "24/1",
       "hasAudio": true,
       "provenance": "derived",
@@ -1409,9 +1409,9 @@
       "id": "DU-F062",
       "role": "web/poster.webp",
       "relativePath": "web/poster.webp",
-      "sha256": "18c3bba2157c1c54eed25173c645046110915c03638684f7ce334be6fa4221c2",
+      "sha256": "8d5d571c2cbae06121bdad280109b99f28a866e9573b68aab7f915d6e406f036",
       "mimeType": "image/webp",
-      "bytes": 99490,
+      "bytes": 60058,
       "provenance": "derived",
       "sourceIds": [
         "DU-F041"
@@ -1422,7 +1422,9 @@
         "DU-L2",
         "DU-L3"
       ],
-      "transformation": "Selected and encoded a poster frame from the language-comparison master."
+      "transformation": "Selected and encoded a poster frame from the language-comparison master.",
+      "width": 1920,
+      "height": 1088
     },
     {
       "id": "DU-F063",
@@ -1705,6 +1707,77 @@
         "DU-L3"
       ],
       "sourceNote": "The persistent source document ID was not captured, so no source asset ID can be asserted."
+    },
+    {
+      "id": "DU-F077",
+      "role": "generation/source-en-atlas-elevenlabs-v3.mp3",
+      "relativePath": "generation/source-en-atlas-elevenlabs-v3.mp3",
+      "sha256": "e293e895d9110135d55413ef7269856630112018703cce23baaf93b4ba893677",
+      "bytes": 253327,
+      "duration": 15.76,
+      "mimeType": "audio/mpeg",
+      "provenance": "generated",
+      "sourceIds": [
+        "DU-F004"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Generated the exact English script with ElevenLabs v3 through the NodeTool AtlasCloud TTS provider."
+    },
+    {
+      "id": "DU-F078",
+      "role": "generation/source-en-atlas-lipsync-input.mp4",
+      "relativePath": "generation/source-en-atlas-lipsync-input.mp4",
+      "sha256": "847675feffc5a3a4ef9b2bbb801cfa4bd1e586cee024c32dad9827f7291f29cd",
+      "bytes": 7237333,
+      "width": 1920,
+      "height": 1088,
+      "duration": 15.833008,
+      "fps": "24/1",
+      "hasAudio": false,
+      "mimeType": "video/mp4",
+      "provenance": "derived",
+      "sourceIds": [
+        "DU-F032",
+        "DU-F033",
+        "DU-F034"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Cut the existing presenter footage at the new English sentence boundaries, without its old audio."
+    },
+    {
+      "id": "DU-F079",
+      "role": "generation/source-en-atlas-lipsynced.mp4",
+      "relativePath": "generation/source-en-atlas-lipsynced.mp4",
+      "sha256": "f4ff43fafa545abb47b89c9e48e35c5740301f717edacc7bc762a7e73cb6d964",
+      "bytes": 4065904,
+      "width": 1920,
+      "height": 1088,
+      "duration": 15.76,
+      "fps": "24/1",
+      "hasAudio": true,
+      "mimeType": "video/mp4",
+      "provenance": "generated",
+      "sourceIds": [
+        "DU-F077",
+        "DU-F078"
+      ],
+      "producingDocumentId": null,
+      "shotOrLineIds": [
+        "DU-L1",
+        "DU-L2",
+        "DU-L3"
+      ],
+      "transformation": "Re-synced the presenter to the new English reading with Sync Lipsync v3 through the NodeTool AtlasCloud node."
     }
   ],
   "generationCalls": [
@@ -1933,6 +2006,55 @@
       "actualCost": null,
       "currency": null,
       "costNote": "Node CLI returned no cost fields.",
+      "attempt": 1,
+      "failureReason": null
+    },
+    {
+      "id": "DU-GEN-008",
+      "callId": null,
+      "jobId": null,
+      "toolName": "nodetool.audio.TextToSpeech",
+      "provider": "atlascloud",
+      "model": "elevenlabs/v3/text-to-speech",
+      "inputAssetIds": [
+        "DU-F004"
+      ],
+      "promptFile": null,
+      "settings": {
+        "voice": "EXAVITQu4vr4xnSDxMaL",
+        "speed": 1,
+        "textSource": "documents/script-en.json"
+      },
+      "outputIds": [
+        "DU-F077"
+      ],
+      "actualCost": null,
+      "currency": null,
+      "costNote": "NodeTool CLI returned no cost fields.",
+      "attempt": 1,
+      "failureReason": null
+    },
+    {
+      "id": "DU-GEN-009",
+      "callId": null,
+      "jobId": null,
+      "toolName": "atlascloud.video.SyncLipsyncV3",
+      "provider": "atlascloud",
+      "model": "sync/lipsync-v3",
+      "inputAssetIds": [
+        "DU-F077",
+        "DU-F078"
+      ],
+      "promptFile": null,
+      "settings": {
+        "sync_mode": "cut_off"
+      },
+      "outputIds": [
+        "DU-F079"
+      ],
+      "actualCost": null,
+      "currency": null,
+      "costNote": "NodeTool CLI returned no cost fields.",
       "attempt": 1,
       "failureReason": null
     }

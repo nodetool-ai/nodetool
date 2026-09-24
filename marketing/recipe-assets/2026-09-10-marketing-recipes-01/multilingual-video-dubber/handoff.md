@@ -12,6 +12,14 @@ Alt text: “Synthetic presenter in a muted-blue shirt speaking the same short s
 
 The source consists of three straight-cut sentence segments at 0.000, 9.000, 15.500 and 22.625 seconds. The Spanish delivery uses the same picture and the female `Ashley` voice from Inworld Realtime TTS 2 through Replicate. Human/native-speaker approval is not recorded.
 
+## English comparison revision
+
+The comparison's English section now uses `generation/source-en-atlas-elevenlabs-v3.mp3`, generated from the exact English script with ElevenLabs v3 through the NodeTool AtlasCloud TTS provider. The selected voice ID is `EXAVITQu4vr4xnSDxMaL`. The 15.760-second reading replaces the slower 22.625-second English section. The existing English source, translation records, and Spanish delivery are unchanged.
+
+`generation/source-en-atlas-lipsync-input.mp4` cuts the three presenter segments at the new sentence breaks. NodeTool's `atlascloud.video.SyncLipsyncV3` node produced `generation/source-en-atlas-lipsynced.mp4` with `sync_mode: cut_off`. The revised `masters/language-comparison.mp4` runs for 38.434 seconds and puts the new English take before the existing captioned Spanish take. The English speech was normalized to match the Spanish section's measured loudness.
+
+The new English take and lip-synced result decoded fully, and a local transcription recovered the complete script with punctuation differences only. Still frames at 1.5, 7.5, and 13.5 seconds showed the presenter and mouth region. Human headphone review and full-motion lip-sync acceptance remain pending.
+
 ## Captured native Script flow
 
 Use these screenshots in order:

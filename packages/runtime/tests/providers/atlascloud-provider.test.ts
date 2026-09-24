@@ -251,6 +251,7 @@ describe("AtlasCloudProvider — audio predictions", () => {
     const capture: NonNullable<MockFetchOptions["capture"]> = {};
     mockAtlasFetch({ capture });
     const provider = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    expect(provider.supportsStreamingTextToSpeech()).toBe(false);
 
     const result = await provider.textToSpeechEncoded({
       model: "elevenlabs/v3/text-to-speech",

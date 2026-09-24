@@ -9,8 +9,8 @@
  *     {@link OpenAICompatProvider}; model discovery reads `GET /v1/models`.
  *     https://www.atlascloud.ai/docs/get-started
  *
- *  2. Image / video — AtlasCloud's own async prediction API:
- *       - Submit: POST /api/v1/model/generate{Image,Video}, FLAT body
+ *  2. Image / video / audio — AtlasCloud's own async prediction API:
+ *       - Submit: POST /api/v1/model/generate{Image,Video,Audio}, FLAT body
  *                   { model, ...fields }  (NOT nested under `input`)
  *                 → { data: { id } }
  *       - Poll:   GET  /api/v1/model/prediction/{id}
@@ -615,6 +615,10 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
     return ATLASCLOUD_TTS_MODELS.map((model) => ({ ...model }));
+  }
+
+  override supportsStreamingTextToSpeech(): boolean {
+    return false;
   }
 
   override async getAvailableMusicModels(): Promise<MusicModel[]> {

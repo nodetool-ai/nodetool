@@ -733,7 +733,7 @@ export const recipeEntries: RecipeEntry[] = [
       "statusLabel": "English and Spanish example",
       "proofTitle": "Review the words. Revise one voice line.",
       "summary": "An English presenter, revoiced in Spanish. Edit the translation and revise individual voice lines.",
-      "provider": "Media generated with FAL and Replicate through NodeTool",
+      "provider": "Media generated with FAL, Replicate, and AtlasCloud through NodeTool",
       "hero": {
         "src": "/recipes/runs/2026-09-10-marketing-recipes-01/multilingual-video-dubber/recipe-card.webp",
         "alt": "Synthetic presenter with English and Spanish versions of the same short script."
@@ -759,7 +759,8 @@ export const recipeEntries: RecipeEntry[] = [
       "supportedClaims": [
         "The captured Script flow preserved three approved Spanish lines through setup.",
         "Inworld Realtime TTS 2 with the female Ashley voice produced the Spanish track used in the comparison video.",
-        "Line 2 was redirected and revoiced before three clips were sent to an editable 16.3-second timeline."
+        "Line 2 was redirected and revoiced before three clips were sent to an editable 16.3-second timeline.",
+        "The comparison's English section uses an ElevenLabs v3 voice and Sync Lipsync v3 through AtlasCloud."
       ],
       "essentialLimitation": "The native timeline preview failed, and human audition and lip-sync acceptance remain pending.",
       "limitations": [

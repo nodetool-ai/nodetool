@@ -15,6 +15,7 @@ import {
 import { setProcessSandboxModuleCatalog } from "@nodetool-ai/runtime";
 import { createCachedNpmLookup } from "@nodetool-ai/sandbox-compiler/cache";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
+import { registerAtlasCloudNodes } from "@nodetool-ai/atlascloud-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
 import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
 import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
@@ -51,6 +52,7 @@ export function buildFullRegistry(): NodeRegistry {
   installSandboxCatalog();
   const registry = new NodeRegistry();
   registerBaseNodes(registry);
+  registerAtlasCloudNodes(registry);
   registerElevenLabsNodes(registry);
   registerMinimaxNodes(registry);
   registerTransformersJsNodes(registry);

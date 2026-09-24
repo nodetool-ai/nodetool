@@ -25,6 +25,9 @@ b1f937096223d05135e676093a01b766e67876544382440f4166cc4126300224  marketing/reci
 ebb6480bd5a80982f0cb5fab6cb302fde8b31bf3c2fcf0bac5cec556211e67c4  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/generation/presenter-motion-01.mp4
 30211e420f9e0e3bf5831d7d05475070e90bf0e2c10f0ce563879c4da73aaf98  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/generation/presenter-motion-02.mp4
 fe35888839f42859f528628d1c3e624bf49b29d31412bc9d1afd70c1c1027463  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/generation/presenter-motion-24s.mp4
+e293e895d9110135d55413ef7269856630112018703cce23baaf93b4ba893677  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/generation/source-en-atlas-elevenlabs-v3.mp3
+847675feffc5a3a4ef9b2bbb801cfa4bd1e586cee024c32dad9827f7291f29cd  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/generation/source-en-atlas-lipsync-input.mp4
+f4ff43fafa545abb47b89c9e48e35c5740301f717edacc7bc762a7e73cb6d964  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/generation/source-en-atlas-lipsynced.mp4
 caf28fc974f3fd4eeb29ec968774b709935cd39fb4b096116ffafb58b202ea9b  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/generation/source-en-audio-original-v2.mp3
 9dc0c881df28eb85b29348cdc4db77438115b7d3ea80b2cdd071091722089117  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/generation/source-en-audio-original.mp3
 7e66ed9c53ac32c6f59f6c40ad36303ede58598f9b84c19b28e4d8b580d48725  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/generation/source-en-line1.mp4
@@ -35,7 +38,7 @@ b2b5f8582f880157e9de85e729dc5a5e04e4b00c321e6edda31fa12ad01f08a1  marketing/reci
 d4c1039e88ff92bcbed193462bf47993e7fe7d50071845e0ccbc33bfa89ca6a6  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/masters/dub-es-lipsync-clean.mp4
 a02418d7c8f16194b7c9f7de89a5bdd0015461911e2a600e5728797759112cca  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/masters/dub-es-voiceover-captioned.mp4
 c9b9a8218219c6a858ea05961bae9a3ea43f80642899b463bfa0a7586b7b9c37  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/masters/dub-es-voiceover-clean.mp4
-d343dd693545f58235b35a9d8e6beec11630944e16511909eecd63a9d8b0eb34  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/masters/language-comparison.mp4
+26fd68647763fcce88044aecc7a299ec906a782cc0205368b0dbbc7a1f9e2e80  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/masters/language-comparison.mp4
 190af19a421cee3142cc61acc8ea7f4999446f87525d799febe0d1760fc6f734  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/masters/voice-es.wav
 9dcd58e528180c3a8d2c15d65253c0526eb549afe0c961eb95d2de5e86f1acf3  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/masters/voice-es/du-l1.mp3
 5c8256cbec715845c0faeae17af1efd537453e693397ef20f5703d25e05772ab  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/masters/voice-es/du-l2.mp3
@@ -53,9 +56,9 @@ a02418d7c8f16194b7c9f7de89a5bdd0015461911e2a600e5728797759112cca  marketing/reci
 312a8a4a532c304ccd38920773d408eb3c608d4c0db28a645738e912f9f74743  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/web/dub-es-voiceover.webm
 bda6fd885edde82c57fcc87e66c394fe44206756e8d30b1bc623ca9cf41a01d0  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/web/dub-es.srt
 14afba46e8c85e4f3a092bb5afda47cbfd4cdc4aba2738a22fb078cb160db008  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/web/dub-es.vtt
-d343dd693545f58235b35a9d8e6beec11630944e16511909eecd63a9d8b0eb34  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/web/language-comparison.mp4
-e492e637883a670b531aaaa7296f22736f6ddc0c72cb0226efcc36aff50b9f65  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/web/language-comparison.webm
-18c3bba2157c1c54eed25173c645046110915c03638684f7ce334be6fa4221c2  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/web/poster.webp
+26fd68647763fcce88044aecc7a299ec906a782cc0205368b0dbbc7a1f9e2e80  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/web/language-comparison.mp4
+4d52625a7413e9eaec33a63d0d7b622deeeb453788e7424117dfcf9ae2eba881  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/web/language-comparison.webm
+8d5d571c2cbae06121bdad280109b99f28a866e9573b68aab7f915d6e406f036  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/web/poster.webp
 0ff64d4d8b6a9e7d78e739f182aa4dfd8402d1055414d4c7a4e0794624dda942  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/web/recipe-card.webp
 542f47857649ee9242dd19c84ef82b8f39ac6932d61c18f769d448474650afc2  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/web/social-preview.webp
 c914ead0f8d1a13d485b77902427669171789fbde71f7663e364c1ed054deeac  marketing/recipe-assets/2026-09-10-marketing-recipes-01/multilingual-video-dubber/web/source-en-poster.webp
