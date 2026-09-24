@@ -1,10 +1,11 @@
 /**
- * The `/mcp` surface: exactly two tools, capability + sandbox resources,
+ * The `/mcp` surface: direct tools, capability + sandbox resources,
  * guest-contract instructions, and a session that must be bound to a user.
  */
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { PassThrough } from "node:stream";
 import {
   describe,
   it,
@@ -20,17 +21,19 @@ import {
   MCP_SANDBOX_ASSET_SNIPPET,
   MCP_SANDBOX_PROBE_SNIPPET
 } from "@nodetool-ai/agents";
-import { initTestDb } from "@nodetool-ai/models";
+import { Asset, initTestDb } from "@nodetool-ai/models";
 import {
   DIRECT_TOOL_NAMES,
   SDK_NATIVE_TOOL_REPLACEMENTS
 } from "@nodetool-ai/runtime";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
   closeAllMcpHttpSessions,
   createMcpServer,
   createMcpStdioTransport,
+  forwardMcpStdioToLocalServer,
   handleMcpHttpRequest,
   MCP_MAX_SESSIONS,
   MCP_MAX_SESSIONS_PER_USER,
@@ -170,9 +173,17 @@ describe("MCP server surface", () => {
     // tool added to either table shows up here as a one-line diff.
     const names = toolNames(createMcpServer({ agentToolsScope: scope }));
 
-    // Nothing beyond the action, the pixel channel, and the direct set.
+    // Transfer tools are direct because they carry bytes across the MCP boundary.
     for (const name of names) {
-      if (name === "execute_code" || name === "view_image") continue;
+      if (
+        [
+          "execute_code",
+          "view_image",
+          "upload_asset",
+          "download_asset"
+        ].includes(name)
+      )
+        continue;
       expect(DIRECT_TOOL_NAMES.has(name)).toBe(true);
     }
     // The ones this session can actually build are all there. Node discovery
@@ -183,6 +194,8 @@ describe("MCP server surface", () => {
       expect.arrayContaining([
         "execute_code",
         "view_image",
+        "upload_asset",
+        "download_asset",
         "find_model",
         "list_models",
         "list_directory",
@@ -191,6 +204,180 @@ describe("MCP server surface", () => {
         "download_file"
       ])
     );
+  });
+
+  it("uploads and downloads asset bytes through direct MCP tools", async () => {
+    const client = await connectClient();
+    const sourcePath = join(dataDir, "source.bin");
+    const outputPath = join(dataDir, "download.bin");
+    const bytes = Buffer.from([0, 1, 127, 255]);
+    writeFileSync(sourcePath, bytes);
+    const upload = await client.callTool({
+      name: "upload_asset",
+      arguments: { file_path: sourcePath, name: "sample.bin" }
+    });
+    expect(upload.isError).toBeFalsy();
+    const saved = JSON.parse(upload.content[0].text as string) as {
+      asset_id: string;
+      asset_uri: string;
+    };
+    expect(saved.asset_uri).toBe(`asset://${saved.asset_id}`);
+
+    const download = await client.callTool({
+      name: "download_asset",
+      arguments: { asset_id: saved.asset_id }
+    });
+    expect(download.isError).toBeFalsy();
+    const downloaded = JSON.parse(download.content[0].text as string) as {
+      content_base64: string;
+    };
+    expect(Buffer.from(downloaded.content_base64, "base64")).toEqual(bytes);
+
+    const toFile = await client.callTool({
+      name: "download_asset",
+      arguments: {
+        asset_id: saved.asset_id.slice(0, 12),
+        output_path: outputPath
+      }
+    });
+    expect(toFile.isError).toBeFalsy();
+    expect(readFileSync(outputPath)).toEqual(bytes);
+    await client.close();
+  });
+
+  it("records the duration of uploaded audio", async () => {
+    const bytes = Buffer.alloc(44 + 8000);
+    bytes.write("RIFF", 0);
+    bytes.writeUInt32LE(36 + 8000, 4);
+    bytes.write("WAVEfmt ", 8);
+    bytes.writeUInt32LE(16, 16);
+    bytes.writeUInt16LE(1, 20);
+    bytes.writeUInt16LE(1, 22);
+    bytes.writeUInt32LE(8000, 24);
+    bytes.writeUInt32LE(16000, 28);
+    bytes.writeUInt16LE(2, 32);
+    bytes.writeUInt16LE(16, 34);
+    bytes.write("data", 36);
+    bytes.writeUInt32LE(8000, 40);
+    const client = await connectClient();
+    const uploaded = await client.callTool({
+      name: "upload_asset",
+      arguments: {
+        name: "half-second.wav",
+        content_type: "audio/wav",
+        content_base64: bytes.toString("base64")
+      }
+    });
+    expect(uploaded.isError).toBeFalsy();
+    const result = JSON.parse(uploaded.content[0].text as string) as {
+      asset_id: string;
+    };
+    const asset = await Asset.find("1", result.asset_id);
+    expect(asset?.duration).toBeCloseTo(0.5, 2);
+
+    const path = join(dataDir, "imported-audio.wav");
+    writeFileSync(path, bytes);
+    const pathUpload = await client.callTool({
+      name: "upload_asset",
+      arguments: { file_path: path, name: "Custom soundtrack" }
+    });
+    expect(pathUpload.isError).toBeFalsy();
+    const pathResult = JSON.parse(pathUpload.content[0].text as string) as {
+      asset_id: string;
+    };
+    const pathAsset = await Asset.find("1", pathResult.asset_id);
+    expect(pathAsset?.name).toBe("Custom soundtrack");
+    expect(pathAsset?.content_type).toBe("audio/wav");
+    expect(pathAsset?.duration).toBeCloseTo(0.5, 2);
+    await client.close();
+
+    const observation = await act(
+      createMcpServer({ agentToolsScope: scope }),
+      'import { import_asset } from "@nodetool-ai/sandbox-nodetool/session";\n' +
+        `return await import_asset({ path: ${JSON.stringify(path)} });`
+    );
+    expect(observation.ok, JSON.stringify(observation)).toBe(true);
+    expect(observation.result).toMatchObject({
+      content_type: "audio/wav",
+      duration: 0.5,
+      size: bytes.length
+    });
+  });
+
+  it("infers MP4 and MP3 types from paths when names have no extension", async () => {
+    const client = await connectClient();
+    for (const [extension, type] of [
+      ["mp4", "video/mp4"],
+      ["mp3", "audio/mpeg"]
+    ]) {
+      const filePath = join(dataDir, `source.${extension}`);
+      writeFileSync(filePath, Buffer.from("not valid media"));
+      const result = await client.callTool({
+        name: "upload_asset",
+        arguments: { file_path: filePath, name: "Clean loop" }
+      });
+      expect(result.isError).toBeFalsy();
+      const { asset_id } = JSON.parse(result.content[0].text as string) as {
+        asset_id: string;
+      };
+      expect((await Asset.find("1", asset_id))?.content_type).toBe(type);
+    }
+    await client.close();
+  });
+
+  it("accepts base64 uploads and blocks server paths for remote sessions", async () => {
+    const server = createMcpServer({
+      agentToolsScope: { userId: "2", source: "http-session" }
+    });
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "remote-test", version: "1.0.0" });
+    await Promise.all([
+      client.connect(clientTransport),
+      server.connect(serverTransport)
+    ]);
+    const uploaded = await client.callTool({
+      name: "upload_asset",
+      arguments: {
+        name: "remote.txt",
+        content_base64: Buffer.from("hello").toString("base64")
+      }
+    });
+    expect(uploaded.isError).toBeFalsy();
+    const rejected = await client.callTool({
+      name: "upload_asset",
+      arguments: { file_path: join(dataDir, "source.bin") }
+    });
+    expect(rejected.isError).toBe(true);
+    const importRejected = await act(
+      server,
+      'import { import_asset } from "@nodetool-ai/sandbox-nodetool/session";\n' +
+        `return await import_asset({ path: ${JSON.stringify(join(dataDir, "source.bin"))} });`
+    );
+    expect(importRejected.ok).toBe(false);
+    expect(importRejected.error).toContain("local MCP connection");
+    const saved = JSON.parse(uploaded.content[0].text as string) as {
+      asset_id: string;
+    };
+    const refused = await client.callTool({
+      name: "download_asset",
+      arguments: {
+        asset_id: saved.asset_id,
+        output_path: join(dataDir, "remote.bin")
+      }
+    });
+    expect(refused.isError).toBe(true);
+    const foreign = await Asset.create<Asset>({
+      user_id: "1",
+      name: "foreign.bin",
+      content_type: "application/octet-stream"
+    });
+    const denied = await client.callTool({
+      name: "download_asset",
+      arguments: { asset_id: foreign.id }
+    });
+    expect(denied.isError).toBe(true);
+    await client.close();
   });
 
   it("exposes renderer tools on the CodeAct belt and scopes calls", async () => {
@@ -238,7 +425,9 @@ describe("MCP server surface", () => {
   it("never offers a tool the client already serves natively", () => {
     // Two `read_file`s with two different roots in front of one model is worse
     // than one, which is why the file/search half stays inside the sandbox.
-    const names = new Set(toolNames(createMcpServer({ agentToolsScope: scope })));
+    const names = new Set(
+      toolNames(createMcpServer({ agentToolsScope: scope }))
+    );
     for (const substituted of SDK_NATIVE_TOOL_REPLACEMENTS.keys()) {
       expect(names.has(substituted)).toBe(false);
     }
@@ -333,11 +522,21 @@ describe("MCP server surface", () => {
       expect.arrayContaining(["execute_code", "view_image", "find_model"])
     );
     for (const name of catalog.direct_tools) {
-      if (name === "execute_code" || name === "view_image") continue;
+      if (
+        [
+          "execute_code",
+          "view_image",
+          "upload_asset",
+          "download_asset"
+        ].includes(name)
+      )
+        continue;
       expect(DIRECT_TOOL_NAMES.has(name)).toBe(true);
     }
     expect(catalog.modules.map((m) => m.namespace)).toContain("workflows");
-    const listWorkflows = catalog.tools.find((t) => t.name === "list_workflows");
+    const listWorkflows = catalog.tools.find(
+      (t) => t.name === "list_workflows"
+    );
     expect(listWorkflows?.permission_category).toBe("read");
     expect(listWorkflows?.description.length).toBeGreaterThan(0);
     await client.close();
@@ -385,7 +584,103 @@ describe("MCP server surface", () => {
   });
 });
 
+describe("stdio HTTP forwarding", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    closeAllMcpHttpSessions();
+  });
+
+  it("falls back when the local MCP mount is unavailable", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    expect(await forwardMcpStdioToLocalServer()).toBe(false);
+  });
+
+  it("forwards stdio requests to the HTTP MCP session", async () => {
+    const requests: string[] = [];
+    vi.stubGlobal("fetch", async (input: URL | Request, init?: RequestInit) => {
+      const request = new Request(input, init);
+      requests.push(request.method);
+      const response = await handleMcpHttpRequest(request, {
+        agentToolsScope: { userId: "1", source: "local-dev-http" }
+      });
+      if (!response) throw new Error("Missing MCP response");
+      return response;
+    });
+    const input = new PassThrough();
+    const output = new PassThrough();
+    const transport = new StdioServerTransport(input, output);
+    const lines: Array<Record<string, unknown>> = [];
+    output.on("data", (chunk: Buffer) => {
+      for (const line of chunk.toString().trim().split("\n")) {
+        lines.push(JSON.parse(line) as Record<string, unknown>);
+      }
+    });
+
+    expect(
+      await forwardMcpStdioToLocalServer("http://127.0.0.1:7777/mcp", transport)
+    ).toBe(true);
+    input.write(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: 7,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "stdio-test", version: "1.0.0" }
+        }
+      }) + "\n"
+    );
+    await vi.waitFor(() =>
+      expect(lines.some((line) => line.id === 7)).toBe(true)
+    );
+    input.write(
+      JSON.stringify({ jsonrpc: "2.0", id: 8, method: "tools/list" }) + "\n"
+    );
+    await vi.waitFor(() =>
+      expect(lines.some((line) => line.id === 8)).toBe(true)
+    );
+    const list = lines.find((line) => line.id === 8)?.result as {
+      tools: Array<{ name: string }>;
+    };
+    expect(list.tools.map((tool) => tool.name)).toEqual(
+      expect.arrayContaining(["upload_asset", "download_asset"])
+    );
+    expect(requests).toContain("DELETE");
+    expect(
+      requests.filter((method) => method === "POST").length
+    ).toBeGreaterThanOrEqual(3);
+    await transport.close();
+  });
+});
+
 describe("sandbox snippets run", () => {
+  it("imports a server-local file into the asset library", async () => {
+    const path = join(dataDir, "sandbox-import.txt");
+    writeFileSync(path, "imported through CodeAct");
+    const server = createMcpServer({ agentToolsScope: scope });
+    const observation = await act(
+      server,
+      'import { import_asset } from "@nodetool-ai/sandbox-nodetool/session";\n' +
+        `return await import_asset({ path: ${JSON.stringify(path)} });`
+    );
+    expect(observation.ok, JSON.stringify(observation)).toBe(true);
+    expect(observation.result).toMatchObject({
+      asset_uri: expect.stringMatching(/^asset:\/\/[a-f0-9]{32}$/),
+      size: 24
+    });
+  });
+
+  it("advertises the demo surface renderer through tool search", async () => {
+    const server = createMcpServer({ agentToolsScope: scope });
+    const observation = await act(
+      server,
+      'return (await nodetool.searchTools("render demo surface")).map((hit) => hit.name);'
+    );
+    expect(observation.ok).toBe(true);
+    expect(observation.result).toContain("render_demo_surface");
+  });
+
   it("runs the probe snippet", async () => {
     const server = createMcpServer({ agentToolsScope: scope });
     const observation = await act(server, MCP_SANDBOX_PROBE_SNIPPET);
@@ -492,9 +787,12 @@ describe("session scope", () => {
 
   it("evicts a session that goes idle past the TTL", async () => {
     const sessionId = await openHttpSession("alice");
-    const alice = { agentToolsScope: { userId: "alice", source: "http-session" as const } };
+    const alice = {
+      agentToolsScope: { userId: "alice", source: "http-session" as const }
+    };
     expect(
-      (await handleMcpHttpRequest(sessionRequest("POST", sessionId), alice))!.status
+      (await handleMcpHttpRequest(sessionRequest("POST", sessionId), alice))!
+        .status
     ).toBe(200);
 
     // A client that disappears sends no DELETE. Only `Date` is faked —
@@ -510,7 +808,9 @@ describe("session scope", () => {
 
   it("keeps a session alive while it is being used", async () => {
     const sessionId = await openHttpSession("alice");
-    const alice = { agentToolsScope: { userId: "alice", source: "http-session" as const } };
+    const alice = {
+      agentToolsScope: { userId: "alice", source: "http-session" as const }
+    };
     vi.useFakeTimers({ toFake: ["Date"] });
     for (let step = 0; step < 3; step += 1) {
       vi.setSystemTime(Date.now() + MCP_SESSION_IDLE_TTL_MS - 1000);
@@ -523,7 +823,9 @@ describe("session scope", () => {
   });
 
   it("caps one user's concurrent sessions, dropping their oldest first", async () => {
-    const alice = { agentToolsScope: { userId: "alice", source: "http-session" as const } };
+    const alice = {
+      agentToolsScope: { userId: "alice", source: "http-session" as const }
+    };
     const sessions: string[] = [];
     for (let i = 0; i < MCP_MAX_SESSIONS_PER_USER + 1; i += 1) {
       sessions.push(await openHttpSession("alice"));

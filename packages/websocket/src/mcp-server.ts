@@ -7,6 +7,8 @@
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { MCP_GUEST_CONTRACT } from "@nodetool-ai/agents";
@@ -34,6 +36,8 @@ export interface McpServerOptions {
     userId: string;
     source: "stdio-local" | "local-dev-http" | "http-session";
   };
+  /** Permit server-local paths only for a loopback development request. */
+  allowLocalFilePaths?: boolean;
   /**
    * `WWW-Authenticate` challenge to attach to a `scopeRefusal()` 401 (the
    * mount's own auth hook already computed it — see `server.ts`'s
@@ -84,6 +88,71 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
  */
 export function createMcpStdioTransport(): StdioServerTransport {
   return new StdioServerTransport();
+}
+
+/** Connect stdio to the local API process when its MCP mount is available. */
+export async function forwardMcpStdioToLocalServer(
+  url: string = getLocalMcpServerUrl(),
+  stdio: StdioServerTransport = createMcpStdioTransport()
+): Promise<boolean> {
+  const endpoint = new URL(url);
+  if (endpoint.hostname !== "127.0.0.1" && endpoint.hostname !== "localhost") {
+    throw new Error("The stdio MCP forwarder only connects to loopback");
+  }
+
+  // An MCP handshake proves that the port belongs to a reachable NodeTool MCP
+  // mount. A health check alone could select an unrelated process on this port.
+  const probe = new Client({ name: "nodetool-mcp-probe", version: "1.0.0" });
+  const probeTransport = new StreamableHTTPClientTransport(endpoint);
+  try {
+    await probe.connect(probeTransport, { timeout: 5000 });
+    if (probe.getServerVersion()?.name !== "NodeTool API Server") {
+      return false;
+    }
+  } catch {
+    return false;
+  } finally {
+    if (probeTransport.sessionId) {
+      await probeTransport.terminateSession().catch(() => undefined);
+    }
+    await probe.close();
+  }
+
+  const http = new StreamableHTTPClientTransport(endpoint);
+  http.onmessage = (message) => {
+    if ("result" in message && "protocolVersion" in message.result) {
+      const version = message.result.protocolVersion;
+      if (typeof version === "string") http.setProtocolVersion(version);
+    }
+    void stdio.send(message);
+  };
+  http.onerror = (error) => {
+    log.warn("Local MCP HTTP transport failed", { error: error.message });
+  };
+  let initialization = Promise.resolve();
+  stdio.onmessage = (message) => {
+    const send = initialization.then(() => http.send(message));
+    if ("method" in message && message.method === "initialize") {
+      initialization = send;
+    }
+    void send.catch((error: unknown) => {
+      log.warn("Forwarding MCP request failed", {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      void stdio.close();
+    });
+  };
+  stdio.onclose = () => {
+    void (async () => {
+      if (http.sessionId) {
+        await http.terminateSession().catch(() => undefined);
+      }
+      await http.close();
+    })();
+  };
+  await http.start();
+  await stdio.start();
+  return true;
 }
 
 /**

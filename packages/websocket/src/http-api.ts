@@ -48,6 +48,7 @@ import {
   createAssetModelInterface,
   updateAssetBytesModelInterface
 } from "./lib/asset-model-interface.js";
+import { probeAssetDurationSeconds } from "./lib/asset-duration.js";
 import { verdictSchema } from "@nodetool-ai/protocol";
 import {
   cancelDebugSession,
@@ -438,7 +439,6 @@ export interface WorkflowRequestBody {
   app_doc?: Record<string, unknown> | null;
   expected_updated_at?: string;
 }
-
 
 function normalizePath(pathname: string): string {
   if (pathname.length > 1 && pathname.endsWith("/")) {
@@ -1547,6 +1547,15 @@ export async function handleAssetsRoot(
       body.content_type,
       body.name
     );
+    const duration = staged?.file
+      ? await probeAssetDurationSeconds(assetContentType, {
+          path: staged.file.path
+        })
+      : fileBuffer
+        ? await probeAssetDurationSeconds(assetContentType, {
+            bytes: fileBuffer
+          })
+        : null;
 
     const asset = (await Asset.create({
       user_id: userId,
@@ -1559,7 +1568,8 @@ export async function handleAssetsRoot(
       metadata:
         Object.keys(metadata).length > 0 ? metadata : (body.metadata ?? null),
       project_id: body.project_id ?? "default",
-      size: fileSize ?? body.size ?? null
+      size: fileSize ?? body.size ?? null,
+      duration
     })) as Asset;
 
     if (fileBuffer || staged?.file) {

@@ -1690,6 +1690,7 @@ if (mcpHttpEnabled) {
       registry,
       examplesDir: apiOptions.examplesDir,
       frontendRendererRegistry,
+      allowLocalFilePaths: !isProduction && isLoopbackAddress(req.ip),
       agentToolsScope: req.userId
         ? {
             userId: req.userId,

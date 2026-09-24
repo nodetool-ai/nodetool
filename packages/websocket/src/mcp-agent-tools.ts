@@ -3,10 +3,9 @@
  * so external agents (Claude Code, ChatGPT, …) get the same surface the in-app
  * chat agent runs on.
  *
- * That surface is CodeAct, not a flat catalog. The mount registers exactly two
- * tools: `execute_code` — built by the very same {@link createChatCodeActSession}
- * the chat runner uses, so the two cannot drift — and `view_image`, which stays
- * direct because pixels cannot ride the sandbox's JSON observation envelope.
+ * That surface is CodeAct, not a flat catalog. `execute_code` is built by the
+ * same {@link createChatCodeActSession} the chat runner uses. `view_image` and
+ * asset transfer stay direct because pixels and file bytes need MCP channels.
  * Every other capability lives inside the sandbox as `tools.<name>()` and the
  * `nodetool.*` object model, found with `nodetool.searchTools()` and catalogued
  * on `nodetool://capabilities` and `nodetool://sandbox`.
@@ -79,23 +78,25 @@ import {
   getNodetoolDataDir,
   isGoogleWorkspaceEnabled
 } from "@nodetool-ai/config";
-import { isAbsolute, join } from "node:path";
-import { readFile } from "node:fs/promises";
+import { basename, dirname, isAbsolute, join } from "node:path";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { execFile as execFileCallback } from "node:child_process";
+import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { getAssetAdapter } from "./lib/storage.js";
+import { normalizeAssetContentType } from "./lib/asset-paths.js";
 import {
   createAssetModelInterface,
   updateAssetBytesModelInterface
 } from "./lib/asset-model-interface.js";
 import type { McpServerOptions } from "./mcp-server.js";
 import type { FrontendRendererService } from "./frontend-renderer-registry.js";
-import {
-  isRecord,
-  isString
-} from "./lib/wire-values.js";
+import { isRecord, isString } from "./lib/wire-values.js";
 
 const log = createLogger("nodetool.websocket.mcp-agent-tools");
+const execFile = promisify(execFileCallback);
 
 /**
  * These capabilities answer readiness questions from the configured-provider
@@ -273,8 +274,7 @@ function isErrorResult(result: unknown): boolean {
 }
 
 function toToolResponse(result: unknown) {
-  const isObject =
-    isRecord(result);
+  const isObject = isRecord(result);
   const isError = isErrorResult(result);
   const base = {
     content: [{ type: "text" as const, text: JSON.stringify(result ?? null) }]
@@ -478,6 +478,287 @@ async function executeFrontendTool(
   });
 }
 
+/** Import a local file or a URL into the current user's asset library. */
+class ImportAssetTool extends Tool {
+  readonly name = "import_asset";
+  readonly description =
+    "Import a local file on a local MCP connection or an http(s) URL as a NodeTool asset. Returns its asset URI, size and media duration.";
+  protected readonly jsonSchema: JsonSchema = {
+    type: "object",
+    properties: {
+      path: {
+        type: "string",
+        description: "Absolute server-local path; local connections only."
+      },
+      url: { type: "string", description: "HTTP or HTTPS URL to fetch." },
+      name: { type: "string", description: "Optional asset name." },
+      content_type: { type: "string", description: "Optional MIME type." }
+    },
+    required: []
+  };
+
+  constructor(private readonly localFilePathsAllowed: boolean) {
+    super();
+  }
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const path = params["path"];
+    const url = params["url"];
+    if (isString(path) === isString(url)) {
+      throw new Error("Provide exactly one of path or url.");
+    }
+    if (isString(path) && (!this.localFilePathsAllowed || !isAbsolute(path))) {
+      throw new Error(
+        "path requires an absolute path on a local MCP connection."
+      );
+    }
+    if (isString(url) && !/^https?:\/\//.test(url)) {
+      throw new Error("url must be an HTTP or HTTPS URL.");
+    }
+    const sourceName = isString(path)
+      ? basename(path)
+      : basename(new URL(url as string).pathname) || "download";
+    const name =
+      isString(params["name"]) && params["name"].trim()
+        ? params["name"].trim()
+        : sourceName;
+    let result: unknown;
+    if (isString(path)) {
+      const bytes = await readFile(path);
+      const asset = await createAssetModelInterface({
+        userId: context.userId,
+        name,
+        contentType: isString(params["content_type"])
+          ? params["content_type"]
+          : "",
+        content: bytes
+      });
+      result = {
+        asset_id: asset.id,
+        asset_uri: `asset://${asset.id}`,
+        size: bytes.length
+      };
+    } else {
+      const saveParams: Record<string, unknown> = {
+        name,
+        source: url
+      };
+      if (isString(params["content_type"])) {
+        saveParams["content_type"] = params["content_type"];
+      }
+      result = await toolForCapabilityName("save_asset").process(context, saveParams);
+    }
+    if (!isRecord(result) || !isString(result["asset_id"])) return result;
+    const asset = await Asset.find(context.userId, result["asset_id"]);
+    if (!asset) return result;
+    return {
+      ...result,
+      asset_uri: `asset://${asset.id}`,
+      content_type: normalizeAssetContentType(asset.content_type, asset.name),
+      size: asset.size,
+      duration: asset.duration
+    };
+  }
+}
+
+class RenderDemoSurfaceTool extends Tool {
+  readonly name = "render_demo_surface";
+  readonly description =
+    "Render a NodeTool product surface as a silent video asset. Cast IDs: chat hero-brief or chat-agent-qa; storyboard hero-storyboard or storyboard-assistant; script script-assistant; sketch sketch-assistant; timeline hero-timeline or promo-timeline; graph promo-trailer. A range plays at recorded speed unless duration_ms compresses it. For exact frame matching at 30 fps, duration_ms may be a multiple of 1000/30; sample_span_frames selects the cast range's interpolation span independently of output length. Available from a NodeTool source checkout with the demo renderer installed.";
+  protected readonly jsonSchema: JsonSchema = {
+    type: "object",
+    properties: {
+      surface: {
+        type: "string",
+        enum: ["chat", "storyboard", "script", "sketch", "timeline", "graph", "3d"]
+      },
+      cast_id: {
+        type: "string",
+        description: "Cast ID for the selected surface. See the tool description for valid IDs."
+      },
+      from_ms: {
+        type: "number",
+        description: "Source range start in milliseconds; provide with to_ms."
+      },
+      to_ms: {
+        type: "number",
+        description: "Source range end in milliseconds; provide with from_ms."
+      },
+      duration_ms: { type: "number", description: "Output duration in milliseconds for a ranged cast; compresses or expands the selected range." },
+      sample_span_frames: { type: "number", description: "Frame span from source range start to end. Defaults to output frame count minus one. Use 79 for the sizzle montage's cast clock." },
+      logical_width: { type: "number", description: "CSS layout width of the product surface before scaling to the output width." },
+      output_width: { type: "number", description: "Even output video width in pixels." },
+      output_height: { type: "number", description: "Even output video height in pixels." },
+      viewport: { type: "object", description: "Graph viewport {x, y, zoom} in logical surface pixels.", properties: { x: { type: "number" }, y: { type: "number" }, zoom: { type: "number" } }, required: ["x", "y", "zoom"] },
+      tracks_height_px: { type: "number", description: "Timeline track area height in logical CSS pixels." },
+      chrome: { type: "boolean", description: "Show timeline editor chrome; defaults to false." },
+      label: {
+        type: "boolean",
+        description: "Show the corner label; defaults to false."
+      }
+    },
+    required: ["surface"]
+  };
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const surface = params["surface"];
+    if (
+      !isString(surface) ||
+      !["chat", "storyboard", "script", "sketch", "timeline", "graph", "3d"].includes(surface)
+    ) {
+      throw new Error(
+        "surface must be chat, storyboard, script, sketch, timeline, graph or 3d."
+      );
+    }
+    const fromMs = params["from_ms"];
+    const toMs = params["to_ms"];
+    if (
+      fromMs !== undefined &&
+      (typeof fromMs !== "number" || !Number.isFinite(fromMs) || fromMs < 0)
+    ) {
+      throw new Error("from_ms must be a nonnegative number.");
+    }
+    if (
+      toMs !== undefined &&
+      (typeof toMs !== "number" || !Number.isFinite(toMs) || toMs <= 0)
+    ) {
+      throw new Error("to_ms must be a positive number.");
+    }
+    if (
+      typeof fromMs === "number" &&
+      typeof toMs === "number" &&
+      toMs <= fromMs
+    ) {
+      throw new Error("to_ms must exceed from_ms.");
+    }
+    if ((fromMs === undefined) !== (toMs === undefined)) {
+      throw new Error("from_ms and to_ms must be supplied together.");
+    }
+    if (surface === "3d" && typeof toMs === "number" && toMs > 6000) {
+      throw new Error("The 3d surface range must end by 6000 ms.");
+    }
+    const casts: Record<string, readonly string[]> = {
+      chat: ["hero-brief", "chat-agent-qa"],
+      storyboard: ["hero-storyboard", "storyboard-assistant"],
+      script: ["script-assistant"],
+      sketch: ["sketch-assistant"],
+      timeline: ["hero-timeline", "promo-timeline"],
+      graph: ["promo-trailer"],
+      "3d": []
+    };
+    const castId = params["cast_id"];
+    if (castId !== undefined && (!isString(castId) || !casts[surface]?.includes(castId))) {
+      throw new Error(`cast_id for ${surface} must be one of: ${casts[surface]?.join(", ") || "none"}.`);
+    }
+    const durationMs = params["duration_ms"];
+    if (durationMs !== undefined &&
+      (typeof durationMs !== "number" || !Number.isFinite(durationMs) || durationMs <= 0 || typeof fromMs !== "number")) {
+      throw new Error("duration_ms requires a source range and must be positive.");
+    }
+    const sampleSpanFrames = params["sample_span_frames"];
+    if (sampleSpanFrames !== undefined &&
+      (typeof sampleSpanFrames !== "number" || !Number.isInteger(sampleSpanFrames) || sampleSpanFrames <= 0 || typeof fromMs !== "number")) {
+      throw new Error("sample_span_frames requires a source range and must be a positive integer.");
+    }
+    for (const key of ["logical_width", "tracks_height_px"] as const) {
+      const value = params[key];
+      if (value !== undefined && (typeof value !== "number" || !Number.isFinite(value) || value <= 0)) {
+        throw new Error(`${key} must be a positive number.`);
+      }
+    }
+    for (const key of ["output_width", "output_height"] as const) {
+      const value = params[key];
+      if (value !== undefined && (typeof value !== "number" || !Number.isInteger(value) || value <= 0 || value % 2 !== 0)) {
+        throw new Error(`${key} must be a positive even integer.`);
+      }
+    }
+    const viewport = params["viewport"];
+    if (viewport !== undefined &&
+      (surface !== "graph" || !isRecord(viewport) ||
+        ["x", "y", "zoom"].some((key) => typeof viewport[key] !== "number" || !Number.isFinite(viewport[key])) ||
+        typeof viewport["zoom"] !== "number" || viewport["zoom"] <= 0)) {
+      throw new Error("viewport requires graph and finite x, y and positive zoom.");
+    }
+    if (params["tracks_height_px"] !== undefined && surface !== "timeline") {
+      throw new Error("tracks_height_px requires the timeline surface.");
+    }
+    const demoDir = join(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../../demo"
+    );
+    const renderer = join(demoDir, "../node_modules/.bin/remotion");
+    try {
+      await stat(renderer);
+      await stat(join(demoDir, "src/index.ts"));
+    } catch {
+      throw new Error(
+        "The demo renderer is unavailable on this NodeTool server."
+      );
+    }
+    const props: Record<string, unknown> = {};
+    if (isString(castId)) props["castId"] = castId;
+    if (typeof fromMs === "number") props["fromMs"] = fromMs;
+    if (typeof toMs === "number") props["toMs"] = toMs;
+    if (typeof durationMs === "number") {
+      props["durationMs"] = durationMs;
+      props["realtime"] = false;
+    }
+    if (typeof sampleSpanFrames === "number") props["sampleSpanFrames"] = sampleSpanFrames;
+    if (typeof params["logical_width"] === "number") props["logicalWidth"] = params["logical_width"];
+    if (typeof params["output_width"] === "number") props["outputWidth"] = params["output_width"];
+    if (typeof params["output_height"] === "number") props["outputHeight"] = params["output_height"];
+    if (viewport !== undefined) props["viewport"] = viewport;
+    if (typeof params["tracks_height_px"] === "number") props["tracksHeightPx"] = params["tracks_height_px"];
+    if (typeof params["chrome"] === "boolean") props["chrome"] = params["chrome"];
+    const ranged = typeof fromMs === "number";
+    if (ranged) props["labelVisible"] = params["label"] === true;
+    const composition = `Surface-${surface}${ranged ? "-Harness" : params["label"] === true ? "" : "-Clean"}`;
+    const directory = await mkdtemp(join(tmpdir(), "nodetool-surface-"));
+    const output = join(directory, `${surface}.mp4`);
+    try {
+      await execFile(
+        renderer,
+        [
+          "render",
+          "src/index.ts",
+          composition,
+          output,
+          "--props",
+          JSON.stringify(props),
+          ...(surface === "3d" ? ["--gl=angle"] : [])
+        ],
+        {
+          cwd: demoDir,
+          timeout: 300_000,
+          maxBuffer: 2 * 1024 * 1024
+        }
+      );
+      const bytes = await readFile(output);
+      const asset = await createAssetModelInterface({
+        userId: context.userId,
+        name: `${surface}-surface.mp4`,
+        contentType: "video/mp4",
+        content: bytes
+      });
+      return {
+        asset_id: asset.id,
+        asset_uri: `asset://${asset.id}`,
+        duration: asset.duration,
+        size: asset.size,
+        content_type: asset.content_type
+      };
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  }
+}
+
 /** A `ui_*` request that must be handled by a connected editor. */
 class FrontendUiTool extends Tool {
   readonly name: string;
@@ -633,10 +914,7 @@ function oneLine(description: string): string {
  * poor for tooling; this is the same catalog with structure, and costs nothing
  * at list time.
  */
-function buildCapabilityCatalog(
-  belt: Tool[],
-  directToolNames: string[]
-) {
+function buildCapabilityCatalog(belt: Tool[], directToolNames: string[]) {
   const available = new Set(belt.map((tool) => tool.name));
   const modules = Object.entries(NODETOOL_API_NAMESPACE_TOOLS)
     .map(([namespace, names]) => ({
@@ -660,8 +938,8 @@ function buildCapabilityCatalog(
 }
 
 /**
- * Register the agent surface on `server`: one `execute_code` action tool and
- * `view_image`.
+ * Register the agent surface on `server`: CodeAct, image viewing, asset
+ * transfer, and the promoted direct tools.
  *
  * `gate` defaults to {@link mcpSessionGate} — `auto` with an approver that
  * denies, because an MCP session has no user of its own to ask. A host that
@@ -689,6 +967,8 @@ export function registerAgentMcpTools(
         "must be bound to a user id."
     );
   }
+  const localFilePathsAllowed =
+    scope.source === "stdio-local" || options.allowLocalFilePaths === true;
   const context = buildAgentToolContext(scope.userId);
 
   // Populated lazily on first `find_model` call — provider probing hits the
@@ -816,7 +1096,7 @@ export function registerAgentMcpTools(
             !imageId.startsWith("/api/storage/") &&
             (isAbsolute(imageId) || imageId.startsWith("file://"));
           if (isDiskImage) {
-            if (scope.source === "http-session") {
+            if (!localFilePathsAllowed) {
               throw new Error(
                 "Disk image paths require a local MCP connection. Use an asset id on remote sessions."
               );
@@ -861,6 +1141,8 @@ export function registerAgentMcpTools(
   const rawBelt: Tool[] = [];
   const beltNames = new Set<string>();
   for (const originalTool of [
+    new ImportAssetTool(localFilePathsAllowed),
+    new RenderDemoSurfaceTool(),
     ...collectBridgedTools(options, sharedProviders),
     ...editorSteeringTools(options, scope.userId)
   ]) {
@@ -971,9 +1253,7 @@ export function registerAgentMcpTools(
         // The session already returns the observation envelope as JSON text.
         // Passing it through `toToolResponse` would encode it a second time
         // and hand the caller a quoted string instead of an object.
-        const observation = await session.executeAction(
-          (args ?? {})
-        );
+        const observation = await session.executeAction(args ?? {});
         return {
           content: [{ type: "text" as const, text: observation }]
         };
@@ -991,10 +1271,128 @@ export function registerAgentMcpTools(
   // The rest of the direct set, for parity with every other entrance.
   for (const tool of promotedDirect) register(tool);
 
+  server.tool(
+    "upload_asset",
+    "Upload bytes to this user's NodeTool asset library. Pass content_base64 " +
+      "from any MCP client, or an absolute file_path on a local connection. " +
+      "The path is on the NodeTool server, not on a remote MCP client's machine.",
+    {
+      name: z
+        .string()
+        .optional()
+        .describe("Asset name; defaults to the file name for file_path."),
+      content_base64: z
+        .string()
+        .optional()
+        .describe("File bytes encoded as base64."),
+      file_path: z
+        .string()
+        .optional()
+        .describe("Absolute server-local file path; local connections only."),
+      content_type: z
+        .string()
+        .optional()
+        .describe("MIME type; inferred from file_path or name when omitted.")
+    },
+    async ({ name, content_base64, file_path, content_type }) => {
+      try {
+        if (Boolean(content_base64) === Boolean(file_path)) {
+          throw new Error(
+            "Provide exactly one of content_base64 or file_path."
+          );
+        }
+        if (file_path && (!localFilePathsAllowed || !isAbsolute(file_path))) {
+          throw new Error(
+            "file_path requires an absolute path on a local MCP connection."
+          );
+        }
+        const assetName =
+          name?.trim() || (file_path ? basename(file_path) : "");
+        if (!assetName)
+          throw new Error("name is required for a base64 upload.");
+        if (
+          content_base64 &&
+          !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
+            content_base64
+          )
+        ) {
+          throw new Error("content_base64 must be valid base64.");
+        }
+        const bytes = file_path
+          ? await readFile(file_path)
+          : Buffer.from(content_base64 ?? "", "base64");
+        const asset = await createAssetModelInterface({
+          userId: scope.userId,
+          name: assetName,
+          contentType: normalizeAssetContentType(
+            content_type ?? "",
+            file_path ?? assetName
+          ),
+          content: bytes
+        });
+        return toToolResponse({
+          asset_id: asset.id,
+          asset_uri: `asset://${asset.id}`,
+          name: asset.name,
+          content_type: asset.content_type,
+          size: bytes.length
+        });
+      } catch (err) {
+        return errorResponse(err);
+      }
+    }
+  );
+
+  server.tool(
+    "download_asset",
+    "Download an asset owned by this user. Returns content_base64, or writes " +
+      "to an absolute output_path on a local connection. The path is on the " +
+      "NodeTool server, not on a remote MCP client's machine.",
+    {
+      asset_id: z
+        .string()
+        .describe("Asset ID returned by upload_asset or list_assets."),
+      output_path: z
+        .string()
+        .optional()
+        .describe("Absolute server-local output path; local connections only.")
+    },
+    async ({ asset_id, output_path }) => {
+      try {
+        if (
+          output_path &&
+          (!localFilePathsAllowed || !isAbsolute(output_path))
+        ) {
+          throw new Error(
+            "output_path requires an absolute path on a local MCP connection."
+          );
+        }
+        const asset = await Asset.find(scope.userId, asset_id);
+        if (!asset || asset.isFolder) throw new Error("Asset not found.");
+        const bytes = await loadMediaRefBytes({ asset_id: asset.id }, context);
+        if (!bytes) throw new Error("Asset bytes not found.");
+        if (output_path) await writeFile(output_path, bytes);
+        return toToolResponse({
+          asset_id: asset.id,
+          name: asset.name,
+          content_type: asset.content_type,
+          size: bytes.length,
+          ...(output_path
+            ? { output_path }
+            : { content_base64: Buffer.from(bytes).toString("base64") })
+        });
+      } catch (err) {
+        return errorResponse(err);
+      }
+    }
+  );
+
   // The structured catalog, for clients that want more than a description.
   const catalog = buildCapabilityCatalog(belt, [
     session.providerTool.name,
-    ...directToolNames
+    ...directToolNames,
+    "upload_asset",
+    "download_asset"
   ]);
   server.registerResource(
     "NodeTool Capabilities",
@@ -1061,7 +1459,9 @@ export function registerAgentMcpTools(
     source: scope.source,
     registered: [
       session.providerTool.name,
-      ...(viewImage ? ["view_image"] : [])
+      ...(viewImage ? ["view_image"] : []),
+      "upload_asset",
+      "download_asset"
     ],
     beltSize: belt.length
   });

@@ -48,6 +48,23 @@ describe("DBModel.get with a short resource id", () => {
     );
   });
 
+  it("resolves asset prefixes within the caller's user scope", async () => {
+    const shared = "abcdef012345";
+    const own = await Asset.create<Asset>({
+      id: `${shared}00000000000000000001`,
+      user_id: "u1",
+      name: "own.png",
+      content_type: "image/png"
+    });
+    await Asset.create<Asset>({
+      id: `${shared}00000000000000000002`,
+      user_id: "u2",
+      name: "other.png",
+      content_type: "image/png"
+    });
+    expect((await Asset.find("u1", shared))?.id).toBe(own.id);
+  });
+
   it("does not prefix-match a key that is not the short form", async () => {
     const wf = await Workflow.create<Workflow>({
       id: "abcdef0123456789abcdef0123456789",
