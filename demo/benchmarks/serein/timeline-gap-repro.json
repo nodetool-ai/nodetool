@@ -1,0 +1,201 @@
+{
+  "id": "serein-timeline-gap-repro",
+  "name": "Serein timeline gap reproduction",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 10200,
+  "document": {
+    "tracks": [
+      { "id": "text", "name": "Text", "type": "overlay", "index": 0, "visible": true, "locked": false },
+      { "id": "detail", "name": "Detail", "type": "overlay", "index": 1, "visible": true, "locked": false },
+      { "id": "adjustment", "name": "Adjustment", "type": "video", "index": 2, "visible": true, "locked": false },
+      { "id": "picture", "name": "Picture", "type": "video", "index": 3, "visible": true, "locked": false },
+      { "id": "group", "name": "Groups", "type": "overlay", "index": 4, "visible": true, "locked": false }
+    ],
+    "clips": [
+      {
+        "id": "summary-group", "trackId": "group", "name": "Summary card and child text", "startMs": 0, "durationMs": 1200,
+        "mediaType": "group", "sourceType": "generated", "status": "generated", "locked": false, "versions": []
+      },
+      {
+        "id": "summary-card", "trackId": "picture", "name": "700 to 300 card", "startMs": 0, "durationMs": 1200,
+        "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [], "parentId": "summary-group",
+        "shapeStyle": { "kind": "rect", "fill": "#27364e", "x": 0.265625, "y": 0.17592592592592593, "width": 0.46875, "height": 0.6481481481481481, "cornerRadius": 0.022222222222222223 },
+        "animations": [{
+          "id": "card-height", "role": "emphasis", "preset": "custom", "durationMs": 650, "delayMs": 300,
+          "styleTracks": [{ "target": "shape.height", "keyframes": [
+            { "t": 0, "value": 0.6481481481481481 },
+            { "t": 1, "value": 0.2777777777777778, "easing": "spring(170,18,1)" }
+          ] }]
+        }]
+      },
+      {
+        "id": "summary-title", "trackId": "text", "name": "Fixed size child text", "startMs": 0, "durationMs": 1200,
+        "mediaType": "text", "sourceType": "generated", "status": "generated", "locked": false, "versions": [], "parentId": "summary-group",
+        "textStyle": { "text": "The gist, in three lines.", "fontFamily": "Inter", "fontSizePx": 56, "fontWeight": 600, "color": "#f8fafc" },
+        "transform": { "position": { "x": 0, "y": -180 }, "scale": { "x": 1, "y": 1 }, "rotation": 0, "anchor": { "x": 0.5, "y": 0.5 } }
+      },
+      {
+        "id": "split-background", "trackId": "picture", "name": "RGB split target", "startMs": 1500, "durationMs": 800,
+        "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "shapeStyle": { "kind": "rect", "fill": "#f8fafc", "x": 0.25, "y": 0.25, "width": 0.5, "height": 0.5 }
+      },
+      {
+        "id": "full-frame-rgb-split", "trackId": "adjustment", "name": "Full frame RGB split", "startMs": 1500, "durationMs": 800,
+        "mediaType": "adjustment", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "effects": [{ "id": "rgb", "type": "stylize", "enabled": true, "mode": "rgbSplit", "amount": 8 }]
+      },
+      {
+        "id": "chip-out-pill", "trackId": "detail", "name": "Outgoing fitted pill", "startMs": 2500, "durationMs": 700,
+        "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "shapeStyle": { "kind": "rect", "fill": "#27364e", "x": 0.4, "y": 0.45, "width": 0.2, "height": 0.1, "cornerRadius": 0.05 },
+        "layout": { "kind": "relative", "targetClipId": "chip-out-text", "side": "center", "fitText": { "paddingXPx": 28, "paddingYPx": 12 } },
+        "fadeOutMs": 300
+      },
+      {
+        "id": "chip-out-text", "trackId": "text", "name": "Outgoing chip text", "startMs": 2500, "durationMs": 700,
+        "mediaType": "text", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "textStyle": { "text": "6 min read", "fontFamily": "Inter", "fontSizePx": 42, "fontWeight": 600, "color": "#f8fafc" },
+        "fadeOutMs": 300
+      },
+      {
+        "id": "chip-in-pill", "trackId": "detail", "name": "Incoming fitted pill", "startMs": 2900, "durationMs": 700,
+        "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "shapeStyle": { "kind": "rect", "fill": "#27364e", "x": 0.4, "y": 0.45, "width": 0.2, "height": 0.1, "cornerRadius": 0.05 },
+        "layout": { "kind": "relative", "targetClipId": "chip-in-text", "side": "center", "fitText": { "paddingXPx": 28, "paddingYPx": 12 } },
+        "transitionIn": { "type": "crossfade", "durationMs": 300 }
+      },
+      {
+        "id": "chip-in-text", "trackId": "text", "name": "Incoming chip text", "startMs": 2900, "durationMs": 700,
+        "mediaType": "text", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "textStyle": { "text": "20 sec read", "fontFamily": "Inter", "fontSizePx": 42, "fontWeight": 600, "color": "#fda4af" },
+        "transitionIn": { "type": "crossfade", "durationMs": 300 }
+      },
+      {
+        "id": "zero-white", "trackId": "text", "name": "White zero", "startMs": 3900, "durationMs": 400,
+        "mediaType": "text", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "textStyle": { "text": "0", "fontFamily": "Inter", "fontSizePx": 320, "fontWeight": 800, "color": "#f8fafc" }
+      },
+      {
+        "id": "zero-gradient", "trackId": "text", "name": "Gradient zero", "startMs": 4300, "durationMs": 500,
+        "mediaType": "text", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "textStyle": {
+          "text": "0", "fontFamily": "Inter", "fontSizePx": 320, "fontWeight": 800, "color": "#f8fafc",
+          "fill": { "type": "linear", "angle": 0, "stops": [
+            { "offset": 0, "color": "#60a5fa" },
+            { "offset": 0.5, "color": "#a78bfa" },
+            { "offset": 1, "color": "#fda4af" }
+          ] }
+        }
+      },
+      {
+        "id": "grouped-ticker", "trackId": "text", "name": "Grouped 2847 ticker", "startMs": 5000, "durationMs": 1000,
+        "mediaType": "text", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "textStyle": { "text": "0", "fontFamily": "Inter", "fontSizePx": 300, "fontWeight": 800, "color": "#f8fafc" },
+        "animations": [{
+          "id": "count", "role": "emphasis", "preset": "custom", "durationMs": 1000, "easing": "easeInExpo",
+          "textAnimator": { "kind": "ticker", "from": 0, "to": 2847, "groupSeparator": "," }
+        }]
+      },
+      {
+        "id": "animated-effect-color", "trackId": "picture", "name": "Animated gradient field color", "startMs": 6200, "durationMs": 1000,
+        "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "shapeStyle": { "kind": "rect", "fill": "#0a0f1f", "x": 0, "y": 0, "width": 1, "height": 1 },
+        "effects": [{ "id": "field", "type": "generator", "enabled": true, "mode": "gradientField", "amount": 1, "scale": 3, "colorA": "#0a0f1f", "colorB": "#1e1b4b" }],
+        "animations": [{
+          "id": "field-color", "role": "emphasis", "preset": "custom", "durationMs": 1000,
+          "styleTracks": [{ "target": "effect.field.colorB", "keyframes": [
+            { "t": 0, "value": "#1e1b4b" },
+            { "t": 1, "value": "#0f3b3a" }
+          ] }]
+        }]
+      },
+      {
+        "id": "wall", "trackId": "picture", "name": "Tilted depth wall", "startMs": 7200, "durationMs": 1000,
+        "mediaType": "group", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "transform": { "position": { "x": 0, "y": 0 }, "scale": { "x": 1, "y": 1 }, "rotation": -0.20943951023931953, "rotationX": 28, "perspective": 5400, "anchor": { "x": 0.5, "y": 0.5 } }
+      },
+      {
+        "id": "wall-far", "trackId": "adjustment", "name": "Far wall card", "startMs": 7200, "durationMs": 1000,
+        "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [], "parentId": "wall", "opacity": 0.5,
+        "shapeStyle": { "kind": "rect", "fill": "#5b497b", "x": 0.390625, "y": 0.44166666666666665, "width": 0.21875, "height": 0.11666666666666667, "cornerRadius": 0.009375 },
+        "transform": { "position": { "x": -630, "y": -510 }, "scale": { "x": 1, "y": 1 }, "rotation": 0, "depthPx": -900, "anchor": { "x": 0.5, "y": 0.5 } },
+        "animations": [{ "id": "wall-far-scroll", "role": "emphasis", "preset": "custom", "durationMs": 1000,
+          "custom": { "curves": [{ "property": "offsetY", "keyframes": [{ "t": 0, "value": 0 }, { "t": 1, "value": -420.75 }] }] } }]
+      },
+      {
+        "id": "wall-mid", "trackId": "detail", "name": "Mid wall card", "startMs": 7200, "durationMs": 1000,
+        "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [], "parentId": "wall",
+        "shapeStyle": { "kind": "rect", "fill": "#b47fbd", "x": 0.390625, "y": 0.44166666666666665, "width": 0.21875, "height": 0.11666666666666667, "cornerRadius": 0.009375 },
+        "transform": { "position": { "x": 555, "y": -450 }, "scale": { "x": 1, "y": 1 }, "rotation": 0, "depthPx": 0, "anchor": { "x": 0.5, "y": 0.5 } },
+        "animations": [{ "id": "wall-mid-scroll", "role": "emphasis", "preset": "custom", "durationMs": 1000,
+          "custom": { "curves": [{ "property": "offsetY", "keyframes": [{ "t": 0, "value": 0 }, { "t": 1, "value": -495 }] }] } }]
+      },
+      {
+        "id": "wall-near", "trackId": "text", "name": "Near wall card", "startMs": 7200, "durationMs": 1000,
+        "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [], "parentId": "wall",
+        "shapeStyle": { "kind": "rect", "fill": "#edba91", "x": 0.390625, "y": 0.44166666666666665, "width": 0.21875, "height": 0.11666666666666667, "cornerRadius": 0.009375 },
+        "transform": { "position": { "x": -555, "y": -330 }, "scale": { "x": 1, "y": 1 }, "rotation": 0, "depthPx": 660, "anchor": { "x": 0.5, "y": 0.5 } },
+        "animations": [{ "id": "wall-near-scroll", "role": "emphasis", "preset": "custom", "durationMs": 1000,
+          "custom": { "curves": [{ "property": "offsetY", "keyframes": [{ "t": 0, "value": 0 }, { "t": 1, "value": -589.05 }] }] } }]
+      },
+      {
+        "id": "flight-left", "trackId": "text", "name": "Flying left card", "startMs": 8200, "durationMs": 1000,
+        "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "shapeStyle": { "kind": "rect", "fill": "#87d6be", "x": 0.390625, "y": 0.44166666666666665, "width": 0.21875, "height": 0.11666666666666667, "cornerRadius": 0.009375 },
+        "transform": { "position": { "x": -510, "y": -225 }, "scale": { "x": 1, "y": 1 }, "rotation": 0, "anchor": { "x": 0.5, "y": 0.5 } },
+        "animations": [{ "id": "flight-left-fly", "role": "in", "preset": "custom", "durationMs": 650,
+          "custom": { "curves": [
+            { "property": "offsetX", "keyframes": [{ "t": 0, "value": -1290 }, { "t": 1, "value": 0, "easing": "spring(170,18,1)" }] },
+            { "property": "offsetY", "keyframes": [{ "t": 0, "value": -330 }, { "t": 1, "value": 0, "easing": "spring(170,18,1)" }] }
+          ] } }]
+      },
+      {
+        "id": "flight-center", "trackId": "detail", "name": "Flying center card", "startMs": 8200, "durationMs": 1000,
+        "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "shapeStyle": { "kind": "rect", "fill": "#baaaec", "x": 0.390625, "y": 0.44166666666666665, "width": 0.21875, "height": 0.11666666666666667, "cornerRadius": 0.009375 },
+        "transform": { "position": { "x": 0, "y": 45 }, "scale": { "x": 1, "y": 1 }, "rotation": 0, "anchor": { "x": 0.5, "y": 0.5 } },
+        "animations": [{ "id": "flight-center-fly", "role": "in", "preset": "custom", "durationMs": 650,
+          "custom": { "curves": [
+            { "property": "offsetX", "keyframes": [{ "t": 0, "value": 750 }, { "t": 1, "value": 0, "easing": "spring(170,18,1)" }] },
+            { "property": "offsetY", "keyframes": [{ "t": 0, "value": -960 }, { "t": 1, "value": 0, "easing": "spring(170,18,1)" }] }
+          ] } }]
+      },
+      {
+        "id": "flight-right", "trackId": "adjustment", "name": "Flying right card", "startMs": 8200, "durationMs": 1000,
+        "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "shapeStyle": { "kind": "rect", "fill": "#edba91", "x": 0.390625, "y": 0.44166666666666665, "width": 0.21875, "height": 0.11666666666666667, "cornerRadius": 0.009375 },
+        "transform": { "position": { "x": 510, "y": 315 }, "scale": { "x": 1, "y": 1 }, "rotation": 0, "anchor": { "x": 0.5, "y": 0.5 } },
+        "animations": [{ "id": "flight-right-fly", "role": "in", "preset": "custom", "durationMs": 650,
+          "custom": { "curves": [
+            { "property": "offsetX", "keyframes": [{ "t": 0, "value": 1500 }, { "t": 1, "value": 0, "easing": "spring(170,18,1)" }] },
+            { "property": "offsetY", "keyframes": [{ "t": 0, "value": 570 }, { "t": 1, "value": 0, "easing": "spring(170,18,1)" }] }
+          ] } }]
+      },
+      {
+        "id": "clipped-before-placement", "trackId": "detail", "name": "Clipped source geometry", "startMs": 9200, "durationMs": 1000,
+        "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "shapeStyle": { "kind": "rect", "fill": "#548cfa", "x": 1.05, "y": 0.25, "width": 0.21875, "height": 0.11666666666666667 },
+        "transform": { "position": { "x": -1920, "y": -210 }, "scale": { "x": 1, "y": 1 }, "rotation": 0, "anchor": { "x": 0.5, "y": 0.5 } }
+      },
+      {
+        "id": "in-bounds-then-placed", "trackId": "text", "name": "In bounds source geometry", "startMs": 9200, "durationMs": 1000,
+        "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
+        "shapeStyle": { "kind": "rect", "fill": "#8edabc", "x": 0.390625, "y": 0.6, "width": 0.21875, "height": 0.11666666666666667 },
+        "transform": { "position": { "x": -654, "y": 210 }, "scale": { "x": 1, "y": 1 }, "rotation": 0, "anchor": { "x": 0.5, "y": 0.5 } }
+      }
+    ],
+    "markers": [],
+    "camera2d": {
+      "position": { "x": 0, "y": 0 }, "depthPx": 0, "focalLengthPx": 5400,
+      "focusDepthPx": 0, "aperturePx": 42,
+      "keyframes": [
+        { "timeMs": 0, "position": { "x": 0, "y": 0 }, "depthPx": 0 },
+        { "timeMs": 7200, "position": { "x": 0, "y": 0 }, "depthPx": 0 },
+        { "timeMs": 8200, "position": { "x": 0, "y": 0 }, "depthPx": 780 },
+        { "timeMs": 10200, "position": { "x": 0, "y": 0 }, "depthPx": 780 }
+      ]
+    }
+  }
+}

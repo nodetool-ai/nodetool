@@ -376,6 +376,18 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "docs/harnesses.md § nodetool timeline validate / debug"
   },
   {
+    id: "serein-timeline-repro",
+    title: "Serein timeline motion frame reproduction",
+    command: "npm run test --workspace=packages/agents -- timeline-serein-gaps-frames",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "demo/benchmarks/serein/EVAL.md",
+    selfcheck: {
+      command: "npm run test --workspace=packages/agents -- timeline-serein-gaps-frames",
+      cost: "cheap"
+    }
+  },
+  {
     id: "timeline-versions",
     title: "Timeline version history (snapshot, restore, validate the restore)",
     command:
@@ -1152,6 +1164,7 @@ export const SURFACES: SurfaceEntry[] = [
       "eval"
     ],
     paths: [
+      "demo/benchmarks/serein/",
       "packages/timeline/",
       "packages/execution/src/timeline-debug/",
       "packages/cli/src/timeline-debug/",
@@ -1159,6 +1172,15 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/agents/src/tools/timeline-version-tools.ts",
       "packages/models/src/timeline-sequence-version.ts",
       "packages/websocket/src/trpc/routers/timeline.ts"
+    ]
+  },
+  {
+    id: "serein-timeline-repro",
+    title: "Serein timeline frame reproduction",
+    harnesses: ["serein-timeline-repro"],
+    paths: [
+      "demo/benchmarks/serein/",
+      "packages/agents/tests/timeline-serein-gaps-frames.test.ts"
     ]
   },
   {

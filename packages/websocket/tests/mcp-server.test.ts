@@ -6,6 +6,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
+import sharp from "sharp";
 import {
   describe,
   it,
@@ -243,6 +244,35 @@ describe("MCP server surface", () => {
     expect(toFile.isError).toBeFalsy();
     expect(readFileSync(outputPath)).toEqual(bytes);
     await client.close();
+  });
+
+  it.each(["stdio-local", "local-dev-http"] as const)("reads a directly uploaded asset from the same %s execute_code session", async (source) => {
+    const server = createMcpServer({ agentToolsScope: { userId: "1", source }, allowLocalFilePaths: true });
+    const sourcePath = join(dataDir, "film.json");
+    writeFileSync(sourcePath, '{"frames":780}');
+    const upload = await callTool(server, "upload_asset", {
+      file_path: sourcePath,
+      name: "film.json"
+    });
+    expect(upload.isError, JSON.stringify(upload.content)).toBeFalsy();
+    const saved = JSON.parse(upload.content[0].text) as { asset_id: string };
+    const observation = await act(server, `const listed = await nodetool.assets.list({ limit: 10 });
+const full = await nodetool.assets.read(${JSON.stringify(saved.asset_id)});
+const short = await nodetool.assets.read(${JSON.stringify(saved.asset_id.slice(0, 12))});
+return { ids: listed.assets.map((asset) => asset.id), full: full.content, short: short.content };`);
+    expect(observation.ok, observation.error).toBe(true);
+    expect(observation.result).toEqual({ ids: [saved.asset_id], full: '{"frames":780}', short: '{"frames":780}' });
+  });
+
+  it.each(["stdio-local", "http-session"] as const)("views a directly uploaded image by short id in a %s session", async (source) => {
+    const server = createMcpServer({ agentToolsScope: { userId: "1", source } });
+    const png = await sharp({ create: { width: 1, height: 1, channels: 4, background: "#ffffff" } }).png().toBuffer();
+    const upload = await callTool(server, "upload_asset", { name: "pixel.png", content_type: "image/png", content_base64: png.toString("base64") });
+    expect(upload.isError).toBeFalsy();
+    const saved = JSON.parse(upload.content[0].text) as { asset_id: string };
+    const viewed = await callTool(server, "view_image", { image_id: saved.asset_id.slice(0, 12) });
+    expect(viewed.isError).toBeFalsy();
+    expect(JSON.stringify(viewed.content)).not.toContain('"error"');
   });
 
   it("records the duration of uploaded audio", async () => {
