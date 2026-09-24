@@ -84,6 +84,10 @@ export interface AnimationSample {
   scaleY: number;
   /** radians, add to transform.rotation */
   rotation: number;
+  /** degrees, add to transform.rotationX */
+  rotationX: number;
+  /** degrees, add to transform.rotationY */
+  rotationY: number;
   /** 0..1, multiply layer opacity */
   opacity: number;
   /** source px, add to the layer's blur radius (identity 0) */
@@ -139,6 +143,8 @@ export function createAnimationSample(): AnimationSample {
     scaleX: 1,
     scaleY: 1,
     rotation: 0,
+    rotationX: 0,
+    rotationY: 0,
     opacity: 1,
     blur: 0,
     brightness: 0,
@@ -171,6 +177,8 @@ export function isIdentitySample(s: AnimationSample): boolean {
     s.scaleX === 1 &&
     s.scaleY === 1 &&
     s.rotation === 0 &&
+    s.rotationX === 0 &&
+    s.rotationY === 0 &&
     s.opacity === 1 &&
     s.blur === 0 &&
     s.brightness === 0 &&
@@ -195,6 +203,8 @@ function resetIdentity(s: AnimationSample): AnimationSample {
   s.scaleX = 1;
   s.scaleY = 1;
   s.rotation = 0;
+  s.rotationX = 0;
+  s.rotationY = 0;
   s.opacity = 1;
   s.blur = 0;
   s.brightness = 0;

@@ -521,6 +521,30 @@ describe("Canvas 2D — the clip effect catalog", () => {
   });
 });
 
+describe("Canvas 2D — large blur reporting", () => {
+  it("uses the export Gaussian sigma for a radius of 80", () => {
+    const ctx = new RecordingContext();
+    const { degraded } = drawTimelineFrame(
+      ctx,
+      [layer({ clipId: "glow", effects: [{ id: "b", type: "blur", enabled: true, radius: 80 }] })],
+      GEOMETRY
+    );
+    expect(ctx.draws[0]?.filter).toBe("blur(26.67px)");
+    expect(degraded).not.toContainEqual({ clipId: "glow", reason: "blur_approximate" });
+  });
+
+  it("renders radius 160 without clipping the filter", () => {
+    const ctx = new RecordingContext();
+    const { degraded } = drawTimelineFrame(
+      ctx,
+      [layer({ clipId: "glow", effects: [{ id: "b", type: "blur", enabled: true, radius: 160 }] })],
+      GEOMETRY
+    );
+    expect(ctx.draws[0]?.filter).toBe("blur(53.33px)");
+    expect(degraded).not.toContainEqual({ clipId: "glow", reason: "blur_approximate" });
+  });
+});
+
 describe("Canvas 2D — brightness parity with the GPU grade", () => {
   const lift: ClipEffect[] = [
     { id: "b", type: "color", enabled: true, brightness: 0.25 }

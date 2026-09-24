@@ -119,7 +119,8 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
     ops: {
       type: "array",
       description:
-        'Operations in order. Each is {"op": <name>, ...arguments}, e.g. ' +
+        'At most 60 operations per call; split larger builds into batches and inspect each result. ' +
+        'Operations run in order. Each is {"op": <name>, ...arguments}, e.g. ' +
         '{"op": "add_track", "type": "audio", "name": "Music"} or ' +
         '{"op": "animate_clip", "target": "Title", "animations": [{"role": "in", "preset": "fade"}]}. ' +
         "Ops: get_state, add_track, move_track, add_media_clip, add_text_clip, add_shape_clip, " +
@@ -136,7 +137,9 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "add_reframe_keyframe, clear_reframe. retarget_format creates a new " +
         "sequence and must be the only op in its call; call it once per " +
         "target format. " +
-        "Start with get_state to " +
+        "Clip transforms accept rotationX and rotationY in degrees and perspective " +
+        "in pixels through add_*_clip and set_clip_params. Custom animation curves " +
+        "can animate rotationX and rotationY. Start with get_state to " +
         "read track and clip ids. To lay existing videos end to end, call " +
         'add_media_clip once per asset ({"op": "add_media_clip", "asset": ' +
         '"asset://<id>.mp4"}) — each appends after the last. animate_clip ' +
@@ -457,7 +460,7 @@ export const editTimelineSpec: CapabilitySpec = {
     "flow: set_setup writes the brief and stage, plan_beats writes the beat " +
     "plan (text only — no clip, no job), update_beat edits one row, and " +
     "generate_from_beats turns the plan into clips. Pass a " +
-    "list of operations; they run in order against the stored document and " +
+    "list of at most 60 operations per call; they run in order against the stored document and " +
     "the result is saved. An open editor picks the change up live. Call " +
     "list_timelines to find a sequence and validate_timeline afterwards. " +
     "Inspect failed and each operation's ok field before dependent edits. " +
@@ -665,8 +668,8 @@ export const PREVIEW_TIMELINE_FRAME_SCHEMA: JsonSchema = {
 export const previewTimelineFrameSpec: CapabilitySpec = {
   name: "preview_timeline_frame",
   description:
-    "Render what a timeline actually LOOKS LIKE at chosen timecodes — the " +
-    "composited frame, with every track layered in order, clip transforms " +
+    "Render what a timeline actually LOOKS LIKE at up to 8 chosen timecodes " +
+    "per call — the composited frame, with every track layered in order, clip transforms " +
     "and opacity applied, animations sampled mid-flight, transitions part " +
     "way through, and text and shape clips drawn. This is the tool that " +
     "answers 'is the title readable', 'does the lower-third cover the " +
@@ -678,8 +681,8 @@ export const previewTimelineFrameSpec: CapabilitySpec = {
     "feathered mask or wipe drawn as a hard edge, a track matte skipped, a " +
     "group's blend mode lost, a second drop shadow not cast, brightness " +
     "applied as a multiply instead of the export's addition — each with the " +
-    "clip it happened to; `effects_not_applied` names the effect types it " +
-    "cannot draw at all. Both empty means the preview is the export. " +
+    "clip it happened to; " +
+    "`effects_not_applied` names the effect types it cannot draw at all. " +
     "Unlike get_clip_frames, which samples one clip's " +
     "source media, this is the finished picture. Needs no browser, GPU or " +
     "open editor. Sample the middle of an animation, not its endpoints — " +

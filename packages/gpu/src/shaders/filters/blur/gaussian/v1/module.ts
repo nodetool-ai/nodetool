@@ -39,10 +39,8 @@ export const blurGaussianV1 = defineModule({
   params: BlurParams,
   paramDefaults: { radius: 0, sigma: 0, direction: d.vec2f(1, 0) },
   paramUi: {
-    // Capped at 20 to match the shader's `kernelRadius = min(radius, 20)`
-    // cap; advertising a higher max silently truncated requests above 20.
-    radius: { min: 0, max: 20, step: 0.5, label: "Radius", notes: "pixels" },
-    sigma: { min: 0, max: 16, step: 0.1, label: "Sigma" },
+    radius: { min: 0, max: 256, step: 0.5, label: "Radius", notes: "pixels" },
+    sigma: { min: 0, max: 96, step: 0.1, label: "Sigma" },
     direction: { label: "Direction", notes: "(1,0) horizontal, (0,1) vertical" }
   },
   layout,
@@ -66,6 +64,9 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   }
 
   let kernelRadius = i32(min(blur.radius, 20.0));
+  // Keep the 41-tap budget, but spread those taps across a wide blur's full
+  // support. Sampling only the central 20 pixels left large glows hard-edged.
+  let sampleStep = max(1.0, blur.radius / 20.0);
   // Honor an explicit positive sigma. Only fall back to radius/3 when the
   // caller leaves sigma unset (<= 0); the previous max(sigma, radius/3)
   // silently raised any explicit sigma smaller than radius/3.
@@ -74,15 +75,16 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   var colorSum = vec4<f32>(0.0);
   var weightSum: f32 = 0.0;
   for (var i = -kernelRadius; i <= kernelRadius; i = i + 1) {
+    let distance = f32(i) * sampleStep;
     let offset = vec2<i32>(
-      i32(blur.direction.x * f32(i)),
-      i32(blur.direction.y * f32(i))
+      i32(round(blur.direction.x * distance)),
+      i32(round(blur.direction.y * distance))
     );
     let s = vec2<i32>(
       clamp(coords.x + offset.x, 0, i32(dims.x) - 1),
       clamp(coords.y + offset.y, 0, i32(dims.y) - 1)
     );
-    let w = gaussianWeight(f32(i), sigma);
+    let w = gaussianWeight(distance, sigma);
     colorSum = colorSum + textureLoad(layout.$.source, s, 0) * w;
     weightSum = weightSum + w;
   }

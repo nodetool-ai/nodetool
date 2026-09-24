@@ -362,7 +362,7 @@ describe("drawTimelineFrame — precomposites", () => {
       }
     );
     expect(surface.draws.map((d) => d.filter)).toEqual(["none", "none"]);
-    expect(ctx.draws[0]?.filter).toBe("blur(6.00px)");
+    expect(ctx.draws[0]?.filter).toBe("blur(2.00px)");
   });
 
   it("carries a nested surface into the one above it", () => {

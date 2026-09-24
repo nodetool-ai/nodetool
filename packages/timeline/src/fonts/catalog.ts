@@ -22,14 +22,14 @@
 /** The generic CSS family a face falls back to before `sans-serif`. */
 export type BundledFontGeneric = "sans-serif" | "serif" | "monospace";
 
-/** The slant a face file carries. */
+  /** The slant a face file carries. */
 export type BundledFontStyle = "normal" | "italic";
 
 /** One font file in the corpus. */
 export interface BundledFontFace {
   /** CSS family name, exactly as the file's `name` table reports it. */
   family: string;
-  /** The slant this file draws. A family ships at most one file per slant. */
+  /** The slant this file draws. Static weights may share a slant. */
   style: BundledFontStyle;
   /**
    * The `wght` axis range this file covers, `[min, max]`. A static face
@@ -60,6 +60,25 @@ export const BUNDLED_FONTS: readonly BundledFontFace[] = [
     style: "normal",
     weights: [100, 900],
     file: "Inter-Variable.ttf",
+    license: "OFL-Inter.txt",
+    generic: "sans-serif"
+  },
+  // Skia picks the same bold outline for 600 and 800 in the variable file.
+  // These static instances were generated from it with fontTools varLib.instancer
+  // at wght=600 and wght=800, using --static --update-name-table.
+  {
+    family: "Inter",
+    style: "normal",
+    weights: [600, 600],
+    file: "Inter-SemiBold.ttf",
+    license: "OFL-Inter.txt",
+    generic: "sans-serif"
+  },
+  {
+    family: "Inter",
+    style: "normal",
+    weights: [800, 800],
+    file: "Inter-ExtraBold.ttf",
     license: "OFL-Inter.txt",
     generic: "sans-serif"
   },

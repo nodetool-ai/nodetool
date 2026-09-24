@@ -12,6 +12,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { createCanvas } from "@napi-rs/canvas";
 
 import {
   BUNDLED_FONTS,
@@ -24,6 +25,7 @@ import {
   resolveFontFamily
 } from "../src/fonts/index.js";
 import { textFontSpec } from "../src/render/textLayout.js";
+import { registerBundledFonts } from "../src/fonts/register-node.js";
 
 const FONTS_DIR = fileURLToPath(new URL("../fonts/", import.meta.url));
 
@@ -63,12 +65,11 @@ describe("bundled font catalog", () => {
     }
   });
 
-  it("gives a family at most one file per slant", () => {
+  it("gives every face a distinct file", () => {
     const seen = new Set<string>();
     for (const face of BUNDLED_FONTS) {
-      const key = `${face.family}|${face.style}`;
-      expect(seen.has(key)).toBe(false);
-      seen.add(key);
+      expect(seen.has(face.file)).toBe(false);
+      seen.add(face.file);
     }
   });
 
@@ -138,6 +139,21 @@ describe("resolveFontFamily", () => {
 });
 
 describe("textFontSpec", () => {
+  it("draws Inter 800 measurably heavier than Inter 600 in the Node export", () => {
+    expect(registerBundledFonts().missing).toEqual([]);
+    const ink = (weight: number): number => {
+      const canvas = createCanvas(240, 120);
+      const ctx = canvas.getContext("2d");
+      ctx.font = textFontSpec({ fontFamily: "Inter", fontSizePx: 100, fontWeight: weight });
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText("H", 20, 100);
+      const data = ctx.getImageData(0, 0, 240, 120).data;
+      let total = 0;
+      for (let i = 3; i < data.length; i += 4) total += data[i] ?? 0;
+      return total;
+    };
+    expect(ink(800)).toBeGreaterThan(ink(600) * 1.04);
+  });
   it("builds its family list through resolveFontFamily", () => {
     expect(textFontSpec({ fontSizePx: 48, fontFamily: "Bebas Neue" })).toBe(
       '400 48px "Bebas Neue", sans-serif'

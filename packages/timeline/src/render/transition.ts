@@ -360,6 +360,9 @@ export function transitionTransform(
       y: base.scale.y * (scale ?? 1)
     },
     rotation: base.rotation,
+    rotationX: base.rotationX,
+    rotationY: base.rotationY,
+    perspective: base.perspective,
     anchor: base.anchor
   };
 }

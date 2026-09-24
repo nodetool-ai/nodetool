@@ -706,7 +706,7 @@ describe("timelines capability behaviour", () => {
       timeline_id: row.id,
       ops: [
         { op: "add_media_clip", asset: `asset://${first.id}.mp4` },
-        { op: "add_media_clip", asset: second.id }
+        { op: "add_media_clip", asset: second.id, durationMs: 4000 }
       ]
     })) as {
       applied: number;

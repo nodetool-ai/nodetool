@@ -768,7 +768,7 @@ function aggregateColor(
   return out;
 }
 
-function aggregateBlurRadius(
+export function aggregateBlurRadius(
   clipEffects: readonly ClipEffect[],
   trackEffects: readonly ClipEffect[]
 ): number {
@@ -779,7 +779,7 @@ function aggregateBlurRadius(
     }
     return radius;
   };
-  return Math.min(40, sum(clipEffects) + sum(trackEffects));
+  return Math.min(256, sum(clipEffects) + sum(trackEffects));
 }
 
 /**

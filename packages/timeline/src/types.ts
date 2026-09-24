@@ -235,7 +235,7 @@ export function isKnownShapeKind(kind: string): kind is ClipShapeKind {
 export interface ClipShapeStyle {
   /** Plain string for forward compat (I2) — see {@link CLIP_SHAPE_KINDS}. */
   kind: string;
-  fill?: string;
+  fill?: string | ShapeFill;
   stroke?: string;
   strokeWidthPx?: number;
   /** Normalized canvas coordinates for the shape's bounds or line endpoints. */
@@ -1351,6 +1351,11 @@ export interface ClipTransform {
   position: { x: number; y: number };
   scale: { x: number; y: number };
   rotation: number;
+  /** CSS-style X/Y rotations in degrees. */
+  rotationX?: number;
+  rotationY?: number;
+  /** Distance from the picture plane in pixels. */
+  perspective?: number;
   anchor: { x: number; y: number };
 }
 
@@ -1495,7 +1500,7 @@ export interface ClipBlurEffect {
   id: string;
   type: "blur";
   enabled: boolean;
-  /** Blur radius in source pixels (0..20 typical). */
+  /** Blur radius in source pixels (up to 256 in the GPU exporter). */
   radius: number;
   /** Optional Gaussian sigma. Defaults to radius / 3. */
   sigma?: number;

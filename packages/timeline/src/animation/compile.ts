@@ -205,6 +205,7 @@ export interface CompiledAnimation {
   mask?: CompiledAnimationMask;
   /** Present only when a per-unit stagger is active (see {@link CompiledStagger}). */
   stagger?: CompiledStagger;
+  caret?: { color: string; widthPx: number; blinkPeriodMs: number };
 }
 
 /** Default segment easing when neither the animation nor the preset pins one. */
@@ -472,6 +473,9 @@ export function compileClipAnimations(
       holdAfter: animation.role === "out",
       curves
     };
+    if (animation.preset === "typewriter" && animation.caret) {
+      compiled.caret = animation.caret;
+    }
     if (timeBase === "source") compiled.timeBase = timeBase;
     if (mask) compiled.mask = mask;
     if (staggerConfig && staggerOffsetMs > 0) {

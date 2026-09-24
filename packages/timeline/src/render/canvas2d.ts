@@ -271,6 +271,8 @@ export type MaskScratchFactory<TSource> = CompositeSurfaceFactory<TSource>;
 
 /** The optional halves of a frame draw: the surfaces, and the group stack. */
 export interface DrawTimelineFrameOptions<TSource> {
+  /** Scratch for filtering and masking a source before its perspective warp. */
+  projectiveSurface?: CompositeSurfaceFactory<TSource>;
   /**
    * Scratch for feathered wipes. One reused surface is enough — a wipe draws it
    * back before the next layer asks for it.
@@ -352,6 +354,9 @@ export type Canvas2DDegradationReason =
   | "adjustment_skipped"
   /** Drop shadows past the first in the chain, not cast. */
   | "drop_shadow_extra_ignored"
+  /** A tilted layer rendered without its requested shadow. */
+  | "drop_shadow_skipped"
+  | "perspective_skipped"
   /** Brightness applied as a CSS multiply instead of the GPU's addition. */
   | "brightness_multiplicative"
   /** A crop skipped: the layer drew its whole source, at its whole-source fit. */
@@ -474,6 +479,93 @@ export function layerCanvasAffine(
     canvasWidth,
     canvasHeight
   );
+}
+
+interface ProjectivePoint { x: number; y: number }
+
+/** Project a source pixel through the same matrix the GPU compositor reads. */
+export function projectSourcePoint(
+  matrix: Float32Array,
+  x: number,
+  y: number,
+  sourceWidth: number,
+  sourceHeight: number,
+  canvasWidth: number,
+  canvasHeight: number
+): ProjectivePoint {
+  const u = 2 * x / sourceWidth - 1;
+  const v = 1 - 2 * y / sourceHeight;
+  const w = matrix[3] * u + matrix[7] * v + matrix[15];
+  return {
+    x: canvasWidth * ((matrix[0] * u + matrix[4] * v + matrix[12]) / w + 1) / 2,
+    y: canvasHeight * (1 - (matrix[1] * u + matrix[5] * v + matrix[13]) / w) / 2
+  };
+}
+
+function drawProjectiveTriangle<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  source: TSource,
+  sourceWidth: number,
+  sourceHeight: number,
+  sourcePoints: readonly [ProjectivePoint, ProjectivePoint, ProjectivePoint],
+  destPoints: readonly [ProjectivePoint, ProjectivePoint, ProjectivePoint]
+): void {
+  const [p0, p1, p2] = sourcePoints;
+  const [q0, q1, q2] = destPoints;
+  const dx1 = p1.x - p0.x;
+  const dy1 = p1.y - p0.y;
+  const dx2 = p2.x - p0.x;
+  const dy2 = p2.y - p0.y;
+  const det = dx1 * dy2 - dx2 * dy1;
+  if (Math.abs(det) < 1e-9) return;
+  const a = ((q1.x - q0.x) * dy2 - (q2.x - q0.x) * dy1) / det;
+  const c = ((q2.x - q0.x) * dx1 - (q1.x - q0.x) * dx2) / det;
+  const b = ((q1.y - q0.y) * dy2 - (q2.y - q0.y) * dy1) / det;
+  const d = ((q2.y - q0.y) * dx1 - (q1.y - q0.y) * dx2) / det;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.beginPath();
+  ctx.moveTo(q0.x, q0.y);
+  ctx.lineTo(q1.x, q1.y);
+  ctx.lineTo(q2.x, q2.y);
+  ctx.closePath();
+  ctx.clip();
+  ctx.setTransform(a, b, c, d, q0.x - a * p0.x - c * p0.y, q0.y - b * p0.x - d * p0.y);
+  ctx.drawImage(source, 0, 0, sourceWidth, sourceHeight);
+  ctx.restore();
+}
+
+function drawProjectiveImage<TSource>(
+  ctx: CompositeContext2D<TSource>,
+  source: TSource,
+  sourceWidth: number,
+  sourceHeight: number,
+  matrix: Float32Array,
+  geometry: Canvas2DFrameGeometry
+): void {
+  const columns = Math.ceil(sourceWidth / 120);
+  const rows = Math.ceil(sourceHeight / 120);
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < columns; col += 1) {
+      const x0 = col * sourceWidth / columns;
+      const x1 = (col + 1) * sourceWidth / columns;
+      const y0 = row * sourceHeight / rows;
+      const y1 = (row + 1) * sourceHeight / rows;
+      const sourceCorners: [ProjectivePoint, ProjectivePoint, ProjectivePoint, ProjectivePoint] = [
+        { x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }
+      ];
+      const destCorners = sourceCorners.map((point) => projectSourcePoint(
+        matrix, point.x, point.y, sourceWidth, sourceHeight,
+        geometry.canvasWidth, geometry.canvasHeight
+      ));
+      drawProjectiveTriangle(ctx, source, sourceWidth, sourceHeight,
+        [sourceCorners[0], sourceCorners[1], sourceCorners[2]],
+        [destCorners[0], destCorners[1], destCorners[2]]);
+      drawProjectiveTriangle(ctx, source, sourceWidth, sourceHeight,
+        [sourceCorners[0], sourceCorners[2], sourceCorners[3]],
+        [destCorners[0], destCorners[2], destCorners[3]]);
+    }
+  }
 }
 
 /** Reset a context to the state each layer draw assumes. */
@@ -924,17 +1016,26 @@ export function drawTimelineLayer<TSource>(
   }
 
   const transition = layer.transition;
-  const t = layerCanvasAffine(
-    transitionTransform(
+  const resolvedTransform = transitionTransform(
       layer.transform,
       transition,
       geometry.refWidth || geometry.canvasWidth,
       geometry.refHeight || geometry.canvasHeight
-    ),
+    );
+  const placement = buildTransformMatrix(
+    resolvedTransform ?? IDENTITY_TRANSFORM,
+    containBaseScale(width, height, geometry.canvasWidth, geometry.canvasHeight),
+    geometry.refWidth || geometry.canvasWidth,
+    geometry.refHeight || geometry.canvasHeight,
+    layer.parentMatrix
+  );
+  const projective = placement[3] !== 0 || placement[7] !== 0;
+  const t = clipMatrixToCanvasAffine(
+    placement,
     width,
     height,
-    geometry,
-    layer.parentMatrix
+    geometry.canvasWidth,
+    geometry.canvasHeight
   );
 
   // A dip goes through the colour, so the solid covers the whole frame rather
@@ -955,10 +1056,10 @@ export function drawTimelineLayer<TSource>(
   ctx.save();
   ctx.globalAlpha = Math.max(0, Math.min(1, layer.opacity));
   ctx.globalCompositeOperation = blendModeToCanvasOp(layer.blendMode);
-  ctx.setTransform(t.a, t.b, t.c, t.d, t.e, t.f);
+  if (!projective) ctx.setTransform(t.a, t.b, t.c, t.d, t.e, t.f);
 
   const radiusPx = layer.borderRadius ?? 0;
-  if (radiusPx > 0) {
+  if (radiusPx > 0 && !projective) {
     clipRoundedRect(
       ctx,
       0,
@@ -998,6 +1099,53 @@ export function drawTimelineLayer<TSource>(
       source = prepared.surface;
       applied = prepared;
     }
+  }
+  if (projective) {
+    const target = surfaces.projectiveSurface?.(width, height);
+    if (target) {
+      const pctx = target.ctx;
+      pctx.save();
+      pctx.setTransform(1, 0, 0, 1, 0, 0);
+      pctx.clearRect(0, 0, width, height);
+      if (radiusPx > 0) clipRoundedRect(pctx, 0, 0, width, height, Math.min(radiusPx, width / 2, height / 2));
+      if (shape && !applied.shape) clipMask(pctx, shape, width, height);
+      if (wipe && !applied.wipe) clipWipeRect(pctx, width, height, wipe);
+      pctx.filter = filterForEffects(layer.effects, layer.trackEffects, applied.brightness);
+      pctx.drawImage(source, 0, 0, width, height);
+      pctx.restore();
+      if (countDropShadows(layer.effects) > 0) {
+        const shadowSurface = surfaces.projectiveSurface?.(geometry.canvasWidth, geometry.canvasHeight);
+        if (shadowSurface) {
+          const sctx = shadowSurface.ctx;
+          sctx.save();
+          sctx.setTransform(1, 0, 0, 1, 0, 0);
+          sctx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
+          sctx.filter = "none";
+          sctx.globalAlpha = 1;
+          sctx.globalCompositeOperation = "source-over";
+          drawProjectiveImage(sctx, target.surface, width, height, placement, geometry);
+          sctx.restore();
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.filter = "none";
+          applyDropShadow(ctx, layer.effects, t);
+          ctx.drawImage(shadowSurface.surface, 0, 0, geometry.canvasWidth, geometry.canvasHeight);
+          if (countDropShadows(layer.effects) > 1) {
+            degraded.push({ clipId: layer.clipId, reason: "drop_shadow_extra_ignored" });
+          }
+        } else {
+          drawProjectiveImage(ctx, target.surface, width, height, placement, geometry);
+          degraded.push({ clipId: layer.clipId, reason: "drop_shadow_skipped" });
+        }
+      } else {
+        drawProjectiveImage(ctx, target.surface, width, height, placement, geometry);
+      }
+      ctx.restore();
+      resetContext(ctx);
+      return true;
+    }
+    degraded.push({ clipId: layer.clipId, reason: "perspective_skipped" });
+    ctx.setTransform(t.a, t.b, t.c, t.d, t.e, t.f);
+    if (radiusPx > 0) clipRoundedRect(ctx, 0, 0, width, height, Math.min(radiusPx, width / 2, height / 2));
   }
   // Whatever the scratch pass did not take is drawn as a hard edge at the same
   // geometry, which is the honest fallback when the host vends no surface.
@@ -1631,7 +1779,8 @@ function computeFilterForEffects(
     parts.push(`hue-rotate(${hue.toFixed(2)}deg)`);
   }
   if (blur >= 0.5) {
-    parts.push(`blur(${Math.min(40, blur).toFixed(2)}px)`);
+    // CSS blur() takes Gaussian sigma; the GPU kernel derives sigma = radius/3.
+    parts.push(`blur(${(blur / 3).toFixed(2)}px)`);
   }
   return parts.length > 0 ? parts.join(" ") : "none";
 }

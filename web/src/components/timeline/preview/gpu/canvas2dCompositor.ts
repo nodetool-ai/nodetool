@@ -115,6 +115,7 @@ export class Canvas2DCompositor implements TimelineCompositor {
       },
       {
         maskScratch: (width, height) => this.scratchFor(width, height),
+        projectiveSurface: (width, height) => this.takeSurface(width, height),
         precomposites: this.precomposites,
         precompositeSurface: (width, height) => this.takeSurface(width, height),
         maskSurface: (width, height) => this.takeSurface(width, height),

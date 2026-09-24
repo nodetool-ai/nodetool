@@ -161,4 +161,5 @@ export interface TimelineAnimationInput {
   mask?: unknown;
   custom?: { curves?: unknown; code?: string; mask?: unknown };
   stagger?: ClipAnimation["stagger"];
+  caret?: ClipAnimation["caret"];
 }

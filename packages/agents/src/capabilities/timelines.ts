@@ -578,10 +578,25 @@ async function resolveTimelineAsset(
     name: asset.name,
     contentType: asset.content_type
   };
-  // `duration` is seconds and often null — assets are catalogued without
-  // probing. The bridge falls back to its own default when it is missing.
-  if (isFiniteNumber(asset.duration) && asset.duration > 0) {
-    resolved.durationMs = Math.round(asset.duration * 1000);
+  let duration = asset.duration;
+  if ((!isFiniteNumber(duration) || duration <= 0) &&
+      (asset.content_type.startsWith("audio/") || asset.content_type.startsWith("video/"))) {
+    try {
+      const { loadMediaRefBytes, probeVideoDurationSeconds } = await import("@nodetool-ai/runtime");
+      const bytes = await loadMediaRefBytes({ asset_id: asset.id }, run.context);
+      if (bytes) {
+        duration = await probeVideoDurationSeconds(bytes, new AbortController().signal);
+        if (isFiniteNumber(duration) && duration > 0) {
+          asset.duration = duration;
+          await asset.save();
+        }
+      }
+    } catch {
+      // An explicit clip duration remains usable when the source cannot be probed.
+    }
+  }
+  if (isFiniteNumber(duration) && duration > 0) {
+    resolved.durationMs = Math.round(duration * 1000);
   }
   if (thumbnailAssetId) resolved.thumbnailAssetId = thumbnailAssetId;
   return resolved;

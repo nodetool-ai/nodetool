@@ -1707,6 +1707,13 @@ export function resolveAnimatedLayerProps(
         ? base.anchor
         : { x: s.anchorX ?? base.anchor.x, y: s.anchorY ?? base.anchor.y }
   };
+  if (base.rotationX !== undefined || s.rotationX !== 0) {
+    transform.rotationX = (base.rotationX ?? 0) + s.rotationX;
+  }
+  if (base.rotationY !== undefined || s.rotationY !== 0) {
+    transform.rotationY = (base.rotationY ?? 0) + s.rotationY;
+  }
+  if (base.perspective !== undefined) transform.perspective = base.perspective;
   // `s.mask` is freshly allocated per sampleAnimations call here (no scratch
   // is passed), so handing it out is safe.
   return {
@@ -1755,6 +1762,11 @@ function staticProps(
         anchor: base.anchor
       }
     : layer.transform;
+  if (trackOffset && transform) {
+    if (base.rotationX !== undefined) transform.rotationX = base.rotationX;
+    if (base.rotationY !== undefined) transform.rotationY = base.rotationY;
+    if (base.perspective !== undefined) transform.perspective = base.perspective;
+  }
   return {
     transform,
     opacity: layer.opacity,

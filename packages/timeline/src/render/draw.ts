@@ -769,11 +769,11 @@ export function drawStaggeredText(
   // unit's transform and every glyph would show the same slice of the ramp.
   const movingFill =
     style.fill && style.fill.type !== "solid" ? style.fill : null;
+  const typewriter = stagger.compiled.find((animation) => animation.caret);
+  let caretX = units[0]?.x ?? block.box.x;
+  let caretY = units[0]?.y ?? block.box.y;
 
   units.forEach((unit, index) => {
-    // A whitespace unit takes its index — the units after it are timed as if
-    // it were drawn — and draws nothing.
-    if (unit.text === "") return;
     // A host that counted units without a text measurer can lay out more lines
     // than the compiler timed; clamping lets the extra ones ride the last
     // unit's window instead of sitting outside the span, invisible.
@@ -784,6 +784,12 @@ export function drawStaggeredText(
       scratch,
       stagger.sourceMs
     );
+    if (typewriter && s.opacity > 0.5) {
+      caretX = unit.x + unit.width;
+      caretY = unit.y;
+    }
+    // Whitespace takes its index and moves the caret, but draws nothing.
+    if (unit.text === "") return;
     const scaleX = s.scale * s.scaleX;
     const scaleY = s.scale * s.scaleY;
     if (s.opacity <= 0 || scaleX <= 0 || scaleY <= 0) return;
@@ -824,6 +830,16 @@ export function drawStaggeredText(
     );
     ctx.restore();
   });
+  if (typewriter?.caret) {
+    const caret = typewriter.caret;
+    const completed = stagger.localMs >= typewriter.windowEndMs;
+    const visible = !completed ||
+      (stagger.localMs - typewriter.windowEndMs) % caret.blinkPeriodMs < caret.blinkPeriodMs / 2;
+    if (visible) {
+      ctx.fillStyle = caret.color;
+      ctx.fillRect(caretX + 4, caretY - style.fontSizePx * 0.54 + 8, caret.widthPx, style.fontSizePx * 1.08);
+    }
+  }
   ctx.restore();
 }
 
@@ -837,6 +853,7 @@ export function staggerPhase(stagger: TextRenderStagger): "active" | string {
   let sig = "";
   for (const anim of stagger.compiled) {
     if (!anim.stagger) continue;
+    if (anim.caret && stagger.localMs >= anim.windowEndMs) return "active";
     if (anim.loop) {
       if (
         stagger.localMs >= anim.windowStartMs &&
@@ -970,9 +987,13 @@ export function drawShape(
 
   ctx.save();
   if (style.fill || style.fillStyle) {
-    ctx.fillStyle = style.fillStyle
-      ? resolveShapeFill(ctx, style.fillStyle, box)
-      : (style.fill ?? "transparent");
+    const fill = style.fillStyle ?? style.fill;
+    ctx.fillStyle =
+      typeof fill === "string"
+        ? fill
+        : fill
+          ? resolveShapeFill(ctx, fill, box)
+          : "transparent";
     ctx.beginPath();
     tracePath(ctx, segments, UNSCALED);
     ctx.fill();

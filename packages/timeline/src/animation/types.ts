@@ -172,6 +172,8 @@ export interface ClipAnimation {
    * full-clip presets.
    */
   stagger?: AnimationStagger;
+  /** Optional caret drawn after the last revealed typewriter character. */
+  caret?: { color: string; widthPx: number; blinkPeriodMs: number };
 }
 
 /**
@@ -187,6 +189,7 @@ export type WipeDirection = "left" | "right" | "up" | "down";
  */
 export type AnimationPresetId =
   | "fade"
+  | "typewriter"
   | "slide"
   | "pop"
   | "spin"
@@ -252,6 +255,8 @@ export const ANIMATED_PROPERTIES = [
   "scaleX",
   "scaleY",
   "rotation",
+  "rotationX",
+  "rotationY",
   "opacity",
   "wipeProgress",
   "blur",
@@ -296,6 +301,8 @@ export const ANIMATED_PROPERTY_FOLD: Record<
   scaleX: "multiply",
   scaleY: "multiply",
   rotation: "add",
+  rotationX: "add",
+  rotationY: "add",
   opacity: "multiply",
   wipeProgress: "min",
   blur: "add",
@@ -335,6 +342,8 @@ export const ANIMATED_PROPERTY_PASS: Record<
   scaleX: "motion",
   scaleY: "motion",
   rotation: "motion",
+  rotationX: "motion",
+  rotationY: "motion",
   opacity: "motion",
   wipeProgress: "effects",
   blur: "effects",

@@ -542,6 +542,9 @@ export const clipTransform = z.object({
   position: z.object({ x: z.number(), y: z.number() }),
   scale: z.object({ x: z.number(), y: z.number() }),
   rotation: z.number(),
+  rotationX: z.number().optional(),
+  rotationY: z.number().optional(),
+  perspective: z.number().positive().optional(),
   anchor: z.object({ x: z.number(), y: z.number() })
 });
 export type ClipTransform = z.infer<typeof clipTransform>;
@@ -996,8 +999,8 @@ export const clipAnimation = z.object({
    * strips it on every PATCH, silently reverting custom motion to nothing on
    * save. */
   custom: customClipAnimation.optional(),
-  /** Per-word stagger on a text clip's animation. `unit` is a plain string on
-   * the wire (only "word" is implemented; unknown units compile un-staggered)
+  /** Per-unit stagger on a text clip's animation. `unit` is a plain string on
+   * the wire (word, character and line are implemented; unknown units compile un-staggered)
    * for the same forward compat as `preset`. Without this field Zod strips it
    * on every PATCH, silently flattening staggered titles into block motion. */
   stagger: z
@@ -1006,7 +1009,12 @@ export const clipAnimation = z.object({
       offsetMs: z.number(),
       from: z.enum(["start", "end", "center"]).optional()
     })
-    .optional()
+    .optional(),
+  caret: z.object({
+    color: z.string(),
+    widthPx: z.number().positive(),
+    blinkPeriodMs: z.number().positive()
+  }).optional()
 });
 export type ClipAnimation = z.infer<typeof clipAnimation>;
 
@@ -1069,7 +1077,7 @@ export const clipShapeStyle = z.object({
    * outline and the validator reports `unknown_shape_kind` — rather than
    * failing the whole document. */
   kind: z.string(),
-  fill: z.string().optional(),
+  fill: z.union([z.string(), shapeFill]).optional(),
   stroke: z.string().optional(),
   strokeWidthPx: z.number().optional(),
   x: z.number().optional(),

@@ -5,6 +5,7 @@ import {
   clipMatrixToCanvasAffine,
   IDENTITY_TRANSFORM
 } from "../src/render/transform.js";
+import { projectSourcePoint } from "../src/render/canvas2d.js";
 
 interface ClipTransform {
   position: { x: number; y: number };
@@ -50,6 +51,27 @@ describe("containBaseScale", () => {
 });
 
 describe("buildTransformMatrix", () => {
+  it("matches CSS perspective, rotateX and rotateY at a 1560×878 window's corners", () => {
+    const rx = 6 * Math.PI / 180;
+    const ry = 7 * Math.PI / 180;
+    const matrix = buildTransformMatrix({
+      ...IDENTITY_TRANSFORM,
+      scale: { x: 1560 / 1920, y: 878 / 1080 },
+      rotationX: 6,
+      rotationY: 7,
+      perspective: 2400
+    }, { x: 1, y: 1 }, 1920, 1080);
+    for (const [x, y] of [[-780, -439], [780, -439], [780, 439], [-780, 439]]) {
+      const x1 = Math.cos(ry) * x;
+      const z1 = -Math.sin(ry) * x;
+      const y2 = Math.cos(rx) * y - Math.sin(rx) * z1;
+      const z2 = Math.sin(rx) * y + Math.cos(rx) * z1;
+      const depth = 1 - z2 / 2400;
+      const actual = projectSourcePoint(matrix, x + 780, y + 439, 1560, 878, 1920, 1080);
+      expect(actual.x).toBeCloseTo(960 + x1 / depth, 0);
+      expect(actual.y).toBeCloseTo(540 + y2 / depth, 0);
+    }
+  });
   it("produces identity-like matrix for IDENTITY_TRANSFORM on a square canvas", () => {
     const base = { x: 1, y: 1 };
     const m = buildTransformMatrix(IDENTITY_TRANSFORM, base, 100, 100);

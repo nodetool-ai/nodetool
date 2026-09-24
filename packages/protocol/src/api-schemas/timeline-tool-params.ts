@@ -125,6 +125,25 @@ export const clipOpacityParam = z
   .optional()
   .describe("Clip opacity, 0..1. Defaults to 1.");
 
+/** Static placement, merged over the clip's current transform. */
+export const clipTransformPatchParam = z
+  .object({
+    position: z
+      .object({ x: z.number().optional(), y: z.number().optional() })
+      .optional(),
+    scale: z
+      .object({ x: z.number().optional(), y: z.number().optional() })
+      .optional(),
+    rotation: z.number().optional(),
+    rotationX: z.number().optional(),
+    rotationY: z.number().optional(),
+    perspective: z.number().positive().optional(),
+    anchor: z
+      .object({ x: z.number().optional(), y: z.number().optional() })
+      .optional()
+  })
+  .optional();
+
 /**
  * `move_track`'s arguments, in either spelling.
  *
@@ -486,8 +505,8 @@ export const shapeStyleParams = withFieldNotes(clipShapeStyle, {
   innerRadius: 'kind "star" only: inner radius as a fraction of the outer.',
   cornerRadius: "Corner rounding, in the same normalized units.",
   fill:
-    "Solid fill colour. Opaque unless the colour carries alpha — use " +
-    "8-digit hex (#05070CCC) or rgba() for a scrim over picture.",
+    "Solid colour string or linear/radial gradient object. Alpha belongs " +
+    "in the colour or gradient stop colours.",
   stroke:
     "Outline colour. Omit it and the shape is drawn with no outline; " +
     "`strokeWidthPx` defaults to 8 once a stroke colour is set.",
@@ -537,13 +556,13 @@ export const ADD_SHAPE_CLIP_DESCRIPTION =
   "the frame; every one of those keys is also read from the top level. With " +
   "no geometry at all the shape is a full-frame rect. A shape with no colour " +
   "at all gets a white fill (a line, a white stroke); a shape you fill gets " +
-  "no stroke unless you ask for one. `fill` is opaque unless its colour " +
+  "no stroke unless you ask for one. A solid `fill` is opaque unless its colour " +
   "carries alpha, so a scrim over picture needs 8-digit hex (#05070CCC) or " +
   'rgba(); for a gradient scrim use fillStyle: {type: "linear", angle, ' +
   "stops: [{offset, color}]} with a transparent stop (#05070C00) at one end. " +
   "A key this tool does not know is refused by name rather than ignored. " +
   "`opacity` (0..1) sets the clip's own opacity, which is the other way to " +
-  "author a scrim. " +
+  "author a scrim. `fill` also accepts the gradient object directly. " +
   "Shapes are rasterized for preview/export and take the standard motion " +
   "presets.";
 
@@ -1228,7 +1247,7 @@ export const effectParams = z.object({
   gammaRgb: rgbTriple
     .optional()
     .describe("liftGammaGain: midtone gamma per channel.")
-});
+}).strict();
 
 export type EffectParams = z.infer<typeof effectParams>;
 
@@ -1350,6 +1369,7 @@ export function buildEffect(
  */
 export const addGroupParams = z.object({
   name: z.string().trim().min(1).describe("Label for the group clip."),
+  transform: clipTransformPatchParam,
   startMs: z.number().describe("Where the group's window opens."),
   durationMs: z
     .number()

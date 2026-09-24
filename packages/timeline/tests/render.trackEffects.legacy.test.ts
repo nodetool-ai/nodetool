@@ -131,7 +131,7 @@ describe("legacy track effects on the Canvas 2D path", () => {
 
   it("draws a `videoBlur` track effect as the same filter a clip `blur` gives", () => {
     const track = drawFilter({ trackEffects: [legacyBlur] });
-    expect(track).toBe("blur(6.00px)");
+    expect(track).toBe("blur(2.00px)");
     expect(
       drawFilter({ effects: [{ id: "c", type: "blur", enabled: true, radius: 6 }] })
     ).toBe(track);
@@ -147,7 +147,7 @@ describe("legacy track effects on the Canvas 2D path", () => {
         trackEffects: [legacyGrade, legacyBlur]
       })
     ).toBe(
-      "brightness(1.300) contrast(3.000) saturate(0.500) hue-rotate(30.00deg) blur(8.00px)"
+      "brightness(1.300) contrast(3.000) saturate(0.500) hue-rotate(30.00deg) blur(2.67px)"
     );
   });
 

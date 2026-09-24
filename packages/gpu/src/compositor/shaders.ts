@@ -55,6 +55,7 @@ fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
 //   params0: opacity, blendMode (as f32), canvasW, canvasH
 //   invRow0: a, b, tx, _   (inverse affine row 0: screen px → layer texel)
 //   invRow1: c, d, ty, _   (inverse affine row 1)
+//   invRow2: p, q, r, _    (projective denominator)
 //   params1: borderRadius (normalized 0..0.5), smoothness, filterMode, _
 //     filterMode: 0 = nearest (textureLoad), 1 = linear (sampler)
 //   params2: wipeEdge, wipeProgress, wipeSoftness, _
@@ -66,6 +67,7 @@ struct BlendUniforms {
   params0: vec4f,
   invRow0: vec4f,
   invRow1: vec4f,
+  invRow2: vec4f,
   params1: vec4f,
   params2: vec4f,
 };
@@ -99,12 +101,14 @@ fn fs_blend(@location(0) uv: vec2f) -> @location(0) vec4f {
   );
   let dst = textureLoad(dstTexture, dstPx, 0);
 
-  // Map screen UV → layer texel via inverse affine.
+  // Map screen UV → layer texel through the inverse homography.
   let px = uv * canvasSize;
+  let denominator = dot(u.invRow2.xyz, vec3f(px, 1.0));
+  if (abs(denominator) < 0.000001) { return dst; }
   let texel = vec2f(
     u.invRow0.x * px.x + u.invRow0.y * px.y + u.invRow0.z,
     u.invRow1.x * px.x + u.invRow1.y * px.y + u.invRow1.z
-  );
+  ) / denominator;
   let dims = textureDimensions(srcTexture);
   let dimsF = vec2f(f32(dims.x), f32(dims.y));
 

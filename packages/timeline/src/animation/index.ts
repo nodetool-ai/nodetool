@@ -6,6 +6,7 @@
  */
 
 export * from "./types.js";
+export * from "./typewriter.js";
 export * from "./easing.js";
 export * from "./presets.js";
 export * from "./custom.js";

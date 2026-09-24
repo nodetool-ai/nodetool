@@ -137,6 +137,11 @@ Four roles. A clip may carry several, one of each kind or more:
 `direction`, `softness` 0–0.5, default 0.05), `blur` (500ms; `amount` 0–40,
 default 12), `colorFade` (600ms, grayscale blooming into color).
 
+`in` on text only — `typewriter` reveals whole characters in reading order.
+Set `durationMs` to the time for the entire text to appear. Without it, the
+characters type 65ms apart and finish within the clip. To set a fixed speed,
+use `durationMs: 1` with `stagger: {unit: "character", offsetMs: 40}`.
+
 `emphasis` — `pulse` (600ms; `intensity` 0–0.5, default 0.06), `flash` (400ms;
 `intensity` 0–1, default 0.6), `shake` (600ms; seeded noise on both axes:
 `intensity` 0–0.2 default 0.02, `frequency` Hz default 8, `seed` default 1,
