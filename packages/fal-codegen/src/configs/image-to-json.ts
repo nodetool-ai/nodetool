@@ -40,6 +40,20 @@ export const config: ModuleConfig = {
         "Content classification",
         "Image-based data extraction"
       ]
+    },
+
+    "fal-ai/flux-3-action/so101": {
+      className: "Flux3ActionSo101",
+      docstring:
+        "FLUX 3 Action predicts the next joint actions for an SO-101 robot arm from its scene and wrist camera images, current joint state, and a plain-language instruction.",
+      tags: ["robotics", "action", "json", "flux-3", "so-101"],
+      useCases: [
+        "Drive an SO-101 arm from a text instruction",
+        "Prototype pick-and-place policies",
+        "Predict an action chunk from camera frames",
+        "Replay a task with a new instruction",
+        "Evaluate a vision-language-action policy"
+      ]
     }
   }
 };

@@ -27,6 +27,20 @@ export const config: ModuleConfig = {
         "Speech enhancement",
         "Accent conversion"
       ]
+    },
+
+    "xai/grok-voice": {
+      className: "GrokVoice",
+      docstring:
+        "Grok Voice answers a recorded audio message with a spoken reply and its text transcript.",
+      tags: ["speech", "voice", "speech-to-speech", "grok", "xai", "assistant"],
+      useCases: [
+        "Answer a voice message with speech",
+        "Prototype a voice assistant turn",
+        "Generate spoken replies for an agent",
+        "Transcribe and respond in one call",
+        "Test voice personas"
+      ]
     }
   }
 };

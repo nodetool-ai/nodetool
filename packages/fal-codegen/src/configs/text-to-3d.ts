@@ -162,6 +162,34 @@ export const config: ModuleConfig = {
         "Prototype 3D concepts quickly",
         "Fill an asset library from descriptions"
       ]
+    },
+
+    "tripo3d/p2/text-to-3d": {
+      className: "TripoP2TextTo3d",
+      docstring:
+        "Tripo P2 generates a 3D model from a text prompt, with optional PBR textures, adjustable face count, and triangle or quad topology.",
+      tags: ["3d", "generation", "text-to-3d", "tripo", "mesh"],
+      useCases: [
+        "Generate a game prop from a description",
+        "Draft a 3D asset for a scene",
+        "Produce quad meshes for retopology-free editing",
+        "Create textured models for previs",
+        "Explore 3D concepts from text"
+      ]
+    },
+
+    "meshy/v7.1/text-to-3d": {
+      className: "MeshyV71TextTo3d",
+      docstring:
+        "Meshy 7.1 generates a 3D model from a text prompt, with preview and textured modes, low-poly and Smart Topology options, and geometry resolution up to 4K.",
+      tags: ["3d", "generation", "text-to-3d", "meshy", "mesh"],
+      useCases: [
+        "Generate a 3D asset from a description",
+        "Preview a model before texturing",
+        "Produce low-poly game assets",
+        "Create clean-topology meshes",
+        "Draft props for a 3D scene"
+      ]
     }
   }
 };

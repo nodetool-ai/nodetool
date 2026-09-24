@@ -2315,6 +2315,187 @@ export const config: ModuleConfig = {
         "Create avatar-led product explainers",
         "Automate recurring video updates"
       ]
+    },
+
+    "bytedance/seedance-2.5/us/text-to-video": {
+      className: "Seedance25UsTextToVideo",
+      docstring:
+        "US-hosted Seedance 2.5 generates video with synchronized audio from text, up to 30 seconds at 480p or 720p.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "seedance",
+        "bytedance",
+        "us"
+      ],
+      useCases: [
+        "Generate a shot with native audio",
+        "Keep generation on US infrastructure",
+        "Produce long single takes",
+        "Draft scenes from a script",
+        "Create social clips from a prompt"
+      ]
+    },
+
+    "bytedance/seedance-2.0/us/text-to-video": {
+      className: "Seedance20UsTextToVideo",
+      docstring:
+        "US-hosted Seedance 2.0 generates video with synchronized audio from text, with multi-shot and camera control.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "seedance",
+        "bytedance",
+        "us"
+      ],
+      useCases: [
+        "Generate a shot with native audio",
+        "Keep generation on US infrastructure",
+        "Draft multi-shot sequences",
+        "Direct camera movement from text",
+        "Create social clips from a prompt"
+      ]
+    },
+
+    "minimax/h3-max/styles/vhs": {
+      className: "MinimaxH3MaxStylesVhs",
+      docstring:
+        "H3 Max generates VHS-style video with audio from text or a first-frame image, with adjustable tape damage.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "minimax",
+        "h3",
+        "style",
+        "vhs"
+      ],
+      useCases: [
+        "Create found-footage clips",
+        "Give a scene a retro tape look",
+        "Produce nostalgic social content",
+        "Add analog distortion to a music video",
+        "Generate era-accurate inserts"
+      ]
+    },
+
+    "minimax/h3-max/styles/retro-toon-70s": {
+      className: "MinimaxH3MaxStylesRetroToon70s",
+      docstring:
+        "H3 Max generates video with audio in a 1970s hand-painted animation style from text or a first-frame image.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "minimax",
+        "h3",
+        "style",
+        "animation"
+      ],
+      useCases: [
+        "Produce retro cartoon shorts",
+        "Style a title sequence as 70s animation",
+        "Animate a character in a vintage look",
+        "Create nostalgic ads",
+        "Generate stylized music video scenes"
+      ]
+    },
+
+    "minimax/h3-max/styles/low-poly": {
+      className: "MinimaxH3MaxStylesLowPoly",
+      docstring:
+        "H3 Max generates video with audio in a retro low-poly 3D style from text or a first-frame image.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "minimax",
+        "h3",
+        "style",
+        "low-poly"
+      ],
+      useCases: [
+        "Create retro game-style cutscenes",
+        "Produce low-poly animated loops",
+        "Style a scene as early 3D graphics",
+        "Generate stylized social clips",
+        "Draft a game trailer look"
+      ]
+    },
+
+    "minimax/h3-max/styles/hand-drawn": {
+      className: "MinimaxH3MaxStylesHandDrawn",
+      docstring:
+        "H3 Max generates video with audio in a hand-drawn animation style from text or a first-frame image.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "minimax",
+        "h3",
+        "style",
+        "animation"
+      ],
+      useCases: [
+        "Produce hand-drawn animated shorts",
+        "Animate a sketch-style explainer",
+        "Create illustrated story scenes",
+        "Style a music video as drawn animation",
+        "Generate storybook clips"
+      ]
+    },
+
+    "minimax/h3-max/styles/16bit-pixel": {
+      className: "MinimaxH3MaxStyles16bitPixel",
+      docstring:
+        "H3 Max generates video with audio in a 16-bit pixel-art style from text or a first-frame image.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "minimax",
+        "h3",
+        "style",
+        "pixel-art"
+      ],
+      useCases: [
+        "Create pixel-art game cutscenes",
+        "Produce retro game trailers",
+        "Animate a scene as a 16-bit sprite world",
+        "Generate chiptune music video visuals",
+        "Draft a pixel-art look for a game"
+      ]
+    },
+
+    "creatify/boreal": {
+      className: "CreatifyBoreal",
+      docstring:
+        "Creatify Boreal generates product, UGC, and presenter videos with synchronized audio from text, with optional image and audio inputs.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "creatify",
+        "ugc",
+        "presenter"
+      ],
+      useCases: [
+        "Produce UGC-style product ads",
+        "Generate presenter videos from a script",
+        "Turn a product photo into a promo",
+        "Drive a presenter with supplied audio",
+        "Create social ad variants"
+      ]
     }
   }
 };

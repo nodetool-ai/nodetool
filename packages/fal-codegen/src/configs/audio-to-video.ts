@@ -327,6 +327,26 @@ export const config: ModuleConfig = {
         "Deliver an ad keyed to a soundtrack",
         "Finish an approved audio-timed draft"
       ]
+    },
+
+    "pixverse/music-video/vibemv": {
+      className: "PixverseVibeMv",
+      docstring:
+        "PixVerse VibeMV generates a music video from a song, with optional character references, lyric subtitles, and style presets.",
+      tags: [
+        "video",
+        "generation",
+        "audio-to-video",
+        "pixverse",
+        "music-video"
+      ],
+      useCases: [
+        "Generate a music video from a track",
+        "Put a character into a song's visuals",
+        "Add lyric subtitles to a music video",
+        "Produce visualizers for releases",
+        "Create social clips for a song"
+      ]
     }
   }
 };

@@ -6304,6 +6304,85 @@ export const config: ModuleConfig = {
         "Feed one result into the next node",
         "Reduce a list output to a single image"
       ]
+    },
+
+    "bytedance/seedream/v5/flash/edit": {
+      className: "SeedreamV5FlashEdit",
+      docstring:
+        "Seedream 5.0 Flash edits images from a text instruction, tuned for speed and low cost.",
+      tags: [
+        "image",
+        "editing",
+        "image-to-image",
+        "img2img",
+        "seedream",
+        "bytedance",
+        "flash"
+      ],
+      useCases: [
+        "Make quick edits to a photo",
+        "Iterate on an edit cheaply",
+        "Apply one instruction across many images",
+        "Draft an edit before a slower model",
+        "Swap objects or backgrounds fast"
+      ]
+    },
+
+    "bytedance/seedream/v5/flash/layerize": {
+      className: "SeedreamV5FlashLayerize",
+      docstring:
+        "Seedream 5.0 Flash splits an image into separate layers, tuned for speed and low cost.",
+      tags: [
+        "image",
+        "layers",
+        "image-to-image",
+        "seedream",
+        "bytedance",
+        "flash"
+      ],
+      useCases: [
+        "Separate a flat image into editable layers",
+        "Pull a subject away from its background",
+        "Prepare an image for compositing",
+        "Recover layers from a finished design",
+        "Batch-layerize images cheaply"
+      ]
+    },
+
+    "bria/fibo-edit-1.5/virtual-try-on": {
+      className: "BriaFiboEdit15VirtualTryOn",
+      docstring:
+        "Bria FIBO-Edit 1.5 dresses the person in a photo in one to three reference garments or accessories, guided by an optional instruction.",
+      tags: [
+        "image",
+        "editing",
+        "image-to-image",
+        "bria",
+        "fibo",
+        "virtual-try-on",
+        "fashion"
+      ],
+      useCases: [
+        "Show a model wearing a catalog item",
+        "Combine several garments into one outfit",
+        "Preview accessories on a customer photo",
+        "Produce try-on shots for a product page",
+        "Test styling options without a shoot"
+      ]
+    },
+
+    "bria/fibo-edit-1.5/product-holding": {
+      className: "BriaFiboEdit15ProductHolding",
+      docstring:
+        "Bria FIBO-Edit 1.5 edits a person photo so the subject holds or carries one to three reference products, guided by an optional instruction.",
+      tags: ["image", "editing", "image-to-image", "bria", "fibo", "product"],
+      useCases: [
+        "Put a product in a model's hands",
+        "Create lifestyle shots from packshots",
+        "Show a product at human scale",
+        "Produce ad variants with different products",
+        "Place merchandise in a creator photo"
+      ]
     }
   }
 };
