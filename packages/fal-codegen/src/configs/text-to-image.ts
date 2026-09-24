@@ -3736,6 +3736,49 @@ export const config: ModuleConfig = {
         "Keep vector art consistent across a suite",
         "Prepare print-ready illustrations"
       ]
+    },
+
+    "bytedance/seedream/v5/flash/text-to-image": {
+      className: "SeedreamV5FlashTextToImage",
+      docstring:
+        "Seedream 5.0 Flash generates images from text, tuned for speed and low cost.",
+      tags: [
+        "image",
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "seedream",
+        "bytedance",
+        "flash"
+      ],
+      useCases: [
+        "Draft images quickly from a prompt",
+        "Generate many variations cheaply",
+        "Explore a concept before a final render",
+        "Produce thumbnails and placeholders",
+        "Batch-generate prompt tests"
+      ]
+    },
+
+    "recraft/v4.1/flash/text-to-image": {
+      className: "RecraftV41FlashTextToImage",
+      docstring:
+        "Recraft V4.1 Flash generates raster images from text, with controls for image size, color palette, and background color.",
+      tags: [
+        "image",
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "recraft",
+        "flash"
+      ],
+      useCases: [
+        "Generate on-brand images with a fixed palette",
+        "Draft illustrations quickly",
+        "Produce photography-style stills",
+        "Create mixed-media compositions",
+        "Iterate on a design direction cheaply"
+      ]
     }
   }
 };

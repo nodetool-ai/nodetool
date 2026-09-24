@@ -3249,6 +3249,93 @@ export const config: ModuleConfig = {
         "Grade archive material for HDR displays",
         "Convert a catalog to HDR"
       ]
+    },
+
+    "minimax/h3-max/extend-video": {
+      className: "MinimaxH3MaxExtendVideo",
+      docstring:
+        "H3 Max continues an existing video from a prompt, returning the full extended clip or only the new footage, at 480p to 2K.",
+      tags: [
+        "video",
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "minimax",
+        "h3",
+        "extend"
+      ],
+      useCases: [
+        "Extend a clip that ends too early",
+        "Continue a shot for an edit",
+        "Chain clips into a longer sequence",
+        "Add tail footage for transitions",
+        "Lengthen generated b-roll"
+      ]
+    },
+
+    "minimax/h3-max/3d-to-video": {
+      className: "MinimaxH3Max3dToVideo",
+      docstring:
+        "H3 Max turns a Blender render or 3D previs clip into photorealistic video, following its layout, camera movement, and timing, with optional image references.",
+      tags: [
+        "video",
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "minimax",
+        "h3",
+        "3d",
+        "previs"
+      ],
+      useCases: [
+        "Render previs as final-looking footage",
+        "Turn a Blender animatic into live action",
+        "Keep a planned camera move in the final shot",
+        "Apply reference looks to a 3D blockout",
+        "Visualize a scene before a shoot"
+      ]
+    },
+
+    "fal-ai/id-v2v": {
+      className: "IdV2V",
+      docstring:
+        "ID-V2V restyles a video's scene, lighting, and look from edited keyframes while keeping the subjects' identity, expressions, gaze, and motion.",
+      tags: [
+        "video",
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "restyle",
+        "identity"
+      ],
+      useCases: [
+        "Restyle footage from one edited frame",
+        "Change a scene's setting while keeping actors",
+        "Apply a new look without losing performances",
+        "Propagate a keyframe edit across a clip",
+        "Relocate a shot in post"
+      ]
+    },
+
+    "fal-ai/id-v2v/relight": {
+      className: "IdV2VRelight",
+      docstring:
+        "ID-V2V Relight changes a video's lighting from a relit reference frame, keeping the scene, subjects, and performance.",
+      tags: [
+        "video",
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "relight",
+        "lighting"
+      ],
+      useCases: [
+        "Relight footage in post",
+        "Match lighting across shots",
+        "Turn day footage into golden hour",
+        "Propagate a relit frame across a clip",
+        "Fix flat lighting on an approved take"
+      ]
     }
   }
 };

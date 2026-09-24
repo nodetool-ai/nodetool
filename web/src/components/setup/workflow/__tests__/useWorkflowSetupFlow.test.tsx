@@ -31,7 +31,8 @@ jest.mock("../../../../hooks/workflow/usePlanWorkflow", () => ({
   })
 }));
 
-// The plan step's planner-model picker, reduced to one selectable model.
+// The language model menu behind the plan step's planner picker and the setup
+// step's language role, reduced to two selectable models.
 jest.mock("../../../model_menu/LanguageModelMenuDialog", () => ({
   __esModule: true,
   default: ({
@@ -42,18 +43,28 @@ jest.mock("../../../model_menu/LanguageModelMenuDialog", () => ({
     onModelChange?: (model: unknown) => void;
   }) =>
     open ? (
-      <button
-        type="button"
-        onClick={() =>
-          onModelChange?.({
-            id: "gemini-3.6-flash",
-            provider: "gemini",
-            name: "Gemini 3.6 Flash"
-          })
-        }
-      >
-        pick gemini
-      </button>
+      <>
+        <button
+          type="button"
+          onClick={() =>
+            onModelChange?.({
+              id: "gemini-3.6-flash",
+              provider: "gemini",
+              name: "Gemini 3.6 Flash"
+            })
+          }
+        >
+          pick gemini
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            onModelChange?.({ id: "other", provider: "p", name: "other" })
+          }
+        >
+          pick other
+        </button>
+      </>
     ) : null
 }));
 
@@ -591,7 +602,8 @@ describe("useWorkflowSetupFlow", () => {
       { stage: "setup", brief: "b", plan: PLAN_WITH_ROLE }
     );
     const { unmount } = renderFlow();
-    await userEvent.click(screen.getByRole("radio", { name: /other/ }));
+    await userEvent.click(screen.getByRole("button", { name: "m" }));
+    await userEvent.click(screen.getByRole("button", { name: "pick other" }));
     expect(readWorkflowSetup(settings)?.["role_models"]).toEqual({
       language: "p:other"
     });
@@ -665,7 +677,9 @@ describe("useWorkflowSetupFlow", () => {
       expect(within(group).getAllByRole("radio")).toHaveLength(3);
     });
 
-    it("makes a role's model tiles a radio group with the remembered model checked", () => {
+    // The language role picks from the full model menu, so its one choice is
+    // the picker's label rather than a checked tile.
+    it("shows the remembered language model on the role's picker", () => {
       settings = writeWorkflowSetup(
         {},
         {
@@ -676,10 +690,10 @@ describe("useWorkflowSetupFlow", () => {
         }
       );
       renderFlow();
-      const group = screen.getByRole("radiogroup", { name: "Language model" });
+      expect(screen.getByRole("button", { name: "other" })).toBeInTheDocument();
       expect(
-        within(group).getByRole("radio", { checked: true })
-      ).toHaveTextContent("other");
+        screen.queryByRole("radiogroup", { name: "Language model" })
+      ).toBeNull();
     });
 
     // The examples browser is the one grid that is not a choice: each card

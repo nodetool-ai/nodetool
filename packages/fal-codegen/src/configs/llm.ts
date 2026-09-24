@@ -111,6 +111,20 @@ export const config: ModuleConfig = {
         "Fall back across providers",
         "Centralize LLM access through fal"
       ]
+    },
+
+    "openrouter/router/decisions": {
+      className: "OpenRouterDecisions",
+      docstring:
+        "Runs an OpenRouter decision model through fal, answering a list of questions about a supplied state.",
+      tags: ["llm", "decision", "json", "openrouter"],
+      useCases: [
+        "Answer structured questions about a state",
+        "Route a workflow on a model's decision",
+        "Classify an item against several questions",
+        "Gate a step on a model judgment",
+        "Compare decision models behind one endpoint"
+      ]
     }
   }
 };

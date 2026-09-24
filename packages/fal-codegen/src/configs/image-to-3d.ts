@@ -599,6 +599,48 @@ export const config: ModuleConfig = {
         "Produce game-ready topology from photos",
         "Capture geometry without a scanner"
       ]
+    },
+
+    "tripo3d/p2/image-to-3d": {
+      className: "TripoP2ImageTo3d",
+      docstring:
+        "Tripo P2 generates a 3D model from a single image, with optional PBR textures, adjustable face count, and triangle or quad topology.",
+      tags: ["3d", "generation", "image-to-3d", "tripo", "mesh"],
+      useCases: [
+        "Turn a product photo into a 3D model",
+        "Convert concept art into a mesh",
+        "Produce quad meshes from a reference",
+        "Create textured assets for a scene",
+        "Build 3D props from sketches"
+      ]
+    },
+
+    "meshy/v7.1/image-to-3d": {
+      className: "MeshyV71ImageTo3d",
+      docstring:
+        "Meshy 7.1 generates a 3D model from a single image, with standard, low-poly, and Smart Topology modes, optional PBR textures, and geometry resolution up to 4K.",
+      tags: ["3d", "generation", "image-to-3d", "meshy", "mesh"],
+      useCases: [
+        "Turn a reference image into a 3D asset",
+        "Produce low-poly models for games",
+        "Generate rigged or animated characters",
+        "Create PBR-textured props",
+        "Convert concept art into a mesh"
+      ]
+    },
+
+    "meshy/v7.1/multi-image-to-3d": {
+      className: "MeshyV71MultiImageTo3d",
+      docstring:
+        "Meshy 7.1 generates a textured 3D model from one to four views of the same object, with polygon count, topology, symmetry, and PBR controls.",
+      tags: ["3d", "generation", "image-to-3d", "meshy", "multi-view", "mesh"],
+      useCases: [
+        "Reconstruct an object from several photos",
+        "Model a product from front, side, and back views",
+        "Improve geometry over a single-image result",
+        "Produce symmetric character meshes",
+        "Create PBR-textured assets from turnarounds"
+      ]
     }
   }
 };

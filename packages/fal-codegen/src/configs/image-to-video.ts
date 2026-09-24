@@ -3583,6 +3583,140 @@ export const config: ModuleConfig = {
         "Reuse a cast member in new scripts",
         "Generate consistent avatar series"
       ]
+    },
+
+    "bytedance/seedance-2.5/us/image-to-video": {
+      className: "Seedance25UsImageToVideo",
+      docstring:
+        "US-hosted Seedance 2.5 animates a still image into video with synchronized audio and an optional end frame, up to 30 seconds.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "seedance",
+        "bytedance",
+        "us"
+      ],
+      useCases: [
+        "Animate a still with native audio",
+        "Keep generation on US infrastructure",
+        "Control a shot's first and last frame",
+        "Produce long single takes",
+        "Turn product photos into clips"
+      ]
+    },
+
+    "bytedance/seedance-2.5/us/reference-to-video": {
+      className: "Seedance25UsReferenceToVideo",
+      docstring:
+        "US-hosted Seedance 2.5 generates video with native audio from up to 30 images, 10 videos, and 10 audio references.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "seedance",
+        "bytedance",
+        "us",
+        "reference"
+      ],
+      useCases: [
+        "Keep a cast consistent across shots",
+        "Keep generation on US infrastructure",
+        "Edit or extend a clip with references",
+        "Match a reference video's motion",
+        "Combine voice, image, and video references"
+      ]
+    },
+
+    "bytedance/seedance-2.0/us/image-to-video": {
+      className: "Seedance20UsImageToVideo",
+      docstring:
+        "US-hosted Seedance 2.0 animates a still image into video with synchronized audio and optional start and end frames.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "seedance",
+        "bytedance",
+        "us"
+      ],
+      useCases: [
+        "Animate a still with native audio",
+        "Keep generation on US infrastructure",
+        "Control a shot's first and last frame",
+        "Turn product photos into clips",
+        "Animate storyboard frames"
+      ]
+    },
+
+    "bytedance/seedance-2.0/us/reference-to-video": {
+      className: "Seedance20UsReferenceToVideo",
+      docstring:
+        "US-hosted Seedance 2.0 generates video with native audio from up to 9 images, 3 videos, and 3 audio references.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "seedance",
+        "bytedance",
+        "us",
+        "reference"
+      ],
+      useCases: [
+        "Keep a cast consistent across shots",
+        "Keep generation on US infrastructure",
+        "Match a reference video's motion",
+        "Combine voice, image, and video references",
+        "Generate a shot from a mood board"
+      ]
+    },
+
+    "minimax/h3-max/lip-sync/image-to-video": {
+      className: "MinimaxH3MaxLipSyncImageToVideo",
+      docstring:
+        "H3 Max generates a talking video from an image and an audio track, synchronizing mouth movement to the speech.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "minimax",
+        "h3",
+        "lipsync",
+        "avatar"
+      ],
+      useCases: [
+        "Make a portrait speak a voiceover",
+        "Produce talking-head explainers",
+        "Animate a character with dialogue",
+        "Localize a presenter into other languages",
+        "Create avatar videos from a photo"
+      ]
+    },
+
+    "minimax/h3-max/camera-controls": {
+      className: "MinimaxH3MaxCameraControls",
+      docstring:
+        "H3 Max animates a single image with keyframed control over the camera's orbit, elevation, and distance.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "minimax",
+        "h3",
+        "camera"
+      ],
+      useCases: [
+        "Orbit around a product shot",
+        "Push in on a subject on cue",
+        "Design a precise camera move from a still",
+        "Produce turntable-style reveals",
+        "Match a planned camera path"
+      ]
     }
   }
 };

@@ -130,6 +130,53 @@ describe("genuine video extension", () => {
     });
   });
 
+  it("extends H3 Max from the end only, within its 5 to 15 second range", async () => {
+    const modelId = "minimax/h3-max/extend-video";
+    const provider = new FalProvider();
+    const models = await provider.getAvailableVideoModels();
+    expect(
+      models.find((model) => model.id === modelId)?.supportedTasks
+    ).toEqual(["extend_video", "extend_video_end"]);
+
+    const transport = provider as unknown as {
+      upload(bytes: Uint8Array, mime: string): Promise<string>;
+      runVideoEndpoint(
+        id: string,
+        input: Record<string, unknown>
+      ): Promise<Uint8Array>;
+    };
+    const upload = vi
+      .spyOn(transport, "upload")
+      .mockResolvedValue("https://fal.media/source.mp4");
+    const dispatch = vi
+      .spyOn(transport, "runVideoEndpoint")
+      .mockResolvedValue(new Uint8Array([1]));
+    const params: ExtendVideoParams = {
+      model: { id: modelId, provider: "fal_ai", name: modelId },
+      prompt: "The panda looks up",
+      mode: "end",
+      durationSeconds: 8
+    };
+
+    for (const rejected of [
+      { mode: "start" as const },
+      { durationSeconds: 4 },
+      { durationSeconds: 16 }
+    ]) {
+      await expect(
+        provider.extendVideo(new Uint8Array([9]), { ...params, ...rejected })
+      ).rejects.toThrow();
+    }
+    expect(upload).not.toHaveBeenCalled();
+
+    await provider.extendVideo(new Uint8Array([9]), params);
+    expect(dispatch).toHaveBeenCalledWith(modelId, {
+      video_url: "https://fal.media/source.mp4",
+      prompt: "The panda looks up",
+      duration: 8
+    });
+  });
+
   it("refuses ordinary editors and invalid extension durations before upload", async () => {
     const provider = new FalProvider();
     const upload = vi.spyOn(

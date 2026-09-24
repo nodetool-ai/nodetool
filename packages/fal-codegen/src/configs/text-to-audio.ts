@@ -738,6 +738,55 @@ export const config: ModuleConfig = {
         "Turn lyrics into a finished song",
         "Create theme music for a product"
       ]
+    },
+
+    "google/lyria-3.5": {
+      className: "Lyria35",
+      docstring:
+        "Google DeepMind Lyria 3.5 generates music from a text prompt, with an optional image for mood and an optional negative prompt.",
+      tags: [
+        "audio",
+        "music",
+        "generation",
+        "text-to-audio",
+        "lyria",
+        "google"
+      ],
+      useCases: [
+        "Score a video from a text brief",
+        "Generate music that matches an image",
+        "Draft songs with lyrics",
+        "Produce background tracks",
+        "Explore genres and arrangements"
+      ]
+    },
+
+    "elevenlabs/music/v2.5": {
+      className: "ElevenLabsMusicV25",
+      docstring:
+        "ElevenLabs Music v2.5 generates music from a prompt or a section-by-section composition plan, with length and instrumental controls.",
+      tags: ["audio", "music", "generation", "text-to-audio", "elevenlabs"],
+      useCases: [
+        "Score a video to a set length",
+        "Compose a track section by section",
+        "Generate instrumental background music",
+        "Produce songs with vocals",
+        "Create jingles and stingers"
+      ]
+    },
+
+    "elevenlabs/music/v2": {
+      className: "ElevenLabsMusicV2",
+      docstring:
+        "ElevenLabs Music v2 generates music from a prompt or a section-by-section composition plan, with length and instrumental controls.",
+      tags: ["audio", "music", "generation", "text-to-audio", "elevenlabs"],
+      useCases: [
+        "Score a video to a set length",
+        "Compose a track section by section",
+        "Generate instrumental background music",
+        "Produce songs with vocals",
+        "Create jingles and stingers"
+      ]
     }
   }
 };
