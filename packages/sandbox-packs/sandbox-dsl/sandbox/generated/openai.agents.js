@@ -6,7 +6,11 @@ function realtimeAgent(inputs) {
 function realtimeTranscription(inputs) {
   return createNode("openai.agents.RealtimeTranscription", inputs, { outputNames: ["text", "chunk"], streamingInput: true });
 }
+function liveAgent(inputs) {
+  return createNode("openai.agents.LiveAgent", inputs, { outputNames: ["chunk", "audio", "text", "input_transcript"], streamingInput: true });
+}
 export {
+  liveAgent,
   realtimeAgent,
   realtimeTranscription
 };

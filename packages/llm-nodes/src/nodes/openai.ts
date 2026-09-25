@@ -8,12 +8,15 @@ import type { Chunk } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { fetchExternalMedia } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { createLogger } from "@nodetool-ai/config";
+import { encodeWav } from "./gemini.js";
 import {
   isCallable,
   isString
 } from "@nodetool-ai/node-sdk";
 
 const OPENAI_API_BASE = "https://api.openai.com/v1";
+const log = createLogger("nodetool.llm-nodes.openai");
 
 function getApiKey(secrets: Record<string, string>): string {
   const key = secrets.OPENAI_API_KEY || process.env.OPENAI_API_KEY || "";
@@ -1568,6 +1571,426 @@ export class RealtimeTranscriptionNode extends BaseNode {
 }
 
 // ---------------------------------------------------------------------------
+// 11. LiveAgent (GPT-Live)
+// ---------------------------------------------------------------------------
+export const LIVE_SESSIONS_URL = "wss://api.openai.com/v1/live/sessions";
+const LIVE_SAMPLE_RATE = 24000;
+/** 100 ms of PCM16 mono silence at 24 kHz. */
+const LIVE_SILENCE_FRAME = Buffer.alloc((LIVE_SAMPLE_RATE / 10) * 2).toString(
+  "base64"
+);
+const LIVE_SILENCE_INTERVAL_MS = 100;
+/** Quiet time after input ends before the session is closed. */
+const LIVE_IDLE_CLOSE_MS = 3000;
+/** Upper bound on the drain phase after input ends. */
+const LIVE_MAX_DRAIN_MS = 120_000;
+/** The API docs recommend waiting up to 15 s for `session.closed`. */
+const LIVE_CLOSE_TIMEOUT_MS = 15_000;
+const LIVE_RESPONSE_TERMINAL_EVENTS = new Set([
+  "response.completed",
+  "response.failed",
+  "response.incomplete",
+  "response.cancelled"
+]);
+
+export class LiveAgentNode extends BaseNode {
+  static readonly nodeType = "openai.agents.LiveAgent";
+  static readonly body = "content_card";
+  static readonly title = "Live Agent";
+  static readonly description =
+    "Full-duplex voice agent over OpenAI's GPT-Live WebSocket API. Streams microphone audio in and spoken audio plus transcripts out, delegating lookups and reasoning to a Responses backend model.\n" +
+    "    live, gpt-live, realtime, voice, streaming, openai, audio-input, audio-output, websocket";
+  static readonly metadataOutputTypes = {
+    chunk: "chunk",
+    audio: "audio",
+    text: "str",
+    input_transcript: "str"
+  };
+  static readonly inlineFields = ["instructions"];
+  static readonly inputFields = ["chunk"];
+  static readonly requiredSettings = ["OPENAI_API_KEY"];
+  static readonly isStreamingInput = true;
+
+  @prop({
+    type: "enum",
+    default: "gpt-live-1",
+    title: "Model",
+    values: ["gpt-live-1"]
+  })
+  declare model: string;
+
+  @prop({
+    type: "str",
+    default:
+      "Be concise. Delegate requests needing current information or lookups to the backend.",
+    title: "Instructions",
+    description:
+      "Conversation instructions for the voice model: style, and when to delegate to the backend"
+  })
+  declare instructions: string;
+
+  @prop({
+    type: "chunk",
+    default: {
+      type: "chunk",
+      node_id: null,
+      thread_id: null,
+      workflow_id: null,
+      content_type: "audio",
+      content: "",
+      content_metadata: {},
+      done: false,
+      thinking: false
+    },
+    title: "Chunk",
+    description:
+      "Streaming input. Audio chunks are base64 mono PCM16 at 24 kHz. Text chunks are queued for the backend as user messages."
+  })
+  declare chunk: Chunk;
+
+  @prop({
+    type: "enum",
+    default: "marin",
+    title: "Voice",
+    description: "The voice for spoken output. Fixed for the session.",
+    values: [
+      "marin",
+      "cedar",
+      "alloy",
+      "ash",
+      "ballad",
+      "coral",
+      "echo",
+      "sage",
+      "shimmer",
+      "verse",
+      "quartz",
+      "ripple",
+      "vesper",
+      "willow",
+      "stone",
+      "gleam",
+      "meridian",
+      "bossa",
+      "tempo",
+      "beacon",
+      "delta",
+      "cinder"
+    ]
+  })
+  declare voice: string;
+
+  @prop({
+    type: "str",
+    default: "gpt-5.6-luna",
+    title: "Backend Model",
+    description: "Responses model that handles delegated reasoning and tools"
+  })
+  declare backend_model: string;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Backend Instructions",
+    description:
+      "Prompt for the backend model: task rules and how to return results"
+  })
+  declare backend_instructions: string;
+
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Web Search",
+    description: "Let the backend model search the web"
+  })
+  declare web_search: boolean;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs,
+    context?: ProcessingContext
+  ): Promise<void> {
+    let apiKey = "";
+    if (context && isCallable(context.getSecret)) {
+      apiKey = (await context.getSecret("OPENAI_API_KEY")) ?? "";
+    }
+    if (!apiKey) apiKey = process.env.OPENAI_API_KEY ?? "";
+    if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
+
+    const backendModel = this.backend_model.trim();
+    if (!backendModel) {
+      throw new Error("Backend Model is required for GPT-Live delegation");
+    }
+    const responses: Record<string, unknown> = { model: backendModel };
+    if (this.backend_instructions.trim()) {
+      responses.instructions = this.backend_instructions;
+    }
+    if (this.web_search) {
+      responses.tools = [{ type: "web_search" }];
+      responses.tool_choice = "auto";
+    }
+
+    const { WebSocket } = await import("ws");
+    const ws = new WebSocket(LIVE_SESSIONS_URL, {
+      headers: { Authorization: `Bearer ${apiKey}` }
+    });
+    const send = (event: Record<string, unknown>): void => {
+      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(event));
+    };
+
+    let outputText = "";
+    let inputText = "";
+    const outputAudio: Buffer[] = [];
+    let lastActivity: number;
+    const openDelegations = new Set<string>();
+    let started = false;
+    let finalized = false;
+    let failure: Error | null = null;
+
+    let resolveStarted!: () => void;
+    let resolveEnded!: () => void;
+    const startedPromise = new Promise<void>((resolve) => {
+      resolveStarted = resolve;
+    });
+    // Settles on session.closed, socket close, or a fatal error.
+    const endedPromise = new Promise<void>((resolve) => {
+      resolveEnded = resolve;
+    });
+    const fail = (err: Error): void => {
+      failure ??= err;
+      resolveStarted();
+      resolveEnded();
+    };
+
+    ws.on("open", () => {
+      send({
+        type: "session.start",
+        event_id: "event_start",
+        session: {
+          model: this.model,
+          instructions: this.instructions || undefined,
+          audio: {
+            format: { type: "audio/pcm", rate: LIVE_SAMPLE_RATE },
+            output: { voice: this.voice }
+          },
+          delegation: { type: "responses", responses }
+        }
+      });
+    });
+
+    // Emits run sequentially so chunk order matches arrival order.
+    let emitQueue = Promise.resolve();
+    const enqueueEmit = (fn: () => Promise<void>): void => {
+      emitQueue = emitQueue.then(fn).catch((err: unknown) => {
+        fail(err instanceof Error ? err : new Error(String(err)));
+      });
+    };
+
+    ws.on("message", (data: Buffer | string) => {
+      let msg: Record<string, unknown>;
+      try {
+        msg = JSON.parse(data.toString()) as Record<string, unknown>;
+      } catch {
+        return;
+      }
+      const type = String(msg.type ?? "");
+
+      if (type === "session.started") {
+        started = true;
+        resolveStarted();
+      } else if (type === "session.output_audio.delta") {
+        const audioB64 = String(msg.delta ?? "");
+        if (!audioB64) return;
+        lastActivity = Date.now();
+        outputAudio.push(Buffer.from(audioB64, "base64"));
+        enqueueEmit(async () => {
+          await outputs.emit("chunk", {
+            type: "chunk",
+            content: audioB64,
+            done: false,
+            content_type: "audio",
+            content_metadata: {
+              format: "pcm16le",
+              encoding: "pcm16le",
+              sample_rate: LIVE_SAMPLE_RATE,
+              channels: 1
+            }
+          });
+        });
+      } else if (type === "session.output_transcript.delta") {
+        const delta = String(msg.delta ?? "");
+        if (!delta) return;
+        lastActivity = Date.now();
+        outputText += delta;
+        enqueueEmit(async () => {
+          await outputs.emit("chunk", {
+            type: "chunk",
+            content: delta,
+            done: false,
+            content_type: "text"
+          });
+        });
+      } else if (type === "session.input_transcript.delta") {
+        inputText += String(msg.delta ?? "");
+        lastActivity = Date.now();
+      } else if (type === "session.delegation.created") {
+        const delegation = msg.delegation as
+          | Record<string, unknown>
+          | undefined;
+        if (delegation?.id) openDelegations.add(String(delegation.id));
+        lastActivity = Date.now();
+      } else if (type === "response.event") {
+        lastActivity = Date.now();
+        const nested = msg.event as Record<string, unknown> | undefined;
+        if (LIVE_RESPONSE_TERMINAL_EVENTS.has(String(nested?.type ?? ""))) {
+          openDelegations.delete(String(msg.delegation_id ?? ""));
+        }
+      } else if (type === "session.closed") {
+        finalized = true;
+        resolveEnded();
+      } else if (type === "error") {
+        const error = msg.error as Record<string, unknown> | undefined;
+        const message = String(error?.message ?? "Unknown GPT-Live error");
+        // Before startup every error is fatal. Afterwards, moderation and
+        // rejected commands are reported without ending the session.
+        if (!started) {
+          fail(new Error(`OpenAI GPT-Live error: ${message}`));
+        } else {
+          log.warn(`OpenAI GPT-Live error: ${message}`);
+        }
+      }
+    });
+
+    ws.on("error", (err: Error) => fail(err));
+    ws.on("close", () => {
+      if (!started) {
+        fail(new Error("GPT-Live connection closed before session.started"));
+      }
+      resolveEnded();
+    });
+
+    let silenceTimer: ReturnType<typeof setInterval> | undefined;
+    try {
+      await startedPromise;
+      if (failure) throw failure;
+
+      for await (const [handle, item] of inputs.any()) {
+        if (handle === "__control__") continue;
+        if (failure) break;
+
+        if (isString(item)) {
+          if (item) send({ type: "session.input_audio.append", audio: item });
+          continue;
+        }
+
+        const chunk = item as Record<string, unknown>;
+        if (chunk.done) break;
+        const content = String(chunk.content ?? "");
+        if (!content) continue;
+
+        if (String(chunk.content_type ?? "text") === "audio") {
+          const meta = chunk.content_metadata as
+            | Record<string, unknown>
+            | undefined;
+          const rate = meta?.sample_rate;
+          if (rate !== undefined && Number(rate) !== LIVE_SAMPLE_RATE) {
+            throw new Error(
+              `GPT-Live expects ${LIVE_SAMPLE_RATE} Hz PCM16 audio, got ${String(rate)} Hz`
+            );
+          }
+          send({ type: "session.input_audio.append", audio: content });
+        } else {
+          send({
+            type: "response.item.create",
+            item: {
+              type: "message",
+              role: "user",
+              content: [{ type: "input_text", text: content }]
+            }
+          });
+          send({ type: "response.create" });
+        }
+      }
+      if (failure) throw failure;
+
+      // Input has ended, but the reply may still be in progress. The session
+      // timeline advances with input audio, so keep sending silence until
+      // the model and its delegations go quiet, then close gracefully.
+      lastActivity = Date.now();
+      silenceTimer = setInterval(() => {
+        send({
+          type: "session.input_audio.append",
+          audio: LIVE_SILENCE_FRAME
+        });
+      }, LIVE_SILENCE_INTERVAL_MS);
+      const drainStart = Date.now();
+      while (
+        !failure &&
+        ws.readyState === WebSocket.OPEN &&
+        Date.now() - drainStart < LIVE_MAX_DRAIN_MS &&
+        (openDelegations.size > 0 ||
+          Date.now() - lastActivity < LIVE_IDLE_CLOSE_MS)
+      ) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, LIVE_SILENCE_INTERVAL_MS)
+        );
+      }
+      clearInterval(silenceTimer);
+      silenceTimer = undefined;
+
+      if (ws.readyState === WebSocket.OPEN) {
+        send({ type: "session.close" });
+        let closeTimer: ReturnType<typeof setTimeout> | undefined;
+        await Promise.race([
+          endedPromise,
+          new Promise<void>((resolve) => {
+            closeTimer = setTimeout(resolve, LIVE_CLOSE_TIMEOUT_MS);
+          })
+        ]);
+        clearTimeout(closeTimer);
+        if (!finalized) {
+          log.warn(
+            "GPT-Live session.closed was not received; final usage is unconfirmed"
+          );
+        }
+      }
+      await emitQueue;
+      if (failure) throw failure;
+    } finally {
+      if (silenceTimer) clearInterval(silenceTimer);
+      if (
+        ws.readyState === WebSocket.OPEN ||
+        ws.readyState === WebSocket.CONNECTING
+      ) {
+        ws.close();
+      }
+    }
+
+    await outputs.emit("chunk", {
+      type: "chunk",
+      content: "",
+      done: true,
+      content_type: "text"
+    });
+    if (outputAudio.length > 0) {
+      const pcm = Buffer.concat(outputAudio);
+      const wav = encodeWav(pcm, LIVE_SAMPLE_RATE, 1, 16);
+      await outputs.emit("audio", {
+        type: "audio",
+        data: Buffer.from(wav).toString("base64"),
+        content_type: "audio/wav"
+      });
+    }
+    await outputs.emit("text", outputText);
+    await outputs.emit("input_transcript", inputText);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Export
 // ---------------------------------------------------------------------------
 export const OPENAI_NODES = tagAsServer([
@@ -1581,5 +2004,6 @@ export const OPENAI_NODES = tagAsServer([
   TranslateNode,
   TranscribeNode,
   RealtimeAgentNode,
-  RealtimeTranscriptionNode
+  RealtimeTranscriptionNode,
+  LiveAgentNode
 ]);

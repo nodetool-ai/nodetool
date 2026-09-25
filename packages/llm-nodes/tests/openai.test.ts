@@ -542,8 +542,8 @@ describe("RealtimeTranscriptionNode", () => {
 // OPENAI_NODES export
 // ---------------------------------------------------------------------------
 describe("OPENAI_NODES", () => {
-  it("exports all 11 nodes", () => {
-    expect(OPENAI_NODES).toHaveLength(11);
+  it("exports all 12 nodes", () => {
+    expect(OPENAI_NODES).toHaveLength(12);
     const types = OPENAI_NODES.map((n) => n.nodeType);
     expect(types).toContain("openai.text.Embedding");
     expect(types).toContain("openai.text.WebSearch");
@@ -556,5 +556,6 @@ describe("OPENAI_NODES", () => {
     expect(types).toContain("openai.audio.Transcribe");
     expect(types).toContain("openai.agents.RealtimeAgent");
     expect(types).toContain("openai.agents.RealtimeTranscription");
+    expect(types).toContain("openai.agents.LiveAgent");
   });
 });
