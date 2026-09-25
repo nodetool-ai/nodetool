@@ -106,6 +106,31 @@ describe("extractPricingParams", () => {
     expect(extractPricingParams({ audio: { uri: "x" } }).withAudio).toBeUndefined();
   });
 
+  it("prices speech by the source text length, including redacted long text", () => {
+    expect(extractPricingParams({ text: "Hello world" }).characters).toBe(11);
+    expect(
+      extractPricingParams({ text: { truncated: true, length: 2401 } }).characters
+    ).toBe(2401);
+    expect(extractPricingParams({ text: "" }).characters).toBeUndefined();
+    expect(extractPricingParams({ text: { length: 20 } }).characters).toBeUndefined();
+    expect(extractPricingParams({ prompt: "describe this" }).characters).toBeUndefined();
+  });
+
+  it("counts populated input images and entity references for image edits", () => {
+    const image = { type: "image", uri: "asset://a" };
+    expect(
+      extractPricingParams({
+        image: [image, { type: "image", uri: "" }, { bytes: 128 }],
+        entities: [
+          { image, reference_images: [image, image] },
+          { reference_images: [] }
+        ]
+      }).referenceImages
+    ).toBe(5);
+    expect(extractPricingParams({ image: image }).referenceImages).toBe(1);
+    expect(extractPricingParams({ image: [] }).referenceImages).toBeUndefined();
+  });
+
   it("returns nothing for a node with no pricing-relevant properties", () => {
     expect(extractPricingParams({ prompt: "hi", seed: 3 })).toEqual({});
     expect(extractPricingParams(undefined)).toEqual({});

@@ -17,6 +17,7 @@ import {
   FalPlatformAuthError,
   falRequestCost,
   registerCostReconciler,
+  type CostReconciler,
   type ReconciledCost
 } from "@nodetool-ai/runtime";
 
@@ -53,9 +54,11 @@ export async function fetchFalBillingCost(
 
 /** Register the FAL reconciler so the runner can refine FAL estimates. */
 export function registerFalCostReconciler(): void {
-  registerCostReconciler("fal", async ({ requestId, secrets }) => {
+  const reconcile: CostReconciler = async ({ requestId, secrets }) => {
     const apiKey = secrets?.FAL_API_KEY || process.env.FAL_API_KEY || "";
     if (!apiKey) return null;
     return fetchFalBillingCost(apiKey, requestId);
-  });
+  };
+  registerCostReconciler("fal", reconcile);
+  registerCostReconciler("fal_ai", reconcile);
 }

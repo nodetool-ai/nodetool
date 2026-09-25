@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
 
+import { trpcClient } from "../../trpc/client";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { LOOSE_PROJECT_ID, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { usePanelStore } from "../../stores/PanelStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import {
   SETTINGS_SECTIONS,
   useSettingsPageStore,
@@ -23,14 +25,40 @@ export const WorkflowEditorRedirect = () => {
   }>();
   const ref = workflowId ?? workflow;
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const setActiveProjectId = useWorkspaceTabsStore((state) => state.setActiveProjectId);
+  const addNotification = useNotificationStore((state) => state.addNotification);
+  const [resolved, setResolved] = useState(false);
 
   useEffect(() => {
-    if (ref) {
-      openTab({ type: "workflow", ref, mode: "edit" });
+    if (!ref) {
+      setResolved(true);
+      return;
     }
-  }, [ref, openTab]);
+    const controller = new AbortController();
+    void trpcClient.workflows.get.query({ id: ref }, { signal: controller.signal })
+      .then((workflow) => {
+        if (controller.signal.aborted) return;
+        setActiveProjectId(workflow.project_id ?? null);
+        openTab({
+          type: "workflow", ref: workflow.id, mode: "edit",
+          projectId: workflow.project_id ?? LOOSE_PROJECT_ID
+        });
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          addNotification({
+            type: "error", alert: true,
+            content: `Could not open workflow: ${error instanceof Error ? error.message : String(error)}`
+          });
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setResolved(true);
+      });
+    return () => controller.abort();
+  }, [ref, openTab, setActiveProjectId, addNotification]);
 
-  return <Navigate to="/workspace" replace />;
+  return resolved ? <Navigate to="/workspace" replace /> : null;
 };
 
 /**
@@ -63,20 +91,52 @@ export const SettingsRedirect = () => {
 export const ChatThreadRedirect = () => {
   const { thread_id: threadId } = useParams<{ thread_id?: string }>();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const setActiveProjectId = useWorkspaceTabsStore((state) => state.setActiveProjectId);
+  const addNotification = useNotificationStore((state) => state.addNotification);
   const handleViewChange = usePanelStore((state) => state.handleViewChange);
+  const [resolved, setResolved] = useState(false);
 
   useEffect(() => {
-    if (threadId) {
-      openTab({
-        type: "chat",
-        ref: threadId,
-        mode: "view",
-        projectId: useGlobalChatStore.getState().threads[threadId]?.project_id
-      });
-    } else {
+    if (!threadId) {
       handleViewChange("chats");
+      setResolved(true);
+      return;
     }
-  }, [threadId, openTab, handleViewChange]);
+    const localThread = useGlobalChatStore.getState().threads[threadId];
+    if (localThread) {
+      setActiveProjectId(localThread.project_id ?? null);
+      openTab({
+        type: "chat", ref: localThread.id, mode: "view",
+        projectId: localThread.project_id ?? LOOSE_PROJECT_ID
+      });
+      setResolved(true);
+      return;
+    }
+    const controller = new AbortController();
+    void trpcClient.threads.get.query({ id: threadId }, { signal: controller.signal })
+      .then((thread) => {
+        if (controller.signal.aborted) return;
+        setActiveProjectId(thread.project_id ?? null);
+        openTab({
+          type: "chat",
+          ref: thread.id,
+          mode: "view",
+          projectId: thread.project_id ?? LOOSE_PROJECT_ID
+        });
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          addNotification({
+            type: "error", alert: true,
+            content: `Could not open chat: ${error instanceof Error ? error.message : String(error)}`
+          });
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setResolved(true);
+      });
+    return () => controller.abort();
+  }, [threadId, openTab, handleViewChange, setActiveProjectId, addNotification]);
 
-  return <Navigate to="/workspace" replace />;
+  return resolved ? <Navigate to="/workspace" replace /> : null;
 };

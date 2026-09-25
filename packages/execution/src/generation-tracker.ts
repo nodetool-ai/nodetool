@@ -26,6 +26,7 @@ import {
   priceGeneration,
   type RunCostLedgerOptions
 } from "./cost-ledger.js";
+import { providerBillingSecretKey } from "./provider-secret-key.js";
 
 const log = createLogger("nodetool.execution.generation-tracker");
 
@@ -394,7 +395,7 @@ export async function reconcileRow(
     now.getTime() + backoffMinutes * 60_000
   ).toISOString();
   try {
-    const secretKey = `${row.provider.toUpperCase()}_API_KEY`;
+    const secretKey = providerBillingSecretKey(row.provider);
     const apiKey = await resolveSecret?.(secretKey, row.user_id);
     const actual = await reconciler({
       requestId: row.provider_request_id,

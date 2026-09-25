@@ -16,18 +16,18 @@
 // -----------------------------------------------------------------
 
 import { z } from "zod";
-import { isShortResourceId } from "@nodetool-ai/protocol";
-import { trpcClient } from "../../../trpc/client";
 import {
   FrontendToolRegistry,
   type FrontendToolContext
 } from "../frontendTools";
 import {
+  LOOSE_PROJECT_ID,
   tabId,
   useWorkspaceTabsStore,
   type WorkspaceTabType
 } from "../../../stores/WorkspaceTabsStore";
 import { navigateTo } from "../../appNavigation";
+import { resolveDocumentProject } from "../../resolveDocumentProject";
 import { docUrl } from "./resourceLinks";
 import {
   getTimelineAgentHandler,
@@ -178,17 +178,25 @@ FrontendToolRegistry.register({
       )
   }),
   async execute({ type, id, focus }, ctx) {
-    if (type === "timeline" && isShortResourceId(id)) {
-      const sequence = await trpcClient.timeline.get.query({ id });
-      id = sequence.id;
-    }
+    const document = await resolveDocumentProject(TAB_TYPE[type], id);
+    id = document.id;
     const tabs = useWorkspaceTabsStore.getState();
+    const previousProjectId = tabs.activeProjectId;
+    const previousActiveTabId = tabs.activeTabId;
     const wasOpen = tabs.tabs.some(
       (tab) => tab.id === tabId(TAB_TYPE[type], id)
     );
 
     if (wasOpen && ready(type, id, ctx)) {
-      if (focus !== false) tabs.setActiveTab(tabId(TAB_TYPE[type], id));
+      tabs.setActiveProjectId(document.projectId ?? null);
+      tabs.openTab({
+        type: TAB_TYPE[type], ref: id, mode: "edit",
+        projectId: document.projectId ?? LOOSE_PROJECT_ID
+      });
+      if (focus === false) {
+        tabs.setActiveProjectId(previousProjectId);
+        if (previousActiveTabId) tabs.setActiveTab(previousActiveTabId);
+      }
       return {
         ok: true,
         type,
@@ -208,13 +216,17 @@ FrontendToolRegistry.register({
     }
 
     // Editors register their agent handler; viewers do not — so always edit.
-    const previousActiveTabId = tabs.activeTabId;
-    tabs.openTab({ type: TAB_TYPE[type], ref: id, mode: "edit" });
-    if (focus === false && previousActiveTabId) {
-      tabs.setActiveTab(previousActiveTabId);
-    }
+    tabs.setActiveProjectId(document.projectId ?? null);
+    tabs.openTab({
+      type: TAB_TYPE[type], ref: id, mode: "edit",
+      projectId: document.projectId ?? LOOSE_PROJECT_ID
+    });
 
     if (await waitUntilReady(type, id, ctx)) {
+      if (focus === false) {
+        tabs.setActiveProjectId(previousProjectId);
+        if (previousActiveTabId) tabs.setActiveTab(previousActiveTabId);
+      }
       return {
         ok: true,
         type,
@@ -227,10 +239,9 @@ FrontendToolRegistry.register({
     // Nothing loaded — leave no broken tab behind for the user to close.
     if (!wasOpen) {
       useWorkspaceTabsStore.getState().closeTab(tabId(TAB_TYPE[type], id));
-      if (previousActiveTabId) {
-        useWorkspaceTabsStore.getState().setActiveTab(previousActiveTabId);
-      }
     }
+    tabs.setActiveProjectId(previousProjectId);
+    if (previousActiveTabId) tabs.setActiveTab(previousActiveTabId);
     throw new Error(
       `The ${LABEL[type]} "${id}" did not open. Check that the id is right — ` +
         `it may have been deleted, or belong to another user.`
