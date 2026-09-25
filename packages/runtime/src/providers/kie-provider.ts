@@ -101,13 +101,25 @@ interface KieChatModel {
 
 // Mirrors the "Chat Models" section of docs.kie.ai/llms.txt. Each entry's
 // basePath is the model's documented endpoint prefix: the Claude models share
-// /claude/v1/messages, the GPT and Grok models post to a /responses endpoint,
-// and every Gemini (plus GPT 5.2) endpoint is OpenAI chat-completions with the
-// model pinned by the path.
+// /claude/v1/messages, the GPT, Grok, Kimi and DeepSeek models post to a
+// /responses endpoint, and every Gemini (plus GPT 5.2) endpoint is OpenAI
+// chat-completions with the model pinned by the path.
 const KIE_CHAT_MODELS: KieChatModel[] = [
+  {
+    id: "gpt-6-sol",
+    name: "GPT 6 Sol",
+    api: "responses",
+    basePath: "/codex/v1"
+  },
   {
     id: "gpt-6-astra",
     name: "GPT 6 Astra",
+    api: "responses",
+    basePath: "/codex/v1"
+  },
+  {
+    id: "gpt-6-luna",
+    name: "GPT 6 Luna",
     api: "responses",
     basePath: "/codex/v1"
   },
@@ -214,6 +226,12 @@ const KIE_CHAT_MODELS: KieChatModel[] = [
     basePath: "/claude"
   },
   {
+    id: "grok-4-7",
+    name: "Grok 4.7",
+    api: "responses",
+    basePath: "/grok/v1"
+  },
+  {
     id: "grok-4-6",
     name: "Grok 4.6",
     api: "responses",
@@ -230,6 +248,18 @@ const KIE_CHAT_MODELS: KieChatModel[] = [
     name: "Grok 4.3",
     api: "responses",
     basePath: "/grok/v1"
+  },
+  {
+    id: "kimi-k3",
+    name: "Kimi K3",
+    api: "responses",
+    basePath: "/openai/v1"
+  },
+  {
+    id: "deepseek-v4-1-flash",
+    name: "DeepSeek V4.1 Flash",
+    api: "responses",
+    basePath: "/openai/v1"
   },
   {
     id: "gemini-3.1-pro",
