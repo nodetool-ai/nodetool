@@ -17,7 +17,7 @@ To support a new model:
 1. Add it to the matching modality in `XAI_KNOWN_MODELS` with a display name. The catalog keeps the model listed when `/v1/models` omits it or cannot be reached.
 2. Update the `KNOWN_*_IDS` constants in `packages/runtime/tests/providers/xai-provider.test.ts`.
 3. If the id is ambiguous, check that `classifyModel()` assigns the live row the same modality. Otherwise the model appears twice, once under each modality.
-4. Run the [mandatory checks](../../../AGENTS.md#mandatory-post-change-verification).
+4. Run `npm run check`.
 
 xAI's `/v1/models` rows carry no modality fields, so `classifyModel()` usually falls back to the model id. Models the listing returns that the catalog lacks are still offered, after the catalog entries.
 
