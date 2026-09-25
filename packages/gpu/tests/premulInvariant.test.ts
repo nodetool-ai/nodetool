@@ -51,6 +51,7 @@ async function tryGetDevice(): Promise<GPUDevice | null> {
 const device = await tryGetDevice();
 
 const FIXTURE_SIZE = 4;
+const GPU_TEST_TIMEOUT_MS = 15_000;
 
 /** A premul-edge fixture: name + 4×4 RGBA8 byte buffer. */
 interface Fixture {
@@ -433,9 +434,9 @@ describe.skipIf(!device)("premultiplied invariant harness (GPU)", () => {
       // `it.fails` inverts the assertion: the test passes today (catching the
       // known bug) and flips to red the moment the bug is fixed (signalling
       // that the entry should be removed from KNOWN_VIOLATIONS).
-      it.fails(c.label, fn);
+      it.fails(c.label, fn, GPU_TEST_TIMEOUT_MS);
     } else {
-      it(c.label, fn);
+      it(c.label, fn, GPU_TEST_TIMEOUT_MS);
     }
   }
 });
