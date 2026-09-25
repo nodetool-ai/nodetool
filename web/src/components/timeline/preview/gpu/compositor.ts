@@ -23,10 +23,33 @@ import {
   logPreviewFailure,
   type PreviewFailureHandler
 } from "../previewFailure";
+import { previewVideoFrameGeneration, previewVideoFrameMediaTime, previewVideoFrameReady } from "./videoFrameVersion";
 
 interface SourceTexture extends GpuSourceTexture {
   source: CompositeSource;
   lastUploadKey: string;
+  sourceUrl: string;
+}
+
+/**
+ * Optional diagnostics consumed by the timeline performance fixture. Keeping
+ * the sink on window avoids routing measurements through React state.
+ */
+export interface TimelinePreviewDiagnostic {
+  kind: "source-upload" | "compositor-submit";
+  at: number;
+  sourceId?: string;
+  width?: number;
+  height?: number;
+  mediaTime?: number;
+  layerCount?: number;
+  drawnLayers?: number;
+}
+
+declare global {
+  interface Window {
+    __nodetoolTimelinePerf?: (event: TimelinePreviewDiagnostic) => void;
+  }
 }
 
 /**
@@ -39,7 +62,8 @@ let canvasUploads = 0;
 
 function uploadKey(source: CompositeSource): string {
   if (source instanceof HTMLVideoElement) {
-    return `v:${source.currentTime}:${source.videoWidth}x${source.videoHeight}`;
+    const version = previewVideoFrameGeneration(source) ?? source.currentTime;
+    return `v:${videoSourceUrl(source)}:${version}:${source.videoWidth}x${source.videoHeight}`;
   }
   if (source instanceof HTMLImageElement) {
     return `i:${source.src}:${source.naturalWidth}x${source.naturalHeight}`;
@@ -49,6 +73,10 @@ function uploadKey(source: CompositeSource): string {
     return `c:${source.width}x${source.height}:${canvasUploads}`;
   }
   return `b:${source.width}x${source.height}`;
+}
+
+function videoSourceUrl(video: HTMLVideoElement): string {
+  return video.src || video.currentSrc;
 }
 
 /**
@@ -224,8 +252,11 @@ export class WebGPUCompositor implements TimelineCompositor {
   ): SourceTexture | null {
     if (!this.device) return null;
     // currentTime changes before decoding finishes. Keep the last texture until seeked.
-    if (source instanceof HTMLVideoElement && source.seeking) {
-      return this.sourceTextures.get(id) ?? null;
+    if (source instanceof HTMLVideoElement && (source.seeking || previewVideoFrameReady(source) === false)) {
+      const previous = this.sourceTextures.get(id);
+      return previous?.source === source && previous.sourceUrl === videoSourceUrl(source)
+        ? previous
+        : null;
     }
     const { width, height } = sourceDimensions(source);
     if (width === 0 || height === 0) {
@@ -238,8 +269,7 @@ export class WebGPUCompositor implements TimelineCompositor {
     if (
       !entry ||
       entry.width !== width ||
-      entry.height !== height ||
-      entry.source !== source
+      entry.height !== height
     ) {
       entry?.texture.destroy();
       const texture = this.device.createTexture({
@@ -257,9 +287,15 @@ export class WebGPUCompositor implements TimelineCompositor {
         width,
         height,
         source,
-        lastUploadKey: ""
+        lastUploadKey: "",
+        sourceUrl: ""
       };
       this.sourceTextures.set(id, entry);
+    }
+
+    if (entry.source !== source) {
+      entry.source = source;
+      entry.lastUploadKey = "";
     }
 
     if (entry.lastUploadKey !== key && isSourceReady(source)) {
@@ -270,6 +306,24 @@ export class WebGPUCompositor implements TimelineCompositor {
           { width, height }
         );
         entry.lastUploadKey = key;
+        if (source instanceof HTMLVideoElement) entry.sourceUrl = videoSourceUrl(source);
+        const sink =
+          typeof window === "undefined"
+            ? undefined
+            : window.__nodetoolTimelinePerf;
+        if (sink) {
+          const event: TimelinePreviewDiagnostic = {
+            kind: "source-upload",
+            at: performance.now(),
+            sourceId: id,
+            width,
+            height
+          };
+          if (source instanceof HTMLVideoElement) {
+            event.mediaTime = previewVideoFrameMediaTime(source) ?? source.currentTime;
+          }
+          sink(event);
+        }
       } catch (error) {
         throw new Error(`Preview texture upload failed for ${id}`, {
           cause: error
@@ -356,6 +410,13 @@ export class WebGPUCompositor implements TimelineCompositor {
     const encoder = device.createCommandEncoder({ label: "preview-present" });
     core.blit(encoder, texture, this.context.getCurrentTexture().createView());
     device.queue.submit([encoder.finish()]);
+    const sink =
+      typeof window === "undefined"
+        ? undefined
+        : window.__nodetoolTimelinePerf;
+    if (sink) {
+      sink({ kind: "compositor-submit", at: performance.now(), layerCount: this.layers.length, drawnLayers: drawn });
+    }
   }
 
   /**

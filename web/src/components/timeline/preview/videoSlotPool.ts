@@ -71,3 +71,45 @@ export function bindVideoSlots(
   }
   return used;
 }
+
+/** Keep prepared pairs in cold slots while replacing only requests that left the lookahead. */
+export function bindPreparedVideoSlots(
+  upcoming: readonly VideoSlotRequest[],
+  bindings: Map<string, number>,
+  hotPoolSize: number,
+  totalPoolSize: number
+): void {
+  const wanted = new Set(upcoming.map((slot) => videoSlotKey(slot.clipId, slot.assetUrl)));
+  for (const key of bindings.keys()) {
+    if (!wanted.has(key)) bindings.delete(key);
+  }
+  const used = new Set(bindings.values());
+  for (const slot of upcoming) {
+    const key = videoSlotKey(slot.clipId, slot.assetUrl);
+    if (bindings.has(key)) continue;
+    for (let index = hotPoolSize; index < totalPoolSize; index += 1) {
+      if (used.has(index)) continue;
+      bindings.set(key, index);
+      used.add(index);
+      break;
+    }
+  }
+}
+
+/** Move the already loaded element into its active binding without reloading it. */
+export function promotePreparedVideoSlot(
+  key: string,
+  activeIndex: number,
+  prepared: Map<string, number>,
+  pool: HTMLVideoElement[]
+): boolean {
+  const preparedIndex = prepared.get(key);
+  if (preparedIndex === undefined) return false;
+  const active = pool[activeIndex];
+  const incoming = pool[preparedIndex];
+  if (!active || !incoming) return false;
+  pool[activeIndex] = incoming;
+  pool[preparedIndex] = active;
+  prepared.delete(key);
+  return true;
+}

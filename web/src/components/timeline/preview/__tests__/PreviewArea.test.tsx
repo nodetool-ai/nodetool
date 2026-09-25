@@ -192,6 +192,22 @@ describe("PreviewArea", () => {
     expect(screen.getByTestId("preview-compositor")).toBe(compositor);
   });
 
+  it("offers Auto, Full, Half, and Quarter preview quality", async () => {
+    mockIsPlaying = true;
+    renderPreview({ sequenceWidth: 3840, sequenceHeight: 2160 });
+    const quality = screen.getByRole("combobox", { name: "Preview quality" });
+    expect(quality).toHaveTextContent("Auto (Half)");
+
+    await userEvent.click(quality);
+    await userEvent.click(screen.getByRole("option", { name: "Quarter" }));
+    expect(quality).toHaveTextContent("Quarter");
+  });
+
+  it("shows Auto's full-resolution paused setting", () => {
+    renderPreview({ sequenceWidth: 3840, sequenceHeight: 2160 });
+    expect(screen.getByRole("combobox", { name: "Preview quality" })).toHaveTextContent("Auto (Full)");
+  });
+
   describe("show matte", () => {
     const mattedClip = (status: "ready" | "generating") => ({
       id: "shot",

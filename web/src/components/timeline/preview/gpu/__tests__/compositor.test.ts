@@ -28,6 +28,7 @@ jest.mock("@nodetool-ai/timeline/render", () => ({
 
 import type { CompositeSource } from "../types";
 import { WebGPUCompositor } from "../compositor";
+import { expectPreviewVideoFrame, previewVideoFrameGeneration, trackPreviewVideoFrames } from "../videoFrameVersion";
 
 /** How the shared core asks this backend for a layer's texture. */
 type UploadSource = (
@@ -127,6 +128,7 @@ describe("WebGPUCompositor", () => {
       value: originalGpu,
       configurable: true
     });
+    delete window.__nodetoolTimelinePerf;
     Reflect.deleteProperty(globalThis, "GPUTextureUsage");
   });
 
@@ -205,6 +207,225 @@ describe("WebGPUCompositor", () => {
     upload("t:clip-1", bitmap);
     upload("t:clip-1", bitmap);
     expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
+    compositor.dispose();
+  });
+
+  it("uploads a tracked video only when a decoded frame arrives and cancels its callback", async () => {
+    const gpu = fakeGpu();
+    const compositor = new WebGPUCompositor();
+    await compositor.init(gpu.canvas);
+    const upload = lastUpload();
+    const video = document.createElement("video");
+    Object.defineProperties(video, {
+      readyState: { configurable: true, value: 2 },
+      videoWidth: { configurable: true, value: 64 },
+      videoHeight: { configurable: true, value: 32 }
+    });
+    let callback: VideoFrameRequestCallback | undefined;
+    const cancel = jest.fn();
+    video.requestVideoFrameCallback = (next) => { callback = next; return 1; };
+    video.cancelVideoFrameCallback = cancel;
+    const onFrame = jest.fn();
+    const stop = trackPreviewVideoFrames(video, onFrame);
+    expect(upload("v:clip", video)).toBeNull();
+    expect(gpu.copyExternalImageToTexture).not.toHaveBeenCalled();
+
+    callback?.(0, { presentedFrames: 1 } as VideoFrameCallbackMetadata);
+    upload("v:clip", video);
+    upload("v:clip", video);
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
+    callback?.(1, { presentedFrames: 2 } as VideoFrameCallbackMetadata);
+    upload("v:clip", video);
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(2);
+    expect(onFrame).toHaveBeenCalledTimes(2);
+    const generation = previewVideoFrameGeneration(video);
+    stop();
+    expect(cancel).toHaveBeenCalledWith(1);
+    video.src = "https://example.test/replacement.mp4";
+    const restart = trackPreviewVideoFrames(video, onFrame);
+    expect(previewVideoFrameGeneration(video)).toBeGreaterThan(generation ?? 0);
+    upload("v:clip", video);
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(2);
+    callback?.(2, { presentedFrames: 1 } as VideoFrameCallbackMetadata);
+    upload("v:clip", video);
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(3);
+    restart();
+    compositor.dispose();
+  });
+
+  it("reuses a same-size texture when source pixels are replaced", async () => {
+    const gpu = fakeGpu();
+    const createTexture = jest.spyOn(gpu.device, "createTexture");
+    const compositor = new WebGPUCompositor();
+    await compositor.init(gpu.canvas);
+    const upload = lastUpload();
+    upload("t:clip", stub<ImageBitmap>({ width: 64, height: 32 }));
+    upload("t:clip", stub<ImageBitmap>({ width: 64, height: 32 }));
+    expect(createTexture).toHaveBeenCalledTimes(1);
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(2);
+    compositor.dispose();
+  });
+
+  it("keeps untracked export video uploads seek and source dependent", async () => {
+    const gpu = fakeGpu();
+    const compositor = new WebGPUCompositor();
+    await compositor.init(gpu.canvas);
+    const upload = lastUpload();
+    const video = document.createElement("video");
+    Object.defineProperties(video, {
+      readyState: { configurable: true, value: 2 },
+      videoWidth: { configurable: true, value: 64 },
+      videoHeight: { configurable: true, value: 32 }
+    });
+    video.src = "https://example.test/first.mp4";
+    video.currentTime = 1;
+    upload("v:export", video);
+    video.currentTime = 2;
+    upload("v:export", video);
+    video.src = "https://example.test/replacement.mp4";
+    video.currentTime = 2;
+    upload("v:export", video);
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(3);
+    compositor.dispose();
+  });
+
+  it("falls back to seek-based uploads without a decoded-frame callback", async () => {
+    const gpu = fakeGpu();
+    const compositor = new WebGPUCompositor();
+    await compositor.init(gpu.canvas);
+    const upload = lastUpload();
+    const video = document.createElement("video");
+    Object.defineProperties(video, {
+      readyState: { configurable: true, value: 2 },
+      videoWidth: { configurable: true, value: 64 },
+      videoHeight: { configurable: true, value: 32 }
+    });
+    const stop = trackPreviewVideoFrames(video, jest.fn());
+    expect(previewVideoFrameGeneration(video)).toBeUndefined();
+    video.currentTime = 1;
+    upload("v:clip", video);
+    upload("v:clip", video);
+    video.currentTime = 2;
+    upload("v:clip", video);
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(2);
+    stop();
+    compositor.dispose();
+  });
+
+  it("holds a tracked video until the requested seek frame is decoded", async () => {
+    const gpu = fakeGpu();
+    const compositor = new WebGPUCompositor();
+    await compositor.init(gpu.canvas);
+    const video = document.createElement("video");
+    Object.defineProperties(video, {
+      readyState: { configurable: true, value: 2 },
+      videoWidth: { configurable: true, value: 64 },
+      videoHeight: { configurable: true, value: 32 }
+    });
+    let callback: VideoFrameRequestCallback | undefined;
+    video.requestVideoFrameCallback = (next) => { callback = next; return 1; };
+    video.cancelVideoFrameCallback = jest.fn();
+    const onFrame = jest.fn();
+    const stop = trackPreviewVideoFrames(video, onFrame);
+    expectPreviewVideoFrame(video, 7.25);
+    callback?.(0, { mediaTime: 0, presentedFrames: 1 } as VideoFrameCallbackMetadata);
+    expect(lastUpload()("v:clip", video)).toBeNull();
+    expect(onFrame).not.toHaveBeenCalled();
+    const events: Array<{ kind: string; mediaTime?: number }> = [];
+    window.__nodetoolTimelinePerf = (event) => events.push(event);
+    callback?.(1, { mediaTime: 7.25, presentedFrames: 2 } as VideoFrameCallbackMetadata);
+    expect(lastUpload()("v:clip", video)).not.toBeNull();
+    expect(onFrame).toHaveBeenCalledTimes(1);
+    expect(events).toEqual([expect.objectContaining({ kind: "source-upload", mediaTime: 7.25 })]);
+    stop();
+    compositor.dispose();
+  });
+
+  it("holds the previous texture during a seek and uploads the decoded target", async () => {
+    const gpu = fakeGpu();
+    const compositor = new WebGPUCompositor();
+    await compositor.init(gpu.canvas);
+    const upload = lastUpload();
+    const video = document.createElement("video");
+    let seeking = false;
+    Object.defineProperties(video, {
+      readyState: { configurable: true, value: 2 },
+      videoWidth: { configurable: true, value: 64 },
+      videoHeight: { configurable: true, value: 32 },
+      seeking: { configurable: true, get: () => seeking }
+    });
+    video.currentTime = 1;
+    const first = upload("v:clip", video);
+    seeking = true;
+    video.currentTime = 2;
+    expect(upload("v:clip", video)).toBe(first);
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
+    seeking = false;
+    upload("v:clip", video);
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(2);
+    compositor.dispose();
+  });
+
+  it("does not reuse an old asset's texture when its video slot is replaced mid-seek", async () => {
+    const gpu = fakeGpu();
+    const compositor = new WebGPUCompositor();
+    await compositor.init(gpu.canvas);
+    const upload = lastUpload();
+    const video = document.createElement("video");
+    let seeking = false;
+    Object.defineProperties(video, {
+      readyState: { configurable: true, value: 2 },
+      videoWidth: { configurable: true, value: 64 },
+      videoHeight: { configurable: true, value: 32 },
+      seeking: { configurable: true, get: () => seeking }
+    });
+    video.src = "https://example.test/old.mp4";
+    expect(upload("v:slot", video)).not.toBeNull();
+    seeking = true;
+    video.src = "https://example.test/new.mp4";
+    expect(upload("v:slot", video)).toBeNull();
+    const replacement = document.createElement("video");
+    Object.defineProperties(replacement, {
+      readyState: { configurable: true, value: 2 },
+      videoWidth: { configurable: true, value: 64 },
+      videoHeight: { configurable: true, value: 32 },
+      seeking: { configurable: true, value: true }
+    });
+    replacement.src = "https://example.test/new.mp4";
+    expect(upload("v:slot", replacement)).toBeNull();
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
+    seeking = false;
+    expect(upload("v:slot", video)).not.toBeNull();
+    expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(2);
+    compositor.dispose();
+  });
+
+  it("reports source uploads and compositor submissions only to an opted-in sink", async () => {
+    const gpu = fakeGpu();
+    const compositor = new WebGPUCompositor();
+    await compositor.init(gpu.canvas);
+    const events: Array<{ kind: string; sourceId?: string }> = [];
+    window.__nodetoolTimelinePerf = (event) => events.push(event);
+
+    const canvas = stub<OffscreenCanvas>({
+      width: 32,
+      height: 16,
+      getContext: (() => null) as OffscreenCanvas["getContext"]
+    });
+    lastUpload()("diagnostic-source", canvas);
+    compositor.setLayers([]);
+    compositor.render();
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        kind: "source-upload",
+        sourceId: "diagnostic-source",
+        width: 32,
+        height: 16
+      }),
+      expect.objectContaining({ kind: "compositor-submit" })
+    ]);
+
     compositor.dispose();
   });
 

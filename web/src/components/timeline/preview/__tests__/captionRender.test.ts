@@ -1,7 +1,44 @@
-import { captionSignature } from "../captionRender";
+import { CaptionRasterizer, captionSignature } from "../captionRender";
 import type { ResolvedCaption } from "@nodetool-ai/timeline/render";
+import { BitmapFrameScope } from "../BitmapFrameScope";
+import { installGlobal, stub } from "../../../../test-utils/doubles";
 
 describe("captionRender", () => {
+  it("keeps every caption bitmap alive until a crowded frame is composited", () => {
+    const original = globalThis.OffscreenCanvas;
+    const bitmaps: ImageBitmap[] = [];
+    class FakeOffscreenCanvas {
+      getContext() {
+        return {
+          measureText: (text: string) => ({ width: text.length * 8 }),
+          strokeText: () => undefined,
+          fillText: () => undefined
+        };
+      }
+      transferToImageBitmap() {
+        const bitmap = stub<ImageBitmap>({ width: 640, height: 360, close: jest.fn() });
+        bitmaps.push(bitmap);
+        return bitmap;
+      }
+    }
+    installGlobal("OffscreenCanvas", FakeOffscreenCanvas);
+    const rasterizer = new CaptionRasterizer();
+    const frame = new BitmapFrameScope();
+    try {
+      for (let index = 0; index < 65; index++) {
+        rasterizer.rasterize({ words: [{ text: `Caption ${index}`, active: true }] }, 640, 360, frame);
+      }
+      expect(bitmaps).toHaveLength(65);
+      expect(bitmaps[0]!.close).not.toHaveBeenCalled();
+      frame.release();
+      expect(bitmaps[0]!.close).toHaveBeenCalledTimes(1);
+    } finally {
+      rasterizer.dispose();
+      frame.release();
+      globalThis.OffscreenCanvas = original;
+    }
+  });
+
   describe("captionSignature", () => {
     it("includes dimensions in the signature", () => {
       const caption: ResolvedCaption = { words: [{ text: "hello", active: false }] };
