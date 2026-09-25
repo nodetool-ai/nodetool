@@ -31,6 +31,35 @@ interface XAIModelRow {
 type ModelModality = "language" | "image" | "video";
 
 /**
+ * Current xAI models, listed ahead of the live `/v1/models` rows. That listing
+ * carries no modality fields and may omit Grok Imagine models, so these stay
+ * available even when the listing is incomplete or unreachable.
+ */
+export const XAI_KNOWN_MODELS: Record<
+  ModelModality,
+  ReadonlyArray<{ id: string; name: string }>
+> = {
+  language: [
+    { id: "grok-4.7", name: "Grok 4.7" },
+    { id: "grok-4.6", name: "Grok 4.6" },
+    { id: "grok-4.5", name: "Grok 4.5" },
+    { id: "grok-4.3", name: "Grok 4.3" },
+    { id: "grok-4.20-0309-reasoning", name: "Grok 4.20 Reasoning" },
+    { id: "grok-4.20-0309-non-reasoning", name: "Grok 4.20 Non-Reasoning" },
+    { id: "grok-build-0.1", name: "Grok Build 0.1" }
+  ],
+  image: [
+    { id: "grok-imagine-image-2.0", name: "Grok Imagine Image 2.0" },
+    { id: "grok-imagine-image-quality", name: "Grok Imagine Image Quality" },
+    { id: "grok-imagine-image", name: "Grok Imagine Image" }
+  ],
+  video: [
+    { id: "grok-imagine-video-1.5", name: "Grok Imagine Video 1.5" },
+    { id: "grok-imagine-video", name: "Grok Imagine Video" }
+  ]
+};
+
+/**
  * Classify an xAI model by its modality. xAI returns every model (chat,
  * Grok Imagine image, Grok Imagine video) from a single `/v1/models` listing,
  * so we have to sort them ourselves. Prefer the `output_modalities` array when
@@ -140,39 +169,43 @@ export class XAIProvider extends OpenAICompatProvider {
     );
   }
 
+  /**
+   * The known models of one modality followed by the live rows of that
+   * modality the catalog does not already name. A failed listing yields the
+   * catalog alone.
+   */
+  private async listModels(
+    modality: ModelModality
+  ): Promise<Array<{ id: string; name: string }>> {
+    const known = XAI_KNOWN_MODELS[modality];
+    const knownIds = new Set(known.map((model) => model.id));
+    const live = (await this.fetchModelRows())
+      .filter((row) => classifyModel(row) === modality && !knownIds.has(row.id))
+      .map((row) => ({ id: row.id, name: row.name ?? row.id }));
+    return [...known, ...live];
+  }
+
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const rows = await this.fetchModelRows();
-    return rows
-      .filter((row) => classifyModel(row) === "language")
-      .map((row) => ({
-        id: row.id,
-        name: row.name ?? row.id,
-        provider: "xai" as const
-      }));
+    const models = await this.listModels("language");
+    return models.map((model) => ({ ...model, provider: "xai" as const }));
   }
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    const rows = await this.fetchModelRows();
-    return rows
-      .filter((row) => classifyModel(row) === "image")
-      .map((row) => ({
-        id: row.id,
-        name: row.name ?? row.id,
-        provider: "xai" as const,
-        supportedTasks: ["text_to_image", "image_to_image"]
-      }));
+    const models = await this.listModels("image");
+    return models.map((model) => ({
+      ...model,
+      provider: "xai" as const,
+      supportedTasks: ["text_to_image", "image_to_image"]
+    }));
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    const rows = await this.fetchModelRows();
-    return rows
-      .filter((row) => classifyModel(row) === "video")
-      .map((row) => ({
-        id: row.id,
-        name: row.name ?? row.id,
-        provider: "xai" as const,
-        supportedTasks: ["text_to_video", "image_to_video"]
-      }));
+    const models = await this.listModels("video");
+    return models.map((model) => ({
+      ...model,
+      provider: "xai" as const,
+      supportedTasks: ["text_to_video", "image_to_video"]
+    }));
   }
 
   private xaiHeaders() {

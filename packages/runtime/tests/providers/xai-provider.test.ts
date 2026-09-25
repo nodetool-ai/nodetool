@@ -7,6 +7,22 @@ import {
   mockChatFetch
 } from "./helpers/compat-fetch.js";
 
+const KNOWN_LANGUAGE_IDS = [
+  "grok-4.7",
+  "grok-4.6",
+  "grok-4.5",
+  "grok-4.3",
+  "grok-4.20-0309-reasoning",
+  "grok-4.20-0309-non-reasoning",
+  "grok-build-0.1"
+];
+const KNOWN_IMAGE_IDS = [
+  "grok-imagine-image-2.0",
+  "grok-imagine-image-quality",
+  "grok-imagine-image"
+];
+const KNOWN_VIDEO_IDS = ["grok-imagine-video-1.5", "grok-imagine-video"];
+
 describe("XAIProvider", () => {
   it("throws if XAI_API_KEY is missing", () => {
     expect(() => new XAIProvider({})).toThrow("XAI_API_KEY is required");
@@ -59,7 +75,10 @@ describe("XAIProvider", () => {
     );
 
     const models = await provider.getAvailableLanguageModels();
-    expect(models).toEqual([
+    expect(models.slice(0, 1)).toEqual([
+      { id: "grok-4.7", name: "Grok 4.7", provider: "xai" }
+    ]);
+    expect(models.slice(KNOWN_LANGUAGE_IDS.length)).toEqual([
       { id: "grok-4", name: "Grok 4", provider: "xai" },
       { id: "grok-3-mini", name: "grok-3-mini", provider: "xai" }
     ]);
@@ -72,7 +91,7 @@ describe("XAIProvider", () => {
     );
   });
 
-  it("returns empty list when model fetch fails", async () => {
+  it("returns the known language models when model fetch fails", async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: false });
     const provider = new XAIProvider(
       { XAI_API_KEY: "k" },
@@ -80,7 +99,26 @@ describe("XAIProvider", () => {
     );
 
     const models = await provider.getAvailableLanguageModels();
-    expect(models).toEqual([]);
+    expect(models.map((m) => m.id)).toEqual(KNOWN_LANGUAGE_IDS);
+  });
+
+  it("does not repeat a known model the live listing also returns", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ id: "grok-4.7" }, { id: "grok-imagine-video-1.5" }]
+      })
+    });
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    const language = await provider.getAvailableLanguageModels();
+    const videos = await provider.getAvailableVideoModels();
+    expect(language.map((m) => m.id)).toEqual(KNOWN_LANGUAGE_IDS);
+    expect(language[0].name).toBe("Grok 4.7");
+    expect(videos.map((m) => m.id)).toEqual(KNOWN_VIDEO_IDS);
   });
 
   function mixedModelsFetch() {
@@ -108,7 +146,11 @@ describe("XAIProvider", () => {
     );
 
     const language = await provider.getAvailableLanguageModels();
-    expect(language.map((m) => m.id)).toEqual(["grok-4", "grok-3-mini"]);
+    expect(language.map((m) => m.id)).toEqual([
+      ...KNOWN_LANGUAGE_IDS,
+      "grok-4",
+      "grok-3-mini"
+    ]);
   });
 
   it("exposes Grok Imagine image models as image models", async () => {
@@ -118,14 +160,13 @@ describe("XAIProvider", () => {
     );
 
     const images = await provider.getAvailableImageModels();
-    expect(images).toEqual([
-      {
-        id: "grok-imagine-image-quality",
-        name: "Grok Imagine Image",
-        provider: "xai",
-        supportedTasks: ["text_to_image", "image_to_image"]
-      }
-    ]);
+    expect(images.map((m) => m.id)).toEqual(KNOWN_IMAGE_IDS);
+    expect(images[1]).toEqual({
+      id: "grok-imagine-image-quality",
+      name: "Grok Imagine Image Quality",
+      provider: "xai",
+      supportedTasks: ["text_to_image", "image_to_image"]
+    });
   });
 
   it("exposes Grok Imagine video models as video models", async () => {
@@ -135,14 +176,13 @@ describe("XAIProvider", () => {
     );
 
     const videos = await provider.getAvailableVideoModels();
-    expect(videos).toEqual([
-      {
-        id: "grok-imagine-video",
-        name: "Grok Imagine Video",
-        provider: "xai",
-        supportedTasks: ["text_to_video", "image_to_video"]
-      }
-    ]);
+    expect(videos.map((m) => m.id)).toEqual(KNOWN_VIDEO_IDS);
+    expect(videos[1]).toEqual({
+      id: "grok-imagine-video",
+      name: "Grok Imagine Video",
+      provider: "xai",
+      supportedTasks: ["text_to_video", "image_to_video"]
+    });
   });
 
   it("shares one /v1/models request across the modality getters", async () => {
@@ -169,21 +209,28 @@ describe("XAIProvider", () => {
       { client: {} as any, fetchFn: mockFetch as any }
     );
 
-    expect(await provider.getAvailableLanguageModels()).toEqual([]);
+    const first = await provider.getAvailableLanguageModels();
+    expect(first.map((m) => m.id)).toEqual(KNOWN_LANGUAGE_IDS);
     const retried = await provider.getAvailableLanguageModels();
-    expect(retried.map((m) => m.id)).toEqual(["grok-4", "grok-3-mini"]);
+    expect(retried.map((m) => m.id)).toEqual([
+      ...KNOWN_LANGUAGE_IDS,
+      "grok-4",
+      "grok-3-mini"
+    ]);
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
-  it("returns empty image and video lists when model fetch fails", async () => {
+  it("returns the known image and video models when model fetch fails", async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: false });
     const provider = new XAIProvider(
       { XAI_API_KEY: "k" },
       { client: {} as any, fetchFn: mockFetch as any }
     );
 
-    expect(await provider.getAvailableImageModels()).toEqual([]);
-    expect(await provider.getAvailableVideoModels()).toEqual([]);
+    const images = await provider.getAvailableImageModels();
+    const videos = await provider.getAvailableVideoModels();
+    expect(images.map((m) => m.id)).toEqual(KNOWN_IMAGE_IDS);
+    expect(videos.map((m) => m.id)).toEqual(KNOWN_VIDEO_IDS);
   });
 
   it("generates non-streaming message via the compat chat client", async () => {
@@ -197,7 +244,7 @@ describe("XAIProvider", () => {
             }
           }
         ]
-        })
+      })
     );
 
     const provider = new XAIProvider(
@@ -255,7 +302,9 @@ describe("XAIProvider", () => {
     provider: "xai" as const
   };
   // PNG magic bytes so the data-URI MIME sniffing resolves to image/png.
-  const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const pngBytes = new Uint8Array([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
+  ]);
 
   function jsonOk(body: unknown) {
     return { ok: true, json: async () => body };
@@ -303,7 +352,9 @@ describe("XAIProvider", () => {
     const mockFetch = vi
       .fn()
       .mockResolvedValue(
-        jsonOk({ data: [{ b64_json: Buffer.from("edited").toString("base64") }] })
+        jsonOk({
+          data: [{ b64_json: Buffer.from("edited").toString("base64") }]
+        })
       );
     const provider = new XAIProvider(
       { XAI_API_KEY: "k" },
