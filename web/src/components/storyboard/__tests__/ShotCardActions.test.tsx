@@ -103,6 +103,10 @@ afterEach(() => {
   useStoryboardStore.getState().removeBoard(BOARD);
 });
 
+const openShotActions = async (): Promise<void> => {
+  await userEvent.click(screen.getByRole("button", { name: "Shot actions" }));
+};
+
 describe("ShotCard hover toolbar (criterion 11)", () => {
   it("duplicates the shot after the source, without its script link", async () => {
     const onSelect = jest.fn();
@@ -116,8 +120,9 @@ describe("ShotCard hover toolbar (criterion 11)", () => {
     });
     renderCard(shot, { onSelect });
 
+    await openShotActions();
     await userEvent.click(
-      screen.getByRole("button", { name: "Duplicate shot" })
+      screen.getByRole("menuitem", { name: "Duplicate shot" })
     );
 
     const shots = shotsOnBoard();
@@ -137,7 +142,8 @@ describe("ShotCard hover toolbar (criterion 11)", () => {
     const shot = seedShot();
     renderCard(shot);
 
-    await userEvent.click(screen.getByRole("button", { name: "Delete shot" }));
+    await openShotActions();
+    await userEvent.click(screen.getByRole("menuitem", { name: "Delete shot" }));
     expect(currentShot()).toBeDefined();
 
     await userEvent.click(screen.getByRole("button", { name: "Delete" }));
@@ -153,7 +159,8 @@ describe("ShotCard hover toolbar (criterion 11)", () => {
     const shot = seedShot();
     renderCard(shot);
 
-    await userEvent.click(screen.getByRole("button", { name: "Delete shot" }));
+    await openShotActions();
+    await userEvent.click(screen.getByRole("menuitem", { name: "Delete shot" }));
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(currentShot()).toBeDefined();
@@ -177,8 +184,9 @@ describe("ShotCard hover toolbar (criterion 11)", () => {
     const shot = seedShot({ status: "keyframe_ready", keyframe: image(9) });
     renderCard(shot);
 
+    await openShotActions();
     await userEvent.click(
-      screen.getByRole("button", { name: "Download still" })
+      screen.getByRole("menuitem", { name: "Download still" })
     );
 
     await waitFor(() => expect(clicked).toHaveLength(1));
@@ -190,14 +198,43 @@ describe("ShotCard hover toolbar (criterion 11)", () => {
     warnSpy.mockRestore();
   });
 
-  it("offers no duplicate or delete on a read-only board", () => {
-    renderCard(seedShot(), { readOnly: true });
+  it("offers no duplicate or delete on a read-only board", async () => {
+    renderCard(seedShot({ status: "keyframe_ready", keyframe: image(3) }), {
+      readOnly: true
+    });
+    await openShotActions();
     expect(
-      screen.queryByRole("button", { name: "Duplicate shot" })
+      screen.getByRole("menuitem", { name: "Download still" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: "Duplicate shot" })
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Delete shot" })
+      screen.queryByRole("menuitem", { name: "Delete shot" })
     ).not.toBeInTheDocument();
+  });
+
+  it("offers a shot without media no send or download", async () => {
+    renderCard(seedShot());
+    await openShotActions();
+    expect(
+      screen.queryByRole("menuitem", { name: "Send to workflow…" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: /Download/ })
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers a rendered still to a workflow, without selecting the card", async () => {
+    const onSelect = jest.fn();
+    renderCard(seedShot({ status: "keyframe_ready", keyframe: image(4) }), {
+      onSelect
+    });
+    await openShotActions();
+    expect(
+      screen.getByRole("menuitem", { name: "Send to workflow…" })
+    ).toBeInTheDocument();
+    expect(onSelect).not.toHaveBeenCalled();
   });
 });
 

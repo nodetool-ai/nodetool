@@ -8,7 +8,10 @@ import { useCallback, useContext } from "react";
 import type { XYPosition } from "@xyflow/react";
 import { NodeContext } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
+import type { NodeStore } from "../../stores/NodeStore";
+import { assetLocator } from "../../utils/mediaRef";
 import type {
+  NodeMetadata,
   MessageImageContent,
   MessageVideoContent,
   MessageAudioContent
@@ -39,28 +42,85 @@ const computeBasePosition = (
   };
 };
 
-export const blockToConstant = (
+/** Image, video, or audio headed for a workflow as a constant node. */
+export interface WorkflowMediaItem {
+  type: "image" | "video" | "audio";
+  asset_id?: string | null;
+  uri?: string;
+  /** Node title, so a batch of shots or takes stays legible on the canvas. */
+  title?: string;
+}
+
+const CONSTANT_NODE_TYPE: Record<WorkflowMediaItem["type"], string> = {
+  image: "nodetool.constant.Image",
+  video: "nodetool.constant.Video",
+  audio: "nodetool.constant.Audio"
+};
+
+export const blockToMediaItem = (
   block: MediaContentBlock
-): { nodeType: string; value: Record<string, unknown> } | null => {
+): WorkflowMediaItem => {
   if (block.type === "image_url") {
-    const ref = block.image;
-    return {
-      nodeType: "nodetool.constant.Image",
-      value: { type: "image", asset_id: ref.asset_id, uri: ref.uri }
-    };
+    return { type: "image", asset_id: block.image.asset_id, uri: block.image.uri };
   }
   if (block.type === "video") {
-    const ref = block.video;
-    return {
-      nodeType: "nodetool.constant.Video",
-      value: { type: "video", asset_id: ref.asset_id, uri: ref.uri }
-    };
+    return { type: "video", asset_id: block.video.asset_id, uri: block.video.uri };
   }
-  const ref = block.audio;
-  return {
-    nodeType: "nodetool.constant.Audio",
-    value: { type: "audio", asset_id: ref.asset_id, uri: ref.uri }
-  };
+  return { type: "audio", asset_id: block.audio.asset_id, uri: block.audio.uri };
+};
+
+export const mediaItemToConstant = (
+  item: WorkflowMediaItem
+): { nodeType: string; value: Record<string, unknown> } => ({
+  nodeType: CONSTANT_NODE_TYPE[item.type],
+  value: {
+    type: item.type,
+    asset_id: item.asset_id,
+    // An asset-only ref still needs a locator: `asset://<id>` is the id form
+    // every media renderer resolves.
+    uri: item.uri || (item.asset_id ? assetLocator(item.asset_id) : "")
+  }
+});
+
+export const blockToConstant = (
+  block: MediaContentBlock
+): { nodeType: string; value: Record<string, unknown> } =>
+  mediaItemToConstant(blockToMediaItem(block));
+
+/**
+ * Add each item as a constant node right of the graph in `store`. Returns how
+ * many nodes were added; an item whose node metadata has not loaded is skipped.
+ */
+export const addMediaNodes = (
+  store: Pick<NodeStore, "getState">,
+  items: readonly WorkflowMediaItem[],
+  getMetadata: (nodeType: string) => NodeMetadata | undefined
+): number => {
+  const { nodes, createNode, addNode } = store.getState();
+  const base = computeBasePosition(nodes);
+  let added = 0;
+  items.forEach((item) => {
+    const constant = mediaItemToConstant(item);
+    const metadata = getMetadata(constant.nodeType);
+    if (!metadata) {
+      console.warn(
+        `Cannot add media to canvas: metadata for ${constant.nodeType} is missing`
+      );
+      return;
+    }
+    const position: XYPosition = {
+      x: base.x + (added % 2) * 340,
+      y: base.y + Math.floor(added / 2) * 300
+    };
+    const node = createNode(metadata, position);
+    node.data.properties.value = constant.value;
+    if (item.title) {
+      node.data.title = item.title;
+    }
+    addNode(node);
+    added += 1;
+  });
+  return added;
 };
 
 interface AddMediaToCanvas {
@@ -79,28 +139,7 @@ export const useAddMediaToCanvas = (): AddMediaToCanvas => {
       if (!store) {
         return;
       }
-      const { nodes, createNode, addNode } = store.getState();
-      const base = computeBasePosition(nodes);
-      blocks.forEach((block, i) => {
-        const constant = blockToConstant(block);
-        if (!constant) {
-          return;
-        }
-        const metadata = getMetadata(constant.nodeType);
-        if (!metadata) {
-          console.warn(
-            `Cannot add media to canvas: metadata for ${constant.nodeType} is missing`
-          );
-          return;
-        }
-        const position: XYPosition = {
-          x: base.x + (i % 2) * 340,
-          y: base.y + Math.floor(i / 2) * 300
-        };
-        const node = createNode(metadata, position);
-        node.data.properties.value = constant.value;
-        addNode(node);
-      });
+      addMediaNodes(store, blocks.map(blockToMediaItem), getMetadata);
     },
     [store, getMetadata]
   );

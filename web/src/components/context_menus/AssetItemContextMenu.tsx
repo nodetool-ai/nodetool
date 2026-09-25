@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import { useCallback, memo } from "react";
+import { useCallback, useMemo, useState, memo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -18,6 +18,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CompareIcon from "@mui/icons-material/Compare";
 import TabIcon from "@mui/icons-material/Tab";
 import MovieEditIcon from "@mui/icons-material/Movie";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -28,6 +29,8 @@ import { useEditVideoAsset } from "../../hooks/useEditVideoAsset";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 import AssetInfoPanel from "./AssetInfoPanel";
+import { SendToWorkflowMenu } from "../workflows/SendToWorkflowMenu";
+import type { WorkflowMediaItem } from "../../hooks/handlers/useGenerationToCanvas";
 import { useShallow } from "zustand/react/shallow";
 
 const AssetItemContextMenu = () => {
@@ -91,6 +94,25 @@ const AssetItemContextMenu = () => {
       : null;
 
   const hasSelectedAssets = selectedAssets.length > 0 && !isFolder;
+
+  // Images, videos, and audio can go to a workflow canvas as constant nodes.
+  // A selection holding anything else offers nothing rather than a partial send.
+  const workflowMedia = useMemo((): WorkflowMediaItem[] => {
+    const items = selectedAssets.flatMap((asset): WorkflowMediaItem[] => {
+      const kind = asset.content_type?.split("/")[0];
+      return kind === "image" || kind === "video" || kind === "audio"
+        ? [{ type: kind, asset_id: asset.id, title: asset.name || undefined }]
+        : [];
+    });
+    return items.length === selectedAssets.length ? items : [];
+  }, [selectedAssets]);
+  // Picking "Send to workflow" swaps this menu for the workflow picker at the
+  // same spot; closing the picker closes the context menu.
+  const [sendingToWorkflow, setSendingToWorkflow] = useState(false);
+  const closeWorkflowPicker = useCallback(() => {
+    setSendingToWorkflow(false);
+    closeContextMenu();
+  }, [closeContextMenu]);
 
   const handleCopyToClipboard = useCallback(async () => {
     const asset = selectedAssets[0];
@@ -196,6 +218,15 @@ const AssetItemContextMenu = () => {
     selectedAssets.length === 1 ? selectedAssets[0] : null;
 
   if (!menuPosition) {return null;}
+  if (sendingToWorkflow) {
+    return (
+      <SendToWorkflowMenu
+        items={workflowMedia}
+        position={menuPosition}
+        onClose={closeWorkflowPicker}
+      />
+    );
+  }
   return (
     <>
       <ContextMenu
@@ -229,6 +260,17 @@ const AssetItemContextMenu = () => {
             label="Open as Tab"
             IconComponent={<TabIcon />}
             tooltip="Open this asset in a new editor tab"
+          />
+        )}
+        {workflowMedia.length > 0 && (
+          <ContextMenuItem
+            onClick={(event) => {
+              event?.stopPropagation();
+              setSendingToWorkflow(true);
+            }}
+            label="Send to Workflow"
+            IconComponent={<AccountTreeOutlinedIcon />}
+            tooltip="Add the selected media to a workflow canvas as constant nodes"
           />
         )}
         {singleVideo && (

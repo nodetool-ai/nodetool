@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -22,6 +22,8 @@ import {
 import { syncLineClipToTimeline } from "../../stores/script/timelineSync";
 import { useAssetStore } from "../../stores/AssetStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
+import { SendToWorkflowButton } from "../workflows/SendToWorkflowMenu";
+import { takeWorkflowMedia } from "./scriptWorkflowMedia";
 
 interface ScriptTakeGalleryProps {
   scriptId: string;
@@ -69,6 +71,8 @@ const TakeRow = ({
     void syncLineClipToTimeline(scriptId, lineId, currentTake ?? null);
   }, [removeTake, scriptId, lineId, take.id]);
 
+  const workflowMedia = useMemo(() => [takeWorkflowMedia(take)], [take]);
+
   const play = useCallback(async () => {
     if (typeof Audio === "undefined") return;
     try {
@@ -113,6 +117,10 @@ const TakeRow = ({
         tooltip="Play take"
         onClick={() => void play()}
         icon={<PlayArrowIcon fontSize="small" />}
+      />
+      <SendToWorkflowButton
+        items={workflowMedia}
+        tooltip="Send take to a workflow"
       />
       <ToolbarIconButton
         tooltip={take.favorite ? "Unfavorite" : "Favorite"}

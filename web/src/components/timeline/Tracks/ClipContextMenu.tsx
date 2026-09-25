@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
 import MusicNoteOutlinedIcon from "@mui/icons-material/MusicNoteOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -11,9 +12,14 @@ import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined
 import GradientOutlinedIcon from "@mui/icons-material/GradientOutlined";
 import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import { canClipFade } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
+import { useInStudio } from "../../../studio/StudioContext";
+import type { WorkflowMediaItem } from "../../../hooks/handlers/useGenerationToCanvas";
+import { clipWorkflowMedia } from "../clipWorkflowMedia";
 
 import { ContextMenu, MenuItemPrimitive } from "../../ui_primitives";
 import {
@@ -27,6 +33,11 @@ interface ClipContextMenuProps extends ClipMenuActionCallbacks {
   isLinked: boolean;
   onUnlink: () => void;
   onDelete: () => void;
+  /** Hands the clips' media to a "Send to workflow" menu at `position`. */
+  onSendToWorkflow: (
+    items: WorkflowMediaItem[],
+    position: { x: number; y: number }
+  ) => void;
   onClose: () => void;
 }
 
@@ -42,6 +53,7 @@ export function ClipContextMenu({
   isLinked,
   onUnlink,
   onDelete,
+  onSendToWorkflow,
   onClose,
   onRequestReplace,
   onError
@@ -62,6 +74,20 @@ export function ClipContextMenu({
   });
   const applyFades = useTimelineStore((s) => s.applyFades);
   const patchClip = useTimelineStore((s) => s.patchClip);
+  // A right-click inside the selection acts on the whole selection, like the
+  // timeline's other multi-clip commands; outside it, on this clip alone.
+  const inStudio = useInStudio();
+  const clips = useTimelineStore((s) => s.clips);
+  const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
+  const workflowMedia = useMemo(() => {
+    const ids = selectedClipIds.has(clipId) ? [...selectedClipIds] : [clipId];
+    return clipWorkflowMedia(
+      ids.flatMap((id) => {
+        const clip = findClipById(clips, id);
+        return clip ? [clip] : [];
+      })
+    );
+  }, [clipId, clips, selectedClipIds]);
 
   const run = (fn: () => void) => () => {
     fn();
@@ -146,6 +172,18 @@ export function ClipContextMenu({
           icon={<ImageIcon fontSize="small" />}
           compact
           onClick={run(actions.openReplace)}
+        />
+      )}
+      {!inStudio && workflowMedia.length > 0 && (
+        <MenuItemPrimitive
+          label={
+            workflowMedia.length === 1
+              ? "Send to workflow…"
+              : `Send ${workflowMedia.length} clips to workflow…`
+          }
+          icon={<AccountTreeOutlinedIcon fontSize="small" />}
+          compact
+          onClick={run(() => onSendToWorkflow(workflowMedia, position))}
         />
       )}
       {actions.canOpenInNodeEditor && (

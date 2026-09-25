@@ -138,9 +138,6 @@ export const useDropHandler = (): UseDropHandlerResult => {
         if (dragData.type === "chat-media") {
           const block = dragData.payload;
           const constant = blockToConstant(block);
-          if (!constant) {
-            return;
-          }
           const metadata = getMetadata(constant.nodeType);
           if (!metadata) {
             addNotification({

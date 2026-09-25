@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import type {
   ChangeEvent,
   DragEvent,
@@ -53,6 +53,8 @@ import { formatDuration } from "../../utils/formatUtils";
 import { useInStudio } from "../../studio/StudioContext";
 import { STUDIO_VOICE } from "../../studio/curatedModels";
 import ScriptTakeGallery from "./ScriptTakeGallery";
+import { takeWorkflowMedia } from "./scriptWorkflowMedia";
+import { SendToWorkflowButton } from "../workflows/SendToWorkflowMenu";
 import ScriptShotChip from "./ScriptShotChip";
 import type { ScriptLineShotLink } from "../../hooks/script/useScriptShotLinks";
 
@@ -420,7 +422,12 @@ const ScriptLineRow = ({
     }
   }, [line.takes, line.currentTakeId]);
 
-  const hasCurrentTake = !!line.takes.find((t) => t.id === line.currentTakeId);
+  const currentTake = line.takes.find((t) => t.id === line.currentTakeId);
+  const hasCurrentTake = !!currentTake;
+  const currentTakeMedia = useMemo(
+    () => (currentTake ? [takeWorkflowMedia(currentTake)] : []),
+    [currentTake]
+  );
   // A direction is opt-in: an empty one stays out of the reading flow until
   // the author asks for it, so untouched lines sit as tight as printed dialogue.
   const hasDirection = !!line.direction?.trim();
@@ -671,6 +678,12 @@ const ScriptLineRow = ({
         onClick={() => void playCurrent()}
         icon={<PlayArrowIcon fontSize="small" />}
       />
+      {hasCurrentTake && (
+        <SendToWorkflowButton
+          items={currentTakeMedia}
+          tooltip="Send current take to a workflow"
+        />
+      )}
       <ToolbarIconButton
         tooltip={`Takes (${line.takes.length})`}
         onClick={(e: MouseEvent<HTMLElement>) =>

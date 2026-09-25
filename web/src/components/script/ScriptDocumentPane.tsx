@@ -68,6 +68,8 @@ import { useScriptLineShotLink } from "../../hooks/script/useScriptShotLinks";
 import { useScriptLineFocus } from "../../hooks/script/useScriptLineFocus";
 import StoryboardLinkControl from "./StoryboardLinkControl";
 import ScriptSaveIndicator from "./ScriptSaveIndicator";
+import { scriptWorkflowMedia } from "./scriptWorkflowMedia";
+import { SendToWorkflowButton } from "../workflows/SendToWorkflowMenu";
 
 interface ScriptDocumentPaneProps {
   scriptId: string;
@@ -864,6 +866,7 @@ const ScriptDocumentPane = ({
   const isEmpty = lineCount === 0;
   const durationLabel = voicedDurationMs > 0 ? formatDuration(voicedDurationMs) : null;
   const showAssemble = !readOnly && !inStudio;
+  const workflowMedia = useMemo(() => scriptWorkflowMedia(sections), [sections]);
 
   return (
     <FlexColumn
@@ -970,6 +973,12 @@ const ScriptDocumentPane = ({
                   ? "Update timeline"
                   : "Send to timeline"}
           </EditorButton>
+        )}
+        {hasVoicedLine && (
+          <SendToWorkflowButton
+            items={workflowMedia}
+            tooltip="Send every current take to a workflow"
+          />
         )}
         {!readOnly && <StoryboardLinkControl scriptId={scriptId} />}
         {!readOnly && (

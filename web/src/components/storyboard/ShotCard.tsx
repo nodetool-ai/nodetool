@@ -13,7 +13,7 @@
  * ({@link ShotEditPanel}).
  */
 
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type {
   BoardRenderContext,
@@ -51,6 +51,7 @@ import ShotHoverToolbar from "./ShotHoverToolbar";
 import ShotMediaViewer from "./ShotMediaViewer";
 import ShotStatusPill, { CLIP_COLOR, isShotGenerating } from "./ShotStatusPill";
 import { downloadResolvedMedia, shotDownloadName } from "./shotMediaDownload";
+import { shotWorkflowMedia } from "./shotWorkflowMedia";
 import { useStoryboardGenerationStore } from "../../stores/storyboard/StoryboardGenerationStore";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
@@ -212,6 +213,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   // one, the selected still before that.
   const previewMedia: ImageRef | VideoRef | null =
     previewClip ?? shot.keyframe ?? null;
+  const workflowMedia = useMemo(() => shotWorkflowMedia(shot), [shot]);
 
   const handleOpenViewer = useCallback(
     (event?: React.SyntheticEvent) => {
@@ -484,6 +486,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           }
           onDownload={downloadUri ? handleDownload : undefined}
           downloadLabel={downloadKind}
+          sendToWorkflowItems={workflowMedia}
           onDuplicate={readOnly ? undefined : handleDuplicate}
           onDelete={readOnly ? undefined : handleOpenDeleteConfirm}
         />
