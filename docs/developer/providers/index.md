@@ -26,7 +26,7 @@ NodeTool spans many providers but only a few distinct mechanisms. Find your prov
 - **[Anthropic (Claude)](anthropic.md)** — models fetched live from the Anthropic API.
 - **[Google Gemini](gemini.md)** — text auto-fetches; Imagen/Veo are static lists.
 - **[xAI (Grok)](xai.md)** — chat, image, and video classified from `/v1/models`.
-- **[OpenAI-compatible providers](openai-compatible.md)** — Groq, Mistral, DeepSeek, Moonshot, Cerebras, Alibaba Cloud, Cohere, OpenRouter, and how to add a new one.
+- **[OpenAI-compatible providers](openai-compatible.md)** — Groq, Mistral, DeepSeek, Moonshot, Cerebras, Alibaba Cloud, Cohere, OpenRouter, Requesty, and how to add a new one.
 - **[FAL](fal.md)** — nodes generated from FAL OpenAPI schemas via codegen.
 - **[Replicate](replicate.md)** — nodes generated from Replicate model schemas via codegen.
 - **[KIE](kie.md)** — nodes generated from per-model configs into a manifest.
