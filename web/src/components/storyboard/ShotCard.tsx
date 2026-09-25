@@ -6,7 +6,8 @@
  * The description lives in the inspector opened by selecting the card.
  *
  * Two rows of controls sit on top of that: {@link ShotHoverToolbar} on the
- * media (drag grip, fullscreen, download, duplicate, delete) and the action
+ * media (drag grip, fullscreen, render still or clip with a picked model,
+ * download, duplicate, delete) and the action
  * footer (Edit, Iterate, Regenerate, Upload). Both swallow their clicks, so
  * reaching for an action never also selects the card.
  * `Edit` asks the board to open the shot's editor directly under this card
@@ -49,6 +50,7 @@ import {
 import { colorForType } from "../../config/data_types";
 import ShotHoverToolbar from "./ShotHoverToolbar";
 import ShotMediaViewer from "./ShotMediaViewer";
+import ShotRenderDialog, { type ShotRenderStep } from "./ShotRenderDialog";
 import ShotStatusPill, { CLIP_COLOR, isShotGenerating } from "./ShotStatusPill";
 import { downloadResolvedMedia, shotDownloadName } from "./shotMediaDownload";
 import { shotWorkflowMedia } from "./shotWorkflowMedia";
@@ -165,6 +167,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [iterateOpen, setIterateOpen] = useState(false);
   const [iterateText, setIterateText] = useState("");
+  const [renderStep, setRenderStep] = useState<ShotRenderStep | null>(null);
 
   // Why the last still or clip failed. Kept on the shot's job state until the
   // next attempt registers, so the card can say more than "failed".
@@ -259,6 +262,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     []
   );
   const handleOpenIterate = useCallback(() => setIterateOpen(true), []);
+  const handleRenderStill = useCallback(() => setRenderStep("still"), []);
+  const handleRenderClip = useCallback(() => setRenderStep("clip"), []);
+  const handleCloseRender = useCallback(() => setRenderStep(null), []);
   const handleCloseIterate = useCallback(() => setIterateOpen(false), []);
 
   const handleDownload = useCallback(() => {
@@ -484,6 +490,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           fullscreenLabel={
             previewClip ? "View clip fullscreen" : "View still fullscreen"
           }
+          onRenderStill={readOnly ? undefined : handleRenderStill}
+          onRenderClip={readOnly ? undefined : handleRenderClip}
+          renderDisabled={isGenerating}
           onDownload={downloadUri ? handleDownload : undefined}
           downloadLabel={downloadKind}
           sendToWorkflowItems={workflowMedia}
@@ -619,7 +628,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         onClose={handleCloseViewer}
       />
 
-      {/* Both dialogs sit inside the card, so their clicks would bubble into
+      {/* The dialogs sit inside the card, so their clicks would bubble into
           its selection handler through the React tree. */}
       <Box onClick={swallowClick}>
         <Dialog
@@ -645,6 +654,16 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             />
           </FlexColumn>
         </Dialog>
+
+        {/* Mounted only while open: it subscribes to both model catalogs. */}
+        {renderStep && (
+          <ShotRenderDialog
+            boardId={boardId}
+            shot={shot}
+            step={renderStep}
+            onClose={handleCloseRender}
+          />
+        )}
 
         <Dialog
           open={confirmDelete}
