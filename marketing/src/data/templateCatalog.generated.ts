@@ -1387,6 +1387,16 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "count-to-three-with-a-loop",
+        "name": "Count to Three with a Loop",
+        "description": "Start at zero and add one on each pass. Stop when the result reaches three, then return the final value.",
+        "tags": [
+          "control",
+          "loop",
+          "getting-started"
+        ]
+      },
+      {
         "slug": "does-this-text-mention-the-deadline",
         "name": "Does This Text Mention the Deadline",
         "description": "A containment check returning a boolean — the branch condition for a workflow that routes on what a document says.",
