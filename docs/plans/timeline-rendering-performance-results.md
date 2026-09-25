@@ -1,6 +1,6 @@
 # Timeline rendering performance measurements
 
-These measurements use the generated fixtures in [`web/tests/benchmarks/`](../../web/tests/benchmarks/TIMELINE_PREVIEW_PERF.md). They describe specific paths on an Apple M4 Pro Mac. Browser, codec, resolution, cache state, and sample counts matter; the figures do not predict performance for other projects.
+These measurements use the generated fixtures in [`web/tests/benchmarks/`](https://github.com/nodetool-ai/nodetool/blob/main/web/tests/benchmarks/TIMELINE_PREVIEW_PERF.md). They describe specific paths on an Apple M4 Pro Mac. Browser, codec, resolution, cache state, and sample counts matter; the figures do not predict performance for other projects.
 
 ## Preview scheduling
 

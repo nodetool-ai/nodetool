@@ -734,9 +734,10 @@ async function runPreviewScenario(
       const incoming = videos.find((video) => video.dataset.clipId === `${clipId.slice(0, -1)}1`);
       return { primary: readGrid(primary), incoming: readGrid(incoming) };
     }, { clipId: primaryClipId, sourceMedia: fixture.assets.get(`${fixture.id}-asset-0`) ?? scenario.media });
-    videoPixels = sourceGrids.primary;
+    const sourcePixels = sourceGrids.primary;
+    videoPixels = sourcePixels;
     incomingPixels = sourceGrids.incoming;
-    if (!videoPixels) return false;
+    if (!sourcePixels) return false;
     const previewBytes = await page.locator('[aria-label="Preview area"] canvas').first().screenshot();
     const pixels = await sharp(previewBytes).raw().toBuffer({ resolveWithObject: true });
     const centerOffset = (Math.floor(pixels.info.height / 2) * pixels.info.width + Math.floor(pixels.info.width / 2)) * pixels.info.channels;
@@ -750,7 +751,7 @@ async function runPreviewScenario(
     const submit = (await readRun(page)).events
       .filter((event) => event.kind === "compositor-submit" && event.at >= start)
       .at(-1);
-    const matchCount = videoPixels.filter((source, index) => {
+    const matchCount = sourcePixels.filter((source, index) => {
       const x = points[index % points.length] ?? 0.5;
       const y = points[Math.floor(index / points.length)] ?? 0.5;
       const offset = (Math.floor(pixels.info.height * y) * pixels.info.width + Math.floor(pixels.info.width * x)) * pixels.info.channels;
@@ -778,7 +779,7 @@ async function runPreviewScenario(
     if (scenario.overlay === "dissolve") {
       if (!incomingPixels) return false;
       const blendFraction = Math.max(0, Math.min(1, ((scrubTargetMs ?? 1_500) - 1_000) / 1_000));
-      const blendedPoints = videoPixels.filter((source, index) => {
+      const blendedPoints = sourcePixels.filter((source, index) => {
         const output = previewGrid[index] ?? [];
         const incoming = incomingPixels?.[index] ?? [];
         const sourceRgb = source.slice(0, 3);
@@ -799,9 +800,9 @@ async function runPreviewScenario(
       const outside = [0, 4, 20, 24];
       const inside = [6, 8, 11, 13, 16, 18];
       const outsideDark = outside.every((index) => (previewGrid[index] ?? []).slice(0, 3).every((channel) => channel < 50));
-      const outsideSourceVisible = outside.filter((index) => (videoPixels[index] ?? []).slice(0, 3).some((channel) => channel > 80)).length >= 2;
+      const outsideSourceVisible = outside.filter((index) => (sourcePixels[index] ?? []).slice(0, 3).some((channel) => channel > 80)).length >= 2;
       const insideMatches = inside.filter((index) => {
-        const source = videoPixels[index]?.slice(0, 3) ?? [];
+        const source = sourcePixels[index]?.slice(0, 3) ?? [];
         return source.length === 3 && source.every((channel, c) =>
           Math.abs(channel - (previewGrid[index]?.[c] ?? 0)) <= 45
         );
@@ -813,7 +814,7 @@ async function runPreviewScenario(
       return passed;
     }
     if (scenario.overlay === "animated-text") {
-      const changed = videoPixels.filter((source, index) => source.slice(0, 3).some(
+      const changed = sourcePixels.filter((source, index) => source.slice(0, 3).some(
         (channel, channelIndex) => Math.abs(channel - (previewGrid[index]?.[channelIndex] ?? 0)) > 45
       )).length;
       lastPixelMatchCount = changed;
@@ -844,7 +845,7 @@ async function runPreviewScenario(
         if (submitted) uploadedAndSubmitted += 1;
       }
       blurSeekEvidence = { completed, uploadedAndSubmitted };
-      const changed = videoPixels.filter((source, index) => source.slice(0, 3).some(
+      const changed = sourcePixels.filter((source, index) => source.slice(0, 3).some(
         (channel, channelIndex) => Math.abs(channel - (previewGrid[index]?.[channelIndex] ?? 0)) > 35
       )).length;
       lastPixelMatchCount = changed;
@@ -853,7 +854,7 @@ async function runPreviewScenario(
       return passed;
     }
     if (scenario.key.includes("effectHeavy")) {
-      const changed = videoPixels.filter((source, index) => source.slice(0, 3).some(
+      const changed = sourcePixels.filter((source, index) => source.slice(0, 3).some(
         (channel, channelIndex) => Math.abs(channel - (previewGrid[index]?.[channelIndex] ?? 0)) > 35
       )).length;
       lastPixelMatchCount = changed;
