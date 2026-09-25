@@ -11,11 +11,17 @@ const src = readFileSync(join(here, "build.js"), "utf8");
 const body = src.slice(src.indexOf("const TIMELINE_ID"), src.indexOf("const outDir"));
 const args = process.argv.slice(2);
 const render = args.includes("--render");
-const frames = args.filter((a) => a !== "--render").map(Number);
+const frameArgs = args.filter((a) => a !== "--render");
+if (frameArgs.some((frame) => !/^(?:0|[1-9]\d*)$/.test(frame))) {
+  throw new Error("Frames must be non-negative integers");
+}
+const frames = frameArgs.map(Number);
+if (frames.some((frame) => !Number.isSafeInteger(frame))) {
+  throw new Error("Frames must be safe integers");
+}
 const tail = `
 const written = await set_timeline_document({ timeline_id: TIMELINE_ID, document });
 const result = { ok: written.ok, clips: clips.length, errors: written.validation?.errors?.slice(0, 15), warnings: (written.validation?.warnings ?? []).filter((w) => w.code !== "binding_incomplete" && w.code !== "text_illegible").slice(0, 15), issues: written.issues?.slice?.(0, 15) };
-const FRAMES = ${JSON.stringify(frames)};
 if (written.ok) {
   result.frames = [];
   for (let i = 0; i < FRAMES.length; i += 8) {
@@ -23,7 +29,7 @@ if (written.ok) {
     for (const f of pv.frames) result.frames.push([Math.floor((f.time_ms * 30) / 1000), f.image?.asset_id, f.dropped?.length ? f.dropped : undefined, f.degraded?.length ? f.degraded : undefined]);
   }
 }
-${render ? "if (written.ok) result.render = await render_timeline({ timeline_id: TIMELINE_ID });" : ""}
+if (render && written.ok) result.render = await render_timeline({ timeline_id: TIMELINE_ID });
 return result;`;
-const code = transformSync(`async function main(){${body}${tail}}`, { minify: true, loader: "js" }).code;
-process.stdout.write(`import { set_timeline_document, preview_timeline_frame${render ? ", render_timeline" : ""} } from "@nodetool-ai/sandbox-nodetool/timelines";\n${code.trim()}\nreturn await main();\n`);
+const code = transformSync(`async function main(FRAMES, render){${body}${tail}}`, { minify: true, loader: "js" }).code;
+process.stdout.write(`import { set_timeline_document, preview_timeline_frame, render_timeline } from "@nodetool-ai/sandbox-nodetool/timelines";\n${code.trim()}\nreturn await main(${JSON.stringify(frames)}, ${render});\n`);
