@@ -33,6 +33,7 @@ import { createReadOnlyNodeStore } from "../../stores/readOnlyNodeStore";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import { NodeContext } from "../../contexts/NodeContext";
+import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import type { Graph, Workflow } from "../../stores/ApiTypes";
 import GroupNode from "../node/GroupNode";
 import CommentNode from "../node/CommentNode";
@@ -174,7 +175,9 @@ export const WorkflowGraphPreview: React.FC<WorkflowGraphPreviewProps> = ({
       <div className="node-editor" css={generateCSS}>
         <NodeContext.Provider value={data.store}>
           <ReactFlowProvider>
-            <GraphPreviewInner nodes={data.nodes} edges={data.edges} />
+            <ContextMenuProvider active={false}>
+              <GraphPreviewInner nodes={data.nodes} edges={data.edges} />
+            </ContextMenuProvider>
           </ReactFlowProvider>
         </NodeContext.Provider>
       </div>

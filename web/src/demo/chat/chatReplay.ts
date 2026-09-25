@@ -12,6 +12,7 @@ import { isString } from "../../utils/typePredicates";
 
 export interface ChatReplayState {
   status: ChatViewStatus;
+  elapsedSeconds: number;
   messages: Message[];
   progress: number;
   total: number;
@@ -23,6 +24,7 @@ export interface ChatReplayState {
 
 const INITIAL_STATE: ChatReplayState = {
   status: "connected",
+  elapsedSeconds: 0,
   messages: [],
   progress: 0,
   total: 0,
@@ -46,6 +48,7 @@ export function computeChatStateAt(
   timeMs: number
 ): ChatReplayState {
   let state = INITIAL_STATE;
+  let busySince: number | null = null;
 
   for (const event of events) {
     if (event.t > timeMs) break;
@@ -54,6 +57,11 @@ export function computeChatStateAt(
     switch (payload.kind) {
       case "status":
         state = { ...state, status: payload.status };
+        if (payload.status === "loading" || payload.status === "streaming") {
+          busySince ??= event.t;
+        } else {
+          busySince = null;
+        }
         break;
       case "message":
         state = { ...state, messages: [...state.messages, payload.message] };
@@ -113,7 +121,10 @@ export function computeChatStateAt(
     }
   }
 
-  return state;
+  return {
+    ...state,
+    elapsedSeconds: busySince === null ? 0 : Math.floor((timeMs - busySince) / 1000)
+  };
 }
 
 /**

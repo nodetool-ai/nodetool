@@ -155,7 +155,7 @@ describe("compositions capability module", () => {
 });
 
 describe("list_compositions and get_composition", () => {
-  it("lists the six shipped templates with their parameters", async () => {
+  it("lists the shipped templates with their parameters", async () => {
     const result = (await call(makeContext(), "list_compositions", {
       source: "shipped"
     })) as { compositions: { id: string; source: string; params: unknown[] }[] };
@@ -166,7 +166,11 @@ describe("list_compositions and get_composition", () => {
       "cta-end-card",
       "logo-sting",
       "lower-third",
-      "title-card"
+      "number-ticker",
+      "title-card",
+      "title-slam",
+      "window-frame",
+      "word-cards"
     ]);
     for (const row of result.compositions) {
       expect(row.source).toBe("shipped");
@@ -308,7 +312,7 @@ describe("delete_composition", () => {
 describe("the shipped templates instantiate", () => {
   it("mints fresh clips for every one of them", () => {
     const shipped = loadShippedCompositions();
-    expect(shipped).toHaveLength(6);
+    expect(shipped).toHaveLength(10);
     for (const composition of shipped) {
       const clips = instantiateComposition(composition, { startMs: 1000 });
       expect(clips.length).toBe(composition.children.length + 1);

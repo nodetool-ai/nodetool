@@ -572,4 +572,54 @@ describe("resolveAnimatedLayerProps", () => {
     expect(props.effects).toBe(layer.clip.effects);
     expect(props.shapeStyle).toBe(layer.clip.shapeStyle);
   });
+
+  it("keeps camera depth through an animated transform", () => {
+    const camera2d = { position: { x: 0, y: 0 }, depthPx: 0, focalLengthPx: 1000 };
+    const transform = {
+      position: { x: 200, y: 0 }, scale: { x: 1, y: 1 },
+      rotation: 0, anchor: { x: 0.5, y: 0.5 }, depthPx: 500
+    };
+    const base = layerFor([], { transform });
+    const staticProps = resolveAnimatedLayerProps({ ...base, transform, camera2d }, 500, CANVAS);
+    const faded = resolveAnimatedLayerProps({ ...base, transform, camera2d, clip: { ...base.clip, animations: [driver("fade", { opacity: 0.5 })] } }, 500, CANVAS);
+    expect(staticProps.transform?.position.x).toBe(400);
+    expect(faded.transform?.position.x).toBe(400);
+    expect(faded.transform?.scale.x).toBe(2);
+    expect(faded.transform?.depthPx).toBe(500);
+  });
+
+  it("applies a border radius style track even when transform channels are identity", () => {
+    const base = layerFor([], { borderRadius: 0 });
+    const layer = { ...base, clip: { ...base.clip, animations: [{
+      id: "round", role: "in", preset: "custom", durationMs: 1000,
+      easing: "linear", styleTracks: [{
+        target: "clip.borderRadius", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 40 }]
+      }]
+    }] } };
+    expect(resolveAnimatedLayerProps(layer, 500, CANVAS).borderRadius).toBe(20);
+  });
+
+  it("preserves group and transition coverage when opacity follows a link", () => {
+    const tracks = [track({ id: "overlay", index: 0 })];
+    const source = clip({ id: "source", trackId: "overlay", opacity: 1 });
+    const group = clip({ id: "group", trackId: "overlay", mediaType: "group", opacity: 0 });
+    const child = clip({
+      id: "child", trackId: "overlay", parentId: "group", opacity: 0,
+      animationLinks: [{ target: "opacity", sourceClipId: "source", source: "opacity" }]
+    });
+    const clips = [source, group, child];
+    const hidden = computeActiveLayers(tracks, clips, 500).find((layer) => layer.clipId === "child");
+    expect(hidden).toBeDefined();
+    expect(resolveAnimatedLayerProps(hidden!, 500, CANVAS, undefined, { clips, mediaTracks: [] }).opacity).toBe(0);
+
+    group.opacity = 1;
+    const shown = computeActiveLayers(tracks, clips, 500).find((layer) => layer.clipId === "child");
+    expect(shown).toBeDefined();
+    expect(resolveAnimatedLayerProps(shown!, 500, CANVAS, undefined, { clips, mediaTracks: [] }).opacity).toBe(1);
+
+    child.transitionIn = { type: "crossfade", durationMs: 200 };
+    const transitioning = computeActiveLayers(tracks, clips, 100).find((layer) => layer.clipId === "child");
+    expect(transitioning).toBeDefined();
+    expect(resolveAnimatedLayerProps(transitioning!, 100, CANVAS, undefined, { clips, mediaTracks: [] }).opacity).toBeCloseTo(0.5);
+  });
 });

@@ -1,0 +1,20 @@
+import { readFileSync } from "node:fs";
+import { renderTimelineComposited } from "./src/nodes/timeline/compositeRender.js";
+import { resolveTimelineOutput } from "./src/nodes/timeline/outputFormats.js";
+const { document } = JSON.parse(readFileSync("../../demo/out/serein-doc.json", "utf8"));
+const variant = process.argv[2] ?? "base";
+const byId = new Map(document.clips.map((c: any) => [c.id, c]));
+const inS1 = (c: any): boolean => c.id === "S1" || c.id === "finish" || (c.parentId && inS1(byId.get(c.parentId)));
+let clips = document.clips.filter(inS1).map((c: any) => structuredClone(c));
+let camera2d = structuredClone(document.camera2d);
+if (variant.includes("nocam")) camera2d = undefined;
+if (variant.includes("noap")) for (const k of camera2d.keyframes) k.aperturePx = 0;
+if (variant.includes("norgb")) clips = clips.filter((c: any) => c.name !== "rgbsplit");
+if (variant.includes("nofinish")) clips = clips.filter((c: any) => c.id !== "finish");
+if (variant.includes("noglitch")) for (const c of clips) if (c.name === "counter") delete c.effects;
+if (variant.includes("nogf")) for (const c of clips) if (c.name === "field") delete c.effects;
+if (variant.includes("nowall")) { const drop = new Set<string>(); const walk = (id: string) => { drop.add(id); for (const c of clips) if (c.parentId === id) walk(c.id); }; for (const c of clips) if (c.name === "wall") walk(c.id); clips = clips.filter((c: any) => !drop.has(c.id)); }
+const seq = { ...document, clips, camera2d, id: "s1", name: "s1", fps: 30, width: 1920, height: 1080, durationMs: 300 };
+const t0 = Date.now();
+await renderTimelineComposited({ sequence: seq as never, width: 960, height: 540, fps: 30, durationMs: 300, onProgress: (f, n) => console.log("progress", f, n, Date.now() - t0), resolveAssetPath: async () => null, outPath: `${process.env.SP}/s1-${variant}.mp4`, output: resolveTimelineOutput({ format: "mp4" }) });
+console.log(variant, clips.length, "clips", Date.now() - t0, "ms");

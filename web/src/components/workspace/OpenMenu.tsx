@@ -155,7 +155,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
             )}
             {!examplesLoading && exampleStoryboards.length === 0 && (
               <Caption color="secondary" sx={{ px: 2, py: 1.5 }}>
-                No example storyboards are installed.
+                No example storyboards are available.
               </Caption>
             )}
             {exampleStoryboards.map((example) => (
@@ -164,7 +164,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
                 label={example.name}
                 secondary={`${example.shotCount} shot${
                   example.shotCount === 1 ? "" : "s"
-                }, already rendered`}
+                }, stills included`}
                 onClick={() =>
                   void installStoryboardExample(example.slug, example.name)
                 }

@@ -249,6 +249,17 @@ const PRESETS: AnimationPreset[] = [
     curves: () => [{ property: "opacity", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] }]
   },
   {
+    id: "typewriter",
+    roles: ["in"],
+    defaultDurationMs: 1,
+    defaultEasing: "hold",
+    params: [],
+    describe: "Reveal text one whole character at a time, left to right.",
+    curves: () => [
+      { property: "opacity", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] }
+    ]
+  },
+  {
     id: "slide",
     roles: ["in", "out"],
     defaultDurationMs: 500,

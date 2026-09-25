@@ -17,7 +17,7 @@ import {
   type TimelineTrack
 } from "@nodetool-ai/timeline";
 
-const { forEachVideoFrame } = vi.hoisted(() => ({
+const { forEachVideoFrame, renderGlbFramesHeadless } = vi.hoisted(() => ({
   forEachVideoFrame:
     vi.fn<
       (
@@ -29,10 +29,14 @@ const { forEachVideoFrame } = vi.hoisted(() => ({
           rgba: Uint8Array;
         }) => void | Promise<void>
       ) => Promise<number>
-    >()
+    >(),
+  renderGlbFramesHeadless: vi.fn(async () => [])
 }));
 
 vi.mock("../src/analysis/media-decode.js", () => ({ forEachVideoFrame }));
+vi.mock("@nodetool-ai/video-nodes/nodes/model3d/render3d-headless", () => ({
+  renderGlbFramesHeadless
+}));
 
 import { renderTimelineFrames } from "../src/timeline-preview/frames.js";
 
@@ -133,6 +137,7 @@ describe("a baked 3D clip on the agent frame path", () => {
   it("does not decode anything while the bake is stale", async () => {
     forEachVideoFrame.mockReset();
     forEachVideoFrame.mockImplementation(async () => 0);
+    renderGlbFramesHeadless.mockClear();
     const stale = bakedClip();
     stale.model3dStyle = {
       ...stale.model3dStyle!,
@@ -145,5 +150,6 @@ describe("a baked 3D clip on the agent frame path", () => {
       loadAsset: async () => new Uint8Array([0x67, 0x6c, 0x54, 0x46])
     });
     expect(forEachVideoFrame).not.toHaveBeenCalled();
+    expect(renderGlbFramesHeadless).toHaveBeenCalledOnce();
   });
 });

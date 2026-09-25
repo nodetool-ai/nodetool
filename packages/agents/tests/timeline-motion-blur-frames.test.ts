@@ -154,6 +154,25 @@ async function renderOne(
 }
 
 describe("motion blur in the frame preview", () => {
+  it("renders an early frame unchanged when a later clip requests blur", async () => {
+    const baseline = sequence();
+    const later = {
+      ...baseline,
+      clips: [...baseline.clips, {
+        ...baseline.clips[0],
+        id: "later",
+        startMs: 1000,
+        durationMs: 500,
+        motionBlur: { samplesPerFrame: 8 }
+      }]
+    };
+    const render = async (input: TimelineSequence): Promise<Uint8Array> => {
+      const result = await renderTimelineFrames({ sequence: input, timesMs: [FRAME_TIME_MS], width: FRAME_W, loadAsset: noAssets });
+      return result.frames[0].png;
+    };
+    expect(Buffer.from(await render(later)).equals(Buffer.from(await render(baseline)))).toBe(true);
+  });
+
   it("places the unblurred shape where the ramp says (the fixture's own claim)", async () => {
     const span = await litSpan(await renderOne(), SHAPE_ROW);
     const offset = SPEED_PX_PER_MS * FRAME_TIME_MS;

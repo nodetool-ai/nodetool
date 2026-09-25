@@ -1,28 +1,47 @@
-import React, { memo } from "react";
-import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import React, { memo, useState } from "react";
 import ManagerPageLayout from "../panels/ManagerPageLayout";
+import { TabGroup } from "../ui_primitives";
 import DashboardExampleApps from "./DashboardExampleApps";
+import DashboardExampleStoryboards from "./DashboardExampleStoryboards";
+import DashboardExampleTimelines from "./DashboardExampleTimelines";
 import DashboardTemplates from "./DashboardTemplates";
 
 /**
  * Full-screen Examples page. Reachable from the logo menu; wraps the shipped
- * example apps and the example/template browser in the shared manager chrome
- * (header + back button) and lets the browser own its scroll.
+ * example apps, workflows, storyboards, and timelines in separate tabs.
  */
-const ExamplesPage: React.FC = () => (
-  <ManagerPageLayout
-    icon={<AutoAwesomeOutlinedIcon sx={{ fontSize: 22 }} />}
-    title="Examples"
-    subtitle="Browse example apps and workflows, and start from one."
-    docsTopic="examples"
-    padded={false}
-  >
-    <>
-      <DashboardExampleApps />
-      <DashboardTemplates fullPage />
-    </>
-  </ManagerPageLayout>
-);
+const ExamplesPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState("apps");
+
+  return (
+    <ManagerPageLayout
+      padded={false}
+      scrollable
+      showHeader={false}
+    >
+      <TabGroup
+        tabs={[
+          { value: "apps", label: "Apps" },
+          { value: "workflows", label: "Workflows" },
+          { value: "storyboards", label: "Storyboards" },
+          { value: "timelines", label: "Timelines" }
+        ]}
+        value={activeTab}
+        onChange={setActiveTab}
+        sx={{ flexShrink: 0, borderBottom: 1, borderColor: "divider" }}
+      />
+      {activeTab === "apps" ? (
+        <DashboardExampleApps />
+      ) : activeTab === "workflows" ? (
+        <DashboardTemplates fullPage />
+      ) : activeTab === "storyboards" ? (
+        <DashboardExampleStoryboards />
+      ) : (
+        <DashboardExampleTimelines />
+      )}
+    </ManagerPageLayout>
+  );
+};
 
 ExamplesPage.displayName = "ExamplesPage";
 

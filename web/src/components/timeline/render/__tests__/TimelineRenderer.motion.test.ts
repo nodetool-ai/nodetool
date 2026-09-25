@@ -231,4 +231,28 @@ describe("renderTimeline motion", () => {
       );
     });
   });
+
+  it("samples only frames containing a clip with motion blur", async () => {
+    const track = makeTrack({ id: "titles", type: "overlay", index: 0 });
+    const future = makeClip({
+      id: "future",
+      trackId: track.id,
+      mediaType: "text",
+      sourceType: "imported",
+      status: "generated",
+      startMs: 1000,
+      durationMs: 500,
+      textStyle: { text: "Later", fontSizePx: 96, color: "#ffffff" },
+      motionBlur: { samplesPerFrame: 4, shutterAngle: 180 }
+    });
+
+    await renderTimeline({
+      tracks: [track], clips: [future], width: 1920, height: 1080,
+      fps: 2, durationMs: 1500,
+      resolveUrl: jest.fn().mockResolvedValue(undefined)
+    });
+
+    expect(mockSetLayers).toHaveBeenCalledTimes(6);
+    expect(mockAddFrame).toHaveBeenCalledTimes(3);
+  });
 });

@@ -98,7 +98,7 @@ describe("MobileDocumentSelector", () => {
     expect(screen.getByText("No document open")).toBeInTheDocument();
   });
 
-  it("labels a project overview tab Home", () => {
+  it("labels a project overview tab with its project name", () => {
     const home: WorkspaceTab = {
       id: "project:p1",
       type: "project",
@@ -113,9 +113,8 @@ describe("MobileDocumentSelector", () => {
       typeGlyph: { ...GLYPH, project: "◆" }
     });
     expect(
-      screen.getByRole("button", { name: /Open document: Home/ })
+      screen.getByRole("button", { name: /Open document: Marketing recipes/ })
     ).toBeInTheDocument();
-    expect(screen.queryByText("Marketing recipes")).not.toBeInTheDocument();
+    expect(screen.getByText("Marketing recipes")).toBeInTheDocument();
   });
 });
-

@@ -1,17 +1,18 @@
 /// <reference types="node" />
 import os from "node:os";
 
-// jsdom suites are CPU-bound, so the web suite scales with cores: on a 4-core
-// runner four workers finish in about two thirds of the time two do. Each
-// worker peaks near 1.7 GB, so memory caps the count on many-core machines.
+// Each jsdom worker can use roughly 1.7 GB. Leave headroom for macOS, the
+// editor, and other checks instead of scaling local workers with CPU count.
 const WORKER_MEMORY_BYTES = 2 * 1024 ** 3;
-const maxWorkers = Math.max(
-  1,
-  Math.min(
-    os.availableParallelism(),
-    Math.floor(os.totalmem() / WORKER_MEMORY_BYTES)
-  )
-);
+const configuredWorkers = process.env.NODETOOL_TEST_WORKERS;
+if (configuredWorkers && (!/^[1-9]\d*$/.test(configuredWorkers) || !Number.isSafeInteger(Number(configuredWorkers)))) {
+  throw new Error("NODETOOL_TEST_WORKERS must be a positive integer.");
+}
+const maxWorkers = configuredWorkers
+  ? Number(configuredWorkers)
+  : process.env.CI
+    ? Math.max(1, Math.min(os.availableParallelism(), Math.floor(os.totalmem() / WORKER_MEMORY_BYTES)))
+    : 2;
 
 export default {
   preset: "ts-jest",

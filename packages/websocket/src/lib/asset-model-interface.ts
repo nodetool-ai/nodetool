@@ -9,10 +9,8 @@
 import { Asset } from "@nodetool-ai/models";
 import type { AssetInfoEntry } from "@nodetool-ai/runtime";
 import { storeAssetWithThumbnail } from "./thumbnail.js";
-import {
-  getAssetFileName,
-  normalizeAssetContentType
-} from "./asset-paths.js";
+import { probeAssetDurationSeconds } from "./asset-duration.js";
+import { getAssetFileName, normalizeAssetContentType } from "./asset-paths.js";
 
 export interface CreateAssetArgs {
   userId: string;
@@ -48,6 +46,9 @@ export async function createAssetModelInterface(
     asset.metadata = { ...args.metadata };
   }
   if (args.content) {
+    asset.duration = await probeAssetDurationSeconds(asset.content_type, {
+      bytes: args.content
+    });
     const key = getAssetFileName(asset.id, asset.content_type);
     await storeAssetWithThumbnail(
       asset.user_id,
@@ -86,7 +87,10 @@ export async function updateAssetBytesModelInterface(
     return null;
   }
   if (args.contentType) {
-    asset.content_type = normalizeAssetContentType(args.contentType, asset.name);
+    asset.content_type = normalizeAssetContentType(
+      args.contentType,
+      asset.name
+    );
   }
   if (args.name) {
     asset.name = args.name;
@@ -100,6 +104,9 @@ export async function updateAssetBytesModelInterface(
     asset.content_type
   );
   asset.size = args.content.length;
+  asset.duration = await probeAssetDurationSeconds(asset.content_type, {
+    bytes: args.content
+  });
   await asset.save();
   return {
     id: asset.id,

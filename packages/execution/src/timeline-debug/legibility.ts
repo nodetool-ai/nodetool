@@ -172,11 +172,13 @@ function backdropShapeColor(
     // the frame, so an absent field is not "full frame".
     if ((style.x ?? 0.25) > 0 || (style.y ?? 0.25) > 0) continue;
     if ((style.width ?? 0.5) < 1 || (style.height ?? 0.5) < 1) continue;
-    const fill = style.fillStyle
-      ? style.fillStyle.type === "solid"
-        ? style.fillStyle.color
-        : undefined
-      : style.fill;
+    const authoredFill = style.fillStyle ?? style.fill;
+    const fill =
+      typeof authoredFill === "string"
+        ? authoredFill
+        : authoredFill?.type === "solid"
+          ? authoredFill.color
+          : undefined;
     if (fill === undefined) continue;
 
     bestIndex = index;

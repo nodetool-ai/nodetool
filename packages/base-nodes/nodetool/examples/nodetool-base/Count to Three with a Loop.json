@@ -1,0 +1,91 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-09-24T00:00:00.000Z",
+  "updated_at": "2026-09-24T00:00:00.000Z",
+  "name": "Count to Three with a Loop",
+  "tool_name": null,
+  "description": "Start at zero and add one on each pass. Stop when the result reaches three, then return the final value.",
+  "tags": ["control", "loop", "getting-started", "example"],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Count to Three with a Loop\n\nThe loop starts at 0. On each pass, Code adds 1. It sends the new number to Next and sends true to Condition while that number is below 3. When Condition becomes false, Done sends 3 to the output."
+        },
+        "ui_properties": {
+          "position": { "x": 0, "y": -260 },
+          "width": 600,
+          "height": 180,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "loop",
+        "type": "nodetool.control.Loop",
+        "data": { "initial": 0, "max_iterations": 10 },
+        "ui_properties": {
+          "position": { "x": 0, "y": 100 },
+          "width": 300,
+          "selectable": true,
+          "title": "1  Start at 0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "step",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "const next = Number(inputs.value) + 1;\nawait output(\"next\", next);\nawait output(\"again\", next < 3);",
+          "packages": []
+        },
+        "ui_properties": {
+          "position": { "x": 420, "y": 100 },
+          "width": 340,
+          "selectable": true,
+          "title": "2  Add 1 and check the result"
+        },
+        "dynamic_properties": { "value": 0 },
+        "dynamic_inputs": { "value": { "type": { "type": "any" } } },
+        "dynamic_outputs": {
+          "next": { "type": "int", "type_args": [], "optional": false },
+          "again": { "type": "bool", "type_args": [], "optional": false }
+        },
+        "outputs": { "next": "int", "again": "bool" }
+      },
+      {
+        "id": "final",
+        "type": "nodetool.output.Output",
+        "data": { "name": "final_count", "description": "The value after the loop stops." },
+        "ui_properties": {
+          "position": { "x": 850, "y": 100 },
+          "width": 280,
+          "selectable": true,
+          "title": "3  Final count"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "final_count"
+      }
+    ],
+    "edges": [
+      { "id": "value-to-step", "source": "loop", "sourceHandle": "value", "target": "step", "targetHandle": "value" },
+      { "id": "result-to-next", "source": "step", "sourceHandle": "next", "target": "loop", "targetHandle": "next" },
+      { "id": "decision-to-condition", "source": "step", "sourceHandle": "again", "target": "loop", "targetHandle": "condition" },
+      { "id": "done-to-output", "source": "loop", "sourceHandle": "done", "target": "final", "targetHandle": "value" }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

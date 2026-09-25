@@ -31,8 +31,9 @@ const BlendUniforms = d.struct({
   params0: d.vec4f, // opacity, blendMode, canvasW, canvasH
   invRow0: d.vec4f, // inverse-affine row 0: a, b, tx, _
   invRow1: d.vec4f, // inverse-affine row 1: c, d, ty, _
-  params1: d.vec4f, // borderRadius, smoothness, filterMode, _
-  params2: d.vec4f // wipeEdge (0 = off), wipeProgress, wipeSoftness, _
+  invRow2: d.vec4f, // projective denominator row: p, q, r, _
+  params1: d.vec4f, // borderRadius, smoothness, filterMode, irisSoftness
+  params2: d.vec4f // wipeEdge (0 = off), wipeProgress, wipeSoftness, irisProgress (-1 = off)
 });
 
 /** Typed bind group layout for the blend pass. Binding order = WGSL order. */
@@ -58,6 +59,9 @@ export interface InverseAffine {
   c: number;
   d: number;
   ty: number;
+  p?: number;
+  q?: number;
+  r?: number;
 }
 
 export type CompositorFilter = "nearest" | "linear";
@@ -85,6 +89,7 @@ export interface BlendPassParams {
     /** Feathered edge width as a fraction of the wipe axis. 0 = hard edge. */
     softness: number;
   };
+  iris?: { progress: number; softness: number };
 }
 
 const IDENTITY_INVERSE_AFFINE: InverseAffine = {
@@ -120,6 +125,40 @@ export function forwardClipMatrixToInverseAffine(
     canvasHeight <= 0
   ) {
     return { ...IDENTITY_INVERSE_AFFINE };
+  }
+
+  if (m[3] !== 0 || m[7] !== 0 || m[15] !== 1) {
+    const a = (canvasWidth / 2) * (m[0] + m[3]);
+    const b = (canvasWidth / 2) * (m[4] + m[7]);
+    const c = (canvasWidth / 2) * (m[12] + m[15]);
+    const d = (canvasHeight / 2) * (m[3] - m[1]);
+    const e = (canvasHeight / 2) * (m[7] - m[5]);
+    const f = (canvasHeight / 2) * (m[15] - m[13]);
+    const g = m[3];
+    const h = m[7];
+    const i = m[15];
+    const det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+    if (Math.abs(det) < 1e-12) return { ...IDENTITY_INVERSE_AFFINE };
+    const n00 = (e * i - f * h) / det;
+    const n01 = (c * h - b * i) / det;
+    const n02 = (b * f - c * e) / det;
+    const n10 = (f * g - d * i) / det;
+    const n11 = (a * i - c * g) / det;
+    const n12 = (c * d - a * f) / det;
+    const n20 = (d * h - e * g) / det;
+    const n21 = (b * g - a * h) / det;
+    const n22 = (a * e - b * d) / det;
+    return {
+      a: (sourceWidth / 2) * (n00 + n20),
+      b: (sourceWidth / 2) * (n01 + n21),
+      tx: (sourceWidth / 2) * (n02 + n22),
+      c: (sourceHeight / 2) * (n20 - n10),
+      d: (sourceHeight / 2) * (n21 - n11),
+      ty: (sourceHeight / 2) * (n22 - n12),
+      p: n20,
+      q: n21,
+      r: n22
+    };
   }
 
   // local → clip: clip = A·local + t (A is the xy 2×2 block, t the xy translation).
@@ -348,10 +387,11 @@ export class WebGPULayerCompositor {
       ),
       invRow0: d.vec4f(invAffine.a, invAffine.b, invAffine.tx, 0),
       invRow1: d.vec4f(invAffine.c, invAffine.d, invAffine.ty, 0),
-      params1: d.vec4f(borderRadius, smoothness, this.filterMode, 0),
+      invRow2: d.vec4f(invAffine.p ?? 0, invAffine.q ?? 0, invAffine.r ?? 1, 0),
+      params1: d.vec4f(borderRadius, smoothness, this.filterMode, params.iris?.softness ?? 0),
       params2: wipe
-        ? d.vec4f(wipe.edge, wipe.progress, wipe.softness, 0)
-        : d.vec4f(0, 0, 0, 0)
+        ? d.vec4f(wipe.edge, wipe.progress, wipe.softness, params.iris?.progress ?? -1)
+        : d.vec4f(0, 0, 0, params.iris?.progress ?? -1)
     });
 
     const bindGroup = this.device.createBindGroup({

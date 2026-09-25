@@ -201,6 +201,12 @@
   ],
   "examples": [
     {
+      "id": "",
+      "name": "Count to Three with a Loop",
+      "description": "Start at zero and add one on each pass. Stop when the result reaches three, then return the final value.",
+      "tags": ["control", "loop", "getting-started", "example"]
+    },
+    {
       "id": "directed-campaign-directions",
       "name": "Propose Three Campaign Directions",
       "description": "Validate one product brief and optional role-labelled reference, then propose exactly three written campaign directions before any image generation.",

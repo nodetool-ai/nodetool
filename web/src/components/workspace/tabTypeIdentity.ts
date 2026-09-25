@@ -9,8 +9,8 @@ import { PROJECT_COLOR, PROJECT_GLYPH } from "../projects/projectIdentity";
 import type { WorkspaceTabType } from "../../stores/WorkspaceTabsStore";
 
 /**
- * The project selector already names the open project, so the overview tab
- * uses a fixed label and a distinct glyph instead of repeating that name.
+ * The overview tab shows its project name. The new-project landing surface
+ * keeps the Home label until a project exists.
  */
 export const PROJECT_HOME_TAB_TITLE = "Home";
 export const PROJECT_HOME_GLYPH = "⌂";
@@ -18,7 +18,7 @@ export const PROJECT_HOME_GLYPH = "⌂";
 export const tabDisplayTitle = (tab: {
   type: WorkspaceTabType;
   title: string;
-}): string => (tab.type === "project" || tab.type === "project-new" ? PROJECT_HOME_TAB_TITLE : tab.title);
+}): string => (tab.type === "project-new" ? PROJECT_HOME_TAB_TITLE : tab.title);
 
 export const TYPE_GLYPH = {
   workflow: "⬡",

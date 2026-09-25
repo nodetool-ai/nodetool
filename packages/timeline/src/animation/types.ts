@@ -18,6 +18,15 @@ export type EasingId =
   | "easeOutBack" // overshoot (pop)
   | "easeOutElastic"
   | "easeOutBounce"
+  | "easeInExpo"
+  | "easeOutExpo"
+  | "easeInOutExpo"
+  | "easeInQuint"
+  | "easeOutQuint"
+  | "easeInOutQuint"
+  | "easeInCirc"
+  | "easeOutCirc"
+  | "easeInOutCirc"
   | "hold"; // step: the previous value until the segment's own keyframe
 
 /** Which unit of a staggered animation starts first. */
@@ -147,6 +156,8 @@ export interface ClipAnimation {
    * is how a split keeps a loop mid-cycle on its right half.
    */
   delayMs?: number;
+  /** One-based beat within the clip or sequence; sampled against live tempo. */
+  beat?: { index: number; scope: "clip" | "sequence"; offsetMs?: number };
   /**
    * Overrides the preset default and every per-segment easing when set.
    * Typed `string` for the same reason `preset` is: it carries the easing
@@ -164,6 +175,12 @@ export interface ClipAnimation {
    * JavaScript rather than picked from the catalog. See `custom.ts`.
    */
   custom?: CustomClipAnimation;
+  /** Typed visual style curves evaluated in the same window as this animation. */
+  styleTracks?: AnimationStyleTrack[];
+  /** Text content effect evaluated on the animation window. */
+  textAnimator?:
+    | { kind: "ticker"; from: number; to: number; decimals?: number; padTo?: number; groupSeparator?: string; prefix?: string; suffix?: string }
+    | { kind: "scramble"; charset?: string; seed?: number };
   /**
    * Per-unit stagger. When set on a text clip, this animation's
    * transform/opacity curves run once per word, character or line with a
@@ -172,6 +189,14 @@ export interface ClipAnimation {
    * full-clip presets.
    */
   stagger?: AnimationStagger;
+  /** Optional caret drawn after the last revealed typewriter character. */
+  caret?: { color: string; widthPx: number; blinkPeriodMs: number };
+}
+
+/** A visual property on the clip or one of its identified effects. */
+export interface AnimationStyleTrack {
+  target: string;
+  keyframes: { t: number; value: number | string; easing?: string }[];
 }
 
 /**
@@ -187,6 +212,7 @@ export type WipeDirection = "left" | "right" | "up" | "down";
  */
 export type AnimationPresetId =
   | "fade"
+  | "typewriter"
   | "slide"
   | "pop"
   | "spin"
@@ -252,6 +278,8 @@ export const ANIMATED_PROPERTIES = [
   "scaleX",
   "scaleY",
   "rotation",
+  "rotationX",
+  "rotationY",
   "opacity",
   "wipeProgress",
   "blur",
@@ -296,6 +324,8 @@ export const ANIMATED_PROPERTY_FOLD: Record<
   scaleX: "multiply",
   scaleY: "multiply",
   rotation: "add",
+  rotationX: "add",
+  rotationY: "add",
   opacity: "multiply",
   wipeProgress: "min",
   blur: "add",
@@ -335,6 +365,8 @@ export const ANIMATED_PROPERTY_PASS: Record<
   scaleX: "motion",
   scaleY: "motion",
   rotation: "motion",
+  rotationX: "motion",
+  rotationY: "motion",
   opacity: "motion",
   wipeProgress: "effects",
   blur: "effects",

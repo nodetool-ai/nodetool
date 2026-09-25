@@ -120,6 +120,8 @@ const styles = (theme: Theme) =>
 
 type ChatViewProps = {
   status: ChatStatus;
+  /** Elapsed reply time supplied by a deterministic demo replay. */
+  replayElapsedSeconds?: number;
   progress: number;
   total: number;
   messages: Array<Message>;
@@ -206,6 +208,7 @@ const messageBlocks = (message: Message): MessageContent[] | null => {
 
 const ChatView = ({
   status,
+  replayElapsedSeconds,
   progress,
   total,
   messages,
@@ -484,6 +487,7 @@ const ChatView = ({
                 threadId={effectiveThreadId}
                 messages={messages}
                 status={status}
+                replayElapsedSeconds={replayElapsedSeconds}
                 progress={progress}
                 total={total}
                 progressMessage={progressMessage}

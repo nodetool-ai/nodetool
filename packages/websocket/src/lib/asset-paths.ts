@@ -45,6 +45,22 @@ const CONTENT_TYPE_TO_EXTENSION: Record<string, string> = {
 };
 
 const EXTENSION_TO_INFERRED_TYPE: Record<string, string> = {
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+  flac: "audio/x-flac",
+  m4a: "audio/x-m4a",
+  aac: "audio/aac",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+  avi: "video/x-msvideo",
+  mpeg: "video/mpeg",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
   glb: "model/gltf-binary",
   gltf: "model/gltf+json",
   svg: "image/svg+xml"

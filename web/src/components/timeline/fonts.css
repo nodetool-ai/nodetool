@@ -13,6 +13,22 @@
 
 @font-face {
   font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+  src: url("/api/assets/packages/timeline/fonts/Inter-SemiBold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 800;
+  font-display: block;
+  src: url("/api/assets/packages/timeline/fonts/Inter-ExtraBold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Inter";
   font-style: italic;
   font-weight: 100 900;
   font-display: block;

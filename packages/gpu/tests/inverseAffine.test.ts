@@ -26,6 +26,26 @@ function clipMatrix(
 }
 
 describe("forwardClipMatrixToInverseAffine", () => {
+  it("inverts a perspective warp at all four source corners", () => {
+    const matrix = new Float32Array(16);
+    matrix[0] = 0.8;
+    matrix[5] = 0.8;
+    matrix[3] = 0.05;
+    matrix[7] = 0.03;
+    matrix[10] = 1;
+    matrix[15] = 1;
+    const inv = forwardClipMatrixToInverseAffine(matrix, 1560, 878, 1920, 1080);
+    for (const [x, y] of [[0, 0], [1560, 0], [1560, 878], [0, 878]]) {
+      const u = 2 * x / 1560 - 1;
+      const v = 1 - 2 * y / 878;
+      const w = matrix[3] * u + matrix[7] * v + matrix[15];
+      const screenX = 960 * (matrix[0] * u / w + 1);
+      const screenY = 540 * (1 - matrix[5] * v / w);
+      const denominator = (inv.p ?? 0) * screenX + (inv.q ?? 0) * screenY + (inv.r ?? 1);
+      expect((inv.a * screenX + inv.b * screenY + inv.tx) / denominator).toBeCloseTo(x, 3);
+      expect((inv.c * screenX + inv.d * screenY + inv.ty) / denominator).toBeCloseTo(y, 3);
+    }
+  });
   it("maps an identity contain-fit to the identity inverse-affine", () => {
     // A = I, t = 0; canvas matches source → screen px == texel.
     const inv = forwardClipMatrixToInverseAffine(

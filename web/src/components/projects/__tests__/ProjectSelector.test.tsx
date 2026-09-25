@@ -77,7 +77,7 @@ describe("ProjectSelector", () => {
     renderSelector();
 
     const trigger = screen.getByRole("button", {
-      name: "Selected project: Personal"
+      name: "Select project"
     });
     trigger.focus();
     await user.keyboard("{Enter}");
@@ -88,7 +88,7 @@ describe("ProjectSelector", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Selected project: Aurora" })
+        screen.getByRole("button", { name: "Select project" })
       ).toBeInTheDocument()
     );
     expect(documentsQuery).not.toHaveBeenCalled();
@@ -101,7 +101,7 @@ describe("ProjectSelector", () => {
     const user = userEvent.setup();
     renderSelector();
     await user.click(
-      screen.getByRole("button", { name: "Selected project: Personal" })
+      screen.getByRole("button", { name: "Select project" })
     );
     expect(screen.getAllByRole("menuitem", { name: /Personal/ })).toHaveLength(
       1
@@ -116,21 +116,22 @@ describe("ProjectSelector", () => {
     expect(useWorkspaceTabsStore.getState().activeTabId).toBeNull();
   });
 
-  it("names the selected project on the tab bar", () => {
+  it("labels the tab bar selector Project", () => {
     useWorkspaceTabsStore.getState().setActiveProjectId("b");
     renderSelector();
 
     expect(
-      screen.getByRole("button", { name: "Selected project: Beacon" })
+      screen.getByRole("button", { name: "Select project" })
     ).toBeInTheDocument();
-    expect(screen.queryByText("Project")).not.toBeInTheDocument();
+    expect(screen.getByText("Project")).toBeInTheDocument();
+    expect(screen.queryByText("Beacon")).not.toBeInTheDocument();
   });
 
   it("starts a project from the selector menu", async () => {
     const user = userEvent.setup();
     renderSelector();
     await user.click(
-      screen.getByRole("button", { name: "Selected project: Personal" })
+      screen.getByRole("button", { name: "Select project" })
     );
     await user.click(screen.getByRole("menuitem", { name: "New project" }));
     expect(useWorkspaceTabsStore.getState().activeTabId).toBe("project-new:new");
@@ -141,7 +142,7 @@ describe("ProjectSelector", () => {
     const user = userEvent.setup();
     renderSelector();
     await user.click(
-      screen.getByRole("button", { name: "Selected project: Personal" })
+      screen.getByRole("button", { name: "Select project" })
     );
     const items = screen.getAllByRole("menuitem").map((item) => item.textContent);
     const start = items.findIndex((text) => text?.includes("New project"));

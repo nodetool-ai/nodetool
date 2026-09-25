@@ -30,6 +30,7 @@ import {
   SURFACE_LOOP_FPS,
   SURFACE_LOOP_FRAMES,
   SurfaceLoop,
+  surfaceOutputFrames,
 } from "./hero/SurfaceLoop";
 import {
   SIZZLE_DURATION_FRAMES,
@@ -179,16 +180,40 @@ export const Root: React.FC = () => {
       {/* One silent 6s loop per creative surface, for the landing page's
           surface tabs (marketing/POSITIONING_PLAN.md Part 5). */}
       {SURFACE_LOOPS.map((loop) => (
-        <Composition
-          key={loop.slug}
-          id={`Surface-${loop.slug}`}
-          component={SurfaceLoop}
-          defaultProps={loop}
-          fps={SURFACE_LOOP_FPS}
-          width={WIDTH}
-          height={HEIGHT}
-          durationInFrames={SURFACE_LOOP_FRAMES}
-        />
+        <React.Fragment key={loop.slug}>
+          <Composition
+            id={`Surface-${loop.slug}`}
+            component={SurfaceLoop}
+            defaultProps={loop}
+            fps={SURFACE_LOOP_FPS}
+            width={WIDTH}
+            height={HEIGHT}
+            durationInFrames={SURFACE_LOOP_FRAMES}
+          />
+          <Composition
+            id={`Surface-${loop.slug}-Clean`}
+            component={SurfaceLoop}
+            defaultProps={{ ...loop, labelVisible: false }}
+            fps={SURFACE_LOOP_FPS}
+            width={WIDTH}
+            height={HEIGHT}
+            durationInFrames={SURFACE_LOOP_FRAMES}
+          />
+          <Composition
+            id={`Surface-${loop.slug}-Harness`}
+            component={SurfaceLoop}
+            defaultProps={{ ...loop, zoom: 1, panPx: 0, labelVisible: false, realtime: true, harness: true }}
+            fps={SURFACE_LOOP_FPS}
+            width={WIDTH}
+            height={HEIGHT}
+            durationInFrames={SURFACE_LOOP_FRAMES}
+            calculateMetadata={({ props }) => ({
+              durationInFrames: surfaceOutputFrames(props.fromMs, props.toMs, props.durationMs),
+              width: props.outputWidth ?? WIDTH,
+              height: props.outputHeight ?? HEIGHT
+            })}
+          />
+        </React.Fragment>
       ))}
 
       <Composition
@@ -198,6 +223,30 @@ export const Root: React.FC = () => {
         width={WIDTH}
         height={HEIGHT}
         durationInFrames={SURFACE_LOOP_FRAMES}
+      />
+      <Composition
+        id="Surface-3d-Clean"
+        component={Model3DLoop}
+        defaultProps={{ labelVisible: false }}
+        fps={SURFACE_LOOP_FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        durationInFrames={SURFACE_LOOP_FRAMES}
+      />
+      <Composition
+        id="Surface-3d-Harness"
+        component={Model3DLoop}
+        defaultProps={{ labelVisible: false, fromMs: 0, toMs: 6000, realtime: true }}
+        fps={SURFACE_LOOP_FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        durationInFrames={SURFACE_LOOP_FRAMES}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: surfaceOutputFrames(
+            props.fromMs as number,
+            props.toMs as number
+          )
+        })}
       />
 
       {/* The pain-grid animation: five tool windows collapse into the real

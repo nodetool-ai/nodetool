@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "Sneaker Drop — 15s Spot",
-  "description": "A three-shot product spot: studio reveal, sole macro, street run-out. Stills and clips are prefilled, so the board is a working example the moment it installs.",
+  "description": "A three-shot product spot: studio reveal, sole macro, street run-out. The shots and their stills are ready to explore.",
   "tags": [
     "advertising",
     "product",
@@ -44,21 +44,9 @@
               "asset_id": null
             }
           ],
-          "clip": {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/sneaker-drop/plinth-reveal.mp4",
-            "asset_id": null,
-            "duration": 5
-          },
-          "clip_versions": [
-            {
-              "type": "video",
-              "uri": "package://nodetool-base/storyboards/sneaker-drop/plinth-reveal.mp4",
-              "asset_id": null,
-              "duration": 5
-            }
-          ],
-          "status": "rendered"
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
         },
         {
           "type": "shot",
@@ -87,21 +75,9 @@
               "asset_id": null
             }
           ],
-          "clip": {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/sneaker-drop/sole-macro.mp4",
-            "asset_id": null,
-            "duration": 4
-          },
-          "clip_versions": [
-            {
-              "type": "video",
-              "uri": "package://nodetool-base/storyboards/sneaker-drop/sole-macro.mp4",
-              "asset_id": null,
-              "duration": 4
-            }
-          ],
-          "status": "rendered"
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
         },
         {
           "type": "shot",
@@ -130,21 +106,9 @@
               "asset_id": null
             }
           ],
-          "clip": {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/sneaker-drop/street-run-out.mp4",
-            "asset_id": null,
-            "duration": 6
-          },
-          "clip_versions": [
-            {
-              "type": "video",
-              "uri": "package://nodetool-base/storyboards/sneaker-drop/street-run-out.mp4",
-              "asset_id": null,
-              "duration": 6
-            }
-          ],
-          "status": "rendered"
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
         }
       ]
     },
@@ -176,21 +140,9 @@
             "asset_id": null
           }
         ],
-        "clip": {
-          "type": "video",
-          "uri": "package://nodetool-base/storyboards/sneaker-drop/plinth-reveal.mp4",
-          "asset_id": null,
-          "duration": 5
-        },
-        "clip_versions": [
-          {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/sneaker-drop/plinth-reveal.mp4",
-            "asset_id": null,
-            "duration": 5
-          }
-        ],
-        "status": "rendered"
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
       },
       {
         "type": "shot",
@@ -219,21 +171,9 @@
             "asset_id": null
           }
         ],
-        "clip": {
-          "type": "video",
-          "uri": "package://nodetool-base/storyboards/sneaker-drop/sole-macro.mp4",
-          "asset_id": null,
-          "duration": 4
-        },
-        "clip_versions": [
-          {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/sneaker-drop/sole-macro.mp4",
-            "asset_id": null,
-            "duration": 4
-          }
-        ],
-        "status": "rendered"
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
       },
       {
         "type": "shot",
@@ -262,21 +202,9 @@
             "asset_id": null
           }
         ],
-        "clip": {
-          "type": "video",
-          "uri": "package://nodetool-base/storyboards/sneaker-drop/street-run-out.mp4",
-          "asset_id": null,
-          "duration": 6
-        },
-        "clip_versions": [
-          {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/sneaker-drop/street-run-out.mp4",
-            "asset_id": null,
-            "duration": 6
-          }
-        ],
-        "status": "rendered"
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
       }
     ],
     "brief": "Fifteen seconds for a running-shoe launch. Studio reveal, one texture beat, then out into the street at first light.",

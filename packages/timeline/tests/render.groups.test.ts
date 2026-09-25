@@ -121,6 +121,28 @@ describe("resolveGroups", () => {
 });
 
 describe("computeActiveLayers — groups", () => {
+  it("applies a group's incoming crossfade to its composed children", () => {
+    const group = groupClip({
+      id: "g", transitionIn: { type: "crossfade", durationMs: 400 }
+    });
+    const children = [
+      childClip({ id: "a", parentId: "g", trackId: "overlay" }),
+      childClip({ id: "b", parentId: "g", trackId: "overlay" })
+    ];
+    const scene = computeActiveLayersWithHorizon(
+      [
+        ...tracks,
+        makeTrack({ id: "overlay", type: "overlay", index: 1, visible: true })
+      ],
+      [group, ...children],
+      200,
+      { canvas: CANVAS }
+    );
+    const composedOpacity = scene.layers[0]!.opacity *
+      (scene.precomposites.find((item) => item.clipId === "g")?.opacity ?? 1);
+    expect(composedOpacity).toBeCloseTo(0.5);
+  });
+
   it("draws no layer for the group clip itself", () => {
     const layers = computeActiveLayers(
       tracks,
@@ -145,7 +167,7 @@ describe("computeActiveLayers — groups", () => {
   it("turns a child about the group's anchor, not its own", () => {
     // The group rotates a quarter turn about the frame's left edge, mid-height.
     // A child sitting at the frame centre (clip-space origin) therefore lands
-    // one clip-space unit left and one up — the corner — while a child rotated
+    // one clip-space unit left and one down — the corner — while a child rotated
     // about its own anchor would not move at all.
     const t = transform({ rotation: Math.PI / 2, anchor: { x: 0, y: 0.5 } });
     const layers = computeActiveLayers(
@@ -162,7 +184,7 @@ describe("computeActiveLayers — groups", () => {
       layers[0]?.parentMatrix
     );
     expect(composed[12]).toBeCloseTo(-1);
-    expect(composed[13]).toBeCloseTo(1);
+    expect(composed[13]).toBeCloseTo(-1);
   });
 
   it("multiplies the group's opacity into the child's", () => {

@@ -1,7 +1,12 @@
 /**
  * @jest-environment node
  */
-import { clipIdsByTrack, clipsById, findClipById } from "../clipLookup";
+import {
+  clipIdsByTrack,
+  clipsById,
+  findClipById,
+  visibleClipIdsByTrack
+} from "../clipLookup";
 import { stub } from "../../../test-utils/doubles";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 
@@ -106,5 +111,54 @@ describe("clipIdsByTrack", () => {
     const first = [onTrack("a", "t1")];
     const second = [...first];
     expect(clipIdsByTrack(first)).not.toBe(clipIdsByTrack(second));
+  });
+});
+
+describe("visibleClipIdsByTrack", () => {
+  it("windows a sparse track without changing paint order", () => {
+    const clips = [
+      { ...makeClip("later"), startMs: 20_000, durationMs: 500 },
+      { ...makeClip("spanning"), startMs: 0, durationMs: 30_000 },
+      { ...makeClip("near"), startMs: 1000, durationMs: 500 }
+    ];
+    expect(visibleClipIdsByTrack(clips, "t1", 900, 2000)).toEqual([
+      "spanning",
+      "near"
+    ]);
+  });
+
+  it("keeps spanning clips and document paint order in a dense track", () => {
+    const clips = Array.from({ length: 100 }, (_, index) => ({
+      ...makeClip(`clip-${index}`),
+      startMs: index * 1000,
+      durationMs: 500
+    }));
+    clips.push({ ...makeClip("long"), startMs: 0, durationMs: 100_000 });
+
+    expect(visibleClipIdsByTrack(clips, "t1", 50_000, 52_000)).toEqual([
+      "clip-50",
+      "clip-51",
+      "long"
+    ]);
+    expect(visibleClipIdsByTrack(clips, "t1", 50_000, 52_000, "clip-2")).toEqual([
+      "clip-2",
+      "clip-50",
+      "clip-51",
+      "long"
+    ]);
+  });
+
+  it("locates a small window in a large sparse track", () => {
+    const clips = Array.from({ length: 10_000 }, (_, index) => ({
+      ...makeClip(`clip-${index}`),
+      startMs: index * 1000,
+      durationMs: 500
+    }));
+    clips.push({ ...makeClip("spanning"), startMs: 0, durationMs: 10_000_000 });
+    expect(visibleClipIdsByTrack(clips, "t1", 9_000_000, 9_002_000)).toEqual([
+      "clip-9000",
+      "clip-9001",
+      "spanning"
+    ]);
   });
 });

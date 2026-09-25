@@ -218,6 +218,7 @@ describe("computeActiveLayers — precomposites", () => {
       {
         clipId: "g",
         trackIndex: 0,
+        stackOrder: 0,
         opacity: 0.5,
         blendMode: "normal",
         effects: [neutralColor],
@@ -362,7 +363,7 @@ describe("drawTimelineFrame — precomposites", () => {
       }
     );
     expect(surface.draws.map((d) => d.filter)).toEqual(["none", "none"]);
-    expect(ctx.draws[0]?.filter).toBe("blur(6.00px)");
+    expect(ctx.draws[0]?.filter).toBe("blur(2.00px)");
   });
 
   it("carries a nested surface into the one above it", () => {
@@ -436,7 +437,7 @@ describe("drawTimelineFrame — precomposites", () => {
 });
 
 describe("unsupportedEffectTypes — group effects", () => {
-  it("names a group effect Canvas 2D cannot draw, and only that one", () => {
+  it("supports glow and blur on a precomposited group", () => {
     const glow: ClipEffect = {
       id: "glow",
       type: "glow",
@@ -454,8 +455,6 @@ describe("unsupportedEffectTypes — group effects", () => {
       100,
       { canvas: CANVAS }
     );
-    expect(unsupportedEffectTypes([...layers, ...precomposites])).toEqual([
-      "glow"
-    ]);
+    expect(unsupportedEffectTypes([...layers, ...precomposites])).toEqual([]);
   });
 });

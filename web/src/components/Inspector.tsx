@@ -1113,19 +1113,19 @@ const Inspector: React.FC = () => {
                       </Caption>
                     );
                   }
-                  // Description bodies are conventionally `<paragraph>\n<tags>`.
-                  // Detect a trailing comma-separated keyword line so we can
-                  // present it as chips instead of crammed text.
-                  const lines = raw.split(/\n+/);
-                  const last = lines[lines.length - 1] || "";
+                  // Node descriptions put search tags on the second line.
+                  const lines = raw.split("\n").map((line) => line.trim());
+                  const tagLine = lines[1] ?? "";
                   const looksLikeTags =
                     lines.length > 1 &&
-                    /,/.test(last) &&
-                    last.length <= 120 &&
-                    !/[.!?]\s*$/.test(last);
-                  const body = looksLikeTags ? lines.slice(0, -1).join("\n\n") : raw;
+                    /,/.test(tagLine) &&
+                    tagLine.length <= 120 &&
+                    !/[.!?]\s*$/.test(tagLine);
+                  const body = looksLikeTags
+                    ? [lines[0], ...lines.slice(2)].join("\n").trim()
+                    : raw;
                   const tags = looksLikeTags
-                    ? last.split(",").map((t) => t.trim()).filter(Boolean)
+                    ? tagLine.split(",").map((t) => t.trim()).filter(Boolean)
                     : [];
                   return (
                     <>

@@ -1,10 +1,8 @@
 /**
  * Clip effects from the shader catalog on the Canvas 2D path (F12, T13, D7).
  *
- * Canvas 2D draws exactly one of the eight new types — `dropShadow`, through
- * `ctx.shadow*` — and has no equivalent for the rest. What is asserted here is
- * that it says so exactly (I7): a type this path silently skipped would show
- * up as a frame that differs from the GPU render with nothing to read about it.
+ * Canvas runs the effect catalog on a pixel surface. When a host cannot vend
+ * that surface, the frame reports the degradation.
  *
  * Pixels are the GPU suite's subject (`render.clipEffects.gpu.test.ts`); this
  * one records the context state each draw ran under.
@@ -80,7 +78,14 @@ const everyEffect: ClipEffect[] = [
     gamma: [1, 1, 1],
     gain: [1, 1, 1]
   },
-  { id: "11", type: "grain", enabled: true, amount: 0.3 }
+  { id: "11", type: "grain", enabled: true, amount: 0.3 },
+  { id: "12", type: "pixelate", enabled: true, cellSize: 6 },
+  { id: "13", type: "posterize", enabled: true, levels: 4 },
+  { id: "14", type: "directionalBlur", enabled: true, radius: 6, angle: 0 },
+  { id: "15", type: "lensDistortion", enabled: true, amount: 0.4 },
+  { id: "16", type: "stylize", enabled: true, mode: "rgbSplit", amount: 0.5 },
+  { id: "17", type: "generator", enabled: true, mode: "noise" },
+  { id: "18", type: "lut", enabled: true, cube: "LUT_3D_SIZE 2\n0 0 0\n1 0 0\n0 1 0\n1 1 0\n0 0 1\n1 0 1\n0 1 1\n1 1 1" }
 ];
 
 /** The shadow state a `drawImage` ran under, alongside the filter. */
@@ -204,55 +209,32 @@ describe("Canvas 2D — the clip effect catalog", () => {
     );
   });
 
-  it("reports exactly the types it cannot draw", () => {
-    expect(unsupportedEffectTypes([{ effects: everyEffect }])).toEqual([
-      "chromaKey",
-      "color.temperature",
-      "color.tint",
-      "curves",
-      "glow",
-      "grain",
-      "levels",
-      "liftGammaGain",
-      "sharpen",
-      "vignette"
-    ]);
+  it("supports the complete document effect catalog", () => {
+    expect(unsupportedEffectTypes([{ effects: everyEffect }])).toEqual([]);
   });
 
-  it("reports the white balance a `ctx.filter` grade has no knob for", () => {
-    // `color` is a type this path draws, so a whole-type report would never
-    // name it — and temperature and tint would go to the GPU and not to 2D
-    // with nothing to read about the difference (I7).
+  it("supports white balance on the pixel surface", () => {
     const warm: ClipEffect[] = [
       { id: "c", type: "color", enabled: true, temperature: 0.4 }
     ];
-    expect(unsupportedEffectTypes([{ effects: warm }])).toEqual([
-      "color.temperature"
-    ]);
+    expect(unsupportedEffectTypes([{ effects: warm }])).toEqual([]);
 
     const green: ClipEffect[] = [
       { id: "c", type: "color", enabled: true, tint: -0.4 }
     ];
-    expect(unsupportedEffectTypes([{ effects: green }])).toEqual(["color.tint"]);
+    expect(unsupportedEffectTypes([{ effects: green }])).toEqual([]);
   });
 
-  it("reports the shadow and highlight rolloff the filter has no knob for", () => {
-    // Both run on the GPU (`colorGradeV1`) and neither maps onto `ctx.filter`,
-    // so without this the two hosts grade the same clip differently with
-    // nothing to read about it (I7).
+  it("supports shadow and highlight rolloff on clips and tracks", () => {
     const lifted: ClipEffect[] = [
       { id: "c", type: "color", enabled: true, shadows: 0.4 }
     ];
-    expect(unsupportedEffectTypes([{ effects: lifted }])).toEqual([
-      "color.shadows"
-    ]);
+    expect(unsupportedEffectTypes([{ effects: lifted }])).toEqual([]);
 
     const rolled: ClipEffect[] = [
       { id: "c", type: "color", enabled: true, highlights: -0.3 }
     ];
-    expect(unsupportedEffectTypes([{ effects: rolled }])).toEqual([
-      "color.highlights"
-    ]);
+    expect(unsupportedEffectTypes([{ effects: rolled }])).toEqual([]);
 
     const track: TrackEffect[] = [
       {
@@ -269,10 +251,7 @@ describe("Canvas 2D — the clip effect catalog", () => {
         highlights: 0.5
       }
     ];
-    expect(unsupportedEffectTypes([{ trackEffects: track }])).toEqual([
-      "color.highlights",
-      "color.shadows"
-    ]);
+    expect(unsupportedEffectTypes([{ trackEffects: track }])).toEqual([]);
   });
 
   it("keeps a grade at the white-balance identity off the list", () => {
@@ -292,10 +271,7 @@ describe("Canvas 2D — the clip effect catalog", () => {
     expect(unsupportedEffectTypes([{ effects: neutral }])).toEqual([]);
   });
 
-  it("reports the animated grade the scene model synthesizes", () => {
-    // An animated temperature curve reaches the compositor as an ordinary
-    // enabled `color` effect (`composeAnimatedEffects`), so the report has to
-    // read the channel rather than the document's static effect list.
+  it("supports the animated grade the scene model synthesizes", () => {
     const props = resolveAnimatedLayerProps(
       {
         clip: makeClip({
@@ -331,12 +307,10 @@ describe("Canvas 2D — the clip effect catalog", () => {
     );
 
     expect(props.effects).toHaveLength(1);
-    expect(unsupportedEffectTypes([{ effects: props.effects }])).toEqual([
-      "color.temperature"
-    ]);
+    expect(unsupportedEffectTypes([{ effects: props.effects }])).toEqual([]);
   });
 
-  it("still reports the white balance a track grade carries", () => {
+  it("supports the white balance a track grade carries", () => {
     const track: TrackEffect[] = [
       {
         id: "t",
@@ -352,9 +326,7 @@ describe("Canvas 2D — the clip effect catalog", () => {
         highlights: 0
       }
     ];
-    expect(unsupportedEffectTypes([{ trackEffects: track }])).toEqual([
-      "color.temperature"
-    ]);
+    expect(unsupportedEffectTypes([{ trackEffects: track }])).toEqual([]);
   });
 
   it("keeps dropShadow off that list — it is the one it draws", () => {
@@ -367,7 +339,7 @@ describe("Canvas 2D — the clip effect catalog", () => {
     expect(unsupportedEffectTypes([{ effects: off }])).toEqual([]);
   });
 
-  it("still reports the track effects it cannot draw", () => {
+  it("supports track effects through the pixel surface", () => {
     const track: TrackEffect[] = [
       { id: "t1", type: "videoBlur", enabled: true, radius: 3 },
       {
@@ -380,9 +352,7 @@ describe("Canvas 2D — the clip effect catalog", () => {
         spill: 0.5
       }
     ];
-    expect(unsupportedEffectTypes([{ trackEffects: track }])).toEqual([
-      "chromaKey"
-    ]);
+    expect(unsupportedEffectTypes([{ trackEffects: track }])).toEqual([]);
   });
 
   it("arms the shadow from the chain, in canvas units", () => {
@@ -516,8 +486,33 @@ describe("Canvas 2D — the clip effect catalog", () => {
 
     expect(ctx.draws[0]?.shadowColor).toBe("rgba(255, 0, 0, 1)");
     expect(degraded).toEqual([
+      { clipId: "shot", reason: "effect_surface_missing" },
       { clipId: "shot", reason: "drop_shadow_extra_ignored" }
     ]);
+  });
+});
+
+describe("Canvas 2D — large blur reporting", () => {
+  it("uses the export Gaussian sigma for a radius of 80", () => {
+    const ctx = new RecordingContext();
+    const { degraded } = drawTimelineFrame(
+      ctx,
+      [layer({ clipId: "glow", effects: [{ id: "b", type: "blur", enabled: true, radius: 80 }] })],
+      GEOMETRY
+    );
+    expect(ctx.draws[0]?.filter).toBe("blur(26.67px)");
+    expect(degraded).not.toContainEqual({ clipId: "glow", reason: "blur_approximate" });
+  });
+
+  it("renders radius 160 without clipping the filter", () => {
+    const ctx = new RecordingContext();
+    const { degraded } = drawTimelineFrame(
+      ctx,
+      [layer({ clipId: "glow", effects: [{ id: "b", type: "blur", enabled: true, radius: 160 }] })],
+      GEOMETRY
+    );
+    expect(ctx.draws[0]?.filter).toBe("blur(53.33px)");
+    expect(degraded).not.toContainEqual({ clipId: "glow", reason: "blur_approximate" });
   });
 });
 
@@ -533,7 +528,7 @@ describe("Canvas 2D — brightness parity with the GPU grade", () => {
       ctx,
       [layer({ clipId: "shot", effects: lift })],
       GEOMETRY,
-      { maskScratch: () => ({ ctx: scratch, surface: "scratch" }) }
+      { effectSurface: () => ({ ctx: scratch, surface: "scratch" }) }
     );
 
     // `colorGradeV1` is `rgb + brightness` on straight colour, so mid-grey at
@@ -554,13 +549,13 @@ describe("Canvas 2D — brightness parity with the GPU grade", () => {
     drawTimelineFrame(ctx, [layer({ effects: [
       { id: "b", type: "color", enabled: true, brightness: -0.25 }
     ] })], GEOMETRY, {
-      maskScratch: () => ({ ctx: scratch, surface: "scratch" })
+      effectSurface: () => ({ ctx: scratch, surface: "scratch" })
     });
 
     expect(scratch.pixels[0]).toBe(64);
   });
 
-  it("keeps the rest of the grade in the filter, after the lift", () => {
+  it("runs contrast after brightness on the pixel surface", () => {
     const ctx = new RecordingContext();
     const scratch = new PixelContext(128);
     drawTimelineFrame(
@@ -579,13 +574,13 @@ describe("Canvas 2D — brightness parity with the GPU grade", () => {
         })
       ],
       GEOMETRY,
-      { maskScratch: () => ({ ctx: scratch, surface: "scratch" }) }
+      { effectSurface: () => ({ ctx: scratch, surface: "scratch" }) }
     );
 
     // The shader runs brightness before contrast; drawing the brightened copy
     // through the remaining filter is the same order.
-    expect(scratch.pixels[0]).toBe(192);
-    expect(ctx.draws[0]?.filter).toBe("contrast(1.500)");
+    expect(scratch.pixels[0]).toBe(224);
+    expect(ctx.draws[0]?.filter).toBe("none");
   });
 
   it("falls back to the CSS multiply and says so with no scratch surface", () => {
@@ -598,11 +593,12 @@ describe("Canvas 2D — brightness parity with the GPU grade", () => {
 
     expect(ctx.draws[0]?.filter).toBe("brightness(1.250)");
     expect(degraded).toEqual([
+      { clipId: "shot", reason: "effect_surface_missing" },
       { clipId: "shot", reason: "brightness_multiplicative" }
     ]);
   });
 
-  it("asks for no scratch when the grade moves no brightness", () => {
+  it("uses the pixel surface when contrast is the only grade", () => {
     const ctx = new RecordingContext();
     const scratch = new PixelContext(128);
     const { degraded } = drawTimelineFrame(
@@ -615,11 +611,11 @@ describe("Canvas 2D — brightness parity with the GPU grade", () => {
         })
       ],
       GEOMETRY,
-      { maskScratch: () => ({ ctx: scratch, surface: "scratch" }) }
+      { effectSurface: () => ({ ctx: scratch, surface: "scratch" }) }
     );
 
-    expect(ctx.draws[0]?.source).toBe("l1");
-    expect(ctx.draws[0]?.filter).toBe("contrast(1.500)");
+    expect(ctx.draws[0]?.source).toBe("scratch");
+    expect(ctx.draws[0]?.filter).toBe("none");
     expect(degraded).toEqual([]);
   });
 });

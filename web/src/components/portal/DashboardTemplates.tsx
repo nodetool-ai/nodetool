@@ -81,40 +81,40 @@ const styles = (theme: Theme) =>
       flexShrink: 0
     },
     ".tpl-list": {
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.lg,
-      background: theme.vars.palette.c_node_bg,
-      padding: getSpacingPx(SPACING.sm),
-      display: "flex",
-      flexDirection: "column",
-      gap: getSpacingPx(SPACING.micro)
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))",
+      gap: getSpacingPx(SPACING.md),
+      paddingBottom: getSpacingPx(SPACING.sm)
     },
     ".tpl-row": {
       display: "flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.md),
-      width: "100%",
+      flexDirection: "column",
+      alignItems: "stretch",
+      minWidth: 0,
       textAlign: "left",
-      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
-      background: "transparent",
-      border: "none",
-      borderRadius: BORDER_RADIUS.sm,
+      padding: 0,
+      background: theme.vars.palette.c_node_bg,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
-      transition: `background ${MOTION.fast}`,
-      "&:hover": { background: theme.vars.palette.action.hover },
+      overflow: "hidden",
+      transition: `border-color ${MOTION.fast}, background ${MOTION.fast}`,
+      "&:hover": {
+        borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
+        background: theme.vars.palette.action.hover
+      },
       "&.loading": { cursor: "wait", pointerEvents: "none" }
     },
     ".tpl-icon": {
-      flexShrink: 0,
       display: "grid",
       placeItems: "center",
-      width: 24,
-      height: 24,
-      borderRadius: BORDER_RADIUS.sm,
+      width: "100%",
+      aspectRatio: "16 / 9",
       background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
       color: theme.vars.palette.primary.main,
       overflow: "hidden"
     },
+    ".tpl-glyph": { width: 28, height: 28 },
     ".tpl-thumb": {
       width: "100%",
       height: "100%",
@@ -122,22 +122,31 @@ const styles = (theme: Theme) =>
     },
     ".tpl-title": {
       display: "block",
-      fontSize: "var(--fontSizeSmall)",
+      fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.text.primary,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
     ".tpl-desc": {
-      display: "block",
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
       overflow: "hidden",
       textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
-      [theme.breakpoints.down("sm")]: { display: "none" }
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      whiteSpace: "normal"
     },
-    ".tpl-copy": { flex: 1, minWidth: 0 },
+    ".tpl-copy": {
+      display: "flex",
+      flexDirection: "column",
+      gap: getSpacingPx(SPACING.xs),
+      flex: 1,
+      minWidth: 0,
+      width: "100%",
+      padding: getSpacingPx(SPACING.md)
+    },
     ".tpl-compat": {
       display: "grid",
       gap: getSpacingPx(SPACING.micro),
@@ -154,6 +163,7 @@ const styles = (theme: Theme) =>
     ".tpl-cat": {
       flexShrink: 0,
       display: "inline-flex",
+      alignSelf: "flex-start",
       alignItems: "center",
       gap: getSpacingPx(SPACING.xs),
       fontFamily: theme.fontFamily2,
@@ -169,12 +179,9 @@ const styles = (theme: Theme) =>
     }
   });
 
-// In full-page (/examples) mode the section owns the viewport and scrolls,
-// rather than flowing inline among the dashboard's other sections.
+// In full-page (/examples) mode this section gets extra breathing room below
+// the example apps. The manager content owns scrolling for the full page.
 const fullPageStyles = css({
-  flex: 1,
-  minHeight: 0,
-  overflowY: "auto",
   paddingTop: getSpacingPx(SPACING.xxl),
   paddingBottom: getSpacingPx(SPACING.xxxl)
 });
@@ -262,7 +269,7 @@ const TemplateRow = memo(function TemplateRow({
         {isLoading ? (
           <LoadingSpinner size="small" />
         ) : !thumbUrl || thumbFailed ? (
-          templateGlyph
+          <span className="tpl-glyph">{templateGlyph}</span>
         ) : (
           <img
             className="tpl-thumb"
@@ -278,16 +285,17 @@ const TemplateRow = memo(function TemplateRow({
         <span className="tpl-desc">{workflow.description}</span>
         <span className="tpl-compat">
           <CompatibilityDetails compatibility={compatibility} />
-          <span>Duration: unknown — execution time is not declared</span>
-          <span>{formatTemplateCost(costEstimate)}</span>
+          {workflow.graph.nodes.length > 0 && (
+            <span>{formatTemplateCost(costEstimate)}</span>
+          )}
         </span>
+        {category && (
+          <span className="tpl-cat">
+            <span className="cat-dot" style={{ background: category.color }} />
+            {category.label}
+          </span>
+        )}
       </span>
-      {category && (
-        <span className="tpl-cat">
-          <span className="cat-dot" style={{ background: category.color }} />
-          {category.label}
-        </span>
-      )}
     </button>
   );
 });
@@ -295,7 +303,7 @@ const TemplateRow = memo(function TemplateRow({
 interface DashboardTemplatesProps {
   /**
    * Render as the standalone /examples page: show every example (no cap),
-   * own the scroll, and drop the dashboard-only "Browse all"/"More…" links.
+   * and drop the dashboard-only "Browse all"/"More…" links.
    */
   fullPage?: boolean;
 }

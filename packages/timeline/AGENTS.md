@@ -161,9 +161,12 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
 - **Two compositors, one set of rules.** `frameCompositor.ts` is the GPU path;
   `canvas2d.ts` is the same placement, opacity, blend, wipe and rounded-corner
   math against a Canvas 2D context, and both the browser's WebGPU fallback and
-  the headless frame preview draw through it. Effects are where the two
-  genuinely differ, so `unsupportedEffectTypes` names what Canvas 2D drops
-  rather than letting a caller show a different picture silently.
+  the headless frame preview draw through it. Canvas effects use CPU pixel
+  passes for legacy operations and visual effects, including grain, stylize,
+  generators, and LUTs. `unsupportedEffectTypes` reports unknown effect types.
+  the draw report identifies missing scratch surfaces. Keep clip, group and
+  adjustment behavior aligned through the
+  [pixel comparison matrix](tests/render.parity.gpu.test.ts).
 - **An adjustment clip is z-order, bottom-up, group-scoped, and mixed by its
   coverage.** `mediaType: "adjustment"` draws nothing: it treats the composite of
   everything already on the surface at its own track's z — every track with a
@@ -334,8 +337,10 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   the same frame stay byte-identical and a cached render can be handed back.
   That is the one place the roll happens, and it is why the shader has no
   `animate` knob: by the time the chain runs, the seed is already decided.
-- **Canvas 2D has no noise to draw with**, so it reports `grain` through
-  `unsupportedEffectTypes` rather than approximating it.
+- **Canvas 2D grain uses a CPU pixel-effect path**, not a CSS filter.
+  `applyCpuLegacyEffects` applies seeded, alpha-safe grain. Keep its seed and
+  frame-time inputs deterministic so repeated renders of a frame remain
+  stable.
 
 ## Generated mattes (`src/generatedMatte.ts`, D2)
 

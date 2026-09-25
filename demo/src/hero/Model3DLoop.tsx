@@ -20,6 +20,7 @@ import { useInterFont } from "../promo/fonts";
 import { PROMO_BG } from "../promo/theme";
 import {
   LoopFade,
+  SURFACE_LOOP_FPS,
   SURFACE_LOOP_FRAMES,
   SurfaceLabel,
 } from "./SurfaceLoop";
@@ -27,19 +28,27 @@ import {
 /** Frames the fade holds for, on top of the shared one, while the scene loads. */
 const LOAD_HOLD_FRAMES = 10;
 
-export const Model3DLoop: React.FC = () => {
+export const Model3DLoop: React.FC<{
+  labelVisible?: boolean;
+  fromMs?: number;
+  toMs?: number;
+  realtime?: boolean;
+}> = ({ labelVisible = true, fromMs = 0, toMs = 6000, realtime = false }) => {
   useInterFont();
   const frame = useCurrentFrame();
+  const sourceFrame = realtime
+    ? Math.min(toMs * (SURFACE_LOOP_FPS / 1000), fromMs * (SURFACE_LOOP_FPS / 1000) + frame)
+    : frame;
 
   // A slow partial orbit: a full turn would end where it started and read as
   // a stall, so the cut lands on a different angle than the open.
-  const azimuthDeg = interpolate(frame, [0, SURFACE_LOOP_FRAMES], [26, 122]);
+  const azimuthDeg = interpolate(sourceFrame, [0, SURFACE_LOOP_FRAMES], [26, 122]);
   const elevationDeg = interpolate(
-    frame,
+    sourceFrame,
     [0, SURFACE_LOOP_FRAMES / 2, SURFACE_LOOP_FRAMES],
     [24, 36, 26]
   );
-  const distance = interpolate(frame, [0, SURFACE_LOOP_FRAMES], [5.2, 4.3]);
+  const distance = interpolate(sourceFrame, [0, SURFACE_LOOP_FRAMES], [5.2, 4.3]);
 
   return (
     <AbsoluteFill style={{ background: PROMO_BG }}>
@@ -53,7 +62,7 @@ export const Model3DLoop: React.FC = () => {
           target: [0, 0.6, 0],
         }}
       />
-      <SurfaceLabel label="3D" claim="Deterministic spatial composition" />
+      {labelVisible && <SurfaceLabel label="3D" claim="Deterministic spatial composition" />}
       <LoopFade extraFrames={LOAD_HOLD_FRAMES} />
     </AbsoluteFill>
   );

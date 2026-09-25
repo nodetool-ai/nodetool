@@ -179,7 +179,7 @@ describe("renderTimelineFrames — group precomposite", () => {
     expect(r + g + b).toBeGreaterThan(230);
   });
 
-  it("names a group effect it cannot draw instead of dropping it", async () => {
+  it("renders group glow through the CPU effect chain", async () => {
     const { effectsNotApplied } = await renderTimelineFrames({
       sequence: sequence(
         [track(0), track(1)],
@@ -198,6 +198,6 @@ describe("renderTimelineFrames — group precomposite", () => {
       loadAsset: noAssets
     });
 
-    expect(effectsNotApplied).toEqual(["glow"]);
+    expect(effectsNotApplied).toEqual([]);
   });
 });

@@ -163,7 +163,7 @@ describe("WorkspaceTabItem rename input", () => {
     expect(handlers.onBeginRename).toHaveBeenCalledWith(imageTab);
   });
 
-  it("labels a project overview tab Home while the stored title stays the project name", () => {
+  it("labels a project overview tab with the project name", () => {
     const projectTab = {
       ...tab,
       id: "project:p1",
@@ -177,8 +177,7 @@ describe("WorkspaceTabItem rename input", () => {
     });
 
     const homeTab = screen.getByRole("tab");
-    expect(screen.getByText("Home")).toBeInTheDocument();
-    expect(screen.queryByText("Marketing recipes")).not.toBeInTheDocument();
+    expect(screen.getByText("Marketing recipes")).toBeInTheDocument();
     expect(homeTab.className).toContain("is-home");
   });
 

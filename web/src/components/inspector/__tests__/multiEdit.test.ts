@@ -9,7 +9,7 @@ import {
 
 const stringProperty = (name: string): Property => ({
   name,
-  type: { type: "str" },
+  type: { type: "str", optional: false, type_args: [] },
   required: false
 });
 
@@ -89,7 +89,11 @@ describe("getSharedEditableProperties", () => {
         [
           entry("a", [stringProperty("value")]),
           entry("b", [
-            { name: "value", type: { type: "int" }, required: false }
+            {
+              name: "value",
+              type: { type: "int", optional: false, type_args: [] },
+              required: false
+            }
           ])
         ],
         []

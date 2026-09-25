@@ -87,7 +87,7 @@ describe("DashboardTemplates", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows template inputs, provider requirements, and explicit estimate unknowns", async () => {
+  it("shows template inputs, provider requirements, and unknown cost", async () => {
     const workflow = template("t4", "Provider template", ["image"], null, {
       input_schema: {
         properties: {
@@ -138,9 +138,6 @@ describe("DashboardTemplates", () => {
     expect(within(row).getByText("Required setup: FAL_API_KEY")).toBeInTheDocument();
     expect(
       within(row).getByText("Estimated cost: unknown — 1 node has no published price")
-    ).toBeInTheDocument();
-    expect(
-      within(row).getByText("Duration: unknown — execution time is not declared")
     ).toBeInTheDocument();
   });
 

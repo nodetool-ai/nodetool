@@ -19,6 +19,19 @@ export const useTimelines = (
     { staleTime: 30_000, enabled: options?.enabled ?? true }
   );
 
+export const useExampleTimelines = () =>
+  trpc.timeline.examples.useQuery(undefined, { staleTime: 5 * 60_000 });
+
+export const useInstallExampleTimeline = () => {
+  const utils = trpc.useUtils();
+  return trpc.timeline.installExample.useMutation({
+    onSuccess: (created) => {
+      void utils.timeline.list.invalidate();
+      utils.timeline.get.setData({ id: created.id }, created);
+    }
+  });
+};
+
 /** Fetch a single sequence by id. */
 export const useTimeline = (id: string | null | undefined) =>
   trpc.timeline.get.useQuery(

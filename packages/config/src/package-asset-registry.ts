@@ -103,7 +103,9 @@ export const PACKAGE_RUNTIME_ASSET_DIRS: readonly PackageAssetDirRef[] = [
     bundleDir: "fonts",
     files: [
       "BebasNeue-Regular.ttf",
+      "Inter-ExtraBold.ttf",
       "Inter-Italic-Variable.ttf",
+      "Inter-SemiBold.ttf",
       "Inter-Variable.ttf",
       "JetBrainsMono-Italic-Variable.ttf",
       "JetBrainsMono-Variable.ttf",
@@ -136,6 +138,10 @@ export const PACKAGE_RUNTIME_ASSET_DIRS: readonly PackageAssetDirRef[] = [
       "cta-end-card.composition.json",
       "logo-sting.composition.json",
       "lower-third.composition.json",
+      "number-ticker.composition.json",
+      "title-slam.composition.json",
+      "window-frame.composition.json",
+      "word-cards.composition.json",
       "title-card.composition.json"
     ]
   },

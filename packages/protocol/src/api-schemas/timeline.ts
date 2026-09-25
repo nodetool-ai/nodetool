@@ -542,9 +542,46 @@ export const clipTransform = z.object({
   position: z.object({ x: z.number(), y: z.number() }),
   scale: z.object({ x: z.number(), y: z.number() }),
   rotation: z.number(),
+  rotationX: z.number().optional(),
+  rotationY: z.number().optional(),
+  perspective: z.number().positive().optional(),
+  depthPx: z.number().optional(),
   anchor: z.object({ x: z.number(), y: z.number() })
 });
 export type ClipTransform = z.infer<typeof clipTransform>;
+
+export const timelineCamera2d = z.object({
+  position: z.object({ x: z.number(), y: z.number() }),
+  depthPx: z.number(),
+  focalLengthPx: z.number().positive(),
+  focusDepthPx: z.number().optional(),
+  aperturePx: z.number().nonnegative().optional(),
+  keyframes: z.array(z.object({
+    timeMs: z.number(),
+    position: z.object({ x: z.number(), y: z.number() }),
+    depthPx: z.number(),
+    focusDepthPx: z.number().optional(),
+    aperturePx: z.number().nonnegative().optional()
+  })).optional()
+});
+
+export const clipLayout = z.object({
+  kind: z.enum(["row", "stack", "relative"]),
+  children: z.array(z.string()).optional(),
+  gapPx: z.number().optional(),
+  targetClipId: z.string().optional(),
+  side: z.enum(["left", "right", "above", "below", "center"]).optional(),
+  fitText: z.object({ paddingXPx: z.number(), paddingYPx: z.number() }).optional()
+});
+
+export const clipRepeater = z.object({
+  count: z.number().int().min(1).max(128),
+  positionStep: z.object({ x: z.number(), y: z.number() }),
+  columns: z.number().int().min(1).max(128).optional(),
+  rowStep: z.object({ x: z.number(), y: z.number() }).optional(),
+  timeStepMs: z.number(),
+  colorStep: z.object({ hueDegrees: z.number(), brightness: z.number().optional() }).optional()
+});
 
 /**
  * Per-clip incoming transition. `easing` and `direction` are plain strings on
@@ -588,6 +625,24 @@ const knownClipTransition = z.discriminatedUnion("type", [
     type: z.literal("zoom"),
     durationMs: z.number(),
     easing: z.string().optional()
+  }),
+  z.object({
+    type: z.literal("whip"), durationMs: z.number(), direction: z.string(), blur: z.number().optional(), easing: z.string().optional()
+  }),
+  z.object({
+    type: z.literal("zoomBlur"), durationMs: z.number(), blur: z.number().optional(), easing: z.string().optional()
+  }),
+  z.object({
+    type: z.literal("glitch"), durationMs: z.number(), amount: z.number().optional(), easing: z.string().optional()
+  }),
+  z.object({
+    type: z.literal("gradientWipe"), durationMs: z.number(), direction: z.string(), softness: z.number().optional(), map: z.enum(["linear", "radial", "noise"]).optional(), scale: z.number().optional(), seed: z.number().optional(), easing: z.string().optional()
+  }),
+  z.object({
+    type: z.literal("iris"), durationMs: z.number(), softness: z.number().optional(), easing: z.string().optional()
+  }),
+  z.object({
+    type: z.literal("lightLeak"), durationMs: z.number(), color: z.string().optional(), scale: z.number().optional(), seed: z.number().optional(), easing: z.string().optional()
   })
 ]);
 
@@ -602,7 +657,13 @@ export const KNOWN_TRANSITION_TYPE_LIST = [
   "wipe",
   "push",
   "slide",
-  "zoom"
+  "zoom",
+  "whip",
+  "zoomBlur",
+  "glitch",
+  "gradientWipe",
+  "iris",
+  "lightLeak"
 ] as const;
 const KNOWN_TRANSITION_TYPES: ReadonlySet<string> = new Set(
   KNOWN_TRANSITION_TYPE_LIST
@@ -659,6 +720,73 @@ export const clipBlurEffect = z.object({
   enabled: z.boolean(),
   radius: z.number(),
   sigma: z.number().optional()
+});
+
+export const clipPixelateEffect = z.object({
+  id: z.string(),
+  type: z.literal("pixelate"),
+  enabled: z.boolean(),
+  cellSize: z.number().min(1).max(128)
+});
+
+export const clipPosterizeEffect = z.object({
+  id: z.string(),
+  type: z.literal("posterize"),
+  enabled: z.boolean(),
+  levels: z.number().min(2).max(256)
+});
+
+export const clipDirectionalBlurEffect = z.object({
+  id: z.string(),
+  type: z.literal("directionalBlur"),
+  enabled: z.boolean(),
+  radius: z.number().min(0).max(256),
+  angle: z.number()
+});
+
+export const clipLensDistortionEffect = z.object({
+  id: z.string(),
+  type: z.literal("lensDistortion"),
+  enabled: z.boolean(),
+  amount: z.number().min(-1).max(1)
+});
+
+export const clipStylizeEffect = z.object({
+  id: z.string(),
+  type: z.literal("stylize"),
+  enabled: z.boolean(),
+  mode: z.enum(["rgbSplit", "radialBlur", "zoomBlur", "turbulence", "glitch", "halftone", "dither", "lightRays", "lensFlare", "innerShadow", "innerGlow", "edgeHighlight", "displacement", "gradientWipe", "lightLeakOverlay"]),
+  amount: z.number(),
+  scale: z.number().optional(),
+  angle: z.number().optional(),
+  time: z.number().optional(),
+  animate: z.boolean().optional(),
+  seed: z.number().optional(),
+  color: z.string().optional(),
+  softness: z.number().optional()
+});
+
+export const clipGeneratorEffect = z.object({
+  id: z.string(),
+  type: z.literal("generator"),
+  enabled: z.boolean(),
+  mode: z.enum(["noise", "fractal", "conicGradient", "meshGradient", "gradientField", "particles", "lightLeak", "gridPattern"]),
+  amount: z.number().optional(),
+  scale: z.number().optional(),
+  angle: z.number().optional(),
+  time: z.number().optional(),
+  animate: z.boolean().optional(),
+  seed: z.number().optional(),
+  colorA: z.string().optional(),
+  colorB: z.string().optional()
+});
+
+export const clipLutEffect = z.object({
+  id: z.string(),
+  type: z.literal("lut"),
+  enabled: z.boolean(),
+  cube: z.string().min(1),
+  intensity: z.number().min(0).max(1).optional()
 });
 
 /** One control point of a tone curve. Both axes are normalized 0..1. */
@@ -767,6 +895,13 @@ export const clipGrainEffect = z.object({
 const knownClipEffect = z.discriminatedUnion("type", [
   clipColorEffect,
   clipBlurEffect,
+  clipPixelateEffect,
+  clipPosterizeEffect,
+  clipDirectionalBlurEffect,
+  clipLensDistortionEffect,
+  clipStylizeEffect,
+  clipGeneratorEffect,
+  clipLutEffect,
   clipGlowEffect,
   clipDropShadowEffect,
   clipVignetteEffect,
@@ -785,6 +920,13 @@ const knownClipEffect = z.discriminatedUnion("type", [
 export const KNOWN_CLIP_EFFECT_TYPE_LIST = [
   "color",
   "blur",
+  "pixelate",
+  "posterize",
+  "directionalBlur",
+  "lensDistortion",
+  "stylize",
+  "generator",
+  "lut",
   "glow",
   "dropShadow",
   "vignette",
@@ -987,6 +1129,11 @@ export const clipAnimation = z.object({
    * `packages/execution/tests/timeline-schema-bounds.test.ts` pins that.) */
   durationMs: z.number().positive(),
   delayMs: z.number().optional(),
+  beat: z.object({
+    index: z.number().int().min(1),
+    scope: z.enum(["clip", "sequence"]),
+    offsetMs: z.number().optional()
+  }).optional(),
   easing: z.string().optional(),
   enabled: z.boolean().optional(),
   params: z
@@ -996,8 +1143,33 @@ export const clipAnimation = z.object({
    * strips it on every PATCH, silently reverting custom motion to nothing on
    * save. */
   custom: customClipAnimation.optional(),
-  /** Per-word stagger on a text clip's animation. `unit` is a plain string on
-   * the wire (only "word" is implemented; unknown units compile un-staggered)
+  styleTracks: z.array(z.object({
+    target: z.string().min(1),
+    keyframes: z.array(z.object({
+      t: z.number().min(0).max(1),
+      value: z.union([z.number(), z.string()]),
+      easing: z.string().optional()
+    })).min(2).max(4096)
+  })).max(32).optional(),
+  textAnimator: z.union([
+    z.object({
+      kind: z.literal("ticker"),
+      from: z.number(),
+      to: z.number(),
+      decimals: z.number().int().min(0).max(6).optional(),
+      padTo: z.number().int().min(0).max(32).optional(),
+      groupSeparator: z.string().min(1).max(4).optional(),
+      prefix: z.string().optional(),
+      suffix: z.string().optional()
+    }),
+    z.object({
+      kind: z.literal("scramble"),
+      charset: z.string().min(1).max(128).optional(),
+      seed: z.number().optional()
+    })
+  ]).optional(),
+  /** Per-unit stagger on a text clip's animation. `unit` is a plain string on
+   * the wire (word, character and line are implemented; unknown units compile un-staggered)
    * for the same forward compat as `preset`. Without this field Zod strips it
    * on every PATCH, silently flattening staggered titles into block motion. */
   stagger: z
@@ -1006,7 +1178,12 @@ export const clipAnimation = z.object({
       offsetMs: z.number(),
       from: z.enum(["start", "end", "center"]).optional()
     })
-    .optional()
+    .optional(),
+  caret: z.object({
+    color: z.string(),
+    widthPx: z.number().positive(),
+    blinkPeriodMs: z.number().positive()
+  }).optional()
 });
 export type ClipAnimation = z.infer<typeof clipAnimation>;
 
@@ -1030,6 +1207,7 @@ export type ShapeFill = z.infer<typeof shapeFill>;
 
 export const clipTextStyle = z.object({
   text: z.string(),
+  path: z.string().optional(),
   fontFamily: z.string().optional(),
   fontSizePx: z.number(),
   fontWeight: z.number().optional(),
@@ -1069,7 +1247,7 @@ export const clipShapeStyle = z.object({
    * outline and the validator reports `unknown_shape_kind` — rather than
    * failing the whole document. */
   kind: z.string(),
-  fill: z.string().optional(),
+  fill: z.union([z.string(), shapeFill]).optional(),
   stroke: z.string().optional(),
   strokeWidthPx: z.number().optional(),
   x: z.number().optional(),
@@ -1173,6 +1351,7 @@ export const clipMask = z.object({
   y: z.number().optional(),
   width: z.number().optional(),
   height: z.number().optional(),
+  radiusPx: z.number().nonnegative().optional(),
   d: z.string().optional(),
   featherPx: z.number().optional(),
   invert: z.boolean().optional()
@@ -1439,6 +1618,11 @@ export const timelineClip = z.object({
   fadeInShape: clipFadeShapeEnum.optional(),
   fadeOutShape: clipFadeShapeEnum.optional(),
   transform: clipTransform.optional(),
+  layout: clipLayout.optional(),
+  repeater: clipRepeater.optional(),
+  motionBlur: z.object({ samplesPerFrame: z.number().int().min(1).max(32), shutterAngle: z.number().min(0).max(360) }).optional(),
+  steppedTime: z.object({ fps: z.number().positive() }).optional(),
+  temporalEcho: z.object({ copies: z.number().int().min(1).max(32), intervalMs: z.number().positive(), opacityDecay: z.number().min(0).max(1) }).optional(),
   borderRadius: z.number().optional(),
   /** Without this field Zod strips it on every PATCH and a cropped clip
    * reverts to its full frame on the next save. */
@@ -1463,6 +1647,25 @@ export const timelineClip = z.object({
   /** Motion-design animations. Without this field Zod strips it on every
    * PATCH, so autosave erases animations. */
   animations: z.array(clipAnimation).optional(),
+  animationLinks: z.array(z.union([
+    z.object({
+      target: z.enum(["positionX", "positionY", "scale", "rotation", "opacity"]),
+      sourceClipId: z.string(),
+      source: z.enum(["positionX", "positionY", "scale", "rotation", "opacity"]),
+      timeOffsetMs: z.number().optional(),
+      loop: z.boolean().optional(),
+      scale: z.number().optional(),
+      offset: z.number().optional()
+    }),
+    z.object({
+      target: z.enum(["positionX", "positionY", "scale", "rotation", "opacity"]),
+      kind: z.literal("wiggle"),
+      amplitude: z.number(),
+      amplitudeKeyframes: z.array(z.object({ timeMs: z.number().nonnegative(), value: z.number() })).optional(),
+      frequencyHz: z.number().nonnegative(),
+      seed: z.number().optional()
+    })
+  ])).max(32).optional(),
   /** Group this clip is parented to. Without this field Zod strips it on every
    * PATCH, so autosave unparents every child of a group. */
   parentId: z.string().optional(),
@@ -1631,9 +1834,28 @@ export const timelineDocument = z.object({
   /** Subject/object tracks (P0 AI Video, Phase 2). Without this field Zod
    * strips it on every PATCH, so a track and every clip following it are
    * lost on the next save. */
-  mediaTracks: z.array(mediaTrack).optional()
+  mediaTracks: z.array(mediaTrack).optional(),
+  camera2d: timelineCamera2d.nullable().optional()
 });
 export type TimelineDocument = z.infer<typeof timelineDocument>;
+
+export const exampleTimelineSummary = z.object({
+  slug: z.string(),
+  name: z.string(),
+  description: z.string(),
+  durationMs: z.number().int().positive(),
+  fps: z.number().int().positive(),
+  clipCount: z.number().int().nonnegative(),
+  videoUri: z.string(),
+  posterUri: z.string()
+});
+export type ExampleTimelineSummary = z.infer<typeof exampleTimelineSummary>;
+
+export const installExampleTimelineInput = z.object({
+  slug: z.string(),
+  projectId: z.string().min(1).optional(),
+  name: z.string().min(1).optional()
+});
 
 // ── Sequence response ────────────────────────────────────────────────────────
 
@@ -1659,6 +1881,7 @@ export const timelineSequenceResponse = z.object({
   templateId: z.string().nullable().optional(),
   /** Subject/object tracks, mirroring the document's. */
   mediaTracks: z.array(mediaTrack).optional(),
+  camera2d: timelineCamera2d.nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string()
 });

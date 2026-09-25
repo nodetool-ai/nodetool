@@ -8,11 +8,13 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import {
   BORDER_RADIUS,
   Caption,
+  CONTROL,
   ContextMenu,
   MenuItemPrimitive,
   MOTION,
   SearchInput,
   SPACING,
+  TYPOGRAPHY,
   getSpacingPx
 } from "../ui_primitives";
 import {
@@ -188,13 +190,13 @@ const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
         className="selector-button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`Selected project: ${name}`}
+        aria-label={inline ? `Selected project: ${name}` : "Select project"}
         onClick={() => setOpen((value) => !value)}
       >
         <span className="selector-glyph" aria-hidden>
           {PROJECT_GLYPH}
         </span>
-        <span className="selector-name">{name}</span>
+        <span className="selector-name">{inline ? name : "Project"}</span>
         <span className="selector-caret" aria-hidden>
           ▾
         </span>
@@ -207,6 +209,14 @@ const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
           p: SPACING.xs,
           width: getSpacingPx(80),
           maxWidth: `calc(100vw - ${getSpacingPx(SPACING.xxxl)})`,
+          "& .MuiMenu-list": { py: SPACING.none },
+          "& .MuiMenu-list .menu-item-primitive.MuiMenuItem-root": {
+            minHeight: `${CONTROL.height.md}px`,
+            px: SPACING.md,
+            py: SPACING.xs
+          },
+          "& .search-input-wrapper .search-input .MuiInputBase-input":
+            TYPOGRAPHY.sans.label,
           "& .project-menu-item .MuiListItemText-primary": {
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -230,7 +240,7 @@ const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
           placeholder="Search projects"
           ariaLabel="Search projects"
           fullWidth
-          sx={{ my: SPACING.sm }}
+          sx={{ my: SPACING.xs }}
         />
         <MenuItemPrimitive
           label="Personal"

@@ -20,6 +20,8 @@ pass it.
 | `slide` `distance`, `kenBurns` `driftX/driftY` | fraction of frame width or height | 0.3 travels 30% of the frame |
 | `anchorX` / `anchorY` | 0..1 | The point a scale or a rotation pivots on |
 | `textStyle.fontSizePx` | sequence px | Against `height` from `get_timeline`, not the preview width |
+| `transform.depthPx`, `camera2d.position/depthPx/focalLengthPx` | sequence px | Perspective; clip depth also orders clips within one track |
+| `layout.gapPx`, `fitText.paddingXPx/paddingYPx` | sequence px | Measured against the rendered text or shape box |
 
 Read `width`, `height` and `fps` off `get_timeline` before you compute anything.
 A layout authored against 1920×1080 and saved onto a 1080×1920 sequence is off
@@ -53,21 +55,24 @@ Rank the eye's path by **size, then contrast, then colour, then position**. One
 primary per frame; everything else supports. Leave negative space around it —
 a frame filled edge to edge reads as cheap and gives the motion nowhere to go.
 
-## Depth: three layers, three tracks
+## Depth: planes and track order
 
-Split the picture into background, midground and foreground. These are the same
-three layers `motion-principles` names Ambient, Secondary and Primary, projected
-onto Z, and on a timeline they are track indexes — **lowest index draws on top**.
+Split the picture into background, midground and foreground. Track index
+controls order **between** tracks: lowest index draws on top. Within one
+track, clips sort by `transform.depthPx`: farther values draw first and
+nearer, positive values draw later, in front. The same depth controls
+perspective under the sequence's `camera2d`. Moving a clip to another track
+changes its overlap order but not its camera distance.
 
-| Depth | Track index | Motion | Look |
+| Plane | Suggested track index | Clip depth | Motion and look |
 |---|---|---|---|
-| Foreground | lowest | The move the eye follows; travel 1.0–1.5× the reference | Sharp; a `blur` effect on anything crossing close |
-| Midground | middle | The subject; 0.5–0.7× | The frame's contrast peak |
-| Background | highest | 0.1–0.3×, a `loop` preset at low amplitude | Low contrast, often a `color` effect pulling saturation down |
+| Foreground | lowest | Nearer, positive | The move the eye follows; sharp unless focus shifts |
+| Midground | middle | Around zero | The subject and contrast peak |
+| Background | highest | Farther, negative | Small drift and lower contrast |
 
-Parallax is those three speeds running over one window. The native way is one
-`kenBurns` per layer with `zoom: 0` and a different drift — it is a `fullClip`
-preset, so all three cover the same span with no timing to keep in sync:
+For flat parallax, run three speeds over one window. One `kenBurns` per layer
+with `zoom: 0` and a different drift is a `fullClip` preset, so all three
+cover the same span:
 
 ```json
 {"role": "loop", "preset": "kenBurns",
@@ -76,6 +81,19 @@ preset, so all three cover the same span with no timing to keep in sync:
 
 Background −0.02, midground −0.06, foreground −0.12. One layer at one speed is
 not parallax, it is the template moving.
+
+For a shared 2.5D move, give the layers distinct `transform.depthPx` values and
+keyframe the sequence's `camera2d`. Its absolute `timeMs` keyframes interpolate
+camera position and depth linearly. `focusDepthPx` and `aperturePx` control depth of
+field. Use one camera move to connect the planes, then inspect a middle frame
+for unwanted scale or blur. Set track indexes for overlap between tracks and
+clip depth for order within a track.
+
+For a tilted card wall, parent the cards to a group with the wall's 2D
+`rotation`, `rotationX`, and `perspective`. Give each card its own `depthPx`
+and scroll curve, then use `camera2d` for the shared push and depth blur.
+This is a flat card projection: preview the wall at several frames to check
+that spacing, overlap, and blur read as one assembly.
 
 For a move with a shape of its own, write a `custom` curve instead and mind the
 role: an `in` window holds its `t=0` values before it and contributes nothing
@@ -86,11 +104,21 @@ cycle — so a one-way travel that must stay where it landed is an `out`, and a
 Parent the assembly to a group when the layers must hold their relationship
 through a move: `add_group`, then animate the group. Children keep their own
 tracks, so grouping never changes what covers what.
+For a transition on the assembled picture, set `transitionIn` on the group. The
+children stay parented on their own tracks while the transition acts once on
+their precomposed surface.
+
+Shape geometry is rasterized inside a frame-sized source surface before the
+clip is placed. Keep normalized `shapeStyle` geometry inside that surface,
+then move the clip or parent group with `transform.position` or custom
+`offsetX`/`offsetY` curves for scrolling walls and flying cards. Geometry
+authored outside the source surface clips before placement.
 
 ## Camera moves
 
-The timeline has no camera. A camera move is an animation on the layer, and the
-`anchor` decides where it pivots.
+Choose between a sequence camera move and a local clip move. `camera2d`
+keyframes move the view across all depth planes. A layer animation moves one
+clip, and its `anchor` decides where scale or rotation pivots.
 
 | Move | How | Timing |
 |---|---|---|
@@ -99,6 +127,14 @@ The timeline has no camera. A camera move is an animation on the layer, and the
 | Pan | `custom` curve on `offsetX` across the clip | 800–2000ms, `easeInOut` |
 | Whip | `offsetX` over 150–250ms with a `blur` effect at 12–24px | On a cut, never mid-shot |
 | Follow | `offsetX` and `offsetY` tracking the subject, subject held off-centre and leading | Whatever the action takes |
+
+`camera2d` is a document field. `set_clip_params` changes a clip's `transform`
+but refuses `camera2d`, `layout`, `repeater`, `motionBlur`, and other new document
+fields. Read the full document with `get_timeline`, change the relevant fields,
+then write the full document with `set_timeline_document`. Keep its tracks,
+clips, markers, tempo, setup, media tracks, template identity, and other fields
+in the write. `motion-graphics` carries the
+tool contract.
 
 `kenBurns` is `fullClip`: it ignores `durationMs` and `delayMs` and runs across
 the whole clip. To time a push to something shorter, write it as a `custom`
@@ -147,9 +183,13 @@ up out of the bottom UI zone, and raise `fontSizePx` by about 20%. Cropping a
 16:9 layout to 9:16 clips whatever sat in the outer columns, which is usually the
 logo and the call to action.
 
-Restacking means editing `shapeStyle.x/y` and the text clips' geometry per
-sequence. There is no responsive layout on a timeline; the numbers are the
-layout.
+Use `layout: {kind: "row" | "stack", children: [clip ids], gapPx}` to keep a
+group's spacing tied to its members. Use a clip's `layout: {kind: "relative",
+targetClipId, side, gapPx}` for a label or plate that follows another clip.
+For a shape behind text, `fitText: {paddingXPx, paddingYPx}` sizes the shape
+against the text's current box, including animated font size. These relations
+avoid redoing pixel math for each text change. A 16:9 document still needs a
+separate placement pass for 9:16, with safe areas checked at that size.
 
 ## Check the frame, not the document
 
@@ -168,8 +208,8 @@ an audio track.
 ## Before you finish
 
 - One focal point, on a power point or deliberately centred.
-- Every element assigned a depth layer, and the three moving at different speeds.
-- One camera move, eased, 800–4000ms.
+- Every element assigned a track for overlap order and a depth plane when the camera moves.
+- One camera move or eased layer move, 800–4000ms.
 - Entrances through the nearest edge, `distance` ≤ 0.35 or paired with a second
   channel.
 - Critical content inside the safe margin for every target aspect, vertical

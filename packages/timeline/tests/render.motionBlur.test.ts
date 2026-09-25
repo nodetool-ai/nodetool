@@ -10,17 +10,33 @@
  * Canvas 2D path, `render.motionBlur.gpu.test.ts` for the GPU one.
  */
 import { describe, expect, it } from "vitest";
+import { makeClip } from "../src/defaults.js";
 import {
   DEFAULT_SHUTTER_ANGLE,
   MAX_MOTION_BLUR_SAMPLES,
   accumulateBlurSample,
+  layerShutterTime,
   motionBlurSampleTimes,
+  resolveFrameMotionBlur,
   resolveMotionBlur,
   seedBlurAccumulation,
   type BlurAccumulationContext2D
 } from "../src/render/motionBlur.js";
 
 const GEOMETRY = { canvasWidth: 64, canvasHeight: 32 };
+
+describe("frame motion blur", () => {
+  it("ignores a blurred clip outside the frame and includes one entering the shutter", () => {
+    const future = makeClip({ id: "future", trackId: "track", mediaType: "image", sourceType: "imported", startMs: 4000, durationMs: 1000, motionBlur: { samplesPerFrame: 8 } });
+    expect(resolveFrameMotionBlur([future], undefined, 1000, 40).samplesPerFrame).toBe(1);
+    const entering = { ...future, startMs: 1010 };
+    expect(resolveFrameMotionBlur([entering], undefined, 1000, 40).samplesPerFrame).toBe(8);
+    expect(resolveFrameMotionBlur([{ ...entering, startMs: 1020 }], undefined, 1000, 40).samplesPerFrame).toBe(1);
+    expect(resolveFrameMotionBlur([entering], undefined, 1000, 40, [{ id: "track", visible: false }]).samplesPerFrame).toBe(1);
+    const parent = makeClip({ id: "parent", trackId: "track", mediaType: "group", sourceType: "generated", startMs: 4000, durationMs: 1000 });
+    expect(resolveFrameMotionBlur([parent, { ...entering, parentId: parent.id }], undefined, 1000, 40).samplesPerFrame).toBe(1);
+  });
+});
 
 /** Records the composite state each draw happened under. */
 class RecordingContext implements BlurAccumulationContext2D<string> {
@@ -75,6 +91,18 @@ describe("resolveMotionBlur", () => {
       samplesPerFrame: 8
     });
     expect(samplesPerFrame * weight).toBeCloseTo(1, 12);
+  });
+});
+
+describe("layerShutterTime", () => {
+  it("weights a two-sample layer evenly in a three-sample scene", () => {
+    const frameMs = 40;
+    const clip = { motionBlur: { samplesPerFrame: 2, shutterAngle: 360 } };
+    const samples = [0, 1, 2].map((i) => layerShutterTime(clip, 0, i, 3, frameMs, undefined));
+    expect(samples[0]).toBeCloseTo(frameMs / 6);
+    expect(samples[1]).toBeCloseTo(frameMs / 2);
+    expect(samples[2]).toBeCloseTo(frameMs * 5 / 6);
+    expect(samples.reduce((sum, time) => sum + time, 0) / samples.length).toBe(20);
   });
 });
 

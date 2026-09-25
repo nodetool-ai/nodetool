@@ -1,6 +1,6 @@
 ---
 name: motion-background
-description: Build an ambient looping backdrop on a NodeTool timeline — gradient beds from shape clips, slow loop animations, layered drift, and a generated video bed — that moves without stealing focus. Use for a title card backdrop, a hero bed behind text, an end card, a lower-third plate, or a loop behind a talking head. Not for the content in front of it.
+description: Build an ambient backdrop on a NodeTool timeline using shape gradients, procedural generator effects, slow loops, or generated video. Use for title cards, hero beds, end cards, lower-third plates, and quiet loops behind a subject.
 ---
 
 # Motion Background → the bed
@@ -17,21 +17,46 @@ writes the loop when no wrapping preset holds the seam.
 
 | Look | Build it from | Cost |
 |---|---|---|
-| Flat or gradient wash | One `rect` shape clip filling the frame, `fillStyle` linear or radial | Free; shape clips do not count against the video layer cap |
-| Soft mesh | Three or four `ellipse` shape clips with radial fills, low opacity, blurred | Cheap, and the closest thing to a mesh gradient here |
-| Drifting texture | An image clip with a `kenBurns` loop | One video layer |
-| Organic motion | A generated video bed, looped | One video layer, and a model call |
-| Colour cycle | Any of the above plus a `hueShift` loop | Free on top |
+| Flat or gradient wash | One full-frame `rect` shape with `fillStyle` linear or radial | Shape clips do not count against the video layer cap |
+| Soft mesh or conic wash | One full-frame shape with a `generator` effect, `mode: "meshGradient"` or `"conicGradient"` | One procedural effect, no model call |
+| Shaped colour blobs | Radial-filled `ellipse` clips, low opacity, blurred | More control over each blob's motion |
+| Noise, fractal, particles, light leak, grid | One full-frame shape with the matching `generator` mode | Procedural and seedable |
+| Drifting texture | An image clip with a `kenBurns` animation | Outside the video layer cap |
+| Smoke, ink, or clouds | A generated video bed, looped | One video layer and a model call |
+| Colour cycle | Any of the above plus a `hueShift` loop | An additional grade |
 
 At most **eight video layers** composite at once, resolved from the lowest track
 index. Text, shape and image clips are not counted, so a bed built from shapes
 costs nothing in that budget. Nine overlapping video clips means the bottom one
 silently does not draw, reported as `layer_cap_exceeded`.
 
-## A mesh, from shapes
+## A procedural bed
 
-Stack radial fills over a base. Each ellipse is its own clip on its own overlay
-track, at 30–60% opacity, with a `blur` effect wide enough that no edge reads:
+Add a full-frame shape and apply a generator effect to it. Modes are `noise`,
+`fractal`, `conicGradient`, `meshGradient`, `gradientField`, `particles`,
+`lightLeak`, and `gridPattern`. `colorA` and `colorB` set the two colours;
+`scale`, `amount`, `angle`, `time`, and `seed` shape the field. For movement,
+set `animate: true`, which samples the current timeline time into the effect.
+Keep a fixed `seed` for repeatable frames. This clock keeps moving; it does not
+make the procedural field wrap at the clip boundary. For a seamless loop, use
+a wrapping clip animation or match the endpoints in a rendered loop.
+
+```json
+{"op": "set_effects", "target": "Bed", "effects": [
+  {"type": "generator", "mode": "meshGradient", "enabled": true,
+   "colorA": "#10233c", "colorB": "#ec6b45", "scale": 6,
+   "amount": 0.6, "seed": 9, "animate": true}]}
+```
+
+For a dark wash that bands, put a fixed-seed `stylize` `dither` after the
+generator or gradient in the effect list. Dither breaks up 8-bit steps but
+cannot restore precision lost in the source. `color-motion` covers this look.
+
+## A mesh from shapes
+
+For individual moving blobs, stack radial fills over a base. Each ellipse is
+its own clip on an overlay track, at 30–60% opacity, with a `blur` effect wide
+enough that no edge reads:
 
 ```json
 {"op": "add_shape_clip", "shape": {"kind": "ellipse",
@@ -85,8 +110,8 @@ a screensaver, and text in front of it becomes hard to hold.
 
 ## A generated bed
 
-For organic motion nothing on the timeline can draw — smoke, ink, particles,
-clouds — generate it. `find_model` with `text_to_video`, then `generate_video`,
+For smoke, ink, or clouds that the procedural modes cannot draw, generate video.
+Use `find_model` with `text_to_video`, then `generate_video`,
 then `add_media_clip` with the returned `asset://` reference. The `find_model`
 result names a `prompting_skill` for the line it picked; load it, because each
 line wants the prompt shaped differently. Whatever the line, prompt for slow,

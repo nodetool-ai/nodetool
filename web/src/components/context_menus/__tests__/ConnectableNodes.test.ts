@@ -4,7 +4,11 @@ import {
   getCompatibleConnectableOutputs
 } from "../ConnectableNodes";
 
-const stringType: TypeMetadata = { type: "str" };
+const stringType: TypeMetadata = {
+  type: "str",
+  optional: false,
+  type_args: []
+};
 
 const metadata = (
   overrides: Partial<NodeMetadata> = {}
@@ -63,7 +67,11 @@ describe("ConnectableNodes connection choices", () => {
         input_fields: ["prompt", "fallback"],
         properties: [
           { name: "prompt", type: stringType, required: false },
-          { name: "fallback", type: { type: "any" }, required: false }
+          {
+            name: "fallback",
+            type: { type: "any", optional: false, type_args: [] },
+            required: false
+          }
         ]
       }),
       stringType

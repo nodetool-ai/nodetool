@@ -31,6 +31,22 @@ If a compiler-role check fails after install, run `npm run check:typescript`
 before attempting a build. It reports missing or mismatched compiler packages,
 native platform packages, and direct compiler-path drift.
 
+### Local test and build memory
+
+Local Turbo scripts run one task at a time, and local Jest and Vitest suites use
+two workers. This leaves memory for macOS and the editor while checking the
+same code. CI keeps its existing parallelism. To tune a local run, set
+`NODETOOL_TURBO_CONCURRENCY` for Turbo tasks or `NODETOOL_TEST_WORKERS` for
+test workers, for example:
+
+```bash
+NODETOOL_TEST_WORKERS=1 npm run test:affected
+NODETOOL_TURBO_CONCURRENCY=2 npm run build:packages
+```
+
+TypeScript 7 is a native process, so Node's heap flags do not limit its memory.
+The root `npm run typecheck` checks web, Electron, and mobile sequentially.
+
 ### `libc` in the lockfile
 
 npm selects a prebuilt native package by the `os`, `cpu` and `libc` recorded in

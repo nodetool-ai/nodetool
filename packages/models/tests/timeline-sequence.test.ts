@@ -53,6 +53,19 @@ async function createSeq(
 describe("TimelineSequence model", () => {
   beforeEach(setup);
 
+  it("round-trips the moving camera and an explicit camera clear", async () => {
+    const camera2d = {
+      position: { x: 10, y: 20 }, depthPx: 50, focalLengthPx: 1000,
+      keyframes: [{ timeMs: 1000, position: { x: 200, y: 30 }, depthPx: 100 }]
+    };
+    const stored = await createSeq("u1", "p1", "Camera", makeDocument({ camera2d }));
+    expect(stored.toTimelineSequence().camera2d).toEqual(camera2d);
+    const document = TimelineSequence.fromTimelineSequence("u1", stored.toTimelineSequence()).toDocument();
+    expect(document.camera2d).toEqual(camera2d);
+    const cleared = await createSeq("u1", "p1", "No camera", makeDocument({ camera2d: null }));
+    expect(cleared.toTimelineSequence().camera2d).toBeNull();
+  });
+
   // ── Create & defaults ───────────────────────────────────────────────
 
   it("creates with defaults", async () => {

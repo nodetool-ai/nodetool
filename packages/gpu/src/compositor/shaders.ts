@@ -55,6 +55,7 @@ fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
 //   params0: opacity, blendMode (as f32), canvasW, canvasH
 //   invRow0: a, b, tx, _   (inverse affine row 0: screen px → layer texel)
 //   invRow1: c, d, ty, _   (inverse affine row 1)
+//   invRow2: p, q, r, _    (projective denominator)
 //   params1: borderRadius (normalized 0..0.5), smoothness, filterMode, _
 //     filterMode: 0 = nearest (textureLoad), 1 = linear (sampler)
 //   params2: wipeEdge, wipeProgress, wipeSoftness, _
@@ -66,6 +67,7 @@ struct BlendUniforms {
   params0: vec4f,
   invRow0: vec4f,
   invRow1: vec4f,
+  invRow2: vec4f,
   params1: vec4f,
   params2: vec4f,
 };
@@ -99,12 +101,14 @@ fn fs_blend(@location(0) uv: vec2f) -> @location(0) vec4f {
   );
   let dst = textureLoad(dstTexture, dstPx, 0);
 
-  // Map screen UV → layer texel via inverse affine.
+  // Map screen UV → layer texel through the inverse homography.
   let px = uv * canvasSize;
+  let denominator = dot(u.invRow2.xyz, vec3f(px, 1.0));
+  if (abs(denominator) < 0.000001) { return dst; }
   let texel = vec2f(
     u.invRow0.x * px.x + u.invRow0.y * px.y + u.invRow0.z,
     u.invRow1.x * px.x + u.invRow1.y * px.y + u.invRow1.z
-  );
+  ) / denominator;
   let dims = textureDimensions(srcTexture);
   let dimsF = vec2f(f32(dims.x), f32(dims.y));
 
@@ -164,12 +168,28 @@ fn fs_blend(@location(0) uv: vec2f) -> @location(0) vec4f {
     sa = sa * (1.0 - smoothstep(e - softness, e, c));
   }
 
+  // Radial iris reveal, in the layer's own normalized space.
+  let irisProgress = u.params2.w;
+  if (irisProgress >= 0.0) {
+    let p = (texel / dimsF - vec2f(0.5)) * 2.0;
+    let radial = length(p);
+    let feather = max(u.params1.w, 0.0001);
+    let edge = irisProgress * (1.41421356 + feather);
+    let iris = 1.0 - smoothstep(edge - feather, edge, radial);
+    sa = sa * select(iris, 0.0, irisProgress <= 0.0);
+  }
+
   if (sa <= 0.0) {
     return dst;
   }
 
   let da = dst.a;
   let sc = srcRaw.rgb;
+  // Canvas lighter adds premultiplied channels and alpha. Applying a
+  // saturated straight-color sum inside source-over loses translucent light.
+  if (blendMode == 12u) {
+    return min(vec4f(sc * sa + dst.rgb, sa + da), vec4f(1.0));
+  }
   // The accumulator stores premultiplied color (ad*Cd); the W3C formula needs
   // straight Cd, so divide RGB by alpha before calling the blend functions.
   // Non-normal modes (multiply, overlay, ...) silently produced wrong values

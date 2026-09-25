@@ -268,6 +268,7 @@ export async function runShaderNode(
       usage: module.kind === "compute" ? COMPUTE_OUTPUT_USAGE : OUTPUT_USAGE
     });
 
+    ctx.uniformRing.beginSubmission();
     const encoder = device.createCommandEncoder({
       label: `${module.id}-encode`
     });
@@ -387,6 +388,7 @@ export async function runRecipeNode(
       usage: OUTPUT_USAGE | COMPUTE_OUTPUT_USAGE
     });
 
+    ctx.uniformRing.beginSubmission();
     const encoder = device.createCommandEncoder({
       label: `${recipe.id}-encode`
     });

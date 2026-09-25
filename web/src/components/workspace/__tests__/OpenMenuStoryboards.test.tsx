@@ -48,7 +48,7 @@ describe("OpenMenu storyboards", () => {
     await openSubmenu();
     expect(screen.getByText("Blank storyboard")).toBeInTheDocument();
     expect(screen.getByText("Lighthouse Keeper — Opening")).toBeInTheDocument();
-    expect(screen.getByText("4 shots, already rendered")).toBeInTheDocument();
+    expect(screen.getByText("4 shots, stills included")).toBeInTheDocument();
   });
 
   it("installs the example it was asked for and opens it", async () => {

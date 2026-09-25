@@ -1,6 +1,6 @@
 ---
 name: caption-titles
-description: Add a consistent, timed text layer to an existing picture-locked NodeTool timeline. Use for titles, lower-thirds, captions, callouts, and end cards, not workflow building or video rendering.
+description: Add and animate a consistent text layer on an existing NodeTool timeline. Use for titles, lower-thirds, captions, callouts, end cards, number tickers, deterministic scrambles, and text on a path.
 ---
 
 # Caption & Titles → Timeline Agent
@@ -44,6 +44,45 @@ Every live-picture T2–T4 element gets a matching scrim unless the plate is dem
 ## Caption map
 
 Write the timed map before editing: tier, exact text, start/end, position, and scrim. Caption duration is at least `max(1200ms, words × 350ms)`. Titles/end cards hold at least 2000ms. Lower-thirds arrive about 500ms after a person appears and hold 2500–4000ms. One text idea per frame. Unknown facts use `[INPUT NEEDED: …]`.
+
+## Animate the letters and their content
+
+For a number that changes during a text clip, store `textAnimator` on an
+animation with `kind: "ticker"`, `from`, and `to`. It also accepts `decimals`,
+`padTo`, `prefix`, and `suffix`. Set `groupSeparator` to `","` to show
+thousands as `2,847`; omitting it keeps existing tickers ungrouped. For a
+deterministic decode into the clip's
+authored text, use `kind: "scramble"` with a fixed `seed` and optional
+`charset`. These operate over the animation window, so a held final frame
+shows the finished value.
+
+```json
+{"id": "count-in", "role": "in", "preset": "fade", "durationMs": 900,
+ "textAnimator": {"kind": "ticker", "from": 1, "to": 7,
+  "padTo": 2, "suffix": " / 07"}}
+```
+
+For unit-by-unit motion, set `stagger.unit` to `character`, `word`, or `line`
+and give it `offsetMs`. With a text stagger, `styleTracks` can target
+`glyph.color`, `glyph.blurPx`, or `glyph.trackingPx`. The colour uses CSS
+colour values; blur and tracking use sequence pixels. Use `text.color` or
+`text.fill.stops.0.color` for a whole line. A text fill gradient also exposes
+`text.fill.angle` and stop offsets. The target must refer to an existing
+style field; `text.color` is hidden while a gradient fill is set.
+
+To lay a title along a curve, set `textStyle.path` to an SVG path in
+normalized canvas coordinates. This places the baseline on the path. It does
+not make each character travel along it. Shape and mask paths can morph through
+`shape.d` and `mask.d` style tracks when both paths have matching commands and
+point counts. Use `followPath` when the whole clip should move along a path.
+
+`edit_timeline`'s `animate_clip` input accepts presets and custom numeric
+curves, but does not accept `textAnimator` or `styleTracks`; those fields are
+dropped from that call. To author them, read the current document and use
+`set_timeline_document` with the animation fields in the clip. That call
+validates the complete document and snapshots the previous state. Preserve
+the other tracks and clips from the document. `motion-graphics` owns the full
+tool contract.
 
 ## Build and verify
 

@@ -11,8 +11,8 @@
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "check": "npm run lint && npm run test",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "test:watch": "node ../../scripts/run-vitest.mjs",
     "test:integration": "npm --prefix ../../chrome-extension run build && npx -y @puppeteer/browsers install chrome@stable --path ../../chrome && vitest run --config vitest.integration.config.ts",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },

@@ -14,6 +14,8 @@
  * curve generated onto a clip the user renamed meanwhile is refused whole.
  */
 import type { DocumentOp } from "@nodetool-ai/protocol";
+import { timelineCamera2d } from "@nodetool-ai/protocol/api-schemas/timeline.js";
+import type { TimelineSequence } from "@nodetool-ai/timeline";
 import type {
   DocumentMergeAdapter,
   MergeConflict,
@@ -32,6 +34,7 @@ export interface TimelineMergeDoc {
   fps: number;
   width: number;
   height: number;
+  camera2d?: TimelineSequence["camera2d"];
 }
 
 interface ClipLike {
@@ -167,6 +170,11 @@ export const timelineMergeAdapter: DocumentMergeAdapter<TimelineMergeDoc> = {
     collectionOf("transcript", "transcript", (l) => (l as { id: string }).id)
   ],
   scalars: [
+    {
+      name: "camera2d",
+      read: (doc) => doc.camera2d ?? null,
+      write: (doc, value) => ({ ...doc, camera2d: value == null ? null : timelineCamera2d.parse(value) })
+    },
     {
       name: "fps",
       read: (doc) => doc.fps,

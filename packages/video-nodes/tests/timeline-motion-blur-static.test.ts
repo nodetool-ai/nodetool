@@ -44,7 +44,7 @@ const WIDTH = 32;
 const HEIGHT = 16;
 const FPS = 25;
 
-function sequence(animated: boolean): TimelineSequence {
+function sequence(animated: boolean, movingCamera = false): TimelineSequence {
   return {
     id: "seq",
     name: "Static",
@@ -52,6 +52,10 @@ function sequence(animated: boolean): TimelineSequence {
     height: HEIGHT,
     fps: FPS,
     durationMs: 80,
+    ...(movingCamera ? { camera2d: { position: { x: 0, y: 0 }, depthPx: 0, focalLengthPx: 1000, keyframes: [
+      { timeMs: 0, position: { x: 0, y: 0 }, depthPx: 0 },
+      { timeMs: 1000, position: { x: 100, y: 0 }, depthPx: 0 }
+    ] } } : {}),
     tracks: [{ id: "t1", type: "video", index: 0, visible: true }],
     clips: [
       {
@@ -82,10 +86,10 @@ function sequence(animated: boolean): TimelineSequence {
   } as unknown as TimelineSequence;
 }
 
-async function render(animated: boolean): Promise<void> {
+async function render(animated: boolean, movingCamera = false): Promise<void> {
   const outPath = `${await import("node:os").then((m) => m.tmpdir())}/mb-${animated}-${Date.now()}.zip`;
   await renderTimelineComposited({
-    sequence: sequence(animated),
+    sequence: sequence(animated, movingCamera),
     width: WIDTH,
     height: HEIGHT,
     fps: FPS,
@@ -116,5 +120,38 @@ describe("motion blur — static frames", () => {
   it("still takes all 8 samples while an animation is in flight", async () => {
     await render(true);
     expect(sampleCounts.every((n) => n === 8)).toBe(true);
+  });
+
+  it("takes all 8 samples when a camera moves over a still", async () => {
+    await render(false, true);
+    expect(sampleCounts.length).toBeGreaterThan(0);
+    expect(sampleCounts.every((n) => n === 8)).toBe(true);
+  });
+
+  it("does not sample early animated frames for blur requested by a later clip", async () => {
+    const doc = sequence(true);
+    doc.clips[0].durationMs = 80;
+    doc.clips.push({
+      ...doc.clips[0],
+      id: "clip-2",
+      startMs: 80,
+      motionBlur: { samplesPerFrame: 8, shutterAngle: 180 }
+    });
+    const outPath = `${await import("node:os").then((m) => m.tmpdir())}/mb-later-${Date.now()}.zip`;
+    try {
+      await renderTimelineComposited({
+        sequence: doc,
+        width: WIDTH,
+        height: HEIGHT,
+        fps: FPS,
+        durationMs: 160,
+        resolveAssetPath: async () => null,
+        outPath,
+        output: resolveTimelineOutput({ format: "png_sequence", alpha: false })
+      });
+    } finally {
+      await (await import("node:fs")).promises.rm(outPath, { force: true });
+    }
+    expect(sampleCounts).toEqual([1, 1, 8, 8]);
   });
 });

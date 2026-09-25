@@ -1,0 +1,116 @@
+{
+  "id": "window-frame",
+  "name": "Window frame",
+  "description": "A rounded product window with a title bar and an editable content plate.",
+  "params": {
+    "title": {
+      "type": "string",
+      "default": "Your product",
+      "path": "/2/textStyle/text"
+    },
+    "contentColor": {
+      "type": "color",
+      "default": "#101418",
+      "path": "/1/shapeStyle/fill"
+    },
+    "frameColor": {
+      "type": "color",
+      "default": "#282D38",
+      "path": "/0/shapeStyle/fill"
+    }
+  },
+  "group": {
+    "sourceType": "imported",
+    "status": "generated",
+    "locked": false,
+    "versions": [],
+    "id": "window-frame-group",
+    "trackId": "Plate",
+    "name": "Window frame",
+    "startMs": 0,
+    "durationMs": 5000,
+    "mediaType": "group"
+  },
+  "children": [
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "window-frame-0-frame",
+      "trackId": "Frame",
+      "name": "Frame",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "shapeStyle": {
+        "kind": "rect",
+        "fill": "#282D38",
+        "x": 0.14,
+        "y": 0.13,
+        "width": 0.72,
+        "height": 0.74,
+        "cornerRadius": 0.024,
+        "stroke": "#667084",
+        "strokeWidthPx": 2
+      }
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "window-frame-1-content",
+      "trackId": "Content",
+      "name": "Content",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "shapeStyle": {
+        "kind": "rect",
+        "fill": "#101418",
+        "x": 0.155,
+        "y": 0.225,
+        "width": 0.69,
+        "height": 0.62,
+        "cornerRadius": 0.014
+      }
+    },
+    {
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "window-frame-2-title",
+      "trackId": "Title",
+      "name": "Title",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "text",
+      "textStyle": {
+        "text": "Your product",
+        "fontFamily": "Inter",
+        "fontSizePx": 32,
+        "fontWeight": 500,
+        "color": "#D2D9E5",
+        "align": "center",
+        "maxWidthFrac": 0.5
+      },
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": -349
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    }
+  ]
+}

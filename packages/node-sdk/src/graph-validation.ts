@@ -11,6 +11,7 @@
  * so it can be unit-tested with a fake and reused by the CLI and agent tools.
  */
 import {
+  isLoopFeedbackHandle,
   migrateGraphNodeTypes,
   type DynamicSlotMeta
 } from "@nodetool-ai/protocol";
@@ -627,6 +628,14 @@ function detectCycles(
     if (e.isControl) continue;
     if (e.source === e.target) continue;
     if (!byId.has(e.source) || !byId.has(e.target)) continue;
+    if (
+      isLoopFeedbackHandle(
+        String(byId.get(e.target)?.type ?? ""),
+        e.targetHandle
+      )
+    ) {
+      continue;
+    }
     outgoing.get(e.source)!.push(e.target);
     incoming.set(e.target, (incoming.get(e.target) ?? 0) + 1);
   }
@@ -654,7 +663,7 @@ function detectCycles(
       code: "cycle",
       nodeId: remaining[0],
       nodeType: String(byId.get(remaining[0])?.type ?? ""),
-      message: `Cycle detected in graph; the kernel's correlation analysis requires a DAG. Involved nodes: ${remaining.join(", ")}`
+      message: `Cycle detected in graph; a cycle may only close on the "next" or "condition" input of a Loop node. Involved nodes: ${remaining.join(", ")}`
     });
   }
 
@@ -1498,7 +1507,7 @@ export function validateGraph(
     }
   }
 
-  // ── Cycles: the kernel requires a DAG ────────────────────────────────────
+  // ── Cycles: only Loop feedback edges may close one ───────────────────────
   issues.push(...detectCycles(byId, normEdges));
 
   // ── Edges: endpoints, handles, type compatibility ────────────────────────

@@ -60,19 +60,17 @@ export interface ScratchPool {
 }
 
 /**
- * Bounded ring of reusable uniform buffers. The Executor packs each dispatch's
- * params into the next buffer in the ring rather than allocating a fresh
- * `GPUBuffer` per encode — without this, a host dispatching effects every
- * frame (the timeline preview) grows GPU buffer allocations without bound.
+ * Reusable uniform buffers. Each dispatch in a submission needs its own slot;
+ * the host calls `beginSubmission` before recording a new command buffer.
  *
  * Reuse is safe because of WebGPU's queue ordering: a `writeBuffer` is ordered
  * after every previously-submitted command on the queue timeline, so reusing a
  * buffer never races a prior submit's read of it. The only constraint is
- * *within a single submit*: two concurrent dispatches must not share a buffer,
- * so the ring size must exceed the number of uniform dispatches a host encodes
- * into one command buffer (the timeline encodes at most a handful).
+ * *within a single submit*: two dispatches must not share a buffer, regardless
+ * of how many effects the frame contains.
  */
 export interface UniformRing {
+  beginSubmission(): void;
   acquire(size: number): GPUBuffer;
   dispose(): void;
 }
@@ -198,20 +196,17 @@ export function makeScratchPool(device: GPUDevice): ScratchPool {
   };
 }
 
-/** Slots in the uniform ring. Far exceeds the dispatches any host packs into
- * one submit (the timeline tops out at ~6), so no two intra-submit dispatches
- * ever alias the same buffer. */
-const UNIFORM_RING_SIZE = 64;
-
-/** Bounded, cycling pool of uniform buffers. See {@link UniformRing}. */
+/** Pool of uniform buffers, sized to the largest submission seen. */
 export function makeUniformRing(device: GPUDevice): UniformRing {
-  const buffers: (GPUBuffer | undefined)[] = new Array(UNIFORM_RING_SIZE);
+  const buffers: (GPUBuffer | undefined)[] = [];
   let index = 0;
 
   return {
+    beginSubmission() {
+      index = 0;
+    },
     acquire(size) {
-      const slot = index;
-      index = (index + 1) % UNIFORM_RING_SIZE;
+      const slot = index++;
       const wanted = Math.max(16, size);
       let buffer = buffers[slot];
       if (!buffer || buffer.size < wanted) {

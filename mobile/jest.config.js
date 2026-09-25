@@ -1,5 +1,12 @@
 /** @type {import('jest').Config} */
+const configuredWorkers = process.env.NODETOOL_TEST_WORKERS;
+if (configuredWorkers && (!/^[1-9]\d*$/.test(configuredWorkers) || !Number.isSafeInteger(Number(configuredWorkers)))) {
+  throw new Error('NODETOOL_TEST_WORKERS must be a positive integer.');
+}
 module.exports = {
+  ...(configuredWorkers || !process.env.CI || process.env.CI === 'false'
+    ? { maxWorkers: configuredWorkers ? Number(configuredWorkers) : 2 }
+    : {}),
   preset: '@react-native/jest-preset',
   testEnvironment: 'node',
   // Use V8's built-in coverage rather than babel-plugin-istanbul. Istanbul's

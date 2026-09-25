@@ -21,6 +21,7 @@ import type { ClipFadeShape } from "../audioFade.js";
 import type { ClipModel3DStylePatch } from "../authoredStyles.js";
 import type {
   ClipCrop,
+  ClipTransform,
   TimelineClip,
   TimelineTrack,
   TrackBinding
@@ -30,6 +31,15 @@ import type { TimelineAnimationInput } from "./types.js";
 
 type TextStyleInput = NonNullable<TimelineClip["textStyle"]>;
 type ShapeStyleInput = NonNullable<TimelineClip["shapeStyle"]>;
+export type ClipTransformPatch = {
+  position?: Partial<ClipTransform["position"]>;
+  scale?: Partial<ClipTransform["scale"]>;
+  rotation?: number;
+  rotationX?: number;
+  rotationY?: number;
+  perspective?: number;
+  anchor?: Partial<ClipTransform["anchor"]>;
+};
 type CaptionStyleInput = NonNullable<
   NonNullable<TimelineClip["caption"]>["style"]
 >;
@@ -64,6 +74,8 @@ export interface DeleteTrackOp {
 export interface AddTextClipOp {
   op: "add_text_clip";
   text: string;
+  name?: string;
+  transform?: ClipTransformPatch;
   trackId?: string;
   startMs?: number;
   durationMs?: number;
@@ -80,12 +92,15 @@ export interface AddMediaClipOp {
   startMs?: number;
   durationMs?: number;
   name?: string;
+  transform?: ClipTransformPatch;
 }
 
 export interface AddShapeClipOp {
   op: "add_shape_clip";
   shape?: unknown;
   shapeStyle?: unknown;
+  name?: string;
+  transform?: ClipTransformPatch;
   trackId?: string;
   startMs?: number;
   durationMs?: number;
@@ -104,6 +119,7 @@ export interface AddModel3DClipOp {
   trackId?: string;
   startMs?: number;
   durationMs?: number;
+  transform?: ClipTransformPatch;
   style?: ClipModel3DStylePatch;
 }
 
@@ -191,6 +207,7 @@ export interface SetClipParamsOp {
     fontSizePx?: number;
     name?: string;
     opacity?: number;
+    transform?: ClipTransformPatch;
     speedMultiplier?: number;
     volumeDb?: number;
     fadeInMs?: number;
@@ -219,8 +236,10 @@ export interface SetTransitionOp {
 }
 
 /** Apply a generated transition to an explicit adjacent cut in one op. */
-export interface ApplyTransitionAtCutOp
-  extends Omit<TransitionParams, "durationMs" | "type"> {
+export interface ApplyTransitionAtCutOp extends Omit<
+  TransitionParams,
+  "durationMs" | "type"
+> {
   op: "apply_transition_at_cut";
   outgoingClipId: string;
   incomingClipId: string;

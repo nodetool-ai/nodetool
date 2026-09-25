@@ -170,6 +170,41 @@ beforeEach(() => {
 });
 
 describe("rubber-band selection across tracks", () => {
+  it("selects an unmounted lane in a virtualized track stack", () => {
+    const tracks = Array.from({ length: 100 }, (_, index) => ({
+      ...trackA,
+      id: `track-${index}`,
+      index
+    }));
+    useTimelineStore.setState({
+      tracks,
+      clips: [makeClip("far", "track-80", 2000, 1000)]
+    });
+    const { container } = render(
+      <ThemeProvider theme={mockTheme}>
+        <div data-timeline-lanes="true" data-virtualized-tracks="true">
+          <TrackLane track={tracks[0]} />
+        </div>
+      </ThemeProvider>
+    );
+    const lane = screen.getByTestId("track-lane-track-0");
+    stubRect(container.firstElementChild as HTMLElement, 0, 6400);
+
+    fireEvent.pointerDown(lane, {
+      button: 0,
+      clientX: 150,
+      clientY: 10,
+      pointerId: 1
+    });
+    fireEvent.pointerMove(lane, {
+      buttons: 1,
+      clientX: 250,
+      clientY: 80 * LANE_HEIGHT_PX + 20,
+      pointerId: 1
+    });
+    expect([...useTimelineUIStore.getState().selectedClipIds]).toEqual(["far"]);
+  });
+
   it("selects clips on every lane the band covers", () => {
     const { laneA } = renderLanes();
     // Band x 150→250 (1500–2500 ms), y 10→100: covers both lanes.

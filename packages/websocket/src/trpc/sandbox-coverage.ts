@@ -931,7 +931,17 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "timeline.create": { capability: "assemble_script_timeline" },
   "timeline.delete": { capability: "delete_timeline" },
+  "timeline.examples": {
+    gap:
+      "Lists shipped timeline examples for the editor. A headless run can " +
+      "create a timeline with assemble_script_timeline and edit_timeline."
+  },
   "timeline.get": { capability: "get_timeline" },
+  "timeline.installExample": {
+    gap:
+      "Copies a shipped timeline into the caller's library. Headless runs " +
+      "can build their own timeline with assemble_script_timeline and edit_timeline."
+  },
   "timeline.list": { capability: "list_timelines" },
   "timeline.update": { capability: "edit_timeline" },
   "timeline.versions.create": { capability: "create_timeline_version" },

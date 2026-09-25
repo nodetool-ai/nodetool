@@ -671,6 +671,14 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  ...shared("ui_timeline_stagger_animations"),
+  async execute({ timeline_id, clip_ids, offset_ms }) {
+    const clips = getTimelineAgentHandler(timeline_id).staggerAnimations(clip_ids, offset_ms);
+    return { ok: true, clips, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
   ...shared("ui_timeline_clear_animations"),
   async execute({ timeline_id, target, role }) {
     const clip = getTimelineAgentHandler(timeline_id).clearClipAnimations(

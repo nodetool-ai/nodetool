@@ -21,17 +21,20 @@ in doubt, repeat rather than invent.
 ## The motion-language spec
 
 Fill every row once, at the top of the job, and state it back to the user before
-you animate. Each row is a value an `edit_timeline` call takes.
+you animate. The rows guide the timeline document; `motion-graphics` owns the
+tool calls.
 
 | Row | Pick one | Example |
 |---|---|---|
 | Easing family | The `easing` string for roughly nine moves in ten | `cubic-bezier(0.22,1,0.36,1)` |
 | Base timing unit | The atomic `durationMs`; everything else is a multiple | 400 — micro 200, hero 800 |
-| Transition family | Which of the six cuts this piece uses | `crossfade` only, hard cuts elsewhere |
+| Transition family | Which cut style this piece uses | `crossfade` only, hard cuts elsewhere |
 | Stagger rhythm | One `offsetMs` and one `from` | 80ms, `from: "start"` |
 | Motion intensity | The travel, scale and overshoot budget | `distance` ≤ 0.15, `overshoot` ≤ 1.05 |
 | Hold discipline | Minimum stillness between moves | ≥ 400ms with nothing animating |
 | Type family | One bundled font | `Inter` for UI, `Bebas Neue` for a title card |
+| Space and focus | One camera path and a depth plan, if the piece needs 2.5D | Hero at `depthPx: 0`, background farther away |
+| Shutter and texture | Which layers blur, echo, or step | Hero blur on the impact, background held |
 
 Two easings maximum: one for entrances and landings, one for exits. A third has
 to justify itself.
@@ -78,7 +81,17 @@ demote one before touching its keyframes.
 
 Hierarchy is also a track decision. Lowest track `index` renders on top, so the
 hero belongs on a low index and the bed on a high one; a scrim sits between the
-picture it darkens and the text it carries.
+picture it darkens and the text it carries. For a camera move, set clip
+`transform.depthPx` separately from track order. The sequence's `camera2d`
+can keyframe position and depth while `focusDepthPx` and `aperturePx` decide
+which plane softens. Keep one plane legible while the others move.
+
+Use `layout` relations for elements whose spacing should survive a text or
+shape change: a `row` or `stack` holds ordered child IDs, a `relative` clip
+follows a target box, and `fitText` sizes a plate from live text. Use
+`animationLinks` when one clip should follow another's authored position,
+scale, rotation, or opacity. Linked followers share one motion decision;
+they do not chain through a second link.
 
 ## Restraint
 
@@ -100,6 +113,21 @@ a build, one peak, a settled end. Vary it on purpose — tension, then release.
 Stillness is pacing, not a gap. `beat-sync-editing` turns this shape into cut
 points.
 
+An animation's `beat` anchor follows the document tempo: one-based `index`,
+`scope: "clip"` or `"sequence"`, and optional `offsetMs`. A measured audio
+curve from `bake_audio_animation` follows the audio source instead. Use the
+former for a rhythmic rule and the latter when a real onset or envelope must
+drive the picture. `stagger_animations` offsets existing animations across an
+ordered list of clip IDs while leaving media timing fixed.
+
+Choose motion texture deliberately. `repeater` makes positioned, delayed
+copies of one clip; `temporalEcho` trails it with fading delayed copies;
+`steppedTime` quantizes its clock. Per-clip `motionBlur` controls its own shutter
+angle and minimum sample count. When layers request different counts, the
+scene uses the highest count up to 32 and samples each layer evenly across its
+own shutter. Give blur to the fast hero when it clarifies direction, then
+inspect the held frame for readability.
+
 ## Direction notes, per shot
 
 Write intent, not keyframes. One line per shot is enough for someone else — or a
@@ -109,6 +137,13 @@ later turn — to animate it:
 > Support: the caption 80ms behind it, `fade`. Texture: bed holds `kenBurns`
 > from shot 2. Nothing else moves.
 
+For a repeated title or logo system, inspect `list_compositions` before
+building bare clips. `title-slam`, `word-cards`, and `logo-sting` are starting
+rigs when their timing matches the brief. `motion-graphics` owns the tool
+contract. `set_clip_params` does not accept the new camera, layout, link,
+repeat, echo, step, or per-clip blur fields; author those through the full
+document with `set_timeline_document` after reading it with `get_timeline`.
+
 ## The consistency audit
 
 Before calling a pass done, read the document back with `get_timeline` and check
@@ -117,7 +152,7 @@ every clip against the spec. A miss is a direction defect, not a preference.
 - Same easing family on comparable moves, and no stray `linear` outside loops.
 - Every `durationMs` a multiple of the base unit.
 - Only the chosen transition types on the cut.
-- One `offsetMs` and one `from` across every staggered clip.
+- One text stagger rhythm, and one `offset_ms` order for cross-clip builds.
 - Hold discipline respected: no two moves stacked with no rest between them.
 - Exactly one hero animating at any instant.
 - One font family, and it is a bundled one — `Inter`, `Space Grotesk`,

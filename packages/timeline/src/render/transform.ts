@@ -74,7 +74,7 @@ const MATRIX_CACHE_MAX = 64;
  * cache key and a composition only ever have to carry these.
  */
 function affineKey(m: Float32Array): string {
-  return `${m[0]},${m[1]},${m[4]},${m[5]},${m[12]},${m[13]}`;
+  return `${m[0]},${m[1]},${m[3]},${m[4]},${m[5]},${m[7]},${m[12]},${m[13]},${m[15]}`;
 }
 
 function matrixCacheKey(
@@ -86,7 +86,7 @@ function matrixCacheKey(
 ): string {
   return (
     `${t.position.x},${t.position.y},${t.scale.x},${t.scale.y},` +
-    `${t.rotation},${t.anchor.x},${t.anchor.y},` +
+    `${t.rotation},${t.rotationX ?? 0},${t.rotationY ?? 0},${t.perspective ?? 0},${t.anchor.x},${t.anchor.y},` +
     `${base.x},${base.y},${width},${height}` +
     (parent ? `|${affineKey(parent)}` : "")
   );
@@ -101,6 +101,18 @@ function matrixCacheKey(
  * the point the parent's own anchor pinned.
  */
 function composeWithParent(own: Float32Array, parent: Float32Array): void {
+  if (own[3] !== 0 || own[7] !== 0 || parent[3] !== 0 || parent[7] !== 0) {
+    const result = new Float32Array(16);
+    for (let col = 0; col < 4; col += 1) {
+      for (let row = 0; row < 4; row += 1) {
+        for (let k = 0; k < 4; k += 1) {
+          result[col * 4 + row] += parent[k * 4 + row] * own[col * 4 + k];
+        }
+      }
+    }
+    own.set(result);
+    return;
+  }
   const a0 = own[0];
   const a1 = own[1];
   const a4 = own[4];
@@ -135,7 +147,7 @@ export function buildTransformMatrix(
   const sx = base.x * transform.scale.x;
   const sy = base.y * transform.scale.y;
   const cos = Math.cos(transform.rotation);
-  const sin = Math.sin(transform.rotation);
+  const sin = -Math.sin(transform.rotation);
 
   // Aspect-corrected rotation: R' = A⁻¹ · R · A with A = diag(W/2, H/2)
   // (NDC → pixels). Collapses to plain R when the canvas is square.
@@ -176,6 +188,30 @@ export function buildTransformMatrix(
   m[13] = ty + ay - (m[1] * ax + m[5] * ay);
   m[14] = 0;
   m[15] = 1;
+
+  const rx = (transform.rotationX ?? 0) * Math.PI / 180;
+  const ry = (transform.rotationY ?? 0) * Math.PI / 180;
+  if (rx !== 0 || ry !== 0) {
+    const cosX = Math.cos(rx);
+    const sinX = Math.sin(rx);
+    const cosY = Math.cos(ry);
+    const sinY = Math.sin(ry);
+    const xFromX = cosY * sx;
+    const yFromX = -aspect * sinX * sinY * sx;
+    const yFromY = cosX * sy;
+    m[0] = r00 * xFromX + r01 * yFromX;
+    m[1] = r10 * xFromX + r11 * yFromX;
+    m[4] = r01 * yFromY;
+    m[5] = r11 * yFromY;
+    const perspective = transform.perspective;
+    if (perspective && perspective > 0) {
+      m[3] = cosX * sinY * sx * width / (2 * perspective);
+      m[7] = sinX * sy * height / (2 * perspective);
+    }
+    m[12] = tx + ax - (m[0] * ax + m[4] * ay);
+    m[13] = ty + ay - (m[1] * ax + m[5] * ay);
+    m[15] = 1 - m[3] * ax - m[7] * ay;
+  }
 
   if (parentMatrix) composeWithParent(m, parentMatrix);
 

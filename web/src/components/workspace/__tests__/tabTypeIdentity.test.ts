@@ -4,16 +4,15 @@
 import { PROJECT_GLYPH } from "../../projects/projectIdentity";
 import {
   PROJECT_HOME_GLYPH,
-  PROJECT_HOME_TAB_TITLE,
   TYPE_GLYPH,
   tabDisplayTitle
 } from "../tabTypeIdentity";
 
 describe("tabDisplayTitle", () => {
-  it("labels the project overview tab Home instead of the project name", () => {
+  it("labels the project overview tab with the project name", () => {
     expect(
       tabDisplayTitle({ type: "project", title: "Marketing recipes" })
-    ).toBe(PROJECT_HOME_TAB_TITLE);
+    ).toBe("Marketing recipes");
   });
 
   it("labels the editor landing surface Home", () => {

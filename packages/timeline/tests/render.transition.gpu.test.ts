@@ -14,10 +14,11 @@
 import { describe, expect, it } from "vitest";
 import { makeClip, makeTrack } from "../src/index.js";
 import type { ClipTransition, TimelineClip } from "../src/index.js";
-import { computeActiveLayers, trackZ } from "../src/render/sceneModel.js";
+import { computeActiveLayers, computeActiveLayersWithHorizon, trackZ } from "../src/render/sceneModel.js";
 import {
   HeadlessFrameCompositor,
-  type FrameLayer
+  type FrameLayer,
+  type FramePrecomposite
 } from "../src/render/frameCompositor.js";
 
 /**
@@ -99,6 +100,7 @@ async function cutFrame(
     // Two clips on one track share a z; the scene model already ordered them
     // by start time, and the compositor's sort is stable.
     zIndex: trackZ(layer.trackIndex),
+    stackOrder: layer.stackOrder,
     transform: layer.transform,
     transition: layer.transition
   }));
@@ -108,6 +110,99 @@ async function cutFrame(
   const compositor = new HeadlessFrameCompositor(device, SIZE, SIZE);
   try {
     return await compositor.renderFrame(layers);
+  } finally {
+    compositor.dispose();
+  }
+}
+
+/** A group cut rendered through the same precomposite records as the hosts. */
+async function groupCutFrame(transition: ClipTransition): Promise<Uint8Array> {
+  const overlay = makeTrack({ id: "overlay", type: "overlay", index: 1, visible: true });
+  const group = makeClip({
+    id: "group", trackId: track.id, mediaType: "group", status: "generated",
+    startMs: CUT_START, durationMs: 1200, transitionIn: transition
+  });
+  const red: TimelineClip = {
+    ...clip("red", CUT_START), trackId: overlay.id, parentId: group.id,
+    mediaType: "image"
+  };
+  const scene = computeActiveLayersWithHorizon(
+    [track, overlay], [clip("blue", 0), group, red], MID,
+    { canvas: { width: SIZE, height: SIZE } }
+  );
+  const layers: FrameLayer[] = scene.layers.map((layer) => ({
+    id: layer.clipId,
+    source: SOURCES[layer.clipId]!,
+    opacity: layer.opacity,
+    blendMode: layer.blendMode,
+    zIndex: trackZ(layer.trackIndex),
+    stackOrder: layer.stackOrder,
+    transform: layer.transform,
+    parentMatrix: layer.parentMatrix,
+    precomposeGroupId: layer.precomposeGroupId,
+    transition: layer.transition
+  }));
+  const groups: FramePrecomposite[] = scene.precomposites.map((item) => ({
+    id: item.clipId,
+    zIndex: trackZ(item.trackIndex),
+    stackOrder: item.stackOrder,
+    opacity: item.opacity,
+    blendMode: item.blendMode,
+    effects: item.effects,
+    transition: item.transition,
+    precomposeGroupId: item.precomposeGroupId
+  }));
+  const { getNodeGPUDevice } = await import("@nodetool-ai/gpu/node");
+  const device = await getNodeGPUDevice();
+  const compositor = new HeadlessFrameCompositor(device, SIZE, SIZE);
+  try {
+    return await compositor.renderFrame(layers, groups);
+  } finally {
+    compositor.dispose();
+  }
+}
+
+/** An outgoing group must sit below a later ordinary clip on its track. */
+async function outgoingGroupCutFrame(): Promise<Uint8Array> {
+  const overlay = makeTrack({ id: "overlay", type: "overlay", index: 1, visible: true });
+  const group = makeClip({
+    id: "group", trackId: track.id, mediaType: "group", status: "generated",
+    startMs: 0, durationMs: 1200
+  });
+  const blue: TimelineClip = {
+    ...clip("blue", 0), trackId: overlay.id, parentId: group.id,
+    mediaType: "image"
+  };
+  const red = clip("red", CUT_START, { type: "crossfade", durationMs: CUT_MS });
+  const scene = computeActiveLayersWithHorizon(
+    [track, overlay], [group, blue, red], MID,
+    { canvas: { width: SIZE, height: SIZE } }
+  );
+  const layers: FrameLayer[] = scene.layers.map((layer) => ({
+    id: layer.clipId,
+    source: SOURCES[layer.clipId]!,
+    opacity: layer.opacity,
+    blendMode: layer.blendMode,
+    zIndex: trackZ(layer.trackIndex),
+    stackOrder: layer.stackOrder,
+    transform: layer.transform,
+    parentMatrix: layer.parentMatrix,
+    precomposeGroupId: layer.precomposeGroupId,
+    transition: layer.transition
+  }));
+  const groups: FramePrecomposite[] = scene.precomposites.map((item) => ({
+    id: item.clipId,
+    zIndex: trackZ(item.trackIndex),
+    stackOrder: item.stackOrder,
+    opacity: item.opacity,
+    blendMode: item.blendMode,
+    transition: item.transition,
+    precomposeGroupId: item.precomposeGroupId
+  }));
+  const { getNodeGPUDevice } = await import("@nodetool-ai/gpu/node");
+  const compositor = new HeadlessFrameCompositor(await getNodeGPUDevice(), SIZE, SIZE);
+  try {
+    return await compositor.renderFrame(layers, groups);
   } finally {
     compositor.dispose();
   }
@@ -139,6 +234,29 @@ describe.runIf(noAdapterReason === null)(
       expect(lb).toBeLessThan(50);
       expect(rb).toBeGreaterThan(200);
       expect(rr).toBeLessThan(50);
+    });
+
+    it("push applies once to an incoming group surface", async () => {
+      const frame = await groupCutFrame({ type: "push", durationMs: CUT_MS, direction: "left" });
+      expect(pixelAt(frame, 8, SIZE / 2)[0]).toBeGreaterThan(200);
+      expect(pixelAt(frame, SIZE - 8, SIZE / 2)[2]).toBeGreaterThan(200);
+    });
+
+    it("dipToColor applies beneath an incoming group surface", async () => {
+      const frame = await groupCutFrame({ type: "dipToColor", durationMs: CUT_MS, color: "#00ff00" });
+      const [r, g, b] = pixelAt(frame, SIZE / 2, SIZE / 2);
+      expect(r).toBeLessThan(12);
+      expect(g).toBeGreaterThan(240);
+      expect(b).toBeLessThan(12);
+    });
+
+    it("crossfades an incoming ordinary clip over an outgoing group", async () => {
+      const frame = await outgoingGroupCutFrame();
+      const [red, , blue] = pixelAt(frame, SIZE / 2, SIZE / 2);
+      expect(red).toBeGreaterThan(105);
+      expect(red).toBeLessThan(150);
+      expect(blue).toBeGreaterThan(105);
+      expect(blue).toBeLessThan(150);
     });
 
     it("dipToColor is the colour at the midpoint, and neither clip", async () => {
@@ -194,6 +312,42 @@ describe.runIf(noAdapterReason === null)(
         expect(b).toBeGreaterThan(100);
         expect(b).toBeLessThan(160);
       }
+    });
+
+    it("gradient wipe reveals the incoming clip from its chosen edge", async () => {
+      const frame = await cutFrame({ type: "gradientWipe", durationMs: CUT_MS, direction: "left", softness: 0.1 });
+      expect(pixelAt(frame, 8, SIZE / 2)[0]).toBeGreaterThan(200);
+      expect(pixelAt(frame, SIZE - 8, SIZE / 2)[2]).toBeGreaterThan(200);
+    });
+
+    it("noise gradient map reveals spatial patches unlike a straight wipe", async () => {
+      const noise = await cutFrame({ type: "gradientWipe", durationMs: CUT_MS, direction: "left", map: "noise", scale: 8, seed: 4, softness: 0.03 });
+      const straight = await cutFrame({ type: "wipe", durationMs: CUT_MS, direction: "left", softness: 0.03 });
+      let different = 0;
+      for (let y = 0; y < SIZE; y++) {
+        for (let x = 0; x < SIZE; x++) {
+          if (Math.abs(pixelAt(noise, x, y)[0] - pixelAt(straight, x, y)[0]) > 40) different++;
+        }
+      }
+      expect(different).toBeGreaterThan(SIZE * SIZE / 5);
+    });
+
+    it("iris reveals the centre while preserving the outgoing corners", async () => {
+      const frame = await cutFrame({ type: "iris", durationMs: CUT_MS, softness: 0.05 });
+      expect(pixelAt(frame, SIZE / 2, SIZE / 2)[0]).toBeGreaterThan(200);
+      expect(pixelAt(frame, 2, 2)[2]).toBeGreaterThan(200);
+    });
+
+    it("light leak adds warm light over the midpoint", async () => {
+      const leaked = await cutFrame({ type: "lightLeak", durationMs: CUT_MS });
+      const plain = await cutFrame({ type: "crossfade", durationMs: CUT_MS });
+      const warm = pixelAt(leaked, SIZE / 2, SIZE / 2);
+      const neutral = pixelAt(plain, SIZE / 2, SIZE / 2);
+      expect(warm[0]).toBeGreaterThan(neutral[0]);
+      expect(warm[1]).toBeGreaterThan(neutral[1]);
+      const corner = pixelAt(leaked, 2, 2);
+      const cornerPlain = pixelAt(plain, 2, 2);
+      expect(warm[1] - neutral[1]).toBeGreaterThan((corner[1] - cornerPlain[1]) * 3);
     });
   }
 );
