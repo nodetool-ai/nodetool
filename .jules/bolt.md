@@ -13,3 +13,6 @@
 ## 2024-11-20 - Concurrent sequential promises
 **Learning:** `await` calls executed sequentially in `for...of` loops cause massive time overhead when bounded by I/O (e.g., querying external AI model providers).
 **Action:** Always replace independent, sequential `await` calls in a `for` loop with `Promise.all` inside `.map` to execute them concurrently.
+## 2024-11-26 - Eliminate redundant array iterations in assembled sequence merge
+**Learning:** Multiple array filter/map chains over `existing.clips` created redundant array traversals and intermediate allocations.
+**Action:** Replace filter chains with a single `for` loop that partitions and builds sets concurrently in one pass.

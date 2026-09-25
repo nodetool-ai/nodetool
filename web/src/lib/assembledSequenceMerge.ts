@@ -38,7 +38,15 @@ export const isOwnedClip = (
 export const countOwnedClips = (
   clips: readonly TimelineClip[],
   owner: AssemblyOwner
-): number => clips.filter((clip) => isOwnedClip(clip, owner)).length;
+): number => {
+  let count = 0;
+  for (const clip of clips) {
+    if (isOwnedClip(clip, owner)) {
+      count++;
+    }
+  }
+  return count;
+};
 
 /** Record the board behind every clip of a fresh build, draft clips included. */
 export const stampBoardProvenance = (
@@ -58,17 +66,21 @@ export function mergeIntoSequence(
   existing: MergedSequence,
   owner: AssemblyOwner
 ): MergedSequence {
-  const foreignClips = existing.clips.filter(
-    (clip) => !isOwnedClip(clip, owner)
-  );
+  const foreignClips: TimelineClip[] = [];
+  const ownedTrackIds = new Set<string>();
+  const foreignTrackIds = new Set<string>();
+
+  for (const clip of existing.clips) {
+    if (isOwnedClip(clip, owner)) {
+      ownedTrackIds.add(clip.trackId);
+    } else {
+      foreignClips.push(clip);
+      foreignTrackIds.add(clip.trackId);
+    }
+  }
+
   // Drop only the tracks these documents filled and no one else uses. Empty
   // tracks and tracks the editor added stay.
-  const ownedTrackIds = new Set(
-    existing.clips
-      .filter((clip) => isOwnedClip(clip, owner))
-      .map((clip) => clip.trackId)
-  );
-  const foreignTrackIds = new Set(foreignClips.map((clip) => clip.trackId));
   const foreignTracks = existing.tracks.filter(
     (track) => foreignTrackIds.has(track.id) || !ownedTrackIds.has(track.id)
   );
