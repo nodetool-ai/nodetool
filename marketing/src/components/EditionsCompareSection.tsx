@@ -1,92 +1,60 @@
-"use client";
 import React from "react";
-import { motion } from "framer-motion";
-import {
-  Cpu,
-  Cloud,
-  Check,
-  X,
-  Download,
-  Globe,
-} from "lucide-react";
+import { Cloud, Cpu, Download, Globe } from "lucide-react";
+import { EDITIONS } from "../data/editions";
 
 interface EditionsCompareSectionProps {
   reducedMotion?: boolean;
-  /** Highlight one of the editions as the user's current page. */
   highlight?: "studio" | "cloud" | null;
 }
 
-type Row = {
+interface EditionRow {
   label: string;
-  studio: { value: string; ok: boolean };
-  cloud: { value: string; ok: boolean };
-};
+  studio: string;
+  cloud: string;
+}
 
-const rows: Row[] = [
+const rows: EditionRow[] = [
   {
     label: "Where it runs",
-    studio: { value: "Your machine (macOS, Windows, Linux)", ok: true },
-    cloud: { value: "Hosted by us — open in any browser", ok: true },
+    studio: "On macOS, Windows, or Linux",
+    cloud: "In a supported browser",
   },
   {
-    label: "Install required",
-    studio: { value: "The desktop app. Model downloads are optional", ok: false },
-    cloud: { value: "None — sign in and start building", ok: true },
+    label: "Intended use",
+    studio: "Production work",
+    cloud: "Evaluation and lightweight access during alpha",
   },
   {
-    label: "Local models (Ollama, MLX, GGUF)",
-    studio: { value: "Yes — runs entirely on your hardware", ok: true },
-    cloud: { value: "Not available — cloud APIs only", ok: false },
+    label: "Local models",
+    studio: "Supported runtimes can use your hardware",
+    cloud: "Not available",
   },
   {
-    label: "Bring your own API keys",
-    studio: { value: "All providers — keys stored locally", ok: true },
-    cloud: { value: "All providers — keys stored encrypted", ok: true },
+    label: "Remote providers",
+    studio: "Connect your own provider accounts",
+    cloud: "Connect your own provider accounts",
   },
   {
-    label: "Works offline",
-    studio: { value: "Yes — fully offline with local models", ok: true },
-    cloud: { value: "No — needs an internet connection", ok: false },
+    label: "Project storage",
+    studio: "Stored on your machine",
+    cloud: "Hosted storage under the current alpha terms",
   },
   {
-    label: "Where your data lives",
-    studio: { value: "On your disk only", ok: true },
-    cloud: { value: "Our managed storage (encrypted at rest)", ok: true },
+    label: "Internet requirement",
+    studio: "Only for remote providers and online services",
+    cloud: "Required",
   },
   {
-    label: "GPU requirements",
-    studio: { value: "None, unless you run models on your own hardware", ok: true },
-    cloud: { value: "None — heavy jobs run on cloud APIs", ok: true },
+    label: "Graphics hardware",
+    studio: "Optional for hosted providers; model-dependent for local inference",
+    cloud: "No local GPU required",
   },
   {
-    label: "Updates",
-    studio: { value: "You install new releases", ok: false },
-    cloud: { value: "Always on the latest version", ok: true },
-  },
-  {
-    label: "Source code",
-    studio: { value: "100% open source (AGPL-3.0)", ok: true },
-    cloud: { value: "100% open source (AGPL-3.0) — self-host any time", ok: true },
-  },
-  {
-    label: "Cost",
-    studio: { value: "Free — pay only for the cloud APIs you use", ok: true },
-    cloud: { value: "Free while it is in alpha, a hosting subscription at full release — provider bills are yours either way", ok: true },
+    label: "License",
+    studio: "AGPL-3.0",
+    cloud: "Built from the AGPL-3.0 project",
   },
 ];
-
-function Cell({ ok, value }: { ok: boolean; value: string }) {
-  return (
-    <div className="flex items-start gap-2">
-      {ok ? (
-        <Check className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" strokeWidth={2.5} />
-      ) : (
-        <X className="h-4 w-4 mt-0.5 shrink-0 text-slate-400" strokeWidth={2.5} />
-      )}
-      <span className="text-sm text-slate-300 leading-relaxed">{value}</span>
-    </div>
-  );
-}
 
 function EditionHeader({
   kind,
@@ -95,70 +63,71 @@ function EditionHeader({
   kind: "studio" | "cloud";
   highlighted: boolean;
 }) {
-  const isStudio = kind === "studio";
-  const Icon = isStudio ? Cpu : Cloud;
-  const title = isStudio ? "NodeTool Studio" : "NodeTool Cloud";
-  const tagline = isStudio
-    ? "Local-first desktop app"
-    : "Hosted in the browser · Alpha preview";
-  const ringColor = isStudio
-    ? "ring-amber-500/40 border-amber-500/30"
-    : "ring-blue-500/40 border-blue-500/30";
-  const dotColor = isStudio ? "bg-amber-400" : "bg-blue-400";
-
+  const studio = kind === "studio";
+  const Icon = studio ? Cpu : Cloud;
   return (
-    <div
-      className={`flex items-center justify-between gap-4 p-5 border-b border-slate-800/60 ${
-        highlighted ? `ring-1 ${ringColor}` : ""
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-slate-200">
-          <Icon className="h-5 w-5" strokeWidth={1.75} />
+    <header className="border-b border-slate-800 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-200">
+            <Icon className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <h3 className="font-semibold text-white">
+              {studio ? EDITIONS.studio.name : EDITIONS.cloud.name}
+            </h3>
+            <p className="mt-1 text-xs text-slate-400">
+              {studio ? "Desktop edition" : "Browser edition · Alpha preview"}
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-base font-semibold tracking-tight text-white flex items-center gap-2">
-            {title}
-            {!isStudio && (
-              <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-200">
-                Alpha
-              </span>
-            )}
-            {highlighted && (
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-200 bg-slate-800/80 border border-slate-700`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
-                You are here
-              </span>
-            )}
-          </h3>
-          <p className="text-xs text-slate-400 mt-0.5">{tagline}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-blue-500/40 bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-200">
+            {studio ? "Recommended for production" : "Alpha"}
+          </span>
+          {highlighted && (
+            <span className="rounded-full border border-slate-700 px-2.5 py-1 text-xs text-slate-300">
+              Current page
+            </span>
+          )}
         </div>
       </div>
-      {isStudio ? (
-        <a
-          href="/studio"
-          className="hidden sm:inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-blue-200 transition-colors"
+      <a
+        href={studio ? "/download" : "/cloud"}
+        className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 hover:border-slate-500 hover:bg-slate-800/70 focus-ring"
+      >
+        {studio ? (
+          <Download className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <Globe className="h-4 w-4" aria-hidden="true" />
+        )}
+        {studio ? EDITIONS.studio.primaryAction : EDITIONS.cloud.primaryAction}
+      </a>
+    </header>
+  );
+}
+
+function EditionRows({ kind }: { kind: "studio" | "cloud" }) {
+  return (
+    <dl className="divide-y divide-slate-800 px-5">
+      {rows.map((row) => (
+        <div
+          key={`${kind}-${row.label}`}
+          className="grid gap-1 py-4 sm:grid-cols-[140px_1fr] sm:gap-4"
         >
-          <Download className="h-3.5 w-3.5" />
-          Download Studio
-        </a>
-      ) : (
-        <a
-          href="/cloud"
-          className="hidden sm:inline-flex items-center gap-1.5 rounded-md bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 px-3 py-1.5 text-xs font-semibold text-blue-200 transition-colors"
-        >
-          <Globe className="h-3.5 w-3.5" />
-          Open Cloud
-        </a>
-      )}
-    </div>
+          <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            {row.label}
+          </dt>
+          <dd className="text-sm leading-relaxed text-slate-300">
+            {row[kind]}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
 export default function EditionsCompareSection({
-  reducedMotion = false,
   highlight = null,
 }: EditionsCompareSectionProps) {
   return (
@@ -167,96 +136,34 @@ export default function EditionsCompareSection({
       aria-labelledby="editions-title"
       className="relative py-24 scroll-mt-24"
     >
-      <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <header className="mb-12 max-w-3xl">
-          <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
-            <span className="h-px w-8 bg-amber-300/60" />
-            Two ways to run it, one open-source project
-          </div>
-          <motion.h2
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <header className="mb-10 max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
+            Two editions, one recommendation
+          </p>
+          <h2
             id="editions-title"
-            initial={false}
-            whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.25 }}
-            className="text-3xl md:text-5xl font-bold tracking-tight text-white"
+            className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-5xl"
           >
-            Studio runs on your machine.
-            <br />
-            <span className="text-slate-300">Cloud runs in your browser.</span>
-          </motion.h2>
-          <motion.p
-            initial={false}
-            whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.25, delay: 0.05 }}
-            className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
-          >
-            Same workflows, same building blocks, same providers, both
-            AGPL-3.0. Cloud is our hosting of the code you can run yourself.
-            Switch between them whenever you like.
-          </motion.p>
+            Studio for production. Cloud for evaluation.
+          </h2>
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-300">
+            Studio is the desktop edition and the production path. Cloud is the
+            browser edition for evaluation and lightweight access while it is
+            in alpha.
+          </p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Studio card */}
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 overflow-hidden">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <article className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/70">
             <EditionHeader kind="studio" highlighted={highlight === "studio"} />
-            <div className="p-5 space-y-4">
-              <p className="text-sm text-slate-300 leading-relaxed">
-                <strong className="text-white">Best for:</strong> artists with
-                a good graphics card or an Apple Silicon Mac, big local model
-                collections, offline work, and everything kept on their own
-                disk.
-              </p>
-              <ul className="space-y-2.5">
-                {rows.map((r) => (
-                  <li key={`s-${r.label}`} className="grid grid-cols-[140px_1fr] gap-3">
-                    <span className="text-xs uppercase tracking-wider text-slate-400 mt-0.5">
-                      {r.label}
-                    </span>
-                    <Cell ok={r.studio.ok} value={r.studio.value} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Cloud card */}
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 overflow-hidden">
+            <EditionRows kind="studio" />
+          </article>
+          <article className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/70">
             <EditionHeader kind="cloud" highlighted={highlight === "cloud"} />
-            <div className="p-5 space-y-4">
-              <p className="text-sm text-slate-300 leading-relaxed">
-                <strong className="text-white">Best for:</strong> studios and
-                solo artists who want to skip the hardware setup and work from
-                any device, still on their own keys.
-              </p>
-              <ul className="space-y-2.5">
-                {rows.map((r) => (
-                  <li key={`c-${r.label}`} className="grid grid-cols-[140px_1fr] gap-3">
-                    <span className="text-xs uppercase tracking-wider text-slate-400 mt-0.5">
-                      {r.label}
-                    </span>
-                    <Cell ok={r.cloud.ok} value={r.cloud.value} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+            <EditionRows kind="cloud" />
+          </article>
         </div>
-
-        <p className="mt-10 text-sm text-slate-400 text-center max-w-2xl mx-auto">
-          One recommendation, not two: use{" "}
-          <a href="/studio" className="text-blue-300 hover:text-blue-200 underline underline-offset-2">
-            Studio
-          </a>{" "}
-          for work you are being paid for — it is the finished edition.{" "}
-          <a href="/cloud" className="text-blue-300 hover:text-blue-200 underline underline-offset-2">
-            Cloud
-          </a>{" "}
-          is for looking around without installing anything, and it is in alpha
-          until further notice. Workflows move freely between the two.
-        </p>
       </div>
     </section>
   );

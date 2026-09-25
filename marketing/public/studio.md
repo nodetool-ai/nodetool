@@ -7,7 +7,7 @@ product: NodeTool
 ---
 # NodeTool Studio
 
-NodeTool Studio is the free desktop edition of NodeTool for macOS, Windows, and Linux. It runs workflows locally and can use local models or provider API keys. The agent runs locally too: it builds and runs workflows on your machine, and the full toolbelt is exposed over MCP for outside agents such as Claude Desktop and Claude Code.
+NodeTool Studio is the free desktop edition of NodeTool for macOS, Windows, and Linux. It runs workflows on your machine and can use supported local models or remote providers. Agents can build and revise workflows, and compatible external agents can use the tools over MCP.
 
 Use Studio when you need local execution, offline work, or control of workflow files and provider credentials.
 

@@ -1,9 +1,9 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
-const TITLE = "Agent-First Creative Workspace | NodeTool";
+const TITLE = "NodeTool Agents | Agents that work in real editors";
 const DESCRIPTION =
-  "NodeTool is agent-first: every editor — node canvas, sketch pad, storyboard, video timeline, script, 3D scene, app builder — is exposed to agents as tools, around 120 in all. Say what you want and the agent plans the steps, builds the workflow, runs it across Flux, Seedance, Veo, Kling, Suno, and ElevenLabs, and fixes what fails. Open source, your own keys, runs on your machine.";
+  "Build creative automation that produces editable workflows, apps, and projects. Inspect tool calls, results, errors, and interventions, then revise and reuse the workflow.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -61,9 +61,9 @@ export default function AgentsLayout({
           "@type": "SoftwareApplication",
           name: "NodeTool Agents",
           description:
-            "NodeTool is agent-first: every editor in the app is exposed to agents as tools. Give an agent a goal and it plans the steps, builds the workflow on the canvas, runs it across image, video, music, and voice models — Flux, Seedance, Veo, Kling, Suno, ElevenLabs — and repairs what fails. The same tools are exposed over MCP for outside agents. Open source, your own keys, runs on your machine.",
+            "NodeTool agents operate editable workflows, apps, and projects through the same tools available in its editors. Runs expose tool calls, results, errors, and interventions for inspection.",
           applicationCategory: "MultimediaApplication",
-          operatingSystem: "macOS, Windows, Linux, Web browser",
+          operatingSystem: "macOS, Windows, Linux",
           url: "https://nodetool.ai/agents",
           license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE",
           author: { "@type": "Organization", name: "NodeTool", url: "https://nodetool.ai" },

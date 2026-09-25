@@ -19,16 +19,16 @@ const entries = [
     intent: "Desktop app",
     name: "Studio",
     href: "/studio",
-    body: "Runs on your computer. Files, models, and keys stay on your disk, and it works offline.",
+    body: "Runs on your computer. Local projects and supported local models can remain available without a network connection.",
     icon: Monitor,
     accent: "text-amber-300",
     chip: "border-amber-500/30 bg-amber-500/10",
   },
   {
     intent: "In your browser",
-    name: "Cloud",
+    name: "Cloud (alpha)",
     href: "/cloud",
-    body: "Runs in your browser, nothing to install. The fastest way in. Currently in alpha.",
+    body: "Runs in your browser with nothing to install. Use it for evaluation and lightweight access while it is in alpha.",
     icon: Cloud,
     accent: "text-blue-300",
     chip: "border-blue-500/30 bg-blue-500/10",
@@ -73,8 +73,8 @@ export default function WaysInSection() {
             Choose the setup that fits your workflow.
           </h2>
           <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
-            Desktop or browser, you get the same agent, the same workflows,
-            the same models.
+            Studio is the production path. Cloud is the browser preview for
+            evaluation while it is in alpha.
           </p>
         </header>
 

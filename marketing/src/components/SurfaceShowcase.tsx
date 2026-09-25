@@ -17,16 +17,24 @@
  * the section reaches the viewport, not at mount, and a control appears
  * whenever the loop is not running.
  */
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Clapperboard,
   FileText,
   Film,
   Brush,
+  Pause,
   Play,
   Box as BoxIcon,
   type LucideIcon,
 } from "lucide-react";
+import { usePrefersReducedMotion } from "../lib/useGridParallax";
 
 interface Surface {
   id: string;
@@ -81,27 +89,47 @@ const SURFACES: Surface[] = [
   },
 ];
 
-export default function SurfaceShowcase() {
+interface SurfaceShowcaseProps {
+  surfaceIds?: string[];
+  heading?: string;
+  intro?: string;
+}
+
+export default function SurfaceShowcase({
+  surfaceIds,
+  heading = "Five editors. One project file.",
+  intro =
+    "Everything the agent made stays open. Re-roll a shot, audition another take, retime the cut, change a line, swap a reference, or adjust the workflow behind it. Storyboard, script, timeline, sketch, and 3D scene all sit on the canvas you generate on, and the agent works every one of them through the same tools you click.",
+}: SurfaceShowcaseProps) {
+  const surfaces = useMemo(
+    () =>
+      surfaceIds
+        ? SURFACES.filter((surface) => surfaceIds.includes(surface.id))
+        : SURFACES,
+    [surfaceIds]
+  );
   const [active, setActive] = useState(0);
   const [inView, setInView] = useState(false);
+  const reducedMotion = usePrefersReducedMotion();
   // Which video is painting frames, if any. A single flag keyed off `active`
   // misses the pause of the tab being left, so returning to it revealed a
   // stopped video on its black first frame.
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   // Deep link: `#surface-timeline` opens that tab.
   useEffect(() => {
     const fromHash = () => {
       const id = window.location.hash.replace("#surface-", "");
-      const at = SURFACES.findIndex((s) => s.id === id);
+      const at = surfaces.findIndex((s) => s.id === id);
       if (at !== -1) setActive(at);
     };
     fromHash();
     window.addEventListener("hashchange", fromHash);
     return () => window.removeEventListener("hashchange", fromHash);
-  }, []);
+  }, [surfaces]);
 
   // A loop that starts while the section is still far below the fold has
   // finished before anyone sees it, and browsers that throttle offscreen media
@@ -114,10 +142,7 @@ export default function SurfaceShowcase() {
     }
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          setInView(true);
-          observer.disconnect();
-        }
+        setInView(entries.some((entry) => entry.isIntersecting));
       },
       { rootMargin: "200px" }
     );
@@ -130,7 +155,11 @@ export default function SurfaceShowcase() {
     videoRefs.current.forEach((video, i) => {
       if (!video) return;
       if (i === active) {
-        if (!inView) return;
+        if (!inView || reducedMotion) {
+          video.pause();
+          setPlayingIndex((at) => (at === i ? null : at));
+          return;
+        }
         void video.play().catch(() => {
           // Refused (Dia, Low Power Mode, power saving, a background tab).
           // The poster holds and the button offers the loop by hand.
@@ -138,31 +167,54 @@ export default function SurfaceShowcase() {
       } else {
         video.pause();
         video.currentTime = 0;
+        setPlayingIndex((at) => (at === i ? null : at));
       }
     });
-  }, [active, inView]);
+  }, [active, inView, reducedMotion]);
 
-  const select = useCallback((index: number) => {
-    setActive(index);
-    if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", `#surface-${SURFACES[index].id}`);
-    }
-  }, []);
+  const select = useCallback(
+    (index: number) => {
+      if (index === active) return;
+      setActive(index);
+      if (typeof window !== "undefined") {
+        window.history.replaceState(
+          null,
+          "",
+          `#surface-${surfaces[index].id}`
+        );
+      }
+    },
+    [active, surfaces]
+  );
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      const delta =
-        event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
-      if (!delta) return;
+      const next =
+        event.key === "Home"
+          ? 0
+          : event.key === "End"
+            ? surfaces.length - 1
+            : event.key === "ArrowRight"
+              ? (active + 1) % surfaces.length
+              : event.key === "ArrowLeft"
+                ? (active - 1 + surfaces.length) % surfaces.length
+                : null;
+      if (next === null) return;
       event.preventDefault();
-      select((active + delta + SURFACES.length) % SURFACES.length);
+      select(next);
+      requestAnimationFrame(() => tabRefs.current[next]?.focus());
     },
-    [active, select]
+    [active, select, surfaces.length]
   );
 
-  // The click is the user gesture the refusing browser was holding out for.
-  const startByHand = useCallback(() => {
-    void videoRefs.current[active]?.play().catch(() => {});
+  const togglePlayback = useCallback(() => {
+    const video = videoRefs.current[active];
+    if (!video) return;
+    if (video.paused) {
+      void video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
   }, [active]);
 
   return (
@@ -172,23 +224,15 @@ export default function SurfaceShowcase() {
       aria-labelledby="surfaces-title"
       className="relative py-24 overflow-clip-safe"
     >
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-fuchsia-900/15 blur-[120px] rounded-full pointer-events-none" />
-
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-10 text-center max-w-3xl mx-auto">
           <h2
             id="surfaces-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Five editors. One project file.
+            {heading}
           </h2>
-          <p className="text-lg text-slate-300">
-            Everything the agent made stays open. Re-roll a shot, audition
-            another take, retime the cut, change a line, swap a reference, or
-            adjust the workflow behind it. Storyboard, script, timeline,
-            sketch, and 3D scene all sit on the canvas you generate on, and the
-            agent works every one of them through the same tools you click.
-          </p>
+          <p className="text-lg text-slate-300">{intro}</p>
         </div>
 
         <div
@@ -197,12 +241,15 @@ export default function SurfaceShowcase() {
           onKeyDown={onKeyDown}
           className="flex flex-wrap justify-center gap-2 mb-8"
         >
-          {SURFACES.map((surface, i) => {
+          {surfaces.map((surface, i) => {
             const Icon = surface.icon;
             const selected = i === active;
             return (
               <button
                 key={surface.id}
+                ref={(element) => {
+                  tabRefs.current[i] = element;
+                }}
                 role="tab"
                 id={`surface-tab-${surface.id}`}
                 aria-selected={selected}
@@ -222,7 +269,7 @@ export default function SurfaceShowcase() {
           })}
         </div>
 
-        {SURFACES.map((surface, i) => (
+        {surfaces.map((surface, i) => (
           <div
             key={surface.id}
             role="tabpanel"
@@ -230,7 +277,7 @@ export default function SurfaceShowcase() {
             aria-labelledby={`surface-tab-${surface.id}`}
             hidden={i !== active}
           >
-            <div className="card relative overflow-hidden rounded-2xl bg-slate-900/60 border border-slate-800/60 ring-1 ring-white/5 backdrop-blur-md">
+            <div className="relative overflow-hidden rounded-2xl bg-slate-900/60 border border-slate-800/60 ring-1 ring-white/5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={`/${surface.asset}-poster.webp`}
@@ -250,7 +297,11 @@ export default function SurfaceShowcase() {
                   loop
                   playsInline
                   preload={i === active ? "metadata" : "none"}
-                  onPlaying={() => setPlayingIndex(i)}
+                  onPlaying={(event) => {
+                    if (!event.currentTarget.paused && i === active) {
+                      setPlayingIndex(i);
+                    }
+                  }}
                   onPause={() =>
                     setPlayingIndex((at) => (at === i ? null : at))
                   }
@@ -270,14 +321,20 @@ export default function SurfaceShowcase() {
                 </video>
               )}
 
-              {i === active && inView && playingIndex !== i && (
+              {i === active && inView && (
                 <button
                   type="button"
-                  onClick={startByHand}
-                  aria-label={`Play the ${surface.label} loop`}
+                  onClick={togglePlayback}
+                  aria-label={`${
+                    playingIndex === i ? "Pause" : "Play"
+                  } the ${surface.label} loop`}
                   className="absolute bottom-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-600 bg-slate-900/80 text-slate-200 backdrop-blur focus-ring hover:border-slate-400 hover:text-white"
                 >
-                  <Play className="h-4 w-4" aria-hidden />
+                  {playingIndex === i ? (
+                    <Pause className="h-4 w-4" aria-hidden />
+                  ) : (
+                    <Play className="h-4 w-4" aria-hidden />
+                  )}
                 </button>
               )}
             </div>

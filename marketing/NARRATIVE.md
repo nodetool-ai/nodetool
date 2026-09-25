@@ -40,8 +40,10 @@ like.
 
 Use "agent-first" in supporting copy to explain how agents build and revise
 workflows and documents that creators can inspect and edit. Keep the primary
-headline and metadata category-led. Studio and Cloud use the same headline,
-with edition details in their badges and introductions.
+homepage headline and metadata category-led. Edition and audience pages use
+distinct headlines that answer the reason to choose that route: Studio makes
+and revises production work, Cloud evaluates the workspace without an install,
+and Agents builds reusable automation around editable artifacts.
 
 Keep the trust line under the CTA: free, open source, AGPL-3.0, and the
 supported desktop platforms.
@@ -118,9 +120,21 @@ A vertical page argues about the industry's job, never about a competitor. What
 makes ours different from a hosted platform's is stated as fact in the benefit
 paragraph ("on your own keys, at provider list prices") and then dropped.
 
-Verticals to hold as the set: advertising and marketing (`/marketing`), film and
-story (`/studio`), agents and automation (`/agents`). Do not add a fourth
-without a shipped recipe behind it.
+Advertising and marketing (`/marketing`) is the current industry vertical.
+`/studio` is the desktop-edition page and `/agents` is the builder/operator
+page. Film production remains a strong demonstration on both routes, but it is
+not their product category.
+
+## Product routes
+
+- **Studio** answers whether a creator can make and revise production work. It
+  recommends the desktop edition and ends on the download action.
+- **Cloud** answers whether someone can evaluate the workspace without an
+  install. It names the alpha at every entry point and keeps the hosted
+  boundaries beside the demonstration.
+- **Agents** answers whether a builder can operate, inspect, repair, and reuse
+  automation around real creative artifacts. It starts with one product
+  example, then exposes the technical entry points.
 
 ## Apps for everything
 
@@ -205,9 +219,9 @@ calculator on `/pricing`.
   claim we lose. One recommendation across the site, never two: Studio for paid
   work, Cloud to look around without installing. A page that recommends Studio
   at the top and Cloud at the bottom has made the choice harder, not easier.
-- **The alpha price and the price after it are different facts.** Cloud is free
-  while it is in alpha. A hosting subscription follows at full release and its
-  price is not set. Show both, separately, wherever Cloud is priced.
+- **Current and future pricing are different facts.** Current Cloud alpha access
+  is free. Future Cloud pricing has not been announced. Do not promise a plan,
+  price, or billing model before the deployment owner confirms it.
 - **Local models.** True for language and image models, and for a filmmaker
   making video mostly not: open-weight video needs hardware they do not have. On
   the film page, ownership is keys, project file, and source. Local inference is
@@ -255,13 +269,13 @@ Beyond [docs/WRITING_STYLE.md](../docs/WRITING_STYLE.md) and
 - **Abundance is a number or a name, never an adjective.** "Every major model,
   your keys" and a wall of model names beats "extensive model support". Name
   providers where a reader is checking for a specific one (pricing, model pages).
-- **"Studio"** is the product. **"Canvas"** is the surface you work on. Not
-  "workspace", "workflow builder", "platform", or "tool" for the product, and
-  not "workflow" for the thing you open. A workflow is one graph inside it.
+- **"Workspace"** is the product category. **"Studio"** is the desktop edition
+  of NodeTool. **"Canvas"** is a surface inside the workspace. A workflow is one
+  graph, not the whole project.
 - "Agent", not "the AI" or "the algorithm". "Pitch" or "direct", not "prompt
   engineering". "Takes" and "cast", not "generations" and "outputs".
-- "Project" or "multi-track timeline", not "output" or "render" — the result is
-  a workspace, not a locked file.
+- "Project" or "multi-track timeline", not "output" or "render". The result is
+  an editable project, not a locked file.
 - "Filmmakers", "directors", "creators", "teams" — never "users" or "content
   creators".
 - Concrete over categorical: "a Seedance run that costs $0.18 on KIE costs $0.18

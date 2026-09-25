@@ -11,12 +11,12 @@ import ByokCalculator from "../../components/ByokCalculator";
 export const metadata: Metadata = {
   title: "Pricing — free Studio, free Cloud alpha, pay providers directly | NodeTool",
   description:
-    "NodeTool Studio is free and open source. NodeTool Cloud is free while it is in alpha, and a hosting subscription follows at full release. In both, you bring your own API keys and pay providers their list prices, with no credits and no markup.",
+    "NodeTool Studio is free and open source. Current Cloud alpha access is free, and future Cloud pricing has not been announced. Provider charges remain separate in both editions.",
   alternates: { canonical: "/pricing" },
   openGraph: {
-    title: "NodeTool Pricing — free Studio, your own keys to every provider",
+    title: "NodeTool Pricing — free Studio, your own supported provider accounts",
     description:
-      "Studio is free and open source. Cloud is free during its alpha, then a hosting subscription. In both you bring your own keys and pay providers directly at their list prices, with no credits and no markup.",
+      "Studio is free and open source. Current Cloud alpha access is free, and future Cloud pricing has not been announced. Provider charges remain separate.",
     url: "https://nodetool.ai/pricing",
     type: "website",
   },
@@ -37,7 +37,7 @@ const offers = {
       name: "NodeTool Studio",
       price: "0",
       priceCurrency: "USD",
-      description: "Free, open-source desktop app. Bring your own keys to every provider.",
+      description: "Free, open-source desktop app. Connect your own supported provider accounts.",
       url: "https://nodetool.ai/studio",
     },
     {
@@ -46,7 +46,7 @@ const offers = {
       price: "0",
       priceCurrency: "USD",
       description:
-        "Free during the alpha. A hosting subscription follows at full release. Bring your own keys to every provider.",
+        "Current alpha access is free. Future Cloud pricing has not been announced. Connect your own supported provider accounts.",
       url: "https://nodetool.ai/cloud",
       availability: "https://schema.org/PreOrder",
     },
@@ -55,7 +55,7 @@ const offers = {
 
 const editionRows: { label: string; studio: string | boolean; cloud: string | boolean }[] = [
   { label: "Price today", studio: "Free", cloud: "Free — alpha" },
-  { label: "Price at full release", studio: "Free", cloud: "Hosting subscription, price not set" },
+  { label: "Future price", studio: "Free", cloud: "Not announced" },
   { label: "Where it runs", studio: "Your machine (macOS, Windows, Linux)", cloud: "Your browser, hosted by us" },
   { label: "Bring your own API keys", studio: true, cloud: true },
   { label: "Pay providers directly (no markup)", studio: true, cloud: true },
@@ -101,11 +101,10 @@ export default function PricingPage() {
             Free to download. You pay providers, not us.
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            NodeTool Studio is free and open source. NodeTool Cloud is free
-            while it is in alpha, and a hosting subscription follows at full
-            release. In both, you bring your own API keys and pay each provider
-            their list price. No credit packs, no token markups, and no curated
-            list of models you are stuck with.
+            NodeTool Studio is free and open source. Current Cloud alpha access
+            is free, and future Cloud pricing has not been announced. In both,
+            provider charges are separate: you connect your own supported
+            provider accounts and pay those providers directly.
           </p>
         </section>
 
@@ -124,7 +123,7 @@ export default function PricingPage() {
                 {[
                   "Runs on macOS, Windows, and Linux",
                   "Local models through Ollama, MLX, and llama.cpp",
-                  "Your own keys to every cloud provider",
+                  "Your own accounts for supported cloud providers",
                   "Your workflows and files stay on your machine",
                 ].map((f) => (
                   <li key={f} className="flex items-start gap-2">
@@ -155,14 +154,13 @@ export default function PricingPage() {
                 <span className="text-sm text-slate-400">while in alpha</span>
               </div>
               <p className="mt-1 text-sm text-slate-400">
-                At full release, a subscription covers hosting the same
-                open-source app. That price is not set yet, and nothing is
-                charged before it is announced.
+                Future Cloud pricing has not been announced. Check the Cloud
+                page for the current alpha terms before use.
               </p>
               <ul className="mt-6 space-y-3 text-sm text-slate-300">
                 {[
                   "Runs in your browser, with nothing to install",
-                  "Your own keys to every cloud provider",
+                  "Your own accounts for supported cloud providers",
                   "The same AGPL-3.0 code you can host yourself",
                   "Pay providers directly at provider prices",
                 ].map((f) => (
@@ -179,7 +177,7 @@ export default function PricingPage() {
                   rel="noopener noreferrer"
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60 focus-ring"
                 >
-                  Try the Cloud alpha
+                  Try Cloud (alpha)
                 </a>
               </div>
             </div>
@@ -210,7 +208,7 @@ export default function PricingPage() {
                 <tr className="bg-slate-900/60 text-sm">
                   <th className="px-5 py-4 font-medium text-slate-400">Feature</th>
                   <th className="px-5 py-4 text-center font-semibold text-white">Studio</th>
-                  <th className="px-5 py-4 text-center font-semibold text-white">Cloud</th>
+                  <th className="px-5 py-4 text-center font-semibold text-white">Cloud (alpha)</th>
                 </tr>
               </thead>
               <tbody>
@@ -239,9 +237,9 @@ export default function PricingPage() {
               You add your own API keys for the providers you use, such as FAL,
               KIE, OpenAI, Anthropic, Gemini, and Replicate. Every request goes
               straight to those providers and you pay them their published prices.
-              NodeTool does not run models on its own servers, does not issue its
-              own credits, and does not add a markup. A Cloud subscription pays for
-              hosting the workspace, nothing more.
+              NodeTool does not issue its own credits or add a provider-price
+              markup. Cloud access and pricing can change during the alpha, so
+              check the Cloud page before relying on a particular plan.
             </p>
           </div>
         </section>

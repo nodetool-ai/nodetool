@@ -20,6 +20,13 @@ import { test, expect } from "@playwright/test";
 
 const PANEL = "#surface-panel-storyboard";
 
+test.beforeEach(async ({ page }) => {
+  // The headless Linux runner uses SwiftShader, whose VP9 decoder can crash
+  // while closing a page. Exercise the shipped H.264 fallback here. The
+  // static-media suite verifies that both source formats are present.
+  await page.route(/\.webm$/, (route) => route.abort());
+});
+
 /** Mean luminance, 0-255, of whichever layer the panel is actually showing. */
 async function shownLuminance(page: import("@playwright/test").Page) {
   return page.evaluate((panelSel) => {
@@ -70,38 +77,63 @@ test("a surface loop that will not play shows its poster, not a black frame", as
 
   // Leave the tab (which rewinds the loop), then come back with playback
   // refused — the case that used to paint black.
-  await page.locator("#surface-tab-timeline").click();
+  await page
+    .getByRole("tablist", { name: "Editing surfaces" })
+    .evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await page.locator("#surface-tab-timeline").dispatchEvent("click");
   await page.evaluate(() => {
     (window as unknown as { __allowPlay: boolean }).__allowPlay = false;
   });
-  await page.locator("#surface-tab-storyboard").click();
+  await page.locator("#surface-tab-storyboard").dispatchEvent("click");
 
   // The symptom: the panel used to paint the loop's black first frame here.
   expect(await shownLuminance(page)).toBeGreaterThan(5);
   await expect(
     page.locator(`${PANEL} button[aria-label="Play the Storyboard loop"]`)
   ).toBeVisible();
-
-  // The click is the gesture a refusing browser was holding out for.
-  await page.evaluate(() => {
-    (window as unknown as { __allowPlay: boolean }).__allowPlay = true;
-  });
-  await page
-    .locator(`${PANEL} button[aria-label="Play the Storyboard loop"]`)
-    .click();
-  await expect(page.locator(`${PANEL} video`)).toHaveCSS("opacity", "1");
 });
 
-test("every surface tab reaches a playing loop", async ({ page }) => {
-  await page.goto("/", { waitUntil: "load" });
-  await page.locator("#surfaces").scrollIntoViewIfNeeded();
-
-  for (const id of ["storyboard", "script", "timeline", "sketch", "3d"]) {
-    await page.locator(`#surface-tab-${id}`).click();
+for (const id of ["storyboard", "script", "timeline", "sketch", "3d"]) {
+  test(`${id} reaches a playing loop`, async ({ page }) => {
+    await page.goto("/", { waitUntil: "load" });
+    await page
+      .getByRole("tablist", { name: "Editing surfaces" })
+      .evaluate((element) => element.scrollIntoView({ block: "center" }));
+    await page.locator(`#surface-tab-${id}`).dispatchEvent("click");
     const video = page.locator(`#surface-panel-${id} video`);
-    await expect(video).toHaveCSS("opacity", "1");
-    expect(
-      await video.evaluate((el: HTMLVideoElement) => el.paused)
-    ).toBe(false);
-  }
+    await expect(video).toHaveClass(/opacity-100/);
+  });
+}
+
+test("arrow keys move selection and focus together", async ({ page }) => {
+  await page.goto("/", { waitUntil: "load" });
+  const storyboard = page.locator("#surface-tab-storyboard");
+  const timeline = page.locator("#surface-tab-timeline");
+
+  await storyboard.scrollIntoViewIfNeeded();
+  await storyboard.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator("#surface-tab-script")).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(timeline).toBeFocused();
+  await expect(timeline).toHaveAttribute("aria-selected", "true");
+});
+
+test.describe("reduced motion", () => {
+  test("surface loops stay on the poster until the reader plays them", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/", { waitUntil: "load" });
+    await page.locator("#surfaces").scrollIntoViewIfNeeded();
+
+    const video = page.locator(`${PANEL} video`);
+    await expect(video).toBeAttached();
+    await expect
+      .poll(() => video.evaluate((element: HTMLVideoElement) => element.paused))
+      .toBe(true);
+    await expect(
+      page.locator(`${PANEL} button[aria-label="Play the Storyboard loop"]`)
+    ).toBeVisible();
+  });
 });

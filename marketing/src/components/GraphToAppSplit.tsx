@@ -57,27 +57,28 @@ export default function GraphToAppSplit() {
       aria-labelledby="graph-to-app-title"
       className="relative py-24 scroll-mt-24 overflow-clip-safe"
     >
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-blue-900/20 blur-[120px] rounded-full pointer-events-none" />
-
       <div className="relative z-10 mx-auto max-w-5xl px-6 lg:px-8">
-        <div className="mb-10 text-center max-w-3xl mx-auto">
+        <div className="mb-10 max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
+            Reuse the working graph
+          </p>
           <h2
             id="graph-to-app-title"
-            className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
+            className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-5xl"
           >
-            Wrap the graph in a screen
+            Turn the next run into a reusable tool.
           </h2>
-          <p className="text-lg text-slate-300">
-            A workflow is for you. An app is for everyone else — the same graph
-            with inputs, a run button, and a place for the result. Here is{" "}
-            {template.name}, and the app it became.
+          <p className="mt-4 text-lg leading-relaxed text-slate-300">
+            Put the same workflow behind named inputs, a run action, and a
+            result view. This pairing comes from one shipped example: the{" "}
+            {template.name} graph and the {app.name} app that binds it.
           </p>
         </div>
 
         <figure className="overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-950/70 ring-1 ring-white/5">
           <figcaption className="flex items-center gap-3 border-b border-white/5 bg-slate-900/80 px-4 py-3">
             <Chip icon={Layers}>The workflow</Chip>
-            <span className="ml-auto hidden text-xs text-slate-500 sm:block">
+            <span className="ml-auto hidden text-xs text-slate-400 sm:block">
               {template.name}
             </span>
           </figcaption>
@@ -96,7 +97,7 @@ export default function GraphToAppSplit() {
         <figure className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-950/70 ring-1 ring-white/5">
           <figcaption className="flex items-center gap-3 border-b border-white/5 bg-slate-900/80 px-4 py-3">
             <Chip icon={MousePointerClick}>The app</Chip>
-            <span className="ml-auto hidden text-xs text-slate-500 sm:block">
+            <span className="ml-auto hidden text-xs text-slate-400 sm:block">
               {app.name}
             </span>
           </figcaption>
@@ -104,19 +105,19 @@ export default function GraphToAppSplit() {
           <img
             src={screenshot}
             alt={`${app.name} mini app`}
-            className="block h-auto w-full"
+            className="no-desaturate block h-auto w-full"
             loading="lazy"
             decoding="async"
           />
         </figure>
 
         <p className="mt-8 text-slate-300">
-          Nothing is regenerated in between. The app names the workflow&apos;s
-          inputs and outputs, so a change to the graph shows up in the screen —
-          and an agent can place the widgets for you.{" "}
+          The app names the workflow&apos;s inputs and outputs. Changes to the
+          graph remain part of the reusable tool, and an agent can place the
+          widgets through the app builder.{" "}
           <a
             href={app.route}
-            className="text-blue-400 hover:text-blue-300 focus-ring"
+            className="rounded text-blue-300 hover:text-blue-200 focus-ring"
           >
             Open {app.name} →
           </a>

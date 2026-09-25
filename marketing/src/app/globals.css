@@ -280,18 +280,8 @@
     overflow: hidden;
     clip: rect(0, 0, 0, 0);
   }
-  /* Tone down images inside cards */
-  .card img,
-  .card picture img {
-    filter: saturate(0.75) contrast(0.95) brightness(0.95);
-    transition: filter 0.25s ease;
-  }
-  .card:hover img,
-  .card:hover picture img {
-    filter: saturate(0.9) contrast(1) brightness(0.98);
-  }
   .no-desaturate {
-    filter: none !important;
+    filter: none;
   }
 
   .text-balance {
@@ -441,6 +431,20 @@
       animation-timeline: view();
       animation-range: entry 5% entry 50%;
     }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

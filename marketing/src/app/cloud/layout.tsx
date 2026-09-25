@@ -1,9 +1,9 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
-const TITLE = "NodeTool Cloud | Open-source agent-first creative workspace (Alpha)";
+const TITLE = "NodeTool Cloud (Alpha) | The NodeTool workspace in your browser";
 const DESCRIPTION =
-  "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together. Cloud is the hosted browser edition, in alpha. Use hosted storage and your own provider keys; no local model support.";
+  "Evaluate the NodeTool workspace in a browser with agents, editable project surfaces, hosted storage, and remote providers. Cloud is an alpha preview; use Studio for production work.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -54,7 +54,7 @@ export default function CloudLayout({
           "@type": "SoftwareApplication",
           name: "NodeTool Cloud",
           description:
-            "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then inspect and edit their work. Keep your project context together. Cloud is the hosted browser edition, in alpha. Use hosted storage and your own provider keys; no local model support.",
+            "The hosted browser edition of NodeTool for evaluation and lightweight access while in alpha. Use Studio for production work.",
           applicationCategory: "MultimediaApplication",
           operatingSystem: "Web browser",
           url: "https://nodetool.ai/cloud",

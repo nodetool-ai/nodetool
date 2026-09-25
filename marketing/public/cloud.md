@@ -7,6 +7,6 @@ product: NodeTool
 ---
 # NodeTool Cloud
 
-NodeTool Cloud is the hosted browser edition of NodeTool. It provides the same agent-first workspace without a desktop installation: describe what you want and the agent builds and runs the workflow.
+NodeTool Cloud is the hosted browser edition of NodeTool, currently in alpha. It is intended for evaluation and lightweight access without a desktop installation. Enabled models, storage behavior, and availability can change during the alpha. Use Studio for production work.
 
-Cloud uses bring-your-own provider keys. See [pricing](https://nodetool.ai/pricing.md) and [technical documentation](https://docs.nodetool.ai/llms.txt) for deployment and configuration details.
+Cloud uses hosted project storage and supported remote providers connected through your own accounts. Current alpha access is free; future pricing has not been announced. See [pricing](https://nodetool.ai/pricing.md) and [technical documentation](https://docs.nodetool.ai/llms.txt) for current details.

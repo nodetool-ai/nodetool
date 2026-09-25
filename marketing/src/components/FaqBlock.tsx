@@ -61,7 +61,7 @@ function FaqRow({
 }) {
   return (
     <details className="group border-b border-slate-800/70 py-4">
-      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-left">
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 rounded text-left focus-ring">
         <span className="text-base font-semibold leading-7 text-white">
           {item.question}
         </span>
@@ -79,7 +79,7 @@ function FaqRow({
         {linkToStandalone && (
           <Link
             href={item.route}
-            className="inline-block text-xs font-medium text-blue-300 hover:text-blue-200"
+            className="inline-block rounded text-xs font-medium text-blue-300 hover:text-blue-200 focus-ring"
           >
             Read more →
           </Link>

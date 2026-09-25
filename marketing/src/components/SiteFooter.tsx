@@ -3,6 +3,7 @@ import React from "react";
 import Image from "next/image";
 import { track } from "../lib/analytics";
 import { footerCompareLinks } from "../data/competitorEntries";
+import { EDITIONS } from "../data/editions";
 
 /**
  * Single shared site footer used by every route (P3/C4). Gives consistent
@@ -20,7 +21,7 @@ const COLUMNS: Col[] = [
     links: [
       { name: "Download", href: "/download" },
       { name: "Studio", href: "/studio" },
-      { name: "Cloud", href: "/cloud" },
+      { name: EDITIONS.cloud.navLabel, href: "/cloud" },
       { name: "Node-based AI", href: "/node-based-ai" },
       { name: "Templates", href: "/templates" },
       { name: "Recipes", href: "/recipes" },

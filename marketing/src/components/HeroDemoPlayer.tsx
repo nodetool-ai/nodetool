@@ -19,6 +19,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Maximize2, Pause, Play } from "lucide-react";
+import { usePrefersReducedMotion } from "../lib/useGridParallax";
 
 interface HeroDemoPlayerProps {
   alt: string;
@@ -37,9 +38,11 @@ export default function HeroDemoPlayer({
   const frameRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [mountVideo, setMountVideo] = useState(false);
+  const [inView, setInView] = useState(false);
   const [hasMetadata, setHasMetadata] = useState(false);
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const reducedMotion = usePrefersReducedMotion();
 
   // Load the reel only when the hero is actually on screen — a multi-MB file
   // has no business competing with the first paint.
@@ -48,13 +51,15 @@ export default function HeroDemoPlayer({
     if (!frame) return;
     if (typeof IntersectionObserver === "undefined") {
       setMountVideo(true);
+      setInView(true);
       return;
     }
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
+        const visible = entries.some((entry) => entry.isIntersecting);
+        setInView(visible);
+        if (visible) {
           setMountVideo(true);
-          observer.disconnect();
         }
       },
       { rootMargin: "200px" }
@@ -68,12 +73,17 @@ export default function HeroDemoPlayer({
   // have to arrive for.
   useEffect(() => {
     if (!mountVideo) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    void videoRef.current?.play().catch(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (!inView || reducedMotion) {
+      video.pause();
+      return;
+    }
+    void video.play().catch(() => {
       // Refused (Low Power Mode, power saving, background tab). The poster
       // holds and the button below offers it.
     });
-  }, [mountVideo]);
+  }, [inView, mountVideo, reducedMotion]);
 
   const toggle = useCallback(() => {
     const video = videoRef.current;

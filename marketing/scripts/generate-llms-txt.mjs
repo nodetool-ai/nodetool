@@ -29,32 +29,32 @@ const BASE_URL = "https://nodetool.ai";
 // --- Preamble prose (hand-written; edit here) --------------------------------
 const PREAMBLE = `# NodeTool
 
-> NodeTool is an open-source agent-first creative workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Studio is the free desktop edition; Cloud is the hosted browser edition, in alpha. Use supported local models in Studio or connect cloud providers with your own keys. Licensed AGPL-3.0.
+> NodeTool is an open-source creative workspace with agents and editable projects. Studio is the free desktop edition for production work. Cloud is a hosted browser edition in alpha for evaluation and lightweight access. Use supported local models in Studio or connect supported remote providers with your own accounts. Licensed AGPL-3.0.
 
 ## What NodeTool is
 
-- An agent-first workspace: every action in every editor is also an agent tool — anything you can click, an agent can do — and the full toolbelt speaks MCP for outside agents such as Claude Desktop and Claude Code.
+- Agents can operate the workflow and project editors, with tool calls, results, errors, and interventions available for inspection. Compatible external agents can use the tools over MCP.
 - A visual, node-based editor for building AI workflows: connect models and tools as nodes on a canvas instead of writing glue code.
-- Two editions of one open-source codebase: **Studio**, a free desktop app for macOS, Windows, and Linux, and **Cloud**, the same app hosted in a browser (currently in alpha).
+- Two editions of one open-source codebase: **Studio**, a free desktop app for macOS, Windows, and Linux, and **Cloud**, a hosted browser edition currently in alpha.
 - Planning agents: give an agent a goal and it plans the steps, picks a model or tool, and executes multi-step tasks on the canvas.
 - Native nodes for image, video, audio, and text generation and editing — masks, inpaint, outpaint, relight, upscale, compositing — plus RAG/vector search and custom code nodes.
-- Model access is bring-your-own-key (BYOK): OpenAI, Anthropic, Gemini, Replicate, FAL, KIE, Mistral, Groq, Together, OpenRouter, HuggingFace, and more, plus local inference via Ollama, MLX, llama.cpp, vLLM, and LM Studio.
+- Connect accounts for supported remote providers, or use supported local inference through Ollama, MLX, llama.cpp, vLLM, and LM Studio in Studio.
 
 ## License and pricing
 
 - Source license: AGPL-3.0. Self-hostable. Repository: https://github.com/nodetool-ai/nodetool
-- Studio is free. Cloud is a subscription for managed hosting (currently alpha; pricing is finalized at general availability).
-- In both editions you bring your own provider API keys and pay providers directly at their list prices. NodeTool does not run inference on its own servers, does not issue credits, and does not mark up model calls.`;
+- Studio is free. Current Cloud alpha access is free; future Cloud pricing has not been announced.
+- Provider charges are separate: connect your own supported provider accounts and pay those providers directly. NodeTool does not issue credits or add a provider-price markup.`;
 
 // --- Derived link sections ---------------------------------------------------
 
 /** A short blurb per key page, keyed by route (falls back to entry.description). */
 const KEY_PAGE_BLURBS = {
   "/": "what NodeTool is, the agent-first model, Studio vs Cloud.",
-  "/studio": "the free, open-source desktop app; the agent writes the script, boards the scenes, generates the footage, and cuts the timeline, with the models running locally.",
-  "/cloud": "the hosted, browser-based edition (alpha).",
+  "/studio": "the recommended desktop edition for production work and editable projects.",
+  "/cloud": "the hosted browser edition for evaluation while in alpha.",
   "/pricing": "edition comparison and how BYOK pricing works.",
-  "/agents": "the agent-first model: every editor exposed to agents as tools.",
+  "/agents": "build and inspect automation that produces editable workflows and projects.",
   "/developers": "The QuickJS sandbox, the node DSL inside it, and how agents drive NodeTool from sandboxed code.",
   "/marketing": "hand a brief to an agent; campaign assets at volume.",
 };
@@ -115,7 +115,7 @@ const MARKDOWN_PAGES = {
   "studio.md": {
     title: "NodeTool Studio",
     description: "The local-first, agent-first NodeTool desktop application.",
-    body: `NodeTool Studio is the free desktop edition of NodeTool for macOS, Windows, and Linux. It runs workflows locally and can use local models or provider API keys. The agent runs locally too: it builds and runs workflows on your machine, and the full toolbelt is exposed over MCP for outside agents such as Claude Desktop and Claude Code.
+    body: `NodeTool Studio is the free desktop edition of NodeTool for macOS, Windows, and Linux. It runs workflows on your machine and can use supported local models or remote providers. Agents can build and revise workflows, and compatible external agents can use the tools over MCP.
 
 Use Studio when you need local execution, offline work, or control of workflow files and provider credentials.
 
@@ -124,9 +124,9 @@ See the [installation guide](https://docs.nodetool.ai/installation.md) for suppo
   "cloud.md": {
     title: "NodeTool Cloud",
     description: "The hosted browser edition of NodeTool.",
-    body: `NodeTool Cloud is the hosted browser edition of NodeTool. It provides the same agent-first workspace without a desktop installation: describe what you want and the agent builds and runs the workflow.
+    body: `NodeTool Cloud is the hosted browser edition of NodeTool, currently in alpha. It is intended for evaluation and lightweight access without a desktop installation. Enabled models, storage behavior, and availability can change during the alpha. Use Studio for production work.
 
-Cloud uses bring-your-own provider keys. See [pricing](${BASE_URL}/pricing.md) and [technical documentation](https://docs.nodetool.ai/llms.txt) for deployment and configuration details.`,
+Cloud uses hosted project storage and supported remote providers connected through your own accounts. Current alpha access is free; future pricing has not been announced. See [pricing](${BASE_URL}/pricing.md) and [technical documentation](https://docs.nodetool.ai/llms.txt) for current details.`,
   },
   "developers.md": {
     title: "NodeTool Developer Platform",
@@ -143,15 +143,15 @@ Read the [sandbox reference](https://docs.nodetool.ai/javascript-sandbox), the [
   "agents.md": {
     title: "NodeTool Agents",
     description:
-      "NodeTool is agent-first: every editor is exposed to agents as tools.",
-    body: `NodeTool is agent-first. Every editor — the node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder — hands agents the same actions you have: wire a graph, paint a layer, cut a clip, revise a shot, place a widget. An agent plans multi-step tasks, builds and runs workflows, and repairs what fails, on the same surfaces you use. The full toolbelt is also exposed over MCP for outside agents such as Claude Desktop and Claude Code.
+      "Agents build and revise editable workflows, apps, and projects.",
+    body: `NodeTool agents can operate editable workflows, apps, and projects through tools exposed by its editors. You can inspect tool calls, results, errors, and interventions, then revise and reuse the workflow. Compatible external agents can use the tools over MCP.
 
 Read the [agent documentation](https://docs.nodetool.ai/agents/index.md) for installation, schema discovery, validation, execution, and job monitoring.`,
   },
   "pricing.md": {
     title: "NodeTool Pricing",
-    description: "Studio is free; Cloud provides managed hosting.",
-    body: `NodeTool Studio is free and open source under AGPL-3.0. NodeTool Cloud provides managed hosting. In both editions, users supply provider keys and pay model providers directly.`,
+    description: "Studio is free; current Cloud alpha access is free.",
+    body: `NodeTool Studio is free and open source under AGPL-3.0. Current NodeTool Cloud alpha access is free; future Cloud pricing has not been announced. In both editions, provider charges are separate: connect supported provider accounts and pay those providers directly.`,
   },
   "marketing.md": {
     title: "NodeTool for Marketing Teams",

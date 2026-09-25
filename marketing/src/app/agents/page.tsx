@@ -1,178 +1,244 @@
-"use client";
-import { useGridParallax, usePrefersReducedMotion } from "../../lib/useGridParallax";
-import React, { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
-import SiteHeader from "../../components/SiteHeader";
-import SiteFooter from "../../components/SiteFooter";
+import React from "react";
+import { Download } from "lucide-react";
+import { SmartDownloadButton } from "../SmartDownloadButton";
 import FaqBlock from "../../components/FaqBlock";
+import GraphToAppSplit from "../../components/GraphToAppSplit";
+import HeroDemoPlayer from "../../components/HeroDemoPlayer";
+import MarketingClosingAction from "../../components/MarketingClosingAction";
+import MarketingFacts, {
+  type MarketingFact,
+} from "../../components/MarketingFacts";
+import MarketingHero from "../../components/MarketingHero";
+import MarketingPageShell from "../../components/MarketingPageShell";
+import ProductImage from "../../components/ProductImage";
 
-const AgentsGraphHero = dynamic(() => import("../../components/agents/AgentsGraphHero"), {
-  ssr: true,
-});
-const AgentBuildRunDeploy = dynamic(
-  () => import("../../components/agents/AgentBuildRunDeploy"),
-  { ssr: true }
-);
-const AgentFeaturesSection = dynamic(
-  () => import("../../components/agents/AgentFeaturesSection"),
-  { ssr: true }
-);
-const AgentUseCasesSection = dynamic(
-  () => import("../../components/agents/AgentUseCasesSection"),
-  { ssr: true }
-);
-const AgentIntegrationsSection = dynamic(
-  () => import("../../components/agents/AgentIntegrationsSection"),
-  { ssr: true }
-);
-const ModelSupportSection = dynamic(
-  () => import("../../components/ModelSupportSection"),
-  { ssr: true }
-);
-const CommunitySection = dynamic(
-  () => import("../../components/CommunitySection"),
-  { ssr: true }
-);
-const ContactSection = dynamic(
-  () => import("../../components/ContactSection"),
-  { ssr: true }
-);
+const runFacts: MarketingFact[] = [
+  {
+    term: "Model choice",
+    description:
+      "Workflows name the models and providers they call. Change the workflow when another model fits the job better.",
+  },
+  {
+    term: "Provider accounts",
+    description:
+      "Studio uses the provider credentials you configure. Local models and remote providers keep their own execution boundaries.",
+  },
+  {
+    term: "Recorded execution",
+    description:
+      "Inspect tool calls, results, errors, and interventions from the run. This is an execution record, not a claim to expose every internal model decision.",
+  },
+  {
+    term: "Supervision",
+    description:
+      "Permissions, budgets, and approval points apply when they are configured for the run. Ordinary runs should not be described as automatically supervised.",
+  },
+];
 
+const runStages = [
+  {
+    title: "Build",
+    body: "The agent changes a workflow or project through the same tools available in the editor.",
+  },
+  {
+    title: "Run",
+    body: "The workflow calls the configured local models or provider accounts and records the result.",
+  },
+  {
+    title: "Inspect",
+    body: "Review tool calls, outputs, errors, and the artifact that changed.",
+  },
+  {
+    title: "Repair",
+    body: "Revise the workflow or project, then run the changed path again.",
+  },
+];
 
-const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
+const primaryButtonClass =
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition-colors hover:bg-blue-500 focus-ring";
 
-// Prefer reduced motion hook
-export default function AgentsPage() {
-  const [stars, setStars] = useState<number | null>(null);
-  const reducedMotion = usePrefersReducedMotion();
-  const parallaxRef = useGridParallax();
-
-  // Fetch GitHub stars
-  useEffect(() => {
-    fetch("https://api.github.com/repos/nodetool-ai/nodetool")
-      .then((r) => r.json())
-      .then((j) => setStars(j.stargazers_count))
-      .catch(() => { });
-  }, []);
-
+function AgentsPrimaryAction() {
   return (
-    <main className="relative min-h-screen overflow-hidden text-white">
-      {/* Background */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        {/* Soft radial glows */}
-        {/*
-          Static, not animated. These are 448px and 416px circles under
-          `blur(64px)`; drifting them 10px on an infinite framer-motion loop
-          made Safari re-rasterize both blurred layers every frame and held the
-          whole page at ~4fps for as long as it stayed open, so a tap on the
-          menu waited up to a frame and the panel took over a second to paint.
-          Chrome composited the same animation and stayed at 60fps, which is
-          why it went unnoticed. Measured with
-          `marketing/tests/e2e/idle-animation.spec.ts`.
-        */}
-        <div
-          className="pointer-events-none absolute -top-40 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-teal-500/20 blur-3xl"
-          style={{
-            WebkitMaskImage:
-              "radial-gradient(circle at center, black 0%, transparent 65%)",
-            maskImage:
-              "radial-gradient(circle at center, black 0%, transparent 65%)",
-          }}
-        />
-        <div
-          className="pointer-events-none absolute -bottom-48 right-8 h-[26rem] w-[26rem] rounded-full bg-blue-500/20 blur-3xl"
-          style={{
-            WebkitMaskImage:
-              "radial-gradient(circle at center, black 0%, transparent 65%)",
-            maskImage:
-              "radial-gradient(circle at center, black 0%, transparent 65%)",
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute inset-0"
-          style={{ background: "rgba(0,0,0,0.7)" }}
-        />
-        {/* Grid overlay */}
-        <div
-          ref={parallaxRef}
-          aria-hidden="true"
-          className="fixed inset-0 bg-grid-pattern"
-        />
-        <svg
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full opacity-[.28]"
-          shapeRendering="crispEdges"
-        >
-          <defs>
-            <pattern
-              id="page-grid"
-              width="24"
-              height="24"
-              patternUnits="userSpaceOnUse"
-            >
-              <path
-                d="M 24 0 L 0 0 0 24"
-                fill="none"
-                stroke="rgba(255,255,255,0.3)"
-                strokeWidth="0.33"
-              />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#page-grid)" />
-        </svg>
-      </div>
+    <SmartDownloadButton
+      labelPrefix="Download Studio"
+      icon={<Download className="h-5 w-5" />}
+      classNameOverride={primaryButtonClass}
+    />
+  );
+}
 
-      <SiteHeader />
+export default function AgentsPage() {
+  return (
+    <MarketingPageShell>
+      <MarketingHero
+        eyebrow="NodeTool Agents · For builders and operators"
+        title="Agents that work in real editors."
+        body="Build creative automation that produces editable workflows, apps, and projects. Inspect the execution, revise the work, and reuse the workflow for the next job. Agents work through NodeTool's tools, alongside the editors you use yourself."
+        primaryAction={<AgentsPrimaryAction />}
+        secondaryAction={{
+          href: "https://docs.nodetool.ai",
+          label: "Read agent docs",
+          external: true,
+        }}
+        trustLine="Open source · Local or remote models · MCP, CLI, and API entry points"
+        headingId="agents-hero-title"
+        media={
+          <ProductImage
+            src="/surface-storyboard-poster.webp"
+            alt="NodeTool storyboard with editable shots and the agent's tool actions"
+            width={1920}
+            height={1080}
+            priority
+            caption="The storyboard and agent tool record in the same workspace. The artifact stays editable after the action completes."
+          />
+        }
+      />
 
-      <div
-        id="content"
-        className="relative isolate overflow-hidden pt-24 sm:pt-36 md:pt-24"
+      <section
+        id="agent-loop"
+        aria-labelledby="agent-loop-title"
+        className="rhythm-section"
       >
-        {/* Hero */}
-        <section aria-labelledby="hero-title" className="pt-2 relative">
-          <div className={`${sectionContainer}`}>
-            <AgentsGraphHero />
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <header className="mb-10 max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
+              One operating loop
+            </p>
+            <h2
+              id="agent-loop-title"
+              className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-5xl"
+            >
+              Build. Run. Inspect. Repair.
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-slate-300">
+              Follow the artifact and its recorded execution through one cycle.
+              The editable project is the evidence, not an illustration of an
+              unspecified agent.
+            </p>
+          </header>
+          <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
+            <div className="lg:col-span-7">
+              <HeroDemoPlayer
+                mediaBase="/conversation-project"
+                priority={false}
+                alt="An agent builds a storyboard and editable project from a brief"
+                caption="Recorded project sequence: an agent action produces a storyboard and cut that remain open for inspection and revision."
+              />
+            </div>
+            <ol className="border-y border-slate-800 lg:col-span-5">
+              {runStages.map((stage, index) => (
+                <li
+                  key={stage.title}
+                  className="grid grid-cols-[2rem_1fr] gap-4 border-b border-slate-800 py-5 last:border-b-0"
+                >
+                  <span className="font-jetbrains text-sm text-blue-300">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <h3 className="font-semibold text-white">{stage.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-300">
+                      {stage.body}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
-        </section>
-
-        {/* How it works: Build, Run Deploy (Agentic) */}
-        <section aria-labelledby="workflow-title" className="rhythm-section">
-          <div className={`${sectionContainer}`}>
-            <AgentBuildRunDeploy />
-          </div>
-        </section>
-
-        {/* Features */}
-        <AgentFeaturesSection reducedMotion={reducedMotion} />
-
-        {/* Models - Important for Agents */}
-        <div id="models">
-          <ModelSupportSection reducedMotion={reducedMotion} />
         </div>
+      </section>
 
-        {/* Use Cases */}
-        <AgentUseCasesSection reducedMotion={reducedMotion} />
+      <GraphToAppSplit />
 
-        {/* Integrations */}
-        <AgentIntegrationsSection reducedMotion={reducedMotion} />
+      <section
+        id="agent-control"
+        aria-labelledby="agent-control-title"
+        className="rhythm-section"
+      >
+        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-12 lg:gap-16 lg:px-8">
+          <header className="lg:col-span-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
+              Run boundaries
+            </p>
+            <h2
+              id="agent-control-title"
+              className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-5xl"
+            >
+              Choose the models. Keep control of the run.
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-slate-300">
+              The workflow, provider configuration, execution record, and
+              resulting artifact remain separate things you can inspect.
+            </p>
+          </header>
+          <div className="lg:col-span-7">
+            <MarketingFacts items={runFacts} />
+          </div>
+        </div>
+      </section>
 
-        {/* FAQ — same rows as /faq, pinned to the "agents" surface */}
-        <section aria-label="Frequently asked questions" className="rhythm-section">
-          <FaqBlock surface="agents" linkToStandalone emitSchema />
-        </section>
+      <section
+        id="connect-agent"
+        aria-labelledby="connect-agent-title"
+        className="rhythm-section"
+      >
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <header className="mb-10 max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
+              MCP, CLI, and API
+            </p>
+            <h2
+              id="connect-agent-title"
+              className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-5xl"
+            >
+              Connect your own agent.
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-slate-300">
+              External agents can enter through NodeTool&apos;s documented
+              interfaces and operate the same editor and workflow tools. The
+              transport does not create a second implementation.
+            </p>
+          </header>
+          <ProductImage
+            src="/diagrams/mcp-architecture.svg"
+            alt="Architecture diagram showing MCP clients connecting to NodeTool tools and editors"
+            width={1600}
+            height={900}
+            caption="MCP clients connect through NodeTool's MCP server to the editor and workflow toolbelt. See the agent documentation for current setup and permission details."
+            contain
+          />
+          <p className="mt-6 text-sm text-slate-300">
+            <a
+              href="https://docs.nodetool.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-300 underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200 focus-ring"
+            >
+              Read the agent and MCP documentation
+            </a>
+          </p>
+        </div>
+      </section>
 
-        {/* Community */}
-        <CommunitySection stars={stars} />
+      <section className="rhythm-section" aria-label="Questions before you build">
+        <FaqBlock
+          surface="agents"
+          heading="Questions before you build."
+          linkToStandalone
+          emitSchema
+        />
+      </section>
 
-        {/* Divider */}
-        <div className="mx-auto my-16 h-px max-w-6xl bg-gradient-to-r from-transparent via-teal-800/20 to-transparent" />
-
-        {/* Contact */}
-        <ContactSection />
-      </div>
-
-      <SiteFooter />
-    </main>
+      <MarketingClosingAction
+        headingId="agents-closing-title"
+        title="Build your first reusable workflow."
+        body="Download Studio to build, run, inspect, and reuse agent-operated workflows and projects."
+        primaryAction={<AgentsPrimaryAction />}
+        secondaryAction={{
+          href: "https://docs.nodetool.ai",
+          label: "Read agent docs",
+          external: true,
+        }}
+      />
+    </MarketingPageShell>
   );
 }

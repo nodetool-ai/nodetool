@@ -60,6 +60,39 @@ test.describe("landing page on a phone", () => {
     expect(await page.evaluate(() => document.body.style.position)).toBe("");
   });
 
+  test("the menu contains focus and returns it to the trigger", async ({
+    page,
+  }) => {
+    await page.goto("/studio", { waitUntil: "load" });
+
+    const trigger = page.getByRole("button", { name: "Open menu" });
+    await trigger.focus();
+    await page.keyboard.press("Enter");
+
+    const panel = page.getByRole("dialog", { name: "Site menu" });
+    await expect(panel).toBeVisible();
+    await expect(page.getByRole("button", { name: "Close menu" }).last()).toBeFocused();
+
+    const focusStayedInPanel = async () =>
+      page.evaluate(() => {
+        const panelElement = document.querySelector(".mobile-menu-panel");
+        return Boolean(
+          panelElement &&
+            document.activeElement &&
+            panelElement.contains(document.activeElement)
+        );
+      });
+
+    for (let index = 0; index < 14; index += 1) {
+      await page.keyboard.press("Tab");
+      expect(await focusStayedInPanel()).toBe(true);
+    }
+
+    await page.keyboard.press("Escape");
+    await expect(panel).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
   test("the model marquees stay paused while their section is off screen", async ({
     page,
   }) => {
@@ -80,7 +113,9 @@ test.describe("landing page on a phone", () => {
     );
     await expect.poll(playState).toBe("paused");
 
-    await track.scrollIntoViewIfNeeded();
+    await track.evaluate((element) =>
+      element.closest("section")?.scrollIntoView({ block: "center" })
+    );
     await expect.poll(playState).toBe("running");
   });
 

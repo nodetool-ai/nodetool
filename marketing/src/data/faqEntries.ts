@@ -35,9 +35,11 @@ export type FaqCategory =
 export type FaqSurface =
   | "landing"
   | "agents"
+  | "cloud"
   | "comparison"
   | "models"
-  | "pricing";
+  | "pricing"
+  | "studio";
 
 export interface FaqEntry extends PageEntry {
   /** URL slug, e.g. "what-is-byok" → /faq/what-is-byok. */
@@ -103,16 +105,16 @@ const seeds: FaqSeed[] = [
     slug: "what-is-byok",
     question: "What does \"bring your own keys\" mean for me?",
     answerMd:
-      "It means you connect your own provider accounts and pay each provider directly at their list price. NodeTool never adds a markup, never sells its own credits, and never runs models on its own servers. Your keys, your bill, your data. You will sometimes see this written as **BYOK**.",
+      "It means you connect your own provider accounts and pay each provider directly at its published price. NodeTool does not add a credit system or a provider-price markup. The provider still receives the requests you send to its models. You will sometimes see this written as **BYOK**.",
     category: "byok",
     relatedRoute: "/pricing",
-    surfaces: ["agents", "comparison", "models", "pricing"],
+    surfaces: ["agents", "cloud", "comparison", "models", "pricing", "studio"],
   },
   {
     slug: "how-much-does-nodetool-cost",
     question: "How much does NodeTool cost?",
     answerMd:
-      "NodeTool Studio, the desktop app, is free and open source. NodeTool Cloud is free while it is in alpha. At full release a subscription covers hosting, at a price announced before anyone is charged. In both editions you bring your own API keys and pay each provider their list price directly, so what a run costs is whatever the provider charges for it. Local models through Ollama, MLX, or llama.cpp cost nothing per call.",
+      "NodeTool Studio, the desktop app, is free and open source. Cloud pricing and access can change during alpha, so check the Cloud page before use. In both editions, provider charges are separate: you connect your own provider account and pay that provider directly. Supported local models in Studio have no provider charge per call, but they use your hardware and electricity.",
     category: "byok",
     relatedRoute: "/pricing",
     surfaces: ["landing", "pricing", "comparison"],
@@ -130,19 +132,19 @@ const seeds: FaqSeed[] = [
     slug: "studio-or-cloud",
     question: "Studio or Cloud — which should I use?",
     answerMd:
-      "Studio, unless you cannot install software. Studio is the desktop app: free, open source, running on your machine, with local models through MLX, Ollama, and GGUF, and it is the finished edition — the one to use for work you are being paid for. Cloud is the same workspace in the browser, with nothing to install and no graphics card needed, and your keys still go straight to the providers. It is in alpha, so expect breaking changes and occasional downtime. The workflows are the same either way and move between the two.",
+      "Use Studio for production work. It is the desktop edition for macOS, Windows, and Linux, and it can use hosted providers without a local GPU or run supported local models on suitable hardware. Cloud is the browser edition for evaluation and lightweight access while it is in alpha. Current import and export coverage can change during the alpha, so verify the project path you need before relying on a cross-edition handoff.",
     category: "editions",
     relatedRoute: "/cloud",
-    surfaces: ["pricing"],
+    surfaces: ["cloud", "pricing", "studio"],
   },
   {
     slug: "is-nodetool-local-first",
     question: "Is NodeTool local-first and private?",
     answerMd:
-      "NodeTool Studio runs on your own machine: the workspace, your workflows, your files, and your API keys stay there, and open-weight models can run locally through MLX, Ollama, llama.cpp, vLLM, and LM Studio. When you call a hosted model, that request goes from your machine straight to the provider you chose, on your key — it does not pass through NodeTool servers. Cloud is the same open-source app hosted in the browser, and your keys still call the providers directly.",
+      "NodeTool Studio stores the workspace, workflows, files, and configured credentials on your machine. Supported open-weight models can run locally through MLX, Ollama, llama.cpp, vLLM, and LM Studio. When you call a hosted model, the request leaves your machine for that provider. Cloud uses hosted project storage; review the current [privacy policy](/privacy) and [terms](/terms) before using sensitive material.",
     category: "general",
     relatedRoute: "/studio",
-    surfaces: ["landing", "comparison"],
+    surfaces: ["cloud", "landing", "comparison", "studio"],
   },
   {
     slug: "which-models-are-supported",
@@ -231,7 +233,7 @@ const seeds: FaqSeed[] = [
     slug: "what-does-agent-first-mean",
     question: "What does it mean that NodeTool is agent-first?",
     answerMd:
-      "Every editor in NodeTool — the node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder — is exposed to agents as tools, around 120 in all. An agent doesn't describe what you could do; it builds the workflow, runs it, and repairs what fails, on the same surfaces you use. The same tools are exposed over **MCP**, so outside agents such as Claude Desktop and Claude Code can drive NodeTool too.",
+      "The node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder expose operations that agents can call as tools. The agent can change the workflow or project on the same surfaces you use, and the execution record shows tool calls, results, errors, and interventions. The toolbelt is also exposed over **MCP** for compatible external agents.",
     category: "general",
     relatedRoute: "/agents",
     surfaces: ["landing", "agents"],
@@ -249,10 +251,37 @@ const seeds: FaqSeed[] = [
     slug: "do-i-need-a-gpu",
     question: "Do I need a GPU to run NodeTool?",
     answerMd:
-      "No. NodeTool works entirely with cloud providers — bring your own API key, and the model runs on the provider's hardware with nothing to install locally. A GPU only matters if you choose to run open-weight models yourself through Ollama, MLX, or llama.cpp: it speeds those up, but many smaller local models run fine on CPU too, just slower.",
+      "No. Studio can use hosted providers, where the model runs on the provider's hardware. A GPU matters only when you choose to run supported open-weight models on your computer. The requirement then depends on the model and runtime; smaller models may run on CPU at lower speed.",
     category: "models",
     relatedRoute: "/solutions/local-first",
-    surfaces: ["landing", "models"],
+    surfaces: ["landing", "models", "studio"],
+  },
+  {
+    slug: "what-should-i-expect-from-cloud-alpha",
+    question: "What should I expect from the Cloud alpha?",
+    answerMd:
+      "Cloud is for evaluation and lightweight access while the hosted edition is in alpha. Enabled models, storage behavior, import and export coverage, and availability can change. Check the Cloud page, the in-product notices, and the current [terms](/terms) before depending on a particular capability. Use Studio for paid production work.",
+    category: "editions",
+    relatedRoute: "/cloud",
+    surfaces: ["cloud"],
+  },
+  {
+    slug: "where-does-cloud-store-projects",
+    question: "Where does Cloud store my projects?",
+    answerMd:
+      "Cloud uses hosted project storage. The current [privacy policy](/privacy) and [terms](/terms) are the source for retention and access rules. If material must remain on your device, use Studio and avoid remote providers for the affected steps.",
+    category: "editions",
+    relatedRoute: "/cloud",
+    surfaces: ["cloud"],
+  },
+  {
+    slug: "does-studio-work-offline",
+    question: "Does Studio work without an internet connection?",
+    answerMd:
+      "Studio can keep working without a network when the project uses local files and supported local models already installed on the machine. Remote providers, model downloads, online documentation, and other hosted services still require a connection.",
+    category: "editions",
+    relatedRoute: "/studio",
+    surfaces: ["studio"],
   },
 ];
 

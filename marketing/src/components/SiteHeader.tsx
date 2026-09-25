@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { track } from "../lib/analytics";
 import { useGithubStars, formatStars } from "../lib/useGithubStars";
+import { EDITIONS } from "../data/editions";
 import AnnouncementBar from "./AnnouncementBar";
 
 /**
@@ -17,7 +18,7 @@ type NavItem = { name: string; href: string; external?: boolean };
 
 const NAV: NavItem[] = [
   { name: "Studio", href: "/studio" },
-  { name: "Cloud", href: "/cloud" },
+  { name: EDITIONS.cloud.navLabel, href: "/cloud" },
   { name: "Agents", href: "/agents" },
   { name: "Developers", href: "/developers" },
   { name: "Marketing", href: "/marketing" },
@@ -71,14 +72,17 @@ function Wordmark() {
  */
 const NAV_MENU_SCRIPT = `(function(){
 if(window.__ntNavMenu)return;
-var html=document.documentElement,saved=null;
+var html=document.documentElement,saved=null,opener=null;
+function focusable(){var p=document.querySelector(".mobile-menu-panel");if(!p)return[];return Array.prototype.filter.call(p.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),[tabindex]:not([tabindex="-1"])'),function(el){return el.offsetParent!==null;});}
 function expanded(v){var b=document.querySelector('[data-nav="open"]');if(b)b.setAttribute("aria-expanded",v?"true":"false");}
-function open(){
+function open(trigger){
   if(html.hasAttribute("data-nav-open"))return;
   var b=document.body,y=window.scrollY;
+  opener=trigger&&trigger.focus?trigger:document.activeElement;
   saved={y:y,position:b.style.position,top:b.style.top,left:b.style.left,right:b.style.right,overflow:b.style.overflow};
   b.style.position="fixed";b.style.top=-y+"px";b.style.left="0";b.style.right="0";b.style.overflow="hidden";
   html.setAttribute("data-nav-open","");expanded(true);
+  var first=document.querySelector('[data-nav-initial-focus]');if(first&&first.focus)first.focus();
 }
 function close(){
   if(!html.hasAttribute("data-nav-open"))return;
@@ -87,15 +91,24 @@ function close(){
   var b=document.body,s=saved;saved=null;
   b.style.position=s.position;b.style.top=s.top;b.style.left=s.left;b.style.right=s.right;b.style.overflow=s.overflow;
   var behavior=html.style.scrollBehavior;html.style.scrollBehavior="auto";window.scrollTo(0,s.y);html.style.scrollBehavior=behavior;
+  if(opener&&opener.focus&&document.contains(opener))opener.focus();opener=null;
 }
 document.addEventListener("click",function(e){
   var t=e.target;
   if(!t||typeof t.closest!=="function")return;
   var hit=t.closest("[data-nav]");
   if(!hit)return;
-  if(hit.getAttribute("data-nav")==="open"){open();}else{close();}
+  if(hit.getAttribute("data-nav")==="open"){open(hit);}else{close();}
 });
-document.addEventListener("keydown",function(e){if(e.key==="Escape")close();});
+document.addEventListener("keydown",function(e){
+  if(!html.hasAttribute("data-nav-open"))return;
+  if(e.key==="Escape"){e.preventDefault();close();return;}
+  if(e.key!=="Tab")return;
+  var items=focusable();if(!items.length)return;
+  var first=items[0],last=items[items.length-1];
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+});
 var wide=window.matchMedia("(min-width: 1280px)");
 (wide.addEventListener?wide.addEventListener.bind(wide,"change"):wide.addListener.bind(wide))(function(e){if(e.matches)close();});
 window.__ntNavMenu={open:open,close:close};
@@ -110,6 +123,12 @@ export default function SiteHeader() {
 
   return (
     <header>
+      <a
+        href="#content"
+        className="sr-only fixed left-4 top-4 z-[100] rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white focus:not-sr-only focus-ring"
+      >
+        Skip to content
+      </a>
       <script dangerouslySetInnerHTML={{ __html: NAV_MENU_SCRIPT }} />
       <AnnouncementBar />
       <nav
@@ -156,6 +175,7 @@ export default function SiteHeader() {
                 type="button"
                 className="xl:hidden rounded-md p-1.5 text-slate-300 hover:bg-slate-800/60 transition-colors focus-ring"
                 data-nav="open"
+                aria-controls="mobile-site-menu"
                 aria-expanded={false}
                 aria-label="Open menu"
               >
@@ -189,6 +209,7 @@ export default function SiteHeader() {
       </nav>
 
       <div
+        id="mobile-site-menu"
         className="site-nav-overlay fixed inset-0 z-[70]"
         role="dialog"
         aria-modal="true"
@@ -207,25 +228,34 @@ export default function SiteHeader() {
               type="button"
               className="rounded-md p-2 text-slate-300 hover:bg-slate-800/60 transition-colors focus-ring"
               data-nav="close"
+              data-nav-initial-focus
               aria-label="Close menu"
             >
               <XMarkIcon className="h-6 w-6" aria-hidden="true" />
             </button>
           </div>
           <div className="mt-6 space-y-2">
-            {NAV.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                {...(item.external
-                  ? { target: "_blank", rel: "noopener noreferrer" }
-                  : {})}
-                className="block px-3 py-3 text-base font-medium text-slate-200 hover:bg-slate-800/60 hover:text-white rounded-lg transition-colors focus-ring"
-                data-nav="close"
-              >
-                {item.name}
-              </a>
-            ))}
+            {NAV.map((item) => {
+              const active = isActive(item);
+              return (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  {...(item.external
+                    ? { target: "_blank", rel: "noopener noreferrer" }
+                    : {})}
+                  className={`block rounded-lg px-3 py-3 text-base font-medium transition-colors focus-ring ${
+                    active
+                      ? "bg-blue-600/20 text-blue-200"
+                      : "text-slate-200 hover:bg-slate-800/60 hover:text-white"
+                  }`}
+                  data-nav="close"
+                  aria-current={active ? "page" : undefined}
+                >
+                  {item.name}
+                </a>
+              );
+            })}
             <a
               href={GITHUB_URL}
               target="_blank"
