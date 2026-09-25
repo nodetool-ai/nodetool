@@ -37,6 +37,10 @@ Do not edit generated files. Fix `schema-parser.ts`, `schema-fetcher.ts`, or `pa
 
 Codegen picks up standard task endpoints (`/api/v1/jobs/createTask`), Suno direct paths, and Gemini Omni sync endpoints (`/api/v1/omni/audio/create`, `/api/v1/omni/character/create`).
 
+Suno docs pages now describe the unified `createTask` API and link the direct Suno endpoints as the old version. Codegen follows that `old-model` link, so Suno nodes keep calling the direct endpoints.
+
+When a docs page cannot be fetched, codegen keeps that node's previous config from `src/configs/` and prints it under "Kept previous configs". A fetch failure never deletes a node.
+
 **Gemini Omni chaining:** Audio and Character nodes output plain text IDs (`audioId`, `characterId`) that wire into Gemini Omni Video `audio_ids` / `character_ids`. There is no KIE asset list API — create IDs in upstream nodes in the same workflow.
 
 Marketing pages like [kie.ai/gemini-omni](https://kie.ai/gemini-omni) are not used — only `docs.kie.ai` links from `llms.txt`.

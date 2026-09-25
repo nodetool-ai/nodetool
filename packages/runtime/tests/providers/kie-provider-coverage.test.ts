@@ -33,7 +33,9 @@ const h = vi.hoisted(() => {
   const anthropicGenMsgs = vi.fn(() => anStream());
 
   const responsesCreate = vi.fn();
+  const responsesClientOptions: Array<{ baseURL?: string }> = [];
   return {
+    responsesClientOptions,
     openaiGenMsg,
     openaiGenMsgs,
     anthropicGenMsg,
@@ -61,6 +63,9 @@ vi.mock("../../src/providers/anthropic-provider.js", () => ({
 vi.mock("openai", () => ({
   default: class {
     responses = { create: h.responsesCreate };
+    constructor(options: { baseURL?: string }) {
+      h.responsesClientOptions.push(options);
+    }
   }
 }));
 
@@ -205,6 +210,15 @@ describe("KieProvider — metadata", () => {
     expect(models.map((m) => m.id)).toContain("grok-4-6");
     expect(models.map((m) => m.id)).toContain("gemini-3-7-flash");
     expect(models.map((m) => m.id)).toContain("gemini-3-8-flash");
+    expect(models.map((m) => m.id)).toEqual(
+      expect.arrayContaining([
+        "gpt-6-sol",
+        "gpt-6-luna",
+        "grok-4-7",
+        "kimi-k3",
+        "deepseek-v4-1-flash"
+      ])
+    );
   });
 
   it("reports tool support only for known chat models", async () => {
@@ -299,6 +313,22 @@ describe("KieProvider — chat routing", () => {
 });
 
 describe("KieProvider — responses chat models", () => {
+  it("posts Kimi and DeepSeek to the /openai/v1 responses endpoint", async () => {
+    h.responsesCreate.mockResolvedValue({ output_text: "ok", output: [] });
+    const p = new KieProvider({ KIE_API_KEY: "k" });
+    for (const model of ["kimi-k3", "deepseek-v4-1-flash"]) {
+      h.responsesClientOptions.length = 0;
+      await p.generateMessage({
+        model,
+        messages: [{ role: "user", content: "hi" }]
+      });
+      expect(h.responsesClientOptions[0]?.baseURL).toBe(
+        "https://api.kie.ai/openai/v1"
+      );
+    }
+    h.responsesCreate.mockReset();
+  });
+
   it("generates a non-streaming responses message with tool calls", async () => {
     h.responsesCreate.mockResolvedValueOnce({
       output_text: "resp-answer",

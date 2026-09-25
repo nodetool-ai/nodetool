@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "writtenAt": "2026-09-10T18:30:54.232Z",
+  "writtenAt": "2026-09-25T16:12:22.582Z",
   "byNodeType": {
     "kie.image.Seedream45TextToImage": {
       "model_id": "seedream/4.5-text-to-image",
@@ -251,7 +251,7 @@
       "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.05,
-      "tier_count": 3,
+      "tier_count": 2,
       "pricing_url": "https://kie.ai/topaz-image-upscale"
     },
     "kie.image.RecraftRemoveBackground": {
@@ -389,6 +389,15 @@
       "tier_count": 1,
       "pricing_url": "https://kie.ai/wan-2-7-image"
     },
+    "kie.image.Generate4oImage": {
+      "model_id": "4o-image-api",
+      "unit_price": 6,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.03,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/4o-image-api"
+    },
     "kie.audio.ElevenlabsTextToDialogueV3": {
       "model_id": "elevenlabs/text-to-dialogue-v3",
       "unit_price": 14,
@@ -497,6 +506,15 @@
       "tier_count": 1,
       "pricing_url": "https://kie.ai/suno-api"
     },
+    "kie.audio.CreateMusicVideo": {
+      "model_id": "ai-music-api/create-music-video",
+      "unit_price": 2,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.01,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
     "kie.audio.SeparateVocals": {
       "model_id": "ai-music-api/separate-vocals",
       "unit_price": 10,
@@ -512,15 +530,6 @@
       "billing_unit": "request",
       "currency": "credits",
       "usd_price": 0,
-      "tier_count": 1,
-      "pricing_url": "https://kie.ai/suno-api"
-    },
-    "kie.audio.CreateMusicVideo": {
-      "model_id": "ai-music-api/create-music-video",
-      "unit_price": 2,
-      "billing_unit": "request",
-      "currency": "credits",
-      "usd_price": 0.01,
       "tier_count": 1,
       "pricing_url": "https://kie.ai/suno-api"
     },
@@ -1045,6 +1054,33 @@
       "usd_price": 0.04,
       "tier_count": 1,
       "pricing_url": "https://kie.ai/volcengine-video-to-video-lip-sync"
+    },
+    "kie.video.GenerateVeo31Video": {
+      "model_id": "veo-3-1",
+      "unit_price": 30,
+      "billing_unit": "video",
+      "currency": "credits",
+      "usd_price": 0.15,
+      "tier_count": 24,
+      "pricing_url": "https://kie.ai/veo-3-1"
+    },
+    "kie.video.GetVeo311080pVideo": {
+      "model_id": "veo/get-1080p-video",
+      "unit_price": 5,
+      "billing_unit": "video",
+      "currency": "credits",
+      "usd_price": 0.025,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/veo-3-1"
+    },
+    "kie.video.ExtendVeo31Video": {
+      "model_id": "veo/extend",
+      "unit_price": 30,
+      "billing_unit": "varies",
+      "currency": "credits",
+      "usd_price": 0.15,
+      "tier_count": 3,
+      "pricing_url": "https://kie.ai/veo-3-1"
     }
   }
 }

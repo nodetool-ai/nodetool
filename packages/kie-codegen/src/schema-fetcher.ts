@@ -9,6 +9,18 @@ function isHtmlShell(text: string): boolean {
   return /^\s*<!DOCTYPE html>/i.test(text);
 }
 
+/**
+ * Suno pages now document the unified `createTask` API and link the direct
+ * endpoints the Suno nodes call, which KIE keeps serving, as the old version.
+ * Returns that page's Markdown URL so the Suno nodes keep their contract.
+ */
+export function legacySunoDocUrl(markdown: string): string | null {
+  const match = markdown.match(
+    /https:\/\/docs\.kie\.ai\/old-model\/suno-api\/[\w-]+/
+  );
+  return match ? `${match[0]}.md` : null;
+}
+
 export interface KieDocsEntry {
   category: string;
   title: string;

@@ -1,7 +1,16 @@
 {
   "schemaVersion": 1,
-  "writtenAt": "2026-09-10T18:30:54.232Z",
+  "writtenAt": "2026-09-25T16:12:22.582Z",
   "prices": {
+    "qwen-image-2.1": {
+      "model_id": "qwen-image-2.1",
+      "unit_price": 4,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.02,
+      "tier_count": 4,
+      "pricing_url": "https://kie.ai/qwen-image-2.1"
+    },
     "gpt-image-2-5-sunburst-image-to-image": {
       "model_id": "gpt-image-2-5-sunburst-image-to-image",
       "unit_price": 6,
@@ -1250,7 +1259,7 @@
       "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.05,
-      "tier_count": 3,
+      "tier_count": 2,
       "pricing_url": "https://kie.ai/topaz-image-upscale"
     },
     "kling-2.6-motion-control": {
