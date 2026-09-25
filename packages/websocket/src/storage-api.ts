@@ -13,6 +13,7 @@ import {
   canReadStorageKey
 } from "./lib/storage-access.js";
 import { isString } from "./lib/wire-values.js";
+import { lookupExternalAssetPath } from "./lib/external-asset-lookup.js";
 
 // ── MIME types ────────────────────────────────────────────────────
 
@@ -311,6 +312,18 @@ async function handleStorageRequest(
     }
   }
 
+  // An external asset keeps its bytes at the path its row records, outside
+  // the storage root. Ownership was settled above; the MIME type follows the
+  // key, since the original file's extension need not match it.
+  let mimeSource = filePath;
+  if (!(await pathExists(filePath))) {
+    const external = await lookupExternalAssetPath(key).catch(() => null);
+    if (external) {
+      filePath = external;
+      mimeSource = key;
+    }
+  }
+
   // HEAD
   if (request.method === "HEAD") {
     let fileStat: Awaited<ReturnType<typeof stat>>;
@@ -319,7 +332,7 @@ async function handleStorageRequest(
     } catch {
       return new Response(null, { status: 404, headers: cors });
     }
-    const headType = getMimeType(filePath);
+    const headType = getMimeType(mimeSource);
     return new Response(null, {
       status: 200,
       headers: {
@@ -347,7 +360,7 @@ async function handleStorageRequest(
   const mtime = fileStat.mtime;
   const lastModified = mtime.toUTCString();
   const fileSize = fileStat.size;
-  const contentType = getMimeType(filePath);
+  const contentType = getMimeType(mimeSource);
 
   // If-Modified-Since check
   const ifModifiedSince = request.headers.get("If-Modified-Since");

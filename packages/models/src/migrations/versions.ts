@@ -3601,6 +3601,27 @@ export const migrations: MigrationDef[] = [
       // Durable rows are retained on rollback. A rollback must not erase a
       // paid request's provenance or output history.
     }
+  },
+
+  // ── In-place file references on assets ──────────────────────────────
+  // A large local import keeps the file where it is and records its path
+  // here instead of copying it under the storage root. Cloud rows keep null.
+  {
+    version: "20260925_000000",
+    name: "add_asset_external_path",
+    createsTables: [],
+    modifiesTables: ["nodetool_assets"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_assets"))) return;
+      if (!(await db.columnExists("nodetool_assets", "external_path"))) {
+        await db.execute(
+          "ALTER TABLE nodetool_assets ADD COLUMN external_path TEXT"
+        );
+      }
+    },
+    async down() {
+      // The column stays: dropping one is unsafe across dialects and versions.
+    }
   }
 ];
 

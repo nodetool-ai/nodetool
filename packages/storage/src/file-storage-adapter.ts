@@ -3,6 +3,7 @@ import { mkdirSync, realpathSync } from "node:fs";
 import {
   lstat,
   readdir,
+  readFile,
   realpath,
   stat as fsStat,
   unlink
@@ -52,6 +53,22 @@ function stripUriSuffix(uri: string): string {
 }
 
 /**
+ * Maps a storage key with no object under the root to the absolute path of a
+ * file the key's asset references in place, or null when it has none.
+ */
+export type ExternalPathLookup = (key: string) => Promise<string | null>;
+
+export interface FileStorageAdapterOptions {
+  /**
+   * Resolves keys of assets whose bytes stay outside the root (large local
+   * imports). Consulted only after the root misses, and only by reads:
+   * `retrieve`, `exists`, and `stat`. `store`, `storeFile`, and `delete`
+   * never touch the external file.
+   */
+  externalPathLookup?: ExternalPathLookup;
+}
+
+/**
  * File-system storage adapter rooted to a single base directory.
  *
  * URI scheme: `file:///abs/path`. Also accepts `/api/storage/<key>` paths
@@ -64,8 +81,10 @@ function stripUriSuffix(uri: string): string {
 export class FileStorageAdapter implements StorageAdapter {
   readonly rootDir: string;
   private readonly rootPromise: Promise<Root>;
+  private readonly externalPathLookup: ExternalPathLookup | null;
 
-  constructor(rootDir: string) {
+  constructor(rootDir: string, options: FileStorageAdapterOptions = {}) {
+    this.externalPathLookup = options.externalPathLookup ?? null;
     const resolvedRoot = resolve(rootDir);
     mkdirSync(resolvedRoot, { recursive: true });
     this.rootDir = realpathSync(resolvedRoot);
@@ -113,6 +132,31 @@ export class FileStorageAdapter implements StorageAdapter {
     return null;
   }
 
+  /** The in-place file behind `rel`, or null when the lookup has none. */
+  private async externalPathFor(rel: string): Promise<string | null> {
+    if (!this.externalPathLookup) return null;
+    try {
+      return await this.externalPathLookup(rel);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Stat the in-place file behind `rel`, or null when there is no such file. */
+  private async statExternal(
+    rel: string
+  ): Promise<{ path: string; size: number; modifiedAt: number } | null> {
+    const external = await this.externalPathFor(rel);
+    if (!external) return null;
+    try {
+      const st = await fsStat(external);
+      if (!st.isFile()) return null;
+      return { path: external, size: st.size, modifiedAt: st.mtimeMs };
+    } catch {
+      return null;
+    }
+  }
+
   async store(
     key: string,
     data: Uint8Array,
@@ -150,6 +194,12 @@ export class FileStorageAdapter implements StorageAdapter {
     } catch {
       // A key that cannot be read — missing, denied, or outside the root — is
       // reported the same way as one that was never stored.
+    }
+    const external = await this.statExternal(rel);
+    if (!external || external.size > getMaxLocalUploadBytes()) return null;
+    try {
+      return await readFile(external.path);
+    } catch {
       return null;
     }
   }
@@ -187,12 +237,14 @@ export class FileStorageAdapter implements StorageAdapter {
         if (info.isSymbolicLink() || (info.isFile() && info.nlink > 1)) {
           return false;
         }
-        return isWithinRoot(this.rootDir, await realpath(absolute));
+        if (isWithinRoot(this.rootDir, await realpath(absolute))) return true;
+      } else if (await r.exists(rel)) {
+        return true;
       }
-      return await r.exists(rel);
     } catch {
-      return false;
+      // Fall through to the in-place lookup.
     }
+    return (await this.statExternal(rel)) !== null;
   }
 
   uriForKey(key: string): string {
@@ -314,6 +366,8 @@ export class FileStorageAdapter implements StorageAdapter {
     }
     const abs = resolve(this.rootDir, rel);
     if (!isWithinRoot(this.rootDir, abs)) return false;
+    // Only the object under the root is removed. An in-place file behind the
+    // key belongs to the user and is never deleted.
     try {
       await unlink(abs);
       return true;
@@ -337,14 +391,15 @@ export class FileStorageAdapter implements StorageAdapter {
     if (!isWithinRoot(this.rootDir, abs)) return null;
     try {
       const st = await fsStat(abs);
-      if (!st.isFile()) return null;
-      return {
-        key: rel,
-        size: st.size,
-        modifiedAt: st.mtimeMs
-      };
+      if (st.isFile()) {
+        return { key: rel, size: st.size, modifiedAt: st.mtimeMs };
+      }
     } catch {
-      return null;
+      // Fall through to the in-place lookup.
     }
+    const external = await this.statExternal(rel);
+    return external
+      ? { key: rel, size: external.size, modifiedAt: external.modifiedAt }
+      : null;
   }
 }

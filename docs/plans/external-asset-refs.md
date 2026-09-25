@@ -61,7 +61,7 @@ These apply to every large file, external or copied.
 ## Open questions
 
 - **Q1.** Does the Python worker bridge read assets through `/api/storage` or through the storage adapter? If through HTTP, D3 covers it. Not traced.
-- **Q2.** Is the runtime's `assetStorage` the same adapter instance the server builds in local mode? D3 depends on it. Not verified.
+- **Q2.** Is the runtime's `assetStorage` the same adapter instance the server builds in local mode? D3 depends on it. Answered: yes. Every server-built `ProcessingContext` receives the `getAssetAdapter()` singleton from [`lib/storage.ts`](../../packages/websocket/src/lib/storage.ts) as `assetStorage`, and `resolveAssetBytes` probes it before the separate temp `storage` adapter, so wiring the lookup there covers the runtime. CLI-built contexts construct their own adapters without the lookup.
 
 ## Tasks
 

@@ -97,6 +97,12 @@ s(
   "Cache directory for Transformers.js (@huggingface/transformers) model downloads. Defaults to <data-dir>/transformers-js-cache. This is separate from the Python HuggingFace Hub cache because the on-disk layout differs."
 );
 
+s(
+  "NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES",
+  "Folders",
+  "Desktop app only: files imported at or above this size, in bytes, stay where they are and the asset references them in place instead of copying them into the asset folder (default: 1073741824, 1 GiB)."
+);
+
 // Autosave
 s(
   "AUTOSAVE_ENABLED",

@@ -21,6 +21,8 @@ jest.mock("../../trpc/client", () => ({
       create: { mutate: jest.fn() },
       createUpload: { mutate: jest.fn() },
       finalizeUpload: { mutate: jest.fn() },
+      externalImportConfig: { query: jest.fn() },
+      createExternal: { mutate: jest.fn() },
       update: { mutate: jest.fn() },
       delete: { mutate: jest.fn() },
       children: { query: jest.fn() },
@@ -29,6 +31,10 @@ jest.mock("../../trpc/client", () => ({
       byFilename: { query: jest.fn() }
     }
   }
+}));
+
+jest.mock("../../utils/localFile", () => ({
+  getLocalFilePath: jest.fn(() => null)
 }));
 
 jest.mock("../AssetGridStore", () => ({
@@ -55,6 +61,7 @@ jest.mock("../BASE_URL", () => ({
 }));
 
 import { trpcClient } from "../../trpc/client";
+import { getLocalFilePath } from "../../utils/localFile";
 
 const mockRestFetch = restFetch as jest.Mock;
 const mockAuthHeader = authHeader as jest.Mock;
@@ -240,6 +247,85 @@ describe("AssetStore", () => {
 
       expect(mockRestFetch).toHaveBeenCalledWith("/api/assets/", expect.objectContaining({ method: "POST", body: expect.any(FormData) }));
       expect(result).toEqual(mockAsset);
+    });
+
+    describe("external reference (desktop app, large local file)", () => {
+      const configQuery = trpcClient.assets.externalImportConfig
+        .query as jest.Mock;
+      const createExternalMutate = trpcClient.assets.createExternal
+        .mutate as jest.Mock;
+      const mockGetLocalFilePath = getLocalFilePath as jest.Mock;
+      const external: Asset = {
+        id: "external-id",
+        name: "clip.mp4",
+        content_type: "video/mp4",
+        size: 12,
+        created_at: "2026-09-25T00:00:00Z",
+        parent_id: "",
+        user_id: "test-user",
+        get_url: "/api/storage/test-user/external-id.mp4",
+        workflow_id: null,
+        thumb_url: null,
+        metadata: {}
+      };
+
+      beforeEach(() => {
+        mockGetLocalFilePath.mockReturnValue("/media/clip.mp4");
+        configQuery.mockResolvedValue({ enabled: true, threshold_bytes: 10 });
+        createExternalMutate.mockResolvedValue(external);
+      });
+
+      afterEach(() => {
+        mockGetLocalFilePath.mockReturnValue(null);
+      });
+
+      it("references a file at or above the threshold instead of uploading it", async () => {
+        const file = new File(["test content"], "clip.mp4", {
+          type: "video/mp4"
+        });
+        const result = await useAssetStore
+          .getState()
+          .createAsset(file, undefined, "folder-1", undefined, "file", "project-a");
+
+        expect(createExternalMutate).toHaveBeenCalledWith({
+          path: "/media/clip.mp4",
+          name: "clip.mp4",
+          content_type: "video/mp4",
+          parent_id: "folder-1",
+          project_id: "project-a"
+        });
+        expect(createUploadMutate).not.toHaveBeenCalled();
+        expect(mockRestFetch).not.toHaveBeenCalled();
+        expect(result.id).toBe("external-id");
+      });
+
+      it("uploads a file below the threshold", async () => {
+        configQuery.mockResolvedValue({ enabled: true, threshold_bytes: 1000 });
+        mockRestFetch.mockResolvedValue({
+          ok: true,
+          json: jest.fn().mockResolvedValue(external)
+        });
+        const file = new File(["test content"], "clip.mp4", {
+          type: "video/mp4"
+        });
+        await useAssetStore.getState().createAsset(file);
+        expect(createExternalMutate).not.toHaveBeenCalled();
+        expect(mockRestFetch).toHaveBeenCalled();
+      });
+
+      it("uploads when the server does not offer external references", async () => {
+        configQuery.mockResolvedValue({ enabled: false, threshold_bytes: 10 });
+        mockRestFetch.mockResolvedValue({
+          ok: true,
+          json: jest.fn().mockResolvedValue(external)
+        });
+        const file = new File(["test content"], "clip.mp4", {
+          type: "video/mp4"
+        });
+        await useAssetStore.getState().createAsset(file);
+        expect(createExternalMutate).not.toHaveBeenCalled();
+        expect(mockRestFetch).toHaveBeenCalled();
+      });
     });
 
     describe("client-direct upload (cloud storage backends)", () => {

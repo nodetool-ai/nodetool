@@ -24,6 +24,8 @@ export const assets = pgTable(
     timeline_id: text("timeline_id"),
     // The project this asset belongs to — see schema/assets.ts.
     project_id: text("project_id").notNull().default("default"),
+    // In-place file reference — see schema/assets.ts. Always null here.
+    external_path: text("external_path"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

@@ -27,6 +27,9 @@ export const assets = sqliteTable(
     // (assets carrying the entity marker) are shown per project today; every
     // other asset sits in the loose bucket and is never read by project.
     project_id: text("project_id").notNull().default("default"),
+    // Absolute disk path of a file the asset references in place instead of a
+    // copy under the storage root. Local mode only; always null in the cloud.
+    external_path: text("external_path"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

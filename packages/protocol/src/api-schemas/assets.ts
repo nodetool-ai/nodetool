@@ -123,6 +123,38 @@ export type FinalizeUploadInput = z.infer<typeof finalizeUploadInput>;
 export const finalizeUploadOutput = assetResponse;
 export type FinalizeUploadOutput = z.infer<typeof finalizeUploadOutput>;
 
+// ── createExternal (reference a local file in place) ─────────────
+// Desktop only. The server validates `path` against the local file roots and
+// records it on the row; no bytes are copied. The response never carries the
+// path, and `get_url` stays the id-based `/api/storage/...` URL.
+
+export const externalImportConfigOutput = z.object({
+  /** False in the cloud, in production, and on any non-file asset store. */
+  enabled: z.boolean(),
+  /** Files at or above this size are referenced in place. */
+  threshold_bytes: z.number().int().positive()
+});
+export type ExternalImportConfigOutput = z.infer<
+  typeof externalImportConfigOutput
+>;
+
+export const createExternalInput = z.object({
+  /** Absolute path of the file on the server's disk. */
+  path: z.string().min(1),
+  /** Defaults to the file's base name. */
+  name: z.string().min(1).optional(),
+  /** Inferred from the name when omitted or generic. */
+  content_type: z.string().optional(),
+  /** Empty or omitted means the user's root folder. */
+  parent_id: z.string().optional(),
+  project_id: z.string().min(1).optional(),
+  workflow_id: z.string().nullable().optional()
+});
+export type CreateExternalInput = z.infer<typeof createExternalInput>;
+
+export const createExternalOutput = assetResponse;
+export type CreateExternalOutput = z.infer<typeof createExternalOutput>;
+
 // ── update (PUT /api/assets/:id) ─────────────────────────────────
 // The `data` field (base64 or utf-8 content) is supported here for
 // small text/data writes; large binary uploads should go through the

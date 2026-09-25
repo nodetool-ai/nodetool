@@ -39,6 +39,12 @@ export class Asset extends DBModel {
    * entities, the assets carrying the entity marker.
    */
   declare project_id: string;
+  /**
+   * Absolute path of a file referenced in place (local mode only). Bytes are
+   * read from this path, never copied under the storage root, and deleting
+   * the asset leaves the file alone. Null for every managed asset.
+   */
+  declare external_path: string | null;
   declare created_at: string;
   declare updated_at: string;
 
@@ -59,6 +65,7 @@ export class Asset extends DBModel {
     this.job_id ??= null;
     this.timeline_id ??= null;
     this.project_id ??= "default";
+    this.external_path ??= null;
     this.created_at ??= now;
     this.updated_at ??= now;
   }

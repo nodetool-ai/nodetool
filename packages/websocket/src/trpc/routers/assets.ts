@@ -10,6 +10,8 @@
  */
 
 import { Buffer } from "node:buffer";
+import { stat } from "node:fs/promises";
+import { basename, isAbsolute } from "node:path";
 import { Asset, Project } from "@nodetool-ai/models";
 import type { Asset as AssetModel } from "@nodetool-ai/models";
 import { createLogger } from "@nodetool-ai/config";
@@ -29,6 +31,15 @@ import {
 } from "../../lib/asset-paths.js";
 import { getAssetAdapter } from "../../lib/storage.js";
 import { toAssetResponse } from "../../lib/asset-response.js";
+import { probeAssetDurationSeconds } from "../../lib/asset-duration.js";
+import {
+  externalAssetsAvailable,
+  getExternalAssetThresholdBytes
+} from "../../lib/external-assets.js";
+import {
+  localPathDenialMessage,
+  resolveLocalPath
+} from "../../lib/local-file-access.js";
 import {
   generateThumbnailForStoredAsset,
   storeAssetWithThumbnail,
@@ -47,6 +58,9 @@ import {
   updateInput,
   createUploadInput,
   createUploadOutput,
+  createExternalInput,
+  createExternalOutput,
+  externalImportConfigOutput,
   finalizeUploadInput,
   finalizeUploadOutput,
   deleteInput,
@@ -69,10 +83,14 @@ import {
 async function deleteAssetObjects(asset: AssetModel): Promise<void> {
   if (asset.content_type === "folder") return;
   const adapter = getAssetAdapter();
-  const fileNames = [
-    ...assetFileNameCandidates(asset.id, asset.content_type),
-    thumbnailKey(asset.id)
-  ];
+  // An external asset's bytes are the user's own file, outside the storage
+  // root. Only its thumbnail is ours to remove.
+  const fileNames = asset.external_path
+    ? [thumbnailKey(asset.id)]
+    : [
+        ...assetFileNameCandidates(asset.id, asset.content_type),
+        thumbnailKey(asset.id)
+      ];
   for (const fileName of fileNames) {
     for (const key of assetKeyCandidates(asset.user_id, fileName)) {
       try {
@@ -392,6 +410,100 @@ export const assetsRouter = router({
       // back into this process. Worth it for ordinary media, not for a
       // multi-gigabyte video — those simply go without.
       if (stat.size <= THUMBNAIL_SOURCE_MAX_BYTES) {
+        await generateThumbnailForStoredAsset(
+          asset.user_id,
+          asset.id,
+          asset.content_type
+        );
+      }
+
+      return toAssetResponse(asset);
+    }),
+
+  /**
+   * Whether the desktop app should reference large files in place, and from
+   * what size. Plain browsers have no disk path and always upload.
+   */
+  externalImportConfig: protectedProcedure
+    .output(externalImportConfigOutput)
+    .query(async () => ({
+      enabled: externalAssetsAvailable(),
+      threshold_bytes: await getExternalAssetThresholdBytes()
+    })),
+
+  /**
+   * Create an asset that references a local file in place. No bytes are
+   * copied: reads resolve the key to `external_path` (see
+   * `lib/external-asset-lookup.ts`), and deleting the asset leaves the file.
+   * The path is validated once, here, against the local file roots.
+   */
+  createExternal: protectedProcedure
+    .input(createExternalInput)
+    .output(createExternalOutput)
+    .mutation(async ({ ctx, input }) => {
+      if (!externalAssetsAvailable()) {
+        throwApiError(
+          ApiErrorCode.FORBIDDEN,
+          "External asset references need the local file store and are disabled in production"
+        );
+      }
+      if (!isAbsolute(input.path)) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Path must be absolute");
+      }
+      const resolved = await resolveLocalPath(input.path);
+      if (!resolved.ok) {
+        throwApiError(
+          ApiErrorCode.FORBIDDEN,
+          localPathDenialMessage(resolved.reason)
+        );
+      }
+      const fileStat = await stat(resolved.path).catch(() => null);
+      if (!fileStat) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "File not found");
+      }
+      if (!fileStat.isFile()) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Path is not a file");
+      }
+      if (input.project_id && input.project_id !== "default") {
+        if (!(await Project.findOwned(ctx.userId, input.project_id))) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, "Project not found");
+        }
+      }
+
+      const name = input.name ?? basename(resolved.path);
+      const contentType = normalizeAssetContentType(
+        input.content_type ?? "",
+        name
+      );
+      const duration = await probeAssetDurationSeconds(contentType, {
+        path: resolved.path
+      });
+
+      const asset = await Asset.create({
+        user_id: ctx.userId,
+        name,
+        content_type: contentType,
+        parent_id: input.parent_id || ctx.userId,
+        workflow_id: input.workflow_id ?? null,
+        project_id: input.project_id ?? "default",
+        size: fileStat.size,
+        duration,
+        external_path: resolved.path,
+        // Recorded to detect a file changed or replaced after import.
+        metadata: {
+          external_size: fileStat.size,
+          external_mtime: fileStat.mtimeMs
+        }
+      });
+      log.info("external asset created", {
+        assetId: asset.id,
+        contentType,
+        bytes: fileStat.size
+      });
+
+      // The generators take bytes, so the thumbnail reads the file back
+      // through the storage adapter. Above the cap it is skipped for now.
+      if (fileStat.size <= THUMBNAIL_SOURCE_MAX_BYTES) {
         await generateThumbnailForStoredAsset(
           asset.user_id,
           asset.id,
