@@ -4,7 +4,7 @@ title: "xAI (Grok): Add Models"
 description: "How to add new Grok chat, image, and video models to NodeTool's xAI provider."
 ---
 
-`XAIProvider` sits at `packages/runtime/src/providers/xai-provider.ts`. It extends `OpenAIProvider` but overrides every model-discovery method and every generation method to call xAI's REST API directly. Chat models are discovered at runtime by fetching `/v1/models`; image and video models come from the same listing, filtered by `output_modalities`.
+`XAIProvider` sits at `packages/runtime/src/providers/xai-provider.ts`. It overrides every model-discovery method and every generation method to call xAI's REST API directly. Each modality lists the static `XAI_KNOWN_MODELS` catalog first, then any further models from xAI's `/v1/models` listing.
 
 > **Audience:** coding agents and contributors adding new xAI Grok models (chat, image generation, video generation).
 
@@ -12,14 +12,14 @@ description: "How to add new Grok chat, image, and video models to NodeTool's xA
 
 ## TL;DR
 
-Chat and image/video models are all discovered dynamically from xAI's `/v1/models` endpoint. To support a new model:
+To support a new model:
 
-1. Store `XAI_API_KEY` via `npm run dev:nodetool -- secrets store XAI_API_KEY`.
-2. Verify the model appears in the `/v1/models` listing and that `classifyModel()` assigns it the right modality.
-3. If `classifyModel()` misclassifies the model (no `output_modalities` field and an ambiguous id), add an `id.includes()` branch in `classifyModel()`.
+1. Add it to the matching modality in `XAI_KNOWN_MODELS` with a display name. The catalog keeps the model listed when `/v1/models` omits it or cannot be reached.
+2. Update the `KNOWN_*_IDS` constants in `packages/runtime/tests/providers/xai-provider.test.ts`.
+3. If the id is ambiguous, check that `classifyModel()` assigns the live row the same modality. Otherwise the model appears twice, once under each modality.
 4. Run `npm run check`.
 
-No static lists to edit. No registry changes. No rebuilds needed for the provider itself.
+xAI's `/v1/models` rows carry no modality fields, so `classifyModel()` usually falls back to the model id. Models the listing returns that the catalog lacks are still offered, after the catalog entries.
 
 ---
 
@@ -38,7 +38,7 @@ No static lists to edit. No registry changes. No rebuilds needed for the provide
 
 ## How xAI models are defined
 
-All three modalities — chat, image, video — are discovered at runtime from a single call to xAI's `/v1/models` endpoint (`fetchModelRows()`). The private `classifyModel()` function sorts models into `"language" | "image" | "video"` by inspecting `output_modalities` first, then falling back to the model's `id` string:
+Each modality starts from its `XAI_KNOWN_MODELS` entries. The provider then adds rows from a single call to xAI's `/v1/models` endpoint (`fetchModelRows()`) whose ids the catalog does not already contain. A failed listing yields the catalog alone. The private `classifyModel()` function sorts models into `"language" | "image" | "video"` by inspecting `output_modalities` first, then falling back to the model's `id` string:
 
 ```typescript
 // packages/runtime/src/providers/xai-provider.ts
@@ -56,7 +56,7 @@ function classifyModel(row: XAIModelRow): ModelModality {
 }
 ```
 
-`getAvailableLanguageModels()`, `getAvailableImageModels()`, and `getAvailableVideoModels()` each call `fetchModelRows()` and filter the result through `classifyModel()`. There are **no static model lists** in this provider.
+`getAvailableLanguageModels()`, `getAvailableImageModels()`, and `getAvailableVideoModels()` each call `listModels()`, which merges the catalog with the classified live rows.
 
 Image models are tagged `supportedTasks: ["text_to_image", "image_to_image"]`. Video models are tagged `supportedTasks: ["text_to_video", "image_to_video"]`. Both sets are returned with `provider: "xai"`.
 
@@ -76,20 +76,18 @@ Image inputs are converted to base64 data URIs before sending — xAI's JSON API
 
 ### Chat (language) model
 
-No code change required. If xAI adds a new chat model and exposes it via `/v1/models` with `output_modalities: ["text"]`, NodeTool picks it up automatically on the next `getAvailableLanguageModels()` call.
+Add the model to `XAI_KNOWN_MODELS.language`. A chat model that `/v1/models` returns is also picked up without a code change, after the catalog entries and under its raw id.
 
-To verify the model appears:
+To check what the live listing returns:
 
 ```bash
 curl -s https://api.x.ai/v1/models \
-  -H "Authorization: Bearer $XAI_API_KEY" | jq '.data[] | {id, output_modalities}'
+  -H "Authorization: Bearer $XAI_API_KEY" | jq '.data[].id'
 ```
-
-If the response includes the new model with `output_modalities` containing `"text"`, you are done. Run `npm run check` and open a PR only if you needed to change `classifyModel()`.
 
 ### Image model
 
-Same as chat: no static list to edit. xAI must return `output_modalities: ["image"]` for the model. If it does not (the field is missing and the model id does not contain `"image"`), add a guard in `classifyModel()`:
+Add the model to `XAI_KNOWN_MODELS.image`. A live row reaches the image list only when `output_modalities` contains `"image"` or the id contains `"image"`. For any other id, add a guard in `classifyModel()`:
 
 ```typescript
 // packages/runtime/src/providers/xai-provider.ts — inside classifyModel()
@@ -113,7 +111,7 @@ That change goes in `getAvailableImageModels()` after the `classifyModel()` filt
 
 ### Video model
 
-Same discovery path via `classifyModel()`. If the id contains `"video"` or `output_modalities` contains `"video"`, it surfaces in `getAvailableVideoModels()` tagged `supportedTasks: ["text_to_video", "image_to_video"]`.
+Add the model to `XAI_KNOWN_MODELS.video`. A live row reaches the video list when its id contains `"video"` or `output_modalities` contains `"video"`, it surfaces in `getAvailableVideoModels()` tagged `supportedTasks: ["text_to_video", "image_to_video"]`.
 
 The async polling loop in `generateVideo()` handles all video models uniformly. xAI video parameters:
 
