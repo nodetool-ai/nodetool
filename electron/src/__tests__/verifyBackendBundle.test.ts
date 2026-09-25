@@ -34,6 +34,14 @@ function writeValidBundle(dir: string): void {
     path.join(dir, "examples", "storyboards", "hello.storyboard.json"),
     JSON.stringify(STORYBOARD_BUNDLE)
   );
+  fs.mkdirSync(path.join(dir, "examples", "timelines"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "examples", "timelines", "hello.timeline.json"),
+    JSON.stringify({
+      videoUri: "package://nodetool-base/timelines/hello/video.mp4",
+      posterUri: "package://nodetool-base/timelines/hello/poster.jpg"
+    })
+  );
   fs.mkdirSync(path.join(dir, "examples", "compositions"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "examples", "compositions", "hello.composition.json"),
@@ -51,8 +59,15 @@ function writeValidBundle(dir: string): void {
     path.join(dir, "assets", "nodetool-base", "storyboards", "hello", "shot.jpg"),
     "x"
   );
+  fs.mkdirSync(path.join(dir, "assets", "nodetool-base", "timelines", "hello"), {
+    recursive: true
+  });
   fs.writeFileSync(
-    path.join(dir, "assets", "nodetool-base", "storyboards", "hello", "shot.mp4"),
+    path.join(dir, "assets", "nodetool-base", "timelines", "hello", "video.mp4"),
+    "x"
+  );
+  fs.writeFileSync(
+    path.join(dir, "assets", "nodetool-base", "timelines", "hello", "poster.jpg"),
     "x"
   );
   fs.mkdirSync(path.join(dir, "assets", "nodetool-base"), { recursive: true });
@@ -95,7 +110,7 @@ const RECIPE_MANIFEST = {
   steps: [{ example: "hello", role: "Say hello", handoff: "In: nothing." }],
 };
 
-/** One shipped board, naming the two media files staged alongside it. */
+/** One shipped board, naming the still staged alongside it. */
 const STORYBOARD_BUNDLE = {
   name: "Hello",
   document: {
@@ -103,7 +118,6 @@ const STORYBOARD_BUNDLE = {
       {
         id: "shot-1",
         keyframe: { uri: "package://nodetool-base/storyboards/hello/shot.jpg" },
-        clip: { uri: "package://nodetool-base/storyboards/hello/shot.mp4" },
       },
     ],
   },
@@ -271,11 +285,21 @@ describe("verify-backend-bundle", () => {
 
   it("fails when a shipped storyboard's media were not staged", () => {
     fs.rmSync(
-      path.join(tempDir, "assets", "nodetool-base", "storyboards", "hello", "shot.mp4")
+      path.join(tempDir, "assets", "nodetool-base", "storyboards", "hello", "shot.jpg")
     );
     const { status, output } = runVerify(tempDir);
     expect(output).toContain("example storyboard media not staged");
-    expect(output).toContain("storyboards/hello/shot.mp4");
+    expect(output).toContain("storyboards/hello/shot.jpg");
+    expect(status).toBe(1);
+  });
+
+  it("fails when a shipped timeline's video was not staged", () => {
+    fs.rmSync(
+      path.join(tempDir, "assets", "nodetool-base", "timelines", "hello", "video.mp4")
+    );
+    const { status, output } = runVerify(tempDir);
+    expect(output).toContain("examples/timelines/hello.timeline.json has missing media");
+    expect(output).toContain("timelines/hello/video.mp4");
     expect(status).toBe(1);
   });
 
