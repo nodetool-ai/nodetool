@@ -560,7 +560,44 @@ describe("parseKieSchema", () => {
 
     expect(node?.className).toBe("Happyhorse11ImageToVideo");
   });
+
+  it("reads the model from examples when it has no enum or default", () => {
+    const node = parseKieSchema(exampleModelDocs, {
+      category: "Video Models > Veo3.1 API",
+      title: "Get 1080P Video",
+      url: "https://docs.kie.ai/veo3-api/get-veo-3-1080-p-video.md",
+      summary: ""
+    });
+
+    expect(node?.modelId).toBe("veo/get-1080p-video");
+  });
 });
+
+const exampleModelDocs = `# Get 1080P Video
+
+\`\`\`yaml
+openapi: 3.0.1
+paths:
+  /api/v1/jobs/createTask:
+    post:
+      operationId: get-veo3-1-1080p-video
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model:
+                  type: string
+                  examples:
+                    - veo/get-1080p-video
+                input:
+                  type: object
+                  properties:
+                    taskId:
+                      type: string
+\`\`\`
+`;
 
 const valueArrayDocs = `# Kling 3.0 Omni Text to Video
 

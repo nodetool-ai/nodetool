@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { KieModuleName, ModuleConfig, NodeConfig } from "./types.js";
 
@@ -55,6 +55,30 @@ export function renderKieConfigModule(config: ModuleConfig): string {
     `export const ${config.moduleName}Config: ModuleConfig = ${JSON.stringify(config, null, 2)};`,
     ""
   ].join("\n");
+}
+
+/** Inverse of `renderKieConfigModule`. */
+export function parseKieConfigModule(source: string): ModuleConfig {
+  const start = source.indexOf("= {");
+  const end = source.lastIndexOf("};");
+  if (start < 0 || end < start) {
+    throw new Error("Not a generated KIE config module");
+  }
+  // SAFETY: the text between the markers is the JSON.stringify output
+  // renderKieConfigModule wrote for a ModuleConfig.
+  return JSON.parse(source.slice(start + 2, end + 1)) as ModuleConfig;
+}
+
+/** Nodes from the config modules currently on disk. */
+export async function readKieConfigs(
+  outputDir = join(process.cwd(), "src", "configs")
+): Promise<NodeConfig[]> {
+  const nodes: NodeConfig[] = [];
+  for (const moduleName of MODULE_NAMES) {
+    const source = await readFile(join(outputDir, `${moduleName}.ts`), "utf8");
+    nodes.push(...parseKieConfigModule(source).nodes);
+  }
+  return nodes;
 }
 
 export async function writeKieConfigs(
