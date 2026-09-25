@@ -2014,8 +2014,7 @@ export function createHttpApiServer(options: HttpApiOptions = {}): Server {
       );
       res.statusCode = 500;
       res.setHeader("content-type", "application/json");
-      const detail = error instanceof Error ? error.message : String(error);
-      res.end(JSON.stringify({ detail }));
+      res.end(JSON.stringify({ detail: "Internal server error" }));
     });
   });
 }
