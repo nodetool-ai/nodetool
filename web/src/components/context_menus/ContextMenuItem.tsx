@@ -9,7 +9,7 @@ import {
   Tooltip,
   MOTION,
   BORDER_RADIUS,
-  MenuItem
+  MenuItem, getSpacingPx, SPACING
 } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       width: "100%",
       margin: 0,
-      padding: "0.2em 1em",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
       maxWidth: "unset",
       borderRadius: BORDER_RADIUS.xs,
       fontFamily: theme.fontFamily1,
@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
     },
     ".label": {
       display: "block",
-      paddingLeft: "0.8em",
+      paddingLeft: getSpacingPx(SPACING.lg),
       transition: MOTION.fast
     },
     "button.action:hover svg": {
@@ -85,7 +85,7 @@ const styles = (theme: Theme) =>
       marginLeft: 0
     },
     ".checkbox .MuiTypography-root": {
-      margin: "0 0 0 0.6em",
+      margin: `0 0 0 ${getSpacingPx(SPACING.md)}`,
       fontFamily: theme.fontFamily1
     },
     "&:hover button.action.delete svg": {

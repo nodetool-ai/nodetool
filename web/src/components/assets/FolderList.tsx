@@ -7,7 +7,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Z_INDEX
+  Z_INDEX, getSpacingPx, SPACING
 } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
@@ -31,14 +31,14 @@ const styles = (theme: Theme) =>
       position: "relative",
       height: "auto",
       overflow: "hidden",
-      padding: ".25em 0 0 0"
+      padding: `${getSpacingPx(SPACING.xs)} 0 0 0`
     },
     ".folder-list": {
       display: "flex",
       flexDirection: "column",
       flexWrap: "nowrap",
       gap: 0,
-      padding: "0 0 0 .5em",
+      padding: `0 0 0 ${getSpacingPx(SPACING.md)}`,
       height: "auto",
       overflow: "visible"
     },
@@ -87,7 +87,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       alignItems: "center",
       height: ROW_HEIGHT_REM + "rem",
-      gap: ".25rem",
+      gap: getSpacingPx(SPACING.xs),
       borderRadius: ".5em"
     },
     ".row:hover": {

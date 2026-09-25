@@ -16,10 +16,11 @@ import {
   isPropertyConditionSatisfied,
   shouldRenderProperty
 } from "../../utils/propertyVisibility";
+import { getSpacingPx, SPACING } from "../ui_primitives";
 
 const rootCss = css({
-  marginTop: "1em",
-  marginBottom: "0.5em"
+  marginTop: getSpacingPx(SPACING.xl),
+  marginBottom: getSpacingPx(SPACING.md)
 });
 
 interface NodeInputsProps {

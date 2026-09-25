@@ -34,7 +34,7 @@ import {
   BORDER_RADIUS,
   FONT_SIZE_SANS,
   MOTION,
-  SPACING
+  SPACING, getSpacingPx
 } from "../ui_primitives";
 import { TYPE_FILTERS, TypeFilterKey } from "../../utils/formatUtils";
 import isEqual from "../../utils/isEqual";
@@ -47,14 +47,14 @@ const styles = (theme: Theme) =>
       flexWrap: "wrap",
       justifyContent: "start",
       alignItems: "start",
-      gap: ".4em",
+      gap: getSpacingPx(SPACING.sm),
       width: "100%",
       transition: MOTION.all,
       // Tighter, stacked controls for narrow sidebars
       "@media (max-width: 520px)": {
         flexDirection: "column",
         alignItems: "stretch",
-        gap: ".35em"
+        gap: getSpacingPx(SPACING.sm)
       }
     },
     ".selected-asset-info": {
@@ -63,7 +63,7 @@ const styles = (theme: Theme) =>
       overflowY: "auto",
       overflowX: "hidden",
       fontSize: theme.fontSizeSmall,
-      padding: "0.1em 0.2em",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
       color: theme.vars.palette.grey[200]
     }
   });

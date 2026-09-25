@@ -21,7 +21,7 @@ import {
   Box,
   TabGroup,
   SPACING,
-  DocsHelpLink
+  DocsHelpLink, getSpacingPx
 } from "../ui_primitives";
 import type { DocsTopic } from "../../config/docsLinks";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -1137,7 +1137,7 @@ function SettingsPage() {
                       </Text>
                       <Text
                         className="explanation"
-                        sx={{ margin: "0 0 1em 0" }}
+                        sx={{ margin: `0 0 ${getSpacingPx(SPACING.xl)} 0` }}
                       >
                         Use the Nodetool API to execute workflows
                         programmatically.
@@ -1188,7 +1188,7 @@ function SettingsPage() {
                         </div>
                         <Tooltip title="Copy to clipboard">
                           <EditorButton
-                            style={{ margin: ".5em 0" }}
+                            style={{ margin: `${getSpacingPx(SPACING.md)} 0` }}
                             size="small"
                             variant="outlined"
                             startIcon={<ContentCopyIcon />}

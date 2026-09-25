@@ -50,7 +50,7 @@ const styles = (theme: Theme) =>
       left: "51px",
       width: "calc(100vw - 51px)",
       height: "fit-content",
-      padding: ".5em .5em 0 .5em",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.md)} 0 ${getSpacingPx(SPACING.md)}`,
       backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
       backdropFilter: "blur(8px)",
       zIndex: theme.zIndex.popover,
@@ -100,7 +100,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      padding: "1em 1.5em",
+      padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)}`,
       minHeight: "4em",
       background: `linear-gradient(90deg, 
         rgba(${theme.vars.palette.background.defaultChannel} / 0.4) 0%, 
@@ -125,7 +125,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
-      gap: "0.25em",
+      gap: getSpacingPx(SPACING.xs),
       overflow: "hidden"
     },
     ".description": {
@@ -140,19 +140,19 @@ const styles = (theme: Theme) =>
     ".toolbar-group": {
       display: "flex",
       alignItems: "center",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.4)`,
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.lg,
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.04)`,
       "& + .toolbar-group": {
-        marginLeft: "0.5em"
+        marginLeft: getSpacingPx(SPACING.md)
       }
     },
     ".actions": {
       display: "flex",
       alignItems: "center",
-      gap: "0.5em"
+      gap: getSpacingPx(SPACING.md)
     },
     ".button": {
       display: "flex",
@@ -192,14 +192,14 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       flex: 1,
       overflow: "hidden",
-      padding: "1em 1.5em"
+      padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)}`
     },
     ".editor-content": {
       display: "flex",
       flexDirection: "row",
       flex: 1,
       overflow: "hidden",
-      gap: "1.5em"
+      gap: getSpacingPx(SPACING.xxl)
     },
     ".columns-section": {
       flexShrink: 0,
@@ -207,20 +207,20 @@ const styles = (theme: Theme) =>
       minWidth: "280px",
       maxWidth: "400px",
       overflow: "auto",
-      paddingRight: "1em",
+      paddingRight: getSpacingPx(SPACING.xl),
       borderRight: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.06)`,
       // Override ColumnsManager styles for modal context
       "& .MuiGrid-root": {
         display: "flex",
         flexDirection: "column",
-        gap: "0.25em"
+        gap: getSpacingPx(SPACING.xs)
       },
       "& .labels": {
         display: "flex",
         flexDirection: "row",
-        gap: "0.5em",
-        marginBottom: "0.25em",
-        paddingLeft: "0.25em"
+        gap: getSpacingPx(SPACING.md),
+        marginBottom: getSpacingPx(SPACING.xs),
+        paddingLeft: getSpacingPx(SPACING.xs)
       },
       "& .label-name": {
         width: "auto",
@@ -237,8 +237,8 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.grey[400]
       },
       "& .column": {
-        gap: "0.5em",
-        marginBottom: "0.15em"
+        gap: getSpacingPx(SPACING.md),
+        marginBottom: getSpacingPx(SPACING.micro)
       },
       "& .item-name": {
         width: "auto",
@@ -250,7 +250,7 @@ const styles = (theme: Theme) =>
       },
       "& .item-name .textfield input": {
         fontSize: "var(--fontSizeNormal)",
-        padding: "0.35em 0.5em"
+        padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`
       },
       "& .item-datatype": {
         width: "auto",
@@ -262,12 +262,12 @@ const styles = (theme: Theme) =>
       },
       "& .item-datatype .select .MuiSelect-select": {
         fontSize: "var(--fontSizeNormal)",
-        padding: "0.35em 0.5em",
+        padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
         height: "auto",
         minHeight: "1.5em"
       },
       "& .delete-button": {
-        padding: "0.25em",
+        padding: getSpacingPx(SPACING.xs),
         "& svg": {
           fontSize: "var(--fontSizeNormal)"
         }
@@ -288,12 +288,12 @@ const styles = (theme: Theme) =>
       },
       // Bigger action buttons in modal
       "& .table-actions": {
-        gap: "0.25em",
+        gap: getSpacingPx(SPACING.xs),
         height: "2.5em",
-        marginBottom: "0.5em"
+        marginBottom: getSpacingPx(SPACING.md)
       },
       "& .table-actions button": {
-        padding: "0.35em",
+        padding: getSpacingPx(SPACING.sm),
         width: "1.5em",
         height: "1.5em"
       },
@@ -314,7 +314,7 @@ const styles = (theme: Theme) =>
     ".search-bar": {
       display: "flex",
       alignItems: "center",
-      marginBottom: "0.75em",
+      marginBottom: getSpacingPx(SPACING.lg),
       "& .MuiTextField-root": {
         maxWidth: "300px"
       },
@@ -325,10 +325,10 @@ const styles = (theme: Theme) =>
         borderRadius: BORDER_RADIUS.md
       },
       "& .MuiInputBase-input": {
-        padding: "0.35em 0.5em"
+        padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`
       },
       "& .MuiInputAdornment-root": {
-        marginRight: "0.25em"
+        marginRight: getSpacingPx(SPACING.xs)
       },
       "& svg": {
         fontSize: "var(--fontSizeNormal)",
@@ -337,7 +337,7 @@ const styles = (theme: Theme) =>
     },
     ".add-column-group": {
       display: "flex",
-      marginBottom: "0.75em"
+      marginBottom: getSpacingPx(SPACING.lg)
     },
     ".add-column-group button": {
       fontSize: "var(--fontSizeNormal)",
@@ -350,8 +350,8 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       margin: 0,
-      gap: "0.35em",
-      padding: "0.5em 1.25em 0.5em 0.75em",
+      gap: getSpacingPx(SPACING.sm),
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
       borderRadius: BORDER_RADIUS.md,
       transition: MOTION.all,
       "&:hover": {
@@ -361,7 +361,7 @@ const styles = (theme: Theme) =>
     },
     ".add-column-group button svg": {
       fontSize: "var(--fontSizeNormal)",
-      marginRight: "0.35em"
+      marginRight: getSpacingPx(SPACING.sm)
     },
     ".resize-handle": {
       position: "absolute",
@@ -398,7 +398,7 @@ const styles = (theme: Theme) =>
     },
     "@media (max-width: 900px)": {
       ".title-and-description": {
-        gap: "0.25em"
+        gap: getSpacingPx(SPACING.xs)
       },
       ".description": {
         display: "block",
@@ -410,7 +410,7 @@ const styles = (theme: Theme) =>
       },
       ".editor-content": {
         flexDirection: "column",
-        gap: "1em"
+        gap: getSpacingPx(SPACING.xl)
       },
       ".columns-section": {
         width: "100%",
@@ -418,7 +418,7 @@ const styles = (theme: Theme) =>
         borderRight: "none",
         borderBottom: `1px solid ${theme.vars.palette.c_overlay}`,
         paddingRight: 0,
-        paddingBottom: "1em",
+        paddingBottom: getSpacingPx(SPACING.xl),
         overflow: "visible"
       }
     }

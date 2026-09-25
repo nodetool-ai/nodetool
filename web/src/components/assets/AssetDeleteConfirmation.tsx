@@ -17,7 +17,7 @@ import {
   LoadingSpinner,
   ListGroup,
   ListItemRow,
-  Text
+  Text, getSpacingPx, SPACING
 } from "../ui_primitives";
 import { isObjectLike } from "../../utils/typePredicates";
 
@@ -189,7 +189,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       <div className="asset-delete-confirmation-content">
         <Text
           color="secondary"
-          style={{ marginBottom: "1em" }}
+          style={{ marginBottom: getSpacingPx(SPACING.xl) }}
         >
           You can right click selected assets and download them before deleting.
         </Text>

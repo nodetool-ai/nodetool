@@ -163,7 +163,7 @@ const styles = (theme: Theme) =>
         opacity: 0,
         position: "absolute",
         display: "flex",
-        gap: ".5em",
+        gap: getSpacingPx(SPACING.md),
         top: "unset",
         bottom: ".1em",
         left: "1em",
@@ -212,7 +212,7 @@ const styles = (theme: Theme) =>
         width: "100%",
         maxHeight: "500px",
         overflowY: "auto",
-        padding: "1em"
+        padding: getSpacingPx(SPACING.xl)
       },
       // Touch devices have no hover; keep the preview action buttons reachable.
       "@media (pointer: coarse)": {

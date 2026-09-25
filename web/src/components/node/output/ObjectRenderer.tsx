@@ -3,7 +3,7 @@ import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Box, BORDER_RADIUS } from "../../ui_primitives";
+import { Text, Box, BORDER_RADIUS, getSpacingPx, SPACING } from "../../ui_primitives";
 import isEqual from "../../../utils/isEqual";
 
 const objectStyles = (theme: Theme) =>
@@ -12,13 +12,13 @@ const objectStyles = (theme: Theme) =>
       width: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: "0.5em"
+      gap: getSpacingPx(SPACING.md)
     },
     ".object-entry": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.25em",
-      padding: "0.5em",
+      gap: getSpacingPx(SPACING.xs),
+      padding: getSpacingPx(SPACING.md),
       borderRadius: BORDER_RADIUS.md,
       backgroundColor: theme.vars.palette.action.hover,
       "&:last-child": {

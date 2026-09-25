@@ -622,8 +622,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     () =>
       css({
         ".tool-call-container": {
-          margin: "0.5em 1em",
-          padding: "0.5em",
+          margin: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
+          padding: getSpacingPx(SPACING.md),
           background: `rgba(${theme.vars.palette.info.mainChannel} / 0.1)`,
           borderRadius: BORDER_RADIUS.sm,
           border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.2)`,

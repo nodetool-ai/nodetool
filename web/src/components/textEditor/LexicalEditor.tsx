@@ -71,17 +71,17 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeBig,
       lineHeight: "1.2",
       fontWeight: 600,
-      margin: "0.5em 0"
+      margin: `${getSpacingPx(SPACING.md)} 0`
     },
     ".editor-heading-h2": {
       fontSize: theme.fontSizeBig,
       fontWeight: 400,
-      margin: "0.5em 0"
+      margin: `${getSpacingPx(SPACING.md)} 0`
     },
     ".editor-heading-h3": {
       fontSize: theme.fontSizeNormal,
       fontWeight: 400,
-      margin: "0.5em 0"
+      margin: `${getSpacingPx(SPACING.md)} 0`
     },
     ".editor-quote": {
       borderLeft: `4px solid ${theme.vars.palette.action.selected}`,
@@ -127,7 +127,7 @@ const styles = (theme: Theme) =>
         lineHeight: "1.5em",
         paddingTop: 0,
         marginTop: 0,
-        marginBlockEnd: "0.5em"
+        marginBlockEnd: getSpacingPx(SPACING.md)
       },
       ".font-size-large": {
         fontSize: theme.fontSizeBig

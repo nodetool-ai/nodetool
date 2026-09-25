@@ -25,6 +25,8 @@ jest.mock("@mui/material", () => ({
 
 // Mock UI primitives
 jest.mock("../../ui_primitives", () => ({
+  SPACING: jest.requireActual("../../ui_primitives/spacing").SPACING,
+  getSpacingPx: jest.requireActual("../../ui_primitives/spacing").getSpacingPx,
   FlexRow: ({ children, ...props }: React.ComponentProps<"div">) => <div data-testid="FlexRow" {...props}>{children}</div>,
   FlexColumn: ({ children, ...props }: React.ComponentProps<"div">) => <div data-testid="FlexColumn" {...props}>{children}</div>,
   Text: ({ children, ...props }: React.ComponentProps<"span">) => <span data-testid="Text" {...props}>{children}</span>,

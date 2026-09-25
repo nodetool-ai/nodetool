@@ -12,7 +12,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  type SelectChangeEvent
+  type SelectChangeEvent, getSpacingPx, SPACING
 } from "../ui_primitives";
 import { formatSettingLabel } from "./settingsLabel";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -80,7 +80,7 @@ const SearchProviderSection = memo(function SearchProviderSection({
       </Text>
 
       <div className="settings-item large">
-        <FormControl variant="standard" fullWidth sx={{ marginBottom: "1.5em" }}>
+        <FormControl variant="standard" fullWidth sx={{ marginBottom: getSpacingPx(SPACING.xxl) }}>
           <InputLabel id="provider-select-label">Provider</InputLabel>
           <Select
             labelId="provider-select-label"
@@ -99,9 +99,9 @@ const SearchProviderSection = memo(function SearchProviderSection({
         <FlexRow
           align="center"
           sx={{
-            gap: "0.5em",
-            marginBottom: "1em",
-            padding: "0.75em",
+            gap: getSpacingPx(SPACING.md),
+            marginBottom: getSpacingPx(SPACING.xl),
+            padding: getSpacingPx(SPACING.lg),
             backgroundColor:
               hasAllCredentials ?
                 theme.palette.success.light :
@@ -139,8 +139,8 @@ const SearchProviderSection = memo(function SearchProviderSection({
       {config && (
         <div
           style={{
-            marginTop: "1.5em",
-            padding: "1em",
+            marginTop: getSpacingPx(SPACING.xxl),
+            padding: getSpacingPx(SPACING.xl),
             backgroundColor: theme.vars.palette.c_overlay_subtle,
             borderLeft: `4px solid ${theme.palette.primary.main}`,
             borderRadius: BORDER_RADIUS.sm
@@ -179,7 +179,7 @@ const SearchProviderSection = memo(function SearchProviderSection({
                       label="Configured"
                       size="small"
                       sx={{
-                        marginTop: "0.5em",
+                        marginTop: getSpacingPx(SPACING.md),
                         height: "24px",
                         backgroundColor: theme.palette.success.light,
                         color: theme.palette.success.dark
@@ -190,7 +190,7 @@ const SearchProviderSection = memo(function SearchProviderSection({
               );
             })}
 
-            <Box sx={{ marginTop: "1em" }}>
+            <Box sx={{ marginTop: getSpacingPx(SPACING.xl) }}>
               <ExternalLink
                 href={config.getApiKeyUrl}
                 tooltipText={`Visit ${config.label} to get your credentials`}

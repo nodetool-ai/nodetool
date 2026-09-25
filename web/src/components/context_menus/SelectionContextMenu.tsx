@@ -4,7 +4,7 @@ import {
   Text,
   Divider,
   ContextMenu,
-  MenuItem
+  MenuItem, getSpacingPx, SPACING
 } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
@@ -193,7 +193,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       <MenuItem disabled>
         <Text
           style={{
-            margin: ".1em 0",
+            margin: `${getSpacingPx(SPACING.micro)} 0`,
             padding: "0"
           }}
         >
@@ -360,7 +360,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       <MenuItem disabled>
         <Text
           style={{
-            margin: ".1em 0",
+            margin: `${getSpacingPx(SPACING.micro)} 0`,
             padding: "0"
           }}
         >

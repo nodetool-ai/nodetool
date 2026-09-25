@@ -188,7 +188,7 @@ const AgentAccessSection = () => {
   };
 
   return (
-    <div className="settings-section" style={{ marginTop: "1.5em" }}>
+    <div className="settings-section" style={{ marginTop: getSpacingPx(SPACING.xxl) }}>
       <Text sx={{ fontWeight: 500, mb: 0.5 }}>Connect an agent remotely</Text>
       <Text className="description" sx={{ mb: 1 }}>
         Point Claude Code, Claude Desktop, or any MCP client at this server over

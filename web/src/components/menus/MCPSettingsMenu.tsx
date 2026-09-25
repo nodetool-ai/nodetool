@@ -7,7 +7,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import InstallDesktopIcon from "@mui/icons-material/InstallDesktop";
-import { Text, FlexRow, FlexColumn, NavButton } from "../ui_primitives";
+import { Text, FlexRow, FlexColumn, NavButton, getSpacingPx, SPACING } from "../ui_primitives";
 import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import AgentAccessSection from "./AgentAccessSection";
@@ -184,7 +184,7 @@ const MCPSettingsMenu = () => {
           collections as tools.
         </Text>
 
-        {isLoading && <Text sx={{ padding: "1em" }}>Loading…</Text>}
+        {isLoading && <Text sx={{ padding: getSpacingPx(SPACING.xl) }}>Loading…</Text>}
 
         {data && (
           <>
@@ -240,7 +240,7 @@ const MCPSettingsMenu = () => {
                           onClick={() => handleUninstall(t.target)}
                           navSize="small"
                           sx={{
-                            padding: "0.25em 1em",
+                            padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
                             minWidth: "unset",
                             fontSize: theme.fontSizeSmall
                           }}
@@ -254,7 +254,7 @@ const MCPSettingsMenu = () => {
                           onClick={() => handleInstall(t.target)}
                           navSize="small"
                           sx={{
-                            padding: "0.25em 1em",
+                            padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
                             minWidth: "unset",
                             fontSize: theme.fontSizeSmall
                           }}
@@ -274,7 +274,7 @@ const MCPSettingsMenu = () => {
                   color="primary"
                   disabled={busy}
                   onClick={handleInstallAll}
-                  sx={{ padding: "0.4em 2em" }}
+                  sx={{ padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xxxl)}` }}
                 />
               </FlexRow>
             )}
@@ -282,7 +282,7 @@ const MCPSettingsMenu = () => {
         )}
 
         {installBundle && (
-          <div className="settings-section" style={{ marginTop: "1.5em" }}>
+          <div className="settings-section" style={{ marginTop: getSpacingPx(SPACING.xxl) }}>
             <Text sx={{ fontWeight: 500, mb: 0.5 }}>Claude Desktop</Text>
             <Text className="description" sx={{ mb: 1 }}>
               Install the NodeTool extension bundled with this app. Claude
@@ -295,7 +295,7 @@ const MCPSettingsMenu = () => {
                 color="primary"
                 disabled={bundleBusy}
                 onClick={handleInstallBundle}
-                sx={{ padding: "0.4em 2em" }}
+                sx={{ padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xxxl)}` }}
               />
             </FlexRow>
           </div>

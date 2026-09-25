@@ -3,7 +3,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import { useMemo, useState, useCallback, memo } from "react";
 
-import { Text, FlexColumn, FlexRow } from "../ui_primitives";
+import { Text, FlexColumn, FlexRow, getSpacingPx, SPACING } from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -35,7 +35,7 @@ const FolderButton = ({ label, onClick }: FolderButtonProps) => (
     label={label}
     onClick={onClick}
     sx={{
-      padding: "0.5em 1.5em",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xxl)}`,
       textTransform: "none",
       justifyContent: "flex-start",
       minWidth: "200px"
@@ -185,7 +185,7 @@ const FoldersSettings = () => {
   return (
     <>
       {isLoading && (
-        <Text sx={{ textAlign: "center", padding: "2em" }}>
+        <Text sx={{ textAlign: "center", padding: getSpacingPx(SPACING.xxxl) }}>
           Loading folder settings…
         </Text>
       )}
@@ -301,7 +301,7 @@ const FoldersSettings = () => {
             const showNoSettingsMessage = hasNoSettings && hasNoFolderButtons;
             
             return showNoSettingsMessage ? (
-              <Text sx={{ textAlign: "center", padding: "2em" }}>
+              <Text sx={{ textAlign: "center", padding: getSpacingPx(SPACING.xxxl) }}>
                 No folder settings available or defined in the &apos;Folders&apos;
                 group.
               </Text>

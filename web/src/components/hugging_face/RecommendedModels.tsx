@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { EditorButton, FlexRow, Text, SearchInput, ListGroup } from "../ui_primitives";
+import { EditorButton, FlexRow, Text, SearchInput, ListGroup, getSpacingPx, SPACING } from "../ui_primitives";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelListItem from "./model_list/ModelListItem";
 import { useTheme } from "@mui/material/styles";
@@ -141,14 +141,14 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
         </ListGroup>
       )}
       <Text
-        sx={{ marginTop: "1em", color: theme.vars.palette.grey[100] }}
+        sx={{ marginTop: getSpacingPx(SPACING.xl), color: theme.vars.palette.grey[100] }}
         component="div"
       >
         <AnnouncementIcon
           fontSize="small"
           sx={{
             verticalAlign: "middle",
-            marginRight: "0.5em",
+            marginRight: getSpacingPx(SPACING.md),
             color: theme.vars.palette.warning.main
           }}
         />
@@ -157,7 +157,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
       </Text>
       <Text
         sx={{
-          marginTop: "0.75em",
+          marginTop: getSpacingPx(SPACING.lg),
           color: theme.vars.palette.grey[200],
           maxWidth: "52rem",
           userSelect: "text",

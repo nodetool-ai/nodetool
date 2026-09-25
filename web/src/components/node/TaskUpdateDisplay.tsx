@@ -3,7 +3,7 @@ import React, { useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Box, BORDER_RADIUS, MOTION, reducedMotion } from "../ui_primitives";
+import { Text, Box, BORDER_RADIUS, MOTION, reducedMotion, getSpacingPx, SPACING } from "../ui_primitives";
 import { TaskUpdate } from "../../stores/ApiTypes";
 import StepView from "./StepView";
 
@@ -18,8 +18,8 @@ const styles = (theme: Theme) =>
     },
 
     ".task-update-container": {
-      marginBottom: "0.75rem",
-      padding: "1rem",
+      marginBottom: getSpacingPx(SPACING.lg),
+      padding: getSpacingPx(SPACING.xl),
       borderRadius: BORDER_RADIUS.lg,
       backgroundColor: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.primary.dark}`,
@@ -29,8 +29,8 @@ const styles = (theme: Theme) =>
     ".task-header": {
       display: "flex",
       alignItems: "center",
-      gap: "0.75rem",
-      marginBottom: "0.75rem"
+      gap: getSpacingPx(SPACING.lg),
+      marginBottom: getSpacingPx(SPACING.lg)
     },
 
     ".task-animated-heading": {
@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
     ".task-event-badge": {
       display: "inline-flex",
       alignItems: "center",
-      padding: "0.25rem 0.625rem",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.xl,
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
@@ -61,7 +61,7 @@ const styles = (theme: Theme) =>
     ".task-content": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.5rem"
+      gap: getSpacingPx(SPACING.md)
     },
 
     ".task-title": {
@@ -69,30 +69,30 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeNormal)",
       lineHeight: "1.4",
       color: theme.vars.palette.grey[100],
-      marginBottom: "0.25rem"
+      marginBottom: getSpacingPx(SPACING.xs)
     },
 
     ".task-description": {
       fontSize: "var(--fontSizeSmall)",
       lineHeight: "1.5",
       color: theme.vars.palette.grey[400],
-      paddingLeft: "0.5rem",
+      paddingLeft: getSpacingPx(SPACING.md),
       borderLeft: `2px solid ${theme.vars.palette.grey[700]}`
     },
 
     ".step-wrapper": {
-      marginTop: "0.75rem",
-      paddingTop: "0.75rem",
+      marginTop: getSpacingPx(SPACING.lg),
+      paddingTop: getSpacingPx(SPACING.lg),
       borderTop: `1px solid ${theme.vars.palette.grey[800]}`
     },
 
     ".steps-section": {
-      marginTop: "0.75rem",
-      paddingTop: "0.75rem",
+      marginTop: getSpacingPx(SPACING.lg),
+      paddingTop: getSpacingPx(SPACING.lg),
       borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
       display: "flex",
       flexDirection: "column",
-      gap: "0.75rem"
+      gap: getSpacingPx(SPACING.lg)
     },
 
     ".steps-header": {
@@ -103,7 +103,7 @@ const styles = (theme: Theme) =>
       letterSpacing: "1px",
       display: "flex",
       alignItems: "center",
-      gap: "0.5rem",
+      gap: getSpacingPx(SPACING.md),
       "&::after": {
         content: '""',
         flex: 1,

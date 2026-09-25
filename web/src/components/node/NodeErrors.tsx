@@ -68,7 +68,7 @@ const errorStyles = (theme: Theme) =>
       cursor: "auto",
       userSelect: "text",
       lineHeight: "1.2em",
-      padding: "0.5em .2em 0 0",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)} 0 0`,
       whiteSpace: "pre-wrap",
       overflowWrap: "anywhere",
       wordBreak: "break-word",

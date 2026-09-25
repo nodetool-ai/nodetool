@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAssetStore } from "../../stores/AssetStore";
 import TextEditorModal from "./TextEditorModal";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { Tooltip, Text } from "../ui_primitives";
+import { Tooltip, Text, getSpacingPx, SPACING } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
 
 const MAX_TEXT_LENGTH = 1000;
@@ -44,7 +44,7 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
     <div
       style={{
         width: "100%",
-        padding: ".5em",
+        padding: getSpacingPx(SPACING.md),
         maxHeight: MAX_TEXT_HEIGHT,
         overflow: "auto"
       }}

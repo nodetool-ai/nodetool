@@ -10,7 +10,7 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import NotesIcon from "@mui/icons-material/Notes";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
 
 interface QuickStart {
   icon: React.ReactNode;
@@ -53,14 +53,14 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: "1.1em",
-    padding: "1.5em 1em 0.5em",
+    gap: getSpacingPx(SPACING.xl),
+    padding: `${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`,
     ".hero": {
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       textAlign: "center",
-      gap: "0.5em"
+      gap: getSpacingPx(SPACING.md)
     },
     ".hero-badge": {
       width: "3em",
@@ -72,7 +72,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.primary.main,
       background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
       border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.25)`,
-      marginBottom: "0.25em",
+      marginBottom: getSpacingPx(SPACING.xs),
       svg: { fontSize: "1.6em" }
     },
     ".hero-title": {
@@ -93,19 +93,19 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.08em",
       textTransform: "uppercase",
       color: theme.vars.palette.text.disabled,
-      paddingLeft: "0.2em"
+      paddingLeft: getSpacingPx(SPACING.xs)
     },
     ".quick-list": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.5em"
+      gap: getSpacingPx(SPACING.md)
     },
     ".quick-item": {
       display: "flex",
       alignItems: "center",
-      gap: "0.75em",
+      gap: getSpacingPx(SPACING.lg),
       width: "100%",
-      padding: "0.7em 0.85em",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)}`,
       borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
       textAlign: "left",

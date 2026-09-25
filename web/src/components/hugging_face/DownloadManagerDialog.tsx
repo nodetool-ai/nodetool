@@ -117,7 +117,7 @@ const DownloadManagerDialog: React.FC = () => {
               gap={1.5}
               align="center"
               sx={{
-                padding: "2.5em 0"
+                padding: `${getSpacingPx(SPACING.xxxl)} 0`
               }}
             >
               <DownloadingIcon sx={{ opacity: 0.8 }} />
@@ -161,12 +161,12 @@ const DownloadManagerDialog: React.FC = () => {
         <Text
           component="div"
           sx={{
-            padding: "0 1.5em .5em 1em",
+            padding: `0 ${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
             fontWeight: 400,
             color: "inherit",
             display: "flex",
             alignItems: "center",
-            gap: "0.5em"
+            gap: getSpacingPx(SPACING.md)
           }}
         >
           <AnnouncementIcon

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { MOTION, Tooltip, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
+import { MOTION, Tooltip, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../ui_primitives";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import SearchIcon from "@mui/icons-material/Search";
 import {
@@ -22,7 +22,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flexDirection: "row",
       alignItems: "center",
-      gap: "0.1em",
+      gap: getSpacingPx(SPACING.micro),
       margin: "0",
       minWidth: "8em",
       padding: 0,

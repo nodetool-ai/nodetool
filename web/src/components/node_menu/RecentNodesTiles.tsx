@@ -32,11 +32,11 @@ const tileStyles = (theme: Theme) =>
       flexDirection: "column",
       width: "100%",
       height: "fit-content",
-      padding: "0.5em 1em 0.5em 0.5em",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.md)}`,
       boxSizing: "border-box"
     },
     ".tiles-header": {
-      marginBottom: "0.25em",
+      marginBottom: getSpacingPx(SPACING.xs),
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
@@ -51,7 +51,7 @@ const tileStyles = (theme: Theme) =>
         opacity: 0.8,
         display: "flex",
         alignItems: "center",
-        gap: "0.5em"
+        gap: getSpacingPx(SPACING.md)
       }
     },
     ".tiles-container": {
@@ -138,7 +138,7 @@ const tileStyles = (theme: Theme) =>
       WebkitBoxOrient: "vertical"
     },
     ".empty-state": {
-      padding: "1em",
+      padding: getSpacingPx(SPACING.xl),
       textAlign: "center",
       color: theme.vars.palette.text.secondary,
       fontSize: "var(--fontSizeNormal)",

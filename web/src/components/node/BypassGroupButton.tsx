@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, MOTION, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { memo, useMemo } from "react";
@@ -53,7 +53,7 @@ const BypassGroupButton: React.FC<BypassGroupButtonProps> = memo(({
       display: "flex" as const,
       flexDirection: "column" as const,
       alignItems: "center" as const,
-      gap: "0.1em",
+      gap: getSpacingPx(SPACING.micro),
     }),
     []
   );

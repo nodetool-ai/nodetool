@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { useState } from "react";
 import { useRouteError } from "react-router-dom";
-import { CopyButton, Text, EditorButton, Box, MOTION, BORDER_RADIUS, Z_INDEX } from "./components/ui_primitives";
+import { CopyButton, Text, EditorButton, Box, MOTION, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "./components/ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { openBugReport } from "./stores/BugReportStore";
@@ -15,7 +15,7 @@ const errorBoundaryStyles = (theme: Theme) =>
     alignItems: "center",
     justifyContent: "center",
     minHeight: "100vh",
-    padding: "2em 1.5em",
+    padding: `${getSpacingPx(SPACING.xxxl)} ${getSpacingPx(SPACING.xxl)}`,
     background: "var(--palette-background-default)",
     boxSizing: "border-box",
 
@@ -23,8 +23,8 @@ const errorBoundaryStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: "0.75rem",
-      marginBottom: "2rem"
+      gap: getSpacingPx(SPACING.lg),
+      marginBottom: getSpacingPx(SPACING.xxxl)
     },
 
     ".logo": {
@@ -52,14 +52,14 @@ const errorBoundaryStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: "1.25rem",
-      marginBottom: "2.5rem"
+      gap: getSpacingPx(SPACING.xl),
+      marginBottom: getSpacingPx(SPACING.xxxl)
     },
 
     ".button-row": {
       display: "flex",
       alignItems: "center",
-      gap: "0.75rem",
+      gap: getSpacingPx(SPACING.lg),
       flexWrap: "wrap",
       justifyContent: "center"
     },
@@ -67,7 +67,7 @@ const errorBoundaryStyles = (theme: Theme) =>
     ".reload-button": {
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.grey[1000],
-      padding: "0.6em 2.5em",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xxxl)}`,
       fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       borderRadius: BORDER_RADIUS.md,
@@ -78,7 +78,7 @@ const errorBoundaryStyles = (theme: Theme) =>
     },
 
     ".copy-error-button": {
-      padding: "0.6em 1.5em",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xxl)}`,
       fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       borderRadius: BORDER_RADIUS.md,
@@ -94,7 +94,7 @@ const errorBoundaryStyles = (theme: Theme) =>
     ".contact-row": {
       display: "flex",
       alignItems: "center",
-      gap: "0.75rem",
+      gap: getSpacingPx(SPACING.lg),
       flexWrap: "wrap",
       justifyContent: "center"
     },
@@ -102,12 +102,12 @@ const errorBoundaryStyles = (theme: Theme) =>
     ".contact-link": {
       display: "inline-flex",
       alignItems: "center",
-      gap: "0.4em",
+      gap: getSpacingPx(SPACING.sm),
       color: theme.vars.palette.grey[100],
       textDecoration: "none",
       fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
-      padding: "0.45em 1em",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       borderRadius: BORDER_RADIUS.md,
       transition: MOTION.all,
@@ -130,7 +130,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.grey[500],
       textTransform: "none",
-      marginBottom: "0.5rem",
+      marginBottom: getSpacingPx(SPACING.md),
       "&:hover": {
         background: "transparent",
         color: theme.vars.palette.grey[300]
@@ -142,7 +142,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[200],
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeNormal)",
-      padding: "0.75em 1em",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       lineHeight: 1.6,
       textAlign: "center",
       wordBreak: "break-word"
@@ -161,7 +161,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.md,
       fontFamily: "monospace",
       fontSize: "var(--fontSizeSmall)",
-      padding: "1em",
+      padding: getSpacingPx(SPACING.xl),
       whiteSpace: "pre-wrap",
       wordBreak: "break-all",
       maxHeight: 260,

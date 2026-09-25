@@ -21,7 +21,7 @@ import { Step } from "../../stores/ApiTypes";
 const styles = (theme: Theme) =>
   css({
     ".step-item": {
-      padding: "0.85rem 1rem",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderRadius: BORDER_RADIUS.lg,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.grey[800]}44`,
@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
     ".step-content": {
       display: "flex",
       alignItems: "flex-start",
-      gap: "0.85rem"
+      gap: getSpacingPx(SPACING.lg)
     },
     ".step-status-icon": {
       marginTop: getSpacingPx(SPACING.micro),

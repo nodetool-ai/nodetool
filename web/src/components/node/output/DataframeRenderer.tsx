@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useState } from "react";
-import { ToolbarIconButton, MOTION, BORDER_RADIUS, Z_INDEX } from "../../ui_primitives";
+import { ToolbarIconButton, MOTION, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import isEqual from "../../../utils/isEqual";
 import { useTheme } from "@mui/material/styles";
@@ -89,7 +89,7 @@ const styles = (theme: Theme) =>
       ".dataframe-action-buttons": { opacity: 1 }
     },
     ".dataframe-action-buttons .MuiIconButton-root": {
-      padding: "0.25em",
+      padding: getSpacingPx(SPACING.xs),
       color: theme.vars.palette.primary.main,
       borderRadius: BORDER_RADIUS.sm,
       "&:hover": {

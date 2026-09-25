@@ -285,7 +285,7 @@ const PaneContextMenu: React.FC = () => {
             key="favorites-header"
             align="center"
             sx={{
-              gap: "0.5em",
+              gap: getSpacingPx(SPACING.md),
               padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
               color: "text.secondary",
               fontSize: "var(--fontSizeSmaller)",

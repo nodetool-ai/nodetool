@@ -1,7 +1,7 @@
 import React, { memo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTheme } from "@mui/material/styles";
-import { MOTION } from "../ui_primitives";
+import { MOTION, getSpacingPx, SPACING } from "../ui_primitives";
 
 interface SpeedDisplayProps {
   speedFactor: number;
@@ -51,7 +51,7 @@ const SpeedDisplay: React.FC<SpeedDisplayProps> = ({
         top: 0,
         backgroundColor: "var(--color-background-paper)",
         color: "white",
-        padding: ".5em 1em",
+        padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
         borderRadius: ".5em",
         fontSize: "var(--fontSizeSmall)",
         pointerEvents: "none",

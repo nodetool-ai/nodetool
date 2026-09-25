@@ -3,7 +3,7 @@ import { useState, DragEvent, useRef, useCallback, useEffect } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, FONT_WEIGHT, Z_INDEX } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, FONT_WEIGHT, Z_INDEX, getSpacingPx, SPACING } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      padding: "0 .5em",
+      padding: `0 ${getSpacingPx(SPACING.md)}`,
       right: "48px",
       margin: "0",
       border: "none",

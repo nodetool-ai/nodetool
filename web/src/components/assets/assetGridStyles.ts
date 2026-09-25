@@ -41,27 +41,27 @@ export const assetGridStyles = (theme: Theme) => {
       bottom: "0",
       display: "flex",
       flexDirection: "column",
-      gap: "0.25em",
+      gap: getSpacingPx(SPACING.xs),
       zIndex: Z_INDEX.overlay,
-      padding: "0.5em",
+      padding: getSpacingPx(SPACING.md),
       borderTop: `2px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.grey[800]
     },
     ".controls .zoom": {
       maxWidth: "200px",
-      paddingBottom: "0.5em"
+      paddingBottom: getSpacingPx(SPACING.md)
     },
     ".current-folder": {
       display: "block",
       left: "0",
       fontSize: theme.fontSizeNormal,
       color: theme.vars.palette.grey[200],
-      margin: "1em 0 0 0"
+      margin: `${getSpacingPx(SPACING.xl)} 0 0 0`
     },
     ".folder-slash": {
       color: theme.vars.palette.primary.main,
       fontWeight: 600,
-      marginRight: "0.25em",
+      marginRight: getSpacingPx(SPACING.xs),
       userSelect: "none"
     },
     ".selected-asset-info": {
@@ -71,7 +71,7 @@ export const assetGridStyles = (theme: Theme) => {
       color: theme.vars.palette.grey[400],
       minHeight: "25px",
       padding: "0",
-      margin: "0 0 0 0.5em"
+      margin: `0 0 0 ${getSpacingPx(SPACING.md)}`
     },
     ".folder-list-container": {
       padding: 0
@@ -89,7 +89,7 @@ export const assetGridStyles = (theme: Theme) => {
       borderRadius: BORDER_RADIUS.sm
     },
     ".folder-icon": {
-      marginRight: "0.1em",
+      marginRight: getSpacingPx(SPACING.micro),
       color: theme.vars.palette.grey[500],
       verticalAlign: "middle",
       backgroundColor: "transparent"

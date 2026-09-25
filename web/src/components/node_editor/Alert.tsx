@@ -70,7 +70,7 @@ const styles = () =>
       }
     },
     ".MuiAlert-message": {
-      padding: "0.2em 1.5em 0.1em 0",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.micro)} 0`,
       lineHeight: 1.35,
       fontSize: "var(--fontSizeSmall)",
       overflowX: "hidden",

@@ -4,7 +4,7 @@ import { memo, useState, useCallback, useRef, useMemo } from "react";
 import { NodeProps, Node } from "@xyflow/react";
 import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "../../utils/isEqual";
-import { Container, MOTION, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
+import { Container, MOTION, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { useTheme } from "@mui/material/styles";
@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
     height: "100%",
     margin: 0,
     borderRadius: BORDER_RADIUS.sm,
-    padding: "1em .5em",
+    padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`,
     boxSizing: "border-box",
     boxShadow: "inset 0 0 5px 1px rgba(0, 0, 0, 0.067)",
     position: "relative",
@@ -76,7 +76,7 @@ const styles = (theme: Theme) =>
       overflowX: "hidden",
       "& .editor-input": {
         height: "unset",
-        paddingTop: ".5em",
+        paddingTop: getSpacingPx(SPACING.md),
         lineHeight: "1.1em",
         caretColor: theme.vars.palette.primary.contrastText
       },
@@ -94,7 +94,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       backgroundColor: theme.vars.palette.c_overlay_strong,
       borderRadius: BORDER_RADIUS.sm,
-      padding: "0.25em 0.5em",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       zIndex: Z_INDEX.raised,
       opacity: 0,
       transition: `opacity ${MOTION.normal} ${200}ms`
@@ -354,7 +354,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     () => ({
       backgroundColor: hexToRgba(color, 0.5),
       color: textColor,
-      paddingRight: "2em"
+      paddingRight: getSpacingPx(SPACING.xxxl)
     }),
     [color, textColor]
   );

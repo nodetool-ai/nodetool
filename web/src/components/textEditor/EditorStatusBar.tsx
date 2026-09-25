@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
-import { Box, BORDER_RADIUS } from "../ui_primitives";
+import { Box, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
 import LockIcon from "@mui/icons-material/Lock";
 
 interface EditorStatusBarProps {
@@ -26,7 +26,7 @@ const styles = (theme: Theme) =>
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "0.4em 1.25em",
+    padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xl)}`,
     backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.7)`,
     backdropFilter: "blur(8px)",
     fontSize: theme.fontSizeSmaller,
@@ -48,13 +48,13 @@ const styles = (theme: Theme) =>
     },
     ".stats": {
       display: "flex",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       alignItems: "center"
     },
     ".stat-item": {
       display: "flex",
       alignItems: "center",
-      gap: "0.25em",
+      gap: getSpacingPx(SPACING.xs),
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
       letterSpacing: "0.04em",
@@ -77,7 +77,7 @@ const styles = (theme: Theme) =>
     ".status-info": {
       display: "flex",
       alignItems: "center",
-      gap: "0.85em",
+      gap: getSpacingPx(SPACING.lg),
       color: theme.vars.palette.grey[400],
       fontSize: theme.fontSizeSmaller,
       ".info-item": {
@@ -87,7 +87,7 @@ const styles = (theme: Theme) =>
     ".read-only-badge": {
       display: "inline-flex",
       alignItems: "center",
-      gap: "0.25em",
+      gap: getSpacingPx(SPACING.xs),
       padding: theme.spacing(0.5, 2),
       borderRadius: BORDER_RADIUS.md,
       fontSize: theme.fontSizeSmaller,

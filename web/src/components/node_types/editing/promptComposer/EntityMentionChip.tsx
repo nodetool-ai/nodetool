@@ -5,7 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { EntityKind } from "@nodetool-ai/protocol";
 
-import { BORDER_RADIUS, SPACING, Tooltip } from "../../../ui_primitives";
+import { BORDER_RADIUS, SPACING, Tooltip, getSpacingPx } from "../../../ui_primitives";
 import { useAssetById } from "../../../../serverState/useAssetById";
 import { readEntityMarker } from "../../../../serverState/useEntities";
 import { ENTITY_KIND_ICON } from "../../../entities/entityKind";
@@ -18,10 +18,10 @@ const chipStyles = (theme: Theme) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: "0.3em",
+    gap: getSpacingPx(SPACING.xs),
     verticalAlign: "baseline",
     margin: `0 ${theme.spacing(0.5)}`,
-    padding: "0.05em 0.45em",
+    padding: `0 ${getSpacingPx(SPACING.md)}`,
     borderRadius: BORDER_RADIUS.sm,
     backgroundColor: theme.vars.palette.secondary.main,
     color: theme.vars.palette.secondary.contrastText,

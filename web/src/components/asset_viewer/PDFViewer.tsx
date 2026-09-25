@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
     "&": {
       width: "100%",
       height: "calc(100% - 120px)",
-      marginTop: "1em",
+      marginTop: getSpacingPx(SPACING.xl),
       position: "relative"
     },
     ".content-wrapper": {
@@ -58,10 +58,10 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       backgroundColor: "transparent",
-      marginBottom: "1em",
+      marginBottom: getSpacingPx(SPACING.xl),
       overflow: "auto scroll",
       "& .react-pdf__Page": {
-        marginBottom: "1em",
+        marginBottom: getSpacingPx(SPACING.xl),
         display: "flex",
         justifyContent: "center",
         position: "relative",
@@ -97,18 +97,18 @@ const styles = (theme: Theme) =>
       }
     },
     ".content-type": {
-      marginBottom: "1em",
+      marginBottom: getSpacingPx(SPACING.xl),
       color: theme.vars.palette.text.secondary
     },
     ".page-controls": {
       position: "sticky",
       bottom: "1em",
       background: theme.vars.palette.grey[600],
-      padding: "0.8em 1em",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderRadius: BORDER_RADIUS.sm,
       zIndex: Z_INDEX.sticky,
       alignItems: "center",
-      gap: "1em",
+      gap: getSpacingPx(SPACING.xl),
       minWidth: "200px",
       userSelect: "none"
     },
@@ -117,7 +117,7 @@ const styles = (theme: Theme) =>
       right: "230px",
       bottom: "75px",
       background: theme.vars.palette.background.paper,
-      padding: "0.2em",
+      padding: getSpacingPx(SPACING.xs),
       borderRadius: BORDER_RADIUS.sm,
       zIndex: Z_INDEX.sticky
     },
@@ -126,7 +126,7 @@ const styles = (theme: Theme) =>
       right: "150px",
       top: "25px",
       height: "calc(100% - 85px)",
-      padding: "1em 0",
+      padding: `${getSpacingPx(SPACING.xl)} 0`,
       display: "flex",
       alignItems: "center",
       "& .MuiSlider-root": {
@@ -211,7 +211,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
   );
 
   return (
-    <FlexRow className="pdf-viewer" css={styles(theme)} fullWidth sx={{ height: "calc(100% - 120px)", marginTop: "1em", position: "relative" }}>
+    <FlexRow className="pdf-viewer" css={styles(theme)} fullWidth sx={{ height: "calc(100% - 120px)", marginTop: getSpacingPx(SPACING.xl), position: "relative" }}>
       <FlexColumn className="content-wrapper" fullWidth fullHeight align="center" sx={{ flex: 1, overflow: "hidden", paddingRight: getSpacingPx(12.5), backgroundColor: "transparent" }}>
         {asset?.content_type && (
           <Text size="small" className="content-type">
@@ -228,7 +228,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
         >
           {pageComponent}
         </Document>
-        <FlexRow className="page-controls" align="center" gap={SPACING.xs} sx={{ position: "sticky", bottom: "1em", background: theme.vars.palette.grey[600], padding: "0.8em 1em", borderRadius: BORDER_RADIUS.sm, zIndex: Z_INDEX.sticky, minWidth: "200px", userSelect: "none" }}>
+        <FlexRow className="page-controls" align="center" gap={SPACING.xs} sx={{ position: "sticky", bottom: "1em", background: theme.vars.palette.grey[600], padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`, borderRadius: BORDER_RADIUS.sm, zIndex: Z_INDEX.sticky, minWidth: "200px", userSelect: "none" }}>
           <ToolbarIconButton
             icon={<NavigateBefore />}
             tooltip="Previous page"
@@ -273,7 +273,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
           size="small"
         />
       </ActionButtonGroup>
-      <FlexRow className="vertical-slider" align="center" sx={{ position: "absolute", right: "150px", top: "25px", height: "calc(100% - 85px)", padding: "1em 0" }}>
+      <FlexRow className="vertical-slider" align="center" sx={{ position: "absolute", right: "150px", top: "25px", height: "calc(100% - 85px)", padding: `${getSpacingPx(SPACING.xl)} 0` }}>
         <NodeSlider
           value={numPages ? numPages - pageNumber + 1 : 1}
           onChange={handleSliderChange}

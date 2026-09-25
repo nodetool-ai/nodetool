@@ -31,7 +31,7 @@ import {
   BORDER_RADIUS,
   List,
   ListItem,
-  ListItemText
+  ListItemText, getSpacingPx, SPACING
 } from "../ui_primitives";
 import ListTable from "./DataTable/ListTable";
 import ImageView from "./ImageView";
@@ -63,10 +63,10 @@ import SketchRenderer from "../sketch/SketchRenderer";
 const RAW_RGBA_MIME = "image/x-raw-rgba";
 
 const FULL_SIZE_STYLE: React.CSSProperties = { width: "100%", height: "100%" };
-const AUDIO_WRAPPER_STYLE: React.CSSProperties = { padding: "1em" };
+const AUDIO_WRAPPER_STYLE: React.CSSProperties = { padding: getSpacingPx(SPACING.xl) };
 const IFRAME_STYLE: React.CSSProperties = { width: "100%", height: "100%", minHeight: 320, border: "none" };
 const IFRAME_PDF_STYLE: React.CSSProperties = { width: "100%", height: "100%", minHeight: 360, border: "none" };
-const DOCUMENT_LINK_STYLE: React.CSSProperties = { padding: "0.75em" };
+const DOCUMENT_LINK_STYLE: React.CSSProperties = { padding: getSpacingPx(SPACING.lg) };
 const MODEL_3D_WRAPPER_STYLE: React.CSSProperties = {
   width: "100%",
   height: "100%",
@@ -81,8 +81,8 @@ const SCROLL_CONTAINER_STYLE: React.CSSProperties = {
   userSelect: "none"
 };
 const TRUNCATION_STYLE: React.CSSProperties = {
-  margin: "0.5em 0.75em",
-  padding: "0.4em 0.6em",
+  margin: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
+  padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
   borderRadius: BORDER_RADIUS.lg,
   background: "rgba(var(--palette-warning-mainChannel) / 0.12)",
   border: "1px solid rgba(var(--palette-warning-mainChannel) / 0.35)",

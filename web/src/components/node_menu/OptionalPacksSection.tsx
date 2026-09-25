@@ -35,7 +35,7 @@ import {
   MOTION,
   Text,
   TextLink,
-  Popover
+  Popover, getSpacingPx, SPACING
 } from "../ui_primitives";
 import { OPTIONAL_NODE_PACKS } from "../../config/optionalNodePacks";
 import useOptionalNodePacksStore from "../../stores/OptionalNodePacksStore";
@@ -49,17 +49,17 @@ import { isElectron } from "../../lib/env";
 const styles = (theme: Theme) =>
   css({
     "&": {
-      marginTop: "0.5em",
-      paddingTop: "0.5em",
+      marginTop: getSpacingPx(SPACING.md),
+      paddingTop: getSpacingPx(SPACING.md),
       borderTop: `1px solid ${theme.vars.palette.divider}`
     },
     ".optional-packs-trigger": {
       display: "flex",
       alignItems: "center",
-      gap: "0.6em",
+      gap: getSpacingPx(SPACING.md),
       width: "100%",
       cursor: "pointer",
-      padding: "0.45em 0.5em",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.md)}`,
       border: "none",
       background: "transparent",
       borderRadius: BORDER_RADIUS.md,
@@ -95,9 +95,9 @@ const styles = (theme: Theme) =>
 
 const popoverStyles = (theme: Theme) =>
   css({
-    padding: "1em",
+    padding: getSpacingPx(SPACING.xl),
     "& .pack-row": {
-      padding: "0.35em 0"
+      padding: `${getSpacingPx(SPACING.sm)} 0`
     },
     "& .provider-row .provider-name": {
       minWidth: 0,
@@ -109,7 +109,7 @@ const popoverStyles = (theme: Theme) =>
       flexShrink: 0,
       display: "flex",
       alignItems: "center",
-      gap: "0.3em",
+      gap: getSpacingPx(SPACING.xs),
       color: theme.vars.palette.success.main
     },
     "& .provider-row .key-set svg": {

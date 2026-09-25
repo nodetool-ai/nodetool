@@ -25,7 +25,7 @@ import {
   reducedMotion,
   BORDER_RADIUS,
   SPACING,
-  Z_INDEX
+  Z_INDEX, getSpacingPx
 } from "../ui_primitives";
 //icons
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
@@ -126,7 +126,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
       borderRadius: BORDER_RADIUS.circle,
-      padding: "0.3em"
+      padding: getSpacingPx(SPACING.xs)
     },
     ".actions button svg": {
       fontSize: "1.2em"
@@ -140,7 +140,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       width: "100%",
       height: "120px",
-      padding: "0 0 .5em 0",
+      padding: `0 0 ${getSpacingPx(SPACING.md)} 0`,
       backgroundColor: theme.vars.palette.grey[800],
       bottom: 0,
       zIndex: Z_INDEX.overlay

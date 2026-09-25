@@ -34,15 +34,15 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     alignItems: "center",
-    padding: "0.2em 0.5em 0.5em 1em",
+    padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
     justifyContent: "start",
     backgroundColor: theme.vars.palette.grey[800],
-    gap: "0.5em",
+    gap: getSpacingPx(SPACING.md),
     ".search-group": {
       display: "flex",
       alignItems: "center",
       margin: "0",
-      gap: "0.2em"
+      gap: getSpacingPx(SPACING.xs)
     },
     ".search-input": {
       "& .MuiInputBase-root": {
@@ -52,7 +52,7 @@ const styles = (theme: Theme) =>
         border: "none",
         height: "2em",
         "& input": {
-          padding: "0.5em .75em"
+          padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`
         }
       },
       "& .MuiInputBase-input::placeholder": {
@@ -79,7 +79,7 @@ const styles = (theme: Theme) =>
         fontSize: theme.fontSizeSmaller,
         height: "2em",
         "& input": {
-          padding: "0.5em"
+          padding: getSpacingPx(SPACING.md)
         }
       },
       "& .MuiInputBase-input::placeholder": {

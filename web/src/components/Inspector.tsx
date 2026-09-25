@@ -293,7 +293,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       position: "relative",
       alignItems: "flex-start",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       width: "100%",
       minWidth: 0
     },
@@ -306,13 +306,13 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       flex: "0 0 auto",
       alignItems: "center",
-      marginTop: "0.15em",
+      marginTop: getSpacingPx(SPACING.micro),
       color: theme.vars.palette.warning.main
     },
 
     /* ---------- Validation banner ---------- */
     ".validation-banner": {
-      padding: "0.5em 0.75em",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
       border: `1px solid ${theme.vars.palette.error.main}`,
       backgroundColor: "var(--palette-error-overlay)",
       borderRadius: BORDER_RADIUS.md,
@@ -321,16 +321,16 @@ const styles = (theme: Theme) =>
     },
     ".validation-banner .validation-banner-title": {
       fontWeight: 600,
-      marginBottom: "0.25em",
+      marginBottom: getSpacingPx(SPACING.xs),
       display: "flex",
       alignItems: "center",
-      gap: "0.25em"
+      gap: getSpacingPx(SPACING.xs)
     },
     ".validation-banner .validation-banner-row": {
       display: "block",
       width: "100%",
       textAlign: "left",
-      padding: "0.15em 0",
+      padding: `${getSpacingPx(SPACING.micro)} 0`,
       background: "transparent",
       border: "none",
       cursor: "pointer",
@@ -834,7 +834,7 @@ const Inspector: React.FC = () => {
                   </div>
                 ))
               ) : (
-                <Caption size="smaller" color="muted" sx={{ padding: "0.25em 0" }}>
+                <Caption size="smaller" color="muted" sx={{ padding: `${getSpacingPx(SPACING.xs)} 0` }}>
                   No shared editable properties across the selected nodes.
                 </Caption>
               )}

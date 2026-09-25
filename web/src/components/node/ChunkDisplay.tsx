@@ -62,8 +62,8 @@ const ChunkDisplay: React.FC<ChunkDisplayProps> = memo(({ chunk }) => {
   const chunkCss = useMemo(
     () =>
       css({
-        marginTop: "0.5em",
-        padding: "0.5em",
+        marginTop: getSpacingPx(SPACING.md),
+        padding: getSpacingPx(SPACING.md),
       }),
     []
   );

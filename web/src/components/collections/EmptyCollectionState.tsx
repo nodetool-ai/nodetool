@@ -10,7 +10,7 @@ import {
 const EmptyCollectionState = () => {
   return (
     <Box sx={{ marginTop: 2, maxWidth: 600 }}>
-      <Text size="big" sx={{ margin: "1em 0 .5em 0" }}>
+      <Text size="big" sx={{ margin: `${getSpacingPx(SPACING.xl)} 0 ${getSpacingPx(SPACING.md)} 0` }}>
         Vector Collections
       </Text>
       <Text sx={{ marginBottom: 1 }}>

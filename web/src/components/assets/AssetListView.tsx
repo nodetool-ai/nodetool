@@ -13,7 +13,7 @@ import { getAssetCategory } from "./assetGridUtils";
 import FolderIcon from "@mui/icons-material/Folder";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ExpandCollapseButton, EmptyState, Text, Box, MOTION, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
+import { ExpandCollapseButton, EmptyState, Text, Box, MOTION, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { isCoarsePointer } from "../../utils/isCoarsePointer";
 import { useVideoThumbnail } from "../../hooks/useVideoThumbnail";
@@ -32,7 +32,7 @@ const TYPE_SECTION_HEIGHT = 36;
 const HEADER_ICON_STYLE = {
   width: "24px",
   height: "24px",
-  marginRight: "0.5em"
+  marginRight: getSpacingPx(SPACING.md)
 };
 const ROW_ICON_STYLE = {
   width: "24px",
@@ -60,7 +60,7 @@ const styles = (theme: Theme) =>
     ".asset-list-header": {
       display: "flex",
       alignItems: "center",
-      padding: "2em 1em 1em",
+      padding: `${getSpacingPx(SPACING.xxxl)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)}`,
       color: theme.vars.palette.grey[400],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
@@ -71,7 +71,7 @@ const styles = (theme: Theme) =>
     },
     ".asset-header-icon-space": {
       width: "32px",
-      marginRight: "0.75em",
+      marginRight: getSpacingPx(SPACING.lg),
       flexShrink: 0
     },
     ".asset-header-name": {
@@ -99,13 +99,13 @@ const styles = (theme: Theme) =>
       paddingBottom: "14em"
     },
     ".asset-content-type-section": {
-      marginBottom: "1em"
+      marginBottom: getSpacingPx(SPACING.xl)
     },
     ".asset-content-type-header": {
       display: "flex",
       alignItems: "center",
-      padding: "0.25em 1em",
-      marginBottom: "0.5em",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
+      marginBottom: getSpacingPx(SPACING.md),
       backgroundColor: "transparent",
       borderBottom: "2px solid ",
       cursor: "pointer",
@@ -117,13 +117,13 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeNormal,
       color: theme.vars.palette.grey[100],
       textTransform: "uppercase",
-      marginLeft: "0.5em",
+      marginLeft: getSpacingPx(SPACING.md),
       flex: 1
     },
     ".asset-list-item": {
       display: "flex",
       alignItems: "center",
-      padding: "0.2em 1em",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
       borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
       cursor: "pointer",
       transition: MOTION.background,
@@ -136,7 +136,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".asset-item-icon": {
-      marginRight: "0.75em",
+      marginRight: getSpacingPx(SPACING.lg),
       width: "24px",
       height: "24px",
       display: "flex",
@@ -153,7 +153,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".asset-item-thumbnail": {
-      marginRight: "0.75em",
+      marginRight: getSpacingPx(SPACING.lg),
       width: "32px",
       height: "32px",
       borderRadius: BORDER_RADIUS.sm,
@@ -217,7 +217,7 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[200],
-      marginLeft: "1em"
+      marginLeft: getSpacingPx(SPACING.xl)
     }
   });
 

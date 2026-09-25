@@ -23,9 +23,9 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: "0.5em",
+    gap: getSpacingPx(SPACING.md),
     padding: "0",
-    marginBottom: "0.5em",
+    marginBottom: getSpacingPx(SPACING.md),
     backgroundColor: "transparent",
     overflow: "hidden",
     position: "relative",
@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
     },
     ".dataframe-action-buttons .MuiIconButton-root": {
       margin: `0 0 0 ${theme.spacing(SPACING.sm)}`,
-      padding: "0.2em",
+      padding: getSpacingPx(SPACING.xs),
       color: theme.vars.palette.primary.main,
       "&:hover": {
         color: theme.vars.palette.primary.light,
@@ -55,7 +55,7 @@ const styles = (theme: Theme) =>
     },
     ".button-group": {
       display: "flex",
-      marginBottom: "0.5em"
+      marginBottom: getSpacingPx(SPACING.md)
     },
     ".button-group button": {
       fontSize: theme.fontSizeSmall,
@@ -67,8 +67,8 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       margin: 0,
-      gap: "0.25em",
-      padding: ".1em 1em 0 .5em",
+      gap: getSpacingPx(SPACING.xs),
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xl)} 0 ${getSpacingPx(SPACING.md)}`,
       borderRadius: "0"
     },
     "button.add-column:hover": {
@@ -76,7 +76,7 @@ const styles = (theme: Theme) =>
     },
     "button.add-column svg": {
       fontSize: theme.fontSizeSmall,
-      marginRight: "0.5em"
+      marginRight: getSpacingPx(SPACING.md)
     },
     ".dropzone": {
       position: "relative",
@@ -109,7 +109,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       gap: getSpacingPx(SPACING.xs),
-      padding: "1em"
+      padding: getSpacingPx(SPACING.xl)
     },
     ".dropzone-content svg": {
       fontSize: "var(--fontSizeBig)",

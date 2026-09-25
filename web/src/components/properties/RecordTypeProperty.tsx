@@ -7,7 +7,7 @@ import { memo, useCallback } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import { ColumnDef } from "../../stores/ApiTypes";
 import ColumnsManager from "../node/ColumnsManager";
-import { EditorButton, ButtonGroup, BORDER_RADIUS } from "../ui_primitives";
+import { EditorButton, ButtonGroup, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import isEqual from "../../utils/isEqual";
@@ -17,14 +17,14 @@ const styles = (theme: Theme) =>
     "&": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       padding: "0",
       backgroundColor: "transparent"
     },
     ".button-group": {
       display: "flex",
-      gap: "0.5em",
-      marginBottom: "0.5em"
+      gap: getSpacingPx(SPACING.md),
+      marginBottom: getSpacingPx(SPACING.md)
     },
     button: {
       fontSize: theme.fontSizeSmaller,
@@ -34,8 +34,8 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       margin: 0,
-      gap: "0.25em",
-      padding: ".1em 1em 0 .5em",
+      gap: getSpacingPx(SPACING.xs),
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xl)} 0 ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.sm
     },
     "button:hover": {

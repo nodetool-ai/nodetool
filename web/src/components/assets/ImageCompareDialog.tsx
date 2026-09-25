@@ -41,7 +41,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       display: "flex",
       flexDirection: "row",
-      gap: "1.5em",
+      gap: getSpacingPx(SPACING.xxl),
       top: "1em",
       right: "2em"
     },

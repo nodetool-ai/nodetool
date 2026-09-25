@@ -27,7 +27,7 @@ interface NamespaceListProps {
 const namespaceStyles = (theme: Theme) =>
   css({
     "&": {
-      margin: "1em 0",
+      margin: `${getSpacingPx(SPACING.xl)} 0`,
       height: "60vh",
       display: "flex",
       flexDirection: "column",
@@ -45,7 +45,7 @@ const namespaceStyles = (theme: Theme) =>
       minHeight: "30px",
       alignItems: "center",
       flexDirection: "column",
-      margin: "0 1em .5em ",
+      margin: `0 ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`,
       justifyContent: "flex-start"
     },
     ".node-packs-info": {
@@ -74,7 +74,7 @@ const namespaceStyles = (theme: Theme) =>
       transition: `max-width ${MOTION.slow}, width ${MOTION.slow}`,
       overflowX: "hidden",
       overflowY: "auto",
-      padding: "0 0.35em"
+      padding: `0 ${getSpacingPx(SPACING.sm)}`
     },
     ".node-list.expanded": {
       width: "100%",
@@ -95,10 +95,10 @@ const namespaceStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[0],
       fontFamily: theme.fontFamily1,
       wordSpacing: "0",
-      padding: "0 1em",
+      padding: `0 ${getSpacingPx(SPACING.xl)}`,
       margin: 0,
       alignItems: "stretch",
-      gap: "1em",
+      gap: getSpacingPx(SPACING.xl),
       opacity: 0,
       animation: `fadeIn ${MOTION.slow} forwards`,
       animationDelay: `${500}ms`,
@@ -132,20 +132,20 @@ const namespaceStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[200],
       fontWeight: 400,
       margin: "0",
-      padding: "0 2em 2em 0"
+      padding: `0 ${getSpacingPx(SPACING.xxxl)} ${getSpacingPx(SPACING.xxxl)} 0`
     },
     ".explanation h5": {
       color: "var(--palette-primary-main)",
-      margin: " 0 0 0.3em",
+      margin: `0 0 ${getSpacingPx(SPACING.xs)}`,
       padding: "0",
       fontWeight: 400
     },
     ".explanation ul": {
       listStyleType: "square",
-      paddingInlineStart: "1em",
+      paddingInlineStart: getSpacingPx(SPACING.xl),
       margin: 0,
       "& li": {
-        margin: "0.25em 0",
+        margin: `${getSpacingPx(SPACING.xs)} 0`,
         padding: "0"
       }
     },
@@ -154,12 +154,12 @@ const namespaceStyles = (theme: Theme) =>
       cursor: "default",
       display: "flex",
       alignItems: "center",
-      gap: "0.25em",
+      gap: getSpacingPx(SPACING.xs),
       fontSize: theme.fontSizeNormal,
       padding: theme.spacing(1, 1.5),
       borderRadius: BORDER_RADIUS.md,
       backgroundColor: theme.vars.palette.action.hover,
-      margin: "1em .5em 0 0",
+      margin: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)} 0 0`,
       border: `1px solid ${theme.vars.palette.divider}`
     },
     ".result-info span": {
@@ -170,15 +170,15 @@ const namespaceStyles = (theme: Theme) =>
       color: `${theme.vars.palette.text.secondary} !important`,
       fontSize: "0.8em",
       fontWeight: 400,
-      marginLeft: "0.5em",
+      marginLeft: getSpacingPx(SPACING.md),
       userSelect: "none"
     },
     ".no-selection p": {
       margin: "0",
-      padding: "0 0 .5em 0"
+      padding: `0 0 ${getSpacingPx(SPACING.md)} 0`
     },
     ".no-results": {
-      padding: "0 0 0 2em",
+      padding: `0 0 0 ${getSpacingPx(SPACING.xxxl)}`,
       margin: "0",
       fontSize: "0.8em",
       color: theme.vars.palette.grey[200]
@@ -187,8 +187,8 @@ const namespaceStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[400]
     },
     ".highlighted": {
-      paddingLeft: ".25em",
-      marginLeft: ".1em",
+      paddingLeft: getSpacingPx(SPACING.xs),
+      marginLeft: getSpacingPx(SPACING.micro),
       borderLeft: `1px solid ${"var(--palette-primary-main)"}`
     },
     ".highlighted-text": {
@@ -248,8 +248,8 @@ const namespaceStyles = (theme: Theme) =>
       fontWeight: 400,
       fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.15,
-      padding: "0.4em 0 0 0",
-      margin: "0.5em 0 0 0",
+      padding: `${getSpacingPx(SPACING.sm)} 0 0 0`,
+      margin: `${getSpacingPx(SPACING.md)} 0 0 0`,
       wordBreak: "break-word",
       userSelect: "none",
       pointerEvents: "none",
@@ -270,7 +270,7 @@ const namespaceStyles = (theme: Theme) =>
     ".api-key-warning": {
       color: theme.vars.palette.grey[200],
       fontSize: theme.fontSizeSmall,
-      margin: "0.5em 0"
+      margin: `${getSpacingPx(SPACING.md)} 0`
     },
     "&.has-search-results .namespace-list-enabled .no-highlight .namespace-item":
       {
@@ -286,7 +286,7 @@ const namespaceStyles = (theme: Theme) =>
       maxWidth: "560px",
       backgroundColor: "transparent",
       borderLeft: `1px solid ${theme.vars.palette.divider}`,
-      paddingLeft: "0.5em",
+      paddingLeft: getSpacingPx(SPACING.md),
       overflow: "hidden"
     },
     ".node-packs-info .MuiButton-root": {
@@ -305,7 +305,7 @@ const namespaceStyles = (theme: Theme) =>
       minWidth: "300px",
       backgroundColor: "transparent",
       borderLeft: `1px solid ${theme.vars.palette.divider}`,
-      marginLeft: "0.5em",
+      marginLeft: getSpacingPx(SPACING.md),
       overflowY: "auto"
     }
   });
@@ -363,8 +363,8 @@ const NoSelectionContent = memo(function NoSelectionContent({
           variant="outlined"
           onClick={openPacksPanel}
           style={{
-            marginTop: "0.5em",
-            marginBottom: "0.5em",
+            marginTop: getSpacingPx(SPACING.md),
+            marginBottom: getSpacingPx(SPACING.md),
             textTransform: "none",
             lineHeight: "1.5",
             padding: getSpacingPx(SPACING.xl)

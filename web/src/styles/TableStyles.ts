@@ -108,9 +108,9 @@ export const tableStyles = (theme: Theme) =>
     ".table-actions": {
       display: "flex",
       width: "100%",
-      gap: "0.25em",
+      gap: getSpacingPx(SPACING.xs),
       margin: 0,
-      padding: "0.35em 0.5em",
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
       justifyContent: "flex-start",
       alignItems: "center",
       minHeight: "2.5em",
@@ -123,7 +123,7 @@ export const tableStyles = (theme: Theme) =>
         marginLeft: "auto",
         display: "flex",
         alignItems: "center",
-        gap: "0.35em"
+        gap: getSpacingPx(SPACING.sm)
       },
       "& button": {
         padding: getSpacingPx(SPACING.xs),
@@ -143,7 +143,7 @@ export const tableStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.primary.main
     },
     ".tabulator .tabulator-cell.tabulator-editing.datetime input": {
-      padding: ".5em",
+      padding: getSpacingPx(SPACING.md),
       borderRadius: BORDER_RADIUS.lg,
       backgroundColor: theme.vars.palette.common.white
     },

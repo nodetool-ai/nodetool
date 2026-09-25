@@ -8,7 +8,7 @@ import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import MovieIcon from "@mui/icons-material/Movie";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 
-import { BORDER_RADIUS, SPACING, Tooltip } from "../../../ui_primitives";
+import { BORDER_RADIUS, SPACING, Tooltip, getSpacingPx } from "../../../ui_primitives";
 import { useAssetById } from "../../../../serverState/useAssetById";
 import { assetMediaKind, parseAssetUri } from "./promptTokens";
 
@@ -19,10 +19,10 @@ const chipStyles = (theme: Theme) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: "0.3em",
+    gap: getSpacingPx(SPACING.xs),
     verticalAlign: "baseline",
     margin: `0 ${theme.spacing(0.5)}`,
-    padding: "0.05em 0.45em",
+    padding: `0 ${getSpacingPx(SPACING.md)}`,
     borderRadius: BORDER_RADIUS.sm,
     backgroundColor: theme.vars.palette.primary.main,
     color: theme.vars.palette.primary.contrastText,

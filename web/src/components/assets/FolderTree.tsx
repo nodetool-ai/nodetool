@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useMemo } from "react";
-import { EditorButton, Box } from "../ui_primitives";
+import { EditorButton, Box, getSpacingPx, SPACING } from "../ui_primitives";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
 import { type AssetTreeNode } from "../../stores/AssetStore";
@@ -23,7 +23,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       justifyContent: "flex-start",
       height: "100%",
-      padding: ".5em 0 0",
+      padding: `${getSpacingPx(SPACING.md)} 0 0`,
       backgroundColor: theme.vars.palette.grey[600],
       fontFamily: theme.fontFamily1
     },
@@ -35,14 +35,14 @@ const styles = (theme: Theme) =>
       "& .MuiTreeItem-content": {
         display: "flex",
         alignItems: "flex-start",
-        padding: ".25em",
+        padding: getSpacingPx(SPACING.xs),
         "&:hover": {
           backgroundColor: theme.vars.palette.grey[500]
         }
       },
       "& svg": {
         color: "var(--palette-primary-main)",
-        marginTop: ".25em"
+        marginTop: getSpacingPx(SPACING.xs)
       },
       "& .MuiTreeItem-label": {
         fontFamily: theme.fontFamily1
@@ -53,7 +53,7 @@ const styles = (theme: Theme) =>
       right: 0,
       color: "var(--palette-primary-main)",
       backgroundColor: theme.vars.palette.grey[600],
-      padding: ".25em",
+      padding: getSpacingPx(SPACING.xs),
       height: "1.5em"
     }
   });

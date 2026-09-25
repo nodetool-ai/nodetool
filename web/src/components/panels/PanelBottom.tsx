@@ -413,7 +413,7 @@ const PanelBodyContent = memo(function PanelBodyContent({
           fullHeight
           sx={{
             overflow: "hidden",
-            padding: "0 1em"
+            padding: `0 ${getSpacingPx(SPACING.xl)}`
           }}
         >
           <PanelHeadline title="Queue" docsTopic="debugging" />

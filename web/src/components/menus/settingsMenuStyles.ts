@@ -69,7 +69,7 @@ export const getSharedSettingsStyles = (theme: Theme): CSSObject => ({
     color: theme.vars.palette.grey[0]
   },
   ".description": {
-    marginTop: "0.25em",
+    marginTop: getSpacingPx(SPACING.xs),
     opacity: 0.85,
     color: theme.vars.palette.grey[100],
     fontSize: theme.fontSizeSmall,

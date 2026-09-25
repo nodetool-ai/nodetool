@@ -19,8 +19,8 @@ const namespacePanelStyles = (theme: Theme) =>
   css({
     "&": {
       width: "200px",
-      marginRight: "0.5em",
-      marginLeft: "0.5em",
+      marginRight: getSpacingPx(SPACING.md),
+      marginLeft: getSpacingPx(SPACING.md),
       position: "relative",
       transition: MOTION.all
     },
@@ -28,7 +28,7 @@ const namespacePanelStyles = (theme: Theme) =>
       width: 0,
       opacity: 0,
       visibility: "hidden",
-      marginRight: "1em"
+      marginRight: getSpacingPx(SPACING.xl)
     },
     "& .namespace-list": {
       display: "flex",
@@ -40,7 +40,7 @@ const namespacePanelStyles = (theme: Theme) =>
       boxSizing: "border-box",
       height: "100%",
       maxHeight: "calc(min(750px, 80vh))",
-      padding: "0.5em",
+      padding: getSpacingPx(SPACING.md),
       borderRadius: BORDER_RADIUS.xl,
       border: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: "transparent"
@@ -60,12 +60,12 @@ const namespacePanelStyles = (theme: Theme) =>
       textTransform: "uppercase",
       letterSpacing: "0.6px",
       color: theme.vars.palette.text.secondary,
-      padding: "1.1em 0 .4em .5em",
+      padding: `${getSpacingPx(SPACING.xl)} 0 ${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
       margin: 0,
       userSelect: "none"
     },
     "& .namespace-section-title.providers": {
-      marginTop: ".25em"
+      marginTop: getSpacingPx(SPACING.xs)
     },
     "& .namespace-list-local": {
       flex: "0 0 auto",
@@ -91,7 +91,7 @@ const namespacePanelStyles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       display: "flex",
       alignItems: "center",
-      gap: "0.6em",
+      gap: getSpacingPx(SPACING.md),
       whiteSpace: "nowrap",
       overflow: "hidden",
       userSelect: "none"
@@ -115,7 +115,7 @@ const namespacePanelStyles = (theme: Theme) =>
     },
     "& .namespaces .list-item": {
       cursor: "pointer",
-      padding: "0.4em 0.5em",
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
       backgroundColor: "transparent",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
@@ -135,7 +135,7 @@ const namespacePanelStyles = (theme: Theme) =>
     },
     "& .list-item.firstDisabled": {
       borderTop: `1px solid ${theme.vars.palette.divider}`,
-      marginTop: "0.5em"
+      marginTop: getSpacingPx(SPACING.md)
     },
     "& .namespaces .list-item:hover": {
       backgroundColor: theme.vars.palette.action.hover
@@ -171,7 +171,7 @@ const namespacePanelStyles = (theme: Theme) =>
       color: "var(--palette-primary-main)"
     },
     "& .namespaces .sublist": {
-      paddingLeft: "0.85em"
+      paddingLeft: getSpacingPx(SPACING.lg)
     }
   });
 

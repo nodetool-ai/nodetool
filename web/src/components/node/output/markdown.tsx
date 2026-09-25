@@ -1,9 +1,10 @@
 import React, { memo } from "react";
 import MarkdownRenderer from "../../../utils/MarkdownRenderer";
 import { isLikelyMarkdown } from "./markdown.helpers";
+import { getSpacingPx, SPACING } from "../../ui_primitives";
 
 const MARKDOWN_TEXT_STYLE = {
-  padding: "0 0.5em",
+  padding: `0 ${getSpacingPx(SPACING.md)}`,
   whiteSpace: "pre-wrap" as const,
   fontWeight: 400 as const
 };

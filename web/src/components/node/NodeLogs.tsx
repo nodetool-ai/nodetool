@@ -25,7 +25,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Z_INDEX
+  Z_INDEX, getSpacingPx, SPACING
 } from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
@@ -54,8 +54,8 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[200],
       textTransform: "none",
       height: "3em",
-      padding: ".6em .8em",
-      marginBottom: "1em",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
+      marginBottom: getSpacingPx(SPACING.xl),
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       "&:hover": { backgroundColor: theme.vars.palette.grey[600] }
     }

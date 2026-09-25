@@ -1,5 +1,5 @@
 import React, { useMemo, memo } from "react";
-import { Text, Tooltip } from "../ui_primitives";
+import { Text, Tooltip, getSpacingPx, SPACING } from "../ui_primitives";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 
 interface InputNodeNameWarningProps {
@@ -34,11 +34,11 @@ const InputNodeNameWarning: React.FC<InputNodeNameWarningProps> = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: "0.25em",
+          gap: getSpacingPx(SPACING.xs),
           width: "100%",
           textAlign: "center",
           textTransform: "uppercase",
-          padding: ".5em !important",
+          padding: `${getSpacingPx(SPACING.md)} !important`,
           marginBottom: "0",
           color: "var(--palette-warning-main)",
           backgroundColor: "rgba(var(--palette-warning-mainChannel) / 0.1)",

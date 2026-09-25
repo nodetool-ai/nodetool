@@ -9,7 +9,7 @@ import DOMPurify from "dompurify";
 import isEqual from "../../../utils/isEqual";
 import Actions from "./Actions";
 
-import { BORDER_RADIUS, Z_INDEX } from "../../ui_primitives";
+import { BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../../ui_primitives";
 import { isNumber, isString } from "../../../utils/typePredicates";
 const jsonStyles = (theme: Theme) =>
   css({
@@ -17,7 +17,7 @@ const jsonStyles = (theme: Theme) =>
       backgroundColor: "transparent",
       height: "100%",
       width: "100%",
-      padding: ".25em",
+      padding: getSpacingPx(SPACING.xs),
       overflow: "auto",
       userSelect: "text",
       cursor: "text",
@@ -29,7 +29,7 @@ const jsonStyles = (theme: Theme) =>
       lineHeight: 1.4,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
-      padding: ".5em",
+      padding: getSpacingPx(SPACING.md),
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.grey[900],
       color: theme.vars.palette.grey[100]
@@ -44,14 +44,14 @@ const jsonStyles = (theme: Theme) =>
       margin: "0",
       display: "flex",
       flexDirection: "row",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       zIndex: Z_INDEX.dropdown
     },
     ".actions button": {
       minWidth: "unset",
       width: "auto",
       lineHeight: "1.5em",
-      padding: ".3em .3em 0 .3em",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xs)} 0 ${getSpacingPx(SPACING.xs)}`,
       color: theme.vars.palette.grey[200],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall

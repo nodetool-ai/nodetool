@@ -463,7 +463,7 @@ const OutputContextMenu: React.FC = () => {
       cursor: "pointer",
       display: "flex",
       font: "inherit",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       margin: 0,
       minHeight: "28px",
       padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,

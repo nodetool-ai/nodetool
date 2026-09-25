@@ -137,7 +137,7 @@ const styles = (theme: Theme) =>
       },
       "& ul": {
         margin: 0,
-        paddingLeft: "1em",
+        paddingLeft: getSpacingPx(SPACING.xl),
         "& li": {
           marginBottom: getSpacingPx(SPACING.micro)
         }

@@ -39,7 +39,7 @@ const helpStyles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: ".1em",
+      gap: getSpacingPx(SPACING.micro),
       overflow: "hidden"
     },
 
@@ -48,19 +48,19 @@ const helpStyles = (theme: Theme) =>
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: "0.5em",
-      padding: "0em 1em",
+      marginBottom: getSpacingPx(SPACING.md),
+      padding: `0 ${getSpacingPx(SPACING.xl)}`,
       borderBottom: `1px solid ${theme.vars.palette.grey[600]}`
     },
     ".content": {
       height: "calc(100% - 40px)",
-      padding: "0 1em 2em 1em"
+      padding: `0 ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxxl)} ${getSpacingPx(SPACING.xl)}`
     },
     ".tabs-row": {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      margin: "0 1em 1em 1em"
+      margin: `0 ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)}`
     },
     ".help-tabs": {
       paddingTop: "0",
@@ -74,7 +74,7 @@ const helpStyles = (theme: Theme) =>
       "& .MuiTab-root": {
         color: theme.vars.palette.grey[200],
         transition: `color ${MOTION.fast}`,
-        paddingBottom: "0em",
+        paddingBottom: `0`,
         "&.Mui-selected": {
           color: theme.vars.palette.grey[0]
         },
@@ -86,7 +86,7 @@ const helpStyles = (theme: Theme) =>
         alignItems: "flex-start",
         textAlign: "left",
         paddingLeft: "0",
-        marginRight: "0.5em",
+        marginRight: getSpacingPx(SPACING.md),
         minWidth: "unset"
       }
     },
@@ -124,7 +124,7 @@ const helpStyles = (theme: Theme) =>
     },
     ".tabpanel": {
       height: "calc(100% - 40px)",
-      padding: "1em 0",
+      padding: `${getSpacingPx(SPACING.xl)} 0`,
       fontSize: "var(--fontSizeBig)"
     },
     ".tabpanel-content": {
@@ -145,11 +145,11 @@ const helpStyles = (theme: Theme) =>
       }
     },
     ".help-item": {
-      marginBottom: "0.25em",
-      paddingBottom: "0.5em",
+      marginBottom: getSpacingPx(SPACING.xs),
+      paddingBottom: getSpacingPx(SPACING.md),
       display: "flex",
       alignItems: "center",
-      gap: "1rem",
+      gap: getSpacingPx(SPACING.xl),
       p: {
         minWidth: "240px"
       },
@@ -170,7 +170,7 @@ const helpStyles = (theme: Theme) =>
       }
     },
     ".explanation": {
-      marginBottom: "1em",
+      marginBottom: getSpacingPx(SPACING.xl),
       fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.grey[200]
     }

@@ -15,7 +15,7 @@ const dialogStyles = (theme: Theme) =>
       minWidth: "min(320px, calc(100vw - 32px))"
     },
     ".dialog-content": {
-      padding: "1em 1.5em"
+      padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)}`
     },
     ".dialog-title": {
       fontFamily: theme.fontFamily1,
@@ -24,7 +24,7 @@ const dialogStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[0],
       wordSpacing: "normal",
       margin: 0,
-      padding: ".75em 1.5em",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
       borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
     ".dialog-title .panel-headline": {
@@ -34,7 +34,7 @@ const dialogStyles = (theme: Theme) =>
       borderBottom: `2px solid ${"var(--palette-primary-main)"}`
     },
     ".dialog-actions": {
-      padding: ".5em 1em"
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`
     },
     ".input-field": {
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.md)}`,
@@ -80,22 +80,22 @@ const dialogStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.error.main,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
-      margin: "0 0 1em",
-      padding: ".5em 1em"
+      margin: `0 0 ${getSpacingPx(SPACING.xl)}`,
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`
     },
     ".error-notice": {
       color: theme.vars.palette.grey[0],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
-      margin: "0 0 1em",
-      padding: ".5em 1em"
+      margin: `0 0 ${getSpacingPx(SPACING.xl)}`,
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`
     },
     ".notice": {
       backgroundColor: theme.vars.palette.c_attention,
       color: theme.vars.palette.grey[1000],
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
-      padding: ".5em 1em"
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`
     },
     ".notice span": {
       fontFamily: theme.fontFamily1
@@ -106,8 +106,8 @@ const dialogStyles = (theme: Theme) =>
       overflowY: "auto",
       backgroundColor: theme.vars.palette.grey[600],
       listStyleType: "square",
-      margin: "0 0 0 1em",
-      padding: ".25em 1.5em",
+      margin: `0 0 0 ${getSpacingPx(SPACING.xl)}`,
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xxl)}`,
       borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
       fontSize: theme.fontSizeSmaller
     },

@@ -212,7 +212,7 @@ const styles = (theme: Theme) =>
       left: "51px",
       width: "calc(100vw - 51px)",
       height: "fit-content",
-      padding: ".5em .5em 0 .5em",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.md)} 0 ${getSpacingPx(SPACING.md)}`,
       backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
       backdropFilter: "blur(12px) saturate(150%)",
       WebkitBackdropFilter: "blur(12px) saturate(150%)",
@@ -268,8 +268,8 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      gap: "1em",
-      padding: "0.6em 1.1em",
+      gap: getSpacingPx(SPACING.xl),
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
       minHeight: "3.4em",
       position: "relative",
       background: `linear-gradient(90deg,
@@ -292,7 +292,7 @@ const styles = (theme: Theme) =>
     ".header-left": {
       display: "flex",
       alignItems: "center",
-      gap: "0.8em",
+      gap: getSpacingPx(SPACING.lg),
       minWidth: 0,
       flex: 1
     },
@@ -312,21 +312,21 @@ const styles = (theme: Theme) =>
     ".title-and-description": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.1em",
+      gap: getSpacingPx(SPACING.micro),
       minWidth: 0,
       overflow: "hidden"
     },
     ".breadcrumb": {
       display: "flex",
       alignItems: "center",
-      gap: "0.3em",
+      gap: getSpacingPx(SPACING.xs),
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
       ".crumb-sep": {
-        margin: "0 0.2em",
+        margin: `0 ${getSpacingPx(SPACING.xs)}`,
         opacity: 0.5
       },
       ".crumb-current": {
@@ -336,7 +336,7 @@ const styles = (theme: Theme) =>
     ".title-row": {
       display: "flex",
       alignItems: "center",
-      gap: "0.6em",
+      gap: getSpacingPx(SPACING.md),
       minWidth: 0,
       h4: {
         cursor: "default",
@@ -352,7 +352,7 @@ const styles = (theme: Theme) =>
     },
     ".type-badge": {
       flexShrink: 0,
-      padding: "0.1em 0.6em",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.pill,
       fontSize: "var(--fontSizeSmaller)",
       fontFamily: theme.fontFamily2,
@@ -363,7 +363,7 @@ const styles = (theme: Theme) =>
     },
     ".actions": {
       display: "flex",
-      gap: "0.25em",
+      gap: getSpacingPx(SPACING.xs),
       alignItems: "center",
       flexWrap: "nowrap"
     },
@@ -371,20 +371,20 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      gap: "0.5em",
-      padding: "0.35em 1.1em",
+      gap: getSpacingPx(SPACING.md),
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xl)}`,
       backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.3)`,
       borderBottom: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.04)`,
       flexWrap: "wrap",
       ".toolbar-side": {
         display: "flex",
         alignItems: "center",
-        gap: "0.35em"
+        gap: getSpacingPx(SPACING.sm)
       },
       ".toolbar-divider": {
         width: "1px",
         height: "1.4em",
-        margin: "0 0.25em",
+        margin: `0 ${getSpacingPx(SPACING.xs)}`,
         background: `rgba(${theme.vars.palette.common.whiteChannel} / 0.1)`
       }
     },
@@ -395,7 +395,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`,
       borderRadius: BORDER_RADIUS.md,
-      padding: "0.3em 1.6em 0.3em 0.7em",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       outline: "none",
@@ -415,8 +415,8 @@ const styles = (theme: Theme) =>
     ".tool-btn": {
       display: "inline-flex",
       alignItems: "center",
-      gap: "0.4em",
-      padding: "0.32em 0.6em",
+      gap: getSpacingPx(SPACING.sm),
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
       cursor: "pointer",
       color: theme.vars.palette.text.secondary,
       borderRadius: BORDER_RADIUS.md,
@@ -437,14 +437,14 @@ const styles = (theme: Theme) =>
         borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.35)`
       },
       "&.icon-only": {
-        padding: "0.32em"
+        padding: getSpacingPx(SPACING.sm)
       }
     },
     ".font-controls": {
       display: "flex",
       alignItems: "center",
-      gap: "0.15em",
-      padding: "0.1em 0.25em",
+      gap: getSpacingPx(SPACING.micro),
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
       borderRadius: BORDER_RADIUS.md,
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.07)`,
       background: `rgba(${theme.vars.palette.background.paperChannel} / 0.35)`,
@@ -536,14 +536,14 @@ const styles = (theme: Theme) =>
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: "0.5em",
-          padding: "0.7em 0.85em",
+          gap: getSpacingPx(SPACING.md),
+          padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)}`,
           flexShrink: 0,
           borderBottom: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.05)`,
           ".assistant-id": {
             display: "flex",
             alignItems: "center",
-            gap: "0.6em",
+            gap: getSpacingPx(SPACING.md),
             minWidth: 0
           },
           ".assistant-avatar": {
@@ -577,7 +577,7 @@ const styles = (theme: Theme) =>
           },
           ".assistant-head-actions": {
             display: "flex",
-            gap: "0.15em",
+            gap: getSpacingPx(SPACING.micro),
             flexShrink: 0
           }
         },

@@ -4,7 +4,7 @@ import {
   Text,
   Divider,
   ContextMenu,
-  MenuItem
+  MenuItem, getSpacingPx, SPACING
 } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
@@ -48,7 +48,7 @@ const AssetGridContextMenu = () => {
       open={menuPosition !== null}
       onContextMenu={(event) => event.preventDefault()}
       onClose={closeContextMenu}
-      style={{ padding: "1em" }}
+      style={{ padding: getSpacingPx(SPACING.xl) }}
       position={menuPosition}
     >
       <MenuItem disabled>
