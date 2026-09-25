@@ -251,7 +251,7 @@ async function checkComposition(file) {
 
 /**
  * Check one shipped storyboard: it parses, every shot carries the text a
- * director writes, and every `package://` still and clip it names is a file
+ * director writes, and every `package://` still it names is a file
  * that exists. Returns a problem description, or null when the board is sound.
  */
 function checkStoryboard(file) {
@@ -271,10 +271,10 @@ function checkStoryboard(file) {
     if (typeof shot?.action !== "string" || shot.action.trim() === "") {
       problems.push(`${where} has no action text`);
     }
-    for (const [what, ref] of [
-      ["still", shot?.keyframe],
-      ["clip", shot?.clip]
-    ]) {
+    if (shot?.clip != null || (shot?.clip_versions?.length ?? 0) > 0) {
+      problems.push(`${where} includes video in a still-only example`);
+    }
+    for (const [what, ref] of [["still", shot?.keyframe]]) {
       const match = /^package:\/\/([^/]+)\/(.+)$/.exec(ref?.uri ?? "");
       if (!match) {
         problems.push(`${where} has no package:// ${what}`);
@@ -292,6 +292,48 @@ function checkStoryboard(file) {
     }
   }
   return problems.length > 0 ? problems.join("\n") : null;
+}
+
+/** Check a shipped timeline's document, dimensions, and package media. */
+async function checkTimeline(file) {
+  let bundle;
+  try {
+    bundle = JSON.parse(readFileSync(file, "utf8"));
+  } catch (err) {
+    return `not parsable JSON: ${err.message}`;
+  }
+  const { timelineDocument } = await import("@nodetool-ai/protocol/api-schemas/timeline.js");
+  const parsed = timelineDocument.safeParse(bundle?.document);
+  if (!parsed.success) {
+    return `invalid timeline document: ${parsed.error.issues[0]?.message}`;
+  }
+  const problems = [];
+  if (!bundle?.name || !bundle?.description) problems.push("bundle has no name or description");
+  for (const key of ["fps", "width", "height", "durationMs"]) {
+    if (!Number.isInteger(bundle[key]) || bundle[key] <= 0) {
+      problems.push(`${key} must be a positive integer`);
+    }
+  }
+  if (parsed.data.clips.length === 0) problems.push("timeline has no clips");
+  for (const uri of [bundle.videoUri, bundle.posterUri]) {
+    const match = /^package:\/\/([^/]+)\/(.+)$/.exec(uri ?? "");
+    if (!match || match[2].split("/").some((part) => part === ".." || part === ".")) {
+      problems.push(`invalid package media: ${uri}`);
+      continue;
+    }
+    const onDisk = join(repoRoot, "packages/base-nodes/nodetool/assets", match[1], ...match[2].split("/"));
+    if (!statSafe(onDisk)?.isFile()) problems.push(`missing package media: ${uri}`);
+  }
+  if (problems.length > 0) return problems.join("\n");
+  const { validateTimelineSequence } = await import("@nodetool-ai/execution/timeline-debug");
+  const report = validateTimelineSequence(parsed.data, {
+    fps: bundle.fps,
+    width: bundle.width,
+    height: bundle.height
+  });
+  return report.errors.length > 0
+    ? report.errors.map((issue) => `${issue.code}: ${issue.message}`).join("\n")
+    : null;
 }
 
 // A recipe manifest carries no graph and no app document either: it names the
@@ -457,12 +499,14 @@ async function main() {
   const examples = [...packageExamples, ...rootExamples];
   const bundles = examples.filter((f) => f.endsWith(".app.json"));
   const storyboards = examples.filter((f) => f.endsWith(".storyboard.json"));
+  const timelines = examples.filter((f) => f.endsWith(".timeline.json"));
   const compositions = examples.filter((f) => f.endsWith(".composition.json"));
   const recipes = examples.filter((f) => f.endsWith(".recipe.json"));
   const workflowExamples = examples.filter(
     (f) =>
       !f.endsWith(".app.json") &&
       !f.endsWith(".storyboard.json") &&
+      !f.endsWith(".timeline.json") &&
       !f.endsWith(".composition.json") &&
       !f.endsWith(".recipe.json")
   );
@@ -488,6 +532,11 @@ async function main() {
     process.exit(1);
   }
 
+  if (timelines.length === 0) {
+    console.error("No *.timeline.json bundles found under packages/**/examples/.");
+    process.exit(1);
+  }
+
   if (compositions.length === 0) {
     console.error(
       "No *.composition.json bundles found under packages/**/examples/ — check the search path."
@@ -506,6 +555,7 @@ async function main() {
     `Validating ${workflowExamples.length} example workflow(s), ` +
       `${bundles.length} app bundle(s), ` +
       `${storyboards.length} storyboard(s), ` +
+      `${timelines.length} timeline(s), ` +
       `${compositions.length} composition(s), and ` +
       `${recipes.length} recipe(s)...\n`
   );
@@ -565,6 +615,9 @@ async function main() {
   // text and the files here, where the rest of the shipped examples are checked.
   for (const file of storyboards) {
     jobs.push({ label: file.slice(repoRoot.length + 1), failure: checkStoryboard(file) });
+  }
+  for (const file of timelines) {
+    jobs.push({ label: file.slice(repoRoot.length + 1), failure: await checkTimeline(file) });
   }
   // A composition is a document fragment, not a graph: what rots is a
   // parameter pointer that no longer lands on a child field, or a clip the

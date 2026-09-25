@@ -35,6 +35,8 @@ import { computeDependencyHash } from "@nodetool-ai/timeline/dependencyHash.js";
 import {
   createClipInput,
   createTimelineInput,
+  exampleTimelineSummary,
+  installExampleTimelineInput,
   createTimelineVersionInput,
   deleteTimelineVersionInput,
   getTimelineVersionInput,
@@ -52,6 +54,7 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { isString } from "../../lib/wire-values.js";
+import { installExampleTimeline, listExampleTimelines } from "../../lib/example-timelines.js";
 
 const log = createLogger("nodetool.websocket.trpc.timeline");
 
@@ -270,6 +273,15 @@ async function mutateTimelineDocument<T>(
 // ── router ──────────────────────────────────────────────────────────────────
 
 export const timelineRouter = router({
+  examples: protectedProcedure
+    .output(z.array(exampleTimelineSummary))
+    .query(({ ctx }) => listExampleTimelines(ctx.apiOptions)),
+
+  installExample: protectedProcedure
+    .input(installExampleTimelineInput)
+    .output(timelineSequenceResponse)
+    .mutation(({ ctx, input }) => installExampleTimeline(ctx.userId, ctx.apiOptions, input)),
+
   list: protectedProcedure
     .input(listInput)
     .output(z.array(timelineSequenceListItem))
@@ -367,6 +379,7 @@ export const timelineRouter = router({
           transcript: input.document.transcript ?? current.transcript,
           scriptEnabled: input.document.scriptEnabled ?? current.scriptEnabled,
           tempo: input.document.tempo ?? current.tempo,
+          camera2d: input.document.camera2d === undefined ? current.camera2d : input.document.camera2d,
           setup: input.document.setup ?? current.setup,
           mediaTracks: input.document.mediaTracks ?? current.mediaTracks
         };

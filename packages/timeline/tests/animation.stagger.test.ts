@@ -342,4 +342,17 @@ describe("stagger units on the compiled animation", () => {
     expect(opacityAt(200, 2)).toBe(0);
     expect(opacityAt(600, 4)).toBeCloseTo(0.5, 6);
   });
+
+  it("reveals whole characters with the typewriter preset", () => {
+    const [compiled] = compileClipAnimations(
+      [anim({ preset: "typewriter", durationMs: 1, easing: undefined, stagger: { unit: "character", offsetMs: 65 } })],
+      1000,
+      CANVAS,
+      { staggerCount: 3, staggerUnit: "character" }
+    );
+    expect(sampleStaggeredAnimations([compiled], 64, 0).opacity).toBe(1);
+    expect(sampleStaggeredAnimations([compiled], 64, 1).opacity).toBe(0);
+    expect(sampleStaggeredAnimations([compiled], 66, 1).opacity).toBe(1);
+    expect(sampleStaggeredAnimations([compiled], 66, 2).opacity).toBe(0);
+  });
 });

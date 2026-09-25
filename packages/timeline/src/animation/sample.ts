@@ -84,6 +84,10 @@ export interface AnimationSample {
   scaleY: number;
   /** radians, add to transform.rotation */
   rotation: number;
+  /** degrees, add to transform.rotationX */
+  rotationX: number;
+  /** degrees, add to transform.rotationY */
+  rotationY: number;
   /** 0..1, multiply layer opacity */
   opacity: number;
   /** source px, add to the layer's blur radius (identity 0) */
@@ -139,6 +143,8 @@ export function createAnimationSample(): AnimationSample {
     scaleX: 1,
     scaleY: 1,
     rotation: 0,
+    rotationX: 0,
+    rotationY: 0,
     opacity: 1,
     blur: 0,
     brightness: 0,
@@ -171,6 +177,8 @@ export function isIdentitySample(s: AnimationSample): boolean {
     s.scaleX === 1 &&
     s.scaleY === 1 &&
     s.rotation === 0 &&
+    s.rotationX === 0 &&
+    s.rotationY === 0 &&
     s.opacity === 1 &&
     s.blur === 0 &&
     s.brightness === 0 &&
@@ -195,6 +203,8 @@ function resetIdentity(s: AnimationSample): AnimationSample {
   s.scaleX = 1;
   s.scaleY = 1;
   s.rotation = 0;
+  s.rotationX = 0;
+  s.rotationY = 0;
   s.opacity = 1;
   s.blur = 0;
   s.brightness = 0;
@@ -277,6 +287,14 @@ function windowT(anim: CompiledAnimation, localMs: number): number | null {
   }
   const span = anim.windowEndMs - anim.windowStartMs;
   return span > 0 ? (localMs - anim.windowStartMs) / span : 0;
+}
+
+/** Animation-window progress for visual style tracks and declarative links. */
+export function animationProgressAt(
+  animation: CompiledAnimation,
+  localMs: number
+): number | null {
+  return windowT(animation, localMs);
 }
 
 /**
@@ -448,7 +466,7 @@ export function hasStaggeredAnimation(compiled: CompiledAnimation[]): boolean {
  * {@link windowT} with the unit's own window: shifted by the unit's delay and
  * `unitDurationMs` long (a pure phase shift for loops).
  */
-function staggerUnitT(
+export function staggerUnitT(
   anim: CompiledAnimation,
   stagger: CompiledStagger,
   localMs: number,

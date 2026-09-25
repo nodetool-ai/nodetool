@@ -19,6 +19,7 @@ describe("buildTimelineDocumentPayload", () => {
   it("picks exactly the document fields from state", () => {
     const payload = buildTimelineDocumentPayload(baseState as never);
     expect(Object.keys(payload).sort()).toEqual([
+      "camera2d",
       "clips",
       "markers",
       "mediaTracks",
@@ -71,6 +72,12 @@ describe("buildTimelineDocumentPayload", () => {
   it("carries the tempo — without it a midi part reloads at 120 BPM", () => {
     const payload = buildTimelineDocumentPayload(baseState as never);
     expect(payload.tempo).toBe(baseState.tempo);
+  });
+
+  it("carries the camera and explicitly clears it after undo", () => {
+    const camera2d = { position: { x: 10, y: 20 }, depthPx: 50, focalLengthPx: 1000 };
+    expect(buildTimelineDocumentPayload({ ...baseState, camera2d } as never).camera2d).toEqual(camera2d);
+    expect(buildTimelineDocumentPayload(baseState as never).camera2d).toBeNull();
   });
 
   it("excludes extra state fields", () => {

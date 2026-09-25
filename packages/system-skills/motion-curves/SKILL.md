@@ -1,17 +1,26 @@
 ---
 name: motion-curves
-description: Write custom timeline animations — keyframe curves by hand, or a JavaScript body baked into curves once in the sandbox — for motion no preset covers. Use for overshoot, decaying bounce, anticipation, wiggle, inertia, arcs, path draw-on, or any move whose shape a preset plus an easing cannot express. Covers the code contract, the animatable channels and how several curves combine.
+description: Write NodeTool timeline animation curves by hand or bake a JavaScript body into curves once. Use for overshoot, bounce, anticipation, arcs, path draw-on, style-property animation, or motion a preset cannot express.
 ---
 
 # Motion Curves → animation nobody had a preset for
 
-`{"preset": "custom"}` carries exactly one of `curves` (keyframes you write) or
-`code` (a JS body baked into curves once, host-side). Add `mask` when a curve
-drives `wipeProgress`.
+An `animate_clip` input with `{"preset":"custom"}` carries exactly one of
+`curves` (keyframes you write) or `code` (a JS body baked into curves once,
+host-side). Add `mask` when a curve drives `wipeProgress`. A stored document
+animation can instead carry `styleTracks` or `textAnimator` without numeric
+custom curves.
 
 `motion-graphics` carries the op contract and the preset catalog this file is
 the escape hatch from. `motion-principles` gives the duration and the shape a
 curve should hit before you write its keyframes.
+
+For numeric custom curves, call `edit_timeline` with an `animate_clip` op or
+the in-product `ui_timeline_animate_clip` tool. Both accept the flat `curves`
+or `code` input shown below. For stored `styleTracks`, `textAnimator`, or
+`beat`, read `get_timeline`, edit the full clip animation in its document,
+then call `set_timeline_document` with every existing document field. The
+`animate_clip` input does not author those stored fields.
 
 ## When to write one
 
@@ -77,6 +86,31 @@ where the curve stopped — and remember the role decides whether it stays: an
 `list_animation_presets` reports this table from the engine. Read it there rather
 than from memory when a channel's range matters.
 
+## Style curves in a document
+
+Use `styleTracks` on a stored animation when the target is a visual property
+rather than a numeric motion channel. The target names a clip style such as
+`text.color`, `shape.cornerRadius`, `mask.featherPx`, or
+`clip.borderRadius`; an effect target is
+`effect.<effect-id>.<numeric-field>` or a supported effect color such as
+`effect.bg-field.colorB`. A target needs the matching style,
+mask, or effect on the clip. Color values interpolate through the supported
+CSS color parser. `shape.d` and `mask.d` paths need matching commands and point
+counts. Glyph targets need a text stagger. `validate_timeline` reports an
+invalid target, incompatible path, or unsupported color.
+
+This is one complete stored animation object to merge into an existing clip's
+`animations` array before the full-document write:
+
+```json
+{"id":"round-in","role":"in","preset":"fade","durationMs":600,"styleTracks":[{"target":"clip.borderRadius","keyframes":[{"t":0,"value":0},{"t":1,"value":30,"easing":"easeOutExpo"}]}]}
+```
+
+`styleTracks` can accompany a preset, so a title can fade while its color
+changes. The `id` is required in the stored document; `animate_clip` creates
+one for its own inputs. Use `motion-graphics` for links, text animators, beat
+binding, and the document write boundary.
+
 ## The code body
 
 A JavaScript body run **once**, at author time, in the QuickJS sandbox. It
@@ -106,7 +140,7 @@ const n = inputs.sampleCount;
 const samples = [];
 for (let i = 0; i < n; i++) {
   const t = i / (n - 1);
-  samples.push({ t, offsetY: ..., opacity: ... });
+  samples.push({ t, offsetY: 80 * (1 - t), opacity: t });
 }
 return { samples };
 ```
@@ -152,8 +186,10 @@ return { curves: [{ property: "offsetY", keyframes: [
   { t: 0.8, value: -4, easing: "easeOut" }, { t: 1, value: 0 }] }] };
 ```
 
-**Wiggle.** Deterministic noise, the sandbox answer to a wiggle expression. A
-seeded generator so a re-bake reproduces it.
+**Shaped wiggle.** For a steady seeded wiggle, use a stored
+`animationLinks` entry with `kind: "wiggle"` as described in
+`motion-graphics`. Bake a curve when its amplitude must fade in or out. This
+seeded generator reproduces the same shape on a re-bake.
 
 ```js
 const n = inputs.sampleCount;

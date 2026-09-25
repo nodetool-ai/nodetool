@@ -22,8 +22,11 @@ import type {
 } from "../animation/index.js";
 import {
   createAnimationSample,
-  sampleStaggeredAnimations
+  sampleStaggeredAnimations,
+  staggerUnitT,
+  styleTrackValue
 } from "../animation/index.js";
+import { flattenNormalizedPath, pointAtPathFraction } from "../pathSampling.js";
 import type { MeasureTextWidth } from "./textLayout.js";
 import { parseSvgPath, tracePath, type PathSegment } from "./svgPath.js";
 import {
@@ -34,6 +37,7 @@ import {
   shapeUnitScale,
   trimFlatPath
 } from "./shapeGeometry.js";
+import { flatPathLength } from "./shapeGeometry.js";
 import {
   layoutStaggerUnits,
   layoutTextBlock,
@@ -460,6 +464,7 @@ export function textStyleSignature(
   return [
     `${width}x${height}`,
     style.text,
+    style.path ?? "-",
     style.fontFamily ?? "Inter",
     style.fontSizePx,
     style.fontWeight ?? 400,
@@ -685,6 +690,29 @@ export function drawText(
 ): void {
   ctx.save();
   const { layout, paint } = prepareText(ctx, style, width, height);
+  if (style.path) {
+    const path = flattenNormalizedPath(style.path, { x: 0, y: 0, width: 1, height: 1 }, width, height);
+    if (path) {
+      const length = flatPathLength(path);
+      const glyphs = segmentGraphemes(style.text);
+      const widths = glyphs.map((glyph) => paint.measure(glyph) + paint.letterSpacingPx);
+      let distance = Math.max(0, (length - widths.reduce((sum, glyphWidth) => sum + glyphWidth, 0)) / 2);
+      for (let index = 0; index < glyphs.length; index++) {
+        const glyphWidth = widths[index];
+        const point = pointAtPathFraction(path, (distance + glyphWidth / 2) / length);
+        if (point) {
+          ctx.save();
+          ctx.translate(point.x, point.y);
+          ctx.rotate(point.angle);
+          paintTextRun(ctx, paint, glyphs[index], -glyphWidth / 2, 0);
+          ctx.restore();
+        }
+        distance += glyphWidth;
+      }
+      ctx.restore();
+      return;
+    }
+  }
   for (const line of layout.lines) {
     paintTextRun(ctx, paint, line.text, line.x, line.y);
   }
@@ -769,11 +797,17 @@ export function drawStaggeredText(
   // unit's transform and every glyph would show the same slice of the ramp.
   const movingFill =
     style.fill && style.fill.type !== "solid" ? style.fill : null;
+  const typewriter = stagger.compiled.find((animation) => animation.caret);
+  let caretX = units[0]?.x ?? block.box.x;
+  let caretY = units[0]?.y ?? block.box.y;
+  let lineTrackingShift = 0;
+  let previousUnitY = Number.NaN;
 
   units.forEach((unit, index) => {
-    // A whitespace unit takes its index — the units after it are timed as if
-    // it were drawn — and draws nothing.
-    if (unit.text === "") return;
+    if (unit.y !== previousUnitY) {
+      lineTrackingShift = 0;
+      previousUnitY = unit.y;
+    }
     // A host that counted units without a text measurer can lay out more lines
     // than the compiler timed; clamping lets the extra ones ride the last
     // unit's window instead of sitting outside the span, invisible.
@@ -784,6 +818,38 @@ export function drawStaggeredText(
       scratch,
       stagger.sourceMs
     );
+    if (typewriter && s.opacity > 0.5) {
+      caretX = unit.x + unit.width;
+      caretY = unit.y;
+    }
+    const unitPaint: TextPaint = { ...paint };
+    let glyphBlur = 0;
+    let glyphTracking = false;
+    let glyphColor = false;
+    for (const animation of stagger.compiled) {
+      if (!animation.stagger || !animation.glyphTracks) continue;
+      const progress = staggerUnitT(animation, animation.stagger, stagger.localMs, Math.min(index, animation.stagger.count - 1));
+      if (progress === null) continue;
+      for (const track of animation.glyphTracks) {
+        const value = styleTrackValue(track, progress);
+        if (track.target === "glyph.color" && typeof value === "string") {
+          unitPaint.fill = value;
+          glyphColor = true;
+        }
+        if (track.target === "glyph.trackingPx" && typeof value === "number") {
+          unitPaint.letterSpacingPx = value;
+          unitPaint.nativeSpacing = false;
+          glyphTracking = true;
+        }
+        if (track.target === "glyph.blurPx" && typeof value === "number") glyphBlur = Math.max(0, value);
+      }
+    }
+    const trackingOffset = layout.unit === "character" ? lineTrackingShift : 0;
+    if (glyphTracking && layout.unit === "character") {
+      lineTrackingShift += unitPaint.letterSpacingPx - paint.letterSpacingPx;
+    }
+    // Whitespace takes its index and advances tracking, but draws nothing.
+    if (unit.text === "") return;
     const scaleX = s.scale * s.scaleX;
     const scaleY = s.scale * s.scaleY;
     if (s.opacity <= 0 || scaleX <= 0 || scaleY <= 0) return;
@@ -794,21 +860,23 @@ export function drawStaggeredText(
     const pivotX =
       (s.positionX === undefined
         ? unit.x + unit.width * anchorX
-        : width / 2 + s.positionX) + s.offsetX;
+        : width / 2 + s.positionX) + s.offsetX + trackingOffset;
     const pivotY =
       (s.positionY === undefined
         ? unit.y + (anchorY - 0.5) * unit.height
         : height / 2 + s.positionY) + s.offsetY;
     ctx.save();
+    if (glyphTracking) setLetterSpacing(ctx, 0);
+    if (glyphBlur > 0) ctx.filter = `blur(${glyphBlur}px)`;
     ctx.translate(pivotX, pivotY);
     if (s.rotation !== 0) ctx.rotate(s.rotation);
     if (scaleX !== 1 || scaleY !== 1) ctx.scale(scaleX, scaleY);
     ctx.globalAlpha = s.opacity;
-    if (movingFill) {
+    if (movingFill && !glyphColor) {
       // The block box in this unit's own space. Rotation is deliberately not
       // undone: the ramp turns with the glyph, which is what a rotated letter
       // carrying a gradient should look like.
-      paint.fill = resolveShapeFill(ctx, movingFill, {
+      unitPaint.fill = resolveShapeFill(ctx, movingFill, {
         x: (block.box.x - pivotX) / scaleX,
         y: (block.box.y - pivotY) / scaleY,
         width: block.box.width / scaleX,
@@ -817,13 +885,23 @@ export function drawStaggeredText(
     }
     paintTextRun(
       ctx,
-      paint,
+      unitPaint,
       unit.text,
       -unit.width * anchorX,
       -(anchorY - 0.5) * unit.height
     );
     ctx.restore();
   });
+  if (typewriter?.caret) {
+    const caret = typewriter.caret;
+    const completed = stagger.localMs >= typewriter.windowEndMs;
+    const visible = !completed ||
+      (stagger.localMs - typewriter.windowEndMs) % caret.blinkPeriodMs < caret.blinkPeriodMs / 2;
+    if (visible) {
+      ctx.fillStyle = caret.color;
+      ctx.fillRect(caretX + 4, caretY - style.fontSizePx * 0.54 + 8, caret.widthPx, style.fontSizePx * 1.08);
+    }
+  }
   ctx.restore();
 }
 
@@ -837,6 +915,7 @@ export function staggerPhase(stagger: TextRenderStagger): "active" | string {
   let sig = "";
   for (const anim of stagger.compiled) {
     if (!anim.stagger) continue;
+    if (anim.caret && stagger.localMs >= anim.windowEndMs) return "active";
     if (anim.loop) {
       if (
         stagger.localMs >= anim.windowStartMs &&
@@ -970,9 +1049,13 @@ export function drawShape(
 
   ctx.save();
   if (style.fill || style.fillStyle) {
-    ctx.fillStyle = style.fillStyle
-      ? resolveShapeFill(ctx, style.fillStyle, box)
-      : (style.fill ?? "transparent");
+    const fill = style.fillStyle ?? style.fill;
+    ctx.fillStyle =
+      typeof fill === "string"
+        ? fill
+        : fill
+          ? resolveShapeFill(ctx, fill, box)
+          : "transparent";
     ctx.beginPath();
     tracePath(ctx, segments, UNSCALED);
     ctx.fill();
@@ -1071,7 +1154,21 @@ function buildMaskPath(
 ): boolean {
   const { x, y, w, h } = maskRegion(mask, width, height);
   if (mask.kind === "rect") {
-    ctx.rect(x, y, w, h);
+    const radius = Math.min(Math.max(0, mask.radiusPx ?? 0), w / 2, h / 2);
+    if (radius <= 0) {
+      ctx.rect(x, y, w, h);
+    } else {
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
     return true;
   }
   if (mask.kind === "ellipse") {
@@ -1159,7 +1256,7 @@ function paintCoverage(
   height: number
 ): boolean {
   const feather = Math.max(0, mask.featherPx ?? 0);
-  if (feather <= 0 || mask.kind === "path") {
+  if (feather <= 0 || mask.kind === "path" || (mask.kind === "rect" && (mask.radiusPx ?? 0) > 0)) {
     if (feather > 0) ctx.filter = `blur(${(feather / 2).toFixed(2)}px)`;
     ctx.fillStyle = MASK_ON;
     ctx.beginPath();

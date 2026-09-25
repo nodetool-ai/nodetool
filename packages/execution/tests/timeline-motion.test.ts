@@ -61,6 +61,85 @@ const animation = (over: Json): Json => ({
   ...over
 });
 
+describe("style-only custom animations", () => {
+  it("accepts an effect color track and rejects a string effect mode", () => {
+    const effect = { id: "field", type: "generator", enabled: true, mode: "gradientField",
+      colorA: "#000000", colorB: "#ffffff", scale: 4 };
+    const make = (target: string) => doc([clip({ effects: [effect], animations: [animation({
+      preset: "custom", role: "emphasis", durationMs: 1000,
+      styleTracks: [{ target, keyframes: [
+        { t: 0, value: target.endsWith("mode") ? "noise" : "#000000" },
+        { t: 1, value: target.endsWith("mode") ? "particles" : "#ffffff" }
+      ] }]
+    })] })]);
+    expect(of(validateTimelineSequence(make("effect.field.colorB")), "animation_style_invalid")).toEqual([]);
+    expect(of(validateTimelineSequence(make("effect.field.mode")), "animation_style_invalid")).toHaveLength(1);
+  });
+
+  it("accepts a ticker without numeric curves", () => {
+    const result = validateTimelineSequence(doc([textClip({
+      animations: [animation({
+        preset: "custom",
+        role: "emphasis",
+        durationMs: 1000,
+        textAnimator: { kind: "ticker", from: 0, to: 7, padTo: 2 }
+      })]
+    })]));
+    expect(of(result, "custom_animation_invalid")).toEqual([]);
+  });
+
+  it("rejects a style track that names no renderable property", () => {
+    const result = validateTimelineSequence(doc([textClip({
+      animations: [animation({
+        preset: "custom",
+        role: "emphasis",
+        durationMs: 1000,
+        styleTracks: [{ target: "text.notAProperty", keyframes: [
+          { t: 0, value: 0 }, { t: 1, value: 1 }
+        ] }]
+      })]
+    })]));
+    expect(of(result, "animation_style_invalid")).toHaveLength(1);
+  });
+
+  it("rejects unsupported color syntax before render", () => {
+    const result = validateTimelineSequence(doc([textClip({
+      animations: [animation({
+        preset: "custom", role: "emphasis", durationMs: 1000,
+        styleTracks: [{ target: "text.color", keyframes: [
+          { t: 0, value: "red" }, { t: 1, value: "color(display-p3 1 0 0)" }
+        ] }]
+      })]
+    })]));
+    expect(of(result, "animation_style_invalid")).toHaveLength(1);
+  });
+});
+
+describe("animation links", () => {
+  it("reports a missing source clip", () => {
+    const result = validateTimelineSequence(doc([clip({ animationLinks: [
+      { target: "positionY", sourceClipId: "deleted", source: "positionX" }
+    ] })]));
+    expect(of(result, "animation_link_source_missing")).toHaveLength(1);
+  });
+
+  it("accepts a same-clip link without recursive evaluation", () => {
+    const result = validateTimelineSequence(doc([clip({ animationLinks: [
+      { target: "positionY", sourceClipId: "clip-1", source: "positionX" }
+    ] })]));
+    expect(of(result, "animation_link_source_missing")).toEqual([]);
+  });
+});
+
+describe("text path validation", () => {
+  it("reports malformed SVG path data", () => {
+    const result = validateTimelineSequence(doc([textClip({ textStyle: {
+      text: "HELLO", fontSizePx: 80, color: "#fff", path: "not a path"
+    } })]));
+    expect(of(result, "text_path_invalid")).toHaveLength(1);
+  });
+});
+
 describe("validateTimelineSequence — animation_exceeds_clip", () => {
   it("stays quiet on a window that fits exactly", () => {
     const result = validateTimelineSequence(

@@ -15,7 +15,7 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "dev": "node ../../scripts/run-with-tsc-version.mjs 6 node ../../scripts/run-tsc.mjs --watch",
     "start": "node dist/index.js",
-    "test": "vitest run",
+    "test": "node ../../scripts/run-vitest.mjs run",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {

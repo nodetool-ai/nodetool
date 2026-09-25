@@ -105,8 +105,8 @@ export function buildPlan(files, packages, computeAffected) {
   if (backend.length > 0) {
     steps.push({
       label: `packages (${backend.length}): ${abbreviate(backend, 6)}`,
-      command: "npx",
-      args: ["turbo", "run", "test", ...backend.map((n) => `--filter=${n}`)]
+      command: "node",
+      args: ["scripts/run-turbo.mjs", "run", "test", ...backend.map((n) => `--filter=${n}`)]
     });
   }
 

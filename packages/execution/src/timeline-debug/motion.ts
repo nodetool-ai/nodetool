@@ -43,6 +43,11 @@ function compilableAnimations(clip: TimelineClip): ClipAnimation[] {
   for (const animation of clip.animations ?? []) {
     if (animation.enabled === false) continue;
     if (animation.preset === CUSTOM_ANIMATION_PRESET_ID) {
+      if (!animation.custom?.curves?.length &&
+          (animation.styleTracks?.length || animation.textAnimator)) {
+        out.push(animation);
+        continue;
+      }
       const baked = normalizeCustomCurves(
         animation.custom?.curves,
         animation.custom?.timeBase

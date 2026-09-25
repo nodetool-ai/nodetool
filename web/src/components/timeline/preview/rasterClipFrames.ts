@@ -1,8 +1,9 @@
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import type { MediaTrack, TimelineCamera2D, TimelineClip, TimelineTempo } from "@nodetool-ai/timeline";
 
 import { Canvas2DCompositor } from "./gpu/canvas2dCompositor";
 import {
   createAnimationCompileCache,
+  resolveClipLayouts,
   resolveAnimatedLayerProps,
   resolveTextStaggerContext
 } from "@nodetool-ai/timeline/render";
@@ -26,7 +27,8 @@ export async function renderRasterClipFrames(
   timelineTimes: number[],
   outputWidth: number,
   sequenceWidth: number,
-  sequenceHeight: number
+  sequenceHeight: number,
+  context?: { clips: TimelineClip[]; mediaTracks: MediaTrack[]; tempo?: TimelineTempo; camera2d?: TimelineCamera2D | null }
 ): Promise<RasterClipFrame[]> {
   if (
     clip.mediaType !== "text" &&
@@ -64,17 +66,27 @@ export async function renderRasterClipFrames(
     height: sequenceHeight,
     measureText: textMeasurer()
   };
-  const animatedAt = (timelineTimeMs: number) =>
-    resolveAnimatedLayerProps(
-      {
-        clip,
-        transform: clip.transform,
-        opacity: clip.opacity ?? 1
-      },
+  const layoutTransform = context ? resolveClipLayouts(context.clips, animationCanvas).get(clip.id) : undefined;
+  const animatedAt = (timelineTimeMs: number) => {
+    const layer = {
+      clip,
+      transform: layoutTransform ?? clip.transform,
+      opacity: clip.opacity ?? 1,
+      camera2d: context?.camera2d
+    };
+    return context ? resolveAnimatedLayerProps(
+      layer,
+      timelineTimeMs,
+      animationCanvas,
+      animationCache,
+      { clips: context.clips, mediaTracks: context.mediaTracks, tempo: context.tempo }
+    ) : resolveAnimatedLayerProps(
+      layer,
       timelineTimeMs,
       animationCanvas,
       animationCache
     );
+  };
 
   // A 3D clip has no rasterizer: its pixels come from the same render session
   // the live preview draws with, one frame per requested time, composited
@@ -98,8 +110,9 @@ export async function renderRasterClipFrames(
               blendMode: clip.blendMode ?? "normal",
               zIndex: 0,
               transform: animated[index].transform,
-              borderRadius: clip.borderRadius,
-              effects: clip.effects
+              borderRadius: animated[index].borderRadius,
+              shapeMask: animated[index].clipMask,
+              effects: animated[index].effects
             }
           ]);
           compositor.render();
@@ -151,22 +164,15 @@ export async function renderRasterClipFrames(
             sequenceHeight
           ) ?? source;
       }
-      if (clip.mediaType === "text" && clip.textStyle) {
+      if (clip.mediaType === "text" && animated.textStyle) {
         const stagger = resolveTextStaggerContext(
           clip,
           timelineTimeMs,
           animationCanvas,
-          animationCache
+          animationCache,
+          context?.tempo
         );
-        if (stagger) {
-          frameSource =
-            textRasterizer.rasterize(
-              clip.textStyle,
-              sequenceWidth,
-              sequenceHeight,
-              stagger
-            ) ?? source;
-        }
+        frameSource = textRasterizer.rasterize(animated.textStyle, sequenceWidth, sequenceHeight, stagger ?? undefined) ?? source;
       }
       compositor.setLayers([
         {
@@ -176,8 +182,9 @@ export async function renderRasterClipFrames(
           blendMode: clip.blendMode ?? "normal",
           zIndex: 0,
           transform: animated.transform,
-          borderRadius: clip.borderRadius,
-          effects: clip.effects
+          borderRadius: animated.borderRadius,
+          shapeMask: animated.clipMask,
+          effects: animated.effects
         }
       ]);
       compositor.render();

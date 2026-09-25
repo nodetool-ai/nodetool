@@ -530,6 +530,7 @@ export interface TimelineAgentHandler {
     animations: ClipAnimationInput[],
     mode: ClipAnimationMode
   ) => TimelineClipNode;
+  staggerAnimations: (clipIds: string[], offsetMs: number) => TimelineClipNode[];
   /** Remove a clip's animations, optionally only those of one role. */
   clearClipAnimations: (
     target: string,

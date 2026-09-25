@@ -109,6 +109,16 @@ const PROPERTY_RANGES: Record<
     range: "radians",
     describe: "Rotation added to the clip's own rotation."
   },
+  rotationX: {
+    identity: 0,
+    range: "degrees",
+    describe: "X-axis rotation added to the clip's own rotationX."
+  },
+  rotationY: {
+    identity: 0,
+    range: "degrees",
+    describe: "Y-axis rotation added to the clip's own rotationY."
+  },
   opacity: {
     identity: 1,
     range: "0..1",

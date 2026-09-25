@@ -40,6 +40,7 @@ export function extractManifestReferences(serverSource) {
   for (const match of serverSource.matchAll(re)) {
     names.add(match[1]);
   }
+
   return [...names].sort();
 }
 
@@ -281,8 +282,8 @@ export function verifyBackendBundle(bundleDir) {
     }
   }
 
-  // Every shot of a shipped storyboard points at a `package://` still and
-  // clip. Those live under assets/nodetool-base/storyboards/<slug>/, one
+  // Every shot of a shipped storyboard points at a `package://` still.
+  // Those live under assets/nodetool-base/storyboards/<slug>/, one
   // directory deeper than anything else staged here — so check the files the
   // bundles actually name rather than that the directory exists.
   const storyboardDir = path.join(bundleDir, "examples", "storyboards");
@@ -305,7 +306,7 @@ export function verifyBackendBundle(bundleDir) {
         continue;
       }
       for (const shot of bundle?.document?.shots ?? []) {
-        for (const uri of [shot?.keyframe?.uri, shot?.clip?.uri]) {
+        for (const uri of [shot?.keyframe?.uri]) {
           const match = /^package:\/\/([^/]+)\/(.+)$/.exec(uri ?? "");
           if (!match) {
             missingMedia.push(`${file}: shot ${shot?.id} has no package:// media`);
@@ -321,11 +322,37 @@ export function verifyBackendBundle(bundleDir) {
     if (missingMedia.length > 0) {
       errors.push(
         "example storyboard media not staged — the boards would install with " +
-          `broken stills and clips:\n  ${missingMedia.join("\n  ")}`
+          `broken stills:\n  ${missingMedia.join("\n  ")}`
       );
     } else {
       summary.push(`${storyboards.length} example storyboard(s) staged with their media`);
     }
+  }
+
+  const timelineDir = path.join(bundleDir, "examples", "timelines");
+  const timelines = (listFiles(timelineDir) ?? []).filter((file) =>
+    file.endsWith(".timeline.json")
+  );
+  if (timelines.length === 0) {
+    errors.push("examples/timelines/ is missing or has no timeline bundles.");
+  } else {
+    for (const file of timelines) {
+      let bundle;
+      try {
+        bundle = JSON.parse(readFileSync(path.join(timelineDir, file), "utf8"));
+      } catch (err) {
+        errors.push(`examples/timelines/${file} is not readable: ${err.message}`);
+        continue;
+      }
+      for (const uri of [bundle.videoUri, bundle.posterUri]) {
+        const match = /^package:\/\/([^/]+)\/(.+)$/.exec(uri ?? "");
+        const asset = match && path.join(bundleDir, "assets", match[1], ...match[2].split("/"));
+        if (!asset || !existsSync(asset)) {
+          errors.push(`examples/timelines/${file} has missing media: ${uri}`);
+        }
+      }
+    }
+    summary.push(`${timelines.length} example timeline(s) staged with their media`);
   }
 
   const assets = listFiles(path.join(bundleDir, "assets", "nodetool-base"));

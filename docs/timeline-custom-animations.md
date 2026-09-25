@@ -2,6 +2,10 @@
 
 Motion written as JavaScript instead of picked from the preset catalog.
 
+For the wider visual authoring surface — style tracks, text animators,
+camera, layout, repeaters, effects, and transitions — see
+[Timeline motion design](timeline-motion-design.md).
+
 The body runs **once**, host-side, and returns keyframes. Those keyframes are
 stored on the clip and compiled exactly like a preset's, so nothing evaluates
 JavaScript at render time.
@@ -74,7 +78,8 @@ nobody described.
 list; `ANIMATED_PROPERTY_DOCS` in `animation/custom.ts` pairs each channel with
 its fold, its identity value and its range, and is what
 `list_animation_presets` prints. Transform: `offsetX`, `offsetY`, `scale`,
-`scaleX`, `scaleY`, `rotation`, `positionX`, `positionY`, `anchorX`, `anchorY`.
+`scaleX`, `scaleY`, `rotation`, `rotationX`, `rotationY`, `positionX`,
+`positionY`, `anchorX`, `anchorY`.
 Compositing: `opacity`, `wipeProgress`. Grade and blur: `blur`, `brightness`,
 `saturation`, `contrast`, `hue`, `temperature`, `tint`. Shape stroke:
 `trimStart`, `trimEnd`.

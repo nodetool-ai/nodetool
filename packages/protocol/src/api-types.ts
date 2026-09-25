@@ -864,6 +864,7 @@ export interface NodeMetadata {
   body?: string;
   properties: Property[];
   outputs: OutputSlot[];
+  primary_output?: string;
 
   recommended_models: UnifiedModel[];
   inline_fields?: string[];

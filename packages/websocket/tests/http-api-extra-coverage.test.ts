@@ -1179,7 +1179,7 @@ describe("http-api extra: createHttpApiServer", () => {
     }
   });
 
-  it("returns a 500 with a detail when a handler throws", async () => {
+  it("returns a generic 500 detail when a handler throws", async () => {
     // /api/workflows/names calls Workflow.paginate without a try/catch, so a
     // rejection propagates out of handleApiRequest into the server's catch.
     const spy = vi
@@ -1200,7 +1200,7 @@ describe("http-api extra: createHttpApiServer", () => {
       );
       expect(res.status).toBe(500);
       const data = (await res.json()) as { detail: string };
-      expect(data.detail).toContain("boom from paginate");
+      expect(data.detail).toBe("Internal server error");
     } finally {
       spy.mockRestore();
       await new Promise<void>((resolve) => server.close(() => resolve()));

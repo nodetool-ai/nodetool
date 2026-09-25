@@ -11,15 +11,14 @@ namespace: "nodetool.control"
 
 ## Description
 
-Repeat a section of the workflow, feeding each result back in, until a condition turns false.
+Repeat part of a workflow, using each result as the input for the next pass.
     loop, repeat, while, until, iterate, retry, refine, feedback, cycle, flow-control
 
-    Wire value and index into the loop body, and wire the body's result back into next and its decision into condition. Each iteration runs the body once. When condition is false, or after max_iterations, the last next value leaves through done.
+    Set Initial to the starting value. Connect Value to the nodes you want to repeat, then connect their result to Next. Index counts passes from 0.
 
-    Use cases:
-    - Refine a draft until a judge accepts it
-    - Retry a generation until it passes a check
-    - Apply a step a fixed number of times, feeding each result into the next
+    Connect a boolean result to Condition: true runs another pass, false sends the current Next value through Done. The nodes run at least once. Max Iterations also stops the loop. If Condition is unwired, the nodes run exactly Max Iterations times.
+
+    Example: Start at 0, add 1 to Value, send the sum to Next, and send whether the sum is less than 3 to Condition. Done outputs 3.
 
 ## Properties
 

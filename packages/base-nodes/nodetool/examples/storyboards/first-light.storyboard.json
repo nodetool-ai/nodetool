@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "First Light — Travel Teaser",
-  "description": "A three-shot travel teaser cut from dune to canyon to camp. Prefilled text, stills, and clips — open it to see a finished board before rendering anything of your own.",
+  "description": "A three-shot travel teaser from dune to canyon to camp. Open the board to explore its direction and rendered stills.",
   "tags": [
     "travel",
     "teaser",
@@ -44,21 +44,9 @@
               "asset_id": null
             }
           ],
-          "clip": {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/first-light/dunes-before-sunrise.mp4",
-            "asset_id": null,
-            "duration": 4
-          },
-          "clip_versions": [
-            {
-              "type": "video",
-              "uri": "package://nodetool-base/storyboards/first-light/dunes-before-sunrise.mp4",
-              "asset_id": null,
-              "duration": 4
-            }
-          ],
-          "status": "rendered"
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
         },
         {
           "type": "shot",
@@ -87,21 +75,9 @@
               "asset_id": null
             }
           ],
-          "clip": {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/first-light/canyon-switchback.mp4",
-            "asset_id": null,
-            "duration": 3
-          },
-          "clip_versions": [
-            {
-              "type": "video",
-              "uri": "package://nodetool-base/storyboards/first-light/canyon-switchback.mp4",
-              "asset_id": null,
-              "duration": 3
-            }
-          ],
-          "status": "rendered"
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
         },
         {
           "type": "shot",
@@ -130,21 +106,9 @@
               "asset_id": null
             }
           ],
-          "clip": {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/first-light/camp-under-stars.mp4",
-            "asset_id": null,
-            "duration": 3
-          },
-          "clip_versions": [
-            {
-              "type": "video",
-              "uri": "package://nodetool-base/storyboards/first-light/camp-under-stars.mp4",
-              "asset_id": null,
-              "duration": 3
-            }
-          ],
-          "status": "rendered"
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
         }
       ]
     },
@@ -176,21 +140,9 @@
             "asset_id": null
           }
         ],
-        "clip": {
-          "type": "video",
-          "uri": "package://nodetool-base/storyboards/first-light/dunes-before-sunrise.mp4",
-          "asset_id": null,
-          "duration": 4
-        },
-        "clip_versions": [
-          {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/first-light/dunes-before-sunrise.mp4",
-            "asset_id": null,
-            "duration": 4
-          }
-        ],
-        "status": "rendered"
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
       },
       {
         "type": "shot",
@@ -219,21 +171,9 @@
             "asset_id": null
           }
         ],
-        "clip": {
-          "type": "video",
-          "uri": "package://nodetool-base/storyboards/first-light/canyon-switchback.mp4",
-          "asset_id": null,
-          "duration": 3
-        },
-        "clip_versions": [
-          {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/first-light/canyon-switchback.mp4",
-            "asset_id": null,
-            "duration": 3
-          }
-        ],
-        "status": "rendered"
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
       },
       {
         "type": "shot",
@@ -262,21 +202,9 @@
             "asset_id": null
           }
         ],
-        "clip": {
-          "type": "video",
-          "uri": "package://nodetool-base/storyboards/first-light/camp-under-stars.mp4",
-          "asset_id": null,
-          "duration": 3
-        },
-        "clip_versions": [
-          {
-            "type": "video",
-            "uri": "package://nodetool-base/storyboards/first-light/camp-under-stars.mp4",
-            "asset_id": null,
-            "duration": 3
-          }
-        ],
-        "status": "rendered"
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
       }
     ],
     "brief": "A ten-second teaser for a desert trip: dunes before sunrise, a switchback in the canyon, and a camp under the stars.",

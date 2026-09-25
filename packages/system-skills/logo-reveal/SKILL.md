@@ -82,6 +82,23 @@ Steps of 80–120ms. Then animate the **group** for anything that moves the whol
 assembly — one `fade` out on the group beats three chances for the parts to
 drift apart. The group's opacity multiplies into each child.
 
+When the parts already have animations, `{"op": "stagger_animations",
+"clip_ids": ["mark-id", "wordmark-id", "tagline-id"], "offset_ms": 100}`
+adds delay in that order without moving their media. Use clip IDs, with at
+least two, and give every selected clip an animation first. The first keeps
+its delay. For a repeating field of identical marks, the document's
+`repeater` sets copy count, position step, and time step on one clip. Use a
+repeater for a pattern, and separate clips for parts that need distinct art.
+
+Keep a follower aligned by storing `animationLinks` on its clip when it should
+read the mark's position, scale, rotation, or opacity. A link follows the
+source's authored animation and does not chain through other links. Use
+`layout: {kind: "relative", targetClipId: "<mark-id>", side: "right"}` for a
+wordmark whose position should follow the mark's changing box; `fitText` can
+size a backing plate against the wordmark. These are document fields, so read
+and write the full document with `get_timeline` and `set_timeline_document`.
+`set_clip_params` refuses `repeater`, `animationLinks`, and `layout`.
+
 ## Wordmark
 
 A text clip with a stagger. Per character for a short mark, per word for a
@@ -127,6 +144,14 @@ A settle that floats free of the sound reads as cheap even when both are good.
 `snap_to_beats` is the blunt version when the whole end card has to sit on the
 grid.
 
+For a mark that should stay on beat if the sequence tempo changes, put a
+`beat: {index, scope: "sequence", offsetMs?}` anchor on its animation in the
+full document. The index is one-based and `delayMs` adds to it. The
+`animate_clip` tool input does not accept `beat`. Keep the stored animation's
+`id`, `role`, `preset`, and `durationMs` when adding it. If the sound logo's measured
+onset is the source of truth, keep the absolute delay or use
+`bake_audio_animation` for audio-driven motion instead.
+
 ## Idle loop
 
 For a loader or a splash that waits, a `loop` at low amplitude: `breathe` with
@@ -142,6 +167,14 @@ The last thing on screen is the static mark. Leave at least 800ms after the
 reveal completes with nothing animating — an end card that cuts the instant it
 settles reads as a mistake. On a 2500ms clip with a 1100ms draw and a 220ms
 accent, that is satisfied; check it rather than assuming.
+
+## Start from a rig when it fits
+
+`list_compositions` and `get_composition` show the shipped `logo-sting` rig and
+its parameters. `insert_composition` places it as a group with fresh clip IDs.
+Inspect those IDs before changing its timing or staggering its parts. Use the
+`title-slam` or `word-cards` examples for a typographic reveal; they are
+starting documents rather than tool presets.
 
 ## Check it
 

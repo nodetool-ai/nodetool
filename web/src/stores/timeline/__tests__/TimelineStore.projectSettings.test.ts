@@ -32,6 +32,20 @@ function makeSequence(
 }
 
 describe("TimelineStore — project settings", () => {
+  it("loads, edits, undoes and clears the persisted camera", () => {
+    const camera2d = { position: { x: 10, y: 20 }, depthPx: 50, focalLengthPx: 1000 };
+    const store = createTimelineStore();
+    store.getState().loadSequence(makeSequence({ camera2d }));
+    expect(store.getState().syncedDocument?.camera2d).toEqual(camera2d);
+    store.getState().setCamera2D({ ...camera2d, depthPx: 100 });
+    expect(store.getState().camera2d?.depthPx).toBe(100);
+    store.temporal.getState().undo();
+    expect(store.getState().camera2d).toEqual(camera2d);
+    store.getState().setCamera2D(null);
+    expect(store.getState().camera2d).toBeNull();
+    store.getState().loadSequence(makeSequence());
+    expect(store.getState().camera2d).toBeNull();
+  });
   it("defaults to 1920×1080 @ 30fps on a fresh store", () => {
     const { width, height, fps } = createTimelineStore().getState();
     expect({ width, height, fps }).toEqual({

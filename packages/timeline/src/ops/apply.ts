@@ -27,7 +27,8 @@ import {
   CUSTOM_ANIMATION_CONTRACT,
   CUSTOM_ANIMATION_PRESET_ID,
   normalizeCustomCurves,
-  resolveCustomMask
+  resolveCustomMask,
+  typewriterTiming
 } from "../animation/index.js";
 import {
   beatCountToCover,
@@ -76,6 +77,7 @@ import {
 } from "../mediaTrack.js";
 import type {
   MediaTrack,
+  ClipTransform,
   TimelineClip,
   TimelineMarker,
   TimelineTrack,
@@ -92,7 +94,7 @@ import {
   serializeMediaTrack,
   serializeTrack
 } from "./serialize.js";
-import type { TimelineOp } from "./op.js";
+import type { ClipTransformPatch, TimelineOp } from "./op.js";
 import type {
   TimelineAnimationInput,
   TimelineOpContext,
@@ -173,6 +175,7 @@ const CLIP_PARAM_KEYS = [
   "inPointMs",
   "outPointMs",
   "opacity",
+  "transform",
   "speedMultiplier",
   "volumeDb",
   "fadeInMs",
@@ -193,6 +196,21 @@ const CLIP_PARAM_KEYS = [
 
 function capitalize(s: string): string {
   return s.length > 0 ? s[0]!.toUpperCase() + s.slice(1) : s;
+}
+
+function mergeClipTransform(
+  current: ClipTransform | undefined,
+  patch: ClipTransformPatch
+): ClipTransform {
+  return {
+    position: { x: 0, y: 0, ...current?.position, ...patch.position },
+    scale: { x: 1, y: 1, ...current?.scale, ...patch.scale },
+    rotation: patch.rotation ?? current?.rotation ?? 0,
+    rotationX: patch.rotationX ?? current?.rotationX,
+    rotationY: patch.rotationY ?? current?.rotationY,
+    perspective: patch.perspective ?? current?.perspective,
+    anchor: { x: 0.5, y: 0.5, ...current?.anchor, ...patch.anchor }
+  };
 }
 
 /**
@@ -684,7 +702,7 @@ async function runOp(
       const clip = makeClip({
         id: scope.ctx.newId("clip"),
         trackId: track.id,
-        name: op.text,
+        name: op.name ?? op.text,
         startMs: op.startMs ?? scope.trackEndMs(track.id),
         durationMs: op.durationMs ?? DEFAULT_TEXT_CLIP_DURATION_MS,
         mediaType: "text",
@@ -693,6 +711,8 @@ async function runOp(
         textStyle: textStyleWithDefaults(op.text, s)
       });
       if (op.opacity !== undefined) clip.opacity = op.opacity;
+      if (op.transform)
+        clip.transform = mergeClipTransform(clip.transform, op.transform);
       scope.clips.push(clip);
       state.selectedClipIds = [clip.id];
       scope.touch(clip.id);
@@ -718,6 +738,15 @@ async function runOp(
           `Asset "${found.name}" is ${found.contentType}, which is not video, image, or audio and cannot go on a timeline.`
         );
       }
+      if (
+        mediaType !== "image" &&
+        op.durationMs === undefined &&
+        !found.durationMs
+      ) {
+        throw new Error(
+          `Asset "${found.name}" has no known duration. Supply durationMs or import media that can be probed.`
+        );
+      }
       const track = op.trackId
         ? scope.resolveTrack(op.trackId)
         : scope.findOrCreateTrack(trackTypeForMediaType(mediaType));
@@ -736,6 +765,8 @@ async function runOp(
       if (found.thumbnailAssetId)
         init.thumbnailAssetId = found.thumbnailAssetId;
       const clip = makeClip(init);
+      if (op.transform)
+        clip.transform = mergeClipTransform(clip.transform, op.transform);
       scope.clips.push(clip);
       state.selectedClipIds = [clip.id];
       scope.touch(clip.id);
@@ -750,7 +781,7 @@ async function runOp(
       const clip = makeClip({
         id: scope.ctx.newId("clip"),
         trackId: track.id,
-        name: capitalize(shapeArg.kind),
+        name: op.name ?? capitalize(shapeArg.kind),
         startMs: op.startMs ?? scope.trackEndMs(track.id),
         durationMs: op.durationMs ?? DEFAULT_TEXT_CLIP_DURATION_MS,
         mediaType: "shape",
@@ -759,6 +790,8 @@ async function runOp(
         shapeStyle: shapeStyleWithDefaults(shapeArg)
       });
       if (op.opacity !== undefined) clip.opacity = op.opacity;
+      if (op.transform)
+        clip.transform = mergeClipTransform(clip.transform, op.transform);
       scope.clips.push(clip);
       state.selectedClipIds = [clip.id];
       scope.touch(clip.id);
@@ -791,6 +824,8 @@ async function runOp(
         currentAssetId: assetId,
         model3dStyle: model3dStyleWithPatch(undefined, op.style)
       });
+      if (op.transform)
+        clip.transform = mergeClipTransform(clip.transform, op.transform);
       scope.clips.push(clip);
       state.selectedClipIds = [clip.id];
       scope.touch(clip.id);
@@ -891,6 +926,8 @@ async function runOp(
         sourceType: "imported",
         status: "generated"
       });
+      if (op.transform)
+        group.transform = mergeClipTransform(group.transform, op.transform);
       scope.clips.push(group);
       for (const child of targets) {
         child.parentId = group.id;
@@ -1068,6 +1105,9 @@ async function runOp(
       }
       if (patch.name !== undefined) clip.name = patch.name;
       if (patch.opacity !== undefined) clip.opacity = patch.opacity;
+      if (patch.transform !== undefined) {
+        clip.transform = mergeClipTransform(clip.transform, patch.transform);
+      }
       if (patch.speedMultiplier !== undefined) {
         clip.speedMultiplier = patch.speedMultiplier;
       }
@@ -1168,7 +1208,10 @@ async function runOp(
       );
       if (!applied.ok) throw new Error(applied.error);
       scope.clips = applied.clips;
-      scope.touch(planned.candidate.outgoingClipId, planned.candidate.incomingClipId);
+      scope.touch(
+        planned.candidate.outgoingClipId,
+        planned.candidate.incomingClipId
+      );
       return {
         ok: true,
         candidate: planned.candidate,
@@ -1315,15 +1358,27 @@ async function runOp(
             `Preset "${input.preset}" does not support role "${input.role}". Valid roles for "${input.preset}": ${preset.roles.join(", ")}.`
           );
         }
+        if (input.preset === "typewriter" && clip.mediaType !== "text") {
+          throw new Error('Preset "typewriter" requires a text clip.');
+        }
+        const timing = input.preset === "typewriter"
+          ? typewriterTiming(
+              clip.textStyle?.text ?? "",
+              clip.durationMs - (input.delayMs ?? 0),
+              input.durationMs,
+              input.stagger
+            )
+          : null;
         built.push({
           id: scope.ctx.newId("anim"),
           role: input.role,
           preset: input.preset,
-          durationMs: input.durationMs ?? preset.defaultDurationMs,
+          durationMs: timing?.durationMs ?? input.durationMs ?? preset.defaultDurationMs,
           delayMs: input.delayMs,
           easing: input.easing,
           params: input.params,
-          stagger: input.stagger
+          stagger: timing?.stagger ?? input.stagger,
+          caret: input.preset === "typewriter" ? input.caret : undefined
         });
       }
       clip.animations =

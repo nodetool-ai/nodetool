@@ -158,9 +158,8 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
     [runImport]
   );
 
-  // There are no shipped example timelines to draw from, so the inspiration
-  // lines are the shipped boards' briefs: sentences somebody actually typed to
-  // get finished footage, which beats an invented example.
+  // The shipped boards carry briefs that work as video setup prompts. Timeline
+  // examples are finished edits and do not carry those source prompts.
   const inspirations = useMemo(
     () =>
       (examples ?? [])

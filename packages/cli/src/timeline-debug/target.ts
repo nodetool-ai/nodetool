@@ -125,6 +125,9 @@ function asDocument(raw: JsonValue): TimelineDocument {
   if (isBoolean(record.scriptEnabled)) {
     document.scriptEnabled = record.scriptEnabled;
   }
+  if (record.camera2d !== undefined) {
+    document.camera2d = record.camera2d as TimelineDocument["camera2d"];
+  }
   return document;
 }
 

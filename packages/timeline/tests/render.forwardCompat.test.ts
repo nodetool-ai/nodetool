@@ -139,7 +139,7 @@ describe("Canvas 2D — an effect type this build cannot apply", () => {
 
   it("leaves it out of the filter it builds, keeping the ones it knows", () => {
     expect(filterForEffects([filmGrain], undefined)).toBe("none");
-    expect(filterForEffects([filmGrain, blur], undefined)).toBe("blur(4.00px)");
+    expect(filterForEffects([filmGrain, blur], undefined)).toBe("blur(1.33px)");
   });
 
   it("still draws the layer", () => {

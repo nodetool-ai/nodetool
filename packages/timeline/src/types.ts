@@ -85,6 +85,8 @@ export interface TimelineSequence {
    * attaches to; each track still owns exactly one `clipId`.
    */
   mediaTracks?: MediaTrack[];
+  /** Camera for flat layers placed at different depths. */
+  camera2d?: TimelineCamera2D | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -170,6 +172,8 @@ export interface CaptionStyle {
  */
 export interface ClipTextStyle {
   text: string;
+  /** SVG path in normalized canvas coordinates for baseline text placement. */
+  path?: string;
   fontFamily?: string;
   fontSizePx: number;
   fontWeight?: number;
@@ -235,7 +239,7 @@ export function isKnownShapeKind(kind: string): kind is ClipShapeKind {
 export interface ClipShapeStyle {
   /** Plain string for forward compat (I2) — see {@link CLIP_SHAPE_KINDS}. */
   kind: string;
-  fill?: string;
+  fill?: string | ShapeFill;
   stroke?: string;
   strokeWidthPx?: number;
   /** Normalized canvas coordinates for the shape's bounds or line endpoints. */
@@ -932,6 +936,16 @@ export interface TimelineClip {
    * its own: it treats the composite beneath it, already placed.
    */
   transform?: ClipTransform;
+  /** Position derived from other clips' measured boxes at render time. */
+  layout?: ClipLayout;
+  /** Repeated copies of this visual clip, each offset in space, time, and tint. */
+  repeater?: ClipRepeater;
+  /** Clip-specific shutter, independent of the render-wide setting. */
+  motionBlur?: { samplesPerFrame: number; shutterAngle: number };
+  /** Quantize this clip's animation and source clock to a chosen frame rate. */
+  steppedTime?: { fps: number };
+  /** Earlier instances drawn under the current clip. */
+  temporalEcho?: { copies: number; intervalMs: number; opacityDecay: number };
   /** Rounded-corner radius in source pixels. 0 = sharp corners. */
   borderRadius?: number;
   /**
@@ -959,6 +973,8 @@ export interface TimelineClip {
    * only. Must also exist on the protocol zod schema or PATCH would strip it.
    */
   animations?: ClipAnimation[];
+  /** Declarative links and deterministic wiggle evaluated while rendering. */
+  animationLinks?: import("./animation/links.js").AnimationLink[];
   /**
    * Group this clip belongs to. The parent's transform composes with this
    * clip's, its opacity multiplies, and its window clips this one. Must name a
@@ -1050,6 +1066,8 @@ export interface ClipMask {
   y?: number;
   width?: number;
   height?: number;
+  /** Corner radius in source pixels for a rectangular mask. */
+  radiusPx?: number;
   /** SVG path data in normalized 0..1 space. `kind: "path"` only. */
   d?: string;
   /** Feathered edge width in source px. 0 = hard edge. */
@@ -1272,7 +1290,13 @@ export type KnownClipTransition =
   | ClipWipeTransition
   | ClipPushTransition
   | ClipSlideTransition
-  | ClipZoomTransition;
+  | ClipZoomTransition
+  | ClipWhipTransition
+  | ClipZoomBlurTransition
+  | ClipGlitchTransition
+  | ClipGradientWipeTransition
+  | ClipIrisTransition
+  | ClipLightLeakTransition;
 
 /**
  * A cut whose `type` this build does not draw, carried rather than refused
@@ -1340,6 +1364,55 @@ export interface ClipZoomTransition {
   easing?: string;
 }
 
+export interface ClipWhipTransition {
+  type: "whip";
+  durationMs: number;
+  direction: string;
+  blur?: number;
+  easing?: string;
+}
+
+export interface ClipZoomBlurTransition {
+  type: "zoomBlur";
+  durationMs: number;
+  blur?: number;
+  easing?: string;
+}
+
+export interface ClipGlitchTransition {
+  type: "glitch";
+  durationMs: number;
+  amount?: number;
+  easing?: string;
+}
+
+export interface ClipGradientWipeTransition {
+  type: "gradientWipe";
+  durationMs: number;
+  direction: string;
+  softness?: number;
+  map?: "linear" | "radial" | "noise";
+  scale?: number;
+  seed?: number;
+  easing?: string;
+}
+
+export interface ClipIrisTransition {
+  type: "iris";
+  durationMs: number;
+  softness?: number;
+  easing?: string;
+}
+
+export interface ClipLightLeakTransition {
+  type: "lightLeak";
+  durationMs: number;
+  color?: string;
+  scale?: number;
+  seed?: number;
+  easing?: string;
+}
+
 /**
  * 2D transform applied per clip in the GPU compositor.
  * - `position` is in canvas pixels relative to the canvas center.
@@ -1351,7 +1424,57 @@ export interface ClipTransform {
   position: { x: number; y: number };
   scale: { x: number; y: number };
   rotation: number;
+  /** CSS-style X/Y rotations in degrees. */
+  rotationX?: number;
+  rotationY?: number;
+  /** Distance from the picture plane in pixels. */
+  perspective?: number;
+  /** Distance toward the camera in sequence pixels. Positive is closer. */
+  depthPx?: number;
   anchor: { x: number; y: number };
+}
+
+export interface TimelineCamera2D {
+  position: { x: number; y: number };
+  depthPx: number;
+  /** Perspective distance from camera to the image plane, in pixels. */
+  focalLengthPx: number;
+  /** Depth plane in focus, in the same coordinates as ClipTransform.depthPx. */
+  focusDepthPx?: number;
+  /** Maximum circle of confusion at one focal length from focus, in pixels. */
+  aperturePx?: number;
+  /** Absolute timeline time, with linear interpolation between poses. */
+  keyframes?: {
+    timeMs: number;
+    position: { x: number; y: number };
+    depthPx: number;
+    focusDepthPx?: number;
+    aperturePx?: number;
+  }[];
+}
+
+export interface ClipLayout {
+  /** A row or vertical stack containing the named clips in this order. */
+  kind: "row" | "stack" | "relative";
+  children?: string[];
+  gapPx?: number;
+  /** Relative mode places this clip against another clip's resolved box. */
+  targetClipId?: string;
+  side?: "left" | "right" | "above" | "below" | "center";
+  /** Fit this clip's visual box to its text plus padding. */
+  fitText?: { paddingXPx: number; paddingYPx: number };
+}
+
+export interface ClipRepeater {
+  count: number;
+  positionStep: { x: number; y: number };
+  /** Number of columns before copies wrap to the next row. */
+  columns?: number;
+  /** Offset applied for each new row when `columns` is set. */
+  rowStep?: { x: number; y: number };
+  timeStepMs: number;
+  /** Per-copy hue rotation and brightness change, applied to any media. */
+  colorStep?: { hueDegrees: number; brightness?: number };
 }
 
 /**
@@ -1373,7 +1496,14 @@ export type KnownClipEffect =
   | ClipCurvesEffect
   | ClipLevelsEffect
   | ClipLiftGammaGainEffect
-  | ClipGrainEffect;
+  | ClipGrainEffect
+  | ClipPixelateEffect
+  | ClipPosterizeEffect
+  | ClipDirectionalBlurEffect
+  | ClipLensDistortionEffect
+  | ClipStylizeEffect
+  | ClipGeneratorEffect
+  | ClipLutEffect;
 
 /**
  * An effect whose `type` this build does not apply, carried rather than
@@ -1451,7 +1581,14 @@ export const CLIP_EFFECT_TYPES = [
   "curves",
   "levels",
   "liftGammaGain",
-  "grain"
+  "grain",
+  "pixelate",
+  "posterize",
+  "directionalBlur",
+  "lensDistortion",
+  "stylize",
+  "generator",
+  "lut"
 ] as const;
 
 export type ClipEffectType = (typeof CLIP_EFFECT_TYPES)[number];
@@ -1495,10 +1632,96 @@ export interface ClipBlurEffect {
   id: string;
   type: "blur";
   enabled: boolean;
-  /** Blur radius in source pixels (0..20 typical). */
+  /** Blur radius in source pixels (up to 256 in the GPU exporter). */
   radius: number;
   /** Optional Gaussian sigma. Defaults to radius / 3. */
   sigma?: number;
+}
+
+export interface ClipPixelateEffect {
+  id: string;
+  type: "pixelate";
+  enabled: boolean;
+  /** Square cell width in source pixels. */
+  cellSize: number;
+}
+
+export interface ClipPosterizeEffect {
+  id: string;
+  type: "posterize";
+  enabled: boolean;
+  /** Number of channel levels, from 2 to 256. */
+  levels: number;
+}
+
+export interface ClipDirectionalBlurEffect {
+  id: string;
+  type: "directionalBlur";
+  enabled: boolean;
+  /** Blur radius in source pixels. */
+  radius: number;
+  /** Direction of travel in degrees clockwise from the horizontal axis. */
+  angle: number;
+}
+
+export interface ClipLensDistortionEffect {
+  id: string;
+  type: "lensDistortion";
+  enabled: boolean;
+  /** Positive values bulge the centre; negative values pinch it. */
+  amount: number;
+}
+
+export const STYLIZE_MODES = [
+  "rgbSplit", "radialBlur", "zoomBlur", "turbulence", "glitch",
+  "halftone", "dither", "lightRays", "lensFlare",
+  "innerShadow", "innerGlow", "edgeHighlight", "displacement",
+  "gradientWipe", "lightLeakOverlay"
+] as const;
+
+export const GENERATOR_MODES = [
+  "noise", "fractal", "conicGradient", "meshGradient", "gradientField",
+  "particles", "lightLeak", "gridPattern"
+] as const;
+
+export interface ClipStylizeEffect {
+  id: string;
+  type: "stylize";
+  enabled: boolean;
+  mode: (typeof STYLIZE_MODES)[number];
+  amount: number;
+  scale?: number;
+  angle?: number;
+  time?: number;
+  animate?: boolean;
+  seed?: number;
+  color?: string;
+  softness?: number;
+}
+
+export interface ClipGeneratorEffect {
+  id: string;
+  type: "generator";
+  enabled: boolean;
+  mode: (typeof GENERATOR_MODES)[number];
+  amount?: number;
+  scale?: number;
+  angle?: number;
+  time?: number;
+  animate?: boolean;
+  seed?: number;
+  colorA?: string;
+  colorB?: string;
+}
+
+export interface ClipLutEffect {
+  id: string;
+  type: "lut";
+  enabled: boolean;
+  /** Contents of a 3D .cube file. */
+  cube: string;
+  /** Grade mix, 0..1. */
+  intensity?: number;
 }
 
 export interface ClipGlowEffect {

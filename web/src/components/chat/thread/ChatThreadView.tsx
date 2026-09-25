@@ -46,6 +46,7 @@ interface ChatThreadViewProps {
   threadId?: string | null;
   messages: Message[];
   status: ChatStatus;
+  replayElapsedSeconds?: number;
   progress: number;
   total: number;
   progressMessage: string | null;
@@ -117,6 +118,7 @@ function toolResultsAreEqual(
 
 interface StatusFooterProps {
   status: ChatStatus;
+  replayElapsedSeconds?: number;
   progress: number;
   total: number;
   progressMessage: string | null;
@@ -135,6 +137,7 @@ interface StatusFooterProps {
 const StatusFooter = memo<StatusFooterProps>(
   ({
     status,
+    replayElapsedSeconds,
     progress,
     total,
     progressMessage,
@@ -186,7 +189,7 @@ const StatusFooter = memo<StatusFooterProps>(
                 </ShimmerText>
               </Text>
               <Caption className="chat-status-elapsed" color="muted">
-                {formatElapsed(elapsed)}
+                {formatElapsed(replayElapsedSeconds ?? elapsed)}
               </Caption>
             </FlexRow>
           </div>
@@ -231,6 +234,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   threadId,
   messages,
   status,
+  replayElapsedSeconds,
   progress,
   total,
   progressMessage,
@@ -594,6 +598,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
 
             <StatusFooter
               status={status}
+              replayElapsedSeconds={replayElapsedSeconds}
               progress={progress}
               total={total}
               progressMessage={progressMessage}

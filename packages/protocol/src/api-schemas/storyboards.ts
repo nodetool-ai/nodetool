@@ -417,8 +417,8 @@ export type PatchStoryboardInput = z.infer<typeof patchStoryboardInput>;
 
 // ── Shipped example boards ──────────────────────────────────────────────────
 // An example storyboard ships as a file, the way an example workflow does: a
-// name, a description, and one complete document whose shots already carry
-// their text, still, and clip. The media are `package://` assets, so the file
+// name, a description, and one complete document whose shots carry their text
+// and stills. The media are `package://` assets, so the file
 // is the whole board — installing it writes one row and copies no bytes.
 
 export const STORYBOARD_BUNDLE_SCHEMA_VERSION = 1;
@@ -462,7 +462,9 @@ export const exampleStoryboardSummary = z.object({
   clipCount: z.number(),
   aspectRatio: z.string(),
   /** First shot's still, as a URL this server serves. Null when it has none. */
-  thumbnailUrl: z.string().nullable()
+  thumbnailUrl: z.string().nullable(),
+  /** Every shot's still in storyboard order, for gallery previews. */
+  stillUrls: z.array(z.string())
 });
 export type ExampleStoryboardSummary = z.infer<typeof exampleStoryboardSummary>;
 

@@ -17,6 +17,7 @@
 
 import type {
   ActiveLayer,
+  AdjustmentLayer,
   AnimatedLayerProps,
   Canvas2DLayer,
   Canvas2DMatte,
@@ -31,6 +32,7 @@ import {
 } from "@nodetool-ai/timeline/render";
 
 import type {
+  CompositeAdjustment,
   CompositeLayer,
   CompositePrecomposite,
   CompositeSource
@@ -65,6 +67,7 @@ export type CompositeSourceResolver = (
 export interface BuildCompositeLayersOptions {
   /** The frame time the layers are drawn at. */
   atMs: number;
+  atMsForLayer?: (layer: ActiveLayer) => number;
   /** The sequence's own resolution: the space animations are sampled in. */
   canvas: RenderCanvas;
   animationCache?: AnimationCompileCache;
@@ -102,7 +105,7 @@ export function buildCompositeLayer(
 ): CompositeLayer | null {
   const anim = resolveAnimatedLayerProps(
     layer,
-    options.atMs,
+    options.atMsForLayer?.(layer) ?? options.atMs,
     options.canvas,
     options.animationCache,
     options.tracking
@@ -116,6 +119,7 @@ export function buildCompositeLayer(
     opacity: anim.opacity,
     blendMode: layer.blendMode,
     zIndex: trackZ(layer.trackIndex),
+    stackOrder: layer.stackOrder,
     precomposeGroupId: layer.precomposeGroupId,
     mask: anim.mask
   };
@@ -123,9 +127,9 @@ export function buildCompositeLayer(
 
   built.transform = anim.transform;
   built.parentMatrix = layer.parentMatrix;
-  built.borderRadius = layer.borderRadius;
+  built.borderRadius = anim.borderRadius ?? layer.borderRadius;
   built.crop = layer.crop;
-  built.shapeMask = layer.shapeMask;
+  built.shapeMask = anim.clipMask;
   built.effects = anim.effects ?? layer.effects;
   built.trackEffects = layer.trackEffects;
   built.transition = layer.transition;
@@ -164,10 +168,27 @@ export function buildCompositePrecomposites(
   return precomposites.map((group) => ({
     id: group.clipId,
     zIndex: trackZ(group.trackIndex),
+    stackOrder: group.stackOrder,
     opacity: group.opacity,
     blendMode: group.blendMode,
     effects: group.effects,
+    transition: group.transition,
     precomposeGroupId: group.precomposeGroupId
+  }));
+}
+
+/** The scene's adjustment clips in the form both browser compositors accept. */
+export function buildCompositeAdjustments(
+  adjustments: readonly AdjustmentLayer[]
+): CompositeAdjustment[] {
+  return adjustments.map((adjustment) => ({
+    id: adjustment.clipId,
+    zIndex: trackZ(adjustment.trackIndex),
+    opacity: adjustment.opacity,
+    effects: adjustment.effects,
+    mask: adjustment.mask,
+    wipe: adjustment.wipe,
+    precomposeGroupId: adjustment.precomposeGroupId
   }));
 }
 
@@ -214,6 +235,7 @@ export function toCanvas2DLayer(
     opacity: layer.opacity,
     blendMode: layer.blendMode,
     zIndex: layer.zIndex,
+    stackOrder: layer.stackOrder,
     transform: layer.transform,
     parentMatrix: layer.parentMatrix,
     precomposeGroupId: layer.precomposeGroupId,

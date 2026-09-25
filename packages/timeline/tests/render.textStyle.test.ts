@@ -33,6 +33,7 @@ const H = 400;
  */
 const FULL: Required<ClipTextStyle> = {
   text: "HELLO THERE",
+  path: "M 0 0.5 L 1 0.5",
   fontFamily: "Georgia",
   fontSizePx: 40,
   fontWeight: 600,
@@ -59,6 +60,7 @@ const FULL: Required<ClipTextStyle> = {
 /** A different value of the same shape, for every field. */
 const CHANGED: Required<ClipTextStyle> = {
   text: "GOODBYE",
+  path: "M 0 0.6 L 1 0.6",
   fontFamily: "Verdana",
   fontSizePx: 41,
   fontWeight: 400,
@@ -125,6 +127,7 @@ describe("textStyleSignature", () => {
       fill: FULL.fill,
       background: FULL.background,
       text: FULL.text,
+      path: FULL.path,
       color: FULL.color,
       fontSizePx: FULL.fontSizePx,
       shadow: FULL.shadow,

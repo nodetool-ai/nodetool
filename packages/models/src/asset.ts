@@ -5,7 +5,7 @@
  */
 
 import { eq, and, or, like, desc, isNull, lt, inArray } from "drizzle-orm";
-import { isSystemEntityMetadata } from "@nodetool-ai/protocol";
+import { isShortResourceId, isSystemEntityMetadata } from "@nodetool-ai/protocol";
 import {
   DBModel,
   ModelChangeEvent,
@@ -109,9 +109,23 @@ export class Asset extends DBModel {
 
   /** Find an asset by id, scoped to the user. */
   static async find(userId: string, assetId: string): Promise<Asset | null> {
-    const asset = await Asset.get<Asset>(assetId);
-    if (!asset || asset.user_id !== userId) return null;
-    return asset;
+    const db = getDb();
+    const [exact] = await db
+      .select()
+      .from(assets)
+      .where(and(eq(assets.user_id, userId), eq(assets.id, assetId)))
+      .limit(1);
+    if (exact) return new Asset(exact);
+    if (!isShortResourceId(assetId)) return null;
+    const matches = await db
+      .select()
+      .from(assets)
+      .where(and(eq(assets.user_id, userId), like(assets.id, `${assetId}%`)))
+      .limit(2);
+    if (matches.length > 1) {
+      throw new Error(`short id "${assetId}" matches more than one row; use the full id`);
+    }
+    return matches[0] ? new Asset(matches[0]) : null;
   }
 
   /** Find multiple assets by id, scoped to the user. */

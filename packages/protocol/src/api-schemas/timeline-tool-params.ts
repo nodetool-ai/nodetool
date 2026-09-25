@@ -125,6 +125,25 @@ export const clipOpacityParam = z
   .optional()
   .describe("Clip opacity, 0..1. Defaults to 1.");
 
+/** Static placement, merged over the clip's current transform. */
+export const clipTransformPatchParam = z
+  .object({
+    position: z
+      .object({ x: z.number().optional(), y: z.number().optional() })
+      .optional(),
+    scale: z
+      .object({ x: z.number().optional(), y: z.number().optional() })
+      .optional(),
+    rotation: z.number().optional(),
+    rotationX: z.number().optional(),
+    rotationY: z.number().optional(),
+    perspective: z.number().positive().optional(),
+    anchor: z
+      .object({ x: z.number().optional(), y: z.number().optional() })
+      .optional()
+  })
+  .optional();
+
 /**
  * `move_track`'s arguments, in either spelling.
  *
@@ -486,8 +505,8 @@ export const shapeStyleParams = withFieldNotes(clipShapeStyle, {
   innerRadius: 'kind "star" only: inner radius as a fraction of the outer.',
   cornerRadius: "Corner rounding, in the same normalized units.",
   fill:
-    "Solid fill colour. Opaque unless the colour carries alpha — use " +
-    "8-digit hex (#05070CCC) or rgba() for a scrim over picture.",
+    "Solid colour string or linear/radial gradient object. Alpha belongs " +
+    "in the colour or gradient stop colours.",
   stroke:
     "Outline colour. Omit it and the shape is drawn with no outline; " +
     "`strokeWidthPx` defaults to 8 once a stroke colour is set.",
@@ -537,13 +556,13 @@ export const ADD_SHAPE_CLIP_DESCRIPTION =
   "the frame; every one of those keys is also read from the top level. With " +
   "no geometry at all the shape is a full-frame rect. A shape with no colour " +
   "at all gets a white fill (a line, a white stroke); a shape you fill gets " +
-  "no stroke unless you ask for one. `fill` is opaque unless its colour " +
+  "no stroke unless you ask for one. A solid `fill` is opaque unless its colour " +
   "carries alpha, so a scrim over picture needs 8-digit hex (#05070CCC) or " +
   'rgba(); for a gradient scrim use fillStyle: {type: "linear", angle, ' +
   "stops: [{offset, color}]} with a transparent stop (#05070C00) at one end. " +
   "A key this tool does not know is refused by name rather than ignored. " +
   "`opacity` (0..1) sets the clip's own opacity, which is the other way to " +
-  "author a scrim. " +
+  "author a scrim. `fill` also accepts the gradient object directly. " +
   "Shapes are rasterized for preview/export and take the standard motion " +
   "presets.";
 
@@ -754,7 +773,12 @@ export const transitionParams = z.object({
   softness: z
     .number()
     .optional()
-    .describe("wipe only: feathered edge width, 0..1 of the wipe axis.")
+    .describe("wipe, gradientWipe or iris: feathered edge width, 0..1."),
+  map: z.enum(["linear", "radial", "noise"]).optional().describe("gradientWipe: threshold field."),
+  scale: z.number().optional().describe("gradientWipe noise frequency or lightLeak field falloff."),
+  seed: z.number().optional().describe("gradientWipe or lightLeak field seed."),
+  blur: z.number().optional().describe("whip or zoomBlur: blur radius in source pixels."),
+  amount: z.number().optional().describe("glitch: displacement strength.")
 });
 
 export type TransitionParams = z.infer<typeof transitionParams>;
@@ -788,9 +812,21 @@ export function buildTransition(input: TransitionParams): KnownClipTransition {
       return { type, durationMs, easing, color: input.color ?? "#000000" };
     case "wipe":
       return { type, durationMs, easing, direction, softness: input.softness };
+    case "gradientWipe":
+      return { type, durationMs, easing, direction, softness: input.softness, map: input.map, scale: input.scale, seed: input.seed };
     case "push":
     case "slide":
       return { type, durationMs, easing, direction };
+    case "whip":
+      return { type, durationMs, easing, direction, blur: input.blur };
+    case "zoomBlur":
+      return { type, durationMs, easing, blur: input.blur };
+    case "glitch":
+      return { type, durationMs, easing, amount: input.amount };
+    case "iris":
+      return { type, durationMs, easing, softness: input.softness };
+    case "lightLeak":
+      return { type, durationMs, easing, color: input.color, scale: input.scale, seed: input.seed };
     case "crossfade":
     case "zoom":
       return { type, durationMs, easing };
@@ -826,6 +862,7 @@ export const maskParams = z.object({
     .number()
     .optional()
     .describe("Height, 0..1 of the layer's height. Default 1."),
+  radiusPx: z.number().nonnegative().optional().describe("rect only: corner radius in source pixels."),
   d: z
     .string()
     .optional()
@@ -857,8 +894,9 @@ export function buildMask(
   input: MaskParams,
   checkPath?: (d: string) => { ok: boolean; error?: string }
 ): ClipMask {
-  const { kind, x, y, width, height, featherPx, invert } = input;
-  if (kind !== "path") return { kind, x, y, width, height, featherPx, invert };
+  const { kind, x, y, width, height, radiusPx, featherPx, invert } = input;
+  if (kind === "rect") return { kind, x, y, width, height, radiusPx, featherPx, invert };
+  if (kind === "ellipse") return { kind, x, y, width, height, featherPx, invert };
   const d = input.d ?? "";
   const parsed = checkPath?.(d);
   if (parsed && !parsed.ok) {
@@ -1171,6 +1209,16 @@ export const effectParams = z.object({
     .number()
     .optional()
     .describe("blur, glow and sharpen: radius in the clip's own pixels."),
+  cellSize: z.number().optional().describe("pixelate: square cell width in source pixels."),
+  levels: z.number().optional().describe("posterize: number of channel levels."),
+  angle: z.number().optional().describe("directionalBlur and visual effects: angle in degrees."),
+  mode: z.string().optional().describe("stylize or generator mode."),
+  scale: z.number().optional().describe("stylize or generator spatial scale."),
+  time: z.number().optional().describe("stylize or generator time in seconds."),
+  seed: z.number().optional().describe("stylize or generator deterministic seed."),
+  colorA: z.string().optional().describe("generator first colour."),
+  colorB: z.string().optional().describe("generator second colour."),
+  cube: z.string().optional().describe("lut: full contents of a 3D .cube file."),
   intensity: z.number().optional().describe("glow: bloom strength, 0..2."),
   offsetX: z
     .number()
@@ -1228,7 +1276,7 @@ export const effectParams = z.object({
   gammaRgb: rgbTriple
     .optional()
     .describe("liftGammaGain: midtone gamma per channel.")
-});
+}).strict();
 
 export type EffectParams = z.infer<typeof effectParams>;
 
@@ -1258,6 +1306,29 @@ export function buildEffect(
       };
     case "blur":
       return { ...base, type: "blur", radius: input.radius ?? 0 };
+    case "pixelate":
+      return { ...base, type: "pixelate", cellSize: input.cellSize ?? 8 };
+    case "posterize":
+      return { ...base, type: "posterize", levels: input.levels ?? 4 };
+    case "directionalBlur":
+      return { ...base, type: "directionalBlur", radius: input.radius ?? 8, angle: input.angle ?? 0 };
+    case "lensDistortion":
+      return { ...base, type: "lensDistortion", amount: input.amount ?? 0.5 };
+    case "stylize": {
+      const modes = ["rgbSplit", "radialBlur", "zoomBlur", "turbulence", "glitch", "halftone", "dither", "lightRays", "lensFlare", "innerShadow", "innerGlow", "edgeHighlight", "displacement", "gradientWipe", "lightLeakOverlay"] as const;
+      const mode = modes.find((candidate) => candidate === input.mode);
+      if (!mode) throw new Error(`Unknown stylize mode: ${input.mode}`);
+      return { ...base, type: "stylize", mode, amount: input.amount ?? 0.5, scale: input.scale, angle: input.angle, time: input.time, seed: input.seed, animate: input.animate, color: input.color, softness: input.softness };
+    }
+    case "generator": {
+      const modes = ["noise", "fractal", "conicGradient", "meshGradient", "gradientField", "particles", "lightLeak", "gridPattern"] as const;
+      const mode = modes.find((candidate) => candidate === input.mode);
+      if (!mode) throw new Error(`Unknown generator mode: ${input.mode}`);
+      return { ...base, type: "generator", mode, amount: input.amount, scale: input.scale, angle: input.angle, time: input.time, seed: input.seed, animate: input.animate, colorA: input.colorA, colorB: input.colorB };
+    }
+    case "lut":
+      if (!input.cube) throw new Error("lut requires .cube file contents");
+      return { ...base, type: "lut", cube: input.cube, intensity: input.intensity ?? 1 };
     case "glow":
       return {
         ...base,
@@ -1350,6 +1421,7 @@ export function buildEffect(
  */
 export const addGroupParams = z.object({
   name: z.string().trim().min(1).describe("Label for the group clip."),
+  transform: clipTransformPatchParam,
   startMs: z.number().describe("Where the group's window opens."),
   durationMs: z
     .number()
@@ -1706,6 +1778,7 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_set_effects",
   "ui_timeline_set_clip_binding",
   "ui_timeline_animate_clip",
+  "ui_timeline_stagger_animations",
   "ui_timeline_clear_animations",
   "ui_timeline_list_animation_presets",
   "ui_timeline_select_clip",

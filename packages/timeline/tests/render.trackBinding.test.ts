@@ -88,6 +88,22 @@ describe("resolveAnimatedLayerProps with a trackBinding", () => {
     expect(props.transform?.position.y).toBeCloseTo(400);
   });
 
+  it("retains depth while applying a tracking offset under a camera", () => {
+    const bound = clip({
+      transform: {
+        position: { x: 200, y: 0 }, scale: { x: 1, y: 1 }, rotation: 0,
+        anchor: { x: 0.5, y: 0.5 }, depthPx: 500
+      },
+      trackBinding: { trackId: "track_1", mode: "position" }
+    });
+    const props = resolveAnimatedLayerProps({
+      clip: bound, transform: bound.transform, opacity: 1,
+      camera2d: { position: { x: 0, y: 0 }, depthPx: 0, focalLengthPx: 1000 }
+    }, 1000, CANVAS, undefined, trackingContext());
+    expect(props.transform?.position.x).toBeCloseTo(800);
+    expect(props.transform?.scale.x).toBeCloseTo(2);
+  });
+
   it("adds the binding's own offset on top of the track sample", () => {
     const bound = clip({
       trackBinding: {

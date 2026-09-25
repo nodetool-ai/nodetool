@@ -113,6 +113,33 @@ describe("instantiateComposition + extractComposition", () => {
     expect(clips.map((c) => c.id)).not.toContain("group-template");
   });
 
+  it("remaps references between copied clips while preserving external references", () => {
+    const template = lowerThird();
+    template.group.layout = { kind: "row", children: ["bar", "name"] };
+    template.children[1].layout = { kind: "relative", targetClipId: "bar", side: "right" };
+    template.children[1].animationLinks = [
+      { target: "positionX", sourceClipId: "bar", source: "positionX" },
+      { target: "positionY", sourceClipId: "external", source: "positionY" }
+    ];
+    template.children[1].matte = { sourceClipId: "bar", mode: "alpha" };
+    template.children[1].sourceClipId = "bar";
+    const extracted = extractComposition(
+      { clips: [template.group, ...template.children.map((child) => ({ ...child, parentId: template.group.id }))] },
+      template.group.id
+    );
+    let sequence = 0;
+    const [group, bar, name] = instantiateComposition(extracted, {
+      startMs: 5000, newId: () => `fresh-${++sequence}`
+    });
+    expect(group.layout?.children).toEqual([bar.id, name.id]);
+    expect(name.layout?.targetClipId).toBe(bar.id);
+    expect(name.animationLinks?.[0]).toMatchObject({ sourceClipId: bar.id });
+    expect(name.animationLinks?.[1]).toMatchObject({ sourceClipId: "external" });
+    expect(name.matte?.sourceClipId).toBe(bar.id);
+    expect(name.sourceClipId).toBe(bar.id);
+    expect(extracted.group.layout?.children).toEqual(["bar", "name"]);
+  });
+
   it("refuses a parameter path that addresses no child field", () => {
     const comp = lowerThird();
     comp.params["role"] = {

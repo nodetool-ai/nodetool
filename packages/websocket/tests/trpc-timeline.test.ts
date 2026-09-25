@@ -533,6 +533,23 @@ describe("timeline router", () => {
       expect(got.scriptEnabled).toBe(true);
     });
 
+    it("persists, retains and explicitly clears the camera through update", async () => {
+      const camera2d = { position: { x: 10, y: 20 }, depthPx: 50, focalLengthPx: 1000 };
+      let stored = makeSeq();
+      TS.findById.mockImplementation(async () => stored);
+      TS.update.mockImplementation((_id, fields) => {
+        stored = makeSeq({ document: (fields as { document: string }).document });
+        return Promise.resolve(stored);
+      });
+      const caller = createCaller(makeCtx());
+      await caller.timeline.update({ id: "seq-1", document: { tracks: [], clips: [], markers: [], camera2d } });
+      expect((await caller.timeline.get({ id: "seq-1" })).camera2d).toEqual(camera2d);
+      await caller.timeline.update({ id: "seq-1", document: { tracks: [], clips: [], markers: [] } });
+      expect((await caller.timeline.get({ id: "seq-1" })).camera2d).toEqual(camera2d);
+      await caller.timeline.update({ id: "seq-1", document: { tracks: [], clips: [], markers: [], camera2d: null } });
+      expect((await caller.timeline.get({ id: "seq-1" })).camera2d).toBeNull();
+    });
+
     it("persists tempo through update and returns it from get", async () => {
       TS.findById.mockResolvedValue(makeSeq());
       let savedDocumentJson = "";

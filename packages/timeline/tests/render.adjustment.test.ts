@@ -232,6 +232,29 @@ describe("computeActiveLayers — adjustments", () => {
     );
   });
 
+  it("samples an animated treatment mask on the document beat clock", () => {
+    const adj = adjustmentClip({
+      id: "adj",
+      durationMs: 2500,
+      effects: [desaturate()],
+      mask: { kind: "rect", radiusPx: 0 },
+      animations: [{
+        id: "round-mask", role: "emphasis", preset: "custom", durationMs: 1000,
+        beat: { index: 2, scope: "clip" },
+        styleTracks: [{ target: "mask.radiusPx", keyframes: [
+          { t: 0, value: 0 }, { t: 1, value: 20 }
+        ] }]
+      }]
+    });
+    const scene = computeActiveLayersWithHorizon(
+      tracks,
+      [pictureClip({ id: "pic", trackId: "t2", durationMs: 2500 }), adj],
+      1250,
+      { canvas: CANVAS, tempo: { bpm: 60, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } } }
+    );
+    expect(scene.adjustments[0]?.mask).toMatchObject({ kind: "rect", radiusPx: 5 });
+  });
+
   it("is never a matte source: the layer reading it draws unmatted", () => {
     const scene = computeActiveLayersWithHorizon(
       tracks,
@@ -765,8 +788,8 @@ describe("unsupportedEffectTypes — adjustments", () => {
     intensity: 1
   };
 
-  it("names a GPU-only effect on an adjustment", () => {
-    expect(unsupportedEffectTypes([{ effects: [glow] }])).toEqual(["glow"]);
+  it("supports glow on an adjustment through the CPU effect chain", () => {
+    expect(unsupportedEffectTypes([{ effects: [glow] }])).toEqual([]);
   });
 
   it("says nothing about one Canvas 2D draws", () => {

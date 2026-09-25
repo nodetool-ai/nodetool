@@ -18,6 +18,7 @@
 import type { ClipTextStyle } from "../types.js";
 import { resolveFontFamily } from "../fonts/catalog.js";
 import { countStaggerUnits } from "../animation/compile.js";
+import { countTypewriterUnits } from "../animation/typewriter.js";
 import type { StaggerUnit } from "../animation/types.js";
 
 /**
@@ -189,13 +190,7 @@ export function countTextStaggerUnits(
 ): number {
   const text = style.text;
   if (unit === "word") return countStaggerUnits(text);
-  if (unit === "character") {
-    const words = text.split(/\s+/).filter(Boolean);
-    if (words.length === 0) return 0;
-    let count = words.length - 1; // one separator per gap
-    for (const word of words) count += segmentGraphemes(word).length;
-    return count;
-  }
+  if (unit === "character") return countTypewriterUnits(text);
   return wrapTextLines(
     text,
     textMaxWidthPx(style, canvas.width),

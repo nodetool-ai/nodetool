@@ -17,7 +17,7 @@ const FACES: ReadonlyArray<{ file: string; weight: string }> = [
 
 let loading: Promise<void> | null = null;
 
-function ensureInterLoaded(): Promise<void> {
+export function ensureInterLoaded(): Promise<void> {
   if (!loading) {
     loading = Promise.all(
       FACES.map(async ({ file, weight }) => {

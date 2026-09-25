@@ -91,7 +91,8 @@ jest.mock("../compositeLayers", () => ({
     mockBuildCompositeLayers(layers);
     return [];
   },
-  buildCompositePrecomposites: () => []
+  buildCompositePrecomposites: () => [],
+  buildCompositeAdjustments: () => []
 }));
 
 jest.mock("../../../../stores/AssetStore", () => ({

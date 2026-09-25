@@ -225,6 +225,24 @@ export function instantiateComposition(
   }
 
   const groupId = mint();
+  const idMap = new Map<string, string>([[composition.group.id, groupId]]);
+  for (const child of children) {
+    idMap.set(child.id, mint());
+  }
+  const remapId = (id: string): string => idMap.get(id) ?? id;
+  const remapReferences = (clip: TimelineClip): void => {
+    if (clip.layout) {
+      if (clip.layout.children) clip.layout.children = clip.layout.children.map(remapId);
+      if (clip.layout.targetClipId) clip.layout.targetClipId = remapId(clip.layout.targetClipId);
+    }
+    if (clip.animationLinks) {
+      clip.animationLinks = clip.animationLinks.map((link) =>
+        "sourceClipId" in link ? { ...link, sourceClipId: remapId(link.sourceClipId) } : link
+      );
+    }
+    if (clip.matte) clip.matte.sourceClipId = remapId(clip.matte.sourceClipId);
+    if (clip.sourceClipId) clip.sourceClipId = remapId(clip.sourceClipId);
+  };
   const group: TimelineClip = {
     ...structuredClone(composition.group),
     id: groupId,
@@ -234,18 +252,21 @@ export function instantiateComposition(
   };
   if (options.trackId) group.trackId = options.trackId;
   delete group.parentId;
+  remapReferences(group);
 
   const out: TimelineClip[] = [group];
   for (const child of children) {
-    out.push({
+    const instance: TimelineClip = {
       ...child,
-      id: mint(),
+      id: remapId(child.id),
       startMs: options.startMs + child.startMs,
       trackId: options.trackId ?? child.trackId,
       parentId: groupId,
       compositionId: composition.id,
       compositionParams: applied
-    });
+    };
+    remapReferences(instance);
+    out.push(instance);
   }
   return out;
 }

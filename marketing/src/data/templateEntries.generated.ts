@@ -5410,6 +5410,110 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/count-to-three-with-a-loop",
+    "title": "Count to Three with a Loop — NodeTool AI Workflow Template",
+    "description": "Start at zero and add one on each pass. Stop when the result reaches three, then return the final value.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "count-to-three-with-a-loop",
+    "name": "Count to Three with a Loop",
+    "summary": "Start at zero and add one on each pass. Stop when the result reaches three, then return the final value.",
+    "tags": [
+      "control",
+      "loop",
+      "getting-started",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Loop",
+        "label": "Loop",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": -260,
+          "width": 600,
+          "isComment": true
+        },
+        {
+          "id": "loop",
+          "type": "nodetool.control.Loop",
+          "title": "Loop",
+          "x": 0,
+          "y": 100,
+          "width": 300
+        },
+        {
+          "id": "step",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 420,
+          "y": 100,
+          "width": 340
+        },
+        {
+          "id": "final",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 850,
+          "y": 100,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "loop",
+          "sourceHandle": "value",
+          "target": "step",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "step",
+          "sourceHandle": "next",
+          "target": "loop",
+          "targetHandle": "next",
+          "color": "any"
+        },
+        {
+          "source": "step",
+          "sourceHandle": "again",
+          "target": "loop",
+          "targetHandle": "condition",
+          "color": "any"
+        },
+        {
+          "source": "loop",
+          "sourceHandle": "done",
+          "target": "final",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/crop-an-image",
     "title": "Crop an Image — NodeTool AI Workflow Template",
     "description": "Cut a rectangle out of an image by pixel bounds. The blunt instrument - use Fit when you want the whole frame at a new size. Local pixel work - no model, no key, no cost.",

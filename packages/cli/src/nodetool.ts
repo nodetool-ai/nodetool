@@ -2014,6 +2014,16 @@ mcp
   )
   .action(async () => {
     try {
+      const {
+        createMcpServer,
+        createMcpStdioTransport,
+        forwardMcpStdioToLocalServer
+      } = await import("@nodetool-ai/websocket");
+      if (await forwardMcpStdioToLocalServer()) {
+        process.stderr.write("NodeTool MCP forwarding to the local API server.\n");
+        return;
+      }
+
       await setupDb();
 
       // A local TS-node registry powers list_nodes / search_nodes /
@@ -2028,8 +2038,6 @@ mcp
       registerReveNodes(registry);
       registerHuggingFaceNodes(registry);
 
-      const { createMcpServer, createMcpStdioTransport } =
-        await import("@nodetool-ai/websocket");
       // stdio serves exactly one local user; "1" is the local single-user id.
       const server = createMcpServer({
         registry,

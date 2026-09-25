@@ -41,6 +41,7 @@ interface DocumentSnapshot {
   transcript: TimelineStoreState["transcript"];
   scriptEnabled: TimelineStoreState["scriptEnabled"];
   tempo: TimelineStoreState["tempo"];
+  camera2d: TimelineStoreState["camera2d"];
   setup: NonNullable<TimelineStoreState["setup"]> | undefined;
 }
 
@@ -64,7 +65,8 @@ const timelineMergeDocumentOf = (
   scriptEnabled: state.scriptEnabled,
   fps: state.fps,
   width: state.width,
-  height: state.height
+  height: state.height,
+  camera2d: state.camera2d ?? null
 });
 
 const sameDocument = (
@@ -81,6 +83,7 @@ const sameDocument = (
   a.transcript === b.transcript &&
   a.scriptEnabled === b.scriptEnabled &&
   a.tempo === b.tempo &&
+  a.camera2d === b.camera2d &&
   a.setup === b.setup;
 
 const migratedLoads = new Set<string>();
@@ -165,7 +168,8 @@ export function useTimelineAutosave(
               scriptEnabled: snapshot.scriptEnabled,
               fps: snapshot.fps,
               width: snapshot.width,
-              height: snapshot.height
+              height: snapshot.height,
+              camera2d: snapshot.camera2d ?? null
             });
           }
           lastSaved = snapshot;
@@ -195,7 +199,8 @@ export function useTimelineAutosave(
               scriptEnabled: sequence.scriptEnabled ?? false,
               fps: sequence.fps,
               width: sequence.width,
-              height: sequence.height
+              height: sequence.height,
+              camera2d: sequence.camera2d ?? null
             };
             const { doc, conflicts, nextBase } = mergeTimelineDocuments(
               base,
@@ -217,7 +222,8 @@ export function useTimelineAutosave(
                 scriptEnabled: doc.scriptEnabled,
                 fps: doc.fps,
                 width: doc.width,
-                height: doc.height
+                height: doc.height,
+                camera2d: doc.camera2d ?? null
               });
             } finally {
               temporal.resume();

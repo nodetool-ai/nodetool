@@ -9,6 +9,7 @@
 
 import type {
   AnimatedProperty,
+  AnimationStyleTrack,
   AnimationRole,
   AnimationStagger,
   ClipAnimation,
@@ -194,6 +195,8 @@ export interface CompiledAnimation {
   /** Hold the `t=1` values after the window (true for `"out"`). */
   holdAfter: boolean;
   curves: PropertyCurve[];
+  /** Per-unit text color, blur and tracking curves. */
+  glyphTracks?: AnimationStyleTrack[];
   /**
    * Clock the curves are placed on. Absent or `"clip"`: the sampler evaluates
    * them at the normalized `t` of the window. `"source"`: it evaluates them at
@@ -205,6 +208,7 @@ export interface CompiledAnimation {
   mask?: CompiledAnimationMask;
   /** Present only when a per-unit stagger is active (see {@link CompiledStagger}). */
   stagger?: CompiledStagger;
+  caret?: { color: string; widthPx: number; blinkPeriodMs: number };
 }
 
 /** Default segment easing when neither the animation nor the preset pins one. */
@@ -311,10 +315,10 @@ export function compileClipAnimations(
       // easing is linear, because a body that sampled `f(t)` densely has
       // already shaped its own values and a role easing on top would distort
       // them. An explicit `animation.easing` or per-keyframe easing still wins.
-      const baked = normalizeCustomCurves(
-        animation.custom?.curves,
-        animation.custom?.timeBase
-      );
+      const styleOnly = !animation.custom?.curves?.length && Boolean(animation.styleTracks?.length || animation.textAnimator);
+      const baked = styleOnly
+        ? { ok: true as const, curves: [] as PropertyCurve[], timeBase: "clip" as const }
+        : normalizeCustomCurves(animation.custom?.curves, animation.custom?.timeBase);
       if (!baked.ok) {
         console.warn(
           `[timeline] custom animation "${animation.id}" has unusable curves (${baked.error}) — skipped`
@@ -472,6 +476,9 @@ export function compileClipAnimations(
       holdAfter: animation.role === "out",
       curves
     };
+    if (animation.preset === "typewriter" && animation.caret) {
+      compiled.caret = animation.caret;
+    }
     if (timeBase === "source") compiled.timeBase = timeBase;
     if (mask) compiled.mask = mask;
     if (staggerConfig && staggerOffsetMs > 0) {
@@ -488,5 +495,10 @@ export function compileClipAnimations(
     out.push(compiled);
   }
 
+  const authored = new Map(animations.map((animation) => [animation.id, animation]));
+  for (const compiled of out) {
+    const glyphTracks = authored.get(compiled.id)?.styleTracks?.filter((track) => track.target.startsWith("glyph."));
+    if (glyphTracks?.length) compiled.glyphTracks = glyphTracks;
+  }
   return out;
 }

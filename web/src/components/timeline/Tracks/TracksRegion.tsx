@@ -93,17 +93,15 @@ import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
 import { AddTrackButton } from "./AddTrackButton";
 import { ScriptToggleButton } from "./ScriptToggleButton";
+import { TimelineViewControls } from "./TimelineViewControls";
 import {
   TimelineScrollbar,
   TIMELINE_SCROLLBAR_HEIGHT_PX
 } from "./TimelineScrollbar";
 import { TrackEffectsPanel } from "./TrackEffectsPanel";
-import {
-  ScriptLane,
-  ScriptLaneHeader,
-  SCRIPT_LANE_HEIGHT_PX
-} from "./ScriptLane";
+import { ScriptLane, ScriptLaneHeader } from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
+import { layoutTrackRows, visibleTrackWindow } from "./trackWindow";
 import { ToolToggle } from "../ToolToggle";
 import { TimelineShortcutsDialog } from "../TimelineShortcutsDialog";
 import {
@@ -144,7 +142,6 @@ import {
 } from "@nodetool-ai/timeline";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 
-const DEFAULT_TRACK_HEIGHT_PX = 64;
 const ZOOM_SENSITIVITY = 0.001;
 /** Extra gap (ms) inserted after the source clip when using Ctrl+Shift+D. */
 const DUPLICATE_OFFSET_MS = 1000;
@@ -322,6 +319,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const hasScript = useHasScript();
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
+    const verticalZoom = useTimelineUIStore((s) => s.verticalZoom);
     const setScrollLeftPx = useTimelineUIStore((s) => s.setScrollLeftPx);
 
     const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
@@ -355,6 +353,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const scrollableRef = useRef<HTMLDivElement>(null);
     const headerColumnRef = useRef<HTMLDivElement>(null);
+    const [verticalScrollTop, setVerticalScrollTop] = useState(0);
     const toolbarRef = useRef<HTMLDivElement>(null);
     const [toolbarNarrow, setToolbarNarrow] = useState(false);
 
@@ -492,6 +491,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const handleScroll = useCallback(
       (e: React.UIEvent<HTMLDivElement>) => {
         setScrollLeftPx(e.currentTarget.scrollLeft);
+        setVerticalScrollTop(e.currentTarget.scrollTop);
         // Keep the header column vertically aligned with the lanes (the column
         // clips its own overflow and is scrolled programmatically from here).
         if (headerColumnRef.current) {
@@ -1319,19 +1319,49 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     // Precompute per-type index map (O(n)) to avoid O(n²) per-header lookups.
     const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
 
-    const totalTracksHeight =
-      tracks.reduce(
-        (sum, t) =>
-          sum +
-          (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) +
-          (t.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0),
-        0
-      ) + (hasScript ? SCRIPT_LANE_HEIGHT_PX : 0);
+    const trackLayout = useMemo(
+      () => layoutTrackRows(tracks, hasScript, expandedFxTrackId, verticalZoom),
+      [tracks, hasScript, expandedFxTrackId, verticalZoom]
+    );
+    const previousTrackLayoutRef = useRef(trackLayout);
+    const previousVerticalZoomRef = useRef(verticalZoom);
+    useLayoutEffect(() => {
+      const previousLayout = previousTrackLayoutRef.current;
+      const zoomChanged = previousVerticalZoomRef.current !== verticalZoom;
+      previousTrackLayoutRef.current = trackLayout;
+      previousVerticalZoomRef.current = verticalZoom;
+      const scrollArea = scrollableRef.current;
+      if (!zoomChanged || !scrollArea || previousLayout.rows.length === 0) {
+        return;
+      }
 
-    // The script lane sits just above the first audio track (between video and
-    // audio, Descript-style); if there's no audio track it goes last.
-    const scriptBeforeTrackId =
-      tracks.find((t) => t.type === "audio")?.id ?? null;
+      const oldTop = scrollArea.scrollTop;
+      const oldRow = previousLayout.rows[
+        visibleTrackWindow(previousLayout.rows, oldTop, 0, 0).start
+      ];
+      if (!oldRow) return;
+      const newRow = trackLayout.rows.find((row) =>
+        row.kind === "track" && oldRow.kind === "track"
+          ? row.track.id === oldRow.track.id
+          : row.kind === "script" && oldRow.kind === "script"
+      );
+      if (!newRow) return;
+      const nextTop =
+        newRow.top +
+        ((oldTop - oldRow.top) / oldRow.height) * newRow.height;
+      scrollArea.scrollTop = nextTop;
+      if (headerColumnRef.current) headerColumnRef.current.scrollTop = nextTop;
+      setVerticalScrollTop(nextTop);
+    }, [trackLayout, verticalZoom]);
+    const trackWindow = visibleTrackWindow(
+      trackLayout.rows,
+      verticalScrollTop,
+      lanesHeight
+    );
+    const visibleRows = trackLayout.rows.slice(
+      trackWindow.start,
+      trackWindow.end
+    );
 
     // The FX panel sticks to the left of the scroll viewport so it stays
     // visible while clips scroll horizontally. Its width matches the
@@ -1399,6 +1429,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               tooltip="Keyboard shortcuts (?)"
             />
           )}
+          <TimelineViewControls compact={toolbarCompact} />
         </FlexRow>
 
         {/* ── Sub-header: TRACKS label + ruler ────────────────────────── */}
@@ -1465,25 +1496,27 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             css={headerColumnStyles(theme)}
             style={{ height: lanesHeight }}
           >
-            {tracks.map((track) => (
-              <React.Fragment key={track.id}>
-                {hasScript && track.id === scriptBeforeTrackId && (
-                  <ScriptLaneHeader />
-                )}
-                <TrackHeader
-                  track={track}
-                  typedIndex={typedIndexMap.get(track.id) ?? 1}
-                  compact={isMobile}
-                />
-                {expandedFxTrackId === track.id && (
-                  <div
-                    style={{ height: FX_PANEL_HEIGHT_PX }}
-                    aria-hidden="true"
+            <div style={{ height: trackWindow.top }} aria-hidden="true" />
+            {visibleRows.map((row) =>
+              row.kind === "script" ? (
+                <ScriptLaneHeader key="script" />
+              ) : (
+                <React.Fragment key={row.track.id}>
+                  <TrackHeader
+                    track={row.track}
+                    typedIndex={typedIndexMap.get(row.track.id) ?? 1}
+                    compact={isMobile}
                   />
-                )}
-              </React.Fragment>
-            ))}
-            {hasScript && scriptBeforeTrackId === null && <ScriptLaneHeader />}
+                  {expandedFxTrackId === row.track.id && (
+                    <div
+                      style={{ height: FX_PANEL_HEIGHT_PX }}
+                      aria-hidden="true"
+                    />
+                  )}
+                </React.Fragment>
+              )
+            )}
+            <div style={{ height: trackWindow.bottom }} aria-hidden="true" />
           </div>
 
           {/* Scrollable lanes */}
@@ -1499,35 +1532,38 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               style={{
                 minWidth: totalWidthPx,
                 width: "100%",
-                height: totalTracksHeight
+                height: trackLayout.height
               }}
               data-timeline-lanes="true"
+              data-virtualized-tracks="true"
             >
               {/* Zero-size sticky anchor: must be the first child so its
                   in-flow position is the container's top-left corner. */}
               <GestureReadout />
-              {tracks.map((track) => (
-                <React.Fragment key={track.id}>
-                  {hasScript && track.id === scriptBeforeTrackId && (
-                    <ScriptLane />
-                  )}
-                  <TrackLane track={track} />
-                  {expandedFxTrackId === track.id && (
-                    <div
-                      style={{
-                        position: "sticky",
-                        left: 0,
-                        width: fxPanelWidth,
-                        height: FX_PANEL_HEIGHT_PX,
-                        zIndex: Z_INDEX.base + 2
-                      }}
-                    >
-                      <TrackEffectsPanel trackId={track.id} />
-                    </div>
-                  )}
-                </React.Fragment>
-              ))}
-              {hasScript && scriptBeforeTrackId === null && <ScriptLane />}
+              <div style={{ height: trackWindow.top }} aria-hidden="true" />
+              {visibleRows.map((row) =>
+                row.kind === "script" ? (
+                  <ScriptLane key="script" />
+                ) : (
+                  <React.Fragment key={row.track.id}>
+                    <TrackLane track={row.track} virtualizeClips />
+                    {expandedFxTrackId === row.track.id && (
+                      <div
+                        style={{
+                          position: "sticky",
+                          left: 0,
+                          width: fxPanelWidth,
+                          height: FX_PANEL_HEIGHT_PX,
+                          zIndex: Z_INDEX.base + 2
+                        }}
+                      >
+                        <TrackEffectsPanel trackId={row.track.id} />
+                      </div>
+                    )}
+                  </React.Fragment>
+                )
+              )}
+              <div style={{ height: trackWindow.bottom }} aria-hidden="true" />
               {/* Marquee rect — drawn here, above every lane, because a band
                   started on one lane may cover several. */}
               <RubberBandOverlay />

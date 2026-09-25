@@ -1,7 +1,7 @@
 // The shipped example compositions, as data.
 //
 // A composition is a group clip plus its children with named parameters —
-// `packages/timeline/src/composition.ts` is the model. These six cover the five
+// `packages/timeline/src/composition.ts` is the model. The catalogue covers the five
 // text tiers `packages/system-skills/caption-titles/SKILL.md` locks: T1 title
 // and end card, T2 lower third, T3 captions, T4 callouts, T5 CTA, plus a logo
 // sting built on the T1 tier.
@@ -96,7 +96,104 @@ const group = (name, durationMs, track = "Plate") =>
     mediaType: "group"
   });
 
+const MOTION_COMPOSITIONS = [
+  {
+    slug: "title-slam",
+    name: "Title slam",
+    description: "An exponential title entrance with a settling scale and accent rule.",
+    group: group("Title slam", 3000),
+    children: [
+      shape("Rule", "Accent", 0, 3000, {
+        kind: "rect", fill: "#B5FF55", x: 0.35, y: 0.64, width: 0.3, height: 0.012
+      }, { animations: [anim("slam-rule", "in", "slide", 420, {
+        delayMs: 140, easing: "easeOutExpo", params: { direction: "right", distance: 0.12 }
+      })] }),
+      text("Title", "Text", 0, 3000, {
+        text: "MAKE IT MOVE", fontFamily: "Space Grotesk", fontSizePx: 142,
+        fontWeight: 600, color: "#FFFFFF", align: "center", maxWidthFrac: 0.85
+      }, { animations: [
+        anim("slam-in", "in", "pop", 480, { easing: "easeOutExpo", params: { overshoot: 1.04 } }),
+        anim("slam-out", "out", "fade", 250)
+      ] })
+    ],
+    params: {
+      title: { type: "string", default: "MAKE IT MOVE", path: "/1/textStyle/text" },
+      accentColor: { type: "color", default: "#B5FF55", path: "/0/shapeStyle/fill" }
+    }
+  },
+  {
+    slug: "word-cards",
+    name: "Word cards",
+    description: "Three typographic cards entering four frames apart at 30 fps.",
+    group: group("Word cards", 3200),
+    children: ["MAKE", "IT", "MOVE"].map((word, index) => text(
+      `Word${index + 1}`, `Word${index + 1}`, 0, 3200,
+      { text: word, fontFamily: "Space Grotesk", fontSizePx: 80, fontWeight: 600,
+        color: "#101418", align: "center", maxWidthFrac: 0.25,
+        background: { color: "#B5FF55", paddingPx: 32, radiusPx: 16 } },
+      { transform: at(0.21 + index * 0.29, 0.5), animations: [
+        anim(`word-${index}-in`, "in", "pop", 460, {
+          delayMs: index * 4000 / 30, easing: "spring(180,18,1)"
+        }),
+        anim(`word-${index}-out`, "out", "fade", 250)
+      ] }
+    )),
+    params: Object.fromEntries(["MAKE", "IT", "MOVE"].map((word, index) => [
+      `word${index + 1}`, { type: "string", default: word, path: `/${index}/textStyle/text` }
+    ]))
+  },
+  {
+    slug: "window-frame",
+    name: "Window frame",
+    description: "A rounded product window with a title bar and an editable content plate.",
+    group: group("Window frame", 5000),
+    children: [
+      shape("Frame", "Frame", 0, 5000, {
+        kind: "rect", fill: "#282D38", x: 0.14, y: 0.13, width: 0.72, height: 0.74,
+        cornerRadius: 0.024, stroke: "#667084", strokeWidthPx: 2
+      }),
+      shape("Content", "Content", 0, 5000, {
+        kind: "rect", fill: "#101418", x: 0.155, y: 0.225, width: 0.69, height: 0.62,
+        cornerRadius: 0.014
+      }),
+      text("Title", "Title", 0, 5000, {
+        text: "Your product", fontFamily: "Inter", fontSizePx: 32, fontWeight: 500,
+        color: "#D2D9E5", align: "center", maxWidthFrac: 0.5
+      }, { transform: at(0.5, 0.177) })
+    ],
+    params: {
+      title: { type: "string", default: "Your product", path: "/2/textStyle/text" },
+      contentColor: { type: "color", default: "#101418", path: "/1/shapeStyle/fill" },
+      frameColor: { type: "color", default: "#282D38", path: "/0/shapeStyle/fill" }
+    }
+  },
+  {
+    slug: "number-ticker",
+    name: "Number ticker",
+    description: "A formatted numeric counter with an exponential finish and a caption.",
+    group: group("Number ticker", 3500),
+    children: [
+      text("Value", "Value", 0, 3500, {
+        text: "00", fontFamily: "JetBrains Mono", fontSizePx: 160,
+        fontWeight: 600, color: "#B5FF55", align: "center", maxWidthFrac: 0.8
+      }, { transform: at(0.5, 0.44), animations: [anim("ticker", "emphasis", "custom", 1600, {
+        easing: "easeOutExpo", textAnimator: { kind: "ticker", from: 0, to: 100, decimals: 0, padTo: 2, suffix: "%" }
+      })] }),
+      text("Label", "Label", 0, 3500, {
+        text: "Made by you", fontFamily: "Inter", fontSizePx: 40,
+        fontWeight: 500, color: "#FFFFFF", align: "center", maxWidthFrac: 0.8
+      }, { transform: at(0.5, 0.62) })
+    ],
+    params: {
+      value: { type: "number", default: 100, path: "/0/animations/0/textAnimator/to" },
+      suffix: { type: "string", default: "%", path: "/0/animations/0/textAnimator/suffix" },
+      label: { type: "string", default: "Made by you", path: "/1/textStyle/text" }
+    }
+  }
+];
+
 export const EXAMPLE_COMPOSITIONS = [
+  ...MOTION_COMPOSITIONS,
   {
     slug: "title-card",
     name: "Title card",

@@ -343,7 +343,9 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
     const insertTrack = useTimelineStore((s) => s.insertTrack);
     const duplicateTrack = useTimelineStore((s) => s.duplicateTrack);
 
-    const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
+    const verticalZoom = useTimelineUIStore((s) => s.verticalZoom);
+    const authoredHeightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
+    const heightPx = authoredHeightPx * verticalZoom;
     const meta = trackTypeMeta(track.type);
     const accent = trackTypeAccent(theme, track.type);
     const TypeIcon = meta.Icon;
@@ -370,7 +372,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
     );
 
     const dragStartYRef = useRef(0);
-    const dragStartHeightRef = useRef(heightPx);
+    const dragStartHeightRef = useRef(authoredHeightPx);
     // Gesture-ownership flag: the move handler only runs when this handle's
     // pointerdown started the gesture (not when another drag passes over it).
     const isResizingRef = useRef(false);
@@ -388,11 +390,11 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
         e.stopPropagation();
         e.currentTarget.setPointerCapture(e.pointerId);
         dragStartYRef.current = e.clientY;
-        dragStartHeightRef.current = heightPx;
+        dragStartHeightRef.current = authoredHeightPx;
         isResizingRef.current = true;
         history.begin();
       },
-      [heightPx, history]
+      [authoredHeightPx, history]
     );
 
     const handleResizePointerMove = useCallback(
@@ -403,13 +405,16 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
         const deltaY = e.clientY - dragStartYRef.current;
         const newHeight = Math.min(
           MAX_TRACK_HEIGHT_PX,
-          Math.max(MIN_TRACK_HEIGHT_PX, dragStartHeightRef.current + deltaY)
+          Math.max(
+            MIN_TRACK_HEIGHT_PX,
+            dragStartHeightRef.current + deltaY / verticalZoom
+          )
         );
         setTrackHeight(track.id, newHeight);
         // First effective mutation recorded the pre-resize state; batch the rest.
         history.mark();
       },
-      [setTrackHeight, track.id, history]
+      [setTrackHeight, track.id, history, verticalZoom]
     );
 
     const handleResizePointerEnd = useCallback(() => {

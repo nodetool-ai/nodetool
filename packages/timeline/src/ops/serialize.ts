@@ -54,6 +54,7 @@ export function serializeClip(state: TimelineOpState, c: TimelineClip) {
     muted: c.muted ?? false,
     locked: c.locked,
     opacity: c.opacity,
+    transform: c.transform,
     textStyle: c.textStyle,
     shapeStyle: c.shapeStyle,
     captionStyle: c.caption?.style,

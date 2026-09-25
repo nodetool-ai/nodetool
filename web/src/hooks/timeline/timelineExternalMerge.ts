@@ -5,6 +5,7 @@ import type {
   TimelineTrack,
   TranscriptLine
 } from "@nodetool-ai/timeline";
+import { timelineCamera2d } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 
 import type {
   TimelinePartializedState,
@@ -31,6 +32,7 @@ export type TimelineTypedDocument = Pick<
   | "fps"
   | "width"
   | "height"
+  | "camera2d"
 >;
 
 export const timelineTypedDocumentOf = (
@@ -101,6 +103,10 @@ export function applyAcceptedTimelineConflict(
     return;
   }
   if (conflict.unit.kind === "field") {
+    if (conflict.unit.id === "camera2d") {
+      state.setCamera2D(conflict.external == null ? null : timelineCamera2d.parse(conflict.external));
+      return;
+    }
     if (conflict.unit.id === "scriptEnabled") {
       state.setScriptEnabled(Boolean(conflict.external));
       return;
@@ -160,7 +166,8 @@ export function rebaseTimelineSnapshots(
       scriptEnabled: snapshot.scriptEnabled,
       fps: before.fps,
       width: before.width,
-      height: before.height
+      height: before.height,
+      camera2d: snapshot.camera2d ?? null
     })),
     before,
     after,
@@ -182,6 +189,7 @@ export function rebaseTimelineSnapshots(
       mediaTracks: typedNext.mediaTracks,
       transcript: typedNext.transcript,
       scriptEnabled: typedNext.scriptEnabled,
+      camera2d: typedNext.camera2d ?? null,
       durationMs: reflowed.durationMs
     } satisfies TimelinePartializedState;
   });

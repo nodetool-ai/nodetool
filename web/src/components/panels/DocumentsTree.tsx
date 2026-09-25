@@ -13,6 +13,7 @@ import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutl
 import WorkflowIcon from "@mui/icons-material/AccountTreeOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { colorForType } from "../../config/data_types";
 import {
   useDocumentTreeData,
   type DocumentTreeGroup,
@@ -29,6 +30,7 @@ import {
 import { EntityEditorDialog } from "../entities/EntityEditorDialog";
 import ReportBugButton from "../support/ReportBugButton";
 import PanelHeadline from "../ui/PanelHeadline";
+import { TYPE_COLOR } from "../workspace/tabTypeIdentity";
 import {
   BORDER_RADIUS,
   Box,
@@ -70,6 +72,17 @@ const LEAF_ICONS: Record<DocumentTreeLeafType, SvgIconComponent> = {
   timeline: MovieOutlinedIcon,
   entity: PersonOutlineOutlinedIcon,
   jsscript: DataObjectOutlinedIcon
+};
+
+const LEAF_ICON_COLORS: Record<DocumentTreeLeafType, string> = {
+  workflow: TYPE_COLOR.workflow,
+  application: TYPE_COLOR.application,
+  sketch: TYPE_COLOR.sketch,
+  script: TYPE_COLOR.script,
+  storyboard: TYPE_COLOR.storyboard,
+  timeline: TYPE_COLOR.timeline,
+  entity: colorForType("entity"),
+  jsscript: TYPE_COLOR.jsscript
 };
 
 interface DocumentsTreeProps {
@@ -133,11 +146,17 @@ const DocumentTreeRow = ({ leaf, active, onOpen }: DocumentTreeRowProps) => {
           }
         })}
       >
-        <Icon aria-hidden="true" fontSize="small" />
-        <TruncatedText component="span" sx={{ minWidth: 0, flex: 1 }}>
+        <Icon
+          aria-hidden="true"
+          sx={(theme) => ({
+            color: `color-mix(in srgb, ${LEAF_ICON_COLORS[leaf.type]} 60%, ${theme.vars.palette.text.primary})`,
+            fontSize: "var(--fontSizeBig)"
+          })}
+        />
+        <TruncatedText component="span" showTooltip sx={{ minWidth: 0, flex: 1 }}>
           {leaf.name}
         </TruncatedText>
-        <Text size="smaller" color="secondary">
+        <Text size="smaller" color="secondary" sx={{ flexShrink: 0 }}>
           {leaf.typeLabel}
         </Text>
       </FlexRow>
@@ -221,8 +240,8 @@ const DocumentTreeGroupRow = ({
           aria-label={`${expanded ? "Collapse" : "Expand"} ${group.label}`}
           tabIndex={-1}
         />
-        <Icon aria-hidden="true" fontSize="small" />
-        <Text size="small" weight={600} truncate>
+        <Icon aria-hidden="true" sx={{ fontSize: "var(--fontSizeBig)" }} />
+        <Text size="small" truncate>
           {group.label}
         </Text>
         <Text size="smaller" color="secondary" sx={{ marginLeft: "auto" }}>
@@ -340,7 +359,7 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
           description="Open documents in the current project."
         />
       )}
-      <FlexColumn padding={PADDING.spacious} gap={SPACING.md}>
+      <FlexColumn sx={{ py: SPACING.md }}>
         <SearchInput
           value={query}
           onChange={setQuery}
@@ -391,7 +410,7 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
           />
         </FlexColumn>
       ) : (
-        <ScrollArea fullHeight thin sx={{ flex: 1, minHeight: 0, px: SPACING.sm }}>
+        <ScrollArea fullHeight thin sx={{ flex: 1, minHeight: 0 }}>
           <FlexColumn role="tree" aria-label="Project documents" gap={SPACING.xs}>
             {filteredGroups.map((group) => (
               <DocumentTreeGroupRow

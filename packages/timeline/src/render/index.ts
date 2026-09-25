@@ -20,5 +20,8 @@ export * from "./textLayout.js";
 export * from "./canvas2d.js";
 export * from "./trackEffects.js";
 export * from "./motionBlur.js";
+export * from "./layout.js";
+export * from "./spatial.js";
+export * from "./temporal.js";
 export * from "./effects.js";
 export * from "./frameCompositor.js";

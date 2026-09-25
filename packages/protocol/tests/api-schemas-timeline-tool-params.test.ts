@@ -24,6 +24,7 @@ import {
   applyTransitionAtCutParams,
   buildEffect,
   buildMask,
+  maskParams,
   buildTimeRemap,
   buildTransition,
   captionStyleParams,
@@ -157,6 +158,14 @@ describe("build helpers keep only the fields the named type reads", () => {
         error: "bad command"
       }))
     ).toThrow(/bad command/);
+  });
+
+  it("preserves a rectangle mask's corner radius", () => {
+    const input = maskParams.parse({ kind: "rect", x: 0.1, width: 0.8, radiusPx: 12 });
+    expect(buildMask(input)).toMatchObject({
+      kind: "rect", x: 0.1, width: 0.8, radiusPx: 12
+    });
+    expect(buildMask(maskParams.parse({ kind: "ellipse", radiusPx: 12 }))).not.toHaveProperty("radiusPx");
   });
 
   it("drops a levels knob off a glow", () => {

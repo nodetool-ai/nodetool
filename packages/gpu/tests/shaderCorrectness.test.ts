@@ -149,17 +149,15 @@ describe("premultiplied invariant: color modules", () => {
 });
 
 describe("filters.blur.gaussian: param honesty", () => {
-  it("paramUi.radius.max does not exceed the WGSL kernel-radius cap", () => {
-    // The shader caps `kernelRadius` at a literal 20.0; if the UI advertises
-    // a larger max, requests above the cap get silently truncated.
+  it("samples across the requested radius when the kernel is capped", () => {
     const wgsl = blurGaussianV1.wgsl;
-    const m = wgsl.match(/min\(\s*blur\.radius\s*,\s*([0-9]+(?:\.[0-9]+)?)/);
-    expect(m).not.toBeNull();
-    const cap = Number(m![1]);
     const uiMax = (
       blurGaussianV1.paramUi as { radius: { max: number } }
     ).radius.max;
-    expect(uiMax).toBeLessThanOrEqual(cap);
+    expect(uiMax).toBeGreaterThanOrEqual(160);
+    expect(wgsl).toMatch(/let sampleStep = max\(1\.0, blur\.radius \/ 20\.0\)/);
+    expect(wgsl).toMatch(/let distance = f32\(i\) \* sampleStep/);
+    expect(wgsl).toMatch(/gaussianWeight\(distance, sigma\)/);
   });
 
   it("honors a caller-supplied non-zero sigma instead of forcing radius/3", () => {

@@ -98,4 +98,18 @@ describe("bundled fonts across the Node hosts", () => {
     const inter = alphaOf(rasterizer.text(style("Inter"))!.rgba);
     expect(mismatchFraction(bebas, inter)).toBeGreaterThan(0.01);
   });
+
+  it("renders Inter 800 heavier than Inter 600 in both Node hosts", () => {
+    const rasterizer = new NodeRasterizer(W, H);
+    const regular = { ...style("Inter"), fontWeight: 600 };
+    const extraBold = { ...style("Inter"), fontWeight: 800 };
+    const server600 = alphaOf(rasterizer.text(regular)!.rgba);
+    const server800 = alphaOf(rasterizer.text(extraBold)!.rgba);
+    const preview = new PreviewRasterizer(W, H);
+    const preview800 = alphaOf(
+      preview.text(extraBold)!.getContext("2d").getImageData(0, 0, W, H).data
+    );
+    expect(inkFraction(server800)).toBeGreaterThan(inkFraction(server600) * 1.08);
+    expect(mismatchFraction(server800, preview800)).toBeLessThan(0.001);
+  });
 });

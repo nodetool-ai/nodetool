@@ -1,12 +1,12 @@
 // The curated example storyboards, one entry per shipped board.
 // `scripts/build-example-storyboards.mjs` turns each entry into
 // `packages/base-nodes/nodetool/examples/storyboards/<slug>.storyboard.json`
-// plus the shot media under
+// plus references to the shot stills under
 // `packages/base-nodes/nodetool/assets/nodetool-base/storyboards/<slug>/`.
 //
 // A shot carries the text a director writes (slug, action, motion, camera,
-// duration) and a `frame` — the scene the still renderer draws. The frame is a
-// list of layers painted back to front in a 1600x900 space:
+// duration) and a `frame` for the optional vector still fallback. Its layers
+// paint back to front in a 1600x900 space:
 //
 //   { kind: "sky",      colors: [top, middle, bottom] }
 //   { kind: "glow",     x, y, r, color, opacity }        radial falloff
@@ -17,8 +17,7 @@
 //   { kind: "beam",     x, y, angle, length, spread, color, opacity }
 //   { kind: "vignette", opacity }
 //
-// `motion` on the shot is both the director's line and the camera move the
-// clip renders: push-in, pull-back, pan-left, pan-right, tilt-up, hold.
+// `motion` is the director's camera move for a clip rendered after install.
 
 const NIGHT = "#050a12";
 const INK = "#070d16";
@@ -28,7 +27,7 @@ export const EXAMPLE_STORYBOARDS = [
     slug: "lighthouse-keeper",
     name: "Lighthouse Keeper — Opening",
     description:
-      "A four-shot opening for a short film about the last keeper of a coastal light. Every shot arrives with its still and clip already rendered.",
+      "A four-shot opening for a short film about the last keeper of a coastal light. Every shot includes a rendered still.",
     tags: ["film", "narrative", "atmosphere"],
     brief:
       "Open a short film about the last keeper of a coastal light. Twenty seconds, no dialogue, the sea doing the talking.",
@@ -161,7 +160,7 @@ export const EXAMPLE_STORYBOARDS = [
     slug: "sneaker-drop",
     name: "Sneaker Drop — 15s Spot",
     description:
-      "A three-shot product spot: studio reveal, sole macro, street run-out. Stills and clips are prefilled, so the board is a working example the moment it installs.",
+      "A three-shot product spot: studio reveal, sole macro, street run-out. The shots and their stills are ready to explore.",
     tags: ["advertising", "product", "short-form"],
     brief:
       "Fifteen seconds for a running-shoe launch. Studio reveal, one texture beat, then out into the street at first light.",
@@ -243,7 +242,7 @@ export const EXAMPLE_STORYBOARDS = [
     slug: "first-light",
     name: "First Light — Travel Teaser",
     description:
-      "A three-shot travel teaser cut from dune to canyon to camp. Prefilled text, stills, and clips — open it to see a finished board before rendering anything of your own.",
+      "A three-shot travel teaser from dune to canyon to camp. Open the board to explore its direction and rendered stills.",
     tags: ["travel", "teaser", "landscape"],
     brief:
       "A ten-second teaser for a desert trip: dunes before sunrise, a switchback in the canyon, and a camp under the stars.",

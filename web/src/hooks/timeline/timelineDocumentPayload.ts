@@ -17,6 +17,7 @@ interface TimelineDocumentPayload {
   transcript: TimelineStoreState["transcript"];
   scriptEnabled: TimelineStoreState["scriptEnabled"];
   tempo: TimelineStoreState["tempo"];
+  camera2d: TimelineStoreState["camera2d"];
   /** Undefined rather than null: a sequence never in the flow stays without
    * the key, which is what `timelineDocument` reads as "opens in the editor". */
   setup: NonNullable<TimelineStoreState["setup"]> | undefined;
@@ -33,6 +34,7 @@ export function buildTimelineDocumentPayload(
     | "transcript"
     | "scriptEnabled"
     | "tempo"
+    | "camera2d"
     // Null on the store, undefined on the payload it produces — so the builder
     // takes either and answers only the payload's shape.
   > & { setup?: TimelineStoreState["setup"] }
@@ -45,6 +47,7 @@ export function buildTimelineDocumentPayload(
     transcript: state.transcript,
     scriptEnabled: state.scriptEnabled,
     tempo: state.tempo,
+    camera2d: state.camera2d ?? null,
     setup: state.setup ?? undefined
   };
 }

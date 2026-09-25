@@ -49,6 +49,16 @@ beforeAll(async () => {
     size: png.length,
     project_id: "default"
   }).save();
+  const fullId = "c39de7925ea54da38cec266e6f698214";
+  await adapter.store(`1/${fullId}.png`, png, "image/png");
+  await new Asset({
+    id: fullId,
+    user_id: "1",
+    name: "preview.png",
+    content_type: "image/png",
+    size: png.length,
+    project_id: "default"
+  }).save();
 });
 
 afterEach(async () => {
@@ -69,7 +79,10 @@ async function connect(
     McpServerOptions["agentToolsScope"]
   >["source"] = "stdio-local"
 ): Promise<Client> {
-  const server = createMcpServer({ agentToolsScope: { userId: "1", source } });
+  const server = createMcpServer({
+    agentToolsScope: { userId: "1", source },
+    allowLocalFilePaths: source === "local-dev-http"
+  });
   const client = new Client({ name: "image-test", version: "1.0.0" });
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
@@ -82,6 +95,19 @@ async function connect(
 }
 
 describe("MCP view_image pixel delivery", () => {
+  it("opens a preview asset by the short id returned to an agent", async () => {
+    const client = await connect();
+    const result = await client.callTool({
+      name: "view_image",
+      arguments: { image_id: "asset://c39de7925ea5.png" }
+    });
+    expect(result.isError).not.toBe(true);
+    expect(result.content).toContainEqual({
+      type: "image",
+      data: png.toString("base64"),
+      mimeType: "image/png"
+    });
+  });
   it.each([
     "test-image",
     "asset://test-image.png",

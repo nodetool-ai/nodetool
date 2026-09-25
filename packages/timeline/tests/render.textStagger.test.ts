@@ -30,6 +30,7 @@ const GLYPH_PX = 10;
 
 interface DrawnUnit {
   text: string;
+  fill: string | object;
   x: number;
   y: number;
   alpha: number;
@@ -60,6 +61,7 @@ class RecordingContext implements RasterContext2D {
   shadowOffsetX = 0;
   shadowOffsetY = 0;
   readonly drawn: DrawnUnit[] = [];
+  readonly rects: Array<{ x: number; y: number; width: number; height: number }> = [];
   private stack: {
     x: number;
     y: number;
@@ -83,6 +85,7 @@ class RecordingContext implements RasterContext2D {
   fillText(text: string, x: number, y: number): void {
     this.drawn.push({
       text,
+      fill: this.fillStyle,
       x: this.state.x + x * this.state.scaleX,
       y: this.state.y + y * this.state.scaleY,
       alpha: this.globalAlpha,
@@ -104,7 +107,9 @@ class RecordingContext implements RasterContext2D {
   stroke(): void {}
   clip(): void {}
   clearRect(): void {}
-  fillRect(): void {}
+  fillRect(x: number, y: number, width: number, height: number): void {
+    this.rects.push({ x, y, width, height });
+  }
   setLineDash(): void {}
   createLinearGradient(): { addColorStop(): void } {
     return { addColorStop(): void {} };
@@ -288,6 +293,30 @@ describe("count and draw agree", () => {
 });
 
 describe("drawStaggeredText", () => {
+  it("draws a typewriter caret at the last visible character and blinks after completion", () => {
+    const text = "Make me a 12-second teaser for SCRAPHEART — a desert chase across the flats.";
+    const unitCount = Array.from(text).length;
+    const compiled = compileClipAnimations([{
+      id: "type", role: "in", preset: "typewriter", durationMs: 1,
+      stagger: { unit: "character", offsetMs: 1299 / (unitCount - 1) },
+      caret: { color: "#e879f9", widthPx: 4, blinkPeriodMs: 400 }
+    }], 2000, { width: WIDTH, height: HEIGHT },
+    { staggerCount: unitCount, staggerUnit: "character" });
+    const middle = new RecordingContext();
+    drawStaggeredText(middle, style({ text }), WIDTH, HEIGHT,
+      { compiled, localMs: 650 }, createStaggerScratch());
+    const end = new RecordingContext();
+    drawStaggeredText(end, style({ text }), WIDTH, HEIGHT,
+      { compiled, localMs: 1300 }, createStaggerScratch());
+    const blinkOff = new RecordingContext();
+    drawStaggeredText(blinkOff, style({ text }), WIDTH, HEIGHT,
+      { compiled, localMs: 1510 }, createStaggerScratch());
+    expect(middle.rects).toHaveLength(1);
+    expect(end.rects).toHaveLength(1);
+    expect(blinkOff.rects).toHaveLength(0);
+    expect(middle.rects[0]?.width).toBe(4);
+    expect(end.rects[0]?.y).toBeGreaterThan(middle.rects[0]!.y);
+  });
   it("draws one glyph per character, in reading order", () => {
     const ctx = new RecordingContext();
     const compiled = compiledFade(5, "character");
@@ -431,7 +460,42 @@ describe("drawStaggeredText", () => {
   });
 });
 
+describe("glyph visual tracks", () => {
+  it("lets per-glyph color override a block gradient and tracking move later characters", () => {
+    const animation: ClipAnimation = {
+      id: "glyph", role: "emphasis", preset: "custom", durationMs: 500,
+      stagger: { unit: "character", offsetMs: 1 },
+      styleTracks: [
+        { target: "glyph.color", keyframes: [{ t: 0, value: "blue" }, { t: 1, value: "blue" }] },
+        { target: "glyph.trackingPx", keyframes: [{ t: 0, value: 6 }, { t: 1, value: 6 }] }
+      ]
+    };
+    const styled = style({
+      text: "AB",
+      fill: { type: "linear", angle: 0, stops: [
+        { offset: 0, color: "#000000" }, { offset: 1, color: "#ffffff" }
+      ] }
+    });
+    const compiled = compileClipAnimations([animation], 1000, { width: WIDTH, height: HEIGHT },
+      { staggerCount: 2, staggerUnit: "character" });
+    const ctx = new RecordingContext();
+    drawStaggeredText(ctx, styled, WIDTH, HEIGHT,
+      { compiled, localMs: 500 }, createStaggerScratch());
+    expect(ctx.drawn).toHaveLength(2);
+    expect(ctx.drawn.every((draw) => typeof draw.fill === "string")).toBe(true);
+    expect(ctx.drawn[1].x - ctx.drawn[0].x).toBeCloseTo(GLYPH_PX + 6, 4);
+  });
+});
+
 describe("drawText on a context with no letter spacing of its own", () => {
+  it("places glyphs along an authored path", () => {
+    const ctx = new RecordingContext();
+    drawText(ctx, style({ text: "ABC", path: "M 0 0.5 L 1 0.5" }), WIDTH, HEIGHT);
+    expect(ctx.drawn.map((draw) => draw.text)).toEqual(["A", "B", "C"]);
+    expect(ctx.drawn[0].x).toBeLessThan(ctx.drawn[1].x);
+    expect(ctx.drawn[1].x).toBeLessThan(ctx.drawn[2].x);
+    expect(ctx.drawn[0].y).toBeCloseTo(HEIGHT / 2);
+  });
   // Both shipping contexts have `letterSpacing`, so this fallback is the path
   // nothing else exercises — and the one that has to land the glyphs where the
   // native path lands them.

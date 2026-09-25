@@ -21,6 +21,8 @@ import {
   CUSTOM_ANIMATION_PRESET_ID,
   EASING_IDS,
   normalizeCustomCurves,
+  validateAnimationStyleTracks,
+  glyphTracksNeedStagger,
   BUNDLED_FONT_FAMILIES,
   isKnownShapeKind,
   parseClipEffectType,
@@ -313,6 +315,16 @@ function checkClip(
   const at = { clipId: clip.id, trackId: clip.trackId };
   const label = clipLabel(clip);
 
+  if (clip.textStyle?.path && !parseSvgPath(clip.textStyle.path).ok) {
+    issues.push({
+      severity: "error",
+      code: "text_path_invalid",
+      message: `Clip "${label}" has an invalid text path.`,
+      path: "textStyle.path",
+      ...at
+    });
+  }
+
   if (!trackIds.has(clip.trackId)) {
     issues.push({
       severity: "error",
@@ -462,7 +474,32 @@ function checkClip(
       });
       continue;
     }
+    if (animation.styleTracks) {
+      if (glyphTracksNeedStagger(animation.styleTracks, animation.stagger)) {
+        issues.push({
+          severity: "error",
+          code: "animation_style_invalid",
+          message: `Clip "${label}" animation "${animation.id}" uses glyph tracks without a stagger unit.`,
+          path: "animations[*].styleTracks",
+          ...at
+        });
+      }
+      for (const error of validateAnimationStyleTracks(clip, animation.styleTracks)) {
+        issues.push({
+          severity: "error",
+          code: "animation_style_invalid",
+          message: `Clip "${label}" animation "${animation.id}": ${error}.`,
+          path: "animations[*].styleTracks",
+          ...at
+        });
+      }
+    }
     if (animation.preset !== CUSTOM_ANIMATION_PRESET_ID) continue;
+
+    // Style and text animators use the same compiled window without numeric
+    // curves. They render through their own typed tracks.
+    if (!animation.custom?.curves?.length &&
+        (animation.styleTracks?.length || animation.textAnimator)) continue;
 
     // A custom animation renders nothing unless its baked curves survive the
     // one gate every render site applies, so what the compiler would skip with
@@ -1342,6 +1379,20 @@ function checkDocumentLevel(doc: TimelineDocument): TimelineDebugIssue[] {
   }
 
   const clipIds = new Set(doc.clips.map((clip) => clip.id));
+  for (const clip of doc.clips) {
+    for (const link of clip.animationLinks ?? []) {
+      if ("sourceClipId" in link && !clipIds.has(link.sourceClipId)) {
+        issues.push({
+          severity: "error",
+          code: "animation_link_source_missing",
+          message: `Clip "${clipLabel(clip)}" links animation to missing clip "${link.sourceClipId}".`,
+          path: "animationLinks[*].sourceClipId",
+          clipId: clip.id,
+          trackId: clip.trackId
+        });
+      }
+    }
+  }
   for (const line of doc.transcript ?? []) {
     for (const clipId of line.clipIds) {
       if (!clipIds.has(clipId)) {

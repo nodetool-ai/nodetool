@@ -32,6 +32,22 @@ const clipOf = (result: unknown): Record<string, unknown> =>
   (result as { clip: Record<string, unknown> }).clip;
 
 describe("ui_timeline_add_shape_clip", () => {
+  it("accepts a gradient in fill", async () => {
+    const { byName } = bridge();
+    const fill = {
+      type: "radial",
+      stops: [
+        { offset: 0, color: "#ffffffaa" },
+        { offset: 1, color: "#ffffff00" }
+      ]
+    };
+    for (const key of ["shape", "shapeStyle"] as const) {
+      const result = await byName["ui_timeline_add_shape_clip"].execute({
+        [key]: { kind: "ellipse", fill }
+      });
+      expect(clipOf(result).shapeStyle).toMatchObject({ fill });
+    }
+  });
   it("takes the geometry under shapeStyle", async () => {
     const { byName } = bridge();
     const result = await byName["ui_timeline_add_shape_clip"].execute({
@@ -81,7 +97,102 @@ describe("ui_timeline_add_shape_clip", () => {
   });
 });
 
+describe("ui_timeline_set_effects", () => {
+  it("rejects unknown effect fields", () => {
+    const { byName } = bridge();
+    expect(() =>
+      byName["ui_timeline_set_effects"].execute({
+        target: "shot",
+        effects: [{ type: "blur", radiusPx: 160 }]
+      })
+    ).toThrow(/radiusPx|unrecognized/i);
+  });
+});
+
+describe("typewriter animation", () => {
+  it("reveals text by character without requiring stagger configuration", async () => {
+    const { b, byName } = bridge();
+    await byName["ui_timeline_add_text_clip"].execute({ text: "BUILD", name: "typed" });
+    await byName["ui_timeline_animate_clip"].execute({
+      target: "typed",
+      animations: [{ preset: "typewriter", role: "in" }]
+    });
+    const clip = b.finalState().documentClips.find((item) => item.name === "typed");
+    expect(clip?.animations).toMatchObject([
+      { preset: "typewriter", stagger: { unit: "character", offsetMs: 65 } }
+    ]);
+  });
+
+  it("uses durationMs for the full line when stagger is omitted", async () => {
+    const { b, byName } = bridge();
+    await byName["ui_timeline_add_text_clip"].execute({ text: "BUILD", name: "typed" });
+    await byName["ui_timeline_animate_clip"].execute({
+      target: "typed",
+      animations: [{ preset: "typewriter", role: "in", durationMs: 1000 }]
+    });
+    const clip = b.finalState().documentClips.find((item) => item.name === "typed");
+    expect(clip?.animations).toMatchObject([
+      { preset: "typewriter", durationMs: 1, stagger: { unit: "character", offsetMs: 999 / 4 } }
+    ]);
+  });
+
+  it("defaults a custom typewriter stagger to characters and keeps its caret", async () => {
+    const { b, byName } = bridge();
+    await byName["ui_timeline_add_text_clip"].execute({ text: "BUILD", name: "typed" });
+    await byName["ui_timeline_animate_clip"].execute({
+      target: "typed",
+      animations: [{ preset: "typewriter", role: "in", durationMs: 500,
+        stagger: { offsetMs: 80 },
+        caret: { color: "#e879f9", widthPx: 4, blinkPeriodMs: 500 } }]
+    });
+    const clip = b.finalState().documentClips.find((item) => item.name === "typed");
+    expect(clip?.animations).toMatchObject([{ preset: "typewriter",
+      stagger: { unit: "character", offsetMs: 80 },
+      caret: { color: "#e879f9", widthPx: 4, blinkPeriodMs: 500 } }]);
+  });
+});
+
+describe("ui_timeline_add_media_clip", () => {
+  it("uses the probed source duration and refuses an unknown timed duration", async () => {
+    const known = createTimelineToolBridge({
+      resolveAsset: async () => ({ id: "audio-1", name: "music.mp3", contentType: "audio/mpeg", durationMs: 24360 })
+    });
+    const knownTool = known.tools.find((tool) => tool.name === "ui_timeline_add_media_clip")!;
+    const placed = await knownTool.execute({ asset: "audio-1" });
+    expect(clipOf(placed).durationMs).toBe(24360);
+
+    const unknown = createTimelineToolBridge({
+      resolveAsset: async () => ({ id: "audio-2", name: "unknown.mp3", contentType: "audio/mpeg" })
+    });
+    const unknownTool = unknown.tools.find((tool) => tool.name === "ui_timeline_add_media_clip")!;
+    await expect(unknownTool.execute({ asset: "audio-2" })).rejects.toThrow("no known duration");
+  });
+});
+
 describe("ui_timeline_set_clip_params", () => {
+  it("deep-merges a static transform and preserves a named clip", async () => {
+    const { byName } = bridge();
+    const added = await byName["ui_timeline_add_text_clip"].execute({
+      text: "Title",
+      name: "title-card",
+      transform: { position: { x: -600 }, scale: { x: 0.3, y: 0.3 } }
+    });
+    expect(clipOf(added)).toMatchObject({
+      name: "title-card",
+      transform: { position: { x: -600, y: 0 }, scale: { x: 0.3, y: 0.3 } }
+    });
+    const result = await byName["ui_timeline_set_clip_params"].execute({
+      target: "title-card",
+      transform: { position: { y: -175 }, rotation: 15 }
+    });
+    expect(clipOf(result).transform).toMatchObject({
+      position: { x: -600, y: -175 },
+      scale: { x: 0.3, y: 0.3 },
+      rotation: 15,
+      anchor: { x: 0.5, y: 0.5 }
+    });
+  });
+
   it("applies startMs and durationMs instead of dropping them", async () => {
     const { b, byName } = bridge();
     await byName["ui_timeline_set_clip_params"].execute({
@@ -243,6 +354,24 @@ describe("generic font families", () => {
 });
 
 describe("ui_timeline_animate_clip", () => {
+  it("accepts perspective rotation curves", async () => {
+    const { b, byName } = bridge();
+    await byName["ui_timeline_set_clip_params"].execute({
+      target: "shot", transform: { rotationX: 6, rotationY: 7, perspective: 2400 }
+    });
+    await byName["ui_timeline_animate_clip"].execute({
+      target: "shot",
+      animations: [{ role: "in", preset: "custom", durationMs: 300,
+        curves: [
+          { property: "rotationX", keyframes: [{ t: 0, value: 20 }, { t: 1, value: 6 }] },
+          { property: "rotationY", keyframes: [{ t: 0, value: 21 }, { t: 1, value: 7 }] }
+        ] }]
+    });
+    const clip = b.finalState().documentClips[0];
+    expect(clip.transform).toMatchObject({ rotationX: 6, rotationY: 7, perspective: 2400 });
+    expect(clip.animations?.[0].custom?.curves?.map((curve) => curve.property))
+      .toEqual(["rotationX", "rotationY"]);
+  });
   it("lifts a custom animation nested under `custom`", async () => {
     const { b, byName } = bridge();
     await byName["ui_timeline_animate_clip"].execute({
@@ -475,7 +604,6 @@ describe("clip opacity at creation", () => {
   });
 });
 
-
 /**
  * The 10-second social ad that produced these cases: eight clips, three of
  * them refused for a zero offset, one of them drawn white over the whole frame
@@ -531,9 +659,12 @@ describe("ui_timeline_add_text_clip", () => {
       color: "#FFFFFF",
       shadow: { color: "#000000", blurPx: 24 }
     });
-    expect(
-      (clipOf(result).textStyle as { shadow: unknown }).shadow
-    ).toEqual({ color: "#000000", blurPx: 24, offsetX: 0, offsetY: 0 });
+    expect((clipOf(result).textStyle as { shadow: unknown }).shadow).toEqual({
+      color: "#000000",
+      blurPx: 24,
+      offsetX: 0,
+      offsetY: 0
+    });
   });
 
   it("sends a caller reaching for x/y to the anchors", async () => {
@@ -567,7 +698,6 @@ describe("ui_timeline_add_shape_clip merges the bags", () => {
       })
     ).toThrow(/radius/);
   });
-
 
   it("keeps the fill from `shape` and the box from the op", async () => {
     const { byName } = bridge();

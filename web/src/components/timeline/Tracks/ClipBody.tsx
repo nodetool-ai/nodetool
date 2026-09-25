@@ -866,6 +866,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
         data-testid={`clip-${clipId}`}
+        data-timeline-clip-id={clipId}
         data-focus-id={`timeline-clip-${clipId}`}
         aria-selected={isSelected}
         role="option"

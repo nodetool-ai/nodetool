@@ -405,6 +405,18 @@ describe("harness gate", () => {
     expect(check!.command).toContain("packages/agents -- timeline-model3d-frames");
   });
 
+  it("runs the Serein frame reproduction for a fixture-only change", () => {
+    const plan = planGate(["demo/benchmarks/serein/timeline-gap-repro.json"]);
+    expect(plan.unmappedFiles).toEqual([]);
+    expect(plan.surfaces.map((surface) => surface.id)).toContain("serein-timeline-repro");
+    expect(plan.checks).toContainEqual({
+      harnessId: "serein-timeline-repro",
+      command: "npm run test --workspace=packages/agents -- timeline-serein-gaps-frames",
+      cost: "cheap",
+      surfaces: ["serein-timeline-repro"]
+    });
+  });
+
   it("leaves the 3D suites out of a diff that does not touch them", () => {
     const plan = planGate(["packages/video-nodes/src/nodes/timeline/outputFormats.ts"]);
     expect(plan.surfaces.map((s) => s.id)).not.toContain("timeline-model3d");

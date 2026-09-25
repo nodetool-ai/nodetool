@@ -33,6 +33,15 @@ const baseClip = {
 };
 
 describe("timelineClip schema", () => {
+  it("preserves an opt-in ticker group separator and rejects an empty separator", () => {
+    const animation = { id: "counter", role: "emphasis", preset: "custom", durationMs: 1000,
+      textAnimator: { kind: "ticker", from: 0, to: 2847, groupSeparator: "," } };
+    const parsed = timelineClip.parse({ ...baseClip, animations: [animation] });
+    expect(parsed.animations?.[0].textAnimator).toEqual(animation.textAnimator);
+    expect(timelineClip.safeParse({ ...baseClip, animations: [{ ...animation,
+      textAnimator: { ...animation.textAnimator, groupSeparator: "" } }] }).success).toBe(false);
+  });
+
   it("preserves a clip color effect through a parse round-trip", () => {
     const clip = {
       ...baseClip,

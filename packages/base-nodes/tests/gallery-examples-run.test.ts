@@ -54,6 +54,11 @@ async function run(name: string): Promise<Record<string, unknown[]>> {
 }
 
 describe("shipped gallery examples produce what they claim", () => {
+  it("Count to Three with a Loop stops when the condition turns false", async () => {
+    const out = await run("Count to Three with a Loop");
+    expect(out["final_count"]).toEqual([3]);
+  });
+
   it("Keep Only the Long Lines gathers every survivor, not just the last", async () => {
     const out = await run("Keep Only the Long Lines");
     // Without Collect this was ["another long enough line"] — one of two.

@@ -39,6 +39,11 @@ const events: ChatCastEvent[] = [
 ];
 
 describe("computeChatStateAt", () => {
+  it("derives the reply timer from cast time", () => {
+    expect(computeChatStateAt(events, 2199).elapsedSeconds).toBe(1);
+    expect(computeChatStateAt(events, 2200).elapsedSeconds).toBe(2);
+    expect(computeChatStateAt(events, 2500).elapsedSeconds).toBe(0);
+  });
   it("shows no messages before the first event", () => {
     const state = computeChatStateAt(events, -1);
     expect(state.messages).toHaveLength(0);

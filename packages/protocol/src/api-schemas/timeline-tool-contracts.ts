@@ -40,6 +40,7 @@ import {
   addMidiClipParams,
   captionStyleParams,
   clipOpacityParam,
+  clipTransformPatchParam,
   deleteTrackShape,
   effectParams,
   maskParams,
@@ -161,7 +162,7 @@ const animationInput = (vocab: TimelineToolVocabulary) => {
       ),
     stagger: z
       .object({
-        unit: z.enum(vocab.staggerUnits),
+        unit: z.enum(vocab.staggerUnits).default("character"),
         offsetMs: z
           .number()
           .positive()
@@ -170,8 +171,13 @@ const animationInput = (vocab: TimelineToolVocabulary) => {
       })
       .optional()
       .describe(
-        "Per-unit stagger — text clips only. The animation runs once per word, grapheme cluster or wrapped line, each unit offset from the previous."
-      )
+        "Per-unit stagger — text clips only. The animation runs once per word, grapheme cluster or wrapped line, each unit offset from the previous. Unit defaults to character."
+      ),
+    caret: z.object({
+      color: z.string(),
+      widthPx: z.number().positive(),
+      blinkPeriodMs: z.number().positive()
+    }).optional().describe("Optional typewriter caret, drawn after the last visible character.")
   });
 };
 
@@ -210,6 +216,7 @@ export const CLIP_PARAM_KEYS = [
   "inPointMs",
   "outPointMs",
   "opacity",
+  "transform",
   "speedMultiplier",
   "volumeDb",
   "fadeInMs",
@@ -294,7 +301,8 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         trackId: z.string().optional(),
         startMs: z.number().optional(),
         durationMs: z.number().optional(),
-        name: z.string().optional()
+        name: z.string().optional(),
+        transform: clipTransformPatchParam
       }
     },
 
@@ -306,6 +314,8 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         startMs: z.number().optional(),
         durationMs: z.number().optional(),
         opacity: clipOpacityParam,
+        name: z.string().optional(),
+        transform: clipTransformPatchParam,
         style: partialTextStyleParams.optional(),
         ...partialTextStyleParams.shape
       },
@@ -324,6 +334,8 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         startMs: z.number().optional(),
         durationMs: z.number().optional(),
         opacity: clipOpacityParam,
+        name: z.string().optional(),
+        transform: clipTransformPatchParam,
         ...shapeStyleParams.partial().shape
       },
       finalize: strictParams
@@ -340,6 +352,7 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         trackId: z.string().optional(),
         startMs: z.number().optional(),
         durationMs: z.number().optional(),
+        transform: clipTransformPatchParam,
         style: model3dStyleParams.optional()
       },
       finalize: strictParams
@@ -453,6 +466,7 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         fontSizePx: z.number().optional(),
         name: z.string().optional(),
         opacity: z.number().optional(),
+        transform: clipTransformPatchParam,
         speedMultiplier: z.number().optional(),
         volumeDb: z.number().optional(),
         fadeInMs: z.number().optional(),
@@ -553,11 +567,20 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
 
     ui_timeline_animate_clip: {
       description:
-        'Attach motion-design animations to a clip — no keyframing, just named presets. Roles: `in` (entrance: fade, slide, pop, spin, wipe, blur, colorFade), `out` (exit: fade, slide, pop, spin, wipe, blur, colorFade), `emphasis` (mid-clip: pulse, flash, shake, bounce, squash), `loop` (continuous: kenBurns, float, breathe, rotate, hueShift). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. On text clips, add `stagger` for motion typography: each unit — `unit: "word"`, `"character"` (grapheme clusters; the space between words is timed and draws nothing) or `"line"` (wrapped lines) — runs the animation for `durationMs`, offset `stagger.offsetMs` from the previous one (`from`: start|end|center picks the leading unit) — e.g. a pop-in title whose words land one after another. For motion no preset covers, use `preset: "custom"` with exactly one of `curves` (keyframes you write: [{property, keyframes:[{t, value, easing?}]}], `t` running 0..1 over the window) or `code` (a JS body baked into curves once); add `mask` when a curve drives wipeProgress. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list and the animatable properties. Recommended loop: ui_timeline_get_state -> animate -> look at the frames at the window boundaries -> adjust.',
+        'Attach motion-design animations to a clip with named presets or custom curves. Roles: `in`, `out`, `emphasis`, `loop`. For `typewriter` on text, `durationMs` is the time to reveal the entire line; without it, characters type 65ms apart. `stagger: {offsetMs: 55}` customizes the speed and defaults to character units. Optional `caret: {color, widthPx, blinkPeriodMs}` follows the visible text. Other text animations can stagger by word, character, or wrapped line. Use `preset: "custom"` with `curves` to animate properties including rotationX and rotationY; set perspective on the clip transform. `mode` "replace" (default) swaps animations; "add" appends. Call ui_timeline_list_animation_presets for the full contract.',
       shape: {
         target: targetParam,
         mode: z.enum(["add", "replace"]).optional(),
         animations: z.array(animationInput(vocab)).min(1)
+      }
+    },
+
+    ui_timeline_stagger_animations: {
+      description:
+        "Offset existing animations across clips in the order listed. clip_ids are ordered clip IDs, not names. Each clip's animation delay increases by its zero-based index times offset_ms; media timing stays fixed. Every clip must have an animation.",
+      shape: {
+        clip_ids: z.array(z.string().min(1)).min(2),
+        offset_ms: z.number().finite().min(0)
       }
     },
 

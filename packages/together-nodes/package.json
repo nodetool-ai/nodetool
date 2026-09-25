@@ -11,7 +11,7 @@
   "scripts": {
     "gen:manifest": "node scripts/generate-manifest.mjs",
     "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"require('node:fs').cpSync('src/together-manifest.json', 'dist/together-manifest.json')\"",
-    "test": "vitest run",
+    "test": "node ../../scripts/run-vitest.mjs run",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {

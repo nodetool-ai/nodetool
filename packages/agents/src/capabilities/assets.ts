@@ -833,15 +833,18 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
   // asset is already in storage, so the message can name it instead of
   // carrying it.
   let sourceRef: string | undefined;
+  let storedAssetId: string | undefined;
 
   if (
     requiresStoredAssetOwnership(imageId) &&
     !isRunProjectStorageReference(run, imageId)
   ) {
     const assetId = assetIdFromReference(imageId);
-    if (!assetId || !(await findRunAsset(run, assetId))) {
+    const asset = assetId ? await findRunAsset(run, assetId) : null;
+    if (!asset) {
       return { error: `Asset ${assetId ?? imageId} was not found.` };
     }
+    storedAssetId = asset.id;
   }
 
   if (imageId.startsWith("data:")) {
@@ -871,17 +874,19 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
     try {
       const temporary = hasTemporaryImageHandle(context, imageId);
       const assetId = assetIdFromReference(imageId);
-      if (
-        assetId &&
-        !requiresStoredAssetOwnership(imageId) &&
-        !temporary &&
-        !(await findRunAsset(run, assetId))
-      ) {
-        return { error: `Asset ${assetId} was not found.` };
+      if (assetId && !requiresStoredAssetOwnership(imageId) && !temporary) {
+        const asset = await findRunAsset(run, assetId);
+        if (!asset) return { error: `Asset ${assetId} was not found.` };
+        storedAssetId = asset.id;
       }
+      const suffix = imageId.startsWith("asset://")
+        ? imageId.match(/\.[A-Za-z0-9]{1,8}$/)?.[0] ?? ""
+        : "";
       const bytes = temporary
         ? await context.storage?.retrieve(context.storage.uriForKey(imageId))
-        : (await context.resolveAssetBytes(imageId)).bytes;
+        : (await context.resolveAssetBytes(
+            storedAssetId ? `asset://${storedAssetId}${suffix}` : imageId
+          )).bytes;
       if (bytes && bytes.length > 0) {
         sourceBytes = bytes;
         // `sniffImageMime` falls back to PNG for anything it does not
@@ -889,7 +894,9 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
         // labeled `image/png`, passed the provider-safe check below, and was
         // shipped to the model as markup wearing a PNG label.
         sourceMime = isSvgBytes(bytes) ? SVG_MIME : sniffImageMime(bytes);
-        sourceRef = temporary
+        sourceRef = storedAssetId
+          ? `asset://${storedAssetId}${suffix}`
+          : temporary
           ? `/api/storage/${imageId}`
           : imageId.startsWith("asset://")
             ? imageId

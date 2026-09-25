@@ -131,7 +131,7 @@ describe("legacy track effects on the Canvas 2D path", () => {
 
   it("draws a `videoBlur` track effect as the same filter a clip `blur` gives", () => {
     const track = drawFilter({ trackEffects: [legacyBlur] });
-    expect(track).toBe("blur(6.00px)");
+    expect(track).toBe("blur(2.00px)");
     expect(
       drawFilter({ effects: [{ id: "c", type: "blur", enabled: true, radius: 6 }] })
     ).toBe(track);
@@ -147,7 +147,7 @@ describe("legacy track effects on the Canvas 2D path", () => {
         trackEffects: [legacyGrade, legacyBlur]
       })
     ).toBe(
-      "brightness(1.300) contrast(3.000) saturate(0.500) hue-rotate(30.00deg) blur(8.00px)"
+      "brightness(1.300) contrast(3.000) saturate(0.500) hue-rotate(30.00deg) blur(2.67px)"
     );
   });
 
@@ -172,7 +172,7 @@ describe("legacy track effects on the Canvas 2D path", () => {
     expect(unsupportedEffectTypes([{ trackEffects: audio }])).toEqual([]);
   });
 
-  it("names the legacy video kinds this path cannot draw", () => {
+  it("supports legacy track keying, sharpen and vignette", () => {
     const track: TrackEffect[] = [
       { id: "s", type: "sharpen", enabled: true, amount: 1, threshold: 0.3 },
       {
@@ -193,10 +193,6 @@ describe("legacy track effects on the Canvas 2D path", () => {
         spill: 0.5
       }
     ];
-    expect(unsupportedEffectTypes([{ trackEffects: track }])).toEqual([
-      "chromaKey",
-      "sharpen",
-      "vignette"
-    ]);
+    expect(unsupportedEffectTypes([{ trackEffects: track }])).toEqual([]);
   });
 });

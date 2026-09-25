@@ -273,6 +273,8 @@ export interface TimelineStoreState {
    * document written before midi existed reads the same everywhere.
    */
   tempo?: TimelineTempo;
+  camera2d?: TimelineSequence["camera2d"];
+  setCamera2D: (camera: TimelineSequence["camera2d"]) => void;
   /**
    * Guided video-flow state (PRD § 8.5). Null on every sequence not built
    * through the flow, which is what makes those open straight in the editor.
@@ -300,6 +302,7 @@ export interface TimelineStoreState {
     fps: number;
     width: number;
     height: number;
+    camera2d?: TimelineSequence["camera2d"];
   } | null;
 
   // ── Initialisation ───────────────────────────────────────────────────────
@@ -321,6 +324,7 @@ export interface TimelineStoreState {
     fps?: number;
     width?: number;
     height?: number;
+    camera2d?: TimelineSequence["camera2d"];
   }) => void;
   /**
    * Write back the document `applyTimelineOp` returned, in one `set` so one
@@ -991,6 +995,7 @@ type PartializedState = Pick<
   | "transcript"
   | "scriptEnabled"
   | "tempo"
+  | "camera2d"
 >;
 
 // ── Temporal equality (dedupe no-op sets) ───────────────────────────────────
@@ -1049,7 +1054,8 @@ function partializedEqual(
     return (
       pastState.durationMs === currentState.durationMs &&
       pastState.scriptEnabled === currentState.scriptEnabled &&
-      shallowRecordEqual(pastState.tempo, currentState.tempo)
+      shallowRecordEqual(pastState.tempo, currentState.tempo) &&
+      shallowRecordEqual(pastState.camera2d, currentState.camera2d)
     );
   }
   // `&&` short-circuits, so a diverging earlier slice avoids scanning later
@@ -1062,7 +1068,8 @@ function partializedEqual(
     shallowArrayEqual(pastState.mediaTracks, currentState.mediaTracks) &&
     shallowArrayEqual(pastState.transcript, currentState.transcript) &&
     pastState.scriptEnabled === currentState.scriptEnabled &&
-    shallowRecordEqual(pastState.tempo, currentState.tempo)
+    shallowRecordEqual(pastState.tempo, currentState.tempo) &&
+    shallowRecordEqual(pastState.camera2d, currentState.camera2d)
   );
 }
 
@@ -1486,6 +1493,7 @@ const emptyState = {
   transcript: [],
   scriptEnabled: false,
   tempo: undefined,
+  camera2d: null,
   setup: null,
   linkedSelection: true,
   syncedDocument: null
@@ -1503,6 +1511,7 @@ const emptyState = {
   transcript: TranscriptLine[];
   scriptEnabled: boolean;
   tempo: TimelineTempo | undefined;
+  camera2d: TimelineSequence["camera2d"];
   setup: TimelineSetup | null;
   linkedSelection: boolean;
   syncedDocument: TimelineStoreState["syncedDocument"];
@@ -1539,6 +1548,7 @@ const syncedSnapshotOf = (
     | "fps"
     | "width"
     | "height"
+    | "camera2d"
   >
 ): NonNullable<TimelineStoreState["syncedDocument"]> => ({
   tracks: state.tracks,
@@ -1549,7 +1559,8 @@ const syncedSnapshotOf = (
   scriptEnabled: state.scriptEnabled,
   fps: state.fps,
   width: state.width,
-  height: state.height
+  height: state.height,
+  camera2d: state.camera2d ?? null
 });
 
 // ── Server-write adoption ──────────────────────────────────────────────────
@@ -1616,7 +1627,8 @@ function adoptServerSequence(
     scriptEnabled: state.scriptEnabled,
     fps: state.fps,
     width: state.width,
-    height: state.height
+    height: state.height,
+    camera2d: state.camera2d ?? null
   };
   // A field the response leaves out is one the route did not write, so the
   // base stands in for it rather than reading as an external clear.
@@ -1629,7 +1641,8 @@ function adoptServerSequence(
     scriptEnabled: sequence.scriptEnabled ?? base.scriptEnabled,
     fps: sequence.fps ?? base.fps,
     width: sequence.width ?? base.width,
-    height: sequence.height ?? base.height
+    height: sequence.height ?? base.height,
+    camera2d: sequence.camera2d === undefined ? base.camera2d : sequence.camera2d
   };
 
   const { doc, nextBase, conflicts, pending } = adoptGeneratedClipField(
@@ -1657,7 +1670,8 @@ function adoptServerSequence(
     scriptEnabled: nextBase.scriptEnabled,
     fps: nextBase.fps,
     width: nextBase.width,
-    height: nextBase.height
+    height: nextBase.height,
+    camera2d: nextBase.camera2d ?? null
   };
   get().setBaseUpdatedAt(sequence.updatedAt, synced);
 
@@ -1743,6 +1757,7 @@ export const createTimelineStore = (
               transcript: [] as TranscriptLine[],
               scriptEnabled: seq.scriptEnabled ?? clips.some(isTranscriptClip),
               tempo: seq.tempo ?? impliedTempo(seq.tracks),
+              camera2d: seq.camera2d ?? null,
               setup: seq.setup ?? null
             };
             set({
@@ -1767,6 +1782,7 @@ export const createTimelineStore = (
             scriptEnabled:
               seq.scriptEnabled ?? seq.clips.some(isTranscriptClip),
             tempo: seq.tempo ?? impliedTempo(seq.tracks),
+            camera2d: seq.camera2d ?? null,
             setup: seq.setup ?? null
           };
           set({
@@ -1774,6 +1790,8 @@ export const createTimelineStore = (
             syncedDocument: syncedSnapshotOf(next)
           });
         },
+
+        setCamera2D: (camera2d) => set({ camera2d: camera2d ?? null }),
 
         reset: () => set({ ...emptyState }),
 
@@ -3727,7 +3745,8 @@ export const createTimelineStore = (
           durationMs: state.durationMs,
           transcript: state.transcript,
           scriptEnabled: state.scriptEnabled,
-          tempo: state.tempo
+          tempo: state.tempo,
+          camera2d: state.camera2d ?? null
         })
       }
     )

@@ -6,8 +6,8 @@
  * so listing one needs no user and installing one is a single insert. The
  * bundles live next to the example workflows and the example apps
  * (`packages/base-nodes/nodetool/examples/storyboards/*.storyboard.json`, built
- * by `scripts/build-example-storyboards.mjs`), and each shot's still and clip
- * are `package://` assets served from the package asset root, so no bytes are
+ * by `scripts/build-example-storyboards.mjs`), and each shot's still is a
+ * `package://` asset served from the package asset root, so no bytes are
  * copied per install.
  */
 
@@ -92,7 +92,10 @@ function summarize(slug: string, bundle: StoryboardBundle): ExampleStoryboardSum
     aspectRatio: bundle.document.aspectRatio,
     // The board's own first still is its card image — a shipped example needs
     // no separate thumbnail file the way an example workflow does.
-    thumbnailUrl: packageAssetHttpPath(shots[0]?.keyframe?.uri)
+    thumbnailUrl: packageAssetHttpPath(shots[0]?.keyframe?.uri),
+    stillUrls: shots
+      .map((shot) => packageAssetHttpPath(shot.keyframe?.uri))
+      .filter((url): url is string => url !== null)
   };
 }
 
@@ -128,8 +131,8 @@ export function getExampleStoryboardBundle(
 
 /**
  * Install an example board: one row carrying the bundle's document verbatim.
- * The shots keep their `package://` stills and clips, so the installed board
- * plays immediately and the user's asset library stays untouched until they
+ * The shots keep their `package://` stills, so the installed board
+ * displays immediately and the user's asset library stays untouched until they
  * render something of their own.
  */
 export async function installExampleStoryboard(

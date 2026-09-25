@@ -30,7 +30,15 @@ import { readSketchDocumentId } from "../../hooks/sketch/ensureSketchDocumentFor
 import { tabCanRename } from "./tabRename";
 import { useUpdateApplication } from "../../hooks/useApplications";
 import { TOOLBAR_WIDTH } from "../../config/constants";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  BORDER_RADIUS,
+  ContextMenu,
+  InlineEditableText,
+  MenuItemPrimitive,
+  MOTION,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import NotificationButton from "../panels/NotificationButton";
 import OpenMenu from "./OpenMenu";
 import WorkspaceTabItem from "./WorkspaceTabItem";
@@ -40,7 +48,7 @@ import ProjectSelector from "../projects/ProjectSelector";
 import { ActivityIndicator } from "../timeline/ActivityIndicator";
 import { PROJECT_COLOR } from "../projects/projectIdentity";
 import { TYPE_COLOR, TYPE_GLYPH } from "./tabTypeIdentity";
-import { useOpenNewProjectTab } from "../../hooks/useProjects";
+import { useOpenNewProjectTab, useProjects } from "../../hooks/useProjects";
 import { useWorkspaceHeaderActions } from "./WorkspaceHeaderActionsContext";
 
 /** Whether a document type supports both View and Edit (vs view-only). */
@@ -237,6 +245,8 @@ const styles = (theme: Theme) =>
     "& .home-button": {
       WebkitAppRegion: "no-drag",
       flexShrink: 0,
+      minWidth: 0,
+      maxWidth: "220px",
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.sm),
@@ -247,6 +257,12 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       cursor: "pointer",
       fontSize: "var(--fontSizeSmall)",
+      "& .home-button-label": {
+        minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      },
       "&:hover": {
         color: theme.vars.palette.text.primary,
         backgroundColor: theme.vars.palette.action.hover
@@ -371,6 +387,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const trpcUtils = trpc.useUtils();
   const headerActions = useWorkspaceHeaderActions()?.actions;
   const openHome = useOpenNewProjectTab();
+  const { data: projects } = useProjects();
 
   const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
   const workflowManagerStore = useWorkflowManagerStore();
@@ -381,6 +398,10 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const activeProjectId = useWorkspaceTabsStore(
     (state) => state.activeProjectId
   );
+  const activeProject = projects?.find(
+    (project) => project.id === activeProjectId
+  );
+  const homeTitle = activeProject?.name ?? (activeProjectId ? "Project" : "Home");
   const visibleTabs = useMemo(
     () =>
       tabs.filter(
@@ -398,6 +419,19 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const newTabButtonRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
+  const [editingHome, setEditingHome] = useState(false);
+  const [homeMenuPosition, setHomeMenuPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [homeTitleOverride, setHomeTitleOverride] = useState<{
+    projectId: string;
+    name: string;
+  } | null>(null);
+  const displayedHomeTitle =
+    homeTitleOverride?.projectId === activeProjectId
+      ? homeTitleOverride.name
+      : homeTitle;
   const [dropTarget, setDropTarget] = useState<{
     id: string;
     position: "left" | "right";
@@ -662,6 +696,39 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
 
   const handleCancelRename = useCallback(() => setEditingTabId(null), []);
 
+  const commitHomeRename = useCallback(
+    async (newName: string) => {
+      setEditingHome(false);
+      if (!activeProjectId || !activeProject || newName === activeProject.name) {
+        return;
+      }
+      setHomeTitleOverride({ projectId: activeProjectId, name: newName });
+      try {
+        const updated = await trpcClient.projects.update.mutate({
+          id: activeProjectId,
+          name: newName
+        });
+        trpcUtils.projects.list.setData({}, (current) =>
+          current?.map((project) =>
+            project.id === activeProjectId ? updated : project
+          )
+        );
+        void trpcUtils.projects.list.invalidate();
+        void trpcUtils.projects.summaries.invalidate();
+      } catch {
+        // The list query still holds the previous name on a failed save.
+      } finally {
+        setHomeTitleOverride(null);
+      }
+    },
+    [
+      activeProject,
+      activeProjectId,
+      trpcUtils.projects.list,
+      trpcUtils.projects.summaries
+    ]
+  );
+
   return (
     <div
       css={tabBarStyles}
@@ -673,15 +740,52 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         pages the desktop logo menu holds. */}
       {isMobile && <MobileRailLauncher />}
       <ProjectSelector />
-      <button
-        type="button"
-        className={`home-button${homeIsActive ? " active" : ""}`}
-        aria-label="Home"
-        aria-current={homeIsActive ? "page" : undefined}
-        onClick={openHome}
+      {editingHome ? (
+        <div className="home-button active">
+          <InlineEditableText
+            className="tab-input"
+            ariaLabel="Project name"
+            value={displayedHomeTitle}
+            editing
+            onEditingChange={setEditingHome}
+            onCommit={(name) => void commitHomeRename(name)}
+            onCancel={() => setEditingHome(false)}
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          className={`home-button${homeIsActive ? " active" : ""}`}
+          aria-label={displayedHomeTitle}
+          aria-current={homeIsActive ? "page" : undefined}
+          onClick={openHome}
+          onDoubleClick={() => {
+            if (activeProject) setEditingHome(true);
+          }}
+          onContextMenu={(event) => {
+            if (!activeProject) return;
+            event.preventDefault();
+            setHomeMenuPosition({ x: event.clientX, y: event.clientY });
+          }}
+        >
+          <span className="home-button-label">{displayedHomeTitle}</span>
+        </button>
+      )}
+      <ContextMenu
+        open={homeMenuPosition !== null}
+        position={homeMenuPosition}
+        onClose={() => setHomeMenuPosition(null)}
+        compact
       >
-        <span className="home-button-label">Home</span>
-      </button>
+        <MenuItemPrimitive
+          label="Rename"
+          compact
+          onClick={() => {
+            setHomeMenuPosition(null);
+            setEditingHome(true);
+          }}
+        />
+      </ContextMenu>
       <button
         ref={newTabButtonRef}
         type="button"

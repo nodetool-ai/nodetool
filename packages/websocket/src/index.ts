@@ -32,6 +32,7 @@ export {
 export {
   createMcpServer,
   createMcpStdioTransport,
+  forwardMcpStdioToLocalServer,
   handleMcpHttpRequest,
   type McpServerOptions
 } from "./mcp-server.js";

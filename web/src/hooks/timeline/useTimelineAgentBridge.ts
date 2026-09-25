@@ -24,6 +24,7 @@ import {
   presetIdForInstrument,
   resolveTempo,
   shapeStyleWithDefaults,
+  staggerClipAnimations,
   textStyleWithDefaults,
   trackTypeForMediaType,
   validateNotes
@@ -1170,6 +1171,26 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         return clipNode(reReadClip(clip.id));
       },
 
+      staggerAnimations(clipIds, offsetMs) {
+        const selected = clipIds.map(requireClip);
+        const ids = selected.map((clip) => clip.id);
+        if (new Set(ids).size !== ids.length) {
+          throw new Error("clip_ids must contain distinct clip IDs.");
+        }
+        const clips = doc.getState().clips;
+        for (const clip of selected) {
+          if (!clip.animations?.length) throw new Error(`Clip "${clip.name}" has no animations to stagger.`);
+        }
+        const staggered = staggerClipAnimations(clips, ids, offsetMs);
+        const byId = new Map(staggered.map((clip) => [clip.id, clip]));
+        for (const id of ids) {
+          const clip = byId.get(id)!;
+          doc.getState().setClipAnimations(id, clip.animations ?? []);
+        }
+        const savedById = new Map(doc.getState().clips.map((clip) => [clip.id, clip]));
+        return ids.map((id) => clipNode(savedById.get(id)!));
+      },
+
       async getClipFrames(target, opts) {
         const clip = requireClip(target);
         const timelineTimes =
@@ -1197,7 +1218,8 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
             timelineTimes,
             width,
             state.width,
-            state.height
+            state.height,
+            { clips: state.clips, mediaTracks: state.mediaTracks, tempo: state.tempo, camera2d: state.camera2d }
           );
           return {
             clip: clipNode(clip),
