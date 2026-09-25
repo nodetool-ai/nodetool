@@ -42,6 +42,7 @@ import {
   ProgressBar,
   SPACING,
   TabGroup,
+  type TabItem,
   Text,
   ToolbarIconButton,
   BORDER_RADIUS,
@@ -74,6 +75,11 @@ import { TracksRegion } from "./Tracks/TracksRegion";
 import { PianoRollPanel } from "./pianoRoll/PianoRollPanel";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
+import {
+  useAssetsSelectedAsset,
+  useLibrarySelectedAsset
+} from "../../stores/AssetGridStore";
+import { usePanelStore } from "../../stores/PanelStore";
 import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { VideoLandingStrip } from "../setup/video/VideoLandingStrip";
 import { useReattachSequenceJobs } from "../../hooks/timeline/useReattachSequenceJobs";
@@ -314,17 +320,37 @@ PreviewRegion.displayName = "PreviewRegion";
 type InspectorTab = "inspector" | "source" | "instrument" | "agent" | "history" | "script";
 
 const INSPECTOR_TABS = [
-  { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon /> },
-  { value: "instrument", label: "Instruments", icon: <TuneOutlinedIcon /> },
-  { value: "source", label: "Source", icon: <MovieFilterOutlinedIcon /> },
-  { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon /> },
-  { value: "history", label: "History", icon: <HistoryOutlinedIcon /> }
+  { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon fontSize="small" /> },
+  { value: "instrument", label: "Instruments", icon: <TuneOutlinedIcon fontSize="small" /> },
+  { value: "source", label: "Source", icon: <MovieFilterOutlinedIcon fontSize="small" /> },
+  { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon fontSize="small" /> },
+  { value: "history", label: "History", icon: <HistoryOutlinedIcon fontSize="small" /> }
 ];
 
 const SCRIPT_TAB = {
   value: "script",
   label: "Script",
-  icon: <SubtitlesOutlinedIcon />
+  icon: <SubtitlesOutlinedIcon fontSize="small" />
+};
+
+const useAvailableInspectorTabs = (
+  tab: InspectorTab,
+  hasScript = false
+): { tabs: TabItem[]; activeTab: InspectorTab } => {
+  const hasMidiTrack = useTimelineStore((s) => s.tracks.some((track) => track.type === "midi"));
+  const activeExplorer = usePanelStore((s) => s.panel.activeView);
+  const assetsAsset = useAssetsSelectedAsset();
+  const libraryAsset = useLibrarySelectedAsset();
+  const hasSourceAsset = activeExplorer === "assets"
+    ? assetsAsset !== null
+    : activeExplorer === "library" && libraryAsset !== null;
+  const tabs = INSPECTOR_TABS.filter((item) =>
+    (item.value !== "instrument" || hasMidiTrack) &&
+    (item.value !== "source" || hasSourceAsset)
+  );
+  if (hasScript) tabs.push(SCRIPT_TAB);
+  const activeTab = tabs.some((item) => item.value === tab) ? tab : "inspector";
+  return { tabs, activeTab };
 };
 
 const InspectorRegion: React.FC<{ sequenceId: string | undefined }> = memo(
@@ -333,7 +359,10 @@ const InspectorRegion: React.FC<{ sequenceId: string | undefined }> = memo(
   const tab = useTimelineUIStore(s => s.panelTab);
   const setTab = useTimelineUIStore(s => s.setPanelTab);
 
-  const tabs = INSPECTOR_TABS;
+  const { tabs, activeTab } = useAvailableInspectorTabs(tab);
+  useEffect(() => {
+    if (activeTab !== tab) setTab(activeTab);
+  }, [activeTab, tab, setTab]);
 
   return (
     <ResizableSideDock
@@ -344,7 +373,7 @@ const InspectorRegion: React.FC<{ sequenceId: string | undefined }> = memo(
       <FlexColumn css={inspectorRegionStyles(theme)} fullHeight sx={{ minHeight: 0 }}>
         <TabGroup
           tabs={tabs}
-          value={tab}
+          value={activeTab}
           onChange={(value) => setTab(value as InspectorTab)}
           size="small"
           sx={{
@@ -353,13 +382,13 @@ const InspectorRegion: React.FC<{ sequenceId: string | undefined }> = memo(
           }}
         />
         <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-          {tab === "inspector" ? (
+          {activeTab === "inspector" ? (
             <TimelineInspector />
-          ) : tab === "instrument" ? (
+          ) : activeTab === "instrument" ? (
             <TimelineInstrumentsPanel />
-          ) : tab === "source" ? (
+          ) : activeTab === "source" ? (
             <SourceViewerPanel />
-          ) : tab === "agent" ? (
+          ) : activeTab === "agent" ? (
             <TimelineAgentPanel />
           ) : (
             <TimelineVersionHistoryPanel sequenceId={sequenceId} />
@@ -407,13 +436,10 @@ const MobilePanelSheet: React.FC<{
   onTabChange: (tab: InspectorTab) => void;
 }> = memo(({ open, onClose, sequenceId, tab, onTabChange }) => {
   const hasScript = useHasScript();
-  const tabs = useMemo(
-    () => (hasScript ? [...INSPECTOR_TABS, SCRIPT_TAB] : INSPECTOR_TABS),
-    [hasScript]
-  );
-
-  // A sequence can lose its script while the Script tab is showing.
-  const activeTab = tab === "script" && !hasScript ? "inspector" : tab;
+  const { tabs, activeTab } = useAvailableInspectorTabs(tab, hasScript);
+  useEffect(() => {
+    if (activeTab !== tab) onTabChange(activeTab);
+  }, [activeTab, tab, onTabChange]);
 
   const tabRail = (
     <TabGroup

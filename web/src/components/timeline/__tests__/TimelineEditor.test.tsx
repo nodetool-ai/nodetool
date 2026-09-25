@@ -12,6 +12,17 @@ import { ThemeProvider } from "@mui/material/styles";
 import { makeSequence } from "@nodetool-ai/timeline";
 import mockTheme from "../../../__mocks__/themeMock";
 import { TimelineEditor } from "../TimelineEditor";
+import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { usePanelStore } from "../../../stores/PanelStore";
+import {
+  AssetGridStoreProvider,
+  ASSETS_ASSET_GRID_STORE_KEY,
+  LIBRARY_ASSET_GRID_STORE_KEY,
+  useAssetGridStoreApi,
+  type AssetGridStoreApi
+} from "../../../stores/AssetGridStore";
+import type { Asset } from "../../../stores/ApiTypes";
 
 // ── Router mocks ────────────────────────────────────────────────────────────
 
@@ -106,10 +117,27 @@ const mockCreateMutate = jest.fn();
 const mockCreateReset = jest.fn();
 const mockFlushAutosave = jest.fn();
 
+let assetStoreApi: AssetGridStoreApi;
+let assetsStoreApi: AssetGridStoreApi;
+const CaptureAssetStore = () => {
+  assetStoreApi = useAssetGridStoreApi();
+  return null;
+};
+const CaptureAssetsStore = () => {
+  assetsStoreApi = useAssetGridStoreApi();
+  return null;
+};
+
 const renderEditor = () =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <TimelineEditor />
+      <AssetGridStoreProvider persistKey={LIBRARY_ASSET_GRID_STORE_KEY}>
+        <CaptureAssetStore />
+        <TimelineEditor />
+      </AssetGridStoreProvider>
+      <AssetGridStoreProvider persistKey={ASSETS_ASSET_GRID_STORE_KEY}>
+        <CaptureAssetsStore />
+      </AssetGridStoreProvider>
     </ThemeProvider>
   );
 
@@ -138,6 +166,11 @@ beforeEach(() => {
     isPending: false,
     error: null
   });
+});
+
+afterEach(() => {
+  assetStoreApi?.getState().handleDeselectAssets();
+  assetsStoreApi?.getState().handleDeselectAssets();
 });
 
 // ── Tests ────────────────────────────────────────────────────────────────────
@@ -264,6 +297,9 @@ describe("TimelineEditor", () => {
       expect(
         screen.getByRole("tab", { name: "Inspector" })
       ).toBeInTheDocument();
+      expect(
+        screen.getByRole("tab", { name: "Inspector" }).querySelector("svg")
+      ).toHaveClass("MuiSvgIcon-fontSizeSmall");
       expect(screen.getByText("Tracks")).toBeInTheDocument();
     });
 
@@ -284,6 +320,40 @@ describe("TimelineEditor", () => {
       expect(
         screen.getByRole("tab", { name: "Assistant" })
       ).toBeInTheDocument();
+    });
+
+    it("shows Instruments only while the sequence has a MIDI track", async () => {
+      renderEditor();
+      expect(screen.queryByRole("tab", { name: "Instruments" })).not.toBeInTheDocument();
+
+      act(() => useTimelineStore.getState().addTrack("midi", "Keys"));
+      await userEvent.click(screen.getByRole("tab", { name: "Instruments" }));
+
+      act(() => useTimelineStore.setState({ tracks: [] }));
+      expect(screen.queryByRole("tab", { name: "Instruments" })).not.toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Inspector" })).toHaveAttribute("aria-selected", "true");
+      expect(useTimelineUIStore.getState().panelTab).toBe("inspector");
+    });
+
+    it("shows Source only for a selection in the active asset explorer", () => {
+      renderEditor();
+      act(() => usePanelStore.getState().setActiveView("library"));
+      expect(screen.queryByRole("tab", { name: "Source" })).not.toBeInTheDocument();
+
+      act(() => assetStoreApi.getState().setSelectedAssets([
+        { id: "asset-1", name: "Beach", content_type: "video/mp4" } as Asset
+      ]));
+      expect(screen.getByRole("tab", { name: "Source" })).toBeInTheDocument();
+
+      act(() => usePanelStore.getState().setActiveView("workflows"));
+      expect(screen.queryByRole("tab", { name: "Source" })).not.toBeInTheDocument();
+
+      act(() => usePanelStore.getState().setActiveView("assets"));
+      expect(screen.queryByRole("tab", { name: "Source" })).not.toBeInTheDocument();
+      act(() => assetsStoreApi.getState().setSelectedAssets([
+        { id: "asset-2", name: "Lake", content_type: "video/mp4" } as Asset
+      ]));
+      expect(screen.getByRole("tab", { name: "Source" })).toBeInTheDocument();
     });
 
     it("renders the resize separator with correct ARIA attributes", () => {

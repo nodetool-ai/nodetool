@@ -1839,6 +1839,24 @@ export const timelineDocument = z.object({
 });
 export type TimelineDocument = z.infer<typeof timelineDocument>;
 
+export const exampleTimelineSummary = z.object({
+  slug: z.string(),
+  name: z.string(),
+  description: z.string(),
+  durationMs: z.number().int().positive(),
+  fps: z.number().int().positive(),
+  clipCount: z.number().int().nonnegative(),
+  videoUri: z.string(),
+  posterUri: z.string()
+});
+export type ExampleTimelineSummary = z.infer<typeof exampleTimelineSummary>;
+
+export const installExampleTimelineInput = z.object({
+  slug: z.string(),
+  projectId: z.string().min(1).optional(),
+  name: z.string().min(1).optional()
+});
+
 // ── Sequence response ────────────────────────────────────────────────────────
 
 export const timelineSequenceResponse = z.object({

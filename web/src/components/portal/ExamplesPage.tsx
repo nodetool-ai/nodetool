@@ -3,11 +3,12 @@ import ManagerPageLayout from "../panels/ManagerPageLayout";
 import { TabGroup } from "../ui_primitives";
 import DashboardExampleApps from "./DashboardExampleApps";
 import DashboardExampleStoryboards from "./DashboardExampleStoryboards";
+import DashboardExampleTimelines from "./DashboardExampleTimelines";
 import DashboardTemplates from "./DashboardTemplates";
 
 /**
  * Full-screen Examples page. Reachable from the logo menu; wraps the shipped
- * example apps, workflows, and storyboards in separate tabs.
+ * example apps, workflows, storyboards, and timelines in separate tabs.
  */
 const ExamplesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("apps");
@@ -22,7 +23,8 @@ const ExamplesPage: React.FC = () => {
         tabs={[
           { value: "apps", label: "Apps" },
           { value: "workflows", label: "Workflows" },
-          { value: "storyboards", label: "Storyboards" }
+          { value: "storyboards", label: "Storyboards" },
+          { value: "timelines", label: "Timelines" }
         ]}
         value={activeTab}
         onChange={setActiveTab}
@@ -32,8 +34,10 @@ const ExamplesPage: React.FC = () => {
         <DashboardExampleApps />
       ) : activeTab === "workflows" ? (
         <DashboardTemplates fullPage />
-      ) : (
+      ) : activeTab === "storyboards" ? (
         <DashboardExampleStoryboards />
+      ) : (
+        <DashboardExampleTimelines />
       )}
     </ManagerPageLayout>
   );

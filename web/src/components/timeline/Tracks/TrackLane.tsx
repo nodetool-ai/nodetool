@@ -2,8 +2,8 @@
 /**
  * TrackLane
  *
- * Horizontal strip for a single track. Renders all clips belonging to the
- * track as absolute-positioned children:
+ * Horizontal strip for a single track. Renders nearby clips as
+ * absolute-positioned children:
  *   left  = clip.startMs / msPerPx
  *   width = clip.durationMs / msPerPx
  *
@@ -43,7 +43,10 @@ import {
   useTimelineStore,
   useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
-import { clipIdsByTrack } from "../../../stores/timeline/clipLookup";
+import {
+  clipIdsByTrack,
+  visibleClipIdsByTrack
+} from "../../../stores/timeline/clipLookup";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -59,6 +62,7 @@ import {
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
+import { layoutTrackRows } from "./trackWindow";
 
 /** Two bars of 4/4 at 120 BPM — what an empty midi clip is sized to. */
 const DEFAULT_MIDI_CLIP_DURATION_MS = 4000;
@@ -103,23 +107,50 @@ const laneStyles = (
 
 interface TrackLaneProps {
   track: TimelineTrack;
+  virtualizeClips?: boolean;
 }
 
-export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
+const CLIP_OVERSCAN_PX = 320;
+
+export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClips = false }) => {
   const theme = useTheme();
+  const timelineStore = useTimelineStoreApi();
+  const msPerPx = useTimelineUIStore((s) => s.msPerPx);
+  const verticalZoom = useTimelineUIStore((s) => s.verticalZoom);
+  const scrollLeftPx = useTimelineUIStore((s) =>
+    virtualizeClips ? s.scrollLeftPx : 0
+  );
+  const lanesViewportWidthPx = useTimelineUIStore((s) =>
+    virtualizeClips ? s.lanesViewportWidthPx : 0
+  );
+  const [pinnedClipId, setPinnedClipId] = useState<string | null>(null);
+  const viewportWidthPx =
+    lanesViewportWidthPx ||
+    (typeof window === "undefined" ? 1024 : window.innerWidth);
+  const windowStartMs =
+    Math.max(0, scrollLeftPx - CLIP_OVERSCAN_PX - 4) * msPerPx;
+  const windowEndMs =
+    (scrollLeftPx + viewportWidthPx + CLIP_OVERSCAN_PX) * msPerPx;
 
   // Only this track's clip ids. clipIdsByTrack is cached per `clips` array
   // identity, so one store publish builds the index once for every lane.
-  const timelineStore = useTimelineStoreApi();
   const clipIds = useStoreWithEqualityFn(
     timelineStore,
-    (s) => clipIdsByTrack(s.clips).get(track.id) ?? NO_CLIP_IDS,
+    (s) =>
+      virtualizeClips
+        ? visibleClipIdsByTrack(
+            s.clips,
+            track.id,
+            windowStartMs,
+            windowEndMs,
+            pinnedClipId
+          )
+        : clipIdsByTrack(s.clips).get(track.id) ?? NO_CLIP_IDS,
     // Shallow-compare the resulting string array
     (a: string[], b: string[]) =>
       a.length === b.length && a.every((id, i) => id === b[i])
   );
 
-  const msPerPx = useTimelineUIStore((s) => s.msPerPx);
   const clearSelection = useTimelineUIStore((s) => s.clearSelection);
   const seek = useTimelinePlaybackStore((s) => s.seek);
   const setSelection = useTimelineUIStore((s) => s.setSelection);
@@ -131,9 +162,29 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const resolveDropInStore = useTimelineStore((s) => s.resolveDrop);
   const importVideoWithAudio = useVideoAudioImport();
 
-  const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
+  const heightPx = (track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) * verticalZoom;
 
   const laneRef = useRef<HTMLDivElement>(null);
+  const pinClipDuringPointerGesture = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!virtualizeClips || e.button !== 0) return;
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+      const clipElement = target.closest<HTMLElement>("[data-timeline-clip-id]");
+      if (clipElement) setPinnedClipId(clipElement.dataset.timelineClipId ?? null);
+    },
+    [virtualizeClips]
+  );
+  useEffect(() => {
+    if (!pinnedClipId) return;
+    const release = () => setPinnedClipId(null);
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
+    return () => {
+      window.removeEventListener("pointerup", release);
+      window.removeEventListener("pointercancel", release);
+    };
+  }, [pinnedClipId]);
   const isRubberBandingRef = useRef(false);
   /** Band origin in lanes-content space. */
   const rbStartRef = useRef({ x: 0, y: 0 });
@@ -418,19 +469,39 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       }));
 
       const bounds = new Map<string, { top: number; bottom: number }>();
-      containerEl
-        .querySelectorAll<HTMLElement>("[data-track-lane-id]")
-        .forEach((el) => {
-          const laneTrackId = el.dataset.trackLaneId;
-          if (!laneTrackId) {
-            return;
+      if (containerEl.dataset.virtualizedTracks) {
+        const document = useTimelineStore.getState();
+        const { rows } = layoutTrackRows(
+          document.tracks,
+          document.scriptEnabled,
+          useTimelineUIStore.getState().expandedFxTrackId,
+          useTimelineUIStore.getState().verticalZoom
+        );
+        rows.forEach((row) => {
+          if (row.kind === "track") {
+            bounds.set(row.track.id, {
+              top: row.top,
+              bottom:
+                row.top +
+                (row.track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) * verticalZoom
+            });
           }
-          const laneRect = el.getBoundingClientRect();
-          bounds.set(laneTrackId, {
-            top: laneRect.top - containerRect.top,
-            bottom: laneRect.bottom - containerRect.top
-          });
         });
+      } else {
+        containerEl
+          .querySelectorAll<HTMLElement>("[data-track-lane-id]")
+          .forEach((el) => {
+            const laneTrackId = el.dataset.trackLaneId;
+            if (!laneTrackId) {
+              return;
+            }
+            const laneRect = el.getBoundingClientRect();
+            bounds.set(laneTrackId, {
+              top: laneRect.top - containerRect.top,
+              bottom: laneRect.bottom - containerRect.top
+            });
+          });
+      }
       rbTrackBoundsRef.current = bounds;
 
       laneEl.setPointerCapture(e.pointerId);
@@ -643,6 +714,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       css={laneCss}
       data-testid={`track-lane-${track.id}`}
       data-track-lane-id={track.id}
+      onPointerDownCapture={pinClipDuringPointerGesture}
       onPointerDown={handleLanePointerDown}
       onPointerMove={handleLanePointerMove}
       onPointerUp={handleLanePointerUp}

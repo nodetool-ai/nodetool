@@ -519,6 +519,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     const encoder = this.device.createCommandEncoder({
       label: `${this.label}-frame`
     });
+    this.effects.beginSubmission();
 
     // Every group and matte in this frame records into `encoder` before one
     // submit, so the precomposite core's uniform ring is reset here, once, and

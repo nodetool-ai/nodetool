@@ -12,6 +12,7 @@
 
 import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
 import type {
+  FrameAdjustment,
   FrameLayer,
   FramePrecomposite,
   FrameSample,
@@ -27,13 +28,14 @@ import {
   measureTextWith,
   motionBlurSampleTimes,
   layerShutterTime,
-  resolveSceneMotionBlur,
+  resolveFrameMotionBlur,
   shutterWindowIsStatic,
   resolveAnimatedLayerProps,
   resolveTextStaggerContext,
   trackZ
 } from "@nodetool-ai/timeline/render";
 import { createCanvas } from "@napi-rs/canvas";
+import { setImmediate } from "node:timers/promises";
 
 import {
   decodeImageRgba,
@@ -82,6 +84,9 @@ interface CompositeRenderResult {
   /** Clips whose media could not be decoded, by name — reported, not fatal. */
   skippedClips: string[];
 }
+
+/** Let the API service pending requests during a frame with many raster layers. */
+const YIELD_EVERY_LAYERS = 8;
 
 /** The GPU device is acquired lazily; this is what "no GPU here" looks like. */
 export class CompositorUnavailableError extends Error {
@@ -141,10 +146,6 @@ export async function renderTimelineComposited(
   const height = Math.max(2, Math.floor(opts.height / 2) * 2);
   const totalFrames = Math.max(1, Math.round((durationMs / 1000) * fps));
   const frameMs = 1000 / fps;
-  // Resolved with the format rather than passed separately, so one object
-  // carries every render choice. N samples cost N× this render — every layer
-  // is decoded, rasterized and composited once per sample.
-  const motionBlur = resolveSceneMotionBlur(sequence.clips, output.motionBlur);
   const canvas = {
     width,
     height,
@@ -291,7 +292,7 @@ export async function renderTimelineComposited(
      */
     const sampleAt = async (timeMs: number, frameTimeMs = timeMs, sampleIndex = 0, sampleCount = 1): Promise<FrameSample> => {
       const layers: FrameLayer[] = [];
-      const { layers: active, precomposites } = computeActiveLayersWithHorizon(
+      const { layers: active, adjustments, precomposites } = computeActiveLayersWithHorizon(
         sequence.tracks,
         sequence.clips,
         timeMs,
@@ -435,7 +436,11 @@ export async function renderTimelineComposited(
         });
       };
 
-      for (const layer of active) {
+      for (let index = 0; index < active.length; index++) {
+        if (index > 0 && index % YIELD_EVERY_LAYERS === 0) {
+          await setImmediate();
+        }
+        const layer = active[index];
         const built = await frameLayerFor(layer);
         if (!built) continue;
         if (layer.matte) {
@@ -455,6 +460,17 @@ export async function renderTimelineComposited(
 
       return {
         layers,
+        adjustments: adjustments.map((adjustment): FrameAdjustment => ({
+          id: adjustment.clipId,
+          zIndex: trackZ(adjustment.trackIndex),
+          opacity: adjustment.opacity,
+          effects: adjustment.effects,
+          shapeMask: adjustment.mask
+            ? rasterizer.mask(adjustment.mask, width, height) ?? undefined
+            : undefined,
+          wipe: adjustment.wipe,
+          precomposeGroupId: adjustment.precomposeGroupId
+        })),
         precomposites: precomposites.map(
           (group): FramePrecomposite => ({
             id: group.clipId,
@@ -479,9 +495,9 @@ export async function renderTimelineComposited(
      * held title at 8 samples is the case: 8× the render for the frame it
      * already had.
      */
-    const staticAt = (timeMs: number): boolean => {
-      if (motionBlur.samplesPerFrame <= 1) return false;
-      const { layers } = computeActiveLayersWithHorizon(
+    const staticAt = (timeMs: number, samplesPerFrame: number): boolean => {
+      if (samplesPerFrame <= 1) return false;
+      const { layers, adjustments } = computeActiveLayersWithHorizon(
         sequence.tracks,
         sequence.clips,
         timeMs,
@@ -493,15 +509,36 @@ export async function renderTimelineComposited(
           tempo: sequence.tempo
         }
       );
+      // The animation check follows each record's clip and parent chain.
+      // Adjustments have no source layer, so include their clips here.
+      const animationLayers = [
+        ...layers,
+        ...adjustments.map((adjustment) => ({
+          kind: "shape" as const,
+          clip: adjustment.clip,
+          clipId: adjustment.clipId,
+          trackIndex: adjustment.trackIndex,
+          blendMode: "normal" as const,
+          opacity: adjustment.opacity,
+          assetId: undefined
+        }))
+      ];
       return shutterWindowIsStatic(
         layers,
-        hasActiveAnimation(layers, timeMs, canvas, animCache, sequence.clips, sequence.tempo)
+        hasActiveAnimation(animationLayers, timeMs, canvas, animCache, sequence.clips, sequence.tempo)
       );
     };
 
     for (let frame = 0; frame < totalFrames; frame++) {
       if (signal?.aborted) throw abortError();
       const timeMs = (frame * 1000) / fps;
+      const motionBlur = resolveFrameMotionBlur(
+        sequence.clips,
+        output.motionBlur,
+        timeMs,
+        frameMs,
+        sequence.tracks
+      );
 
       for (const [sourceKey, source] of videoSources) {
         if (source.endMs < timeMs) {
@@ -513,7 +550,7 @@ export async function renderTimelineComposited(
       const samples: FrameSample[] = [];
       // Sequential, not concurrent: a clip's frames come off one forward-only
       // ffmpeg stream, so two samples decoding at once would race for it.
-      const sampleTimes = staticAt(timeMs)
+      const sampleTimes = staticAt(timeMs, motionBlur.samplesPerFrame)
         ? [timeMs]
         : motionBlurSampleTimes(timeMs, frameMs, motionBlur);
       for (const sampleMs of sampleTimes) {

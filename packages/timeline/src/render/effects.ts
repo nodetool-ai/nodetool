@@ -160,6 +160,11 @@ export class WebGPUEffectsProcessor {
     this.registry = createDefaultRegistry();
   }
 
+  /** Start a frame whose effect passes share the caller's command buffer. */
+  beginSubmission(): void {
+    this.ctx.uniformRing.beginSubmission();
+  }
+
   /**
    * Run the effects chain on `source` and return a GPU texture with the
    * processed pixels. If no effects are enabled, returns `source` itself
@@ -234,6 +239,9 @@ export class WebGPUEffectsProcessor {
       return source;
     }
 
+    if (!frameEncoder) {
+      this.ctx.uniformRing.beginSubmission();
+    }
     const pool = this.getPool(poolKey, width, height);
     const encoder =
       frameEncoder ??
@@ -615,6 +623,9 @@ export class WebGPUEffectsProcessor {
     /** Record into the frame's encoder. See {@link EffectChain.process}. */
     frameEncoder?: GPUCommandEncoder
   ): GPUTexture {
+    if (!frameEncoder) {
+      this.ctx.uniformRing.beginSubmission();
+    }
     const pool = this.getPool(poolKey, width, height);
     const encoder =
       frameEncoder ??
@@ -688,6 +699,9 @@ export class WebGPUEffectsProcessor {
     /** Record into the frame's encoder. See {@link EffectChain.process}. */
     frameEncoder?: GPUCommandEncoder
   ): GPUTexture {
+    if (!frameEncoder) {
+      this.ctx.uniformRing.beginSubmission();
+    }
     const pool = this.getPool(poolKey, width, height);
     const encoder =
       frameEncoder ??

@@ -1,12 +1,7 @@
 // Serein launch film: the complete build.
 //
 // `node demo/benchmarks/serein/build.js` generates the whole timeline document
-// as demo/out/serein-doc.json. Upload it with the `upload_asset` MCP tool, then
-// write it with `execute_code`:
-//
-//   import { set_timeline_document } from "@nodetool-ai/sandbox-nodetool/timelines";
-//   const doc = JSON.parse(await nodetool.assets.read("<asset id>"));
-//   return await set_timeline_document({ timeline_id: doc.timeline_id, document: doc.document });
+// as demo/out/serein-doc.json for local validation and rendering.
 //
 // Frames follow BRIEF.md section 4; positions are px from the frame centre.
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -133,6 +128,16 @@ const NOOP = cv("opacity", 1, 1, "linear");
 /** Shorthand: one animation on `clip` at scene frame f0. */
 function on(clip, f0, dur, curves, opts) {
   const a = anim(clip._from, f0 - (clip._from - cur.start), dur, curves, opts);
+  // An "in" animation holds only before its window. One that ends mid-clip
+  // away from the rest pose becomes an "out" (custom curves are not reversed),
+  // so its end value holds for the rest of the clip.
+  const endMs = a.delayMs + a.durationMs;
+  const REST = { opacity: 1, scale: 1, scaleX: 1, scaleY: 1, trimEnd: 1, wipeProgress: 1 };
+  const leavesRest = curves.some((c) => c.keyframes.at(-1).value !== (REST[c.property] ?? 0)) || (a.styleTracks && !a.textAnimator);
+  if (a.role === "in" && endMs < clip.durationMs && leavesRest) {
+    a.role = "out";
+    a.delayMs = clip.durationMs - endMs;
+  }
   clip.animations = [...(clip.animations ?? []), a];
   return clip;
 }
@@ -268,7 +273,7 @@ function buildS1() {
   }
   wall({ unread: true, scrollKeys: [[0, 0], [96, v * 96], [122, v * 148]], wiggle: [kfs("offsetX", wx), kfs("offsetY", wy)] });
   glow(1500, 0, { name: "counter-scrim" }).shapeStyle.fillStyle = { type: "radial", stops: [{ offset: 0, color: "rgba(10,15,31,0.75)" }, { offset: 0.35, color: "rgba(10,15,31,0.45)" }, { offset: 0.7071, color: "rgba(10,15,31,0)" }] };
-  const enter = (c) => on(c, 8, 12, [cv("opacity", 0, 1), cv("blur", 30, 0)]);
+  const enter = (c) => on(c, 8, 12, [cv("opacity", 0, 1, "easeOut"), cv("blur", 30, 0, "linear")]);
   enter(text("You have", 48, 400, DIM, { y: -190, tracking: -0.01 }));
   const num = text("0", 300, 800, TEXT, {
     name: "counter", y: 0, tracking: -0.045,
@@ -280,7 +285,9 @@ function buildS1() {
   on(num, 96, 26, [NOOP], { styleTracks: [{ target: "effect.gl.amount", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 0.5 }] }] });
   enter(text("unread emails.", 48, 400, DIM, { y: 190, tracking: -0.01 }));
   const split = add("adjustment", { name: "rgbsplit", effects: [{ id: "rgb", type: "stylize", enabled: true, mode: "rgbSplit", amount: 0 }] });
-  on(split, 96, 26, [NOOP], { styleTracks: [{ target: "effect.rgb.amount", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 0.4 }] }] });
+  // rgbSplit.amount is a source-pixel displacement. The brief's 0.4 endpoint
+  // is subpixel at checkpoint size, so use a visible 14-pixel endpoint.
+  on(split, 96, 26, [NOOP], { styleTracks: [{ target: "effect.rgb.amount", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 14 }] }] });
 }
 
 // ---------------------------------------------------------------------------
@@ -343,7 +350,7 @@ function buildS3() {
 function buildS4a() {
   scene("S4a", "A", 245, 357);
   backdrop(INK2, 0.35, 5);
-  const board = group({ name: "board", y: -50, s: 0.88, tx: { rotationX: 18, rotationY: -10, perspective: 2400 } });
+  const board = group({ name: "board", y: -100, s: 0.8, tx: { rotationX: 18, rotationY: -10, perspective: 2400 } });
   on(board, 0, 105, [cv("rotationY", 0, 6, "linear")]);
   const colX = { Now: -520, Later: 0, Never: 520 };
   const byCat = { Now: [], Later: [], Never: [] };
@@ -357,8 +364,11 @@ function buildS4a() {
     const x = colX[o.cat], y = -240 + o.slot * 104;
     const g = group({ name: `fly-${k}`, parent: board.id, x, y });
     const f0 = Math.floor(start);
-    on(g, f0, 15, [cv("offsetX", sx - x, 0, "spring(170,18,1)"), cv("offsetY", sy - y, 0, "spring(170,18,1)"), cv("rotation", rad(-rot), 0, "spring(170,18,1)"), cv("scale", 0.7, 1, "spring(170,18,1)")]);
-    on(g, f0, 4, [cv("opacity", 0, 1, "linear")]);
+    // The normalized spring settles in three frames. Keep the flight visible
+    // across the 15-frame window, then give it one small landing overshoot.
+    const flight = (property, from, to) => kfs(property, [[0, from], [0.4, from + (to - from) * 0.7, "easeOut"], [0.7, from + (to - from) * 1.05, "easeOut"], [0.86, from + (to - from) * 0.98, "easeOut"], [1, to, "easeOut"]]);
+    on(g, f0, 15, [flight("offsetX", sx - x, 0), flight("offsetY", sy - y, 0), flight("rotation", rad(-rot), 0), flight("scale", 0.7, 1)]);
+    on(g, f0, 2, [cv("opacity", 0, 1, "linear")]);
     emailCard(EMAILS[o.email], 0, 0, { parent: g.id });
     landed[o.cat].push(f0 + 10);
   });
@@ -438,13 +448,16 @@ function buildS4c() {
   text("To: Maya Chen", 22, 600, DIM, { parent: comp.id, anchor: "left", mw: 0.4, x: -456, y: -183 });
   box(912, 1, LINE, { parent: comp.id, y: -148 });
   const body = text("Signed. Thanks for chasing this. Sending the countersigned copy now.", 36, 400, TEXT, { parent: comp.id, anchor: "left", mw: 900 / W, x: -456, y: -70, tracking: -0.01, style: { lineHeight: 1.4 } });
-  body.animations = [{ id: nid("a"), role: "in", preset: "typewriter", durationMs: 1400, delayMs: ms(456 + 8) - ms(456), caret: { color: VIOLET, widthPx: 3, blinkPeriodMs: 533 } }];
+  // Direct document writes need the per-character timing that animate_clip adds.
+  const bodyText = body.textStyle.text;
+  body.animations = [{ id: nid("a"), role: "in", preset: "typewriter", durationMs: 1, delayMs: ms(456 + 8) - ms(456), stagger: { unit: "character", offsetMs: 1399 / (bodyText.length - 1) }, caret: { color: VIOLET, widthPx: 3, blinkPeriodMs: 533 } }];
   // Tone chips: a row layout of the three labels, each pill fitted to its label.
   const tones = ["Formal", "Brief", "Warm"].map((t) => text(t, 22, 600, DIM, { parent: comp.id, x: 0, y: 64 }));
   group({ name: "tone-row", parent: comp.id, x: -300, y: 64, layout: { kind: "row", children: tones.map((t) => t.id), gapPx: 56 } });
   const sel = box(116, 48, "rgba(167,139,250,0.25)", { parent: comp.id, r: 24, stroke: "rgba(167,139,250,0.45)", x: -398, y: 64 });
   sel._z = tones[0]._z - 0.6;
-  on(sel, 14, 20, [cv("offsetX", 0, 237, "spring(170,18,1)"), cv("scaleX", 1, 106 / 116, "spring(170,18,1)")]);
+  const toneMove = (property, from, to) => kfs(property, [[0, from], [0.5, from + (to - from) * 0.78, "easeInOut"], [0.82, from + (to - from) * 1.04, "easeOut"], [1, to, "easeOut"]]);
+  on(sel, 14, 20, [toneMove("offsetX", 0, 237), toneMove("scaleX", 1, 106 / 116)]);
   for (const t of tones) {
     const p = box(110, 48, null, { parent: comp.id, r: 24, stroke: LINE, layout: { kind: "relative", targetClipId: t.id, side: "center", fitText: { paddingXPx: 22, paddingYPx: 12 } } });
     p._z = t._z - 0.4;
@@ -462,12 +475,14 @@ function buildS4c() {
     motionBlur: { samplesPerFrame: 8, shutterAngle: 180 },
     temporalEcho: { copies: 6, intervalMs: 50, opacityDecay: 0.6 },
   });
-  const sx = 960 + 140 + 385, sy = 540 + 158;
-  const path = `M${sx / W} ${sy / H} C${(sx + 160) / W} ${(sy - 40) / H} ${(sx + 260) / W} ${(sy - 420) / H} ${2150 / W} ${-220 / H}`;
+  // followPath writes positionX/Y, which the renderer reads as an offset from
+  // the frame centre, so the path is authored in centre-relative units.
+  const sx = 140 + 385, sy = 158;
+  const path = `M${sx / W} ${sy / H} C${(sx + 175) / W} ${(sy + 120) / H} ${(sx + 450) / W} ${(sy - 320) / H} ${1080 / W} ${-680 / H}`;
   plane.animations = [{ id: nid("a"), role: "emphasis", preset: "followPath", durationMs: ms(22), easing: "easeInOut", params: { d: path, pathX: 0, pathY: 0, pathWidth: 1, pathHeight: 1, orient: true } }];
   // BRIEF.md puts the toast at 76–88, but checkpoint C11 (frame 530 = local 74) wants it entering.
   const toast = group({ name: "toast", y: -390 });
-  on(toast, 72, 12, [cv("opacity", 0, 1), cv("offsetY", -24, 0)]);
+  on(toast, 72, 14, [cv("opacity", 0, 1, "easeOut"), cv("offsetY", -30, 0, "easeOut")]);
   const tt = text("Sent · 0.4 s", 24, 600, TEXT, { parent: toast.id, x: 12 });
   const tp = box(230, 56, CARD, { parent: toast.id, r: 28, stroke: LINE, layout: { kind: "relative", targetClipId: tt.id, side: "center", fitText: { paddingXPx: 44, paddingYPx: 14 } }, effects: [{ id: "tsh", type: "dropShadow", enabled: true, offsetX: 0, offsetY: 10, blur: 30, color: "rgba(0,0,0,0.35)" }] });
   tp._z = tt._z - 0.5;
@@ -485,9 +500,22 @@ function buildS4d() {
   const count = text("0", 320, 800, TEXT, { name: "countdown", y: -40, tracking: -0.045, to: 562 + 37 });
   on(count, 0, 38, [NOOP], { textAnimator: { kind: "ticker", from: 2847, to: 0, groupSeparator: "," }, easing: "easeInOutExpo" });
   const zero = text("0", 320, 800, TEXT, { name: "zero", y: -40, tracking: -0.045, fill: DUSK, from: 562 + 38 });
-  on(zero, 38, 7, [cv("scale", 1.4, 1), cv("blur", 30, 0)]);
-  const burst = box(W, H, null, { name: "particles", from: 562 + 38, to: 562 + 52, blendMode: "screen", effects: [{ id: "pt", type: "generator", enabled: true, mode: "particles", colorA: "#60a5fa", colorB: "#fda4af", seed: 9, animate: true, amount: 1 }] });
-  on(burst, 38, 14, [cv("opacity", 1, 0, "easeIn")]);
+  on(zero, 38, 10, [cv("scale", 1.4, 1, "easeOut")]);
+  on(zero, 38, 4, [cv("blur", 30, 0, "linear")]);
+  // Keep the required generator faint and behind the text. Its particles
+  // drift across the frame, so a ring of animated dots supplies the burst.
+  const burst = box(W, H, null, { name: "particles", from: 562 + 38, to: 562 + 52, blendMode: "screen", effects: [{ id: "pt", type: "generator", enabled: true, mode: "particles", colorA: "#000000", colorB: "#a78bfa", seed: 9, animate: true, amount: 0.25 }] });
+  burst._z = zero._z - 0.75;
+  on(burst, 38, 14, [cv("opacity", 0.35, 0, "linear")]);
+  for (let i = 0; i < 20; i++) {
+    const angle = (i * Math.PI * 2) / 20 + hash(i + 91) * 0.3;
+    const radius = 225 + hash(i + 59) * 35;
+    const reach = 125 + hash(i + 71) * 140;
+    const color = ["#60a5fa", "#a78bfa", "#fda4af"][i % 3];
+    const dot = ellipse(5 + hash(i + 84) * 5, color, { name: "burst-dot", from: 562 + 38, to: 562 + 52, x: Math.cos(angle) * radius, y: -40 + Math.sin(angle) * radius });
+    dot._z = zero._z - 0.5 + i * 0.001;
+    on(dot, 38, 14, [cv("offsetX", 0, Math.cos(angle) * reach, "easeOut"), cv("offsetY", 0, Math.sin(angle) * reach, "easeOut"), cv("opacity", 0.9, 0, "linear")]);
+  }
   const sub = text("Inbox zero. Every morning.", 48, 600, TEXT, { y: 170, tracking: -0.01 });
   on(sub, 40, 12, [cv("opacity", 0, 1), cv("offsetY", 20, 0)]);
   labels("04 — Zero", null);
@@ -500,7 +528,8 @@ function wordCard(word, dusk, lead) {
   const len = cur.end - cur.start;
   box(W, H, INK, { name: "ink" });
   wall({ unread: false, opacity: 0.22, effects: [{ id: "wb", type: "blur", enabled: true, radius: 60 }], scrollKeys: [[0, 300 + lead * 1.4], [len, 300 + (lead + len) * 1.4]] });
-  add("adjustment", { name: "vignette", effects: [{ id: "vg", type: "vignette", enabled: true, amount: 0.8, softness: 0.6 }] });
+  // The wall is already dim; a strong vignette erases it at checkpoint size.
+  add("adjustment", { name: "vignette", effects: [{ id: "vg", type: "vignette", enabled: true, amount: 0.1, softness: 0.6 }] });
   const f0 = lead;
   const w = text(word, 200, 800, TEXT, { name: "word", tracking: -0.045, fill: dusk ? DUSK : undefined, from: cur.start + f0, style: { lineHeight: 1.02 } });
   // The word shows at half opacity on the cut frame, so the cut stays detectable (see the reference build).
@@ -510,11 +539,27 @@ function wordCard(word, dusk, lead) {
 }
 
 function buildS5() {
-  scene("S5a", "B", 615, 644);
+  // The glitch transition is a dissolve, so scdet finds no cut at 642. The
+  // scenes meet in a hard cut at 642, and a glitch adjustment on its own
+  // track covers frames 640–644 with the reference amounts.
+  scene("S5a", "B", 615, 641);
   wordCard("Private by design.", false, 0);
-  scene("S5b", "A", 640, 667, { transitionIn: { type: "glitch", durationMs: 150, amount: 1 } });
-  wordCard("Runs on-device.", true, 2);
+  scene("S5b", "A", 642, 667);
+  wordCard("Runs on-device.", true, 0);
 }
+
+const GLITCH_AMOUNTS = [0.45, 1, 1, 0.5, 0.2];
+const glitchJoin = {
+  id: "glitch-join", name: "glitch 640–644", trackId: "t_glitch", startMs: ms(640), durationMs: ms(645) - ms(640), mediaType: "adjustment", sourceType: "imported", status: "generated", locked: false, versions: [],
+  effects: [
+    { id: "gx", type: "stylize", enabled: true, mode: "glitch", amount: 0, seed: 11, animate: true },
+    { id: "rx", type: "stylize", enabled: true, mode: "rgbSplit", amount: 0 },
+  ],
+  animations: [{
+    id: "glitch-join-a", role: "in", preset: "custom", delayMs: 0, durationMs: ms(645) - ms(640), custom: { curves: [NOOP] },
+    styleTracks: ["gx", "rx"].map((id) => ({ target: `effect.${id}.amount`, keyframes: GLITCH_AMOUNTS.map((value, i) => ({ t: i / (GLITCH_AMOUNTS.length - 1), value, easing: "linear" })) })),
+  }],
+};
 
 // ---------------------------------------------------------------------------
 // S6 End card (668–779)
@@ -525,14 +570,14 @@ function buildS6() {
   backdrop(CALM, 0.85, 9);
   glow(1100, 0.25);
   const logo = group({ name: "end-logo", y: -106 });
-  on(logo, 0, 20, [cv("scale", 1.2, 1, "spring(170,18,1)")]);
+  on(logo, 0, 20, [cv("scale", 1.2, 1, "easeOut")]);
   on(logo, 0, 6, [cv("opacity", 0, 1, "linear")]);
   mark(LOGO.markX, 0, null, logo.id);
   wordmark(LOGO.wordX, 0, null, logo.id);
   const tag = text("The inbox that sorts itself.", 56, 600, TEXT, { y: 38, tracking: -0.01, fill: DUSK });
   on(tag, 10, 14, [cv("opacity", 0, 1), cv("offsetY", 20, 0)]);
   const cta = group({ name: "cta", y: 143 });
-  on(cta, 20, 14, [cv("opacity", 0, 1), cv("offsetY", 20, 0)]);
+  on(cta, 20, 16, [cv("opacity", 0, 1, "easeOut"), cv("offsetY", 48, 0, "easeOut")]);
   const ct = text("Early access · Mac & iPhone", 30, 400, TEXT, { parent: cta.id });
   const cp = box(430, 68, "rgba(10,15,31,0.35)", { parent: cta.id, r: 34, stroke: "rgba(248,250,252,0.3)", layout: { kind: "relative", targetClipId: ct.id, side: "center", fitText: { paddingXPx: 36, paddingYPx: 16 } } });
   cp._z = ct._z - 0.5;
@@ -547,9 +592,9 @@ function buildS6() {
 buildS1(); buildS2(); buildS3(); buildS4a(); buildS4b(); buildS4c(); buildS4d(); buildS5(); buildS6();
 
 const BANKS = ["A", "B", "C"];
-const tracks = [{ id: "t_finish", name: "finish", type: "video", index: 0, visible: true, locked: false }, { id: "t_scenes", name: "scenes", type: "video", index: 1, visible: true, locked: false }];
-const clips = [];
-let offset = 2;
+const tracks = [{ id: "t_finish", name: "finish", type: "video", index: 0, visible: true, locked: false }, { id: "t_glitch", name: "glitch", type: "video", index: 1, visible: true, locked: false }, { id: "t_scenes", name: "scenes", type: "video", index: 2, visible: true, locked: false }];
+const clips = [glitchJoin];
+let offset = 3;
 for (const bank of BANKS) {
   const inBank = scenes.filter((s) => s.bank === bank);
   const size = Math.max(...inBank.map((s) => s.layers.length));

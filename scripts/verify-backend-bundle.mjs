@@ -40,6 +40,7 @@ export function extractManifestReferences(serverSource) {
   for (const match of serverSource.matchAll(re)) {
     names.add(match[1]);
   }
+
   return [...names].sort();
 }
 
@@ -326,6 +327,32 @@ export function verifyBackendBundle(bundleDir) {
     } else {
       summary.push(`${storyboards.length} example storyboard(s) staged with their media`);
     }
+  }
+
+  const timelineDir = path.join(bundleDir, "examples", "timelines");
+  const timelines = (listFiles(timelineDir) ?? []).filter((file) =>
+    file.endsWith(".timeline.json")
+  );
+  if (timelines.length === 0) {
+    errors.push("examples/timelines/ is missing or has no timeline bundles.");
+  } else {
+    for (const file of timelines) {
+      let bundle;
+      try {
+        bundle = JSON.parse(readFileSync(path.join(timelineDir, file), "utf8"));
+      } catch (err) {
+        errors.push(`examples/timelines/${file} is not readable: ${err.message}`);
+        continue;
+      }
+      for (const uri of [bundle.videoUri, bundle.posterUri]) {
+        const match = /^package:\/\/([^/]+)\/(.+)$/.exec(uri ?? "");
+        const asset = match && path.join(bundleDir, "assets", match[1], ...match[2].split("/"));
+        if (!asset || !existsSync(asset)) {
+          errors.push(`examples/timelines/${file} has missing media: ${uri}`);
+        }
+      }
+    }
+    summary.push(`${timelines.length} example timeline(s) staged with their media`);
   }
 
   const assets = listFiles(path.join(bundleDir, "assets", "nodetool-base"));

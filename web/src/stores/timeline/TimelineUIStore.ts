@@ -134,6 +134,8 @@ export interface TimelineUIState {
    * Default 10 ms/px ≈ 100 px/s. Smaller = zoomed in.
    */
   msPerPx: number;
+  /** View-only scale for track-row heights. */
+  verticalZoom: number;
   /** Horizontal scroll offset in pixels. */
   scrollLeftPx: number;
   /** Whether the tracks area is in fullscreen mode. */
@@ -215,6 +217,7 @@ export interface TimelineUIState {
   // ── Zoom / scroll ────────────────────────────────────────────────────────
 
   setZoom: (msPerPx: number) => void;
+  setVerticalZoom: (zoom: number) => void;
   setScrollLeftPx: (px: number) => void;
   /**
    * A timeline position the lanes should bring into view. The lanes scroll
@@ -310,6 +313,7 @@ export interface TimelineUIState {
 }
 
 export const MIN_MS_PER_PX = 0.5;
+export const DEFAULT_MS_PER_PX = 10;
 
 export const DEFAULT_PIANO_ROLL_HEIGHT_PX = 360;
 export const MIN_PIANO_ROLL_HEIGHT_PX = 160;
@@ -331,6 +335,8 @@ export const maxTrackHeaderWidthForViewport = (
   );
 
 export const MAX_MS_PER_PX = 500;
+export const MIN_VERTICAL_ZOOM = 0.75;
+export const MAX_VERTICAL_ZOOM = 2;
 
 export type TimelineUIStoreApi = UseBoundStore<StoreApi<TimelineUIState>>;
 
@@ -351,7 +357,8 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     keyframeProperty: "opacity",
     audition: null,
     sourceRange: null,
-    msPerPx: 10,
+    msPerPx: DEFAULT_MS_PER_PX,
+    verticalZoom: 1,
     scrollLeftPx: 0,
     revealRequest: null,
     fullscreen: false,
@@ -431,6 +438,14 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     setZoom: (msPerPx) =>
       set({
         msPerPx: Math.min(MAX_MS_PER_PX, Math.max(MIN_MS_PER_PX, msPerPx))
+      }),
+
+    setVerticalZoom: (zoom) =>
+      set({
+        verticalZoom: Math.min(
+          MAX_VERTICAL_ZOOM,
+          Math.max(MIN_VERTICAL_ZOOM, zoom)
+        )
       }),
 
     setScrollLeftPx: (px) => set({ scrollLeftPx: Math.max(0, px) }),

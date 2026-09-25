@@ -1301,6 +1301,17 @@ async function main() {
     );
   }
 
+  const exampleTimelinesSrc = path.join(
+    BASE_NODES_NODETOOL_DIR,
+    "examples",
+    "timelines"
+  );
+  const exampleTimelinesDest = path.join(BUNDLE_DIR, "examples", "timelines");
+  if (fs.existsSync(exampleTimelinesSrc)) {
+    await fsp.mkdir(path.dirname(exampleTimelinesDest), { recursive: true });
+    await copyDir(exampleTimelinesSrc, exampleTimelinesDest);
+  }
+
   if (fs.existsSync(assetsSrc)) {
     await fsp.mkdir(path.dirname(assetsDest), { recursive: true });
     await copyDir(assetsSrc, assetsDest);
