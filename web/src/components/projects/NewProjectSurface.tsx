@@ -59,6 +59,7 @@ import {
 import type { BuildFromPlanResult } from "../../hooks/workflow/useBuildFromPlan";
 import type { BuildGameResult } from "../../hooks/game/useBuildGame";
 import { useFileHandling } from "../chat/hooks/useFileHandling";
+import { isMac } from "../../utils/platform";
 import { useTextareaAssetMention } from "../chat/composer/useTextareaAssetMention";
 import { useTextareaSkillMention } from "../chat/composer/useTextareaSkillMention";
 import { assetToUri } from "../node_types/editing/promptComposer/promptTokens";
@@ -1459,6 +1460,11 @@ const NewProjectSurface = ({
   // `key` and call `preventDefault`, so the retype is safe. Enter keeps its
   // newline — a project brief runs to more than one line — and Ctrl/⌘+Enter
   // starts, the way a multi-line composer submits everywhere else.
+  const sendShortcutLabel = useMemo(
+    () => (isMac() ? "⌘ Enter" : "Ctrl Enter"),
+    []
+  );
+
   const handlePromptKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       const keyEvent =
@@ -1638,8 +1644,6 @@ const NewProjectSurface = ({
             />
           </FlexColumn>
 
-          <DashboardExampleApps compact onBrowseAll={handleOpenExamples} />
-
           {/* The composer sits below the cards, not above them: its `/` and `@`
               menus open upward from the box's top edge
               (`useTextareaSkillMention`), so it needs the page above it as
@@ -1664,7 +1668,7 @@ const NewProjectSurface = ({
               label="Chat prompt"
               hideLabel
               inputRef={promptRef}
-              placeholder="A 30-second launch spot for our desk lamp — warm, minimal, night-time mood. Type / for a skill, @ for an asset or entity. Ctrl+Enter sends to chat."
+              placeholder="A 30-second launch spot for our desk lamp — warm, minimal, night-time mood. Type / for a skill, @ for an asset or entity."
               onChange={(event) => setPrompt(event.target.value)}
               onKeyDown={handlePromptKeyDown}
             />
@@ -1743,6 +1747,9 @@ const NewProjectSurface = ({
                   {formatEstimate(estimate)}
                 </Box>
               )}
+              <Caption color="muted" aria-hidden>
+                {sendShortcutLabel}
+              </Caption>
               <EditorButton
                 variant="contained"
                 color="primary"
@@ -1822,6 +1829,11 @@ const NewProjectSurface = ({
               )}
             </FlexColumn>
           )}
+
+          {/* Examples come after the composer: they are a place to browse,
+              not the first thing to do, and above it they pushed the prompt
+              below the fold. */}
+          <DashboardExampleApps compact onBrowseAll={handleOpenExamples} />
         </FlexColumn>
 
         <Box sx={{ flex: 1, minHeight: SPACING.xxxl }} />
