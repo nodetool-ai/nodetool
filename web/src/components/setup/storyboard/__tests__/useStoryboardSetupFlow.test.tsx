@@ -7,7 +7,8 @@ import {
   render,
   renderHook,
   screen,
-  waitFor
+  waitFor,
+  within
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -74,6 +75,7 @@ let renderPrice: string | undefined;
 jest.mock("../LookStep", () => ({
   LookStep: ({ blockedReason }: { blockedReason?: string }) =>
     blockedReason ? <div data-testid="look-blocker">{blockedReason}</div> : null,
+  LookFooterControls: () => null,
   useLookStep: () => ({
     canAdvance: true,
     primaryDetail: renderPrice,
@@ -245,7 +247,7 @@ describe("useStoryboardSetupFlow", () => {
     expect(generate).not.toHaveBeenCalled();
   });
 
-  // F23: the same summary every other flow shows before its planning call.
+  // F23: the model and the cost sit beside the button before the Director runs.
   it("names the model and the cost before the Director runs", async () => {
     seedStepValues();
     useStoryboardStore.getState().setDirectorModel(BOARD_ID, {
@@ -260,9 +262,18 @@ describe("useStoryboardSetupFlow", () => {
     const summary = await screen.findByRole("region", {
       name: "Before you generate"
     });
-    expect(summary).toHaveTextContent("GPT-5 mini");
-    expect(summary).toHaveTextContent("Write a 6-shot screenplay");
-    expect(summary).toHaveTextContent("No stills are rendered");
+    expect(summary).toHaveTextContent(/\$.*30–60s/);
+    expect(summary).toHaveAttribute(
+      "title",
+      expect.stringContaining("Write a 6-shot screenplay")
+    );
+    const settings = screen.getByRole("group", {
+      name: "Generation settings"
+    });
+    expect(settings).toHaveTextContent(/gpt-5-mini|GPT-5 mini/);
+    expect(
+      within(settings).getByRole("combobox", { name: "Shots" })
+    ).toHaveTextContent("6 shots");
     expect(
       screen.getByRole("button", { name: "Generate screenplay" })
     ).toBeEnabled();

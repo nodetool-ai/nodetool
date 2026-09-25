@@ -171,7 +171,7 @@ describe("resume by stage (criterion 2)", () => {
       seed({ stage, brief: "a dripper", use_case: "product" });
       renderOverlay();
       await userEvent.click(
-        screen.getByRole("button", { name: /Select language model/ })
+        screen.getByRole("button", { name: /Brief model/ })
       );
       await userEvent.click(
         screen.getByRole("button", { name: "Choose brief model" })

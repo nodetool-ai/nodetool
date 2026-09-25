@@ -24,10 +24,10 @@ import { useDirectScreenplay } from "../../../hooks/storyboard/useDirectScreenpl
 import { useImportSource } from "../../../hooks/storyboard/useImportSource";
 import { openPageTab } from "../../workspace/openPageTab";
 import type { SetupFlowConfig, SetupStep } from "../types";
-import { GenreStep } from "./GenreStep";
+import { GenreFooterControls, GenreStep } from "./GenreStep";
 import { EntitiesStep } from "./EntitiesStep";
 import { IdeaStep } from "./IdeaStep";
-import { LookStep, useLookStep } from "./LookStep";
+import { LookFooterControls, LookStep, useLookStep } from "./LookStep";
 import { ReviewStep } from "./ReviewStep";
 import {
   DEFAULT_SETUP_SHOT_COUNT,
@@ -325,12 +325,17 @@ export const useStoryboardSetupFlow = ({
               maxOutputTokens: DIRECTOR_MAX_OUTPUT_TOKENS,
               noModelCall: false
             },
+        footerControls: (context) =>
+          createElement(GenreFooterControls, {
+            boardId,
+            readOnly: context.readOnly,
+            shotCount,
+            onShotCountChange: setShotCount
+          }),
         render: (context) =>
           createElement(GenreStep, {
             boardId,
             readOnly: context?.readOnly,
-            shotCount,
-            onShotCountChange: setShotCount,
             directing,
             upToDate
           }),
@@ -400,6 +405,11 @@ export const useStoryboardSetupFlow = ({
         // grows a dollar amount is a label nobody can scan (F23).
         primaryLabel: "Generate your storyboard",
         primaryDetail: look.primaryDetail,
+        footerControls: (context) =>
+          createElement(LookFooterControls, {
+            boardId,
+            readOnly: context.readOnly
+          }),
         canAdvance: !productionBlocker && look.canAdvance,
         blockedReason: productionBlocker ?? look.blockedReason,
         render: (context) =>

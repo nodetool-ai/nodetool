@@ -52,10 +52,11 @@ import {
 import { useGameStylePresets } from "../../../hooks/game/useGameStylePresets";
 import type { SetupFlowConfig, SetupStep } from "../types";
 import { GameIdeaStep } from "./IdeaStep";
-import { GameTemplateStep } from "./TemplateStep";
+import { DesignerModelFooterField, GameTemplateStep } from "./TemplateStep";
 import { GameReviewStep } from "./ReviewStep";
 import {
   GAME_PLACEHOLDER_TILE_ID,
+  GameImageModelFooterField,
   GameLookStep,
   gameCostEstimate,
   gameCostLine,
@@ -416,6 +417,14 @@ export const useGameSetupFlow = ({
           : undefined,
         pending: designing,
         pendingLabel: "Writing the design",
+        footerControls: (context) =>
+          createElement(DesignerModelFooterField, {
+            designerModel,
+            onDesignerModelChange: (model: { provider: string; id: string }) => {
+              void setGame({ designer_model: model });
+            },
+            readOnly: context.readOnly
+          }),
         render: () =>
           createElement(GameTemplateStep, {
             templates: templates ?? [],
@@ -423,13 +432,6 @@ export const useGameSetupFlow = ({
             selectedId: templateId ?? null,
             onSelect: (id: string) => {
               void setGame({ template: id });
-            },
-            designerModel,
-            onDesignerModelChange: (model: {
-              provider: string;
-              id: string;
-            }) => {
-              void setGame({ designer_model: model });
             }
           }),
         // The designer runs here and places nothing (criterion 3). A refused
@@ -508,6 +510,11 @@ export const useGameSetupFlow = ({
         primaryDetail: gameCostLine(costEstimate),
         pending: building,
         pendingLabel: "Placing the graph, then running it once",
+        footerControls: (context) =>
+          createElement(GameImageModelFooterField, {
+            row: imageChoices,
+            readOnly: context.readOnly
+          }),
         render: () =>
           createElement(GameLookStep, {
             slots,

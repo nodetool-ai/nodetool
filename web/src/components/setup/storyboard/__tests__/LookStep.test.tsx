@@ -151,7 +151,7 @@ jest.mock("../../../properties/ImageModelSelect", () => ({
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { StudioProvider } from "../../../../studio/StudioContext";
-import { LookStep, useLookStep } from "../LookStep";
+import { LookFooterControls, LookStep, useLookStep } from "../LookStep";
 import { useCustomStyle } from "../useCustomStyle";
 import { clearSetupReports, setShotlistImport } from "../setupChoices";
 import { ASPECT_OPTIONS } from "../../../storyboard/aspectOptions";
@@ -222,10 +222,12 @@ const seed = (): void => {
   });
 };
 
+// The step body and the footer controls the shell renders beside it.
 const renderStep = (readOnly = false) =>
   render(
     <ThemeProvider theme={mockTheme}>
       <LookStep boardId={BOARD} readOnly={readOnly} />
+      <LookFooterControls boardId={BOARD} readOnly={readOnly} />
     </ThemeProvider>
   );
 
@@ -556,31 +558,22 @@ describe("LookStep — style tiles", () => {
 });
 
 describe("LookStep — still model", () => {
-  // Studio's curated dropdown prints the model's own blurb underneath, so the
-  // field's own helper line would stack a second, quieter line under the same
-  // control.
-  it("drops its helper line in Studio, where the control carries one", () => {
+  // Studio's curated dropdown carries its own label, so the footer caption
+  // would name the same control twice.
+  it("drops its footer caption in Studio, where the control carries one", () => {
     const { unmount } = renderStep();
-    expect(
-      screen.getByText(
-        "Draws every keyframe. The estimate beside the button follows it."
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText("Stills")).toBeInTheDocument();
     unmount();
 
     render(
       <ThemeProvider theme={mockTheme}>
         <StudioProvider>
-          <LookStep boardId={BOARD} />
+          <LookFooterControls boardId={BOARD} />
         </StudioProvider>
       </ThemeProvider>
     );
 
-    expect(
-      screen.queryByText(
-        "Draws every keyframe. The estimate beside the button follows it."
-      )
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Stills")).not.toBeInTheDocument();
   });
 
   it("writes the picked still model onto the board", async () => {

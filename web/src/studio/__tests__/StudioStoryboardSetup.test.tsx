@@ -88,6 +88,7 @@ jest.mock("../../hooks/storyboard/useExtractScriptFromBoard", () => ({
 // covers what it does, so here it only has to exist.
 jest.mock("../../components/setup/storyboard/LookStep", () => ({
   LookStep: () => null,
+  LookFooterControls: () => null,
   useLookStep: () => ({
     canAdvance: true,
     primaryDetail: undefined,

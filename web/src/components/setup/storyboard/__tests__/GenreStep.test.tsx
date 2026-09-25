@@ -59,7 +59,7 @@ jest.mock("../../../properties/LanguageModelSelect", () => ({
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { StudioProvider } from "../../../../studio/StudioContext";
-import { GenreStep } from "../GenreStep";
+import { GenreFooterControls, GenreStep } from "../GenreStep";
 import { STORYBOARD_GENRES } from "../genres";
 import { useStoryboardStore } from "../../../../stores/storyboard/StoryboardStore";
 
@@ -67,16 +67,17 @@ const BOARD = "board-genre";
 
 const onShotCountChange = jest.fn();
 
+// The step body and the footer controls the shell renders beside it.
 const renderStep = (
   props: Partial<React.ComponentProps<typeof GenreStep>> = {}
 ) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <GenreStep
+      <GenreStep boardId={BOARD} {...props} />
+      <GenreFooterControls
         boardId={BOARD}
         shotCount={6}
         onShotCountChange={onShotCountChange}
-        {...props}
       />
     </ThemeProvider>
   );
@@ -85,7 +86,8 @@ const renderInStudio = () =>
   render(
     <ThemeProvider theme={mockTheme}>
       <StudioProvider>
-        <GenreStep
+        <GenreStep boardId={BOARD} />
+        <GenreFooterControls
           boardId={BOARD}
           shotCount={6}
           onShotCountChange={onShotCountChange}
@@ -200,7 +202,7 @@ describe("GenreStep", () => {
     });
     renderStep();
 
-    expect(screen.getByText("Screenplay model")).toBeInTheDocument();
+    expect(screen.getByText("Model")).toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "model:current-model" })
     );
@@ -242,6 +244,6 @@ describe("GenreStep", () => {
   it("hides the screenplay model picker in Studio", () => {
     renderInStudio();
 
-    expect(screen.queryByText("Screenplay model")).not.toBeInTheDocument();
+    expect(screen.queryByText("Model")).not.toBeInTheDocument();
   });
 });

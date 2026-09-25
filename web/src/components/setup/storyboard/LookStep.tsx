@@ -27,7 +27,6 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  FormField,
   GAP,
   SelectField,
   Text
@@ -37,6 +36,10 @@ import { useDefaultStillModel } from "../../../hooks/storyboard/useDefaultStillM
 import type { ImageModelValue } from "../../../stores/ApiTypes";
 import type { ImageModelTask } from "../../../hooks/useModelsByProvider";
 import { SETUP_FIELD_WIDTH } from "../layout";
+import {
+  SETUP_FOOTER_CONTROL_WIDTH,
+  SetupFooterField
+} from "../SetupFooterField";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
 import { ASPECT_OPTIONS } from "../../storyboard/aspectOptions";
 import { useInStudio } from "../../../studio/StudioContext";
@@ -160,18 +163,17 @@ export function useLookStep(boardId: string): LookStepControls {
 }
 
 /**
- * The model that draws every still, with the saved default pre-filled. Its own
- * component so the catalog behind it is only fetched by the step that shows
- * it, and so the picker sits with the price it decides.
+ * The model that draws every still, with the saved default pre-filled, for the
+ * shell's footer. Its own component so the catalog behind it is only fetched
+ * by the step that shows it, and so the picker sits with the price it decides.
  */
-const StillModelField: React.FC<{ boardId: string; readOnly?: boolean }> = ({
-  boardId,
-  readOnly
-}) => {
+export const LookFooterControls: React.FC<{
+  boardId: string;
+  readOnly?: boolean;
+}> = ({ boardId, readOnly }) => {
   useDefaultStillModel(boardId, !readOnly);
-  // Studio's curated control prints the model's own blurb under the dropdown,
-  // so the field's helper line would be a second line saying a similar thing —
-  // and the quieter of the two is the one a reader gives up on.
+  // Studio's curated control carries its own label, so a caption beside it
+  // would name the field twice.
   const inStudio = useInStudio();
   const imageModel = useStoryboardStore(
     useCallback(
@@ -188,23 +190,18 @@ const StillModelField: React.FC<{ boardId: string; readOnly?: boolean }> = ({
     },
     [boardId, readOnly, setImageModel]
   );
-  return (
-    <FormField
-      label="Still model"
-      helperText={
-        inStudio
-          ? undefined
-          : "Draws every keyframe. The estimate beside the button follows it."
-      }
-      sx={{ maxWidth: SETUP_FIELD_WIDTH }}
-    >
-      <ImageModelSelect
-        value={imageModel?.id ?? ""}
-        task={STILL_MODEL_TASKS}
-        onChange={handleChange}
-        disabled={readOnly}
-      />
-    </FormField>
+  const select = (
+    <ImageModelSelect
+      value={imageModel?.id ?? ""}
+      task={STILL_MODEL_TASKS}
+      onChange={handleChange}
+      disabled={readOnly}
+    />
+  );
+  return inStudio ? (
+    <Box sx={{ width: SETUP_FOOTER_CONTROL_WIDTH }}>{select}</Box>
+  ) : (
+    <SetupFooterField label="Stills">{select}</SetupFooterField>
   );
 };
 
@@ -431,7 +428,6 @@ export const LookStep: React.FC<LookStepProps> = ({
           disabled={readOnly}
         />
       </Box>
-      <StillModelField boardId={boardId} readOnly={readOnly} />
       <FlexColumn gap={GAP.normal}>
         <Text size="small" component="h3">
           Art style

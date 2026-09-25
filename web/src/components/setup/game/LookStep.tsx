@@ -49,6 +49,7 @@ import { OptionCardGrid } from "../OptionCardGrid";
 import type { OptionCardItem } from "../OptionCardGrid";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
 import { SETUP_FIELD_WIDTH } from "../layout";
+import { SetupFooterField } from "../SetupFooterField";
 import { AddStyleDialog } from "../storyboard/AddStyleDialog";
 import { useGameCustomStyle } from "./useGameCustomStyle";
 import type { StylePresetEntity } from "../../../serverState/useStylePresets";
@@ -227,11 +228,7 @@ const IMAGE_MODEL_TASKS: ImageModelTask[] = ["text_to_image"];
  * from every other surface. The tile id on the document stays
  * `${provider}:${id}`, so the stored answer and the build are unchanged.
  */
-const ImageModelField: React.FC<{ row: GameModelRow }> = ({ row }) => {
-  const handleChange = useCallback(
-    (model: ImageModelValue) => row.onSelect(`${model.provider}:${model.id}`),
-    [row]
-  );
+const ImageModelStatus: React.FC<{ row: GameModelRow }> = ({ row }) => {
   if (row.status === "loading") {
     return (
       <FlexColumn gap={GAP.normal}>
@@ -300,18 +297,35 @@ const ImageModelField: React.FC<{ row: GameModelRow }> = ({ row }) => {
       </FlexColumn>
     );
   }
+  // A ready catalog is picked from the shell's footer, beside the estimate.
+  return null;
+};
+
+/**
+ * The image model, for the shell's footer, once the catalog is ready. The
+ * loading, error and empty states stay in the step body, where their banners
+ * have room for the way out.
+ */
+export const GameImageModelFooterField: React.FC<{
+  row: GameModelRow;
+  readOnly?: boolean;
+}> = ({ row, readOnly = false }) => {
+  const handleChange = useCallback(
+    (model: ImageModelValue) => row.onSelect(`${model.provider}:${model.id}`),
+    [row]
+  );
+  if (row.status !== "ready") {
+    return null;
+  }
   return (
-    <FormField
-      label="Image model"
-      helperText="Draws every sprite, tile and background. The estimate beside the button follows it."
-      sx={{ maxWidth: SETUP_FIELD_WIDTH }}
-    >
+    <SetupFooterField label="Images">
       <ImageModelSelect
         value={splitTileId(row.selectedId)?.id ?? ""}
         task={IMAGE_MODEL_TASKS}
         onChange={handleChange}
+        disabled={readOnly}
       />
-    </FormField>
+    </SetupFooterField>
   );
 };
 
@@ -540,7 +554,7 @@ const LookStepInternal: React.FC<GameLookStepProps> = ({
         />
       </FlexColumn>
 
-      <ImageModelField row={image} />
+      <ImageModelStatus row={image} />
       <ModelTileRow row={sfx} />
       <ModelTileRow row={music} />
 

@@ -15,13 +15,12 @@ import {
   FlexColumn,
   FlexRow,
   GAP,
-  FormField,
   Text,
   TextInput
 } from "../../ui_primitives";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
-import { SETUP_FIELD_WIDTH } from "../layout";
+import { SetupFooterField } from "../SetupFooterField";
 import {
   useScriptStore,
   useScriptSetup
@@ -63,6 +62,32 @@ export interface FormatStepProps {
   scriptId: string;
 }
 
+/** The writer model, for the shell's footer beside the estimate it prices. */
+export const WriterModelFooterField: React.FC<{
+  scriptId: string;
+  readOnly?: boolean;
+}> = ({ scriptId, readOnly = false }) => {
+  const setup = useScriptSetup(scriptId);
+  const setSetup = useScriptStore((state) => state.setSetup);
+  const chatModel = useGlobalChatStore((state) => state.selectedModel);
+  const writerModel = setup?.writer_model ?? chatModel;
+  return (
+    <SetupFooterField label="Model">
+      <LanguageModelSelect
+        value={writerModel?.id ?? ""}
+        provider={writerModel?.provider}
+        placeholder="Writer model"
+        disabled={readOnly}
+        onChange={(value) =>
+          setSetup(scriptId, {
+            writer_model: { id: value.id, provider: value.provider }
+          })
+        }
+      />
+    </SetupFooterField>
+  );
+};
+
 const FormatStepInternal: React.FC<FormatStepProps> = ({ scriptId }) => {
   const setup = useScriptSetup(scriptId);
   const setSetup = useScriptStore((state) => state.setSetup);
@@ -74,8 +99,6 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({ scriptId }) => {
   // clamping mid-keystroke rewrote "90" to "9" the moment the 9 was typed, and
   // clearing the field put the old number back (F21). It is read on blur.
   const [customDraft, setCustomDraft] = useState(() => String(seconds));
-  const chatModel = useGlobalChatStore((state) => state.selectedModel);
-  const writerModel = setup?.writer_model ?? chatModel;
 
   const selectFormat = useCallback(
     (id: string) => setSetup(scriptId, { format: id }),
@@ -211,18 +234,6 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({ scriptId }) => {
           ) : null}
         </FlexRow>
       </FlexColumn>
-      <FormField label="Writer model" sx={{ maxWidth: SETUP_FIELD_WIDTH }}>
-        <LanguageModelSelect
-          value={writerModel?.id ?? ""}
-          provider={writerModel?.provider}
-          placeholder="Select writer model"
-          onChange={(value) =>
-            setSetup(scriptId, {
-              writer_model: { id: value.id, provider: value.provider }
-            })
-          }
-        />
-      </FormField>
     </FlexColumn>
   );
 };

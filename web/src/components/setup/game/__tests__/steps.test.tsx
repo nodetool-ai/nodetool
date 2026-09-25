@@ -76,9 +76,13 @@ jest.mock("../useGameCustomStyle", () => ({
 }));
 
 import { GameIdeaStep } from "../IdeaStep";
-import { GameTemplateStep } from "../TemplateStep";
+import { DesignerModelFooterField, GameTemplateStep } from "../TemplateStep";
 import { GameReviewStep } from "../ReviewStep";
-import { GameLookStep, GAME_PLACEHOLDER_TILE_ID } from "../LookStep";
+import {
+  GameImageModelFooterField,
+  GameLookStep,
+  GAME_PLACEHOLDER_TILE_ID
+} from "../LookStep";
 import type { GameTemplate } from "../../../../hooks/game/useGameTemplates";
 
 const PLATFORMER: GameTemplate = {
@@ -194,8 +198,6 @@ describe("GameTemplateStep", () => {
         templates={[PLATFORMER]}
         selectedId={null}
         onSelect={jest.fn()}
-        designerModel={{ provider: "openai", id: "gpt-5" }}
-        onDesignerModelChange={jest.fn()}
       />
     );
     expect(
@@ -209,17 +211,14 @@ describe("GameTemplateStep", () => {
 
   it("names the model the design will be written with", () => {
     wrap(
-      <GameTemplateStep
-        templates={[PLATFORMER]}
-        selectedId="platformer"
-        onSelect={jest.fn()}
+      <DesignerModelFooterField
         designerModel={null}
         onDesignerModelChange={jest.fn()}
       />
     );
-    expect(screen.getByText("Design with")).toBeInTheDocument();
+    expect(screen.getByText("Model")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /select designer model/i })
+      screen.getByRole("button", { name: /designer model/i })
     ).toBeInTheDocument();
   });
 });
@@ -396,13 +395,20 @@ describe("GameLookStep", () => {
     );
   });
 
-  it("uses the usual image model picker on the image row, which is required", async () => {
-    const user = userEvent.setup();
-    const onSelect = jest.fn();
-    renderStep({ image: row("Image model", { onSelect }) });
+  it("leaves a ready image row to the footer picker", () => {
+    renderStep();
     expect(
       screen.queryByRole("radiogroup", { name: "Image model" })
     ).toBeNull();
+    expect(screen.queryByRole("button", { name: "image-model:" })).toBeNull();
+  });
+
+  it("uses the usual image model picker in the footer, which is required", async () => {
+    const user = userEvent.setup();
+    const onSelect = jest.fn();
+    wrap(
+      <GameImageModelFooterField row={row("Image model", { onSelect })} />
+    );
     await user.click(screen.getByRole("button", { name: "image-model:" }));
     expect(onSelect).toHaveBeenCalledWith("fal_ai:picked-image");
   });

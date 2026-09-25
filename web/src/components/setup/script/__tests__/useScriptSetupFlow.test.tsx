@@ -152,12 +152,14 @@ describe("useScriptSetupFlow", () => {
     const summary = await screen.findByRole("region", {
       name: "Before you generate"
     });
-    expect(summary).toHaveTextContent("gpt-5-mini");
-    expect(summary).toHaveTextContent(
-      "Write a text script for about 60 seconds"
+    expect(
+      screen.getByRole("group", { name: "Generation settings" })
+    ).toHaveTextContent("gpt-5-mini");
+    expect(summary).toHaveAttribute(
+      "title",
+      expect.stringContaining("Write a text script for about 60 seconds")
     );
-    expect(summary).toHaveTextContent("generate audio separately in Voices");
-    expect(summary).toHaveTextContent("Rough wait");
+    expect(summary).toHaveTextContent("30–60s");
     expect(write).not.toHaveBeenCalled();
   });
 
@@ -273,7 +275,7 @@ describe("useScriptSetupFlow", () => {
     expect(screen.getByRole("button", { name: "Write the script" })).toBeEnabled();
     expect(
       screen.getByRole("region", { name: "Before you generate" })
-    ).toHaveTextContent("no model call");
+    ).toHaveTextContent("No model call");
   });
 
   it("finishes on the text alone from the review (F16)", async () => {

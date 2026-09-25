@@ -1,6 +1,5 @@
 /**
- * The plan step's two choices: the category, and the model that writes the
- * plan. The picker is the way past a provider whose first model refuses — the
+ * The model that writes the plan, shown in the setup footer. The picker is the way past a provider whose first model refuses — the
  * default is whichever model the provider list returns first, which can be out
  * of quota or retired.
  */
@@ -10,10 +9,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../../__mocks__/themeMock";
-import { WorkflowCategoryStep } from "../CategoryStep";
-
-// The category cards carry stills, and the real resolver needs a QueryClient.
-jest.mock("../../../../hooks/useResolvedMediaUri");
+import { PlannerModelFooterField } from "../CategoryStep";
 
 // The picker's dialog, reduced to one selectable model.
 jest.mock("../../../model_menu/LanguageModelMenuDialog", () => ({
@@ -47,14 +43,12 @@ jest.mock("../../../../hooks/useModelsByProvider", () => ({
 }));
 
 const renderStep = (
-  props: Partial<React.ComponentProps<typeof WorkflowCategoryStep>> = {}
+  props: Partial<React.ComponentProps<typeof PlannerModelFooterField>> = {}
 ) => {
   const onPlannerModelChange = jest.fn();
   render(
     <ThemeProvider theme={mockTheme}>
-      <WorkflowCategoryStep
-        selectedId={null}
-        onSelect={jest.fn()}
+      <PlannerModelFooterField
         plannerModel={{ provider: "openai", id: "gpt-4o-mini" }}
         onPlannerModelChange={onPlannerModelChange}
         {...props}
@@ -64,10 +58,10 @@ const renderStep = (
   return { onPlannerModelChange };
 };
 
-describe("WorkflowCategoryStep", () => {
+describe("PlannerModelFooterField", () => {
   it("names the model the plan will be written with", () => {
     renderStep();
-    expect(screen.getByText("Plan with")).toBeInTheDocument();
+    expect(screen.getByText("Model")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /gpt-4o-mini/ })
     ).toBeInTheDocument();
@@ -89,7 +83,7 @@ describe("WorkflowCategoryStep", () => {
   it("prompts for one when no provider offers a model", () => {
     renderStep({ plannerModel: null });
     expect(
-      screen.getByRole("button", { name: /select planner model/i })
+      screen.getByRole("button", { name: /planner model/i })
     ).toBeInTheDocument();
   });
 });

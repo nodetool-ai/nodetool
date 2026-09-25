@@ -1,5 +1,5 @@
 /**
- * The model that drafts the beats, on the format step.
+ * The model that drafts the beats, in the format step's footer.
  *
  * One dropdown over the language models a configured provider reports. It
  * shows the curated NodeTool director when this server can serve it and every
@@ -9,50 +9,44 @@
 
 import React, { memo } from "react";
 
-import {
-  AlertBanner,
-  FlexColumn,
-  GAP,
-  Text
-} from "../../ui_primitives";
+import { Caption } from "../../ui_primitives";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
+import { SetupFooterField } from "../SetupFooterField";
 import { directorModelKey, useDirectorModel } from "./directorModel";
 
-const DirectorModelPickerInternal: React.FC = () => {
+const DirectorModelPickerInternal: React.FC<{ readOnly?: boolean }> = ({
+  readOnly = false
+}) => {
   const { model, options, select, loading, error, noProvider } =
     useDirectorModel();
 
+  // The footer has one line to spare, so a list that cannot be offered says
+  // why in that line rather than in a banner.
   if (error) {
     return (
-      <AlertBanner severity="error">
+      <Caption color="error" role="alert">
         {`The model list could not be read: ${error}`}
-      </AlertBanner>
+      </Caption>
     );
   }
   if (noProvider) {
     return (
-      <AlertBanner severity="warning">
-        No configured provider offers a language model, so the beats cannot be
-        drafted. Add a provider key in Settings, then come back to this step.
-      </AlertBanner>
+      <Caption color="warning" role="alert">
+        No provider offers a language model. Add a key in Settings.
+      </Caption>
     );
   }
 
   return (
-    <FlexColumn gap={GAP.tight}>
+    <SetupFooterField label="Model">
       <LanguageModelSelect
         value={model?.id ?? ""}
         provider={model?.provider}
-        placeholder="Model for the beats"
+        placeholder={loading ? "Reading providers…" : "Model for the beats"}
         onChange={(value) => select(directorModelKey(value))}
-        disabled={loading || options.length === 0}
+        disabled={readOnly || loading || options.length === 0}
       />
-      {loading ? (
-        <Text size="small" color="secondary">
-          Reading the configured providers…
-        </Text>
-      ) : null}
-    </FlexColumn>
+    </SetupFooterField>
   );
 };
 

@@ -46,7 +46,10 @@ import {
   readRoleModels,
   ROLE_MODELS_KEY
 } from "./setupExtras";
-import { WorkflowCategoryStep } from "./CategoryStep";
+import {
+  PlannerModelFooterField,
+  WorkflowCategoryStep
+} from "./CategoryStep";
 import { WorkflowIdeaStep } from "./IdeaStep";
 import { WorkflowReviewStep } from "./ReviewStep";
 import { WorkflowSetupStep } from "./SetupStep";
@@ -328,6 +331,12 @@ export const useWorkflowSetupFlow = ({
           : undefined,
         pending: planning,
         pendingLabel: "Planning the steps",
+        footerControls: (context) =>
+          createElement(PlannerModelFooterField, {
+            plannerModel,
+            onPlannerModelChange,
+            readOnly: context.readOnly
+          }),
         render: () =>
           createElement(WorkflowCategoryStep, {
             selectedId: category ?? null,
@@ -340,9 +349,7 @@ export const useWorkflowSetupFlow = ({
                   ? { category: id }
                   : { category: id, run_mode: defaultRunModeFor(id) }
               );
-            },
-            plannerModel,
-            onPlannerModelChange
+            }
           }),
         // The planner runs here and places nothing (criterion 3). A refused
         // run leaves the creator on the category with the reason on the button.

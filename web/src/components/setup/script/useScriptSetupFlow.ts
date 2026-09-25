@@ -40,7 +40,7 @@ import {
 } from "../../../hooks/script/scriptWriteSignature";
 import { voicingPatch } from "../../../stores/script/scriptVoicing";
 import type { SetupFlowConfig, SetupStep } from "../types";
-import { FormatStep } from "./FormatStep";
+import { FormatStep, WriterModelFooterField } from "./FormatStep";
 import { IdeaStep } from "./IdeaStep";
 import { ReviewStep } from "./ReviewStep";
 import { VoicesStep } from "./VoicesStep";
@@ -261,6 +261,11 @@ export const useScriptSetupFlow = ({
         ...writeEstimate,
         pending: writing,
         pendingLabel: "Writing your script",
+        footerControls: (context) =>
+          createElement(WriterModelFooterField, {
+            scriptId,
+            readOnly: context.readOnly
+          }),
         render: () => createElement(FormatStep, { scriptId }),
         // The writer runs here, and a refused run must leave the creator on
         // the format step with the reason on the button (PRD § 9.2). It runs

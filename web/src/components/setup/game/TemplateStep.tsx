@@ -8,35 +8,29 @@
  * placed here and no model is called — `Write the design` on the shell's
  * primary button is what runs the designer.
  *
- * The picker in the footer row chooses which model writes the design. It sits
- * at the weight of a setting rather than of the question this step asks, but it
- * is the way past a default model the account cannot use, so it stays on screen
- * rather than behind a disclosure.
+ * `DesignerModelFooterField` chooses which model writes the design. It sits in
+ * the shell's footer beside the estimate, at the weight of a setting rather
+ * than of the question this step asks, but it is the way past a default model
+ * the account cannot use, so it stays on screen rather than behind a
+ * disclosure.
  */
 
 import React, { memo, useMemo } from "react";
 import type { LanguageModelValue } from "../../../stores/ApiTypes";
 
 import {
-  Box,
   Caption,
   FlexColumn,
   FlexRow,
   GAP,
-  Label,
   LoadingSpinner,
   Text
 } from "../../ui_primitives";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import { OptionCardGrid } from "../OptionCardGrid";
+import { SetupFooterField } from "../SetupFooterField";
 import type { GameTemplate } from "../../../hooks/game/useGameTemplates";
 import { templateCards } from "./templates";
-
-/**
- * The picker holds one model name. Left to the container it stretches the full
- * width of the step and outweighs the cards, which are the actual question.
- */
-const DESIGNER_PICKER_WIDTH = 320;
 
 export interface GameTemplateStepProps {
   templates: readonly GameTemplate[];
@@ -44,18 +38,37 @@ export interface GameTemplateStepProps {
   loading?: boolean;
   selectedId: string | null;
   onSelect: (id: string) => void;
+}
+
+export interface DesignerModelFooterFieldProps {
   /** The model that writes the design, or null when no provider offers one. */
   designerModel: { provider: string; id: string } | null;
   onDesignerModelChange: (model: { provider: string; id: string }) => void;
+  readOnly?: boolean;
 }
+
+/** The designer model, for the shell's footer. */
+export const DesignerModelFooterField: React.FC<
+  DesignerModelFooterFieldProps
+> = ({ designerModel, onDesignerModelChange, readOnly = false }) => (
+  <SetupFooterField label="Model">
+    <LanguageModelSelect
+      value={designerModel?.id ?? ""}
+      provider={designerModel?.provider}
+      placeholder="Designer model"
+      disabled={readOnly}
+      onChange={(value: LanguageModelValue) =>
+        onDesignerModelChange({ provider: value.provider, id: value.id })
+      }
+    />
+  </SetupFooterField>
+);
 
 const TemplateStepInternal: React.FC<GameTemplateStepProps> = ({
   templates,
   loading = false,
   selectedId,
-  onSelect,
-  designerModel,
-  onDesignerModelChange
+  onSelect
 }) => {
   const cards = useMemo(() => templateCards(templates), [templates]);
   return (
@@ -85,19 +98,6 @@ const TemplateStepInternal: React.FC<GameTemplateStepProps> = ({
           variant="media"
         />
       )}
-      <FlexRow gap={GAP.normal} align="center">
-        <Label>Design with</Label>
-        <Box sx={{ width: DESIGNER_PICKER_WIDTH }}>
-          <LanguageModelSelect
-            value={designerModel?.id ?? ""}
-            provider={designerModel?.provider}
-            placeholder="Select designer model"
-            onChange={(value: LanguageModelValue) =>
-              onDesignerModelChange({ provider: value.provider, id: value.id })
-            }
-          />
-        </Box>
-      </FlexRow>
     </FlexColumn>
   );
 };

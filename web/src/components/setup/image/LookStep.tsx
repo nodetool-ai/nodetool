@@ -46,6 +46,7 @@ import { useGenerateVariations } from "../../../hooks/sketch/useGenerateVariatio
 import { OptionCardGrid, type OptionCardItem } from "../OptionCardGrid";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
 import ImageModelSelect from "../../properties/ImageModelSelect";
+import { SetupFooterField } from "../SetupFooterField";
 import {
   sizePresetFor,
   sizePresetsForAspectRatios,
@@ -321,11 +322,58 @@ export interface LookStepProps {
   look: LookStepControls;
 }
 
+/**
+ * The image model, for the shell's footer, once the list is ready. Picking a
+ * model that cannot draw the current size moves the canvas to one it can.
+ */
+export const ImageModelFooterField: React.FC<{
+  look: LookStepControls;
+  readOnly?: boolean;
+}> = ({ look, readOnly = false }) => {
+  const canvas = useSketchStore((state) => state.document.canvas);
+  const resizeCanvas = useSketchStore((state) => state.resizeCanvas);
+  const { setModel } = look;
+  const handleModel = useCallback(
+    (chosen: ImageModelValue) => {
+      setModel(chosen.provider, chosen.id);
+      const selected = look.models.find(
+        (entry) =>
+          entry.id === chosen.id && entry.provider === chosen.provider
+      );
+      const supported = sizePresetsForAspectRatios(selected?.aspect_ratios);
+      const current = sizePresetFor(canvas.width, canvas.height);
+      if (
+        supported.length > 0 &&
+        (!current ||
+          !supported.some(
+            (preset) => preset.aspectRatio === current.aspectRatio
+          ))
+      ) {
+        resizeCanvas(supported[0].width, supported[0].height);
+      }
+    },
+    [canvas.height, canvas.width, look.models, resizeCanvas, setModel]
+  );
+  if (look.availability !== "ready") {
+    return null;
+  }
+  return (
+    <SetupFooterField label="Model">
+      <ImageModelSelect
+        value={look.model}
+        onChange={handleModel}
+        task="text_to_image"
+        disabled={readOnly}
+      />
+    </SetupFooterField>
+  );
+};
+
 export const LookStep: React.FC<LookStepProps> = ({ look }) => {
   const canvas = useSketchStore((state) => state.document.canvas);
   const resizeCanvas = useSketchStore((state) => state.resizeCanvas);
   const { data: presets } = useStylePresets();
-  const { availability, modelMissing, setModel, setStyleChoice } = look;
+  const { availability, modelMissing, setStyleChoice } = look;
 
   const sizeOptions = useMemo<OptionCardItem[]>(
     () =>
@@ -365,27 +413,6 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
     (id: string) => setStyleChoice(id),
     [setStyleChoice]
   );
-  const handleModel = useCallback(
-    (chosen: ImageModelValue) => {
-      setModel(chosen.provider, chosen.id);
-      const selected = look.models.find(
-        (entry) =>
-          entry.id === chosen.id && entry.provider === chosen.provider
-      );
-      const supported = sizePresetsForAspectRatios(selected?.aspect_ratios);
-      const current = sizePresetFor(canvas.width, canvas.height);
-      if (
-        supported.length > 0 &&
-        (!current ||
-          !supported.some(
-            (preset) => preset.aspectRatio === current.aspectRatio
-          ))
-      ) {
-        resizeCanvas(supported[0].width, supported[0].height);
-      }
-    },
-    [canvas.height, canvas.width, look.models, resizeCanvas, setModel]
-  );
   // The style grid's trailing tile is a real choice, so nothing adds anything.
   const noop = useCallback(() => undefined, []);
 
@@ -424,32 +451,25 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
         />
       </FlexColumn>
 
-      <FlexColumn gap={GAP.normal}>
-        <Text size="small" component="h3">
-          Image model
-        </Text>
-        {availability === "ready" ? (
-          <>
-            {modelMissing ? (
-              <AlertBanner severity="warning">
-                {`${look.model} is not offered by any connected provider. Pick another model.`}
-              </AlertBanner>
-            ) : null}
-            <Box sx={{ width: "100%", maxWidth: 320 }}>
-              <ImageModelSelect
-                value={look.model}
-                onChange={handleModel}
-                task="text_to_image"
-              />
-            </Box>
-          </>
-        ) : (
+      {/* A ready list is picked from the shell's footer; what is wrong with
+          the list or the pick is said here, where there is room for it. */}
+      {availability === "ready" ? (
+        modelMissing ? (
+          <AlertBanner severity="warning">
+            {`${look.model} is not offered by any connected provider. Pick another model.`}
+          </AlertBanner>
+        ) : null
+      ) : (
+        <FlexColumn gap={GAP.normal}>
+          <Text size="small" component="h3">
+            Image model
+          </Text>
           <ModelListState
             availability={availability}
             onRetry={look.refetchModels}
           />
-        )}
-      </FlexColumn>
+        </FlexColumn>
+      )}
     </FlexColumn>
   );
 };

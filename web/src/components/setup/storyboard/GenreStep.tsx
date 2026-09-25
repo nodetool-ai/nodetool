@@ -7,28 +7,22 @@
  * and what the board later shows as a chip. Nothing here generates: the genre
  * is a word on the document until "Review your screenplay" runs (D4).
  *
- * The step also carries the screenplay model, because this is the step that
- * runs the Director. `useDefaultDirectorModel` pre-fills it from the saved
- * preferences, so the picker is a change, never a required choice. Studio
- * pins its own director and hides the picker (see `curatedModels.ts`).
+ * The shot count and the screenplay model ride in the shell's footer, beside
+ * the estimate they change (`GenreFooterControls`). `useDefaultDirectorModel`
+ * pre-fills the model from the saved preferences, so the picker is a change,
+ * never a required choice. Studio pins its own director and hides the picker
+ * (see `curatedModels.ts`).
  */
 
 import React, { memo, useCallback, useMemo } from "react";
 
-import {
-  Box,
-  FlexColumn,
-  FormField,
-  GAP,
-  SelectField,
-  Text
-} from "../../ui_primitives";
+import { FlexColumn, GAP, SelectField, Text } from "../../ui_primitives";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import { useInStudio } from "../../../studio/StudioContext";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useDefaultDirectorModel } from "../../../hooks/storyboard/useDefaultDirectorModel";
 import type { LanguageModelValue } from "../../../stores/ApiTypes";
-import { SETUP_FIELD_WIDTH } from "../layout";
+import { SetupFooterField } from "../SetupFooterField";
 import { OptionCardGrid } from "../OptionCardGrid";
 import type { OptionCardItem } from "../OptionCardGrid";
 import {
@@ -41,9 +35,6 @@ import {
 export interface GenreStepProps {
   boardId: string;
   readOnly?: boolean;
-  /** How many shots the Director is asked for. */
-  shotCount: number;
-  onShotCountChange: (shots: number) => void;
   /** True while the Director run is in flight. */
   directing?: boolean;
   /**
@@ -99,34 +90,33 @@ const ScreenplayModelField: React.FC<{
     [boardId, readOnly, setDirectorModel]
   );
   return (
-    <FormField
-      label="Screenplay model"
-      helperText="Writes your screenplay."
-      sx={{ maxWidth: SETUP_FIELD_WIDTH }}
-    >
+    <SetupFooterField label="Model">
       <LanguageModelSelect
         value={directorModel?.id ?? ""}
         provider={directorModel?.provider}
-        placeholder="Select model"
+        placeholder="Screenplay model"
         onChange={handleChange}
         disabled={readOnly}
       />
-    </FormField>
+    </SetupFooterField>
   );
 };
 
-const GenreStepInternal: React.FC<GenreStepProps> = ({
+export interface GenreFooterControlsProps {
+  boardId: string;
+  readOnly?: boolean;
+  /** How many shots the Director is asked for. */
+  shotCount: number;
+  onShotCountChange: (shots: number) => void;
+}
+
+/** The shot count and the screenplay model, for the shell's footer. */
+export const GenreFooterControls: React.FC<GenreFooterControlsProps> = ({
   boardId,
   readOnly = false,
   shotCount,
-  onShotCountChange,
-  directing = false,
-  upToDate = false
+  onShotCountChange
 }) => {
-  const genre = useStoryboardStore(
-    (state) => state.boards[boardId]?.genre ?? ""
-  );
-  const setSetup = useStoryboardStore((state) => state.setSetup);
   const inStudio = useInStudio();
   const handleShotCount = useCallback(
     (value: string) => {
@@ -136,6 +126,34 @@ const GenreStepInternal: React.FC<GenreStepProps> = ({
     },
     [onShotCountChange, readOnly]
   );
+  return (
+    <>
+      <SelectField
+        label="Shots"
+        hideLabel
+        size="small"
+        value={String(shotCount)}
+        options={SHOT_OPTIONS}
+        onChange={handleShotCount}
+        disabled={readOnly}
+      />
+      {!inStudio && (
+        <ScreenplayModelField boardId={boardId} readOnly={readOnly} />
+      )}
+    </>
+  );
+};
+
+const GenreStepInternal: React.FC<GenreStepProps> = ({
+  boardId,
+  readOnly = false,
+  directing = false,
+  upToDate = false
+}) => {
+  const genre = useStoryboardStore(
+    (state) => state.boards[boardId]?.genre ?? ""
+  );
+  const setSetup = useStoryboardStore((state) => state.setSetup);
 
   const options = useMemo(
     () =>
@@ -175,30 +193,6 @@ const GenreStepInternal: React.FC<GenreStepProps> = ({
         selectedId={selectedId}
         onSelect={handleSelect}
       />
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-          gap: GAP.spacious
-        }}
-      >
-        <FormField
-          label="Shots"
-          helperText="How many shots the Director writes. You can add more later."
-          sx={{ maxWidth: SETUP_FIELD_WIDTH }}
-        >
-          <SelectField
-            label="Shots"
-            value={String(shotCount)}
-            options={SHOT_OPTIONS}
-            onChange={handleShotCount}
-            disabled={readOnly}
-          />
-        </FormField>
-        {!inStudio && (
-          <ScreenplayModelField boardId={boardId} readOnly={readOnly} />
-        )}
-      </Box>
       {/* The shell owns the wait — it shows the animated mark and announces
           "Writing N shots" beside the button. This adds the half the mark
           cannot carry: how long to expect. It is not a live region, because

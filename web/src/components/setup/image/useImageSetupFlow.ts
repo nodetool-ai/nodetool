@@ -24,7 +24,13 @@ import { useUploadFirstLayer } from "../../../hooks/sketch/useUploadFirstLayer";
 import type { GenerationSummaryProps } from "../GenerationSummary";
 import type { SetupFlowConfig, SetupStep } from "../types";
 import { IdeaStep } from "./IdeaStep";
-import { LookStep, useLookStep, type LookStepControls } from "./LookStep";
+import {
+  ImageModelFooterField,
+  LookStep,
+  useLookStep,
+  type LookStepControls
+} from "./LookStep";
+import { BriefModelFooterField } from "./BriefModelSelect";
 import { ReviewStep } from "./ReviewStep";
 import { UseCaseStep } from "./UseCaseStep";
 
@@ -141,6 +147,8 @@ export const useImageSetupFlow = ({
         primaryLabel: "Continue",
         canAdvance: brief.trim().length > 0,
         blockedReason: "Describe the image, or upload one to edit",
+        footerControls: (context) =>
+          createElement(BriefModelFooterField, { readOnly: context.readOnly }),
         render: () =>
           createElement(IdeaStep, { onStartBlank: startBlank, upload })
       },
@@ -157,6 +165,8 @@ export const useImageSetupFlow = ({
         pending: refining,
         pendingLabel: "Refining the brief",
         generation: briefIsCurrent ? undefined : refineSummary,
+        footerControls: (context) =>
+          createElement(BriefModelFooterField, { readOnly: context.readOnly }),
         render: () => createElement(UseCaseStep),
         // D4: this is the only thing the step does. No layer is added and no
         // job is started — the answer is text the creator reviews next.
@@ -190,6 +200,11 @@ export const useImageSetupFlow = ({
         canAdvance: look.canAdvance,
         blockedReason: look.blockedReason,
         primaryDetail: look.primaryDetail,
+        footerControls: (context) =>
+          createElement(ImageModelFooterField, {
+            look,
+            readOnly: context.readOnly
+          }),
         render: () => createElement(LookStep, { look }),
         // `generate` writes the terminal stage itself, before it enqueues
         // anything (D3); the host then shows the contact sheet.
