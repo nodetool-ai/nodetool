@@ -4,6 +4,7 @@ import { BaseProvider } from "./base-provider.js";
 import { geminiContextExceeded } from "./context-exceeded.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { sniffVideoMime } from "./video-mime.js";
+import { detectImageMime } from "./image-mime.js";
 import { safeFetch } from "./safe-url.js";
 import {
   ContentFilterRefusal,
@@ -20,6 +21,8 @@ const log = createLogger("nodetool.runtime.providers.gemini");
 import type {
   ASRModel,
   EmbeddingModel,
+  EncodedAudioResult,
+  ExtendVideoParams,
   ImageModel,
   ImageToImageParams,
   ImageToVideoParams,
@@ -30,14 +33,19 @@ import type {
   MessageImageContent,
   MessageTextContent,
   MessageVideoContent,
+  MusicModel,
   ProviderStreamItem,
   ProviderTool,
+  ReferenceToVideoInputs,
+  ReferenceToVideoParams,
   StreamingAudioChunk,
   TextToImageParams,
+  TextToMusicParams,
   TextToVideoParams,
   ToolCall,
   TTSModel,
-  VideoModel
+  VideoModel,
+  VideoToVideoParams
 } from "./types.js";
 import { WEB_SEARCH_TOOL_NAME } from "./types.js";
 
@@ -57,6 +65,110 @@ export const GEMINI_INLINE_VIDEO_MAX_BYTES = 19 * 1024 * 1024;
 /** Polls of `files/{name}` before an uploaded file is declared stuck. */
 const GEMINI_FILE_MAX_POLLS = 60;
 const GEMINI_FILE_POLL_INTERVAL_MS = 2_000;
+
+/** Veo accepts at most three `asset` reference images per request. */
+const VEO_MAX_REFERENCE_IMAGES = 3;
+/** Veo requires 8-second clips for reference images and first/last frames. */
+const VEO_CONSTRAINED_DURATION_SECONDS = 8;
+/** Veo appends a fixed 7-second continuation to the input video. */
+const VEO_EXTENSION_SECONDS = 7;
+/** Omni Flash accepts at most three reference clips. */
+const OMNI_MAX_REFERENCE_VIDEOS = 3;
+
+/**
+ * Video models and the tasks each accepts. Veo 3.1 Lite takes no reference
+ * images, last frame, or extension. Omni Flash runs through the Interactions
+ * API and edits existing video; its duration follows the prompt.
+ *
+ * Veo lists no `durations`: callers apply that list to extension length too,
+ * and Veo generates 4, 6, or 8 seconds but extends by 7 only.
+ */
+const GEMINI_VIDEO_MODELS: readonly VideoModel[] = [
+  {
+    id: "veo-3.1-generate-preview",
+    name: "Veo 3.1 Preview",
+    provider: "gemini",
+    supportedTasks: [
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
+      "extend_video",
+      "extend_video_end"
+    ],
+    resolutions: ["720p", "1080p", "4k"],
+    aspectRatios: ["16:9", "9:16"]
+  },
+  {
+    id: "veo-3.1-fast-generate-preview",
+    name: "Veo 3.1 Fast Preview",
+    provider: "gemini",
+    supportedTasks: [
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
+      "extend_video",
+      "extend_video_end"
+    ],
+    resolutions: ["720p", "1080p", "4k"],
+    aspectRatios: ["16:9", "9:16"]
+  },
+  {
+    id: "veo-3.1-lite-generate-preview",
+    name: "Veo 3.1 Lite Preview",
+    provider: "gemini",
+    supportedTasks: ["text_to_video", "image_to_video"],
+    resolutions: ["720p", "1080p"],
+    aspectRatios: ["16:9", "9:16"]
+  },
+  {
+    id: "gemini-omni-1.1-flash",
+    name: "Gemini Omni Flash",
+    provider: "gemini",
+    supportedTasks: [
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
+      "video_to_video"
+    ],
+    resolutions: ["360p", "720p", "1080p", "4k"],
+    aspectRatios: ["16:9", "9:16"]
+  }
+];
+
+function isOmniVideoModel(modelId: string): boolean {
+  return modelId.startsWith("gemini-omni-");
+}
+
+function requireVideoTask(modelId: string, task: string): void {
+  const model = GEMINI_VIDEO_MODELS.find((entry) => entry.id === modelId);
+  if (!model?.supportedTasks?.includes(task)) {
+    throw new Error(`Gemini model ${modelId} does not support ${task}`);
+  }
+}
+
+function combineSignals(
+  signal: AbortSignal | undefined,
+  timeoutSeconds?: number | null
+): AbortSignal | undefined {
+  const timeout =
+    timeoutSeconds && timeoutSeconds > 0
+      ? AbortSignal.timeout(timeoutSeconds * 1000)
+      : undefined;
+  if (!signal) return timeout;
+  if (!timeout) return signal;
+  return AbortSignal.any([signal, timeout]);
+}
+
+/** The image object Veo reads for `image`, `lastFrame`, and references. */
+function veoImage(bytes: Uint8Array): {
+  bytesBase64Encoded: string;
+  mimeType: string;
+} {
+  return {
+    bytesBase64Encoded: Buffer.from(bytes).toString("base64"),
+    mimeType: detectImageMime(bytes)
+  };
+}
 
 /** Drop `; charset=…`/`; codecs=…` parameters from a Content-Type header. */
 function stripMimeParams(value: string | null): string | undefined {
@@ -197,6 +309,22 @@ interface GeminiVideoOperation {
     };
     generatedVideos?: Array<{ video?: { uri?: string } }>;
   };
+}
+
+/** A content block in an Interactions API request or response. */
+interface GeminiInteractionContent {
+  type?: string;
+  text?: string;
+  data?: string;
+  uri?: string;
+  mime_type?: string;
+}
+
+/** The subset of an Interactions API `Interaction` the provider reads. */
+interface GeminiInteraction {
+  id?: string;
+  status?: string;
+  steps?: Array<{ type?: string; content?: GeminiInteractionContent[] }>;
 }
 
 // Gemini's function-declaration schema is a strict subset of OpenAPI 3.0.
@@ -1660,13 +1788,6 @@ export class GeminiProvider extends BaseProvider {
           "21:9"
         ],
         resolutions: ["1K", "2K", "4K"]
-      },
-      {
-        id: "imagen-4.0-generate-001",
-        name: "Imagen 4",
-        provider: "gemini",
-        supportedTasks: ["text_to_image"],
-        aspectRatios: ["1:1", "3:4", "4:3", "9:16", "16:9"]
       }
     ];
   }
@@ -1761,24 +1882,22 @@ export class GeminiProvider extends BaseProvider {
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
+    return [...GEMINI_VIDEO_MODELS];
+  }
+
+  override async getAvailableMusicModels(): Promise<MusicModel[]> {
     return [
       {
-        id: "veo-3.1-generate-preview",
-        name: "Veo 3.1 Preview",
+        id: "lyria-3.5",
+        name: "Lyria 3.5",
         provider: "gemini",
-        supportedTasks: ["text_to_video", "image_to_video"]
+        supportedTasks: ["text_to_music"]
       },
       {
-        id: "veo-3.1-fast-generate-preview",
-        name: "Veo 3.1 Fast Preview",
+        id: "lyria-3-clip-preview",
+        name: "Lyria 3 Clip Preview",
         provider: "gemini",
-        supportedTasks: ["text_to_video", "image_to_video"]
-      },
-      {
-        id: "veo-3.1-lite-generate-preview",
-        name: "Veo 3.1 Lite Preview",
-        provider: "gemini",
-        supportedTasks: ["text_to_video", "image_to_video"]
+        supportedTasks: ["text_to_music"]
       }
     ];
   }
@@ -1788,6 +1907,12 @@ export class GeminiProvider extends BaseProvider {
       {
         id: "gemini-embedding-2",
         name: "Gemini Embedding 2",
+        provider: "gemini",
+        dimensions: 3072
+      },
+      {
+        id: "gemini-embedding-001",
+        name: "Gemini Embedding 001",
         provider: "gemini",
         dimensions: 3072
       }
@@ -1907,43 +2032,10 @@ export class GeminiProvider extends BaseProvider {
       throw new Error("No image data returned in response");
     }
 
-    // Imagen models use the predict endpoint.
-    const parameters: Record<string, unknown> = { sampleCount: 1 };
-    if (params.aspectRatio) parameters.aspectRatio = params.aspectRatio;
-    if (params.seed != null) parameters.seed = params.seed;
-    if (params.safetyCheck === false)
-      parameters.safetyFilterLevel = "block_only_high";
-    const body: Record<string, unknown> = {
-      instances: [{ prompt: params.prompt }],
-      parameters
-    };
-
-    const url = `${GEMINI_API_BASE}/models/${modelId}:predict?key=${this.apiKey}`;
-    const response = await this._fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(
-        `Gemini image generation failed ${response.status}: ${errText}`
-      );
-    }
-
-    const data = (await response.json()) as {
-      predictions?: Array<{ bytesBase64Encoded?: string }>;
-      generatedImages?: Array<{ image?: { imageBytes?: string } }>;
-    };
-
-    // Try predictions format first (Vertex-style), then generatedImages
-    const b64 =
-      data.predictions?.[0]?.bytesBase64Encoded ??
-      data.generatedImages?.[0]?.image?.imageBytes;
-
-    if (!b64) throw new Error("No image data in response");
-    return Uint8Array.from(Buffer.from(b64, "base64"));
+    // Google shut down Imagen in the Gemini API; `predict` now answers 404.
+    throw new Error(
+      `Model ${modelId} is not available. Use a gemini-*-image model for text-to-image.`
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -2298,55 +2390,34 @@ export class GeminiProvider extends BaseProvider {
     return current;
   }
 
-  private async downloadGeminiVideo(
-    videoUri: string,
+  private async downloadGeminiMedia(
+    uri: string,
     signal?: AbortSignal
   ): Promise<Uint8Array> {
-    const hostname = new URL(videoUri).hostname;
+    const hostname = new URL(uri).hostname;
     const headers =
       hostname === "generativelanguage.googleapis.com"
         ? { "x-goog-api-key": this.apiKey }
         : undefined;
-    const response = await safeFetch(
-      videoUri,
-      { headers, signal },
-      5,
-      this._fetch
-    );
+    const response = await safeFetch(uri, { headers, signal }, 5, this._fetch);
     if (!response.ok) {
-      throw new Error(`Video download failed: ${response.status}`);
+      throw new Error(`Gemini media download failed: ${response.status}`);
     }
     return new Uint8Array(await response.arrayBuffer());
   }
 
-  // ---------------------------------------------------------------------------
-  // Text-to-video (Veo models — async operation with polling)
-  // ---------------------------------------------------------------------------
-
-  override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
-    if (!params.prompt) {
-      throw new Error("The input prompt cannot be empty.");
-    }
-
-    const modelId = params.model.id;
-    if (!modelId.startsWith("veo-")) {
-      throw new Error(
-        `Model ${modelId} is not a Veo model. Only Veo models support text-to-video.`
-      );
-    }
-
-    const body: Record<string, unknown> = {
-      instances: [{ prompt: params.prompt }]
-    };
-    const parameters = this.buildVideoParameters(params);
-    if (Object.keys(parameters).length > 0) {
-      body.parameters = parameters;
-    }
-
-    const signal =
-      params.timeoutSeconds && params.timeoutSeconds > 0
-        ? AbortSignal.timeout(params.timeoutSeconds * 1000)
-        : undefined;
+  /**
+   * Submit a Veo `predictLongRunning` request, wait for the operation, and
+   * download the first generated video.
+   */
+  private async runVeoOperation(
+    modelId: string,
+    body: Record<string, unknown>,
+    label: string,
+    options: { timeoutSeconds?: number | null; signal?: AbortSignal }
+  ): Promise<Uint8Array> {
+    const signal = combineSignals(options.signal, options.timeoutSeconds);
+    this.recordRequestPayload(body);
     const response = await this._fetch(
       `${GEMINI_API_BASE}/models/${modelId}:predictLongRunning`,
       {
@@ -2362,14 +2433,12 @@ export class GeminiProvider extends BaseProvider {
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(
-        `Gemini video generation failed ${response.status}: ${errText}`
-      );
+      throw new Error(`Gemini ${label} failed ${response.status}: ${errText}`);
     }
 
     const operation = await this.waitForVideoOperation(
       (await response.json()) as GeminiVideoOperation,
-      params.timeoutSeconds,
+      options.timeoutSeconds,
       signal
     );
     const videoUri = this.getVideoUri(operation);
@@ -2378,11 +2447,146 @@ export class GeminiProvider extends BaseProvider {
       if (refusal) throw refusal;
       throw new Error("No video URI in response");
     }
-    return this.downloadGeminiVideo(videoUri, signal);
+    return this.downloadGeminiMedia(videoUri, signal);
+  }
+
+  /** Send one request to the Interactions API and return the finished interaction. */
+  private async createInteraction(
+    body: Record<string, unknown>,
+    label: string,
+    modelId: string,
+    signal?: AbortSignal
+  ): Promise<GeminiInteraction> {
+    this.recordRequestPayload(body);
+    const response = await this._fetch(`${GEMINI_API_BASE}/interactions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": this.apiKey
+      },
+      body: JSON.stringify(body),
+      signal
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      if (isContentFilterRefusal(errText)) {
+        throw new ContentFilterRefusal(errText, {
+          provider: "gemini",
+          model: modelId
+        });
+      }
+      throw new Error(`Gemini ${label} failed ${response.status}: ${errText}`);
+    }
+    const interaction = (await response.json()) as GeminiInteraction;
+    if (interaction.status && interaction.status !== "completed") {
+      throw new Error(
+        `Gemini ${label} ended with status ${interaction.status}`
+      );
+    }
+    return interaction;
+  }
+
+  /** The first `type` output of an interaction, inline or behind a file uri. */
+  private async interactionMedia(
+    interaction: GeminiInteraction,
+    type: "audio" | "video",
+    signal?: AbortSignal
+  ): Promise<{ data: Uint8Array; mimeType?: string }> {
+    for (const step of interaction.steps ?? []) {
+      for (const content of step.content ?? []) {
+        if (content.type !== type) continue;
+        if (content.data) {
+          return {
+            data: new Uint8Array(Buffer.from(content.data, "base64")),
+            mimeType: content.mime_type
+          };
+        }
+        if (content.uri) {
+          return {
+            data: await this.downloadGeminiMedia(content.uri, signal),
+            mimeType: content.mime_type
+          };
+        }
+      }
+    }
+    throw new Error(`Gemini returned no ${type} output`);
+  }
+
+  /** An Interactions API video block: inline, or uploaded when too large. */
+  private async omniVideoInput(
+    video: Uint8Array
+  ): Promise<GeminiInteractionContent> {
+    const mimeType = sniffVideoMime(video);
+    if (video.length > GEMINI_INLINE_VIDEO_MAX_BYTES) {
+      const uri = await this.uploadFileToGemini(video, mimeType);
+      return { type: "video", uri, mime_type: mimeType };
+    }
+    return {
+      type: "video",
+      data: Buffer.from(video).toString("base64"),
+      mime_type: mimeType
+    };
+  }
+
+  /** Generate or edit a video with Gemini Omni through the Interactions API. */
+  private async runOmniVideo(
+    modelId: string,
+    input: GeminiInteractionContent[],
+    options: {
+      aspectRatio?: string | null;
+      resolution?: string | null;
+      timeoutSeconds?: number | null;
+      signal?: AbortSignal;
+    }
+  ): Promise<Uint8Array> {
+    const responseFormat: Record<string, unknown> = { type: "video" };
+    if (options.aspectRatio) responseFormat.aspect_ratio = options.aspectRatio;
+    if (options.resolution) responseFormat.resolution = options.resolution;
+    const signal = combineSignals(options.signal, options.timeoutSeconds);
+    const interaction = await this.createInteraction(
+      { model: modelId, input, response_format: responseFormat },
+      "video generation",
+      modelId,
+      signal
+    );
+    return (await this.interactionMedia(interaction, "video", signal)).data;
   }
 
   // ---------------------------------------------------------------------------
-  // Image-to-video (Veo models)
+  // Text-to-video (Veo: long-running operation; Omni: Interactions API)
+  // ---------------------------------------------------------------------------
+
+  override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
+    if (!params.prompt) {
+      throw new Error("The input prompt cannot be empty.");
+    }
+
+    const modelId = params.model.id;
+    if (isOmniVideoModel(modelId)) {
+      return this.runOmniVideo(
+        modelId,
+        [{ type: "text", text: params.prompt }],
+        params
+      );
+    }
+    if (!modelId.startsWith("veo-")) {
+      throw new Error(
+        `Model ${modelId} is not a Gemini video model. Use a Veo or Gemini Omni model for text-to-video.`
+      );
+    }
+
+    const body: Record<string, unknown> = {
+      instances: [{ prompt: params.prompt }]
+    };
+    const parameters = this.buildVideoParameters(params);
+    if (Object.keys(parameters).length > 0) {
+      body.parameters = parameters;
+    }
+    return this.runVeoOperation(modelId, body, "video generation", params);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Image-to-video
   // ---------------------------------------------------------------------------
 
   override async imageToVideo(
@@ -2394,65 +2598,223 @@ export class GeminiProvider extends BaseProvider {
     }
 
     const modelId = params.model.id;
+    const prompt = params.prompt || "Animate this image";
+    if (isOmniVideoModel(modelId)) {
+      if (params.endImage?.length) {
+        throw new Error(`Gemini model ${modelId} does not accept a last frame`);
+      }
+      return this.runOmniVideo(
+        modelId,
+        [
+          {
+            type: "image",
+            data: Buffer.from(image).toString("base64"),
+            mime_type: detectImageMime(image)
+          },
+          { type: "text", text: prompt }
+        ],
+        params
+      );
+    }
     if (!modelId.startsWith("veo-")) {
       throw new Error(
-        `Model ${modelId} is not a Veo model. Only Veo models support image-to-video.`
+        `Model ${modelId} is not a Gemini video model. Use a Veo or Gemini Omni model for image-to-video.`
       );
     }
 
-    const prompt = params.prompt ?? "Animate this image";
-    const body: Record<string, unknown> = {
-      instances: [
-        {
-          prompt,
-          image: {
-            bytesBase64Encoded: Buffer.from(image).toString("base64"),
-            mimeType: "image/png"
-          }
-        }
-      ]
+    const instance: Record<string, unknown> = {
+      prompt,
+      image: veoImage(image)
     };
     const parameters = this.buildVideoParameters(params);
+    if (params.endImage?.length) {
+      // Veo interpolates between the two frames only in an 8-second clip.
+      instance.lastFrame = veoImage(params.endImage);
+      parameters.durationSeconds ??= VEO_CONSTRAINED_DURATION_SECONDS;
+    }
+    const body: Record<string, unknown> = { instances: [instance] };
     if (Object.keys(parameters).length > 0) {
       body.parameters = parameters;
     }
+    return this.runVeoOperation(modelId, body, "image-to-video", params);
+  }
 
-    const signal =
-      params.timeoutSeconds && params.timeoutSeconds > 0
-        ? AbortSignal.timeout(params.timeoutSeconds * 1000)
-        : undefined;
-    const response = await this._fetch(
-      `${GEMINI_API_BASE}/models/${modelId}:predictLongRunning`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": this.apiKey
-        },
-        body: JSON.stringify(body),
-        signal
+  // ---------------------------------------------------------------------------
+  // Reference-to-video
+  // ---------------------------------------------------------------------------
+
+  override async referenceToVideo(
+    inputs: ReferenceToVideoInputs,
+    params: ReferenceToVideoParams
+  ): Promise<Uint8Array> {
+    if (!params.prompt) {
+      throw new Error("The input prompt cannot be empty.");
+    }
+    const modelId = params.model.id;
+    requireVideoTask(modelId, "reference_to_video");
+    const images = inputs.images.filter((bytes) => bytes.length > 0);
+    const videos = inputs.videos.filter((bytes) => bytes.length > 0);
+    if ((inputs.audios ?? []).some((bytes) => bytes.length > 0)) {
+      throw new Error(`Gemini model ${modelId} does not accept reference audio`);
+    }
+    if (images.length === 0 && videos.length === 0) {
+      throw new Error("At least one reference image or video is required");
+    }
+
+    if (isOmniVideoModel(modelId)) {
+      if (videos.length > OMNI_MAX_REFERENCE_VIDEOS) {
+        throw new Error(
+          `Gemini model ${modelId} accepts at most ${OMNI_MAX_REFERENCE_VIDEOS} reference videos`
+        );
       }
-    );
+      const input: GeminiInteractionContent[] = images.map((bytes) => ({
+        type: "image",
+        data: Buffer.from(bytes).toString("base64"),
+        mime_type: detectImageMime(bytes)
+      }));
+      for (const video of videos) {
+        input.push(await this.omniVideoInput(video));
+      }
+      input.push({ type: "text", text: params.prompt });
+      return this.runOmniVideo(modelId, input, params);
+    }
 
-    if (!response.ok) {
-      const errText = await response.text();
+    if (videos.length > 0) {
+      throw new Error(`Gemini model ${modelId} accepts reference images only`);
+    }
+    if (images.length > VEO_MAX_REFERENCE_IMAGES) {
       throw new Error(
-        `Gemini image-to-video failed ${response.status}: ${errText}`
+        `Gemini model ${modelId} accepts at most ${VEO_MAX_REFERENCE_IMAGES} reference images`
+      );
+    }
+    const parameters = this.buildVideoParameters(params);
+    parameters.durationSeconds ??= VEO_CONSTRAINED_DURATION_SECONDS;
+    const body = {
+      instances: [
+        {
+          prompt: params.prompt,
+          referenceImages: images.map((bytes) => ({
+            image: veoImage(bytes),
+            referenceType: "asset"
+          }))
+        }
+      ],
+      parameters
+    };
+    return this.runVeoOperation(modelId, body, "reference-to-video", params);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Video extension (Veo) and editing (Omni)
+  // ---------------------------------------------------------------------------
+
+  override async extendVideo(
+    video: Uint8Array,
+    params: ExtendVideoParams
+  ): Promise<Uint8Array> {
+    if (video.length === 0) {
+      throw new Error("The input video is empty.");
+    }
+    const modelId = params.model.id;
+    requireVideoTask(modelId, "extend_video");
+    if (params.mode !== "end") {
+      throw new Error(`Gemini model ${modelId} extends videos at the end only`);
+    }
+    if (params.durationSeconds !== VEO_EXTENSION_SECONDS) {
+      throw new Error(
+        `Gemini model ${modelId} extends a video by exactly ${VEO_EXTENSION_SECONDS} seconds`
+      );
+    }
+    const body = {
+      instances: [
+        {
+          prompt: params.prompt,
+          video: {
+            inlineData: {
+              mimeType: sniffVideoMime(video),
+              data: Buffer.from(video).toString("base64")
+            }
+          }
+        }
+      ],
+      // Veo extends 720p input only and returns the input plus the new seconds.
+      parameters: { numberOfVideos: 1, resolution: "720p" }
+    };
+    return this.runVeoOperation(modelId, body, "video extension", {
+      signal: params.signal
+    });
+  }
+
+  override async videoToVideo(
+    video: Uint8Array,
+    params: VideoToVideoParams
+  ): Promise<Uint8Array> {
+    if (video.length === 0) {
+      throw new Error("The input video is empty.");
+    }
+    if (!params.prompt) {
+      throw new Error("The edit instruction cannot be empty.");
+    }
+    const modelId = params.model.id;
+    requireVideoTask(modelId, "video_to_video");
+    const input: GeminiInteractionContent[] = [await this.omniVideoInput(video)];
+    for (const bytes of params.referenceImages ?? []) {
+      if (bytes.length === 0) continue;
+      input.push({
+        type: "image",
+        data: Buffer.from(bytes).toString("base64"),
+        mime_type: detectImageMime(bytes)
+      });
+    }
+    input.push({ type: "text", text: params.prompt });
+    return this.runOmniVideo(modelId, input, params);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Text-to-music (Lyria, Interactions API)
+  // ---------------------------------------------------------------------------
+
+  override async textToMusic(
+    params: TextToMusicParams
+  ): Promise<EncodedAudioResult> {
+    if (!params.prompt) {
+      throw new Error("The input prompt cannot be empty.");
+    }
+    const modelId = params.model.id;
+    if (!modelId.startsWith("lyria-")) {
+      throw new Error(
+        `Model ${modelId} is not a Lyria model. Use a Lyria model for text-to-music.`
       );
     }
 
-    const operation = await this.waitForVideoOperation(
-      (await response.json()) as GeminiVideoOperation,
-      params.timeoutSeconds,
+    // Lyria takes length and lyrics from the prompt; it has no fields for them.
+    const input = [
+      params.prompt,
+      params.durationSeconds
+        ? `Length: about ${Math.round(params.durationSeconds)} seconds.`
+        : undefined,
+      params.lyrics ? `Lyrics:\n${params.lyrics}` : undefined
+    ]
+      .filter((part): part is string => part !== undefined)
+      .join("\n\n");
+    const body: Record<string, unknown> = { model: modelId, input };
+    // Lyria answers MP3 by default. Only Lyria 3.5 returns WAV, on request.
+    if (params.audioFormat === "wav" && modelId === "lyria-3.5") {
+      body.response_format = { type: "audio" };
+    }
+
+    const signal = combineSignals(undefined, params.timeoutSeconds);
+    const interaction = await this.createInteraction(
+      body,
+      "music generation",
+      modelId,
       signal
     );
-    const videoUri = this.getVideoUri(operation);
-    if (!videoUri) {
-      const refusal = this.videoContentFilterRefusal(operation, modelId);
-      if (refusal) throw refusal;
-      throw new Error("No video URI in response");
-    }
-    return this.downloadGeminiVideo(videoUri, signal);
+    const audio = await this.interactionMedia(interaction, "audio", signal);
+    return {
+      data: audio.data,
+      mimeType: audio.mimeType ?? sniffAudioMime(audio.data)
+    };
   }
 
   // ---------------------------------------------------------------------------
