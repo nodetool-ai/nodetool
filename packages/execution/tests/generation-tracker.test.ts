@@ -325,6 +325,32 @@ describe("generation tracker", () => {
     expect(foreign.found).toBe(false);
   });
 
+  it("resolves the configured FAL_API_KEY for generic FAL generations", async () => {
+    let receivedSecret: Record<string, string> | undefined;
+    registerCostReconciler("fal_ai", async ({ secrets }) => {
+      receivedSecret = secrets;
+      return { cost: 0.3, currency: "USD" };
+    });
+    const row = await Prediction.create<Prediction>({
+      id: "fal-ai-reconcile",
+      user_id: USER,
+      provider: "fal_ai",
+      model: "fal-ai/flux/dev",
+      status: "completed",
+      cost: 0.2,
+      provider_request_id: "fal-req",
+      created_at: new Date().toISOString()
+    });
+    const requestedKeys: string[] = [];
+    const result = await reconcileGeneration(row.id, USER, async (key) => {
+      requestedKeys.push(key);
+      return key === "FAL_API_KEY" ? "configured-fal-key" : null;
+    });
+    expect(requestedKeys).toEqual(["FAL_API_KEY"]);
+    expect(receivedSecret).toEqual({ FAL_API_KEY: "configured-fal-key" });
+    expect(result).toMatchObject({ reconciled: true, after: 0.3 });
+  });
+
   it("marks a row unavailable when its provider has no reconciler", async () => {
     await Prediction.create<Prediction>({
       id: "g11",

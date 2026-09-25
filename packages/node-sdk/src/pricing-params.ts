@@ -50,7 +50,7 @@
  */
 
 import type { ModelPriceParams } from "./cost-estimate.js";
-import { isBoolean, isNumber, isString } from "./type-predicates.js";
+import { isBoolean, isNumber, isRecord, isString } from "./type-predicates.js";
 
 /** Duration properties, most specific first. The first present value wins. */
 const DURATION_PROPERTIES = [
@@ -96,6 +96,26 @@ function readPositiveNumber(value: unknown): number | undefined {
   return isNumber(parsed) && Number.isFinite(parsed) && parsed > 0
     ? parsed
     : undefined;
+}
+
+/** A supplied media ref, including a byte count left by generation redaction. */
+function hasImageSource(value: unknown): boolean {
+  if (value instanceof Uint8Array) return value.byteLength > 0;
+  if (isString(value)) return value.length > 0;
+  if (!isRecord(value)) return false;
+  return (
+    (isString(value.uri) && value.uri.length > 0) ||
+    (isString(value.asset_id) && value.asset_id.length > 0) ||
+    (isString(value.data) && value.data.length > 0) ||
+    (value.data instanceof Uint8Array && value.data.byteLength > 0) ||
+    (isNumber(value.bytes) && Number.isFinite(value.bytes) && value.bytes > 0)
+  );
+}
+
+function countImages(value: unknown): number {
+  return Array.isArray(value)
+    ? value.filter(hasImageSource).length
+    : Number(hasImageSource(value));
 }
 
 /**
@@ -259,6 +279,28 @@ export function extractPricingParams(
       break;
     }
   }
+
+  const text = values.text;
+  if (isString(text) && text.length > 0) {
+    params.characters = text.length;
+  } else if (isRecord(text)) {
+    if (text.truncated === true) {
+      params.characters = readPositiveNumber(text.length);
+    }
+  }
+
+  const inputImages = countImages(values.image ?? values.images);
+  const references = countImages(values.reference_images);
+  const entityImages = Array.isArray(values.entities)
+    ? values.entities.reduce((count: number, entity: unknown) => {
+        if (!isRecord(entity)) return count;
+        return (
+          count + countImages(entity.image) + countImages(entity.reference_images)
+        );
+      }, 0)
+    : 0;
+  const imageCount = inputImages + references + entityImages;
+  if (imageCount > 0) params.referenceImages = imageCount;
 
   return params;
 }

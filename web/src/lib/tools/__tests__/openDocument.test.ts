@@ -1,4 +1,5 @@
 import { FrontendToolRegistry } from "../frontendTools";
+import { waitFor } from "@testing-library/react";
 import { stub } from "../../../test-utils/doubles";
 import type { FrontendToolState } from "../frontendTools";
 import {
@@ -15,7 +16,16 @@ import "../builtin/openDocument";
 import { trpcClient } from "../../../trpc/client";
 
 jest.mock("../../../trpc/client", () => ({
-  trpcClient: { timeline: { get: { query: jest.fn() } } }
+  trpcClient: {
+    timeline: { get: { query: jest.fn() } },
+    workflows: { get: { query: jest.fn() } },
+    storyboards: { get: { query: jest.fn() } },
+    scripts: { get: { query: jest.fn() } },
+    jsScripts: { get: { query: jest.fn() } },
+    sketch: { get: { query: jest.fn() } },
+    applications: { get: { query: jest.fn() } },
+    assets: { get: { query: jest.fn() } }
+  }
 }));
 
 const snapshot = (sequenceId: string | null): TimelineSnapshot => ({
@@ -54,7 +64,9 @@ const openDocument = (args: Record<string, unknown>) =>
 beforeEach(() => {
   navigate.mockReset();
   registerAppRouter({ navigate });
-  useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
+  useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null, activeProjectId: null });
+  jest.mocked(trpcClient.timeline.get.query).mockImplementation(async ({ id }) => ({ id, projectId: "p-1" }) as never);
+  jest.mocked(trpcClient.workflows.get.query).mockResolvedValue({ id: "wf-open", project_id: "p-1" } as never);
   setTimelineAgentHandler("seq-1", null);
 });
 
@@ -63,9 +75,37 @@ afterEach(() => {
 });
 
 describe("ui_open_document", () => {
+  it("switches to the document's project so its new tab mounts", async () => {
+    useWorkspaceTabsStore.getState().setActiveProjectId("p-current");
+    setTimelineAgentHandler("seq-1", timelineHandler("seq-1"));
+    await openDocument({ type: "timeline", id: "seq-1" });
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.activeProjectId).toBe("p-1");
+    expect(state.tabs.find((tab) => tab.ref === "seq-1")?.projectId).toBe("p-1");
+  });
+
+  it("repairs an already-open tab with a stale project assignment", async () => {
+    useWorkspaceTabsStore.getState().openTab({ type: "timeline", ref: "seq-1", mode: "edit" });
+    setTimelineAgentHandler("seq-1", timelineHandler("seq-1"));
+    await openDocument({ type: "timeline", id: "seq-1" });
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.activeProjectId).toBe("p-1");
+    expect(state.tabs.find((tab) => tab.ref === "seq-1")?.projectId).toBe("p-1");
+  });
+
+  it("restores the original project when opening in the background", async () => {
+    useWorkspaceTabsStore.getState().setActiveProjectId("p-current");
+    useWorkspaceTabsStore.getState().openTab({ type: "chat", ref: "t-1", projectId: "p-current" });
+    setTimelineAgentHandler("seq-1", timelineHandler("seq-1"));
+    await openDocument({ type: "timeline", id: "seq-1", focus: false });
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.activeProjectId).toBe("p-current");
+    expect(state.activeTabId).toBe(tabId("chat", "t-1"));
+    expect(state.tabs.find((tab) => tab.ref === "seq-1")?.projectId).toBe("p-1");
+  });
   it("resolves a compact timeline ID before opening and checking readiness", async () => {
     const fullId = "8d7d5e9d6f1f41111111111111111111";
-    jest.mocked(trpcClient.timeline.get.query).mockResolvedValue({ id: fullId } as never);
+    jest.mocked(trpcClient.timeline.get.query).mockResolvedValue({ id: fullId, projectId: "p-1" } as never);
     setTimelineAgentHandler(fullId, timelineHandler(fullId));
     try {
       await expect(openDocument({ type: "timeline", id: fullId.slice(0, 12) }))
@@ -99,6 +139,9 @@ describe("ui_open_document", () => {
 
   it("opens a tab and resolves once the editor has loaded the document", async () => {
     const pending = openDocument({ type: "timeline", id: "seq-1" });
+    await waitFor(() => {
+      expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(1);
+    });
 
     expect(useWorkspaceTabsStore.getState().tabs.map((tab) => tab.id)).toEqual([
       tabId("timeline", "seq-1")

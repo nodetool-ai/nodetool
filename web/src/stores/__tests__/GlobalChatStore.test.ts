@@ -1005,6 +1005,35 @@ describe("GlobalChatStore", () => {
       expect(thread.updated_at).not.toBe(originalTimestamp);
     });
 
+    it("keeps a title renamed while an older thread list was loading", async () => {
+      const threadId = await store.getState().createNewThread();
+      const original = {
+        ...store.getState().threads[threadId],
+        title: "Old Title",
+        workflow_id: "server-workflow"
+      };
+      store.setState({
+        threads: { [threadId]: original },
+        threadWorkflowId: { [threadId]: "server-workflow" }
+      });
+      let resolveList!: (value: { threads: typeof original[] }) => void;
+      const list = jest.spyOn(trpcClient.threads.list, "query").mockImplementationOnce(
+        () => new Promise((resolve) => { resolveList = resolve as typeof resolveList; }) as ReturnType<typeof trpcClient.threads.list.query>
+      );
+      const update = jest.spyOn(trpcClient.threads.update, "mutate").mockResolvedValueOnce(original);
+
+      const loading = store.getState().fetchThreads();
+      await store.getState().updateThreadTitle(threadId, "New Title");
+      store.setState({ threadWorkflowId: { [threadId]: "local-workflow" } });
+      resolveList({ threads: [original] });
+      await loading;
+
+      expect(store.getState().threads[threadId].title).toBe("New Title");
+      expect(store.getState().threadWorkflowId[threadId]).toBe("local-workflow");
+      list.mockRestore();
+      update.mockRestore();
+    });
+
     it("updateThreadTitle handles non-existent thread", () => {
       const initialState = store.getState();
       store.getState().updateThreadTitle("nonexistent", "Title");

@@ -14,6 +14,10 @@ import { trpcClient } from "../../trpc/client";
 import { queryClient } from "../../queryClient";
 import { useStoryboardStore } from "./StoryboardStore";
 import type { TimelineClip } from "@nodetool-ai/timeline";
+import {
+  ApiErrorCode,
+  isTRPCErrorWithCode
+} from "@nodetool-ai/protocol/api-schemas";
 
 /**
  * Invalidate the cached `timeline.get` query for one sequence. Writes here go
@@ -48,45 +52,70 @@ export async function syncShotClipToTimeline(
   if (!timelineId) {
     return false;
   }
-  try {
-    const sequence = await trpcClient.timeline.get.query({ id: timelineId });
-    const clips = sequence.clips as TimelineClip[];
-    let changed = false;
-    const next = clips.map((clip) => {
-      if (clip.storyboardShotId !== shotId || clip.storyboardBoardId !== boardId) {
-        return clip;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const selectedShot =
+      attempt > 0
+        ? useStoryboardStore
+            .getState()
+            .getBoard(boardId)
+            ?.shots.find((shot) => shot.id === shotId)
+        : undefined;
+    const activeAssetId = selectedShot ? selectedShot.clip?.asset_id : assetId;
+    if (!activeAssetId) return false;
+    try {
+      const sequence = await trpcClient.timeline.get.query({ id: timelineId });
+      const clips = sequence.clips as TimelineClip[];
+      let changed = false;
+      const next = clips.map((clip) => {
+        if (
+          clip.storyboardShotId !== shotId ||
+          clip.storyboardBoardId !== boardId
+        ) {
+          return clip;
+        }
+        // A jointly assembled cut stamps the shot keys onto the voiceover clips
+        // too, and those play the script's takes. The shot's own clips — the
+        // video one and its audio twin — carry no line.
+        if (clip.scriptLineId) {
+          return clip;
+        }
+        if (clip.currentAssetId === activeAssetId) {
+          return clip;
+        }
+        changed = true;
+        return {
+          ...clip,
+          currentAssetId: activeAssetId,
+          status: "generated" as const
+        };
+      });
+      if (!changed) {
+        return false;
       }
-      // A jointly assembled cut stamps the shot keys onto the voiceover clips
-      // too, and those play the script's takes. The shot's own clips — the
-      // video one and its audio twin — carry no line.
-      if (clip.scriptLineId) {
-        return clip;
+      await trpcClient.timeline.update.mutate({
+        id: timelineId,
+        baseUpdatedAt: sequence.updatedAt,
+        document: {
+          tracks: sequence.tracks,
+          clips: next,
+          markers: sequence.markers ?? []
+        }
+      });
+      invalidateTimelineGetQuery(timelineId);
+      return true;
+    } catch (err) {
+      if (
+        attempt < 2 &&
+        isTRPCErrorWithCode(err, ApiErrorCode.ALREADY_EXISTS)
+      ) {
+        continue;
       }
-      if (clip.currentAssetId === assetId) {
-        return clip;
-      }
-      changed = true;
-      return { ...clip, currentAssetId: assetId, status: "generated" as const };
-    });
-    if (!changed) {
+      console.warn(
+        `storyboard→timeline sync failed for shot ${shotId}:`,
+        err instanceof Error ? err.message : err
+      );
       return false;
     }
-    await trpcClient.timeline.update.mutate({
-      id: timelineId,
-      baseUpdatedAt: sequence.updatedAt,
-      document: {
-        tracks: sequence.tracks,
-        clips: next,
-        markers: sequence.markers ?? []
-      }
-    });
-    invalidateTimelineGetQuery(timelineId);
-    return true;
-  } catch (err) {
-    console.warn(
-      `storyboard→timeline sync failed for shot ${shotId}:`,
-      err instanceof Error ? err.message : err
-    );
-    return false;
   }
+  return false;
 }

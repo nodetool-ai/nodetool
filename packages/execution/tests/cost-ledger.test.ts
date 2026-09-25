@@ -10,9 +10,10 @@
  * free.
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Prediction, initTestDb } from "@nodetool-ai/models";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { registerCostReconciler } from "@nodetool-ai/runtime";
 import {
   attachRunCostLedger,
   isUnitBilledCapability,
@@ -181,6 +182,34 @@ describe("recordNodeProviderCost", () => {
     expect(row.billing_unit).toBe("megapixels");
     expect(row.quantity).toBe(1.5);
     expect(row.unit_price).toBe(0.03);
+  });
+
+  it("uses the configured FAL_API_KEY when reconciling a generic FAL node cost", async () => {
+    const requestedKeys: string[] = [];
+    let receivedSecret: Record<string, string> | undefined;
+    registerCostReconciler("fal_ai", async ({ secrets }) => {
+      receivedSecret = secrets;
+      return null;
+    });
+    await recordNodeProviderCost({
+      userId: USER,
+      cost: {
+        provider: "fal_ai",
+        amount: 0.02,
+        unit: "USD",
+        provider_request_id: "fal-req"
+      },
+      nodeId: "n2",
+      nodeType: "nodetool.image.TextToImage",
+      workflowId: "wf-2",
+      resolveSecret: async (key) => {
+        requestedKeys.push(key);
+        return key === "FAL_API_KEY" ? "configured-fal-key" : null;
+      }
+    });
+    await vi.waitFor(() => expect(receivedSecret).toBeDefined());
+    expect(requestedKeys).toEqual(["FAL_API_KEY"]);
+    expect(receivedSecret).toEqual({ FAL_API_KEY: "configured-fal-key" });
   });
 
   it("records provider, model and tokens for a text model's charge", async () => {

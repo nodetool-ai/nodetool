@@ -1234,29 +1234,32 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       fetchThreads: async () => {
+        const threadsAtRequest = get().threads;
+        const workflowIdsAtRequest = get().threadWorkflowId;
         set({ isLoadingThreads: true });
         try {
           const data = await trpcClient.threads.list.query({ limit: 100 });
 
-          const threadsRecord: Record<string, Thread> = {};
-          data.threads.forEach((thread) => {
-            threadsRecord[thread.id] = thread;
-          });
-
           // Merge with existing threads so locally-created/optimistic threads
-          // that haven't reached the server yet don't get wiped (the server
-          // response wins for ids present in both). Also hydrate the
-          // thread→workflow map from the server so the editor can scope its
-          // thread list after a fresh load (before any message is sent).
+          // that haven't reached the server yet don't get wiped. Preserve
+          // changes made while this request was in flight. Hydrate the
+          // thread→workflow map for entries that stayed unchanged locally.
           set((state) => {
+            const threads = { ...state.threads };
             const threadWorkflowId = { ...state.threadWorkflowId };
             for (const thread of data.threads) {
-              if (thread.workflow_id != null) {
+              if (state.threads[thread.id] === threadsAtRequest[thread.id]) {
+                threads[thread.id] = thread;
+              }
+              if (
+                thread.workflow_id != null &&
+                state.threadWorkflowId[thread.id] === workflowIdsAtRequest[thread.id]
+              ) {
                 threadWorkflowId[thread.id] = thread.workflow_id;
               }
             }
             return {
-              threads: { ...state.threads, ...threadsRecord },
+              threads,
               threadWorkflowId,
               threadsLoaded: true,
               error: null

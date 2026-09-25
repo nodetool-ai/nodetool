@@ -10,9 +10,11 @@ import { useAggregatedProviderModels } from "../useModelsByProvider";
 import { trpc } from "../../lib/trpc";
 import { trpcClient } from "../../trpc/client";
 import {
+  isOlderUpdatedAt,
   useTimelineStoreApi,
   type TimelineStoreState
 } from "../../stores/timeline/TimelineStore";
+import { mergeTimelineDocuments, type TimelineMergeDoc } from "../../stores/timeline/merge";
 import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
 import { restFetch } from "../../lib/rest-fetch";
 
@@ -229,6 +231,18 @@ export function useTrackObject(
     setStatus("pending");
     setError(null);
     try {
+      const submitted: NonNullable<TimelineStoreState["syncedDocument"]> = {
+        tracks: state.tracks,
+        clips: state.clips,
+        markers: state.markers,
+        mediaTracks: state.mediaTracks,
+        transcript: state.transcript,
+        scriptEnabled: state.scriptEnabled,
+        fps: state.fps,
+        width: state.width,
+        height: state.height,
+        camera2d: state.camera2d ?? null
+      };
       const saved = await trpcClient.timeline.update.mutate({
         id: state.sequenceId!,
         baseUpdatedAt: state.baseUpdatedAt ?? undefined,
@@ -238,9 +252,10 @@ export function useTrackObject(
       const savedAt = (saved as { updatedAt?: unknown } | undefined)?.updatedAt;
       if (
         typeof savedAt === "string" &&
-        afterSave.sequenceId === state.sequenceId
+        afterSave.sequenceId === state.sequenceId &&
+        !isOlderUpdatedAt(savedAt, afterSave.baseUpdatedAt)
       ) {
-        afterSave.setBaseUpdatedAt(savedAt);
+        afterSave.setBaseUpdatedAt(savedAt, submitted);
       }
       const savedClip = afterSave.clips.find((item) => item.id === clip.id);
       if (
@@ -254,20 +269,52 @@ export function useTrackObject(
       if (timeline.getState().sequenceId !== state.sequenceId) {
         throw new Error("The timeline changed while tracking was running. Try again.");
       }
-      const mediaTracks = (sequence.mediaTracks ?? []) as MediaTrack[];
+      const current = timeline.getState();
+      if (isOlderUpdatedAt(sequence.updatedAt, current.baseUpdatedAt)) {
+        throw new Error("The timeline changed while tracking was running. Try again.");
+      }
+      const base = current.syncedDocument ?? submitted;
+      const draft: TimelineMergeDoc = {
+        tracks: current.tracks,
+        clips: current.clips,
+        markers: current.markers,
+        mediaTracks: current.mediaTracks,
+        transcript: current.transcript,
+        scriptEnabled: current.scriptEnabled,
+        fps: current.fps,
+        width: current.width,
+        height: current.height,
+        camera2d: current.camera2d ?? null
+      };
+      const server: TimelineMergeDoc = {
+        tracks: sequence.tracks,
+        clips: sequence.clips,
+        markers: sequence.markers,
+        mediaTracks: sequence.mediaTracks ?? [],
+        transcript: sequence.transcript ?? [],
+        scriptEnabled: sequence.scriptEnabled ?? false,
+        fps: sequence.fps,
+        width: sequence.width,
+        height: sequence.height,
+        camera2d: sequence.camera2d ?? null
+      };
+      const merged = mergeTimelineDocuments(base, draft, server, undefined, {
+        mergeWithoutOps: true
+      });
       timeline.getState().applyExternalMerge({
-        mediaTracks
+        mediaTracks: merged.doc.mediaTracks as MediaTrack[]
       });
       const synced: NonNullable<TimelineStoreState["syncedDocument"]> = {
         tracks: sequence.tracks,
         clips: sequence.clips,
         markers: sequence.markers,
-        mediaTracks,
+        mediaTracks: merged.nextBase.mediaTracks as MediaTrack[],
         transcript: sequence.transcript ?? [],
         scriptEnabled: sequence.scriptEnabled ?? false,
         fps: sequence.fps,
         width: sequence.width,
-        height: sequence.height
+        height: sequence.height,
+        camera2d: sequence.camera2d ?? null
       };
       timeline.getState().setBaseUpdatedAt(sequence.updatedAt, synced);
       if (result.status === "failed") {
