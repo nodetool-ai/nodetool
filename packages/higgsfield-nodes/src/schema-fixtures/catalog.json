@@ -843,5 +843,120 @@
       "aspect_ratio",
       "cfg_scale"
     ]
+  },
+  {
+    "modelId": "higgsfield/cinema-studio/4.0",
+    "sourceUrl": "https://open.higgsfield.ai/models/higgsfield/cinema-studio/4.0/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "video_urls",
+      "audio_urls",
+      "duration",
+      "resolution",
+      "aspect_ratio",
+      "generate_audio",
+      "genre",
+      "era",
+      "pacing",
+      "light",
+      "color_palette",
+      "camera_model",
+      "camera_lens",
+      "camera_aperture",
+      "camera_movement"
+    ]
+  },
+  {
+    "modelId": "higgsfield/genjutsu/motion-transfer/v1.0",
+    "sourceUrl": "https://open.higgsfield.ai/models/higgsfield/genjutsu/motion-transfer/v1.0/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "video_url",
+      "image_urls",
+      "resolution"
+    ]
+  },
+  {
+    "modelId": "higgsfield/genjutsu/object-swap/v1.0",
+    "sourceUrl": "https://open.higgsfield.ai/models/higgsfield/genjutsu/object-swap/v1.0/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "video_url",
+      "image_urls",
+      "resolution"
+    ]
+  },
+  {
+    "modelId": "marketing-studio/image/flare",
+    "sourceUrl": "https://open.higgsfield.ai/models/marketing-studio/image/flare/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "quality",
+      "resolution",
+      "aspect_ratio",
+      "moderation",
+      "enhance_prompt",
+      "preset_id"
+    ]
+  },
+  {
+    "modelId": "marketing-studio/image/sunburst",
+    "sourceUrl": "https://open.higgsfield.ai/models/marketing-studio/image/sunburst/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_urls",
+      "quality",
+      "resolution",
+      "aspect_ratio",
+      "moderation",
+      "enhance_prompt",
+      "preset_id"
+    ]
+  },
+  {
+    "modelId": "pixverse/v6/image-to-video",
+    "sourceUrl": "https://open.higgsfield.ai/models/pixverse/v6/image-to-video/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "image_url",
+      "end_image_url",
+      "duration",
+      "resolution",
+      "generate_audio",
+      "negative_prompt",
+      "seed"
+    ]
+  },
+  {
+    "modelId": "recraft/v4.1/pro/text-to-image",
+    "sourceUrl": "https://open.higgsfield.ai/models/recraft/v4.1/pro/text-to-image/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "resolution",
+      "aspect_ratio",
+      "output_format"
+    ]
+  },
+  {
+    "modelId": "recraft/v4.1/utility/text-to-image",
+    "sourceUrl": "https://open.higgsfield.ai/models/recraft/v4.1/utility/text-to-image/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "resolution",
+      "aspect_ratio",
+      "output_format"
+    ]
+  },
+  {
+    "modelId": "recraft/v4.1/utility/pro/text-to-image",
+    "sourceUrl": "https://open.higgsfield.ai/models/recraft/v4.1/utility/pro/text-to-image/api-reference",
+    "verifiedFields": [
+      "prompt",
+      "resolution",
+      "aspect_ratio",
+      "output_format"
+    ]
   }
 ]
