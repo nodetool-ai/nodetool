@@ -6,7 +6,7 @@ import React, {
   useCallback
 } from "react";
 import OnScreenKeyboard from "./OnScreenKeyboard";
-import { ToggleGroup, ToggleOption } from "../../ui_primitives";
+import { ToggleGroup, ToggleOption, getSpacingPx, SPACING } from "../../ui_primitives";
 import { Tooltip } from "../../ui_primitives";
 import {
   Shortcut,
@@ -416,11 +416,11 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
               style={{
                 backgroundColor: "transparent",
                 borderRadius: ".5em",
-                padding: ".5em",
+                padding: getSpacingPx(SPACING.md),
                 display: "flex",
                 flexDirection: "row",
                 flexWrap: "wrap",
-                gap: "2em"
+                gap: getSpacingPx(SPACING.xxxl)
               }}
             >
               {currentHoverSlugs?.map((slug, idx) => (

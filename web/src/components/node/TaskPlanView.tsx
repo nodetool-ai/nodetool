@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
-import { Text } from "../ui_primitives";
+import { Text, getSpacingPx, SPACING } from "../ui_primitives";
 import { Task } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 
@@ -11,7 +11,7 @@ interface TaskPlanViewProps {
 
 const cssStyles = css({
   ".task-list-title": {
-    margin: "1rem 1rem",
+    margin: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)}`,
     fontWeight: 600,
     fontSize: "var(--fontSizeNormal)"
   }

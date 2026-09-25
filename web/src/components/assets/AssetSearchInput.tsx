@@ -9,7 +9,7 @@ import { registerTypeToFocus } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
-import { Tooltip, MOTION, BORDER_RADIUS, reducedMotion } from "../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS, reducedMotion, getSpacingPx, SPACING } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { isNumber } from "../../utils/typePredicates";
@@ -23,7 +23,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flexDirection: "row",
       alignItems: "center",
-      gap: "0.1em",
+      gap: getSpacingPx(SPACING.micro),
       margin: "0",
       padding: 0,
       overflow: "hidden"

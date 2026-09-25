@@ -98,7 +98,7 @@ const styles = (theme: Theme) =>
       flex: "1 1 auto",
       display: "flex",
       flexDirection: "column",
-      padding: "0 0.5em 0.25em 0.5em",
+      padding: `0 ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       minHeight: 0,
       overflow: "hidden"
     },
@@ -117,7 +117,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller || "0.75rem",
       fontWeight: 400,
       lineHeight: "1.2em",
-      padding: "0.5em",
+      padding: getSpacingPx(SPACING.md),
       overflowY: "auto",
       transition: MOTION.background,
       "&:focus": {

@@ -170,7 +170,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     const hasGraph = !showGraphPreview && workflow.graph && (workflow.graph.nodes?.length > 0 || workflow.graph.edges?.length > 0);
 
     return (
-      <FlexColumn gap={1} sx={{ width: hasGraph ? 320 : "auto", maxWidth: 320, padding: "1em" }}>
+      <FlexColumn gap={1} sx={{ width: hasGraph ? 320 : "auto", maxWidth: 320, padding: getSpacingPx(SPACING.xl) }}>
         <Text size="normal" weight={500}>
           {workflow.name}
         </Text>
@@ -191,8 +191,8 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
                   color: "grey.900",
                   backgroundColor: "grey.200",
                   borderRadius: BORDER_RADIUS.pill,
-                  padding: "0.15em 0.5em",
-                  margin: "0.75em 0"
+                  padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
+                  margin: `${getSpacingPx(SPACING.lg)} 0`
                 }}
               >
                 {tag}

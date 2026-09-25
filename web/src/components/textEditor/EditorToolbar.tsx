@@ -8,7 +8,7 @@ import RedoIcon from "@mui/icons-material/Redo";
 import WrapTextIcon from "@mui/icons-material/WrapText";
 import SearchIcon from "@mui/icons-material/Search";
 import CodeIcon from "@mui/icons-material/Code";
-import { ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { ToolbarIconButton, Box, MOTION, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
 
 interface EditorToolbarProps {
   onUndo?: () => void;
@@ -27,19 +27,19 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     alignItems: "center",
-    padding: "0.15em 1.25em",
+    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xl)}`,
     backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.25)`,
-    gap: "0.4em",
+    gap: getSpacingPx(SPACING.sm),
     minHeight: "2.4em",
     borderBottom: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.03)`,
     ".toolbar-group": {
       display: "flex",
       alignItems: "center",
-      gap: "0.2em",
+      gap: getSpacingPx(SPACING.xs),
       "&:not(:last-child)": {
         borderRight: "none",
-        paddingRight: "0.4em",
-        marginRight: "0.2em",
+        paddingRight: getSpacingPx(SPACING.sm),
+        marginRight: getSpacingPx(SPACING.xs),
         position: "relative",
         "&::after": {
           content: "''",

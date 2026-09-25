@@ -21,7 +21,7 @@ const styles = css({
   pointerEvents: "none",
   backgroundColor: "var(--palette-c_scrim)",
   color: "var(--palette-grey-100)",
-  padding: "0 .5em",
+  padding: `0 ${getSpacingPx(SPACING.md)}`,
   borderRadius: BORDER_RADIUS.xs,
   fontSize: "var(--fontSizeSmaller)",
   fontFamily: "var(--fontFamily2)"

@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from "react";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, EditorButton, FlexRow } from "../../ui_primitives";
+import { Tooltip, EditorButton, FlexRow, getSpacingPx, SPACING } from "../../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { CopyButton } from "../../ui_primitives";
@@ -89,7 +89,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = memo(({
       gap={1}
       align="center"
       sx={{
-        margin: "0 0 .25em 0"
+        margin: `0 0 ${getSpacingPx(SPACING.xs)} 0`
       }}
     >
       <Tooltip title="Download">

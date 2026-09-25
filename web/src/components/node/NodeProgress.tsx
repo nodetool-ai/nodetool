@@ -2,9 +2,9 @@
 import { memo, useCallback, useRef } from "react";
 import isEqual from "../../utils/isEqual";
 import { useNodeProgress } from "../../hooks/nodes/useNodeExecState";
-import { ProgressBar } from "../ui_primitives";
+import { ProgressBar, getSpacingPx, SPACING } from "../ui_primitives";
 
-const PROGRESS_STYLE: React.CSSProperties = { margin: "0.75em 0 0.5em 0" };
+const PROGRESS_STYLE: React.CSSProperties = { margin: `${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.md)} 0` };
 
 const NodeProgress = ({
   id,

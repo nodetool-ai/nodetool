@@ -12,7 +12,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  type SelectChangeEvent
+  type SelectChangeEvent, getSpacingPx, SPACING
 } from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore, {
@@ -315,7 +315,7 @@ const SettingItem = memo(function SettingItem({
         </Text>
       )}
       {SETTING_LINKS[setting.env_var] && (
-        <div style={{ marginTop: "0.5em" }}>
+        <div style={{ marginTop: getSpacingPx(SPACING.md) }}>
           <ExternalLink
             href={SETTING_LINKS[setting.env_var]}
             tooltipText={
@@ -511,7 +511,7 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
   return (
     <>
       {isLoading && (
-        <Text sx={{ textAlign: "center", padding: "2em" }}>
+        <Text sx={{ textAlign: "center", padding: getSpacingPx(SPACING.xxxl) }}>
           Loading settings…
         </Text>
       )}
@@ -587,7 +587,7 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
         </div>
       )}
       {isSuccess && !hasVisibleSettings && (
-        <Text sx={{ textAlign: "center", padding: "2em" }}>
+        <Text sx={{ textAlign: "center", padding: getSpacingPx(SPACING.xxxl) }}>
           No settings available
         </Text>
       )}

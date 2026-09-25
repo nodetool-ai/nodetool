@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useMemo, useCallback } from "react";
-import { Text, MOTION } from "../ui_primitives";
+import { Text, MOTION, getSpacingPx, SPACING } from "../ui_primitives";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import HomeIcon from "@mui/icons-material/Home";
 import { useTheme } from "@mui/material/styles";
@@ -16,8 +16,8 @@ const styles = (theme: Theme) =>
     "&": {
       display: "flex",
       alignItems: "center",
-      gap: "0.1em",
-      padding: "0.35em 0.5em",
+      gap: getSpacingPx(SPACING.micro),
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
       minHeight: "28px",
       flexShrink: 0,
       overflow: "hidden"
@@ -25,7 +25,7 @@ const styles = (theme: Theme) =>
     ".breadcrumb-item": {
       display: "flex",
       alignItems: "center",
-      gap: "0.1em",
+      gap: getSpacingPx(SPACING.micro),
       cursor: "pointer",
       background: "none",
       border: "none",

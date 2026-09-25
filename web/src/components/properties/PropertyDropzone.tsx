@@ -108,7 +108,7 @@ const PropertyDropzone = ({
       ".dropzone p.centered": {
         margin: "auto",
         textAlign: "left",
-        padding: "1em",
+        padding: getSpacingPx(SPACING.xl),
         minWidth: "60px",
         minHeight: "14px",
         lineHeight: "1.1em",

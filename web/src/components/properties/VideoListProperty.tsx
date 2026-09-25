@@ -125,7 +125,7 @@ const styles = (theme: Theme) =>
       letterSpacing: "1px",
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[500],
-      margin: "1em",
+      margin: getSpacingPx(SPACING.xl),
       lineHeight: "1.1em"
     }
   });

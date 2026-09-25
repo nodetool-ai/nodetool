@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
-import { EditorButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { EditorButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
 import FolderIcon from "@mui/icons-material/Folder";
 import NavigateIcon from "@mui/icons-material/NavigateNext";
 import { AssetWithPath } from "../../stores/ApiTypes";
@@ -42,13 +42,13 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       height: "calc(100% - 120px)",
-      paddingBottom: "1em"
+      paddingBottom: getSpacingPx(SPACING.xl)
     },
     ".search-results-header": {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "1.5em 1em 1em",
+      padding: `${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)}`,
       backgroundColor: theme.vars.palette.grey[800]
     },
     ".search-results-title": {
@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
     ".search-result-item": {
       display: "flex",
       alignItems: "center",
-      padding: "0.75em 1em",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
       cursor: "grab",
       transition: MOTION.background,
@@ -86,7 +86,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".result-item-icon": {
-      marginRight: "0.75em",
+      marginRight: getSpacingPx(SPACING.lg),
       width: "32px",
       height: "32px",
       display: "flex",
@@ -99,7 +99,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".result-item-thumbnail": {
-      marginRight: "0.75em",
+      marginRight: getSpacingPx(SPACING.lg),
       width: "40px",
       height: "40px",
       borderRadius: BORDER_RADIUS.sm,
@@ -145,7 +145,7 @@ const styles = (theme: Theme) =>
     ".result-item-details": {
       display: "flex",
       alignItems: "center",
-      gap: "0.75em",
+      gap: getSpacingPx(SPACING.lg),
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[400],
       userSelect: "none"
@@ -153,19 +153,19 @@ const styles = (theme: Theme) =>
     ".result-item-location": {
       display: "flex",
       alignItems: "center",
-      gap: "0.5em"
+      gap: getSpacingPx(SPACING.md)
     },
     ".folder-breadcrumb": {
       display: "flex",
       alignItems: "center",
-      gap: "0.25em",
+      gap: getSpacingPx(SPACING.xs),
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[200],
       userSelect: "none"
     },
     ".folder-navigate-btn": {
       minWidth: "auto",
-      padding: "0.25em 0.5em",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       fontSize: theme.fontSizeSmaller,
       textTransform: "none",
       color: "var(--palette-primary-main)",
@@ -234,7 +234,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     };
   }, []);
 
-  const flexCenterStyle = useMemo(() => ({ display: "flex", alignItems: "center", gap: "0.5em" }), []);
+  const flexCenterStyle = useMemo(() => ({ display: "flex", alignItems: "center", gap: getSpacingPx(SPACING.md) }), []);
   const spinnerStyle = useMemo(() => ({
     width: "20px",
     height: "20px",

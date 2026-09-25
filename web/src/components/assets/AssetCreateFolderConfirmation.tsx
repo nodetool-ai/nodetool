@@ -257,8 +257,8 @@ const AssetCreateFolderConfirmation: React.FC = () => {
           family="primary"
           sx={{
             color: theme.vars.palette.grey[100],
-            margin: ".5em 0 0",
-            padding: "1em"
+            margin: `${getSpacingPx(SPACING.md)} 0 0`,
+            padding: getSpacingPx(SPACING.xl)
           }}
         >
           {hasSelectedAssets
@@ -266,7 +266,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             : "Create new folder"}
         </Text>
 
-        <div style={{ padding: "0 .5em" }}>
+        <div style={{ padding: `0 ${getSpacingPx(SPACING.md)}` }}>
           {showAlert && (
             <AlertBanner
               className="asset-create-folder-error-alert"
@@ -303,7 +303,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
           justify="flex-end"
           gap={SPACING.xs}
           sx={{
-            padding: ".5em 1em"
+            padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`
           }}
         >
           <EditorButton
@@ -334,7 +334,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
               sx={{
                 backgroundColor: theme.vars.palette.c_attention,
                 color: theme.vars.palette.grey[1000],
-                padding: ".5em 1em"
+                padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`
               }}
             >
               <span className="asset-create-folder-selected-count">

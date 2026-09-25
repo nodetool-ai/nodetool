@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, ReactElement, memo } from "react";
-import { Text, ToolbarIconButton, MOTION } from "../ui_primitives";
+import { Text, ToolbarIconButton, MOTION, getSpacingPx, SPACING } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import LoopIcon from "@mui/icons-material/Loop";
@@ -46,7 +46,7 @@ const styles = (theme: Theme) =>
       width: "25px !important",
       height: "25px !important",
       marginLeft: "0",
-      padding: ".1em",
+      padding: getSpacingPx(SPACING.micro),
       transition: "border",
       color: theme.vars.palette.grey[100],
       backgroundColor: theme.vars.palette.grey[900]
@@ -88,7 +88,7 @@ const styles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      gap: "1em"
+      gap: getSpacingPx(SPACING.xl)
     },
     ".zoom-slider": {
       flexGrow: 1

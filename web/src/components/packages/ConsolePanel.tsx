@@ -12,7 +12,7 @@ import {
   BORDER_RADIUS,
   EditorButton,
   FlexColumn,
-  FlexRow
+  FlexRow, getSpacingPx, SPACING
 } from "../ui_primitives";
 
 const consoleStyles = (theme: Theme) =>
@@ -23,7 +23,7 @@ const consoleStyles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.action.hover,
     border: `1px solid ${theme.vars.palette.divider}`,
     borderRadius: BORDER_RADIUS.xs,
-    padding: "0.75em",
+    padding: getSpacingPx(SPACING.lg),
     margin: 0,
     maxHeight: "220px",
     overflow: "auto",

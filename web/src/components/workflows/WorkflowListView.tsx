@@ -56,7 +56,7 @@ const listStyles = (theme: Theme) =>
       backgroundColor: "transparent",
       transition: `background-color ${MOTION.normal}, color ${MOTION.normal}`,
       "& .MuiCheckbox-root": {
-        margin: "0 0.75em 0 0",
+        margin: `0 ${getSpacingPx(SPACING.lg)} 0 0`,
         padding: 0
       },
       position: "relative"

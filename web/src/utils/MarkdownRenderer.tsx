@@ -8,7 +8,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { CopyButton, Dialog, ToolbarIconButton, Box, BORDER_RADIUS, Z_INDEX } from "../components/ui_primitives";
+import { CopyButton, Dialog, ToolbarIconButton, Box, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../components/ui_primitives";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
@@ -61,7 +61,7 @@ const styles = (
       width: "100%",
       height: opts.fillContainer ? "100%" : "fit-content",
       minHeight: opts.fillContainer ? 0 : undefined,
-      padding: "0.25em 0.5em 2em 0.5em",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xxxl)} ${getSpacingPx(SPACING.md)}`,
       fontSize: opts.fontSize ?? theme.vars.fontSizeBig,
       fontWeight: 400,
       lineHeight: "1.3",
@@ -258,7 +258,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         slotProps={{
           paper: {
             sx: {
-              p: "1em",
+              p: getSpacingPx(SPACING.xl),
               bgcolor: theme.vars.palette.background.default,
               backgroundImage: "none",
               opacity: 1
@@ -274,7 +274,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             width: "100%",
             height: "100%",
             overflow: "auto",
-            marginBottom: "2em"
+            marginBottom: getSpacingPx(SPACING.xxxl)
           }}
         >
           <div className="markdown-output-actions">

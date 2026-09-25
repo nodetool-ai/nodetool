@@ -233,7 +233,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
               <ListItemIcon
                 sx={{
                   minWidth: "1em",
-                  paddingRight: ".5em",
+                  paddingRight: getSpacingPx(SPACING.md),
                   "& > *": {
                     color: theme.vars.palette.grey[100],
                     width: "1em",

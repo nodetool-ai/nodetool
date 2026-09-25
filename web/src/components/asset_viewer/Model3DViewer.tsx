@@ -158,7 +158,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       pointerEvents: "none"
     },
     ".model-info": {
-      marginTop: "1em",
+      marginTop: getSpacingPx(SPACING.xl),
       textAlign: "center"
     },
     ".controls-toolbar": {
@@ -166,11 +166,11 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       bottom: "1em",
       left: "50%",
       transform: "translateX(-50%)",
-      padding: "0.5em",
+      padding: getSpacingPx(SPACING.md),
       backgroundColor: "rgba(0, 0, 0, 0.7)",
       borderRadius: BORDER_RADIUS.lg,
       zIndex: Z_INDEX.overlay,
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       alignItems: "center"
     },
     ".controls-select": {
@@ -193,7 +193,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       zIndex: Z_INDEX.dropdown,
-      padding: "1em 1.5em",
+      padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)}`,
       maxWidth: "90%",
       backgroundColor: "rgba(0, 0, 0, 0.8)",
       borderRadius: BORDER_RADIUS.lg

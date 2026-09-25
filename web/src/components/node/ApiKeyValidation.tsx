@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { Text, EditorButton } from "../ui_primitives";
+import { Text, EditorButton, getSpacingPx, SPACING } from "../ui_primitives";
 import { useApiKeyValidation } from "../../hooks/useApiKeyValidation";
 import { getRequiredSecretKeyForNamespace } from "../../utils/nodeProvider";
 import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
@@ -33,7 +33,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
               width: "100%",
               textAlign: "center",
               textTransform: "uppercase",
-              padding: ".5em !important",
+              padding: `${getSpacingPx(SPACING.md)} !important`,
               marginBottom: "0"
             }}
           >
@@ -46,8 +46,8 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
             size="small"
             onClick={handleConnectProvider}
             sx={{
-              margin: "0 1em",
-              padding: ".2em 0 0",
+              margin: `0 ${getSpacingPx(SPACING.xl)}`,
+              padding: `${getSpacingPx(SPACING.xs)} 0 0`,
               height: "1.8em",
               lineHeight: "1.2em",
               color: "var(--palette-grey-1000)",

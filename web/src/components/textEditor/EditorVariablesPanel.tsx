@@ -10,7 +10,7 @@ import {
   Tooltip,
   InlineEditableText,
   MOTION,
-  BORDER_RADIUS
+  BORDER_RADIUS, getSpacingPx, SPACING
 } from "../ui_primitives";
 import type { TemplateVariable, VariableSyntax } from "./templateVariables";
 
@@ -34,20 +34,20 @@ const styles = (theme: Theme) =>
     flexShrink: 0,
     maxHeight: "30%",
     overflowY: "auto",
-    padding: "0.55em 1.25em 0.7em",
+    padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.lg)}`,
     backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.45)`,
     borderTop: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.05)`,
     ".variables-head": {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      gap: "0.5em",
-      marginBottom: "0.45em"
+      gap: getSpacingPx(SPACING.md),
+      marginBottom: getSpacingPx(SPACING.md)
     },
     ".variables-title": {
       display: "flex",
       alignItems: "center",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       fontSize: "var(--fontSizeSmaller)",
       letterSpacing: "0.06em",
       textTransform: "uppercase",
@@ -60,7 +60,7 @@ const styles = (theme: Theme) =>
       ".unbound": {
         display: "inline-flex",
         alignItems: "center",
-        gap: "0.35em",
+        gap: getSpacingPx(SPACING.sm),
         color: theme.vars.palette.warning.main,
         fontWeight: 500,
         "&::before": {
@@ -81,14 +81,14 @@ const styles = (theme: Theme) =>
     ".variables-chips": {
       display: "flex",
       flexWrap: "wrap",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       alignItems: "center"
     },
     ".variable-chip": {
       display: "inline-flex",
       alignItems: "center",
-      gap: "0.55em",
-      padding: "0.3em 0.7em",
+      gap: getSpacingPx(SPACING.md),
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
       borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
       backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.55)`,
@@ -145,8 +145,8 @@ const styles = (theme: Theme) =>
     ".variable-add": {
       display: "inline-flex",
       alignItems: "center",
-      gap: "0.35em",
-      padding: "0.3em 0.7em",
+      gap: getSpacingPx(SPACING.sm),
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
       borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
       color: theme.vars.palette.text.secondary,

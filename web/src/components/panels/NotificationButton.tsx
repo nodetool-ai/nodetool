@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState } from "react";
-import { Popover } from "../ui_primitives";
+import { Popover, getSpacingPx, SPACING } from "../ui_primitives";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
@@ -12,7 +12,7 @@ import ReportBugButton from "../support/ReportBugButton";
 
 const popoverStyles = css({
   paddingRight: "4em",
-  marginTop: "2em",
+  marginTop: getSpacingPx(SPACING.xxxl),
   "& .copy-button": {
     position: "absolute",
     opacity: 0.8,

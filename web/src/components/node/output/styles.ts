@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, Z_INDEX } from "../../ui_primitives";
+import { MOTION, Z_INDEX, getSpacingPx, SPACING } from "../../ui_primitives";
 
 export const outputStyles = (theme: Theme, hasActions = true) =>
   css({
@@ -10,7 +10,7 @@ export const outputStyles = (theme: Theme, hasActions = true) =>
       backgroundColor: "transparent",
       height: hasActions ? "calc(100% - 43px)" : "100%",
       width: "100%",
-      padding: ".25em",
+      padding: getSpacingPx(SPACING.xs),
       overflow: "auto",
       fontSize: "var(--fontSizeSmall)",
       userSelect: "text",
@@ -30,22 +30,22 @@ export const outputStyles = (theme: Theme, hasActions = true) =>
     },
     p: {
       margin: "0",
-      padding: ".25em",
+      padding: getSpacingPx(SPACING.xs),
       wordWrap: "break-word",
       overflowWrap: "break-word"
     },
     ul: {
       margin: "0",
-      padding: ".1em 1.75em",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xxl)}`,
       listStyleType: "square"
     },
     li: {
       margin: "0",
-      padding: ".1em .25em"
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`
     },
     pre: {
       margin: "0",
-      padding: ".25em",
+      padding: getSpacingPx(SPACING.xs),
       backgroundColor: theme.vars.palette.grey[900],
       width: "100%",
       overflowX: "scroll"
@@ -61,7 +61,7 @@ export const outputStyles = (theme: Theme, hasActions = true) =>
       margin: "0",
       display: "flex",
       flexDirection: "row",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       zIndex: Z_INDEX.dropdown,
       opacity: 0,
       transition: MOTION.opacity
@@ -70,7 +70,7 @@ export const outputStyles = (theme: Theme, hasActions = true) =>
       minWidth: "unset",
       width: "auto",
       lineHeight: "1.5em",
-      padding: ".3em .3em 0 .3em",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xs)} 0 ${getSpacingPx(SPACING.xs)}`,
       color: theme.vars.palette.grey[200],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall

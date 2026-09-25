@@ -46,8 +46,8 @@ const colorMatrixStyle = (theme: Theme) =>
   css({
     display: "flex",
     flexWrap: "wrap",
-    gap: "0.25em",
-    padding: "0.5em",
+    gap: getSpacingPx(SPACING.xs),
+    padding: getSpacingPx(SPACING.md),
     marginBottom: 4,
     width: "100%",
     maxWidth: "300px",

@@ -147,7 +147,7 @@ const ModelTypeSidebar: React.FC = () => {
                 {type === "All" && (
                   <IconForType
                     iconName="model"
-                    containerStyle={{ marginRight: "0.5em", display: "flex" }}
+                    containerStyle={{ marginRight: getSpacingPx(SPACING.md), display: "flex" }}
                     svgProps={{
                       style: {
                         width: "20px",

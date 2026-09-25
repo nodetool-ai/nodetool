@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "react";
-import { Label, BORDER_RADIUS } from "../ui_primitives";
+import { Label, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
 import { ColumnDef } from "../../stores/ApiTypes";
 import isEqual from "../../utils/isEqual";
 import Column from "./Column";
@@ -13,16 +13,16 @@ const styles = (theme: Theme) =>
     "&": {
       display: "flex",
       flexDirection: "row",
-      gap: "0.15em",
+      gap: getSpacingPx(SPACING.micro),
       padding: "0",
       backgroundColor: "transparent"
     },
     ".labels": {
       display: "flex",
       flexDirection: "row",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       width: "100%",
-      padding: "0 0 0.15em 0",
+      padding: `0 0 ${getSpacingPx(SPACING.micro)} 0`,
       margin: "0",
       alignItems: "center"
     },
@@ -42,15 +42,15 @@ const styles = (theme: Theme) =>
       flexGrow: 0,
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.grey[400],
-      marginRight: "1.5em" // Account for delete button width
+      marginRight: getSpacingPx(SPACING.xxl) // Account for delete button width
     },
     ".column": {
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       padding: "0",
-      margin: "0 0 0.15em 0",
+      margin: `0 0 ${getSpacingPx(SPACING.micro)} 0`,
       width: "100%"
     },
     ".item-name": {
@@ -67,7 +67,7 @@ const styles = (theme: Theme) =>
       minWidth: "70px",
       display: "flex",
       flexDirection: "row",
-      gap: "0.25em",
+      gap: getSpacingPx(SPACING.xs),
       alignItems: "center"
     },
     ".textfield": {
@@ -81,7 +81,7 @@ const styles = (theme: Theme) =>
     },
     ".textfield input": {
       margin: "0",
-      padding: "0.25em 0.5em",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       height: "1.25em",
       fontSize: "var(--fontSizeSmaller)"
     },
@@ -95,7 +95,7 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.lg,
       height: "1.75em",
       margin: "0",
-      padding: "0.25em 0.5em",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       fontSize: "var(--fontSizeSmaller)"
     },
     ".select svg": {
@@ -123,7 +123,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".delete-button": {
-      padding: "0.1em",
+      padding: getSpacingPx(SPACING.micro),
       fontSize: "var(--fontSizeNormal)",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],

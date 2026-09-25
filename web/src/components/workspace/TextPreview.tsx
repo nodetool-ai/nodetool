@@ -18,7 +18,7 @@ import {
   FlexRow,
   LoadingSpinner,
   ScrollArea,
-  Text
+  Text, getSpacingPx, SPACING
 } from "../ui_primitives";
 
 interface TextPreviewProps {
@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
     ".preview-header": {
       flex: "0 0 auto",
       height: "2.5em",
-      padding: "0 0.5em 0 0.75em",
+      padding: `0 ${getSpacingPx(SPACING.md)} 0 ${getSpacingPx(SPACING.lg)}`,
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.grey[800]
     },
@@ -55,7 +55,7 @@ const styles = (theme: Theme) =>
       minHeight: 0
     },
     ".csv-note": {
-      padding: "0.5em 1.25em"
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`
     },
     ".status": {
       width: "100%",

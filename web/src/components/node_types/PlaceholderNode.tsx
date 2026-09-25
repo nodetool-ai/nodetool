@@ -70,15 +70,15 @@ const styles = (theme: Theme) =>
     ".node-property": {
       width: "100%",
       textAlign: "left",
-      paddingLeft: "0.5em",
-      marginBottom: "0.1em"
+      paddingLeft: getSpacingPx(SPACING.md),
+      marginBottom: getSpacingPx(SPACING.micro)
     },
     ".missing-node-text": {
       fontWeight: FONT_WEIGHT.semibold,
       textAlign: "center",
       color: theme.vars.palette.error.main,
       padding: 0,
-      margin: ".5em 0 0"
+      margin: `${getSpacingPx(SPACING.md)} 0 0`
     },
     ".search-button": {
       fontSize: "var(--fontSizeSmaller)",

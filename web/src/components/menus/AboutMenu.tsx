@@ -7,7 +7,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { VERSION, GIT_COMMIT_HASH, BUILD_NUMBER } from "../../config/constants";
 import { isElectron, isProduction } from "../../lib/env";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { FlexRow, FlexColumn, Text, Caption, LoadingSpinner, Chip, Box } from "../ui_primitives";
+import { FlexRow, FlexColumn, Text, Caption, LoadingSpinner, Chip, Box, getSpacingPx, SPACING } from "../ui_primitives";
 
 // Note: This interface mirrors the SystemInfo type from window.d.ts
 // We use a local copy to avoid type export complexity
@@ -50,7 +50,7 @@ const InfoRow: React.FC<{
       justify="space-between"
       align="flex-start"
       sx={{
-        padding: "0.5em 0",
+        padding: `${getSpacingPx(SPACING.md)} 0`,
         borderBottom: `1px solid ${theme.vars.palette.divider}`,
         "&:last-child": {
           borderBottom: "none"
@@ -114,7 +114,7 @@ const FeatureStatus: React.FC<{
       justify="space-between"
       align="center"
       sx={{
-        padding: "0.5em 0",
+        padding: `${getSpacingPx(SPACING.md)} 0`,
         borderBottom: `1px solid ${theme.vars.palette.divider}`,
         "&:last-child": {
           borderBottom: "none"
@@ -267,7 +267,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
 
   if (error) {
     return (
-      <Box sx={{ padding: "1em" }}>
+      <Box sx={{ padding: getSpacingPx(SPACING.xl) }}>
         <Text color="error">{error}</Text>
       </Box>
     );
@@ -376,7 +376,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
       )}
 
       {systemInfo && (
-        <Box sx={{ marginTop: "1.5em", marginBottom: "1em" }}>
+        <Box sx={{ marginTop: getSpacingPx(SPACING.xxl), marginBottom: getSpacingPx(SPACING.xl) }}>
           <Text
             size="small"
             component="button"
@@ -390,7 +390,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
               cursor: "pointer",
               display: "inline-flex",
               alignItems: "center",
-              gap: "0.5em",
+              gap: getSpacingPx(SPACING.md),
               "&:hover": {
                 textDecoration: "underline"
               }
@@ -409,7 +409,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
         <FlexColumn
           gap={1}
           sx={{
-            padding: "0.5em 0"
+            padding: `${getSpacingPx(SPACING.md)} 0`
           }}
         >
           <a

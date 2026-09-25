@@ -6,7 +6,7 @@ import {
   Text,
   Divider,
   ContextMenu,
-  MenuItem
+  MenuItem, getSpacingPx, SPACING
 } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
@@ -235,7 +235,7 @@ const AssetItemContextMenu = () => {
         open={menuPosition !== null}
         onClose={closeContextMenu}
         onContextMenu={(event) => event.preventDefault()}
-        style={{ padding: "1em" }}
+        style={{ padding: getSpacingPx(SPACING.xl) }}
         position={menuPosition}
         paperSx={singleAsset ? { display: "flex", overflow: "visible" } : undefined}
       >

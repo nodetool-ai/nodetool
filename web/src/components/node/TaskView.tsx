@@ -3,15 +3,15 @@ import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Card, ListGroup, BORDER_RADIUS } from "../ui_primitives";
+import { Text, Card, ListGroup, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
 import { Task } from "../../stores/ApiTypes";
 import StepView from "./StepView";
 
 const styles = (theme: Theme) =>
   css({
     ".task-container": {
-      marginBottom: "1rem",
-      padding: "1rem",
+      marginBottom: getSpacingPx(SPACING.xl),
+      padding: getSpacingPx(SPACING.xl),
       borderRadius: BORDER_RADIUS.sm
     },
     ".task-title": {
@@ -19,8 +19,8 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[200]
     },
     ".task-description": {
-      marginTop: "0.5rem",
-      marginBottom: "1rem",
+      marginTop: getSpacingPx(SPACING.md),
+      marginBottom: getSpacingPx(SPACING.xl),
       color: theme.vars.palette.grey[800]
     }
   });

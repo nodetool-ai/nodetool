@@ -90,7 +90,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           sx={{
             display: "inline-flex",
             alignItems: "center",
-            gap: "0.5em",
+            gap: getSpacingPx(SPACING.md),
             padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
             borderRadius: BORDER_RADIUS.pill,
             border: "1px solid",

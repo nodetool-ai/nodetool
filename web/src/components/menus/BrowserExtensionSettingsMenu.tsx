@@ -7,7 +7,7 @@ import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
-import { Text, FlexRow, FlexColumn, NavButton, Chip } from "../ui_primitives";
+import { Text, FlexRow, FlexColumn, NavButton, Chip, getSpacingPx, SPACING } from "../ui_primitives";
 import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
@@ -134,7 +134,7 @@ const BrowserExtensionSettingsMenu = () => {
             color="primary"
             onClick={() => window.open(downloadUrl, "_blank")}
             navSize="small"
-            sx={{ padding: "0.25em 1em", minWidth: "unset" }}
+            sx={{ padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`, minWidth: "unset" }}
           />
           {canReveal ? (
             <NavButton
@@ -142,7 +142,7 @@ const BrowserExtensionSettingsMenu = () => {
               label="Reveal build folder"
               onClick={handleReveal}
               navSize="small"
-              sx={{ padding: "0.25em 1em", minWidth: "unset" }}
+              sx={{ padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`, minWidth: "unset" }}
             />
           ) : (
             distExists && (
@@ -151,7 +151,7 @@ const BrowserExtensionSettingsMenu = () => {
                 label="Copy build path"
                 onClick={() => handleCopy(distPath, "build path")}
                 navSize="small"
-                sx={{ padding: "0.25em 1em", minWidth: "unset" }}
+                sx={{ padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`, minWidth: "unset" }}
               />
             )
           )}
@@ -160,7 +160,7 @@ const BrowserExtensionSettingsMenu = () => {
             label="Copy chrome://extensions"
             onClick={() => handleCopy(CHROME_EXTENSIONS_URL, CHROME_EXTENSIONS_URL)}
             navSize="small"
-            sx={{ padding: "0.25em 1em", minWidth: "unset" }}
+            sx={{ padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`, minWidth: "unset" }}
           />
         </FlexRow>
 

@@ -29,11 +29,11 @@ const RENDERED_METADATA_KEYS = new Set(["prompt", "generation"]);
 const styles = (theme: Theme) =>
   css({
     width: "240px",
-    padding: "0.75em 1em",
+    padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
     borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
     "& .info-row": {
       display: "flex",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       padding: `${getSpacingPx(SPACING.micro)} 0`,
       alignItems: "baseline",
       lineHeight: 1.4
@@ -55,13 +55,13 @@ const styles = (theme: Theme) =>
       maxHeight: "140px",
       objectFit: "contain",
       borderRadius: BORDER_RADIUS.sm,
-      marginBottom: "0.5em",
+      marginBottom: getSpacingPx(SPACING.md),
       backgroundColor: theme.vars.palette.grey[800]
     },
     "& .info-section": {
       borderTop: `1px solid ${theme.vars.palette.grey[700]}`,
-      marginTop: "0.35em",
-      paddingTop: "0.35em"
+      marginTop: getSpacingPx(SPACING.sm),
+      paddingTop: getSpacingPx(SPACING.sm)
     },
     "& .info-section-title": {
       fontSize: theme.fontSizeSmaller,

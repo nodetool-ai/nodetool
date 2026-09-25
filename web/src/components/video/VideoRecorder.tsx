@@ -59,17 +59,17 @@ const VideoRecorder = (props: VideoRecorderProps) => {
     css({
       background: theme.vars.palette.grey[800],
       minHeight: "50px",
-      marginTop: "0.5em",
+      marginTop: getSpacingPx(SPACING.md),
       "& button": {
         fontSize: theme.fontSizeSmall,
         border: "0",
         padding: getSpacingPx(SPACING.micro),
-        margin: ".5em",
+        margin: getSpacingPx(SPACING.md),
         color: "var(--palette-primary-main)"
       },
       "& button.device-button": {
         float: "right",
-        marginTop: "0.3em"
+        marginTop: getSpacingPx(SPACING.xs)
       },
       "& button.play-pause-button": {
         minWidth: "4em"
@@ -88,7 +88,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
         color: theme.vars.palette.grey[200]
       },
       ".device-select": {
-        marginTop: "0.5em",
+        marginTop: getSpacingPx(SPACING.md),
         "& .select-container": {
           width: "100%"
         },
@@ -99,7 +99,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
           border: `1px solid ${theme.vars.palette.grey[600]}`
         },
         "& .select-header": {
-          padding: "0.4em 1.6em 0.4em 0.6em"
+          padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`
         },
         "&.disabled": {
           opacity: 0.5,
@@ -118,7 +118,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
       },
       "& button.recording": {
         backgroundColor: theme.vars.palette.error.main,
-        marginLeft: "0.5em",
+        marginLeft: getSpacingPx(SPACING.md),
         color: theme.vars.palette.grey[900],
         minWidth: "33px"
       },
@@ -198,7 +198,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
           {videoInputDevices.length > 0 ? (
             <>
               <Text size="smaller" weight={600} sx={{
-                margin: "0 0 .5em 0",
+                margin: `0 0 ${getSpacingPx(SPACING.md)} 0`,
                 color: "var(--palette-grey-100)"
               }}>
                 Camera
@@ -226,7 +226,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
                 position: "absolute",
                 backgroundColor: "var(--palette-warning-main)",
                 color: "var(--palette-grey-900)",
-                padding: ".2em 0.5em",
+                padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
                 borderRadius: BORDER_RADIUS.xs,
                 zIndex: Z_INDEX.overlay,
                 top: "0.5em",
@@ -240,7 +240,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
           {audioInputDevices.length > 0 && (
             <>
               <Text size="smaller" weight={600} sx={{
-                margin: "1em 0 .5em 0",
+                margin: `${getSpacingPx(SPACING.xl)} 0 ${getSpacingPx(SPACING.md)} 0`,
                 color: "var(--palette-grey-100)"
               }}>
                 Microphone

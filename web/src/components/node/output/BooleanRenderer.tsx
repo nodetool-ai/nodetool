@@ -3,6 +3,7 @@ import React, { memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import Actions from "./Actions";
 import { outputStyles } from "./styles";
+import { getSpacingPx, SPACING } from "../../ui_primitives";
 
 export const BooleanRenderer: React.FC<{
   value: boolean;
@@ -13,7 +14,7 @@ export const BooleanRenderer: React.FC<{
   return (
     <div className="output value" css={cssStyles}>
       <Actions copyValue={boolStr} />
-      <p style={{ padding: "1em", color: "inherit" }}>{boolStr}</p>
+      <p style={{ padding: getSpacingPx(SPACING.xl), color: "inherit" }}>{boolStr}</p>
     </div>
   );
 };

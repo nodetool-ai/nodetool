@@ -7,7 +7,7 @@ import Prism from "prismjs";
 import "prismjs/components/prism-json";
 import DOMPurify from "dompurify";
 import type { Chunk } from "../../../stores/ApiTypes";
-import { MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { MOTION, BORDER_RADIUS, getSpacingPx, SPACING } from "../../ui_primitives";
 import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 type Props = {
@@ -19,9 +19,9 @@ const toolCallStyles = (theme: Theme) =>
     "&": {
       display: "flex",
       flexDirection: "column",
-      gap: ".25em",
-      padding: ".4em .6em",
-      margin: ".2em 0",
+      gap: getSpacingPx(SPACING.xs),
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
+      margin: `${getSpacingPx(SPACING.xs)} 0`,
       borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.grey[900],
@@ -34,13 +34,13 @@ const toolCallStyles = (theme: Theme) =>
     ".header": {
       display: "flex",
       alignItems: "baseline",
-      gap: ".5em",
+      gap: getSpacingPx(SPACING.md),
       cursor: "pointer",
       userSelect: "none"
     },
     ".badge": {
       flexShrink: 0,
-      padding: "0 .4em",
+      padding: `0 ${getSpacingPx(SPACING.sm)}`,
       borderRadius: BORDER_RADIUS.xs,
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
@@ -70,7 +70,7 @@ const toolCallStyles = (theme: Theme) =>
     },
     ".args": {
       margin: 0,
-      padding: ".4em .5em",
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.xs,
       backgroundColor: theme.vars.palette.background.default,
       color: theme.vars.palette.grey[100],

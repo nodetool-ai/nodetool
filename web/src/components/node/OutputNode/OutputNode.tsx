@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { NodeProps } from "@xyflow/react";
 import { getCopySource, getOutputFromResult } from "../outputResult";
-import { Text, Container, MOTION, BORDER_RADIUS, Z_INDEX } from "../../ui_primitives";
+import { Text, Container, MOTION, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "../../../utils/isEqual";
@@ -135,7 +135,7 @@ const styles = (theme: Theme) =>
         opacity: 0,
         position: "absolute",
         display: "flex",
-        gap: ".5em",
+        gap: getSpacingPx(SPACING.md),
         top: "unset",
         bottom: ".1em",
         left: "1em",
@@ -184,7 +184,7 @@ const styles = (theme: Theme) =>
         width: "100%",
         maxHeight: "500px",
         overflowY: "auto",
-        padding: "1em"
+        padding: getSpacingPx(SPACING.xl)
       },
       // Ensure image action buttons show on hover
       "&:hover .image-view-actions": {

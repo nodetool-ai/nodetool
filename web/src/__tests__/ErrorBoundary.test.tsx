@@ -22,6 +22,9 @@ jest.mock("@mui/material", () => ({
 
 // Mock ui_primitives used by ErrorBoundary
 jest.mock("../components/ui_primitives", () => ({
+  SPACING: jest.requireActual("../components/ui_primitives/spacing").SPACING,
+  getSpacingPx: jest.requireActual("../components/ui_primitives/spacing")
+    .getSpacingPx,
   MOTION: jest.requireActual("../components/ui_primitives/tokens").MOTION,
   BORDER_RADIUS: jest.requireActual("../components/ui_primitives/tokens")
     .BORDER_RADIUS,

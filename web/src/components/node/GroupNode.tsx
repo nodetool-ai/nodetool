@@ -203,7 +203,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       backgroundColor: "var(--palette-grey-900)",
       boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}33`,
       border: `1px solid ${theme.vars.palette.grey[800]}`,
-      padding: "0.75em 1em",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderRadius: BORDER_RADIUS.sm,
       fontSize: theme.fontSizeSmall,
       whiteSpace: "nowrap",
@@ -214,8 +214,8 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
     },
     ".help-text ul": {
       listStyleType: "square",
-      padding: "0 0 0 .5em",
-      margin: "0 0 0 1em"
+      padding: `0 0 0 ${getSpacingPx(SPACING.md)}`,
+      margin: `0 0 0 ${getSpacingPx(SPACING.xl)}`
     },
     ".help-text li": {
       padding: 0,

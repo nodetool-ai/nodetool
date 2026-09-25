@@ -18,7 +18,7 @@ const styles = (theme: Theme) =>
   css({
     width: "100%",
     borderRadius: BORDER_RADIUS.lg,
-    padding: "0.75em 1em 1em",
+    padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)}`,
     position: "relative",
     alignItems: "stretch",
     justifyContent: "start",
@@ -27,19 +27,19 @@ const styles = (theme: Theme) =>
     boxShadow: theme.shadows[1],
     ".download-progress-text": {
       fontFamily: theme.fontFamily2,
-      paddingBottom: "0.2em",
+      paddingBottom: getSpacingPx(SPACING.xs),
       width: "100%",
       marginTop: "0",
       fontSize: theme.fontSizeSmaller
     },
     ".download-status": {
-      padding: "0.35em 0 0.25em",
+      padding: `${getSpacingPx(SPACING.sm)} 0 ${getSpacingPx(SPACING.xs)}`,
       fontFamily: theme.fontFamily2
     },
     ".repo-name": {
       lineHeight: "1.2em",
       wordBreak: "break-word",
-      paddingRight: "2.5em",
+      paddingRight: getSpacingPx(SPACING.xxxl),
       fontWeight: 500
     },
     ".download-message": {
@@ -52,7 +52,7 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       position: "relative",
       background: theme.vars.palette.action.hover,
-      marginTop: "0.75em"
+      marginTop: getSpacingPx(SPACING.lg)
     },
     ".progress-bar": {
       position: "absolute",
@@ -73,8 +73,8 @@ const styles = (theme: Theme) =>
       marginTop: theme.spacing(1)
     },
     ".cancel-button": {
-      padding: "0.45em 0.9em",
-      marginTop: ".75em",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
+      marginTop: getSpacingPx(SPACING.lg),
       lineHeight: "1.1em",
       whiteSpace: "nowrap",
       alignSelf: "start"
@@ -467,7 +467,7 @@ export const DownloadProgress: React.FC<{
                 className="download-progress-text download-size"
                 size="small"
                 style={{
-                  marginTop: ".5em",
+                  marginTop: getSpacingPx(SPACING.md),
                   fontFamily: "var(--fontFamily2)"
                 }}
               >

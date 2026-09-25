@@ -39,12 +39,12 @@ const ICON_SLOT = "18px";
 const styles = (theme: Theme) =>
   css({
     "&.workflow-tree": {
-      padding: ".25em .5em 1em .5em"
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`
     },
     ".root-row": {
       display: "flex",
       alignItems: "center",
-      gap: ".4em",
+      gap: getSpacingPx(SPACING.sm),
       height: ROW_HEIGHT,
       paddingLeft: getSpacingPx(SPACING.micro),
       cursor: "pointer",
@@ -80,15 +80,15 @@ const styles = (theme: Theme) =>
       transform: "rotate(0deg)"
     },
     ".search-row": {
-      padding: ".25em 0 .25em 0"
+      padding: `${getSpacingPx(SPACING.xs)} 0 ${getSpacingPx(SPACING.xs)} 0`
     },
     ".workflow-leaf": {
       display: "flex",
       alignItems: "center",
-      gap: ".4em",
+      gap: getSpacingPx(SPACING.sm),
       height: ROW_HEIGHT,
-      paddingLeft: ".75rem",
-      paddingRight: ".25em",
+      paddingLeft: getSpacingPx(SPACING.lg),
+      paddingRight: getSpacingPx(SPACING.xs),
       cursor: "pointer",
       borderRadius: BORDER_RADIUS.md,
       transition: `${MOTION.background}, color ${MOTION.fast}`
@@ -128,7 +128,7 @@ const styles = (theme: Theme) =>
       fontWeight: 600
     },
     ".empty-row": {
-      paddingLeft: "1.75rem",
+      paddingLeft: getSpacingPx(SPACING.xxl),
       color: theme.vars.palette.grey[500],
       fontSize: theme.fontSizeSmaller
     }

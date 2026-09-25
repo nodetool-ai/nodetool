@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { Component } from "react";
 import type { ReactNode, ErrorInfo } from "react";
-import { EditorButton, Text, Box, BORDER_RADIUS } from "./ui_primitives";
+import { EditorButton, Text, Box, BORDER_RADIUS, getSpacingPx, SPACING } from "./ui_primitives";
 import ReportBugButton from "./support/ReportBugButton";
 import { ThemeContext } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
@@ -19,8 +19,8 @@ const searchErrorBoundaryStyles = (theme: Theme) =>
     background: theme.vars.palette.c_gray0,
     border: `1px solid ${theme.vars.palette.c_gray1}`,
     borderRadius: BORDER_RADIUS.lg,
-    margin: "1rem",
-    padding: "2rem",
+    margin: getSpacingPx(SPACING.xl),
+    padding: getSpacingPx(SPACING.xxxl),
 
     ".error-title": {
       color: theme.vars.palette.error.main,

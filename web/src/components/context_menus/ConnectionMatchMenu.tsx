@@ -7,7 +7,7 @@ import {
   Box,
   ContextMenu,
   MenuItem,
-  ListItemText
+  ListItemText, getSpacingPx, SPACING
 } from "../ui_primitives";
 import { Connection } from "@xyflow/react";
 import useContextMenu from "../../stores/ContextMenuStore";
@@ -78,7 +78,7 @@ const ConnectionMatchMenu: React.FC = () => {
         <MenuItem
           sx={{
             "& .MuiListItemText-root": {
-              padding: "0.5em 0"
+              padding: `${getSpacingPx(SPACING.md)} 0`
             }
           }}
           key={option.id}

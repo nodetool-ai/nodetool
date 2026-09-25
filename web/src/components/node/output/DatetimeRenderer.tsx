@@ -5,6 +5,7 @@ import Actions from "./Actions";
 import { outputStyles } from "./styles";
 import { Datetime } from "../../../stores/ApiTypes";
 import { formatDateTime } from "../../../utils/formatUtils";
+import { getSpacingPx, SPACING } from "../../ui_primitives";
 
 /**
  * Format a Datetime object into a human-readable string.
@@ -34,7 +35,7 @@ const DatetimeRendererInternal: React.FC<{
   return (
     <div className="output value" css={cssStyles}>
       <Actions copyValue={formattedDate} />
-      <p style={{ padding: "1em", color: "inherit" }}>{formattedDate}</p>
+      <p style={{ padding: getSpacingPx(SPACING.xl), color: "inherit" }}>{formattedDate}</p>
     </div>
   );
 };

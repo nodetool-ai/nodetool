@@ -69,8 +69,8 @@ const styles = (theme: Theme) =>
       bottom: "0em",
       borderRadius: "0",
       backgroundColor: theme.vars.palette.grey[600],
-      margin: "0 0 .5em 0",
-      padding: ".2em .5em .1em .5em"
+      margin: `0 0 ${getSpacingPx(SPACING.md)} 0`,
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`
     },
     ".url-input input": {
       margin: 0,
@@ -112,7 +112,7 @@ const styles = (theme: Theme) =>
     },
     ".dropzone p": {
       textAlign: "center",
-      padding: "1em",
+      padding: getSpacingPx(SPACING.xl),
       margin: 0
     },
     ".prop-drop": {

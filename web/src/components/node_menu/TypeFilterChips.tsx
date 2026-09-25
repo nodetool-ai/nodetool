@@ -122,8 +122,8 @@ const typeFilterChipsStyles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
-      padding: ".5em 0",
-      marginBottom: "1em",
+      padding: `${getSpacingPx(SPACING.md)} 0`,
+      marginBottom: getSpacingPx(SPACING.xl),
       fontWeight: FONT_WEIGHT.medium
     },
     ".type-chips": {
@@ -213,7 +213,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
       marginBottom: getSpacingPx(SPACING.lg), // was 10px
       "& .MuiInputBase-root": {
         fontSize: theme.fontSizeSmaller,
-        padding: ".5em .75em"
+        padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`
       },
       "& .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.divider
@@ -433,7 +433,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
           <Box
             className="filter-menu-content"
             sx={{
-              padding: "1em",
+              padding: getSpacingPx(SPACING.xl),
               backgroundColor: theme.vars.palette.background.paper,
               fontSize: theme.fontSizeSmaller
             }}
@@ -443,7 +443,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                 size="smaller"
                 color="secondary"
                 sx={{
-                  marginBottom: "1em"
+                  marginBottom: getSpacingPx(SPACING.xl)
                 }}
               >
                 Filter nodes by input and output data types
@@ -452,7 +452,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
 
             <Text
               sx={{
-                marginBottom: "0.25em"
+                marginBottom: getSpacingPx(SPACING.xs)
               }}
             >
               Input Type
@@ -498,12 +498,12 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   }
                 }
               }}
-              sx={{ marginBottom: "1em" }}
+              sx={{ marginBottom: getSpacingPx(SPACING.xl) }}
             />
 
             <Text
               sx={{
-                marginBottom: "0.25em"
+                marginBottom: getSpacingPx(SPACING.xs)
               }}
             >
               Output Type

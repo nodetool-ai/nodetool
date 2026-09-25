@@ -8,7 +8,7 @@ import { outputStyles } from "./styles";
 import {
   Box,
   BORDER_RADIUS,
-  Collapse
+  Collapse, getSpacingPx, SPACING
 } from "../../ui_primitives";
 import { ReasoningToggle } from "../../common/ReasoningToggle";
 
@@ -78,7 +78,7 @@ const ThinkBlock: React.FC<{ content: string }> = memo(({ content }) => {
   }), []);
 
   const reasoningContentStyle = useMemo(() => ({
-    padding: "0 0.5em",
+    padding: `0 ${getSpacingPx(SPACING.md)}`,
     margin: 0,
     lineHeight: 1.2,
     fontSize: theme.vars.fontSizeSmaller,

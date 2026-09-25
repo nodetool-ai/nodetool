@@ -33,7 +33,7 @@ const styles = (theme: Theme) =>
   css({
     ".controls": {
       display: "flex",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       marginBottom: getSpacingPx(SPACING.sm)
     },
     ".time": {

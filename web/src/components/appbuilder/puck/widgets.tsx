@@ -38,7 +38,7 @@ import {
   reducedMotion,
   AudioPlayback,
   ResponsiveImage,
-  VideoPlayer
+  VideoPlayer, getSpacingPx
 } from "../../ui_primitives";
 import { AppEvent } from "../types";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
@@ -1281,7 +1281,7 @@ const ellipsisPulse = keyframes`
 const RunningLabel: React.FC = () => (
   <Box
     component="span"
-    sx={{ display: "inline-flex", alignItems: "baseline", gap: "0.15em" }}
+    sx={{ display: "inline-flex", alignItems: "baseline", gap: getSpacingPx(SPACING.micro) }}
   >
     Running
     <Box component="span" aria-hidden sx={{ display: "inline-flex" }}>

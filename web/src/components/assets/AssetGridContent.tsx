@@ -29,7 +29,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import AssetListView from "./AssetListView";
-import { EmptyState, LoadingSpinner } from "../ui_primitives";
+import { EmptyState, LoadingSpinner, getSpacingPx, SPACING } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -39,14 +39,14 @@ const styles = (theme: Theme) =>
       height: "100%",
       minHeight: 0,
       overflow: "hidden",
-      paddingBottom: ".5em",
+      paddingBottom: getSpacingPx(SPACING.md),
       display: "flex",
       flexDirection: "column"
     },
     ".asset-list": {
       flex: 1,
       minHeight: 0,
-      marginTop: "1em",
+      marginTop: getSpacingPx(SPACING.xl),
       overflow: "auto"
     },
     ".autosizer-list": {
@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
     },
     ".content-type-header": {
       width: "100%",
-      padding: "0.5em 0",
+      padding: `${getSpacingPx(SPACING.md)} 0`,
       backgroundColor: "transparent",
       fontSize: theme.fontSizeSmall,
       textTransform: "uppercase"

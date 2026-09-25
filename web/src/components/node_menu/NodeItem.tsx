@@ -221,7 +221,7 @@ const NodeItem = memo(function NodeItem({
       display: "flex",
       alignItems: "center",
       flex: 1,
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       position: "relative" as const,
       minHeight: "34px",
       paddingLeft: showCheckbox ? "24px" : undefined
@@ -245,7 +245,7 @@ const NodeItem = memo(function NodeItem({
     () => ({
       display: "flex",
       alignItems: "center",
-      gap: "0.5em",
+      gap: getSpacingPx(SPACING.md),
       flex: 1,
       minWidth: 0
     }),

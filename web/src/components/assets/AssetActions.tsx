@@ -10,7 +10,7 @@ import {
   ButtonGroup,
   Select,
   MenuItem,
-  type SelectChangeEvent
+  type SelectChangeEvent, getSpacingPx, SPACING
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 
@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
     "&": {
       display: "flex",
       flexWrap: "wrap",
-      gap: ".25em",
+      gap: getSpacingPx(SPACING.xs),
       maxWidth: "100%",
       flexGrow: 1,
       minHeight: "30px"
@@ -51,7 +51,7 @@ const styles = (theme: Theme) =>
       width: "auto",
       display: "flex",
       alignItems: "center",
-      gap: "0.25em",
+      gap: getSpacingPx(SPACING.xs),
       border: 0,
       padding: 0
     },
@@ -80,10 +80,10 @@ const styles = (theme: Theme) =>
     },
     // size slider
     ".asset-size-slider": {
-      paddingLeft: "0.25em",
+      paddingLeft: getSpacingPx(SPACING.xs),
       flexGrow: 1,
       flexShrink: 1,
-      paddingRight: "0.5em",
+      paddingRight: getSpacingPx(SPACING.md),
       minWidth: "80px",
       maxWidth: "170px"
     },
@@ -106,7 +106,7 @@ const styles = (theme: Theme) =>
     },
     // sort by
     ".sort-assets": {
-      margin: "0 .5em",
+      margin: `0 ${getSpacingPx(SPACING.md)}`,
       color: "var(--palette-primary-main)",
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
@@ -119,7 +119,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[200],
       border: "1px solid " + theme.vars.palette.grey[500],
       borderRadius: ".25em",
-      padding: "0.5em",
+      padding: getSpacingPx(SPACING.md),
       textOverflow: "clip",
       backgroundColor: "transparent",
       textAlign: "center",
@@ -154,7 +154,7 @@ const styles = (theme: Theme) =>
     // size filter
     ".size-filter": {
       margin: "0",
-      padding: "0 0.25em",
+      padding: `0 ${getSpacingPx(SPACING.xs)}`,
       color: "var(--palette-primary-main)",
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
@@ -167,7 +167,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[200],
       border: "1px solid " + theme.vars.palette.grey[500],
       borderRadius: ".25em",
-      padding: "0.5em",
+      padding: getSpacingPx(SPACING.md),
       textOverflow: "ellipsis",
       backgroundColor: "transparent",
       textAlign: "center",

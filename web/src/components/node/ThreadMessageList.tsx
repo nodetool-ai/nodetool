@@ -7,7 +7,7 @@ import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { MessageContentRenderer } from "../chat/message/MessageContentRenderer";
 import isEqual from "../../utils/isEqual";
-import { BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
+import { BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../ui_primitives";
 import { formatToolName } from "../../utils/formatUtils";
 import { isString } from "../../utils/typePredicates";
 
@@ -19,16 +19,16 @@ const styles = (theme: Theme) =>
       overflow: "auto"
     },
     ".messages li .tool-calls": {
-      margin: "1em 0",
+      margin: `${getSpacingPx(SPACING.xl)} 0`,
       display: "grid",
-      gap: "0.75em"
+      gap: getSpacingPx(SPACING.lg)
     },
     ".messages li .tool-call": {
       fontFamily: theme.fontFamily2,
       background: `linear-gradient(135deg, rgba(${theme.vars.palette.primary.darkChannel} / 0.35) 0%, rgba(${theme.vars.palette.primary.mainChannel} / 0.12) 100%)`,
       border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.35)`,
       borderRadius: BORDER_RADIUS.xl,
-      padding: "0.9em 1.1em",
+      padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)}`,
       boxShadow: "0 8px 16px rgba(0 0 0 / 0.18)",
       position: "relative",
       overflow: "hidden"
@@ -43,8 +43,8 @@ const styles = (theme: Theme) =>
     ".messages li .tool-call__header": {
       display: "flex",
       alignItems: "center",
-      gap: "0.6em",
-      marginBottom: "0.65em"
+      gap: getSpacingPx(SPACING.md),
+      marginBottom: getSpacingPx(SPACING.lg)
     },
     ".messages li .tool-call__badge": {
       fontSize: theme.fontSizeSmaller,
@@ -53,7 +53,7 @@ const styles = (theme: Theme) =>
       fontWeight: 600,
       color: theme.vars.palette.primary.main,
       backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.15)`,
-      padding: "0.2em 0.55em",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.pill
     },
     ".messages li .tool-call__name": {
@@ -72,8 +72,8 @@ const styles = (theme: Theme) =>
     ".messages li .tool-call__message pre": {
       backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.lg,
-      padding: "0.75em",
-      marginTop: "0.8em",
+      padding: getSpacingPx(SPACING.lg),
+      marginTop: getSpacingPx(SPACING.lg),
       overflowX: "auto"
     },
     ".messages li .tool-call__message code": {
@@ -89,15 +89,15 @@ const styles = (theme: Theme) =>
       listStyleType: "none"
     },
     ".messages li.chat-message p": {
-      margin: "0.3em 0",
+      margin: `${getSpacingPx(SPACING.xs)} 0`,
       lineHeight: "1.5em",
       fontWeight: 400
     },
     ".messages li.user": {
       color: theme.vars.palette.grey[200],
       borderBottom: `1px solid ${theme.vars.palette.grey[600]}`,
-      padding: "0.1em 0.2em 0",
-      margin: "2em 0 1em 0"
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)} 0`,
+      margin: `${getSpacingPx(SPACING.xxxl)} 0 ${getSpacingPx(SPACING.xl)} 0`
     },
     ".messages li.assistant": {
       color: theme.vars.palette.grey[0]
@@ -106,7 +106,7 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
       backgroundColor: theme.vars.palette.grey[1000],
-      padding: "1em"
+      padding: getSpacingPx(SPACING.xl)
     },
     ".messages li pre code": {
       fontFamily: theme.fontFamily2,

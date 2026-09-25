@@ -31,22 +31,22 @@ const DataTypesList = ({
 
   const cssStyles = useMemo(() => css({
     "&": {
-      padding: "0 .5em 0 0",
+      padding: `0 ${getSpacingPx(SPACING.md)} 0 0`,
       backgroundColor: "transparent"
     },
     ".datatype-list": {
-      padding: "1em",
+      padding: getSpacingPx(SPACING.xl),
       height: "500px",
       overflowY: "auto"
     },
     ".help-item": {
-      padding: ".5em 0",
+      padding: `${getSpacingPx(SPACING.md)} 0`,
       borderBottom: "1px solid var(--palette-grey-600)"
     },
     h5: {
       color: "var(--palette-grey-200)",
       fontSize: "1em",
-      paddingLeft: "1em",
+      paddingLeft: getSpacingPx(SPACING.xl),
       "&:hover": {
         color: "var(--palette-grey-100)"
       }
@@ -75,7 +75,7 @@ const DataTypesList = ({
               gap={1}
               align="flex-start"
               fullWidth
-              sx={{ padding: ".5em 0", borderBottom: "1px solid var(--palette-grey-600)" }}
+              sx={{ padding: `${getSpacingPx(SPACING.md)} 0`, borderBottom: "1px solid var(--palette-grey-600)" }}
             >
               <IconForType
                 iconName={type.value}

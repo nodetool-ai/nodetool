@@ -8,6 +8,8 @@ import { initKeyListeners } from "../../../stores/KeyPressedStore";
 
 // Tooltip pulls in heavy theme overrides we don't need for these unit tests.
 jest.mock("../../ui_primitives", () => ({
+  SPACING: jest.requireActual("../../ui_primitives/spacing").SPACING,
+  getSpacingPx: jest.requireActual("../../ui_primitives/spacing").getSpacingPx,
   MOTION: jest.requireActual("../../ui_primitives/tokens").MOTION,
   BORDER_RADIUS: jest.requireActual("../../ui_primitives/tokens").BORDER_RADIUS,
   Z_INDEX: jest.requireActual("../../ui_primitives/tokens").Z_INDEX,

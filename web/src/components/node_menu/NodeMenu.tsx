@@ -92,7 +92,7 @@ const treeStyles = (theme: Theme) =>
     },
     ".node-menu-container": {
       borderRadius: `0 0 ${BORDER_RADIUS.xxl} ${BORDER_RADIUS.xxl}`,
-      padding: "0.45em 0px 0.75em 0.75em",
+      padding: `${getSpacingPx(SPACING.md)} 0 ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)}`,
       width: "100%",
       maxHeight: "77vh",
       flexGrow: 1
@@ -110,7 +110,7 @@ const treeStyles = (theme: Theme) =>
       },
       "& .MuiAccordionDetails-root": {
         backgroundColor: "transparent !important",
-        padding: "0 0 1em 0"
+        padding: `0 0 ${getSpacingPx(SPACING.xl)} 0`
       },
       "& .MuiPaper-elevation, .MuiPaper-elevation1": {
         backgroundColor: "transparent !important"
@@ -332,7 +332,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
               overflow: "visible",
               width: "100%",
               margin: 0,
-              padding: "0 1em 0 0.5em"
+              padding: `0 ${getSpacingPx(SPACING.xl)} 0 ${getSpacingPx(SPACING.md)}`
             }}
           >
             <FlexRow
@@ -358,7 +358,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 searchResults={searchResults}
               />
               <div
-                style={{ marginLeft: "0.75em", flex: "1 1 auto", minWidth: 0 }}
+                style={{ marginLeft: getSpacingPx(SPACING.lg), flex: "1 1 auto", minWidth: 0 }}
               >
                 <TypeFilterChips
                   selectedInputType={selectedInputType}

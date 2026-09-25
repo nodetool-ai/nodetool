@@ -33,7 +33,7 @@ const createPathPropertyStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: "0.5em",
+    gap: getSpacingPx(SPACING.md),
 
     ".path-picker__inputs": {
       display: "flex",
@@ -63,7 +63,7 @@ const createPathPropertyStyles = (theme: Theme) =>
       flex: 1,
       color: theme.vars.palette.grey[400],
       fontSize: theme.vars.fontSizeSmaller,
-      marginLeft: ".5em",
+      marginLeft: getSpacingPx(SPACING.md),
       wordBreak: "break-all",
       minHeight: "20px"
     },

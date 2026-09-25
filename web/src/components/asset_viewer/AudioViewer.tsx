@@ -5,7 +5,7 @@ import React, { MouseEventHandler, memo } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
 
-import { Text } from "../ui_primitives";
+import { Text, getSpacingPx, SPACING } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -31,8 +31,8 @@ const styles = (theme: Theme) =>
       flexDirection: "row",
       justifyContent: "center",
       backgroundColor: theme.vars.palette.grey[800],
-      margin: "2em 0",
-      padding: "1em"
+      margin: `${getSpacingPx(SPACING.xxxl)} 0`,
+      padding: getSpacingPx(SPACING.xl)
     },
     ".controls": {
       display: "flex",
@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
       height: "30px !important",
       backgroundColor: "transparent !important",
       opacity: "1 !important",
-      marginTop: "1em"
+      marginTop: getSpacingPx(SPACING.xl)
     },
     ".audio-controls p.tiny": {
       fontSize: `${theme.fontSizeNormal} !important`
@@ -57,8 +57,8 @@ const styles = (theme: Theme) =>
     ".audio-controls button": {
       width: "3em !important",
       height: "3em !important",
-      marginRight: "1em",
-      padding: "1.5em"
+      marginRight: getSpacingPx(SPACING.xl),
+      padding: getSpacingPx(SPACING.xxl)
     },
     ".audio-controls button svg": {
       width: "1.5em !important",

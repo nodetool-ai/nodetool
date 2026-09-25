@@ -163,7 +163,7 @@ const styles = (theme: Theme) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       maxWidth: "80%",
-      padding: "1em 1.5em",
+      padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)}`,
       textAlign: "center",
       backgroundColor: "rgba(0,0,0,0.8)",
       borderRadius: BORDER_RADIUS.lg

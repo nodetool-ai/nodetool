@@ -30,11 +30,11 @@ const tileStyles = (theme: Theme) =>
       flexDirection: "column",
       width: "100%",
       height: "100%",
-      padding: "0.5em 1em 1em 0.5em",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`,
       boxSizing: "border-box"
     },
     ".tiles-header": {
-      marginBottom: "0.25em",
+      marginBottom: getSpacingPx(SPACING.xs),
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",

@@ -37,13 +37,13 @@ const nodeInfoStyles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     overflowY: "auto",
-    gap: ".5em",
-    padding: "0.75em 1em 1em 1em",
+    gap: getSpacingPx(SPACING.md),
+    padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)}`,
     maxHeight: "55vh",
     position: "relative",
     ".node-title": {
       color: theme.vars.palette.text.primary,
-      marginBottom: "0.25em"
+      marginBottom: getSpacingPx(SPACING.xs)
     },
     ".title-container": {
       display: "flex",
@@ -64,7 +64,7 @@ const nodeInfoStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[0],
       display: "inline-flex",
       alignItems: "center",
-      padding: "0.25em 0.5em",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.sm,
       height: "1.5em"
     },
@@ -79,7 +79,7 @@ const nodeInfoStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.primary,
       whiteSpace: "pre-wrap",
-      marginBottom: ".5em",
+      marginBottom: getSpacingPx(SPACING.md),
       display: "block",
       "& span": {
         display: "inline-block",
@@ -100,7 +100,7 @@ const nodeInfoStyles = (theme: Theme) =>
       textTransform: "uppercase",
       display: "inline-block",
       cursor: "pointer",
-      marginRight: ".5em",
+      marginRight: getSpacingPx(SPACING.md),
       transition: `background-color ${MOTION.normal}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.selected
@@ -112,13 +112,13 @@ const nodeInfoStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       lineHeight: "1.3em",
       ul: {
-        margin: "0.5em 0",
+        margin: `${getSpacingPx(SPACING.md)} 0`,
         paddingLeft: "0"
       },
       li: {
         position: "relative",
-        marginBottom: "0.25em",
-        paddingLeft: "1.5em",
+        marginBottom: getSpacingPx(SPACING.xs),
+        paddingLeft: getSpacingPx(SPACING.xxl),
         listStyleType: "none",
         "&::before": {
           content: '"•"',
@@ -129,7 +129,7 @@ const nodeInfoStyles = (theme: Theme) =>
       }
     },
     ".inputs-outputs": {
-      paddingBottom: "1em"
+      paddingBottom: getSpacingPx(SPACING.xl)
     },
     ".inputs-outputs h4": {
       fontFamily: theme.fontFamily2,
@@ -146,13 +146,13 @@ const nodeInfoStyles = (theme: Theme) =>
       gap: 0
     },
     ".inputs-outputs .item": {
-      padding: ".25em 0 .25em .5em",
+      padding: `${getSpacingPx(SPACING.xs)} 0 ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       display: "flex",
       justifyContent: "space-between",
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmall)",
       flexDirection: "row",
-      gap: ".5em",
+      gap: getSpacingPx(SPACING.md),
       cursor: "default"
     },
     ".inputs-outputs .item:nth-of-type(odd)": {
@@ -162,7 +162,7 @@ const nodeInfoStyles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       textAlign: "right",
       borderRight: `4px solid ${theme.vars.palette.divider}`,
-      paddingRight: ".5em"
+      paddingRight: getSpacingPx(SPACING.md)
     },
     ".inputs-outputs .item .property": {
       color: theme.vars.palette.text.secondary
@@ -259,7 +259,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )}
       </Text>
 
-      <Divider sx={{ opacity: 0.5, margin: ".1em 0" }} />
+      <Divider sx={{ opacity: 0.5, margin: `${getSpacingPx(SPACING.micro)} 0` }} />
 
       {nodeMetadata.fal_unit_pricing && (
         <Tooltip

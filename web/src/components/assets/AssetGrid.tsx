@@ -78,7 +78,7 @@ const SelectedItemsInfo: React.FC<{
           {selectedAssetIds.length === 1 ? "item" : "items"} selected
           {totalSize > 0 && (
             <Tooltip title="Total size of selected items" disableInteractive>
-              <span style={{ marginLeft: "0.5em", opacity: 0.7 }}>
+              <span style={{ marginLeft: getSpacingPx(SPACING.md), opacity: 0.7 }}>
                 ({formatFileSize(totalSize)})
               </span>
             </Tooltip>

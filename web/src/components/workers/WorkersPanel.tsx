@@ -15,7 +15,7 @@ import {
   StatusIndicator,
   AlertBanner,
   WarningBanner,
-  type StatusType
+  type StatusType, getSpacingPx, SPACING
 } from "../ui_primitives";
 import {
   useWorkers,
@@ -46,7 +46,7 @@ const panelStyles = (theme: Theme) =>
       height: "100%"
     },
     ".panel-header": {
-      paddingBottom: "0.75em",
+      paddingBottom: getSpacingPx(SPACING.lg),
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
     },
     ".scrollable-content": {
