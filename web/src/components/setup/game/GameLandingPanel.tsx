@@ -78,7 +78,8 @@ const GameLandingPanelInternal: React.FC<GameLandingPanelProps> = ({
       type: "workspace-file",
       ref: gameProjectFileRef(workspaceId, directory),
       mode: "view",
-      title: "project.godot"
+      title: "project.godot",
+      projectId: projectId ?? undefined
     });
   }, [directory, openTab, workspaceId]);
 

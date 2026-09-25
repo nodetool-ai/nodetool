@@ -19,12 +19,12 @@ import {
  */
 const findApplicationForWorkflow = async (
   workflowId: string
-): Promise<{ id: string; name: string } | null> => {
+): Promise<{ id: string; name: string; projectId: string } | null> => {
   const list = await trpcClient.applications.list.query({});
   for (const item of list) {
     const app = await trpcClient.applications.get.query({ id: item.id });
     if (app.document.operations.some((op) => op.workflowId === workflowId)) {
-      return { id: app.id, name: app.name };
+      return { id: app.id, name: app.name, projectId: app.projectId };
     }
   }
   return null;
@@ -52,7 +52,8 @@ const LegacyAppRedirect = () => {
         type: "application",
         ref: data.id,
         mode: "edit",
-        title: data.name || "Untitled app"
+        title: data.name || "Untitled app",
+        projectId: data.projectId
       });
     }
   }, [data, openTab]);

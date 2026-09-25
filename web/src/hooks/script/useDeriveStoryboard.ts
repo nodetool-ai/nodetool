@@ -17,7 +17,10 @@ import type { Screenplay } from "@nodetool-ai/protocol";
 import { trpcClient } from "../../trpc/client";
 import { useScriptStore } from "../../stores/script/ScriptStore";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  creationProjectId,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 import { newDocumentId } from "../../lib/newDocumentId";
 import { writeScriptStoryboardId } from "../../lib/scriptStoryboardBackpointer";
 import { readScriptSetupContext } from "../../components/setup/script/scriptSetupContext";
@@ -134,9 +137,10 @@ export const useDeriveStoryboard = (): UseDeriveStoryboardResult => {
         if (board.creativeContext) {
           document.creative_context = board.creativeContext;
         }
-        await trpcClient.storyboards.create.mutate({
+        const created = await trpcClient.storyboards.create.mutate({
           id: boardId,
           name,
+          projectId: creationProjectId(),
           document
         });
 
@@ -159,7 +163,8 @@ export const useDeriveStoryboard = (): UseDeriveStoryboardResult => {
             type: "storyboard",
             ref: boardId,
             mode: "edit",
-            title: name
+            title: name,
+            projectId: created.projectId
           });
         }
         return { boardId, shotCount: shots.length };

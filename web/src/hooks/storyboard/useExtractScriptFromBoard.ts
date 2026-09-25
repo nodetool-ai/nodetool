@@ -18,7 +18,10 @@ import type { Entity } from "@nodetool-ai/protocol";
 import { trpcClient } from "../../trpc/client";
 import { useEntities } from "../../serverState/useEntities";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  creationProjectId,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 import { newDocumentId } from "../../lib/newDocumentId";
 import { writeScriptStoryboardId } from "../../lib/scriptStoryboardBackpointer";
 import {
@@ -109,6 +112,7 @@ export const useExtractScriptFromBoard = (): UseExtractScriptResult => {
 
         const name = board.title.trim() || "Extracted script";
         let scriptId: string;
+        let projectId: string;
         if (existingId) {
           const current = await trpcClient.scripts.get.query({
             id: existingId
@@ -119,13 +123,16 @@ export const useExtractScriptFromBoard = (): UseExtractScriptResult => {
             document: mergeExtractedScript(current.document, extracted.document)
           });
           scriptId = existingId;
+          projectId = current.projectId;
         } else {
           const created = await trpcClient.scripts.create.mutate({
             id: newDocumentId(),
             name,
+            projectId: creationProjectId(),
             document: extracted.document
           });
           scriptId = created.id;
+          projectId = created.projectId;
         }
 
         useStoryboardStore
@@ -155,7 +162,8 @@ export const useExtractScriptFromBoard = (): UseExtractScriptResult => {
             type: "script",
             ref: scriptId,
             mode: "edit",
-            title: name
+            title: name,
+            projectId
           });
         }
 

@@ -19,7 +19,10 @@ import {
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { isRecord, isString } from "../../utils/typePredicates";
 import type { RouterOutputs } from "../../trpc/client";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  LOOSE_PROJECT_ID,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
 import {
   useAssignDocument,
@@ -264,7 +267,8 @@ const ProjectListSurface = () => {
                   openTab({
                     type: document.type,
                     ref: document.ref,
-                    title: document.name
+                    title: document.name,
+                    projectId: LOOSE_PROJECT_ID
                   })
                 }
                 sx={{

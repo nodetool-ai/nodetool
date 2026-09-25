@@ -4,7 +4,10 @@ import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import { useAssembleScriptTimeline } from "../useAssembleScriptTimeline";
 import { useScriptStore, type ScriptTake } from "../../../stores/script/ScriptStore";
-import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
+import {
+  isTabInScope,
+  useWorkspaceTabsStore
+} from "../../../stores/WorkspaceTabsStore";
 import { trpcClient } from "../../../trpc/client";
 import { buildTranscriptDoc } from "../../../stores/timeline/transcriptOps";
 
@@ -246,5 +249,64 @@ describe("useAssembleScriptTimeline", () => {
     expect(doc.tracks.map((t: { name: string }) => t.name)).toEqual([
       "Voiceover"
     ]);
+  });
+
+  describe("opening the timeline tab inside its project", () => {
+    const openedTimelineTab = (ref: string) =>
+      useWorkspaceTabsStore
+        .getState()
+        .tabs.find((tab) => tab.type === "timeline" && tab.ref === ref);
+
+    beforeEach(() => {
+      jest.restoreAllMocks();
+      useWorkspaceTabsStore.setState({
+        tabs: [],
+        activeTabId: null,
+        activeProjectId: "proj-1",
+        projectSessions: {}
+      });
+    });
+
+    it("shows a newly created timeline in the active project's tab bar", async () => {
+      seedVoicedScript("script-1", null);
+      (trpcClient.scripts.get.query as jest.Mock).mockResolvedValue({
+        id: "script-1",
+        projectId: "proj-1"
+      });
+      createMutate.mockResolvedValue({ id: "tl-new", projectId: "proj-1" });
+      updateMutate.mockResolvedValue({});
+
+      const { result } = renderHook(() => useAssembleScriptTimeline());
+      await act(async () => {
+        await result.current.assemble("script-1");
+      });
+
+      const tab = openedTimelineTab("tl-new");
+      expect(tab).toBeDefined();
+      expect(isTabInScope(tab!, "proj-1")).toBe(true);
+      expect(useWorkspaceTabsStore.getState().activeTabId).toBe(tab!.id);
+    });
+
+    it("shows a re-assembled timeline in its project's tab bar", async () => {
+      seedVoicedScript("script-1", "tl-1");
+      getQuery.mockResolvedValue({
+        id: "tl-1",
+        projectId: "proj-1",
+        updatedAt: "rev-1",
+        tracks: [],
+        clips: [],
+        markers: []
+      });
+      updateMutate.mockResolvedValue({});
+
+      const { result } = renderHook(() => useAssembleScriptTimeline());
+      await act(async () => {
+        await result.current.assemble("script-1");
+      });
+
+      const tab = openedTimelineTab("tl-1");
+      expect(tab).toBeDefined();
+      expect(isTabInScope(tab!, "proj-1")).toBe(true);
+    });
   });
 });

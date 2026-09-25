@@ -126,7 +126,12 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
 
   const handleOpenAsTab = useCallback(() => {
     if (selectedThreadId) {
-      openTab({ type: "chat", ref: selectedThreadId, mode: "view" });
+      openTab({
+        type: "chat",
+        ref: selectedThreadId,
+        mode: "view",
+        projectId: useGlobalChatStore.getState().threads[selectedThreadId]?.project_id
+      });
     }
     navigate("/workspace");
   }, [openTab, navigate, selectedThreadId]);

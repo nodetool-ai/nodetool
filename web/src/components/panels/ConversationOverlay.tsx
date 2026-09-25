@@ -353,7 +353,12 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
 
   const handleExpand = useCallback(() => {
     if (currentThreadId) {
-      openTab({ type: "chat", ref: currentThreadId, mode: "view" });
+      openTab({
+        type: "chat",
+        ref: currentThreadId,
+        mode: "view",
+        projectId: useGlobalChatStore.getState().threads[currentThreadId]?.project_id
+      });
     }
     navigate("/workspace");
   }, [openTab, navigate, currentThreadId]);

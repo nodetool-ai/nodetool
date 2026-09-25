@@ -11,6 +11,7 @@ import { FlexRow, ToolbarIconButton } from "../ui_primitives";
 interface DocumentSummary {
   id: string;
   name?: string | null;
+  projectId?: string;
 }
 
 interface DocumentQueryResult {
@@ -91,7 +92,8 @@ const DocumentPickerProperty = ({
       type: documentType,
       ref: selectedId,
       mode: "edit",
-      title: selected?.name || untitledLabel
+      title: selected?.name || untitledLabel,
+      projectId: selected?.projectId
     });
     if (!inWorkspace) {
       navigate("/workspace");

@@ -18,6 +18,7 @@ jest.mock("../../../utils/exampleApps", () => ({
 
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   __esModule: true,
+  creationProjectId: () => "proj-1",
   useWorkspaceTabsStore: <T,>(selector: (s: { openTab: unknown }) => T) =>
     selector({ openTab: (...args: unknown[]) => openTab(...args) })
 }));
@@ -111,12 +112,13 @@ describe("DashboardExampleApps", () => {
     await user.click(await screen.findByRole("button", { name: /vary image/i }));
 
     await waitFor(() => expect(openTab).toHaveBeenCalledTimes(1));
-    expect(installExampleApp).toHaveBeenCalledWith("vary-image");
+    expect(installExampleApp).toHaveBeenCalledWith("vary-image", "proj-1");
     expect(openTab).toHaveBeenCalledWith({
       type: "application",
       ref: "app-1",
       mode: "view",
-      title: "Vary Image"
+      title: "Vary Image",
+      projectId: "proj-1"
     });
     expect(addNotification).toHaveBeenCalledWith(
       expect.objectContaining({ type: "success" })

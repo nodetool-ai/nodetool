@@ -27,7 +27,10 @@ import {
   exportApplicationBundle,
   importApplicationBundle
 } from "../../utils/applicationBundle";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  creationProjectId,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 import { useWorkflowShareDialogStore } from "../../stores/WorkflowShareDialogStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
@@ -708,10 +711,11 @@ const AppCommands = memo(function AppCommands() {
       const file = e.target.files?.[0];
       if (!file) return;
       try {
-        const app = await importApplicationBundle(file);
+        const projectId = creationProjectId();
+        const app = await importApplicationBundle(file, projectId);
         await queryClient.invalidateQueries({ queryKey: ["applications"] });
         await queryClient.invalidateQueries({ queryKey: ["workflows"] });
-        openTab({ type: "application", ref: app.id, title: app.name });
+        openTab({ type: "application", ref: app.id, title: app.name, projectId });
         addNotification({
           type: "success",
           alert: true,

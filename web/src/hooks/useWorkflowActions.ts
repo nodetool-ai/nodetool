@@ -7,7 +7,10 @@ import {
   examplePackageName,
   exampleSeedRef
 } from "../utils/exampleWorkflow";
-import { useWorkspaceTabsStore } from "../stores/WorkspaceTabsStore";
+import {
+  creationProjectId,
+  useWorkspaceTabsStore
+} from "../stores/WorkspaceTabsStore";
 
 interface WorkflowActions {
   loadingExampleId: string | null;
@@ -48,12 +51,14 @@ export const useWorkflowActions = (): WorkflowActions => {
           tags.push("example");
         }
 
+        const projectId = creationProjectId();
         const req = {
           name: example.name,
           package_name: example.package_name,
           description: example.description,
           tags: tags,
           access: "private",
+          project_id: projectId,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
@@ -67,7 +72,8 @@ export const useWorkflowActions = (): WorkflowActions => {
           type: "workflow",
           ref: newWorkflow.id,
           mode: "view",
-          title: newWorkflow.name || example.name
+          title: newWorkflow.name || example.name,
+          projectId
         });
         navigate("/workspace");
         useOnboardingStore.getState().markStep("keep-creating");

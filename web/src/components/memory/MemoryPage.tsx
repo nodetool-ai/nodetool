@@ -23,6 +23,7 @@ import {
 } from "../ui_primitives";
 import { trpc } from "../../trpc/client";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import MemoryCard, { type Memory } from "./MemoryCard";
 
@@ -77,7 +78,12 @@ const MemoryPage: React.FC = () => {
 
   const handleOpenThread = useCallback(
     (threadId: string) => {
-      openTab({ type: "chat", ref: threadId, mode: "view" });
+      openTab({
+        type: "chat",
+        ref: threadId,
+        mode: "view",
+        projectId: useGlobalChatStore.getState().threads[threadId]?.project_id
+      });
     },
     [openTab]
   );

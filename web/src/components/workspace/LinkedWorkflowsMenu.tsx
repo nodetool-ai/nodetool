@@ -53,7 +53,8 @@ const LinkedWorkflowsMenu = ({
         type: "workflow",
         ref: link.workflowId,
         mode: "edit",
-        title: link.name
+        title: link.name,
+        projectId: link.projectId
       });
       setAnchorEl(null);
     },
