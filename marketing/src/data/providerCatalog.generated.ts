@@ -2263,15 +2263,22 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "kie": {
     "id": "kie",
-    "total": 169,
+    "total": 180,
     "counts": {
-      "image": 57,
+      "image": 61,
       "audio": 29,
-      "video": 81,
+      "video": 88,
       "text": 2
     },
     "topTags": [],
     "models": [
+      {
+        "id": "4o-image-api",
+        "name": "Generate 4o Image",
+        "kind": "image",
+        "desc": "Generate 4o Image via Kie.ai.",
+        "tags": []
+      },
       {
         "id": "bytedance/seedream",
         "name": "Seedream3.0 Text to Image",
@@ -2319,6 +2326,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Flux 2 Pro Text to Image",
         "kind": "image",
         "desc": "Flux-2 - Pro Text to Image via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "flux1-kontext",
+        "name": "Generate or Edit Image",
+        "kind": "image",
+        "desc": "Generate or Edit Image via Kie.ai.",
         "tags": []
       },
       {
@@ -2536,20 +2550,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Qwen Text to Image",
         "kind": "image",
         "desc": "Qwen - Text to Image via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "qwen2/image-edit",
-        "name": "Qwen2 Image Edit",
-        "kind": "image",
-        "desc": "Qwen2 - Image Edit via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "qwen2/image-edit",
-        "name": "Qwen2 Text To Image",
-        "kind": "image",
-        "desc": "Qwen2 - Text To Image via Kie.ai.",
         "tags": []
       },
       {
