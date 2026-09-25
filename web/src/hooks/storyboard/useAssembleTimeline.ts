@@ -140,7 +140,8 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
             type: "timeline",
             ref: existingId,
             mode: "edit",
-            title: name
+            title: name,
+            projectId: sequence.projectId
           });
           return {
             sequenceId: existingId,
@@ -168,7 +169,8 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
           type: "timeline",
           ref: sequence.id,
           mode: "edit",
-          title: name
+          title: name,
+          projectId: sequence.projectId
         });
         return {
           sequenceId: sequence.id,
