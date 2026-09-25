@@ -148,7 +148,7 @@ function lerpColor(a: string, b: string, t: number): string {
   return `#${channels.join("")}`;
 }
 
-const PATH_TOKEN = /[a-zA-Z]|[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?/g;
+const PATH_TOKEN = /[a-zA-Z]|[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?/g;
 
 /** Interpolates paths only when command letters and numeric arity match. */
 export function morphCompatiblePath(a: string, b: string, t: number): string | null {
