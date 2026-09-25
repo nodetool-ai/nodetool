@@ -4,7 +4,7 @@ title: "Higgsfield provider research and implementation plan"
 
 # Higgsfield provider research and implementation plan
 
-**Status:** Implemented for the current direct image and video endpoint catalog; workflow products and undocumented artifact families remain out of scope
+**Status:** Implemented for the current image and video endpoint catalog, including the Genjutsu and Cinema Studio endpoints. Undocumented artifact families remain out of scope.
 **Question:** How should NodeTool integrate the Higgsfield API without losing
 model-specific capability, reliable asynchronous execution, or media safety?
 
@@ -96,20 +96,28 @@ Representative schema evidence shows why a generic form would lose value:
 The public model explorer is discovery evidence, not a stable API contract. It
 shows the current direct image and video families and links each family to
 endpoint-specific variants. The manifest maps those direct endpoints, including
-the related-model variants listed on the official family pages. It excludes
-workflow products such as Genjutsu and Cinema Studio because they do not expose
-the same single-model request contract. See [the public explorer](https://open.higgsfield.ai/explore),
+the related-model variants listed on the official family pages. Genjutsu motion
+transfer, Genjutsu object swap, and Cinema Studio 4.0 now publish API-reference
+pages with the same `POST https://api.higgsfield.ai/<model-id>` contract and a
+typed input schema, so the manifest includes them. The explorer's Product
+Shots, Graphic Ads, and Marketplace Design workflows route to Marketing Studio
+Image and need no separate entry. The catalog also lists
+`higgsfiled/genjutsu/motion-transfer/v1.0`, a misspelled alias of the Genjutsu
+motion-transfer workflow, which the manifest omits. See [the public explorer](https://open.higgsfield.ai/explore),
 [image explorer](https://open.higgsfield.ai/explore/image), and [video explorer](https://open.higgsfield.ai/explore/video).
 
 ### Current direct endpoint catalog
 
-The checked-in manifest contains 71 unique direct endpoint IDs covering the
-current source-backed catalog. Three inferred routes were removed after the
+The checked-in manifest covers every endpoint reachable from the explorer's
+catalog families and their related-model tables. Three inferred routes were removed after the
 official API pages returned 404s: Grok Imagine Video text-to-video and
 image-to-video siblings, plus Kling 2.5 Turbo Standard text-to-video.
 
-- Image: Marketing Studio Image, Grok Imagine 2.0, Soul 2, Ideogram 4.0,
-  Recraft 4.1, Soul Standard, Qwen Image 3 text and edit, and Z-Image Turbo.
+- Image: Marketing Studio Image with its 2.5 Flare and 2.5 Sunburst variants,
+  Grok Imagine 2.0, Soul 2, Ideogram 4.0, Recraft 4.1 with its Pro, Utility,
+  and Utility Pro variants, Soul Standard, Qwen Image 3 text and edit, and
+  Z-Image Turbo.
+- Higgsfield: Cinema Studio 4.0 and Genjutsu motion transfer and object swap.
 - ByteDance: Seedance 2.5 and Seedance 2.0 text, image, reference, edit, and
   extension endpoints.
 - Kling: 3.0 standard, pro, 4K, turbo, and motion-control endpoints, O3
