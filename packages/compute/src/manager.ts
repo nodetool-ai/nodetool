@@ -36,7 +36,9 @@ import {
 
 import { RunpodPodProvider } from "./providers/runpod.js";
 import { VastProvider } from "./providers/vast.js";
+import { VerdaProvider } from "./providers/verda.js";
 import type {
+  WorkerCredentials,
   WorkerProvider,
   WorkerSpec,
   WorkerStatus,
@@ -55,11 +57,17 @@ const LOCAL_USER_ID = "1";
  */
 const ACTIVE_WORKER_KEY = "active_worker_instance_id";
 
-/** Secret-store key holding each target's API key. */
-const API_KEY_SECRET = {
-  runpod: "RUNPOD_API_KEY",
-  vast: "VAST_API_KEY",
-} satisfies Record<WorkerTarget, string>;
+/**
+ * Secret-store keys each target authenticates with. Most targets take a single
+ * API key; Verda takes an OAuth2 client id AND secret, so this is a list per
+ * target rather than one name. A target is usable only when EVERY listed
+ * secret resolves.
+ */
+const CREDENTIAL_SECRETS = {
+  runpod: ["RUNPOD_API_KEY"],
+  vast: ["VAST_API_KEY"],
+  verda: ["VERDA_CLIENT_ID", "VERDA_CLIENT_SECRET"],
+} satisfies Record<WorkerTarget, readonly string[]>;
 
 /**
  * The connection info a caller applies to the Python bridge when attaching to
@@ -93,13 +101,18 @@ export interface ReconcileSummary {
 /** Construct the concrete provider for a target. */
 function defaultProviderFactory(
   target: WorkerTarget,
-  apiKey: string
+  credentials: WorkerCredentials
 ): WorkerProvider {
   switch (target) {
     case "runpod":
-      return new RunpodPodProvider(apiKey);
+      return new RunpodPodProvider(credentials.RUNPOD_API_KEY);
     case "vast":
-      return new VastProvider(apiKey);
+      return new VastProvider(credentials.VAST_API_KEY);
+    case "verda":
+      return new VerdaProvider({
+        clientId: credentials.VERDA_CLIENT_ID,
+        clientSecret: credentials.VERDA_CLIENT_SECRET,
+      });
     default:
       throw new Error(`Unsupported worker target: ${target}`);
   }
@@ -136,7 +149,10 @@ export interface WorkerManagerDeps {
   getSetting: (key: string) => Promise<string | null>;
   setSetting: (key: string, value: string) => Promise<void>;
   deleteSetting: (key: string) => Promise<void>;
-  providerFactory: (target: WorkerTarget, apiKey: string) => WorkerProvider;
+  providerFactory: (
+    target: WorkerTarget,
+    credentials: WorkerCredentials
+  ) => WorkerProvider;
 }
 
 function defaultDeps(): WorkerManagerDeps {
@@ -272,6 +288,11 @@ export class WorkerManager {
     const result = await provider.resume(instance.provider_ref);
     return this.deps.updateWorkerInstance(instance.id, {
       status: "running",
+      // A resume can hand back a DIFFERENT provider handle: Verda releases the
+      // machine on stop and boots a new one from the retained disk. Dropping
+      // the new ref would leave the registry pointing at a dead instance and
+      // the live one billing untracked.
+      provider_ref: result.providerRef,
       ws_url: result.wsUrl,
       estimated_cost_usd: result.costUsd ?? instance.estimated_cost_usd,
       // Resuming is activity — reset the idle clock so the reaper doesn't
@@ -481,8 +502,8 @@ export class WorkerManager {
   }
 
   private async resolveProvider(target: WorkerTarget): Promise<WorkerProvider> {
-    const apiKey = await this.loadApiKey(target);
-    return this.deps.providerFactory(target, apiKey);
+    const credentials = await this.loadCredentials(target);
+    return this.deps.providerFactory(target, credentials);
   }
 
   /**
@@ -492,48 +513,66 @@ export class WorkerManager {
    * env-provided key.
    */
   async apiKeyStatus(): Promise<Record<WorkerTarget, boolean>> {
-    const targets = Object.keys(API_KEY_SECRET) as WorkerTarget[];
+    const targets = Object.keys(CREDENTIAL_SECRETS) as WorkerTarget[];
     const entries = await Promise.all(
       targets.map(
         async (target) =>
-          [target, (await this.resolveApiKey(target)) !== null] as const
+          [target, (await this.missingSecrets(target)).length === 0] as const
       )
     );
     return Object.fromEntries(entries) as Record<WorkerTarget, boolean>;
   }
 
   /**
-   * Load a target's API key from the secret store, falling back to the
-   * environment when the keychain is unreachable (headless/sandboxed). Mirrors
-   * the resolution the deleted `runpod-worker.ts` script used.
+   * Load every secret a target authenticates with, from the secret store and
+   * falling back to the environment when the keychain is unreachable
+   * (headless/sandboxed). Throws naming ALL missing secrets, so a Verda user
+   * fixing one credential is not sent back for the second.
    */
-  private async loadApiKey(target: WorkerTarget): Promise<string> {
-    const key = await this.resolveApiKey(target);
-    if (key !== null) {
-      return key;
+  private async loadCredentials(
+    target: WorkerTarget
+  ): Promise<WorkerCredentials> {
+    const missing = await this.missingSecrets(target);
+    if (missing.length > 0) {
+      throw new Error(
+        `${missing.join(" and ")} not found in the secret store or ` +
+          `environment. Store with: ` +
+          `${missing.map((name) => `nodetool secrets store ${name}`).join("; ")}`
+      );
     }
-    const secretName = API_KEY_SECRET[target];
-    throw new Error(
-      `${secretName} not found in the secret store or environment. ` +
-        `Store it with: nodetool secrets store ${secretName}`
+    const names = CREDENTIAL_SECRETS[target];
+    const entries = await Promise.all(
+      names.map(
+        async (name) => [name, (await this.resolveSecret(name)) ?? ""] as const
+      )
     );
+    return Object.fromEntries(entries);
+  }
+
+  /** The target's secrets that resolve nowhere. Empty means it is usable. */
+  private async missingSecrets(target: WorkerTarget): Promise<string[]> {
+    const names = CREDENTIAL_SECRETS[target];
+    if (!names) {
+      throw new Error(`No credential mapping for worker target: ${target}`);
+    }
+    const resolved = await Promise.all(
+      names.map(
+        async (name) => [name, await this.resolveSecret(name)] as const
+      )
+    );
+    return resolved.filter(([, value]) => value === null).map(([name]) => name);
   }
 
   /**
-   * Resolve a target's API key from the secret store, then the environment.
-   * Returns `null` when neither has it (no throw) — shared by `loadApiKey` (which
-   * throws) and `apiKeyStatus` (which reports).
+   * Resolve one secret from the secret store, then the environment. Returns
+   * `null` when neither has it (no throw).
    */
-  private async resolveApiKey(target: WorkerTarget): Promise<string | null> {
-    const key = API_KEY_SECRET[target];
-    if (!key) {
-      throw new Error(`No API key mapping for worker target: ${target}`);
-    }
-    const fromStore = await this.deps.getSecret(key, LOCAL_USER_ID);
+  private async resolveSecret(name: string): Promise<string | null> {
+    const fromStore = await this.deps.getSecret(name, LOCAL_USER_ID);
     if (fromStore) {
       return fromStore;
     }
-    return process.env[key] ?? null;
+    return process.env[name] ?? null;
   }
 }
 
@@ -549,6 +588,8 @@ function specFromProfile(
     image: profile.image,
     target,
     gpu: typeof spec.gpu === "string" ? spec.gpu : undefined,
+    region: typeof spec.region === "string" ? spec.region : undefined,
+    osImage: typeof spec.osImage === "string" ? spec.osImage : undefined,
     vcpu: typeof spec.vcpu === "number" ? spec.vcpu : undefined,
     disk: typeof spec.disk === "number" ? spec.disk : undefined,
     env: isStringRecord(spec.env) ? spec.env : undefined,
