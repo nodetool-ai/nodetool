@@ -260,6 +260,6 @@ field. Easing uses the same grammar as animation easing.
 
 The repository includes stored composition examples for `title-slam`,
 `word-cards`, `window-frame`, `number-ticker`, `lower-third`, and `logo-sting`.
-See [the example compositions](../packages/base-nodes/nodetool/examples/compositions/).
+See [the example compositions](https://github.com/nodetool-ai/nodetool/tree/main/packages/base-nodes/nodetool/examples/compositions).
 They are starting documents, not a guarantee that every editor surface exposes
 each authoring field as a control.
