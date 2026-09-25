@@ -107,6 +107,7 @@ let created: Array<Record<string, unknown>> = [];
 function contextFor(seq: unknown, withAssetStore: boolean) {
   const base: Record<string, unknown> = {
     getTimelineSequence: vi.fn().mockResolvedValue(seq),
+    localPath: vi.fn(async () => null),
     resolveAssetBytes: vi
       .fn()
       .mockResolvedValue({ bytes: new Uint8Array([1, 2, 3]) }),

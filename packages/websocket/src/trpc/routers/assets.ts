@@ -43,8 +43,7 @@ import {
 import {
   generateThumbnailForStoredAsset,
   storeAssetWithThumbnail,
-  thumbnailKey,
-  THUMBNAIL_SOURCE_MAX_BYTES
+  thumbnailKey
 } from "../../lib/thumbnail.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -407,15 +406,13 @@ export const assetsRouter = router({
       await asset.save();
 
       // The bytes are already in the bucket, so a thumbnail costs one download
-      // back into this process. Worth it for ordinary media, not for a
-      // multi-gigabyte video — those simply go without.
-      if (stat.size <= THUMBNAIL_SOURCE_MAX_BYTES) {
-        await generateThumbnailForStoredAsset(
-          asset.user_id,
-          asset.id,
-          asset.content_type
-        );
-      }
+      // back into this process. The generator skips objects above
+      // THUMBNAIL_SOURCE_MAX_BYTES, so a multi-gigabyte video goes without.
+      await generateThumbnailForStoredAsset(
+        asset.user_id,
+        asset.id,
+        asset.content_type
+      );
 
       return toAssetResponse(asset);
     }),
@@ -501,15 +498,13 @@ export const assetsRouter = router({
         bytes: fileStat.size
       });
 
-      // The generators take bytes, so the thumbnail reads the file back
-      // through the storage adapter. Above the cap it is skipped for now.
-      if (fileStat.size <= THUMBNAIL_SOURCE_MAX_BYTES) {
-        await generateThumbnailForStoredAsset(
-          asset.user_id,
-          asset.id,
-          asset.content_type
-        );
-      }
+      // The adapter resolves the new row to its in-place file, so ffmpeg or
+      // sharp reads it by path and a file of any size gets a thumbnail.
+      await generateThumbnailForStoredAsset(
+        asset.user_id,
+        asset.id,
+        asset.content_type
+      );
 
       return toAssetResponse(asset);
     }),

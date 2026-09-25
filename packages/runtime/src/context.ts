@@ -69,7 +69,7 @@ import {
   inlineTextAssetRefs
 } from "./prompt-asset-refs.js";
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
-import type { StorageAdapter } from "@nodetool-ai/storage";
+import type { StorageAdapter, StorageEntry } from "@nodetool-ai/storage";
 import type { Workspace } from "./workspace.js";
 
 // `node:fs/promises`, `node:path`, `node:url`, `node:crypto` are loaded
@@ -1075,6 +1075,34 @@ function resolveWorkspaceOption(opts: {
   workspaceStorage?: StorageAdapter | null;
 }): Workspace | null {
   return workspaceFactory(opts);
+}
+
+/**
+ * The listed entry holding the asset `bareId`, or undefined.
+ *
+ * A short resource id is a prefix of the stored id, so the key continues with
+ * more hex before its extension; a full id is followed by the extension
+ * itself. A hierarchical id (`user-1/image`) lives in the full key, a flat id
+ * in the last segment — both forms are matched. Generated thumbnails
+ * (`<id>_thumb.<ext>`) are skipped unless they are the id being resolved, so a
+ * legit `banner_thumb` still matches instead of being dropped by a substring
+ * test.
+ */
+function findListedAsset(
+  entries: readonly StorageEntry[],
+  bareId: string
+): StorageEntry | undefined {
+  const bareEndsWithThumb = bareId.endsWith("_thumb");
+  const needle = isShortResourceId(bareId) ? bareId : `${bareId}.`;
+  return entries.find((entry) => {
+    const key = entry.key;
+    const lastSegment = key.split("/").pop() ?? "";
+    if (!key.startsWith(needle) && !lastSegment.startsWith(needle)) {
+      return false;
+    }
+    const isThumb = /_thumb\.[^./]+$/.test(lastSegment);
+    return !isThumb || bareEndsWithThumb;
+  });
 }
 
 export class ProcessingContext {
@@ -2408,6 +2436,130 @@ export class ProcessingContext {
   }
 
   /**
+   * The adapters an asset reference is looked up in. Assets live in the asset
+   * store; `this.storage` is the *temp* store on server paths. The asset
+   * adapter goes first and the temp adapter stays as the fallback so
+   * runtime-materialized refs still resolve.
+   */
+  private assetAdapters(): StorageAdapter[] {
+    return [this.assetStorage, this.storage].filter(
+      (adapter, index, all): adapter is StorageAdapter =>
+        adapter !== null && all.indexOf(adapter) === index
+    );
+  }
+
+  /**
+   * Keys an asset id candidate may be stored under: `<userId>/<id>.<ext>`
+   * (uploads — the current owner-prefixed layout), `<id>.<ext>` (the flat
+   * legacy layout) and `assets/<id>` (runtime-materialized refs). The
+   * owner-prefixed key goes first: without it every reference misses all the
+   * exact lookups and falls through to the prefix listing, which degrades to
+   * `list("")` — a full recursive walk / whole-bucket `listObjectsV2` across
+   * every tenant, on every asset reference.
+   */
+  private assetKeysFor(candidate: string): string[] {
+    const keys = [candidate, `assets/${candidate}`];
+    if (this.userId && !candidate.startsWith(`${this.userId}/`)) {
+      keys.unshift(`${this.userId}/${candidate}`);
+    }
+    return keys;
+  }
+
+  /**
+   * Prefixes to list, narrowest first, when no exact key matched.
+   *
+   * S3 treats `list(<owner>/<bareId>)` as a raw-string prefix match — bounded
+   * to a handful of entries. `list("")` is the last resort: it is a
+   * multi-thousand-object scan on production S3 backends, and on Supabase it
+   * lists only the bucket's immediate children — which under the
+   * owner-prefixed layout are folders, so it never sees an asset at all.
+   *
+   * The owner prefix is what makes this work for uploads. They are stored at
+   * `<userId>/<id>.<ext>`, and a ref that carries no extension (`asset://<id>`,
+   * or a bare `asset_id`) misses every exact-key lookup. Listing the owner's
+   * own folder finds it on every adapter: hierarchical ones
+   * (file/supabase/memory) list its children, and prefix-matching ones (S3)
+   * stay scoped to that one user.
+   */
+  private assetListingPrefixes(bareId: string): string[] {
+    const owner = this.userId;
+    return owner && !bareId.startsWith(`${owner}/`)
+      ? [`${owner}/${bareId}`, bareId, owner, ""]
+      : [bareId, ""];
+  }
+
+  /**
+   * Resolve an asset reference to a local file holding its bytes — the path
+   * counterpart of {@link resolveAssetBytes}, for callers such as ffmpeg that
+   * read a file in place instead of loading it into memory.
+   *
+   * Looks the reference up in the same adapters and under the same keys,
+   * including the extension-tolerant listing, and asks each adapter for
+   * `localPath`. That finds a managed file under the local asset root and an
+   * external asset's in-place file. Returns null when no adapter keeps a local
+   * file for it (object stores, the in-memory store, HTTP-only and
+   * `package://` references); the caller then falls back to
+   * {@link resolveAssetBytes}. The path is for reading only, and it is an
+   * asset-store path, not a workspace file.
+   */
+  async localPath(uri: string): Promise<string | null> {
+    const trimmed = uri.trim();
+    if (!trimmed || parsePackageAssetUri(trimmed)) {
+      return null;
+    }
+    const adapters = this.assetAdapters();
+    const tryLocalPath = async (
+      adapter: StorageAdapter,
+      storageUri: string
+    ): Promise<string | null> => {
+      try {
+        return await adapter.localPath(storageUri);
+      } catch {
+        // An adapter that cannot answer is treated as having no local file.
+        return null;
+      }
+    };
+
+    if (trimmed.includes("://") && !trimmed.startsWith("asset://")) {
+      for (const adapter of adapters) {
+        const direct = await tryLocalPath(adapter, trimmed);
+        if (direct) {
+          return direct;
+        }
+      }
+    }
+
+    const idCandidates = this.parseAssetIdCandidates(trimmed);
+    for (const adapter of adapters) {
+      for (const candidate of idCandidates) {
+        for (const key of this.assetKeysFor(candidate)) {
+          const found = await tryLocalPath(adapter, adapter.uriForKey(key));
+          if (found) {
+            return found;
+          }
+        }
+      }
+      const bareId = idCandidates[idCandidates.length - 1];
+      if (!bareId) {
+        continue;
+      }
+      for (const prefix of this.assetListingPrefixes(bareId)) {
+        try {
+          const listing = await adapter.list(prefix);
+          const match = findListedAsset(listing.entries, bareId);
+          const found = match ? await tryLocalPath(adapter, match.uri) : null;
+          if (found) {
+            return found;
+          }
+        } catch {
+          // A listing that fails leaves the next, wider prefix to try.
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * Resolve an `asset://<id>[.ext]` reference (or bare id / storage URI) to its
    * raw bytes.
    *
@@ -2425,13 +2577,7 @@ export class ProcessingContext {
     const trimmed = assetId.trim();
     const attempts: string[] = [];
 
-    // Assets live in the asset store; `this.storage` is the *temp* store on
-    // server paths. Probe the asset adapter first and keep the temp adapter as
-    // the fallback so runtime-materialized refs still resolve.
-    const adapters = [this.assetStorage, this.storage].filter(
-      (adapter, index, all): adapter is StorageAdapter =>
-        adapter !== null && all.indexOf(adapter) === index
-    );
+    const adapters = this.assetAdapters();
 
     const tryStorageUri = async (
       adapter: StorageAdapter,
@@ -2529,19 +2675,8 @@ export class ProcessingContext {
     }
 
     for (const adapter of adapters) {
-      // Keys assets are written under: `<userId>/<id>.<ext>` (uploads — the
-      // current owner-prefixed layout), `<id>.<ext>` (the flat legacy layout)
-      // and `assets/<id>` (runtime-materialized refs). The owner-prefixed key
-      // goes first: without it every reference misses all the exact lookups
-      // and falls through to the prefix listing below, which degrades to
-      // `list("")` — a full recursive walk / whole-bucket `listObjectsV2`
-      // across every tenant, on every asset reference.
       for (const candidate of idCandidates) {
-        const keys = [candidate, `assets/${candidate}`];
-        if (this.userId && !candidate.startsWith(`${this.userId}/`)) {
-          keys.unshift(`${this.userId}/${candidate}`);
-        }
-        for (const key of keys) {
+        for (const key of this.assetKeysFor(candidate)) {
           const bytes = await tryStorageUri(adapter, adapter.uriForKey(key));
           if (bytes) {
             return { bytes, attempts };
@@ -2551,67 +2686,22 @@ export class ProcessingContext {
       // Extension-tolerant fallback: locate the stored file whose name starts
       // with the id, since the URN extension may differ from the one on disk
       // (e.g. jpeg vs jpg). Only reached when the exact-key lookups all miss.
-      //
-      // Try a narrow prefix first (S3 treats `list(<owner>/<bareId>)` as a
-      // raw-string prefix match — bounded to a handful of entries) before
-      // widening. `list("")` is the last resort: it is a multi-thousand-object
-      // scan on production S3 backends, and on Supabase it lists only the
-      // bucket's immediate children — which under the owner-prefixed layout
-      // are folders, so it never sees an asset at all.
-      //
-      // The owner prefix is what makes this work for uploads. They are stored
-      // at `<userId>/<id>.<ext>`, and a ref that carries no extension
-      // (`asset://<id>`, or a bare `asset_id`) misses every exact-key lookup
-      // above. Listing the owner's own folder finds it on every adapter:
-      // hierarchical ones (file/supabase/memory) list its children, and
-      // prefix-matching ones (S3) stay scoped to that one user.
       const bareId = idCandidates[idCandidates.length - 1];
       if (bareId) {
-        const tryListing = async (
-          prefix: string
-        ): Promise<Uint8Array | null> => {
+        for (const prefix of this.assetListingPrefixes(bareId)) {
           try {
             const listing = await adapter.list(prefix);
-            const bareEndsWithThumb = bareId.endsWith("_thumb");
-            // A short resource id is a prefix of the stored id, so the key
-            // continues with more hex before its extension; a full id is
-            // followed by the extension itself.
-            const needle = isShortResourceId(bareId) ? bareId : `${bareId}.`;
-            const match = listing.entries.find((entry) => {
-              const key = entry.key;
-              const lastSegment = key.split("/").pop() ?? "";
-              // A hierarchical id (`user-1/image`) lives in the full key, a flat
-              // id in the last segment — match against whichever form fits.
-              const matches =
-                key.startsWith(needle) || lastSegment.startsWith(needle);
-              if (!matches) {
-                return false;
-              }
-              // Skip generated thumbnails (`<id>_thumb.<ext>`) — but only ones
-              // that aren't the id we're resolving, so a legit `banner_thumb`
-              // still matches instead of being dropped by a substring test.
-              const isThumb = /_thumb\.[^./]+$/.test(lastSegment);
-              return !isThumb || bareEndsWithThumb;
-            });
+            const match = findListedAsset(listing.entries, bareId);
             if (match) {
-              return await tryStorageUri(adapter, match.uri);
+              const bytes = await tryStorageUri(adapter, match.uri);
+              if (bytes) {
+                return { bytes, attempts };
+              }
             }
           } catch (error) {
             attempts.push(
               `storage list error (${error instanceof Error ? error.message : String(error)})`
             );
-          }
-          return null;
-        };
-        const owner = this.userId;
-        const prefixes =
-          owner && !bareId.startsWith(`${owner}/`)
-            ? [`${owner}/${bareId}`, bareId, owner, ""]
-            : [bareId, ""];
-        for (const prefix of prefixes) {
-          const bytes = await tryListing(prefix);
-          if (bytes) {
-            return { bytes, attempts };
           }
         }
       }

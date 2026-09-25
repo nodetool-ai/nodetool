@@ -253,6 +253,11 @@ export class S3StorageAdapter implements StorageAdapter {
     }
   }
 
+  /** Objects live in the bucket, not on this host. */
+  async localPath(_uri: string): Promise<string | null> {
+    return null;
+  }
+
   /**
    * Presigned PUT for `key`, so a client uploads straight to S3. Returns
    * `null` when the injected client can't presign (test fakes). The URL

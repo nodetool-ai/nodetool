@@ -126,4 +126,9 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     }
     return stat;
   }
+
+  /** The in-memory store keeps no files. */
+  async localPath(_uri: string): Promise<string | null> {
+    return null;
+  }
 }

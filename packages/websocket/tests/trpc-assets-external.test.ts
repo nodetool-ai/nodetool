@@ -29,6 +29,7 @@ import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 import { lookupExternalAssetPath } from "../src/lib/external-asset-lookup.js";
+import { THUMBNAIL_SOURCE_MAX_BYTES } from "../src/lib/thumbnail.js";
 import { retrieveAssetBytes } from "../src/lib/asset-paths.js";
 import { createStorageHandler } from "../src/storage-api.js";
 import {
@@ -123,6 +124,21 @@ describe("assets.createExternal", () => {
       USER,
       created.id,
       "image/png"
+    );
+  });
+
+  it("generates a thumbnail for a file above the old byte cap", async () => {
+    const video = path.join(mediaDir, "long take.mp4");
+    await fs.writeFile(video, "");
+    // Sparse: the size exceeds the byte cap without writing the bytes.
+    await fs.truncate(video, THUMBNAIL_SOURCE_MAX_BYTES + 1);
+    const created = await createCaller(makeCtx()).assets.createExternal({
+      path: video
+    });
+    expect(mocks.generateThumb).toHaveBeenCalledWith(
+      USER,
+      created.id,
+      "video/mp4"
     );
   });
 

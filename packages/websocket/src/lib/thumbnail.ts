@@ -14,6 +14,10 @@
  *
  * Video and audio paths require `ffmpeg` on PATH — same prerequisite as the
  * media nodes in `@nodetool-ai/base-nodes`.
+ *
+ * A source is either bytes or a file on this host. From a file, ffmpeg and
+ * sharp read in place — ffmpeg seeks by path — so there is no size cap. Bytes
+ * pulled back out of storage stay capped at THUMBNAIL_SOURCE_MAX_BYTES.
  */
 
 import { execFile } from "node:child_process";
@@ -24,9 +28,14 @@ import { promisify } from "node:util";
 
 import sharp from "sharp";
 import { createLogger } from "@nodetool-ai/config";
-import { assetObjectKey } from "@nodetool-ai/storage";
+import {
+  assetKeyCandidates,
+  assetObjectKey,
+  FileStorageAdapter,
+  type StorageAdapter
+} from "@nodetool-ai/storage";
 import { getAssetAdapter } from "./storage.js";
-import { retrieveAssetBytes } from "./asset-paths.js";
+import { assetFileNameCandidates, localAssetPath } from "./asset-paths.js";
 
 const log = createLogger("nodetool.thumbnail");
 const execFileAsync = promisify(execFile);
@@ -38,6 +47,9 @@ const THUMB_CONTENT_TYPE = "image/jpeg";
 export function thumbnailKey(assetId: string): string {
   return `${assetId}_thumb.jpg`;
 }
+
+/** What a thumbnail is made from: bytes in memory, or a file on this host. */
+export type ThumbnailSource = { bytes: Uint8Array } | { path: string };
 
 function resizeAndEncode(pipeline: ReturnType<typeof sharp>): Promise<Buffer> {
   return pipeline
@@ -63,26 +75,37 @@ function resizeAndEncode(pipeline: ReturnType<typeof sharp>): Promise<Buffer> {
  * (e.g. a fully uniform image trimmed to nothing) falls back to a single
  * untrimmed pass.
  */
-export async function generateImageThumb(bytes: Uint8Array): Promise<Buffer> {
+export async function generateImageThumb(
+  input: Uint8Array | string
+): Promise<Buffer> {
   try {
     return await resizeAndEncode(
-      sharp(bytes).rotate().trim({ threshold: 10 })
+      sharp(input).rotate().trim({ threshold: 10 })
     );
   } catch {
-    return await resizeAndEncode(sharp(bytes).rotate());
+    return await resizeAndEncode(sharp(input).rotate());
   }
 }
 
+/**
+ * Run ffmpeg on the source. A file is read in place; bytes are written to a
+ * temp input first because ffmpeg needs a seekable file.
+ */
 async function runFfmpegThumb(
-  bytes: Uint8Array,
+  source: ThumbnailSource,
   prefix: string,
   buildArgs: (inputPath: string, outputPath: string) => string[]
 ): Promise<Buffer> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
-  const inputPath = path.join(dir, "input");
   const outputPath = path.join(dir, "thumb.jpg");
   try {
-    await fs.writeFile(inputPath, bytes);
+    let inputPath: string;
+    if ("path" in source) {
+      inputPath = source.path;
+    } else {
+      inputPath = path.join(dir, "input");
+      await fs.writeFile(inputPath, source.bytes);
+    }
     await execFileAsync("ffmpeg", buildArgs(inputPath, outputPath), {
       maxBuffer: 16 * 1024 * 1024
     });
@@ -92,7 +115,7 @@ async function runFfmpegThumb(
   }
 }
 
-async function generateVideoThumb(bytes: Uint8Array): Promise<Buffer> {
+async function generateVideoThumb(source: ThumbnailSource): Promise<Buffer> {
   const buildArgs =
     (seekSeconds: number) =>
     (input: string, output: string): string[] => [
@@ -108,13 +131,27 @@ async function generateVideoThumb(bytes: Uint8Array): Promise<Buffer> {
   // seek past EOF and yield no frame (leaving the asset thumbnail-less). Fall
   // back to the first frame so short clips still get a thumbnail.
   try {
-    return await runFfmpegThumb(bytes, "nodetool-vthumb-", buildArgs(1));
+    return await runFfmpegThumb(source, "nodetool-vthumb-", buildArgs(1));
   } catch {
-    return await runFfmpegThumb(bytes, "nodetool-vthumb-", buildArgs(0));
+    return await runFfmpegThumb(source, "nodetool-vthumb-", buildArgs(0));
   }
 }
 
-async function generatePdfThumb(bytes: Uint8Array): Promise<Buffer> {
+/**
+ * PDFium parses a whole document from memory, so a PDF on disk is read in
+ * and keeps the byte cap.
+ */
+async function generatePdfThumb(source: ThumbnailSource): Promise<Buffer> {
+  let bytes: Uint8Array;
+  if ("path" in source) {
+    const { size } = await fs.stat(source.path);
+    if (size > THUMBNAIL_SOURCE_MAX_BYTES) {
+      throw new Error(`PDF too large to thumbnail: ${size} bytes`);
+    }
+    bytes = await fs.readFile(source.path);
+  } else {
+    bytes = source.bytes;
+  }
   const { PDFiumLibrary } = await import("@hyzyla/pdfium");
   const lib = await PDFiumLibrary.init();
   let doc: Awaited<ReturnType<typeof lib.loadDocument>> | null = null;
@@ -150,8 +187,8 @@ async function generatePdfThumb(bytes: Uint8Array): Promise<Buffer> {
   }
 }
 
-async function generateAudioThumb(bytes: Uint8Array): Promise<Buffer> {
-  return runFfmpegThumb(bytes, "nodetool-athumb-", (input, output) => [
+async function generateAudioThumb(source: ThumbnailSource): Promise<Buffer> {
+  return runFfmpegThumb(source, "nodetool-athumb-", (input, output) => [
     "-y",
     "-i", input,
     "-filter_complex",
@@ -162,7 +199,10 @@ async function generateAudioThumb(bytes: Uint8Array): Promise<Buffer> {
   ]);
 }
 
-/** Largest object we'll pull back out of storage just to thumbnail it. */
+/**
+ * Largest object we'll pull back out of storage into memory just to thumbnail
+ * it. A source with a local file has no cap.
+ */
 export const THUMBNAIL_SOURCE_MAX_BYTES = 100 * 1024 * 1024;
 
 const SVG_CONTENT_TYPE = "image/svg+xml";
@@ -182,11 +222,14 @@ export function assetHasRasterThumbnail(contentType: string): boolean {
   );
 }
 
-function thumbGeneratorFor(
-  contentType: string
-): ((bytes: Uint8Array) => Promise<Buffer>) | null {
+type ThumbGenerator = (source: ThumbnailSource) => Promise<Buffer>;
+
+function thumbGeneratorFor(contentType: string): ThumbGenerator | null {
   if (contentType === SVG_CONTENT_TYPE) return null;
-  if (contentType.startsWith("image/")) return generateImageThumb;
+  if (contentType.startsWith("image/")) {
+    return (source) =>
+      generateImageThumb("path" in source ? source.path : source.bytes);
+  }
   if (contentType.startsWith("video/")) return generateVideoThumb;
   if (contentType.startsWith("audio/")) return generateAudioThumb;
   if (contentType === "application/pdf") return generatePdfThumb;
@@ -194,29 +237,21 @@ function thumbGeneratorFor(
 }
 
 /**
- * Generate a thumbnail for an object already in storage — the client-direct
- * upload path, where the bytes never passed through this process. Reads them
- * back once. Failures are logged and swallowed; the asset stays usable
- * without a thumbnail.
+ * Generate and store the thumbnail. Failures are logged and swallowed; the
+ * asset stays usable without a thumbnail.
  */
-export async function generateThumbnailForStoredAsset(
+async function storeThumbnail(
+  adapter: StorageAdapter,
   userId: string,
   assetId: string,
-  contentType: string
+  contentType: string,
+  generator: ThumbGenerator,
+  source: () => Promise<ThumbnailSource | null>
 ): Promise<void> {
-  const generator = thumbGeneratorFor(contentType);
-  if (!generator) return;
-
-  const adapter = getAssetAdapter();
   try {
-    const bytes = await retrieveAssetBytes(
-      adapter,
-      userId,
-      assetId,
-      contentType
-    );
-    if (!bytes) return;
-    const thumb = await generator(bytes);
+    const resolved = await source();
+    if (!resolved) return;
+    const thumb = await generator(resolved);
     await adapter.store(
       assetObjectKey(userId, thumbnailKey(assetId)),
       new Uint8Array(thumb),
@@ -229,6 +264,54 @@ export async function generateThumbnailForStoredAsset(
       error: String(err)
     });
   }
+}
+
+/**
+ * Where a stored asset's thumbnail is made from: its local file when the
+ * backend has one (managed or external), else its bytes when they are within
+ * THUMBNAIL_SOURCE_MAX_BYTES. Null when the object is missing or too large to
+ * pull back into memory.
+ */
+async function storedThumbnailSource(
+  adapter: StorageAdapter,
+  userId: string,
+  assetId: string,
+  contentType: string
+): Promise<ThumbnailSource | null> {
+  const local = await localAssetPath(adapter, userId, assetId, contentType);
+  if (local) return { path: local };
+  for (const fileName of assetFileNameCandidates(assetId, contentType)) {
+    for (const key of assetKeyCandidates(userId, fileName)) {
+      const uri = adapter.uriForKey(key);
+      const stat = await adapter.stat(uri);
+      if (!stat) continue;
+      if (stat.size > THUMBNAIL_SOURCE_MAX_BYTES) return null;
+      const bytes = await adapter.retrieve(uri);
+      return bytes ? { bytes } : null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Generate a thumbnail for an object already in storage: a staged local
+ * upload, a client-direct upload whose bytes never passed through this
+ * process, or an external asset referenced in place. A local file is read in
+ * place at any size. Otherwise the bytes are read back once, up to
+ * THUMBNAIL_SOURCE_MAX_BYTES. Failures are logged and swallowed; the asset
+ * stays usable without a thumbnail.
+ */
+export async function generateThumbnailForStoredAsset(
+  userId: string,
+  assetId: string,
+  contentType: string
+): Promise<void> {
+  const generator = thumbGeneratorFor(contentType);
+  if (!generator) return;
+  const adapter = getAssetAdapter();
+  await storeThumbnail(adapter, userId, assetId, contentType, generator, () =>
+    storedThumbnailSource(adapter, userId, assetId, contentType)
+  );
 }
 
 /**
@@ -248,19 +331,38 @@ export async function storeAssetWithThumbnail(
 
   const generator = thumbGeneratorFor(contentType);
   if (!generator) return;
+  await storeThumbnail(adapter, userId, assetId, contentType, generator, () =>
+    Promise.resolve({ bytes })
+  );
+}
 
-  try {
-    const thumb = await generator(bytes);
+/**
+ * Store an asset from a file on this host and thumbnail it from that file.
+ * The local file store copies it with a bounded streaming copy; other backends
+ * take its bytes. Thumbnail failures are logged and swallowed.
+ */
+export async function storeAssetFileWithThumbnail(
+  userId: string,
+  assetId: string,
+  fileName: string,
+  filePath: string,
+  contentType: string
+): Promise<void> {
+  const adapter = getAssetAdapter();
+  const key = assetObjectKey(userId, fileName);
+  if (adapter instanceof FileStorageAdapter) {
+    await adapter.storeFile(key, filePath);
+  } else {
     await adapter.store(
-      assetObjectKey(userId, thumbnailKey(assetId)),
-      new Uint8Array(thumb),
-      THUMB_CONTENT_TYPE
+      key,
+      new Uint8Array(await fs.readFile(filePath)),
+      contentType
     );
-  } catch (err) {
-    log.warn("thumbnail generation failed", {
-      assetId,
-      contentType,
-      error: String(err)
-    });
   }
+
+  const generator = thumbGeneratorFor(contentType);
+  if (!generator) return;
+  await storeThumbnail(adapter, userId, assetId, contentType, generator, () =>
+    Promise.resolve({ path: filePath })
+  );
 }

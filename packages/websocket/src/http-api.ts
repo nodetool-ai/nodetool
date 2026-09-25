@@ -68,8 +68,8 @@ import {
 import { handleFileRequest } from "./file-api.js";
 import {
   storeAssetWithThumbnail,
-  generateThumbnailForStoredAsset,
-  THUMBNAIL_SOURCE_MAX_BYTES
+  storeAssetFileWithThumbnail,
+  generateThumbnailForStoredAsset
 } from "./lib/thumbnail.js";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
@@ -118,6 +118,7 @@ import {
   getAssetStorageKey,
   getAssetStoragePath,
   retrieveAssetBytes,
+  localAssetPath,
   normalizeAssetContentType
 } from "./lib/asset-paths.js";
 import { resolveAssetBytesForExport } from "./lib/asset-export.js";
@@ -1590,13 +1591,13 @@ export async function handleAssetsRoot(
             getAssetStorageKey(asset.user_id, asset.id, asset.content_type),
             staged.file.path
           );
-          if (staged.file.size <= THUMBNAIL_SOURCE_MAX_BYTES) {
-            await generateThumbnailForStoredAsset(
-              asset.user_id,
-              asset.id,
-              asset.content_type
-            );
-          }
+          // The stored file is local, so the thumbnail reads it in place at
+          // any size.
+          await generateThumbnailForStoredAsset(
+            asset.user_id,
+            asset.id,
+            asset.content_type
+          );
         } else if (fileBuffer) {
           await storeAssetWithThumbnail(
             asset.user_id,
@@ -1655,69 +1656,82 @@ export async function handleExtractAudio(
     return errorResponse(400, "Asset is not a video");
   }
 
-  const videoBytes = await retrieveAssetBytes(
-    getAssetAdapter(),
-    source.user_id,
-    source.id,
-    source.content_type
-  );
-  if (!videoBytes) {
-    return errorResponse(404, "Asset bytes not found");
-  }
-
-  // Write the video bytes to a single temp input file, then probe + extract
-  // against that path (ffmpeg/ffprobe need a path).
+  // ffmpeg reads a local file (managed or external) in place. Only a backend
+  // with no local file has its bytes loaded and written to a temp input.
+  const adapter = getAssetAdapter();
   const dir = await fsp.mkdtemp(
     nodePath.join(os.tmpdir(), "nodetool-extract-")
   );
-  const inputPath = nodePath.join(dir, "input");
-  let wavBytes: Uint8Array;
-  let durationMs: number | null;
   try {
-    await fsp.writeFile(inputPath, videoBytes);
-    if (!(await probeHasAudio(inputPath))) {
-      return jsonResponse({ has_audio: false });
-    }
-    ({ bytes: wavBytes, durationMs } = await extractAudio(inputPath));
-  } catch (err) {
-    if (err instanceof MediaToolingMissingError) {
-      return errorResponse(
-        503,
-        "ffmpeg is required to extract audio from video. Install the ffmpeg runtime."
+    let inputPath = await localAssetPath(
+      adapter,
+      source.user_id,
+      source.id,
+      source.content_type
+    );
+    if (!inputPath) {
+      const videoBytes = await retrieveAssetBytes(
+        adapter,
+        source.user_id,
+        source.id,
+        source.content_type
       );
+      if (!videoBytes) {
+        return errorResponse(404, "Asset bytes not found");
+      }
+      inputPath = nodePath.join(dir, "input");
+      await fsp.writeFile(inputPath, videoBytes);
     }
-    throw err;
+
+    // The WAV stays on disk: it is stored from the file and thumbnailed from
+    // it, never held in memory whole.
+    const wavPath = nodePath.join(dir, "audio.wav");
+    let durationMs: number | null;
+    try {
+      if (!(await probeHasAudio(inputPath))) {
+        return jsonResponse({ has_audio: false });
+      }
+      ({ durationMs } = await extractAudio(inputPath, wavPath));
+    } catch (err) {
+      if (err instanceof MediaToolingMissingError) {
+        return errorResponse(
+          503,
+          "ffmpeg is required to extract audio from video. Install the ffmpeg runtime."
+        );
+      }
+      throw err;
+    }
+    const { size } = await fsp.stat(wavPath);
+
+    const audioAsset = (await Asset.create({
+      user_id: userId,
+      name: `${source.name} (audio)`,
+      content_type: "audio/wav",
+      parent_id: source.id,
+      workflow_id: source.workflow_id ?? null,
+      project_id: source.project_id,
+      node_id: null,
+      job_id: null,
+      metadata: null,
+      size,
+      duration: durationMs != null ? durationMs / 1000 : null
+    })) as Asset;
+
+    await storeAssetFileWithThumbnail(
+      audioAsset.user_id,
+      audioAsset.id,
+      getAssetFileName(audioAsset.id, audioAsset.content_type),
+      wavPath,
+      audioAsset.content_type
+    );
+
+    return jsonResponse({
+      has_audio: true,
+      asset: await toAssetResponse(audioAsset)
+    });
   } finally {
     await fsp.rm(dir, { recursive: true, force: true });
   }
-
-  const audioAsset = (await Asset.create({
-    user_id: userId,
-    name: `${source.name} (audio)`,
-    content_type: "audio/wav",
-    parent_id: source.id,
-    workflow_id: source.workflow_id ?? null,
-    project_id: source.project_id,
-    node_id: null,
-    job_id: null,
-    metadata: null,
-    size: wavBytes.byteLength,
-    duration: durationMs != null ? durationMs / 1000 : null
-  })) as Asset;
-
-  const audioKey = getAssetFileName(audioAsset.id, audioAsset.content_type);
-  await storeAssetWithThumbnail(
-    audioAsset.user_id,
-    audioAsset.id,
-    audioKey,
-    wavBytes,
-    audioAsset.content_type
-  );
-
-  return jsonResponse({
-    has_audio: true,
-    asset: await toAssetResponse(audioAsset)
-  });
 }
 
 export async function handleApiRequest(

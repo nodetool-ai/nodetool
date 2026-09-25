@@ -62,8 +62,8 @@ export interface FileStorageAdapterOptions {
   /**
    * Resolves keys of assets whose bytes stay outside the root (large local
    * imports). Consulted only after the root misses, and only by reads:
-   * `retrieve`, `exists`, and `stat`. `store`, `storeFile`, and `delete`
-   * never touch the external file.
+   * `retrieve`, `exists`, `stat`, and `localPath`. `store`, `storeFile`, and
+   * `delete` never touch the external file.
    */
   externalPathLookup?: ExternalPathLookup;
 }
@@ -401,5 +401,34 @@ export class FileStorageAdapter implements StorageAdapter {
     return external
       ? { key: rel, size: external.size, modifiedAt: external.modifiedAt }
       : null;
+  }
+
+  /**
+   * The file behind `uri`: the object under the root when there is one, else
+   * the in-place file of an external asset. Applies the same boundary as the
+   * reads: a symlink, a hardlinked file, or a path that resolves outside the
+   * root is not handed out.
+   */
+  async localPath(uri: string): Promise<string | null> {
+    const key = this.keyFromUri(uri);
+    if (!key) return null;
+    let rel: string;
+    try {
+      rel = normalizeStorageKey(key);
+    } catch {
+      return null;
+    }
+    const absolute = resolve(this.rootDir, rel);
+    if (!isWithinRoot(this.rootDir, absolute)) return null;
+    try {
+      const info = await lstat(absolute);
+      if (info.isFile() && info.nlink <= 1) {
+        const real = await realpath(absolute);
+        if (isWithinRoot(this.rootDir, real)) return real;
+      }
+    } catch {
+      // Fall through to the in-place lookup.
+    }
+    return (await this.statExternal(rel))?.path ?? null;
   }
 }

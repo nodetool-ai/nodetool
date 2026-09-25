@@ -193,6 +193,27 @@ export async function retrieveAssetBytes(
   return null;
 }
 
+/**
+ * The local file holding an asset's bytes, under the same keys
+ * {@link retrieveAssetBytes} reads: a managed file under the local asset root,
+ * or an external asset's in-place file. Null on backends that keep no local
+ * file, where the caller reads the bytes instead.
+ */
+export async function localAssetPath(
+  adapter: StorageAdapter,
+  userId: string,
+  assetId: string,
+  contentType: string
+): Promise<string | null> {
+  for (const fileName of assetFileNameCandidates(assetId, contentType)) {
+    for (const candidate of assetKeyCandidates(userId, fileName)) {
+      const found = await adapter.localPath(adapter.uriForKey(candidate));
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 export function getAssetStoragePath(opts?: StorageHandlerOptions): string {
   return opts?.storagePath ?? getDefaultAssetsPath();
 }

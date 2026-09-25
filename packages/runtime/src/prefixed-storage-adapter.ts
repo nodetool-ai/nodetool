@@ -85,4 +85,7 @@ export class PrefixedStorageAdapter implements StorageAdapter {
     return key ? { ...st, key } : st;
   }
 
+  localPath(uri: string): Promise<string | null> {
+    return this.inner.localPath(uri);
+  }
 }
