@@ -146,6 +146,7 @@ import PlotlyRenderer from "./output/PlotlyRenderer";
 import DataframeRenderer from "./output/DataframeRenderer";
 import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
 import { resolveInlineMediaSource } from "../../utils/resolveMediaUri";
+import { extractTextValue } from "../../utils/extractTextValue";
 import type { ResolvedMediaUrl } from "../../utils/resolveMediaUri";
 
 const LazyTimelineRenderer = React.lazy(() => import("../timeline/TimelineRenderer"));
@@ -1101,6 +1102,15 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       }
       case "json":
         return <JSONRenderer value={v} showActions={showTextActions} />;
+      case "text":
+        // A saved text generation reloads as `{ type: "text", text, uri }`;
+        // show its content, not the ref.
+        return (
+          <TextRenderer
+            text={extractTextValue(value)}
+            showActions={showTextActions}
+          />
+        );
       default:
         if (isRecord(value)) {
           return <JSONRenderer value={value} showActions={showTextActions} />;
