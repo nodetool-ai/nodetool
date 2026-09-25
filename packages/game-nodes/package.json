@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/game-nodes",
-  "version": "0.7.0-rc.40",
+  "version": "0.8.0",
   "description": "NodeTool game template nodes: read a Godot template's asset slots, turn one into a generation job, and export the filled project",
   "type": "module",
   "engines": {

@@ -1,8 +1,10 @@
 {
   "name": "@nodetool-ai/higgsfield-nodes",
-  "version": "0.7.0-rc.40",
+  "version": "0.8.0",
   "type": "module",
-  "engines": { "node": ">=22.22.1 <23" },
+  "engines": {
+    "node": ">=22.22.1 <23"
+  },
   "description": "Curated Higgsfield image and video generation nodes for NodeTool",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -23,9 +25,16 @@
     "vitest": "^5.0.1"
   },
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
     "./higgsfield-manifest.json": "./dist/higgsfield-manifest.json"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "license": "MIT"
 }

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/huggingface",
-  "version": "0.7.0-rc.40",
+  "version": "0.8.0",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
