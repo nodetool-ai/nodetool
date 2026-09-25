@@ -4,7 +4,10 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
+import type { TimelineClip } from "@nodetool-ai/timeline";
 import { ClipContextMenu } from "../ClipContextMenu";
+import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 import type { ClipMenuActions } from "../useClipMenuActions";
 
 const mockUseClipMenuActions = jest.fn<() => ClipMenuActions>();
@@ -43,6 +46,7 @@ const renderMenu = (
         isLinked={false}
         onUnlink={jest.fn()}
         onDelete={jest.fn()}
+        onSendToWorkflow={jest.fn()}
         onClose={jest.fn()}
         onRequestReplace={jest.fn()}
         onError={jest.fn()}
@@ -134,5 +138,76 @@ describe("ClipContextMenu", () => {
     expect(screen.getByText("Duplicate")).toBeTruthy();
     await userEvent.click(screen.getByText("Split at playhead"));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  describe("Send to workflow", () => {
+    const clip = (
+      id: string,
+      mediaType: TimelineClip["mediaType"],
+      currentAssetId?: string
+    ): TimelineClip =>
+      ({
+        id,
+        trackId: "t1",
+        name: `Clip ${id}`,
+        startMs: 0,
+        durationMs: 1000,
+        mediaType,
+        sourceType: "imported",
+        currentAssetId
+      }) as TimelineClip;
+
+    beforeEach(() => {
+      useTimelineStore.setState({
+        clips: [
+          clip("clip-1", "video", "asset-v"),
+          clip("clip-2", "audio", "asset-a"),
+          clip("clip-3", "text"),
+          clip("clip-4", "image")
+        ]
+      });
+      useTimelineUIStore.setState({ selectedClipIds: new Set<string>() });
+    });
+
+    afterEach(() => {
+      useTimelineStore.setState({ clips: [] });
+      useTimelineUIStore.setState({ selectedClipIds: new Set<string>() });
+    });
+
+    it("sends the right-clicked clip when it is outside the selection", async () => {
+      useTimelineUIStore.setState({ selectedClipIds: new Set(["clip-2"]) });
+      const onSendToWorkflow = jest.fn();
+      renderMenu({ onSendToWorkflow });
+
+      await userEvent.click(screen.getByText("Send to workflow…"));
+
+      expect(onSendToWorkflow).toHaveBeenCalledWith(
+        [{ type: "video", asset_id: "asset-v", title: "Clip clip-1" }],
+        { x: 10, y: 10 }
+      );
+    });
+
+    it("sends every selected clip that has media, skipping the rest", async () => {
+      useTimelineUIStore.setState({
+        selectedClipIds: new Set(["clip-1", "clip-2", "clip-3", "clip-4"])
+      });
+      const onSendToWorkflow = jest.fn();
+      renderMenu({ onSendToWorkflow });
+
+      await userEvent.click(screen.getByText("Send 2 clips to workflow…"));
+
+      expect(onSendToWorkflow).toHaveBeenCalledWith(
+        [
+          { type: "video", asset_id: "asset-v", title: "Clip clip-1" },
+          { type: "audio", asset_id: "asset-a", title: "Clip clip-2" }
+        ],
+        { x: 10, y: 10 }
+      );
+    });
+
+    it("hides the item for a clip with no rendered media", () => {
+      renderMenu({ clipId: "clip-4" });
+      expect(screen.queryByText(/to workflow/)).toBeNull();
+    });
   });
 });

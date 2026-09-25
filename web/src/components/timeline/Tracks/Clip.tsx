@@ -42,6 +42,8 @@ import { keyframeTimesMs as deriveKeyframeTimes } from "@nodetool-ai/timeline";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { ClipBody, CLIP_STATUS_MAP, MIN_CLIP_WIDTH_PX } from "./ClipBody";
 import { ClipContextMenu } from "./ClipContextMenu";
+import { SendToWorkflowMenu } from "../../workflows/SendToWorkflowMenu";
+import type { WorkflowMediaItem } from "../../../hooks/handlers/useGenerationToCanvas";
 import { ReplaceOutputDialog } from "./ReplaceOutputDialog";
 
 interface ClipProps {
@@ -226,6 +228,18 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   // Stable handler props for the memoized ClipBody — inline arrows here would
   // create a fresh function each render and defeat the React.memo on ClipBody.
   const handleCloseContextMenu = useCallback(() => setContextMenuPos(null), []);
+  // The context menu closes when an item is picked, so the workflow picker it
+  // opens is held here, where it outlives that menu.
+  const [workflowSend, setWorkflowSend] = useState<{
+    items: WorkflowMediaItem[];
+    position: { x: number; y: number };
+  } | null>(null);
+  const handleSendToWorkflow = useCallback(
+    (items: WorkflowMediaItem[], position: { x: number; y: number }) =>
+      setWorkflowSend({ items, position }),
+    []
+  );
+  const handleCloseWorkflowSend = useCallback(() => setWorkflowSend(null), []);
   // Raised by context-menu actions; they must outlive the menu's unmount.
   const [replaceAssetId, setReplaceAssetId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -330,9 +344,17 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
           isLinked={Boolean(clip.linkId)}
           onUnlink={handleUnlink}
           onDelete={handleDelete}
+          onSendToWorkflow={handleSendToWorkflow}
           onClose={handleCloseContextMenu}
           onRequestReplace={setReplaceAssetId}
           onError={setActionError}
+        />
+      )}
+      {workflowSend && (
+        <SendToWorkflowMenu
+          items={workflowSend.items}
+          position={workflowSend.position}
+          onClose={handleCloseWorkflowSend}
         />
       )}
       {fadeShapeMenu && (

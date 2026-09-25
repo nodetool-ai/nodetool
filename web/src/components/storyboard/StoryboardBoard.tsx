@@ -111,6 +111,8 @@ import EntityStillModelWarning from "./EntityStillModelWarning";
 import SceneHeader from "./SceneHeader";
 import ScriptLinkControl from "./ScriptLinkControl";
 import ShotCard from "./ShotCard";
+import { shotWorkflowMedia } from "./shotWorkflowMedia";
+import BoardActionsMenu from "./BoardActionsMenu";
 import ShotEditPanel from "./ShotEditPanel";
 import ShotInsertPoint, { SHOT_INSERT_POINT_CLASS } from "./ShotInsertPoint";
 import ShotInspector from "./ShotInspector";
@@ -517,6 +519,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const captions = useMemo(() => captionsByShotId(sceneGroups), [sceneGroups]);
 
   const hasShots = shots.length > 0;
+  const boardWorkflowMedia = useMemo(
+    () => shots.flatMap(shotWorkflowMedia),
+    [shots]
+  );
 
   // A board with no shots is a board being set up: the form is the surface.
   // Once shots exist the grid is, and the form folds behind the toolbar.
@@ -1063,16 +1069,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 {previewOpen ? "Hide preview" : "Preview"}
               </EditorButton>
               <EditorButton
-                variant="outlined"
-                onClick={handleDownloadZip}
-                disabled={!hasShots || downloading}
-              >
-                {downloading ? "Preparing…" : "Download ZIP"}
-              </EditorButton>
-              <EditorButton variant="outlined" onClick={openStyle}>
-                Change Style
-              </EditorButton>
-              <EditorButton
                 variant={settingsVisible ? "contained" : "outlined"}
                 startIcon={<TuneIcon fontSize="small" />}
                 onClick={toggleSettings}
@@ -1081,6 +1077,19 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               >
                 Board settings
               </EditorButton>
+              {downloading && (
+                <FlexRow align="center" gap={SPACING.xs} role="status">
+                  <LoadingSpinner size={16} />
+                  <Caption color="secondary">Preparing ZIP…</Caption>
+                </FlexRow>
+              )}
+              <BoardActionsMenu
+                onChangeStyle={openStyle}
+                onDownloadZip={handleDownloadZip}
+                downloading={downloading}
+                hasShots={hasShots}
+                workflowMedia={boardWorkflowMedia}
+              />
               <RenderBatchButton
                 label="Render stills"
                 estimate={stillsCost}

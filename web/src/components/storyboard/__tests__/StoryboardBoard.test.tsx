@@ -528,11 +528,16 @@ describe("StoryboardBoard model fields", () => {
 });
 
 describe("StoryboardBoard download", () => {
-  it("stays disabled with no shots to pack", () => {
+  it("stays disabled with no shots to pack", async () => {
     mockShots = [];
+    const user = userEvent.setup();
     renderBoard(jest.fn());
 
-    expect(screen.getByRole("button", { name: "Download ZIP" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "More board actions" }));
+
+    expect(
+      screen.getByRole("menuitem", { name: "Download ZIP" })
+    ).toHaveAttribute("aria-disabled", "true");
   });
 
   it("downloads the board archive by id", async () => {
@@ -541,7 +546,8 @@ describe("StoryboardBoard download", () => {
     const user = userEvent.setup();
     renderBoard(jest.fn());
 
-    await user.click(screen.getByRole("button", { name: "Download ZIP" }));
+    await user.click(screen.getByRole("button", { name: "More board actions" }));
+    await user.click(screen.getByRole("menuitem", { name: "Download ZIP" }));
 
     expect(mockFlushStoryboardSave).toHaveBeenCalledWith("board-1");
     expect(mockFlushStoryboardSave.mock.invocationCallOrder[0]).toBeLessThan(
@@ -1163,7 +1169,8 @@ describe("StoryboardBoard Change Style", () => {
     const user = userEvent.setup();
     renderBoard(jest.fn());
 
-    await user.click(screen.getByRole("button", { name: "Change Style" }));
+    await user.click(screen.getByRole("button", { name: "More board actions" }));
+    await user.click(screen.getByRole("menuitem", { name: "Change style…" }));
     const grid = await screen.findByRole("radiogroup", { name: "Art style" });
     await user.click(within(grid).getByRole("radio", { name: /Noir/ }));
 
