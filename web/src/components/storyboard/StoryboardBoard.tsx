@@ -40,6 +40,15 @@ import AddIcon from "@mui/icons-material/Add";
 import TuneIcon from "@mui/icons-material/Tune";
 
 import { ASPECT_OPTIONS } from "./aspectOptions";
+import {
+  CLIP_TASK_LABELS,
+  STILL_MODEL_TASKS,
+  clipTaskForShot,
+  imageValue,
+  modelFieldSx,
+  videoValue
+} from "./shotRenderModels";
+import RenderCostSummary from "./RenderCostSummary";
 
 import {
   Box,
@@ -67,7 +76,6 @@ import {
   Tooltip,
   UndoRedoButtons,
   BORDER_RADIUS,
-  CONTROL,
   SPACING
 } from "../ui_primitives";
 import { formatUsd } from "@nodetool-ai/model-pricing";
@@ -82,7 +90,6 @@ import { useStoryboardShotFocus } from "../../hooks/storyboard/useStoryboardShot
 import {
   useImageModelsByProvider,
   useVideoModelsByProvider,
-  type ImageModelTask,
   type VideoModelTask
 } from "../../hooks/useModelsByProvider";
 import { modelMatchesTask } from "../../hooks/modelTaskMatching";
@@ -157,55 +164,6 @@ const SHOT_COUNT_OPTIONS = [3, 4, 5, 6, 8, 10, 12].map((n) => ({
   value: n,
   label: `${n} shots`
 }));
-
-// Stills can come from a plain generator or an editing model; the latter can
-// take entity reference images, so the picker offers both.
-const STILL_MODEL_TASKS: ImageModelTask[] = ["text_to_image", "image_to_image"];
-
-const clipTaskForShot = (shot: Shot): VideoModelTask => {
-  const mode = shotRenderMode(shot);
-  return mode === "reference"
-    ? "reference_to_video"
-    : mode === "direct"
-      ? "text_to_video"
-      : "image_to_video";
-};
-
-/**
- * The clip tasks a board can ask for, keyed off the helper that produces them
- * so the labels cannot drift from it. A shot renders one of three ways; the
- * rest of `VideoModelTask` (revision, lip sync, upscaling, interpolation,
- * outpainting) never reaches this picker.
- */
-type ClipModelTask = ReturnType<typeof requiredVideoTasksForShots>[number];
-
-const CLIP_TASK_LABELS: Record<ClipModelTask, string> = {
-  image_to_video: "Animate stills",
-  text_to_video: "Generate from prompts",
-  reference_to_video: "Use entity references"
-};
-
-const imageValue = (model: ShotModelRef): ImageModelValue => ({
-  type: "image_model",
-  id: model.id,
-  provider: model.provider,
-  name: model.name ?? model.id,
-  path: ""
-});
-
-const videoValue = (model: ShotModelRef): VideoModelValue => ({
-  type: "video_model",
-  id: model.id,
-  provider: model.provider,
-  name: model.name ?? model.id
-});
-
-// The model pickers are custom buttons, not InputBase controls; hold them at
-// the shared form-control height. Scoped to the picker's own class so no
-// other button that ends up inside the field is affected.
-const modelFieldSx = {
-  "& .select-model-button": { minHeight: `${CONTROL.height.lg}px` }
-} as const;
 
 const FORM_STACK_BELOW = 860;
 
@@ -345,37 +303,6 @@ const RenderBatchButton: React.FC<RenderBatchButtonProps> = ({
         </EditorButton>
       </FlexRow>
     </Tooltip>
-  );
-};
-
-const RenderCostSummary: React.FC<{
-  estimate: RenderBatchCostEstimate;
-}> = ({ estimate }) => {
-  const { requestCount, cost, pricedRequestCount, reasons, notes } = estimate;
-  const priced = pricedRequestCount > 0 && cost > 0;
-  return (
-    <FlexColumn gap={SPACING.micro}>
-      <Text size="small">
-        {priced
-          ? `Estimated cost: about ${formatUsd(cost)}${
-              pricedRequestCount < requestCount
-                ? ` (${pricedRequestCount} of ${requestCount} requests priced)`
-                : ""
-            }`
-          : "Select a priced model to see the batch estimate."}
-      </Text>
-      {reasons.map((reason) => (
-        <Caption key={reason} color="secondary">
-          {reason}
-        </Caption>
-      ))}
-      {priced &&
-        notes.map((note) => (
-          <Caption key={note} color="secondary">
-            {note}
-          </Caption>
-        ))}
-    </FlexColumn>
   );
 };
 
@@ -682,7 +609,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const assemblableShotCount = shots.filter(isAssemblableShot).length;
   const skippedAssemblyCount = shots.length - assemblableShotCount;
   const hasUnselectedClip = shots.some(
-    (shot) => !shot.clip && shot.clip_versions?.some((version) => !!version.asset_id)
+    (shot) =>
+      !shot.clip && shot.clip_versions?.some((version) => !!version.asset_id)
   );
   const linkedTimeline = useTimeline(timelineId);
   const replacedClipCount = linkedTimeline.data

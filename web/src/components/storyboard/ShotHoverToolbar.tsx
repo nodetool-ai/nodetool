@@ -3,8 +3,8 @@
  *
  * The actions that live on a shot's still and only appear under the pointer
  * (PRD § 7.4). Two stay on the still: the drag grip and fullscreen. The rest
- * (download, send to workflow, duplicate, delete) sit behind one "Shot
- * actions" menu, so a narrow card is not covered by a row of icons. The row
+ * (render still, render clip, download, send to workflow, duplicate, delete)
+ * sit behind one "Shot actions" menu, so a narrow card is not covered by a row of icons. The row
  * swallows clicks and keys before they reach the card and the board grid:
  * the card's click selects the shot, and the grid's arrow keys move between
  * shots, which would otherwise hijack the menu's own keyboard navigation.
@@ -12,6 +12,8 @@
 
 import React, { useCallback, useState } from "react";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
+import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -38,6 +40,12 @@ interface ShotHoverToolbarProps {
   onFullscreen?: (event: React.SyntheticEvent) => void;
   /** "View clip fullscreen" or "View still fullscreen" — what is on the card. */
   fullscreenLabel?: string;
+  /** Opens the still render dialog, where the model is picked. */
+  onRenderStill?: () => void;
+  /** Opens the clip render dialog, where the model is picked. */
+  onRenderClip?: () => void;
+  /** Disables both render items while the shot is rendering. */
+  renderDisabled?: boolean;
   /** Saves the still or clip. Omitted while there is nothing to save. */
   onDownload?: () => void;
   /** What the download saves, for the menu label: "still" or "clip". */
@@ -77,6 +85,9 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
   showDragHandle,
   onFullscreen,
   fullscreenLabel,
+  onRenderStill,
+  onRenderClip,
+  renderDisabled,
   onDownload,
   downloadLabel,
   sendToWorkflowItems,
@@ -102,7 +113,10 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
 
   const sendItems =
     !inStudio && sendToWorkflowItems?.length ? sendToWorkflowItems : null;
-  const hasMenu = Boolean(onDownload || sendItems || onDuplicate || onDelete);
+  const hasRender = Boolean(onRenderStill || onRenderClip);
+  const hasMenu = Boolean(
+    hasRender || onDownload || sendItems || onDuplicate || onDelete
+  );
   // A row with nothing in it would still catch the eye as a scrim on hover.
   if (!showDragHandle && !onFullscreen && !hasMenu) {
     return null;
@@ -156,9 +170,28 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         transformOrigin={{ vertical: "top", horizontal: "right" }}
         slotProps={{ list: { "aria-label": "Shot actions" } }}
       >
+        {onRenderStill && (
+          <MenuItemPrimitive
+            compact
+            label="Render still…"
+            icon={<ImageOutlinedIcon fontSize="small" />}
+            disabled={renderDisabled}
+            onClick={runAndClose(onRenderStill)}
+          />
+        )}
+        {onRenderClip && (
+          <MenuItemPrimitive
+            compact
+            label="Render clip…"
+            icon={<MovieOutlinedIcon fontSize="small" />}
+            disabled={renderDisabled}
+            onClick={runAndClose(onRenderClip)}
+          />
+        )}
         {onDownload && (
           <MenuItemPrimitive
             compact
+            dividerBefore={hasRender}
             label={`Download ${what}`}
             icon={<DownloadIcon fontSize="small" />}
             onClick={runAndClose(onDownload)}
@@ -167,6 +200,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         {sendItems && (
           <MenuItemPrimitive
             compact
+            dividerBefore={hasRender && !onDownload}
             label="Send to workflow…"
             icon={<AccountTreeOutlinedIcon fontSize="small" />}
             onClick={openSend}
@@ -175,6 +209,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         {onDuplicate && (
           <MenuItemPrimitive
             compact
+            dividerBefore={hasRender && !onDownload && !sendItems}
             label="Duplicate shot"
             icon={<ContentCopyIcon fontSize="small" />}
             onClick={runAndClose(onDuplicate)}
@@ -184,7 +219,9 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
           <MenuItemPrimitive
             compact
             color="error"
-            dividerBefore={Boolean(onDownload || sendItems || onDuplicate)}
+            dividerBefore={Boolean(
+              hasRender || onDownload || sendItems || onDuplicate
+            )}
             label="Delete shot"
             icon={<DeleteOutlineIcon fontSize="small" />}
             onClick={runAndClose(onDelete)}
