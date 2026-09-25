@@ -8,8 +8,7 @@
  * showed. Instead of a real-time rAF loop it:
  *
  *   1. steps the playhead in exact `1 / fps` increments,
- *   2. seeks each video element to the precise source frame (waiting for
- *      `seeked`) so decoding is deterministic, not best-effort,
+ *   2. decodes each video source at its precise timestamp,
  *   3. composites at full sequence resolution into an offscreen canvas,
  *   4. encodes each frame with WebCodecs (via mediabunny) and muxes to the
  *      container `format` names,
@@ -71,6 +70,7 @@ import { TextRasterizer } from "../preview/textRender";
 import { ensureBundledFontsLoaded } from "../preview/fontLoading";
 import { textMeasurer } from "../preview/textMeasure";
 import { ShapeRasterizer } from "../preview/shapeRender";
+import { BitmapFrameScope } from "../preview/BitmapFrameScope";
 import { OffscreenVideoPool } from "./OffscreenVideoPool";
 import { renderTimelineAudio } from "./renderAudio";
 
@@ -320,7 +320,6 @@ export async function renderTimeline(
   canvas.width = width;
   canvas.height = height;
 
-  const frameMs = 1000 / fps;
   const hasMotionBlur = clips.some((clip) => (clip.motionBlur?.samplesPerFrame ?? 1) > 1) || (opts.motionBlur?.samplesPerFrame ?? 1) > 1;
   /**
    * Where the shutter window is summed, and what the encoder then reads.
@@ -416,7 +415,7 @@ export async function renderTimeline(
     /** PNG bytes per frame, filled only on the `png_sequence` path. */
     const pngFrames: Uint8Array[] = [];
 
-    // Video/overlay clips release their pooled `<video>` element as soon as
+    // Video/overlay clips release their pooled source as soon as
     // their fixed time range has fully passed. Each clip is a single
     // contiguous span, so a released clip can never be seeked again — this
     // caps live media elements at the overlap width instead of the whole
@@ -470,141 +469,154 @@ export async function renderTimeline(
      * way, so a blurred export is N of the export it would otherwise have been.
      */
     const composeAt = async (timeMs: number, frameTimeMs = timeMs, sampleIndex = 0, sampleCount = 1): Promise<void> => {
-      const { layers, precomposites, adjustments } = computeActiveLayersWithHorizon(
-        tracks,
-        clips,
-        timeMs,
-        {
-          // Group transforms live in the same space the animations sample in.
-          canvas: animCanvas,
-          animationCache: animCache,
-          model3dBakeHash,
-          mediaTracks: opts.mediaTracks,
-          camera2d: opts.camera2d,
-          tempo: opts.tempo,
-          layerTimeMs: (clip) => layerShutterTime(clip, frameTimeMs, sampleIndex, sampleCount, frameMs, opts.motionBlur)
-        }
-      );
+      const bitmapFrame = new BitmapFrameScope();
+      try {
+        const { layers, precomposites, adjustments } = computeActiveLayersWithHorizon(
+          tracks,
+          clips,
+          timeMs,
+          {
+            // Group transforms live in the same space the animations sample in.
+            canvas: animCanvas,
+            animationCache: animCache,
+            model3dBakeHash,
+            mediaTracks: opts.mediaTracks,
+            camera2d: opts.camera2d,
+            tempo: opts.tempo,
+            layerTimeMs: (clip) => layerShutterTime(clip, frameTimeMs, sampleIndex, sampleCount, frameMs, opts.motionBlur)
+          }
+        );
 
-      /**
-       * The pixels one layer draws. A video's are the slow part — the pool has
-       * to seek and wait for the decode — so every layer of a frame is resolved
-       * concurrently and the mapping runs after, in scene order.
-       */
-      const sourceFor = async (
-        layer: ActiveLayer,
-        anim: AnimatedLayerProps
-      ): Promise<ResolvedCompositeSource | null> => {
-        const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, frameMs, opts.motionBlur);
-        if (layer.kind === "caption" && layer.caption) {
-          const bitmap = captionRasterizer.rasterize(
-            layer.caption,
-            width,
-            height
-          );
-          return bitmap ? { source: bitmap, untransformed: true } : null;
-        }
-        if (layer.kind === "text" && anim.textStyle) {
-          // Staggered per-word motion is drawn into the raster itself,
-          // through the same rasterizer the live preview uses.
-          const stagger = resolveTextStaggerContext(
-            layer.clip,
-            layerTimeMs,
-            animCanvas,
-            animCache,
-            opts.tempo
-          );
-          const bitmap = textRasterizer.rasterize(
-            anim.textStyle,
-            width,
-            height,
-            stagger
-          );
-          return bitmap ? { source: bitmap } : null;
-        }
-        if (layer.kind === "shape") {
-          // The animated style carries a driven trim range; without it a trim
-          // animation would rasterize its first frame and hold.
-          const shapeStyle = anim.shapeStyle ?? layer.shapeStyle;
-          if (!shapeStyle) return null;
-          const bitmap = shapeRasterizer.rasterize(shapeStyle, width, height);
-          return bitmap ? { source: bitmap } : null;
-        }
-
-        if (layer.kind === "model3d") {
-          // Awaited rather than polled: a frame is written to the file once, so
-          // a session that is still loading must not become a missing model.
-          const session = await model3dSource.load(layer);
-          if (!session) return null;
-          const canvas3d = model3dSource.frame(layer, anim, { width, height });
-          return canvas3d ? { source: canvas3d } : null;
-        }
-
-        if (!layer.assetId) return null;
-        const url = await resolveCached(layer.assetId);
-        if (!url) return null;
-
-        if (layer.kind === "video") {
-          // A baked 3D clip's video starts at its own first frame however the
-          // clip is trimmed or retimed, so the scene model hands the seek time
-          // down rather than letting the source mapping recompute it (§D6).
-          const el = await videoPool.seek(
-            layer.clipId,
-            url,
-            layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, layerTimeMs),
-            signal
-          );
-          return el.videoWidth === 0 ? null : { source: el };
-        }
-        const img = await loadImage(url);
-        return img ? { source: img } : null;
-      };
-
-      // A matte source is held out of `layers` by the scene model, so it is
-      // reached through the layer it mattes and decoded with it.
-      const withMatteSources = (layer: ActiveLayer): ActiveLayer[] =>
-        layer.matte ? [layer, ...withMatteSources(layer.matte.layer)] : [layer];
-      const needed = layers.flatMap(withMatteSources);
-      const sources = new Map<ActiveLayer, ResolvedCompositeSource>();
-      await Promise.all(
-        needed.map(async (layer) => {
+        /**
+         * The pixels one layer draws. Video decoding is the slow part, so every
+         * layer of a frame resolves concurrently before scene-order mapping.
+         */
+        const sourceFor = async (
+          layer: ActiveLayer,
+          anim: AnimatedLayerProps
+        ): Promise<ResolvedCompositeSource | null> => {
           const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, frameMs, opts.motionBlur);
-          // Rasterizing a layer can depend on its sampled props (a shape's trim
-          // range), and this prefetch runs before `buildCompositeLayer` samples
-          // them, so it samples them itself. The compile cache makes the second
-          // call a lookup.
-          const source = await sourceFor(
-            layer,
-            resolveAnimatedLayerProps(layer, layerTimeMs, animCanvas, animCache, {
-              mediaTracks: opts.mediaTracks ?? [],
-              clips,
-              tempo: opts.tempo
-            })
-          );
-          if (source) sources.set(layer, source);
-        })
-      );
+          if (layer.kind === "caption" && layer.caption) {
+            const bitmap = captionRasterizer.rasterize(
+              layer.caption,
+              width,
+              height,
+              bitmapFrame
+            );
+            return bitmap ? { source: bitmap, untransformed: true } : null;
+          }
+          if (layer.kind === "text" && anim.textStyle) {
+            // Staggered per-word motion is drawn into the raster itself,
+            // through the same rasterizer the live preview uses.
+            const stagger = resolveTextStaggerContext(
+              layer.clip,
+              layerTimeMs,
+              animCanvas,
+              animCache,
+              opts.tempo
+            );
+            const bitmap = textRasterizer.rasterize(
+              anim.textStyle,
+              width,
+              height,
+              stagger,
+              bitmapFrame
+            );
+            return bitmap ? { source: bitmap } : null;
+          }
+          if (layer.kind === "shape") {
+            // The animated style carries a driven trim range; without it a trim
+            // animation would rasterize its first frame and hold.
+            const shapeStyle = anim.shapeStyle ?? layer.shapeStyle;
+            if (!shapeStyle) return null;
+            const bitmap = shapeRasterizer.rasterize(shapeStyle, width, height, bitmapFrame);
+            return bitmap ? { source: bitmap } : null;
+          }
 
-      const composite: CompositeLayer[] = [];
-      for (const layer of layers) {
-        const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, frameMs, opts.motionBlur);
-        const built = buildCompositeLayer(layer, {
-          atMs: layerTimeMs,
-          canvas: animCanvas,
-          animationCache: animCache,
-          tracking: { mediaTracks: opts.mediaTracks ?? [], clips, tempo: opts.tempo },
-          resolveSource: (target) => sources.get(target) ?? null
-        });
-        if (built) composite.push(built);
+          if (layer.kind === "model3d") {
+            // Awaited rather than polled: a frame is written to the file once, so
+            // a session that is still loading must not become a missing model.
+            const session = await model3dSource.load(layer);
+            if (!session) return null;
+            const canvas3d = model3dSource.frame(layer, anim, { width, height });
+            return canvas3d ? { source: canvas3d } : null;
+          }
+
+          if (!layer.assetId) return null;
+          const url = await resolveCached(layer.assetId);
+          if (!url) return null;
+
+          if (layer.kind === "video") {
+            // A baked 3D clip's video starts at its own first frame however the
+            // clip is trimmed or retimed, so the scene model hands the seek time
+            // down rather than letting the source mapping recompute it (§D6).
+            const decoded = await videoPool.seek(
+              layer.clipId,
+              url,
+              layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, layerTimeMs),
+              signal
+            );
+            const width = decoded instanceof HTMLVideoElement
+              ? decoded.videoWidth
+              : decoded.width;
+            return width === 0 ? null : { source: decoded };
+          }
+          const img = await loadImage(url);
+          return img ? { source: img } : null;
+        };
+
+        // A matte source is held out of `layers` by the scene model, so it is
+        // reached through the layer it mattes and decoded with it.
+        const withMatteSources = (layer: ActiveLayer): ActiveLayer[] =>
+          layer.matte ? [layer, ...withMatteSources(layer.matte.layer)] : [layer];
+        const needed = layers.flatMap(withMatteSources);
+        const sources = new Map<ActiveLayer, ResolvedCompositeSource>();
+        await Promise.all(
+          needed.map(async (layer) => {
+            const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, frameMs, opts.motionBlur);
+            // Rasterizing a layer can depend on its sampled props (a shape's trim
+            // range), and this prefetch runs before `buildCompositeLayer` samples
+            // them, so it samples them itself. The compile cache makes the second
+            // call a lookup.
+            const source = await sourceFor(
+              layer,
+              resolveAnimatedLayerProps(layer, layerTimeMs, animCanvas, animCache, {
+                mediaTracks: opts.mediaTracks ?? [],
+                clips,
+                tempo: opts.tempo
+              })
+            );
+            if (source) sources.set(layer, source);
+          })
+        );
+
+        const composite: CompositeLayer[] = [];
+        for (const layer of layers) {
+          const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, frameMs, opts.motionBlur);
+          const built = buildCompositeLayer(layer, {
+            atMs: layerTimeMs,
+            canvas: animCanvas,
+            animationCache: animCache,
+            tracking: { mediaTracks: opts.mediaTracks ?? [], clips, tempo: opts.tempo },
+            resolveSource: (target) => sources.get(target) ?? null
+          });
+          if (built) composite.push(built);
+        }
+
+        compositor.setLayers(
+          composite,
+          buildCompositePrecomposites(precomposites),
+          buildCompositeAdjustments(adjustments)
+        );
+        compositor.render();
+        await compositor.flush();
+        if (window.__nodetoolTimelinePerf) {
+          canvas.dataset.textBitmapCacheBytes = String(textRasterizer.residentBytes);
+          canvas.dataset.shapeBitmapCacheBytes = String(shapeRasterizer.residentBytes);
+        }
+      } finally {
+        bitmapFrame.release();
       }
-
-      compositor.setLayers(
-        composite,
-        buildCompositePrecomposites(precomposites),
-        buildCompositeAdjustments(adjustments)
-      );
-      compositor.render();
-      await compositor.flush();
     };
 
     for (let frame = 0; frame < totalFrames; frame++) {

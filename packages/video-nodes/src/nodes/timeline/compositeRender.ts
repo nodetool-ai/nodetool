@@ -105,6 +105,21 @@ function abortError(): Error {
   return new DOMException("Timeline render cancelled", "AbortError");
 }
 
+async function awaitWithAbort<T>(pending: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return pending;
+  if (signal.aborted) throw abortError();
+  let onAbort: (() => void) | undefined;
+  const aborted = new Promise<never>((_resolve, reject) => {
+    onAbort = () => reject(abortError());
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([pending, aborted]);
+  } finally {
+    if (onAbort) signal.removeEventListener("abort", onAbort);
+  }
+}
+
 async function acquireDevice(): Promise<GPUDevice> {
   try {
     const { getNodeGPUDevice } = await import("@nodetool-ai/gpu/node");
@@ -160,6 +175,7 @@ export async function renderTimelineComposited(
 
   if (signal?.aborted) throw abortError();
   const device = await acquireDevice();
+  if (signal?.aborted) throw abortError();
   const compositor = new HeadlessFrameCompositor(device, width, height);
   const rasterizer = new NodeRasterizer(width, height);
   const encoder: FrameEncoder =
@@ -184,6 +200,11 @@ export async function renderTimelineComposited(
   const images = new Map<string, RawImage | null>();
   const assetPaths = new Map<string, Promise<string | null>>();
   const skippedClips = new Set<string>();
+  const closeVideoSources = (): void => {
+    for (const source of videoSources.values()) source.close();
+    videoSources.clear();
+  };
+  signal?.addEventListener("abort", closeVideoSources, { once: true });
 
   const pathFor = (assetId: string): Promise<string | null> => {
     let pending = assetPaths.get(assetId);
@@ -197,11 +218,14 @@ export async function renderTimelineComposited(
   const imageFor = async (assetId: string): Promise<RawImage | null> => {
     if (images.has(assetId)) return images.get(assetId) ?? null;
     const file = await pathFor(assetId);
+    if (signal?.aborted) throw abortError();
     let decoded: RawImage | null = null;
     if (file) {
       const size = await probeVideoSize(file);
+      if (signal?.aborted) throw abortError();
       if (size) decoded = await decodeImageRgba(file, fitWithin(size, canvas));
     }
+    if (signal?.aborted) throw abortError();
     images.set(assetId, decoded);
     return decoded;
   };
@@ -217,8 +241,10 @@ export async function renderTimelineComposited(
     const existing = videoSources.get(key);
     if (existing) return existing;
     const file = await pathFor(assetId);
+    if (signal?.aborted) throw abortError();
     if (!file) return null;
     const size = await probeVideoSize(file);
+    if (signal?.aborted) throw abortError();
     if (!size) return null;
     const decodeSize = fitWithin(size, canvas);
     // `clipSourceTimeSec` at the clip's own start is its in point — or, for a
@@ -237,6 +263,8 @@ export async function renderTimelineComposited(
         fps,
         startSec
       });
+      const frameVersions = new WeakMap<Uint8Array, string>();
+      let nextFrameVersion = 0;
       source = {
         width: stream.width,
         height: stream.height,
@@ -245,11 +273,17 @@ export async function renderTimelineComposited(
           const sourceSec = clipSourceTimeSec(clip, timeMs);
           const rgba = await stream.frameAtSourceSec(sourceSec);
           if (!rgba) return null;
-          // Keyed on the source instant, not the timeline one: a hold shows the
-          // same pixels at many timeline frames and should upload once.
+          // A retained or held frame returns the same array. A newly decoded
+          // frame needs an upload even when a nearby source time rounds to the
+          // same timeline-frame index.
+          let version = frameVersions.get(rgba);
+          if (version === undefined) {
+            version = `${key}@${nextFrameVersion++}`;
+            frameVersions.set(rgba, version);
+          }
           return {
             rgba,
-            version: `${key}@${Math.round(sourceSec * fps)}`
+            version
           };
         },
         close: () => stream.close()
@@ -440,11 +474,14 @@ export async function renderTimelineComposited(
         if (index > 0 && index % YIELD_EVERY_LAYERS === 0) {
           await setImmediate();
         }
+        if (signal?.aborted) throw abortError();
         const layer = active[index];
         const built = await frameLayerFor(layer);
+        if (signal?.aborted) throw abortError();
         if (!built) continue;
         if (layer.matte) {
           const source = await frameLayerFor(layer.matte.layer, "m:");
+          if (signal?.aborted) throw abortError();
           if (source) {
             built.matte = {
               mode: layer.matte.mode,
@@ -558,21 +595,27 @@ export async function renderTimelineComposited(
         // otherwise finish 32 composites and decodes before it noticed.
         if (signal?.aborted) throw abortError();
         samples.push(await sampleAt(sampleMs, timeMs, samples.length, sampleTimes.length));
+        if (signal?.aborted) throw abortError();
       }
 
-      await encoder.write(
-        await compositor.renderFrameSamples(samples, { alpha: output.alpha })
+      const pixels = await awaitWithAbort(
+        compositor.renderFrameSamples(samples, { alpha: output.alpha }),
+        signal
       );
+      if (signal?.aborted) throw abortError();
+      await awaitWithAbort(encoder.write(pixels), signal);
       opts.onProgress?.(frame + 1, totalFrames);
     }
 
-    await encoder.finish();
+    if (signal?.aborted) throw abortError();
+    await awaitWithAbort(encoder.finish(), signal);
     return { totalFrames, skippedClips: [...skippedClips] };
   } catch (error) {
     encoder.abort();
     throw error;
   } finally {
-    for (const source of videoSources.values()) source.close();
+    signal?.removeEventListener("abort", closeVideoSources);
+    closeVideoSources();
     compositor.dispose();
   }
 }

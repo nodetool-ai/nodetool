@@ -8,6 +8,7 @@ import {
   resolveTextStaggerContext
 } from "@nodetool-ai/timeline/render";
 import { ShapeRasterizer } from "./shapeRender";
+import { BitmapFrameScope } from "./BitmapFrameScope";
 import { textMeasurer } from "./textMeasure";
 import { TextRasterizer } from "./textRender";
 import { ensureBundledFontsLoaded } from "./fontLoading";
@@ -130,14 +131,16 @@ export async function renderRasterClipFrames(
 
   const textRasterizer = new TextRasterizer();
   const shapeRasterizer = new ShapeRasterizer();
+  const sourceFrame = new BitmapFrameScope();
   const source =
     clip.mediaType === "text" && clip.textStyle
-      ? textRasterizer.rasterize(clip.textStyle, sequenceWidth, sequenceHeight)
+      ? textRasterizer.rasterize(clip.textStyle, sequenceWidth, sequenceHeight, undefined, sourceFrame)
       : clip.mediaType === "shape" && clip.shapeStyle
         ? shapeRasterizer.rasterize(
             clip.shapeStyle,
             sequenceWidth,
-            sequenceHeight
+            sequenceHeight,
+            sourceFrame
           )
         : null;
 
@@ -145,11 +148,14 @@ export async function renderRasterClipFrames(
     compositor.dispose();
     textRasterizer.dispose();
     shapeRasterizer.dispose();
+    sourceFrame.release();
     throw new Error(`Clip "${clip.name}" has no renderable style.`);
   }
 
   try {
     return timelineTimes.map((timelineTimeMs) => {
+      const frameScope = new BitmapFrameScope();
+      try {
       const animated = animatedAt(timelineTimeMs);
       // A staggered text clip re-rasterizes per requested time so the agent
       // sees the per-word motion mid-window, same draw path as preview/export.
@@ -161,7 +167,8 @@ export async function renderRasterClipFrames(
           shapeRasterizer.rasterize(
             animated.shapeStyle,
             sequenceWidth,
-            sequenceHeight
+            sequenceHeight,
+            frameScope
           ) ?? source;
       }
       if (clip.mediaType === "text" && animated.textStyle) {
@@ -172,7 +179,7 @@ export async function renderRasterClipFrames(
           animationCache,
           context?.tempo
         );
-        frameSource = textRasterizer.rasterize(animated.textStyle, sequenceWidth, sequenceHeight, stagger ?? undefined) ?? source;
+        frameSource = textRasterizer.rasterize(animated.textStyle, sequenceWidth, sequenceHeight, stagger ?? undefined, frameScope) ?? source;
       }
       compositor.setLayers([
         {
@@ -188,15 +195,20 @@ export async function renderRasterClipFrames(
         }
       ]);
       compositor.render();
-      return {
+      const result = {
         width: outputWidth,
         height: outputHeight,
         dataUrl: canvas.toDataURL("image/jpeg", 0.8)
       };
+      return result;
+      } finally {
+        frameScope.release();
+      }
     });
   } finally {
     compositor.dispose();
     textRasterizer.dispose();
     shapeRasterizer.dispose();
+    sourceFrame.release();
   }
 }

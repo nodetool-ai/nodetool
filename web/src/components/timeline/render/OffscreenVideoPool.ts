@@ -1,12 +1,8 @@
 /**
- * OffscreenVideoPool — deterministic, frame-accurate decoding of clip videos
- * for offline rendering.
+ * OffscreenVideoPool — deterministic decoding of clip videos for export.
  *
- * Unlike the live preview (which plays elements in real time and uploads
- * whatever frame happens to be decoded), the renderer seeks each video element
- * to an exact source time and waits for the `seeked` event before handing the
- * element to the compositor. That makes every exported frame reproducible and
- * tearing-free, however slow the underlying decode is.
+ * Sequential exports use timestamped WebCodecs frames when supported. The
+ * seeked-element path remains available for unsupported codecs and retiming.
  *
  * A `<video>` element that fires `error` is dead: the browser tears down its
  * decoder and every later seek errors too. Range requests against the asset
@@ -14,6 +10,8 @@
  * hundreds of seeks), so a failed or stalled seek is retried on a fresh
  * element before the export is failed.
  */
+
+import { SequentialVideoSource } from "./SequentialVideoSource";
 
 const SEEK_EPSILON_SEC = 1 / 1000;
 
@@ -29,7 +27,6 @@ export const SEEK_TIMEOUT_MS = 15_000;
 
 interface PoolEntry {
   el: HTMLVideoElement;
-  url: string;
 }
 
 interface PoolOptions {
@@ -80,11 +77,19 @@ function delay(ms: number, signal?: AbortSignal): Promise<void> {
 
 export class OffscreenVideoPool {
   private readonly container: HTMLDivElement;
-  /** Keyed by clip id — two clips of the same asset must hold separate
-   *  elements, since the export loop seeks every layer of a frame before any
-   *  upload happens (a shared element would show the last-seeked time on all
-   *  layers). Elements are still reused across frames for the same clip. */
+  /** A generated matte and its picture share a clip id but have different
+   *  assets. Both must retain their own frame until compositing finishes. */
   private readonly entries = new Map<string, PoolEntry>();
+  private readonly decoded = new Map<string, SequentialVideoSource>();
+  private readonly opening = new Map<string, { controller: AbortController; promise: Promise<SequentialVideoSource | null> }>();
+  /** Concurrent different times cannot share a bitmap before both uploads. */
+  private readonly activeRequests = new Map<string, {
+    timeSec: number;
+    promise: Promise<HTMLVideoElement | ImageBitmap>;
+    controller: AbortController;
+  }>();
+  private readonly unavailable = new Set<string>();
+  private disposed = false;
   private readonly seekTimeoutMs: number;
   private readonly retryDelayMs: number;
   private readonly attempts: number;
@@ -100,14 +105,84 @@ export class OffscreenVideoPool {
   }
 
   /**
-   * Return a video element for `clipId` decoded to `timeSec` of `url`.
-   * Resolves once the exact frame is available; rejects when `signal` aborts
-   * or when every attempt hit a media error or stalled. Subsequent calls for
-   * the same clip reuse the element. The returned element must be uploaded
-   * synchronously by the caller before the next `seek` for the same clip.
+   * Return pixels for `clipId` decoded to `timeSec` of `url`.
+   * Resolves once the requested frame is available; rejects when `signal`
+   * aborts or all seek attempts fail. The returned source must be uploaded
+   * before the next `seek` for the same clip.
    */
-  async seek(
+  seek(
     clipId: string,
+    url: string,
+    timeSec: number,
+    signal?: AbortSignal
+  ): Promise<HTMLVideoElement | ImageBitmap> {
+    const key = `${clipId}\0${url}`;
+    if (this.disposed) return Promise.reject(abortError());
+    const active = this.activeRequests.get(key);
+    if (active) {
+      if (active.timeSec !== timeSec) {
+        return Promise.reject(new Error("Concurrent video requests for different source times"));
+      }
+      return active.promise;
+    }
+    const controller = new AbortController();
+    const onAbort = (): void => controller.abort();
+    signal?.addEventListener("abort", onAbort, { once: true });
+    if (signal?.aborted) controller.abort();
+    const promise = this.seekSource(key, url, timeSec, controller.signal);
+    this.activeRequests.set(key, { timeSec, promise, controller });
+    const clear = () => {
+      signal?.removeEventListener("abort", onAbort);
+      if (this.activeRequests.get(key)?.promise === promise) this.activeRequests.delete(key);
+    };
+    void promise.then(clear, clear);
+    return promise;
+  }
+
+  private async seekSource(
+    key: string,
+    url: string,
+    timeSec: number,
+    signal?: AbortSignal
+  ): Promise<HTMLVideoElement | ImageBitmap> {
+    if (typeof VideoDecoder !== "undefined" && !this.unavailable.has(key)) {
+      try {
+        let source = this.decoded.get(key);
+        if (!source) {
+          const controller = new AbortController();
+          const onAbort = () => controller.abort();
+          signal?.addEventListener("abort", onAbort, { once: true });
+          if (signal?.aborted) controller.abort();
+          const promise = SequentialVideoSource.open(url, controller.signal);
+          this.opening.set(key, { controller, promise });
+          try {
+            source = await promise ?? undefined;
+            if (controller.signal.aborted || this.disposed || this.opening.get(key)?.promise !== promise) {
+              source?.dispose();
+              throw abortError();
+            }
+          } finally {
+            signal?.removeEventListener("abort", onAbort);
+            if (this.opening.get(key)?.promise === promise) this.opening.delete(key);
+          }
+          if (source) {
+            this.decoded.set(key, source);
+          } else {
+            this.unavailable.add(key);
+          }
+        }
+        if (source) return await source.frameAt(timeSec, signal);
+      } catch (error) {
+        this.releaseKey(key);
+        if (isAbort(error) || signal?.aborted) throw error;
+        this.unavailable.add(key);
+      }
+    }
+    return this.seekElement(key, url, timeSec, signal);
+  }
+
+  private async seekElement(
+    key: string,
     url: string,
     timeSec: number,
     signal?: AbortSignal
@@ -118,11 +193,11 @@ export class OffscreenVideoPool {
       if (attempt > 0) {
         // The previous element is in an error state (or hung); a fresh one
         // reopens the connection and the decoder from scratch.
-        this.release(clipId);
+        this.releaseKey(key);
         await delay(this.retryDelayMs * attempt, signal);
       }
       try {
-        return await this.seekOnce(clipId, url, timeSec, signal);
+        return await this.seekOnce(key, url, timeSec, signal);
       } catch (err) {
         if (isAbort(err)) throw err;
         lastError = err;
@@ -135,12 +210,12 @@ export class OffscreenVideoPool {
   }
 
   private async seekOnce(
-    clipId: string,
+    key: string,
     url: string,
     timeSec: number,
     signal?: AbortSignal
   ): Promise<HTMLVideoElement> {
-    const el = this.ensureElement(clipId, url);
+    const el = this.ensureElement(key, url);
     if (el.error) {
       // An element that already failed never recovers; replacing it here
       // makes the retry loop's fresh element the one that gets seeked.
@@ -158,6 +233,7 @@ export class OffscreenVideoPool {
 
     // Already on the target frame — nothing to wait for.
     if (Math.abs(el.currentTime - target) < SEEK_EPSILON_SEC && !el.seeking) {
+      await this.whenCurrentData(el, signal);
       return el;
     }
 
@@ -203,14 +279,9 @@ export class OffscreenVideoPool {
     return el;
   }
 
-  private ensureElement(clipId: string, url: string): HTMLVideoElement {
-    const existing = this.entries.get(clipId);
+  private ensureElement(key: string, url: string): HTMLVideoElement {
+    const existing = this.entries.get(key);
     if (existing) {
-      if (existing.url === url) return existing.el;
-      // Clip resolved to a new asset mid-render — point the element at it.
-      existing.el.src = url;
-      existing.el.load();
-      existing.url = url;
       return existing.el;
     }
 
@@ -222,7 +293,7 @@ export class OffscreenVideoPool {
     el.src = url;
     el.load();
     this.container.appendChild(el);
-    this.entries.set(clipId, { el, url });
+    this.entries.set(key, { el });
     return el;
   }
 
@@ -272,26 +343,87 @@ export class OffscreenVideoPool {
     });
   }
 
+  private whenCurrentData(el: HTMLVideoElement, signal?: AbortSignal): Promise<void> {
+    if (el.readyState >= 2) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      const timer = this.seekTimeoutMs > 0
+        ? setTimeout(() => {
+            cleanup();
+            reject(new Error(`Video frame not decoded after ${this.seekTimeoutMs}ms: ${el.src}`));
+          }, this.seekTimeoutMs)
+        : null;
+      const cleanup = (): void => {
+        if (timer) clearTimeout(timer);
+        el.removeEventListener("loadeddata", onLoaded);
+        el.removeEventListener("error", onError);
+        signal?.removeEventListener("abort", onAbort);
+      };
+      const onLoaded = (): void => {
+        if (el.readyState < 2) return;
+        cleanup();
+        resolve();
+      };
+      const onError = (): void => {
+        cleanup();
+        reject(new Error(`Video error before first frame: ${describeMediaError(el)}: ${el.src}`));
+      };
+      const onAbort = (): void => {
+        cleanup();
+        reject(abortError());
+      };
+      el.addEventListener("loadeddata", onLoaded);
+      el.addEventListener("error", onError);
+      signal?.addEventListener("abort", onAbort);
+      if (signal?.aborted) onAbort();
+      else if (el.readyState >= 2) onLoaded();
+    });
+  }
+
   /**
-   * Tear down the element held for `clipId` immediately, ahead of `dispose()`.
+   * Tear down the decoder or element held for `clipId` ahead of `dispose()`.
    * The render loop calls this once a clip's fixed time range has fully
-   * passed — each clip occupies a single contiguous span, so a released clip
-   * can never be seeked again. Without this, a many-clip export pins one live
-   * `<video>` element (and hardware decoder) per clip for the whole render,
-   * well past what browsers/decoders allow concurrently. A failed seek also
-   * releases its element so the retry starts from a fresh one.
+   * passed. This caps live decoders at the overlap width. A failed element
+   * seek also releases its element so the retry starts fresh.
    */
   release(clipId: string): void {
-    const entry = this.entries.get(clipId);
+    const prefix = `${clipId}\0`;
+    for (const key of this.decoded.keys()) {
+      if (key.startsWith(prefix)) this.releaseKey(key);
+    }
+    for (const key of this.entries.keys()) {
+      if (key.startsWith(prefix)) this.releaseKey(key);
+    }
+    for (const key of this.opening.keys()) {
+      if (key.startsWith(prefix)) this.releaseKey(key);
+    }
+    for (const key of this.unavailable) {
+      if (key.startsWith(prefix)) this.unavailable.delete(key);
+    }
+  }
+
+  private releaseKey(key: string): void {
+    this.opening.get(key)?.controller.abort();
+    this.opening.delete(key);
+    this.decoded.get(key)?.dispose();
+    this.decoded.delete(key);
+    const entry = this.entries.get(key);
     if (!entry) return;
     entry.el.pause();
     entry.el.removeAttribute("src");
     entry.el.load();
     entry.el.remove();
-    this.entries.delete(clipId);
+    this.entries.delete(key);
   }
 
   dispose(): void {
+    this.disposed = true;
+    for (const { controller } of this.activeRequests.values()) controller.abort();
+    for (const { controller } of this.opening.values()) controller.abort();
+    for (const source of this.decoded.values()) source.dispose();
+    this.decoded.clear();
+    this.opening.clear();
+    this.activeRequests.clear();
+    this.unavailable.clear();
     for (const { el } of this.entries.values()) {
       el.pause();
       el.removeAttribute("src");

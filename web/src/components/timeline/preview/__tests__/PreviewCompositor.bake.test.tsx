@@ -253,3 +253,40 @@ describe("PreviewCompositor — repeated video", () => {
     expect(await seekAt(500, "asset-video", "shot:repeat:1:echo:1")).toBeCloseTo(1.2);
   });
 });
+
+describe("PreviewCompositor — unresolved generated matte", () => {
+  beforeAll(stubMediaElement);
+
+  it("shows one placeholder for the picture and matte of the same clip", async () => {
+    mockTimeMs = 500;
+    mockClips = [makeClip({
+      id: "matte-shot",
+      trackId: track.id,
+      name: "Matte shot",
+      mediaType: "video",
+      sourceType: "imported",
+      status: "generated",
+      startMs: 0,
+      durationMs: 2000,
+      currentAssetId: "asset-video",
+      generatedMatte: {
+        assetId: "asset-matte",
+        sourceAssetId: "asset-video",
+        sourceRange: { fromMs: 0, toMs: 2000 },
+        settings: { model: "General Use (Light)" },
+        status: "ready"
+      }
+    })];
+    const view = render(
+      <ThemeProvider theme={mockTheme}>
+        <PreviewCompositor />
+      </ThemeProvider>
+    );
+    expect(view.queryAllByText("Matte shot")).toHaveLength(1);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    view.unmount();
+  });
+});

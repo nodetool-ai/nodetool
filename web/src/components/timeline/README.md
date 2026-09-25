@@ -331,10 +331,11 @@ live preview, so an exported frame is identical to what playback showed:
   `nodetool.timeline.RenderTimeline` node all drive their layer lists from it,
   so a render is the same picture wherever it runs.
 - `render/TimelineRenderer.ts` — steps the playhead in exact `1 / fps`
-  increments, seeks each video element to the precise source frame (waiting for
-  `seeked` so decoding is deterministic, not best-effort), composites at full
-  sequence resolution with the shared `WebGPUCompositor`, then encodes each
-  frame with WebCodecs and muxes to MP4 via [mediabunny](https://mediabunny.dev).
+  increments and requests each video source at its precise timestamp.
+  `render/SequentialVideoSource.ts` reuses a decoder for supported forward
+  streams. Other sources use video-element seeks, waiting for `seeked` before
+  compositing. The renderer composites at full sequence resolution, encodes
+  frames with WebCodecs, and muxes to MP4 via [mediabunny](https://mediabunny.dev).
 - `render/renderAudio.ts` — mixes the audio tracks down through the same
   `AudioGraph` (clip gain, fades, speed, mute/solo, DSP chain) driven by an
   `OfflineAudioContext`.
@@ -366,6 +367,12 @@ are approximated with `ctx.filter`; the GPU-only effects (chroma key, vignette,
 sharpen) are skipped in the fallback. This keeps the timeline preview rendering
 and documentation screenshots capturing real frames without a GPU. The heavier
 WebGPU/typegpu bundle is dynamically imported only when `navigator.gpu` exists.
+
+The live preview's **Preview quality** control selects Auto, Full, Half, or
+Quarter backing resolution. Auto uses Half during playback when the sequence
+is at least 3840 pixels wide or 2160 pixels high, then restores Full when
+paused. Other sequences use Full. Layer placement remains in sequence pixels,
+and browser and server exports render at the configured sequence resolution.
 
 ## AI Assistant (agent editing)
 

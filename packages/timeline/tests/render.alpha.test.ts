@@ -1,13 +1,6 @@
 /**
- * The alpha ground both compositors seed from, and the straight-alpha the
- * readback hands back (F13, T27).
- *
- * Two decisions are checked here because both are pure. `drawTimelineFrame`
- * either paints an opaque black ground or clears one; `unpremultiplyInPlace`
- * turns the compositor's premultiplied accumulation back into the straight
- * alpha every alpha-capable encoder — VP9's `yuva420p`, ProRes 4444, PNG —
- * expects. The pixels that come out of a real device are asserted where one
- * exists (`packages/video-nodes/tests/timeline-alpha-render.test.ts`).
+ * The alpha ground the Canvas 2D compositor seeds from (F13, T27).
+ * GPU straight-alpha readback is covered in `render.alpha.gpu.test.ts`.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -15,7 +8,6 @@ import {
   type Canvas2DLayer,
   type CompositeContext2D
 } from "../src/render/canvas2d.js";
-import { unpremultiplyInPlace } from "../src/render/frameCompositor.js";
 
 const GEOMETRY = { canvasWidth: 100, canvasHeight: 100 };
 
@@ -94,28 +86,5 @@ describe("drawTimelineFrame — frame seed", () => {
     drawTimelineFrame(ctx, [layer()], GEOMETRY, { alpha: true });
     expect(ctx.fills).toEqual([]);
     expect(ctx.cleared).toBe(1);
-  });
-});
-
-describe("unpremultiplyInPlace", () => {
-  it("divides the alpha back out of a partly transparent pixel", () => {
-    // Pure red at half alpha, premultiplied: 128/255 of 255 is 128.
-    const rgba = new Uint8Array([128, 0, 0, 128]);
-    unpremultiplyInPlace(rgba);
-    expect([...rgba]).toEqual([255, 0, 0, 128]);
-  });
-
-  it("leaves opaque and fully transparent pixels alone", () => {
-    const rgba = new Uint8Array([10, 20, 30, 255, 0, 0, 0, 0]);
-    unpremultiplyInPlace(rgba);
-    expect([...rgba]).toEqual([10, 20, 30, 255, 0, 0, 0, 0]);
-  });
-
-  it("never lifts a channel past opaque", () => {
-    // A channel above its own alpha cannot come from a valid premultiply, and
-    // dividing it out would wrap past 255 into whatever the byte truncates to.
-    const rgba = new Uint8Array([200, 0, 0, 100]);
-    unpremultiplyInPlace(rgba);
-    expect(rgba[0]).toBe(255);
   });
 });

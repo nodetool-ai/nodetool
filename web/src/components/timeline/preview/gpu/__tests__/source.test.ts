@@ -1,4 +1,5 @@
 import { isSourceReady, sourceDimensions } from "../source";
+import { expectPreviewVideoFrame, markPreviewVideoSeeked, trackPreviewVideoFrames } from "../videoFrameVersion";
 
 describe("isSourceReady", () => {
   it("returns true for a video element with readyState >= 2", () => {
@@ -11,6 +12,39 @@ describe("isSourceReady", () => {
     const video = document.createElement("video");
     Object.defineProperty(video, "readyState", { value: 1 });
     expect(isSourceReady(video)).toBe(false);
+  });
+
+  it("holds a seeking video until its requested paused frame is ready", () => {
+    const video = document.createElement("video");
+    let seeking = true;
+    Object.defineProperties(video, {
+      readyState: { value: 2 },
+      seeking: { get: () => seeking }
+    });
+    video.requestVideoFrameCallback = () => 1;
+    video.cancelVideoFrameCallback = () => {};
+    const onFrame = jest.fn();
+    const stop = trackPreviewVideoFrames(video, onFrame);
+    expectPreviewVideoFrame(video, 7.25);
+    expect(isSourceReady(video)).toBe(false);
+    seeking = false;
+    video.currentTime = 7.25;
+    markPreviewVideoSeeked(video);
+    expect(isSourceReady(video)).toBe(true);
+    expect(onFrame).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it("keeps the seek fallback ready after seeking ends without a callback", () => {
+    const video = document.createElement("video");
+    let seeking = true;
+    Object.defineProperties(video, {
+      readyState: { value: 2 },
+      seeking: { get: () => seeking }
+    });
+    expect(isSourceReady(video)).toBe(false);
+    seeking = false;
+    expect(isSourceReady(video)).toBe(true);
   });
 
   it("returns true for a complete image with positive naturalWidth", () => {
