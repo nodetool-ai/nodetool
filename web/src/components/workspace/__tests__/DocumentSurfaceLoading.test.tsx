@@ -19,6 +19,7 @@ import type { DocumentLoadState } from "../../../stores/documentSync";
 // need it to exist so the flow can mount.
 jest.mock("../../../components/setup/storyboard/LookStep", () => ({
   LookStep: () => null,
+  LookFooterControls: () => null,
   useLookStep: () => ({
     canAdvance: true,
     primaryDetail: undefined,

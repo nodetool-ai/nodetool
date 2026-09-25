@@ -46,7 +46,11 @@ import type {
   SetupStep
 } from "./types";
 
-const GenerationSummary = lazy(() => import("./GenerationSummary"));
+const GenerationEstimateLine = lazy(() =>
+  import("./GenerationSummary").then((module) => ({
+    default: module.GenerationEstimateLine
+  }))
+);
 
 export type { SetupFlowConfig, SetupFlowLabels, SetupStep } from "./types";
 
@@ -119,8 +123,8 @@ export function SetupFlow<Stage extends string>({
   const [cancelingStage, setCancelingStage] = useState<Stage | null>(null);
   const [confirmingChange, setConfirmingChange] = useState(false);
   const blockedReasonId = useId();
-  // A phone has no height to spare for chrome pinned around the step: the
-  // estimate scrolls with the step there, and the action row stacks.
+  // A phone cannot fit the controls, the estimate and the buttons on one
+  // row, so the footer stacks there.
   const theme = useTheme();
   const narrow = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -373,12 +377,6 @@ export function SetupFlow<Stage extends string>({
     0
   );
 
-  const generationSummary = step.generation ? (
-    <Suspense fallback={<Text size="small">Loading generation estimate…</Text>}>
-      <GenerationSummary {...step.generation} />
-    </Suspense>
-  ) : null;
-
   // Why the button is off comes first, and replaces the detail: a cost
   // estimate beside a dead button answers a question nobody asked.
   const status = pending ? (
@@ -390,7 +388,28 @@ export function SetupFlow<Stage extends string>({
       {step.blockedReason}
     </Caption>
   ) : step.primaryDetail ? (
-    <Text size="normal">{step.primaryDetail}</Text>
+    <Text size="small">{step.primaryDetail}</Text>
+  ) : step.generation ? (
+    <Suspense fallback={null}>
+      <GenerationEstimateLine
+        {...step.generation}
+        hideModel={step.footerControls !== undefined}
+      />
+    </Suspense>
+  ) : null;
+
+  // The inputs the price depends on, beside the price. They lock while a run
+  // is pending, since the run already read them.
+  const footerControls = step.footerControls ? (
+    <FlexRow
+      role="group"
+      aria-label="Generation settings"
+      gap={GAP.normal}
+      align="center"
+      wrap
+    >
+      {step.footerControls({ readOnly: readOnly || pending })}
+    </FlexRow>
   ) : null;
 
   return (
@@ -548,25 +567,35 @@ export function SetupFlow<Stage extends string>({
             step.render({ readOnly })
           )}
         </Box>
-        {step.generation && narrow ? (
-          <Box sx={{ marginTop: SPACING.xl }}>{generationSummary}</Box>
-        ) : null}
       </ScrollArea>
 
-      {step.generation && !narrow ? generationSummary : null}
+      {readOnly && footerControls ? (
+        <FlexRow
+          fullWidth
+          sx={{
+            paddingTop: SPACING.md,
+            borderTop: "1px solid",
+            borderColor: "divider"
+          }}
+        >
+          {footerControls}
+        </FlexRow>
+      ) : null}
 
       {!readOnly ? (
         <FlexColumn
           gap={GAP.tight}
           fullWidth
           sx={{
-            paddingTop: narrow ? SPACING.md : SPACING.lg,
+            paddingTop: SPACING.md,
             borderTop: "1px solid",
             borderColor: "divider"
           }}
         >
-          {/* A phone cannot fit the status beside the buttons, so it takes
-              its own line above them rather than crushing them. */}
+          {/* A phone cannot fit the controls and the status beside the
+              buttons, so they take their own lines above them rather than
+              crushing them. */}
+          {narrow && footerControls ? footerControls : null}
           {narrow && status ? (
             <FlexRow justify="flex-end" sx={{ textAlign: "right" }}>
               {status}
@@ -612,7 +641,14 @@ export function SetupFlow<Stage extends string>({
                 </EditorButton>
               ) : null}
             </FlexRow>
-            <FlexRow gap={GAP.normal} align="center">
+            <FlexRow
+              gap={GAP.comfortable}
+              align="center"
+              justify="flex-end"
+              wrap
+              sx={{ flex: 1, minWidth: 0 }}
+            >
+              {narrow ? null : footerControls}
               {narrow ? null : status}
               <FlexRow gap={GAP.normal} align="center">
                 {pending && !canceled ? (

@@ -602,36 +602,87 @@ describe("SetupFlow", () => {
       window.matchMedia = originalMatchMedia;
     });
 
-    it("scrolls the estimate with the step body", async () => {
-      const withEstimate = steps.map((entry) =>
+    it("stacks the footer controls above the buttons, outside the body", () => {
+      const withControls = steps.map((entry) =>
         entry.stage === "genre"
           ? {
               ...entry,
               canAdvance: false,
               blockedReason: "Pick a genre",
-              generation: {
-                result: "Write a 6-shot screenplay",
-                next: "Review it next.",
-                model: null,
-                brief: "",
-                maxOutputTokens: 1000,
-                noModelCall: true
-              }
+              footerControls: () => <button type="button">shots control</button>
             }
           : entry
       );
-      renderFlow({ stage: "genre", steps: withEstimate });
+      renderFlow({ stage: "genre", steps: withControls });
 
-      const estimate = await screen.findByRole("region", {
-        name: "Before you generate"
+      const controls = screen.getByRole("group", {
+        name: "Generation settings"
       });
       const body = screen.getByText("genre body").closest("fieldset");
-      expect(body?.parentElement).toContainElement(estimate);
+      expect(body?.parentElement).not.toContainElement(controls);
+      expect(controls).toHaveTextContent("shots control");
       expect(screen.getByText("Pick a genre")).toBeInTheDocument();
       expect(
         screen.getByRole("button", { name: "Review your screenplay" })
       ).toHaveAccessibleDescription("Pick a genre");
     });
+  });
+
+  it("shows the estimate as one line in the footer, beside its controls", async () => {
+    const withEstimate = steps.map((entry) =>
+      entry.stage === "genre"
+        ? {
+            ...entry,
+            footerControls: ({ readOnly }: { readOnly: boolean }) => (
+              <button type="button" disabled={readOnly}>
+                model control
+              </button>
+            ),
+            generation: {
+              result: "Write a 6-shot screenplay",
+              next: "Review it next.",
+              model: { id: "m", provider: "p", name: "Model M" },
+              brief: "",
+              maxOutputTokens: 1000
+            }
+          }
+        : entry
+    );
+    renderFlow({ stage: "genre", steps: withEstimate });
+
+    const estimate = await screen.findByRole("region", {
+      name: "Before you generate"
+    });
+    expect(estimate).toHaveTextContent("Cost unknown · ~30–60s");
+    // The picker beside it already names the model.
+    expect(estimate).not.toHaveTextContent("Model M");
+    expect(screen.queryByText("Review it next.")).not.toBeInTheDocument();
+    const body = screen.getByText("genre body").closest("fieldset");
+    expect(body?.parentElement).not.toContainElement(estimate);
+    expect(
+      screen.getByRole("button", { name: "model control" })
+    ).toBeEnabled();
+  });
+
+  it("locks the footer controls while the step's run is pending", () => {
+    const pendingStep = steps.map((entry) =>
+      entry.stage === "genre"
+        ? {
+            ...entry,
+            pending: true,
+            footerControls: ({ readOnly }: { readOnly: boolean }) => (
+              <button type="button" disabled={readOnly}>
+                model control
+              </button>
+            )
+          }
+        : entry
+    );
+    renderFlow({ stage: "genre", steps: pendingStep });
+
+    expect(
+      screen.getByRole("button", { name: "model control" })
+    ).toBeDisabled();
   });
 
   it("shows cancellation as terminal and requires an explicit retry", async () => {

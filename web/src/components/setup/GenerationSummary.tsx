@@ -1,5 +1,4 @@
 import React from "react";
-import type { ReactNode } from "react";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 import {
   Caption,
@@ -25,8 +24,58 @@ export interface GenerationSummaryProps {
   concise?: boolean;
   /** Hide the token assumptions when the estimate adds clutter. */
   hideTokenEstimate?: boolean;
-  /** A model control to show beside the estimate. */
-  modelPicker?: ReactNode;
+}
+
+export interface GenerationEstimateLineProps extends GenerationSummaryProps {
+  /** The model's name is already on a picker beside the line. */
+  hideModel?: boolean;
+}
+
+/**
+ * The run's estimate as one line for the setup footer: model, cost, wait.
+ * What the run produces and the token assumptions stay one hover away, so the
+ * footer holds the numbers and nothing else.
+ */
+export function GenerationEstimateLine({
+  result,
+  model,
+  brief,
+  maxOutputTokens,
+  noModelCall,
+  hideModel = false
+}: GenerationEstimateLineProps) {
+  const estimate = noModelCall
+    ? null
+    : generationEstimate(model, brief, maxOutputTokens);
+  const parts = [
+    hideModel || noModelCall
+      ? null
+      : (model?.name ?? model?.id ?? "No model selected"),
+    noModelCall
+      ? "No model call"
+      : estimate
+        ? estimate.high === 0
+          ? "$0 (local)"
+          : `~${formatUsd(estimate.low)}–${formatUsd(estimate.high)}`
+        : "Cost unknown",
+    noModelCall ? null : "~30–60s"
+  ].filter((part): part is string => part !== null);
+  const assumptions =
+    estimate && estimate.high > 0
+      ? ` About ${estimate.inputTokens.toLocaleString()} input and 1,000–${maxOutputTokens.toLocaleString()} output tokens. Actual usage may cost more.`
+      : "";
+  return (
+    <Text
+      size="small"
+      color="secondary"
+      role="region"
+      aria-label="Before you generate"
+      title={`${result}.${assumptions}`}
+      sx={{ whiteSpace: "nowrap" }}
+    >
+      {parts.join(" · ")}
+    </Text>
+  );
 }
 
 export default function GenerationSummary({
@@ -38,8 +87,7 @@ export default function GenerationSummary({
   noModelCall,
   compact = false,
   concise = false,
-  hideTokenEstimate = false,
-  modelPicker
+  hideTokenEstimate = false
 }: GenerationSummaryProps) {
   const estimate = noModelCall
     ? null
@@ -62,13 +110,11 @@ export default function GenerationSummary({
         {next}
       </Text>
       <FlexRow gap={GAP.spacious} wrap>
-        {modelPicker ?? (
-          <Text size="small">
-            {noModelCall
-              ? "Uses the existing text or preset"
-              : `Model: ${model?.name ?? model?.id ?? "Not selected"}${model ? ` (${model.provider})` : ""}`}
-          </Text>
-        )}
+        <Text size="small">
+          {noModelCall
+            ? "Uses the existing text or preset"
+            : `Model: ${model?.name ?? model?.id ?? "Not selected"}${model ? ` (${model.provider})` : ""}`}
+        </Text>
         <Text size="small">{cost}</Text>
         <Text size="small">
           {noModelCall

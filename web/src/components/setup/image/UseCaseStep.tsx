@@ -13,7 +13,6 @@ import { FlexColumn, GAP, Text } from "../../ui_primitives";
 import { useSketchStore } from "../../sketch/state/useSketchStore";
 import { OptionCardGrid } from "../OptionCardGrid";
 import { USE_CASE_CARDS, findUseCase } from "./useCases";
-import BriefModelSelect from "./BriefModelSelect";
 
 const UseCaseStepInternal: React.FC = () => {
   const useCaseId = useSketchStore(
@@ -47,7 +46,6 @@ const UseCaseStepInternal: React.FC = () => {
         selectedId={useCaseId}
         onSelect={handleSelect}
       />
-      <BriefModelSelect />
     </FlexColumn>
   );
 };

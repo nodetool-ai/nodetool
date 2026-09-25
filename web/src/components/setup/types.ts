@@ -93,7 +93,19 @@ export interface SetupStep<Stage extends string> {
    * PRD § 6.2: nothing shows when nothing was measured, so pass `undefined`.
    */
   primaryDetail?: ReactNode;
+  /**
+   * The run's cost and wait, shown as one line beside the primary button when
+   * nothing more pressing (a wait, a block reason, `primaryDetail`) is.
+   */
   generation?: GenerationSummaryProps;
+  /**
+   * The inputs that decide what the primary button spends: the model, the shot
+   * count. They sit in the footer beside the estimate they change, so the
+   * creator never scrolls away from the price to change it. Keep them compact:
+   * a `SetupFooterField` or a small select, never a card grid. `readOnly` is
+   * also true while the step's run is pending.
+   */
+  footerControls?: (context: SetupStepRenderContext) => ReactNode;
   /** Optional way to leave a non-required step without making a selection. */
   skipLabel?: string;
   onSkip?: () => void | Promise<void>;

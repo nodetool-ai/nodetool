@@ -250,10 +250,14 @@ describe("useWorkflowSetupFlow", () => {
     const summary = await screen.findByRole("region", {
       name: "Before you generate"
     });
-    expect(summary).toHaveTextContent("inputs, processing steps and outputs");
-    expect(summary).toHaveTextContent("Build places the nodes later");
-    expect(summary).toHaveTextContent("Model: m (p)");
-    expect(summary).toHaveTextContent("Cost estimate unavailable");
+    expect(summary).toHaveAttribute(
+      "title",
+      expect.stringContaining("inputs, processing steps and outputs")
+    );
+    expect(summary).toHaveTextContent("Cost unknown");
+    expect(
+      screen.getByRole("group", { name: "Generation settings" })
+    ).toHaveTextContent("m");
     expect(planWorkflow).not.toHaveBeenCalled();
   });
 

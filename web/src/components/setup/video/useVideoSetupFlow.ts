@@ -358,9 +358,10 @@ export const useVideoSetupFlow = ({
               brief,
               maxOutputTokens: 8192,
               concise: true,
-              hideTokenEstimate: true,
-              modelPicker: createElement(DirectorModelPicker)
+              hideTokenEstimate: true
             },
+        footerControls: (context) =>
+          createElement(DirectorModelPicker, { readOnly: context.readOnly }),
         pending: planning,
         pendingLabel: "Planning the beats",
         render: () => createElement(FormatStep),
