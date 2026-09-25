@@ -111,7 +111,8 @@ export async function persistFormatAdaptations(
       type: "timeline",
       ref: created.id,
       mode: "edit",
-      title: name
+      title: name,
+      projectId: created.projectId
     });
     createdIds.push(created.id);
   }

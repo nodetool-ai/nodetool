@@ -83,10 +83,13 @@ export const useScriptLineShotLink = (
       ref: boardId,
       shotId: shot.id
     });
-    useWorkspaceTabsStore
-      .getState()
-      .openTab({ type: "storyboard", ref: boardId, mode: "edit" });
-  }, [boardId, shots, lineId]);
+    useWorkspaceTabsStore.getState().openTab({
+      type: "storyboard",
+      ref: boardId,
+      mode: "edit",
+      projectId: data?.projectId
+    });
+  }, [boardId, shots, lineId, data?.projectId]);
 
   return useMemo(() => {
     if (!boardId || !shots) {

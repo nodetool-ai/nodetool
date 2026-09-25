@@ -321,6 +321,7 @@ const TracePanel: React.FC = () => {
   const setCurrentWorkflowId = useWorkflowManager(
     (state) => state.setCurrentWorkflowId
   );
+  const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const setActiveTab = useWorkspaceTabsStore((state) => state.setActiveTab);
 
@@ -387,7 +388,8 @@ const TracePanel: React.FC = () => {
         mode: "edit",
         title:
           runs.find((run) => run.context?.workflowId === workflowId)?.context
-            ?.workflowName ?? "Workflow"
+            ?.workflowName ?? "Workflow",
+        projectId: getWorkflow(workflowId)?.project_id ?? undefined
       });
       setActiveTab(workflowTabId);
       if (currentWorkflowId !== workflowId) {
@@ -398,6 +400,7 @@ const TracePanel: React.FC = () => {
     },
     [
       currentWorkflowId,
+      getWorkflow,
       navigate,
       openTab,
       runs,

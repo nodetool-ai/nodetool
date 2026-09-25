@@ -91,9 +91,10 @@ export const useShotTimelineLink = (
       type: "timeline",
       ref: timelineId,
       mode: "edit",
-      title: data?.name
+      title: data?.name,
+      projectId: data?.projectId
     });
-  }, [timelineId, clip, data?.name]);
+  }, [timelineId, clip, data?.name, data?.projectId]);
 
   return useMemo(() => {
     if (!timelineId || !clip) {

@@ -358,7 +358,8 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
             type: "image",
             ref: asset.id,
             mode: "edit",
-            title: stillName
+            title: stillName,
+            projectId: asset.project_id
           });
           onLeave?.();
         },

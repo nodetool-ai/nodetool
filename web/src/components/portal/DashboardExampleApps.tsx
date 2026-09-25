@@ -5,7 +5,10 @@ import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  creationProjectId,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 import { BASE_URL } from "../../stores/BASE_URL";
 import {
   installExampleApp,
@@ -220,15 +223,19 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
   });
 
   const install = useMutation({
-    mutationFn: (app: ExampleAppSummary) => installExampleApp(app.slug),
-    onSuccess: async (created) => {
+    mutationFn: async (app: ExampleAppSummary) => {
+      const projectId = creationProjectId();
+      return { projectId, created: await installExampleApp(app.slug, projectId) };
+    },
+    onSuccess: async ({ projectId, created }) => {
       await queryClient.invalidateQueries({ queryKey: ["applications"] });
       await queryClient.invalidateQueries({ queryKey: ["workflows"] });
       openTab({
         type: "application",
         ref: created.id,
         mode: "view",
-        title: created.name
+        title: created.name,
+        projectId
       });
       addNotification({
         type: "success",

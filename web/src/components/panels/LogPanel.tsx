@@ -66,6 +66,7 @@ const LogPanel: React.FC = memo(function LogPanel() {
     (state) => state.setCurrentWorkflowId
   );
   const openWorkflows = useWorkflowManager((s) => s.openWorkflows);
+  const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const setActiveTab = useWorkspaceTabsStore((state) => state.setActiveTab);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -158,10 +159,12 @@ const LogPanel: React.FC = memo(function LogPanel() {
         ref: string;
         mode: "edit";
         title?: string;
+        projectId?: string;
       } = {
         type: "workflow",
         ref: workflowId,
-        mode: "edit"
+        mode: "edit",
+        projectId: getWorkflow(workflowId)?.project_id ?? undefined
       };
       if (wfName[workflowId]) {
         workflowTab.title = wfName[workflowId];
@@ -176,6 +179,7 @@ const LogPanel: React.FC = memo(function LogPanel() {
     },
     [
       currentWorkflowId,
+      getWorkflow,
       navigate,
       openTab,
       setActiveTab,

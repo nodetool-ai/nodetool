@@ -66,9 +66,10 @@ export const useClipStoryboardLink = (
       type: "storyboard",
       ref: boardId,
       mode: "edit",
-      title
+      title,
+      projectId: data?.projectId
     });
-  }, [boardId, shot, title]);
+  }, [boardId, shot, title, data?.projectId]);
 
   return useMemo(() => {
     if (!boardId || !shot) {

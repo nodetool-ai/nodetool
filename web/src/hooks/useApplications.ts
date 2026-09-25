@@ -196,6 +196,8 @@ export interface LinkedWorkflow {
   workflowId: string;
   /** Live name, or the id while loading / when the workflow is gone. */
   name: string;
+  /** The workflow's project, unknown until its graph loads. */
+  projectId?: string;
   /** Every operation of the app that runs this workflow. */
   operations: Array<{ id: string; name: string }>;
   /** Graph version the release froze, null when nothing is pinned. */
@@ -267,6 +269,7 @@ export const useLinkedWorkflows = (
     return {
       workflowId: id,
       name: workflow?.name || id,
+      projectId: workflow?.project_id ?? undefined,
       operations: operations
         .filter((operation) => operation.workflowId === id)
         .map((operation) => ({ id: operation.id, name: operation.name })),

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
 
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { usePanelStore } from "../../stores/PanelStore";
 import {
@@ -66,7 +67,12 @@ export const ChatThreadRedirect = () => {
 
   useEffect(() => {
     if (threadId) {
-      openTab({ type: "chat", ref: threadId, mode: "view" });
+      openTab({
+        type: "chat",
+        ref: threadId,
+        mode: "view",
+        projectId: useGlobalChatStore.getState().threads[threadId]?.project_id
+      });
     } else {
       handleViewChange("chats");
     }

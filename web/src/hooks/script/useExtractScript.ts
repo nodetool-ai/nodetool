@@ -76,7 +76,8 @@ export const useExtractScript = (): UseExtractScriptResult => {
           type: "script",
           ref: created.id,
           mode: "edit",
-          title: name
+          title: name,
+          projectId: created.projectId
         });
         return { scriptId: created.id, lineCount };
       } catch (err) {

@@ -188,7 +188,8 @@ const WorkflowEditorSurface = ({
           type: "chat",
           ref: threadId,
           mode: "view",
-          title: "Workflow repair"
+          title: "Workflow repair",
+          projectId: useGlobalChatStore.getState().threads[threadId]?.project_id
         });
         await sendMessage(
           {
