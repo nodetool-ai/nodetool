@@ -1115,7 +1115,7 @@ function detectAudioMime(bytes: Uint8Array): string {
   return "audio/mpeg";
 }
 
-function encodeWav(
+export function encodeWav(
   pcmData: Uint8Array | Buffer,
   sampleRate: number,
   channels: number,
