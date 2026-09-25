@@ -1488,23 +1488,6 @@ export interface HeadlessRenderFrameOptions {
 }
 
 /**
- * Divide the premultiplied colour back out of every pixel, in place.
- *
- * A fully transparent pixel keeps its zero colour: there is no colour to
- * recover from `0 × 0`, and inventing one would print noise into the parts of
- * an alpha export nothing drew.
- */
-export function unpremultiplyInPlace(rgba: Uint8Array): void {
-  for (let i = 0; i < rgba.length; i += 4) {
-    const a = rgba[i + 3];
-    if (a === 0 || a === 255) continue;
-    rgba[i] = Math.min(255, Math.round((rgba[i] * 255) / a));
-    rgba[i + 1] = Math.min(255, Math.round((rgba[i + 1] * 255) / a));
-    rgba[i + 2] = Math.min(255, Math.round((rgba[i + 2] * 255) / a));
-  }
-}
-
-/**
  * Composite one timeline frame without a canvas: CPU pixels in, straight-alpha
  * RGBA8 out.
  *
@@ -1533,15 +1516,12 @@ export class HeadlessFrameCompositor {
   private readonly readbacks: readonly [GPUBuffer, GPUBuffer];
   private readbackIndex = 0;
   private readonly sources = new Map<string, SourceTexture>();
-  /**
-   * The motion-blur half, built on the first frame that asks for more than one
-   * sample and never at all for a render with blur off. Kept as three lazy
-   * fields rather than an object so the single-sample path allocates nothing.
-   */
+  /** Accumulation is allocated only when motion blur uses multiple samples. */
   private blurAccumulation: GPUTexture | null = null;
-  private blurResolveTarget: GPUTexture | null = null;
   private blurAccumulatePipeline: GPURenderPipeline | null = null;
-  private blurResolvePipeline: GPURenderPipeline | null = null;
+  /** Shared straight-alpha resolve target and pipeline for both render paths. */
+  private resolveTarget: GPUTexture | null = null;
+  private resolvePipeline: GPURenderPipeline | null = null;
 
   constructor(device: GPUDevice, width: number, height: number) {
     this.device = device;
@@ -1596,12 +1576,15 @@ export class HeadlessFrameCompositor {
       adjustments
     );
 
+    // Chroma key and other effects can lower alpha even over the opaque seed.
+    // Resolve both export modes to straight alpha before copying to the CPU.
     const readback = this.nextReadback();
     const encoder = this.device.createCommandEncoder({
       label: "timeline-headless-readback"
     });
+    const resolved = this.resolvePremultiplied(texture, encoder);
     encoder.copyTextureToBuffer(
-      { texture },
+      { texture: resolved },
       {
         buffer: readback,
         bytesPerRow: this.bytesPerRow,
@@ -1611,12 +1594,7 @@ export class HeadlessFrameCompositor {
     );
     this.device.queue.submit([encoder.finish()]);
 
-    // The accumulation is premultiplied. An effect such as chroma key can
-    // lower alpha even over the opaque seed, so both export modes must divide
-    // colour back out to honor this method's straight-alpha contract.
-    const rgba = await this.readMapped(readback);
-    unpremultiplyInPlace(rgba);
-    return rgba;
+    return this.readMapped(readback);
   }
 
   /**
@@ -1672,11 +1650,11 @@ export class HeadlessFrameCompositor {
       this.foldBlurSample(accumulation, texture, weight, i === 0);
     }
 
-    const resolved = this.resolveBlurAccumulation(accumulation);
     const readback = this.nextReadback();
     const encoder = this.device.createCommandEncoder({
       label: "timeline-headless-blur-readback"
     });
+    const resolved = this.resolvePremultiplied(accumulation, encoder);
     encoder.copyTextureToBuffer(
       { texture: resolved },
       {
@@ -1687,8 +1665,6 @@ export class HeadlessFrameCompositor {
       { width: this.width, height: this.height }
     );
     this.device.queue.submit([encoder.finish()]);
-    // The resolve pass already divided the colour back out, so unlike
-    // `renderFrame` there is no CPU un-premultiply left to do.
     return this.readMapped(readback);
   }
 
@@ -1699,7 +1675,7 @@ export class HeadlessFrameCompositor {
     weight: number,
     first: boolean
   ): void {
-    const [pipeline] = this.buildBlurPipelines();
+    const pipeline = this.buildBlurPipeline();
     const encoder = this.device.createCommandEncoder({
       label: "timeline-headless-blur-fold"
     });
@@ -1730,13 +1706,10 @@ export class HeadlessFrameCompositor {
     this.device.queue.submit([encoder.finish()]);
   }
 
-  /** Divide the summed colour by the summed alpha into a readable RGBA8 texture. */
-  private resolveBlurAccumulation(accumulation: GPUTexture): GPUTexture {
-    const target = this.blurResolveTexture();
-    const [, pipeline] = this.buildBlurPipelines();
-    const encoder = this.device.createCommandEncoder({
-      label: "timeline-headless-blur-resolve"
-    });
+  /** Divide premultiplied colour by alpha into a readable RGBA8 texture. */
+  private resolvePremultiplied(source: GPUTexture, encoder: GPUCommandEncoder): GPUTexture {
+    const target = this.resolvedTexture();
+    const pipeline = this.buildResolvePipeline();
     const pass = encoder.beginRenderPass({
       colorAttachments: [
         {
@@ -1752,12 +1725,11 @@ export class HeadlessFrameCompositor {
       0,
       this.device.createBindGroup({
         layout: pipeline.getBindGroupLayout(0),
-        entries: [{ binding: 0, resource: accumulation.createView() }]
+        entries: [{ binding: 0, resource: source.createView() }]
       })
     );
     pass.draw(4);
     pass.end();
-    this.device.queue.submit([encoder.finish()]);
     return target;
   }
 
@@ -1776,22 +1748,22 @@ export class HeadlessFrameCompositor {
     return texture;
   }
 
-  private blurResolveTexture(): GPUTexture {
-    let texture = this.blurResolveTarget;
+  private resolvedTexture(): GPUTexture {
+    let texture = this.resolveTarget;
     if (!texture) {
       texture = this.device.createTexture({
-        label: "timeline-headless-blur-resolve",
+        label: "timeline-headless-resolve",
         size: { width: this.width, height: this.height },
         format: TEXTURE_FORMAT,
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
       });
-      this.blurResolveTarget = texture;
+      this.resolveTarget = texture;
     }
     return texture;
   }
 
-  /** The fold and resolve pipelines, built together on the first blurred frame. */
-  private buildBlurPipelines(): [GPURenderPipeline, GPURenderPipeline] {
+  /** The accumulation pipeline, built on the first blurred frame. */
+  private buildBlurPipeline(): GPURenderPipeline {
     if (!this.blurAccumulatePipeline) {
       const module = this.device.createShaderModule({
         label: "timeline-headless-blur-fold",
@@ -1825,13 +1797,17 @@ export class HeadlessFrameCompositor {
         primitive: { topology: "triangle-strip" }
       });
     }
-    if (!this.blurResolvePipeline) {
+    return this.blurAccumulatePipeline;
+  }
+
+  private buildResolvePipeline(): GPURenderPipeline {
+    if (!this.resolvePipeline) {
       const module = this.device.createShaderModule({
-        label: "timeline-headless-blur-resolve",
+        label: "timeline-headless-resolve",
         code: `${FULLSCREEN_QUAD_VERTEX}\n${UNPREMULTIPLY_FRAGMENT}`
       });
-      this.blurResolvePipeline = this.device.createRenderPipeline({
-        label: "timeline-headless-blur-resolve",
+      this.resolvePipeline = this.device.createRenderPipeline({
+        label: "timeline-headless-resolve",
         layout: "auto",
         vertex: { module, entryPoint: "vs_main" },
         fragment: {
@@ -1842,10 +1818,9 @@ export class HeadlessFrameCompositor {
         primitive: { topology: "triangle-strip" }
       });
     }
-    return [this.blurAccumulatePipeline, this.blurResolvePipeline];
+    return this.resolvePipeline;
   }
 
-  /** Map the readback buffer and drop its 256-byte row padding. */
   /** The buffer this frame reads back through — the one the last frame did not. */
   private nextReadback(): GPUBuffer {
     const buffer = this.readbacks[this.readbackIndex];
@@ -1855,17 +1830,20 @@ export class HeadlessFrameCompositor {
 
   private async readMapped(readback: GPUBuffer): Promise<Uint8Array> {
     await readback.mapAsync(GPUMapMode.READ);
-    const mapped = new Uint8Array(readback.getMappedRange());
-    const rgba = new Uint8Array(this.width * this.height * 4);
-    const rowBytes = this.width * 4;
-    for (let row = 0; row < this.height; row++) {
-      rgba.set(
-        mapped.subarray(row * this.bytesPerRow, row * this.bytesPerRow + rowBytes),
-        row * rowBytes
-      );
+    try {
+      const mapped = new Uint8Array(readback.getMappedRange());
+      const rgba = new Uint8Array(this.width * this.height * 4);
+      const rowBytes = this.width * 4;
+      for (let row = 0; row < this.height; row++) {
+        rgba.set(
+          mapped.subarray(row * this.bytesPerRow, row * this.bytesPerRow + rowBytes),
+          row * rowBytes
+        );
+      }
+      return rgba;
+    } finally {
+      readback.unmap();
     }
-    readback.unmap();
-    return rgba;
   }
 
   private uploadPixels(
@@ -1922,8 +1900,8 @@ export class HeadlessFrameCompositor {
     this.sources.clear();
     this.blurAccumulation?.destroy();
     this.blurAccumulation = null;
-    this.blurResolveTarget?.destroy();
-    this.blurResolveTarget = null;
+    this.resolveTarget?.destroy();
+    this.resolveTarget = null;
     this.compositor.dispose();
     for (const readback of this.readbacks) readback.destroy();
   }

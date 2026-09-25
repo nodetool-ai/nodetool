@@ -7,6 +7,8 @@ This package generates `packages/kie-codegen/src/configs/*.ts` and
 
 1. `src/schema-fetcher.ts` fetches `https://docs.kie.ai/llms.txt` and the linked
    English API docs pages.
+   A Suno page that links an `old-model` version is replaced by that page,
+   and a page that fails to fetch keeps the node's previous config.
 2. `src/schema-parser.ts` extracts embedded OpenAPI YAML blocks and converts
    them to `NodeConfig` objects.
 3. `src/config-writer.ts` writes `src/configs/image.ts`, `src/configs/audio.ts`,

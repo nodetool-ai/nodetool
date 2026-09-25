@@ -14840,6 +14840,93 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/openai/agents/realtimetranscription.md"
     },
     {
+      "type": "openai.agents.LiveAgent",
+      "title": "Live Agent",
+      "namespace": "openai.agents",
+      "description": "",
+      "inputs": [
+        {
+          "name": "model",
+          "type": "enum",
+          "description": "",
+          "required": false,
+          "default": "gpt-live-1"
+        },
+        {
+          "name": "instructions",
+          "type": "str",
+          "description": "Conversation instructions for the voice model: style, and when to delegate to the backend",
+          "required": false,
+          "default": "Be concise. Delegate requests needing current information or lookups to the backend."
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Streaming input. Audio chunks are base64 mono PCM16 at 24 kHz. Text chunks are queued for the backend as user messages.",
+          "required": false,
+          "default": {
+            "type": "chunk",
+            "node_id": null,
+            "thread_id": null,
+            "workflow_id": null,
+            "content_type": "audio",
+            "content": "",
+            "content_metadata": {},
+            "done": false,
+            "thinking": false
+          }
+        },
+        {
+          "name": "voice",
+          "type": "enum",
+          "description": "The voice for spoken output. Fixed for the session.",
+          "required": false,
+          "default": "marin"
+        },
+        {
+          "name": "backend_model",
+          "type": "str",
+          "description": "Responses model that handles delegated reasoning and tools",
+          "required": false,
+          "default": "gpt-5.6-luna"
+        },
+        {
+          "name": "backend_instructions",
+          "type": "str",
+          "description": "Prompt for the backend model: task rules and how to return results",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "web_search",
+          "type": "bool",
+          "description": "Let the backend model search the web",
+          "required": false,
+          "default": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        },
+        {
+          "name": "audio",
+          "type": "audio"
+        },
+        {
+          "name": "text",
+          "type": "str"
+        },
+        {
+          "name": "input_transcript",
+          "type": "str"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/openai/agents/liveagent",
+      "markdown_url": "https://docs.nodetool.ai/nodes/openai/agents/liveagent.md"
+    },
+    {
       "type": "openai.audio.TextToSpeech",
       "title": "Text To Speech",
       "namespace": "openai.audio",

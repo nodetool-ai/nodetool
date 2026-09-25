@@ -2041,6 +2041,63 @@ export const videoConfig: ModuleConfig = {
       "outputType": "video",
       "fields": [
         {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for High-quality video, 4K Ultra-High Definition, delivering perfect visual details.",
+          "required": false,
+          "values": [
+            "480p",
+            "720p",
+            "1080p",
+            "4k"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 5,
+          "title": "Duration",
+          "description": "Video duration in 4-15 seconds or -1.",
+          "required": false,
+          "min": 4,
+          "max": 15
+        },
+        {
+          "name": "generate_audio",
+          "type": "bool",
+          "default": true,
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the video. - **true**: Generate with audio - **false**: Generate without audio",
+          "required": false
+        },
+        {
+          "name": "web_search",
+          "type": "bool",
+          "default": false,
+          "title": "Web Search",
+          "description": "Use online search",
+          "required": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Video aspect ratio configuration. Required field.",
+          "required": false,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9",
+            "adaptive"
+          ]
+        },
+        {
           "name": "prompt",
           "type": "str",
           "default": "",
@@ -2049,6 +2106,25 @@ export const videoConfig: ModuleConfig = {
           "required": false,
           "min": 3,
           "max": 20000
+        },
+        {
+          "name": "reference_images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Reference Images",
+          "description": "Enter a list of image URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single image requirements: Format: jpeg, png, webp, bmp, tiff, gif. Aspect ratio (width/height): (0.4, 2.5) Width and height (px): (300, 6000) Size: Single image less than 30 MB. Maximum number of files: The sum of the number of frames at the beginning and end must not exceed 9..",
+          "required": false,
+          "max": 9
+        },
+        {
+          "name": "reference_audios",
+          "type": "list[audio]",
+          "default": [],
+          "title": "Reference Audios",
+          "description": "Enter a list of audio URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj) . Single audio requirements: Format: wav, mp3 Duration: Single audio duration [2, 15] s, maximum 3 reference audios, total duration of all audios not exceeding 15 s. Size: Single audio file size not exceeding 15 MB.",
+          "required": false,
+          "min": 2,
+          "max": 3
         },
         {
           "name": "first_frame",
@@ -2079,15 +2155,6 @@ export const videoConfig: ModuleConfig = {
           "required": false
         },
         {
-          "name": "reference_images",
-          "type": "list[image]",
-          "default": [],
-          "title": "Reference Images",
-          "description": "Enter a list of image URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj). Single image requirements: Format: jpeg, png, webp, bmp, tiff, gif. Aspect ratio (width/height): (0.4, 2.5) Width and height (px): (300, 6000) Size: Single image less than 30 MB. Maximum number of files: The sum of the number of frames at the beginning and end must not exceed 9..",
-          "required": false,
-          "max": 9
-        },
-        {
           "name": "reference_videos",
           "type": "list[video]",
           "default": [],
@@ -2096,84 +2163,21 @@ export const videoConfig: ModuleConfig = {
           "required": false,
           "min": 2,
           "max": 3
-        },
-        {
-          "name": "reference_audios",
-          "type": "list[audio]",
-          "default": [],
-          "title": "Reference Audios",
-          "description": "Enter a list of audio URLs or asset://{assetId} (for example: asset://asset-20260404242101-76djj) . Single audio requirements: Format: wav, mp3 Duration: Single audio duration [2, 15] s, maximum 3 reference audios, total duration of all audios not exceeding 15 s. Size: Single audio file size not exceeding 15 MB.",
-          "required": false,
-          "min": 2,
-          "max": 3
-        },
-        {
-          "name": "generate_audio",
-          "type": "bool",
-          "default": true,
-          "title": "Generate Audio",
-          "description": "Whether to generate audio for the video. - **true**: Generate with audio - **false**: Generate without audio",
-          "required": false
-        },
-        {
-          "name": "resolution",
-          "type": "enum",
-          "default": "720p",
-          "title": "Resolution",
-          "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for High-quality video, 4K Ultra-High Definition, delivering perfect visual details.",
-          "required": false,
-          "values": [
-            "480p",
-            "720p",
-            "1080p",
-            "4k"
-          ]
-        },
-        {
-          "name": "aspect_ratio",
-          "type": "enum",
-          "default": "16:9",
-          "title": "Aspect Ratio",
-          "description": "Video aspect ratio configuration. Required field.",
-          "required": false,
-          "values": [
-            "1:1",
-            "4:3",
-            "3:4",
-            "16:9",
-            "9:16",
-            "21:9",
-            "adaptive"
-          ]
-        },
-        {
-          "name": "duration",
-          "type": "int",
-          "default": 5,
-          "title": "Duration",
-          "description": "Video duration in 4-15 seconds or -1.",
-          "required": false,
-          "min": 4,
-          "max": 15
-        },
-        {
-          "name": "web_search",
-          "type": "bool",
-          "default": false,
-          "title": "Web Search",
-          "description": "Use online search",
-          "required": false
-        },
-        {
-          "name": "nsfw_checker",
-          "type": "bool",
-          "default": false,
-          "title": "Nsfw Checker",
-          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
-          "required": false
         }
       ],
       "uploads": [
+        {
+          "field": "reference_images",
+          "kind": "image",
+          "paramName": "reference_image_urls",
+          "isList": true
+        },
+        {
+          "field": "reference_audios",
+          "kind": "audio",
+          "paramName": "reference_audio_urls",
+          "isList": true
+        },
         {
           "field": "first_frame",
           "kind": "image",
@@ -2185,21 +2189,9 @@ export const videoConfig: ModuleConfig = {
           "paramName": "last_frame_url"
         },
         {
-          "field": "reference_images",
-          "kind": "image",
-          "paramName": "reference_image_urls",
-          "isList": true
-        },
-        {
           "field": "reference_videos",
           "kind": "video",
           "paramName": "reference_video_urls",
-          "isList": true
-        },
-        {
-          "field": "reference_audios",
-          "kind": "audio",
-          "paramName": "reference_audio_urls",
           "isList": true
         }
       ]
@@ -6874,6 +6866,259 @@ export const videoConfig: ModuleConfig = {
       ]
     },
     {
+      "className": "GenerateAlephVideo",
+      "modelId": "runway/gen4-aleph",
+      "title": "Generate Aleph Video",
+      "description": "Generate Aleph Video via Kie.ai.\n\n    kie, video, ai\n\n    :::warning",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Descriptive text that guides the AI video generation. Be specific about subject, action, style, and setting. Describes how to animate or modify the reference image content.",
+          "required": true
+        },
+        {
+          "name": "video",
+          "type": "video",
+          "default": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "title": "Video",
+          "description": "Reference video URL to base the video-to-video generation on. The AI will transform and enhance this video according to the prompt.",
+          "required": true
+        },
+        {
+          "name": "watermark",
+          "type": "str",
+          "default": "",
+          "title": "Watermark",
+          "description": "Optional watermark text content. An empty string indicates no watermark, while a non-empty string will display the specified text as a watermark in the video.",
+          "required": false
+        },
+        {
+          "name": "upload_cn",
+          "type": "bool",
+          "default": false,
+          "title": "Upload Cn",
+          "description": "Upload method selection. Default value is false (S3/R2), set to true for Alibaba Cloud OSS upload, set to false for overseas R2 server upload.",
+          "required": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "Video aspect ratio.",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "1:1",
+            "21:9"
+          ]
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed. Set for reproducible generation.",
+          "required": false
+        },
+        {
+          "name": "reference_image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Reference Image",
+          "description": "Reference image URL to influence the style or content of the output.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "video",
+          "kind": "video",
+          "paramName": "video_url"
+        },
+        {
+          "field": "reference_image",
+          "kind": "image",
+          "paramName": "reference_image"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "GenerateAiVideo",
+      "modelId": "runway",
+      "title": "Generate AI Video",
+      "description": "Generate AI Video via Kie.ai.\n\n    kie, video, ai\n\n    :::warning",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Descriptive text that guides the AI video generation. Be specific about subject, action, style, and setting. When used with an image, describes how to animate or modify the image content. Maximum length is 1800 characters.",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "Optional reference image URL to base the video on. When provided, the AI will create a video animating or extending this image.",
+          "required": false
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "default": 0,
+          "title": "Duration",
+          "description": "Video duration, optional values are 5 or 10. If 10-second video is selected, 1080p resolution cannot be used",
+          "required": true
+        },
+        {
+          "name": "quality",
+          "type": "str",
+          "default": "",
+          "title": "Quality",
+          "description": "Video resolution, optional values are 720p or 1080p. If 1080p is selected, 10-second video cannot be generated",
+          "required": true
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "Video aspect ratio parameter. **Required parameter for text-to-video generation requests. This parameter is invalid when image_url is passed, and the aspect ratio will ultimately be determined by the provided image.**",
+          "required": false,
+          "values": [
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16"
+          ]
+        },
+        {
+          "name": "watermark",
+          "type": "str",
+          "default": "",
+          "title": "Watermark",
+          "description": "Video watermark text content. An empty string indicates no watermark, while a non-empty string will display the specified text as a watermark in the bottom right corner of the video.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
+        }
+      ]
+    },
+    {
+      "className": "ExtendAiVideo",
+      "modelId": "runway/extend-ai-video",
+      "title": "Extend AI Video",
+      "description": "Extend AI Video via Kie.ai.\n\n    kie, video, ai\n\n    :::warning",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "task_id",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Unique identifier of the original video generation task. Must be a valid task ID from a previously generated video.",
+          "required": true
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Descriptive text that guides the continuation of the video. Explain what actions, movements, or developments should happen next. Be specific but maintain consistency with the original video content.",
+          "required": true
+        },
+        {
+          "name": "quality",
+          "type": "str",
+          "default": "",
+          "title": "Quality",
+          "description": "Video resolution, optional values are 720p or 1080p.",
+          "required": true
+        },
+        {
+          "name": "watermark",
+          "type": "str",
+          "default": "",
+          "title": "Watermark",
+          "description": "Video watermark text content. An empty string indicates no watermark, while a non-empty string will display the specified text as a watermark in the bottom right corner of the video.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "task_id",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        },
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "quality",
+          "rule": "not_empty",
+          "message": "Quality is required"
+        }
+      ]
+    },
+    {
       "className": "HappyhorseTextToVideo",
       "modelId": "happyhorse/text-to-video",
       "title": "happyhorse-text-to-video",
@@ -8086,6 +8331,228 @@ export const videoConfig: ModuleConfig = {
           "field": "mode",
           "rule": "not_empty",
           "message": "Mode is required"
+        }
+      ]
+    },
+    {
+      "className": "GenerateVeo31Video",
+      "modelId": "veo-3-1",
+      "title": "Generate Veo3.1 Video",
+      "description": "Generate Veo3.1 Video via Kie.ai.\n\n    kie, video, ai\n\n    :::warning",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the desired video content. Required for all generation modes. - Should be detailed and specific in describing video content - Can include actions, scenes, style and other information - For image-to-video, describe how you want the image to come alive",
+          "required": true
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Image URL list (used in image-to-video mode). Supports 1 or 2 images: - **1 image**: The generated video will unfold around this image, with the image content presented dynamically - **2 images**: The first image serves as the video's first frame, and the second image serves as the video's last frame, with the video transitioning between them - Must be valid image URLs - Images must be accessible to the API server.",
+          "required": false
+        },
+        {
+          "name": "generation_type",
+          "type": "enum",
+          "default": "",
+          "title": "Generation Type",
+          "description": "Video generation mode (optional). Specifies different video generation approaches: - **TEXT_2_VIDEO**: Text-to-video - Generate videos using only text prompts - **FIRST_AND_LAST_FRAMES_2_VIDEO**: First and last frames to video - Flexible image-to-video generation mode - 1 image: Generate video based on the provided image - 2 images: First image as first frame, second image as last frame, generating transition video - **REFERENCE_2_VIDEO**: Reference-to-video - Generate videos based on reference images, requires 1-3 images in imageUrls (minimum 1, maximum 3) **Important Notes**: - REFERENCE_2_VIDEO mode currently supports the veo3_fast and veo3_lite models. - If not specified, the system will automatically determine the generation mode based on whether imageUrls are provided",
+          "required": false,
+          "values": [
+            "TEXT_2_VIDEO",
+            "FIRST_AND_LAST_FRAMES_2_VIDEO",
+            "REFERENCE_2_VIDEO"
+          ]
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Video aspect ratio. Specifies the dimension ratio of the generated video. Available options: - 16:9: Landscape video format. - 9:16: Portrait video format, suitable for mobile short videos - Auto: In auto mode, the video will be automatically center-cropped based on whether your uploaded image is closer to 16:9 or 9:16. Default value is 16:9.",
+          "required": false,
+          "values": [
+            "16:9",
+            "9:16",
+            "Auto"
+          ]
+        },
+        {
+          "name": "enable_translation",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Translation",
+          "description": "Enable prompt translation to English. When set to true, the system will automatically translate prompts to English before video generation for better generation results. Default value is true. - true: Enable translation, prompts will be automatically translated to English - false: Disable translation, use original prompts directly for generation",
+          "required": false
+        },
+        {
+          "name": "watermark",
+          "type": "str",
+          "default": "",
+          "title": "Watermark",
+          "description": "Watermark text. - Optional parameter - If provided, a watermark will be added to the generated video",
+          "required": false
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "720p",
+          "title": "Resolution",
+          "description": "Controls the pixel dimensions of the generated image. Higher resolution results in greater clarity and detail, while lower resolution allows for faster generation.",
+          "required": false,
+          "values": [
+            "720p",
+            "1080p",
+            "4k"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "default": 8,
+          "title": "Duration",
+          "description": "The duration of the generated video, in seconds. Optional values are 4, 6, 8. **Important Note**: - The REFERENCE_2_VIDEO mode currently only supports a duration of 8 seconds.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "paramName": "image_urls",
+          "isList": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "GetVeo311080pVideo",
+      "modelId": "veo/get-1080p-video",
+      "title": "Get 1080P Video",
+      "description": "Get 1080P Video via Kie.ai.\n\n    kie, video, ai\n\n    :::warning",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "taskId",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "taskId",
+          "required": true
+        },
+        {
+          "name": "index",
+          "type": "str",
+          "default": "",
+          "title": "Index",
+          "description": "video index",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "taskId",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        }
+      ]
+    },
+    {
+      "className": "GetVeo314kVideo",
+      "modelId": "veo/get-4k-video",
+      "title": "Get 4K Video",
+      "description": "Get 4K Video via Kie.ai.\n\n    kie, video, ai\n\n    :::warning",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "task_id",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Task ID",
+          "required": true
+        },
+        {
+          "name": "index",
+          "type": "int",
+          "default": 0,
+          "title": "Index",
+          "description": "video index",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "task_id",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        }
+      ]
+    },
+    {
+      "className": "ExtendVeo31Video",
+      "modelId": "veo/extend",
+      "title": "Extend Veo3.1 Video",
+      "description": "Extend Veo3.1 Video via Kie.ai.\n\n    kie, video, ai\n\n    :::warning",
+      "outputType": "video",
+      "fields": [
+        {
+          "name": "task_id",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "The task ID of the original video generation. Must be a valid task ID returned by the video generation API. Note: Videos generated in 1080P cannot be extended.",
+          "required": true
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text prompt describing the content of the extended video. It should detail how you want the video to be extended, including actions, scene changes, styles, etc.",
+          "required": true
+        },
+        {
+          "name": "seeds",
+          "type": "int",
+          "default": 0,
+          "title": "Seeds",
+          "description": "A random seed parameter that controls the randomness of the generated content. Range: 10000-99999. The same seed will generate similar video content, while different seeds will generate different video content. If not specified, the system will automatically assign a random seed.",
+          "required": false,
+          "min": 10000,
+          "max": 99999
+        },
+        {
+          "name": "watermark",
+          "type": "str",
+          "default": "",
+          "title": "Watermark",
+          "description": "Watermark text (optional). If provided, a watermark will be added to the generated video.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "task_id",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        },
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
         }
       ]
     }

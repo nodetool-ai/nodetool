@@ -116,7 +116,7 @@ const ResourceChip: React.FC<ResourceChipProps> = ({ uri, label }) => {
           <Icon fontSize="inherit" />
         )
       }
-      onClick={navigable ? () => openResource(ref) : undefined}
+      onClick={navigable ? () => { void openResource(ref); } : undefined}
       sx={{
         verticalAlign: "middle",
         maxWidth: "100%",

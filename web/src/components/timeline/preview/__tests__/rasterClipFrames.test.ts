@@ -2,15 +2,24 @@ import { DEFAULT_MODEL3D_STYLE, makeClip } from "@nodetool-ai/timeline";
 
 import { stub } from "../../../../test-utils/doubles";
 import type { Model3DFrameRequest } from "../../Tracks/model3dClipFrames";
+import { BitmapFrameScope } from "../BitmapFrameScope";
 
 const setLayers = jest.fn();
 const render = jest.fn();
 const dispose = jest.fn();
-const rasterizeText = jest.fn(() => ({
+const releaseBitmapPin = jest.fn();
+const rasterizedBitmap = {
   width: 1920,
   height: 1080,
   close: jest.fn()
-}));
+};
+const rasterizeText = jest.fn((...args: unknown[]) => {
+  const scope = args[4];
+  if (scope instanceof BitmapFrameScope) {
+    scope.pin(rasterizedBitmap as ImageBitmap, releaseBitmapPin);
+  }
+  return rasterizedBitmap;
+});
 const resolveAnimatedLayerProps = jest.fn(
   (layer: { opacity: number }, timelineTimeMs: number) => ({
     opacity: layer.opacity,
@@ -114,7 +123,9 @@ describe("renderRasterClipFrames", () => {
     expect(rasterizeText).toHaveBeenCalledWith(
       clip.textStyle,
       1920,
-      1080
+      1080,
+      undefined,
+      expect.any(Object)
     );
     expect(resolveAnimatedLayerProps).toHaveBeenNthCalledWith(
       1,
@@ -145,6 +156,26 @@ describe("renderRasterClipFrames", () => {
       }
     ]);
     expect(dispose).toHaveBeenCalled();
+  });
+
+  it("releases a rasterized frame pin when compositing throws", async () => {
+    const clip = makeClip({
+      id: "title-failure",
+      trackId: "overlay-1",
+      name: "Title",
+      mediaType: "text",
+      sourceType: "imported",
+      durationMs: 1000,
+      textStyle: { text: "Failure", fontSizePx: 72, color: "#ffffff" }
+    });
+    render.mockImplementationOnce(() => {
+      throw new Error("compositor failed");
+    });
+
+    await expect(
+      renderRasterClipFrames(clip, [0], 320, 1920, 1080)
+    ).rejects.toThrow("compositor failed");
+    expect(releaseBitmapPin).toHaveBeenCalledTimes(1);
   });
 
   it("composites a 3D clip's session frames, one data URL per time", async () => {

@@ -35,6 +35,9 @@ failures are visible, not just logged.
 npm run test:e2e-runner            # boots backend + Vite, runs the suite headless
 npm run test:e2e-runner:headed     # watch it run in a browser
 
+# If a development server already uses :7777, choose a free backend port:
+E2E_BACKEND_PORT=7778 PROXY_API_TARGET=http://127.0.0.1:7778 npm run test:e2e-runner
+
 # Open the page yourself against a running backend (npm run dev:server on :7777):
 npm run e2e-suite:prepare          # build web/public/e2e-suite
 npm start                          # Vite on :3000

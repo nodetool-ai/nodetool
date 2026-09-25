@@ -17,6 +17,7 @@ interface FakeChild extends EventEmitter {
 
 let spawned: FakeChild[] = [];
 let spawnArgs: string[][] = [];
+let blockEncoderWrites = false;
 
 function makeChild(): FakeChild {
   const child = new EventEmitter() as FakeChild;
@@ -24,9 +25,10 @@ function makeChild(): FakeChild {
   child.stderr = new PassThrough();
   const written: Buffer[] = [];
   const stdin = new Writable({
+    highWaterMark: blockEncoderWrites ? 1 : undefined,
     write(chunk, _enc, cb) {
       written.push(Buffer.from(chunk));
-      cb();
+      if (!blockEncoderWrites) cb();
     }
   }) as Writable & { written: Buffer[] };
   stdin.written = written;
@@ -60,7 +62,25 @@ function frame(value: number): Buffer {
 beforeEach(() => {
   spawned = [];
   spawnArgs = [];
+  blockEncoderWrites = false;
 });
+
+async function settleWithin<T>(promise: Promise<T>): Promise<{ value?: T; error?: Error }> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise.then(
+        (value) => ({ value }),
+        (error: Error) => ({ error })
+      ),
+      new Promise<never>((_resolve, reject) => {
+        timeout = setTimeout(() => reject(new Error("write stayed pending")), 100);
+      })
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
 
 describe("fitWithin", () => {
   it("shrinks a source to fit the frame, keeping its aspect", () => {
@@ -138,6 +158,38 @@ describe("openVideoFrameStream", () => {
 });
 
 describe("openFrameEncoder", () => {
+  it("settles a backpressured write when encoding is aborted", async () => {
+    blockEncoderWrites = true;
+    const encoder = openFrameEncoder({ outPath: "/tmp/out.mp4", width: 1, height: 1, fps: 30 });
+    const pending = encoder.write(new Uint8Array(frame(1)));
+    encoder.abort();
+    const result = await settleWithin(pending);
+    expect(result.error).toBeInstanceOf(Error);
+  });
+
+  it("reports ffmpeg's error to a backpressured write", async () => {
+    blockEncoderWrites = true;
+    const encoder = openFrameEncoder({ outPath: "/tmp/out.mp4", width: 1, height: 1, fps: 30 });
+    const child = spawned[0];
+    const pending = encoder.write(new Uint8Array(frame(1)));
+    child.stderr.write("encoder rejected frame");
+    child.emit("close", 1);
+    const result = await settleWithin(pending);
+    expect(result.error?.message).toMatch(/encoder rejected frame/);
+  });
+
+  it("preserves the first process error when abort follows", async () => {
+    blockEncoderWrites = true;
+    const encoder = openFrameEncoder({ outPath: "/tmp/out.mp4", width: 1, height: 1, fps: 30 });
+    const child = spawned[0];
+    const pending = encoder.write(new Uint8Array(frame(1)));
+    const original = new Error("encoder pipe failed");
+    child.emit("error", original);
+    encoder.abort();
+    const result = await settleWithin(pending);
+    expect(result.error).toBe(original);
+  });
+
   it("writes each composited frame to the encoder and finalizes on exit 0", async () => {
     const encoder = openFrameEncoder({
       outPath: "/tmp/out.mp4",

@@ -18,9 +18,25 @@ cd "$ROOT"
 
 log() { echo "[session-start] $*"; }
 
-if [ -d node_modules/.package-lock.json ] || [ -f node_modules/.package-lock.json ]; then
-  log "dependencies already installed"
-  exit 0
+# A cached container can predate a workspace added to package.json. Its tree
+# exists but lacks that workspace's link, and every build that imports it fails.
+missing_workspace_links() {
+  node -e '
+    const fs = require("fs");
+    for (const w of require("./package.json").workspaces) {
+      let name;
+      try { name = JSON.parse(fs.readFileSync(w + "/package.json", "utf8")).name; } catch { continue; }
+      if (!fs.existsSync("node_modules/" + name)) { console.log(w); }
+    }'
+}
+
+if [ -f node_modules/.package-lock.json ]; then
+  missing="$(missing_workspace_links)"
+  if [ -z "$missing" ]; then
+    log "dependencies already installed"
+    exit 0
+  fi
+  log "unlinked workspaces: $(echo $missing) — reinstalling to link them"
 fi
 
 # keytar compiles against libsecret. Without the headers npm rolls the whole

@@ -18,7 +18,7 @@ npm install @nodetool-ai/llm-nodes
 **OpenAI** (`openai.*`) — `text.Embedding`, `text.WebSearch`, `text.Moderation`,
 `image.CreateImage`, `image.EditImage`, `image.ImageVariation`,
 `audio.TextToSpeech`, `audio.Transcribe`, `audio.Translate`,
-`agents.RealtimeAgent`, `agents.RealtimeTranscription`.
+`agents.RealtimeAgent`, `agents.RealtimeTranscription`, `agents.LiveAgent`.
 
 **Gemini** (`gemini.*`) — `text.GroundedSearch`, `text.Embedding`,
 `image.ImageGeneration`, `video.TextToVideo`, `video.ImageToVideo`,

@@ -12,7 +12,10 @@ import { AlibabaProvider } from "../../src/providers/alibaba-provider.js";
 import { CerebrasProvider } from "../../src/providers/cerebras-provider.js";
 import { GMIProvider } from "../../src/providers/gmi-provider.js";
 import { GroqProvider } from "../../src/providers/groq-provider.js";
-import { XAIProvider } from "../../src/providers/xai-provider.js";
+import {
+  XAI_KNOWN_MODELS,
+  XAIProvider
+} from "../../src/providers/xai-provider.js";
 import { DeepSeekProvider } from "../../src/providers/deepseek-provider.js";
 
 type AnyProvider = {
@@ -23,7 +26,14 @@ type AnyProvider = {
 const fetchReturning = (body: unknown) =>
   vi.fn().mockResolvedValue({ ok: true, json: async () => body });
 
-const cases = [
+const cases: Array<{
+  name: string;
+  baseURL: string;
+  id: string;
+  make: (opts?: object) => unknown;
+  /** Language models the provider lists whatever the live listing returns. */
+  knownLanguageIds?: string[];
+}> = [
   {
     name: "alibaba",
     baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
@@ -56,7 +66,8 @@ const cases = [
     name: "xai",
     baseURL: "https://api.x.ai/v1",
     id: "xai",
-    make: (opts?: object) => new XAIProvider({ XAI_API_KEY: "k" }, opts as never)
+    make: (opts?: object) => new XAIProvider({ XAI_API_KEY: "k" }, opts as never),
+    knownLanguageIds: XAI_KNOWN_MODELS.language.map((model) => model.id)
   },
   {
     name: "deepseek",
@@ -68,6 +79,10 @@ const cases = [
 ];
 
 for (const c of cases) {
+  const known = new Set(c.knownLanguageIds);
+  const liveIds = (models: Array<{ id: string }>) =>
+    models.map((m) => m.id).filter((id) => !known.has(id));
+
   describe(`${c.name}-provider hardening`, () => {
     it("builds a client at the vendor base URL by default", () => {
       const p = c.make() as unknown as AnyProvider;
@@ -88,7 +103,7 @@ for (const c of cases) {
         fetchFn
       }) as unknown as AnyProvider;
       const models = await p.getAvailableLanguageModels();
-      expect(models.map((m) => m.id)).toEqual(["good"]);
+      expect(liveIds(models)).toEqual(["good"]);
     });
 
     it("returns [] when the payload has no data array", async () => {
@@ -97,7 +112,7 @@ for (const c of cases) {
         client: {},
         fetchFn
       }) as unknown as AnyProvider;
-      expect(await p.getAvailableLanguageModels()).toEqual([]);
+      expect(liveIds(await p.getAvailableLanguageModels())).toEqual([]);
     });
   });
 }

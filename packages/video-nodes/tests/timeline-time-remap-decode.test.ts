@@ -3,9 +3,9 @@
  *
  * `openVideoFrameStream` is forward-only: it decodes a clip once, in source
  * order, because a rate-retimed clip never asks for a source instant it has
- * already passed. A remap curve can. `openSourceFrameStream` is the answer —
- * it reopens the decode to seek backwards — and this asks ffmpeg whether the
- * frames that come back are the ones the curve names.
+ * already passed. A remap curve can. `openSourceFrameStream` retains bounded
+ * reverse windows, and this asks ffmpeg whether the frames that come back are
+ * the ones the curve names.
  *
  * The second half runs the same curves through `renderTimelineComposited`, so
  * the claim covers the wiring too: that a remapped clip reaches the
@@ -138,7 +138,7 @@ describe("openSourceFrameStream", () => {
     }
   }, 60_000);
 
-  it("serves a reverse curve by reopening, and the frames descend", async () => {
+  it("serves a reverse curve from a bounded window, and the frames descend", async () => {
     // The curve a reverse writes: t ascends over the clip, sourceMs descends.
     const sourceSecs: number[] = [];
     for (let k = SOURCE_FRAMES - 1; k >= 0; k--) sourceSecs.push(k / FPS);
@@ -163,8 +163,8 @@ describe("openSourceFrameStream", () => {
       expect(grays.map(nearestFrameIndex)).toEqual(
         sourceSecs.map((sec) => Math.round(sec * FPS))
       );
-      // Every step but the first is a backwards seek, so every one reopened.
-      expect(stream.reopens).toBe(sourceSecs.length - 1);
+      expect(stream.reopens).toBe(1);
+      expect(stream.reverseWindowBytes).toBeLessThanOrEqual(SOURCE_FRAMES * WIDTH * HEIGHT * 4);
     } finally {
       stream.close();
     }

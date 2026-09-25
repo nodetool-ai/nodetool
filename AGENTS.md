@@ -261,7 +261,15 @@ npm run build:packages  # Build backend packages in dependency order
 Claude Code web setup and slash commands are in [.claude/README.md](.claude/README.md).
 
 - On missing-module/type-definition failures in untouched files, install
-  dependencies first, then rerun checks before investigating further.
+  dependencies first, then rerun checks before investigating further. A
+  workspace added since the last install has no `node_modules/@nodetool-ai/`
+  link and fails every build that imports it. Run `npm install` to link it.
+- Run `npm run build:packages` before `test:affected` and `harness gate`.
+  Selfchecks that run the CLI fail on a missing `packages/cli/dist`, which
+  looks like a gate failure but is an unbuilt tree.
+- The runtime and base-nodes suites need `ffmpeg` and a Vulkan ICD, as in CI
+  (`extra-apt` in `.github/workflows/quality-checks.yml`). Install
+  `ffmpeg mesa-vulkan-drivers` before a suite-wide run.
 - The root `postinstall` rebuilds `better-sqlite3` after npm finishes reifying
   dependencies. Keep the rebuild there, not in the Electron workspace hook.
   For `NODE_MODULE_VERSION` failures, run `npm run rebuild:native`.
@@ -272,7 +280,10 @@ Claude Code web setup and slash commands are in [.claude/README.md](.claude/READ
   [headless WebGPU setup](docs/dev-environment.md#webgpu-on-a-headless-machine).
 - `mobile/` has a separate dependency tree and is not a root workspace. Use
   `npm --prefix mobile …`, never `--workspace=mobile`. Build protocol before
-  mobile typecheck. Its `@nodetool-ai/app-runtime` source mapping must agree
+  mobile typecheck, which the root `npm run typecheck` includes. Install its
+  tree with `npm --prefix mobile ci`. `npm --prefix mobile install` rewrites
+  `mobile/package-lock.json`, so revert that file if it changes.
+  Its `@nodetool-ai/app-runtime` source mapping must agree
   across `mobile/metro.config.js`, `tsconfig.json`, and `jest.config.js`.
 - Node packages using decorators and loading from `dist/` (`base-nodes`,
   `node-sdk`, `fal-nodes`, `replicate-nodes`, `elevenlabs-nodes`) need

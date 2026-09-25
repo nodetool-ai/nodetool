@@ -7,6 +7,7 @@ import { stub } from "../../../../test-utils/doubles";
 import { compileClipAnimations } from "@nodetool-ai/timeline";
 
 import { TextRasterizer } from "../textRender";
+import { BitmapFrameScope } from "../BitmapFrameScope";
 import {
   createAnimationCompileCache,
   hasActiveAnimation,
@@ -139,11 +140,12 @@ describe("TextRasterizer stagger", () => {
 
   it("draws each word with its own sample mid-stagger", () => {
     const rasterizer = new TextRasterizer();
+    const frameScope = new BitmapFrameScope();
     // localMs 200: word0 t=0.5, word1 t=0.25, word2 t=0 (invisible, skipped).
     rasterizer.rasterize(STYLE, 1920, 1080, {
       compiled: compiledStagger(),
       localMs: 200
-    });
+    }, frameScope);
 
     expect(drawn.map((w) => w.text)).toEqual(["Hello", "brave"]);
     expect(drawn[0].alpha).toBeCloseTo(0.5, 6);
@@ -154,21 +156,25 @@ describe("TextRasterizer stagger", () => {
     // center 875+25, word 1 starts at 875+50+10 with center +25.
     expect(drawn[0].translate).toEqual({ x: 900, y: 540 });
     expect(drawn[1].translate).toEqual({ x: 960, y: 540 });
+    frameScope.release();
     rasterizer.dispose();
   });
 
   it("draws all words at full opacity after the stagger completes", () => {
     const rasterizer = new TextRasterizer();
+    const frameScope = new BitmapFrameScope();
     rasterizer.rasterize(STYLE, 1920, 1080, {
       compiled: compiledStagger(),
       localMs: 4000
-    });
+    }, frameScope);
     expect(drawn.map((w) => w.alpha)).toEqual([1, 1, 1]);
+    frameScope.release();
     rasterizer.dispose();
   });
 
   it("bypasses the cache during the window and caches held frames outside it", () => {
     const rasterizer = new TextRasterizer();
+    const frameScope = new BitmapFrameScope();
     const compiled = compiledStagger();
 
     // Active window (span [0, 600]): every new time re-rasterizes, but a
@@ -176,24 +182,25 @@ describe("TextRasterizer stagger", () => {
     const mid = rasterizer.rasterize(STYLE, 1920, 1080, {
       compiled,
       localMs: 200
-    });
+    }, frameScope);
     expect(
-      rasterizer.rasterize(STYLE, 1920, 1080, { compiled, localMs: 200 })
+      rasterizer.rasterize(STYLE, 1920, 1080, { compiled, localMs: 200 }, frameScope)
     ).toBe(mid);
     expect(bitmapCount).toBe(1);
-    rasterizer.rasterize(STYLE, 1920, 1080, { compiled, localMs: 216 });
+    rasterizer.rasterize(STYLE, 1920, 1080, { compiled, localMs: 216 }, frameScope);
     expect(bitmapCount).toBe(2);
 
     // After the span: static frame, cached.
-    const a = rasterizer.rasterize(STYLE, 1920, 1080, { compiled, localMs: 700 });
-    const b = rasterizer.rasterize(STYLE, 1920, 1080, { compiled, localMs: 900 });
+    const a = rasterizer.rasterize(STYLE, 1920, 1080, { compiled, localMs: 700 }, frameScope);
+    const b = rasterizer.rasterize(STYLE, 1920, 1080, { compiled, localMs: 900 }, frameScope);
     expect(b).toBe(a);
     expect(bitmapCount).toBe(3);
 
     // Un-staggered draws keep their own cache entry.
-    const plain = rasterizer.rasterize(STYLE, 1920, 1080);
-    expect(rasterizer.rasterize(STYLE, 1920, 1080)).toBe(plain);
+    const plain = rasterizer.rasterize(STYLE, 1920, 1080, undefined, frameScope);
+    expect(rasterizer.rasterize(STYLE, 1920, 1080, undefined, frameScope)).toBe(plain);
     expect(plain).not.toBe(a);
+    frameScope.release();
     rasterizer.dispose();
   });
 });
