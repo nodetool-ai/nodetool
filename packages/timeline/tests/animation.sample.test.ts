@@ -261,3 +261,35 @@ describe("hasActiveAnimationWindow", () => {
     expect(hasActiveAnimationWindow(c, 2999)).toBe(true);
   });
 });
+
+// The two traps the validator reports (`typewriter_not_staggered`,
+// `animation_holds_rest_before_window`). These pin the sampler behavior the
+// warnings describe, so a change here must revisit the messages.
+describe("sampleAnimations — silent traps the validator names", () => {
+  it("holds a plain-duration typewriter as one step with no stagger or caret", () => {
+    const c = compile([{
+      id: "a", role: "in", preset: "typewriter", delayMs: 66, durationMs: 400,
+      caret: { color: "#2de2e6", widthPx: 4, blinkPeriodMs: 500 }
+    }], 2000);
+    expect(c[0]?.stagger).toBeUndefined();
+    expect(sampleAnimations(c, 300).opacity).toBe(0);
+    expect(sampleAnimations(c, 465).opacity).toBe(0);
+    expect(sampleAnimations(c, 467).opacity).toBe(1);
+  });
+
+  it("holds the rest value before a custom `out` window, not the first keyframe", () => {
+    const c = compile([{
+      id: "a", role: "out", preset: "custom", delayMs: 0, durationMs: 1500,
+      custom: {
+        curves: [{
+          property: "trimEnd",
+          keyframes: [{ t: 0, value: 0 }, { t: 0.1, value: 0.72 }, { t: 1, value: 0.72 }]
+        }]
+      }
+    }], 1633);
+    expect(c[0]?.windowStartMs).toBe(133);
+    // Undriven: the shape keeps its own trimEnd (1), a full ring.
+    expect(sampleAnimations(c, 100).trimEnd).toBeUndefined();
+    expect(sampleAnimations(c, 133).trimEnd).toBe(0);
+  });
+});

@@ -436,3 +436,80 @@ describe("validateTimelineSequence — time_remap_not_monotonic", () => {
     expect(of(result, "time_remap_not_monotonic")).toHaveLength(1);
   });
 });
+
+describe("validateTimelineSequence — typewriter_not_staggered", () => {
+  const typewriter = (over: Json): Json =>
+    animation({
+      preset: "typewriter",
+      delayMs: 66,
+      caret: { color: "#2de2e6", widthPx: 4, blinkPeriodMs: 500 },
+      ...over
+    });
+
+  it("stays quiet on the stored per-character form", () => {
+    const result = validateTimelineSequence(
+      doc([textClip({ animations: [typewriter({ durationMs: 1, stagger: { unit: "character", offsetMs: 20 } })] })])
+    );
+    expect(of(result, "typewriter_not_staggered")).toEqual([]);
+  });
+
+  it("warns when a typewriter stores a plain duration with no stagger", () => {
+    const result = validateTimelineSequence(
+      doc([textClip({ animations: [typewriter({ durationMs: 400 })] })])
+    );
+    const found = of(result, "typewriter_not_staggered");
+    expect(found).toHaveLength(1);
+    expect(found[0]?.severity).toBe("warning");
+    expect(found[0]?.message).toContain("stagger");
+  });
+});
+
+describe("validateTimelineSequence — animation_holds_rest_before_window", () => {
+  const gauge = (keyframes: Json[], over: Json = {}): Json =>
+    clip({
+      mediaType: "shape",
+      durationMs: 1633,
+      animations: [
+        animation({
+          role: "out",
+          preset: "custom",
+          delayMs: 0,
+          durationMs: 1500,
+          custom: { curves: [{ property: "trimEnd", keyframes }] },
+          ...over
+        })
+      ]
+    });
+  const fromZero = [
+    { t: 0, value: 0 },
+    { t: 0.1, value: 0.72 },
+    { t: 1, value: 0.72 }
+  ];
+
+  it("stays quiet when the curve starts at the rest value", () => {
+    const result = validateTimelineSequence(
+      doc([gauge([{ t: 0, value: 1 }, { t: 1, value: 0.72 }])])
+    );
+    expect(of(result, "animation_holds_rest_before_window")).toEqual([]);
+  });
+
+  it("stays quiet when the window starts at clip start", () => {
+    const result = validateTimelineSequence(doc([gauge(fromZero, { durationMs: 1633 })]));
+    expect(of(result, "animation_holds_rest_before_window")).toEqual([]);
+  });
+
+  it("stays quiet when the clip's own value matches the first keyframe", () => {
+    const result = validateTimelineSequence(
+      doc([{ ...gauge(fromZero), shapeStyle: { kind: "ellipse", trimEnd: 0 } }])
+    );
+    expect(of(result, "animation_holds_rest_before_window")).toEqual([]);
+  });
+
+  it("warns when an `out` curve starts away from rest after clip start", () => {
+    const result = validateTimelineSequence(doc([gauge(fromZero)]));
+    const found = of(result, "animation_holds_rest_before_window");
+    expect(found).toHaveLength(1);
+    expect(found[0]?.severity).toBe("warning");
+    expect(found[0]?.message).toContain("trimEnd");
+  });
+});

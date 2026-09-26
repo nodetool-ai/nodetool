@@ -782,6 +782,8 @@ authored motion did not fit the clip.
 | `layer_cap_exceeded` | warning | More video clips overlap at an instant than the compositor draws |
 | `animation_exceeds_clip` | warning | The window does not fit the clip after its delay, so the motion is clamped — or never runs |
 | `stagger_compressed` | warning | The stagger span did not fit, so the per-unit offset was shrunk and the units overlap more than authored |
+| `typewriter_not_staggered` | warning | A `typewriter` is stored with a plain `durationMs` and no `stagger`, so the whole text appears at once after that time, with no caret |
+| `animation_holds_rest_before_window` | warning | A custom `out` curve starts away from the channel's rest value after clip start, so the frames before its window show the rest value and then jump |
 | `replace_curves_overlap` | warning | Two animations drive one absolute channel (`positionX/Y`, `anchorX/Y`, `trimStart/End`) at the same time; the last in document order wins and the other is discarded |
 | `text_illegible` | warning | Type under 2.5% of frame height, or under a 3:1 contrast ratio against its own background plate or a full-frame shape clip behind it |
 | `clips_overlap`, `clip_shorter_than_frame`, `caption_out_of_range`, `binding_incomplete`, `duplicate_track_index`, `transcript_clip_missing`, `link_partner_missing` | warning | Structural smells that still render |

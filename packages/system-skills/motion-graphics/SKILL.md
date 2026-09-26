@@ -172,6 +172,9 @@ default 12), `colorFade` (600ms, grayscale blooming into color).
 Set `durationMs` to the time for the entire text to appear. Without it, the
 characters type 65ms apart and finish within the clip. To set a fixed speed,
 use `durationMs: 1` with `stagger: {unit: "character", offsetMs: 40}`.
+`animate_clip` stores every typewriter in that form. A document you write by
+hand must use it too: a stored plain `durationMs` with no `stagger` shows the
+whole text at once, with no caret.
 
 `emphasis` — `pulse` (600ms; `intensity` 0–0.5, default 0.06), `flash` (400ms;
 `intensity` 0–1, default 0.6), `shake` (600ms; seeded noise on both axes:
@@ -400,6 +403,12 @@ stack lists child clip IDs; a relative clip uses `targetClipId`, `side`, and
 optional `fitText` padding. `repeater.count` includes the original clip and
 is capped at 128. `timeStepMs` offsets each copy in time. These are fields on
 a clip, not new clip records to add by hand.
+
+Do not scroll a still plate by tiling it with a `repeater`. Each copy meets the
+next at a seam, and the seam shows when the image differs at its edges. A
+generated rain plate is denser at the top, so it always does. To make rain
+fall, move one plate to a random offset on `hold` keyframes every two frames.
+This reads as falling rain and has no seam.
 
 ```json
 {"layout":{"kind":"row","children":["logo-id","wordmark-id"],"gapPx":24},"repeater":{"count":3,"positionStep":{"x":180,"y":0},"timeStepMs":67}}
@@ -635,6 +644,8 @@ not perform the motion you wrote:
 | `animation_style_invalid` | error | A style target has no matching clip style, a path cannot morph, a color cannot parse, or a glyph track lacks text stagger. Fix the target or the clip style |
 | `animation_exceeds_clip` | warning | The window does not fit the clip after its delay, so the motion is clamped or never runs. Shorten `durationMs`, cut the delay, or lengthen the clip |
 | `stagger_compressed` | warning | The units did not fit, so the per-unit offset was shrunk. The line lands faster and flatter than you wrote it. Shorten the per-unit `durationMs` or give the clip more time |
+| `typewriter_not_staggered` | warning | A `typewriter` is stored with a plain `durationMs` and no `stagger`. Nothing draws for that time, then the whole text appears with no caret. Store `durationMs: 1` with a `character` stagger, or apply the preset again through `animate_clip` |
+| `animation_holds_rest_before_window` | warning | A custom `out` curve starts away from the channel's rest value after clip start. An `out` does not apply before its window, so the frames before it show the rest value (a gauge drawn from `trimEnd: 0` shows a full ring). Start the window at clip start. For a `trim`, `position` or `anchor` curve, you can instead set the clip's own value to the first keyframe |
 | `replace_curves_overlap` | warning | Two animations drive one absolute channel (`positionX/Y`, `anchorX/Y`, `trimStart/End`) at once. The last in document order wins and the other is discarded. Separate them in time or fold them into one curve |
 | `text_backing_unproven` | warning | Text draws over picture with no `background`, `stroke` or shape behind it, so nothing decides whether it reads. Preview the frame and look, or give it a plate |
 | `text_illegible` | warning | Type under 2.5% of frame height, or under a 3:1 contrast ratio against its own `background` plate or a full-frame shape behind it. Raise `fontSizePx`, darken the scrim, or add a `stroke` |
