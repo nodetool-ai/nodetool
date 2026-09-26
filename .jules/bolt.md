@@ -13,3 +13,6 @@
 ## 2024-11-20 - Concurrent sequential promises
 **Learning:** `await` calls executed sequentially in `for...of` loops cause massive time overhead when bounded by I/O (e.g., querying external AI model providers).
 **Action:** Always replace independent, sequential `await` calls in a `for` loop with `Promise.all` inside `.map` to execute them concurrently.
+## 2024-11-20 - Redundant Array Traversal in React useMemo
+**Learning:** O(K*N) performance bottlenecks and redundant garbage collection pressure are caused by repeatedly executing `.filter(...).length` multiple times inside `useMemo` hooks over the same dependency array.
+**Action:** Replace sequential `filter(...).length` operations with a single O(N) `for...of` pass that tallies multiple scalar counters concurrently.

@@ -318,13 +318,26 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
 
   const counts = useMemo(() => {
     const rows = batch?.rows ?? [];
+    let running = 0;
+    let completed = 0;
+    let failed = 0;
+    let stopped = 0;
+    let awaitingReview = 0;
+    for (const row of rows) {
+      if (row.status === "running") running++;
+      else if (row.status === "completed") completed++;
+      else if (row.status === "failed") failed++;
+      else if (row.status === "stopped") stopped++;
+
+      if (row.awaitingReview) awaitingReview++;
+    }
     return {
       total: rows.length,
-      running: rows.filter((row) => row.status === "running").length,
-      completed: rows.filter((row) => row.status === "completed").length,
-      failed: rows.filter((row) => row.status === "failed").length,
-      stopped: rows.filter((row) => row.status === "stopped").length,
-      awaitingReview: rows.filter((row) => row.awaitingReview).length
+      running,
+      completed,
+      failed,
+      stopped,
+      awaitingReview
     };
   }, [batch]);
 
