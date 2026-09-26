@@ -651,7 +651,9 @@ npm run dev:nodetool -- timeline render sequence.json --only title --frames cove
 npm run dev:nodetool -- timeline render <timeline_id> --out ad.mp4
 ```
 
-The picture only. Audio is not mixed. Flags are in
+Video exports mix audio-track clips, MIDI clips, and embedded video audio at
+their timeline offsets. Stills, contact sheets, PNG sequences, and video frame
+selections carry no audio. Flags are in
 [CLI Reference](cli.md#nodetool-timeline-render-timeline_id_or_file).
 
 ### 3D clips in preview_timeline_frame

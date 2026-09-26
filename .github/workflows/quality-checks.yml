@@ -412,7 +412,7 @@ jobs:
           - check: harness-gate
             command: if [ "$GITHUB_EVENT_NAME" = "push" ]; then npm run dev:nodetool -- harness gate --all --json --timeout 900; else npm run dev:nodetool -- harness gate --base origin/main --json --timeout 900; fi
             mobile-deps: "false"
-            extra-apt: ""
+            extra-apt: "mesa-vulkan-drivers ffmpeg"
             is-test: "false"
             fetch-depth: "0"
     steps:

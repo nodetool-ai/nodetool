@@ -546,7 +546,7 @@ class MidiFiles {
  */
 function audioSourcePath(
   clip: TimelineClip,
-  assets: AssetFiles,
+  assets: { path(assetId: string): Promise<string | null> },
   midi: MidiFiles
 ): Promise<string | null> {
   if (clip.mediaType === "midi") return midi.path(clip);
@@ -669,7 +669,7 @@ async function mixAudioInto(opts: {
   basePath: string;
   clips: TimelineClip[];
   baseHasAudio: boolean;
-  assets: AssetFiles;
+  assets: { path(assetId: string): Promise<string | null> };
   midi: MidiFiles;
   workDir: string;
   extension: string;
@@ -777,6 +777,30 @@ async function mixAudioInto(opts: {
     { maxBuffer: FFMPEG_MAX_BUFFER }
   );
   return outPath;
+}
+
+/** Add the sequence's audible tracks and embedded video audio to a composited video. */
+export async function mixCompositedTimelineAudio(opts: {
+  sequence: TimelineSequence;
+  basePath: string;
+  workDir: string;
+  output: ResolvedTimelineOutput;
+  resolveAssetPath: (assetId: string) => Promise<string | null>;
+}): Promise<string> {
+  const { sequence, basePath, workDir, output, resolveAssetPath } = opts;
+  if (output.format === "png_sequence") return basePath;
+  const clips = [...embeddedAudioClips(sequence), ...mixableAudioClips(sequence)];
+  if (clips.length === 0) return basePath;
+  return mixAudioInto({
+    basePath,
+    clips,
+    baseHasAudio: false,
+    assets: { path: resolveAssetPath },
+    midi: new MidiFiles(workDir, sequence),
+    workDir,
+    extension: output.extension,
+    audioCodec: output.audioCodec ?? "aac"
+  });
 }
 
 /** Shortest gap between two `node_progress` posts — four a second. */

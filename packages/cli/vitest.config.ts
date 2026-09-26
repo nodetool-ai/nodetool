@@ -71,9 +71,11 @@ function nodetoolStubPlugin(): Plugin {
   };
 }
 
-// Tests that persist rows through the real @nodetool-ai/models database. They
-// run in their own project without the stub plugin.
-const realPackageTests = ["tests/local-model-interfaces-sketch.test.ts"];
+// Tests that need real workspace packages run without the stub plugin.
+const realPackageTests = [
+  "tests/local-model-interfaces-sketch.test.ts",
+  "src/commands/__tests__/timeline-render-audio.test.ts"
+];
 
 export default defineConfig({
   test: {

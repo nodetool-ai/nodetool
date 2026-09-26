@@ -13,7 +13,7 @@
 // never reaches another scene.
 //
 // Coverage. One frame per row, each checked in the encoded MP4. The music is
-// in the document but not in the video: the render does not mix audio.
+// mixed into the video from the document's MIDI tracks.
 //
 // | Feature | Clip | Frame |
 // |---|---|---|
@@ -433,8 +433,8 @@ function buildS6() {
 }
 
 // ---------------------------------------------------------------------------
-// The music: DR-1 drums and a BL-1 acid line, in the document so the editor
-// plays them. The render does not mix audio.
+// The music: DR-1 drums and a BL-1 acid line, played by the editor and mixed
+// into the rendered MP4.
 
 function musicClips() {
   const beatTick = MIDI_PPQ;
