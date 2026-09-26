@@ -1025,6 +1025,18 @@ const editTimeline: CapabilityExport = {
 // validate_timeline
 // ---------------------------------------------------------------------------
 
+/**
+ * The media ref a clip's `currentAssetId` names. Usually a bare asset id, but a
+ * shipped example names its stills by `package://` URI, which resolves for
+ * every user without an asset row; wrapping that in `asset://` made an id no
+ * store holds.
+ */
+function clipAssetRef(assetId: string): { uri: string; asset_id?: string } {
+  return assetId.includes("://")
+    ? { uri: assetId }
+    : { uri: `asset://${assetId}`, asset_id: assetId };
+}
+
 /** A positive finite number from a tool param, or undefined. */
 function numberParam(value: unknown): number | undefined {
   return isFiniteNumber(value) && value > 0
@@ -1522,10 +1534,7 @@ const previewTimelineFrame: CapabilityExport = {
           shutterAngle: angleParam(params["shutter_angle"])
         },
         loadAsset: (assetId) =>
-          loadMediaRefBytes(
-            { uri: `asset://${assetId}`, asset_id: assetId },
-            run.context
-          )
+          loadMediaRefBytes(clipAssetRef(assetId), run.context)
       });
     } catch (error) {
       return {
@@ -1748,10 +1757,7 @@ const compareTimelineFrames: CapabilityExport = {
         timesMs: times,
         width,
         loadAsset: (assetId) =>
-          loadMediaRefBytes(
-            { uri: `asset://${assetId}`, asset_id: assetId },
-            run.context
-          )
+          loadMediaRefBytes(clipAssetRef(assetId), run.context)
       });
 
     let rendered;
