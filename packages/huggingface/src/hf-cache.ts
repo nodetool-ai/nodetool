@@ -370,12 +370,24 @@ export function _normalizeRepoType(
   throw new Error(`Unknown repo_type: ${repoType}`);
 }
 
+/**
+ * Strip leading and trailing slashes. A loop, not `/^\/+|\/+$/g`: the regex
+ * backtracks quadratically on a long slash run followed by another character.
+ */
+function trimSlashes(value: string): string {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value[start] === "/") start += 1;
+  while (end > start && value[end - 1] === "/") end -= 1;
+  return value.slice(start, end);
+}
+
 /** Normalize repo ID and type into a canonical pair. */
 export function _normalizeRepoIdAndType(
   repoId: string,
   repoType: string | undefined | null
 ): [normalizedType: string | null, normalizedRepoId: string] {
-  repoId = repoId.trim().replace(/^\/+|\/+$/g, "");
+  repoId = trimSlashes(repoId.trim());
   const parts = repoId.split("/");
   let inferredType: string | null = null;
 

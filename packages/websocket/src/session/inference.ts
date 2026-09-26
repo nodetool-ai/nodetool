@@ -127,6 +127,17 @@ interface VideoEditReferences {
   images: Uint8Array[];
 }
 
+/**
+ * Strip sentence punctuation after an `entity://` id. A loop, not `/\.+$/`:
+ * the regex backtracks quadratically on a long dot run followed by another
+ * character, and the prompt is user input.
+ */
+function trimTrailingDots(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === ".") end -= 1;
+  return value.slice(0, end);
+}
+
 async function resolveVideoEditReferences(
   userId: string,
   req: DirectMediaGenerationRequest
@@ -136,7 +147,7 @@ async function resolveVideoEditReferences(
   const requestedEntities = new Set([
     ...(req.entityIds ?? []),
     ...Array.from(req.prompt.matchAll(/entity:\/\/([A-Za-z0-9._~-]+)/g),
-      (match) => match[1].replace(/\.+$/, ""))
+      (match) => trimTrailingDots(match[1]))
   ]);
   const resolvedEntityIds = new Set<string>();
   const resolver: ReturnType<typeof entityRefResolver> = {

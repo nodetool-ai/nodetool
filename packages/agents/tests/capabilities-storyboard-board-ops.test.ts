@@ -309,6 +309,49 @@ describe("scene ops", () => {
     expect(doc.shots.map((s) => s.index)).toEqual([0, 1, 2, 3]);
   });
 
+  it("create_scene on a board with one unscened shot gives the legacy scene and the new scene distinct ids", async () => {
+    // Both ids used to be `scene_<ms>_<count>`, and the two counts are equal
+    // here (one shot, one scene), so ops within one millisecond collided.
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
+    try {
+      const context = ctx();
+      const board = await makeBoard({
+        screenplay: undefined,
+        shots: [shot({ id: "s1", index: 0 })]
+      });
+      const result = await edit(context, board.id, [{ op: "create_scene" }]);
+      expect(result.failed).toBe(0);
+
+      const doc = await reread(board.id);
+      const ids = doc.screenplay?.scenes?.map((s) => s.id) ?? [];
+      expect(ids).toHaveLength(2);
+      expect(new Set(ids).size).toBe(2);
+      expect(new Set(doc.shots.map((s) => s.scene_id)).size).toBe(2);
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  it("add_shot after remove_shot in one batch does not reuse a live shot id", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
+    try {
+      const context = ctx();
+      const board = await makeBoard();
+      const result = await edit(context, board.id, [
+        { op: "add_shot", action: "first" },
+        { op: "remove_shot", target: "s1" },
+        { op: "add_shot", action: "second" }
+      ]);
+      expect(result.failed).toBe(0);
+
+      const doc = await reread(board.id);
+      expect(doc.shots).toHaveLength(4);
+      expect(new Set(doc.shots.map((s) => s.id)).size).toBe(4);
+    } finally {
+      now.mockRestore();
+    }
+  });
+
   it("merge_scene folds a scene into the one before it, and refuses the first", async () => {
     const context = ctx();
     const board = await makeBoard();

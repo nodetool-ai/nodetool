@@ -383,7 +383,9 @@ export class ClaudeAgentProvider extends BaseProvider {
       // no flattening to text on the agent-SDK path.
       const defs = tools.map((t) =>
         toolDefinition(t, async (name, toolArgs) => {
-          const toolCallId = `call_${name}_${Date.now()}`;
+          // The SDK runs parallel calls of one tool in the same millisecond,
+          // so a clock alone would hand them one id.
+          const toolCallId = `call_${name}_${crypto.randomUUID()}`;
           const result = t.execute
             ? await t.execute(toolArgs, toolCallId)
             : executeTool

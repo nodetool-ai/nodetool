@@ -117,7 +117,9 @@ export class MinimaxImageToVideoNode extends BaseNode {
     const prompt = String(this.prompt ?? "");
     if (prompt) body.prompt = prompt;
 
-    const bytes = await generateVideo(apiKey, body);
+    const bytes = await generateVideo(apiKey, body, {
+      signal: context?.signal
+    });
     return { output: videoRefFromBytes(bytes) };
   }
 }

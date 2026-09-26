@@ -877,6 +877,39 @@ describe("ClaudeAgentProvider", () => {
     expect(executed[0]).toMatchObject({ name: "echo", args: { text: "hi" } });
   });
 
+  it("gives parallel calls of one tool distinct ids within one millisecond", async () => {
+    const { fn } = fakeQuery([sysInit("sess-par"), assistantTextMsg("ok"), successResult()]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    const executed: ToolCall[] = [];
+    await collect(
+      provider.generateLoop({
+        messages: [userMsg("echo twice")],
+        model: "haiku",
+        threadId: "t1",
+        tools: [{ name: "echo", description: "Echo the input" }],
+        executeTool: async (tc: ToolCall) => {
+          executed.push(tc);
+          return "ok";
+        }
+      })
+    );
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
+    try {
+      await Promise.all([
+        mcp.captured.defs[0].handler({ text: "a" }),
+        mcp.captured.defs[0].handler({ text: "b" })
+      ]);
+    } finally {
+      now.mockRestore();
+    }
+    expect(executed).toHaveLength(2);
+    expect(executed[0].id).not.toBe(executed[1].id);
+  });
+
   // The SDK splits one API assistant turn into a frame per content block:
   // thinking, then text, then each tool_use. A message per frame would put a
   // text-only assistant message in the middle of a tool round, which every chat

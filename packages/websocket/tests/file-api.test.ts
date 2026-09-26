@@ -224,3 +224,21 @@ describe("unknown route", () => {
     expect(res.status).toBe(404);
   });
 });
+
+// The trailing-slash trim was `/\/+$/`, which backtracks quadratically on a
+// long slash run followed by another character.
+describe("handleFileRequest path matching", () => {
+  it("routes a path with trailing slashes", async () => {
+    const res = await handleFileRequest(makeRequest("/api/files/local///", "POST"));
+    expect(res.status).toBe(405);
+  });
+
+  it("rejects a path with a long interior slash run in linear time", async () => {
+    const started = performance.now();
+    const res = await handleFileRequest(
+      makeRequest(`/api/files${"/".repeat(200_000)}x`)
+    );
+    expect(res.status).toBe(404);
+    expect(performance.now() - started).toBeLessThan(1_000);
+  });
+});

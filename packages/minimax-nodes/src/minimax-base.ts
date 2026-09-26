@@ -331,6 +331,8 @@ export function videoRenderSettings(
 interface VideoTaskOptions {
   pollIntervalMs?: number;
   maxAttempts?: number;
+  /** The run's cancellation: a cancelled run stops polling the paid job. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -374,7 +376,8 @@ export async function generateVideo(
   const submit = await fetch(`${MINIMAX_BASE_URL}/v1/video_generation`, {
     method: "POST",
     headers: minimaxHeaders(apiKey),
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal: options.signal
   });
   if (!submit.ok) {
     throw new Error(
@@ -410,7 +413,8 @@ async function pollVideoTask(
       // The job is already submitted and billed: a 429 or a gateway 5xx on the
       // status GET must back off, not throw the job away.
       const res = await fetchWithRetry(url, {
-        headers: minimaxHeaders(apiKey)
+        headers: minimaxHeaders(apiKey),
+        signal: options.signal
       });
       if (!res.ok) {
         throw new Error(
@@ -426,6 +430,7 @@ async function pollVideoTask(
     {
       intervalMs: pollIntervalMs,
       maxAttempts,
+      signal: options.signal,
       onFailure: (body) =>
         new Error(
           `MiniMax video task failed: ${JSON.stringify(body.base_resp ?? body)}`

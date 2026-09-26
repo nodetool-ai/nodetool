@@ -165,7 +165,11 @@ export async function handleFileRequest(request: Request): Promise<Response> {
   }
 
   const url = new URL(request.url);
-  const pathname = url.pathname.replace(/\/+$/, "");
+  // A loop, not `/\/+$/`: the regex backtracks quadratically on a long slash
+  // run followed by another character.
+  let end = url.pathname.length;
+  while (end > 0 && url.pathname[end - 1] === "/") end -= 1;
+  const pathname = url.pathname.slice(0, end);
 
   if (pathname === "/api/files/local") {
     if (request.method !== "GET" && request.method !== "HEAD") {

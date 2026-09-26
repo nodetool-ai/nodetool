@@ -127,6 +127,25 @@ describe("video edit references", () => {
     expect(trim).not.toHaveBeenCalled();
   });
 
+  it("drops sentence punctuation after an entity:// reference", async () => {
+    const provider = new EditProvider();
+    await handler(provider).runDirectMediaGeneration({
+      ...request(), referenceAssetIds: [], prompt: "Keep entity://entity..."
+    });
+    expect(Asset.find).toHaveBeenCalledWith("user", "entity");
+  });
+
+  // The trailing-dot trim was `/\.+$/`, which backtracks quadratically on a
+  // long dot run followed by another character: 200k dots blocked the event
+  // loop for about 30 seconds.
+  it("reads an entity:// reference with a long interior dot run in linear time", async () => {
+    const id = `${".".repeat(200_000)}x`;
+    await handler(new EditProvider())
+      .runDirectMediaGeneration({ ...request(), referenceAssetIds: [], prompt: `entity://${id}` })
+      .catch(() => undefined);
+    expect(Asset.find).toHaveBeenCalledWith("user", id);
+  });
+
   it("validates explicit ids on the wire", () => {
     expect(generateMediaDataSchema.safeParse({ mode: "video_edit", reference_asset_ids: [""] }).success).toBe(false);
     expect(generateMediaDataSchema.parse({ mode: "video_edit", reference_asset_ids: ["reference"] }).reference_asset_ids).toEqual(["reference"]);

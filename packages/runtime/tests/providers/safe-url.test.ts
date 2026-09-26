@@ -42,6 +42,15 @@ describe("isSafePublicHttpsUrl", () => {
     expect(isSafePublicHttpsUrl("https://api.internal./x")).toBe(false);
   });
 
+  // The trailing-dot trim was `/\.+$/`, which backtracks quadratically on a
+  // long dot run followed by another character. The URL is caller input.
+  it("checks a host with a long interior dot run in linear time", () => {
+    const started = performance.now();
+    isSafePublicHttpsUrl(`https://${".".repeat(200_000)}x/`);
+    expect(performance.now() - started).toBeLessThan(1_000);
+    expect(isSafePublicHttpsUrl("https://localhost.../x")).toBe(false);
+  });
+
   it("rejects RFC1918 and loopback IPv4 literals", () => {
     expect(isSafePublicHttpsUrl("https://127.0.0.1/x")).toBe(false);
     expect(isSafePublicHttpsUrl("https://10.0.0.5/x")).toBe(false);

@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   generateVideo,
   getMinimaxApiKey,
@@ -70,7 +71,9 @@ export class MinimaxTextToVideoNode extends BaseNode {
   })
   declare resolution: any;
 
-  async process(): Promise<MinimaxTextToVideoNodeOutputs> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<MinimaxTextToVideoNodeOutputs> {
     const apiKey = getMinimaxApiKey(this._secrets);
 
     const prompt = String(this.prompt ?? "");
@@ -87,7 +90,9 @@ export class MinimaxTextToVideoNode extends BaseNode {
       )
     };
 
-    const bytes = await generateVideo(apiKey, body);
+    const bytes = await generateVideo(apiKey, body, {
+      signal: context?.signal
+    });
     return { output: videoRefFromBytes(bytes) };
   }
 }

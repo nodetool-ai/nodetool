@@ -17,6 +17,7 @@
  */
 
 import { fetchExternalMedia } from "@nodetool-ai/runtime";
+import { sleep } from "@nodetool-ai/runtime/provider-transport";
 import {
   isNonEmptyString,
   isObjectLike,
@@ -438,6 +439,8 @@ interface VideoParams {
 interface VideoPollOptions {
   pollIntervalMs?: number;
   timeoutMs?: number;
+  /** The run's cancellation: a cancelled run stops polling the paid job. */
+  signal?: AbortSignal;
 }
 
 /** Pixel dimensions for a generated video. */
@@ -492,15 +495,18 @@ async function pollVideoJob(
   const start = nowMs();
 
   for (;;) {
+    opts.signal?.throwIfAborted();
     if (nowMs() - start > timeoutMs) {
       throw new Error(
         `Together video generation timed out after ${Math.round(timeoutMs / 1000)}s for job ${jobId}`
       );
     }
-    await sleep(intervalMs);
+    await sleep(intervalMs, opts.signal);
+    opts.signal?.throwIfAborted();
 
     const res = await fetch(`${TOGETHER_BASE}/v2/videos/${jobId}`, {
-      headers: { Authorization: `Bearer ${apiKey}` }
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: opts.signal
     });
     if (!res.ok) {
       throw new Error(`Together video status check failed: ${await res.text()}`);
@@ -573,7 +579,8 @@ export async function togetherGenerateVideo(
   const createResponse = await fetch(`${TOGETHER_BASE}/v2/videos`, {
     method: "POST",
     headers: authHeaders(apiKey),
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal: opts.signal
   });
   if (!createResponse.ok) {
     throw new Error(`Together video creation failed: ${await createResponse.text()}`);
@@ -600,8 +607,4 @@ export async function togetherGenerateVideo(
 
 function nowMs(): number {
   return Date.now();
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
