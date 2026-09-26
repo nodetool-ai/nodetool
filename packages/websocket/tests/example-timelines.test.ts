@@ -27,6 +27,7 @@ describe("example timelines", () => {
       ["prism", 18000, 30],
       ["serein", 26000, 30],
       ["t-minus-30", 30000, 30],
+      ["tidewater", 16000, 24],
       ["voltra", 23000, 30]
     ]);
     for (const example of examples) {
