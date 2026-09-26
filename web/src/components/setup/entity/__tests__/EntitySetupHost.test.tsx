@@ -275,6 +275,66 @@ describe("EntitySetupHost", () => {
     );
   });
 
+  it("uses a character sheet prompt and keeps it editable", async () => {
+    const user = userEvent.setup();
+    renderHost();
+
+    await user.type(screen.getByRole("textbox", { name: "Name" }), "Nova");
+    await user.click(
+      screen.getByRole("button", { name: "Choose a reference" })
+    );
+    await user.click(screen.getByRole("button", { name: "Generate with AI" }));
+    await user.click(screen.getByRole("button", { name: "Character sheet" }));
+
+    const prompt = screen.getByRole("textbox", { name: "Prompt" });
+    expect((prompt as HTMLTextAreaElement).value).toContain("Nova");
+    expect((prompt as HTMLTextAreaElement).value).toContain(
+      "front, side, and back views"
+    );
+    await user.type(prompt, " Show the orange flight suit clearly.");
+    const selectModel = screen.queryByRole("button", {
+      name: "Select image model"
+    });
+    if (selectModel) {
+      await user.click(selectModel);
+    }
+    await user.click(
+      screen.getByRole("button", { name: "Generate reference" })
+    );
+
+    await waitFor(() =>
+      expect(rpcRequest).toHaveBeenCalledWith(
+        "generate_media",
+        expect.objectContaining({
+          aspect_ratio: "3:2",
+          prompt: expect.stringContaining("Show the orange flight suit clearly.")
+        })
+      )
+    );
+  });
+
+  it("offers location views when the entity is a location", async () => {
+    const user = userEvent.setup();
+    renderHost();
+
+    await user.click(screen.getByRole("radio", { name: /Location/ }));
+    await user.type(screen.getByRole("textbox", { name: "Name" }), "Base camp");
+    await user.click(
+      screen.getByRole("button", { name: "Choose a reference" })
+    );
+    await user.click(screen.getByRole("button", { name: "Generate with AI" }));
+
+    expect(
+      screen.getByRole("button", { name: "Establishing view" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Location sheet" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Character sheet" })
+    ).not.toBeInTheDocument();
+  });
+
   it("restores draft details, stage, and selected reference after remount", async () => {
     const user = userEvent.setup();
     const first = renderHost();
