@@ -1,6 +1,6 @@
 // Renders a shipped example timeline to the video and poster its bundle names.
 //
-//   node scripts/render-example-timeline.mjs <slug> [--out <file.mp4>] [--poster-frame <n>]
+//   node scripts/render-example-timeline.mjs <slug> [--out <file.mp4>] [--poster-frame <n>] [--bitrate <bps>]
 //
 // The frames come from `renderTimelineComposited`, the GPU compositor behind
 // the Render Timeline node, so the file matches what the editor previews.
@@ -60,11 +60,18 @@ const { skippedClips } = await renderTimelineComposited({
   height: bundle.height,
   fps: bundle.fps,
   durationMs: bundle.durationMs,
-  // Example timelines are pure motion graphics: no clip reads an asset.
-  resolveAssetPath: async () => null,
+  // A shipped example's clips name their media as `package://` URIs, which
+  // are files under the package asset folder.
+  resolveAssetPath: async (assetId) => (parsePackageAssetUri(assetId) ? assetPath(assetId) : null),
   outPath,
   // 4 Mbps keeps gradients and fine type clean at 1080p at a size the repo can carry.
-  output: resolveTimelineOutput({ format: "mp4", bitrate: 4_000_000 }),
+  // A bundle may name render output settings of its own, such as motion blur.
+  output: resolveTimelineOutput({
+    format: "mp4",
+    bitrate: Number(flag("--bitrate") ?? 4_000_000),
+    motionBlurSamples: bundle.render?.motionBlurSamples,
+    shutterAngle: bundle.render?.shutterAngle
+  }),
   onProgress: (frame) => {
     const tenth = Math.floor((frame / totalFrames) * 10);
     if (tenth !== lastLogged) {

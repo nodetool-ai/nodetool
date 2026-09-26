@@ -24,7 +24,8 @@ describe("example timelines", () => {
     const examples = listExampleTimelines(options);
     expect(examples.map((example) => [example.slug, example.durationMs, example.fps])).toEqual([
       ["kite", 15000, 30],
-      ["serein", 26000, 30]
+      ["serein", 26000, 30],
+      ["voltra", 23000, 30]
     ]);
     for (const example of examples) {
       expect(example.clipCount).toBeGreaterThan(0);
@@ -35,6 +36,26 @@ describe("example timelines", () => {
       }
     }
     expect(getExampleTimelineBundle(options, "../serein")).toBeNull();
+  });
+
+  it("ships every package:// still a clip references", () => {
+    // An installed copy keeps these references verbatim, so a missing file is
+    // a broken clip for every user who installs the example.
+    let checked = 0;
+    for (const example of listExampleTimelines(options)) {
+      const bundle = getExampleTimelineBundle(options, example.slug);
+      for (const clip of bundle!.document.clips) {
+        if (!clip.currentAssetId?.startsWith("package://")) continue;
+        const ref = parsePackageAssetUri(clip.currentAssetId);
+        expect(ref, `${example.slug}/${clip.name}`).not.toBeNull();
+        expect(
+          existsSync(nodePath.join(baseNodes, "assets", ref!.packageName, ref!.path)),
+          `${example.slug}/${clip.name}: ${clip.currentAssetId}`
+        ).toBe(true);
+        checked += 1;
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 
   it("installs an independent editable copy with the accepted cut and scene data", async () => {
