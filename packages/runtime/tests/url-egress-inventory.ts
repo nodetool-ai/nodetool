@@ -354,6 +354,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Presigned upload and provider result URLs; Higgsfield credentials are only sent to the fixed API host."
   ),
   guardedSafeFetch(
+    "packages/runtime/src/providers/useapi-provider.ts",
+    "useapi.net Google Flow and Dreamina result downloads",
+    "provider-response",
+    "Generated media URLs are screened; submit, upload and poll use the fixed API host."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",
     "Meshy model download",
     "provider-response",
