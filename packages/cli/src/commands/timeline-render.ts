@@ -6,8 +6,7 @@
  * Outputs an encoded video, individual PNG stills, or one contact-sheet PNG.
  * Stills and sheets show the exported pixels for frame-by-frame review.
  *
- * The picture only. Audio clips are not mixed; the Render Timeline node does
- * that.
+ * Video exports mix the timeline audio after compositing the picture.
  */
 import type { Command } from "commander";
 import { printCommandError } from "../command-errors.js";
@@ -323,7 +322,7 @@ export function registerTimelineRenderCommand(
   timeline
     .command("render <timeline_id_or_file>")
     .description(
-      "Render a timeline's picture through the GPU compositor the Render Timeline node uses. Takes a timeline JSON file or a timeline_sequences row id. Writes a video, stills, or a contact sheet. Audio is not mixed"
+      "Render a timeline through the GPU compositor the Render Timeline node uses. Takes a timeline JSON file or a timeline_sequences row id. Writes a video with audio, stills, or a contact sheet"
     )
     .option(
       "--out <path>",
@@ -410,10 +409,13 @@ function sheetColumns(value: string | boolean | undefined): number | undefined {
   return columns;
 }
 
-async function runTimelineRender(
+export async function runTimelineRender(
   ref: string,
   opts: TimelineRenderCliOptions,
-  loadSequence: (id: string) => Promise<TimelineSequenceRecord | null>
+  loadSequence: (id: string) => Promise<TimelineSequenceRecord | null>,
+  renderComposited?: typeof import(
+    "@nodetool-ai/video-nodes/nodes/timeline/compositeRender"
+  ).renderTimelineComposited
 ): Promise<TimelineRenderResult> {
   const fs = await import("node:fs/promises");
   const os = await import("node:os");
@@ -425,6 +427,8 @@ async function runTimelineRender(
     await import("@nodetool-ai/video-nodes/nodes/timeline/outputFormats");
   const { encodeRgbaPng } =
     await import("@nodetool-ai/video-nodes/nodes/timeline/pngSequence");
+  const { mixCompositedTimelineAudio } =
+    await import("@nodetool-ai/video-nodes/nodes/timeline");
   const { contactSheetLayout, createContactSheet } =
     await import("@nodetool-ai/video-nodes/nodes/timeline/contactSheet");
 
@@ -525,28 +529,34 @@ async function runTimelineRender(
   let lastTenth = -1;
   const started = Date.now();
   try {
+    const sequence = {
+      id: target.kind === "id" ? ref : slugOf(name),
+      projectId: "cli",
+      name,
+      fps,
+      width: sequenceWidth,
+      height: sequenceHeight,
+      durationMs,
+      ...document,
+      createdAt: now,
+      updatedAt: now
+    };
+    const resolveAssetPath = await localAssetResolver(workDir);
+    const basePath = stills
+      ? sheetOut
+      : path.join(workDir, `composited.${output.extension}`);
     console.error(
       `Rendering ${selected} frame(s) at ${width}x${height}. The first frame compiles the GPU pipelines and can take a while.`
     );
-    const { skippedClips } = await renderTimelineComposited({
-      sequence: {
-        id: target.kind === "id" ? ref : slugOf(name),
-        projectId: "cli",
-        name,
-        fps,
-        width: sequenceWidth,
-        height: sequenceHeight,
-        durationMs,
-        ...document,
-        createdAt: now,
-        updatedAt: now
-      },
+    const render = renderComposited ?? renderTimelineComposited;
+    const { skippedClips } = await render({
+      sequence,
       width,
       height,
       fps,
       durationMs,
-      resolveAssetPath: await localAssetResolver(workDir),
-      outPath: sheetOut,
+      resolveAssetPath,
+      outPath: basePath,
       output,
       ...(frames && { frames }),
       ...(stills && {
@@ -575,6 +585,22 @@ async function runTimelineRender(
       }
     });
     if (sheet) await fs.writeFile(sheetOut, sheet.encode());
+    if (!stills) {
+      const mixedPath =
+        frames || output.format === "png_sequence"
+          ? basePath
+          : await mixCompositedTimelineAudio({
+              sequence,
+              basePath,
+              workDir,
+              output,
+              resolveAssetPath
+            });
+      if (frames) {
+        console.error("Audio is omitted when --frames selects video frames.");
+      }
+      await fs.copyFile(mixedPath, out);
+    }
     return {
       out: sheetOut,
       format: stills ? "png" : output.format,

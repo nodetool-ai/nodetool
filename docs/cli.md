@@ -825,11 +825,13 @@ document). The command exits `0` only when the verdict is ok.
 
 #### `nodetool timeline render <timeline_id_or_file>`
 
-Render a timeline's picture through the GPU compositor that the Render Timeline
+Render a timeline through the GPU compositor that the Render Timeline
 node uses. The target is a timeline JSON file (a bare document, or a wrapper
 with `document`, `fps`, `width`, `height` and `durationMs`, such as an example
 bundle) or a `timeline_sequences` row id. Clip media resolves through the
-local asset store. Audio is not mixed.
+local asset store. Video exports mix audio-track clips, MIDI clips, and embedded
+video audio. Stills, contact sheets, PNG sequences, and video frame selections
+carry no audio.
 
 Use `--stills` to check a render frame by frame. The Canvas 2D frame preview
 is a second renderer, so only this command shows the exported pixels.
