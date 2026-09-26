@@ -47,7 +47,7 @@ import {
 } from "./fake-runtime.js";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -1399,10 +1399,16 @@ const STORYBOARD_DOCUMENT = {
 // test server. Set before anything asks for the storage adapter, which caches
 // the config it is first built with.
 
+const ownsAssetRoot = process.env.ASSET_FOLDER === undefined;
 const ASSET_ROOT =
   process.env.ASSET_FOLDER ??
   mkdtempSync(join(tmpdir(), "nodetool-screenshot-assets-"));
 process.env.ASSET_FOLDER = ASSET_ROOT;
+if (ownsAssetRoot) {
+  process.on("exit", () => {
+    rmSync(ASSET_ROOT, { recursive: true, force: true });
+  });
+}
 
 // ── Seed database ─────────────────────────────────────────────────────────────
 

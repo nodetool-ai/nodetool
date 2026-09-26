@@ -4,10 +4,10 @@
  * bridge injected — neither the execution core nor `@nodetool-ai/agents` is
  * loaded here.
  */
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   normalizeToolName,
   parseInteractionScript
@@ -17,6 +17,19 @@ import {
   runSketchValidate,
   type SketchDebugCore
 } from "../src/sketch-debug/harness.js";
+
+const tempDirs: string[] = [];
+const tempDir = (prefix: string): string => {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+};
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 const layer = {
   id: "layer-1",
@@ -41,7 +54,7 @@ const document = {
 };
 
 const sketchFile = (): string => {
-  const file = join(mkdtempSync(join(tmpdir(), "sketch-harness-")), "sketch.json");
+  const file = join(tempDir("sketch-harness-"), "sketch.json");
   writeFileSync(
     file,
     JSON.stringify({
@@ -57,7 +70,7 @@ const sketchFile = (): string => {
   return file;
 };
 
-const outDir = (): string => join(mkdtempSync(join(tmpdir(), "sketch-out-")), "bundle");
+const outDir = (): string => join(tempDir("sketch-out-"), "bundle");
 
 const cleanValidation = { ok: true, errors: [], warnings: [] };
 

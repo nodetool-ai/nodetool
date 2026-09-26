@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { initTestDb } from "@nodetool-ai/models";
 import { handleApiRequest } from "../src/http-api.js";
 
@@ -10,6 +10,14 @@ async function jsonBody(response: Response): Promise<unknown> {
   return text ? JSON.parse(text) : null;
 }
 
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 describe("HTTP API: metadata + workflows", () => {
   beforeEach(() => {
     initTestDb();
@@ -17,6 +25,7 @@ describe("HTTP API: metadata + workflows", () => {
 
   it("serves /api/nodes/metadata from Python package metadata files", async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-ts-md-"));
+    tempDirs.push(root);
     const metadataDir = path.join(
       root,
       "pkg",
@@ -163,6 +172,7 @@ describe("HTTP API: metadata + workflows", () => {
 
   it("seeds create from configured examplesDir", async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-examples-api-"));
+    tempDirs.push(root);
     const examplesDir = path.join(root, "examples", "nodetool-base");
     fs.mkdirSync(examplesDir, { recursive: true });
     fs.writeFileSync(

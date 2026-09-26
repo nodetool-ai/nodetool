@@ -4,10 +4,10 @@
  * core, the sandbox executor and the headless bridge injected — neither the
  * execution core nor `@nodetool-ai/agents` is loaded here.
  */
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   normalizeToolName,
   parseInteractionScript
@@ -20,6 +20,19 @@ import {
   runJsScriptValidate,
   type JsScriptDebugCore
 } from "../src/js-script-debug/harness.js";
+
+const tempDirs: string[] = [];
+const tempDir = (prefix: string): string => {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+};
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 const document = {
   schemaVersion: 1,
@@ -35,7 +48,7 @@ const document = {
 
 const scriptFile = (body: unknown = { name: "Adder", document }): string => {
   const file = join(
-    mkdtempSync(join(tmpdir(), "jsscript-harness-")),
+    tempDir("jsscript-harness-"),
     "script.json"
   );
   writeFileSync(file, JSON.stringify(body), "utf8");
@@ -43,7 +56,7 @@ const scriptFile = (body: unknown = { name: "Adder", document }): string => {
 };
 
 const outDir = (): string =>
-  join(mkdtempSync(join(tmpdir(), "jsscript-out-")), "bundle");
+  join(tempDir("jsscript-out-"), "bundle");
 
 const okValidation = { ok: true, errors: [], warnings: [] };
 

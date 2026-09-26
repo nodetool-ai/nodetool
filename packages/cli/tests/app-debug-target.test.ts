@@ -3,11 +3,24 @@
  * application id, an ApplicationBundle file, and a legacy workflow target are
  * detected and what each resolves to.
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveAppTarget } from "../src/app-debug/app-target.js";
+
+const tempDirs: string[] = [];
+const tempDir = (prefix: string): string => {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+};
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 const graph = {
   nodes: [
@@ -43,7 +56,7 @@ const document = (workflowId: string) => ({
 });
 
 const writeJson = (name: string, value: unknown): string => {
-  const file = join(mkdtempSync(join(tmpdir(), "app-target-")), name);
+  const file = join(tempDir("app-target-"), name);
   writeFileSync(file, JSON.stringify(value), "utf8");
   return file;
 };

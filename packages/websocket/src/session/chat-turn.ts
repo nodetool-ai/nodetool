@@ -2836,6 +2836,14 @@ export class ChatTurnHandler {
     } finally {
       detachPredictions();
       detachCostLedger();
+      try {
+        await chatWorkspace?.cleanupScratch?.();
+      } catch (err) {
+        log.warn("Chat workspace scratch cleanup failed", {
+          threadId,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
       // Whatever is still outstanding never got a result row. Leaving the gap
       // makes the thread malformed — Anthropic rejects a `tool_use` with no
       // `tool_result` — and leaves the model unaware the call was abandoned,

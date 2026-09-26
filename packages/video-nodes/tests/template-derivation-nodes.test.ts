@@ -11,7 +11,7 @@
  * - `WriteScript` binds a cast entity to a speaker with its id and its voice
  * - `RetargetTimeline` writes the new canvas and reports its crops
  */
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect } from "vitest";
 import {
   createFakeContext,
   FakeProvider,
@@ -30,6 +30,13 @@ import {
 } from "../src/nodes/timeline.js";
 
 const VOICE = { provider: "openai", model: "tts-1", voice: "alloy" };
+const cleanups: Array<() => void> = [];
+
+afterEach(() => {
+  for (const cleanup of cleanups.splice(0)) {
+    cleanup();
+  }
+});
 
 interface ScriptRow {
   id: string;
@@ -57,6 +64,7 @@ function harness(options: { provider?: FakeProvider } = {}): Harness {
   const fake = createFakeContext(
     options.provider ? { providers: { openai: options.provider } } : {}
   );
+  cleanups.push(fake.cleanup);
   fake.context.setModelInterfaces({
     getScript: async ({ id }) =>
       (scripts.get(id) ?? null) as unknown as { id: string } | null,

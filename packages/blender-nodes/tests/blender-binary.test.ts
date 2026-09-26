@@ -8,7 +8,7 @@
  * with fake `blender --version` scripts — no Blender needed.
  */
 
-import { mkdtempSync, writeFileSync, chmodSync } from "node:fs";
+import { mkdtempSync, writeFileSync, chmodSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -43,6 +43,7 @@ afterEach(() => {
   if (savedEnv === undefined) delete process.env["BLENDER_PATH"];
   else process.env["BLENDER_PATH"] = savedEnv;
   resetBlenderBinaryCache();
+  rmSync(dir, { recursive: true, force: true });
 });
 
 describe("Blender version floor", () => {

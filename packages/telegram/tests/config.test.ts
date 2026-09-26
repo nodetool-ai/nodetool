@@ -1,7 +1,7 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   DEFAULT_API_URL,
@@ -16,8 +16,17 @@ const validEnv = {
   NODETOOL_INTEGRATION_TOKEN: "service-token"
 };
 
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 function writeConfig(contents: string): string {
   const dir = mkdtempSync(join(tmpdir(), "nodetool-telegram-"));
+  tempDirs.push(dir);
   const path = join(dir, "telegram-bot.json");
   writeFileSync(path, contents, "utf8");
   return path;

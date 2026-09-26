@@ -52,6 +52,7 @@ describe.each(backends)("Workspace over $name", ({ isLocal }) => {
   });
 
   afterEach(async () => {
+    await workspace.cleanupScratch?.();
     await rm(dir, { recursive: true, force: true });
   });
 
@@ -172,6 +173,18 @@ describe.each(backends)("Workspace over $name", ({ isLocal }) => {
     await writeFile(produced, "output");
     await workspace.absorb(produced, "out/rendered.txt");
     expect(await workspace.readText("out/rendered.txt")).toBe("output");
+  });
+
+  it("removes staged scratch files when the run ends", async () => {
+    if (isLocal) return;
+    const [scratch, second] = await Promise.all([
+      workspace.scratchDir(),
+      workspace.scratchDir()
+    ]);
+    expect(second).toBe(scratch);
+    await writeFile(join(scratch, "staged.txt"), "temporary");
+    await workspace.cleanupScratch?.();
+    expect(existsSync(scratch)).toBe(false);
   });
 
   it("reports localDir only when the workspace is a real directory", () => {

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { initTestDb, Workflow } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
@@ -234,8 +234,16 @@ describe("http-api coverage: dsl export edge cases", () => {
 describe("http-api coverage: examples", () => {
   beforeEach(() => initTestDb());
 
+  const tempDirs: string[] = [];
+  afterEach(() => {
+    for (const dir of tempDirs.splice(0)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   function setupExamples(): { examplesDir: string; assetsDir: string } {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-ex-cov-"));
+    tempDirs.push(root);
     const examplesDir = path.join(root, "examples", "nodetool-base");
     const assetsDir = path.join(root, "assets", "nodetool-base");
     fs.mkdirSync(examplesDir, { recursive: true });

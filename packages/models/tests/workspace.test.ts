@@ -35,12 +35,15 @@ vi.mock("node:fs", async (importOriginal) => {
 
 // ── Setup ────────────────────────────────────────────────────────────
 
+let testWorkspacesDir: string | undefined;
+
 function setup() {
   // Keep managed workspaces out of the developer's real data dir: ensureDefault
   // creates the folder for real.
-  process.env["NODETOOL_WORKSPACES_DIR"] = mkdtempSync(
+  testWorkspacesDir = mkdtempSync(
     join(os.tmpdir(), "nodetool-ws-test-")
   );
+  process.env["NODETOOL_WORKSPACES_DIR"] = testWorkspacesDir;
   initTestDb();
 }
 
@@ -63,8 +66,21 @@ async function createWorkspace(
 // ── Tests ─────────────────────────────────────────────────────────────
 
 describe("Workspace model", () => {
+  const originalWorkspacesDir = process.env["NODETOOL_WORKSPACES_DIR"];
+
   beforeEach(setup);
-  afterEach(() => ModelObserver.clear());
+  afterEach(() => {
+    ModelObserver.clear();
+    if (testWorkspacesDir) {
+      rmSync(testWorkspacesDir, { recursive: true, force: true });
+      testWorkspacesDir = undefined;
+    }
+    if (originalWorkspacesDir === undefined) {
+      delete process.env["NODETOOL_WORKSPACES_DIR"];
+    } else {
+      process.env["NODETOOL_WORKSPACES_DIR"] = originalWorkspacesDir;
+    }
+  });
 
   it("creates with defaults", async () => {
     const ws = await createWorkspace("u1", "My Workspace");

@@ -79,8 +79,8 @@ export interface FakeContextHandle {
   /** All providers handed out by `getProvider`, keyed by providerId. */
   providers: Map<string, BaseProvider>;
   /**
-   * Convenience cleanup — removes the temp workspace dir. Safe to call
-   * multiple times; safe to skip (Node's tmpdir self-cleans eventually).
+   * Removes the temp workspace dir. Safe to call multiple times; callers
+   * should run it in `afterEach` or `finally`.
    */
   cleanup(): void;
 }

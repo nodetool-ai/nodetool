@@ -162,7 +162,7 @@ const textEncoder = new TextEncoder();
 export class StorageWorkspace implements Workspace {
   readonly storage: StorageAdapter;
   readonly localDir: string | null;
-  private scratch: string | null = null;
+  private scratch: Promise<string> | null = null;
 
   constructor(storage: StorageAdapter, opts: { localDir?: string | null } = {}) {
     this.storage = storage;
@@ -409,10 +409,18 @@ export class StorageWorkspace implements Workspace {
   async scratchDir(): Promise<string> {
     if (this.localDir) return this.localDir;
     const node = requireNode();
-    this.scratch ??= await node.fs.mkdtemp(
+    this.scratch ??= node.fs.mkdtemp(
       node.path.join(node.os.tmpdir(), "nodetool-ws-")
     );
     return this.scratch;
+  }
+
+  async cleanupScratch(): Promise<void> {
+    const scratch = this.scratch;
+    this.scratch = null;
+    if (scratch) {
+      await requireNode().fs.rm(await scratch, { recursive: true, force: true });
+    }
   }
 }
 

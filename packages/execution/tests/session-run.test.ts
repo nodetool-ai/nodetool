@@ -1,4 +1,9 @@
 import { describe, it, expect } from "vitest";
+import { existsSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { ProcessingContext, createWorkspace } from "@nodetool-ai/runtime";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { ExecutionSession } from "../src/index.js";
 import { buildTestRegistry } from "./fixtures.js";
 
@@ -6,6 +11,32 @@ import { buildTestRegistry } from "./fixtures.js";
 const NO_BRIDGE = async () => null;
 
 describe("ExecutionSession — params seeding", () => {
+  it("removes a virtual workspace's staged files after the run", async () => {
+    const workspace = createWorkspace(new InMemoryStorageAdapter());
+    const scratch = await workspace.scratchDir();
+    await writeFile(join(scratch, "staged.txt"), "temporary");
+    try {
+      const session = await ExecutionSession.create({
+        graph: {
+          nodes: [{ id: "v", type: "nodetool.input.Value", properties: {} }],
+          edges: []
+        },
+        registry: buildTestRegistry(),
+        bridgeFactory: NO_BRIDGE,
+        params: { v: 1 },
+        context: new ProcessingContext({
+          jobId: "scratch-cleanup",
+          userId: "test-user",
+          workspace
+        })
+      });
+      expect((await session.result).status).toBe("completed");
+      expect(existsSync(scratch)).toBe(false);
+    } finally {
+      await workspace.cleanupScratch?.();
+    }
+  });
+
   it("runs a simple linear graph to completion", async () => {
     const registry = buildTestRegistry();
     const session = await ExecutionSession.create({
