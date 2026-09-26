@@ -4,7 +4,7 @@
  * A {@link GameSlotSpec} says what a template needs; a generator needs a
  * prompt and a canvas; the `nodetool.game.*` checker that accepts the result
  * needs numbers. {@link slotPrompt} is the one mapping between them, pure, so
- * the `nodetool.game.SlotPrompt` node, the `godot-game` skill and the editor
+ * the `nodetool.game.SlotPrompt` node and the editor
  * all size a sheet and word a prompt the same way.
  *
  * Three rules the tests pin:

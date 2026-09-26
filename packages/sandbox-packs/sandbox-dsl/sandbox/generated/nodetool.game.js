@@ -21,16 +21,16 @@ function loadGameTemplate(inputs) {
 function slotPrompt(inputs) {
   return createNode("nodetool.game.SlotPrompt", inputs, { outputNames: ["prompt", "width", "height", "kind", "checker", "seconds"] });
 }
-function exportGodotProject(inputs) {
-  return createNode("nodetool.game.ExportGodotProject", inputs, { outputNames: ["output", "directory", "files", "verified", "verification", "errors", "archive"] });
+function stageGameAssets(inputs) {
+  return createNode("nodetool.game.StageGameAssets", inputs, { outputNames: ["output", "bindings", "paths"] });
 }
 export {
-  exportGodotProject,
   loadGameTemplate,
   musicLoop,
   seamlessImage,
   slotPrompt,
   soundEffect,
   spriteSheet,
+  stageGameAssets,
   tileset
 };

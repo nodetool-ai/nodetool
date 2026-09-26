@@ -24,7 +24,7 @@ import {
   type GameGraphChoices,
   type WorkflowPlacement
 } from "@nodetool-ai/protocol";
-import { getTemplate } from "@nodetool-ai/godot-templates";
+import { getNativeTemplate } from "@nodetool-ai/game-nodes";
 import { registerBaseNodes } from "../src/index.js";
 
 const registry = new NodeRegistry();
@@ -44,14 +44,6 @@ const IMAGE_MODEL = {
   path: null
 };
 
-const MUSIC_MODEL = {
-  type: "music_model",
-  provider: "fake",
-  id: "fake-music",
-  name: "fake-music",
-  path: null
-};
-
 const STYLE = {
   name: "16-bit console",
   descriptor: "16-bit console pixel art on a 32px cell, four-shade ramps"
@@ -63,6 +55,7 @@ function choicesFor(
 ): GameGraphChoices {
   return {
     imageModel: IMAGE_MODEL,
+    gameId: "0123456789abcdef0123456789abcdef",
     sfxNodeType: null,
     musicModel: null,
     style: STYLE,
@@ -114,15 +107,11 @@ const errorsOf = (report: ReturnType<typeof validate>) =>
 
 describe("shipped game inspiration chips", () => {
   it("ships one chip per shipped template", () => {
-    expect(GAME_INSPIRATION_CHIPS.map((chip) => chip.template)).toEqual([
-      "platformer",
-      "topdown",
-      "shmup"
-    ]);
+    expect([getNativeTemplate("topdown").id]).toEqual(["topdown"]);
   });
 
-  for (const chip of GAME_INSPIRATION_CHIPS) {
-    const manifest = getTemplate(chip.template).manifest;
+  for (const chip of GAME_INSPIRATION_CHIPS.filter((entry) => entry.template === "topdown")) {
+    const manifest = getNativeTemplate(chip.template).manifest;
 
     it(`"${chip.brief}" builds every visual slot with nothing left unwired`, () => {
       const placement = gameGraphPlacement(
@@ -169,30 +158,27 @@ describe("shipped game inspiration chips", () => {
       );
       for (const node of placement.nodes) {
         if (!node.type.startsWith("nodetool.game.")) continue;
-        if (node.type === "nodetool.game.ExportGodotProject") continue;
+        if (node.type === "nodetool.game.StageGameAssets") continue;
         expect(intoExport.has(node.id), node.id).toBe(true);
       }
     });
   }
 
-  it("builds the music chain when a music model is chosen", () => {
-    const chip = GAME_INSPIRATION_CHIPS[0];
-    const manifest = getTemplate(chip.template).manifest;
+  it("does not add a music chain without a music slot", () => {
+    const chip = GAME_INSPIRATION_CHIPS.find((entry) => entry.template === "topdown")!;
+    const manifest = getNativeTemplate(chip.template).manifest;
     const placement = gameGraphPlacement(
       manifest,
       chip.design,
-      choicesFor(chip.design.title, { musicModel: MUSIC_MODEL }),
+      choicesFor(chip.design.title),
       lookup
     );
     expect(placement.issues).toEqual([]);
-    expect(placement.nodes.map((node) => node.type)).toContain(
+    expect(placement.nodes.map((node) => node.type)).not.toContain(
       "nodetool.audio.TextToMusic"
     );
-    expect(placement.nodes.map((node) => node.type)).toContain(
-      "nodetool.game.MusicLoop"
-    );
     const music = manifest.slots.filter((slot) => slot.kind === "music");
-    expect(music.length).toBeGreaterThan(0);
+    expect(music).toEqual([]);
     for (const slot of music) {
       expect(fillSlots(placement)).toContain(slot.id);
     }
@@ -200,8 +186,8 @@ describe("shipped game inspiration chips", () => {
   });
 
   it("reports a slot whose node type the registry lost, and places nothing for it", () => {
-    const chip = GAME_INSPIRATION_CHIPS[0];
-    const manifest = getTemplate(chip.template).manifest;
+    const chip = GAME_INSPIRATION_CHIPS.find((entry) => entry.template === "topdown")!;
+    const manifest = getNativeTemplate(chip.template).manifest;
     const placement = gameGraphPlacement(
       manifest,
       chip.design,

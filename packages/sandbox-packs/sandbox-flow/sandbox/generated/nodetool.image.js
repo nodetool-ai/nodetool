@@ -6,6 +6,9 @@ function paste(inputs) {
 function scale(inputs) {
   return callNode("nodetool.image.Scale", inputs);
 }
+function resizeImage(inputs) {
+  return callNode("nodetool.image.ResizeImage", inputs);
+}
 function resize(inputs) {
   return callNode("nodetool.image.Resize", inputs);
 }
@@ -107,6 +110,7 @@ export {
   relight,
   removeBackground,
   resize,
+  resizeImage,
   rotateAndFlip,
   saveImage,
   saveImageFile,

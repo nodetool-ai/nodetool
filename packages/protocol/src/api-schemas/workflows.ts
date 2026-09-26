@@ -869,8 +869,10 @@ export const gameSetup = z
   .object({
     stage: gameSetupStage.default("done"),
     brief: z.string().default(""),
-    /** Manifest template id: `platformer`, `topdown`, `shmup`. */
+    /** Native manifest template id. */
     template: z.string().optional(),
+    /** Built-in game that receives staged assets from this workflow. */
+    game_id: z.string().optional(),
     designer_model: gameSetupModel.optional(),
     design: gameDesign.optional(),
     /**

@@ -60,7 +60,7 @@ export const ENTRY_CARDS: readonly EntryCard[] = [
   {
     id: "game",
     title: "Game",
-    description: "From a sentence to a running Godot project, assets checked."
+    description: "Start with a playable top-down room in the built-in engine."
   }
 ];
 

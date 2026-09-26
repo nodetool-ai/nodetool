@@ -141,25 +141,19 @@ export function slotPrompt(inputs: SlotPromptInputs): Promise<SlotPromptOutputs>
   return callNode<SlotPromptOutputs>("nodetool.game.SlotPrompt", inputs);
 }
 
-// Export Godot Project — nodetool.game.ExportGodotProject
-export type ExportGodotProjectInputs = {
+// Stage Game Assets — nodetool.game.StageGameAssets
+export type StageGameAssetsInputs = {
   template?: string;
-  name?: string;
+  game_id?: string;
   fills?: (ImageRef | AudioRef)[];
-  directory?: string;
-  verify?: boolean;
 };
 
-export interface ExportGodotProjectOutputs {
+export interface StageGameAssetsOutputs {
   output: Record<string, unknown>;
-  directory: string;
-  files: string[];
-  verified: boolean;
-  verification: Record<string, unknown>;
-  errors: string[];
-  archive: string;
+  bindings: Record<string, unknown>;
+  paths: string[];
 }
 
-export function exportGodotProject(inputs: ExportGodotProjectInputs): Promise<ExportGodotProjectOutputs> {
-  return callNode<ExportGodotProjectOutputs>("nodetool.game.ExportGodotProject", inputs);
+export function stageGameAssets(inputs: StageGameAssetsInputs): Promise<StageGameAssetsOutputs> {
+  return callNode<StageGameAssetsOutputs>("nodetool.game.StageGameAssets", inputs);
 }

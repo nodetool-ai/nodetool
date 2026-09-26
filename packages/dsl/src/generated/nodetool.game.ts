@@ -135,25 +135,19 @@ export function slotPrompt(inputs: SlotPromptInputs): DslNode<SlotPromptOutputs>
   return createNode("nodetool.game.SlotPrompt", inputs, { outputNames: ["prompt", "width", "height", "kind", "checker", "seconds"] });
 }
 
-// Export Godot Project — nodetool.game.ExportGodotProject
-export type ExportGodotProjectInputs = {
+// Stage Game Assets — nodetool.game.StageGameAssets
+export type StageGameAssetsInputs = {
   template?: Connectable<string>;
-  name?: Connectable<string>;
+  game_id?: Connectable<string>;
   fills?: Connectable<(ImageRef | AudioRef)[]>;
-  directory?: Connectable<string>;
-  verify?: Connectable<boolean>;
 };
 
-export interface ExportGodotProjectOutputs {
+export interface StageGameAssetsOutputs {
   output: Record<string, unknown>;
-  directory: string;
-  files: string[];
-  verified: boolean;
-  verification: Record<string, unknown>;
-  errors: string[];
-  archive: string;
+  bindings: Record<string, unknown>;
+  paths: string[];
 }
 
-export function exportGodotProject(inputs: ExportGodotProjectInputs): DslNode<ExportGodotProjectOutputs> {
-  return createNode("nodetool.game.ExportGodotProject", inputs, { outputNames: ["output", "directory", "files", "verified", "verification", "errors", "archive"] });
+export function stageGameAssets(inputs: StageGameAssetsInputs): DslNode<StageGameAssetsOutputs> {
+  return createNode("nodetool.game.StageGameAssets", inputs, { outputNames: ["output", "bindings", "paths"] });
 }

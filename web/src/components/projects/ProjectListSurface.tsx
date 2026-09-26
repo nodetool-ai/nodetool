@@ -53,6 +53,7 @@ const PROJECT_DOCUMENT_TYPES: readonly LooseDocument["type"][] = [
   "timeline",
   "sketch",
   "application",
+  "game",
   "jsscript"
 ];
 

@@ -214,12 +214,6 @@ jest.mock("../../setup/video/VideoSetupHost", () => ({
     </div>
   )
 }));
-jest.mock("../../setup/game/GameSetupHost", () => ({
-  __esModule: true,
-  default: ({ workflowId }: { workflowId: string }) => (
-    <div data-testid="setup-flow">{workflowId}</div>
-  )
-}));
 jest.mock("../../setup/entity/EntitySetupHost", () => ({
   __esModule: true,
   default: ({ initialDescriptor }: { initialDescriptor: string }) => (

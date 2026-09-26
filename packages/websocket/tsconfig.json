@@ -27,7 +27,7 @@
       "path": "../dsl"
     },
     {
-      "path": "../godot-templates"
+      "path": "../game-runtime"
     },
     {
       "path": "../document-nodes"

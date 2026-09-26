@@ -58,7 +58,6 @@ import {
   designSourceOf,
   gameAudioChoice,
   gameGraphPlacement,
-  gameProjectDirectory,
   parseGameDesign,
   type GameGraphChoices,
   type PlanNodeLookup,
@@ -1429,7 +1428,7 @@ async function loadOwnedGame(
 async function persistGame(
   row: WorkflowRow,
   patch: Partial<GameSetup>,
-  extra: { graph?: WorkflowRow["graph"] } = {}
+  extra: { graph?: WorkflowRow["graph"]; workspaceId?: string } = {}
 ): Promise<WorkflowRow | { error: string }> {
   const { Workflow } = await import("@nodetool-ai/models");
   const fields: Parameters<typeof Workflow.updateFieldsIfUnchanged>[2] = {
@@ -1437,6 +1436,9 @@ async function persistGame(
   };
   if (extra.graph !== undefined) {
     fields.graph = extra.graph;
+  }
+  if (extra.workspaceId !== undefined) {
+    fields.workspace_id = extra.workspaceId;
   }
   const updated = await Workflow.updateFieldsIfUnchanged(
     row.id,
@@ -1457,17 +1459,17 @@ async function requireGameTemplate(game: GameSetup | null) {
   if (id === "") {
     return {
       error:
-        "This workflow has no game template yet. Pick one with set_game_setup — list_game_templates has the ids."
+        "This workflow has no native game template yet. Pick topdown with set_game_setup."
     };
   }
-  const { getTemplate, listTemplates } = await import(
-    "@nodetool-ai/godot-templates"
+  const { getNativeTemplate, listNativeTemplates } = await import(
+    "@nodetool-ai/game-nodes"
   );
   try {
-    return getTemplate(id);
+    return getNativeTemplate(id);
   } catch {
     return {
-      error: `Unknown template ${id}. Templates: ${listTemplates()
+      error: `Unknown template ${id}. Templates: ${listNativeTemplates()
         .map((t) => t.id)
         .join(", ")}.`
     };
@@ -1531,6 +1533,7 @@ const SET_GAME_STRING_FIELDS = [
   "sfx_node_type",
   "music_model",
   "project_name",
+  "game_id",
   "stage"
 ] as const;
 
@@ -1782,13 +1785,37 @@ const buildGame: CapabilityExport = {
       owned.game?.project_name?.trim() ||
       design.title.trim() ||
       template.id;
+    const { Game } = await import("@nodetool-ai/models");
+    let nativeGame = owned.game?.game_id
+      ? await Game.findOwned(userIdOf(run.context), owned.game.game_id)
+      : null;
+    if (nativeGame && nativeGame.project_id !== owned.row.project_id) {
+      return { error: "The selected game belongs to another project" };
+    }
+    if (owned.game?.game_id && !nativeGame) {
+      return { error: "The selected native game was not found" };
+    }
+    if (!nativeGame && params["save"] === false) {
+      return { error: "Create or select a native game before previewing the asset graph" };
+    }
+    if (!nativeGame) {
+      const { createNativeGame } = await import("./game.js");
+      const created = await createNativeGame(
+        userIdOf(run.context),
+        owned.row.project_id,
+        projectName
+      );
+      if ("error" in created) return created;
+      nativeGame = created.game;
+    }
     const choices: GameGraphChoices = {
       imageModel,
       sfxNodeType: gameAudioChoice(owned.game?.sfx_node_type),
       musicModel,
       style: await loadStyle(run, owned.game?.style_entity_id),
       projectName,
-      directory: gameProjectDirectory(projectName),
+      gameId: nativeGame.id,
+      directory: nativeGame.source_root,
       verify: true
     };
 
@@ -1806,8 +1833,8 @@ const buildGame: CapabilityExport = {
     if (save) {
       const written = await persistGame(
         owned.row,
-        { stage: "done", project_name: projectName },
-        { graph: graph as unknown as WorkflowRow["graph"] }
+        { stage: "done", project_name: projectName, game_id: nativeGame.id },
+        { graph: graph as unknown as WorkflowRow["graph"], workspaceId: nativeGame.workspace_id }
       );
       if (isError(written)) return written;
       savedRow = written;
@@ -1815,6 +1842,7 @@ const buildGame: CapabilityExport = {
 
     return {
       workflow_id: id,
+      game_id: nativeGame.id,
       saved: savedRow !== null,
       stage: save ? "done" : owned.game?.stage ?? "look",
       graph,

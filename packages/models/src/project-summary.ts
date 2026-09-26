@@ -25,6 +25,7 @@ import type {
 } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 import { readEntityMarker, type EntityMarker } from "@nodetool-ai/protocol";
 import { Application } from "./application.js";
+import { Game } from "./game.js";
 import { Asset } from "./asset.js";
 import { ImageDocument } from "./image-document.js";
 import { JsScript } from "./js-script.js";
@@ -44,7 +45,8 @@ export type ProjectDocumentType =
   | "timeline"
   | "sketch"
   | "application"
-  | "jsscript";
+  | "jsscript"
+  | "game";
 
 /** One document in a project, as a tab-open needs it. */
 export interface ProjectDocumentRef {
@@ -480,6 +482,7 @@ interface ProjectDocumentRows {
   sketches: ImageDocument[];
   applications: Application[];
   jsScripts: JsScript[];
+  games: Game[];
   /** True when any table filled its cap, so documents are missing from these. */
   partial: boolean;
 }
@@ -517,14 +520,15 @@ async function loadProjectDocuments(
   documentsPerType = DOCUMENTS_PER_TYPE
 ): Promise<ProjectDocumentRows> {
   const cap = documentsPerType + 1;
-  const [storyboards, scripts, timelines, sketches, applications, jsScripts] =
+  const [storyboards, scripts, timelines, sketches, applications, jsScripts, games] =
     await Promise.all([
       Storyboard.listByProject(projectId, userId, cap),
       Script.listByProject(projectId, userId, cap),
       TimelineSequence.listByProject(projectId, userId, cap),
       ImageDocument.listByProject(projectId, userId, cap),
       Application.listByProject(projectId, userId, cap),
-      JsScript.listByProject(projectId, userId, cap)
+      JsScript.listByProject(projectId, userId, cap),
+      Game.listByProject(userId, projectId)
     ]);
   const overflowed =
     storyboards.length > documentsPerType ||
@@ -532,7 +536,8 @@ async function loadProjectDocuments(
     timelines.length > documentsPerType ||
     sketches.length > documentsPerType ||
     applications.length > documentsPerType ||
-    jsScripts.length > documentsPerType;
+    jsScripts.length > documentsPerType ||
+    games.length > documentsPerType;
   const keep = <T>(rows: T[]): T[] => rows.slice(0, documentsPerType);
   return {
     storyboards: keep(storyboards),
@@ -541,6 +546,7 @@ async function loadProjectDocuments(
     sketches: keep(sketches),
     applications: keep(applications),
     jsScripts: keep(jsScripts),
+    games: keep(games),
     partial: overflowed
   };
 }
@@ -570,7 +576,8 @@ export async function listProjectDocuments(
     ...rows.timelines.map((row) => toRef("timeline", row)),
     ...rows.sketches.map((row) => toRef("sketch", row)),
     ...rows.applications.map((row) => toRef("application", row)),
-    ...rows.jsScripts.map((row) => toRef("jsscript", row))
+    ...rows.jsScripts.map((row) => toRef("jsscript", row)),
+    ...rows.games.map((row) => toRef("game", row))
   ]);
 }
 
@@ -670,7 +677,8 @@ export async function summarizeProject(
       )
     ),
     ...rows.applications.map((row) => summarize(toRef("application", row), null)),
-    ...rows.jsScripts.map((row) => summarize(toRef("jsscript", row), null))
+    ...rows.jsScripts.map((row) => summarize(toRef("jsscript", row), null)),
+    ...rows.games.map((row) => summarize(toRef("game", row), null))
   ]);
 
   return {

@@ -26,13 +26,11 @@ import {
 import { useCreateApplication } from "../../hooks/useApplications";
 import { useOpenApplication } from "../../hooks/useOpenApplication";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import GameSetupHost from "../setup/game/GameSetupHost";
 import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
 import {
   examplePackageName,
   exampleSeedRef
 } from "../../utils/exampleWorkflow";
-import { useGameSetupStage } from "../../hooks/game/useGameSetup";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import KeyboardProvider from "../KeyboardProvider";
@@ -112,7 +110,6 @@ const WorkflowEditorSurface = ({
     (state) => state.settings.editorViewMode
   );
   const [missing, setMissing] = useState(false);
-  const gameStage = useGameSetupStage(workflowId);
   // A workflow flow still in setup (`settings.setup` not at `done`) is where
   // this tab lands after a refresh or a close — same rule as the game flow
   // above. A workflow saved before the flow existed has no `setup` key and
@@ -122,8 +119,6 @@ const WorkflowEditorSurface = ({
   const persistedBuild = readWorkflowBuild(setup);
   // The document reaches stage `done` in the same click that places the nodes,
   // but this keeps the swap independent of when that save lands.
-  const [gameFinished, setGameFinished] = useState(false);
-  const finishGameFlow = useCallback(() => setGameFinished(true), []);
   // The document reaches stage `done` in the same click that places the
   // nodes, but this keeps the swap independent of when that save lands.
   const [setupFinished, setSetupFinished] = useState(false);
@@ -339,10 +334,6 @@ const WorkflowEditorSurface = ({
         <LoadingSpinner />
       </FlexColumn>
     );
-  }
-
-  if (gameStage !== "done" && !gameFinished) {
-    return <GameSetupHost workflowId={workflowId} onFinish={finishGameFlow} />;
   }
 
   if (mode === "view") {

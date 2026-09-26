@@ -180,6 +180,18 @@ describe("validateGraph", () => {
     expect(report.issues.some((i) => i.code === "unknown_node")).toBe(true);
   });
 
+  it("reports explicit migration work for removed Godot export nodes", () => {
+    const registry = fakeRegistry({});
+    const report = validateGraph(
+      { nodes: [{ id: "old-export", type: "nodetool.game.ExportGodotProject" }], edges: [] },
+      registry
+    );
+    expect(report.ok).toBe(false);
+    const issue = report.issues.find((candidate) => candidate.code === "unknown_node");
+    expect(issue?.message).toContain("StageGameAssets");
+    expect(issue?.message).toContain("GDScript and Godot scenes require manual reconstruction");
+  });
+
   it("validates the migrated type, not the removed one", () => {
     // `Graph.loadFromDict` rewrites nodetool.text.TrimWhitespace to
     // nodetool.code.Code on load, so the graph the runner sees never carries

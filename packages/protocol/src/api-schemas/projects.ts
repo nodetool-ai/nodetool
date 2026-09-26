@@ -72,7 +72,8 @@ export const projectDocumentType = z.enum([
   "timeline",
   "sketch",
   "application",
-  "jsscript"
+  "jsscript",
+  "game"
 ]);
 export type ProjectDocumentType = z.infer<typeof projectDocumentType>;
 

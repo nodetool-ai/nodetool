@@ -9,9 +9,9 @@ A 3D model is a `.glb` or `.gltf` **asset**, addressed by its asset id. The
 capabilities edit the stored glTF in place and save it back over the same asset,
 so the id stays valid and an open editor reloads it.
 
-For a 2D game built from a Godot template and generated art, use
-`godot-game`. For a 3D clip inside a cut, build the model
-here and place it on a timeline.
+For a 2D game, use `native-game`. The built-in game engine will add 3D scene
+support later. For a 3D clip inside a cut, build the model here and place it
+on a timeline.
 
 ## The loop
 

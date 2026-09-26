@@ -1,0 +1,21 @@
+{
+  "name": "@nodetool-ai/game-runtime",
+  "version": "0.8.0",
+  "description": "Deterministic built-in game simulation",
+  "type": "module",
+  "engines": { "node": ">=22.0.0" },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": { "@nodetool-ai/protocol": "*", "@jitl/quickjs-ng-wasmfile-release-sync": "^0.31.0", "quickjs-emscripten-core": "^0.31.0", "zod": "^4.0.0" },
+  "devDependencies": { "typescript": "npm:@typescript/typescript6@6.0.2", "vitest": "^5.0.1" },
+  "exports": {
+    ".": { "nodetool-dev": "./src/index.ts", "types": "./dist/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" }
+  },
+  "license": "MIT",
+  "files": ["dist"]
+}
