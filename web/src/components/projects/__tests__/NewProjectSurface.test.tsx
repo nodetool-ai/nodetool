@@ -14,6 +14,21 @@ jest.mock("../CurrentProjectDocuments", () => ({
   default: () => <div data-testid="current-project-documents" />
 }));
 
+jest.mock("../../portal/DashboardTemplates", () => ({
+  __esModule: true,
+  default: () => <div>Workflow examples</div>
+}));
+
+jest.mock("../../portal/DashboardExampleStoryboards", () => ({
+  __esModule: true,
+  default: () => <div>Storyboard examples</div>
+}));
+
+jest.mock("../../portal/DashboardExampleTimelines", () => ({
+  __esModule: true,
+  default: () => <div>Timeline examples</div>
+}));
+
 const createProject = jest.fn(async () => ({
   id: "p9",
   name: "A spot for our desk lamp",
@@ -836,6 +851,22 @@ describe("NewProjectSurface", () => {
     expect(openPageTab).toHaveBeenCalledWith("examples");
     await userEvent.click(screen.getByRole("button", { name: "Tutorials" }));
     expect(openPageTab).toHaveBeenCalledWith("tutorials");
+  });
+
+  it("offers every example type on the start screen", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+
+    const examples = screen.getByRole("region", { name: "Examples" });
+    expect(within(examples).getByRole("tab", { name: "Apps" })).toBeInTheDocument();
+    for (const [tab, content] of [
+      ["Workflows", "Workflow examples"],
+      ["Storyboards", "Storyboard examples"],
+      ["Timelines", "Timeline examples"]
+    ]) {
+      await user.click(within(examples).getByRole("tab", { name: tab }));
+      expect(await within(examples).findByText(content)).toBeInTheDocument();
+    }
   });
 
   it("parks a start on provider onboarding and resumes once connected", async () => {

@@ -96,7 +96,7 @@ import useOnboardingStore, {
   isOnboardingFinished
 } from "../../stores/OnboardingStore";
 import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
-import DashboardExampleApps from "../portal/DashboardExampleApps";
+import StartExamples from "./StartExamples";
 import CurrentProjectDocuments from "./CurrentProjectDocuments";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import { openPageTab } from "../workspace/openPageTab";
@@ -1835,7 +1835,7 @@ const NewProjectSurface = ({
           {/* Examples come after the composer: they are a place to browse,
               not the first thing to do, and above it they pushed the prompt
               below the fold. */}
-          <DashboardExampleApps compact onBrowseAll={handleOpenExamples} />
+          <StartExamples onBrowseAll={handleOpenExamples} />
         </FlexColumn>
 
         <Box sx={{ flex: 1, minHeight: SPACING.xxxl }} />
