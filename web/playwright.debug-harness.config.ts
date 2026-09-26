@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const webPort = Number(process.env.E2E_WEB_PORT ?? 3000);
+const webUrl = `http://localhost:${webPort}`;
+
 /**
  * Playwright config for the workflow debug harness (`nodetool debug --browser`).
  *
@@ -29,7 +32,7 @@ export default defineConfig({
   globalSetup: "./tests/e2e-runner/globalSetup.ts",
 
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: webUrl,
     ignoreHTTPSErrors: true,
     screenshot: "off",
     trace: "retain-on-failure"
@@ -54,9 +57,11 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "npm start",
-    url: "http://localhost:3000",
-    reuseExistingServer: true,
+    command: process.env.E2E_WEB_PORT
+      ? `npm run dev -- --port ${webPort}`
+      : "npm start",
+    url: webUrl,
+    reuseExistingServer: !process.env.E2E_WEB_PORT,
     timeout: 120_000
   }
 });

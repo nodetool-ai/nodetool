@@ -118,6 +118,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
 
           const draft: TimelineMergeDoc = {
             tracks: before.tracks,
+            trackFolders: before.trackFolders,
             clips: before.clips,
             markers: before.markers,
             mediaTracks: before.mediaTracks,
@@ -130,6 +131,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
           };
           const serverDoc: TimelineMergeDoc = {
             tracks: sequence.tracks ?? [],
+            trackFolders: sequence.trackFolders ?? [],
             clips: sequence.clips ?? [],
             markers: sequence.markers ?? [],
             mediaTracks: sequence.mediaTracks ?? [],
@@ -168,6 +170,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
           // values remain available for the user's later accept/discard choice.
           const beforeDoc: TimelineMergeDoc = {
             tracks: before.tracks,
+            trackFolders: before.trackFolders,
             clips: before.clips,
             markers: before.markers,
             mediaTracks: before.mediaTracks,

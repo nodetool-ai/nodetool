@@ -54,6 +54,7 @@ function openMenu(trackId: string): HTMLElement {
 const MENU_LABELS = [
   "Rename",
   "Duplicate track",
+  "New folder with this track",
   "Insert Video track above",
   "Insert Video track below",
   "Remove track"
@@ -64,7 +65,7 @@ describe("TrackHeader context menu", () => {
     jest.useRealTimers();
   });
 
-  it("right-click opens the menu with the five track items", () => {
+  it("right-click opens the track actions", () => {
     renderRegion();
     const [, v2] = seedTracks();
 
@@ -73,6 +74,25 @@ describe("TrackHeader context menu", () => {
     expect(menu).toBeInTheDocument();
     const items = screen.getAllByRole("menuitem").map((el) => el.textContent);
     expect(items).toEqual(MENU_LABELS);
+  });
+
+  it("creates a folder for a track and can move another track into it", async () => {
+    renderRegion();
+    const [first, second] = seedTracks();
+    openMenu(first);
+    await userEvent.click(screen.getByText("New folder with this track"));
+    const folder = useTimelineStore.getState().trackFolders[0];
+    expect(useTimelineStore.getState().tracks[0].folderId).toBe(folder.id);
+    expect(screen.getByTestId(`track-folder-${folder.id}`)).toBeInTheDocument();
+
+    openMenu(second);
+    await userEvent.click(screen.getByText(`Move to ${folder.name}`));
+    expect(useTimelineStore.getState().tracks[1].folderId).toBe(folder.id);
+    await userEvent.click(screen.getByRole("button", { name: `Collapse folder ${folder.name}` }));
+    expect(screen.queryByTestId(`track-header-${first}`)).not.toBeInTheDocument();
+    expect(screen.queryByTestId(`track-header-${second}`)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: `Expand folder ${folder.name}` }));
+    expect(screen.getByTestId(`track-header-${first}`)).toBeInTheDocument();
   });
 
   it("labels the insert items with the header's own track type", () => {

@@ -26,6 +26,7 @@ import { mergeByUnits, structuralEqual } from "../documentMerge";
 /** The slice of the store's document state the engine merges. */
 export interface TimelineMergeDoc {
   tracks: unknown[];
+  trackFolders: unknown[];
   clips: unknown[];
   markers: unknown[];
   mediaTracks: unknown[];
@@ -63,6 +64,7 @@ const collectionOf = <T>(
 
 type TimelineUnitKind =
   | "track"
+  | "trackFolder"
   | "clip"
   | "marker"
   | "mediaTrack"
@@ -70,6 +72,7 @@ type TimelineUnitKind =
 
 const ALL_UNIT_KINDS: readonly TimelineUnitKind[] = [
   "track",
+  "trackFolder",
   "clip",
   "marker",
   "mediaTrack",
@@ -159,6 +162,7 @@ export const timelineUnitsTouchedByOp = (
 export const timelineMergeAdapter: DocumentMergeAdapter<TimelineMergeDoc> = {
   collections: [
     collectionOf("track", "tracks", (t) => (t as { id: string }).id),
+    collectionOf("trackFolder", "trackFolders", (f) => (f as { id: string }).id),
     collectionOf(
       "clip",
       "clips",

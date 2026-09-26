@@ -11,6 +11,7 @@ import type { TimelineStoreState } from "../../stores/timeline/TimelineStore";
 
 interface TimelineDocumentPayload {
   tracks: TimelineStoreState["tracks"];
+  trackFolders: TimelineStoreState["trackFolders"];
   clips: TimelineStoreState["clips"];
   markers: TimelineStoreState["markers"];
   mediaTracks: TimelineStoreState["mediaTracks"];
@@ -28,6 +29,7 @@ export function buildTimelineDocumentPayload(
   state: Pick<
     TimelineStoreState,
     | "tracks"
+    | "trackFolders"
     | "clips"
     | "markers"
     | "mediaTracks"
@@ -41,6 +43,7 @@ export function buildTimelineDocumentPayload(
 ): TimelineDocumentPayload {
   return {
     tracks: state.tracks,
+    trackFolders: state.trackFolders,
     clips: state.clips,
     markers: state.markers,
     mediaTracks: state.mediaTracks,

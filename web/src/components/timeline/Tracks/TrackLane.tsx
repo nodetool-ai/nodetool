@@ -108,11 +108,12 @@ const laneStyles = (
 interface TrackLaneProps {
   track: TimelineTrack;
   virtualizeClips?: boolean;
+  collapsedFolderIds?: ReadonlySet<string>;
 }
 
 const CLIP_OVERSCAN_PX = 320;
 
-export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClips = false }) => {
+export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClips = false, collapsedFolderIds }) => {
   const theme = useTheme();
   const timelineStore = useTimelineStoreApi();
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
@@ -475,7 +476,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
           document.tracks,
           document.scriptEnabled,
           useTimelineUIStore.getState().expandedFxTrackId,
-          useTimelineUIStore.getState().verticalZoom
+          useTimelineUIStore.getState().verticalZoom,
+          document.trackFolders,
+          collapsedFolderIds
         );
         rows.forEach((row) => {
           if (row.kind === "track") {

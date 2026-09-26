@@ -365,6 +365,7 @@ const TimelineListPanel = ({ projectId }: TimelineListPanelProps) => {
           id: copy.id,
           document: {
             tracks: source.tracks,
+            trackFolders: source.trackFolders,
             clips: source.clips,
             markers: source.markers,
             transcript: source.transcript,

@@ -233,6 +233,7 @@ export function useTrackObject(
     try {
       const submitted: NonNullable<TimelineStoreState["syncedDocument"]> = {
         tracks: state.tracks,
+        trackFolders: state.trackFolders,
         clips: state.clips,
         markers: state.markers,
         mediaTracks: state.mediaTracks,
@@ -276,6 +277,7 @@ export function useTrackObject(
       const base = current.syncedDocument ?? submitted;
       const draft: TimelineMergeDoc = {
         tracks: current.tracks,
+        trackFolders: current.trackFolders,
         clips: current.clips,
         markers: current.markers,
         mediaTracks: current.mediaTracks,
@@ -288,6 +290,7 @@ export function useTrackObject(
       };
       const server: TimelineMergeDoc = {
         tracks: sequence.tracks,
+        trackFolders: sequence.trackFolders ?? [],
         clips: sequence.clips,
         markers: sequence.markers,
         mediaTracks: sequence.mediaTracks ?? [],
@@ -306,6 +309,7 @@ export function useTrackObject(
       });
       const synced: NonNullable<TimelineStoreState["syncedDocument"]> = {
         tracks: sequence.tracks,
+        trackFolders: sequence.trackFolders ?? [],
         clips: sequence.clips,
         markers: sequence.markers,
         mediaTracks: merged.nextBase.mediaTracks as MediaTrack[],

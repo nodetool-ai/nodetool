@@ -523,6 +523,7 @@ export const timelineTrack = z.object({
   name: z.string(),
   type: z.enum(["video", "audio", "overlay", "subtitle", "midi"]),
   index: z.number().int(),
+  folderId: z.string().optional(),
   visible: z.boolean(),
   locked: z.boolean(),
   muted: z.boolean().optional(),
@@ -535,6 +536,12 @@ export const timelineTrack = z.object({
   instrument: midiInstrument.optional()
 });
 export type TimelineTrack = z.infer<typeof timelineTrack>;
+
+export const timelineTrackFolder = z.object({
+  id: z.string(),
+  name: z.string().min(1)
+});
+export type TimelineTrackFolder = z.infer<typeof timelineTrackFolder>;
 
 // ── Per-clip placement, transitions, and GPU effects ─────────────────────────
 
@@ -1818,6 +1825,7 @@ export type TimelineSetup = z.infer<typeof timelineSetup>;
 
 export const timelineDocument = z.object({
   tracks: z.array(timelineTrack),
+  trackFolders: z.array(timelineTrackFolder).optional(),
   clips: z.array(timelineClip),
   markers: z.array(timelineMarker),
   transcript: z.array(transcriptLine).optional(),
@@ -1869,6 +1877,7 @@ export const timelineSequenceResponse = z.object({
   height: z.number(),
   durationMs: z.number(),
   tracks: z.array(timelineTrack),
+  trackFolders: z.array(timelineTrackFolder).optional(),
   clips: z.array(timelineClip),
   markers: z.array(timelineMarker),
   transcript: z.array(transcriptLine).optional(),

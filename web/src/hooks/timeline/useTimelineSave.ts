@@ -53,6 +53,7 @@ export async function persistTimelineDocument(
   ) {
     store.getState().setBaseUpdatedAt(updatedAt, {
       tracks: state.tracks,
+      trackFolders: state.trackFolders,
       clips: state.clips,
       markers: state.markers,
       mediaTracks: state.mediaTracks,

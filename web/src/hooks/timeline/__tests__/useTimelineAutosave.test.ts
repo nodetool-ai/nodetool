@@ -749,6 +749,7 @@ describe("useTimelineAutosave", () => {
     // server copy and the token that goes with it.
     const serverDocument = {
       tracks: [],
+      trackFolders: [],
       clips: [],
       markers: [],
       mediaTracks: [],

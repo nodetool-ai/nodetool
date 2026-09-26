@@ -4,6 +4,7 @@ import { buildTimelineDocumentPayload } from "../timelineDocumentPayload";
 describe("buildTimelineDocumentPayload", () => {
   const baseState = {
     tracks: [{ id: "t1", name: "Track 1", type: "video" as const, clips: [] }],
+    trackFolders: [{ id: "folder-1", name: "Scene" }],
     clips: { c1: { id: "c1", trackId: "t1", startTime: 0, endTime: 5 } },
     markers: [{ id: "m1", time: 2, label: "Intro" }],
     mediaTracks: [{ id: "subject-1" }],
@@ -26,6 +27,7 @@ describe("buildTimelineDocumentPayload", () => {
       "scriptEnabled",
       "setup",
       "tempo",
+      "trackFolders",
       "tracks",
       "transcript"
     ]);
@@ -42,6 +44,11 @@ describe("buildTimelineDocumentPayload", () => {
   it("preserves the tracks array by reference", () => {
     const payload = buildTimelineDocumentPayload(baseState as never);
     expect(payload.tracks).toBe(baseState.tracks);
+  });
+
+  it("preserves track folders by reference", () => {
+    const payload = buildTimelineDocumentPayload(baseState as never);
+    expect(payload.trackFolders).toBe(baseState.trackFolders);
   });
 
   it("preserves the clips object by reference", () => {

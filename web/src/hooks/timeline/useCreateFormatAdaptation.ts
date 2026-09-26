@@ -38,6 +38,7 @@ type AdaptationDocumentState = Pick<
   | "height"
   | "durationMs"
   | "tracks"
+  | "trackFolders"
   | "clips"
   | "markers"
   | "mediaTracks"
@@ -60,6 +61,7 @@ export async function persistFormatAdaptations(
     height: state.height,
     durationMs: state.durationMs,
     tracks: state.tracks,
+    trackFolders: state.trackFolders,
     clips: state.clips,
     markers: state.markers,
     mediaTracks: state.mediaTracks,
@@ -96,6 +98,7 @@ export async function persistFormatAdaptations(
       id: created.id,
       document: {
         tracks: sequence.tracks,
+        trackFolders: sequence.trackFolders,
         clips: sequence.clips,
         markers: sequence.markers,
         mediaTracks: sequence.mediaTracks,

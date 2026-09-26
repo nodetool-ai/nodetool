@@ -72,6 +72,7 @@ function nextUpdatedAtAfter(previous: string): string {
 
 export interface TimelineDocument {
   tracks: TimelineTrack[];
+  trackFolders?: TimelineSequenceDoc["trackFolders"];
   clips: TimelineClip[];
   markers: TimelineMarker[];
   /** Studio transcript lines. Optional for documents written before Studio. */
@@ -157,6 +158,7 @@ export class TimelineSequence extends DBModel {
       height: this.height,
       durationMs: this.duration_ms,
       tracks: doc.tracks,
+      trackFolders: doc.trackFolders,
       clips: doc.clips,
       markers: doc.markers,
       transcript: doc.transcript ?? [],
@@ -177,6 +179,7 @@ export class TimelineSequence extends DBModel {
   ): TimelineSequence {
     const doc: TimelineDocument = {
       tracks: seq.tracks,
+      trackFolders: seq.trackFolders,
       clips: seq.clips,
       markers: seq.markers,
       transcript: seq.transcript ?? [],

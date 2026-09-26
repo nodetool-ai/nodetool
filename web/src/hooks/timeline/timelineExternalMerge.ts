@@ -24,6 +24,7 @@ import { reflowGenerated } from "../../stores/timeline/transcriptOps";
 export type TimelineTypedDocument = Pick<
   TimelineStoreState,
   | "tracks"
+  | "trackFolders"
   | "clips"
   | "markers"
   | "mediaTracks"
@@ -78,6 +79,12 @@ export function applyAcceptedTimelineConflict(
     });
     return;
   }
+  if (conflict.unit.kind === "trackFolder" && conflict.external != null) {
+    state.applyExternalMerge({
+      trackFolders: replaceById(state.trackFolders, conflict.external as TimelineStoreState["trackFolders"][number])
+    });
+    return;
+  }
   if (conflict.unit.kind === "marker" && conflict.external != null) {
     state.applyExternalMerge({
       markers: replaceById(state.markers, conflict.external as TimelineMarker)
@@ -129,6 +136,8 @@ export function applyAcceptedTimelineConflict(
       }
     } else if (conflict.unit.kind === "track") {
       state.removeTrack(conflict.unit.id);
+    } else if (conflict.unit.kind === "trackFolder") {
+      state.removeTrackFolder(conflict.unit.id);
     } else if (conflict.unit.kind === "marker") {
       state.applyExternalMerge({
         markers: state.markers.filter(
@@ -159,6 +168,7 @@ export function rebaseTimelineSnapshots(
   const rebased = rebaseDocumentSnapshots(
     snapshots.map((snapshot) => ({
       tracks: snapshot.tracks,
+      trackFolders: snapshot.trackFolders,
       clips: snapshot.clips,
       markers: snapshot.markers,
       mediaTracks: snapshot.mediaTracks,
@@ -184,6 +194,7 @@ export function rebaseTimelineSnapshots(
     return {
       ...snapshot,
       tracks: typedNext.tracks,
+      trackFolders: typedNext.trackFolders,
       clips: reflowed.clips,
       markers: typedNext.markers,
       mediaTracks: typedNext.mediaTracks,
