@@ -834,10 +834,12 @@ is a second renderer, so only this command shows the exported pixels.
 
 **Options:**
 
-- `--out <path>` — output file, or the output directory with `--stills` (default `nodetool-render/<name>.<ext>` or `nodetool-render/<name>-frames/`).
+- `--out <path>` — output file, or an output directory with loose `--stills` or `--sheet` (default `nodetool-render/<name>.<ext>`, `<name>-frames/`, or `<name>-sheet.png`).
 - `--format <format>` — `mp4` (default), `webm`, `mov` or `png_sequence`.
-- `--frames <spec>` — render only these frames: indices and inclusive ranges, e.g. `0-89` or `175,290,380-390`.
+- `--frames <spec>` — render only these frames: indices and inclusive ranges, e.g. `0-89` or `175,290,380-390`. Use `coverage:<file>` to read the `Frame` column of a Markdown table in a builder file's leading comment. Non-integer rows are skipped and reported.
 - `--stills` — write each selected frame as `frame_<index>.png` instead of encoding a video.
+- `--sheet [columns]` — write one PNG contact sheet instead of loose stills. It labels each frame and defaults to three columns. Select at most 60 frames. `--sheet` implies still-image output.
+- `--only <clips>` — render clips selected by comma-separated names or ids. Selected groups include their children; other selections retain their ancestor groups and matte sources.
 - `--scale <n>` — render at this fraction of the sequence size. The layout is the same as at full size.
 - `--bitrate <bps>` — video bitrate in bits per second.
 - `--json` — print the result as JSON.
@@ -845,6 +847,8 @@ is a second renderer, so only this command shows the exported pixels.
 ```bash
 nodetool timeline render sequence.json --out ad.mp4 --bitrate 12000000
 nodetool timeline render <timeline_id> --stills --frames 175,290,376-384 --scale 0.5
+nodetool timeline render sequence.json --frames coverage:build-sequence.ts --sheet --out review.png
+nodetool timeline render sequence.json --only title,logo --frames 60,120 --sheet 2
 ```
 
 The command needs ffmpeg for video output and a WebGPU adapter. On a headless

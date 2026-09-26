@@ -377,9 +377,9 @@ export const HARNESSES: HarnessEntry[] = [
   },
   {
     id: "timeline-render",
-    title: "Timeline GPU render (video or per-frame stills)",
+    title: "Timeline GPU render (video, stills or contact sheet)",
     command:
-      "nodetool timeline render <id|file.json> [--stills] [--frames <spec>] [--scale <n>]",
+      "nodetool timeline render <id|file.json> [--stills] [--sheet [columns]] [--only <clips>] [--frames <spec>] [--scale <n>]",
     kind: "execution",
     capabilities: ["json", "no-db"],
     agentTool: "render_timeline",
@@ -388,7 +388,7 @@ export const HARNESSES: HarnessEntry[] = [
       // Frame selection, preview scale and zero-area layers through the real
       // GPU compositor. Skips with a reason when there is no WebGPU adapter.
       command:
-        "npm run test --workspace=packages/video-nodes -- timeline-render-frames.gpu && " +
+        "npm run test --workspace=packages/video-nodes -- timeline-render-frames.gpu timeline-contact-sheet && " +
         "npm run test --workspace=packages/cli -- timeline-render timeline-command",
       cost: "cheap"
     }
