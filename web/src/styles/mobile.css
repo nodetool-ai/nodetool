@@ -539,6 +539,13 @@
     min-width: 44px !important;
   }
 
+  /* Clip fade handles draw a small dot and extend their touch area separately.
+     The blanket button minimum turns each dot into a large white circle. */
+  .mobile [data-timeline-clip-id] button {
+    min-height: 0 !important;
+    min-width: 0 !important;
+  }
+
   /* Output/preview action buttons (download, add to assets, copy) overlay the
      rendered output and size their icon to fill the button, so the blanket
      44px rule above turned them into full-width icons. Give them a tappable

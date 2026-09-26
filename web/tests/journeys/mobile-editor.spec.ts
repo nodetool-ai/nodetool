@@ -68,6 +68,23 @@ test("timeline actions remain reachable on a narrow phone", async ({
   }
 });
 
+test("timeline clip fade handles keep their compact visual size", async ({
+  page
+}) => {
+  await openTimeline(page);
+  for (const clipId of ["tl-clip-intro", "tl-clip-music"]) {
+    const clip = page.locator(`[data-timeline-clip-id="${clipId}"]`);
+    await expect(clip).toBeAttached();
+    for (const edge of ["in", "out"]) {
+      const handle = clip.getByRole("button", {
+        name: new RegExp(`^Fade ${edge} `)
+      });
+      await expect(handle).toHaveCSS("width", "9px");
+      await expect(handle).toHaveCSS("height", "9px");
+    }
+  }
+});
+
 test("Android touch can pinch the workflow canvas", async ({ page }) => {
   await page.addInitScript(() =>
     Object.defineProperty(navigator, "platform", { value: "Linux armv8l" })
