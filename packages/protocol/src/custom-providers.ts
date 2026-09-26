@@ -111,7 +111,12 @@ export function customProviderBaseUrlError(url: string): string | null {
 
 /** Drop the trailing slashes an endpoint URL must not carry. */
 export function normalizeBaseUrl(url: string): string {
-  return url.trim().replace(/\/+$/, "");
+  const trimmed = url.trim();
+  let end = trimmed.length;
+  while (end > 0 && trimmed[end - 1] === "/") {
+    end -= 1;
+  }
+  return trimmed.slice(0, end);
 }
 
 function stringList(value: unknown): string[] {
