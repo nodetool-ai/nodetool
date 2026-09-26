@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import type { EntityKind } from "@nodetool-ai/protocol";
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 
@@ -11,6 +12,7 @@ import {
   AlertBanner,
   BORDER_RADIUS,
   Caption,
+  Chip,
   Dialog,
   EditorButton,
   FlexColumn,
@@ -26,7 +28,7 @@ import { SETUP_CONTENT_WIDTH, SETUP_MEDIA_WIDTH } from "../layout";
 
 interface ReferenceStepProps {
   readonly name: string;
-  readonly kind: string;
+  readonly kind: EntityKind;
   readonly descriptor: string;
   readonly assetId: string | null;
   readonly excludedAssetIds: readonly string[];
@@ -38,18 +40,123 @@ interface ReferenceStepProps {
   readonly onPick: (assetId: string) => void;
 }
 
+interface ReferencePromptOption {
+  readonly id: string;
+  readonly label: string;
+  readonly instruction: string;
+  readonly aspectRatio: "1:1" | "2:3" | "3:2";
+}
+
+const PROMPT_OPTIONS: Record<
+  EntityKind,
+  readonly [ReferencePromptOption, ...ReferencePromptOption[]]
+> = {
+  character: [
+    {
+      id: "full-body",
+      label: "Full body",
+      instruction:
+        "Show one full-body, front-facing pose, head to toe. Center the character against a neutral background with even studio lighting. Make their face, clothing, and distinctive features clear.",
+      aspectRatio: "1:1"
+    },
+    {
+      id: "portrait",
+      label: "Portrait",
+      instruction:
+        "Show a head-and-shoulders portrait with the face fully visible and a neutral expression. Use a simple background and even lighting so facial features and hair are easy to identify.",
+      aspectRatio: "2:3"
+    },
+    {
+      id: "character-sheet",
+      label: "Character sheet",
+      instruction:
+        "Create a character sheet with front, side, and back views plus a close-up of the face. Keep proportions, clothing, colors, and distinctive features consistent across views. Use a clean background without text or labels.",
+      aspectRatio: "3:2"
+    }
+  ],
+  location: [
+    {
+      id: "establishing-view",
+      label: "Establishing view",
+      instruction:
+        "Show a wide establishing view of the location. Make its layout, architecture, landmarks, and atmosphere clear in one coherent scene.",
+      aspectRatio: "3:2"
+    },
+    {
+      id: "detail-view",
+      label: "Detail view",
+      instruction:
+        "Show a closer view of the location's defining materials, objects, and architectural details. Keep the setting and atmosphere recognizable.",
+      aspectRatio: "1:1"
+    },
+    {
+      id: "location-sheet",
+      label: "Location sheet",
+      instruction:
+        "Create a location sheet with three views of the same place from different angles. Keep the architecture, landmarks, lighting, and color palette consistent. No text or labels.",
+      aspectRatio: "3:2"
+    }
+  ],
+  style: [
+    {
+      id: "style-sample",
+      label: "Style sample",
+      instruction:
+        "Create one cohesive scene that clearly shows this visual style's palette, lighting, texture, and rendering treatment.",
+      aspectRatio: "1:1"
+    },
+    {
+      id: "style-sheet",
+      label: "Style sheet",
+      instruction:
+        "Create a visual style sheet with three different subjects rendered in the same style. Keep the palette, lighting, texture, and rendering treatment consistent. No text or labels.",
+      aspectRatio: "3:2"
+    },
+    {
+      id: "texture-detail",
+      label: "Texture detail",
+      instruction:
+        "Show a close-up sample of this style's defining textures, brushwork, materials, and color relationships, with enough detail to reuse the treatment.",
+      aspectRatio: "1:1"
+    }
+  ],
+  prop: [
+    {
+      id: "product-view",
+      label: "Product view",
+      instruction:
+        "Show one clear three-quarter view of the object, fully visible and centered against a neutral background. Use even studio lighting to reveal its shape, materials, and colors.",
+      aspectRatio: "1:1"
+    },
+    {
+      id: "detail-view",
+      label: "Detail view",
+      instruction:
+        "Show a close-up of the object's distinctive details, materials, markings, and construction. Keep the object recognizable against a simple background.",
+      aspectRatio: "1:1"
+    },
+    {
+      id: "turnaround-sheet",
+      label: "Turnaround sheet",
+      instruction:
+        "Create an object turnaround sheet with front, side, and back views. Keep its shape, scale, materials, colors, and details consistent across views. Use a clean background without text or labels.",
+      aspectRatio: "3:2"
+    }
+  ]
+};
+
 const referencePrompt = (
   name: string,
-  kind: string,
-  descriptor: string
+  kind: EntityKind,
+  descriptor: string,
+  option: ReferencePromptOption
 ): string =>
-  `A clear reference image of ${name || `the ${kind}`}. ${descriptor} Centered,
-  full subject visible, neutral background, consistent studio lighting.`;
+  `A reference image of ${name || `the ${kind}`}. ${descriptor.trim()} ${option.instruction}`;
 
 interface GenerateReferenceDialogProps {
   readonly open: boolean;
   readonly name: string;
-  readonly kind: string;
+  readonly kind: EntityKind;
   readonly descriptor: string;
   readonly onClose: () => void;
   readonly onPick: (assetId: string) => void;
@@ -64,8 +171,10 @@ const GenerateReferenceDialog = ({
   onPick
 }: GenerateReferenceDialogProps) => {
   const rememberedModel = getRememberedModel("image");
+  const options = PROMPT_OPTIONS[kind];
+  const [selectedOption, setSelectedOption] = useState(options[0].id);
   const [prompt, setPrompt] = useState(() =>
-    referencePrompt(name, kind, descriptor)
+    referencePrompt(name, kind, descriptor, options[0])
   );
   const [model, setModel] = useState(rememberedModel?.model ?? "");
   const [provider, setProvider] = useState(rememberedModel?.provider ?? "");
@@ -90,7 +199,9 @@ const GenerateReferenceDialog = ({
         provider,
         model,
         prompt: trimmedPrompt,
-        aspect_ratio: "1:1",
+        aspect_ratio:
+          options.find((option) => option.id === selectedOption)?.aspectRatio ??
+          "1:1",
         resolution: "1K",
         variations: 1
       });
@@ -112,7 +223,7 @@ const GenerateReferenceDialog = ({
     } finally {
       setGenerating(false);
     }
-  }, [model, onClose, onPick, prompt, provider]);
+  }, [model, onClose, onPick, options, prompt, provider, selectedOption]);
 
   return (
     <Dialog
@@ -128,9 +239,23 @@ const GenerateReferenceDialog = ({
     >
       <FlexColumn gap={GAP.comfortable} sx={{ minWidth: 360 }}>
         <Caption color="secondary">
-          Start with the entity description, then adjust the prompt if you
-          want a different visual interpretation.
+          Choose a view, then edit the prompt to refine the image.
         </Caption>
+        <FlexRow gap={GAP.tight} wrap>
+          {options.map((option) => (
+            <Chip
+              key={option.id}
+              label={option.label}
+              active={selectedOption === option.id}
+              aria-pressed={selectedOption === option.id}
+              onClick={() => {
+                setSelectedOption(option.id);
+                setPrompt(referencePrompt(name, kind, descriptor, option));
+              }}
+              disabled={generating}
+            />
+          ))}
+        </FlexRow>
         <TextInput
           label="Prompt"
           value={prompt}
