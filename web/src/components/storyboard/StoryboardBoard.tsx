@@ -1182,11 +1182,15 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             <FormField label="Still model" sx={modelFieldSx}>
               <ImageModelSelect
                 value={stillSelection?.id ?? ""}
+                provider={stillSelection?.provider}
                 task={STILL_MODEL_TASKS}
                 onChange={setStillSelection}
               />
               {entityIds.length > 0 && (
-                <EntityStillModelWarning modelId={stillSelection?.id} />
+                <EntityStillModelWarning
+                  modelId={stillSelection?.id}
+                  provider={stillSelection?.provider}
+                />
               )}
             </FormField>
             <RenderCostSummary estimate={stillsCost} />
@@ -1218,6 +1222,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               >
                 <VideoModelSelect
                   value={clipSelections[task]?.id ?? ""}
+                  provider={clipSelections[task]?.provider}
                   task={task}
                   onChange={(value) =>
                     setClipSelections((current) => ({

@@ -418,6 +418,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
             {kind === "video" ? (
               <VideoModelSelect
                 value={clip.model ?? ""}
+                provider={clip.provider}
                 task="text_to_video"
                 onChange={handleVideoModelChange}
               />
@@ -454,6 +455,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
             ) : (
               <ImageModelSelect
                 value={clip.model ?? ""}
+                provider={clip.provider}
                 task={isImageToImage ? "image_to_image" : "text_to_image"}
                 onChange={handleModelChange}
               />

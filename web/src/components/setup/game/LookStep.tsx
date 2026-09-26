@@ -321,6 +321,7 @@ export const GameImageModelFooterField: React.FC<{
     <SetupFooterField label="Images">
       <ImageModelSelect
         value={splitTileId(row.selectedId)?.id ?? ""}
+        provider={splitTileId(row.selectedId)?.provider}
         task={IMAGE_MODEL_TASKS}
         onChange={handleChange}
         disabled={readOnly}

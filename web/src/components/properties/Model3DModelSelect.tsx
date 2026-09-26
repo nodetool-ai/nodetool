@@ -51,6 +51,7 @@ const ModelMenuItem = React.memo<ModelMenuItemProps>(
   },
   (prevProps, nextProps) =>
     prevProps.model.id === nextProps.model.id &&
+    prevProps.model.provider === nextProps.model.provider &&
     prevProps.model.name === nextProps.model.name &&
     prevProps.isSelected === nextProps.isSelected
 );
@@ -59,12 +60,14 @@ ModelMenuItem.displayName = "ModelMenuItem";
 interface Model3DModelSelectProps {
   onChange: (value: Model3DModelValue) => void;
   value: string;
+  provider?: string;
   task?: "text_to_3d" | "image_to_3d";
 }
 
 const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
   onChange,
   value,
+  provider,
   task
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -109,8 +112,10 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
     if (!models || !value) {
       return null;
     }
-    return models.find((m) => m.id === value);
-  }, [models, value]);
+    return models.find(
+      (m) => m.id === value && (!provider || m.provider === provider)
+    );
+  }, [models, value, provider]);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -193,7 +198,9 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
               <ModelMenuItem
                 key={model.id}
                 model={model}
-                isSelected={model.id === value}
+                isSelected={
+                  model.id === value && (!provider || model.provider === provider)
+                }
                 onSelect={handleModelSelect}
               />
             ))}

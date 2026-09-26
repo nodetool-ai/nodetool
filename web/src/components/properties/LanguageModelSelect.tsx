@@ -50,14 +50,9 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
     if (!fetchedModels || !value) {
       return null;
     }
-    const matches = fetchedModels.filter((m) => m.id === value);
-    if (provider) {
-      const exact = matches.find((m) => m.provider === provider);
-      if (exact) {
-        return exact;
-      }
-    }
-    return matches[0] ?? null;
+    return fetchedModels.find(
+      (m) => m.id === value && (!provider || m.provider === provider)
+    ) ?? null;
   }, [fetchedModels, value, provider]);
 
   return (

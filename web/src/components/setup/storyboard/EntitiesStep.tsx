@@ -371,6 +371,7 @@ export const EntitiesStep = ({
               >
                 <ImageModelSelect
                   value={board?.imageModel?.id ?? ""}
+                  provider={board?.imageModel?.provider}
                   task="text_to_image"
                   onChange={(model) => {
                     if (!readOnly) {

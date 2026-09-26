@@ -110,6 +110,7 @@ const ModelSelect: React.FC<{
         <ImageModelSelect
           onChange={onChange}
           value={modelId}
+          provider={modelValue?.provider}
           task={input.task as ImageModelTask | ImageModelTask[] | undefined}
         />
       );
@@ -118,13 +119,20 @@ const ModelSelect: React.FC<{
         <VideoModelSelect
           onChange={onChange}
           value={modelId}
+          provider={modelValue?.provider}
           task={input.task as VideoModelTask | VideoModelTask[] | undefined}
         />
       );
     case "tts_model":
       return <TTSModelSelect onChange={onChange} value={modelId} />;
     case "asr_model":
-      return <ASRModelSelect onChange={onChange} value={modelId} />;
+      return (
+        <ASRModelSelect
+          onChange={onChange}
+          value={modelId}
+          provider={modelValue?.provider}
+        />
+      );
     case "music_model":
       return (
         <MusicModelSelect
@@ -145,7 +153,13 @@ const ModelSelect: React.FC<{
         />
       );
     default:
-      return <EmbeddingModelSelect onChange={onChange} value={modelId} />;
+      return (
+        <EmbeddingModelSelect
+          onChange={onChange}
+          value={modelId}
+          provider={modelValue?.provider}
+        />
+      );
   }
 };
 

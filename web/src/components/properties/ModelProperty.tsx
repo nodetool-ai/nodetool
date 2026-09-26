@@ -145,6 +145,7 @@ const ModelProperty = (props: PropertyProps) => {
         <EmbeddingModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
+          provider={props.value?.provider}
           allowedProviders={lockedProviders}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
@@ -155,6 +156,7 @@ const ModelProperty = (props: PropertyProps) => {
         <ImageModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
+          provider={props.value?.provider}
           task={imageTask}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
@@ -192,6 +194,7 @@ const ModelProperty = (props: PropertyProps) => {
         <ASRModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
+          provider={props.value?.provider}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
         />
@@ -201,6 +204,7 @@ const ModelProperty = (props: PropertyProps) => {
         <VideoModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
+          provider={props.value?.provider}
           task={videoTask}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
@@ -211,6 +215,7 @@ const ModelProperty = (props: PropertyProps) => {
         <Model3DModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
+          provider={props.value?.provider}
           task={model3dTask}
         />
       );

@@ -58,10 +58,10 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
       return null;
     }
     // Prefer (provider, id) match — same model id can exist across providers.
-    const exact = modelProvider
-      ? models.find((m) => m.id === modelId && m.provider === modelProvider)
-      : null;
-    return exact ?? models.find((m) => m.id === modelId) ?? null;
+    return models.find(
+      (m) =>
+        m.id === modelId && (!modelProvider || m.provider === modelProvider)
+    ) ?? null;
   }, [models, modelId, modelProvider]);
 
   // Voices come from the live model list when available, otherwise fall back

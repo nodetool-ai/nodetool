@@ -301,7 +301,10 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       // text and routes the reference images into the provider call.
       // Otherwise season descriptors client-side only.
       const stillModel = model?.id
-        ? imageModels.find((candidate) => candidate.id === model.id)
+        ? imageModels.find(
+            (candidate) =>
+              candidate.id === model.id && candidate.provider === model.provider
+          )
         : undefined;
       const useEditModel =
         hasReferenceImage(entities) &&

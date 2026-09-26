@@ -145,6 +145,7 @@ const GenerateReferenceDialog = ({
         >
           <ImageModelSelect
             value={model}
+            provider={provider}
             task="text_to_image"
             onChange={handleModelChange}
           />

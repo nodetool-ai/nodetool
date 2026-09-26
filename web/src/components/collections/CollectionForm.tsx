@@ -123,10 +123,15 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
     );
   }, [formData.name, formData.embedding_model, createMutation.isPending]);
 
-  const handleEmbeddingModelChange = (model: { type: string; id: string }) => {
-    setFormData((prev: { name: string; embedding_model: string }) => ({
+  const handleEmbeddingModelChange = (model: {
+    type: string;
+    id: string;
+    provider: string;
+  }) => {
+    setFormData((prev) => ({
       ...prev,
-      embedding_model: model.id
+      embedding_model: model.id,
+      embedding_provider: model.provider
     }));
   };
 
@@ -172,6 +177,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
         >
           <EmbeddingModelSelect
             value={formData.embedding_model}
+            provider={formData.embedding_provider ?? undefined}
             onChange={handleEmbeddingModelChange}
           />
         </FormField>

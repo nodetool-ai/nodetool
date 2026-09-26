@@ -16,6 +16,7 @@ interface EmbeddingModelSelection {
 interface EmbeddingModelSelectProps {
   onChange: (value: EmbeddingModelSelection) => void;
   value: string;
+  provider?: string;
   allowedProviders?: string[];
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
@@ -24,6 +25,7 @@ interface EmbeddingModelSelectProps {
 const EmbeddingModelSelect: React.FC<EmbeddingModelSelectProps> = ({
   onChange,
   value,
+  provider,
   allowedProviders,
   recommendedModels,
   modelPacks
@@ -37,8 +39,10 @@ const EmbeddingModelSelect: React.FC<EmbeddingModelSelectProps> = ({
 
   const currentSelectedModelDetails = React.useMemo(() => {
     if (!fetchedModels || !value) { return null; }
-    return fetchedModels.find((m) => m.id === value);
-  }, [fetchedModels, value]);
+    return fetchedModels.find(
+      (m) => m.id === value && (!provider || m.provider === provider)
+    );
+  }, [fetchedModels, value, provider]);
 
   return (
     <>

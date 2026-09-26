@@ -193,6 +193,7 @@ export const LookFooterControls: React.FC<{
   const select = (
     <ImageModelSelect
       value={imageModel?.id ?? ""}
+      provider={imageModel?.provider}
       task={STILL_MODEL_TASKS}
       onChange={handleChange}
       disabled={readOnly}

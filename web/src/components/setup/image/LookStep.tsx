@@ -361,6 +361,7 @@ export const ImageModelFooterField: React.FC<{
     <SetupFooterField label="Model">
       <ImageModelSelect
         value={look.model}
+        provider={look.provider}
         onChange={handleModel}
         task="text_to_image"
         disabled={readOnly}
