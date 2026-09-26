@@ -16,6 +16,7 @@ import { useAssetStore } from "../../../stores/AssetStore";
 import { useAssetRevision } from "../../../stores/AssetRevisionStore";
 import { sharedAssetRequest } from "./sharedAssetRequest";
 import { getAssetMediaUrl } from "../../../utils/assetHelpers";
+import { packageClipMediaUrl } from "../packageClipMedia";
 
 export function useAssetUrl(assetId: string | undefined): string | undefined {
   const getAsset = useAssetStore((s) => s.get);
@@ -25,6 +26,11 @@ export function useAssetUrl(assetId: string | undefined): string | undefined {
   useEffect(() => {
     if (!assetId) {
       setUrl(undefined);
+      return;
+    }
+    const packageUrl = packageClipMediaUrl(assetId);
+    if (packageUrl) {
+      setUrl(packageUrl);
       return;
     }
     let cancelled = false;

@@ -114,6 +114,7 @@ import { PreviewRecovery } from "./PreviewRecovery";
 import { watchVideoHealth } from "./videoHealth";
 import { watchVideoProxy } from "./videoProxyWatch";
 import { type PreviewFailureHandler } from "./previewFailure";
+import { packageClipMediaUrl } from "../packageClipMedia";
 
 interface PlaceholderLayer {
   clipId: string;
@@ -403,6 +404,10 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     (assetId: string | undefined): string | undefined => {
       if (!assetId) {
         return undefined;
+      }
+      const packageUrl = packageClipMediaUrl(assetId);
+      if (packageUrl) {
+        return packageUrl;
       }
       const cached = assetUrlCache.current.get(assetId);
       if (cached) {

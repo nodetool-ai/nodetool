@@ -315,7 +315,12 @@ async function checkTimeline(file) {
     }
   }
   if (parsed.data.clips.length === 0) problems.push("timeline has no clips");
-  for (const uri of [bundle.videoUri, bundle.posterUri]) {
+  // The video, the poster, and every package still a clip names: an installed
+  // copy keeps those references verbatim.
+  const clipMedia = parsed.data.clips
+    .map((clip) => clip.currentAssetId)
+    .filter((id) => typeof id === "string" && id.startsWith("package://"));
+  for (const uri of [bundle.videoUri, bundle.posterUri, ...new Set(clipMedia)]) {
     const match = /^package:\/\/([^/]+)\/(.+)$/.exec(uri ?? "");
     if (!match || match[2].split("/").some((part) => part === ".." || part === ".")) {
       problems.push(`invalid package media: ${uri}`);

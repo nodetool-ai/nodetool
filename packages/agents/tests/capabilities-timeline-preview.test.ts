@@ -8,6 +8,9 @@
  * only asserted "a PNG came back" would pass on a black frame.
  */
 
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { initTestDb, ModelObserver } from "@nodetool-ai/models";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
@@ -17,7 +20,7 @@ import type {
   TimelineTrack
 } from "@nodetool-ai/timeline";
 
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { ProcessingContext } from "@nodetool-ai/runtime";
 
 import { resolveAnimatedLayerProps } from "@nodetool-ai/timeline/scene";
 
@@ -919,6 +922,56 @@ describe("preview_timeline_frame", () => {
       range: { from_ms: 0, to_ms: 4000, count: 25 }
     });
     expect(String(result.error)).toContain("at most 24");
+  });
+});
+
+/**
+ * A shipped example names its stills as `package://` URIs, so the reference
+ * resolves for every user without an asset row. The capability wrapped every
+ * clip reference as `asset://<id>`, which turned the URI into an id no store
+ * holds and dropped the clip from the frame.
+ */
+describe("preview_timeline_frame with a package:// still", () => {
+  let root: string;
+  beforeEach(async () => {
+    root = await mkdtemp(path.join(os.tmpdir(), "package-assets-"));
+  });
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("draws the still the package asset directory holds", async () => {
+    const canvas = createCanvas(64, 36);
+    const ctx2d = canvas.getContext("2d");
+    ctx2d.fillStyle = "#ff0000";
+    ctx2d.fillRect(0, 0, 64, 36);
+    await mkdir(path.join(root, "nodetool-base", "stills"), { recursive: true });
+    await writeFile(path.join(root, "nodetool-base", "stills", "red.png"), canvas.toBuffer("image/png"));
+
+    const context = new ProcessingContext({
+      jobId: "preview-package-still",
+      userId: "u1",
+      environment: { NODETOOL_PACKAGE_ASSETS_DIR: root }
+    });
+    const still = {
+      ...shapeClip("still", "track-0", "#000000"),
+      mediaType: "image",
+      currentAssetId: "package://nodetool-base/stills/red.png"
+    } as TimelineClip;
+    delete still.shapeStyle;
+    const result = (await toolForCapabilityName("preview_timeline_frame").process(context, {
+      document: { tracks: [track(0)], clips: [still], markers: [] },
+      times_ms: [1000],
+      width: 160,
+      width_px: 640,
+      height_px: 360
+    })) as Record<string, unknown>;
+
+    expect(result.error).toBeUndefined();
+    const frame = (result.frames as Array<Record<string, unknown>>)[0];
+    const layers = frame?.layers as Array<{ clip_id: string; skipped?: string }>;
+    expect(layers).toHaveLength(1);
+    expect(layers[0]?.skipped).toBeUndefined();
   });
 });
 

@@ -344,7 +344,10 @@ export function verifyBackendBundle(bundleDir) {
         errors.push(`examples/timelines/${file} is not readable: ${err.message}`);
         continue;
       }
-      for (const uri of [bundle.videoUri, bundle.posterUri]) {
+      const clipMedia = (bundle.document?.clips ?? [])
+        .map((clip) => clip.currentAssetId)
+        .filter((id) => typeof id === "string" && id.startsWith("package://"));
+      for (const uri of [bundle.videoUri, bundle.posterUri, ...new Set(clipMedia)]) {
         const match = /^package:\/\/([^/]+)\/(.+)$/.exec(uri ?? "");
         const asset = match && path.join(bundleDir, "assets", match[1], ...match[2].split("/"));
         if (!asset || !existsSync(asset)) {

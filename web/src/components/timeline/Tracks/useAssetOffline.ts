@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { isPackageAssetUri } from "@nodetool-ai/protocol";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useAssetRevision } from "../../../stores/AssetRevisionStore";
 import { sharedAssetRequest } from "./sharedAssetRequest";
@@ -19,7 +20,8 @@ export function useAssetOffline(assetId: string | undefined): boolean {
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
-    if (!assetId) {
+    // A shipped `package://` still has no asset row and no file to relink.
+    if (!assetId || isPackageAssetUri(assetId)) {
       setOffline(false);
       return;
     }
