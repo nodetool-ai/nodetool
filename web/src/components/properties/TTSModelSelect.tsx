@@ -23,13 +23,16 @@ interface TTSModelSelectProps {
   value: string | TTSModelValue; // Can be string (legacy) or TTSModelValue object
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
+  /** Names the voice control; a form with several of these tells them apart. */
+  voiceLabel?: string;
 }
 
 const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
   onChange,
   value,
   recommendedModels,
-  modelPacks
+  modelPacks,
+  voiceLabel = "Voice"
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -174,7 +177,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
     return (
       <CuratedModelSelect
         capability="text_to_speech"
-        label="Voice"
+        label={voiceLabel}
         options={STUDIO_VOICES}
         value={selectedVoice}
         onChange={onChange}
@@ -200,7 +203,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
           value={selectedVoice || availableVoices[0] || ""}
           onChange={handleVoiceChange}
           placeholder="Select voice"
-          label="Voice"
+          label={voiceLabel}
         />
       )}
 

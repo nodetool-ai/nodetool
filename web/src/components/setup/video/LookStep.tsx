@@ -24,16 +24,19 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  FormField,
   GAP,
   LabeledSwitch,
   LoadingSpinner,
   SelectField,
   Text
 } from "../../ui_primitives";
-import type { SelectOption } from "../../ui_primitives";
 import { SETUP_FIELD_WIDTH } from "../layout";
 import { ASPECT_OPTIONS, aspectOf } from "../../storyboard/aspectOptions";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
+import VideoModelSelect from "../../properties/VideoModelSelect";
+import TTSModelSelect from "../../properties/TTSModelSelect";
+import type { TTSModelValue, VideoModelValue } from "../../../stores/ApiTypes";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useLastModelStore } from "../../../stores/lastModelStore";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
@@ -49,7 +52,6 @@ import { videoFormatById } from "./formats";
 import { useModelSamples } from "../modelSamples";
 import {
   isAvailable,
-  reportedKey,
   useClipModelAvailability,
   useVoiceAvailability,
   type CuratedAvailability
@@ -509,55 +511,29 @@ const LookStepInternal: React.FC<LookStepProps> = ({
   const curatedModelOffered = modelTiles.some((tile) => !tile.disabled);
   const curatedVoiceOffered = voiceTiles.some((tile) => !tile.disabled);
 
-  const reportedModelOptions = useMemo<SelectOption[]>(
-    () =>
-      clipModels.reported.map((option) => ({
-        value: reportedKey(option),
-        label: option.label
-      })),
-    [clipModels.reported]
-  );
-  const reportedVoiceOptions = useMemo<SelectOption[]>(
-    () =>
-      voices.reported.map((option) => ({
-        value: reportedKey(option),
-        label: option.label
-      })),
-    [voices.reported]
-  );
-
-  // A stored pick the catalog does not list is shown as no pick, so the field
-  // never displays a value its own options cannot explain.
-  const reportedModelValue = useMemo(() => {
-    const current = settings.video;
-    const match =
-      current &&
-      clipModels.reported.find(
-        (option) =>
-          option.modelId === current.model && option.provider === current.provider
-      );
-    return match ? reportedKey(match) : "";
-  }, [clipModels.reported, settings.video]);
-  const reportedVoiceValue = useMemo(() => {
+  // The fallback pickers are the shared model selects. The TTS select reads
+  // the voice off `selected_voice`, so the draft's pick is rebuilt as one.
+  const voiceValue = useMemo<TTSModelValue | "">(() => {
     const current = settings.voice;
-    const match =
-      current &&
-      voices.reported.find(
-        (option) =>
-          option.id === current.voice &&
-          option.modelId === current.model &&
-          option.provider === current.provider
-      );
-    return match ? reportedKey(match) : "";
-  }, [settings.voice, voices.reported]);
+    return current
+      ? {
+          type: "tts_model",
+          id: current.model,
+          provider: current.provider as TTSModelValue["provider"],
+          name: "",
+          voices: [],
+          selected_voice: current.voice
+        }
+      : "";
+  }, [settings.voice]);
 
   // The providers answered, nothing curated survived, and they offer nothing
   // of their own either: the fourth state, and the only one that is a gap in
   // the setup rather than in what this flow curates.
   const noCompatibleModel =
-    !curatedModelOffered && reportedModelOptions.length === 0;
+    !curatedModelOffered && clipModels.reported.length === 0;
   const noCompatibleVoice =
-    !curatedVoiceOffered && reportedVoiceOptions.length === 0;
+    !curatedVoiceOffered && voices.reported.length === 0;
 
   const pickedVoice = settings.voice?.voice;
   // The reason the final button is dead belongs beside the control that fixes
@@ -609,15 +585,8 @@ const LookStepInternal: React.FC<LookStepProps> = ({
   );
 
   const handleReportedModel = useCallback(
-    (key: string) => {
-      const picked = clipModels.reported.find(
-        (option) => reportedKey(option) === key
-      );
-      if (picked) {
-        applyModel(picked.provider, picked.modelId);
-      }
-    },
-    [applyModel, clipModels.reported]
+    (value: VideoModelValue) => applyModel(value.provider, value.id),
+    [applyModel]
   );
 
   const handleVoice = useCallback(
@@ -631,15 +600,9 @@ const LookStepInternal: React.FC<LookStepProps> = ({
   );
 
   const handleReportedVoice = useCallback(
-    (key: string) => {
-      const picked = voices.reported.find(
-        (option) => reportedKey(option) === key
-      );
-      if (picked) {
-        applyVoice(picked.provider, picked.modelId, picked.id);
-      }
-    },
-    [applyVoice, voices.reported]
+    (value: TTSModelValue) =>
+      applyVoice(value.provider, value.id, value.selected_voice),
+    [applyVoice]
   );
 
   return (
@@ -686,17 +649,19 @@ const LookStepInternal: React.FC<LookStepProps> = ({
             addOwnDisabledReason="The timeline's inspector offers every configured provider."
             reservePreview
           />
-        ) : reportedModelOptions.length > 0 ? (
-          <Box sx={{ maxWidth: SETUP_FIELD_WIDTH }}>
-            <SelectField
-              label="Video model"
-              hideLabel
-              value={reportedModelValue}
+        ) : clipModels.reported.length > 0 ? (
+          <FormField
+            label="Video model"
+            helperText="Every model your configured providers render clips with. You can change it in the editor."
+            sx={{ maxWidth: SETUP_FIELD_WIDTH }}
+          >
+            <VideoModelSelect
+              value={settings.video?.model ?? ""}
+              provider={settings.video?.provider}
+              task="text_to_video"
               onChange={handleReportedModel}
-              options={reportedModelOptions}
-              description="Every model your configured providers render clips with. You can change it in the editor."
             />
-          </Box>
+          </FormField>
         ) : null}
       </FlexColumn>
 
@@ -735,16 +700,17 @@ const LookStepInternal: React.FC<LookStepProps> = ({
               aspectRatio="1/1"
             />
           ) : null}
-          {voiceOn && !curatedVoiceOffered && reportedVoiceOptions.length > 0 ? (
-            <Box sx={{ maxWidth: SETUP_FIELD_WIDTH }}>
-              <SelectField
-                label="Voice"
-                value={reportedVoiceValue}
+          {voiceOn && !curatedVoiceOffered && voices.reported.length > 0 ? (
+            <FormField
+              label="Voice model"
+              helperText="Every voice your configured providers read lines with."
+              sx={{ maxWidth: SETUP_FIELD_WIDTH }}
+            >
+              <TTSModelSelect
+                value={voiceValue}
                 onChange={handleReportedVoice}
-                options={reportedVoiceOptions}
-                description="Every voice your configured providers read lines with."
               />
-            </Box>
+            </FormField>
           ) : null}
         </FlexColumn>
       ) : null}

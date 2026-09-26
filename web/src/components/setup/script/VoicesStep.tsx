@@ -1,10 +1,10 @@
 /**
  * Step 3 of the script flow — the voices (PRD § 9.3).
  *
- * One row of TTS model and voice dropdowns per speaker in the cast. The voice
- * can be heard after it is chosen: pressing `Hear this voice` reads that
- * speaker's own first line, so the choice is made on the words the creator
- * wrote rather than on a stock sample. Each sample is one TTS call, made when
+ * One shared TTS model picker, with its voice dropdown, per speaker in the
+ * cast. The voice can be heard after it is chosen: pressing `Hear this voice`
+ * reads that speaker's own first line, so the choice is made on the words the
+ * creator wrote rather than on a stock sample. Each sample is one TTS call, made when
  * it is asked for and kept for the session (`useVoiceSamples`).
  *
  * Picking a voice binds it through the same handler
@@ -30,10 +30,12 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  FormField,
   GAP,
   SelectField,
   Text
 } from "../../ui_primitives";
+import TTSModelSelect from "../../properties/TTSModelSelect";
 import { getScriptAgentHandler } from "../../../components/script/scriptAgentBridge";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import {
@@ -46,6 +48,7 @@ import {
   paceSpeed,
   providerAppliesPace
 } from "../../../hooks/script/scriptPace";
+import type { TTSModelValue } from "../../../stores/ApiTypes";
 import { getModelUnitPrice } from "../../../utils/modelUnitPricing";
 import type { BugReportContext } from "../../../utils/bugReportBundle";
 import ReportBugButton from "../../support/ReportBugButton";
@@ -122,37 +125,6 @@ const auditionCost = (
     : `about ${formatUsd(low)}–${formatUsd(high)} each`;
 };
 
-interface SetupVoiceModel {
-  id: string;
-  label: string;
-  provider: string;
-  model: string;
-  voices: readonly SetupVoice[];
-}
-
-const voiceModelId = (voice: Pick<SetupVoice, "provider" | "model">): string =>
-  `${voice.provider}:${voice.model}`;
-
-const groupVoiceModels = (voices: readonly SetupVoice[]): SetupVoiceModel[] => {
-  const grouped = new Map<string, SetupVoiceModel>();
-  for (const voice of voices) {
-    const id = voiceModelId(voice);
-    const current = grouped.get(id);
-    if (current) {
-      current.voices = [...current.voices, voice];
-      continue;
-    }
-    grouped.set(id, {
-      id,
-      label: `${voice.modelLabel} (${voice.provider})`,
-      provider: voice.provider,
-      model: voice.model,
-      voices: [voice]
-    });
-  }
-  return [...grouped.values()];
-};
-
 interface SpeakerVoiceRowProps {
   scriptId: string;
   speaker: ScriptSpeaker;
@@ -171,63 +143,58 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
   speed
 }) => {
   const { sampleFor, play, spokenText } = useVoiceSamples(speed);
-  const models = useMemo(() => groupVoiceModels(voices), [voices]);
-  const selectedVoice = voices.find(
-    (voice) =>
-      speaker.voice?.model === voice.model &&
-      speaker.voice.voice === voice.voice &&
-      speaker.voice.provider === voice.provider
-  );
-  const selectedModel = models.find(
-    (model) =>
-      speaker.voice?.model === model.model &&
-      speaker.voice.provider === model.provider
-  );
-  const modelOptions = useMemo(
-    () => [
-      { value: "", label: "Choose a model" },
-      ...models.map((model) => ({ value: model.id, label: model.label }))
-    ],
-    [models]
-  );
-  const voiceOptions = useMemo(
-    () => [
-      { value: "", label: "Choose a voice" },
-      ...(selectedModel?.voices.map((voice) => ({
-        value: voice.id,
-        label: voice.label
-      })) ?? [])
-    ],
-    [selectedModel]
-  );
-
-  const bindVoice = useCallback(
-    (voice: SetupVoice) => {
-      getScriptAgentHandler(scriptId).setSpeakerVoice(speaker.id, {
-        provider: voice.provider,
-        model: voice.model,
-        voice: voice.voice
-      });
-    },
-    [scriptId, speaker.id]
+  const bound = speaker.voice;
+  // A bound voice the list does not carry (still loading, or a provider that
+  // dropped it) is still the speaker's voice, so it stays playable.
+  const selectedVoice = useMemo<SetupVoice | undefined>(() => {
+    if (!bound?.voice) {
+      return undefined;
+    }
+    return (
+      voices.find(
+        (voice) =>
+          voice.model === bound.model &&
+          voice.voice === bound.voice &&
+          voice.provider === bound.provider
+      ) ?? {
+        id: `${bound.provider}:${bound.model}:${bound.voice}`,
+        label: bound.voice,
+        modelLabel: bound.model,
+        provider: bound.provider,
+        model: bound.model,
+        voice: bound.voice
+      }
+    );
+  }, [bound, voices]);
+  // The TTS select reads the voice off `selected_voice`, so the binding is
+  // rebuilt as its value.
+  const modelValue = useMemo<TTSModelValue | "">(
+    () =>
+      bound
+        ? {
+            type: "tts_model",
+            id: bound.model,
+            provider: bound.provider as TTSModelValue["provider"],
+            name: "",
+            voices: [],
+            selected_voice: bound.voice
+          }
+        : "",
+    [bound]
   );
 
   const selectModel = useCallback(
-    (id: string) => {
-      const picked = models.find((model) => model.id === id)?.voices[0];
-      if (!picked) return;
-      bindVoice(picked);
+    (value: TTSModelValue) => {
+      if (!value.selected_voice) {
+        return;
+      }
+      getScriptAgentHandler(scriptId).setSpeakerVoice(speaker.id, {
+        provider: value.provider,
+        model: value.id,
+        voice: value.selected_voice
+      });
     },
-    [bindVoice, models]
-  );
-
-  const selectVoice = useCallback(
-    (id: string) => {
-      const picked = selectedModel?.voices.find((voice) => voice.id === id);
-      if (!picked) return;
-      bindVoice(picked);
-    },
-    [bindVoice, selectedModel]
+    [scriptId, speaker.id]
   );
 
   const spoken = spokenText(line);
@@ -278,19 +245,13 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
         ) : null}
       </FlexColumn>
       <FlexRow gap={GAP.comfortable} wrap align="flex-end">
-        <SelectField
-          label={`TTS model for ${speaker.name}`}
-          value={selectedModel?.id ?? ""}
-          options={modelOptions}
-          onChange={selectModel}
-        />
-        <SelectField
-          label={`Voice for ${speaker.name}`}
-          value={selectedVoice?.id ?? ""}
-          options={voiceOptions}
-          onChange={selectVoice}
-          disabled={!selectedModel}
-        />
+        <FormField label={`TTS model for ${speaker.name}`}>
+          <TTSModelSelect
+            value={modelValue}
+            onChange={selectModel}
+            voiceLabel={`Voice for ${speaker.name}`}
+          />
+        </FormField>
         {hasLine ? (
           <EditorButton
             variant="outlined"
