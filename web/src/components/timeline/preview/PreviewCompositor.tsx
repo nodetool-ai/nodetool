@@ -30,7 +30,8 @@ import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlayb
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { useAssetStore } from "../../../stores/AssetStore";
-import { getAssetUrl } from "../../../utils/assetHelpers";
+import { useAssetRevisionStore } from "../../../stores/AssetRevisionStore";
+import { getAssetMediaUrl } from "../../../utils/assetHelpers";
 import {
   FONT_SIZE_SANS,
   FONT_WEIGHT,
@@ -342,6 +343,27 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   const [urlCacheVersion, setUrlCacheVersion] = useState(0);
   const getAsset = useAssetStore((s) => s.get);
 
+  // A relink keeps the asset id but moves its media URL to the new file's
+  // version. Drop the resolved entry so the next frame resolves it again.
+  const assetRevisions = useAssetRevisionStore((s) => s.revisions);
+  const seenRevisions = useRef(assetRevisions);
+  useEffect(() => {
+    const previous = seenRevisions.current;
+    seenRevisions.current = assetRevisions;
+    let changed = false;
+    for (const [assetId, revision] of Object.entries(assetRevisions)) {
+      if (
+        previous[assetId] !== revision &&
+        assetUrlCache.current.delete(assetId)
+      ) {
+        changed = true;
+      }
+    }
+    if (changed) {
+      setUrlCacheVersion((v) => v + 1);
+    }
+  }, [assetRevisions]);
+
   const resolveUrl = useCallback(
     (assetId: string | undefined): string | undefined => {
       if (!assetId) {
@@ -357,7 +379,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       getAsset(assetId)
         .then((asset) => {
           if (!alive.current) return;
-          const url = getAssetUrl(asset);
+          const url = getAssetMediaUrl(asset);
           if (url) {
             assetUrlCache.current.set(assetId, { status: "resolved", url });
             setUrlCacheVersion((v) => v + 1);

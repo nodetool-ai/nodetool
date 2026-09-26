@@ -230,6 +230,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
     elsewhere:
       "Walk the tree with list_assets, which takes a parent."
   },
+  "assets.relinkExternal": {
+    withheld:
+      "Relinking stores a new host path on an asset, the same standing " +
+      "read capability as creating an external reference. Only the " +
+      "desktop renderer, acting on a file the user picked, may do it."
+  },
   "assets.search": { capability: "asset_search" },
   "assets.update": { capability: "update_asset" },
   "codeGen.generate": {

@@ -36,6 +36,7 @@ import {
   externalAssetsAvailable,
   getExternalAssetThresholdBytes
 } from "../../lib/external-assets.js";
+import { EXTERNAL_FINGERPRINT_KEYS } from "../../lib/external-asset-lookup.js";
 import {
   localPathDenialMessage,
   resolveLocalPath
@@ -59,6 +60,8 @@ import {
   createUploadOutput,
   createExternalInput,
   createExternalOutput,
+  relinkExternalInput,
+  relinkExternalOutput,
   externalImportConfigOutput,
   finalizeUploadInput,
   finalizeUploadOutput,
@@ -211,6 +214,63 @@ function assertWritable(asset: AssetModel): void {
   if (problem) {
     throwApiError(ApiErrorCode.FORBIDDEN, problem);
   }
+}
+
+const EXTERNAL_ASSETS_UNAVAILABLE =
+  "External asset references need the local file store and are disabled in production";
+
+/**
+ * Validate a path offered for an in-place reference (R5): absolute, inside
+ * the local file roots, and a regular file. Returns the resolved path and its
+ * stat. Used by `createExternal` and `relinkExternal`, the only two ways a
+ * path reaches a row.
+ */
+async function resolveExternalFile(
+  path: string
+): Promise<{ path: string; size: number; mtimeMs: number }> {
+  if (!externalAssetsAvailable()) {
+    throwApiError(ApiErrorCode.FORBIDDEN, EXTERNAL_ASSETS_UNAVAILABLE);
+  }
+  if (!isAbsolute(path)) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Path must be absolute");
+  }
+  const resolved = await resolveLocalPath(path);
+  if (!resolved.ok) {
+    throwApiError(ApiErrorCode.FORBIDDEN, localPathDenialMessage(resolved.reason));
+  }
+  const fileStat = await stat(resolved.path).catch(() => null);
+  if (!fileStat) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "File not found");
+  }
+  if (!fileStat.isFile()) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Path is not a file");
+  }
+  return {
+    path: resolved.path,
+    size: fileStat.size,
+    mtimeMs: fileStat.mtimeMs
+  };
+}
+
+/**
+ * `next` with the external file fingerprint (`external_size`,
+ * `external_mtime`) taken from `current`. Offline detection compares the file
+ * against these, so only import and relink may write them.
+ */
+function withExternalFingerprint(
+  next: Record<string, unknown>,
+  current: Record<string, unknown> | null
+): Record<string, unknown> {
+  const owned = new Set<string>(EXTERNAL_FINGERPRINT_KEYS);
+  const merged = Object.fromEntries(
+    Object.entries(next).filter(([key]) => !owned.has(key))
+  );
+  for (const key of EXTERNAL_FINGERPRINT_KEYS) {
+    if (current && key in current) {
+      merged[key] = current[key];
+    }
+  }
+  return merged;
 }
 
 export const assetsRouter = router({
@@ -438,42 +498,39 @@ export const assetsRouter = router({
     .input(createExternalInput)
     .output(createExternalOutput)
     .mutation(async ({ ctx, input }) => {
-      if (!externalAssetsAvailable()) {
-        throwApiError(
-          ApiErrorCode.FORBIDDEN,
-          "External asset references need the local file store and are disabled in production"
-        );
-      }
-      if (!isAbsolute(input.path)) {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Path must be absolute");
-      }
-      const resolved = await resolveLocalPath(input.path);
-      if (!resolved.ok) {
-        throwApiError(
-          ApiErrorCode.FORBIDDEN,
-          localPathDenialMessage(resolved.reason)
-        );
-      }
-      const fileStat = await stat(resolved.path).catch(() => null);
-      if (!fileStat) {
-        throwApiError(ApiErrorCode.NOT_FOUND, "File not found");
-      }
-      if (!fileStat.isFile()) {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Path is not a file");
-      }
-      if (input.project_id && input.project_id !== "default") {
-        if (!(await Project.findOwned(ctx.userId, input.project_id))) {
+      const file = await resolveExternalFile(input.path);
+      const projectId = input.project_id ?? "default";
+      if (projectId !== "default") {
+        if (!(await Project.findOwned(ctx.userId, projectId))) {
           throwApiError(ApiErrorCode.INVALID_INPUT, "Project not found");
         }
       }
 
-      const name = input.name ?? basename(resolved.path);
+      // A second import of the same, unchanged file into the same project
+      // returns the row the first one made (R4). A row whose file changed
+      // since is offline, so it is not reused.
+      for (const existing of await Asset.findByExternalPath(
+        ctx.userId,
+        file.path
+      )) {
+        const meta = existing.metadata ?? {};
+        if (
+          existing.project_id === projectId &&
+          meta["external_size"] === file.size &&
+          meta["external_mtime"] === file.mtimeMs
+        ) {
+          log.info("external asset reused", { assetId: existing.id });
+          return toAssetResponse(existing);
+        }
+      }
+
+      const name = input.name ?? basename(file.path);
       const contentType = normalizeAssetContentType(
         input.content_type ?? "",
         name
       );
       const duration = await probeAssetDurationSeconds(contentType, {
-        path: resolved.path
+        path: file.path
       });
 
       const asset = await Asset.create({
@@ -482,24 +539,99 @@ export const assetsRouter = router({
         content_type: contentType,
         parent_id: input.parent_id || ctx.userId,
         workflow_id: input.workflow_id ?? null,
-        project_id: input.project_id ?? "default",
-        size: fileStat.size,
+        project_id: projectId,
+        size: file.size,
         duration,
-        external_path: resolved.path,
+        external_path: file.path,
         // Recorded to detect a file changed or replaced after import.
         metadata: {
-          external_size: fileStat.size,
-          external_mtime: fileStat.mtimeMs
+          external_size: file.size,
+          external_mtime: file.mtimeMs
         }
       });
       log.info("external asset created", {
         assetId: asset.id,
         contentType,
-        bytes: fileStat.size
+        bytes: file.size
       });
 
       // The adapter resolves the new row to its in-place file, so ffmpeg or
       // sharp reads it by path and a file of any size gets a thumbnail.
+      await generateThumbnailForStoredAsset(
+        asset.user_id,
+        asset.id,
+        asset.content_type
+      );
+
+      return toAssetResponse(asset);
+    }),
+
+  /**
+   * Point an in-place asset at another file: a moved, renamed, or remounted
+   * original, or the same path after the file changed. The id and `get_url`
+   * stay the same (D5). The path is validated again (R5), and the new size,
+   * mtime, and duration are recorded before the thumbnail is regenerated.
+   */
+  relinkExternal: protectedProcedure
+    .input(relinkExternalInput)
+    .output(relinkExternalOutput)
+    .mutation(async ({ ctx, input }) => {
+      const asset = await Asset.find(ctx.userId, input.id);
+      if (!asset) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
+      }
+      assertWritable(asset);
+      if (!asset.external_path) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          "Only an asset that references a file in place can be relinked"
+        );
+      }
+      const file = await resolveExternalFile(input.path);
+
+      // The URL's extension comes from the content type, so it stays. A file
+      // of another media kind (audio for a video clip) is refused. A name
+      // with no known type is accepted.
+      const kind = (type: string) => type.split("/")[0];
+      const offered = normalizeAssetContentType("", basename(file.path));
+      if (
+        offered !== "application/octet-stream" &&
+        kind(offered) !== kind(asset.content_type)
+      ) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          `The new file is ${offered}, but this asset is ${asset.content_type}`
+        );
+      }
+
+      asset.external_path = file.path;
+      asset.size = file.size;
+      asset.duration = await probeAssetDurationSeconds(asset.content_type, {
+        path: file.path
+      });
+      asset.metadata = {
+        ...asset.metadata,
+        external_size: file.size,
+        external_mtime: file.mtimeMs
+      };
+      await asset.save();
+      log.info("external asset relinked", {
+        assetId: asset.id,
+        bytes: file.size
+      });
+
+      // Drop the previous file's thumbnail first, so a new file that yields
+      // none does not keep showing the old one.
+      const adapter = getAssetAdapter();
+      for (const key of assetKeyCandidates(
+        asset.user_id,
+        thumbnailKey(asset.id)
+      )) {
+        const uri = adapter.uriForKey(key);
+        if (await adapter.exists(uri)) {
+          await adapter.delete(uri);
+        }
+      }
       await generateThumbnailForStoredAsset(
         asset.user_id,
         asset.id,
@@ -518,6 +650,15 @@ export const assetsRouter = router({
         throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
       }
       assertWritable(asset);
+      const isExternal = Boolean(asset.external_path);
+      if (isExternal && input.data != null) {
+        // New bytes would land under the storage root and shadow the
+        // referenced file, which the user still sees on disk.
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          "This asset references a file in place. Relink it to another file instead of replacing its data"
+        );
+      }
 
       if (input.name !== undefined) asset.name = input.name;
       if (input.content_type !== undefined) {
@@ -541,14 +682,19 @@ export const assetsRouter = router({
         await assertValidParent(ctx.userId, asset, input.parent_id);
         asset.parent_id = input.parent_id;
       }
-      if (input.metadata !== undefined) asset.metadata = input.metadata;
+      if (input.metadata !== undefined) {
+        asset.metadata = isExternal
+          ? withExternalFingerprint(input.metadata, asset.metadata)
+          : input.metadata;
+      }
       if (input.sketch_document_id !== undefined) {
         asset.sketch_document_id = input.sketch_document_id;
       }
       if (input.timeline_id !== undefined) {
         asset.timeline_id = input.timeline_id;
       }
-      if (input.size !== undefined) asset.size = input.size;
+      // An external asset's size is its file's, recorded by import or relink.
+      if (input.size !== undefined && !isExternal) asset.size = input.size;
 
       if (input.expected_metadata !== undefined && input.data != null) {
         throwApiError(

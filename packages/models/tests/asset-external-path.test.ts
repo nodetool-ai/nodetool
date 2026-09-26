@@ -41,6 +41,29 @@ describe("Asset.external_path", () => {
       external_mtime: 1_700_000_000_000
     });
   });
+
+  it("finds a user's rows by external path, and only that user's", async () => {
+    const mine = await Asset.create<Asset>({
+      user_id: "u1",
+      name: "clip.mp4",
+      content_type: "video/mp4",
+      external_path: "/media/clip.mp4"
+    });
+    await Asset.create<Asset>({
+      user_id: "u2",
+      name: "clip.mp4",
+      content_type: "video/mp4",
+      external_path: "/media/clip.mp4"
+    });
+    await Asset.create<Asset>({
+      user_id: "u1",
+      name: "other.mp4",
+      content_type: "video/mp4",
+      external_path: "/media/other.mp4"
+    });
+    const found = await Asset.findByExternalPath("u1", "/media/clip.mp4");
+    expect(found.map((a) => a.id)).toEqual([mine.id]);
+  });
 });
 
 describe("add_asset_external_path migration", () => {

@@ -407,6 +407,11 @@ export interface Asset {
   /** URL for thumbnail image (computed by API) */
   thumb_url: string | null;
   etag?: string | null;
+  /**
+   * Set only on an asset that references a local file in place: true when
+   * that file is missing or changed since import or relink.
+   */
+  offline?: boolean;
 }
 
 export interface AssetList {

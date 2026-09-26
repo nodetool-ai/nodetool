@@ -59,7 +59,7 @@ import { AudioGraph } from "./AudioGraph";
 import type { ScheduledAudioClip } from "./AudioGraph";
 import { getMidiClipBuffer } from "./midiRender";
 import { PreviewCompositor } from "./PreviewCompositor";
-import { getAssetUrl } from "../../../utils/assetHelpers";
+import { getAssetMediaUrl } from "../../../utils/assetHelpers";
 import { useCombo } from "../../../stores/KeyPressedStore";
 import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
 
@@ -433,7 +433,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         }
         try {
           const asset = await getAsset(clip.currentAssetId!);
-          const url = getAssetUrl(asset);
+          const url = getAssetMediaUrl(asset);
           return url ? { clip, assetUrl: url } : null;
         } catch {
           return null;

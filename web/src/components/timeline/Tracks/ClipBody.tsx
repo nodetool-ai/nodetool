@@ -3,7 +3,8 @@
  * ClipBody
  *
  * The rendered clip: selection ring, header strip, filmstrip / waveform /
- * image fill, animation markers, the two trim handles, lock and status badges.
+ * image fill, animation markers, the two trim handles, lock and status badges,
+ * and the "Media offline" badge for a missing in-place file.
  * Pure presentation — every handler comes in as a stable prop from `Clip`, so
  * the `memo` here holds across the parent's store-driven re-renders.
  */
@@ -47,6 +48,7 @@ import {
   selectFilmstripCells
 } from "./filmstripCells";
 import { useAssetUrl } from "./useAssetUrl";
+import { ClipMediaOffline } from "./ClipMediaOffline";
 import { openPersistedFold } from "../Inspector/usePersistedFold";
 
 const TRIM_HANDLE_WIDTH_PX = 8;
@@ -1112,6 +1114,13 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           data-testid={`clip-trim-end-${clipId}`}
           data-focus-id={`timeline-trim-end-${clipId}`}
         />
+
+        {(clip.mediaType === "video" ||
+          clip.mediaType === "overlay" ||
+          clip.mediaType === "image" ||
+          clip.mediaType === "audio") && (
+          <ClipMediaOffline assetId={clip.currentAssetId} />
+        )}
 
         {clip.locked && (
           <div css={lockIconStyles}>

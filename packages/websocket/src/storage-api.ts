@@ -314,13 +314,17 @@ async function handleStorageRequest(
 
   // An external asset keeps its bytes at the path its row records, outside
   // the storage root. Ownership was settled above; the MIME type follows the
-  // key, since the original file's extension need not match it.
+  // key, since the original file's extension need not match it. A missing or
+  // changed file resolves to nothing and answers 404: the asset is offline
+  // until relinked, and a changed file is never served under its URL.
   let mimeSource = filePath;
+  let isExternal = false;
   if (!(await pathExists(filePath))) {
     const external = await lookupExternalAssetPath(key).catch(() => null);
     if (external) {
       filePath = external;
       mimeSource = key;
+      isExternal = true;
     }
   }
 
@@ -363,7 +367,12 @@ async function handleStorageRequest(
   const contentType = getMimeType(mimeSource);
 
   // If-Modified-Since check
-  const ifModifiedSince = request.headers.get("If-Modified-Since");
+  // Skipped for an external file: a relink keeps the URL but can point it at
+  // a file with an older mtime, which this check would answer with the
+  // previous file's cached bytes.
+  const ifModifiedSince = isExternal
+    ? null
+    : request.headers.get("If-Modified-Since");
   if (ifModifiedSince) {
     const ifModifiedSinceDate = new Date(ifModifiedSince);
     if (

@@ -22,7 +22,13 @@ export const assetResponse = z.object({
   job_id: z.string().nullable(),
   timeline_id: z.string().nullable().optional(),
   /** The project the asset belongs to; `"default"` for none. */
-  project_id: z.string().optional()
+  project_id: z.string().optional(),
+  /**
+   * Present only on an asset that references a local file in place: true when
+   * that file is missing or has changed since import or relink. An offline
+   * asset's `get_url` answers 404 until `relinkExternal` points it at a file.
+   */
+  offline: z.boolean().optional()
 });
 export type AssetResponse = z.infer<typeof assetResponse>;
 
@@ -154,6 +160,20 @@ export type CreateExternalInput = z.infer<typeof createExternalInput>;
 
 export const createExternalOutput = assetResponse;
 export type CreateExternalOutput = z.infer<typeof createExternalOutput>;
+
+// ── relinkExternal (point an in-place asset at another file) ─────
+// Keeps the asset id and `get_url`. The path is validated again against the
+// local file roots, and the file's size and mtime are recorded anew.
+
+export const relinkExternalInput = z.object({
+  id: z.string().min(1),
+  /** Absolute path of the replacement file on the server's disk. */
+  path: z.string().min(1)
+});
+export type RelinkExternalInput = z.infer<typeof relinkExternalInput>;
+
+export const relinkExternalOutput = assetResponse;
+export type RelinkExternalOutput = z.infer<typeof relinkExternalOutput>;
 
 // ── update (PUT /api/assets/:id) ─────────────────────────────────
 // The `data` field (base64 or utf-8 content) is supported here for

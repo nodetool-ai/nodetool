@@ -46,7 +46,7 @@ These apply to every large file, external or copied.
 - **F7. The server render copies each source through memory.** `AssetFiles.write` in [`video-nodes/src/nodes/timeline.ts`](../../packages/video-nodes/src/nodes/timeline.ts) calls `resolveAssetBytes`, then `fs.writeFile`. With D4 the render reads the file in place.
 - **F8. `extract-audio` loads the whole video into memory.** `handleExtractAudio` in [`http-api.ts`](../../packages/websocket/src/http-api.ts) loads the bytes, writes a temp copy, and returns a WAV as bytes. The timeline calls it on every video import ([`useVideoAudioImport.ts`](../../web/src/hooks/timeline/useVideoAudioImport.ts)). A 2-hour 48 kHz stereo 16-bit WAV is about 1.4 GB.
 - **F9. The browser decodes whole audio files.** `AudioGraph.loadBuffer` ([`AudioGraph.ts`](../../web/src/components/timeline/preview/AudioGraph.ts)) and [`useAudioPeaks.ts`](../../web/src/components/timeline/Tracks/useAudioPeaks.ts) fetch the full file and call `decodeAudioData`. The WAV from F8 becomes about 2.8 GB of float32 in the renderer. Compute peaks on the server once, cache them by asset id and mtime, and stream playback through a media element.
-- **F10. Files above 100 MB get no thumbnail.** The generators take bytes, capped by `THUMBNAIL_SOURCE_MAX_BYTES` in [`thumbnail.ts`](../../packages/websocket/src/lib/thumbnail.ts). With D4, ffmpeg seeks in the file by path and the cap goes away.
+- **F10. Files above 100 MB got no thumbnail.** The generators took bytes, capped by `THUMBNAIL_SOURCE_MAX_BYTES` in [`thumbnail.ts`](../../packages/websocket/src/lib/thumbnail.ts). A2 lets them read a local file by path, so a managed or external file of any size gets one. The cap still applies to bytes pulled back from a cloud store.
 - **F11. There are no proxies.** The preview uses one `HTMLVideoElement` per clip ([`OffscreenVideoPool.ts`](../../web/src/components/timeline/render/OffscreenVideoPool.ts)) with Range reads. Streaming works, but seeks in long-GOP 4K H.264 are slow because each seek decodes from the previous keyframe. A background intra-frame proxy (ProRes Proxy or similar, at lower resolution), stored as a managed asset linked to its source, fixes this. Export always reads the original.
 - **F12. Exports read whole files.** Timeline zip export ([`routes/timelines.ts`](../../packages/websocket/src/routes/timelines.ts)), [`asset-export.ts`](../../packages/websocket/src/lib/asset-export.ts), and [`project-document-copy.ts`](../../packages/websocket/src/lib/project-document-copy.ts) call `retrieveAssetBytes`. D3 makes them find external files, but they still hold each file in memory. Stream them.
 
@@ -65,8 +65,10 @@ These apply to every large file, external or copied.
 
 ## Tasks
 
+A1 through A3 are implemented. A4 and A5 are open.
+
 - **A1.** Add D1, D2, D3, and D6. Add a test that deleting an external asset leaves the original file on disk (F6).
 - **A2.** Add the D4 path API and use it in the render (F7), `extract-audio` (F8), and thumbnails (F10).
-- **A3.** Add offline detection and relink (R1), mtime cache keys (R2), and dedupe (R4).
+- **A3.** Add offline detection and relink (R1), mtime cache keys (R2), and dedupe (R4). A missing or changed file is offline: the asset response carries `offline`, and every read, including `/api/storage`, reports it as missing until `assets.relinkExternal` records a file. `thumb_url` and the timeline's media URLs carry the recorded mtime. `assets.update` keeps the recorded size and mtime and refuses new data for an external asset. Dedupe reuses a row only within the same project.
 - **A4.** Move peaks to the server (F9) and stream exports (F12).
 - **A5.** Add proxies (F11).

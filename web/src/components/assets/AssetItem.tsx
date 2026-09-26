@@ -10,7 +10,7 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
-import { DeleteButton, Text, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
+import { DeleteButton, StatusPill, Text, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -601,6 +601,20 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               titleAccess={asset.content_type || "Unknown file type"}
             />
           )}
+        {asset.offline === true && (
+          <StatusPill
+            tone="failed"
+            data-testid="asset-media-offline"
+            sx={{
+              position: "absolute",
+              top: getSpacingPx(SPACING.xs),
+              left: getSpacingPx(SPACING.xs),
+              zIndex: Z_INDEX.modal
+            }}
+          >
+            Media offline
+          </StatusPill>
+        )}
       </div>
       {showInfo && (
         <>
@@ -658,7 +672,9 @@ export default memo(AssetItem, (prevProps, nextProps) => {
   // Only re-render if this specific asset's selection state changed
   // or if other relevant props changed
   const selectionChanged = prevProps.isSelected !== nextProps.isSelected;
-  const assetChanged = prevProps.asset.id !== nextProps.asset.id;
+  const assetChanged =
+    prevProps.asset.id !== nextProps.asset.id ||
+    prevProps.asset.offline !== nextProps.asset.offline;
   const functionsChanged =
     prevProps.onSelect !== nextProps.onSelect ||
     prevProps.onDoubleClick !== nextProps.onDoubleClick;

@@ -158,6 +158,20 @@ export class Asset extends DBModel {
     return results;
   }
 
+  /** The user's assets that reference `externalPath` in place. */
+  static async findByExternalPath(
+    userId: string,
+    externalPath: string
+  ): Promise<Asset[]> {
+    const rows = await getDb()
+      .select()
+      .from(assets)
+      .where(
+        and(eq(assets.user_id, userId), eq(assets.external_path, externalPath))
+      );
+    return rows.map((row) => new Asset(row));
+  }
+
   /**
    * Every asset across all users, oldest first — for offline maintenance
    * (the storage key backfill). Deliberately not user-scoped, so it must
