@@ -7,7 +7,7 @@
  * These nodes run on the CPU `sharp` codec (no GPU/WebGPU), so no ICD shim is
  * needed. The helper shape follows tests/lib-image-processing.test.ts.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import sharp from "sharp";
 import { LIB_GRID_NODES } from "@nodetool-ai/image-nodes";
 
@@ -23,7 +23,8 @@ function findNode(suffix: string) {
 /** Instantiate a node, assign inputs, call process(), return the raw result. */
 async function runNode(
   suffix: string,
-  inputs: Record<string, unknown>
+  inputs: Record<string, unknown>,
+  context?: unknown
 ): Promise<Record<string, unknown>> {
   const Cls = findNode(suffix);
   const node = new (Cls as unknown as {
@@ -33,7 +34,7 @@ async function runNode(
     };
   })();
   node.assign(inputs);
-  return node.process();
+  return node.process(context);
 }
 
 /** A deterministic per-pixel gradient PNG image ref. */
@@ -91,6 +92,27 @@ function placementOf(tile: Record<string, unknown>): Placement {
 }
 
 describe("lib-grid slicing", () => {
+  it("SliceImageGrid resolves an asset image through the processing context", async () => {
+    const image = await makeGradientImage(4, 4);
+    const bytes = Buffer.from(image.data as string, "base64");
+    const resolveAssetBytes = vi.fn().mockResolvedValue({ bytes });
+    const retrieve = vi.fn().mockResolvedValue(null);
+
+    const result = await runNode(
+      ".SliceImageGrid",
+      {
+        image: { type: "image", data: "", uri: "asset://source-image" },
+        columns: 2,
+        rows: 2
+      },
+      { resolveAssetBytes, storage: { retrieve } }
+    );
+
+    expect(result.output).toHaveLength(4);
+    expect(resolveAssetBytes).toHaveBeenCalledWith("asset://source-image");
+    expect(retrieve).not.toHaveBeenCalled();
+  });
+
   it("SliceImageGrid tile sizes tile exactly, no gaps or overlaps (10x10 into 3x3)", async () => {
     const img = await makeGradientImage(10, 10);
     const result = await runNode(".SliceImageGrid", {

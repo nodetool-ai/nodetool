@@ -19,6 +19,7 @@
  * simulator runs them from memory. That is what makes a build runnable in CI.
  */
 
+import { randomUUID } from "node:crypto";
 import type {
   BaseProvider,
   ProcessingContext,
@@ -976,7 +977,7 @@ function failedReport(
  * describe.
  */
 export async function buildApp(opts: BuildAppOptions): Promise<BuildReport> {
-  const buildId = opts.buildId ?? `app-build-${Date.now()}`;
+  const buildId = opts.buildId ?? `app-build-${randomUUID()}`;
   return withSpan(
     "app.build",
     {

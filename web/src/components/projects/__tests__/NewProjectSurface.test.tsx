@@ -663,6 +663,65 @@ describe("NewProjectSurface", () => {
     );
   });
 
+  it("uploads reference images before staging the opening chat turn", async () => {
+    createAsset.mockResolvedValue({
+      id: "reference-asset",
+      name: "lamp.png",
+      content_type: "image/png",
+      thumb_url: "https://example.test/lamp-thumb.png",
+      get_url: "https://example.test/lamp.png"
+    });
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "Make a lamp ad"
+    );
+    await userEvent.upload(
+      screen.getByLabelText("Reference images"),
+      new File(["image bytes"], "lamp.png", { type: "image/png" })
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Ref images · 1" })).toBeInTheDocument()
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
+
+    await waitFor(() => expect(peekChatTurn("chat-1")).not.toBeNull());
+    expect(createAsset.mock.calls[0]?.[0]).toMatchObject({ name: "lamp.png" });
+    expect(peekChatTurn("chat-1")?.[1]).toEqual({
+      type: "image_url",
+      image: { type: "image", uri: "asset://reference-asset.png" }
+    });
+  });
+
+  it("waits for reference image uploads before chat can start", async () => {
+    let finishUpload: (() => void) | undefined;
+    createAsset.mockImplementation(
+      () => new Promise((resolve) => {
+        finishUpload = () => resolve({
+          id: "reference-asset",
+          name: "lamp.png",
+          content_type: "image/png"
+        });
+      })
+    );
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "Make a lamp ad"
+    );
+    await userEvent.upload(
+      screen.getByLabelText("Reference images"),
+      new File(["image bytes"], "lamp.png", { type: "image/png" })
+    );
+
+    expect(screen.getByRole("button", { name: "Send to chat" })).toBeDisabled();
+    expect(createNewThread).not.toHaveBeenCalled();
+    finishUpload?.();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Send to chat" })).toBeEnabled()
+    );
+  });
+
   it("starts on Ctrl+Enter, and keeps Enter for a new line", async () => {
     renderSurface();
     const prompt = screen.getByPlaceholderText(/30-second launch spot/);

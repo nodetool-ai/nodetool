@@ -20,6 +20,7 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { isShortResourceId } from "@nodetool-ai/protocol";
 import type {
   Asset,
   Memory as MemoryRow,
@@ -97,11 +98,19 @@ async function normalizeResources(
     }
   }
 
-  const assetMap = new Map();
+  const assetMap = new Map<string, Asset>();
   if (assetIds.size > 0) {
-    const assets = await Asset.findMany(userId, Array.from(assetIds));
+    const assets = await Asset.findMany(
+      userId,
+      [...assetIds].filter((id) => !isShortResourceId(id))
+    );
     for (const asset of assets) {
       assetMap.set(asset.id, asset);
+    }
+    for (const id of assetIds) {
+      if (!isShortResourceId(id)) continue;
+      const asset = await Asset.find(userId, id);
+      if (asset) assetMap.set(id, asset);
     }
   }
 
@@ -112,6 +121,7 @@ async function normalizeResources(
         dropped.push(ref);
         continue;
       }
+      ref.id = asset.id;
       ref.uri = assetUri(asset);
       if (!ref.label) ref.label = asset.name;
       ref.metadata = { content_type: asset.content_type };
@@ -232,12 +242,11 @@ const memorySave: CapabilityExport = {
         error: "content is required and must be a non-empty string"
       };
     }
-    const { resources, dropped } = await normalizeResources(
-      scope.userId,
-      params.resources
-    );
-
     try {
+      const { resources, dropped } = await normalizeResources(
+        scope.userId,
+        params.resources
+      );
       const { Memory } = await import("@nodetool-ai/models");
       const memory = await Memory.create<MemoryRow>({
         user_id: scope.userId,

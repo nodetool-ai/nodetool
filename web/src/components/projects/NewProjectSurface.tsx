@@ -59,6 +59,7 @@ import {
 import type { BuildFromPlanResult } from "../../hooks/workflow/useBuildFromPlan";
 import type { BuildGameResult } from "../../hooks/game/useBuildGame";
 import { useFileHandling } from "../chat/hooks/useFileHandling";
+import { useComposerAssetUpload } from "../chat/hooks/useComposerAssetUpload";
 import { isMac } from "../../utils/platform";
 import { useTextareaAssetMention } from "../chat/composer/useTextareaAssetMention";
 import { useTextareaSkillMention } from "../chat/composer/useTextareaSkillMention";
@@ -411,11 +412,11 @@ const NewProjectSurface = ({
 
   const {
     droppedFiles,
-    addFiles,
     addDroppedFiles,
     removeFile,
     getFileContents
   } = useFileHandling();
+  const { uploadFiles, isUploading } = useComposerAssetUpload(addDroppedFiles);
   const { data: entities } = useEntities();
   // Both the user's own skills and the ones NodeTool ships: either is a
   // starter, and either is invoked the same way.
@@ -614,17 +615,17 @@ const NewProjectSurface = ({
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(event.target.files ?? []);
       if (files.length > 0) {
-        addFiles(files);
+        uploadFiles(files);
       }
       // Clear the input so picking the same file twice still registers.
       event.target.value = "";
     },
-    [addFiles]
+    [uploadFiles]
   );
 
   const handleStart = useCallback(async () => {
     const text = prompt.trim();
-    if (text.length === 0 || starting) {
+    if (text.length === 0 || starting || isUploading) {
       return;
     }
     // The first chat turn needs a model; route key-less users
@@ -704,6 +705,7 @@ const NewProjectSurface = ({
     flowRef,
     getFileContents,
     hasConfiguredProvider,
+    isUploading,
     providerReadiness.loading,
     openTab,
     prompt,
@@ -1754,7 +1756,7 @@ const NewProjectSurface = ({
                 variant="contained"
                 color="primary"
                 density="normal"
-                disabled={prompt.trim().length === 0 || starting}
+                disabled={prompt.trim().length === 0 || starting || isUploading}
                 onClick={() => void handleStart()}
               >
                 Send to chat

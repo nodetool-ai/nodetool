@@ -21,6 +21,7 @@ import type {
   ImageDocumentData,
   ImageDocumentVersion
 } from "@nodetool-ai/models";
+import { isShortResourceId } from "@nodetool-ai/protocol";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -995,7 +996,7 @@ function resolveSketchOp(
  * Asset ids named by an op's `image` that this user has no asset for. Reading
  * them up front turns "the layer is empty" into a message naming the id.
  */
-async function missingAssetReferences(
+async function resolveSketchAssetReferences(
   run: CapabilityRun,
   ops: ParsedOp[]
 ): Promise<string[]> {
@@ -1013,10 +1014,27 @@ async function missingAssetReferences(
   // `findMany` is user-scoped, so another user's asset reads as missing — the
   // same rule the rest of this module applies to sketches.
   const { Asset } = await import("@nodetool-ai/models");
+  const fullIds = [...ids].filter((id) => !isShortResourceId(id));
   const found = new Set(
-    (await Asset.findMany(userId, [...ids])).map((asset) => asset.id)
+    (await Asset.findMany(userId, fullIds)).map((asset) => asset.id)
   );
-  return [...ids].filter((id) => !found.has(id));
+  const resolved = new Map<string, string>();
+  for (const id of ids) {
+    if (!isShortResourceId(id)) continue;
+    const asset = await Asset.find(userId, id);
+    if (asset) resolved.set(id, asset.id);
+  }
+  for (const parsed of ops) {
+    if (parsed.op !== "set_layer_image" && parsed.op !== "add_layer") continue;
+    const image = normalizeImageReference(parsed.args["image"]);
+    if (isError(image)) continue;
+    const id = assetIdOfReference(image);
+    const fullId = id ? resolved.get(id) : undefined;
+    if (fullId) {
+      parsed.args["image"] = `asset://${fullId}`;
+    }
+  }
+  return [...ids].filter((id) => !found.has(id) && !resolved.has(id));
 }
 
 const editSketch: CapabilityExport = {
@@ -1045,7 +1063,12 @@ const editSketch: CapabilityExport = {
     // Verify every referenced asset before writing. An id that resolves to
     // nothing would otherwise be stored happily and show up as an empty layer
     // in the editor — the failure this reports instead.
-    const missing = await missingAssetReferences(run, ops);
+    let missing: string[];
+    try {
+      missing = await resolveSketchAssetReferences(run, ops);
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : String(e) };
+    }
     if (missing.length > 0) {
       return {
         error:

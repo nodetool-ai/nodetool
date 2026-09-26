@@ -150,6 +150,71 @@ describe("behaviour through toolFromCapability", () => {
     expect(empty.count).toBe(0);
   });
 
+  it("resolves a compact asset id to the user's full id before saving", async () => {
+    const asset = await Asset.create<Asset>({
+      user_id: "u1",
+      name: "cover.png",
+      content_type: "image/png"
+    });
+    const result = (await asTool(byName("memory_save")).process(ctx(), {
+      content: "Cover image",
+      resources: [{ type: "asset", id: asset.id.slice(0, 12) }]
+    })) as { success: boolean; resources: Array<{ id: string; uri: string }> };
+
+    expect(result.success).toBe(true);
+    expect(result.resources).toEqual([{
+      type: "asset",
+      id: asset.id,
+      uri: `asset://${asset.id}.png`,
+      label: "cover.png",
+      metadata: { content_type: "image/png" }
+    }]);
+    const listed = (await asTool(byName("memory_list")).process(ctx(), {})) as {
+      memories: Array<{ resources: Array<{ id: string }> }>;
+    };
+    expect(listed.memories[0].resources[0].id).toBe(asset.id);
+  });
+
+  it("rejects an ambiguous compact asset id", async () => {
+    const prefix = "abcdef123456";
+    for (const suffix of ["00000000000000000001", "00000000000000000002"]) {
+      await Asset.create<Asset>({
+        id: `${prefix}${suffix}`,
+        user_id: "u1",
+        name: "cover.png",
+        content_type: "image/png"
+      });
+    }
+    const result = (await asTool(byName("memory_save")).process(ctx(), {
+      content: "Cover image",
+      resources: [{ type: "asset", id: prefix }]
+    })) as { success: boolean; error?: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("matches more than one row");
+  });
+
+  it("resolves a compact asset id only within the caller's library", async () => {
+    const prefix = "abcdef123456";
+    const ownedId = `${prefix}00000000000000000001`;
+    for (const [id, userId] of [
+      [ownedId, "u1"],
+      [`${prefix}00000000000000000002`, "u2"]
+    ]) {
+      await Asset.create<Asset>({
+        id,
+        user_id: userId,
+        name: "cover.png",
+        content_type: "image/png"
+      });
+    }
+    const result = (await asTool(byName("memory_save")).process(ctx(), {
+      content: "Cover image",
+      resources: [{ type: "asset", id: prefix }]
+    })) as { success: boolean; resources: Array<{ id: string }> };
+    expect(result.success).toBe(true);
+    expect(result.resources[0].id).toBe(ownedId);
+  });
+
   it("saves outside a thread, and the memory has no origin thread", async () => {
     const noThread = { userId: "u1" } as unknown as ProcessingContext;
     const result = (await asTool(byName("memory_save")).process(

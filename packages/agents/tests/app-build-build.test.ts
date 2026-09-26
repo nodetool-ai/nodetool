@@ -685,6 +685,33 @@ describe("buildApp", () => {
     expect(row.node_id).toBe("build-1");
     vi.doUnmock("@nodetool-ai/models");
   });
+
+  it("gives builds started in the same millisecond distinct ledger ids", async () => {
+    const create = vi.fn(async () => ({}));
+    vi.doMock("@nodetool-ai/models", () => ({ Prediction: { create } }));
+    const now = vi.spyOn(Date, "now").mockReturnValue(1234);
+
+    try {
+      await buildApp(
+        options(scriptedProvider([goodAuthorScript()], { costPerCall: 0.01 }), {
+          ledger: { userId: "1" }
+        })
+      );
+      await buildApp(
+        options(scriptedProvider([goodAuthorScript()], { costPerCall: 0.01 }), {
+          ledger: { userId: "1" }
+        })
+      );
+
+      const ids = create.mock.calls.map(
+        (call) => (call[0] as unknown as { node_id: string }).node_id
+      );
+      expect(new Set(ids).size).toBe(2);
+    } finally {
+      now.mockRestore();
+      vi.doUnmock("@nodetool-ai/models");
+    }
+  });
 });
 
 describe("issueFingerprint", () => {
