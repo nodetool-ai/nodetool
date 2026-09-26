@@ -25,6 +25,7 @@ describe("example timelines", () => {
     expect(examples.map((example) => [example.slug, example.durationMs, example.fps])).toEqual([
       ["kite", 15000, 30],
       ["serein", 26000, 30],
+      ["t-minus-30", 30000, 30],
       ["voltra", 23000, 30]
     ]);
     for (const example of examples) {
@@ -38,7 +39,7 @@ describe("example timelines", () => {
     expect(getExampleTimelineBundle(options, "../serein")).toBeNull();
   });
 
-  it("ships every package:// still a clip references", () => {
+  it("ships every package:// media asset a clip references", () => {
     // An installed copy keeps these references verbatim, so a missing file is
     // a broken clip for every user who installs the example.
     let checked = 0;
