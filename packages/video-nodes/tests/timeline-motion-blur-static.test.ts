@@ -28,6 +28,7 @@ vi.mock("@nodetool-ai/timeline/render", async (importOriginal) => {
       sampleCounts.push(samples.length);
       return new Uint8Array(this.width * this.height * 4);
     }
+    setReferenceSize(): void {}
     dispose(): void {}
   }
   return { ...original, HeadlessFrameCompositor: FakeCompositor };

@@ -19,19 +19,20 @@ describe("example timelines", () => {
   beforeEach(() => initTestDb());
   afterEach(() => ModelObserver.clear());
 
-  it("finds the shipped timeline and its playable media", () => {
+  it("finds the shipped timelines and their playable media", () => {
     expect(resolveExampleTimelinesDir(options)).toBe(nodePath.join(baseNodes, "examples", "timelines"));
     const examples = listExampleTimelines(options);
-    expect(examples).toHaveLength(1);
-    const [serein] = examples;
-    expect(serein.slug).toBe("serein");
-    expect(serein.durationMs).toBe(26000);
-    expect(serein.fps).toBe(30);
-    expect(serein.clipCount).toBeGreaterThan(0);
-    for (const uri of [serein.videoUri, serein.posterUri]) {
-      const ref = parsePackageAssetUri(uri);
-      expect(ref).not.toBeNull();
-      expect(existsSync(nodePath.join(baseNodes, "assets", ref!.packageName, ref!.path))).toBe(true);
+    expect(examples.map((example) => [example.slug, example.durationMs, example.fps])).toEqual([
+      ["kite", 15000, 30],
+      ["serein", 26000, 30]
+    ]);
+    for (const example of examples) {
+      expect(example.clipCount).toBeGreaterThan(0);
+      for (const uri of [example.videoUri, example.posterUri]) {
+        const ref = parsePackageAssetUri(uri);
+        expect(ref).not.toBeNull();
+        expect(existsSync(nodePath.join(baseNodes, "assets", ref!.packageName, ref!.path))).toBe(true);
+      }
     }
     expect(getExampleTimelineBundle(options, "../serein")).toBeNull();
   });

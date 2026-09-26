@@ -11,6 +11,10 @@
 # scripts/make-game-style-tiles.mjs and served as `package://` URIs.
 !nodetool/assets/nodetool-base/styles/**
 !nodetool/assets/nodetool-base/templates/**
+
+# …and the example timelines' rendered videos and posters, written by
+# scripts/render-example-timeline.mjs and served as `package://` URIs.
+!nodetool/assets/nodetool-base/timelines/**
 %Y-%m-%d-%H-%M-%S.txt
 \[object\ Object\]/
 

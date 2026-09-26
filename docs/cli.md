@@ -821,6 +821,37 @@ nodetool timeline debug sequence.json \
 The bundle holds `report.json`, `report.md`, and `timeline.json` (the input
 document). The command exits `0` only when the verdict is ok.
 
+#### `nodetool timeline render <timeline_id_or_file>`
+
+Render a timeline's picture through the GPU compositor that the Render Timeline
+node uses. The target is a timeline JSON file (a bare document, or a wrapper
+with `document`, `fps`, `width`, `height` and `durationMs`, such as an example
+bundle) or a `timeline_sequences` row id. Clip media resolves through the
+local asset store. Audio is not mixed.
+
+Use `--stills` to check a render frame by frame. The Canvas 2D frame preview
+is a second renderer, so only this command shows the exported pixels.
+
+**Options:**
+
+- `--out <path>` — output file, or the output directory with `--stills` (default `nodetool-render/<name>.<ext>` or `nodetool-render/<name>-frames/`).
+- `--format <format>` — `mp4` (default), `webm`, `mov` or `png_sequence`.
+- `--frames <spec>` — render only these frames: indices and inclusive ranges, e.g. `0-89` or `175,290,380-390`.
+- `--stills` — write each selected frame as `frame_<index>.png` instead of encoding a video.
+- `--scale <n>` — render at this fraction of the sequence size. The layout is the same as at full size.
+- `--bitrate <bps>` — video bitrate in bits per second.
+- `--json` — print the result as JSON.
+
+```bash
+nodetool timeline render sequence.json --out ad.mp4 --bitrate 12000000
+nodetool timeline render <timeline_id> --stills --frames 175,290,376-384 --scale 0.5
+```
+
+The command needs ffmpeg for video output and a WebGPU adapter. On a headless
+machine, install a Vulkan ICD such as lavapipe
+([headless WebGPU setup](dev-environment.md#webgpu-on-a-headless-machine)).
+The first frame compiles the GPU pipelines, so progress starts after a delay.
+
 #### `nodetool timeline versions`
 
 Read and write a sequence's snapshot history against the local database:

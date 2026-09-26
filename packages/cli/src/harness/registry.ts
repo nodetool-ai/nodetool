@@ -376,6 +376,24 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "docs/harnesses.md § nodetool timeline validate / debug"
   },
   {
+    id: "timeline-render",
+    title: "Timeline GPU render (video or per-frame stills)",
+    command:
+      "nodetool timeline render <id|file.json> [--stills] [--frames <spec>] [--scale <n>]",
+    kind: "execution",
+    capabilities: ["json", "no-db"],
+    agentTool: "render_timeline",
+    docs: "docs/harnesses.md § nodetool timeline render",
+    selfcheck: {
+      // Frame selection, preview scale and zero-area layers through the real
+      // GPU compositor. Skips with a reason when there is no WebGPU adapter.
+      command:
+        "npm run test --workspace=packages/video-nodes -- timeline-render-frames.gpu && " +
+        "npm run test --workspace=packages/cli -- timeline-render timeline-command",
+      cost: "cheap"
+    }
+  },
+  {
     id: "serein-timeline-repro",
     title: "Serein timeline motion frame reproduction",
     command: "npm run test --workspace=packages/agents -- timeline-serein-gaps-frames",
@@ -1160,6 +1178,7 @@ export const SURFACES: SurfaceEntry[] = [
     harnesses: [
       "timeline-validate",
       "timeline-debug",
+      "timeline-render",
       "timeline-versions",
       "eval"
     ],
@@ -1169,6 +1188,8 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/execution/src/timeline-debug/",
       "packages/cli/src/timeline-debug/",
       "packages/cli/src/commands/timeline-versions.ts",
+      "packages/cli/src/commands/timeline-render.ts",
+      "packages/video-nodes/src/nodes/timeline/compositeRender.ts",
       "packages/agents/src/tools/timeline-version-tools.ts",
       "packages/models/src/timeline-sequence-version.ts",
       "packages/websocket/src/trpc/routers/timeline.ts"

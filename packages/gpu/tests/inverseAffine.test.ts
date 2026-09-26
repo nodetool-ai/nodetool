@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { forwardClipMatrixToInverseAffine } from "../src/compositor/compositor.js";
+import {
+  forwardClipMatrixToInverseAffine,
+  invertClipPlacement
+} from "../src/compositor/compositor.js";
 
 /**
  * Build a column-major 4×4 matrix from the affine 2×2 block (a00,a01,a10,a11)
@@ -135,5 +138,36 @@ describe("forwardClipMatrixToInverseAffine", () => {
       100
     );
     expect(inv).toEqual({ a: 1, b: 0, tx: 0, c: 0, d: 1, ty: 0 });
+  });
+});
+
+describe("invertClipPlacement", () => {
+  it("matches forwardClipMatrixToInverseAffine on an invertible matrix", () => {
+    const matrix = clipMatrix(0.5, 0, 0, 0.5, 0.25, -0.1);
+    expect(invertClipPlacement(matrix, 200, 100, 200, 100)).toEqual(
+      forwardClipMatrixToInverseAffine(matrix, 200, 100, 200, 100)
+    );
+  });
+
+  it.each([
+    ["both axes", 0, 0],
+    ["the x axis", 0, 1],
+    ["the y axis", 1, 0]
+  ])("is null for a placement scaled to zero on %s", (_label, sx, sy) => {
+    expect(
+      invertClipPlacement(clipMatrix(sx, 0, 0, sy, 0, 0), 100, 100, 100, 100)
+    ).toBeNull();
+  });
+
+  it("is null for a projective matrix that covers no area", () => {
+    const matrix = clipMatrix(0, 0, 0, 0, 0, 0);
+    matrix[3] = 0.001;
+    expect(invertClipPlacement(matrix, 100, 100, 100, 100)).toBeNull();
+  });
+
+  it("is null for zero dimensions", () => {
+    expect(
+      invertClipPlacement(clipMatrix(1, 0, 0, 1, 0, 0), 0, 100, 100, 100)
+    ).toBeNull();
   });
 });

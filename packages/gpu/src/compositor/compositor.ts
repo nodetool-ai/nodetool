@@ -118,13 +118,33 @@ export function forwardClipMatrixToInverseAffine(
   canvasWidth: number,
   canvasHeight: number
 ): InverseAffine {
+  return (
+    invertClipPlacement(m, sourceWidth, sourceHeight, canvasWidth, canvasHeight) ?? {
+      ...IDENTITY_INVERSE_AFFINE
+    }
+  );
+}
+
+/**
+ * {@link forwardClipMatrixToInverseAffine} without the identity fallback: null
+ * when the placement covers no area, such as a layer scaled to zero on either
+ * axis. A caller that draws layers must skip a null placement. The identity
+ * would draw the source 1:1 from the frame's top-left corner.
+ */
+export function invertClipPlacement(
+  m: Float32Array | number[],
+  sourceWidth: number,
+  sourceHeight: number,
+  canvasWidth: number,
+  canvasHeight: number
+): InverseAffine | null {
   if (
     sourceWidth <= 0 ||
     sourceHeight <= 0 ||
     canvasWidth <= 0 ||
     canvasHeight <= 0
   ) {
-    return { ...IDENTITY_INVERSE_AFFINE };
+    return null;
   }
 
   if (m[3] !== 0 || m[7] !== 0 || m[15] !== 1) {
@@ -138,7 +158,7 @@ export function forwardClipMatrixToInverseAffine(
     const h = m[7];
     const i = m[15];
     const det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
-    if (Math.abs(det) < 1e-12) return { ...IDENTITY_INVERSE_AFFINE };
+    if (Math.abs(det) < 1e-12) return null;
     const n00 = (e * i - f * h) / det;
     const n01 = (c * h - b * i) / det;
     const n02 = (b * f - c * e) / det;
@@ -171,7 +191,7 @@ export function forwardClipMatrixToInverseAffine(
 
   const det = a00 * a11 - a01 * a10;
   if (Math.abs(det) < 1e-12) {
-    return { ...IDENTITY_INVERSE_AFFINE };
+    return null;
   }
   const inv00 = a11 / det;
   const inv01 = -a01 / det;

@@ -67,6 +67,17 @@ interface CompositeRenderOptions {
   /** Destination file — a video container, or the PNG sequence's zip. */
   outPath: string;
   /**
+   * Frame indices to render, instead of every frame of `durationMs`. Indices
+   * outside the timeline are dropped, and the rest render in ascending order,
+   * because a clip's video decodes forward only.
+   */
+  frames?: readonly number[];
+  /**
+   * Receive each composited frame (straight-alpha RGBA8) with its timeline
+   * index. When set, no encoder opens and `outPath` is not written.
+   */
+  writeFrame?: (frame: number, rgba: Uint8Array) => Promise<void>;
+  /**
    * Container, encoder and alpha, resolved by `resolveTimelineOutput`. Absent
    * means today's default: H.264 in MP4 over an opaque ground.
    */
@@ -161,9 +172,16 @@ export async function renderTimelineComposited(
   const height = Math.max(2, Math.floor(opts.height / 2) * 2);
   const totalFrames = Math.max(1, Math.round((durationMs / 1000) * fps));
   const frameMs = 1000 / fps;
+  // Positions, font sizes and stroke widths are in sequence pixels. A render
+  // smaller than the sequence (a preview scale) samples and rasterizes at the
+  // sequence size and lets the compositor scale the result to the frame, so
+  // the layout matches the full-size render.
+  const referenceWidth = sequence.width > 0 ? sequence.width : width;
+  const referenceHeight = sequence.height > 0 ? sequence.height : height;
+  const frameSize = { width, height };
   const canvas = {
-    width,
-    height,
+    width: referenceWidth,
+    height: referenceHeight,
     // A `"line"` stagger is counted against the wrapped line count, so the
     // count measures through the same kind of context the rasterizer draws on.
     // SAFETY: `RasterContext2D` is the subset of the 2D canvas API the
@@ -177,9 +195,17 @@ export async function renderTimelineComposited(
   const device = await acquireDevice();
   if (signal?.aborted) throw abortError();
   const compositor = new HeadlessFrameCompositor(device, width, height);
-  const rasterizer = new NodeRasterizer(width, height);
-  const encoder: FrameEncoder =
-    output.format === "png_sequence"
+  compositor.setReferenceSize(referenceWidth, referenceHeight);
+  const rasterizer = new NodeRasterizer(referenceWidth, referenceHeight);
+  const frameIndices = opts.frames
+    ? [...new Set(opts.frames)]
+        .filter((frame) => Number.isInteger(frame) && frame >= 0 && frame < totalFrames)
+        .sort((a, b) => a - b)
+    : Array.from({ length: totalFrames }, (_, frame) => frame);
+  const { writeFrame } = opts;
+  const encoder: FrameEncoder | null = writeFrame
+    ? null
+    : output.format === "png_sequence"
       ? openPngSequenceEncoder({
           outPath,
           width,
@@ -223,7 +249,7 @@ export async function renderTimelineComposited(
     if (file) {
       const size = await probeVideoSize(file);
       if (signal?.aborted) throw abortError();
-      if (size) decoded = await decodeImageRgba(file, fitWithin(size, canvas));
+      if (size) decoded = await decodeImageRgba(file, fitWithin(size, frameSize));
     }
     if (signal?.aborted) throw abortError();
     images.set(assetId, decoded);
@@ -246,7 +272,7 @@ export async function renderTimelineComposited(
     const size = await probeVideoSize(file);
     if (signal?.aborted) throw abortError();
     if (!size) return null;
-    const decodeSize = fitWithin(size, canvas);
+    const decodeSize = fitWithin(size, frameSize);
     // `clipSourceTimeSec` at the clip's own start is its in point — or, for a
     // remapped clip, its curve's first source position — expressed the same way
     // the preview seeks, so the first decoded frame is the frame the preview
@@ -503,7 +529,7 @@ export async function renderTimelineComposited(
           opacity: adjustment.opacity,
           effects: adjustment.effects,
           shapeMask: adjustment.mask
-            ? rasterizer.mask(adjustment.mask, width, height) ?? undefined
+            ? rasterizer.mask(adjustment.mask, referenceWidth, referenceHeight) ?? undefined
             : undefined,
           wipe: adjustment.wipe,
           precomposeGroupId: adjustment.precomposeGroupId
@@ -566,7 +592,7 @@ export async function renderTimelineComposited(
       );
     };
 
-    for (let frame = 0; frame < totalFrames; frame++) {
+    for (const [done, frame] of frameIndices.entries()) {
       if (signal?.aborted) throw abortError();
       const timeMs = (frame * 1000) / fps;
       const motionBlur = resolveFrameMotionBlur(
@@ -603,15 +629,20 @@ export async function renderTimelineComposited(
         signal
       );
       if (signal?.aborted) throw abortError();
-      await awaitWithAbort(encoder.write(pixels), signal);
-      opts.onProgress?.(frame + 1, totalFrames);
+      await awaitWithAbort(
+        writeFrame
+          ? writeFrame(frame, pixels)
+          : (encoder?.write(pixels) ?? Promise.resolve()),
+        signal
+      );
+      opts.onProgress?.(done + 1, frameIndices.length);
     }
 
     if (signal?.aborted) throw abortError();
-    await awaitWithAbort(encoder.finish(), signal);
-    return { totalFrames, skippedClips: [...skippedClips] };
+    if (encoder) await awaitWithAbort(encoder.finish(), signal);
+    return { totalFrames: frameIndices.length, skippedClips: [...skippedClips] };
   } catch (error) {
-    encoder.abort();
+    encoder?.abort();
     throw error;
   } finally {
     signal?.removeEventListener("abort", closeVideoSources);
