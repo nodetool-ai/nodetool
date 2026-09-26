@@ -5,10 +5,12 @@ import { getAssetAdapter } from "../lib/storage.js";
 import { handleLocalAssetUpload } from "../lib/local-asset-upload.js";
 import { bridge } from "../lib/bridge.js";
 import {
+  getUserId,
   handleAssetsRoot,
   handleExtractAudio,
   type HttpApiOptions
 } from "../http-api.js";
+import { handleAssetPeaks } from "../lib/audio-peaks.js";
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { ApiErrorCode, apiError } from "../error-codes.js";
 
@@ -27,6 +29,8 @@ interface RouteOptions {
  *   - GET    /api/assets/packages                   — empty list stub
  *   - GET    /api/assets/packages/:package          — empty list stub
  *   - GET    /api/assets/packages/:package/:asset   — binary asset file stream
+ *   - POST   /api/assets/:id/extract-audio          — video audio track to a WAV asset
+ *   - GET    /api/assets/:id/peaks                  — waveform peaks, cached on disk
  */
 const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   const { apiOptions } = opts;
@@ -235,6 +239,18 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     const { id } = req.params as { id: string };
     await bridge(req, reply, (request) =>
       handleExtractAudio(request, apiOptions, id)
+    );
+  });
+
+  // Waveform peaks for an audio or video asset (the timeline's clip waveforms).
+  app.get("/api/assets/:id/peaks", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await bridge(req, reply, (request) =>
+      handleAssetPeaks(
+        getUserId(request, apiOptions.userIdHeader ?? "x-user-id"),
+        id,
+        new URL(request.url).searchParams
+      )
     );
   });
 };

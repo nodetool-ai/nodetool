@@ -20,8 +20,12 @@ import {
   type ProjectCopyDocument,
   type ProjectDocumentType
 } from "@nodetool-ai/models";
-import type { StorageAdapter } from "@nodetool-ai/storage";
-import { retrieveAssetBytes, getAssetStorageKey } from "./asset-paths.js";
+import { FileStorageAdapter, type StorageAdapter } from "@nodetool-ai/storage";
+import {
+  existingAssetUri,
+  getAssetStorageKey,
+  localAssetPath
+} from "./asset-paths.js";
 
 export class ProjectCopyError extends Error {
   constructor(message: string) {
@@ -56,7 +60,39 @@ type DocumentSource =
 
 interface PreparedAsset {
   readonly source: Asset;
-  readonly bytes: Uint8Array | null;
+  /**
+   * Where a managed asset's bytes are stored. Null for a folder and for an
+   * external asset, whose copy references the same file in place.
+   */
+  readonly storedUri: string | null;
+}
+
+/**
+ * Store a copy of the object at `fromUri` under `key` and return its URI and
+ * size. The local store copies file to file, so no asset is held in memory;
+ * other stores copy one object's bytes at a time.
+ */
+async function copyStoredObject(
+  storage: StorageAdapter,
+  fromUri: string,
+  key: string,
+  contentType: string
+): Promise<{ uri: string; size: number }> {
+  if (storage instanceof FileStorageAdapter) {
+    const path = await storage.localPath(fromUri);
+    if (path) {
+      const uri = await storage.storeFile(key, path);
+      const stored = await storage.stat(uri);
+      if (!stored) throw new ProjectCopyError("Copied asset media is missing");
+      return { uri, size: stored.size };
+    }
+  }
+  const bytes = await storage.retrieve(fromUri);
+  if (!bytes) throw new ProjectCopyError("Asset media disappeared during copy");
+  return {
+    uri: await storage.store(key, bytes, contentType),
+    size: bytes.byteLength
+  };
 }
 
 const ASSET_KEYS = new Set([
@@ -441,20 +477,36 @@ export async function copyProjectDocument(args: {
           assetsToVisit.push(dependencyId);
         }
       }
-      const bytes = source.isFolder
-        ? null
-        : await retrieveAssetBytes(
+      // Presence only: bytes are copied one object at a time below, so a
+      // project with many large assets never holds them all in memory.
+      let storedUri: string | null = null;
+      let available = source.isFolder;
+      if (!source.isFolder && source.external_path) {
+        // An external asset stays an in-place reference: the copy lives on
+        // the same install, which is the only place the path resolves. An
+        // offline file fails the copy as missing media always has.
+        available =
+          (await localAssetPath(
             args.storage,
             source.user_id,
             source.id,
             source.content_type
-          );
-      if (!source.isFolder && !bytes) {
+          )) !== null;
+      } else if (!source.isFolder) {
+        storedUri = await existingAssetUri(
+          args.storage,
+          source.user_id,
+          source.id,
+          source.content_type
+        );
+        available = storedUri !== null;
+      }
+      if (!available) {
         throw new ProjectCopyError(
           `Asset dependency ${assetId} has no stored media`
         );
       }
-      preparedAssets.set(assetId, { source, bytes });
+      preparedAssets.set(assetId, { source, storedUri });
     }
   }
 
@@ -464,9 +516,10 @@ export async function copyProjectDocument(args: {
   }
 
   const storedUris: string[] = [];
+  const copiedSizes = new Map<string, number>();
   try {
     for (const [sourceId, prepared] of preparedAssets) {
-      if (!prepared.bytes) continue;
+      if (!prepared.storedUri) continue;
       const destinationId = assetIds.get(sourceId);
       if (!destinationId)
         throw new ProjectCopyError("Asset map was incomplete");
@@ -475,13 +528,14 @@ export async function copyProjectDocument(args: {
         destinationId,
         prepared.source.content_type
       );
-      storedUris.push(
-        await args.storage.store(
-          key,
-          prepared.bytes,
-          prepared.source.content_type
-        )
+      const copied = await copyStoredObject(
+        args.storage,
+        prepared.storedUri,
+        key,
+        prepared.source.content_type
       );
+      storedUris.push(copied.uri);
+      copiedSizes.set(sourceId, copied.size);
     }
 
     const now = new Date().toISOString();
@@ -497,7 +551,7 @@ export async function copyProjectDocument(args: {
         file_id: null,
         name: prepared.source.name,
         content_type: prepared.source.content_type,
-        size: prepared.bytes?.byteLength ?? prepared.source.size,
+        size: copiedSizes.get(sourceId) ?? prepared.source.size,
         duration: prepared.source.duration,
         metadata: cloneMetadata(prepared.source.metadata, ids),
         sketch_document_id: null,
@@ -506,6 +560,7 @@ export async function copyProjectDocument(args: {
         job_id: null,
         timeline_id: null,
         project_id: args.destinationProjectId,
+        external_path: prepared.source.external_path,
         created_at: now,
         updated_at: now
       });

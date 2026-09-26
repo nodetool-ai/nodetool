@@ -194,6 +194,25 @@ export async function retrieveAssetBytes(
 }
 
 /**
+ * The URI an asset's bytes are stored under, trying the same keys as
+ * {@link retrieveAssetBytes}, without reading them. Null when none exists.
+ */
+export async function existingAssetUri(
+  adapter: StorageAdapter,
+  userId: string,
+  assetId: string,
+  contentType: string
+): Promise<string | null> {
+  for (const fileName of assetFileNameCandidates(assetId, contentType)) {
+    for (const candidate of assetKeyCandidates(userId, fileName)) {
+      const uri = adapter.uriForKey(candidate);
+      if (await adapter.exists(uri)) return uri;
+    }
+  }
+  return null;
+}
+
+/**
  * The local file holding an asset's bytes, under the same keys
  * {@link retrieveAssetBytes} reads: a managed file under the local asset root,
  * or an external asset's in-place file. Null on backends that keep no local

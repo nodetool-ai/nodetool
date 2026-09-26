@@ -12,9 +12,16 @@
  * loses its link (the file list reports it). Rendering the Markdown is pure
  * and separately testable; only packing needs asset bytes.
  */
-import { strToU8, zipSync } from "fflate";
+import { strToU8 } from "fflate";
 import type { Shot } from "@nodetool-ai/protocol";
 import { mediaExtension } from "./package-asset-export.js";
+import {
+  collectZip,
+  exportSourceSize,
+  MAX_ZIP_ENTRY_BYTES,
+  type ExportSource,
+  type ZipStreamWriter
+} from "./zip-stream.js";
 import { isString } from "./wire-values.js";
 
 /** The board fields the export reads, as `Storyboard.toDocument()` holds them. */
@@ -166,24 +173,34 @@ export function renderStoryboardMarkdown(
 
 export interface PackStoryboardZipOptions {
   board: StoryboardExportInput;
-  /** Resolve bytes for a media ref uri (`asset://…`, `/api/storage/…`). */
-  fetchAssetBytes: (ref: string) => Promise<Uint8Array | null>;
+  /**
+   * Resolve a media ref uri (`asset://…`, `/api/storage/…`) to bytes or a
+   * local file, which is streamed from disk.
+   */
+  fetchAssetSource: (ref: string) => Promise<ExportSource | null>;
 }
 
-export interface PackStoryboardZipResult {
-  bytes: Uint8Array;
+export interface WriteStoryboardZipResult {
   /** Archive-relative paths written, `storyboard.md` first. */
   files: string[];
   /** Refs that named media the export could not resolve. */
   missing: string[];
 }
 
-/** Build the zip: the Markdown document plus every resolvable shot asset. */
-export async function packStoryboardZip(
-  options: PackStoryboardZipOptions
-): Promise<PackStoryboardZipResult> {
-  const { board, fetchAssetBytes } = options;
-  const files: Record<string, Uint8Array> = {};
+export interface PackStoryboardZipResult extends WriteStoryboardZipResult {
+  bytes: Uint8Array;
+}
+
+/**
+ * Write the zip to `writer`: every resolvable shot asset as it is read, then
+ * the Markdown document, which names what was found.
+ */
+export async function writeStoryboardZip(
+  options: PackStoryboardZipOptions,
+  writer: ZipStreamWriter
+): Promise<WriteStoryboardZipResult> {
+  const { board, fetchAssetSource } = options;
+  const mediaFiles: string[] = [];
   const media = new Map<string, ShotMedia>();
   const missing: string[] = [];
 
@@ -197,15 +214,21 @@ export async function packStoryboardZip(
   ): Promise<string | undefined> => {
     const source = mediaRefSource(ref);
     if (!source) return undefined;
-    const bytes = await fetchAssetBytes(source).catch(() => null);
-    if (!bytes || bytes.byteLength === 0) {
+    const resolved = await fetchAssetSource(source).catch(() => null);
+    const size = resolved ? exportSourceSize(resolved) : 0;
+    if (!resolved || size === 0 || size > MAX_ZIP_ENTRY_BYTES) {
       missing.push(source);
       unresolved.push({ kind: dir === "stills" ? "still" : "clip", source });
       return undefined;
     }
     const name = `${shotNumber(shot, index)}${slugPart(shot)}${mediaExtension(source, refType)}`;
     const path = `${dir}/${name}`;
-    files[path] = bytes;
+    // Two shots with the same number and slug share one entry; a zip written
+    // as a stream cannot replace an entry already sent.
+    if (!mediaFiles.includes(path)) {
+      await writer.add(path, resolved);
+      mediaFiles.push(path);
+    }
     return path;
   };
 
@@ -239,11 +262,19 @@ export async function packStoryboardZip(
   }
 
   const markdown = renderStoryboardMarkdown(board, media);
-  files["storyboard.md"] = strToU8(markdown);
+  await writer.add("storyboard.md", strToU8(markdown), { compress: true });
 
-  return {
-    bytes: zipSync(files),
-    files: ["storyboard.md", ...Object.keys(files).filter((f) => f !== "storyboard.md")],
-    missing
-  };
+  return { files: ["storyboard.md", ...mediaFiles], missing };
+}
+
+/** Build the zip in memory. The HTTP export streams instead. */
+export async function packStoryboardZip(
+  options: PackStoryboardZipOptions
+): Promise<PackStoryboardZipResult> {
+  const written: { result?: WriteStoryboardZipResult } = {};
+  const bytes = await collectZip(async (writer) => {
+    written.result = await writeStoryboardZip(options, writer);
+  });
+  if (!written.result) throw new Error("Storyboard zip wrote nothing");
+  return { bytes, ...written.result };
 }

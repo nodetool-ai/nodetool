@@ -65,10 +65,10 @@ These apply to every large file, external or copied.
 
 ## Tasks
 
-A1 through A3 are implemented. A4 and A5 are open.
+A1 through A4 are implemented. A5 is open.
 
 - **A1.** Add D1, D2, D3, and D6. Add a test that deleting an external asset leaves the original file on disk (F6).
 - **A2.** Add the D4 path API and use it in the render (F7), `extract-audio` (F8), and thumbnails (F10).
 - **A3.** Add offline detection and relink (R1), mtime cache keys (R2), and dedupe (R4). A missing or changed file is offline: the asset response carries `offline`, and every read, including `/api/storage`, reports it as missing until `assets.relinkExternal` records a file. `thumb_url` and the timeline's media URLs carry the recorded mtime. `assets.update` keeps the recorded size and mtime and refuses new data for an external asset. Dedupe reuses a row only within the same project.
-- **A4.** Move peaks to the server (F9) and stream exports (F12).
+- **A4.** Move peaks to the server (F9) and stream exports (F12). `GET /api/assets/{id}/peaks` decodes with ffmpeg in place and caches on disk by asset, file size and mtime, and count. Preview playback streams a file of 50 MB or five minutes and more through a media element; shorter files keep the sample-exact decoded buffer, and the offline export always decodes. The timeline and storyboard zips stream local files into a streamed archive. A project copy copies managed files on disk one at a time and keeps an external asset as an in-place reference. The workflow bundle still reads each referenced file whole, because its graph rewrite works on bytes.
 - **A5.** Add proxies (F11).

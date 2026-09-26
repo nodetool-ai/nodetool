@@ -434,7 +434,15 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         try {
           const asset = await getAsset(clip.currentAssetId!);
           const url = getAssetMediaUrl(asset);
-          return url ? { clip, assetUrl: url } : null;
+          // Size and duration pick decoded or streamed playback in the graph.
+          return url
+            ? {
+                clip,
+                assetUrl: url,
+                assetSize: asset.size,
+                assetDurationSec: asset.duration
+              }
+            : null;
         } catch {
           return null;
         }

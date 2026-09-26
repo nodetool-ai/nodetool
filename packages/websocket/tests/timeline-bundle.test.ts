@@ -72,12 +72,12 @@ function assetTable(
 }
 
 const videoAsset: FetchedTimelineAsset = {
-  bytes: VIDEO,
+  source: VIDEO,
   name: "shot.mp4",
   contentType: "video/mp4"
 };
 const posterAsset: FetchedTimelineAsset = {
-  bytes: POSTER,
+  source: POSTER,
   name: "poster.jpg",
   contentType: "image/jpeg"
 };

@@ -57,6 +57,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Nodes     | `/api/nodes/metadata`             | `GET`             | none                                           | no                          | The node registry the editor loads at boot; slim summaries by default, one node's full metadata with `?node_type=` |
 | Workspaces | `/api/workspaces/{id}/download/{path}` | `GET`        | Depends on `AUTH_PROVIDER`                     | streaming                   | One file out of a workspace as an attachment; `403` when `NODETOOL_ENV=production` |
 | Assets    | `/api/assets/{id}/extract-audio`  | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Extract a video asset's audio track into a new WAV asset |
+| Assets    | `/api/assets/{id}/peaks`          | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Waveform peaks of an audio or video asset, computed with ffmpeg and cached on disk |
 | Assets    | `/api/assets/packages/{package}/{file}` | `GET`       | none                                           | streaming                   | Bytes behind a `package://` ref, from a node pack's assets directory |
 | Assets    | `/api/assets/packages`            | `GET`             | none                                           | no                          | Stub — always `{"assets": [], "next": null}`; there is no package listing |
 | Assets    | `/api/assets/packages/{package}`  | `GET`             | none                                           | no                          | Stub — same empty page. Fetch a package's files by name, not by listing |
@@ -68,8 +69,8 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Apps      | `/api/applications/examples`      | `GET`             | none                                           | no                          | The shipped example apps — slug, name, description, workflow names, operation count, thumbnail URL |
 | Apps      | `/api/applications/examples/{slug}` | `GET`           | none                                           | no                          | One example's full `ApplicationBundle`; `404` when the slug names nothing shipped |
 | Apps      | `/api/applications/examples/{slug}/install` | `POST`  | Depends on `AUTH_PROVIDER`                     | no                          | Install an example into the caller's library, creating the workflows it binds |
-| Storyboards | `/api/storyboards/{id}/export-zip` | `GET`           | Depends on `AUTH_PROVIDER`                     | no                          | One board as a zip of Markdown plus its stills and clips; `404` when the caller does not own it |
-| Timelines | `/api/timelines/{id}/export-zip`   | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | One sequence and the bytes of every asset its clips name, as a zip; `404` when the caller does not own it |
+| Storyboards | `/api/storyboards/{id}/export-zip` | `GET`           | Depends on `AUTH_PROVIDER`                     | streaming                   | One board as a zip of Markdown plus its stills and clips; `404` when the caller does not own it |
+| Timelines | `/api/timelines/{id}/export-zip`   | `GET`             | Depends on `AUTH_PROVIDER`                     | streaming                   | One sequence and the bytes of every asset its clips name, as a zip; `404` when the caller does not own it |
 | Timelines | `/api/timelines/import-zip`       | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Multipart upload of such a zip; stores the assets and creates a new timeline pointing at them |
 | Providers | `/api/fal/credits`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The server's fal.ai account balance; `204` when no `FAL_API_KEY` is configured |
 | Providers | `/api/fal/pricing`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Unit price per fal.ai endpoint, one or more `?endpoint_id=`; cached an hour |
@@ -783,6 +784,10 @@ with everything outside `A-Za-z0-9._-` replaced by `_`. A timeline the caller
 does not own is a `404` with `{"detail": "Timeline not found"}`, the same answer
 as an id that does not exist.
 
+The archive streams with no `content-length`. The server reads each local file
+in place while it writes, so a large asset is never held in memory. A file over
+4 GiB does not fit a zip entry without Zip64 and is listed as missing.
+
 `timeline.json` is the sequence wire shape without its id, project, owner, and
 timestamps. `manifest.json` maps each asset id in that document to the file
 holding its bytes, and records what the archive could not carry:
@@ -937,6 +942,24 @@ A video with no audio track returns `{"has_audio": false}` and creates nothing.
 Posting a non-video asset is a `400` (`{"detail": "Asset is not a video"}`), an
 asset you do not own is a `404`, and a server with no ffmpeg runtime available
 answers `503`.
+
+### Waveform Peaks
+
+`GET /api/assets/{id}/peaks?count=2000` returns the waveform the timeline draws
+on an audio clip: `count` abs-max values of channel 0 (1 to 20000, default
+2000) and the decoded length.
+
+```json
+{ "peaks": [0, 0.0132, 0.4821, …], "duration_ms": 184032.5 }
+```
+
+ffmpeg decodes the asset as a stream, reading a local file in place. The result
+is cached under the NodeTool cache directory, keyed by the asset, the file's
+size and mtime (or the row's `updated_at` on a store with no local file), and
+`count`, so a file changed in place gets new peaks. The `x-peaks-cache` header
+is `hit` or `miss`. A non-media asset or a bad `count` is a `400`, an asset you
+do not own is a `404`, a file with no audio stream is a `422`, and a server with
+no ffmpeg runtime answers `503`.
 
 ### Package Assets
 

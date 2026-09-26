@@ -211,6 +211,7 @@ const waveformStyles = css({
 // generating clip in the timeline reads identically to a generating layer
 // on the canvas. Clips to the clip's rounded body.
 interface WaveformCanvasProps {
+  assetId: string | undefined;
   url: string | undefined;
   inPointMs: number;
   outPointMs: number;
@@ -219,13 +220,14 @@ interface WaveformCanvasProps {
 
 /** Draws audio peaks on a canvas, sized to the clip's pixel width. */
 const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
+  assetId,
   url,
   inPointMs,
   outPointMs,
   widthPx
 }) => {
   const theme = useTheme();
-  const { peaks, durationMs } = useAudioPeaks(url);
+  const { peaks, durationMs } = useAudioPeaks(assetId, url);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Coalesce redraws into a single animation frame. During a drag/resize the
@@ -1018,6 +1020,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
 
         {clip.mediaType === "audio" && (
           <WaveformCanvas
+            assetId={clip.currentAssetId}
             url={audioUrl}
             inPointMs={clip.inPointMs ?? 0}
             outPointMs={(clip.inPointMs ?? 0) + clip.durationMs}
