@@ -11,9 +11,9 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { createBuilder, cv, hash, kfs, NOOP, rad, tf } from "./lib.mjs";
+
 const W = 1920, H = 1080, FPS = 30, FRAMES = 450;
-const ms = (f) => Math.floor((f * 1000) / FPS);
-const rad = (d) => (d * Math.PI) / 180;
 
 const INK = "#06110e", INK2 = "#0c2a21", CARD = "#0f1f1a";
 const LINE = "rgba(167,243,208,0.16)", TEXT = "#f4fbf8", DIM = "#8fb3a6";
@@ -23,114 +23,14 @@ const KITE_UP = { type: "linear", angle: 90, stops: [{ offset: 0, color: LIME },
 const DISPLAY = "Space Grotesk";
 const EASE_IO = "cubic-bezier(0.65,0,0.35,1)", EASE_OUT = "cubic-bezier(0.33,1,0.68,1)";
 
-const hash = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
-
 // ---------------------------------------------------------------------------
 // Document plumbing
 
-let idc = 0;
-const nid = (p) => `${p}${++idc}`;
-const scenes = [];
-let cur = null;
+const { ms, nid, scenes, current, scene: sceneIn, group, box, ellipse, path, text, on, loop, bankTracks } = createBuilder({ W, H, FPS });
 
-function tf(x = 0, y = 0, s = 1, extra = {}) {
-  return { position: { x, y }, scale: { x: s, y: s }, rotation: 0, anchor: { x: 0.5, y: 0.5 }, ...extra };
-}
-
+/** A scene on track bank A or B. */
 function scene(name, bank, start, end, extra = {}) {
-  const s = { name, bank, start, end, layers: [] };
-  s.group = {
-    id: name, name, trackId: "t_scenes", startMs: ms(start), durationMs: ms(end + 1) - ms(start),
-    mediaType: "group", sourceType: "imported", status: "generated", locked: false, versions: [],
-    transform: tf(), ...extra
-  };
-  scenes.push(s);
-  cur = s;
-  return s;
-}
-
-/** Adds a clip to the current scene, above everything added before it. */
-function add(mediaType, o) {
-  const s = cur;
-  const from = o.from ?? s.start;
-  const to = o.to ?? s.end;
-  const clip = {
-    id: o.id ?? nid(mediaType[0]), name: o.name ?? mediaType, startMs: ms(from), durationMs: ms(to + 1) - ms(from),
-    mediaType, sourceType: "imported", status: "generated", locked: false, versions: [],
-    parentId: o.parent ?? s.name, transform: o.transform ?? tf(o.x ?? 0, o.y ?? 0, o.s ?? 1, o.tx ?? {})
-  };
-  for (const k of ["shapeStyle", "textStyle", "effects", "animations", "opacity", "blendMode", "layout", "repeater", "motionBlur", "temporalEcho"]) {
-    if (o[k] !== undefined) clip[k] = o[k];
-  }
-  clip._z = s.layers.length;
-  clip._from = from;
-  s.layers.push(clip);
-  return clip;
-}
-
-const group = (o) => add("group", o);
-
-/** A shape drawn centred in the frame raster, then placed by its transform. */
-function box(w, h, fill, o = {}) {
-  const shape = { kind: o.kind ?? "rect", x: 0.5 - w / 2 / W, y: 0.5 - h / 2 / H, width: w / W, height: h / H, cornerRadius: (o.r ?? 0) / W };
-  if (typeof fill === "string") shape.fill = fill; else if (fill) shape.fillStyle = fill;
-  if (o.stroke) { shape.stroke = o.stroke; shape.strokeWidthPx = o.sw ?? 1; }
-  Object.assign(shape, o.shape ?? {});
-  return add("shape", { ...o, shapeStyle: shape });
-}
-const ellipse = (d, fill, o = {}) => box(d, d, fill, { ...o, kind: "ellipse" });
-
-/** An SVG path given in px from the frame centre. */
-function path(points, o = {}) {
-  const X = (v) => ((W / 2 + v) / W).toFixed(5), Y = (v) => ((H / 2 + v) / H).toFixed(5);
-  const d = points.map(([cmd, ...xy]) => cmd + xy.map((v, i) => (i % 2 ? Y(v) : X(v))).join(" ")).join(" ");
-  const shape = { kind: "path", d, lineCap: "round", lineJoin: "round" };
-  if (o.fill) { if (typeof o.fill === "string") shape.fill = o.fill; else shape.fillStyle = o.fill; }
-  if (o.stroke) { shape.stroke = o.stroke; shape.strokeWidthPx = o.sw ?? 4; }
-  return add("shape", { ...o, shapeStyle: shape });
-}
-
-/** A text clip. `anchor` "left" puts the block's left edge at x, "right" its right edge. */
-function text(str, size, weight, color, o = {}) {
-  const anchor = o.anchor ?? "center";
-  const mw = o.mw ?? 0.9;
-  const x0 = o.x ?? 0;
-  const x = anchor === "left" ? x0 + (mw * W) / 2 : anchor === "right" ? x0 - (mw * W) / 2 : x0;
-  const style = { text: str, fontFamily: o.font ?? "Inter", fontSizePx: size, fontWeight: weight, color, align: anchor, maxWidthFrac: mw, ...(o.style ?? {}) };
-  if (o.tracking) style.letterSpacingPx = o.tracking * size;
-  if (o.fill) style.fill = o.fill;
-  return add("text", { ...o, x, textStyle: style });
-}
-
-const cv = (property, a, b, easing = "easeOutExpo") => ({ property, keyframes: [{ t: 0, value: a }, { t: 1, value: b, easing }] });
-const kfs = (property, list) => ({ property, keyframes: list.map(([t, value, easing]) => (easing ? { t, value, easing } : { t, value })) });
-const NOOP = cv("opacity", 1, 1, "linear");
-const REST = { opacity: 1, scale: 1, scaleX: 1, scaleY: 1, trimEnd: 1, wipeProgress: 1 };
-
-/**
- * One custom animation on `clip`, starting at scene frame `f0` and running
- * `dur` frames. An "in" that ends mid-clip away from its rest pose becomes an
- * "out" so its end value holds for the rest of the clip.
- */
-function on(clip, f0, dur, curves, opts = {}) {
-  const local = cur.start + f0 - clip._from;
-  const delayMs = ms(clip._from + local) - ms(clip._from);
-  const durationMs = Math.max(1, ms(clip._from + local + dur) - ms(clip._from + local));
-  const a = { id: nid("a"), role: "in", preset: "custom", delayMs, durationMs, custom: { curves }, ...opts };
-  const endMs = a.delayMs + a.durationMs;
-  const leavesRest = curves.some((c) => c.keyframes.at(-1).value !== (REST[c.property] ?? 0)) || (a.styleTracks && !a.textAnimator);
-  if (a.role === "in" && endMs < clip.durationMs && leavesRest) {
-    a.role = "out";
-    a.delayMs = clip.durationMs - endMs;
-  }
-  clip.animations = [...(clip.animations ?? []), a];
-  return clip;
-}
-
-/** A looping custom animation with a cycle of `dur` frames. */
-function loop(clip, dur, curves) {
-  clip.animations = [...(clip.animations ?? []), { id: nid("a"), role: "loop", preset: "custom", delayMs: 0, durationMs: ms(dur), custom: { curves } }];
-  return clip;
+  return Object.assign(sceneIn(name, start, end, extra), { bank });
 }
 
 /** Grow a clip from its bottom edge: scaleY and a matching offset share one easing. */
@@ -155,7 +55,7 @@ function glow(size, alpha, o = {}) {
 }
 
 function flash(f0, dur, peak) {
-  const c = box(W, H, "#ffffff", { name: "flash", from: cur.start + f0, to: Math.min(cur.end, cur.start + f0 + dur), blendMode: "screen" });
+  const c = box(W, H, "#ffffff", { name: "flash", from: current().start + f0, to: Math.min(current().end, current().start + f0 + dur), blendMode: "screen" });
   return on(c, f0, dur, [cv("opacity", peak, 0, "linear")]);
 }
 
@@ -460,21 +360,9 @@ const tracks = [
   { id: "t_scenes", name: "scenes", type: "video", index: 2, visible: true, locked: false }
 ];
 const clips = [glitchJoin];
-let offset = tracks.length;
-for (const bank of ["A", "B"]) {
-  const inBank = scenes.filter((s) => s.bank === bank);
-  const size = Math.max(...inBank.map((s) => s.layers.length));
-  for (let i = 0; i < size; i++) tracks.push({ id: `t_${bank}${i}`, name: `${bank}${i}`, type: "video", index: offset + i, visible: true, locked: false });
-  for (const s of inBank) {
-    [...s.layers].sort((a, b) => a._z - b._z).forEach((clip, i) => {
-      clip.trackId = `t_${bank}${size - 1 - i}`;
-      delete clip._z;
-      delete clip._from;
-      clips.push(clip);
-    });
-  }
-  offset += size;
-}
+const layers = bankTracks(tracks.length, ["A", "B"]);
+tracks.push(...layers.tracks);
+clips.push(...layers.clips);
 for (const s of scenes) clips.push(s.group);
 clips.push({
   id: "finish", name: "grain + dither", trackId: "t_finish", startMs: 0, durationMs: ms(FRAMES), mediaType: "adjustment", sourceType: "imported", status: "generated", locked: false, versions: [],
