@@ -35,6 +35,7 @@ interface DocumentSnapshot {
   width: TimelineStoreState["width"];
   height: TimelineStoreState["height"];
   tracks: TimelineStoreState["tracks"];
+  trackFolders: TimelineStoreState["trackFolders"];
   clips: TimelineStoreState["clips"];
   markers: TimelineStoreState["markers"];
   mediaTracks: TimelineStoreState["mediaTracks"];
@@ -58,6 +59,7 @@ const timelineMergeDocumentOf = (
   state: TimelineStoreState
 ): TimelineMergeDoc => ({
   tracks: state.tracks,
+  trackFolders: state.trackFolders,
   clips: state.clips,
   markers: state.markers,
   mediaTracks: state.mediaTracks,
@@ -77,6 +79,7 @@ const sameDocument = (
   b !== null &&
   a.sequenceId === b.sequenceId &&
   a.tracks === b.tracks &&
+  a.trackFolders === b.trackFolders &&
   a.clips === b.clips &&
   a.markers === b.markers &&
   a.mediaTracks === b.mediaTracks &&
@@ -161,6 +164,7 @@ export function useTimelineAutosave(
           ) {
             store.getState().setBaseUpdatedAt(updatedAt, {
               tracks: snapshot.tracks,
+              trackFolders: snapshot.trackFolders,
               clips: snapshot.clips,
               markers: snapshot.markers,
               mediaTracks: snapshot.mediaTracks,
@@ -192,6 +196,7 @@ export function useTimelineAutosave(
             const draft = timelineMergeDocumentOf(before);
             const server: TimelineMergeDoc = {
               tracks: sequence.tracks ?? [],
+              trackFolders: sequence.trackFolders ?? [],
               clips: sequence.clips ?? [],
               markers: sequence.markers ?? [],
               mediaTracks: sequence.mediaTracks ?? [],
@@ -214,6 +219,7 @@ export function useTimelineAutosave(
             try {
               store.getState().applyExternalMerge({
                 tracks: doc.tracks as TimelineStoreState["tracks"],
+                trackFolders: doc.trackFolders as TimelineStoreState["trackFolders"],
                 clips: doc.clips as TimelineStoreState["clips"],
                 markers: doc.markers as TimelineStoreState["markers"],
                 mediaTracks:

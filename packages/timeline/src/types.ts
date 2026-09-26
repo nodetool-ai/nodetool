@@ -51,6 +51,8 @@ export interface TimelineSequence {
   height: number;
   durationMs: number;
   tracks: TimelineTrack[];
+  /** Flat groups used only to organize the editor's track list. */
+  trackFolders?: TimelineTrackFolder[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
   /**
@@ -340,6 +342,8 @@ export interface TimelineTrack {
   name: string;
   type: "video" | "audio" | "overlay" | "subtitle" | "midi";
   index: number;
+  /** Optional editor folder. It does not affect rendering or track order. */
+  folderId?: string;
   visible: boolean;
   locked: boolean;
   muted?: boolean;
@@ -360,6 +364,11 @@ export interface TimelineTrack {
    * its sound. Must also exist on the protocol zod schema or PATCH strips it.
    */
   instrument?: MidiInstrument;
+}
+
+export interface TimelineTrackFolder {
+  id: string;
+  name: string;
 }
 
 // ── Track DSP effects ───────────────────────────────────────────────────────

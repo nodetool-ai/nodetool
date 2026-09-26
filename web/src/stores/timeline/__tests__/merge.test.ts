@@ -39,6 +39,7 @@ const clipOf = (
 
 const docOf = (tracks: unknown[], clips: unknown[]): TimelineMergeDoc => ({
   tracks,
+  trackFolders: [],
   clips,
   markers: [],
   mediaTracks: [],
@@ -76,6 +77,7 @@ describe("timelineUnitsTouchedByOp", () => {
       timelineUnitsTouchedByOp({ tool: "ui_timeline_seek", input: {} })
     ).toEqual([
       { kind: "track" },
+      { kind: "trackFolder" },
       { kind: "clip" },
       { kind: "marker" },
       { kind: "mediaTrack" },

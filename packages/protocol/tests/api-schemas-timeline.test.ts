@@ -36,6 +36,29 @@ const beat = {
   music: true
 };
 
+describe("track folders", () => {
+  it("preserves folder membership through document and sequence schemas", () => {
+    const track = {
+      id: "track_1",
+      name: "Picture",
+      type: "video",
+      index: 0,
+      folderId: "folder_1",
+      visible: true,
+      locked: false
+    };
+    const trackFolders = [{ id: "folder_1", name: "Scene" }];
+    const document = timelineDocument.parse({
+      tracks: [track], trackFolders, clips: [], markers: []
+    });
+    const sequence = timelineSequenceResponse.parse({
+      ...legacySequence, tracks: document.tracks, trackFolders: document.trackFolders
+    });
+    expect(sequence.tracks[0].folderId).toBe("folder_1");
+    expect(sequence.trackFolders).toEqual(trackFolders);
+  });
+});
+
 describe("timeline setup (PRD § 8.5)", () => {
   it("parses a sequence that has no setup at all", () => {
     const parsed = timelineSequenceResponse.parse(legacySequence);

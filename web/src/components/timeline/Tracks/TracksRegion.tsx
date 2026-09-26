@@ -85,6 +85,7 @@ import {
   trackHeaderWidthCss
 } from "./TrackHeader";
 import { TrackHeader } from "./TrackHeader";
+import { TrackFolderHeader } from "./TrackFolderHeader";
 import { TrackLane } from "./TrackLane";
 import { RubberBandOverlay } from "./RubberBandOverlay";
 import { SnapGuideOverlay } from "./SnapGuideOverlay";
@@ -101,7 +102,7 @@ import {
 import { TrackEffectsPanel } from "./TrackEffectsPanel";
 import { ScriptLane, ScriptLaneHeader } from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
-import { layoutTrackRows, visibleTrackWindow } from "./trackWindow";
+import { layoutTrackRows, TRACK_FOLDER_HEIGHT_PX, visibleTrackWindow } from "./trackWindow";
 import { ToolToggle } from "../ToolToggle";
 import { TimelineShortcutsDialog } from "../TimelineShortcutsDialog";
 import {
@@ -285,6 +286,19 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     );
 
     const tracks = useTimelineStore((s) => s.tracks);
+    const trackFolders = useTimelineStore((s) => s.trackFolders);
+    const [collapsedFolderIds, setCollapsedFolderIds] = useState<ReadonlySet<string>>(new Set());
+    const toggleFolder = useCallback((folderId: string) => {
+      setCollapsedFolderIds((current) => {
+        const next = new Set(current);
+        if (next.has(folderId)) {
+          next.delete(folderId);
+        } else {
+          next.add(folderId);
+        }
+        return next;
+      });
+    }, []);
     // Content extent for sizing the ruler / scroll width. The stored
     // `durationMs` is not recomputed when clips are added or moved, so it can
     // lag far behind the actual clips (it stays 0 for a freshly built
@@ -1320,8 +1334,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
 
     const trackLayout = useMemo(
-      () => layoutTrackRows(tracks, hasScript, expandedFxTrackId, verticalZoom),
-      [tracks, hasScript, expandedFxTrackId, verticalZoom]
+      () => layoutTrackRows(tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds),
+      [tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds]
     );
     const previousTrackLayoutRef = useRef(trackLayout);
     const previousVerticalZoomRef = useRef(verticalZoom);
@@ -1500,6 +1514,14 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             {visibleRows.map((row) =>
               row.kind === "script" ? (
                 <ScriptLaneHeader key="script" />
+              ) : row.kind === "folder" ? (
+                <TrackFolderHeader
+                  key={row.folder.id}
+                  folder={row.folder}
+                  count={row.count}
+                  collapsed={collapsedFolderIds.has(row.folder.id)}
+                  onToggle={toggleFolder}
+                />
               ) : (
                 <React.Fragment key={row.track.id}>
                   <TrackHeader
@@ -1544,9 +1566,20 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               {visibleRows.map((row) =>
                 row.kind === "script" ? (
                   <ScriptLane key="script" />
+                ) : row.kind === "folder" ? (
+                  <FlexRow
+                    key={row.folder.id}
+                    sx={{
+                      height: TRACK_FOLDER_HEIGHT_PX,
+                      bgcolor: "action.hover",
+                      borderBottom: 1,
+                      borderColor: "divider"
+                    }}
+                    aria-hidden="true"
+                  />
                 ) : (
                   <React.Fragment key={row.track.id}>
-                    <TrackLane track={row.track} virtualizeClips />
+                    <TrackLane track={row.track} virtualizeClips collapsedFolderIds={collapsedFolderIds} />
                     {expandedFxTrackId === row.track.id && (
                       <div
                         style={{

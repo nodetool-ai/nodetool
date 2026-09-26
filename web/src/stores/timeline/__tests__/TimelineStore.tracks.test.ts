@@ -163,3 +163,39 @@ describe("TimelineStore.duplicateTrack", () => {
     expect(store.getState().clips).toBe(before.clips);
   });
 });
+
+describe("TimelineStore track folders", () => {
+  it("creates a folder around a track as one undo step", () => {
+    const store = createTimelineStore();
+    store.getState().addTrack("video", "Picture");
+    const trackId = store.getState().tracks[0].id;
+    const folderId = store.getState().createTrackFolderForTrack(trackId);
+    expect(folderId).not.toBeNull();
+    expect(store.getState().tracks[0].folderId).toBe(folderId);
+
+    store.temporal.getState().undo();
+    expect(store.getState().trackFolders).toEqual([]);
+    expect(store.getState().tracks[0].folderId).toBeUndefined();
+  });
+
+  it("groups and ungroups tracks without changing their order or clips", () => {
+    const store = createTimelineStore();
+    store.getState().addTrack("video", "Picture");
+    store.getState().addTrack("audio", "Sound");
+    const [picture, sound] = store.getState().tracks.map((track) => track.id);
+    store.setState({ clips: [makeClip({ id: "clip", trackId: sound, startMs: 0, durationMs: 1000 })] });
+    const folderId = store.getState().addTrackFolder("Scene");
+    store.getState().setTrackFolder(sound, folderId);
+    store.getState().renameTrackFolder(folderId, "Audio beds");
+
+    expect(store.getState().trackFolders).toEqual([{ id: folderId, name: "Audio beds" }]);
+    expect(store.getState().tracks.map((track) => track.id)).toEqual([picture, sound]);
+    expect(store.getState().tracks[1].folderId).toBe(folderId);
+    expect(store.getState().clips[0].trackId).toBe(sound);
+
+    store.getState().removeTrackFolder(folderId);
+    expect(store.getState().trackFolders).toEqual([]);
+    expect(store.getState().tracks[1].folderId).toBeUndefined();
+    expect(store.getState().clips[0].trackId).toBe(sound);
+  });
+});

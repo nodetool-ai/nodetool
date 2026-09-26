@@ -28,6 +28,8 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import VerticalAlignTopIcon from "@mui/icons-material/VerticalAlignTop";
 import VerticalAlignBottomIcon from "@mui/icons-material/VerticalAlignBottom";
+import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
+import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 
 import {
   findInstrumentPreset,
@@ -342,6 +344,9 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
     const reorderTracks = useTimelineStore((s) => s.reorderTracks);
     const insertTrack = useTimelineStore((s) => s.insertTrack);
     const duplicateTrack = useTimelineStore((s) => s.duplicateTrack);
+    const trackFolders = useTimelineStore((s) => s.trackFolders);
+    const createTrackFolderForTrack = useTimelineStore((s) => s.createTrackFolderForTrack);
+    const setTrackFolder = useTimelineStore((s) => s.setTrackFolder);
 
     const verticalZoom = useTimelineUIStore((s) => s.verticalZoom);
     const authoredHeightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
@@ -896,6 +901,38 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
             onClick={handleMenuDuplicate}
             compact
           />
+          <MenuItemPrimitive
+            label="New folder with this track"
+            icon={<CreateNewFolderOutlinedIcon fontSize="small" />}
+            onClick={() => {
+              createTrackFolderForTrack(track.id);
+              closeContextMenu();
+            }}
+            compact
+          />
+          {track.folderId && (
+            <MenuItemPrimitive
+              label="Remove from folder"
+              icon={<FolderOutlinedIcon fontSize="small" />}
+              onClick={() => {
+                setTrackFolder(track.id, null);
+                closeContextMenu();
+              }}
+              compact
+            />
+          )}
+          {trackFolders.filter((folder) => folder.id !== track.folderId).map((folder) => (
+            <MenuItemPrimitive
+              key={folder.id}
+              label={`Move to ${folder.name}`}
+              icon={<FolderOutlinedIcon fontSize="small" />}
+              onClick={() => {
+                setTrackFolder(track.id, folder.id);
+                closeContextMenu();
+              }}
+              compact
+            />
+          ))}
           <MenuItemPrimitive
             label={`Insert ${meta.label} track above`}
             icon={<VerticalAlignTopIcon fontSize="small" />}

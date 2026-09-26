@@ -370,6 +370,7 @@ describe("TimelineSequence model", () => {
       height: 1080,
       durationMs: 10000,
       tracks: [],
+      trackFolders: [{ id: "folder_1", name: "Scene" }],
       clips: [],
       markers: [],
       tempo: {
@@ -388,6 +389,7 @@ describe("TimelineSequence model", () => {
 
     const loaded = await TimelineSequence.findById("original-id");
     expect(loaded).not.toBeNull();
+    expect(loaded?.toTimelineSequence().trackFolders).toEqual(original.trackFolders);
 
     const roundTripped = loaded!.toTimelineSequence();
     expect(roundTripped.id).toBe(original.id);

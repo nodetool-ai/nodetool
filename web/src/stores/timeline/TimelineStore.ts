@@ -83,6 +83,7 @@ import type {
 import type {
   TimelineSequence,
   TimelineTrack,
+  TimelineTrackFolder,
   TimelineClip,
   TimelineMarker,
   TrackEffect,
@@ -257,6 +258,7 @@ export interface TimelineStoreState {
   height: number;
   durationMs: number;
   tracks: TimelineTrack[];
+  trackFolders: TimelineTrackFolder[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
   mediaTracks: MediaTrack[];
@@ -294,6 +296,7 @@ export interface TimelineStoreState {
    */
   syncedDocument: {
     tracks: TimelineTrack[];
+    trackFolders: TimelineTrackFolder[];
     clips: TimelineClip[];
     markers: TimelineMarker[];
     mediaTracks: MediaTrack[];
@@ -316,6 +319,7 @@ export interface TimelineStoreState {
    */
   applyExternalMerge: (patch: {
     tracks?: TimelineTrack[];
+    trackFolders?: TimelineTrackFolder[];
     clips?: TimelineClip[];
     markers?: TimelineMarker[];
     mediaTracks?: MediaTrack[];
@@ -333,6 +337,7 @@ export interface TimelineStoreState {
    */
   applyAgentEdit: (next: {
     tracks: TimelineTrack[];
+    trackFolders?: TimelineTrackFolder[];
     clips: TimelineClip[];
     markers: TimelineMarker[];
     mediaTracks: MediaTrack[];
@@ -405,6 +410,11 @@ export interface TimelineStoreState {
   // ── Track mutations ──────────────────────────────────────────────────────
 
   addTrack: (type: TimelineTrack["type"], name?: string) => void;
+  addTrackFolder: (name?: string) => string;
+  createTrackFolderForTrack: (trackId: string) => string | null;
+  renameTrackFolder: (folderId: string, name: string) => void;
+  removeTrackFolder: (folderId: string) => void;
+  setTrackFolder: (trackId: string, folderId: string | null) => void;
   /**
    * Insert a new track at `atIndex` (clamped to 0..tracks.length) and
    * renumber `index` on every track. Returns the new track id.
@@ -988,6 +998,7 @@ function impliedTempo(
 type PartializedState = Pick<
   TimelineStoreState,
   | "tracks"
+  | "trackFolders"
   | "clips"
   | "markers"
   | "mediaTracks"
@@ -1046,6 +1057,7 @@ function partializedEqual(
   // element-wise comparisons entirely and only check the scalars.
   if (
     pastState.tracks === currentState.tracks &&
+    pastState.trackFolders === currentState.trackFolders &&
     pastState.clips === currentState.clips &&
     pastState.markers === currentState.markers &&
     pastState.mediaTracks === currentState.mediaTracks &&
@@ -1063,6 +1075,7 @@ function partializedEqual(
   return (
     pastState.durationMs === currentState.durationMs &&
     shallowArrayEqual(pastState.tracks, currentState.tracks) &&
+    shallowArrayEqual(pastState.trackFolders, currentState.trackFolders) &&
     shallowArrayEqual(pastState.clips, currentState.clips) &&
     shallowArrayEqual(pastState.markers, currentState.markers) &&
     shallowArrayEqual(pastState.mediaTracks, currentState.mediaTracks) &&
@@ -1487,6 +1500,7 @@ const emptyState = {
   height: 1080,
   durationMs: 0,
   tracks: [],
+  trackFolders: [],
   clips: [],
   markers: [],
   mediaTracks: [],
@@ -1505,6 +1519,7 @@ const emptyState = {
   height: number;
   durationMs: number;
   tracks: TimelineTrack[];
+  trackFolders: TimelineTrackFolder[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
   mediaTracks: MediaTrack[];
@@ -1540,6 +1555,7 @@ const syncedSnapshotOf = (
   state: Pick<
     TimelineStoreState,
     | "tracks"
+    | "trackFolders"
     | "clips"
     | "markers"
     | "mediaTracks"
@@ -1552,6 +1568,7 @@ const syncedSnapshotOf = (
   >
 ): NonNullable<TimelineStoreState["syncedDocument"]> => ({
   tracks: state.tracks,
+  trackFolders: state.trackFolders,
   clips: state.clips,
   markers: state.markers,
   mediaTracks: state.mediaTracks,
@@ -1620,6 +1637,7 @@ function adoptServerSequence(
   const state = get();
   const draft: TimelineMergeDoc = {
     tracks: state.tracks,
+    trackFolders: state.trackFolders,
     clips: state.clips,
     markers: state.markers,
     mediaTracks: state.mediaTracks,
@@ -1634,6 +1652,7 @@ function adoptServerSequence(
   // base stands in for it rather than reading as an external clear.
   const server: TimelineMergeDoc = {
     tracks: sequence.tracks ?? base.tracks,
+    trackFolders: sequence.trackFolders ?? base.trackFolders,
     clips: sequence.clips ?? base.clips,
     markers: sequence.markers ?? base.markers,
     mediaTracks: sequence.mediaTracks ?? base.mediaTracks,
@@ -1654,6 +1673,7 @@ function adoptServerSequence(
 
   get().applyAgentEdit({
     tracks: doc.tracks as TimelineTrack[],
+    trackFolders: doc.trackFolders as TimelineTrackFolder[],
     clips: doc.clips as TimelineClip[],
     markers: doc.markers as TimelineMarker[],
     mediaTracks: doc.mediaTracks as MediaTrack[]
@@ -1663,6 +1683,7 @@ function adoptServerSequence(
   // `MergeResult.nextBase` documents.
   const synced: TimelineSyncedDoc = {
     tracks: nextBase.tracks as TimelineTrack[],
+    trackFolders: nextBase.trackFolders as TimelineTrackFolder[],
     clips: nextBase.clips as TimelineClip[],
     markers: nextBase.markers as TimelineMarker[],
     mediaTracks: nextBase.mediaTracks as MediaTrack[],
@@ -1751,6 +1772,7 @@ export const createTimelineStore = (
               height: seq.height,
               durationMs: Math.max(seq.durationMs, durationMs),
               tracks,
+              trackFolders: seq.trackFolders ?? [],
               clips,
               markers: seq.markers,
               mediaTracks: seq.mediaTracks ?? [],
@@ -1775,6 +1797,7 @@ export const createTimelineStore = (
             height: seq.height,
             durationMs: seq.durationMs,
             tracks: seq.tracks,
+            trackFolders: seq.trackFolders ?? [],
             clips: seq.clips,
             markers: seq.markers,
             mediaTracks: seq.mediaTracks ?? [],
@@ -1815,10 +1838,11 @@ export const createTimelineStore = (
         },
 
         applyAgentEdit: (next) => {
-          set(() => {
+          set((state) => {
             const reflowed = reflowGenerated(next.clips);
             return {
               tracks: next.tracks,
+              trackFolders: next.trackFolders ?? state.trackFolders,
               clips: reflowed.clips,
               markers: next.markers,
               mediaTracks: next.mediaTracks,
@@ -1919,6 +1943,64 @@ export const createTimelineStore = (
         addTrack: (type, name) => {
           get().insertTrack(type, get().tracks.length, name);
         },
+
+        addTrackFolder: (name) => {
+          const id = createTimeOrderedUuid();
+          set((state) => ({
+            trackFolders: [
+              ...state.trackFolders,
+              { id, name: name?.trim() || `Folder ${state.trackFolders.length + 1}` }
+            ]
+          }));
+          return id;
+        },
+
+        createTrackFolderForTrack: (trackId) => {
+          if (!get().tracks.some((track) => track.id === trackId)) {
+            return null;
+          }
+          const id = createTimeOrderedUuid();
+          set((state) => ({
+            trackFolders: [
+              ...state.trackFolders,
+              { id, name: `Folder ${state.trackFolders.length + 1}` }
+            ],
+            tracks: patchById(state.tracks, trackId, { folderId: id })
+          }));
+          return id;
+        },
+
+        renameTrackFolder: (folderId, name) =>
+          set((state) => {
+            const trimmed = name.trim();
+            if (!trimmed) {
+              return state;
+            }
+            const trackFolders = patchById(state.trackFolders, folderId, { name: trimmed });
+            return trackFolders === state.trackFolders ? state : { trackFolders };
+          }),
+
+        removeTrackFolder: (folderId) =>
+          set((state) => {
+            if (!state.trackFolders.some((folder) => folder.id === folderId)) {
+              return state;
+            }
+            return {
+              trackFolders: state.trackFolders.filter((folder) => folder.id !== folderId),
+              tracks: state.tracks.map((track) =>
+                track.folderId === folderId ? { ...track, folderId: undefined } : track
+              )
+            };
+          }),
+
+        setTrackFolder: (trackId, folderId) =>
+          set((state) => {
+            if (folderId && !state.trackFolders.some((folder) => folder.id === folderId)) {
+              return state;
+            }
+            const tracks = patchById(state.tracks, trackId, { folderId: folderId ?? undefined });
+            return tracks === state.tracks ? state : { tracks };
+          }),
 
         insertTrack: (type, atIndex, name) => {
           const track = makeTrack({
@@ -3739,6 +3821,7 @@ export const createTimelineStore = (
         equality: partializedEqual,
         partialize: (state): PartializedState => ({
           tracks: state.tracks,
+          trackFolders: state.trackFolders,
           clips: state.clips,
           markers: state.markers,
           mediaTracks: state.mediaTracks,

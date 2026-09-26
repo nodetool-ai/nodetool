@@ -18,6 +18,7 @@ import AudiotrackOutlinedIcon from "@mui/icons-material/AudiotrackOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 import PianoOutlinedIcon from "@mui/icons-material/PianoOutlined";
+import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -94,6 +95,7 @@ interface AddTrackButtonProps {
 export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = false }) => {
   const theme = useTheme();
   const addTrack = useTimelineStore((s) => s.addTrack);
+  const addTrackFolder = useTimelineStore((s) => s.addTrackFolder);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   const handleOpen = useCallback((e: React.MouseEvent<HTMLElement>) => {
@@ -140,6 +142,14 @@ export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = f
             onClick={() => handleSelect(opt.type)}
           />
         ))}
+        <MenuItemPrimitive
+          label="New track folder"
+          icon={<CreateNewFolderOutlinedIcon fontSize="small" />}
+          onClick={() => {
+            addTrackFolder();
+            setAnchorEl(null);
+          }}
+        />
       </Popover>
     </>
   );
