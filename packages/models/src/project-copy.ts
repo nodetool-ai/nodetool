@@ -103,7 +103,7 @@ export async function persistProjectCopy(args: {
       );
       if (!destination[0])
         throw new Error("Destination project is unavailable");
-      for (const statement of writes(tx)) await statement;
+      await Promise.all(writes(tx));
     });
   }
 }
