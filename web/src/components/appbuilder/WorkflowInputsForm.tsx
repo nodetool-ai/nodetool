@@ -390,7 +390,9 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
             }
 
             if (definition.kind === "image_model") {
-              const modelValue = value as { id?: string } | undefined;
+              const modelValue = value as
+                | { id?: string; provider?: string }
+                | undefined;
               return (
                 <div
                   className="input-field"
@@ -406,6 +408,7 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
                       <ImageModelSelect
                         onChange={handleChange}
                         value={modelValue?.id || ""}
+                        provider={modelValue?.provider}
                       />
                     </div>
                   </div>
@@ -422,7 +425,9 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
             }
 
             if (definition.kind === "video_model") {
-              const modelValue = value as { id?: string } | undefined;
+              const modelValue = value as
+                | { id?: string; provider?: string }
+                | undefined;
               return (
                 <div
                   className="input-field"
@@ -438,6 +443,7 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
                       <VideoModelSelect
                         onChange={handleChange}
                         value={modelValue?.id || ""}
+                        provider={modelValue?.provider}
                       />
                     </div>
                   </div>
@@ -486,7 +492,9 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
             }
 
             if (definition.kind === "asr_model") {
-              const modelValue = value as { id?: string } | undefined;
+              const modelValue = value as
+                | { id?: string; provider?: string }
+                | undefined;
               return (
                 <div
                   className="input-field"
@@ -502,6 +510,7 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
                       <ASRModelSelect
                         onChange={handleChange}
                         value={modelValue?.id || ""}
+                        provider={modelValue?.provider}
                       />
                     </div>
                   </div>
@@ -518,7 +527,9 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
             }
 
             if (definition.kind === "embedding_model") {
-              const modelValue = value as { id?: string } | undefined;
+              const modelValue = value as
+                | { id?: string; provider?: string }
+                | undefined;
               return (
                 <div
                   className="input-field"
@@ -534,6 +545,7 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
                       <EmbeddingModelSelect
                         onChange={handleChange}
                         value={modelValue?.id || ""}
+                        provider={modelValue?.provider}
                       />
                     </div>
                   </div>

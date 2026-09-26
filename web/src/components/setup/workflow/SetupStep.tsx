@@ -310,9 +310,17 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
               onChange={handleLanguageChange}
             />
           ) : role.role === "image" ? (
-            <ImageModelSelect value={selectedModel} onChange={handleImageChange} />
+            <ImageModelSelect
+              value={selectedModel}
+              provider={selectedProvider}
+              onChange={handleImageChange}
+            />
           ) : role.role === "video" ? (
-            <VideoModelSelect value={selectedModel} onChange={handleVideoChange} />
+            <VideoModelSelect
+              value={selectedModel}
+              provider={selectedProvider}
+              onChange={handleVideoChange}
+            />
           ) : role.role === "audio" ? (
             <TTSModelSelect value={selectedModel} onChange={handleAudioChange} />
           ) : (

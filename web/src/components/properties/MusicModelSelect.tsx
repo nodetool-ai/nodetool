@@ -49,10 +49,10 @@ const MusicModelSelect: React.FC<MusicModelSelectProps> = ({
     if (!models || !modelId) {
       return null;
     }
-    const exact = modelProvider
-      ? models.find((m) => m.id === modelId && m.provider === modelProvider)
-      : null;
-    return exact ?? models.find((m) => m.id === modelId) ?? null;
+    return models.find(
+      (m) =>
+        m.id === modelId && (!modelProvider || m.provider === modelProvider)
+    ) ?? null;
   }, [models, modelId, modelProvider]);
 
   return (

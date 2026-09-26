@@ -477,6 +477,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         <Box sx={{ width: 120, flexShrink: 0 }}>
           <ImageModelSelect
             value={model}
+            provider={provider}
             task={mode === "inpaint" ? "inpainting" : "image_to_image"}
             onChange={handleModelChange}
           />

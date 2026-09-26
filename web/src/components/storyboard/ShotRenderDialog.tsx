@@ -178,6 +178,7 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
           <FormField label={CLIP_TASK_LABELS[clipTask]} sx={modelFieldSx}>
             <VideoModelSelect
               value={clipSelection?.id ?? ""}
+              provider={clipSelection?.provider}
               task={clipTask}
               onChange={setPickedClip}
             />
@@ -186,11 +187,15 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
           <FormField label="Still model" sx={modelFieldSx}>
             <ImageModelSelect
               value={stillSelection?.id ?? ""}
+              provider={stillSelection?.provider}
               task={STILL_MODEL_TASKS}
               onChange={setPickedStill}
             />
             {hasEntities && (
-              <EntityStillModelWarning modelId={stillSelection?.id} />
+              <EntityStillModelWarning
+                modelId={stillSelection?.id}
+                provider={stillSelection?.provider}
+              />
             )}
           </FormField>
         )}

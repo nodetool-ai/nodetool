@@ -148,6 +148,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               // With nothing picked the run uses the shipped default, so name
               // it rather than showing an empty picker.
               value={settings.model?.id ?? modelInfo?.modelId ?? ""}
+              provider={settings.model?.provider}
               onChange={handleModelChange}
             />
           </Box>

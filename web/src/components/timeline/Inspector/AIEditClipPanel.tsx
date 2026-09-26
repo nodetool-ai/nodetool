@@ -352,6 +352,7 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
             ) : (
               <VideoModelSelect
                 value={selectedModel?.id ?? ""}
+                provider={selectedModel?.provider}
                 task="video_to_video"
                 onChange={handleModelChange}
               />

@@ -16,6 +16,7 @@ interface ASRModelSelection {
 interface ASRModelSelectProps {
   onChange: (value: ASRModelSelection) => void;
   value: string;
+  provider?: string;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
 }
@@ -23,6 +24,7 @@ interface ASRModelSelectProps {
 const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
   onChange,
   value,
+  provider,
   recommendedModels,
   modelPacks
 }) => {
@@ -37,8 +39,10 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
     if (!models || !value) {
       return null;
     }
-    return models.find((m) => m.id === value);
-  }, [models, value]);
+    return models.find(
+      (m) => m.id === value && (!provider || m.provider === provider)
+    );
+  }, [models, value, provider]);
 
   return (
     <>

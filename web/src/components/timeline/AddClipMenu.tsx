@@ -737,6 +737,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                     {directGenKind === "video" ? (
                       <VideoModelSelect
                         value={directModel ?? ""}
+                        provider={directProvider ?? undefined}
                         task="text_to_video"
                         onChange={handleDirectVideoModelChange}
                       />
@@ -759,6 +760,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                     ) : (
                       <ImageModelSelect
                         value={directModel ?? ""}
+                        provider={directProvider ?? undefined}
                         task="text_to_image"
                         onChange={handleDirectModelChange}
                       />

@@ -152,6 +152,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
       <FlexColumn gap={SPACING.md} sx={{ px: SPACING.lg, pb: SPACING.lg }}>
         <ImageModelSelect
           value={binding.model ?? ""}
+          provider={binding.provider}
           task={isImageToImage ? "image_to_image" : "text_to_image"}
           onChange={handleModelChange}
         />

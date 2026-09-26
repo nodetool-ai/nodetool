@@ -17,11 +17,17 @@ import { useImageModelsByProvider } from "../../hooks/useModelsByProvider";
 interface EntityStillModelWarningProps {
   /** The board's selected still model, if one is chosen. */
   modelId: string | undefined;
+  provider: string | undefined;
 }
 
-const EntityStillModelWarning = ({ modelId }: EntityStillModelWarningProps) => {
+const EntityStillModelWarning = ({
+  modelId,
+  provider
+}: EntityStillModelWarningProps) => {
   const { models } = useImageModelsByProvider();
-  const details = modelId ? models.find((m) => m.id === modelId) : undefined;
+  const details = modelId
+    ? models.find((m) => m.id === modelId && m.provider === provider)
+    : undefined;
   if (details?.supported_tasks?.includes("image_to_image")) {
     return null;
   }

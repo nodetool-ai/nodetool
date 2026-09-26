@@ -20,7 +20,11 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
 // The hook resolves board entities through React Query; the tests below seed
 // these arrays per scenario.
 const mockEntities: unknown[] = [];
-const mockImageModels: Array<{ id: string; supported_tasks?: string[] }> = [];
+const mockImageModels: Array<{
+  id: string;
+  provider: string;
+  supported_tasks?: string[];
+}> = [];
 const mockVideoModels: Array<{
   id: string;
   provider: string;
@@ -387,7 +391,11 @@ describe("keyframe prompt composition", () => {
     shotToRender: Shot,
     supportedTasks: string[]
   ): Promise<Record<string, unknown>> => {
-    mockImageModels.push({ id: "model-1", supported_tasks: supportedTasks });
+    mockImageModels.push({
+      id: "model-1",
+      provider: "prov",
+      supported_tasks: supportedTasks
+    });
     const store = useStoryboardStore.getState();
     store.setImageModel(BOARD, stillModel);
     store.setEntityIds(BOARD, ["ent-1"]);
@@ -415,6 +423,20 @@ describe("keyframe prompt composition", () => {
       variations: 1
     });
     expect(String(data.prompt)).not.toContain("Consistency references");
+  });
+
+  it("uses the selected provider when model IDs share different edit capabilities", async () => {
+    mockImageModels.push({
+      id: "model-1",
+      provider: "other",
+      supported_tasks: ["image_to_image"]
+    });
+    const data = await frameWithModel(
+      { ...shot, id: "shot-provider", entity_ids: ["ent-1"] },
+      []
+    );
+    expect(String(data.prompt)).toContain("Consistency references");
+    expect(String(data.prompt)).not.toContain("entity://ent-1");
   });
 
   it("sends every keyframe param when the model cannot edit", async () => {
