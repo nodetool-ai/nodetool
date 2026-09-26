@@ -39,7 +39,7 @@ describe("registerTimelineCommands", () => {
     );
   });
 
-  it("registers render with its frame, stills and scale options", () => {
+  it("registers render with its frame, stills, sheet, only and scale options", () => {
     const cmd = timelineSubcommand("render");
     expect(cmd.registeredArguments.map((a) => a.name())).toEqual([
       "timeline_id_or_file"
@@ -50,6 +50,8 @@ describe("registerTimelineCommands", () => {
         "--format",
         "--frames",
         "--stills",
+        "--sheet",
+        "--only",
         "--scale",
         "--bitrate",
         "--json"
