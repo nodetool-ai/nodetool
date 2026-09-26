@@ -1410,6 +1410,15 @@ function docScenes(doc: StoryboardDocument): Scene[] {
   return doc.screenplay?.scenes ?? [];
 }
 
+/**
+ * A fresh id for a screenplay, scene or shot. A clock and a count are not
+ * enough: ops in one batch run within the same millisecond, and a count
+ * repeats after a remove or when two counts coincide.
+ */
+function newDocId(prefix: string): string {
+  return `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
+}
+
 /** Write scenes back, materializing a minimal screenplay when there is none. */
 function setDocScenes(doc: StoryboardDocument, scenes: Scene[]): void {
   if (doc.screenplay) {
@@ -1419,7 +1428,7 @@ function setDocScenes(doc: StoryboardDocument, scenes: Scene[]): void {
   if (scenes.length === 0) return;
   doc.screenplay = {
     type: "screenplay",
-    id: `sp_${Date.now().toString(36)}`,
+    id: newDocId("sp"),
     title: "",
     shots: [],
     scenes
@@ -1490,7 +1499,7 @@ function materializeLegacyScene(doc: StoryboardDocument): string | null {
   if (!doc.shots.some((shot) => !shot.scene_id)) return null;
   const scene: Scene = {
     type: "scene",
-    id: `scene_${Date.now().toString(36)}_${doc.shots.length}`,
+    id: newDocId("scene"),
     slugline: ""
   };
   doc.shots = doc.shots.map((shot) =>
@@ -1798,7 +1807,7 @@ function applyBoardOp(
       const shot = applyShotFields(
         {
           type: "shot",
-          id: `shot_${doc.shots.length + 1}_${Date.now().toString(36)}`,
+          id: newDocId("shot"),
           index: doc.shots.length,
           action: "",
           status: "planned"
@@ -1935,7 +1944,7 @@ function applyBoardOp(
       const at = ordered.findIndex((s) => s.id === shot.id);
       const copy: Shot = {
         ...shot,
-        id: `shot_${doc.shots.length + 1}_${Date.now().toString(36)}`,
+        id: newDocId("shot"),
         // The copy covers no script line, so the link fields go with the
         // original and an ERT read off a line is now the user's own.
         duration_source: "manual"
@@ -1994,7 +2003,7 @@ function applyBoardOp(
       materializeLegacyScene(doc);
       const scene: Scene = {
         type: "scene",
-        id: `scene_${Date.now().toString(36)}_${docScenes(doc).length}`,
+        id: newDocId("scene"),
         slugline: optionalString(args["slugline"]) ?? ""
       };
       const groups = sceneGroups(doc.shots);
@@ -2014,7 +2023,7 @@ function applyBoardOp(
           : groups.slice(0, after + 1).reduce((n, g) => n + g.shots.length, 0);
       // A scene with no shot has no position, so it would neither render nor
       // survive the next operation: it opens holding one blank shot.
-      const shotId = `shot_${doc.shots.length + 1}_${Date.now().toString(36)}`;
+      const shotId = newDocId("shot");
       ordered.splice(at, 0, blankShot(shotId, scene.id));
       setDocScenes(doc, [...docScenes(doc), scene]);
       applyStructural(doc, ordered);

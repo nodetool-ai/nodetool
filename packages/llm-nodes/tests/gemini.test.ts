@@ -377,6 +377,24 @@ describe("TextToVideoGeminiNode", () => {
     expect((result.output as Record<string, unknown>).data).toBe("videobase64");
   });
 
+  it("stops polling a submitted operation when the run is cancelled", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ name: "operations/op-1", done: false })
+    });
+    const controller = new AbortController();
+    const node = new TextToVideoGeminiNode();
+    node.assign({ prompt: "a sunset" });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    const pending = node.process({
+      signal: controller.signal
+    } as unknown as Parameters<TextToVideoGeminiNode["process"]>[0]);
+    await vi.waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+    controller.abort(new Error("cancelled"));
+    await expect(pending).rejects.toThrow("cancelled");
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
   it("handles the nested Veo response shape", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,

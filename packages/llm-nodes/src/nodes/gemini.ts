@@ -2,6 +2,8 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ImageRef, AudioRef } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { safeFetch } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { sleep } from "@nodetool-ai/runtime/provider-transport";
 import {
   isNonEmptyString,
   isObjectLike,
@@ -517,7 +519,9 @@ export class TextToVideoGeminiNode extends BaseNode {
   })
   declare resolution: string;
 
-  async process(): Promise<TextToVideoGeminiNodeOutputs> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<TextToVideoGeminiNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
     const prompt = this.prompt;
     const model = this.model;
@@ -541,7 +545,8 @@ export class TextToVideoGeminiNode extends BaseNode {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: context?.signal
     });
 
     if (!res.ok) {
@@ -550,7 +555,11 @@ export class TextToVideoGeminiNode extends BaseNode {
     }
 
     const operation = (await res.json()) as Record<string, unknown>;
-    const videoData = await pollVideoOperation(apiKey, operation);
+    const videoData = await pollVideoOperation(
+      apiKey,
+      operation,
+      context?.signal
+    );
     return { output: { type: "video", data: videoData } };
   }
 }
@@ -635,7 +644,9 @@ export class ImageToVideoGeminiNode extends BaseNode {
   })
   declare resolution: string;
 
-  async process(): Promise<ImageToVideoGeminiNodeOutputs> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<ImageToVideoGeminiNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
     const image = this.image;
     const prompt = this.prompt;
@@ -671,7 +682,8 @@ export class ImageToVideoGeminiNode extends BaseNode {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: context?.signal
     });
 
     if (!res.ok) {
@@ -680,14 +692,19 @@ export class ImageToVideoGeminiNode extends BaseNode {
     }
 
     const operation = (await res.json()) as Record<string, unknown>;
-    const videoData = await pollVideoOperation(apiKey, operation);
+    const videoData = await pollVideoOperation(
+      apiKey,
+      operation,
+      context?.signal
+    );
     return { output: { type: "video", data: videoData } };
   }
 }
 
 async function pollVideoOperation(
   apiKey: string,
-  operation: Record<string, unknown>
+  operation: Record<string, unknown>,
+  signal?: AbortSignal
 ): Promise<string> {
   const initialError = operation.error as Record<string, unknown> | undefined;
   if (initialError) {
@@ -704,10 +721,13 @@ async function pollVideoOperation(
 
   const maxAttempts = 120; // 10 minutes at 5s intervals
   for (let i = 0; i < maxAttempts; i++) {
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    // A cancelled run stops polling the paid operation.
+    signal?.throwIfAborted();
+    await sleep(5000, signal);
+    signal?.throwIfAborted();
 
     const pollUrl = `https://generativelanguage.googleapis.com/v1beta/${opName}?key=${apiKey}`;
-    const pollRes = await fetch(pollUrl);
+    const pollRes = await fetch(pollUrl, { signal });
     if (!pollRes.ok) {
       const errText = await pollRes.text();
       throw new Error(`Gemini poll error ${pollRes.status}: ${errText}`);

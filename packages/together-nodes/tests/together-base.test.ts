@@ -5,6 +5,7 @@ import {
   resolveAssetBytes,
   resolveVideoDimensions,
   togetherGenerateImage,
+  togetherGenerateVideo,
   togetherTranscribe
 } from "../src/together-base.js";
 
@@ -203,5 +204,30 @@ describe("togetherTranscribe", () => {
     });
     expect(text).toBe("hello world");
     expect(isForm).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// togetherGenerateVideo
+// ---------------------------------------------------------------------------
+describe("togetherGenerateVideo", () => {
+  it("stops polling a submitted job when the run is cancelled", async () => {
+    const fetchMock = vi.fn(async (url: string) =>
+      url.endsWith("/v2/videos")
+        ? new Response(JSON.stringify({ id: "job-1" }), { status: 200 })
+        : new Response(JSON.stringify({ status: "in_progress" }), { status: 200 })
+    );
+    global.fetch = fetchMock as unknown as typeof fetch;
+    const controller = new AbortController();
+    const pending = togetherGenerateVideo(
+      "key",
+      "minimax/video-01",
+      { prompt: "a sunset" },
+      { pollIntervalMs: 60_000, signal: controller.signal }
+    );
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    controller.abort(new Error("cancelled"));
+    await expect(pending).rejects.toThrow("cancelled");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

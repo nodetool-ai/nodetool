@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
-import { getDefaultHfCacheDir, HfFastCache } from "../src/hf-cache.js";
+import {
+  _candidateRepoKeys,
+  getDefaultHfCacheDir,
+  HfFastCache
+} from "../src/hf-cache.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -239,5 +243,22 @@ describe("HfFastCache", () => {
     const snap = await cache.activeSnapshotDir("org/mymodel", "model");
     expect(snap).not.toBeNull();
     expect(snap!).toContain("abc123");
+  });
+});
+
+// The slash trim was `/^\/+|\/+$/g`, which backtracks quadratically on a long
+// slash run followed by another character.
+describe("_candidateRepoKeys", () => {
+  it("strips leading and trailing slashes from the repo id", () => {
+    expect(_candidateRepoKeys("//org/model//", "model")).toEqual([
+      "models:org/model"
+    ]);
+    expect(_candidateRepoKeys("///", "model")).toEqual(["models:"]);
+  });
+
+  it("normalizes an id with a long interior slash run in linear time", () => {
+    const started = performance.now();
+    _candidateRepoKeys(`a${"/".repeat(200_000)}x`, "model");
+    expect(performance.now() - started).toBeLessThan(1_000);
   });
 });

@@ -309,7 +309,7 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
             guidanceScale: num("guidance_scale"),
             seed: num("seed"),
             negativePrompt: str("negative_prompt")
-          });
+          }, { signal: context?.signal });
           return storeMedia(bytes, "video", undefined, context);
         }
         case "image_to_video": {
@@ -324,7 +324,7 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
             guidanceScale: num("guidance_scale"),
             seed: num("seed"),
             negativePrompt: str("negative_prompt")
-          });
+          }, { signal: context?.signal });
           return storeMedia(bytes, "video", undefined, context);
         }
         default: {

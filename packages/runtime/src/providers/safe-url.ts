@@ -168,11 +168,12 @@ export function isSafePublicHttpsUrl(url: string): boolean {
   }
   // Normalise: strip IPv6 brackets (WHATWG URL may include them depending on
   // the runtime) and any trailing dot (`localhost.` resolves the same as
-  // `localhost` but would dodge the exact/suffix checks below).
-  const host = parsed.hostname
-    .toLowerCase()
-    .replace(/^\[|\]$/g, "")
-    .replace(/\.+$/, "");
+  // `localhost` but would dodge the exact/suffix checks below). The dots are
+  // trimmed with a loop: `/\.+$/` backtracks quadratically on a long dot run.
+  const bare = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  let end = bare.length;
+  while (end > 0 && bare[end - 1] === ".") end -= 1;
+  const host = bare.slice(0, end);
   if (!host) return false;
   if (
     host === "localhost" ||

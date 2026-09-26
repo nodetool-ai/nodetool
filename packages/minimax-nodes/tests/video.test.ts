@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MinimaxTextToVideoNode } from "../src/nodes/text-to-video.js";
 import { MinimaxImageToVideoNode } from "../src/nodes/image-to-video.js";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
@@ -68,6 +69,24 @@ describe("MinimaxTextToVideoNode", () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(4);
     expect(result.output).toMatchObject({ type: "video", data: videoB64 });
+  });
+
+  it("stops polling a submitted job when the run is cancelled", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        task_id: "task-1",
+        status: "Processing",
+        base_resp: { status_code: 0 }
+      })
+    });
+    const controller = new AbortController();
+    controller.abort(new Error("cancelled"));
+    const node = new MinimaxTextToVideoNode({ prompt: "a sunset" });
+    await expect(
+      node.process({ signal: controller.signal } as unknown as ProcessingContext)
+    ).rejects.toThrow("cancelled");
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it("omits duration/resolution for the 01-series Director model", async () => {
