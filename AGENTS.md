@@ -327,7 +327,9 @@ For documentation-only changes, check affected links and run
 `test:affected` selects from commits since the merge-base with `origin/main`
 plus working-tree changes. Backend tests run through Turbo with dependency
 builds. App-only changes select related Jest tests. Changes to app dependencies
-select the app's whole suite. Unmapped non-documentation changes select all
+select the app's whole suite. A file outside every workspace selects the checks
+that `PATH_CHECKS` lists for it, such as `validate:examples` for an example
+generator. Any other non-documentation file outside every workspace selects all
 suites. Use `-- --base <ref>` to change the base or pass file paths to inspect
 selection. If you change `buildPlan` in `scripts/test-affected.mjs`, update
 `scripts/__tests__/test-affected.test.mjs`.

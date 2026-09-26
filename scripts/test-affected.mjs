@@ -14,8 +14,10 @@
  *     that app's own files changed, and the app's whole suite when a package it
  *     depends on changed — jest's dependency graph stops at the workspace root,
  *     so a change inside `node_modules/@nodetool-ai/*` is invisible to it;
- *   - everything, when a changed file belongs to no workspace and is not
- *     documentation (root configs, `scripts/`, the lockfile).
+ *   - the checks `PATH_CHECKS` names for a file outside every workspace that
+ *     has known coverage (the example generators, the backend bundle scripts);
+ *   - everything, when any other changed file belongs to no workspace and is
+ *     not documentation (root configs, other `scripts/`, the lockfile).
  *
  * Flags: `--base <ref>` (default: merge-base with origin/main, plus the working
  * tree), `--all` (skip selection), `--dry-run` (print the plan), `--gate`
@@ -53,6 +55,64 @@ export const MOBILE_DEPS = ["@nodetool-ai/protocol", "@nodetool-ai/app-runtime"]
 export const DOC_ONLY =
   /(^|\/)[^/]+\.mdx?$|^docs\/|^\.github\/|^\.claude\/|^\.vscode\/|^LICENSE$|^\.gitignore$/;
 
+const VALIDATE_EXAMPLES = {
+  label: "validate-examples",
+  command: "node",
+  args: ["scripts/validate-examples.mjs"]
+};
+
+function websocketTest(name) {
+  return {
+    label: `websocket: tests/${name}.test.ts`,
+    command: "npm",
+    args: ["run", "test", "--workspace=packages/websocket", "--", `tests/${name}.test.ts`]
+  };
+}
+
+/**
+ * Files outside every workspace whose coverage is known, and the checks that
+ * cover them. A changed file collects the steps of every entry it matches.
+ * The example generators write bundles into `packages/base-nodes`, so a change
+ * to a generator alone is checked by what reads those bundles. The marketing
+ * site is a separate npm project that `marketing-ci.yml` tests, and no root
+ * suite reads its files.
+ */
+export const PATH_CHECKS = [
+  {
+    path: /^scripts\/(example-timelines\/|render-example-timeline\.mjs$)/,
+    steps: [VALIDATE_EXAMPLES, websocketTest("example-timelines")]
+  },
+  {
+    path: /^scripts\/(example-storyboards\/|build-example-storyboards\.mjs$)/,
+    steps: [
+      {
+        label: "build-example-storyboards --check",
+        command: "node",
+        args: ["scripts/build-example-storyboards.mjs", "--check"]
+      },
+      VALIDATE_EXAMPLES,
+      websocketTest("example-storyboards")
+    ]
+  },
+  { path: /^scripts\/validate-examples\.mjs$/, steps: [VALIDATE_EXAMPLES] },
+  {
+    // The `desktop-backend` surface in the harness registry runs the same smoke.
+    path: /^scripts\/(bundle-backend|verify-backend-bundle)\.mjs$/,
+    steps: [{ label: "backend:smoke", command: "npm", args: ["run", "backend:smoke"] }]
+  },
+  {
+    path: /^scripts\/verify-backend-bundle\.mjs$/,
+    steps: [
+      {
+        label: "electron: verifyBackendBundle.test.ts",
+        command: "npm",
+        args: [...APPS.electron.slice(1), "src/__tests__/verifyBackendBundle.test.ts"]
+      }
+    ]
+  },
+  { path: /^marketing\//, steps: [] }
+];
+
 function abbreviate(names, limit) {
   const head = names.slice(0, limit).join(", ");
   return names.length > limit ? `${head} +${names.length - limit} more` : head;
@@ -89,7 +149,14 @@ export function fullPlan() {
  */
 export function buildPlan(files, packages, computeAffected) {
   const result = computeAffected(files, packages);
-  const globalFiles = result.unmatched.filter((f) => !DOC_ONLY.test(f));
+  const pathSteps = new Map();
+  const globalFiles = [];
+  for (const file of result.unmatched) {
+    if (DOC_ONLY.test(file)) continue;
+    const checks = PATH_CHECKS.filter((c) => c.path.test(file));
+    if (checks.length === 0) globalFiles.push(file);
+    for (const step of checks.flatMap((c) => c.steps)) pathSteps.set(step.label, step);
+  }
   if (globalFiles.length > 0) return { steps: fullPlan(), globalFiles };
 
   const byName = new Map(packages.map((p) => [p.name, p]));
@@ -139,6 +206,7 @@ export function buildPlan(files, packages, computeAffected) {
       });
     }
   }
+  steps.push(...pathSteps.values());
   return { steps, globalFiles: [] };
 }
 
