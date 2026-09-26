@@ -3,8 +3,10 @@
  */
 import {
   getAssetMediaUrl,
+  getAssetPreviewUrl,
   getAssetUrl,
-  isAssetOffline
+  isAssetOffline,
+  isVideoProxyPending
 } from "../assetHelpers";
 
 describe("getAssetUrl", () => {
@@ -91,5 +93,51 @@ describe("isAssetOffline", () => {
     expect(isAssetOffline({ offline: false })).toBe(false);
     expect(isAssetOffline({ id: "a" })).toBe(false);
     expect(isAssetOffline(null)).toBe(false);
+  });
+});
+
+describe("getAssetPreviewUrl", () => {
+  const video = {
+    get_url: "/api/storage/u/a.mp4",
+    proxy_url: "/api/storage/u/a_proxy.mp4?v=abc"
+  };
+
+  it("answers the proxy URL when the proxy is ready", () => {
+    expect(getAssetPreviewUrl({ ...video, proxy_status: "ready" })).toBe(
+      "/api/storage/u/a_proxy.mp4?v=abc"
+    );
+  });
+
+  it("answers the media URL while the proxy is missing or not ready", () => {
+    for (const proxy_status of ["none", "queued", "running", "failed"]) {
+      expect(getAssetPreviewUrl({ ...video, proxy_status })).toBe(
+        "/api/storage/u/a.mp4"
+      );
+    }
+    expect(getAssetPreviewUrl({ get_url: "/x.png" })).toBe("/x.png");
+    expect(
+      getAssetPreviewUrl({ get_url: "/x.mp4", proxy_status: "ready", proxy_url: null })
+    ).toBe("/x.mp4");
+  });
+
+  it("keeps the version of an external asset on the fallback", () => {
+    expect(
+      getAssetPreviewUrl({
+        get_url: "/api/storage/u/a.mp4",
+        offline: false,
+        metadata: { external_mtime: 1700000000123.4 },
+        proxy_status: "queued"
+      })
+    ).toBe("/api/storage/u/a.mp4?v=1700000000123");
+  });
+});
+
+describe("isVideoProxyPending", () => {
+  it("is true only while the proxy is queued or running", () => {
+    expect(isVideoProxyPending({ proxy_status: "queued" })).toBe(true);
+    expect(isVideoProxyPending({ proxy_status: "running" })).toBe(true);
+    expect(isVideoProxyPending({ proxy_status: "ready" })).toBe(false);
+    expect(isVideoProxyPending({})).toBe(false);
+    expect(isVideoProxyPending(null)).toBe(false);
   });
 });

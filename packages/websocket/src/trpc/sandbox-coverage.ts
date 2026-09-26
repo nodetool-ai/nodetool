@@ -212,6 +212,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "a user's media library is the largest-blast-radius write in " +
       "the API — the wrong thing to put one prompt injection away."
   },
+  "assets.ensureProxy": {
+    gap:
+      "A preview proxy only speeds up seeking in the timeline editor's " +
+      "preview. No headless consumer: renders and exports read the original."
+  },
   "assets.externalImportConfig": {
     gap:
       "Tells the desktop renderer when to reference a dropped file in " +

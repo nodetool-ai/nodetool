@@ -103,6 +103,12 @@ s(
   "Desktop app only: files imported at or above this size, in bytes, stay where they are and the asset references them in place instead of copying them into the asset folder (default: 1073741824, 1 GiB)."
 );
 
+s(
+  "NODETOOL_VIDEO_PROXY_MIN_SIZE_PX",
+  "Folders",
+  "Desktop app only: an imported video whose longer side is at least this many pixels gets a smaller all-intra preview proxy, made in the background, so timeline scrubbing seeks fast. Export always reads the original. 0 makes a proxy for every video, a negative value turns background proxies off (default: 1920)."
+);
+
 // Autosave
 s(
   "AUTOSAVE_ENABLED",

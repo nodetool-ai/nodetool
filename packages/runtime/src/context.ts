@@ -1086,7 +1086,7 @@ function resolveWorkspaceOption(opts: {
  * in the last segment — both forms are matched. Generated thumbnails
  * (`<id>_thumb.<ext>`) are skipped unless they are the id being resolved, so a
  * legit `banner_thumb` still matches instead of being dropped by a substring
- * test.
+ * test. Preview proxies (`<id>_proxy.<ext>`) are skipped the same way.
  */
 function findListedAsset(
   entries: readonly StorageEntry[],
@@ -1098,6 +1098,11 @@ function findListedAsset(
     const key = entry.key;
     const lastSegment = key.split("/").pop() ?? "";
     if (!key.startsWith(needle) && !lastSegment.startsWith(needle)) {
+      return false;
+    }
+    // A preview proxy (`<id>_proxy.mp4`) and its manifest sit next to the
+    // asset. A short id must never resolve to them: renders read the original.
+    if (/_proxy\.[^./]+$/.test(lastSegment) && !bareId.endsWith("_proxy")) {
       return false;
     }
     const isThumb = /_thumb\.[^./]+$/.test(lastSegment);

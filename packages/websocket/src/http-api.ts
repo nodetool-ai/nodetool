@@ -123,6 +123,7 @@ import {
 } from "./lib/asset-paths.js";
 import { resolveAssetBytesForExport } from "./lib/asset-export.js";
 import { toAssetResponse } from "./lib/asset-response.js";
+import { scheduleVideoProxy } from "./lib/video-proxy.js";
 
 export { toAssetResponse };
 export { getAssetFileName, getAssetStoragePath };
@@ -1621,6 +1622,7 @@ export async function handleAssetsRoot(
         }
         throw error instanceof Error ? error : new Error(String(error));
       }
+      scheduleVideoProxy(asset);
     }
 
     return jsonResponse(await toAssetResponse(asset));

@@ -412,6 +412,13 @@ export interface Asset {
    * that file is missing or changed since import or relink.
    */
   offline?: boolean;
+  /**
+   * Set only on a video asset on a local server: the state of its all-intra
+   * preview proxy.
+   */
+  proxy_status?: "none" | "queued" | "running" | "ready" | "failed";
+  /** The preview proxy's URL while `proxy_status` is `ready`. Preview only. */
+  proxy_url?: string | null;
 }
 
 export interface AssetList {

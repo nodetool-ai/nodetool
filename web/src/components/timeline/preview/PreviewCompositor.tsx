@@ -31,7 +31,10 @@ import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useAssetRevisionStore } from "../../../stores/AssetRevisionStore";
-import { getAssetMediaUrl } from "../../../utils/assetHelpers";
+import {
+  getAssetPreviewUrl,
+  isVideoProxyPending
+} from "../../../utils/assetHelpers";
 import {
   FONT_SIZE_SANS,
   FONT_WEIGHT,
@@ -96,6 +99,7 @@ import { ShapeRasterizer } from "./shapeRender";
 import { textMeasurer } from "./textMeasure";
 import { PreviewRecovery } from "./PreviewRecovery";
 import { watchVideoHealth } from "./videoHealth";
+import { watchVideoProxy } from "./videoProxyWatch";
 import { type PreviewFailureHandler } from "./previewFailure";
 
 interface PlaceholderLayer {
@@ -342,9 +346,18 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   const assetUrlCache = useRef<Map<string, AssetUrlEntry>>(new Map());
   const [urlCacheVersion, setUrlCacheVersion] = useState(0);
   const getAsset = useAssetStore((s) => s.get);
+  const bumpAssetRevision = useAssetRevisionStore((s) => s.bump);
+  // Stops the proxy polls below when the preview unmounts.
+  const proxyWatch = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    proxyWatch.current = controller;
+    return () => controller.abort();
+  }, []);
 
   // A relink keeps the asset id but moves its media URL to the new file's
-  // version. Drop the resolved entry so the next frame resolves it again.
+  // version, and a finished preview proxy replaces it. Drop the resolved
+  // entry so the next frame resolves it again.
   const assetRevisions = useAssetRevisionStore((s) => s.revisions);
   const seenRevisions = useRef(assetRevisions);
   useEffect(() => {
@@ -379,7 +392,16 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       getAsset(assetId)
         .then((asset) => {
           if (!alive.current) return;
-          const url = getAssetMediaUrl(asset);
+          // The all-intra proxy when it is ready: a seek decodes one frame
+          // instead of a GOP. Export resolves the original on its own.
+          const url = getAssetPreviewUrl(asset);
+          if (isVideoProxyPending(asset)) {
+            watchVideoProxy(assetId, {
+              fetchAsset: getAsset,
+              onReady: bumpAssetRevision,
+              signal: proxyWatch.current?.signal
+            });
+          }
           if (url) {
             assetUrlCache.current.set(assetId, { status: "resolved", url });
             setUrlCacheVersion((v) => v + 1);
@@ -400,7 +422,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         });
       return undefined;
     },
-    [getAsset, onFailure]
+    [bumpAssetRevision, getAsset, onFailure]
   );
 
   /**

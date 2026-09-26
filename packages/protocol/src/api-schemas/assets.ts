@@ -4,6 +4,17 @@ import { z } from "zod";
 // Mirrors `toAssetResponse` in the legacy http-api.ts handler. `get_url`
 // and `thumb_url` are resolved server-side; `duration` is only set for
 // audio/video assets.
+
+/** The states of a video asset's preview proxy. */
+export const videoProxyStatus = z.enum([
+  "none",
+  "queued",
+  "running",
+  "ready",
+  "failed"
+]);
+export type VideoProxyStatus = z.infer<typeof videoProxyStatus>;
+
 export const assetResponse = z.object({
   id: z.string(),
   user_id: z.string(),
@@ -28,7 +39,18 @@ export const assetResponse = z.object({
    * that file is missing or has changed since import or relink. An offline
    * asset's `get_url` answers 404 until `relinkExternal` points it at a file.
    */
-  offline: z.boolean().optional()
+  offline: z.boolean().optional(),
+  /**
+   * Present only on a video asset on a local server: the state of its
+   * all-intra preview proxy. `ready` means `proxy_url` plays it. A proxy made
+   * from an earlier version of the file is not ready.
+   */
+  proxy_status: videoProxyStatus.optional(),
+  /**
+   * The preview proxy's URL while `proxy_status` is `ready`, else null. For
+   * the timeline preview only: export and every other reader use `get_url`.
+   */
+  proxy_url: z.string().nullable().optional()
 });
 export type AssetResponse = z.infer<typeof assetResponse>;
 
@@ -174,6 +196,21 @@ export type RelinkExternalInput = z.infer<typeof relinkExternalInput>;
 
 export const relinkExternalOutput = assetResponse;
 export type RelinkExternalOutput = z.infer<typeof relinkExternalOutput>;
+
+// ── ensureProxy (preview proxy for a video asset) ─────────────────
+// Queues an all-intra preview proxy for a video asset at any size and answers
+// the current state. Local server only.
+
+export const ensureProxyInput = z.object({
+  id: z.string().min(1)
+});
+export type EnsureProxyInput = z.infer<typeof ensureProxyInput>;
+
+export const ensureProxyOutput = z.object({
+  status: videoProxyStatus,
+  proxy_url: z.string().nullable()
+});
+export type EnsureProxyOutput = z.infer<typeof ensureProxyOutput>;
 
 // ── update (PUT /api/assets/:id) ─────────────────────────────────
 // The `data` field (base64 or utf-8 content) is supported here for

@@ -18,6 +18,7 @@ import {
   externalAssetMtime,
   isExternalAssetOffline
 } from "./external-asset-lookup.js";
+import { videoProxyState } from "./video-proxy.js";
 
 let cachedConfig: StorageConfig | null = null;
 let cachedBuilder: ((key: string) => Promise<string>) | null = null;
@@ -86,6 +87,18 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
   // Only assets that reference a file in place carry the flag.
   if (asset.external_path) {
     response.offline = await isExternalAssetOffline(asset);
+  }
+  // Video on a local server: whether the preview may play the proxy. The URL
+  // carries the source version, so a remade proxy is never served from cache.
+  const proxy = await videoProxyState(asset);
+  if (proxy) {
+    response.proxy_status = proxy.status;
+    response.proxy_url =
+      proxy.key !== null
+        ? await assetUrlBuilder()(proxy.key)
+            .then((url) => `${url}?v=${proxy.version}`)
+            .catch(() => null)
+        : null;
   }
   return response;
 }

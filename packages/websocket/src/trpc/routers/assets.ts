@@ -46,6 +46,14 @@ import {
   storeAssetWithThumbnail,
   thumbnailKey
 } from "../../lib/thumbnail.js";
+import {
+  discardVideoProxy,
+  scheduleVideoProxy,
+  videoProxiesAvailable,
+  videoProxyFileNames,
+  videoProxyQueue,
+  videoProxyState
+} from "../../lib/video-proxy.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -63,6 +71,8 @@ import {
   relinkExternalInput,
   relinkExternalOutput,
   externalImportConfigOutput,
+  ensureProxyInput,
+  ensureProxyOutput,
   finalizeUploadInput,
   finalizeUploadOutput,
   deleteInput,
@@ -74,7 +84,7 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/assets.js";
 
 /**
- * Remove an asset's stored bytes and its thumbnail.
+ * Remove an asset's stored bytes, its thumbnail, and its preview proxy.
  *
  * Best-effort per object: the row is the source of truth, so a storage
  * failure is logged rather than thrown — one unreachable object must not
@@ -85,14 +95,14 @@ import {
 async function deleteAssetObjects(asset: AssetModel): Promise<void> {
   if (asset.content_type === "folder") return;
   const adapter = getAssetAdapter();
+  // A proxy still encoding would land after the delete.
+  videoProxyQueue.cancel(asset.id);
   // An external asset's bytes are the user's own file, outside the storage
-  // root. Only its thumbnail is ours to remove.
+  // root. Only its thumbnail and proxy are ours to remove.
+  const derived = [thumbnailKey(asset.id), ...videoProxyFileNames(asset.id)];
   const fileNames = asset.external_path
-    ? [thumbnailKey(asset.id)]
-    : [
-        ...assetFileNameCandidates(asset.id, asset.content_type),
-        thumbnailKey(asset.id)
-      ];
+    ? derived
+    : [...assetFileNameCandidates(asset.id, asset.content_type), ...derived];
   for (const fileName of fileNames) {
     for (const key of assetKeyCandidates(asset.user_id, fileName)) {
       try {
@@ -562,6 +572,7 @@ export const assetsRouter = router({
         asset.id,
         asset.content_type
       );
+      scheduleVideoProxy(asset);
 
       return toAssetResponse(asset);
     }),
@@ -637,8 +648,50 @@ export const assetsRouter = router({
         asset.id,
         asset.content_type
       );
+      // The previous file's proxy no longer matches; make one for this file.
+      await discardVideoProxy(asset);
+      scheduleVideoProxy(asset);
 
       return toAssetResponse(asset);
+    }),
+
+  /**
+   * Queue an all-intra preview proxy for a video asset, at any size, and
+   * answer its state. The timeline preview plays the proxy once the asset
+   * response says it is ready. A failed proxy is tried again. Refused off
+   * the local file store.
+   */
+  ensureProxy: protectedProcedure
+    .input(ensureProxyInput)
+    .output(ensureProxyOutput)
+    .mutation(async ({ ctx, input }) => {
+      const asset = await Asset.find(ctx.userId, input.id);
+      if (!asset) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
+      }
+      if (!asset.content_type.startsWith("video/")) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Asset is not a video");
+      }
+      if (!videoProxiesAvailable()) {
+        throwApiError(
+          ApiErrorCode.FORBIDDEN,
+          "Video proxies need the local file store and are disabled in production"
+        );
+      }
+      const before = await videoProxyState(asset);
+      if (before?.status !== "ready") {
+        videoProxyQueue.clearFailure(asset.id);
+        videoProxyQueue.enqueue({
+          assetId: asset.id,
+          userId: asset.user_id,
+          force: true
+        });
+      }
+      const response = await toAssetResponse(asset);
+      return {
+        status: response.proxy_status ?? "none",
+        proxy_url: response.proxy_url ?? null
+      };
     }),
 
   update: protectedProcedure
