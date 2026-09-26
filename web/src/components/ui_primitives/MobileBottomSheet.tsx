@@ -85,6 +85,35 @@ const getSx = (theme: Theme, maxHeight: string): SxProps<Theme> => ({
   }
 });
 
+type MuiTouchEvent = TouchEvent & { defaultMuiPrevented?: boolean };
+
+// SwipeableDrawer only lets a touch scroll natively when it finds a scrollable
+// ancestor, and it skips every element with `overflow-x: hidden` (which
+// ScrollArea sets). Content in such a container could not scroll: the drawer
+// claimed the gesture and prevented the default. Touches that start inside
+// scrollable body content are left to the browser. Empty areas, the handle and
+// the header still swipe the sheet closed.
+const startsInScrollable = (target: EventTarget, boundary: HTMLElement) => {
+  let element = target instanceof Element ? target : null;
+  while (element && element !== boundary.parentElement) {
+    const { overflowY } = window.getComputedStyle(element);
+    if (
+      (overflowY === "auto" || overflowY === "scroll") &&
+      element.scrollHeight > element.clientHeight
+    ) {
+      return true;
+    }
+    element = element.parentElement;
+  }
+  return false;
+};
+
+const handleBodyTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+  if (startsInScrollable(event.target, event.currentTarget)) {
+    (event.nativeEvent as MuiTouchEvent).defaultMuiPrevented = true;
+  }
+};
+
 const MobileBottomSheetInternal: React.FC<MobileBottomSheetProps> = ({
   open,
   onClose,
@@ -134,7 +163,9 @@ const MobileBottomSheetInternal: React.FC<MobileBottomSheetProps> = ({
         </FlexRow>
       )}
       {headerExtras && <div className="sheet-header-extras">{headerExtras}</div>}
-      <div className="sheet-body">{children}</div>
+      <div className="sheet-body" onTouchStart={handleBodyTouchStart}>
+        {children}
+      </div>
     </SwipeableDrawer>
   );
 };
