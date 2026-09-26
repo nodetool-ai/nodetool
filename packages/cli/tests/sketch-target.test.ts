@@ -3,11 +3,24 @@
  * vs. row-id precedence, the document shapes a file can carry, and where the
  * canvas settings come from.
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveSketchTarget } from "../src/sketch-debug/target.js";
+
+const tempDirs: string[] = [];
+const tempDir = (prefix: string): string => {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+};
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 const document = {
   sketch: {
@@ -32,7 +45,7 @@ const document = {
 };
 
 const writeJson = (name: string, value: unknown): string => {
-  const file = join(mkdtempSync(join(tmpdir(), "sketch-target-")), name);
+  const file = join(tempDir("sketch-target-"), name);
   writeFileSync(file, JSON.stringify(value), "utf8");
   return file;
 };
@@ -101,7 +114,7 @@ describe("resolveSketchTarget", () => {
   });
 
   it("rejects a file that is not JSON", async () => {
-    const file = join(mkdtempSync(join(tmpdir(), "sketch-target-")), "bad.json");
+    const file = join(tempDir("sketch-target-"), "bad.json");
     writeFileSync(file, "{oops", "utf8");
     await expect(
       resolveSketchTarget(file, { loadDocument: noDocuments })

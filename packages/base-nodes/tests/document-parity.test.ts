@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { afterEach, describe, expect, it } from "vitest";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -16,9 +16,15 @@ async function collectGen<T>(iter: AsyncGenerator<T>): Promise<T[]> {
   return items;
 }
 
+const tempDirs: string[] = [];
+afterEach(async () => {
+  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+});
+
 describe("document node parity", () => {
   it("matches document load/save and document listing behavior", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "nodetool-doc-parity-"));
+    tempDirs.push(root);
     const docPath = path.join(root, "notes.txt");
     await writeFile(docPath, "hello document");
 

@@ -7,8 +7,8 @@
  * budgets — into the catalog for the host to enforce at call time.
  */
 
-import { describe, expect, it } from "vitest";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { afterEach, describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
@@ -39,8 +39,17 @@ const REFERENCE_EXPORTS = [
   { wasm: "sum-f32", as: "sumF32" }
 ];
 
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 function referencePack(module: Record<string, unknown>): string {
   const dir = mkdtempSync(join(tmpdir(), "sandbox-wasm-contract-"));
+  tempDirs.push(dir);
   writeFileSync(
     join(dir, "package.json"),
     JSON.stringify({

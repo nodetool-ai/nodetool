@@ -8,7 +8,7 @@
  * which is the only question the write contract and the skip gates are about.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createFakeContext,
   type BaseProvider,
@@ -340,6 +340,10 @@ let h: Harness;
 
 beforeEach(() => {
   h = harness();
+});
+
+afterEach(() => {
+  h.cleanup();
 });
 
 // ── LoadStoryboard / StoryboardShots ────────────────────────────────────────

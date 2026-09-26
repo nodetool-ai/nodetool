@@ -97,6 +97,9 @@ export interface Workspace {
    * virtual one, whose contents reach storage only through `absorb`.
    */
   scratchDir(): Promise<string>;
+
+  /** Remove scratch files staged for this workspace after its run ends. */
+  cleanupScratch?(): Promise<void>;
 }
 
 /** Thrown when a path would resolve outside the workspace root. */
@@ -166,6 +169,7 @@ export function observeWorkspace(
     list: (path, opts) => inner.list(path, opts),
     materialize: (path) => inner.materialize(path),
     scratchDir: () => inner.scratchDir(),
+    cleanupScratch: () => inner.cleanupScratch?.() ?? Promise.resolve(),
 
     async write(path, data, contentType) {
       await inner.write(path, data, contentType);

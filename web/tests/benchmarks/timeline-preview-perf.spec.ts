@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { appendFileSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { platform, tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, expect, type Page } from "@playwright/test";
@@ -256,6 +256,12 @@ test.beforeAll(() => {
   );
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(result.stderr || "Fixture generation failed");
+});
+
+test.afterAll(() => {
+  if (process.env.TIMELINE_PERF_FIXTURE_DIR === undefined) {
+    rmSync(FIXTURE_DIR, { recursive: true, force: true });
+  }
 });
 
 async function interceptPerfApi(page: Page, fixture: ScenarioFixture = {

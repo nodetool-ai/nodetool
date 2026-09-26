@@ -4,10 +4,10 @@
  * bridge injected — neither the execution core nor `@nodetool-ai/agents` is
  * loaded here.
  */
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   normalizeToolName,
   parseInteractionScript
@@ -17,6 +17,19 @@ import {
   runTimelineValidate,
   type TimelineDebugCore
 } from "../src/timeline-debug/harness.js";
+
+const tempDirs: string[] = [];
+const tempDir = (prefix: string): string => {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+};
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 const track = {
   id: "t1",
@@ -41,7 +54,7 @@ const clip = {
 };
 
 const timelineFile = (): string => {
-  const file = join(mkdtempSync(join(tmpdir(), "timeline-harness-")), "timeline.json");
+  const file = join(tempDir("timeline-harness-"), "timeline.json");
   writeFileSync(
     file,
     JSON.stringify({ fps: 24, width: 1280, height: 720, document: { tracks: [track], clips: [clip], markers: [] } }),
@@ -50,7 +63,7 @@ const timelineFile = (): string => {
   return file;
 };
 
-const outDir = (): string => join(mkdtempSync(join(tmpdir(), "timeline-out-")), "bundle");
+const outDir = (): string => join(tempDir("timeline-out-"), "bundle");
 
 const cleanValidation = { ok: true, errors: [], warnings: [] };
 
@@ -182,7 +195,7 @@ describe("runTimelineDebug", () => {
       focusDepthPx: 0, aperturePx: 14,
       keyframes: [{ timeMs: 0, position: { x: 10, y: -20 }, depthPx: 50 }]
     };
-    const file = join(mkdtempSync(join(tmpdir(), "timeline-camera-")), "timeline.json");
+    const file = join(tempDir("timeline-camera-"), "timeline.json");
     writeFileSync(file, JSON.stringify({
       fps: 24, width: 1280, height: 720,
       document: { tracks: [track], clips: [clip], markers: [], camera2d }

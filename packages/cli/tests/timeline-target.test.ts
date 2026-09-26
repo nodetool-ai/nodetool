@@ -3,11 +3,24 @@
  * file vs. row-id precedence, the two document shapes a file can carry, and
  * where the sequence settings come from.
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveTimelineTarget } from "../src/timeline-debug/target.js";
+
+const tempDirs: string[] = [];
+const tempDir = (prefix: string): string => {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+};
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 const document = {
   tracks: [
@@ -38,7 +51,7 @@ const document = {
 };
 
 const writeJson = (name: string, value: unknown): string => {
-  const file = join(mkdtempSync(join(tmpdir(), "timeline-target-")), name);
+  const file = join(tempDir("timeline-target-"), name);
   writeFileSync(file, JSON.stringify(value), "utf8");
   return file;
 };
@@ -118,7 +131,7 @@ describe("resolveTimelineTarget", () => {
   });
 
   it("rejects a file that is not JSON", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "timeline-target-"));
+    const dir = tempDir("timeline-target-");
     const file = join(dir, "broken.json");
     writeFileSync(file, "{ nope", "utf8");
     await expect(

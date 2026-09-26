@@ -5,8 +5,8 @@
  * No esbuild and no QuickJS here on purpose — that is the seam being tested.
  */
 
-import { describe, expect, it } from "vitest";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { afterEach, describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -20,9 +20,17 @@ import {
 } from "../src/index.js";
 
 const COMPILED = "export const value = 1;\n";
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 function npmPack(npmName = "left-pad"): string {
   const dir = mkdtempSync(join(tmpdir(), "sandbox-npm-pack-"));
+  tempDirs.push(dir);
   writeFileSync(
     join(dir, "package.json"),
     JSON.stringify({

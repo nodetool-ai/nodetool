@@ -4,17 +4,30 @@
  * an `app_doc`, and checks the interaction simulation, widget states, verdict,
  * and the on-disk bundle.
  */
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { runAppDebug, defaultInteractions } from "../src/app-debug/harness.js";
 import { parseAppSpec } from "@nodetool-ai/execution/app-debug";
 import { collectExecutionSummary } from "../src/debug/collector.js";
 import type { ServerRunInput, ServerRunOutcome } from "../src/debug/server-runner.js";
 
+const tempDirs: string[] = [];
+const tempDir = (prefix: string): string => {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+};
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 const workflowFile = (over: Record<string, unknown> = {}): string => {
-  const dir = mkdtempSync(join(tmpdir(), "app-debug-"));
+  const dir = tempDir("app-debug-");
   const file = join(dir, "workflow.json");
   writeFileSync(
     file,
@@ -93,7 +106,7 @@ describe("runAppDebug", () => {
       { type: "output_update", node_id: "out1", output_name: "output", value: "the answer" },
       { type: "job_update", status: "completed" }
     ]);
-    const outDir = mkdtempSync(join(tmpdir(), "app-bundle-"));
+    const outDir = tempDir("app-bundle-");
     const report = await runAppDebug(
       workflowFile(),
       { params: { prompt: "what is it?" }, outDir },
@@ -128,7 +141,7 @@ describe("runAppDebug", () => {
     const runOnServer = stubRunner([{ type: "job_update", status: "completed" }]);
     const report = await runAppDebug(
       workflowFile(),
-      { outDir: mkdtempSync(join(tmpdir(), "app-bundle-")) },
+      { outDir: tempDir("app-bundle-") },
       deps(runOnServer)
     );
     expect(report.verdict.ok).toBe(false);
@@ -175,7 +188,7 @@ describe("runAppDebug", () => {
           }
         }
       }),
-      { outDir: mkdtempSync(join(tmpdir(), "app-bundle-")) },
+      { outDir: tempDir("app-bundle-") },
       deps(runOnServer)
     );
 
@@ -212,7 +225,7 @@ describe("runAppDebug", () => {
     const runOnServer = stubRunner([{ type: "job_update", status: "completed" }]);
     const report = await runAppDebug(
       branching,
-      { outDir: mkdtempSync(join(tmpdir(), "app-bundle-")) },
+      { outDir: tempDir("app-bundle-") },
       deps(runOnServer)
     );
 
@@ -233,7 +246,7 @@ describe("runAppDebug", () => {
     );
     const report = await runAppDebug(
       workflowFile(),
-      { outDir: mkdtempSync(join(tmpdir(), "app-bundle-")) },
+      { outDir: tempDir("app-bundle-") },
       deps(runOnServer)
     );
     expect(report.verdict.ok).toBe(false);
@@ -253,7 +266,7 @@ describe("runAppDebug", () => {
           { set: { key: "prompt", value: "scripted" } },
           { click: "Button" } // unique type reference
         ],
-        outDir: mkdtempSync(join(tmpdir(), "app-bundle-"))
+        outDir: tempDir("app-bundle-")
       },
       deps(runOnServer)
     );
@@ -267,7 +280,7 @@ describe("runAppDebug", () => {
       workflowFile(),
       {
         interact: [{ click: "NoSuchWidget" }],
-        outDir: mkdtempSync(join(tmpdir(), "app-bundle-"))
+        outDir: tempDir("app-bundle-")
       },
       deps(runOnServer)
     );
@@ -280,7 +293,7 @@ describe("runAppDebug", () => {
     const runOnServer = stubRunner([]);
     const report = await runAppDebug(
       workflowFile(),
-      { run: false, outDir: mkdtempSync(join(tmpdir(), "app-bundle-")) },
+      { run: false, outDir: tempDir("app-bundle-") },
       deps(runOnServer)
     );
     expect(runOnServer).not.toHaveBeenCalled();
@@ -293,7 +306,7 @@ describe("runAppDebug", () => {
     const runOnServer = stubRunner([]);
     const report = await runAppDebug(
       workflowFile({ app_doc: undefined }),
-      { outDir: mkdtempSync(join(tmpdir(), "app-bundle-")) },
+      { outDir: tempDir("app-bundle-") },
       deps(runOnServer)
     );
     expect(report.spec).toBeNull();
@@ -309,7 +322,7 @@ const v3File = (over: {
   resources?: unknown[];
   content?: unknown[];
 }): string => {
-  const dir = mkdtempSync(join(tmpdir(), "app-debug-v3-"));
+  const dir = tempDir("app-debug-v3-");
   const file = join(dir, "workflow.json");
   writeFileSync(
     file,
@@ -363,7 +376,7 @@ const ANSWER = [
   { type: "job_update", status: "completed" }
 ];
 
-const outDir = () => mkdtempSync(join(tmpdir(), "app-bundle-"));
+const outDir = () => tempDir("app-bundle-");
 
 describe("runAppDebug — operations", () => {
   const twoOperations = [
@@ -780,7 +793,7 @@ describe("runAppDebug target kinds", () => {
   ) =>
     runAppDebug(
       ref,
-      { params: { prompt: "what is it?" }, outDir: mkdtempSync(join(tmpdir(), "app-bundle-")) },
+      { params: { prompt: "what is it?" }, outDir: tempDir("app-bundle-") },
       { loadFromDb: async () => null, runOnServer: stubRunner(ANSWER), ...extra }
     );
 
@@ -797,7 +810,7 @@ describe("runAppDebug target kinds", () => {
       })
     });
 
-    const dir = mkdtempSync(join(tmpdir(), "app-bundle-file-"));
+    const dir = tempDir("app-bundle-file-");
     const bundleFile = join(dir, "my.app.json");
     writeFileSync(
       bundleFile,
@@ -822,7 +835,7 @@ describe("runAppDebug target kinds", () => {
   });
 
   it("writes the same bundle files for an application target", async () => {
-    const outDir = mkdtempSync(join(tmpdir(), "app-bundle-"));
+    const outDir = tempDir("app-bundle-");
     await runAppDebug(
       "app-1",
       { outDir },
@@ -845,7 +858,7 @@ describe("runAppDebug target kinds", () => {
   it("runs a bundle's second workflow without touching the database", async () => {
     const runOnServer = stubRunner(ANSWER);
     const loadFromDb = vi.fn(async () => null);
-    const dir = mkdtempSync(join(tmpdir(), "app-bundle-file-"));
+    const dir = tempDir("app-bundle-file-");
     const bundleFile = join(dir, "two.app.json");
     const app = APP_DOCUMENT("first");
     writeFileSync(
@@ -899,7 +912,7 @@ describe("runAppDebug target kinds", () => {
       bundleFile,
       {
         interact: [{ click: "Button-1" }, { click: "Button-2" }],
-        outDir: mkdtempSync(join(tmpdir(), "app-bundle-"))
+        outDir: tempDir("app-bundle-")
       },
       { loadFromDb, runOnServer }
     );
@@ -918,7 +931,7 @@ describe("runAppDebug target kinds", () => {
     await expect(
       runAppDebug(
         "nope",
-        { outDir: mkdtempSync(join(tmpdir(), "app-bundle-")) },
+        { outDir: tempDir("app-bundle-") },
         {
           loadFromDb: async () => null,
           loadApplication: async () => null,

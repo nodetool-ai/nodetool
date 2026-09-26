@@ -152,7 +152,7 @@ export class ExecutionSession {
           throw err;
         }
       )
-      .finally(() => {
+      .finally(async () => {
         if (this.runTimeoutHandle) {
           clearTimeout(this.runTimeoutHandle);
           this.runTimeoutHandle = null;
@@ -164,6 +164,14 @@ export class ExecutionSession {
         // ledger: every prediction/node_update it prices was already delivered.
         detachLedger?.();
         this.stream?.close();
+        try {
+          await init.context.workspace?.cleanupScratch?.();
+        } catch (err) {
+          log.warn("Workspace scratch cleanup failed", {
+            jobId: this.jobId,
+            error: err instanceof Error ? err.message : String(err)
+          });
+        }
       });
 
     this.resultPromise

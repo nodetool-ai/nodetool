@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { parseWavBytes, toBytes, type WavData } from "@nodetool-ai/audio-nodes";
 import { tmpdir } from "node:os";
-import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   // lib-audio-dsp
@@ -159,8 +159,18 @@ async function collectGen(
 }
 
 function tmpDir(): string {
-  return mkdtempSync(join(tmpdir(), "nt-test-"));
+  const dir = mkdtempSync(join(tmpdir(), "nt-test-"));
+  tempDirs.push(dir);
+  return dir;
 }
+
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 // ============================================================================
 // lib-audio-dsp.ts gaps

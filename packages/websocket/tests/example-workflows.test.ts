@@ -1,13 +1,27 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect } from "vitest";
 import {
   loadExampleGraph,
   resolveExampleJsonPath,
   defaultExamplePackageName,
   deriveExampleAssetsDir
 } from "../src/example-workflows.js";
+
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+function tempDir(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nt-examples-"));
+  tempDirs.push(dir);
+  return dir;
+}
 
 function writeExample(
   dir: string,
@@ -20,7 +34,7 @@ function writeExample(
 
 describe("example-workflows", () => {
   it("resolves examples by filename", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-examples-"));
+    const root = tempDir();
     const examplesDir = path.join(root, "examples", "nodetool-base");
     writeExample(examplesDir, "hello-world.json", {
       name: "Hello World",
@@ -32,7 +46,7 @@ describe("example-workflows", () => {
   });
 
   it("resolves examples by display name", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-examples-"));
+    const root = tempDir();
     const examplesDir = path.join(root, "examples", "nodetool-base");
     writeExample(examplesDir, "movie_posters.json", {
       name: "Movie Posters",
@@ -44,7 +58,7 @@ describe("example-workflows", () => {
   });
 
   it("loads graph data from configured examplesDir", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-examples-"));
+    const root = tempDir();
     const examplesDir = path.join(root, "examples", "nodetool-base");
     writeExample(examplesDir, "demo.json", {
       name: "Demo",
@@ -62,14 +76,14 @@ describe("example-workflows", () => {
   });
 
   it("defaults package name from examplesDir basename", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-examples-"));
+    const root = tempDir();
     const examplesDir = path.join(root, "examples", "nodetool-base");
     fs.mkdirSync(examplesDir, { recursive: true });
     expect(defaultExamplePackageName({ examplesDir })).toBe("nodetool-base");
   });
 
   it("falls back to bundled assets when examples are mounted elsewhere", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-examples-"));
+    const root = tempDir();
     const examplesDir = path.join(root, "workspace", "examples", "nodetool-base");
     const bundledAssets = path.join(root, "bundled", "assets", "nodetool-base");
     fs.mkdirSync(examplesDir, { recursive: true });

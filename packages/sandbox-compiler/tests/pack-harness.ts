@@ -7,10 +7,11 @@
  * specifiers would execute with. Nothing is stubbed and nothing is fetched.
  */
 
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { afterAll } from "vitest";
 
 import {
   createSandboxModuleCatalog,
@@ -26,9 +27,12 @@ const here = dirname(fileURLToPath(import.meta.url));
 export const PACKS_ROOT = join(here, "..", "..", "sandbox-packs");
 
 /** One cache for the process: compiling date-fns once per file is enough. */
-const cache = new CompiledModuleCache(
-  join(mkdtempSync(join(tmpdir(), "nodetool-pack-harness-")), "cache")
-);
+const cacheRoot = mkdtempSync(join(tmpdir(), "nodetool-pack-harness-"));
+const cache = new CompiledModuleCache(join(cacheRoot, "cache"));
+
+afterAll(() => {
+  rmSync(cacheRoot, { recursive: true, force: true });
+});
 
 /** `@nodetool-ai/sandbox-csv` → the directory it ships from. */
 export function packDir(packName: string): string {

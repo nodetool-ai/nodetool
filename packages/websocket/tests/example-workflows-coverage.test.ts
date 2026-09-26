@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect } from "vitest";
 import {
   loadExampleGraph,
   resolveExampleJsonPath,
@@ -9,8 +9,17 @@ import {
   deriveExampleAssetsDir
 } from "../src/example-workflows.js";
 
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 function mkExamplesDir(): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-ex-cov-"));
+  tempDirs.push(root);
   const dir = path.join(root, "examples", "nodetool-base");
   fs.mkdirSync(dir, { recursive: true });
   return dir;
@@ -87,6 +96,7 @@ describe("loadExampleGraph — branches", () => {
 describe("deriveExampleAssetsDir — branches", () => {
   it("prefers the derived sibling assets dir when it has thumbnails", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-assets-"));
+    tempDirs.push(root);
     const examplesDir = path.join(root, "examples", "nodetool-base");
     const derived = path.join(root, "assets", "nodetool-base");
     fs.mkdirSync(examplesDir, { recursive: true });
@@ -98,6 +108,7 @@ describe("deriveExampleAssetsDir — branches", () => {
 
   it("returns the derived path when neither derived nor fallback has thumbnails", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-assets-none-"));
+    tempDirs.push(root);
     const examplesDir = path.join(root, "examples", "nodetool-base");
     const derived = path.join(root, "assets", "nodetool-base");
     fs.mkdirSync(examplesDir, { recursive: true });
@@ -110,6 +121,7 @@ describe("deriveExampleAssetsDir — branches", () => {
 
   it("ignores a fallback dir that does not exist", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-assets-fb-"));
+    tempDirs.push(root);
     const examplesDir = path.join(root, "examples", "nodetool-base");
     const derived = path.join(root, "assets", "nodetool-base");
     fs.mkdirSync(examplesDir, { recursive: true });
