@@ -62,7 +62,7 @@ All are model-invoked and typeable.
 
 | Skill | Surface |
 | :--- | :--- |
-| `/storyboard-core` | Storyboards, entity casting, rendering, timeline assembly. Routes to `/ugc-video`, `/product-commercial`, `/script-video`, `/short-film`, `/video-clone`, `/launch-kit`, `/video-workflow` |
+| `/storyboard-core` | Storyboards, entity casting, rendering, timeline assembly. Routes to `/ugc-video`, `/product-commercial`, `/script-video`, `/short-film`, `/video-clone`, `/launch-kit`, `/video-workflow`, `/motion-ad` |
 | `/nodetool-workflow-builder` | Workflow graphs, and the routing table for when a graph is the wrong document |
 | `/nodetool-app-builder` | Mini apps: operations, widgets, bindings, variables, resources |
 | `/nodetool-video-post` | Repairs on delivered footage, and the candidate review protocol |
