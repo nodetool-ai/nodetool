@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { BaseNode } from "../src/base-node.js";
 import {
   defaultForPropType,
-  propertyOf
+  propertyOf,
+  unsetZeroBelowMin
 } from "../src/manifest-node-values.js";
 
 describe("defaultForPropType", () => {
@@ -85,5 +86,26 @@ describe("propertyOf", () => {
       }
     }
     expect(propertyOf(new EmptyNode(), "missing")).toBeUndefined();
+  });
+});
+
+describe("unsetZeroBelowMin", () => {
+  it("unsets a zero that a positive minimum forbids", () => {
+    expect(unsetZeroBelowMin(0, 256, 0)).toBeNull();
+    expect(unsetZeroBelowMin(0, 0.01, 0)).toBeNull();
+  });
+
+  it("keeps a zero that the minimum allows or that has no minimum", () => {
+    expect(unsetZeroBelowMin(0, 0, 0)).toBe(0);
+    expect(unsetZeroBelowMin(0, -1, 0)).toBe(0);
+    expect(unsetZeroBelowMin(0, undefined, 0)).toBe(0);
+    expect(unsetZeroBelowMin(0, 256, 512)).toBe(0);
+  });
+
+  it("keeps every non-zero value, in range or not", () => {
+    expect(unsetZeroBelowMin(512, 256, 0)).toBe(512);
+    expect(unsetZeroBelowMin(100, 256, 0)).toBe(100);
+    expect(unsetZeroBelowMin(false, 1, 0)).toBe(false);
+    expect(unsetZeroBelowMin("0", 1, 0)).toBe("0");
   });
 });

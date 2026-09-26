@@ -409,4 +409,36 @@ describe("createKieNodeClass value lists", () => {
       expect.arrayContaining(["multi_prompt", "mask_indexs", "weights"])
     );
   });
+
+  it("omits a zero its field's minimum forbids and keeps a zero it allows", async () => {
+    vi.mocked(kieExecuteTask).mockResolvedValue({
+      data: "AAAA",
+      items: ["AAAA"],
+      taskId: "t"
+    });
+    const spec: KieManifestEntry = {
+      className: "ZeroVideo",
+      moduleName: "video",
+      modelId: "zero-video",
+      title: "Zero Video",
+      description: "test",
+      outputType: "video",
+      pollInterval: 8000,
+      maxAttempts: 450,
+      fields: [
+        { name: "prompt", type: "str", default: "" },
+        { name: "duration", type: "float", default: 0, min: 4, max: 12 },
+        { name: "seed", type: "int", default: 0, min: 0 }
+      ]
+    };
+    const NodeClass = createKieNodeClass(spec);
+    const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
+    (node as unknown as Record<string, unknown>).prompt = "a red cube";
+    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
+
+    await node.process();
+
+    const params = vi.mocked(kieExecuteTask).mock.calls.at(-1)![2];
+    expect(params).toEqual({ prompt: "a red cube", seed: 0 });
+  });
 });

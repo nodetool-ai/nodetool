@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ReplicateManifestEntry } from "../src/replicate-factory.js";
 
 const assetToUrl = vi.fn(
   async (ref: Record<string, unknown>) => `uploaded:${String(ref.uri)}`
@@ -26,6 +27,9 @@ vi.mock("../src/replicate-base.js", () => ({
 }));
 
 const { createReplicateNodeClass } = await import("../src/replicate-factory.js");
+const { default: manifest } = await import("../src/replicate-manifest.json", {
+  with: { type: "json" }
+});
 
 describe("Replicate factory argument building", () => {
   beforeEach(() => {
@@ -284,6 +288,42 @@ describe("Replicate factory argument building", () => {
     expect(replicateSubmit).toHaveBeenCalledWith("test-key", "owner/model", {
       mode: "quality"
     });
+  });
+
+  it("omits a zero default that its field's minimum forbids", async () => {
+    // Flux_2_Pro declares width/height as default 0, min 256. Replicate
+    // answers 422 to the 0 unless aspect_ratio is "custom".
+    const spec = (manifest as ReplicateManifestEntry[]).find(
+      (entry) => entry.className === "Flux_2_Pro"
+    )!;
+    const instance = new (createReplicateNodeClass(spec))({});
+    Object.assign(instance, {
+      prompt: "a red cube",
+      aspect_ratio: "16:9",
+      output_format: "jpg",
+      seed: 7
+    });
+
+    await instance.process();
+
+    const args = replicateSubmit.mock.calls[0]![2] as Record<string, unknown>;
+    expect(args).not.toHaveProperty("width");
+    expect(args).not.toHaveProperty("height");
+    expect(args).toMatchObject({ aspect_ratio: "16:9", seed: 7 });
+  });
+
+  it("sends a zero that its field's minimum allows", async () => {
+    const spec = (manifest as ReplicateManifestEntry[]).find(
+      (entry) => entry.className === "Flux_2_Pro"
+    )!;
+    const instance = new (createReplicateNodeClass(spec))({});
+    // output_quality is min 0, so 0 is a real value.
+    Object.assign(instance, { prompt: "a red cube", output_quality: 0 });
+
+    await instance.process();
+
+    const args = replicateSubmit.mock.calls[0]![2] as Record<string, unknown>;
+    expect(args.output_quality).toBe(0);
   });
 
   it("does not mark text outputs as streaming iterations", () => {
