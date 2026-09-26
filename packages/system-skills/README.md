@@ -47,7 +47,7 @@ one working on this repository alike.
 | `nodetool-troubleshooter` | A failing run, routed to the surface it belongs to, and stuck generations |
 | `nodetool-skill-author` | Writing a user skill row or a shipped one |
 | `storyboard-core` | Storyboards, entity casting, rendering, timeline assembly — the contract the job skills quote |
-| `godot-game` | A playable Godot game or a complete asset pack |
+| `native-game` | Built-in games, generated asset installation, and playtests |
 
 The job skills that sit on `storyboard-core`, each one a brief shape rather
 than a tool contract: `ugc-video`, `product-commercial`, `script-video`,

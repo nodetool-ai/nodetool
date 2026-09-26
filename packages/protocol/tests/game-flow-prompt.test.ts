@@ -17,7 +17,7 @@ const manifestOf = (template: string) =>
   gameAssetManifest.parse(
     JSON.parse(
       readFileSync(
-        repoFile(`packages/godot-templates/templates/${template}/manifest.json`),
+        repoFile(`packages/protocol/fixtures/game-assets/${template}.manifest.json`),
         "utf8"
       )
     )
@@ -39,7 +39,7 @@ const CAST = [
   }
 ];
 
-/** Every slot of every shipped manifest, pinned. */
+/** Fixture layouts for the prompt builder, including future template shapes. */
 const EXPECTED: Record<
   string,
   Record<string, { width?: number; height?: number; aspectRatio?: string }>

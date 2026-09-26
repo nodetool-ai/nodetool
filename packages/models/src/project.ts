@@ -377,6 +377,7 @@ export class Project extends DBModel {
       "image_documents",
       "applications",
       "js_scripts",
+      "games",
       "nodetool_assets",
       "nodetool_workflows",
       "nodetool_threads",

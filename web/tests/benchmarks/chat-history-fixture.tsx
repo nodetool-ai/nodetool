@@ -33,7 +33,7 @@ function Conversation() {
   });
 
   return (
-    <div id="host" data-count={messages.length} ref={scroll.handleScrollRef} style={{ height: 500, overflow: "auto" }}>
+    <div id="host" data-count={messages.length} ref={scroll.handleScrollRef} style={{ height: 500, overflow: "auto", overflowAnchor: "none" }}>
       <div ref={scroll.realContentRef}>
         <div style={{ position: "relative", height: scroll.virtualizer.getTotalSize() }}>
           {scroll.virtualizer.getVirtualItems().map((row) => (

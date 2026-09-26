@@ -24,16 +24,16 @@ loadGameTemplate.stream = function(inputs) {
 function slotPrompt(inputs) {
   return callNode("nodetool.game.SlotPrompt", inputs);
 }
-function exportGodotProject(inputs) {
-  return callNode("nodetool.game.ExportGodotProject", inputs);
+function stageGameAssets(inputs) {
+  return callNode("nodetool.game.StageGameAssets", inputs);
 }
 export {
-  exportGodotProject,
   loadGameTemplate,
   musicLoop,
   seamlessImage,
   slotPrompt,
   soundEffect,
   spriteSheet,
+  stageGameAssets,
   tileset
 };

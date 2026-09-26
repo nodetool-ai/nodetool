@@ -48,7 +48,7 @@ named. Each of these loads the rest of what it needs.
 | JavaScript in the sandbox, or a Code node | [nodetool-js-scripting](../nodetool-js-scripting/SKILL.md) |
 | A layered image, mask or overlay | [nodetool-sketch](../nodetool-sketch/SKILL.md) |
 | A 3D model or scene | [nodetool-3d-scene](../nodetool-3d-scene/SKILL.md) |
-| A playable Godot game or asset pack | [godot-game](../godot-game/SKILL.md) |
+| A playable built-in game or asset pack | [native-game](../native-game/SKILL.md) |
 | A new node type | [nodetool-custom-node-developer](../nodetool-custom-node-developer/SKILL.md) |
 | A run that is failing, on any surface | [nodetool-troubleshooter](../nodetool-troubleshooter/SKILL.md) |
 | An integration over REST, tRPC, WebSocket or MCP | [nodetool-api-reference](../nodetool-api-reference/SKILL.md) |

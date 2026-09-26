@@ -16,8 +16,8 @@
  *
  *   E1  the filled `{{name}} — {{price}}` overlay is on the exported sequence,
  *       so the template's cut survived recast, render and assembly;
- *   E3  every slot the platformer manifest declares reaches the exported
- *       project, with nothing pointing at a resource that is not there;
+ *   E3  every top-down slot receives a staged, content-addressed native
+ *       game asset binding;
  *   E4  every clip of the source cut keeps its start and duration on both
  *       retargets, so retargeting moved the frame and not the edit.
  *
@@ -245,7 +245,7 @@ async function seed() {
 
 const FIXTURES = [
   { id: "e1", file: "per-sku-ad-factory.fake.json", title: "E1 Per-SKU Ad Factory" },
-  { id: "e3", file: "platformer-asset-pack.fake.json", title: "E3 Platformer Asset Pack" },
+  { id: "e3", file: "topdown-native-asset-pack.fake.json", title: "E3 Native Asset Pack" },
   { id: "e4", file: "three-ratios.fake.json", title: "E4 Three Ratios" }
 ];
 
@@ -390,45 +390,24 @@ async function assertE4(report) {
   return problems;
 }
 
-/**
- * Every slot the platformer manifest declares, as the file the writer lays it
- * out at. Named here rather than counted, so a slot that silently lost its
- * asset fails instead of being covered by another slot's file.
- */
-const PLATFORMER_SLOT_FILES = [
-  "assets/sprites/player.png",
-  "assets/sprites/enemy_walker.png",
-  "assets/tiles/tiles_ground.png",
-  "assets/images/bg_far.png",
-  "assets/images/title.png",
-  "assets/audio/sfx_jump.wav",
-  "assets/audio/sfx_hurt.wav",
-  "assets/audio/music_level.wav"
-];
+const GAME_SLOTS = ["player", "wall", "gem", "sfx.collect"];
 
 /**
- * E3: the export wrote a project, not just a directory name — every slot's
- * asset is in the file list and nothing in it points at a resource that is not
- * there. `verified` stays false because no Godot binary is installed; the
- * skipped-verification note is the export saying so, not a failure.
+ * E3: the stage wrote a candidate for each slot with a content digest.
  */
 async function assertE3(report) {
   const problems = [];
   const out = outputsOf(report, "export");
-  if (!out["directory"]) {
-    return ["E3: the export named no directory"];
-  }
-  const files = new Set((Array.isArray(out["files"]) ? out["files"] : []).map(String));
-  for (const file of PLATFORMER_SLOT_FILES) {
-    if (!files.has(file)) {
-      problems.push(`E3: ${file} is not in the exported file list`);
+  const bindings = out["bindings"] ?? out["output"]?.bindings;
+  const paths = Array.isArray(out["paths"]) ? out["paths"] : [];
+  if (!bindings || typeof bindings !== "object") return ["E3: no staged bindings"];
+  for (const slot of GAME_SLOTS) {
+    const binding = bindings[slot];
+    if (!binding?.assetId || !/^[a-f0-9]{64}$/.test(binding.digest ?? "")) {
+      problems.push(`E3: ${slot} has no content-addressed binding`);
+    } else if (!paths.some((path) => path.includes(binding.digest))) {
+      problems.push(`E3: ${slot} has no staged path`);
     }
-  }
-  const dangling = (Array.isArray(out["errors"]) ? out["errors"] : [])
-    .map(String)
-    .filter((error) => error.includes("dangling"));
-  if (dangling.length > 0) {
-    problems.push(`E3: the exported project points at missing resources: ${dangling.join("; ")}`);
   }
   return problems;
 }

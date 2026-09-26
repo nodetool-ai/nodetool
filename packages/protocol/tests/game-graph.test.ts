@@ -39,7 +39,7 @@ const manifestOf = (template: string) =>
       readFileSync(
         fileURLToPath(
           new URL(
-            `../../godot-templates/templates/${template}/manifest.json`,
+            `../fixtures/game-assets/${template}.manifest.json`,
             import.meta.url
           )
         ),
@@ -158,15 +158,13 @@ const SHAPES: Record<string, PlanNodeShape> = {
   [GAME_EXPORT_NODE_TYPE]: {
     inputs: [
       { name: "template", type: "str" },
-      { name: "name", type: "str" },
       { name: "fills", type: "list[union[image,audio]]" },
-      { name: "directory", type: "str" },
-      { name: "verify", type: "bool" }
+      { name: "game_id", type: "str" }
     ],
     outputs: [
       { name: "output", type: "dict" },
-      { name: "directory", type: "str" },
-      { name: "archive", type: "str" }
+      { name: "bindings", type: "dict" },
+      { name: "paths", type: "list[str]" }
     ]
   },
   [PLAN_OUTPUT_NODE_TYPE]: {
@@ -221,6 +219,7 @@ const lookupWithout =
 const lookup = lookupWithout();
 
 const choices = (over: Partial<GameGraphChoices> = {}): GameGraphChoices => ({
+  gameId: "a".repeat(32),
   imageModel: { type: "image_model", provider: "fal_ai", id: "fal-ai/flux/schnell" },
   sfxNodeType: SFX_NODE_TYPE,
   musicModel: { type: "music_model", provider: "replicate", id: "meta/musicgen" },
@@ -373,7 +372,7 @@ describe("gameGraphPlacement", () => {
     ]);
   });
 
-  it("feeds the export node's fills list from every checker's stamped output", () => {
+  it("feeds the staging node's fills list from every checker's stamped output", () => {
     const placement = gameGraphPlacement(platformer, design, choices(), lookup);
     const exportNode = placement.nodes.find(
       (node) => node.type === GAME_EXPORT_NODE_TYPE
@@ -381,9 +380,7 @@ describe("gameGraphPlacement", () => {
     expect(exportNode.dynamicProperties).toBeUndefined();
     expect(exportNode.properties).toMatchObject({
       template: "platformer",
-      name: "Ember Run",
-      directory: "games/ember-run",
-      verify: true
+      game_id: "a".repeat(32)
     });
 
     // One edge per slot, all onto the one list input the kernel folds.

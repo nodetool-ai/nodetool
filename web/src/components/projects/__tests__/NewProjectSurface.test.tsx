@@ -191,9 +191,11 @@ const timelineUpdate = jest.fn().mockResolvedValue(patchedSequence);
 const storyboardDelete = jest.fn().mockResolvedValue({ ok: true });
 const workflowDelete = jest.fn().mockResolvedValue({ ok: true });
 const projectDelete = jest.fn().mockResolvedValue({ ok: true });
+const createGame = jest.fn(async () => ({ game: { id: "game-1" } }));
 jest.mock("../../../trpc/client", () => ({
   __esModule: true,
   trpcClient: {
+    games: { create: { mutate: createGame } },
     timeline: { update: { mutate: timelineUpdate } },
     storyboards: {
       delete: { mutate: (input: { id: string }) => storyboardDelete(input) }
@@ -227,12 +229,6 @@ jest.mock("../../setup/video/VideoSetupHost", () => ({
         Start from a script
       </button>
     </div>
-  )
-}));
-jest.mock("../../setup/game/GameSetupHost", () => ({
-  __esModule: true,
-  default: ({ workflowId }: { workflowId: string }) => (
-    <div data-testid="setup-flow">{workflowId}</div>
   )
 }));
 jest.mock("../../setup/entity/EntitySetupHost", () => ({
@@ -428,7 +424,6 @@ jest.mock("../../../hooks/useWorkflowActions", () => ({
   useWorkflowActions: () => ({ handleCreateNewWorkflow })
 }));
 
-import { readGameSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import NewProjectSurface from "../NewProjectSurface";
 import { clearChatTurn, peekChatTurn } from "../../chat/pendingChatTurn";
 import useOnboardingStore from "../../../stores/OnboardingStore";
@@ -1151,7 +1146,7 @@ describe("NewProjectSurface", () => {
     ["Script", () => createScript],
     ["Image", () => startImageFlowMock],
     ["Workflow", () => managerCreateWorkflow],
-    ["Game", () => managerCreateWorkflow]
+    ["Game", () => createGame]
   ])("starts the %s flow from its own card", async (title, mock) => {
     const user = userEvent.setup();
     renderSurface();
@@ -1188,10 +1183,7 @@ describe("NewProjectSurface", () => {
     );
   });
 
-  // The Game flow's document is a workflow too (game-prd D25), so the card is
-  // told apart from the Workflow card by what it writes: `settings.game` at
-  // stage `idea`, on a project row whose kind reads back as a game.
-  it("creates the game's workflow with settings.game at stage idea", async () => {
+  it("creates a playable native game and opens its tab", async () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
@@ -1201,22 +1193,18 @@ describe("NewProjectSurface", () => {
     await user.click(within(cards).getByRole("button", { name: /^Game / }));
 
 
-    await waitFor(() => expect(managerCreateWorkflow).toHaveBeenCalled());
+    await waitFor(() => expect(createGame).toHaveBeenCalled());
     expect(createProject).not.toHaveBeenCalled();
-    const [[created]] = managerCreateWorkflow.mock.calls as unknown as Array<
-      [{ settings: Record<string, unknown> }]
-    >;
-    expect(readGameSetup(created.settings)).toMatchObject({
-      stage: "idea",
-      brief: ""
-    });
-    // The Workflow flow's own bag is not written by the Game card.
-    expect(created.settings["setup"]).toBeUndefined();
-    expect(await screen.findByTestId("setup-flow")).toHaveTextContent("wf-new");
+    expect(createGame).toHaveBeenCalledWith(expect.objectContaining({
+      document: expect.objectContaining({ entrySceneId: "room", engineVersion: "1" })
+    }));
+    expect(openTab).toHaveBeenCalledWith(expect.objectContaining({
+      type: "game", ref: "game-1"
+    }));
   });
 
   it.each(["Workflow", "Game"])(
-    "assigns a current-project %s workflow to that project",
+    "assigns a current-project %s document to that project",
     async (title) => {
       const user = userEvent.setup();
       actualTabsStore.useWorkspaceTabsStore.setState({
@@ -1232,11 +1220,13 @@ describe("NewProjectSurface", () => {
       );
 
 
-      await waitFor(() =>
-        expect(managerCreateWorkflow).toHaveBeenCalledWith(
-          expect.objectContaining({ project_id: "current-project" })
-        )
-      );
+      await waitFor(() => {
+        if (title === "Game") {
+          expect(createGame).toHaveBeenCalledWith(expect.objectContaining({ projectId: "current-project" }));
+        } else {
+          expect(managerCreateWorkflow).toHaveBeenCalledWith(expect.objectContaining({ project_id: "current-project" }));
+        }
+      });
     }
   );
 

@@ -67,6 +67,7 @@ import { generationAttachments } from "./schema/generation-attachments.js";
 import { generationAttempts } from "./schema/generation-attempts.js";
 import { generationOutputs } from "./schema/generation-outputs.js";
 import { generationWebhookDeliveries } from "./schema/generation-webhook-deliveries.js";
+import { games } from "./schema/games.js";
 import { imageDocumentVersions } from "./schema/image-document-versions.js";
 import { imageDocuments } from "./schema/image-documents.js";
 import { jobs } from "./schema/jobs.js";
@@ -469,6 +470,7 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
   directStep("nodetool_memories", memories, memories.user_id),
   directStep("nodetool_settings", appSettings, appSettings.user_id),
   directStep("nodetool_workspaces", workspacesSchema, workspacesSchema.user_id),
+  directStep("games", games, games.user_id),
   directStep("projects", projects, projects.user_id),
   directStep("skills", skills, skills.user_id),
   directStep("scripts", scripts, scripts.user_id),
@@ -816,6 +818,7 @@ export const EXPORT_HANDLERS: Readonly<Record<string, ExportHandler>> = {
   ),
   nodetool_workflows: directExport(workflows, workflows.user_id),
   nodetool_workspaces: directExport(workspacesSchema, workspacesSchema.user_id),
+  games: directExport(games, games.user_id),
   projects: directExport(projects, projects.user_id),
   run_events: indirectExport(runEvents, runEvents.run_id, (c) => c.runIds),
   scripts: directExport(scripts, scripts.user_id),

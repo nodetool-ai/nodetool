@@ -21,7 +21,7 @@ const manifestOf = (template: string) =>
       readFileSync(
         fileURLToPath(
           new URL(
-            `../../godot-templates/templates/${template}/manifest.json`,
+            `../fixtures/game-assets/${template}.manifest.json`,
             import.meta.url
           )
         ),

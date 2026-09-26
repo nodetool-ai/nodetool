@@ -1,6 +1,6 @@
 /**
  * The model interfaces a graph uses to reach the documents a director approves:
- * storyboards, the entity library, and the shipped game templates.
+ * storyboards and the entity library.
  *
  * They live here rather than in `session/model-interfaces.ts` so the CLI's
  * local (no-server) runs get the same implementations — a `nodetool debug` run
@@ -24,7 +24,6 @@ import {
 } from "@nodetool-ai/protocol";
 import type {
   EntityUpsertArgs,
-  GameTemplateInfo,
   ProcessingContextModelInterfaces
 } from "@nodetool-ai/runtime";
 
@@ -258,22 +257,6 @@ export function entityModelInterfaces(): Pick<
   };
 }
 
-/** The shipped Godot templates, read from disk once per call. */
-export function gameTemplateModelInterfaces(): Pick<
-  ProcessingContextModelInterfaces,
-  "listGameTemplates"
-> {
-  return {
-    listGameTemplates: async (): Promise<GameTemplateInfo[]> => {
-      const { listTemplates } = await import("@nodetool-ai/godot-templates");
-      return listTemplates().map((template) => ({
-        id: template.id,
-        manifest: template.manifest
-      }));
-    }
-  };
-}
-
 /** All three groups, for a host installing the whole document surface. */
 /**
  * Scripts and timeline sequences, owner-scoped with CAS updates.
@@ -395,7 +378,6 @@ export function documentModelInterfaces(): ProcessingContextModelInterfaces {
     },
     ...scriptModelInterfaces(),
     ...storyboardModelInterfaces(),
-    ...entityModelInterfaces(),
-    ...gameTemplateModelInterfaces()
+    ...entityModelInterfaces()
   };
 }

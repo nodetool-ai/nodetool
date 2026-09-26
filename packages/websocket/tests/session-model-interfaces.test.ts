@@ -716,17 +716,6 @@ describe("entities", () => {
   });
 });
 
-describe("game templates", () => {
-  it("lists the shipped templates with their slot manifests", async () => {
-    const templates = await ifaces.listGameTemplates!();
-    expect(templates.length).toBeGreaterThan(0);
-    for (const template of templates) {
-      expect(typeof template.id).toBe("string");
-      expect(Array.isArray(template.manifest.slots)).toBe(true);
-    }
-  });
-});
-
 describe("createRuntimeContext", () => {
   it("builds a context with the server persistence installed", () => {
     const ctx = createRuntimeContext({

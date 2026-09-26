@@ -26,6 +26,7 @@ import {
   type Entity,
   type ProductionReferenceBinding
 } from "@nodetool-ai/protocol";
+import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 
 import {
   BORDER_RADIUS,
@@ -57,7 +58,6 @@ import {
   exampleSeedRef
 } from "../../utils/exampleWorkflow";
 import type { BuildFromPlanResult } from "../../hooks/workflow/useBuildFromPlan";
-import type { BuildGameResult } from "../../hooks/game/useBuildGame";
 import { useFileHandling } from "../chat/hooks/useFileHandling";
 import { useComposerAssetUpload } from "../chat/hooks/useComposerAssetUpload";
 import { isMac } from "../../utils/platform";
@@ -106,7 +106,6 @@ import StoryboardSetupHost from "../setup/storyboard/StoryboardSetupHost";
 import VideoSetupHost from "../setup/video/VideoSetupHost";
 import ScriptSetupHost from "../setup/script/ScriptSetupHost";
 import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
-import GameSetupHost from "../setup/game/GameSetupHost";
 import EntitySetupHost from "../setup/entity/EntitySetupHost";
 import { newVideoSetupDocument } from "../setup/video/useVideoSetupFlow";
 import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
@@ -118,10 +117,8 @@ import {
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { trpcClient } from "../../trpc/client";
-import {
-  writeGameSetup,
-  writeWorkflowSetup
-} from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import { writeWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import { newDocumentId } from "../../lib/newDocumentId";
 import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { stageChatTurn } from "../chat/pendingChatTurn";
 import { PROJECT_COLOR } from "./projectIdentity";
@@ -271,9 +268,7 @@ const SETUP_TAB_TYPE = {
   video: "timeline",
   script: "script",
   workflow: "workflow",
-  // The Game flow's document is a workflow, so its landing is the node editor
-  // with the graph the build placed (D25).
-  game: "workflow"
+  game: "game"
 } as const;
 
 /**
@@ -348,9 +343,7 @@ const deleteSetupDocument = async (target: SetupTarget): Promise<void> => {
  * one run a test run, the Game flow just runs the graph, and the two results
  * differ only in that name.
  */
-const buildFailures = (
-  result: BuildFromPlanResult | BuildGameResult
-): string[] => {
+const buildFailures = (result: BuildFromPlanResult): string[] => {
   const lines: string[] = [];
   if (result.issues.length > 0) {
     lines.push(
@@ -364,7 +357,7 @@ const buildFailures = (
       `The graph did not validate: ${result.validationErrors.join("; ")}`
     );
   }
-  const run = "testRun" in result ? result.testRun : result.run;
+  const run = result.testRun;
   if (run.error) {
     lines.push(`The run was refused: ${run.error}`);
   }
@@ -1101,13 +1094,6 @@ const NewProjectSurface = ({
     ]
   );
 
-  /**
-   * The Game card (game-prd § 4, D25/D30).
-   *
-   * The document is a workflow, as the Workflow flow's is, so the create is
-   * the same one — only the settings differ: `settings.game` at stage `idea`
-   * with the brief the composer holds.
-   */
   const startGameFlow = useCallback(
     async (projectId: string) => {
       if (starting) {
@@ -1118,25 +1104,24 @@ const NewProjectSurface = ({
         text.length > 0 ? projectNameFromPrompt(text, null) : "New game";
       setStarting(true);
       try {
-        const created = await createWorkflow({
+        const created = await trpcClient.games.create.mutate({
+          projectId,
           name,
-          description: "",
-          tags: [],
-          access: "private",
-          project_id: projectId,
-          settings: writeGameSetup({}, { stage: "idea", brief: text })
+          document: createTopDownRoomGame(newDocumentId())
         });
         noteUncarriedContext("game", {
           entities: false,
           references: false
         });
-        applySetupTarget({
-          kind: "game",
-          id: created.id,
-          projectId,
-          name,
-          ownsProject: false
+        if (!(await showDocumentProject(projectId, name))) return;
+        openTab({
+          type: "game",
+          ref: created.game.id,
+          title: name,
+          projectId
         });
+        useOnboardingStore.getState().markStep("start-guided-flow");
+        if (flowRef) closeTab(tabId("guided-flow", flowRef));
       } catch (error) {
         reportEntryFailure("game", error);
       } finally {
@@ -1144,11 +1129,13 @@ const NewProjectSurface = ({
       }
     },
     [
-      applySetupTarget,
-      createWorkflow,
+      closeTab,
+      flowRef,
       noteUncarriedContext,
+      openTab,
       prompt,
       reportEntryFailure,
+      showDocumentProject,
       starting
     ]
   );
@@ -1281,7 +1268,7 @@ const NewProjectSurface = ({
    * here, because this tab is the last place that holds them.
    */
   const handleSetupFinished = useCallback(
-    async (result?: BuildFromPlanResult | BuildGameResult | null) => {
+    async (result?: BuildFromPlanResult | null) => {
       const target = setupTargetRef.current;
       if (!target || target.kind === "entity") {
         return;
@@ -1559,11 +1546,15 @@ const NewProjectSurface = ({
     }
     if (setupTarget.kind === "game") {
       return (
-        <GameSetupHost
-          workflowId={setupTarget.id}
-          onFinish={handleSetupFinished}
-          onChangeFlow={handleChangeFlow}
-        />
+        <FlexColumn gap={SPACING.md} sx={{ p: SPACING.xl }}>
+          <Text size="big">Legacy game setup</Text>
+          <Caption>
+            This setup used the removed Godot workflow. Its source files and generated assets remain available. Create a native game to rebuild its gameplay.
+          </Caption>
+          <EditorButton onClick={() => void startGameFlow(setupTarget.projectId)}>
+            Create native game
+          </EditorButton>
+        </FlexColumn>
       );
     }
     if (setupTarget.kind === "workflow") {

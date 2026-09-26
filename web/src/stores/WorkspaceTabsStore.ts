@@ -33,6 +33,8 @@ export type WorkspaceTabType =
   | "text"
   // Mini apps. `ref` is an application id (trpc.applications.*).
   | "application"
+  // Native games. `ref` is a games row id (trpc.games.*).
+  | "game"
   // Chat conversations. `ref` is a chat thread id (GlobalChatStore).
   | "chat"
   // Files inside a run workspace. `ref` is `${workspaceId}::${path}` — see

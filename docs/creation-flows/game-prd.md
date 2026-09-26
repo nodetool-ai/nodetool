@@ -1,9 +1,9 @@
 # PRD: E6 — Game (guided flow to a Godot project)
 
-**Status:** Draft, ready to build
+**Status:** Superseded by the [built-in game engine design](../plans/builtin-game-engine-design.md). This document records the former external-engine flow.
 **Parent:** [prd.md](prd.md) — the shell (§ 6), the shared pieces (§ 6.3), the cross-flow decisions (§ 12). Everything there holds here unless this document says otherwise.
 **Tasks:** [tasks.md § P10](tasks.md#p10--game-flow)
-**Builds on:** the Godot pipeline in [docs/harnesses.md § Godot game pipeline](../harnesses.md#godot-game-pipeline-templates-slot-nodes-project-export), the `godot-game` skill (`.claude/skills/godot-game/SKILL.md`), and the graph path sketched in [graph-resources/design.md § 4.5](../graph-resources/design.md).
+**Historical context:** the graph path in [graph-resources/design.md § 4.5](../graph-resources/design.md) describes the former pipeline.
 
 ---
 

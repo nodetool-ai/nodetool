@@ -15,7 +15,6 @@ import type {
   Entity,
   EntityKind,
   EntitySource,
-  GameAssetManifest,
   GenerationOrigin,
   GenerationReceipt,
   ProcessingMessage,
@@ -757,8 +756,6 @@ export interface ProcessingContextModelInterfaces {
    * updates the entity it made last time instead of growing the library.
    */
   upsertEntity?: (args: EntityUpsertArgs) => Promise<EntityUpsertResult>;
-  /** The shipped Godot templates and the asset slots each declares. */
-  listGameTemplates?: () => Promise<GameTemplateInfo[]>;
 }
 
 /** The arguments {@link ProcessingContextModelInterfaces.upsertEntity} takes. */
@@ -786,12 +783,6 @@ export interface EntityUpsertArgs {
 export interface EntityUpsertResult {
   entity: Entity;
   created: boolean;
-}
-
-/** One shipped game template: its id and the asset slots it declares. */
-export interface GameTemplateInfo {
-  id: string;
-  manifest: GameAssetManifest;
 }
 
 /**
@@ -2320,12 +2311,6 @@ export class ProcessingContext {
   ): Promise<EntityUpsertResult> {
     const fn = this.requireModelInterface("upsertEntity");
     return fn({ userId: this.userId, ...args });
-  }
-
-  /** The shipped game templates and the asset slots each declares. */
-  async listGameTemplates(): Promise<GameTemplateInfo[]> {
-    const fn = this.requireModelInterface("listGameTemplates");
-    return fn();
   }
 
   /**

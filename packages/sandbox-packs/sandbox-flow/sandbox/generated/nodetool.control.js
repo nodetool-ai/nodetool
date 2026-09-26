@@ -6,6 +6,12 @@ function if_(inputs) {
 if_.stream = function(inputs) {
   return streamNode("nodetool.control.If", inputs);
 };
+function loop(inputs) {
+  return callNode("nodetool.control.Loop", inputs);
+}
+loop.stream = function(inputs) {
+  return streamNode("nodetool.control.Loop", inputs);
+};
 function forEach(inputs) {
   return callNode("nodetool.control.ForEach", inputs);
 }
@@ -146,6 +152,7 @@ export {
   forEach,
   if_,
   last,
+  loop,
   repeatCount,
   repeatValue,
   reroute,

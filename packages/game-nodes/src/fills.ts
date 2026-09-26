@@ -1,11 +1,10 @@
 /**
- * Reading a graph's `fills` input into the filled manifest the Godot writer
- * takes.
+ * Reading a graph's `fills` input into a native game asset candidate manifest.
  *
  * A `nodetool.game.*` checker emits two handles: `fill`, the {@link SlotFill}
  * it validated, and `output`, the stored image or audio ref carrying that same
  * fill under `metadata.nodetool_slot`. Only the second one knows where the
- * bytes are, so that is the handle `ExportGodotProject` wants — and a bare fill
+ * bytes are, so that is the handle `StageGameAssets` wants — and a bare fill
  * is rejected with the wiring that fixes it rather than exported as a project
  * with no art in it.
  */
@@ -19,7 +18,6 @@ import {
   type FilledSlot,
   type SlotFill
 } from "@nodetool-ai/protocol";
-import { slotFileStem } from "@nodetool-ai/godot";
 import type { MediaRefValue } from "@nodetool-ai/runtime";
 
 /** The default extension per fill kind, when a ref's uri carries none. */
@@ -111,7 +109,7 @@ export function resolveFills(
     const fill = stamped.data;
     const uri = text(entry.uri);
     const assetId =
-      text(entry.asset_id) || idFromUri(uri) || slotFileStem(fill.slot_id);
+      text(entry.asset_id) || idFromUri(uri) || fill.slot_id.replace(/\./g, "_");
     const extension =
       extensionFromUri(uri) || DEFAULT_EXTENSION[fill.kind];
     slots.push({

@@ -54,7 +54,8 @@ continuity but does not guarantee identical model output.
   Editing the sequence and rendering an exported video are separate operations.
 - A sketch is a layered image document for composing and editing images.
 - A 3D scene contains objects, transforms, materials, and cameras for scene work.
-  Game tools can fill template asset slots and export a Godot project.
+  Built-in games have versioned scenes, assets, and a deterministic playtest.
+  Game workflows stage candidate art for an explicit installation into a game revision.
 - A mini app presents widgets bound to workflow operations and variables, so
   someone can run a task through a UI without editing its graph.
 - A collection indexes documents and embeddings for semantic or hybrid search

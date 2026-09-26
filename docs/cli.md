@@ -1056,6 +1056,23 @@ nodetool jsscript versions create <js_script_id> --name "before the rewrite"
 nodetool jsscript versions restore <js_script_id> 3
 ```
 
+### `nodetool game`
+
+Validate, replay, capture, and export a native game document from a JSON file.
+Simulation advances exactly the requested number of 60 Hz ticks. The input
+recording is a JSON array of `{ "pressed": ["right"] }` frames, one per tick.
+
+```bash
+nodetool game validate game.json
+nodetool game simulate game.json --ticks 120 --inputs inputs.json --expect-score 1 --expect-win
+nodetool game capture game.json --ticks 120 --inputs inputs.json --out frame.png
+nodetool game build game.json --out game-build --assets-dir game-assets
+```
+
+`--assets-dir` supplies media files named `<full-asset-id>.<extension>` for
+capture and export. The build copies media into a content-addressed folder and
+includes a standalone browser player. Built-in sample art needs no media files.
+
 ## Job Management
 
 ### `nodetool jobs`

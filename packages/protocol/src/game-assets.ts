@@ -1,21 +1,20 @@
 /**
  * @nodetool-ai/protocol – Game asset slots
  *
- * The contract between the three halves of the Godot pipeline, so each can be
- * built and tested without the others:
+ * The contract between native game templates, generation nodes, and asset
+ * installation:
  *
  *   - A game template declares a {@link GameAssetManifest}: every asset slot
  *     it needs (a sprite sheet with named animations, a tileset, a seamless
- *     background, a sound effect, a music loop) and the script hooks the agent
- *     fills in.
+ *     background, a sound effect, or a music loop).
  *   - The generation nodes fill one slot at a time and stamp the stored asset
  *     with a {@link SlotFill} under `metadata.nodetool_slot`, so the layout
  *     (cell size, frame ranges, loop flag) travels with the bytes.
- *   - The Godot writer reads a {@link FilledManifest} and never needs to look
- *     at pixels: the fill tells it where every frame is.
+ *   - Native installation reads a {@link FilledManifest} and binds validated
+ *     bytes to the game without changing authored scenes or behaviors.
  *
  * {@link checkSlotFill} is the mechanical acceptance every fill passes before
- * it counts as done. It is here rather than in a node so the writer's tests and
+ * it counts as done. It is here rather than in a node so installation and
  * the generation nodes reject the same things.
  */
 
@@ -117,11 +116,9 @@ export const gameAssetManifest = z
     version: z.literal(1),
     /** Template id, e.g. `platformer`. */
     template: z.string().min(1),
-    /** Godot minor the template targets, e.g. `4.3`. */
-    godot: z.string().regex(/^\d+\.\d+$/),
+    /** Built-in game runtime version used by this template. */
+    engineVersion: z.literal("1"),
     slots: z.array(gameSlotSpec).min(1),
-    /** Project-relative files the agent writes or edits after export. */
-    hooks: z.array(z.string().min(1)).default([])
   })
   .refine(
     (m) => new Set(m.slots.map((s) => s.id)).size === m.slots.length,

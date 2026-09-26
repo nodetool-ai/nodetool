@@ -880,14 +880,21 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "outside every check in this table, for as long as it is valid. " +
       "read_asset returns the bytes to the run instead."
   },
-  "games.templates": { capability: "list_game_templates" },
-  "games.stylePresets": {
-    gap:
-      "Seeds the shipped game style presets into the caller's own library, " +
-      "then lists them — the same shape, and the same gap, as " +
-      "storyboards.stylePresets: reading them back is already reachable " +
-      "through list_entities, and only the seeding half has no headless " +
-      "trigger."
+  "games.create": { capability: "create_native_game" },
+  "games.get": { capability: "get_native_game" },
+  "games.installAsset": {
+    gap: "Installing an existing image asset is available in the editor, but the agent only installs staged candidates."
+  },
+  "games.installCandidate": { capability: "install_native_game_asset" },
+  "games.list": {
+    gap: "The agent can read a known game but cannot list a project's games yet."
+  },
+  "games.publish": { capability: "publish_native_game" },
+  "games.restore": {
+    elsewhere: "get_native_game reads an earlier revision and publish_native_game publishes it as a new revision."
+  },
+  "games.revisions": {
+    gap: "The agent can read a known revision but cannot enumerate revisions yet."
   },
   "storyboards.create": { capability: "create_storyboard" },
   "storyboards.delete": { capability: "delete_storyboard" },
