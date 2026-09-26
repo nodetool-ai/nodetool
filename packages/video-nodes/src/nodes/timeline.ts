@@ -54,6 +54,7 @@ import { tagAsNode, tagAsServer } from "@nodetool-ai/nodes-utils";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { AssetFiles } from "./timeline/assetFiles.js";
 import {
   execFfmpeg,
   execFfprobe,
@@ -491,39 +492,6 @@ function totalDurationMs(seq: TimelineSequence): number {
  * The file ffmpeg reads for each clip asset, resolved once per asset: the
  * asset's own local file when it has one, else a copy in the work dir.
  */
-class AssetFiles {
-  private readonly files = new Map<string, Promise<string | null>>();
-
-  constructor(
-    private readonly workDir: string,
-    private readonly context: ProcessingContext
-  ) {}
-
-  path(assetId: string): Promise<string | null> {
-    let pending = this.files.get(assetId);
-    if (!pending) {
-      pending = this.write(assetId);
-      this.files.set(assetId, pending);
-    }
-    return pending;
-  }
-
-  /**
-   * A file on this host is handed to ffmpeg in place, so a multi-gigabyte
-   * source is never read into memory. Only a backend with no local file (an
-   * object store, the in-memory store) is materialized into the work dir.
-   */
-  private async write(assetId: string): Promise<string | null> {
-    const local = await this.context.localPath(assetId);
-    if (local) return local;
-    const { bytes } = await this.context.resolveAssetBytes(assetId);
-    if (!bytes) return null;
-    const file = path.join(this.workDir, `asset_${assetId}`);
-    await fs.writeFile(file, bytes);
-    return file;
-  }
-}
-
 /** Sample rate the midi renderer runs at, matching the mix's own `-ar`. */
 const MIDI_SAMPLE_RATE = 48000;
 
