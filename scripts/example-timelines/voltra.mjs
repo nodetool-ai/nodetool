@@ -4,7 +4,7 @@
 // `node scripts/example-timelines/voltra.mjs` writes the shipped bundle
 // packages/base-nodes/nodetool/examples/timelines/voltra.timeline.json.
 // `node scripts/example-timelines/voltra.mjs --stills [name…]` regenerates the
-// stills (see voltra-stills.mjs for every prompt, model and seed).
+// stills (see voltra-stills.mjs for every prompt and seed, stills.mjs for the model).
 // `node scripts/render-example-timeline.mjs voltra` renders its video and poster.
 //
 // Frames are at 30 fps and the music is 120 BPM, so one beat is 15 frames.
