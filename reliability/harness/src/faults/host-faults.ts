@@ -82,6 +82,10 @@ class EnospcStorageAdapter implements StorageAdapter {
   stat(uri: string): Promise<StorageStat | null> {
     return this.inner.stat(uri);
   }
+
+  localPath(uri: string): Promise<string | null> {
+    return this.inner.localPath(uri);
+  }
 }
 
 let injectedStorage: StorageAdapter | null = null;

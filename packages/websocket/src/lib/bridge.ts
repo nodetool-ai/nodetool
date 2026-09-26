@@ -1,6 +1,26 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
+import { Readable } from "node:stream";
+import type { ReadableStream as NodeWebReadableStream } from "node:stream/web";
 import { gzipSync } from "node:zlib";
 import { GZIP_THRESHOLD } from "./compression.js";
+
+/** Responses whose body `bridge` pipes to the client instead of buffering. */
+const streamedResponses = new WeakSet<Response>();
+
+/**
+ * A response `bridge` sends as a stream: no buffering, no gzip, and no
+ * `content-length`. For large downloads such as an export zip. The route
+ * handler must `return reply` after `bridge`, or Fastify ends the response
+ * before the stream has sent anything.
+ */
+export function streamedResponse(body: Readable, init: ResponseInit): Response {
+  const response = new Response(
+    Readable.toWeb(body) as unknown as ReadableStream<Uint8Array>,
+    init
+  );
+  streamedResponses.add(response);
+  return response;
+}
 
 /**
  * Converts a Fastify request into a Web API Request, calls the handler,
@@ -63,6 +83,13 @@ export async function bridge(
 
   if (!response.body) {
     reply.send();
+    return;
+  }
+
+  if (streamedResponses.has(response)) {
+    reply.send(
+      Readable.fromWeb(response.body as unknown as NodeWebReadableStream)
+    );
     return;
   }
 

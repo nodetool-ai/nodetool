@@ -16,17 +16,17 @@ import {
   timelineDocumentDurationMs,
   type TimelineDocument
 } from "@nodetool-ai/models";
-import { bridge } from "../lib/bridge.js";
+import { bridge, streamedResponse } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
-import { retrieveAssetBytes } from "../lib/asset-paths.js";
+import { resolveAssetExportSource } from "../lib/asset-export.js";
 import { createAssetModelInterface } from "../lib/asset-model-interface.js";
-import { getAssetAdapter } from "../lib/storage.js";
 import {
   importTimelineBundle,
-  packTimelineBundle,
+  writeTimelineBundle,
   type BundledTimeline,
   type FetchedTimelineAsset
 } from "../lib/timeline-bundle.js";
+import { streamZip } from "../lib/zip-stream.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
@@ -42,20 +42,7 @@ function jsonError(status: number, detail: string): Response {
   });
 }
 
-function zipResponse(bytes: Uint8Array, name: string): Response {
-  const safe = name.replace(/[^A-Za-z0-9._-]+/g, "_") || "timeline";
-  return new Response(new Uint8Array(bytes), {
-    status: 200,
-    headers: {
-      "content-type": "application/zip",
-      "content-length": String(bytes.byteLength),
-      "content-disposition": `attachment; filename="${safe}.zip"`,
-      "cache-control": "no-store"
-    }
-  });
-}
-
-/** Bytes for one asset the caller owns, or null when the row or object is gone. */
+/** The source for one asset the caller owns, or null when the row or object is gone. */
 async function fetchOwnedAsset(
   userId: string,
   assetId: string
@@ -66,16 +53,13 @@ async function fetchOwnedAsset(
   if (!asset || asset.user_id !== userId) {
     return null;
   }
-  const bytes = await retrieveAssetBytes(
-    getAssetAdapter(),
-    asset.user_id,
-    asset.id,
-    asset.content_type
-  );
-  if (!bytes) {
+  // A local file is streamed from disk; only a store with no local file
+  // hands over bytes.
+  const source = await resolveAssetExportSource(asset);
+  if (!source) {
     return null;
   }
-  return { bytes, name: asset.name, contentType: asset.content_type };
+  return { source, name: asset.name, contentType: asset.content_type };
 }
 
 /** The bundle payload for a stored sequence: the wire shape minus db fields. */
@@ -224,12 +208,32 @@ const timelinesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       if (!seq || seq.user_id !== userId) {
         return jsonError(404, "Timeline not found");
       }
-      const { bytes } = await packTimelineBundle({
-        sequence: toBundledTimeline(seq),
-        fetchAsset: (assetId) => fetchOwnedAsset(userId, assetId)
+      const sequence = toBundledTimeline(seq);
+      // The archive streams as it is written, so neither an asset nor the
+      // zip is ever held in memory whole.
+      const body = streamZip(async (writer) => {
+        await writeTimelineBundle(
+          {
+            sequence,
+            fetchAsset: (assetId) => fetchOwnedAsset(userId, assetId)
+          },
+          writer
+        );
       });
-      return zipResponse(bytes, seq.name || "timeline");
+      const safe =
+        (seq.name || "timeline").replace(/[^A-Za-z0-9._-]+/g, "_") ||
+        "timeline";
+      return streamedResponse(body, {
+        status: 200,
+        headers: {
+          "content-type": "application/zip",
+          "content-disposition": `attachment; filename="${safe}.zip"`,
+          "cache-control": "no-store"
+        }
+      });
     });
+    // A streamed body is still being sent when bridge returns.
+    return reply;
   });
 };
 

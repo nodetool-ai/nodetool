@@ -553,6 +553,7 @@ export function getCreateSchemaSql(): string {
       "job_id" text,
       "timeline_id" text,
       "project_id" text NOT NULL DEFAULT 'default',
+      "external_path" text,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );

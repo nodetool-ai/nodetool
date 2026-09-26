@@ -4,6 +4,17 @@ import { z } from "zod";
 // Mirrors `toAssetResponse` in the legacy http-api.ts handler. `get_url`
 // and `thumb_url` are resolved server-side; `duration` is only set for
 // audio/video assets.
+
+/** The states of a video asset's preview proxy. */
+export const videoProxyStatus = z.enum([
+  "none",
+  "queued",
+  "running",
+  "ready",
+  "failed"
+]);
+export type VideoProxyStatus = z.infer<typeof videoProxyStatus>;
+
 export const assetResponse = z.object({
   id: z.string(),
   user_id: z.string(),
@@ -22,7 +33,24 @@ export const assetResponse = z.object({
   job_id: z.string().nullable(),
   timeline_id: z.string().nullable().optional(),
   /** The project the asset belongs to; `"default"` for none. */
-  project_id: z.string().optional()
+  project_id: z.string().optional(),
+  /**
+   * Present only on an asset that references a local file in place: true when
+   * that file is missing or has changed since import or relink. An offline
+   * asset's `get_url` answers 404 until `relinkExternal` points it at a file.
+   */
+  offline: z.boolean().optional(),
+  /**
+   * Present only on a video asset on a local server: the state of its
+   * all-intra preview proxy. `ready` means `proxy_url` plays it. A proxy made
+   * from an earlier version of the file is not ready.
+   */
+  proxy_status: videoProxyStatus.optional(),
+  /**
+   * The preview proxy's URL while `proxy_status` is `ready`, else null. For
+   * the timeline preview only: export and every other reader use `get_url`.
+   */
+  proxy_url: z.string().nullable().optional()
 });
 export type AssetResponse = z.infer<typeof assetResponse>;
 
@@ -122,6 +150,67 @@ export type FinalizeUploadInput = z.infer<typeof finalizeUploadInput>;
 
 export const finalizeUploadOutput = assetResponse;
 export type FinalizeUploadOutput = z.infer<typeof finalizeUploadOutput>;
+
+// ── createExternal (reference a local file in place) ─────────────
+// Desktop only. The server validates `path` against the local file roots and
+// records it on the row; no bytes are copied. The response never carries the
+// path, and `get_url` stays the id-based `/api/storage/...` URL.
+
+export const externalImportConfigOutput = z.object({
+  /** False in the cloud, in production, and on any non-file asset store. */
+  enabled: z.boolean(),
+  /** Files at or above this size are referenced in place. */
+  threshold_bytes: z.number().int().positive()
+});
+export type ExternalImportConfigOutput = z.infer<
+  typeof externalImportConfigOutput
+>;
+
+export const createExternalInput = z.object({
+  /** Absolute path of the file on the server's disk. */
+  path: z.string().min(1),
+  /** Defaults to the file's base name. */
+  name: z.string().min(1).optional(),
+  /** Inferred from the name when omitted or generic. */
+  content_type: z.string().optional(),
+  /** Empty or omitted means the user's root folder. */
+  parent_id: z.string().optional(),
+  project_id: z.string().min(1).optional(),
+  workflow_id: z.string().nullable().optional()
+});
+export type CreateExternalInput = z.infer<typeof createExternalInput>;
+
+export const createExternalOutput = assetResponse;
+export type CreateExternalOutput = z.infer<typeof createExternalOutput>;
+
+// ── relinkExternal (point an in-place asset at another file) ─────
+// Keeps the asset id and `get_url`. The path is validated again against the
+// local file roots, and the file's size and mtime are recorded anew.
+
+export const relinkExternalInput = z.object({
+  id: z.string().min(1),
+  /** Absolute path of the replacement file on the server's disk. */
+  path: z.string().min(1)
+});
+export type RelinkExternalInput = z.infer<typeof relinkExternalInput>;
+
+export const relinkExternalOutput = assetResponse;
+export type RelinkExternalOutput = z.infer<typeof relinkExternalOutput>;
+
+// ── ensureProxy (preview proxy for a video asset) ─────────────────
+// Queues an all-intra preview proxy for a video asset at any size and answers
+// the current state. Local server only.
+
+export const ensureProxyInput = z.object({
+  id: z.string().min(1)
+});
+export type EnsureProxyInput = z.infer<typeof ensureProxyInput>;
+
+export const ensureProxyOutput = z.object({
+  status: videoProxyStatus,
+  proxy_url: z.string().nullable()
+});
+export type EnsureProxyOutput = z.infer<typeof ensureProxyOutput>;
 
 // ── update (PUT /api/assets/:id) ─────────────────────────────────
 // The `data` field (base64 or utf-8 content) is supported here for

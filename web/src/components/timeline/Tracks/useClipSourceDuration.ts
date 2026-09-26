@@ -5,10 +5,11 @@
  * a clip past its source has no sensible result (playback stops at
  * outPointMs and the thumbnails/waveform stretch).
  *
- * Audio comes from the decoded buffer (useAudioPeaks, cached per URL) so the
- * cap reflects the actual decoded length rather than asset metadata, which
- * can be null. Video is probed through a detached media element, cached at
- * module level per URL so hundreds of clips on one asset probe it once.
+ * Audio comes from the server's waveform peaks (useAudioPeaks, cached per
+ * URL), which carry the decoded length, so the cap reflects the actual audio
+ * rather than asset metadata, which can be null. Video is probed through a
+ * detached media element, cached at module level per URL so hundreds of clips
+ * on one asset probe it once.
  * Image, text, shape and group clips have no source length and return
  * undefined.
  */
@@ -79,6 +80,7 @@ export function useClipSourceDuration(
   const url = useAssetUrl(hasSource ? clip?.currentAssetId : undefined);
 
   const { durationMs: audioMs } = useAudioPeaks(
+    mediaType === "audio" ? clip?.currentAssetId : undefined,
     mediaType === "audio" ? url : undefined
   );
   const videoMs = useVideoDuration(mediaType === "video" ? url : undefined);

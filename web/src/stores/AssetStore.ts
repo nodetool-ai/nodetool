@@ -19,6 +19,7 @@ import {
   normalizeAssetList
 } from "../utils/normalizeAsset";
 import { isFunction, isNumber, isObjectLike } from "../utils/typePredicates";
+import { getLocalFilePath } from "../utils/localFile";
 
 type AssetCreatePayload = {
   workflow_id?: string;
@@ -111,6 +112,48 @@ const uploadAssetDirect = async (
     (await trpcClient.assets.finalizeUpload.mutate({
       asset_id: created.asset_id
     })) as Asset
+  );
+};
+
+/**
+ * Reference a large local file in place instead of uploading it (desktop app
+ * only). `diskPathSource` is the file as the user dropped or picked it: only
+ * that `File` carries a disk path in Electron. Returns null when the file has
+ * no disk path (every plain browser), when the server does not offer external
+ * references, or when the file is below the server's threshold, which is the
+ * signal to upload.
+ */
+const createExternalAsset = async (
+  payload: AssetCreatePayload,
+  diskPathSource: File
+): Promise<Asset | null> => {
+  const diskPath = getLocalFilePath(diskPathSource);
+  if (!diskPath) {
+    return null;
+  }
+  const config = await trpcClient.assets.externalImportConfig.query();
+  if (!config.enabled || diskPathSource.size < config.threshold_bytes) {
+    return null;
+  }
+  const input: Parameters<typeof trpcClient.assets.createExternal.mutate>[0] =
+    { path: diskPath };
+  if (payload.name) {
+    input.name = payload.name;
+  }
+  if (payload.content_type) {
+    input.content_type = payload.content_type;
+  }
+  if (payload.parent_id) {
+    input.parent_id = payload.parent_id;
+  }
+  if (payload.project_id) {
+    input.project_id = payload.project_id;
+  }
+  if (payload.workflow_id) {
+    input.workflow_id = payload.workflow_id;
+  }
+  return normalizeAssetUrls(
+    (await trpcClient.assets.createExternal.mutate(input)) as Asset
   );
 };
 
@@ -671,11 +714,13 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       if (project_id) {
         payload.project_id = project_id;
       }
-      const asset = await uploadAsset(
-        payload,
-        preparedFile.file,
-        onUploadProgress
-      );
+      const external = await createExternalAsset(payload, file);
+      if (external) {
+        emitUploadProgress(onUploadProgress, file.size, file.size);
+      }
+      const asset =
+        external ??
+        (await uploadAsset(payload, preparedFile.file, onUploadProgress));
       get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
       get().add(asset);
       return asset;

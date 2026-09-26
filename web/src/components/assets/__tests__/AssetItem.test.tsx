@@ -116,6 +116,28 @@ describe("AssetItem", () => {
     expect(onDoubleClick).toHaveBeenCalledWith(baseImageAsset);
   });
 
+  it("marks an in-place asset whose file is missing as media offline", () => {
+    const { rerender } = renderWithTheme(
+      <AssetItem
+        asset={{ ...baseImageAsset, offline: false }}
+        showDeleteButton={false}
+      />
+    );
+    expect(screen.queryByTestId("asset-media-offline")).not.toBeInTheDocument();
+
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <AssetItem
+          asset={{ ...baseImageAsset, offline: true }}
+          showDeleteButton={false}
+        />
+      </ThemeProvider>
+    );
+    expect(screen.getByTestId("asset-media-offline")).toHaveTextContent(
+      "Media offline"
+    );
+  });
+
   it("paints an SVG from get_url, not a raster thumb", () => {
     const svgAsset: Asset = {
       ...baseImageAsset,

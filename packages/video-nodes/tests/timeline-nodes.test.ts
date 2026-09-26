@@ -167,7 +167,8 @@ function baseSequence() {
 function stubContext(seq: ReturnType<typeof baseSequence> | null) {
   return {
     getTimelineSequence: vi.fn(async () => seq),
-    resolveAssetBytes: vi.fn(async () => ({
+    localPath: vi.fn(async (_assetId: string): Promise<string | null> => null),
+    resolveAssetBytes: vi.fn(async (_assetId: string) => ({
       bytes: new Uint8Array([1, 2, 3, 4]),
       attempts: []
     })),
@@ -212,6 +213,28 @@ describe("RenderTimelineNode", () => {
     expect(args).toContain("volume=-3dB");
     expect(args).toContain("amix=inputs=2");
     expect(context.resolveAssetBytes).toHaveBeenCalledTimes(3);
+  });
+
+  it("hands ffmpeg an asset's local file in place instead of copying its bytes", async () => {
+    const context = stubContext(baseSequence());
+    const inPlace = "/media/library/shot one.mp4";
+    context.localPath.mockImplementation(async (assetId: string) =>
+      assetId === "asset-v1" ? inPlace : null
+    );
+    const node = new RenderTimelineNode();
+    node.assign({ timeline: { type: "timeline", id: "seq-1" } });
+    await node.process(context as never);
+
+    const inputs = execFileCalls
+      .filter((c) => c.cmd === "ffmpeg")
+      .flatMap((c) => c.args.filter((_, i) => c.args[i - 1] === "-i"));
+    expect(inputs).toContain(inPlace);
+    // Only the two assets with no local file are read into memory.
+    const materialized = context.resolveAssetBytes.mock.calls.map(
+      ([id]) => id
+    );
+    expect(materialized).not.toContain("asset-v1");
+    expect(materialized).toHaveLength(2);
   });
 
   it("fades a clip's audio along the curve the document authored", async () => {

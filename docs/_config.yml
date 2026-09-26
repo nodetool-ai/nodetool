@@ -202,6 +202,7 @@ exclude:
   # Internal implementation plans & specs (agentic-worker instructions).
   - COMPONENT_STREAMLINE_PLAN.md
   - plans/directed-campaign-kit-mini-app.md
+  - plans/external-asset-refs.md
   - plans/generation-recovery.md
   - plans/provider-webhooks.md
   - superpowers/

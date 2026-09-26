@@ -291,19 +291,6 @@ describe("assets.finalizeUpload", () => {
     expect(assetFind).toHaveBeenCalledWith("user-b", "a1");
   });
 
-  it("skips the thumbnail download for an oversized object", async () => {
-    const asset = pendingAsset({ content_type: "video/mp4", name: "clip.mp4" });
-    assetFind.mockResolvedValue(asset);
-    adapter.stat.mockResolvedValue({
-      key: "user-1/a1.mp4",
-      size: 200 * 1024 * 1024,
-      modifiedAt: 0
-    });
-
-    await createCaller(makeCtx()).assets.finalizeUpload({ asset_id: "a1" });
-    expect(generateThumb).not.toHaveBeenCalled();
-  });
-
   it("generates a thumbnail for an ordinary-sized object", async () => {
     const asset = pendingAsset();
     assetFind.mockResolvedValue(asset);

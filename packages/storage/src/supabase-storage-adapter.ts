@@ -223,6 +223,11 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     return stat;
   }
 
+  /** Objects live in the bucket, not on this host. */
+  async localPath(_uri: string): Promise<string | null> {
+    return null;
+  }
+
   /**
    * One-shot Supabase upload token for `key`. The browser PUTs the bytes to
    * the returned URL, so they never transit this process. The token is bound

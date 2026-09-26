@@ -198,6 +198,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "for a browser streaming a large file straight to object " +
       "storage."
   },
+  "assets.createExternal": {
+    withheld:
+      "A stored external path is a standing read capability on the " +
+      "host filesystem. Only the desktop renderer, acting on a file the " +
+      "user dropped, may create one."
+  },
   "assets.delete": {
     withheld:
       "Deleting an asset also deletes its stored bytes, and a folder " +
@@ -205,6 +211,16 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "cascade lives in the HTTP layer, and irreversible bulk loss of " +
       "a user's media library is the largest-blast-radius write in " +
       "the API — the wrong thing to put one prompt injection away."
+  },
+  "assets.ensureProxy": {
+    gap:
+      "A preview proxy only speeds up seeking in the timeline editor's " +
+      "preview. No headless consumer: renders and exports read the original."
+  },
+  "assets.externalImportConfig": {
+    gap:
+      "Tells the desktop renderer when to reference a dropped file in " +
+      "place. No headless consumer: a run cannot create external assets."
   },
   "assets.finalizeUpload": {
     elsewhere:
@@ -218,6 +234,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "assets.recursive": {
     elsewhere:
       "Walk the tree with list_assets, which takes a parent."
+  },
+  "assets.relinkExternal": {
+    withheld:
+      "Relinking stores a new host path on an asset, the same standing " +
+      "read capability as creating an external reference. Only the " +
+      "desktop renderer, acting on a file the user picked, may do it."
   },
   "assets.search": { capability: "asset_search" },
   "assets.update": { capability: "update_asset" },

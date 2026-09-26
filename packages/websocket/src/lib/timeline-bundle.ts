@@ -21,10 +21,18 @@
  * a test with an in-memory adapter.
  */
 import { createHash } from "node:crypto";
-import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { strFromU8, strToU8, unzipSync } from "fflate";
 import { z } from "zod";
 import { timelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import { getAssetFileName } from "./asset-paths.js";
+import {
+  collectZip,
+  exportSourceSize,
+  MAX_ZIP_ENTRY_BYTES,
+  sha256OfSource,
+  type ExportSource,
+  type ZipStreamWriter
+} from "./zip-stream.js";
 
 export const TIMELINE_BUNDLE_FORMAT = "nodetool-timeline-bundle";
 export const TIMELINE_BUNDLE_VERSION = 1;
@@ -190,9 +198,9 @@ export function rewriteTimelineAssetIds<T extends TimelineBundleDocument>(
   return clone;
 }
 
-/** Bytes plus the row fields that travel with an asset. */
+/** An asset's bytes or local file plus the row fields that travel with it. */
 export interface FetchedTimelineAsset {
-  bytes: Uint8Array;
+  source: ExportSource;
   name: string;
   contentType: string;
 }
@@ -208,34 +216,44 @@ export interface PackTimelineBundleResult {
   manifest: TimelineBundleManifest;
 }
 
-/** Build a timeline zip, embedding the bytes of every asset its clips name. */
-export async function packTimelineBundle(
-  options: PackTimelineBundleOptions
-): Promise<PackTimelineBundleResult> {
+/**
+ * Write a timeline zip to `writer`, embedding every asset its clips name.
+ * A local file is hashed and then streamed from disk, so no asset is held in
+ * memory whole. Returns the manifest, which is written last.
+ */
+export async function writeTimelineBundle(
+  options: PackTimelineBundleOptions,
+  writer: ZipStreamWriter
+): Promise<TimelineBundleManifest> {
   const { sequence } = options;
-  const files: Record<string, Uint8Array> = {};
+  const written = new Set<string>();
   const assets: TimelineBundleAssetEntry[] = [];
   const missing: string[] = [];
 
   for (const assetId of collectTimelineAssetIds(sequence)) {
     const fetched = await options.fetchAsset(assetId);
-    if (!fetched) {
+    const size = fetched ? exportSourceSize(fetched.source) : 0;
+    if (!fetched || size > MAX_ZIP_ENTRY_BYTES) {
       // An asset the install no longer has does not fail the export: the id is
-      // recorded so the far side can say what it is missing.
+      // recorded so the far side can say what it is missing. So is a file too
+      // large for a zip entry without Zip64.
       missing.push(assetId);
       continue;
     }
-    const sha256 = sha256Hex(fetched.bytes);
+    const sha256 = await sha256OfSource(fetched.source);
     const file = `${ASSETS_PREFIX}${getAssetFileName(sha256, fetched.contentType)}`;
     // Content-addressed, so two ids sharing bytes pack one file and get two
     // manifest rows pointing at it.
-    files[file] ??= fetched.bytes;
+    if (!written.has(file)) {
+      written.add(file);
+      await writer.add(file, fetched.source);
+    }
     assets.push({
       file,
       asset_id: assetId,
       name: fetched.name,
       content_type: fetched.contentType,
-      bytes: fetched.bytes.byteLength,
+      bytes: size,
       sha256
     });
   }
@@ -251,10 +269,29 @@ export async function packTimelineBundle(
     foreign_refs: collectTimelineForeignRefs(sequence)
   };
 
-  files[TIMELINE_ENTRY] = strToU8(JSON.stringify(sequence, null, 2));
-  files["manifest.json"] = strToU8(JSON.stringify(manifest, null, 2));
+  await writer.add(TIMELINE_ENTRY, strToU8(JSON.stringify(sequence, null, 2)), {
+    compress: true
+  });
+  await writer.add(
+    "manifest.json",
+    strToU8(JSON.stringify(manifest, null, 2)),
+    {
+      compress: true
+    }
+  );
+  return manifest;
+}
 
-  return { bytes: zipSync(files), manifest };
+/** Build a timeline zip in memory. The HTTP export streams instead. */
+export async function packTimelineBundle(
+  options: PackTimelineBundleOptions
+): Promise<PackTimelineBundleResult> {
+  const written: { manifest?: TimelineBundleManifest } = {};
+  const bytes = await collectZip(async (writer) => {
+    written.manifest = await writeTimelineBundle(options, writer);
+  });
+  if (!written.manifest) throw new Error("Timeline bundle wrote no manifest");
+  return { bytes, manifest: written.manifest };
 }
 
 export interface UnpackedTimelineBundle {

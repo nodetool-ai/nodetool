@@ -17,10 +17,10 @@ import type {
 
 /**
  * One clip handed to the graph for scheduling, with the PCM it should play:
- * either an asset URL the graph decodes (an audio clip) or a buffer the caller
- * already rendered (a midi clip, from `midiRender.ts`). Everything downstream —
- * clip gain, fades, the track chain, mute/solo, the offline export — treats the
- * two identically.
+ * either an asset URL the graph decodes or streams (an audio clip) or a buffer
+ * the caller already rendered (a midi clip, from `midiRender.ts`). Everything
+ * downstream — clip gain, fades, the track chain, mute/solo, the offline
+ * export — treats them identically.
  */
 export type ScheduledAudioClip =
   | {
@@ -28,6 +28,10 @@ export type ScheduledAudioClip =
       /** Resolved HTTP URL for the audio asset. */
       assetUrl: string;
       buffer?: undefined;
+      /** The asset's byte size, when known. See {@link prefersStreamedPlayback}. */
+      assetSize?: number | null;
+      /** The asset's duration in seconds, when known. */
+      assetDurationSec?: number | null;
     }
   | {
       clip: TimelineClip;
@@ -122,6 +126,120 @@ function windowSegments(clip: TimelineClip): TimeRemapAudioSegment[] {
 }
 
 /**
+ * Files at or above this size, or this long, stream during preview instead of
+ * being decoded. A decoded buffer is float32 per channel: five minutes of
+ * 48 kHz stereo is about 115 MB, and a two-hour WAV several gigabytes.
+ */
+export const STREAM_MIN_BYTES = 50 * 1024 * 1024;
+export const STREAM_MIN_DURATION_SEC = 5 * 60;
+
+/**
+ * Whether an asset of this size and duration plays through a media element
+ * rather than a decoded buffer.
+ *
+ * Streaming is kept to large files. A media element starts on a timer and its
+ * own clock, not on the audio clock, so it can sit a few tens of milliseconds
+ * off the timeline where a buffer source is sample-exact; its playback rate is
+ * limited to 1/16..16. A short clip, the common case for sound effects and
+ * dialogue, keeps the exact path. The offline export always decodes, because
+ * an `OfflineAudioContext` cannot take a media element.
+ */
+export function prefersStreamedPlayback(
+  sizeBytes: number | null | undefined,
+  durationSec: number | null | undefined
+): boolean {
+  return (
+    (sizeBytes ?? 0) >= STREAM_MIN_BYTES ||
+    (durationSec ?? 0) >= STREAM_MIN_DURATION_SEC
+  );
+}
+
+/** Media element playback rates browsers accept. */
+const MEDIA_ELEMENT_MIN_RATE = 0.0625;
+const MEDIA_ELEMENT_MAX_RATE = 16;
+/** A streamed start this late (seconds) seeks forward to catch up. */
+const STREAM_LATE_START_SEC = 0.02;
+
+/** A scheduled sound the graph can stop and release. */
+interface PlayingSource {
+  stop(): void;
+  disconnect(): void;
+}
+
+/**
+ * One constant-rate stretch played through a media element, which streams the
+ * file with Range requests instead of decoding it whole. A gate gain opens and
+ * closes on the audio clock, so the stretch is heard exactly between its start
+ * and end even though the element itself starts on a timer.
+ */
+class StreamedSegment implements PlayingSource {
+  private readonly timers: ReturnType<typeof setTimeout>[] = [];
+  private stopped = false;
+
+  constructor(
+    private readonly element: HTMLAudioElement,
+    private readonly node: MediaElementAudioSourceNode,
+    private readonly gate: GainNode
+  ) {}
+
+  schedule(
+    ctx: BaseAudioContext,
+    startAt: number,
+    endAt: number,
+    offsetSec: number,
+    rate: number
+  ): void {
+    this.gate.gain.setValueAtTime(0, ctx.currentTime);
+    this.gate.gain.setValueAtTime(1, startAt);
+    this.gate.gain.setValueAtTime(0, endAt);
+    this.element.currentTime = offsetSec;
+    this.timers.push(
+      setTimeout(
+        () => {
+          if (this.stopped) return;
+          // Timers run late; seek past what the clock has already covered.
+          const late = ctx.currentTime - startAt;
+          if (late > STREAM_LATE_START_SEC) {
+            this.element.currentTime = offsetSec + late * rate;
+          }
+          void this.element.play().catch(() => {
+            // Autoplay refusal or a stop racing the start: stays silent.
+          });
+        },
+        Math.max(0, (startAt - ctx.currentTime) * 1000)
+      ),
+      // The gate already closed at endAt; pausing stops the download.
+      setTimeout(
+        () => {
+          if (!this.stopped) this.element.pause();
+        },
+        Math.max(0, (endAt - ctx.currentTime) * 1000)
+      )
+    );
+  }
+
+  stop(): void {
+    if (this.stopped) return;
+    this.stopped = true;
+    for (const timer of this.timers) clearTimeout(timer);
+    this.element.pause();
+    // Drop the source so the element releases its buffered media.
+    this.element.removeAttribute("src");
+    this.element.load();
+  }
+
+  disconnect(): void {
+    this.node.disconnect();
+    this.gate.disconnect();
+  }
+}
+
+export interface AudioGraphOptions {
+  /** Test seam: makes the media element a streamed clip plays through. */
+  createMediaElement?: () => HTMLAudioElement;
+}
+
+/**
  * LRU cap on decoded AudioBuffer entries. A 3-min stereo @ 48 kHz buffer is
  * ~70 MB; we keep a small working set and rely on re-decode on miss.
  */
@@ -137,11 +255,18 @@ export class AudioGraph {
    * constant-rate segment of its curve, so this is a list rather than a single
    * node; an ordinary clip has exactly one entry.
    */
-  private clipSources = new Map<string, AudioBufferSourceNode[]>();
+  private clipSources = new Map<string, PlayingSource[]>();
   private bufferCache = new Map<string, AudioBuffer>();
   private loadingPromises = new Map<string, Promise<AudioBuffer | null>>();
+  private readonly createMediaElement: () => HTMLAudioElement;
 
-  constructor(private readonly injectedContext?: BaseAudioContext) {}
+  constructor(
+    private readonly injectedContext?: BaseAudioContext,
+    options: AudioGraphOptions = {}
+  ) {
+    this.createMediaElement =
+      options.createMediaElement ?? (() => new Audio());
+  }
 
   /** Must be called from a user-gesture handler — triggers the autoplay policy. */
   getContext(): BaseAudioContext {
@@ -536,25 +661,54 @@ export class AudioGraph {
     // faster timeline reads the same buffer span, just quicker.
     const g = Math.max(0.0001, globalRate);
     this.updateTracks(tracks);
+    // Only a live AudioContext can play a media element; the offline export
+    // context always decodes.
+    const streamingAvailable =
+      typeof (ctx as Partial<AudioContext>).createMediaElementSource ===
+      "function";
 
-    const bufferPromises = clips.map(async (scheduled) => {
-      const { clip } = scheduled;
-      if (this.clipSources.has(clip.id)) {
-        return { clipId: clip.id, buffer: null, windowed: false };
+    const bufferPromises = clips.map(
+      async (
+        scheduled
+      ): Promise<{
+        clipId: string;
+        buffer: AudioBuffer | null;
+        windowed: boolean;
+        streamUrl?: string;
+      }> => {
+        const { clip } = scheduled;
+        if (this.clipSources.has(clip.id)) {
+          return { clipId: clip.id, buffer: null, windowed: false };
+        }
+        // A caller-supplied buffer is the clip's audio; nothing is fetched.
+        if (scheduled.buffer) {
+          return { clipId: clip.id, buffer: scheduled.buffer, windowed: true };
+        }
+        if (!clip.currentAssetId) {
+          return { clipId: clip.id, buffer: null, windowed: false };
+        }
+        // A large file streams: nothing is fetched or decoded up front.
+        if (
+          streamingAvailable &&
+          prefersStreamedPlayback(
+            scheduled.assetSize,
+            scheduled.assetDurationSec
+          )
+        ) {
+          return {
+            clipId: clip.id,
+            buffer: null,
+            windowed: false,
+            streamUrl: scheduled.assetUrl
+          };
+        }
+        const buffer = await this.loadBuffer(
+          clip.currentAssetId,
+          scheduled.assetUrl
+        );
+        return { clipId: clip.id, buffer, windowed: false };
       }
-      // A caller-supplied buffer is the clip's audio; nothing is fetched.
-      if (scheduled.buffer) {
-        return { clipId: clip.id, buffer: scheduled.buffer, windowed: true };
-      }
-      if (!clip.currentAssetId) {
-        return { clipId: clip.id, buffer: null, windowed: false };
-      }
-      const buffer = await this.loadBuffer(
-        clip.currentAssetId,
-        scheduled.assetUrl
-      );
-      return { clipId: clip.id, buffer, windowed: false };
-    });
+    );
 
     const loadedBuffers = await Promise.all(bufferPromises);
     // A newer play/pause/seek gesture superseded this call while buffers were
@@ -570,8 +724,9 @@ export class AudioGraph {
       }
 
       const loaded = bufferMap.get(clip.id);
-      const buffer = loaded?.buffer;
-      if (!loaded || !buffer) {
+      const buffer = loaded?.buffer ?? null;
+      const streamUrl = loaded?.streamUrl;
+      if (!loaded || (!buffer && !streamUrl)) {
         continue;
       }
 
@@ -662,7 +817,7 @@ export class AudioGraph {
       const trackGain = this.getTrackGain(clip.trackId);
       clipGain.connect(trackGain);
 
-      const sources: AudioBufferSourceNode[] = [];
+      const sources: PlayingSource[] = [];
       for (const segment of segments) {
         // WebAudio cannot play a buffer backwards: `playbackRate` takes no
         // useful negative value and there is no reverse source node, so a
@@ -678,13 +833,29 @@ export class AudioGraph {
         const segLeadSec =
           Math.max(0, (segment.timelineStartMs - currentTimeMs) / 1000) / g;
 
+        const offsetSec =
+          segment.sourceStartMs / 1000 + intoSegmentSec * segment.rate;
+        if (streamUrl) {
+          sources.push(
+            this.streamSegment(
+              ctx as AudioContext,
+              streamUrl,
+              clipGain,
+              now + segLeadSec,
+              now + segLeadSec + segRemainingMs / 1000 / g,
+              offsetSec,
+              segment.rate * g
+            )
+          );
+          continue;
+        }
         const src = ctx.createBufferSource();
         src.buffer = buffer;
         src.playbackRate.value = segment.rate * g;
         src.connect(clipGain);
         src.start(
           now + segLeadSec,
-          segment.sourceStartMs / 1000 + intoSegmentSec * segment.rate,
+          offsetSec,
           (segRemainingMs / 1000) * segment.rate
         );
         sources.push(src);
@@ -693,6 +864,41 @@ export class AudioGraph {
       this.clipSources.set(clip.id, sources);
       this.clipGains.set(clip.id, clipGain);
     }
+  }
+
+  /**
+   * Play one stretch of `url` through a media element into `clipGain`, heard
+   * from `startAt` to `endAt` on the audio clock, starting `offsetSec` into
+   * the file at `rate`.
+   */
+  private streamSegment(
+    ctx: AudioContext,
+    url: string,
+    clipGain: GainNode,
+    startAt: number,
+    endAt: number,
+    offsetSec: number,
+    rate: number
+  ): StreamedSegment {
+    const element = this.createMediaElement();
+    element.crossOrigin = "anonymous";
+    element.preload = "auto";
+    // A buffer source changes pitch with its rate; match it.
+    element.preservesPitch = false;
+    element.src = url;
+    const clamped = Math.min(
+      MEDIA_ELEMENT_MAX_RATE,
+      Math.max(MEDIA_ELEMENT_MIN_RATE, rate)
+    );
+    element.defaultPlaybackRate = clamped;
+    element.playbackRate = clamped;
+    const node = ctx.createMediaElementSource(element);
+    const gate = ctx.createGain();
+    node.connect(gate);
+    gate.connect(clipGain);
+    const segment = new StreamedSegment(element, node, gate);
+    segment.schedule(ctx, startAt, endAt, offsetSec, clamped);
+    return segment;
   }
 
   stopAll(): void {

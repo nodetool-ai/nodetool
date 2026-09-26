@@ -38,6 +38,13 @@ export const getLocalFilePath = (file: File): string | null => {
   }
 };
 
+/**
+ * Whether this renderer can turn a picked `File` into its disk path: true only
+ * in the desktop app with the file bridge exposed.
+ */
+export const canResolveLocalFilePaths = (): boolean =>
+  isElectron && Boolean(window.api?.files?.getPathForFile);
+
 /** Build a `file://` URI from an absolute disk path (POSIX or Windows). */
 export const pathToFileUri = (absPath: string): string => {
   let p = absPath.replace(/\\/g, "/");

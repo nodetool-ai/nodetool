@@ -1,21 +1,24 @@
 /**
  * useAudioPeaks
  *
- * Fetches and decodes an audio asset, then reduces channel 0 to a
- * fixed-resolution `Float32Array` of abs-max peaks suitable for drawing
- * waveform thumbnails on timeline clips.
+ * Loads the waveform peaks of an audio asset: a fixed-resolution
+ * `Float32Array` of channel-0 abs-max values for drawing waveform thumbnails
+ * on timeline clips, plus the decoded length of the audio.
  *
- * The decode is expensive, so results are cached at module level keyed
- * by URL — every clip referencing the same audio asset gets the same
- * peaks array. A single AudioContext is reused (created in suspended
- * state, no user gesture required for decodeAudioData).
+ * The server computes the peaks with ffmpeg and caches them on disk
+ * (`GET /api/assets/:id/peaks`), so the browser never fetches or decodes the
+ * audio file itself. Results are also cached here at module level, keyed by
+ * the asset's media URL: every clip on the same asset shares one array, and a
+ * file referenced in place carries its mtime in that URL, so a relinked file
+ * gets new peaks.
  */
 import { useEffect, useState } from "react";
 
-import { computePeaks } from "./audioPeaks";
+import { restFetch } from "../../../lib/rest-fetch";
+import { isFiniteNumber, isObjectLike } from "../../../utils/typePredicates";
 
 /** Resolution of the cached full-asset peaks array. */
-const FULL_ASSET_PEAK_COUNT = 2000;
+export const FULL_ASSET_PEAK_COUNT = 2000;
 
 interface PeaksResult {
   peaks: Float32Array;
@@ -25,54 +28,51 @@ interface PeaksResult {
 const peaksCache = new Map<string, PeaksResult>();
 const inFlight = new Map<string, Promise<PeaksResult | null>>();
 
-let sharedCtx: AudioContext | null = null;
-
-function getDecodeContext(): AudioContext | null {
-  if (typeof window === "undefined") return null;
-  const Ctor: typeof AudioContext | undefined =
-    window.AudioContext ??
-    ("webkitAudioContext" in window
-      ? (window.webkitAudioContext as typeof AudioContext)
-      : undefined);
-  if (!Ctor) return null;
-  if (!sharedCtx) {
-    sharedCtx = new Ctor();
-  }
-  return sharedCtx;
+/** Test seam: forget every loaded waveform. */
+export function resetAudioPeaksCache(): void {
+  peaksCache.clear();
+  inFlight.clear();
 }
 
-async function loadPeaks(url: string): Promise<PeaksResult | null> {
-  const cached = peaksCache.get(url);
-  if (cached) return cached;
-  const pending = inFlight.get(url);
-  if (pending) return pending;
+function parsePeaks(body: unknown): PeaksResult | null {
+  if (!isObjectLike(body)) return null;
+  const peaks = body["peaks"];
+  const durationMs = body["duration_ms"];
+  if (!Array.isArray(peaks) || !isFiniteNumber(durationMs)) return null;
+  return { peaks: Float32Array.from(peaks as number[]), durationMs };
+}
 
-  const ctx = getDecodeContext();
-  if (!ctx) return null;
+async function loadPeaks(
+  assetId: string,
+  cacheKey: string
+): Promise<PeaksResult | null> {
+  const cached = peaksCache.get(cacheKey);
+  if (cached) return cached;
+  const pending = inFlight.get(cacheKey);
+  if (pending) return pending;
 
   const promise = (async () => {
     try {
-      const response = await fetch(url);
+      const response = await restFetch(
+        `/api/assets/${encodeURIComponent(assetId)}/peaks?count=${FULL_ASSET_PEAK_COUNT}`
+      );
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status} fetching audio: ${url}`);
+        throw new Error(`HTTP ${response.status} loading peaks for ${assetId}`);
       }
-      const buffer = await response.arrayBuffer();
-      const audio = await ctx.decodeAudioData(buffer);
-      const channel = audio.getChannelData(0);
-      const result: PeaksResult = {
-        peaks: computePeaks(channel, FULL_ASSET_PEAK_COUNT),
-        durationMs: audio.duration * 1000
-      };
-      peaksCache.set(url, result);
+      const result = parsePeaks(await response.json());
+      if (!result) {
+        throw new Error(`Malformed peaks response for ${assetId}`);
+      }
+      peaksCache.set(cacheKey, result);
       return result;
     } catch (error) {
       console.warn("Failed to load audio peaks:", error);
       return null;
     } finally {
-      inFlight.delete(url);
+      inFlight.delete(cacheKey);
     }
   })();
-  inFlight.set(url, promise);
+  inFlight.set(cacheKey, promise);
   return promise;
 }
 
@@ -81,35 +81,41 @@ interface UseAudioPeaksResult {
   durationMs: number | null;
 }
 
-export function useAudioPeaks(url: string | undefined): UseAudioPeaksResult {
+const EMPTY: UseAudioPeaksResult = { peaks: null, durationMs: null };
+
+/**
+ * Peaks for `assetId`. `mediaUrl` is the asset's media URL from
+ * `getAssetMediaUrl`: it keys the cache (it changes when the file does) and
+ * nothing is loaded until it is known.
+ */
+export function useAudioPeaks(
+  assetId: string | undefined,
+  mediaUrl: string | undefined
+): UseAudioPeaksResult {
   const [state, setState] = useState<UseAudioPeaksResult>(() => {
-    if (!url) return { peaks: null, durationMs: null };
-    const cached = peaksCache.get(url);
-    return cached
-      ? { peaks: cached.peaks, durationMs: cached.durationMs }
-      : { peaks: null, durationMs: null };
+    const cached = mediaUrl ? peaksCache.get(mediaUrl) : undefined;
+    return cached ?? EMPTY;
   });
 
   useEffect(() => {
-    if (!url) {
-      setState({ peaks: null, durationMs: null });
+    if (!assetId || !mediaUrl) {
+      setState(EMPTY);
       return;
     }
-    const cached = peaksCache.get(url);
+    const cached = peaksCache.get(mediaUrl);
     if (cached) {
-      setState({ peaks: cached.peaks, durationMs: cached.durationMs });
+      setState(cached);
       return;
     }
     let cancelled = false;
-    void loadPeaks(url).then((result) => {
+    void loadPeaks(assetId, mediaUrl).then((result) => {
       if (cancelled || !result) return;
-      setState({ peaks: result.peaks, durationMs: result.durationMs });
+      setState(result);
     });
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [assetId, mediaUrl]);
 
   return state;
 }
-

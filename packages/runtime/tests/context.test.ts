@@ -1005,6 +1005,20 @@ describe("ProcessingContext.resolveAssetBytes", () => {
     expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([3, 1, 4]));
   });
 
+  it("never resolves a short id to the asset's preview proxy", async () => {
+    // A render reads the original. The proxy and its manifest sit next to it
+    // (`<id>_proxy.mp4`, `<id>_proxy.json`) and also start with the short id.
+    const full = "0192a7f3c4e5b6d7a8f9e0c1b2d3e4f5";
+    const storage = new InMemoryStorageAdapter();
+    await storage.store(`user-7/${full}_proxy.json`, new Uint8Array([8]), "application/json");
+    await storage.store(`user-7/${full}_proxy.mp4`, new Uint8Array([9]), "video/mp4");
+    await storage.store(`user-7/${full}.mp4`, new Uint8Array([3, 1, 4]), "video/mp4");
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "user-7", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes(`asset://${full.slice(0, 12)}`);
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([3, 1, 4]));
+  });
+
   it("resolves the owner-prefixed key by exact lookup, without listing", async () => {
     // Regression: assets are written under `<userId>/<id>.<ext>`, but only the
     // flat and `assets/` candidates were probed. Every reference missed all

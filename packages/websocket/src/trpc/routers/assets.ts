@@ -10,6 +10,8 @@
  */
 
 import { Buffer } from "node:buffer";
+import { stat } from "node:fs/promises";
+import { basename, isAbsolute } from "node:path";
 import { Asset, Project } from "@nodetool-ai/models";
 import type { Asset as AssetModel } from "@nodetool-ai/models";
 import { createLogger } from "@nodetool-ai/config";
@@ -29,12 +31,29 @@ import {
 } from "../../lib/asset-paths.js";
 import { getAssetAdapter } from "../../lib/storage.js";
 import { toAssetResponse } from "../../lib/asset-response.js";
+import { probeAssetDurationSeconds } from "../../lib/asset-duration.js";
+import {
+  externalAssetsAvailable,
+  getExternalAssetThresholdBytes
+} from "../../lib/external-assets.js";
+import { EXTERNAL_FINGERPRINT_KEYS } from "../../lib/external-asset-lookup.js";
+import {
+  localPathDenialMessage,
+  resolveLocalPath
+} from "../../lib/local-file-access.js";
 import {
   generateThumbnailForStoredAsset,
   storeAssetWithThumbnail,
-  thumbnailKey,
-  THUMBNAIL_SOURCE_MAX_BYTES
+  thumbnailKey
 } from "../../lib/thumbnail.js";
+import {
+  discardVideoProxy,
+  scheduleVideoProxy,
+  videoProxiesAvailable,
+  videoProxyFileNames,
+  videoProxyQueue,
+  videoProxyState
+} from "../../lib/video-proxy.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -47,6 +66,13 @@ import {
   updateInput,
   createUploadInput,
   createUploadOutput,
+  createExternalInput,
+  createExternalOutput,
+  relinkExternalInput,
+  relinkExternalOutput,
+  externalImportConfigOutput,
+  ensureProxyInput,
+  ensureProxyOutput,
   finalizeUploadInput,
   finalizeUploadOutput,
   deleteInput,
@@ -58,7 +84,7 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/assets.js";
 
 /**
- * Remove an asset's stored bytes and its thumbnail.
+ * Remove an asset's stored bytes, its thumbnail, and its preview proxy.
  *
  * Best-effort per object: the row is the source of truth, so a storage
  * failure is logged rather than thrown — one unreachable object must not
@@ -69,10 +95,14 @@ import {
 async function deleteAssetObjects(asset: AssetModel): Promise<void> {
   if (asset.content_type === "folder") return;
   const adapter = getAssetAdapter();
-  const fileNames = [
-    ...assetFileNameCandidates(asset.id, asset.content_type),
-    thumbnailKey(asset.id)
-  ];
+  // A proxy still encoding would land after the delete.
+  videoProxyQueue.cancel(asset.id);
+  // An external asset's bytes are the user's own file, outside the storage
+  // root. Only its thumbnail and proxy are ours to remove.
+  const derived = [thumbnailKey(asset.id), ...videoProxyFileNames(asset.id)];
+  const fileNames = asset.external_path
+    ? derived
+    : [...assetFileNameCandidates(asset.id, asset.content_type), ...derived];
   for (const fileName of fileNames) {
     for (const key of assetKeyCandidates(asset.user_id, fileName)) {
       try {
@@ -194,6 +224,63 @@ function assertWritable(asset: AssetModel): void {
   if (problem) {
     throwApiError(ApiErrorCode.FORBIDDEN, problem);
   }
+}
+
+const EXTERNAL_ASSETS_UNAVAILABLE =
+  "External asset references need the local file store and are disabled in production";
+
+/**
+ * Validate a path offered for an in-place reference (R5): absolute, inside
+ * the local file roots, and a regular file. Returns the resolved path and its
+ * stat. Used by `createExternal` and `relinkExternal`, the only two ways a
+ * path reaches a row.
+ */
+async function resolveExternalFile(
+  path: string
+): Promise<{ path: string; size: number; mtimeMs: number }> {
+  if (!externalAssetsAvailable()) {
+    throwApiError(ApiErrorCode.FORBIDDEN, EXTERNAL_ASSETS_UNAVAILABLE);
+  }
+  if (!isAbsolute(path)) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Path must be absolute");
+  }
+  const resolved = await resolveLocalPath(path);
+  if (!resolved.ok) {
+    throwApiError(ApiErrorCode.FORBIDDEN, localPathDenialMessage(resolved.reason));
+  }
+  const fileStat = await stat(resolved.path).catch(() => null);
+  if (!fileStat) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "File not found");
+  }
+  if (!fileStat.isFile()) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Path is not a file");
+  }
+  return {
+    path: resolved.path,
+    size: fileStat.size,
+    mtimeMs: fileStat.mtimeMs
+  };
+}
+
+/**
+ * `next` with the external file fingerprint (`external_size`,
+ * `external_mtime`) taken from `current`. Offline detection compares the file
+ * against these, so only import and relink may write them.
+ */
+function withExternalFingerprint(
+  next: Record<string, unknown>,
+  current: Record<string, unknown> | null
+): Record<string, unknown> {
+  const owned = new Set<string>(EXTERNAL_FINGERPRINT_KEYS);
+  const merged = Object.fromEntries(
+    Object.entries(next).filter(([key]) => !owned.has(key))
+  );
+  for (const key of EXTERNAL_FINGERPRINT_KEYS) {
+    if (current && key in current) {
+      merged[key] = current[key];
+    }
+  }
+  return merged;
 }
 
 export const assetsRouter = router({
@@ -389,17 +476,222 @@ export const assetsRouter = router({
       await asset.save();
 
       // The bytes are already in the bucket, so a thumbnail costs one download
-      // back into this process. Worth it for ordinary media, not for a
-      // multi-gigabyte video — those simply go without.
-      if (stat.size <= THUMBNAIL_SOURCE_MAX_BYTES) {
-        await generateThumbnailForStoredAsset(
-          asset.user_id,
-          asset.id,
-          asset.content_type
+      // back into this process. The generator skips objects above
+      // THUMBNAIL_SOURCE_MAX_BYTES, so a multi-gigabyte video goes without.
+      await generateThumbnailForStoredAsset(
+        asset.user_id,
+        asset.id,
+        asset.content_type
+      );
+
+      return toAssetResponse(asset);
+    }),
+
+  /**
+   * Whether the desktop app should reference large files in place, and from
+   * what size. Plain browsers have no disk path and always upload.
+   */
+  externalImportConfig: protectedProcedure
+    .output(externalImportConfigOutput)
+    .query(async () => ({
+      enabled: externalAssetsAvailable(),
+      threshold_bytes: await getExternalAssetThresholdBytes()
+    })),
+
+  /**
+   * Create an asset that references a local file in place. No bytes are
+   * copied: reads resolve the key to `external_path` (see
+   * `lib/external-asset-lookup.ts`), and deleting the asset leaves the file.
+   * The path is validated once, here, against the local file roots.
+   */
+  createExternal: protectedProcedure
+    .input(createExternalInput)
+    .output(createExternalOutput)
+    .mutation(async ({ ctx, input }) => {
+      const file = await resolveExternalFile(input.path);
+      const projectId = input.project_id ?? "default";
+      if (projectId !== "default") {
+        if (!(await Project.findOwned(ctx.userId, projectId))) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, "Project not found");
+        }
+      }
+
+      // A second import of the same, unchanged file into the same project
+      // returns the row the first one made (R4). A row whose file changed
+      // since is offline, so it is not reused.
+      for (const existing of await Asset.findByExternalPath(
+        ctx.userId,
+        file.path
+      )) {
+        const meta = existing.metadata ?? {};
+        if (
+          existing.project_id === projectId &&
+          meta["external_size"] === file.size &&
+          meta["external_mtime"] === file.mtimeMs
+        ) {
+          log.info("external asset reused", { assetId: existing.id });
+          return toAssetResponse(existing);
+        }
+      }
+
+      const name = input.name ?? basename(file.path);
+      const contentType = normalizeAssetContentType(
+        input.content_type ?? "",
+        name
+      );
+      const duration = await probeAssetDurationSeconds(contentType, {
+        path: file.path
+      });
+
+      const asset = await Asset.create({
+        user_id: ctx.userId,
+        name,
+        content_type: contentType,
+        parent_id: input.parent_id || ctx.userId,
+        workflow_id: input.workflow_id ?? null,
+        project_id: projectId,
+        size: file.size,
+        duration,
+        external_path: file.path,
+        // Recorded to detect a file changed or replaced after import.
+        metadata: {
+          external_size: file.size,
+          external_mtime: file.mtimeMs
+        }
+      });
+      log.info("external asset created", {
+        assetId: asset.id,
+        contentType,
+        bytes: file.size
+      });
+
+      // The adapter resolves the new row to its in-place file, so ffmpeg or
+      // sharp reads it by path and a file of any size gets a thumbnail.
+      await generateThumbnailForStoredAsset(
+        asset.user_id,
+        asset.id,
+        asset.content_type
+      );
+      scheduleVideoProxy(asset);
+
+      return toAssetResponse(asset);
+    }),
+
+  /**
+   * Point an in-place asset at another file: a moved, renamed, or remounted
+   * original, or the same path after the file changed. The id and `get_url`
+   * stay the same (D5). The path is validated again (R5), and the new size,
+   * mtime, and duration are recorded before the thumbnail is regenerated.
+   */
+  relinkExternal: protectedProcedure
+    .input(relinkExternalInput)
+    .output(relinkExternalOutput)
+    .mutation(async ({ ctx, input }) => {
+      const asset = await Asset.find(ctx.userId, input.id);
+      if (!asset) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
+      }
+      assertWritable(asset);
+      if (!asset.external_path) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          "Only an asset that references a file in place can be relinked"
+        );
+      }
+      const file = await resolveExternalFile(input.path);
+
+      // The URL's extension comes from the content type, so it stays. A file
+      // of another media kind (audio for a video clip) is refused. A name
+      // with no known type is accepted.
+      const kind = (type: string) => type.split("/")[0];
+      const offered = normalizeAssetContentType("", basename(file.path));
+      if (
+        offered !== "application/octet-stream" &&
+        kind(offered) !== kind(asset.content_type)
+      ) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          `The new file is ${offered}, but this asset is ${asset.content_type}`
         );
       }
 
+      asset.external_path = file.path;
+      asset.size = file.size;
+      asset.duration = await probeAssetDurationSeconds(asset.content_type, {
+        path: file.path
+      });
+      asset.metadata = {
+        ...asset.metadata,
+        external_size: file.size,
+        external_mtime: file.mtimeMs
+      };
+      await asset.save();
+      log.info("external asset relinked", {
+        assetId: asset.id,
+        bytes: file.size
+      });
+
+      // Drop the previous file's thumbnail first, so a new file that yields
+      // none does not keep showing the old one.
+      const adapter = getAssetAdapter();
+      for (const key of assetKeyCandidates(
+        asset.user_id,
+        thumbnailKey(asset.id)
+      )) {
+        const uri = adapter.uriForKey(key);
+        if (await adapter.exists(uri)) {
+          await adapter.delete(uri);
+        }
+      }
+      await generateThumbnailForStoredAsset(
+        asset.user_id,
+        asset.id,
+        asset.content_type
+      );
+      // The previous file's proxy no longer matches; make one for this file.
+      await discardVideoProxy(asset);
+      scheduleVideoProxy(asset);
+
       return toAssetResponse(asset);
+    }),
+
+  /**
+   * Queue an all-intra preview proxy for a video asset, at any size, and
+   * answer its state. The timeline preview plays the proxy once the asset
+   * response says it is ready. A failed proxy is tried again. Refused off
+   * the local file store.
+   */
+  ensureProxy: protectedProcedure
+    .input(ensureProxyInput)
+    .output(ensureProxyOutput)
+    .mutation(async ({ ctx, input }) => {
+      const asset = await Asset.find(ctx.userId, input.id);
+      if (!asset) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
+      }
+      if (!asset.content_type.startsWith("video/")) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Asset is not a video");
+      }
+      if (!videoProxiesAvailable()) {
+        throwApiError(
+          ApiErrorCode.FORBIDDEN,
+          "Video proxies need the local file store and are disabled in production"
+        );
+      }
+      const before = await videoProxyState(asset);
+      if (before?.status !== "ready") {
+        videoProxyQueue.clearFailure(asset.id);
+        videoProxyQueue.enqueue({
+          assetId: asset.id,
+          userId: asset.user_id,
+          force: true
+        });
+      }
+      const response = await toAssetResponse(asset);
+      return {
+        status: response.proxy_status ?? "none",
+        proxy_url: response.proxy_url ?? null
+      };
     }),
 
   update: protectedProcedure
@@ -411,6 +703,15 @@ export const assetsRouter = router({
         throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
       }
       assertWritable(asset);
+      const isExternal = Boolean(asset.external_path);
+      if (isExternal && input.data != null) {
+        // New bytes would land under the storage root and shadow the
+        // referenced file, which the user still sees on disk.
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          "This asset references a file in place. Relink it to another file instead of replacing its data"
+        );
+      }
 
       if (input.name !== undefined) asset.name = input.name;
       if (input.content_type !== undefined) {
@@ -434,14 +735,19 @@ export const assetsRouter = router({
         await assertValidParent(ctx.userId, asset, input.parent_id);
         asset.parent_id = input.parent_id;
       }
-      if (input.metadata !== undefined) asset.metadata = input.metadata;
+      if (input.metadata !== undefined) {
+        asset.metadata = isExternal
+          ? withExternalFingerprint(input.metadata, asset.metadata)
+          : input.metadata;
+      }
       if (input.sketch_document_id !== undefined) {
         asset.sketch_document_id = input.sketch_document_id;
       }
       if (input.timeline_id !== undefined) {
         asset.timeline_id = input.timeline_id;
       }
-      if (input.size !== undefined) asset.size = input.size;
+      // An external asset's size is its file's, recorded by import or relink.
+      if (input.size !== undefined && !isExternal) asset.size = input.size;
 
       if (input.expected_metadata !== undefined && input.data != null) {
         throwApiError(

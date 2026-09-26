@@ -1,7 +1,13 @@
 /**
  * @jest-environment node
  */
-import { getAssetUrl } from "../assetHelpers";
+import {
+  getAssetMediaUrl,
+  getAssetPreviewUrl,
+  getAssetUrl,
+  isAssetOffline,
+  isVideoProxyPending
+} from "../assetHelpers";
 
 describe("getAssetUrl", () => {
   it("returns the get_url when present", () => {
@@ -40,5 +46,98 @@ describe("getAssetUrl", () => {
   it("returns empty string when get_url is empty", () => {
     const asset = { get_url: "" };
     expect(getAssetUrl(asset)).toBe("");
+  });
+});
+
+describe("getAssetMediaUrl", () => {
+  const external = {
+    get_url: "/api/storage/u1/a1.mp4",
+    offline: false,
+    metadata: { external_size: 10, external_mtime: 1700000000123.75 }
+  };
+
+  it("adds the recorded mtime to an in-place asset's URL", () => {
+    expect(getAssetMediaUrl(external)).toBe(
+      "/api/storage/u1/a1.mp4?v=1700000000123"
+    );
+  });
+
+  it("changes when a relink records a new mtime", () => {
+    const relinked = {
+      ...external,
+      metadata: { external_size: 10, external_mtime: 1700000999000 }
+    };
+    expect(getAssetMediaUrl(relinked)).not.toBe(getAssetMediaUrl(external));
+  });
+
+  it("appends to a URL that already has a query", () => {
+    expect(
+      getAssetMediaUrl({ ...external, get_url: "http://h/x.mp4?token=1" })
+    ).toBe("http://h/x.mp4?token=1&v=1700000000123");
+  });
+
+  it("returns get_url unchanged for a managed asset", () => {
+    expect(
+      getAssetMediaUrl({
+        get_url: "/api/storage/u1/a2.png",
+        metadata: { external_mtime: 5 }
+      })
+    ).toBe("/api/storage/u1/a2.png");
+    expect(getAssetMediaUrl({ get_url: null, offline: false })).toBeNull();
+  });
+});
+
+describe("isAssetOffline", () => {
+  it("is true only when the server flagged the asset offline", () => {
+    expect(isAssetOffline({ offline: true })).toBe(true);
+    expect(isAssetOffline({ offline: false })).toBe(false);
+    expect(isAssetOffline({ id: "a" })).toBe(false);
+    expect(isAssetOffline(null)).toBe(false);
+  });
+});
+
+describe("getAssetPreviewUrl", () => {
+  const video = {
+    get_url: "/api/storage/u/a.mp4",
+    proxy_url: "/api/storage/u/a_proxy.mp4?v=abc"
+  };
+
+  it("answers the proxy URL when the proxy is ready", () => {
+    expect(getAssetPreviewUrl({ ...video, proxy_status: "ready" })).toBe(
+      "/api/storage/u/a_proxy.mp4?v=abc"
+    );
+  });
+
+  it("answers the media URL while the proxy is missing or not ready", () => {
+    for (const proxy_status of ["none", "queued", "running", "failed"]) {
+      expect(getAssetPreviewUrl({ ...video, proxy_status })).toBe(
+        "/api/storage/u/a.mp4"
+      );
+    }
+    expect(getAssetPreviewUrl({ get_url: "/x.png" })).toBe("/x.png");
+    expect(
+      getAssetPreviewUrl({ get_url: "/x.mp4", proxy_status: "ready", proxy_url: null })
+    ).toBe("/x.mp4");
+  });
+
+  it("keeps the version of an external asset on the fallback", () => {
+    expect(
+      getAssetPreviewUrl({
+        get_url: "/api/storage/u/a.mp4",
+        offline: false,
+        metadata: { external_mtime: 1700000000123.4 },
+        proxy_status: "queued"
+      })
+    ).toBe("/api/storage/u/a.mp4?v=1700000000123");
+  });
+});
+
+describe("isVideoProxyPending", () => {
+  it("is true only while the proxy is queued or running", () => {
+    expect(isVideoProxyPending({ proxy_status: "queued" })).toBe(true);
+    expect(isVideoProxyPending({ proxy_status: "running" })).toBe(true);
+    expect(isVideoProxyPending({ proxy_status: "ready" })).toBe(false);
+    expect(isVideoProxyPending({})).toBe(false);
+    expect(isVideoProxyPending(null)).toBe(false);
   });
 });

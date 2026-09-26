@@ -43,6 +43,14 @@ export interface StorageAdapter {
   stat(uri: string): Promise<StorageStat | null>;
 
   /**
+   * The absolute path of a local file holding the entry's bytes, so a caller
+   * such as ffmpeg can read it in place instead of loading it into memory.
+   * Returns null when the entry is missing or the backend keeps no local file
+   * (object stores and the in-memory store). The path is for reading only.
+   */
+  localPath(uri: string): Promise<string | null>;
+
+  /**
    * Mint a short-lived target the *client* can upload to directly, so object
    * bytes never pass through the API process. The key is chosen by the
    * caller (the server), never by the browser, so a client can only ever

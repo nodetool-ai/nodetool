@@ -19,6 +19,7 @@ import { assetKeyCandidates } from "@nodetool-ai/storage";
 import { getAssetAdapter } from "./storage.js";
 import { assetFileNameCandidates } from "./asset-paths.js";
 import { thumbnailKey } from "./thumbnail.js";
+import { videoProxyFileNames, videoProxyQueue } from "./video-proxy.js";
 import { workspaceFromRow } from "./workflow-workspace.js";
 import { jobRunRegistry } from "../job-run-registry.js";
 import { chatTurnRegistry } from "../chat-turn-registry.js";
@@ -30,13 +31,17 @@ async function deleteProjectAssetObjects(
   assets: readonly Asset[]
 ): Promise<void> {
   const storage = getAssetAdapter();
+  for (const asset of assets) {
+    videoProxyQueue.cancel(asset.id);
+  }
   await Promise.all(
     assets
       .filter((asset) => asset.content_type !== "folder")
       .flatMap((asset) =>
         [
           ...assetFileNameCandidates(asset.id, asset.content_type),
-          thumbnailKey(asset.id)
+          thumbnailKey(asset.id),
+          ...videoProxyFileNames(asset.id)
         ].flatMap((fileName) =>
           assetKeyCandidates(asset.user_id, fileName).map(async (key) => {
             const uri = storage.uriForKey(key);

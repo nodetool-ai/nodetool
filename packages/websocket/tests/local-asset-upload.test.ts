@@ -11,8 +11,8 @@ import { FileStorageAdapter } from "@nodetool-ai/storage";
 vi.mock("../src/lib/storage.js", () => ({ getAssetAdapter: vi.fn() }));
 vi.mock("../src/lib/thumbnail.js", () => ({
   storeAssetWithThumbnail: vi.fn(),
+  storeAssetFileWithThumbnail: vi.fn(),
   generateThumbnailForStoredAsset: vi.fn(),
-  THUMBNAIL_SOURCE_MAX_BYTES: 100 * 1024 * 1024,
   thumbnailKey: (id: string) => `${id}_thumb.jpg`
 }));
 vi.mock("../src/lib/asset-response.js", () => ({
@@ -159,7 +159,13 @@ describe("local asset uploads", () => {
       actual.update(part);
     }
     expect(actual.digest("hex")).toBe(expected.digest("hex"));
-    expect(generateThumbnailForStoredAsset).not.toHaveBeenCalled();
+    // The staged file is local, so its thumbnail is read in place whatever
+    // its size.
+    expect(generateThumbnailForStoredAsset).toHaveBeenCalledWith(
+      "owner",
+      "asset-1",
+      "video/mp4"
+    );
     peakRss = Math.max(peakRss, process.memoryUsage().rss);
     expect(peakRss - initialRss).toBeLessThan(512 * 1024 * 1024);
     console.info(`Streamed ${bytes} bytes, sampled RSS growth ${peakRss - initialRss} bytes`);

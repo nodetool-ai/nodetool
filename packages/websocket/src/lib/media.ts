@@ -84,32 +84,28 @@ export async function probeDurationMs(
 }
 
 /**
- * Extract the audio track of the media at `inputPath` to 16-bit PCM WAV and
- * return the encoded bytes alongside the WAV's duration. Manages its own temp
- * output directory. Throws if ffmpeg fails (e.g. the input has no audio) or
+ * Extract the audio track of the media at `inputPath` to a 16-bit PCM WAV at
+ * `outputPath` and return the WAV's duration. The WAV stays on disk so the
+ * caller can store it without holding it in memory; a two-hour stereo track
+ * is over a gigabyte. Throws if ffmpeg fails (e.g. the input has no audio) or
  * {@link MediaToolingMissingError} if the binary is missing.
  */
 export async function extractAudio(
-  inputPath: string
-): Promise<{ bytes: Uint8Array; durationMs: number | null }> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-extract-"));
-  const outputPath = path.join(dir, "output.wav");
+  inputPath: string,
+  outputPath: string
+): Promise<{ durationMs: number | null }> {
   try {
     await execFile(
       "ffmpeg",
       ["-y", "-i", inputPath, "-vn", "-acodec", "pcm_s16le", outputPath],
       { maxBuffer: 50 * 1024 * 1024 }
     );
-    const durationMs = await probeDurationMs(outputPath);
-    const bytes = new Uint8Array(await fs.readFile(outputPath));
-    return { bytes, durationMs };
+    return { durationMs: await probeDurationMs(outputPath) };
   } catch (err) {
     if (isEnoent(err)) {
       throw new MediaToolingMissingError();
     }
     throw err;
-  } finally {
-    await fs.rm(dir, { recursive: true, force: true });
   }
 }
 

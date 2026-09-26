@@ -54,6 +54,9 @@ class ThrowingStorage implements StorageAdapter {
   async stat(): Promise<StorageStat | null> {
     return null;
   }
+  async localPath(): Promise<string | null> {
+    return null;
+  }
 }
 
 describe("persistBinaryOutput", () => {

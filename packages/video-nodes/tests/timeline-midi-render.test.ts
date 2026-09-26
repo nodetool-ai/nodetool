@@ -173,6 +173,7 @@ function sequence(overrides: Record<string, unknown> = {}) {
 function contextFor(seq: unknown) {
   return {
     getTimelineSequence: vi.fn().mockResolvedValue(seq),
+    localPath: vi.fn(async () => null),
     resolveAssetBytes: vi
       .fn()
       .mockResolvedValue({ bytes: new Uint8Array([1, 2, 3]) }),

@@ -487,7 +487,10 @@ function totalDurationMs(seq: TimelineSequence): number {
   );
 }
 
-/** Materializes clip assets on disk once each, for ffmpeg to read. */
+/**
+ * The file ffmpeg reads for each clip asset, resolved once per asset: the
+ * asset's own local file when it has one, else a copy in the work dir.
+ */
 class AssetFiles {
   private readonly files = new Map<string, Promise<string | null>>();
 
@@ -505,7 +508,14 @@ class AssetFiles {
     return pending;
   }
 
+  /**
+   * A file on this host is handed to ffmpeg in place, so a multi-gigabyte
+   * source is never read into memory. Only a backend with no local file (an
+   * object store, the in-memory store) is materialized into the work dir.
+   */
   private async write(assetId: string): Promise<string | null> {
+    const local = await this.context.localPath(assetId);
+    if (local) return local;
     const { bytes } = await this.context.resolveAssetBytes(assetId);
     if (!bytes) return null;
     const file = path.join(this.workDir, `asset_${assetId}`);

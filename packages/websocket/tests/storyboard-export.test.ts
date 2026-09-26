@@ -80,7 +80,7 @@ describe("renderStoryboardMarkdown", () => {
 
 describe("packStoryboardZip", () => {
   it("packs the markdown plus one file per resolvable shot asset", async () => {
-    const fetchAssetBytes = vi.fn(async (ref: string) =>
+    const fetchAssetSource = vi.fn(async (ref: string) =>
       ref.endsWith(".png")
         ? new Uint8Array([1, 2, 3])
         : new Uint8Array([4, 5, 6, 7])
@@ -88,7 +88,7 @@ describe("packStoryboardZip", () => {
 
     const { bytes, files, missing } = await packStoryboardZip({
       board,
-      fetchAssetBytes
+      fetchAssetSource
     });
 
     expect(missing).toEqual([]);
@@ -113,7 +113,7 @@ describe("packStoryboardZip", () => {
   it("reports media it cannot resolve, in the document as well as the result", async () => {
     const { bytes, missing } = await packStoryboardZip({
       board,
-      fetchAssetBytes: async () => null
+      fetchAssetSource: async () => null
     });
 
     expect(missing).toEqual(["asset://u1/a1.png", "asset://u1/c1.mp4"]);
@@ -143,7 +143,7 @@ describe("packStoryboardZip", () => {
           })
         ]
       },
-      fetchAssetBytes: async () => new Uint8Array()
+      fetchAssetSource: async () => new Uint8Array()
     });
 
     expect(missing).toEqual(["asset://a1"]);
@@ -163,7 +163,7 @@ describe("packStoryboardZip", () => {
           })
         ]
       },
-      fetchAssetBytes: async (ref) => {
+      fetchAssetSource: async (ref) => {
         seen.push(ref);
         return new Uint8Array([9]);
       }

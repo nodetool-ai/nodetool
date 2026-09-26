@@ -14,6 +14,11 @@ import type { AssetResponse } from "@nodetool-ai/protocol/api-schemas/assets.js"
 
 import { getAssetFileName } from "./asset-paths.js";
 import { assetHasRasterThumbnail, thumbnailKey } from "./thumbnail.js";
+import {
+  externalAssetMtime,
+  isExternalAssetOffline
+} from "./external-asset-lookup.js";
+import { videoProxyState } from "./video-proxy.js";
 
 let cachedConfig: StorageConfig | null = null;
 let cachedBuilder: ((key: string) => Promise<string>) | null = null;
@@ -46,13 +51,21 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
     : null;
 
   const hasThumbnail = assetHasRasterThumbnail(asset.content_type);
-  const thumbUrl = hasThumbnail
+  const thumbKeyUrl = hasThumbnail
     ? await assetUrlBuilder()(
         assetObjectKey(asset.user_id, thumbnailKey(asset.id))
       ).catch(() => null)
     : null;
+  // A relink regenerates an external asset's thumbnail under the same key.
+  // The file's mtime in the URL keeps a cached thumbnail of the previous file
+  // from standing in for the new one. `get_url` stays unversioned (D5).
+  const externalMtime = externalAssetMtime(asset);
+  const thumbUrl =
+    thumbKeyUrl && externalMtime !== null
+      ? `${thumbKeyUrl}?v=${Math.trunc(externalMtime)}`
+      : thumbKeyUrl;
 
-  return {
+  const response: AssetResponse = {
     id: asset.id,
     user_id: asset.user_id,
     workflow_id: asset.workflow_id ?? null,
@@ -71,4 +84,21 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
     timeline_id: asset.timeline_id ?? null,
     project_id: asset.project_id
   };
+  // Only assets that reference a file in place carry the flag.
+  if (asset.external_path) {
+    response.offline = await isExternalAssetOffline(asset);
+  }
+  // Video on a local server: whether the preview may play the proxy. The URL
+  // carries the source version, so a remade proxy is never served from cache.
+  const proxy = await videoProxyState(asset);
+  if (proxy) {
+    response.proxy_status = proxy.status;
+    response.proxy_url =
+      proxy.key !== null
+        ? await assetUrlBuilder()(proxy.key)
+            .then((url) => `${url}?v=${proxy.version}`)
+            .catch(() => null)
+        : null;
+  }
+  return response;
 }

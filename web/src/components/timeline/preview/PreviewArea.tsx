@@ -60,7 +60,7 @@ import { AudioGraph } from "./AudioGraph";
 import type { ScheduledAudioClip } from "./AudioGraph";
 import { getMidiClipBuffer } from "./midiRender";
 import { PreviewCompositor } from "./PreviewCompositor";
-import { getAssetUrl } from "../../../utils/assetHelpers";
+import { getAssetMediaUrl } from "../../../utils/assetHelpers";
 import { useCombo } from "../../../stores/KeyPressedStore";
 import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
 import { previewQualityScale } from "./previewQuality";
@@ -447,8 +447,16 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         }
         try {
           const asset = await getAsset(clip.currentAssetId!);
-          const url = getAssetUrl(asset);
-          return url ? { clip, assetUrl: url } : null;
+          const url = getAssetMediaUrl(asset);
+          // Size and duration pick decoded or streamed playback in the graph.
+          return url
+            ? {
+                clip,
+                assetUrl: url,
+                assetSize: asset.size,
+                assetDurationSec: asset.duration
+              }
+            : null;
         } catch {
           return null;
         }
