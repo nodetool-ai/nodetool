@@ -1525,7 +1525,8 @@ export const createNodeStore = (
             // height) instead of inheriting the text variant's 320×220.
             const isAgentStyle =
               metadata.node_type === "nodetool.agents.Agent" ||
-              metadata.node_type === "openai.agents.RealtimeAgent";
+              metadata.node_type === "openai.agents.RealtimeAgent" ||
+              metadata.node_type === "openai.agents.LiveAgent";
             let defaultStyle: { width: number; height?: number };
             if (isPreviewNode) {
               defaultStyle = { width: 400, height: 300 };

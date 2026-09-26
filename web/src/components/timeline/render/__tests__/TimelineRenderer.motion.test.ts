@@ -6,6 +6,15 @@ const mockFlush = jest.fn().mockResolvedValue(undefined);
 const mockDispose = jest.fn();
 const mockAddFrame = jest.fn().mockResolvedValue(undefined);
 const mockCloseVideo = jest.fn();
+const mockSeekVideo = jest.fn().mockResolvedValue({ width: 1920, height: 1080 });
+
+jest.mock("../OffscreenVideoPool", () => ({
+  OffscreenVideoPool: jest.fn().mockImplementation(() => ({
+    seek: mockSeekVideo,
+    release: jest.fn(),
+    dispose: jest.fn()
+  }))
+}));
 
 jest.mock("../../preview/gpu/createCompositor", () => ({
   createCompositor: jest.fn().mockResolvedValue({
@@ -254,5 +263,44 @@ describe("renderTimeline motion", () => {
 
     expect(mockSetLayers).toHaveBeenCalledTimes(6);
     expect(mockAddFrame).toHaveBeenCalledTimes(3);
+  });
+
+  it("samples trimmed video and its matte at each motion-blur source time", async () => {
+    const track = makeTrack({ id: "picture", type: "video", index: 0 });
+    const clip = makeClip({
+      id: "shot",
+      trackId: track.id,
+      mediaType: "video",
+      sourceType: "imported",
+      status: "generated",
+      startMs: 0,
+      durationMs: 500,
+      inPointMs: 500,
+      speedMultiplier: 2,
+      currentAssetId: "picture-asset",
+      generatedMatte: {
+        assetId: "matte-asset",
+        sourceAssetId: "picture-asset",
+        sourceRange: { fromMs: 0, toMs: 5000 },
+        settings: { fixture: "matte" },
+        status: "ready"
+      },
+      motionBlur: { samplesPerFrame: 2, shutterAngle: 180 }
+    });
+
+    await renderTimeline({
+      tracks: [track], clips: [clip], width: 1920, height: 1080,
+      fps: 2, durationMs: 500,
+      resolveUrl: async (assetId) => `http://x/${assetId}.mp4`
+    });
+
+    const calls = mockSeekVideo.mock.calls.map(([clipId, url, timeSec]) => ({ clipId, url, timeSec }));
+    expect(calls).toHaveLength(4);
+    expect(calls.map(({ url }) => url).sort()).toEqual([
+      "http://x/matte-asset.mp4", "http://x/matte-asset.mp4",
+      "http://x/picture-asset.mp4", "http://x/picture-asset.mp4"
+    ]);
+    expect(calls.every(({ clipId }) => clipId === "shot")).toBe(true);
+    expect(calls.map(({ timeSec }) => timeSec).sort()).toEqual([0.625, 0.625, 0.875, 0.875]);
   });
 });

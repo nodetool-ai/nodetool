@@ -8,11 +8,13 @@
 
 import type { ResourceKind, ResourceUri } from "@nodetool-ai/protocol";
 import {
+  LOOSE_PROJECT_ID,
   useWorkspaceTabsStore,
-  type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
+import { resolveDocumentProject, type DocumentTabType } from "../resolveDocumentProject";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
-const TAB_TYPE_BY_KIND: Partial<Record<ResourceKind, WorkspaceTabType>> = {
+const TAB_TYPE_BY_KIND: Partial<Record<ResourceKind, DocumentTabType>> = {
   workflow: "workflow",
   timeline: "timeline",
   storyboard: "storyboard",
@@ -25,17 +27,30 @@ const TAB_TYPE_BY_KIND: Partial<Record<ResourceKind, WorkspaceTabType>> = {
 export const canOpenResource = (kind: ResourceKind): boolean =>
   TAB_TYPE_BY_KIND[kind] !== undefined;
 
-export const openResource = (ref: ResourceUri): boolean => {
+export const openResource = async (ref: ResourceUri): Promise<boolean> => {
   const type = TAB_TYPE_BY_KIND[ref.kind];
   if (!type) {
     return false;
   }
-  useWorkspaceTabsStore.getState().openTab({
-    type,
-    ref: ref.id,
-    mode: "edit"
-  });
-  return true;
+  try {
+    const document = await resolveDocumentProject(type, ref.id);
+    const tabs = useWorkspaceTabsStore.getState();
+    tabs.setActiveProjectId(document.projectId ?? null);
+    tabs.openTab({
+      type,
+      ref: document.id,
+      mode: "edit",
+      projectId: document.projectId ?? LOOSE_PROJECT_ID
+    });
+    return true;
+  } catch (error) {
+    useNotificationStore.getState().addNotification({
+      type: "error",
+      alert: true,
+      content: `Could not open ${ref.kind}: ${error instanceof Error ? error.message : String(error)}`
+    });
+    return false;
+  }
 };
 
 export default openResource;

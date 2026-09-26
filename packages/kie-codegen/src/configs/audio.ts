@@ -609,7 +609,7 @@ export const audioConfig: ModuleConfig = {
       "className": "GenerateMusic",
       "modelId": "generate-music",
       "title": "Generate Music",
-      "description": "Generate Music via Kie.ai.\n\n    kie, audio, ai\n\n    Generate music with or without lyrics using AI models.",
+      "description": "Generate Music via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/generate",
@@ -619,15 +619,49 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "A description of the desired audio content. - In Custom Mode (`customMode: true`): Required if `instrumental` is `false`. The prompt will be strictly used as the lyrics and sung in the generated track. Character limits by model: - **V4**（Discontinued）: Maximum 3000 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 5000 characters - **V4_5ALL**（Discontinued）: Maximum 5000 characters - **V5_5 & V5**（Discontinued）: Maximum 5000 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 5000 characters Example: \"A calm and relaxing piano track with soft melodies\" - In Non-custom Mode (`customMode: false`): Always required. The prompt serves as the core idea, and lyrics will be automatically generated based on it (not strictly matching the input). Maximum 3000 characters. Example: \"A short relaxing piano tune\"",
-          "required": true
+          "description": "A description of the desired audio content. Optional. - Custom mode (`customMode=true`): When provided, the prompt is used strictly as lyrics and sung in the generated track. Character limits by model: - V4: Maximum 3000 characters - V4_5, V4_5PLUS, V4_5ALL, V5_5, V5: Maximum 5000 characters - Non-custom mode (`customMode=false`): When provided, the prompt serves as the core idea. Lyrics are generated automatically based on it and do not strictly match the input. Maximum 3000 characters. `prompt` is not required. In non-custom mode, provide at least one of `imageUrls`, `videoUrls`, `audioUrls`, `style`, or `lyrics`. In custom mode, provide at least one of `style`, `lyrics`, or `negativeTags`. Generation is rejected if all related inputs are empty.",
+          "required": false
+        },
+        {
+          "name": "lyrics",
+          "type": "str",
+          "default": "",
+          "title": "Lyrics",
+          "description": "Lyrics for the generated audio. Optional. - V6: Maximum 5000 characters. - When `customMode=true`, `lyrics` is used as lyrics first; if `lyrics` is not provided, `prompt` is used as lyrics. - When `customMode=false`, `lyrics` is used as a lyrics attachment and can be used together with the audio description in `prompt`.",
+          "required": false
+        },
+        {
+          "name": "imageUrls",
+          "type": "list[str]",
+          "default": [],
+          "title": "Image Urls",
+          "description": "Image references. Only effective when `customMode=false`. - Optional - Up to 5 images; each image must not exceed 10 MB - Supported formats: `jpeg`, `png`, `webp`, and `bmp`",
+          "required": false,
+          "max": 5
+        },
+        {
+          "name": "videoUrls",
+          "type": "list[str]",
+          "default": [],
+          "title": "Video Urls",
+          "description": "Video references. Only effective when `customMode=false`. - Optional - Up to 1 video file; each file must not exceed 100 MB, duration must not exceed 241 seconds, with no minimum duration - Supported formats: mp4, mov, and webm",
+          "required": false,
+          "max": 1
+        },
+        {
+          "name": "audioUrls",
+          "type": "list[str]",
+          "default": [],
+          "title": "Audio Urls",
+          "description": "Audio references. Only effective when `customMode=false`. - Optional - Audio duration must be between 6 seconds and 30 minutes; each audio file must not exceed 500 MB",
+          "required": false
         },
         {
           "name": "style",
           "type": "str",
           "default": "",
           "title": "Style",
-          "description": "Music style specification for the generated audio. - Required in Custom Mode (`customMode: true`). Defines the genre, mood, or artistic direction. - Character limits by model: - **V4**（Discontinued）: Maximum 200 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 1000 characters - **V4_5ALL**（Discontinued）: Maximum 1000 characters - **V5_5 & V5**（Discontinued）: Maximum 1000 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 1000 characters - Common examples: Jazz, Classical, Electronic, Pop, Rock, Hip-hop, etc.",
+          "description": "Music style specification for the generated audio. - Character limits by model: - **V4** (Discontinued): Maximum 200 characters - **V4_5 and V4_5PLUS** (Discontinued): Maximum 1000 characters - **V4_5ALL** (Discontinued): Maximum 1000 characters - **V5_5 and V5** (Discontinued): Maximum 1000 characters - **V6, V6_MINI, and V6_WILD**: Maximum 1000 characters - Common examples: Jazz, Classical, Electronic, Pop, Rock, Hip-hop, etc.",
           "required": false
         },
         {
@@ -635,15 +669,16 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Title",
-          "description": "Title for the generated music track. - Required in Custom Mode (`customMode: true`). - Max length: 80 characters. - Will be displayed in player interfaces and filenames.",
-          "required": false
+          "description": "Title for the generated music track. Optional. - Only available when `customMode` is `true`. - Maximum 80 characters. - Displayed in player interfaces and filenames.",
+          "required": false,
+          "max": 80
         },
         {
           "name": "customMode",
           "type": "bool",
           "default": false,
           "title": "Custom Mode",
-          "description": "Determines if advanced parameter customization is enabled. - If `true`: Allows detailed control with specific requirements for `style` and `title` fields. - If `false`: Simplified mode where only `prompt` is required and other parameters are ignored.",
+          "description": "Determines whether advanced parameter customization is enabled. - If `true`: Allows detailed control - If `false`: Simplified mode",
           "required": true
         },
         {
@@ -651,7 +686,7 @@ export const audioConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Instrumental",
-          "description": "Determines if the audio should be instrumental (no lyrics). - In Custom Mode (`customMode: true`): - If `true`: Only `style` and `title` are required. - If `false`: `style`, `title`, and `prompt` are required (with prompt used as the exact lyrics). - In Non-custom Mode (`customMode: false`): No impact on required fields (prompt only).",
+          "description": "Determines whether the audio should be instrumental (no lyrics). - In Custom Mode (`customMode: true`): - If `true`: Only `style` and `title` are required. - If `false`: `style`, `title`, and `prompt` are required (`prompt` is used as the exact lyrics). - In Non-custom Mode (`customMode: false`): - If `true`: Only `style` and `prompt` are required. - If `false`: `style`, `prompt`, and `lyrics` are required (`lyrics` is used as a lyrics attachment and can be used together with the audio description in `prompt`).",
           "required": true
         },
         {
@@ -659,7 +694,7 @@ export const audioConfig: ModuleConfig = {
           "type": "enum",
           "default": "V6",
           "title": "Model",
-          "description": "The AI model version to use for generation. - Required for all requests. - Available options: - **`V6_WILD`**：Pushes creative boundaries for bolder, more distinctive musical expression. - **`V6_MINI`**：Lightweight and fast, balancing quality and speed for effortless creation. - **`V6`**：Greater musical expression with more natural vocals and richer details. - **`V5_5`**（Discontinued）：Custom Models Tailored to Your Unique Taste. - **`V5`**（Discontinued）: Superior musical expression, faster generation. - **`V4_5PLUS`**（Discontinued）: V4.5+ delivers richer sound, new ways to create, max 8 min. - **`V4_5`**（Discontinued）: V4.5 enables smarter prompts, faster generations, max 8 min. - **`V4_5ALL`**（Discontinued）: V4.5ALL enables smarter prompts, faster generations, max 8 min. - **`V4`**（Discontinued）: V4 improves vocal quality, max 4 min.",
+          "description": "The AI model version to use for generation. - Required for all requests. - Available options: - **`V6_WILD`**: Pushes creative boundaries for bolder, more distinctive musical expression. - **`V6_MINI`**: Lightweight and fast, balancing quality and speed for effortless creation. - **`V6`**: Greater musical expression with more natural vocals and richer details. - **`V5_5`** (Discontinued): Custom models tailored to your unique taste. - **`V5`** (Discontinued): Superior musical expression, faster generation. - **`V4_5PLUS`** (Discontinued): V4.5+ delivers richer sound, new ways to create, max 8 min. - **`V4_5`** (Discontinued): V4.5 enables smarter prompts, faster generations, max 8 min. - **`V4_5ALL`** (Discontinued): V4.5ALL enables smarter prompts, faster generations, max 8 min. - **`V4`** (Discontinued): V4 improves vocal quality, max 4 min.",
           "required": true,
           "values": [
             "V4",
@@ -678,15 +713,16 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Negative Tags",
-          "description": "Music styles or traits to exclude from the generated audio. Optional. Use to avoid specific styles.",
-          "required": false
+          "description": "Music styles or traits to exclude from the generated audio. Optional. - Only available when `customMode` is `true`. - For V6, V6_MINI, and V6_WILD: maximum 1000 characters.",
+          "required": false,
+          "max": 1000
         },
         {
           "name": "vocalGender",
           "type": "enum",
           "default": "",
           "title": "Vocal Gender",
-          "description": "Vocal gender preference for the singing voice. Optional. Use 'm' for male and 'f' for female. Note: This parameter is only effective when customMode is true. Based on practice, this parameter can only increase the probability but cannot guarantee adherence to male/female voice instructions.",
+          "description": "Vocal gender preference. Optional. - Only available when `customMode` is `true`. - Use `m` for male and `f` for female. - In practice, this only increases probability and cannot guarantee male/female voice instructions are followed.",
           "required": false,
           "values": [
             "m",
@@ -698,7 +734,7 @@ export const audioConfig: ModuleConfig = {
           "type": "float",
           "default": 0,
           "title": "Style Weight",
-          "description": "Strength of adherence to the specified style. Optional. Range 0–1, up to 2 decimal places.",
+          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Strength of adherence to the specified style. Optional. Range 0–1, up to 2 decimal places.",
           "required": false,
           "min": 0,
           "max": 1
@@ -708,7 +744,7 @@ export const audioConfig: ModuleConfig = {
           "type": "float",
           "default": 0,
           "title": "Weirdness Constraint",
-          "description": "Controls experimental/creative deviation. Optional. Range 0–1, up to 2 decimal places.",
+          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Controls experimental/creative deviation. Optional. Range 0–1, up to 2 decimal places.",
           "required": false,
           "min": 0,
           "max": 1
@@ -718,17 +754,27 @@ export const audioConfig: ModuleConfig = {
           "type": "float",
           "default": 0,
           "title": "Audio Weight",
-          "description": "Balance weight for audio features vs. other factors. Optional. Range 0–1, up to 2 decimal places.",
+          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Relative weight of audio features. Optional. Range 0–1, up to 2 decimal places. - `audio_weight` is not supported when there are no vocals",
           "required": false,
           "min": 0,
           "max": 1
+        },
+        {
+          "name": "variety",
+          "type": "float",
+          "default": 1,
+          "title": "Variety",
+          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Controls the diversity and stylistic variation of generated results. Optional. Range 0–4, integer, default 1. - **`0`**: off (exact style) — fully off, strictly the same style - **`1`**: normal (balanced variety) — default, balances stability and diversity - **`2`**: high (distinct styles) — produces results with clearly different styles - **`3`**: extra (bold exploration) — higher variation, encourages bold exploration of different styles - **`4`**: max (unreasonably varied) — maximum diversity; results may differ in style very significantly",
+          "required": false,
+          "min": 0,
+          "max": 4
         },
         {
           "name": "personaId",
           "type": "str",
           "default": "",
           "title": "Persona Id",
-          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate)endpoint",
+          "description": "Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a Persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate) endpoint.",
           "required": false
         },
         {
@@ -748,18 +794,13 @@ export const audioConfig: ModuleConfig = {
           "type": "float",
           "default": 20,
           "title": "Duration",
-          "description": "Audio duration. Optional; It is only valid when custom_mode is true and the model is V5_5 (deprecated), V6, V6_MINI, or V6_WILD.",
+          "description": "Audio duration in seconds. Optional. - Only available when `customMode` is `true`. - Range: 10–360 seconds. Default: 20. - Only valid when the model is V5_5 (Discontinued), V6, V6_MINI, or V6_WILD.",
           "required": false,
           "min": 10,
           "max": 360
         }
       ],
       "validation": [
-        {
-          "field": "prompt",
-          "rule": "not_empty",
-          "message": "Prompt is required"
-        },
         {
           "field": "model",
           "rule": "not_empty",
@@ -771,25 +812,25 @@ export const audioConfig: ModuleConfig = {
       "className": "ExtendMusic",
       "modelId": "extend-music",
       "title": "Extend Music",
-      "description": "Extend Music via Kie.ai.\n\n    kie, audio, ai\n\n    Extend or modify existing music by creating a continuation based on a source audio track.",
+      "description": "Extend Music via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/generate/extend",
       "fields": [
         {
-          "name": "defaultParamFlag",
-          "type": "bool",
-          "default": false,
-          "title": "Default Param Flag",
-          "description": "Controls parameter source for extension. - If `true`: Use custom parameters specified in this request. Requires `continueAt`, `prompt`, `style`, and `title`. - If `false`: Use original audio parameters. Only `audioId` is required, other parameters are inherited.",
-          "required": true
+          "name": "taskId",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Task ID from the original music generation. Optional.",
+          "required": false
         },
         {
           "name": "audioId",
           "type": "str",
           "default": "",
           "title": "Audio Id",
-          "description": "Unique identifier of the audio track to extend. Required for all extension requests.",
+          "description": "Unique identifier of the audio track to extend. Required for all extension requests. Source audio (`audioId`) is enough to generate.",
           "required": true
         },
         {
@@ -797,31 +838,43 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "Prompt describing the desired audio extension content. - Required when `defaultParamFlag` is `true` (this parameter is not needed if `instrumental` is `true`). - Character limits by model: - **V4**（Discontinued）: Max 3,000 characters - **V4_5 and V4_5PLUS**（Discontinued）: Max 5,000 characters - **V4_5ALL**（Discontinued）: Max 5,000 characters - **V5_5 and V5**（Discontinued）: Max 5,000 characters - **V6、V6_MINI 和 V6_WILD**: Max 5,000 characters - Describe how the music should continue or evolve in the extended section.",
-          "required": false
+          "description": "Lyrics for the extended audio. Optional. - Used as lyrics only when `lyrics` is not provided. If `lyrics` is present, `prompt` is not used as lyrics. - V6, V6_MINI, and V6_WILD: Maximum 5000 characters. - Not required. Source audio (`audioId`) is enough to generate. - Do not pass this parameter when `instrumental` is `true`.",
+          "required": false,
+          "max": 5000
+        },
+        {
+          "name": "lyrics",
+          "type": "str",
+          "default": "",
+          "title": "Lyrics",
+          "description": "Lyrics for the extended audio. Optional. - Takes priority over `prompt` as lyrics. If omitted, `prompt` is used as lyrics when provided. - V6, V6_MINI, and V6_WILD: Maximum 5000 characters. - Not required. Source audio (`audioId`) is enough to generate. - Do not pass this parameter when `instrumental` is `true`.",
+          "required": false,
+          "max": 5000
         },
         {
           "name": "style",
           "type": "str",
           "default": "",
           "title": "Style",
-          "description": "Music style specification for the extended audio. - Required when `defaultParamFlag` is `true`. - Character limits by model: - **V4**（Discontinued）: Maximum 200 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 1000 characters - **V4_5ALL**（Discontinued）: Maximum 1000 characters - **V5_5 & V5**（Discontinued）: Maximum 1000 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 1000 characters - Should typically align with the original audio's style for best results.",
-          "required": false
+          "description": "Music style specification for the extended audio. Optional. - Not required. Source audio (`audioId`) is enough to generate. - Character limits by model: - **V4**（Discontinued）: Maximum 200 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 1000 characters - **V4_5ALL**（Discontinued）: Maximum 1000 characters - **V5_5 & V5**（Discontinued）: Maximum 1000 characters - **V6, V6_MINI, and V6_WILD**: Maximum 1000 characters - Should typically align with the original audio's style for best results.",
+          "required": false,
+          "max": 1000
         },
         {
           "name": "title",
           "type": "str",
           "default": "",
           "title": "Title",
-          "description": "Title for the extended music track. - Required when `defaultParamFlag` is `true`. - Character limits by model: - **V4**（Discontinued）: Maximum 80 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 100 characters - **V4_5ALL**（Discontinued）: Maximum 80 characters - **V5_5 & V5**（Discontinued）: Maximum 100 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 100 characters - Will be displayed in player interfaces and filenames.",
-          "required": false
+          "description": "Title for the extended music track. Optional. - Maximum 100 characters. - Displayed in player interfaces and filenames.",
+          "required": false,
+          "max": 100
         },
         {
           "name": "continueAt",
           "type": "float",
           "default": 0,
           "title": "Continue At",
-          "description": "The time point (in seconds) from which to start extending the music. - Required when `defaultParamFlag` is `true`. - Value range: greater than 0 and less than the total duration of the generated audio. - Specifies the position in the original track where the extension should begin.",
+          "description": "The time point (in seconds) from which to start extending the music. - Value range: greater than 0 and less than the total duration of the generated audio. - Specifies the position in the original track where the extension should begin.",
           "required": false
         },
         {
@@ -894,11 +947,21 @@ export const audioConfig: ModuleConfig = {
           "max": 1
         },
         {
+          "name": "variety",
+          "type": "int",
+          "default": 1,
+          "title": "Variety",
+          "description": "Controls the diversity and stylistic variation of generated results. Optional. Integer range 0–4, default 1. - **`0`**: off (exact style) — fully off, strictly the same style - **`1`**: normal (balanced variety) — default, balances stability and diversity - **`2`**: high (distinct styles) — produces results with clearly different styles - **`3`**: extra (bold exploration) — higher variation, encourages bold exploration of different styles - **`4`**: max (unreasonably varied) — maximum diversity; results may differ in style very significantly",
+          "required": false,
+          "min": 0,
+          "max": 4
+        },
+        {
           "name": "personaId",
           "type": "str",
           "default": "",
           "title": "Persona Id",
-          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate)endpoint",
+          "description": "Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a Persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate) endpoint.",
           "required": false
         },
         {
@@ -918,15 +981,7 @@ export const audioConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Instrumental",
-          "description": "Indicates whether it is an instrumental track. If true, passing the `prompt` and `vocalGender` parameters is prohibited.",
-          "required": false
-        },
-        {
-          "name": "taskId",
-          "type": "str",
-          "default": "",
-          "title": "Task Id",
-          "description": "Task ID from the original music generation. Optional.",
+          "description": "Indicates whether it is an instrumental track. If true, passing the `lyrics`, `prompt`, and `vocalGender` parameters is prohibited.",
           "required": false
         }
       ],
@@ -947,7 +1002,7 @@ export const audioConfig: ModuleConfig = {
       "className": "UploadAndCoverAudio",
       "modelId": "upload-and-cover-audio",
       "title": "Upload And Cover Audio",
-      "description": "Upload And Cover Audio via Kie.ai.\n\n    kie, audio, ai\n\n    > This API creates a cover version of an audio track by transforming it into a new style while retaining its core melody. It incorporates Suno's upload capability, enabling users to upload an audio file for processing. The expected result is a refreshed audio track with a new style, keeping the original melody intact.",
+      "description": "Upload And Cover Audio via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/generate/upload-cover",
@@ -963,7 +1018,7 @@ export const audioConfig: ModuleConfig = {
             "metadata": null
           },
           "title": "Upload Url",
-          "description": "The URL for uploading audio files, required regardless of whether customMode and instrumental are true or false. Ensure the uploaded audio does not exceed 8 minutes in length.",
+          "description": "The URL of the source audio file to cover. Required. Source audio (`uploadUrl`) is enough to generate. Ensure the uploaded audio does not exceed 8 minutes in length.",
           "required": true
         },
         {
@@ -971,39 +1026,43 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "A description of the desired audio content. - In Custom Mode (`customMode: true`): Required if `instrumental` is `false`. The prompt will be strictly used as the lyrics and sung in the generated track. Character limits by model: - **V4**（Discontinued）: Max 3,000 characters - **V4_5 and V4_5PLUS**（Discontinued）: Max 5,000 characters - **V4_5ALL**（Discontinued）: Max 5,000 characters - **V5_5 and V5**（Discontinued）: Max 5,000 characters - **V6、V6_MINI 和 V6_WILD**: Max 5,000 characters Example: \"A calm and relaxing piano track with soft melodies\" - In Non-custom Mode (`customMode: false`): Always required. The prompt serves as the core idea, and lyrics will be automatically generated based on it (not strictly matching the input). Max length: 500 characters. Example: \"A short relaxing piano tune\"",
-          "required": true
+          "description": "Lyrics for the covered audio. Optional. - Used as lyrics only when `lyrics` is not provided. If `lyrics` is present, `prompt` is not used as lyrics. - V6, V6_MINI, and V6_WILD: Maximum 5000 characters. - Not required. Source audio (`uploadUrl`) is enough to generate. - Do not pass this parameter when `instrumental` is `true`.",
+          "required": false,
+          "max": 5000
+        },
+        {
+          "name": "lyrics",
+          "type": "str",
+          "default": "",
+          "title": "Lyrics",
+          "description": "Lyrics for the covered audio. Optional. - Takes priority over `prompt` as lyrics. If omitted, `prompt` is used as lyrics when provided. - V6, V6_MINI, and V6_WILD: Maximum 5000 characters. - Not required. Source audio (`uploadUrl`) is enough to generate. - Do not pass this parameter when `instrumental` is `true`.",
+          "required": false,
+          "max": 5000
         },
         {
           "name": "style",
           "type": "str",
           "default": "",
           "title": "Style",
-          "description": "The music style or genre for the audio. - Required in Custom Mode (`customMode: true`). Examples: \"Jazz\", \"Classical\", \"Electronic\". Character limits by model: - **V4**（Discontinued）: Maximum 200 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 1000 characters - **V4_5ALL**（Discontinued）: Maximum 1000 characters - **V5_5 & V5**（Discontinued）: Maximum 1000 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 1000 characters Example: \"Classical\" - In Non-custom Mode (`customMode: false`): Leave empty.",
-          "required": false
+          "description": "The music style or genre for the audio. Optional. - Not required. Source audio (`uploadUrl`) is enough to generate. - Character limits by model: - **V4**（Discontinued）: Maximum 200 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 1000 characters - **V4_5ALL**（Discontinued）: Maximum 1000 characters - **V5_5 & V5**（Discontinued）: Maximum 1000 characters - **V6, V6_MINI, and V6_WILD**: Maximum 1000 characters",
+          "required": false,
+          "max": 1000
         },
         {
           "name": "title",
           "type": "str",
           "default": "",
           "title": "Title",
-          "description": "The title of the generated music track. - Required in Custom Mode (`customMode: true`). Character limits by model: - **V4**（Discontinued）: Maximum 80 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 100 characters - **V4_5ALL**（Discontinued）: Maximum 80 characters - **V5_5 & V5**（Discontinued）: Maximum 100 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 100 characters Example: \"Peaceful Piano Meditation\" - In Non-custom Mode (`customMode: false`): Leave empty.",
-          "required": false
-        },
-        {
-          "name": "customMode",
-          "type": "bool",
-          "default": false,
-          "title": "Custom Mode",
-          "description": "Enables Custom Mode for advanced audio generation settings. - Set to `true` to use Custom Mode (requires `style` and `title`; `prompt` required if `instrumental` is `false`). The prompt will be strictly used as lyrics if `instrumental` is `false`. - Set to `false` for Non-custom Mode (only `prompt` is required). Lyrics will be auto-generated based on the prompt.",
-          "required": true
+          "description": "The title of the generated music track. Optional. - Maximum 80 characters. - Displayed in player interfaces and filenames.",
+          "required": false,
+          "max": 80
         },
         {
           "name": "instrumental",
           "type": "bool",
           "default": false,
           "title": "Instrumental",
-          "description": "Determines if the audio should be instrumental (no lyrics). - In Custom Mode (`customMode: true`): - If `true`: Only `style` and `title` are required. - If `false`: `style`, `title`, and `prompt` are required (with `prompt` used as the exact lyrics). - In Non-custom Mode (`customMode: false`): No impact on required fields (`prompt` only). Lyrics are auto-generated if `instrumental` is `false`.",
+          "description": "Determines if the audio should be instrumental (no lyrics). - If `true`: generate instrumental music (no vocals). Do not pass `lyrics`, `prompt`, or `vocalGender`. - If `false`: use `lyrics` as lyrics (fall back to `prompt` if `lyrics` is not provided).",
           "required": true
         },
         {
@@ -1038,7 +1097,7 @@ export const audioConfig: ModuleConfig = {
           "type": "enum",
           "default": "",
           "title": "Vocal Gender",
-          "description": "Vocal gender preference for the singing voice. Optional. Use 'm' for male and 'f' for female. Note: This parameter is only effective when customMode is true. Based on practice, this parameter can only increase the probability but cannot guarantee adherence to male/female voice instructions.",
+          "description": "Vocal gender preference for the singing voice. Optional. Use 'm' for male and 'f' for female. Based on practice, this parameter can only increase the probability but cannot guarantee adherence to male/female voice instructions. Do not pass this parameter when `instrumental` is `true`.",
           "required": false,
           "values": [
             "m",
@@ -1076,11 +1135,21 @@ export const audioConfig: ModuleConfig = {
           "max": 1
         },
         {
+          "name": "variety",
+          "type": "int",
+          "default": 1,
+          "title": "Variety",
+          "description": "Controls the diversity and stylistic variation of generated results. Optional. Integer range 0–4, default 1. - **`0`**: off (exact style) — fully off, strictly the same style - **`1`**: normal (balanced variety) — default, balances stability and diversity - **`2`**: high (distinct styles) — produces results with clearly different styles - **`3`**: extra (bold exploration) — higher variation, encourages bold exploration of different styles - **`4`**: max (unreasonably varied) — maximum diversity; results may differ in style very significantly",
+          "required": false,
+          "min": 0,
+          "max": 4
+        },
+        {
           "name": "personaId",
           "type": "str",
           "default": "",
           "title": "Persona Id",
-          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate)endpoint",
+          "description": "Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a Persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate) endpoint.",
           "required": false
         },
         {
@@ -1100,7 +1169,7 @@ export const audioConfig: ModuleConfig = {
           "type": "int",
           "default": 20,
           "title": "Duration",
-          "description": "Audio duration. Optional; It is only valid when custom_mode is true and the model is V5_5 (deprecated), V6, V6_MINI, or V6_WILD.",
+          "description": "Audio duration in seconds. Optional. Range 10–360, default 20. Valid when `model` is ~~V5_5~~ (Discontinued), V6, V6_MINI, or V6_WILD.",
           "required": false,
           "min": 10,
           "max": 360
@@ -1115,11 +1184,6 @@ export const audioConfig: ModuleConfig = {
       ],
       "validation": [
         {
-          "field": "prompt",
-          "rule": "not_empty",
-          "message": "Prompt is required"
-        },
-        {
           "field": "model",
           "rule": "not_empty",
           "message": "Model is required"
@@ -1130,7 +1194,7 @@ export const audioConfig: ModuleConfig = {
       "className": "UploadAndExtendAudio",
       "modelId": "upload-and-extend-audio",
       "title": "Upload And Extend Audio",
-      "description": "Upload And Extend Audio via Kie.ai.\n\n    kie, audio, ai\n\n    # Upload and Extend Music",
+      "description": "Upload And Extend Audio via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/generate/upload-extend",
@@ -1146,15 +1210,7 @@ export const audioConfig: ModuleConfig = {
             "metadata": null
           },
           "title": "Upload Url",
-          "description": "The URL for uploading audio files, required regardless of whether defaultParamFlag is true or false. Ensure the uploaded audio does not exceed 8 minutes in length.",
-          "required": true
-        },
-        {
-          "name": "defaultParamFlag",
-          "type": "bool",
-          "default": false,
-          "title": "Default Param Flag",
-          "description": "Enable custom mode for advanced audio generation settings. - Set to `true` to use custom parameter mode (requires `style`, `title`, and `uploadUrl`; if `instrumental` is `false`, `uploadUrl` and `prompt` are required). If `instrumental` is `false`, the prompt will be strictly used as lyrics. - Set to `false` to use non-custom mode (only `uploadUrl` required). Lyrics will be automatically generated based on the prompt.",
+          "description": "The URL of the source audio file to extend. Required. Source audio (`uploadUrl`) is enough to generate. Ensure the uploaded audio does not exceed 8 minutes in length.",
           "required": true
         },
         {
@@ -1162,7 +1218,7 @@ export const audioConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Instrumental",
-          "description": "Determines whether the audio is instrumental (without lyrics). - In custom parameter mode (`defaultParamFlag: true`): - If `true`: Only `style`, `title`, and `uploadUrl` are required; `prompt` and `vocalGender` do not need to be specified. - If `false`: `style`, `title`, and `uploadUrl` are required; `prompt` is optional (if provided, it serves as a prompt); `vocalGender` does not need to be specified. - In non-custom parameter mode (`defaultParamFlag: false`): Does not affect mandatory fields (only `uploadUrl` is required); `prompt` is optional. If set to `false`, lyrics will be automatically generated. Optional; defaults to `false`.",
+          "description": "Determines whether the audio is instrumental (without lyrics). Optional; defaults to `false`. - If `true`: generate instrumental music (no vocals). Do not pass `lyrics`, `prompt`, or `vocalGender`. - If `false`: use `lyrics` as lyrics (fall back to `prompt` if `lyrics` is not provided).",
           "required": false
         },
         {
@@ -1170,32 +1226,44 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "Describe how the music should be extended. Optional; if provided, it will be used as a prompt. Subject to model character limits: - **V4**（Discontinued）: Max 3,000 characters - **V4_5 and V4_5PLUS**（Discontinued）: Max 5,000 characters - **V4_5ALL**（Discontinued）: Max 5,000 characters - **V5_5 and V5**（Discontinued）: Max 5,000 characters - **V6、V6_MINI 和 V6_WILD**: Max 5,000 characters",
-          "required": false
+          "description": "Lyrics for the extended audio. Optional. - Used as lyrics only when `lyrics` is not provided. If `lyrics` is present, `prompt` is not used as lyrics. - V6, V6_MINI, and V6_WILD: Maximum 5000 characters. - Not required. Source audio (`uploadUrl`) is enough to generate. - Do not pass this parameter when `instrumental` is `true`.",
+          "required": false,
+          "max": 5000
+        },
+        {
+          "name": "lyrics",
+          "type": "str",
+          "default": "",
+          "title": "Lyrics",
+          "description": "Lyrics for the extended audio. Optional. - Takes priority over `prompt` as lyrics. If omitted, `prompt` is used as lyrics when provided. - V6, V6_MINI, and V6_WILD: Maximum 5000 characters. - Not required. Source audio (`uploadUrl`) is enough to generate. - Do not pass this parameter when `instrumental` is `true`.",
+          "required": false,
+          "max": 5000
         },
         {
           "name": "style",
           "type": "str",
           "default": "",
           "title": "Style",
-          "description": "Music style, e.g., Jazz, Classical, Electronic. Character limits by model: - **V4**（Discontinued）: Maximum 200 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 1000 characters - **V4_5ALL**（Discontinued）: Maximum 1000 characters - **V5_5 & V5**（Discontinued）: Maximum 1000 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 1000 characters",
-          "required": false
+          "description": "Music style, e.g., Jazz, Classical, Electronic. Optional. - Not required. Source audio (`uploadUrl`) is enough to generate. - Character limits by model: - **V6, V6_MINI & V6_WILD**: Maximum 1000 characters - **V5_5 & V5** (Discontinued): Maximum 1000 characters - **V4_5PLUS & V4_5** (Discontinued): Maximum 1000 characters - **V4_5ALL** (Discontinued): Maximum 1000 characters - **V4** (Discontinued): Maximum 200 characters",
+          "required": false,
+          "max": 1000
         },
         {
           "name": "title",
           "type": "str",
           "default": "",
           "title": "Title",
-          "description": "Music title. Character limits by model: - **V4**（Discontinued）: Maximum 80 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 100 characters - **V4_5ALL**（Discontinued）: Maximum 80 characters - **V5_5 & V5**（Discontinued）: Maximum 100 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 100 characters",
-          "required": false
+          "description": "Music title. Optional. - Maximum 100 characters. - Displayed in player interfaces and filenames.",
+          "required": false,
+          "max": 100
         },
         {
           "name": "continueAt",
           "type": "float",
           "default": 0,
           "title": "Continue At",
-          "description": "The time point (in seconds) from which to start extending the music. - Required when `defaultParamFlag` is `true`. - Value range: greater than 0 and less than the total duration of the uploaded audio. - Specifies the position in the original track where the extension should begin.",
-          "required": true
+          "description": "The time point (in seconds) from which to start extending the music. - Value range: greater than 0 and less than the total duration of the uploaded audio. - Specifies the position in the original track where the extension should begin.",
+          "required": false
         },
         {
           "name": "model",
@@ -1229,7 +1297,7 @@ export const audioConfig: ModuleConfig = {
           "type": "enum",
           "default": "",
           "title": "Vocal Gender",
-          "description": "Vocal gender preference for the singing voice. Optional. Use 'm' for male and 'f' for female. Based on practice, this parameter can only increase the probability but cannot guarantee adherence to male/female voice instructions.",
+          "description": "Vocal gender preference. Optional. Use 'm' for male and 'f' for female. Based on practice, this parameter can only increase the probability but cannot guarantee adherence to male/female voice instructions. Do not pass this parameter when `instrumental` is `true`.",
           "required": false,
           "values": [
             "m",
@@ -1267,11 +1335,21 @@ export const audioConfig: ModuleConfig = {
           "max": 1
         },
         {
+          "name": "variety",
+          "type": "int",
+          "default": 1,
+          "title": "Variety",
+          "description": "Controls the diversity and stylistic variation of generated results. Optional. Integer range 0–4, default 1. - **`0`**: off (exact style) — fully off, strictly the same style - **`1`**: normal (balanced variety) — default, balances stability and diversity - **`2`**: high (distinct styles) — produces results with clearly different styles - **`3`**: extra (bold exploration) — higher variation, encourages bold exploration of different styles - **`4`**: max (unreasonably varied) — maximum diversity; results may differ in style very significantly",
+          "required": false,
+          "min": 0,
+          "max": 4
+        },
+        {
           "name": "personaId",
           "type": "str",
           "default": "",
           "title": "Persona Id",
-          "description": "Only available when Custom Mode (`defaultParamFlag: true`) is enabled. Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate)endpoint",
+          "description": "Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a Persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate) endpoint.",
           "required": false
         },
         {
@@ -1306,7 +1384,7 @@ export const audioConfig: ModuleConfig = {
       "className": "AddInstrumental",
       "modelId": "add-instrumental",
       "title": "Add Instrumental to Music",
-      "description": "Add Instrumental to Music via Kie.ai.\n\n    kie, audio, ai\n\n    Generate instrumental accompaniment based on uploaded audio files. This interface allows you to upload audio files and add instrumental tracks to them.",
+      "description": "Add Instrumental to Music via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/generate/add-instrumental",
@@ -1322,7 +1400,7 @@ export const audioConfig: ModuleConfig = {
             "metadata": null
           },
           "title": "Upload Url",
-          "description": "URL of the uploaded audio file. Specifies the source audio file location for adding accompaniment.",
+          "description": "URL of the uploaded audio file. Required. Source audio (`uploadUrl`) is enough to generate once `title`, `negativeTags`, and `tags` are provided.",
           "required": true
         },
         {
@@ -1346,7 +1424,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Title",
-          "description": "Title of the generated music. Will be displayed in the player interface and file name.",
+          "description": "Title of the generated music. Required. Will be displayed in the player interface and file name.",
           "required": true
         },
         {
@@ -1354,7 +1432,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Negative Tags",
-          "description": "Music styles or characteristics to exclude from the generated audio. Used to avoid specific unwanted music elements.",
+          "description": "Music styles or characteristics to exclude from the generated audio. Required. Used to avoid specific unwanted music elements.",
           "required": true,
           "max": 200
         },
@@ -1363,9 +1441,18 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Tags",
-          "description": "Music styles or tags to include in the generated music. Defines the desired music style and characteristics.",
+          "description": "Music styles or tags to include in the generated music. Required. Defines the desired music style and characteristics.",
           "required": true,
           "max": 1000
+        },
+        {
+          "name": "lyrics",
+          "type": "str",
+          "default": "",
+          "title": "Lyrics",
+          "description": "Lyrics for the generated audio. Optional. - V6, V6_MINI, and V6_WILD: Maximum 5000 characters. - Not required. Source audio (`uploadUrl`) is enough to generate once `title`, `negativeTags`, and `tags` are provided.",
+          "required": false,
+          "max": 5000
         },
         {
           "name": "vocalGender",
@@ -1408,6 +1495,16 @@ export const audioConfig: ModuleConfig = {
           "required": false,
           "min": 0,
           "max": 1
+        },
+        {
+          "name": "variety",
+          "type": "int",
+          "default": 1,
+          "title": "Variety",
+          "description": "Controls the diversity and stylistic variation of generated results. Optional. Integer range 0–4, default 1. - **`0`**: off (exact style) — fully off, strictly the same style - **`1`**: normal (balanced variety) — default, balances stability and diversity - **`2`**: high (distinct styles) — produces results with clearly different styles - **`3`**: extra (bold exploration) — higher variation, encourages bold exploration of different styles - **`4`**: max (unreasonably varied) — maximum diversity; results may differ in style very significantly",
+          "required": false,
+          "min": 0,
+          "max": 4
         }
       ],
       "uploads": [
@@ -1439,18 +1536,42 @@ export const audioConfig: ModuleConfig = {
       "className": "AddVocals",
       "modelId": "add-vocals",
       "title": "Add Vocals to Music",
-      "description": "Add Vocals to Music via Kie.ai.\n\n    kie, audio, ai\n\n    Generate music with vocals based on uploaded audio files. This interface allows you to upload audio files and add vocal singing to them.",
+      "description": "Add Vocals to Music via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/generate/add-vocals",
       "fields": [
         {
+          "name": "uploadUrl",
+          "type": "audio",
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Upload Url",
+          "description": "URL of the uploaded audio file. Required. Source audio (`uploadUrl`) is enough to generate once `title`, `negativeTags`, and `style` are provided.",
+          "required": true
+        },
+        {
           "name": "prompt",
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "Prompt for generating audio. Usually text describing audio content, used to guide vocal singing content and style.",
-          "required": true
+          "description": "Prompt for generating audio. Optional. - Used as lyrics only when `lyrics` is not provided. If `lyrics` is present, `prompt` is not used as lyrics. - V6, V6_MINI, and V6_WILD: Maximum 5000 characters.",
+          "required": false,
+          "max": 5000
+        },
+        {
+          "name": "lyrics",
+          "type": "str",
+          "default": "",
+          "title": "Lyrics",
+          "description": "Lyrics for the generated audio. Optional. - Takes priority over `prompt` as lyrics. If omitted, `prompt` is used as lyrics when provided. - V6, V6_MINI, and V6_WILD: Maximum 5000 characters. - Not required. Source audio (`uploadUrl`) is enough to generate once `title`, `negativeTags`, and `style` are provided.",
+          "required": false,
+          "max": 5000
         },
         {
           "name": "model",
@@ -1473,7 +1594,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Title",
-          "description": "Music title. Will be displayed in the player interface and file name.",
+          "description": "Music title. Required. Will be displayed in the player interface and file name.",
           "required": true
         },
         {
@@ -1481,7 +1602,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Negative Tags",
-          "description": "Excluded music styles. Used to avoid including specific styles or elements in the generated music.",
+          "description": "Excluded music styles. Required. Used to avoid including specific styles or elements in the generated music.",
           "required": true,
           "max": 200
         },
@@ -1490,7 +1611,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Style",
-          "description": "Music style. Such as jazz, electronic, classical and other music types.",
+          "description": "Music style. Required. Such as jazz, electronic, classical and other music types.",
           "required": true,
           "max": 1000
         },
@@ -1537,18 +1658,14 @@ export const audioConfig: ModuleConfig = {
           "max": 1
         },
         {
-          "name": "uploadUrl",
-          "type": "audio",
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          },
-          "title": "Upload Url",
-          "description": "URL of the uploaded audio file. Specifies the source audio file location for adding vocals.",
-          "required": true
+          "name": "variety",
+          "type": "int",
+          "default": 1,
+          "title": "Variety",
+          "description": "Controls the diversity and stylistic variation of generated results. Optional. Integer range 0–4, default 1. - **`0`**: off (exact style) — fully off, strictly the same style - **`1`**: normal (balanced variety) — default, balances stability and diversity - **`2`**: high (distinct styles) — produces results with clearly different styles - **`3`**: extra (bold exploration) — higher variation, encourages bold exploration of different styles - **`4`**: max (unreasonably varied) — maximum diversity; results may differ in style very significantly",
+          "required": false,
+          "min": 0,
+          "max": 4
         }
       ],
       "uploads": [
@@ -1559,11 +1676,6 @@ export const audioConfig: ModuleConfig = {
         }
       ],
       "validation": [
-        {
-          "field": "prompt",
-          "rule": "not_empty",
-          "message": "Prompt is required"
-        },
         {
           "field": "title",
           "rule": "not_empty",
@@ -1585,7 +1697,7 @@ export const audioConfig: ModuleConfig = {
       "className": "GetTimestampedLyrics",
       "modelId": "get-timestamped-lyrics",
       "title": "Get Timestamped Lyrics",
-      "description": "Get Timestamped Lyrics via Kie.ai.\n\n    kie, audio, ai\n\n    Retrieve synchronized lyrics with precise timestamps for music tracks.",
+      "description": "Get Timestamped Lyrics via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/generate/get-timestamped-lyrics",
@@ -1624,7 +1736,7 @@ export const audioConfig: ModuleConfig = {
       "className": "BoostMusicStyle",
       "modelId": "boost-music-style",
       "title": "Boost Music Style",
-      "description": "Boost Music Style via Kie.ai.\n\n    kie, audio, ai\n\n    Boost Music Style",
+      "description": "Boost Music Style via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/style/generate",
@@ -1650,7 +1762,7 @@ export const audioConfig: ModuleConfig = {
       "className": "GenerateCover",
       "modelId": "generate-cover",
       "title": "Generate Music Cover",
-      "description": "Generate Music Cover via Kie.ai.\n\n    kie, audio, ai\n\n    Generate personalized cover images based on original music tasks.",
+      "description": "Generate Music Cover via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/suno/cover/generate",
@@ -1676,7 +1788,7 @@ export const audioConfig: ModuleConfig = {
       "className": "ReplaceSection",
       "modelId": "replace-section",
       "title": "Replace Music Section",
-      "description": "Replace Music Section via Kie.ai.\n\n    kie, audio, ai\n\n    > Replace a specific time segment within existing music.",
+      "description": "Replace Music Section via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/generate/replace-section",
@@ -1686,15 +1798,24 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "Replaced lyrics",
+          "description": "The lyrics after replacement. Required.",
           "required": true
+        },
+        {
+          "name": "lyrics",
+          "type": "str",
+          "default": "",
+          "title": "Lyrics",
+          "description": "Lyrics for the replaced segment. Optional. - V6, V6_MINI, and V6_WILD: Maximum 5000 characters.",
+          "required": false,
+          "max": 5000
         },
         {
           "name": "tags",
           "type": "str",
           "default": "",
           "title": "Tags",
-          "description": "Music style tags, such as jazz, electronic, etc.",
+          "description": "Style tags for the music, such as jazz or electronic. Required.",
           "required": true
         },
         {
@@ -1702,7 +1823,7 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Title",
-          "description": "Music title",
+          "description": "The title of the music. Required.",
           "required": true
         },
         {
@@ -1718,7 +1839,7 @@ export const audioConfig: ModuleConfig = {
           "type": "float",
           "default": 0,
           "title": "Infill Start S",
-          "description": "Start time point for replacement (seconds), 2 decimal places. Must be less than infillEndS. The time interval (infillEndS - infillStartS) must be at least 10 seconds.",
+          "description": "The point in time, in seconds, at which replacement starts, rounded to 2 decimal places. Required. Must be less than infillEndS, and the difference between infillEndS and infillStartS must be at least 10 seconds.",
           "required": true,
           "min": 0
         },
@@ -1727,7 +1848,7 @@ export const audioConfig: ModuleConfig = {
           "type": "float",
           "default": 0,
           "title": "Infill End S",
-          "description": "End time point for replacement (seconds), 2 decimal places. Must be greater than infillStartS. The time interval (infillEndS - infillStartS) must be at least 10 seconds.",
+          "description": "The point in time, in seconds, at which replacement ends, rounded to 2 decimal places. Required. Must be greater than infillStartS, and the difference between infillEndS and infillStartS must be at least 10 seconds.",
           "required": true,
           "min": 0
         },
@@ -1736,8 +1857,80 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Full Lyrics",
-          "description": "Complete lyrics after modification, combining both modified and unmodified lyrics. This parameter contains the full lyrics text that will be used for the entire song after the section replacement.",
+          "description": "The complete modified lyrics, combining the modified and unmodified lyrics. Required. This parameter contains the complete lyrics text that will be used for the entire song after section replacement.",
           "required": true
+        },
+        {
+          "name": "vocalGender",
+          "type": "enum",
+          "default": "",
+          "title": "Vocal Gender",
+          "description": "Vocal gender preference. Optional. 'm' for male, 'f' for female. Based on practice, this parameter can only increase the probability but cannot guarantee adherence to male/female voice instructions.",
+          "required": false,
+          "values": [
+            "m",
+            "f"
+          ]
+        },
+        {
+          "name": "styleWeight",
+          "type": "float",
+          "default": 0,
+          "title": "Style Weight",
+          "description": "Adherence strength to specified style. Optional. Range 0–1, up to 2 decimal places.",
+          "required": false,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "name": "weirdnessConstraint",
+          "type": "float",
+          "default": 0,
+          "title": "Weirdness Constraint",
+          "description": "Controls experimental/creative deviation level. Optional. Range 0–1, up to 2 decimal places.",
+          "required": false,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "name": "audioWeight",
+          "type": "float",
+          "default": 0,
+          "title": "Audio Weight",
+          "description": "Relative weight of audio elements. Optional. Range 0–1, up to 2 decimal places.",
+          "required": false,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "name": "variety",
+          "type": "int",
+          "default": 1,
+          "title": "Variety",
+          "description": "Controls the diversity and stylistic variation of generated results. Optional. Integer range 0–4, default 1. - **`0`**: off (exact style) — fully off, strictly the same style - **`1`**: normal (balanced variety) — default, balances stability and diversity - **`2`**: high (distinct styles) — produces results with clearly different styles - **`3`**: extra (bold exploration) — higher variation, encourages bold exploration of different styles - **`4`**: max (unreasonably varied) — maximum diversity; results may differ in style very significantly",
+          "required": false,
+          "min": 0,
+          "max": 4
+        },
+        {
+          "name": "personaId",
+          "type": "str",
+          "default": "",
+          "title": "Persona Id",
+          "description": "Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a Persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate) endpoint.",
+          "required": false
+        },
+        {
+          "name": "personaModel",
+          "type": "enum",
+          "default": "style_persona",
+          "title": "Persona Model",
+          "description": "Persona model. Optional. Use `style_persona` for Generate Persona IDs, or `voice_persona` for Suno Voice IDs. Default: `style_persona`. Available for V5 (Discontinued), V5_5 (Discontinued), V6, V6_MINI, and V6_WILD.",
+          "required": false,
+          "values": [
+            "style_persona",
+            "voice_persona"
+          ]
         },
         {
           "name": "taskId",
@@ -1833,7 +2026,7 @@ export const audioConfig: ModuleConfig = {
       "className": "GeneratePersona",
       "modelId": "generate-persona",
       "title": "Generate Persona",
-      "description": "Generate Persona via Kie.ai.\n\n    kie, audio, ai\n\n    Generate Persona",
+      "description": "Generate Persona via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/generate/generate-persona",
@@ -1924,7 +2117,7 @@ export const audioConfig: ModuleConfig = {
       "className": "GenerateMashup",
       "modelId": "generate-mashup",
       "title": "Generate Mashup Music",
-      "description": "Generate Mashup Music via Kie.ai.\n\n    kie, audio, ai\n\n    > Create remix music using AI models by combining multiple audio tracks.",
+      "description": "Generate Mashup Music via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/generate/mashup",
@@ -1934,50 +2127,45 @@ export const audioConfig: ModuleConfig = {
           "type": "list[audio]",
           "default": [],
           "title": "Upload Url List",
-          "description": "Array of audio file URLs to mashup. Must contain exactly 2 URLs. Each URL must be publicly accessible.",
+          "description": "Array of audio file URLs to mashup. Provide 2 audio URLs. Upstream uses only the first 2. Each URL must be publicly accessible.",
           "required": true,
-          "min": 2,
-          "max": 2
+          "min": 2
         },
         {
           "name": "prompt",
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "A description of the desired audio content. - In Custom Mode (`customMode: true`): Required if `instrumental` is `false`. The prompt will be strictly used as the lyrics and sung in the generated track. Character limits by model: - **V4**（Discontinued）: Max 3,000 characters - **V4_5 and V4_5PLUS**（Discontinued）: Max 5,000 characters - **V4_5ALL**（Discontinued）: Max 5,000 characters - **V5_5 and V5**（Discontinued）: Max 5,000 characters - **V6、V6_MINI 和 V6_WILD**: Max 5,000 characters Example: \"A calm and relaxing piano track with soft melodies\" - In Non-custom Mode (`customMode: false`): Always required. The prompt serves as the core idea, and lyrics will be automatically generated based on it (not strictly matching the input). Maximum 500 characters. Example: \"A short relaxing piano tune\"",
-          "required": false
+          "description": "A description of the desired audio content. Optional. - Used as lyrics only when `lyrics` is not provided. If `lyrics` is present, `prompt` is not used as lyrics. - V6, V6_MINI, and V6_WILD: Maximum 5000 characters.",
+          "required": false,
+          "max": 5000
+        },
+        {
+          "name": "lyrics",
+          "type": "str",
+          "default": "",
+          "title": "Lyrics",
+          "description": "Lyrics for the mashup. Optional. - Takes priority over `prompt` as lyrics. If omitted, `prompt` is used as lyrics when provided. - V6, V6_MINI, and V6_WILD: Maximum 5000 characters.",
+          "required": false,
+          "max": 5000
         },
         {
           "name": "style",
           "type": "str",
           "default": "",
           "title": "Style",
-          "description": "Music style specification for the generated audio. - Only available and required in Custom Mode (`customMode: true`). Defines the genre, mood, or artistic direction. - Character limits by model: - **V4**（Discontinued）: Maximum 200 characters - **V4_5 & V4_5PLUS**（Discontinued）: Maximum 1000 characters - **V4_5ALL**（Discontinued）: Maximum 1000 characters - **V5_5 & V5**（Discontinued）: Maximum 1000 characters - **V6、V6_MINI 和 V6_WILD**: Maximum 1000 characters - Common examples: Jazz, Classical, Electronic, Pop, Rock, Hip-hop, etc.",
-          "required": true
+          "description": "Music style specification for the generated audio. Required. - Character limits by model: - **V4** (Discontinued): Maximum 200 characters - **V4_5 & V4_5PLUS** (Discontinued): Maximum 1000 characters - **V4_5ALL** (Discontinued): Maximum 1000 characters - **V5 & V5_5** (Discontinued): Maximum 1000 characters - **V6, V6_MINI & V6_WILD**: Maximum 1000 characters - Common examples: Jazz, Classical, Electronic, Pop, Rock, Hip-hop, etc.",
+          "required": true,
+          "max": 1000
         },
         {
           "name": "title",
           "type": "str",
           "default": "",
           "title": "Title",
-          "description": "Title for the generated music track. - Only available and required in Custom Mode (`customMode: true`). - Max length: 80 characters. - Will be displayed in player interfaces and filenames.",
-          "required": true
-        },
-        {
-          "name": "customMode",
-          "type": "bool",
-          "default": false,
-          "title": "Custom Mode",
-          "description": "Determines if advanced parameter customization is enabled. - If `true`: Allows detailed control with specific requirements for `style` and `title` fields. - If `false`: Simplified mode where only `prompt` is required and other parameters are ignored.",
-          "required": true
-        },
-        {
-          "name": "instrumental",
-          "type": "bool",
-          "default": false,
-          "title": "Instrumental",
-          "description": "Determines if the audio should be instrumental (no lyrics). - In Custom Mode (`customMode: true`): - If `true`: Only `style` and `title` are required. - If `false`: `style`, `title`, and `prompt` are required (with prompt used as the exact lyrics). - In Non-custom Mode (`customMode: false`): No impact on required fields (prompt only).",
-          "required": false
+          "description": "Title for the generated music track. Required. - Maximum 80 characters. - Displayed in player interfaces and filenames.",
+          "required": true,
+          "max": 80
         },
         {
           "name": "model",
@@ -2003,7 +2191,7 @@ export const audioConfig: ModuleConfig = {
           "type": "enum",
           "default": "",
           "title": "Vocal Gender",
-          "description": "Vocal gender preference for the singing voice. - Only available in Custom Mode (`customMode: true`). Optional. Use 'm' for male and 'f' for female. Based on practice, this parameter can only increase the probability but cannot guarantee adherence to male/female voice instructions.",
+          "description": "Vocal gender preference for the singing voice. Optional. Use 'm' for male and 'f' for female. Based on practice, this parameter can only increase the probability but cannot guarantee adherence to male/female voice instructions.",
           "required": false,
           "values": [
             "m",
@@ -2015,7 +2203,7 @@ export const audioConfig: ModuleConfig = {
           "type": "float",
           "default": 0,
           "title": "Style Weight",
-          "description": "Strength of adherence to the specified style. - Only available in Custom Mode (`customMode: true`). Optional. Range 0–1, up to 2 decimal places.",
+          "description": "Strength of adherence to the specified style. Optional. Range 0–1, up to 2 decimal places.",
           "required": false,
           "min": 0,
           "max": 1
@@ -2025,7 +2213,7 @@ export const audioConfig: ModuleConfig = {
           "type": "float",
           "default": 0,
           "title": "Weirdness Constraint",
-          "description": "Controls experimental/creative deviation. - Only available in Custom Mode (`customMode: true`). Optional. Range 0–1, up to 2 decimal places.",
+          "description": "Controls experimental/creative deviation. Optional. Range 0–1, up to 2 decimal places.",
           "required": false,
           "min": 0,
           "max": 1
@@ -2035,17 +2223,47 @@ export const audioConfig: ModuleConfig = {
           "type": "float",
           "default": 0,
           "title": "Audio Weight",
-          "description": "Balance weight for audio features vs. other factors. - Only available in Custom Mode (`customMode: true`). Optional. Range 0–1, up to 2 decimal places.",
+          "description": "Balance weight for audio features vs. other factors. Optional. Range 0–1, up to 2 decimal places.",
           "required": false,
           "min": 0,
           "max": 1
+        },
+        {
+          "name": "variety",
+          "type": "int",
+          "default": 1,
+          "title": "Variety",
+          "description": "Controls the diversity and stylistic variation of generated results. Optional. Integer range 0–4, default 1. - **`0`**: off (exact style) — fully off, strictly the same style - **`1`**: normal (balanced variety) — default, balances stability and diversity - **`2`**: high (distinct styles) — produces results with clearly different styles - **`3`**: extra (bold exploration) — higher variation, encourages bold exploration of different styles - **`4`**: max (unreasonably varied) — maximum diversity; results may differ in style very significantly",
+          "required": false,
+          "min": 0,
+          "max": 4
+        },
+        {
+          "name": "personaId",
+          "type": "str",
+          "default": "",
+          "title": "Persona Id",
+          "description": "Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a Persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate) endpoint.",
+          "required": false
+        },
+        {
+          "name": "personaModel",
+          "type": "enum",
+          "default": "style_persona",
+          "title": "Persona Model",
+          "description": "Persona model. Optional. Use `style_persona` for Generate Persona IDs, or `voice_persona` for Suno Voice IDs. Default: `style_persona`. Available for V5 (Discontinued), V5_5 (Discontinued), V6, V6_MINI, and V6_WILD.",
+          "required": false,
+          "values": [
+            "style_persona",
+            "voice_persona"
+          ]
         },
         {
           "name": "duration",
           "type": "int",
           "default": 20,
           "title": "Duration",
-          "description": "Audio duration. Optional; It is only valid when custom_mode is true and the model is V5_5 (deprecated), V6, V6_MINI, or V6_WILD.",
+          "description": "Audio duration in seconds. Optional. Range 10–360, default 20. Valid when `model` is ~~V5_5~~ (Discontinued), V6, V6_MINI, or V6_WILD.",
           "required": false,
           "min": 10,
           "max": 360
@@ -2081,7 +2299,7 @@ export const audioConfig: ModuleConfig = {
       "className": "RecoveryAudio",
       "modelId": "recoveryAudio",
       "title": "Recovery Audio",
-      "description": "Recovery Audio via Kie.ai.\n\n    kie, audio, ai\n\n    Recover playable audio links for a music generation task that has already completed.",
+      "description": "Recovery Audio via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/suno/recovery",
@@ -2112,36 +2330,10 @@ export const audioConfig: ModuleConfig = {
       ]
     },
     {
-      "className": "GenerateLyrics",
-      "modelId": "generate-lyrics",
-      "title": "Generate Lyrics",
-      "description": "Generate Lyrics via Kie.ai.\n\n    kie, audio, ai\n\n    Generate creative lyrics content based on a text prompt.",
-      "outputType": "audio",
-      "useSuno": true,
-      "sunoEndpoint": "/api/v1/lyrics",
-      "fields": [
-        {
-          "name": "prompt",
-          "type": "str",
-          "default": "",
-          "title": "Prompt",
-          "description": "Description of the desired lyrics content. Be specific about theme, mood, style, or story elements you want in the lyrics. More detailed prompts yield better results. The maximum word limit is 200 characters.",
-          "required": true
-        }
-      ],
-      "validation": [
-        {
-          "field": "prompt",
-          "rule": "not_empty",
-          "message": "Prompt is required"
-        }
-      ]
-    },
-    {
       "className": "ConvertToWav",
       "modelId": "convert-to-wav",
       "title": "Convert to WAV Format",
-      "description": "Convert to WAV Format via Kie.ai.\n\n    kie, audio, ai\n\n    Convert an existing music track to high-quality WAV format.",
+      "description": "Convert to WAV Format via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/wav/generate",
@@ -2177,10 +2369,285 @@ export const audioConfig: ModuleConfig = {
       ]
     },
     {
+      "className": "CreateMusicVideo",
+      "modelId": "create-music-video",
+      "title": "Create Music Video",
+      "description": "Create Music Video via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
+      "outputType": "audio",
+      "useSuno": true,
+      "sunoEndpoint": "/api/v1/mp4/generate",
+      "fields": [
+        {
+          "name": "taskId",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Unique identifier of the music generation task. This should be a taskId returned from either the \"Generate Music\" or \"Extend Music\" endpoints.",
+          "required": true
+        },
+        {
+          "name": "audioId",
+          "type": "str",
+          "default": "",
+          "title": "Audio Id",
+          "description": "Unique identifier of the specific audio track to visualize. This ID is returned in the callback data after music generation completes.",
+          "required": true
+        },
+        {
+          "name": "author",
+          "type": "str",
+          "default": "",
+          "title": "Author",
+          "description": "Artist or creator name to display as a signature on the video cover. Maximum 50 characters. This creates attribution for the music creator.",
+          "required": false,
+          "max": 50
+        },
+        {
+          "name": "domainName",
+          "type": "str",
+          "default": "",
+          "title": "Domain Name",
+          "description": "Website or brand to display as a watermark at the bottom of the video. Maximum 50 characters. Useful for promotional branding or attribution.",
+          "required": false,
+          "max": 50
+        }
+      ],
+      "validation": [
+        {
+          "field": "taskId",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        },
+        {
+          "field": "audioId",
+          "rule": "not_empty",
+          "message": "Audio Id is required"
+        }
+      ]
+    },
+    {
+      "className": "GenerateLyrics",
+      "modelId": "generate-lyrics",
+      "title": "Generate Lyrics",
+      "description": "Generate Lyrics via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
+      "outputType": "audio",
+      "useSuno": true,
+      "sunoEndpoint": "/api/v1/lyrics",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Description of the desired lyrics content. Be specific about theme, mood, style, or story elements you want in the lyrics. More detailed prompts yield better results. The maximum word limit is 200 characters.",
+          "required": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "SunoVoiceValidate",
+      "modelId": "suno-voice-validate",
+      "title": "Suno Voice Generate Verification Phrase API",
+      "description": "Suno Voice Generate Verification Phrase API via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
+      "outputType": "audio",
+      "useSuno": true,
+      "sunoEndpoint": "/api/v1/voice/validate",
+      "fields": [
+        {
+          "name": "voiceUrl",
+          "type": "str",
+          "default": "",
+          "title": "Voice Url",
+          "description": "The original recording URL uploaded by the user [Required]",
+          "required": true
+        },
+        {
+          "name": "vocalStartS",
+          "type": "int",
+          "default": 0,
+          "title": "Vocal Start S",
+          "description": "Start time (in seconds) for extracting the vocal segment [Required]",
+          "required": true
+        },
+        {
+          "name": "vocalEndS",
+          "type": "int",
+          "default": 0,
+          "title": "Vocal End S",
+          "description": "End time (in seconds) for extracting the vocal segment, must be greater than vocalStartS [Required]",
+          "required": true
+        },
+        {
+          "name": "language",
+          "type": "str",
+          "default": "",
+          "title": "Language",
+          "description": "Verify the language of the short phrase. Supported languages ​​include: English (en), Chinese (zh), Spanish (es), French (fr), Portuguese (pt), German (de), Japanese (ja), Korean (ko), Hindi (hi), and Russian (ru).",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "voiceUrl",
+          "rule": "not_empty",
+          "message": "Voice Url is required"
+        }
+      ]
+    },
+    {
+      "className": "SunoVoiceGenerate",
+      "modelId": "suno-voice-generate",
+      "title": "Suno Voice Create Custom Voice API",
+      "description": "Suno Voice Create Custom Voice API via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
+      "outputType": "audio",
+      "useSuno": true,
+      "sunoEndpoint": "/api/v1/voice/generate",
+      "fields": [
+        {
+          "name": "taskId",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Task ID",
+          "required": true
+        },
+        {
+          "name": "verifyUrl",
+          "type": "str",
+          "default": "",
+          "title": "Verify Url",
+          "description": "Audio URL for the user's recording of the server-returned `validateInfo` validation phrase. For best voice generation results, recording the phrase in a singing voice rather than plain speech is recommended. [Required]",
+          "required": true
+        },
+        {
+          "name": "voiceName",
+          "type": "str",
+          "default": "",
+          "title": "Voice Name",
+          "description": "Voice name",
+          "required": false
+        },
+        {
+          "name": "description",
+          "type": "str",
+          "default": "",
+          "title": "Description",
+          "description": "Voice description",
+          "required": false
+        },
+        {
+          "name": "style",
+          "type": "str",
+          "default": "",
+          "title": "Style",
+          "description": "Voice style",
+          "required": false
+        },
+        {
+          "name": "singerSkillLevel",
+          "type": "enum",
+          "default": "beginner",
+          "title": "Singer Skill Level",
+          "description": "Singer skill level. Supported: beginner, intermediate, advanced, professional",
+          "required": false,
+          "values": [
+            "beginner",
+            "intermediate",
+            "advanced",
+            "professional"
+          ]
+        }
+      ],
+      "validation": [
+        {
+          "field": "taskId",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        },
+        {
+          "field": "verifyUrl",
+          "rule": "not_empty",
+          "message": "Verify Url is required"
+        }
+      ]
+    },
+    {
+      "className": "SunoVoiceRegenerate",
+      "modelId": "suno-voice-regenerate",
+      "title": "Suno Voice Regenerate Verification Phrase",
+      "description": "Suno Voice Regenerate Verification Phrase via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
+      "outputType": "audio",
+      "useSuno": true,
+      "sunoEndpoint": "/api/v1/voice/regenerate",
+      "fields": [
+        {
+          "name": "taskId",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Task ID",
+          "required": true
+        },
+        {
+          "name": "calBackUrl",
+          "type": "str",
+          "default": "",
+          "title": "Cal Back Url",
+          "description": "Callback URL after the task is completed",
+          "required": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "taskId",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        },
+        {
+          "field": "calBackUrl",
+          "rule": "not_empty",
+          "message": "Cal Back Url is required"
+        }
+      ]
+    },
+    {
+      "className": "SunoVoiceCheckVoice",
+      "modelId": "suno-voice-check-voice",
+      "title": "Suno Voice Check Availability API",
+      "description": "Suno Voice Check Availability API via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
+      "outputType": "audio",
+      "useSuno": true,
+      "sunoEndpoint": "/api/v1/voice/check-voice",
+      "fields": [
+        {
+          "name": "task_id",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Task ID that needs to be checked",
+          "required": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "task_id",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        }
+      ]
+    },
+    {
       "className": "SeparateVocals",
       "modelId": "separate-vocals",
       "title": "Vocal & Instrument Stem Separation",
-      "description": "Vocal & Instrument Stem Separation via Kie.ai.\n\n    kie, audio, ai\n\n    Use advanced audio processing technology to separate music into vocals, accompaniment, and individual instrumental stems.",
+      "description": "Vocal & Instrument Stem Separation via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/vocal-removal/generate",
@@ -2366,7 +2833,7 @@ export const audioConfig: ModuleConfig = {
       "className": "GenerateMidi",
       "modelId": "generate-midi",
       "title": "Generate MIDI from Audio",
-      "description": "Generate MIDI from Audio via Kie.ai.\n\n    kie, audio, ai\n\n    > Convert separated audio tracks into MIDI format with detailed note information for each instrument.",
+      "description": "Generate MIDI from Audio via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/midi/generate",
@@ -2397,67 +2864,10 @@ export const audioConfig: ModuleConfig = {
       ]
     },
     {
-      "className": "CreateMusicVideo",
-      "modelId": "create-music-video",
-      "title": "Create Music Video",
-      "description": "Create Music Video via Kie.ai.\n\n    kie, audio, ai\n\n    Create a video with visualizations based on your generated music track.",
-      "outputType": "audio",
-      "useSuno": true,
-      "sunoEndpoint": "/api/v1/mp4/generate",
-      "fields": [
-        {
-          "name": "taskId",
-          "type": "str",
-          "default": "",
-          "title": "Task Id",
-          "description": "Unique identifier of the music generation task. This should be a taskId returned from either the \"Generate Music\" or \"Extend Music\" endpoints.",
-          "required": true
-        },
-        {
-          "name": "audioId",
-          "type": "str",
-          "default": "",
-          "title": "Audio Id",
-          "description": "Unique identifier of the specific audio track to visualize. This ID is returned in the callback data after music generation completes.",
-          "required": true
-        },
-        {
-          "name": "author",
-          "type": "str",
-          "default": "",
-          "title": "Author",
-          "description": "Artist or creator name to display as a signature on the video cover. Maximum 50 characters. This creates attribution for the music creator.",
-          "required": false,
-          "max": 50
-        },
-        {
-          "name": "domainName",
-          "type": "str",
-          "default": "",
-          "title": "Domain Name",
-          "description": "Website or brand to display as a watermark at the bottom of the video. Maximum 50 characters. Useful for promotional branding or attribution.",
-          "required": false,
-          "max": 50
-        }
-      ],
-      "validation": [
-        {
-          "field": "taskId",
-          "rule": "not_empty",
-          "message": "Task Id is required"
-        },
-        {
-          "field": "audioId",
-          "rule": "not_empty",
-          "message": "Audio Id is required"
-        }
-      ]
-    },
-    {
       "className": "GenerateSounds",
       "modelId": "generate-sounds",
       "title": "Generate sounds",
-      "description": "Generate sounds via Kie.ai.\n\n    kie, audio, ai\n\n    Used for creating a sound generation task (Sounds Task). It supports settings for looping, tempo (BPM), pitch (Key), as well as lyrics subtitle capture, etc.",
+      "description": "Generate sounds via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/generate/sounds",
@@ -2556,198 +2966,6 @@ export const audioConfig: ModuleConfig = {
           "field": "model",
           "rule": "not_empty",
           "message": "Model is required"
-        }
-      ]
-    },
-    {
-      "className": "SunoVoiceValidate",
-      "modelId": "suno-voice-validate",
-      "title": "Suno Voice Generate Verification Phrase API",
-      "description": "Suno Voice Generate Verification Phrase API via Kie.ai.\n\n    kie, audio, ai\n\n    Generate a validation phrase for the Suno Voice custom voice workflow.",
-      "outputType": "audio",
-      "useSuno": true,
-      "sunoEndpoint": "/api/v1/voice/validate",
-      "fields": [
-        {
-          "name": "voiceUrl",
-          "type": "str",
-          "default": "",
-          "title": "Voice Url",
-          "description": "The original recording URL uploaded by the user [Required]",
-          "required": true
-        },
-        {
-          "name": "vocalStartS",
-          "type": "int",
-          "default": 0,
-          "title": "Vocal Start S",
-          "description": "Start time (in seconds) for extracting the vocal segment [Required]",
-          "required": true
-        },
-        {
-          "name": "vocalEndS",
-          "type": "int",
-          "default": 0,
-          "title": "Vocal End S",
-          "description": "End time (in seconds) for extracting the vocal segment, must be greater than vocalStartS [Required]",
-          "required": true
-        },
-        {
-          "name": "language",
-          "type": "str",
-          "default": "",
-          "title": "Language",
-          "description": "Verify the language of the short phrase. Supported languages ​​include: English (en), Chinese (zh), Spanish (es), French (fr), Portuguese (pt), German (de), Japanese (ja), Korean (ko), Hindi (hi), and Russian (ru).",
-          "required": false
-        }
-      ],
-      "validation": [
-        {
-          "field": "voiceUrl",
-          "rule": "not_empty",
-          "message": "Voice Url is required"
-        }
-      ]
-    },
-    {
-      "className": "SunoVoiceGenerate",
-      "modelId": "suno-voice-generate",
-      "title": "Suno Voice Create Custom Voice API",
-      "description": "Suno Voice Create Custom Voice API via Kie.ai.\n\n    kie, audio, ai\n\n    Generate a custom Suno Voice after the user reads the validation phrase.",
-      "outputType": "audio",
-      "useSuno": true,
-      "sunoEndpoint": "/api/v1/voice/generate",
-      "fields": [
-        {
-          "name": "taskId",
-          "type": "str",
-          "default": "",
-          "title": "Task Id",
-          "description": "Task ID",
-          "required": true
-        },
-        {
-          "name": "verifyUrl",
-          "type": "str",
-          "default": "",
-          "title": "Verify Url",
-          "description": "Audio URL for the user's recording of the server-returned `validateInfo` validation phrase. For best voice generation results, recording the phrase in a singing voice rather than plain speech is recommended. [Required]",
-          "required": true
-        },
-        {
-          "name": "voiceName",
-          "type": "str",
-          "default": "",
-          "title": "Voice Name",
-          "description": "Voice name",
-          "required": false
-        },
-        {
-          "name": "description",
-          "type": "str",
-          "default": "",
-          "title": "Description",
-          "description": "Voice description",
-          "required": false
-        },
-        {
-          "name": "style",
-          "type": "str",
-          "default": "",
-          "title": "Style",
-          "description": "Voice style",
-          "required": false
-        },
-        {
-          "name": "singerSkillLevel",
-          "type": "enum",
-          "default": "beginner",
-          "title": "Singer Skill Level",
-          "description": "Singer skill level. Supported: beginner, intermediate, advanced, professional",
-          "required": false,
-          "values": [
-            "beginner",
-            "intermediate",
-            "advanced",
-            "professional"
-          ]
-        }
-      ],
-      "validation": [
-        {
-          "field": "taskId",
-          "rule": "not_empty",
-          "message": "Task Id is required"
-        },
-        {
-          "field": "verifyUrl",
-          "rule": "not_empty",
-          "message": "Verify Url is required"
-        }
-      ]
-    },
-    {
-      "className": "SunoVoiceRegenerate",
-      "modelId": "suno-voice-regenerate",
-      "title": "Suno Voice Regenerate Verification Phrase",
-      "description": "Suno Voice Regenerate Verification Phrase via Kie.ai.\n\n    kie, audio, ai\n\n    Regenerate the validation phrase for an existing Suno Voice task.",
-      "outputType": "audio",
-      "useSuno": true,
-      "sunoEndpoint": "/api/v1/voice/regenerate",
-      "fields": [
-        {
-          "name": "taskId",
-          "type": "str",
-          "default": "",
-          "title": "Task Id",
-          "description": "Task ID",
-          "required": true
-        },
-        {
-          "name": "calBackUrl",
-          "type": "str",
-          "default": "",
-          "title": "Cal Back Url",
-          "description": "Callback URL after the task is completed",
-          "required": true
-        }
-      ],
-      "validation": [
-        {
-          "field": "taskId",
-          "rule": "not_empty",
-          "message": "Task Id is required"
-        },
-        {
-          "field": "calBackUrl",
-          "rule": "not_empty",
-          "message": "Cal Back Url is required"
-        }
-      ]
-    },
-    {
-      "className": "SunoVoiceCheckVoice",
-      "modelId": "suno-voice-check-voice",
-      "title": "Suno Voice Check Availability API",
-      "description": "Suno Voice Check Availability API via Kie.ai.\n\n    kie, audio, ai\n\n    Check whether a generated Suno custom voice is available.",
-      "outputType": "audio",
-      "useSuno": true,
-      "sunoEndpoint": "/api/v1/voice/check-voice",
-      "fields": [
-        {
-          "name": "task_id",
-          "type": "str",
-          "default": "",
-          "title": "Task Id",
-          "description": "Task ID that needs to be checked",
-          "required": true
-        }
-      ],
-      "validation": [
-        {
-          "field": "task_id",
-          "rule": "not_empty",
-          "message": "Task Id is required"
         }
       ]
     }

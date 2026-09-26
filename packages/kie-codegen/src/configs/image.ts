@@ -4163,6 +4163,256 @@ export const imageConfig: ModuleConfig = {
       ]
     },
     {
+      "className": "Qwen21TextToImage",
+      "modelId": "qwen2-1/text-to-image",
+      "title": "Qwen 2.1 - Text to Image",
+      "description": "Qwen 2.1 - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Query Task Status",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt that describes the image content, style and composition you want to generate. Required. Any language is supported, up to 5000 characters; longer input returns 422.",
+          "required": true,
+          "min": 1,
+          "max": 5000
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "The output aspect ratio. Default `1:1`. The actual pixel size also depends on `resolution` — see the aspect ratio table above for the exact dimensions of each combination.",
+          "required": false,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "16:9",
+            "9:16",
+            "21:9",
+            "9:21"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "The output resolution tier. `1K` is the faster option at roughly 7-12 seconds; `2K` produces four times the pixels and takes roughly 30-55 seconds. Only `1K` and `2K` are accepted — any other value, including `4K`, returns 422.",
+          "required": false,
+          "values": [
+            "1K",
+            "2K"
+          ]
+        },
+        {
+          "name": "background",
+          "type": "enum",
+          "default": "opaque",
+          "title": "Background",
+          "description": "Background type. transparent outputs a PNG or WebP with a real alpha channel and cannot be used with JPEG. When using transparent, describe only the subject — prompts that mention a background, scene, surface, etc. may produce a non-transparent result.",
+          "required": false,
+          "values": [
+            "opaque",
+            "transparent"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "The output image format. `png` (default) and `webp` both carry an alpha channel and can be used with `background: transparent`. `jpeg` has no alpha channel and cannot be combined with a transparent background.",
+          "required": false,
+          "values": [
+            "png",
+            "webp",
+            "jpeg"
+          ]
+        },
+        {
+          "name": "enhance_prompt",
+          "type": "bool",
+          "default": true,
+          "title": "Enhance Prompt",
+          "description": "Rewrites the prompt into a fuller scene description before generating, which noticeably improves quality. Enabled by default (also when the parameter is omitted); pass false to turn it off.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "The random seed. Omit it to generate with a random seed; the seed actually used is returned with the result. Passing the same seed together with the same prompt and parameters reproduces the same image within the same service version.",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Qwen21ImageToImage",
+      "modelId": "qwen2-1/image-to-image",
+      "title": "Qwen 2.1 - Image to Image",
+      "description": "Qwen 2.1 - Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Query Task Status",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Reference images, given as an array of 1 to 10 http(s) URLs. Required. The order of the array is the order the prompt refers to (\"the first image\", \"the second image\"). JPEG, PNG and WebP are supported, up to 30MB and 25MP each, and every URL must be directly retrievable with a GET — a reference the origin refuses with 4xx, or whose domain does not resolve, fails the request with 400. More than 10 entries returns 422. The more references you supply the less detail each individual one keeps, so stay within 4 when fidelity matters. When combining several people or objects into a single picture, a landscape ratio such as `3:2` or `16:9` usually gives better results.",
+          "required": true,
+          "min": 1,
+          "max": 10
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The prompt describing the result you want. Required. Any language is supported, up to 5000 characters; longer input returns 422. When `mask_url` is supplied, use it to describe what should be generated inside the white area of the mask.",
+          "required": true,
+          "min": 1,
+          "max": 5000
+        },
+        {
+          "name": "mask",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Mask",
+          "description": "Inpainting mask that switches the request into local-edit mode. A black and white image where **white marks the area to change and black is kept unchanged**, with a few pixels of feathering along the boundary. It must be used with exactly one entry in `image_urls`, otherwise the request returns 422. The mask should have the same aspect ratio as that reference image; a mask of a different size is scaled to it. In local-edit mode the output ratio follows the reference image, so `aspect_ratio` and `enhance_prompt` are ignored and reported in the `ignored` field of the result. It cannot be combined with `background: transparent`, which returns 422.",
+          "required": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "auto",
+          "title": "Aspect Ratio",
+          "description": "Output aspect ratio. Defaults to `auto`, which takes the aspect ratio of the first reference image and snaps it to the nearest supported ratio. The actual pixel size also depends on `resolution` — see the aspect ratio table above. Ignored in local-edit mode.",
+          "required": false,
+          "values": [
+            "auto",
+            "1:1",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "16:9",
+            "9:16",
+            "21:9",
+            "9:21"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "Output resolution tier. `1K` is the faster option; `2K` produces four times the pixels and takes considerably longer, up to about 3 minutes with reference images. Only `1K` and `2K` are accepted — any other value, including `4K`, returns 422.",
+          "required": false,
+          "values": [
+            "1K",
+            "2K"
+          ]
+        },
+        {
+          "name": "background",
+          "type": "enum",
+          "default": "opaque",
+          "title": "Background",
+          "description": "Background type. transparent outputs a PNG or WebP with a real alpha channel and cannot be used with JPEG. When using transparent, describe only the subject — prompts that mention a background, scene, surface, etc. may produce a non-transparent result.",
+          "required": false,
+          "values": [
+            "opaque",
+            "transparent"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "Output image format. `png` (default) and `webp` both carry an alpha channel and can be used with `background: transparent`. `jpeg` has no alpha channel and cannot be combined with a transparent background.",
+          "required": false,
+          "values": [
+            "png",
+            "webp",
+            "jpeg"
+          ]
+        },
+        {
+          "name": "enhance_prompt",
+          "type": "bool",
+          "default": true,
+          "title": "Enhance Prompt",
+          "description": "Rewrites the prompt into a fuller scene description before generating, which noticeably improves quality. Enabled by default (also when the parameter is omitted); pass false to turn it off.",
+          "required": false
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "The random seed. Omit it to generate with a random seed; the seed actually used is returned with the result. Passing the same seed together with the same prompt and parameters reproduces the same image within the same service version.",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "paramName": "image_urls",
+          "isList": true
+        },
+        {
+          "field": "mask",
+          "kind": "image",
+          "paramName": "mask_url"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
       "className": "Qwen3ProTextToImage",
       "modelId": "qwen3/pro-text-to-image",
       "title": "Qwen3 Pro Text to Image",
@@ -4890,6 +5140,172 @@ export const imageConfig: ModuleConfig = {
           "kind": "image",
           "paramName": "input_urls",
           "isList": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Generate4oImage",
+      "modelId": "4o-image-api",
+      "title": "Generate 4o Image",
+      "description": "Generate 4o Image via Kie.ai.\n\n    kie, image, ai\n\n    :::warning",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "(Optional) Text prompt that conveys the creative idea you want the 4o model to render. Required if neither `files_url` nor `file_url` is supplied. At least one of `prompt` or `files_url` must be provided.",
+          "required": false
+        },
+        {
+          "name": "files_url",
+          "type": "list[image]",
+          "default": [],
+          "title": "Files Url",
+          "description": "(Optional) Up to 5 publicly reachable image URLs to serve as reference or source material. Use this when you want to edit or build upon an existing picture. If you don’t have reliable hosting, upload your images first via our File Upload API quick‑start: https://docs.kie.ai/file-upload-api/quickstart. Supported formats: .jfif, .pjpeg, .jpeg, .pjp, .jpg, .png, .webp. At least one of `prompt` or `files_url` must be provided.",
+          "required": false
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "default": "",
+          "title": "Size",
+          "description": "(Required) Aspect ratio of the generated image. Must be one of the listed values.",
+          "required": true,
+          "values": [
+            "1:1",
+            "3:2",
+            "2:3"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "files_url",
+          "kind": "image",
+          "paramName": "files_url",
+          "isList": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "size",
+          "rule": "not_empty",
+          "message": "Size is required"
+        }
+      ]
+    },
+    {
+      "className": "GenerateOrEditImage",
+      "modelId": "flux1-kontext",
+      "title": "Generate or Edit Image",
+      "description": "Generate or Edit Image via Kie.ai.\n\n    kie, image, ai\n\n    :::warning",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt describing the desired image or edit. Required for both generation and editing modes. - Should be detailed and specific - For image editing, describe the desired changes - For image generation, describe the complete scene - IMPORTANT: Only English language is supported",
+          "required": true
+        },
+        {
+          "name": "enable_translation",
+          "type": "bool",
+          "default": false,
+          "title": "Enable Translation",
+          "description": "Whether to enable automatic translation feature. - Since prompt only supports English, when this parameter is true, the system will automatically translate non-English prompts to English - If your prompt is already in English, you can set this to false - Default value: true",
+          "required": false
+        },
+        {
+          "name": "upload_cn",
+          "type": "bool",
+          "default": false,
+          "title": "Upload Cn",
+          "description": "(Optional) Specifies the server region for image upload. Set to true to use servers in China, false to use non-China servers. Choose based on your geographical location for optimal upload speeds.",
+          "required": false
+        },
+        {
+          "name": "input_image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Input Image",
+          "description": "URL of the input image for editing mode. Required when editing an existing image. - Must be a valid image URL - Image must be accessible to the API server",
+          "required": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "description": "Output image aspect ratio. You Applicable in both text-to-image generation and image editing modes. For **text-to-image generation** , the output image will follow the specified aspect ratio. For **image editing** , if aspectRatio is provided, the edited image will follow that ratio. If not provided, the image will retain its original aspect ratio. Supported Aspect Ratios: | Ratio | Format Type | Common Use Cases | |-------|-------------|-----------------| | 21:9 | Ultra-wide | Cinematic displays, panoramic views | | 16:9 | Widescreen | HD video, desktop wallpapers | | 4:3 | Standard | Traditional displays, presentations | | 1:1 | Square | Social media posts, profile pictures | | 3:4 | Portrait | Magazine layouts, portrait photos | | 9:16 | Mobile Portrait | Smartphone wallpapers, stories | > Note: Default ratio is \"16:9\" if not specified.",
+          "required": false,
+          "values": [
+            "21:9",
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "jpeg",
+          "title": "Output Format",
+          "description": "Output image format.",
+          "required": false,
+          "values": [
+            "jpeg",
+            "png"
+          ]
+        },
+        {
+          "name": "prompt_upsampling",
+          "type": "bool",
+          "default": false,
+          "title": "Prompt Upsampling",
+          "description": "- If true, performs upsampling on the prompt - May increase processing time",
+          "required": false
+        },
+        {
+          "name": "safety_tolerance",
+          "type": "int",
+          "default": 2,
+          "title": "Safety Tolerance",
+          "description": "**For Image Generation Mode:** Moderation level for inputs and outputs. Value ranges from 0 (most strict) to 6 (more permissive). **For Image Editing Mode:** Moderation level for inputs and outputs. Value ranges from 0 (most strict) to 2 (balanced). Default: 2",
+          "required": false
+        },
+        {
+          "name": "watermark",
+          "type": "str",
+          "default": "",
+          "title": "Watermark",
+          "description": "Watermark identifier to add to the generated image. - Optional - If provided, a watermark will be added to the output image",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "input_image",
+          "kind": "image",
+          "paramName": "input_image"
         }
       ],
       "validation": [

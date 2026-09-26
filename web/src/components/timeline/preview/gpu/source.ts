@@ -1,4 +1,5 @@
 import type { CompositeSource } from "./types";
+import { previewVideoFrameReady } from "./videoFrameVersion";
 
 /**
  * Whether a source is a canvas — an `OffscreenCanvas` a 3D render session draws
@@ -19,7 +20,7 @@ export function isCanvasSource(source: CompositeSource): boolean {
  */
 export function isSourceReady(source: CompositeSource): boolean {
   if (source instanceof HTMLVideoElement) {
-    return source.readyState >= 2;
+    return source.readyState >= 2 && !source.seeking && previewVideoFrameReady(source) !== false;
   }
   if (source instanceof HTMLImageElement) {
     return source.complete && source.naturalWidth > 0;

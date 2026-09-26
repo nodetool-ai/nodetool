@@ -1239,8 +1239,12 @@ export function App({
     changeInput(next < 0 ? draft : (inputHistory[next] ?? ""));
   }
   useInput((keyInput, key) => {
-    if (prompt) {
-      const choice = prompt.choices.find(
+    // Ink re-registers this handler in an effect after each render, so a key
+    // pressed as a prompt opens can reach the handler from before it. Read the
+    // live prompt rather than the rendered state.
+    const pending = prompts.current.current;
+    if (pending) {
+      const choice = pending.choices.find(
         (item) => item.key === keyInput.toLowerCase()
       );
       if (choice) {

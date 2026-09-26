@@ -25,7 +25,7 @@ export const ARTIFACT_DIR = resolve(WEB_ROOT, "test-results/e2e-runner");
 export const TRACE_FILE = resolve(ARTIFACT_DIR, "traces.jsonl");
 
 const BACKEND_HOST = "127.0.0.1";
-const BACKEND_PORT = 7777;
+const BACKEND_PORT = Number(process.env.E2E_BACKEND_PORT ?? 7777);
 const STARTUP_TIMEOUT_MS = 120_000;
 const E2E_TEST_MASTER_KEY_B64 = "RTJFX1RFU1RfS0VZX0RPX05PVF9VU0VfSU5fUFJPRCE=";
 

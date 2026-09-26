@@ -1,20 +1,26 @@
 #!/usr/bin/env tsx
 import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
-import { KieSchemaFetcher } from "./schema-fetcher.js";
+import { KieSchemaFetcher, legacySunoDocUrl } from "./schema-fetcher.js";
 import { parseKieSchema } from "./schema-parser.js";
-import { writeKieConfigs } from "./config-writer.js";
+import { readKieConfigs, writeKieConfigs } from "./config-writer.js";
 import type { NodeConfig } from "./types.js";
 
 interface GenerateKieConfigsOptions {
   useCache?: boolean;
   limit?: number;
+  /**
+   * Configs from the last generation. A node whose docs page fails to fetch
+   * keeps its previous config instead of disappearing from the manifest.
+   */
+  previous?: NodeConfig[];
 }
 
 export async function generateKieConfigs(
   options: GenerateKieConfigsOptions = {}
 ): Promise<NodeConfig[]> {
   const useCache = options.useCache ?? true;
+  const previous = options.previous ?? (await readKieConfigs());
   const fetcher = new KieSchemaFetcher();
 
   const llms = await fetcher.fetchLlms(useCache);
@@ -26,11 +32,16 @@ export async function generateKieConfigs(
   const seenClassNames = new Map<string, number>();
   const seenSignatures = new Set<string>();
   const failures: string[] = [];
+  const kept: string[] = [];
 
   for (const entry of selectedEntries) {
     try {
       console.log(`Fetching ${entry.title}...`);
-      const markdown = await fetcher.fetchDocsPage(entry.url, useCache);
+      let markdown = await fetcher.fetchDocsPage(entry.url, useCache);
+      const legacyUrl = legacySunoDocUrl(markdown);
+      if (legacyUrl) {
+        markdown = await fetcher.fetchDocsPage(legacyUrl, useCache);
+      }
       const node = parseKieSchema(markdown, entry);
       if (!node) {
         continue;
@@ -56,6 +67,13 @@ export async function generateKieConfigs(
       failures.push(
         `${entry.url}: ${error instanceof Error ? error.message : String(error)}`
       );
+      for (const node of previous) {
+        if (node.title === entry.title && !seenClassNames.has(node.className)) {
+          seenClassNames.set(node.className, 1);
+          nodes.push(node);
+          kept.push(node.className);
+        }
+      }
     }
   }
 
@@ -74,6 +92,9 @@ export async function generateKieConfigs(
     for (const failure of failures) {
       console.log(`  ${failure}`);
     }
+  }
+  if (kept.length) {
+    console.log(`Kept previous configs for: ${kept.join(", ")}`);
   }
   return nodes;
 }

@@ -1,13 +1,17 @@
 import type { ClipTextStyle } from "@nodetool-ai/timeline";
 import { stub } from "../../../../test-utils/doubles";
 
-import { TextRasterizer } from "../textRender";
+import {
+  TextRasterizer,
+  TEXT_BITMAP_CACHE_BUDGET_BYTES
+} from "../textRender";
+import { BitmapFrameScope } from "../BitmapFrameScope";
 import { installGlobal } from "../../../../test-utils/doubles";
 
 describe("TextRasterizer", () => {
   const originalOffscreenCanvas = globalThis.OffscreenCanvas;
   const close = jest.fn();
-  const bitmap = stub<ImageBitmap>({ close });
+  const bitmap = stub<ImageBitmap>({ close, width: 1920, height: 1080 });
   // The subset of `RasterContext2D` a plain unstyled title touches. It has no
   // `letterSpacing`, which is the hand-placed advance path — with no spacing
   // set, that is still one `fillText` per line.
@@ -50,6 +54,7 @@ describe("TextRasterizer", () => {
 
   it("draws styled text and reuses the cached bitmap", () => {
     const rasterizer = new TextRasterizer();
+    const frame = new BitmapFrameScope();
     const style: ClipTextStyle = {
       text: "Motion title",
       fontFamily: "Inter",
@@ -60,8 +65,8 @@ describe("TextRasterizer", () => {
       maxWidthFrac: 0.75
     };
 
-    const first = rasterizer.rasterize(style, 1920, 1080);
-    const second = rasterizer.rasterize(style, 1920, 1080);
+    const first = rasterizer.rasterize(style, 1920, 1080, undefined, frame);
+    const second = rasterizer.rasterize(style, 1920, 1080, undefined, frame);
 
     expect(second).toBe(first);
     expect(transferToImageBitmap).toHaveBeenCalledTimes(1);
@@ -76,11 +81,13 @@ describe("TextRasterizer", () => {
     expect(context.fillText).toHaveBeenCalledWith("Motion title", 1560, 540);
 
     rasterizer.dispose();
+    frame.release();
     expect(close).toHaveBeenCalledTimes(1);
   });
 
   it("preserves authored line breaks", () => {
     const rasterizer = new TextRasterizer();
+    const frame = new BitmapFrameScope();
 
     rasterizer.rasterize(
       {
@@ -89,7 +96,9 @@ describe("TextRasterizer", () => {
         color: "#ffffff"
       },
       1920,
-      1080
+      1080,
+      undefined,
+      frame
     );
 
     expect(context.fillText).toHaveBeenNthCalledWith(
@@ -107,5 +116,48 @@ describe("TextRasterizer", () => {
     expect(context.fillText.mock.calls[0][2]).not.toBe(
       context.fillText.mock.calls[1][2]
     );
+    rasterizer.dispose();
+    frame.release();
+  });
+
+  it("defers closing a rasterized frame bitmap until the frame releases it", () => {
+    const rasterizer = new TextRasterizer();
+    const frame = new BitmapFrameScope();
+    const rendered = rasterizer.rasterize(
+      { text: "Pinned", fontSizePx: 24, color: "#ffffff" },
+      1920,
+      1080,
+      undefined,
+      frame
+    );
+
+    expect(rendered).toBe(bitmap);
+    rasterizer.dispose();
+    expect(close).not.toHaveBeenCalled();
+    frame.release();
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps an oversized live frame until release, then returns below budget", () => {
+    Object.defineProperty(bitmap, "width", { configurable: true, value: 8192 });
+    Object.defineProperty(bitmap, "height", { configurable: true, value: 4096 });
+    const rasterizer = new TextRasterizer();
+    const frame = new BitmapFrameScope();
+
+    rasterizer.rasterize(
+      { text: "Large frame", fontSizePx: 72, color: "#ffffff" },
+      8192,
+      4096,
+      undefined,
+      frame
+    );
+
+    expect(rasterizer.residentBytes).toBeGreaterThan(TEXT_BITMAP_CACHE_BUDGET_BYTES);
+    expect(close).not.toHaveBeenCalled();
+    frame.release();
+    expect(rasterizer.residentBytes).toBe(0);
+    expect(close).toHaveBeenCalledTimes(1);
+    Object.defineProperty(bitmap, "width", { configurable: true, value: 1920 });
+    Object.defineProperty(bitmap, "height", { configurable: true, value: 1080 });
   });
 });

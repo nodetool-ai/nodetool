@@ -107,7 +107,8 @@ function loadWorkflows(): WorkflowFile[] {
  * of these nodes are skipped.
  */
 const NETWORK_BYPASSING_NODES = new Set<string>([
-  "openai.agents.RealtimeAgent"
+  "openai.agents.RealtimeAgent",
+  "openai.agents.LiveAgent"
 ]);
 
 /**

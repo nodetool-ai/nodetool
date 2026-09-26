@@ -13,6 +13,7 @@
 
 import type { ResolvedCaption } from "@nodetool-ai/timeline/render";
 import { captionSignature, drawCaption } from "@nodetool-ai/timeline/render";
+import { BitmapFrameScope } from "./BitmapFrameScope";
 
 const MAX_CACHE_ENTRIES = 64;
 
@@ -27,6 +28,26 @@ export { captionSignature };
  */
 export class CaptionRasterizer {
   private cache = new Map<string, ImageBitmap>();
+  private pins = new Map<ImageBitmap, number>();
+  private deferredClose = new Set<ImageBitmap>();
+
+  private retire(bitmap: ImageBitmap): void {
+    if (this.pins.has(bitmap)) this.deferredClose.add(bitmap);
+    else bitmap.close();
+  }
+
+  private pin(bitmap: ImageBitmap, frameScope: BitmapFrameScope): void {
+    if (!frameScope.pin(bitmap, () => {
+      const remaining = (this.pins.get(bitmap) ?? 1) - 1;
+      if (remaining === 0) {
+        this.pins.delete(bitmap);
+        if (this.deferredClose.delete(bitmap)) bitmap.close();
+      } else {
+        this.pins.set(bitmap, remaining);
+      }
+    })) return;
+    this.pins.set(bitmap, (this.pins.get(bitmap) ?? 0) + 1);
+  }
   /**
    * Memoize the content signature per caption object identity. A
    * `ResolvedCaption` is rebuilt each frame the *content* changes, so an
@@ -56,7 +77,8 @@ export class CaptionRasterizer {
   rasterize(
     caption: ResolvedCaption,
     width: number,
-    height: number
+    height: number,
+    frameScope: BitmapFrameScope
   ): ImageBitmap | null {
     if (caption.words.length === 0) return null;
     if (typeof OffscreenCanvas === "undefined") return null;
@@ -64,18 +86,23 @@ export class CaptionRasterizer {
 
     const key = this.signatureFor(caption, width, height);
     const hit = this.cache.get(key);
-    if (hit) return hit;
+    if (hit) {
+      this.pin(hit, frameScope);
+      return hit;
+    }
 
     const canvas = new OffscreenCanvas(width, height);
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
     drawCaption(ctx, caption, width, height);
     const bitmap = canvas.transferToImageBitmap();
+    this.pin(bitmap, frameScope);
 
     if (this.cache.size >= MAX_CACHE_ENTRIES) {
       const oldest = this.cache.keys().next().value;
       if (oldest !== undefined) {
-        this.cache.get(oldest)?.close();
+        const retired = this.cache.get(oldest);
+        if (retired) this.retire(retired);
         this.cache.delete(oldest);
       }
     }
@@ -84,7 +111,7 @@ export class CaptionRasterizer {
   }
 
   dispose(): void {
-    for (const bitmap of this.cache.values()) bitmap.close();
+    for (const bitmap of this.cache.values()) this.retire(bitmap);
     this.cache.clear();
   }
 }

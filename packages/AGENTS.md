@@ -389,6 +389,22 @@ fixes:
   `signal.aborted` check, and surface `AbortError` (not the internal interrupt
   error). Clean up the listener.
 
+## Adding or Changing a Node
+
+A node's type, properties, and outputs are copied into generated files and
+pinned by tests. Update them in the same change, or CI fails:
+
+1. Search the package's tests for the node list it exports, such as
+   `OPENAI_NODES` in `llm-nodes/tests/openai.test.ts`. Tests pin these
+   lists with `toHaveLength`, so a new node changes the expected count.
+2. Run `npm run build:packages`, then regenerate both DSL copies:
+   `npm run codegen:dsl` for `packages/dsl`, then `npm run build:sandbox-dsl`
+   for the sandbox guest pack. `codegen:dsl:check` and
+   `build:sandbox-dsl:check` gate each copy in CI.
+3. Run `npm run generate:node-docs`. Commit the pages for the nodes you
+   changed and their namespace index. Leave regenerated pages for untouched
+   nodes out of the change.
+
 ## Adding a New Package
 
 1. Create directory under `packages/<name>/` with `package.json`, `tsconfig.json`, `src/index.ts`.

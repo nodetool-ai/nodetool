@@ -623,7 +623,12 @@ function modelIdFromSchema(schema: JsonRecord): string | null {
     return enumValues[0];
   }
   const fallback = model?.default;
-  return isJsonString(fallback) ? fallback : null;
+  if (isJsonString(fallback)) {
+    return fallback;
+  }
+  // Some pages give the fixed model only as an example
+  // ("veo/get-1080p-video", "ai-music-api/generate").
+  return asStringArray(model?.examples)?.[0] ?? null;
 }
 
 export function parseKieSchema(

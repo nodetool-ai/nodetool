@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchFalBillingCost } from "../src/fal-billing.js";
+import { getCostReconciler } from "@nodetool-ai/runtime";
+import { fetchFalBillingCost, registerFalCostReconciler } from "../src/fal-billing.js";
 
 const REQ = "req-123";
 
@@ -18,6 +19,39 @@ describe("fetchFalBillingCost", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it("registers for generic and legacy FAL provider IDs", () => {
+    registerFalCostReconciler();
+    expect(getCostReconciler("fal_ai")).toBeDefined();
+    expect(getCostReconciler("fal")).toBeDefined();
+  });
+
+  it("uses the configured FAL_API_KEY for both provider IDs", async () => {
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        billing_events: [
+          { request_id: REQ, cost_estimate_nano_usd: 50_000_000 }
+        ]
+      })
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    registerFalCostReconciler();
+    for (const provider of ["fal", "fal_ai"]) {
+      const reconciler = getCostReconciler(provider);
+      expect(reconciler).toBeDefined();
+      const result = await reconciler?.({
+        requestId: REQ,
+        secrets: { FAL_API_KEY: "configured-fal-key" }
+      });
+      expect(result?.cost).toBe(0.05);
+    }
+    expect(fetchMock.mock.calls.map(([, init]) => init.headers)).toEqual([
+      { Authorization: "Key configured-fal-key" },
+      { Authorization: "Key configured-fal-key" }
+    ]);
   });
 
   it("converts cost_estimate_nano_usd to USD for the matching request", async () => {

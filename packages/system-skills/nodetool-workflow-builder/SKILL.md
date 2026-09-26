@@ -183,7 +183,8 @@ Edges enforce type compatibility. Use `any` type for flexible connections.
 ### Pattern 7: Realtime Processing
 **Shape**: RealtimeAudioInput → RealtimeAgent → Preview
 **Use for**: Voice interfaces, live transcription, interactive audio.
-**Key nodes**: RealtimeAudioInput, RealtimeAgent, RealtimeWhisper
+**Key nodes**: RealtimeAudioInput, RealtimeAgent, LiveAgent, RealtimeWhisper
+**LiveAgent** runs GPT-Live: full-duplex speech with a Responses backend for lookups and web search. Feed it 24 kHz PCM16 microphone chunks.
 
 ### Pattern 8: Multi-Modal Workflows
 **Shape**: Any modality in → transforms → target modality out

@@ -45,6 +45,14 @@ import {
 } from "../../ui_primitives";
 
 import { createCompositor } from "./gpu/createCompositor";
+import {
+  expectPreviewVideoFrame,
+  markPreviewVideoSeeked,
+  previewVideoFrameGeneration,
+  previewVideoFrameReady,
+  seekPreviewShutterFrame,
+  trackPreviewVideoFrames
+} from "./gpu/videoFrameVersion";
 import type { CompositeLayer, CompositePrecomposite, TimelineCompositor } from "./gpu/types";
 import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
 import { ReframeFocusOverlay } from "./ReframeFocusOverlay";
@@ -83,6 +91,8 @@ import {
 import { matteOnlyLayers } from "./matteOverlay";
 import {
   bindVideoSlots,
+  bindPreparedVideoSlots,
+  promotePreparedVideoSlot,
   videoSlotKey,
   type VideoSlotBinding
 } from "./videoSlotPool";
@@ -96,6 +106,9 @@ import {
 import { CaptionRasterizer } from "./captionRender";
 import { TextRasterizer } from "./textRender";
 import { ShapeRasterizer } from "./shapeRender";
+import { BitmapFrameScope } from "./BitmapFrameScope";
+import { previewBackingSize, previewQualityScale } from "./previewQuality";
+import type { PreviewQuality } from "./previewQuality";
 import { textMeasurer } from "./textMeasure";
 import { PreviewRecovery } from "./PreviewRecovery";
 import { watchVideoHealth } from "./videoHealth";
@@ -242,9 +255,12 @@ function isClipUpcoming(clip: TimelineClip, currentTimeMs: number): boolean {
 interface PreviewSurfaceProps {
   readonly onFailure: PreviewFailureHandler;
   readonly onReady: () => void;
+  readonly quality: PreviewQuality;
 }
 
-export const PreviewCompositor: React.FC = () => {
+export const PreviewCompositor: React.FC<{ quality?: PreviewQuality }> = ({
+  quality = "auto"
+}) => {
   const pause = useTimelinePlaybackStore((s) => s.pause);
   const timelineId = useTimelineStore((s) => s.sequenceId);
   return (
@@ -254,14 +270,14 @@ export const PreviewCompositor: React.FC = () => {
       timelineId={timelineId ?? undefined}
     >
       {(onFailure, onReady) => (
-        <PreviewSurface onFailure={onFailure} onReady={onReady} />
+        <PreviewSurface onFailure={onFailure} onReady={onReady} quality={quality} />
       )}
     </PreviewRecovery>
   );
 };
 
 const PreviewSurface = memo((props: PreviewSurfaceProps) => {
-  const { onFailure: reportFailure, onReady } = props;
+  const { onFailure: reportFailure, onReady, quality } = props;
   const theme = useTheme();
   const alive = useRef(true);
   useEffect(() => {
@@ -312,6 +328,12 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       sequenceHeight: s.height,
       sequenceFps: s.fps
     }))
+  );
+  const qualityScale = previewQualityScale(
+    quality,
+    sequenceWidth,
+    sequenceHeight,
+    isPlaying
   );
 
   const patchClip = useTimelineStore((s) => s.patchClip);
@@ -455,11 +477,16 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   // Hidden HTMLVideoElement pool — still browser-decoded, but never rendered.
   // Their pixels are uploaded each frame to GPU textures by the compositor.
   const videoRefs = useRef<HTMLVideoElement[]>([]);
+  const videoFrameCleanups = useRef<Map<HTMLVideoElement, () => void>>(new Map());
+  const renderFrameRef = useRef<() => void>(() => {});
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
   /** Stable `clipId:assetUrl` → hot-slot binding (`videoSlotPool`). Survives
    *  neighbor-clip churn during transition overlaps so an active clip keeps
    *  its HTMLVideoElement (no reload + seek glitch when the previous clip
    *  ends), and gives a matted clip's picture and its mask a slot each. */
   const clipSlotMap = useRef<Map<string, VideoSlotBinding>>(new Map());
+  const preparedSlotMap = useRef<Map<string, number>>(new Map());
   const [poolReady, setPoolReady] = useState(false);
   const poolContainerRef = useRef<HTMLDivElement>(null);
 
@@ -477,10 +504,9 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     };
   }, []);
 
-  // Pending video-element seek closures, keyed by the element. Stored on a
-  // ref so the once-attached `loadedmetadata` listener always runs the most
-  // recent target rather than a stale snapshot.
-  const pendingSeeks = useRef<Map<HTMLVideoElement, () => void>>(new Map());
+  const metadataSeekCleanups = useRef<Map<HTMLVideoElement, () => void>>(new Map());
+  const seekReadyCleanups = useRef<Map<HTMLVideoElement, () => void>>(new Map());
+  const pendingVideoPlays = useRef<Map<HTMLVideoElement, () => void>>(new Map());
 
   const containerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -492,6 +518,44 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   );
   const textRasterizerRef = useRef<TextRasterizer>(new TextRasterizer());
   const shapeRasterizerRef = useRef<ShapeRasterizer>(new ShapeRasterizer());
+  const pendingBitmapFramesRef = useRef<BitmapFrameScope[]>([]);
+  const publishBitmapCacheMetrics = (peakFrame = false): void => {
+    const canvas = canvasRef.current;
+    const perfWindow = window as Window & {
+      __nodetoolTimelinePerf?: (event: unknown) => void;
+      __timelineBitmapCache?: {
+        textBytes: number;
+        shapeBytes: number;
+        peakTextBytes: number;
+        peakShapeBytes: number;
+      };
+    };
+    if (!canvas || !perfWindow.__nodetoolTimelinePerf) return;
+    const textBytes = textRasterizerRef.current.residentBytes;
+    const shapeBytes = shapeRasterizerRef.current.residentBytes;
+    canvas.dataset.textBitmapCacheBytes = String(textBytes);
+    canvas.dataset.shapeBitmapCacheBytes = String(shapeBytes);
+    if (peakFrame) {
+      canvas.dataset.textBitmapCachePeakBytes = String(Math.max(
+        Number(canvas.dataset.textBitmapCachePeakBytes ?? 0),
+        textBytes
+      ));
+      canvas.dataset.shapeBitmapCachePeakBytes = String(Math.max(
+        Number(canvas.dataset.shapeBitmapCachePeakBytes ?? 0),
+        shapeBytes
+      ));
+    }
+    perfWindow.__timelineBitmapCache = {
+      textBytes,
+      shapeBytes,
+      peakTextBytes: Number(canvas.dataset.textBitmapCachePeakBytes ?? textBytes),
+      peakShapeBytes: Number(canvas.dataset.shapeBitmapCachePeakBytes ?? shapeBytes)
+    };
+  };
+  const releaseBitmapFrames = (): void => {
+    for (const frame of pendingBitmapFramesRef.current.splice(0)) frame.release();
+    publishBitmapCacheMetrics();
+  };
   const [gpuReady, setGpuReady] = useState(false);
   const previewBlur = useMemo(() => resolveSceneMotionBlur(previewClips, undefined), [previewClips]);
   const [gpuFailed, setGpuFailed] = useState(false);
@@ -524,10 +588,13 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     videoRefs.current = pool;
     setPoolReady(true);
 
-    const pendingSeeksMap = pendingSeeks.current;
     return () => {
       cleanups.forEach((cleanup) => cleanup());
       for (const el of pool) {
+        metadataSeekCleanups.current.get(el)?.();
+        seekReadyCleanups.current.get(el)?.();
+        pendingVideoPlays.current.delete(el);
+        videoFrameCleanups.current.get(el)?.();
         el.pause();
         // Plain `el.src = ""` resolves to the document URL and can fire a
         // spurious request; this is what actually clears the media element.
@@ -538,7 +605,12 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         }
       }
       videoRefs.current = [];
-      pendingSeeksMap.clear();
+      videoFrameCleanups.current.clear();
+      metadataSeekCleanups.current.clear();
+      seekReadyCleanups.current.clear();
+      pendingVideoPlays.current.clear();
+      preparedSlotMap.current.clear();
+      clipSlotMap.current.clear();
       setPoolReady(false);
     };
   }, [onFailure]);
@@ -589,6 +661,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     return () => {
       cancelled = true;
       canvas.removeEventListener("contextlost", onContextLost);
+      releaseBitmapFrames();
       compositorRef.current?.dispose();
       compositorRef.current = null;
       rasterizer.dispose();
@@ -626,9 +699,13 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           prev.w === fit.w && prev.h === fit.h ? prev : { w: fit.w, h: fit.h }
         );
 
-        const dpr = window.devicePixelRatio || 1;
-        const w = Math.max(1, Math.floor(fit.w * dpr));
-        const h = Math.max(1, Math.floor(fit.h * dpr));
+        const backingSize = previewBackingSize(
+          fit.w,
+          fit.h,
+          window.devicePixelRatio || 1,
+          qualityScale
+        );
+        const { width: w, height: h } = backingSize;
         const blurCanvas = blurCanvasRef.current;
         if (blurCanvas && (blurCanvas.width !== w || blurCanvas.height !== h)) {
           blurCanvas.width = w;
@@ -644,16 +721,19 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             buildAdjustmentsRef.current(currentTimeMsRef.current)
           );
           compositorRef.current?.render();
+          releaseBitmapFrames();
         }
       } catch (error) {
         onFailure({ stage: "renderer-resize", error });
+      } finally {
+        releaseBitmapFrames();
       }
     };
     apply();
     const ro = new ResizeObserver(apply);
     ro.observe(container);
     return () => ro.disconnect();
-  }, [sequenceWidth, sequenceHeight, onFailure]);
+  }, [sequenceWidth, sequenceHeight, qualityScale, onFailure]);
 
   // transform.position is stored in sequence pixels; tell the compositor the
   // sequence resolution so placement doesn't depend on viewport size / DPR.
@@ -826,6 +906,17 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
 
       const videoSlots: ActiveVideoSlot[] = [];
       const placeholders: PlaceholderLayer[] = [];
+      const placeholderClipIds = new Set<string>();
+      const addPlaceholder = (layer: ActiveLayer): void => {
+        if (placeholderClipIds.has(layer.clipId)) return;
+        placeholderClipIds.add(layer.clipId);
+        placeholders.push({
+          clipId: layer.clipId,
+          trackIndex: layer.trackIndex,
+          status: layer.clip.status,
+          name: layer.clip.name
+        });
+      };
       // A matte source is held out of `layers` so it never draws itself, but
       // its pixels still have to be decoded — including into a pool slot when
       // it is a video.
@@ -840,12 +931,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         }
         const url = resolveUrl(layer.assetId);
         if (!url) {
-          placeholders.push({
-            clipId: layer.clipId,
-            trackIndex: layer.trackIndex,
-            status: layer.clip.status,
-            name: layer.clip.name
-          });
+          addPlaceholder(layer);
           return;
         }
         if (layer.kind === "video") {
@@ -864,12 +950,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         ) {
           // No WebGL, or a model that could not be loaded (R1). Draw the
           // outlined placeholder rather than a silent gap in the frame.
-          placeholders.push({
-            clipId: layer.clipId,
-            trackIndex: layer.trackIndex,
-            status: layer.clip.status,
-            name: layer.clip.name
-          });
+          addPlaceholder(layer);
         }
       };
       for (const layer of layers) visit(layer);
@@ -1050,6 +1131,20 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     if (!poolReady) return;
     const pool = videoRefs.current;
     try {
+      const seekAfterMetadata = (el: HTMLVideoElement, seek: () => void): void => {
+        metadataSeekCleanups.current.get(el)?.();
+        metadataSeekCleanups.current.delete(el);
+        if (el.readyState >= 1) {
+          seek();
+          return;
+        }
+        const onMetadata = (): void => {
+          metadataSeekCleanups.current.delete(el);
+          seek();
+        };
+        el.addEventListener("loadedmetadata", onMetadata, { once: true });
+        metadataSeekCleanups.current.set(el, () => el.removeEventListener("loadedmetadata", onMetadata));
+      };
       // Stable (clip, asset)→hot-slot binding. Reuse existing assignments first,
       // then fill empty slots for newly-active pairs. Slots whose pair is no
       // longer active become free for reuse.
@@ -1058,19 +1153,66 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         clipSlotMap.current,
         HOT_POOL_SIZE
       );
+      const promotedKeys = new Set<string>();
+
+      for (const slot of activeVideoSlots) {
+        const key = videoSlotKey(slot.clipId, slot.assetUrl);
+        const binding = clipSlotMap.current.get(key);
+        if (binding) {
+          if (preparedSlotMap.current.has(key)) {
+            const displaced = pool[binding.index];
+            if (displaced) {
+              metadataSeekCleanups.current.get(displaced)?.();
+              metadataSeekCleanups.current.delete(displaced);
+              seekReadyCleanups.current.get(displaced)?.();
+              seekReadyCleanups.current.delete(displaced);
+              pendingVideoPlays.current.delete(displaced);
+              displaced.pause();
+            }
+          }
+          if (promotePreparedVideoSlot(key, binding.index, preparedSlotMap.current, pool)) {
+            promotedKeys.add(key);
+          }
+        }
+      }
 
       activeVideoSlots.forEach((slot) => {
-        const binding = clipSlotMap.current.get(
-          videoSlotKey(slot.clipId, slot.assetUrl)
-        );
+        const key = videoSlotKey(slot.clipId, slot.assetUrl);
+        const binding = clipSlotMap.current.get(key);
         if (binding === undefined || binding.index >= pool.length) return;
         const el = pool[binding.index];
         el.dataset.clipId = slot.clipId;
 
-        if (el.getAttribute("data-asset") !== slot.assetUrl) {
+        const sourceChanged = el.getAttribute("data-asset") !== slot.assetUrl;
+        if (sourceChanged) {
+          metadataSeekCleanups.current.get(el)?.();
+          metadataSeekCleanups.current.delete(el);
+          seekReadyCleanups.current.get(el)?.();
+          seekReadyCleanups.current.delete(el);
+          pendingVideoPlays.current.delete(el);
+          videoFrameCleanups.current.get(el)?.();
           el.src = slot.assetUrl;
           el.setAttribute("data-asset", slot.assetUrl);
           el.load();
+          videoFrameCleanups.current.set(el, trackPreviewVideoFrames(el, () => {
+            if (previewVideoFrameReady(el)) {
+              const pendingPlay = pendingVideoPlays.current.get(el);
+              if (pendingPlay) {
+                pendingVideoPlays.current.delete(el);
+                seekReadyCleanups.current.get(el)?.();
+                seekReadyCleanups.current.delete(el);
+                pendingPlay();
+              }
+            }
+            if (!isPlayingRef.current) renderFrameRef.current();
+          }));
+          const bindingTimeMs = isPlaying ? getTimeMs() : currentTimeMs;
+          expectPreviewVideoFrame(
+            el,
+            slot.baked
+              ? bakedClipSourceTimeSec(slot.clip, bindingTimeMs)
+              : clipSourceTimeSec(slot.clip, bindingTimeMs)
+          );
         }
 
         const clip = slot.clip;
@@ -1086,8 +1228,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
 
         // Setting currentTime before HAVE_METADATA is silently clamped to 0 and
         // a subsequent play() can reject with AbortError. Defer until the
-        // element reports metadata; on next render the slot's pending closure
-        // (kept in pendingSeeks) re-runs with fresh state.
+        // element reports metadata; the latest slot closure runs then.
         const applySeek = () => {
           try {
             if (el.readyState < 1) return;
@@ -1105,13 +1246,12 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             const targetSec = rawTargetSec;
             // A remapped element never runs on its own clock, so its position is
             // always wrong by more than a playing element's tolerance would allow.
-            const toleranceSec = isPlaying && !remapped ? 0.15 : 0.04;
-            if (Math.abs(el.currentTime - targetSec) > toleranceSec) {
-              el.currentTime = targetSec;
-            }
+            const toleranceSec = promotedKeys.has(key) || sourceChanged
+              ? 0.5 / Math.max(1, sequenceFps)
+              : isPlaying && !remapped ? 0.15 : 0.04;
             el.playbackRate = remapped ? 1 : rate;
-
-            if (isPlaying && !remapped && el.paused) {
+            const play = (): void => {
+              if (!isPlayingRef.current || el.dataset.clipId !== slot.clipId || el.getAttribute("data-asset") !== slot.assetUrl) return;
               void el.play().catch((error: unknown) => {
                 // A seek, pause or source replacement intentionally cancels play().
                 if (
@@ -1125,6 +1265,27 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
                   error
                 });
               });
+            };
+            if (Math.abs(el.currentTime - targetSec) > toleranceSec) {
+              expectPreviewVideoFrame(el, targetSec);
+              if (isPlaying && !remapped) {
+                seekReadyCleanups.current.get(el)?.();
+                const onSeeked = (): void => {
+                  markPreviewVideoSeeked(el);
+                  if (pendingVideoPlays.current.has(el) && (previewVideoFrameGeneration(el) === undefined || previewVideoFrameReady(el))) {
+                    pendingVideoPlays.current.delete(el);
+                    seekReadyCleanups.current.delete(el);
+                    play();
+                  }
+                };
+                el.addEventListener("seeked", onSeeked, { once: true });
+                seekReadyCleanups.current.set(el, () => el.removeEventListener("seeked", onSeeked));
+                pendingVideoPlays.current.set(el, play);
+              }
+              el.currentTime = targetSec;
+            }
+            if (isPlaying && !remapped && el.paused && !el.seeking && !pendingVideoPlays.current.has(el)) {
+              play();
             } else if ((!isPlaying || remapped) && !el.paused) {
               el.pause();
             }
@@ -1133,63 +1294,88 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           }
         };
 
-        if (el.readyState >= 1) {
-          applySeek();
-        } else {
-          // Always stash the latest closure so the listener runs with the most
-          // recent target. Only attach the listener once; mark the element so
-          // re-runs of this effect don't pile up handlers.
-          pendingSeeks.current.set(el, applySeek);
-          if (el.getAttribute("data-seek-pending") !== "1") {
-            el.setAttribute("data-seek-pending", "1");
-            el.addEventListener(
-              "loadedmetadata",
-              () => {
-                el.removeAttribute("data-seek-pending");
-                const fn = pendingSeeks.current.get(el);
-                if (fn) {
-                  pendingSeeks.current.delete(el);
-                  fn();
-                }
-              },
-              { once: true }
-            );
-          }
-        }
+        seekAfterMetadata(el, applySeek);
       });
 
       // Pause unused hot-pool slots so their decoders go idle.
       for (let i = 0; i < HOT_POOL_SIZE; i++) {
         if (usedSlots.has(i)) continue;
         const el = pool[i];
+        if (el) {
+          seekReadyCleanups.current.get(el)?.();
+          seekReadyCleanups.current.delete(el);
+          pendingVideoPlays.current.delete(el);
+          metadataSeekCleanups.current.get(el)?.();
+          metadataSeekCleanups.current.delete(el);
+        }
         if (el && !el.paused) el.pause();
       }
 
       // Preload upcoming clips into cold pool slots. Sorted soonest-first so
       // that with more than COLD_POOL_SIZE upcoming clips, the ones closest to
       // the playhead win the slots (array order is otherwise arbitrary).
+      const preloadTimeMs = isPlaying ? getTimeMs() : currentTimeMs;
       const upcomingVideoClips = previewClips
         .filter(
           (c) =>
             (c.mediaType === "video" || c.mediaType === "overlay") &&
-            isClipUpcoming(c, currentTimeMs)
+            isClipUpcoming(c, preloadTimeMs)
         )
-        .sort((a, b) => a.startMs - b.startMs)
-        .slice(0, COLD_POOL_SIZE);
-
-      upcomingVideoClips.forEach((clip, i) => {
-        const slotIndex = HOT_POOL_SIZE + i;
-        if (slotIndex >= pool.length) return;
-        const el = pool[slotIndex];
-        el.dataset.clipId = clip.id;
-        const assetId = effectiveAssetId(clip);
-        const url = resolveUrl(assetId);
-        if (url && el.getAttribute("data-asset") !== url) {
-          el.src = url;
-          el.setAttribute("data-asset", url);
-          void el.load();
+        .sort((a, b) => a.startMs - b.startMs);
+      const upcoming: ActiveVideoSlot[] = [];
+      for (const clip of upcomingVideoClips) {
+        for (const assetId of [effectiveAssetId(clip), clip.generatedMatte && (clip.generatedMatte.status ?? "ready") === "ready" ? clip.generatedMatte.assetId : undefined]) {
+          const url = resolveUrl(assetId);
+          if (!url) continue;
+          upcoming.push({ clip, clipId: clip.id, assetUrl: url });
         }
-      });
+      }
+      const requests = upcoming.slice(0, COLD_POOL_SIZE);
+      bindPreparedVideoSlots(requests, preparedSlotMap.current, HOT_POOL_SIZE, pool.length);
+      for (const slot of requests) {
+        const key = videoSlotKey(slot.clipId, slot.assetUrl);
+        const index = preparedSlotMap.current.get(key);
+        if (index === undefined) continue;
+        const el = pool[index];
+        if (!el) continue;
+        el.dataset.clipId = slot.clipId;
+        const sourceChanged = el.getAttribute("data-asset") !== slot.assetUrl;
+        if (sourceChanged) {
+          metadataSeekCleanups.current.get(el)?.();
+          metadataSeekCleanups.current.delete(el);
+          seekReadyCleanups.current.get(el)?.();
+          seekReadyCleanups.current.delete(el);
+          pendingVideoPlays.current.delete(el);
+          videoFrameCleanups.current.get(el)?.();
+          el.src = slot.assetUrl;
+          el.setAttribute("data-asset", slot.assetUrl);
+          el.load();
+          videoFrameCleanups.current.set(el, trackPreviewVideoFrames(el, () => {
+            if (previewVideoFrameReady(el)) {
+              const pendingPlay = pendingVideoPlays.current.get(el);
+              if (pendingPlay) {
+                pendingVideoPlays.current.delete(el);
+                seekReadyCleanups.current.get(el)?.();
+                seekReadyCleanups.current.delete(el);
+                pendingPlay();
+              }
+            }
+            if (!isPlayingRef.current) renderFrameRef.current();
+          }));
+          expectPreviewVideoFrame(el, clipSourceTimeSec(slot.clip, slot.clip.startMs));
+        }
+        seekAfterMetadata(el, () => {
+          try {
+            const targetSec = clipSourceTimeSec(slot.clip, slot.clip.startMs);
+            if (Math.abs(el.currentTime - targetSec) > 0.001) {
+              expectPreviewVideoFrame(el, targetSec);
+              el.currentTime = targetSec;
+            }
+          } catch (error) {
+            onFailure({ stage: "video-seek", resourceId: slot.clipId, error });
+          }
+        });
+      }
     } catch (error) {
       onFailure({ stage: "video-pool", error });
     }
@@ -1201,6 +1387,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     isPlaying,
     getTimeMs,
     previewClips,
+    sequenceFps,
     resolveUrl,
     // Not read directly — bumped every 2s during playback purely to
     // re-evaluate cold-pool preloads mid-clip (see the effect above).
@@ -1256,6 +1443,8 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   const framePrecompositesRef = useRef(precomposites);
   const buildLayers = useCallback(
     (atMs: number, frameTimeMs = atMs, sampleIndex = 0, sampleCount = 1): CompositeLayer[] => {
+      const bitmapFrame = new BitmapFrameScope();
+      pendingBitmapFramesRef.current.push(bitmapFrame);
       const pool = videoRefs.current;
       const cache = animCacheRef.current;
       // A cut is the one thing whose picture changes every tick while the
@@ -1295,7 +1484,8 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           const bitmap = captionRasterizerRef.current.rasterize(
             layer.caption,
             sequenceWidth,
-            sequenceHeight
+            sequenceHeight,
+            bitmapFrame
           );
           return bitmap ? { source: bitmap, untransformed: true } : null;
         }
@@ -1314,7 +1504,8 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             anim.textStyle,
             sequenceWidth,
             sequenceHeight,
-            stagger
+            stagger,
+            bitmapFrame
           );
           return bitmap ? { source: bitmap } : null;
         }
@@ -1326,7 +1517,8 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           const bitmap = shapeRasterizerRef.current.rasterize(
             shapeStyle,
             sequenceWidth,
-            sequenceHeight
+            sequenceHeight,
+            bitmapFrame
           );
           return bitmap ? { source: bitmap } : null;
         }
@@ -1372,7 +1564,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         return { source: el };
       };
 
-      return buildCompositeLayers(layers, {
+      const compositeLayers = buildCompositeLayers(layers, {
         atMs,
         atMsForLayer: layerTime,
         canvas: sceneCanvas,
@@ -1380,6 +1572,9 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         tracking: { mediaTracks, clips: previewClips, tempo },
         resolveSource
       });
+      publishBitmapCacheMetrics(true);
+
+      return compositeLayers;
     },
     [
       sceneLayers,
@@ -1460,29 +1655,20 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             if (!video || video.readyState < 1) continue;
             const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, index, samples.length, frameMs, undefined);
             const sourceSec = layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, layerTimeMs);
-            if (Math.abs(video.currentTime - sourceSec) < 0.001) continue;
-            await new Promise<void>((resolve, reject) => {
-              const timeout = window.setTimeout(() => { cleanup(); reject(new Error(`Preview seek timed out for ${layer.clipId}`)); }, 2000);
-              const cleanup = (): void => {
-                window.clearTimeout(timeout);
-                video.removeEventListener("seeked", onSeeked);
-                video.removeEventListener("error", onError);
-              };
-              const onSeeked = (): void => { cleanup(); resolve(); };
-              const onError = (): void => { cleanup(); reject(new Error(`Preview seek failed for ${layer.clipId}`)); };
-              video.addEventListener("seeked", onSeeked);
-              video.addEventListener("error", onError);
-              video.currentTime = sourceSec;
-            });
+            await seekPreviewShutterFrame(video, sourceSec, layer.clipId);
           }
-          compositor.setLayers(
-            buildLayersRef.current(sampleMs, frameTimeMs, index, samples.length),
-            framePrecompositesRef.current,
-            buildAdjustmentsRef.current(sampleMs)
-          );
-          compositor.render();
-          await compositor.flush();
-          accumulateBlurSample(ctx, source, 1 / samples.length, geometry);
+          try {
+            compositor.setLayers(
+              buildLayersRef.current(sampleMs, frameTimeMs, index, samples.length),
+              framePrecompositesRef.current,
+              buildAdjustmentsRef.current(sampleMs)
+            );
+            compositor.render();
+            await compositor.flush();
+            accumulateBlurSample(ctx, source, 1 / samples.length, geometry);
+          } finally {
+            releaseBitmapFrames();
+          }
         }
         if (!presented.current && alive.current) {
           presented.current = true;
@@ -1499,6 +1685,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         buildAdjustmentsRef.current(currentTimeMsRef.current)
       );
       compositor.render();
+      releaseBitmapFrames();
       if (
         !presented.current &&
         !presenting.current &&
@@ -1526,8 +1713,11 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       }
     } catch (error) {
       onFailure({ stage: "renderer-frame", error });
+    } finally {
+      releaseBitmapFrames();
     }
   }, [gpuReady, onFailure, onReady, previewBlur, sequenceFps, sceneLayers, resolveUrl, tracks, previewClips, sceneCanvas, model3dBakeHash, mediaTracks, camera2d, tempo]);
+  renderFrameRef.current = renderFrame;
 
   // Latest-frame builder ref so renderFrame and the rAF loop can always call
   // the current buildLayers without listing it as a dep (it changes identity
@@ -1578,7 +1768,10 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   useEffect(() => {
     if (!poolReady) return;
     const pool = videoRefs.current;
-    const onFrameReady = () => renderFrame();
+    const onFrameReady = (event: Event) => {
+      if (event.target instanceof HTMLVideoElement) markPreviewVideoSeeked(event.target);
+      renderFrame();
+    };
     pool.forEach((el) => {
       el.addEventListener("seeked", onFrameReady);
       el.addEventListener("loadeddata", onFrameReady);
@@ -1645,6 +1838,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     // Force a composite on the very first frame after play starts so any
     // pending texture uploads flush even before a video reports as playing.
     let forceRender = true;
+    const presentedGenerations = new Map<HTMLVideoElement, number>();
 
     const tick = () => {
       try {
@@ -1683,12 +1877,13 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           const clip = activeVideoClipsRef.current.get(binding.clipId);
           if (!clip || !hasTimeRemap(clip)) continue;
           const el = videoRefs.current[binding.index];
-          if (!el || el.readyState < 1) continue;
+          if (!el || el.readyState < 1 || el.seeking) continue;
           const targetSec = clipSourceTimeSec(clip, liveMs);
           if (Math.abs(el.currentTime - targetSec) > 0.01) {
+            expectPreviewVideoFrame(el, targetSec);
             el.currentTime = targetSec;
+            if (previewVideoFrameGeneration(el) === undefined) remapSeeked = true;
           }
-          remapSeeked = true;
         }
 
         // A frame needs re-compositing when the active set just changed, or when
@@ -1702,7 +1897,14 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           const pool = videoRefs.current;
           for (const binding of clipSlotMap.current.values()) {
             const el = pool[binding.index];
-            if (el && !el.paused && !el.ended && el.videoWidth > 0) {
+            if (!el) continue;
+            const generation = previewVideoFrameGeneration(el);
+            if (generation !== undefined) {
+              if (generation !== presentedGenerations.get(el) && !el.seeking) {
+                dirty = true;
+                break;
+              }
+            } else if (!el.paused && !el.ended && el.videoWidth > 0) {
               dirty = true;
               break;
             }
@@ -1727,6 +1929,12 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         }
 
         if (dirty) {
+          for (const binding of clipSlotMap.current.values()) {
+            const el = videoRefs.current[binding.index];
+            if (!el || el.seeking) continue;
+            const generation = previewVideoFrameGeneration(el);
+            if (generation !== undefined) presentedGenerations.set(el, generation);
+          }
           currentTimeMsRef.current = liveMs;
           if (previewBlur.samplesPerFrame > 1) {
             renderFrame();
@@ -1737,11 +1945,14 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
               buildAdjustmentsRef.current(liveMs)
             );
             compositor.render();
+            releaseBitmapFrames();
           }
         }
         raf = requestAnimationFrame(tick);
       } catch (error) {
         onFailure({ stage: "renderer-playback", error });
+      } finally {
+        releaseBitmapFrames();
       }
     };
     raf = requestAnimationFrame(tick);

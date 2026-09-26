@@ -43,6 +43,11 @@ export class ChatPrompts {
     });
   }
 
+  /** The prompt awaiting an answer, current before React re-renders. */
+  get current(): ChatPrompt | null {
+    return this.pending[0]?.prompt ?? null;
+  }
+
   answer(answer: string): void {
     this.pending[0]?.settle(answer);
   }

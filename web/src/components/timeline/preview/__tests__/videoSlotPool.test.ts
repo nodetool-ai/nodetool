@@ -9,6 +9,8 @@
 
 import {
   bindVideoSlots,
+  bindPreparedVideoSlots,
+  promotePreparedVideoSlot,
   videoSlotKey,
   type VideoSlotBinding
 } from "../videoSlotPool";
@@ -89,5 +91,45 @@ describe("bindVideoSlots", () => {
     expect(bindings.size).toBe(HOT);
     expect(used.size).toBe(HOT);
     expect(bindings.has(videoSlotKey(`c${HOT}`, `u${HOT}`))).toBe(false);
+  });
+});
+
+describe("prepared video slots", () => {
+  it("keeps picture and matte prepared and promotes their actual elements", () => {
+    const prepared = new Map<string, number>();
+    const requests = [
+      { clipId: "incoming", assetUrl: "picture" },
+      { clipId: "incoming", assetUrl: "matte" }
+    ];
+    bindPreparedVideoSlots(requests, prepared, HOT, HOT + 2);
+    const pictureIndex = prepared.get(videoSlotKey("incoming", "picture"));
+    const matteIndex = prepared.get(videoSlotKey("incoming", "matte"));
+    expect(pictureIndex).toBe(HOT);
+    expect(matteIndex).toBe(HOT + 1);
+
+    const pool = Array.from({ length: HOT + 2 }, () => document.createElement("video"));
+    const picture = pool[HOT];
+    const matte = pool[HOT + 1];
+    expect(promotePreparedVideoSlot(videoSlotKey("incoming", "picture"), 0, prepared, pool)).toBe(true);
+    expect(promotePreparedVideoSlot(videoSlotKey("incoming", "matte"), 1, prepared, pool)).toBe(true);
+    expect(pool[0]).toBe(picture);
+    expect(pool[1]).toBe(matte);
+    expect(prepared.size).toBe(0);
+  });
+
+  it("preserves nearby prepared pairs and evicts those leaving the lookahead", () => {
+    const prepared = new Map<string, number>();
+    bindPreparedVideoSlots([
+      { clipId: "soon", assetUrl: "a" },
+      { clipId: "later", assetUrl: "b" }
+    ], prepared, HOT, HOT + 2);
+    const kept = prepared.get(videoSlotKey("soon", "a"));
+    bindPreparedVideoSlots([
+      { clipId: "soon", assetUrl: "a" },
+      { clipId: "new", assetUrl: "c" }
+    ], prepared, HOT, HOT + 2);
+    expect(prepared.get(videoSlotKey("soon", "a"))).toBe(kept);
+    expect(prepared.has(videoSlotKey("later", "b"))).toBe(false);
+    expect(prepared.get(videoSlotKey("new", "c"))).toBe(HOT + 1);
   });
 });

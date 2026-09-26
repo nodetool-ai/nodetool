@@ -608,8 +608,7 @@ describe("GeminiProvider – model listing", () => {
     expect(models.map((model) => model.id)).toEqual([
       "gemini-3.1-flash-image",
       "gemini-3.1-flash-lite-image",
-      "gemini-3-pro-image",
-      "imagen-4.0-generate-001"
+      "gemini-3-pro-image"
     ]);
   });
 
@@ -636,17 +635,48 @@ describe("GeminiProvider – model listing", () => {
   it("returns video models", async () => {
     const models = await provider.getAvailableVideoModels();
     expect(models.length).toBeGreaterThanOrEqual(2);
-    expect(models[0].id).toContain("veo");
-    expect(models.every((model) => model.supportedTasks?.length === 2)).toBe(
+    expect(models.map((model) => model.id)).toEqual([
+      "veo-3.1-generate-preview",
+      "veo-3.1-fast-generate-preview",
+      "veo-3.1-lite-generate-preview",
+      "gemini-omni-1.1-flash"
+    ]);
+    const tasks = Object.fromEntries(
+      models.map((model) => [model.id, model.supportedTasks])
+    );
+    expect(tasks["veo-3.1-generate-preview"]).toContain("extend_video");
+    expect(tasks["veo-3.1-lite-generate-preview"]).toEqual([
+      "text_to_video",
+      "image_to_video"
+    ]);
+    expect(tasks["gemini-omni-1.1-flash"]).toContain("video_to_video");
+    // The timeline checks an extension length against `durations`; Veo
+    // generates 4/6/8 seconds but extends by 7, so it must list none.
+    expect(
+      models
+        .filter((model) => model.supportedTasks?.includes("extend_video"))
+        .every((model) => model.durations === undefined)
+    ).toBe(true);
+  });
+
+  it("returns Lyria music models", async () => {
+    const models = await provider.getAvailableMusicModels();
+    expect(models.map((model) => model.id)).toEqual([
+      "lyria-3.5",
+      "lyria-3-clip-preview"
+    ]);
+    expect(models.every((m) => m.supportedTasks?.includes("text_to_music"))).toBe(
       true
     );
   });
 
   it("returns embedding models with dimensions", async () => {
     const models = await provider.getAvailableEmbeddingModels();
-    expect(models).toHaveLength(1);
-    expect(models[0].dimensions).toBe(3072);
-    expect(models[0].id).toBe("gemini-embedding-2");
+    expect(models.map((model) => model.id)).toEqual([
+      "gemini-embedding-2",
+      "gemini-embedding-001"
+    ]);
+    expect(models.every((model) => model.dimensions === 3072)).toBe(true);
   });
 });
 
@@ -785,30 +815,23 @@ describe("GeminiProvider – textToImage", () => {
     expect(url).toContain("generateContent");
   });
 
-  it("generates image with imagen model through predict", async () => {
-    const imageB64 = Buffer.from("fake-png").toString("base64");
-    const fetchFn = vi.fn().mockResolvedValue(
-      makeFetchResponse({
-        predictions: [{ bytesBase64Encoded: imageB64 }]
-      })
-    );
-
+  it("rejects shut-down Imagen models without calling the API", async () => {
+    const fetchFn = vi.fn();
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
-    const result = await provider.textToImage({
-      model: {
-        id: "imagen-4.0-generate-001",
-        name: "test",
-        provider: "gemini"
-      },
-      prompt: "a dog"
-    });
-
-    expect(result).toBeInstanceOf(Uint8Array);
-    const url = fetchFn.mock.calls[0][0] as string;
-    expect(url).toContain(":predict");
+    await expect(
+      provider.textToImage({
+        model: {
+          id: "imagen-4.0-generate-001",
+          name: "test",
+          provider: "gemini"
+        },
+        prompt: "a dog"
+      })
+    ).rejects.toThrow("gemini-*-image");
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 
-  it("maps Gemini and Imagen image controls to their wire shapes", async () => {
+  it("maps Gemini image controls to the wire shape", async () => {
     const imageData = Buffer.from([1]).toString("base64");
     const fetchFn = vi
       .fn()
@@ -824,9 +847,6 @@ describe("GeminiProvider – textToImage", () => {
             }
           ]
         })
-      )
-      .mockResolvedValueOnce(
-        makeFetchResponse({ predictions: [{ bytesBase64Encoded: imageData }] })
       );
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     await provider.textToImage({
@@ -839,28 +859,11 @@ describe("GeminiProvider – textToImage", () => {
       aspectRatio: "16:9",
       resolution: "2K"
     });
-    await provider.textToImage({
-      model: {
-        id: "imagen-4.0-generate-001",
-        name: "Imagen",
-        provider: "gemini"
-      },
-      prompt: "cat",
-      aspectRatio: "4:3",
-      seed: 7,
-      safetyCheck: false
-    });
     expect(
       JSON.parse(fetchFn.mock.calls[0][1].body).generationConfig.imageConfig
     ).toEqual({
       aspectRatio: "16:9",
       imageSize: "2K"
-    });
-    expect(JSON.parse(fetchFn.mock.calls[1][1].body).parameters).toEqual({
-      sampleCount: 1,
-      aspectRatio: "4:3",
-      seed: 7,
-      safetyFilterLevel: "block_only_high"
     });
   });
 
@@ -884,17 +887,6 @@ describe("GeminiProvider – textToImage", () => {
     await expect(
       provider.textToImage({
         model: { id: "gemini-2.0-flash", name: "test", provider: "gemini" },
-        prompt: "cat"
-      })
-    ).rejects.toThrow("No image");
-  });
-
-  it("throws when no image in imagen response", async () => {
-    const fetchFn = vi.fn().mockResolvedValue(makeFetchResponse({}));
-    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
-    await expect(
-      provider.textToImage({
-        model: { id: "imagen-3.0", name: "test", provider: "gemini" },
         prompt: "cat"
       })
     ).rejects.toThrow("No image");
@@ -1186,7 +1178,7 @@ describe("GeminiProvider – textToVideo", () => {
         model: { id: "gemini-2.0-flash", name: "test", provider: "gemini" },
         prompt: "a cat"
       })
-    ).rejects.toThrow("not a Veo model");
+    ).rejects.toThrow("not a Gemini video model");
   });
 
   it("handles immediate completion", async () => {
@@ -1273,7 +1265,7 @@ describe("GeminiProvider – imageToVideo", () => {
       provider.imageToVideo(new Uint8Array([1, 2, 3]), {
         model: { id: "gemini-2.0-flash", name: "test", provider: "gemini" }
       })
-    ).rejects.toThrow("not a Veo model");
+    ).rejects.toThrow("not a Gemini video model");
   });
 
   it("handles immediate completion with image", async () => {

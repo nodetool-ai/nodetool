@@ -38,6 +38,7 @@ import {
   trackPredictionMessage,
   type GenerationTrackerState
 } from "./generation-tracker.js";
+import { providerBillingSecretKey } from "./provider-secret-key.js";
 
 const log = createLogger("nodetool.execution.cost-ledger");
 
@@ -280,7 +281,7 @@ async function reconcileProviderCost(
   const reconciler = getCostReconciler(spend.cost.provider);
   if (!reconciler || !spend.cost.provider_request_id) return;
   try {
-    const secretKey = `${spend.cost.provider.toUpperCase()}_API_KEY`;
+    const secretKey = providerBillingSecretKey(spend.cost.provider);
     const apiKey = await spend.resolveSecret?.(secretKey);
     const actual = await reconciler({
       requestId: spend.cost.provider_request_id,

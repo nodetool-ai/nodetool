@@ -38,6 +38,7 @@ import {
   Text,
   Caption,
   Slider,
+  SelectField,
   ToolbarIconButton,
   SPACING,
   TYPOGRAPHY,
@@ -62,6 +63,8 @@ import { PreviewCompositor } from "./PreviewCompositor";
 import { getAssetMediaUrl } from "../../../utils/assetHelpers";
 import { useCombo } from "../../../stores/KeyPressedStore";
 import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
+import { previewQualityScale } from "./previewQuality";
+import type { PreviewQuality } from "./previewQuality";
 
 function frameDeltaMs(fps: number): number {
   return 1000 / Math.max(1, fps);
@@ -160,6 +163,10 @@ const controlBarStyles = (theme: Theme) =>
     ".toolbar-icon-button": {
       flexShrink: 0
     },
+    ".timeline-preview__quality": {
+      width: theme.spacing(SPACING.xxxl + SPACING.xl),
+      flexShrink: 0
+    },
     "@container timelinePreviewControls (max-width: 560px)": {
       ".timeline-preview__secondary-control, .timeline-preview__fps": {
         display: "none"
@@ -230,7 +237,14 @@ interface PreviewAreaProps {
 }
 
 export const PreviewArea: React.FC<PreviewAreaProps> = memo(
-  ({ fps = 30, showTimecode = true, showDuration = true, showFps = true }) => {
+  ({
+    fps = 30,
+    sequenceWidth = 1920,
+    sequenceHeight = 1080,
+    showTimecode = true,
+    showDuration = true,
+    showFps = true
+  }) => {
     const theme = useTheme();
 
     const {
@@ -894,6 +908,13 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     const containerRef = useRef<HTMLDivElement>(null);
     const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [previewQuality, setPreviewQuality] = useState<PreviewQuality>("auto");
+    const autoQualityLabel = previewQualityScale(
+      "auto",
+      sequenceWidth,
+      sequenceHeight,
+      isPlaying
+    ) === 1 ? "Full" : "Half";
     const isFullscreen = isNativeFullscreen || isExpanded;
     const [scrubMs, setScrubMs] = useState<number | null>(null);
 
@@ -1071,7 +1092,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         data-expanded={isExpanded}
       >
         <div css={viewportStyles}>
-          <PreviewCompositor />
+          <PreviewCompositor quality={previewQuality} />
         </div>
 
         <div css={controlBarCss}>
@@ -1157,6 +1178,25 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
               {fps} fps
             </Caption>
           )}
+
+          <SelectField
+            label="Preview quality"
+            hideLabel
+            size="small"
+            value={previewQuality}
+            onChange={(value) => {
+              if (value === "auto" || value === "full" || value === "half" || value === "quarter") {
+                setPreviewQuality(value);
+              }
+            }}
+            options={[
+              { value: "auto", label: `Auto (${autoQualityLabel})` },
+              { value: "full", label: "Full" },
+              { value: "half", label: "Half" },
+              { value: "quarter", label: "Quarter" }
+            ]}
+            className="timeline-preview__quality"
+          />
 
           <ToolbarIconButton
             icon={<FilterBAndWOutlinedIcon />}

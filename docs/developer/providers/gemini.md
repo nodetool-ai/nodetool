@@ -1,20 +1,21 @@
 ---
 layout: page
 title: "Google Gemini: Add Models"
-description: "How to add new Gemini text, Imagen image, and Veo video models to NodeTool's Gemini provider."
+description: "How to add new Gemini text, image, Veo and Omni video, and Lyria music models to NodeTool's Gemini provider."
 ---
 
-The Gemini provider supports six modalities: text/chat, image generation, video generation, TTS, ASR, and embeddings. Language models are auto-discovered from the API; every other modality uses a hand-maintained array in the provider file.
+The Gemini provider supports seven modalities: text/chat, image generation, video generation, music generation, TTS, ASR, and embeddings. Language models are auto-discovered from the API; every other modality uses a hand-maintained array in the provider file.
 
-> **Audience:** coding agents and contributors who need to add a new Gemini, Imagen, or Veo model to NodeTool.
+> **Audience:** coding agents and contributors who need to add a new Gemini, Veo, or Lyria model to NodeTool.
 
 ---
 
 ## TL;DR
 
 - **Text/chat models**: nothing to do — they are fetched live from `GET /v1beta/models`.
-- **Image models** (Imagen + `gemini-*` image generation): add one entry to `getAvailableImageModels()` in the provider.
-- **Video models** (Veo): add one entry to `getAvailableVideoModels()`.
+- **Image models** (`gemini-*` image generation): add one entry to `getAvailableImageModels()` in the provider.
+- **Video models** (Veo, Gemini Omni): add one entry to `GEMINI_VIDEO_MODELS`.
+- **Music models** (Lyria): add one entry to `getAvailableMusicModels()`.
 - **TTS / ASR / embedding models**: add one entry to the matching method.
 - Run `npm run check` before committing.
 
@@ -29,7 +30,8 @@ The Gemini provider supports six modalities: text/chat, image generation, video 
 | Image model listing (static) | `GeminiProvider.getAvailableImageModels()` |
 | TTS model listing (static) | `GeminiProvider.getAvailableTTSModels()` |
 | ASR model listing (static) | `GeminiProvider.getAvailableASRModels()` |
-| Video model listing (static) | `GeminiProvider.getAvailableVideoModels()` |
+| Video model listing (static) | `GEMINI_VIDEO_MODELS`, returned by `getAvailableVideoModels()` |
+| Music model listing (static) | `GeminiProvider.getAvailableMusicModels()` |
 | Embedding model listing (static) | `GeminiProvider.getAvailableEmbeddingModels()` |
 | Token/chat cost | `@pydantic/genai-prices` catalog (automatic — no edit needed) |
 | Non-token cost tiers | `packages/runtime/src/providers/cost-calculator.ts` — `PRICING_TIERS` / `MODEL_TO_TIER` |
@@ -45,14 +47,18 @@ The Gemini provider supports six modalities: text/chat, image generation, video 
 
 ### Image models — static array
 
-`getAvailableImageModels()` returns a hardcoded array. Two dispatch paths exist inside `textToImage()`:
-
-- IDs starting with `"gemini-"` — call `POST /models/<id>:generateContent` with `responseModalities: ["IMAGE", "TEXT"]`.
-- All other IDs (Imagen: `"imagen-*"`) call `POST /models/<id>:predict`.
+`getAvailableImageModels()` returns a hardcoded array. `textToImage()` and `imageToImage()` accept only `"gemini-"` IDs, which call `POST /models/<id>:generateContent` with `responseModalities: ["IMAGE", "TEXT"]`. Google shut down Imagen in the Gemini API, so `imagen-*` IDs fail before any request.
 
 ### Video models — static array
 
-`getAvailableVideoModels()` returns a hardcoded array. Both `textToVideo()` and `imageToVideo()` require a `veo-*` model ID. Veo calls use the async `predictLongRunning` endpoint with polling.
+`GEMINI_VIDEO_MODELS` lists each video model with its `supportedTasks`, resolutions, and aspect ratios. `referenceToVideo()`, `extendVideo()`, and `videoToVideo()` refuse a model whose entry lacks the task.
+
+- `veo-*` IDs use the async `predictLongRunning` endpoint with polling. Veo 3.1 and Veo 3.1 Fast also take up to three reference images, a last frame (`endImage`), and extension. Reference images and a last frame force an 8-second clip. Extension appends exactly 7 seconds to the end of a 720p input. Veo 3.1 Lite takes none of these.
+- `gemini-omni-*` IDs call `POST /v1beta/interactions` with `response_format: { type: "video" }`. Omni covers text-to-video, image-to-video, reference-to-video, and video editing (`videoToVideo`). Input videos above the inline limit go through the Files API.
+
+### Music models — static array
+
+`getAvailableMusicModels()` lists the Lyria models. `textToMusic()` calls `POST /v1beta/interactions`. Lyria has no duration or lyrics field, so the provider appends both to the prompt. Output is MP3 unless the caller asks Lyria 3.5 for WAV.
 
 ### TTS / ASR / Embedding — static arrays
 
@@ -75,7 +81,7 @@ Token/chat cost is priced through `@pydantic/genai-prices`. NodeTool maps the `"
 
 ### 2. Image model
 
-Open `packages/runtime/src/providers/gemini-provider.ts` and add an entry to `getAvailableImageModels()`:
+Open `packages/runtime/src/providers/gemini-provider.ts` and add an entry to `getAvailableImageModels()`. The ID must start with `"gemini-"`:
 
 ```typescript
 async getAvailableImageModels(): Promise<ImageModel[]> {
@@ -90,29 +96,36 @@ async getAvailableImageModels(): Promise<ImageModel[]> {
 }
 ```
 
-The `"gemini-"` prefix uses the native `generateContent` endpoint. Legacy Imagen IDs use `predict`. Check Google's deprecation table before adding an Imagen model.
-
-### 3. Gemini native image model (`gemini-*`)
-
-Same as above, but use a `"gemini-"` prefixed ID. The `textToImage()` dispatcher routes it to `generateContent` with `responseModalities: ["IMAGE", "TEXT"]` automatically.
-
 Use the exact ID returned by Google. Do not add guessed future IDs.
 
-### 4. Veo video model
+### 3. Video model
 
-Open `getAvailableVideoModels()` and add an entry:
+Add an entry to `GEMINI_VIDEO_MODELS` and list only the tasks Google documents for that variant:
 
 ```typescript
-override async getAvailableVideoModels(): Promise<VideoModel[]> {
+{
+  id: "veo-3.1-generate-preview",
+  name: "Veo 3.1 Preview",
+  provider: "gemini",
+  supportedTasks: ["text_to_video", "image_to_video", "reference_to_video", "extend_video", "extend_video_end"],
+  resolutions: ["720p", "1080p", "4k"],
+  aspectRatios: ["16:9", "9:16"]
+}
+```
+
+Veo IDs must start with `"veo-"` and Omni IDs with `"gemini-omni-"`. The prefix selects the endpoint. Leave `durations` off a model that supports `extend_video` unless its extension lengths match its generation lengths: the timeline checks the extension length against that list.
+
+### 4. Music model
+
+```typescript
+override async getAvailableMusicModels(): Promise<MusicModel[]> {
   return [
-    { id: "veo-3.1-generate-preview", name: "Veo 3.1 Preview", provider: "gemini" },
-    { id: "veo-3.1-fast-generate-preview", name: "Veo 3.1 Fast Preview", provider: "gemini" },
-    { id: "veo-3.1-lite-generate-preview", name: "Veo 3.1 Lite Preview", provider: "gemini" }
+    { id: "lyria-3.5", name: "Lyria 3.5", provider: "gemini", supportedTasks: ["text_to_music"] }
   ];
 }
 ```
 
-Veo model IDs must start with `"veo-"`. Check supported durations and resolutions for each variant before adding it.
+Lyria IDs must start with `"lyria-"`.
 
 ### 5. ASR model
 
@@ -144,7 +157,8 @@ async getAvailableTTSModels(): Promise<TTSModel[]> {
 ```typescript
 async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
   return [
-    { id: "gemini-embedding-2", name: "Gemini Embedding 2", provider: "gemini", dimensions: 3072 }
+    { id: "gemini-embedding-2", name: "Gemini Embedding 2", provider: "gemini", dimensions: 3072 },
+    { id: "gemini-embedding-001", name: "Gemini Embedding 001", provider: "gemini", dimensions: 3072 }
   ];
 }
 ```

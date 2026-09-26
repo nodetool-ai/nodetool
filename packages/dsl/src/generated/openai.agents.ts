@@ -39,3 +39,25 @@ export interface RealtimeTranscriptionOutputs {
 export function realtimeTranscription(inputs: RealtimeTranscriptionInputs): DslNode<RealtimeTranscriptionOutputs> {
   return createNode("openai.agents.RealtimeTranscription", inputs, { outputNames: ["text", "chunk"], streamingInput: true });
 }
+
+// Live Agent — openai.agents.LiveAgent
+export type LiveAgentInputs = {
+  model?: Connectable<"gpt-live-1">;
+  instructions?: Connectable<string>;
+  chunk?: Connectable<unknown>;
+  voice?: Connectable<"marin" | "cedar" | "alloy" | "ash" | "ballad" | "coral" | "echo" | "sage" | "shimmer" | "verse" | "quartz" | "ripple" | "vesper" | "willow" | "stone" | "gleam" | "meridian" | "bossa" | "tempo" | "beacon" | "delta" | "cinder">;
+  backend_model?: Connectable<string>;
+  backend_instructions?: Connectable<string>;
+  web_search?: Connectable<boolean>;
+};
+
+export interface LiveAgentOutputs {
+  chunk: unknown;
+  audio: AudioRef;
+  text: string;
+  input_transcript: string;
+}
+
+export function liveAgent(inputs: LiveAgentInputs): DslNode<LiveAgentOutputs> {
+  return createNode("openai.agents.LiveAgent", inputs, { outputNames: ["chunk", "audio", "text", "input_transcript"], streamingInput: true });
+}

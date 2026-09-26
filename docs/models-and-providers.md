@@ -124,7 +124,7 @@ Generate video through `nodetool.video.TextToVideo` and `nodetool.video.ImageToV
 | Provider | Video models |
 |---|---|
 | <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI | Sora 2, Sora 2 Pro |
-| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | Veo 3.1, Veo 3.1 Fast, Veo 3.1 Lite |
+| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | Veo 3.1, Veo 3.1 Fast, Veo 3.1 Lite, Gemini Omni Flash |
 | <img src="assets/icons/kling.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Kling | Kling 2.1 [standard/pro/master], Kling 2.5 Turbo Pro, Kling 2.6, Kling 3.0, Kling Avatar, Kling Lip Sync |
 | ByteDance | Seedance 1.0 [lite/pro], Seedance 1.5 Pro, Seedance 2.0 |
 | <img src="assets/icons/alibaba.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Alibaba | Wan 2.1, Wan 2.2, Wan 2.5, Wan 2.6, Wan VACE |
@@ -168,7 +168,7 @@ Generate speech through `nodetool.audio.TextToSpeech`, transcribe with `nodetool
 | Suno (via kie.ai) | Suno — song generation, extend, cover, remix |
 | <img src="assets/icons/elevenlabs.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> ElevenLabs | V3 Dialogue, Sound Effects |
 | <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | Music 01, Music 1.5, Music 2.6 |
-| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | Lyria 3 Clip, Lyria 3 Pro |
+| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | Lyria 3.5, Lyria 3 Clip |
 | Open models | MusicGen, Stable Audio 2.5, ACE-Step, DiffRhythm, YuE, Riffusion, Flux Music, MMAudio, ThinkSound |
 
 ### 3D generation models
@@ -189,7 +189,7 @@ Power RAG and semantic search through embedding nodes.
 | Provider | Embedding models |
 |---|---|
 | <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI | text-embedding-3-small, text-embedding-3-large, ada-002 |
-| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | gemini-embedding-2 |
+| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | gemini-embedding-2, gemini-embedding-001 |
 | Mistral | mistral-embed |
 | Cohere | embed-v4.0, embed-english-v3.0, embed-multilingual-v3.0 |
 | Voyage AI | voyage-3.5 and the Voyage line |

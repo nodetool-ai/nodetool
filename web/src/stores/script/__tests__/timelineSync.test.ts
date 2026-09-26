@@ -44,6 +44,8 @@ const take = (overrides: Partial<ScriptTake> = {}): ScriptTake => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  getQuery.mockReset();
+  updateMutate.mockReset();
   useScriptStore.setState({
     scripts: {},
     serverRevisions: {},
@@ -76,10 +78,13 @@ describe("syncLineClipToTimeline", () => {
       title: "S",
       cast: [],
       sections: [
-        { id: "sec-1", lines: [
-          { id: "line-1", text: "One", takes: [], currentTakeId: null },
-          { id: "line-2", text: "Two", takes: [], currentTakeId: null }
-        ] }
+        {
+          id: "sec-1",
+          lines: [
+            { id: "line-1", text: "One", takes: [], currentTakeId: null },
+            { id: "line-2", text: "Two", takes: [], currentTakeId: null }
+          ]
+        }
       ],
       timelineId: "tl-1",
       storyboardId: null
@@ -108,7 +113,9 @@ describe("syncLineClipToTimeline", () => {
     );
     expect(patched.currentAssetId).toBe("new-asset");
     expect(patched.durationMs).toBe(2500);
-    expect(patched.caption.words).toEqual([{ word: "hi", startMs: 0, endMs: 300 }]);
+    expect(patched.caption.words).toEqual([
+      { word: "hi", startMs: 0, endMs: 300 }
+    ]);
     // Unrelated clip untouched.
     const untouched = arg.document.clips.find(
       (c: TimelineClip) => c.scriptLineId === "line-2"
@@ -123,14 +130,20 @@ describe("syncLineClipToTimeline", () => {
       id: "tl-1",
       updatedAt: "rev-1",
       tracks: [track],
-      clips: [linkedClip({ caption: { words: [{ word: "old", startMs: 0, endMs: 100 }] } })],
+      clips: [
+        linkedClip({
+          caption: { words: [{ word: "old", startMs: 0, endMs: 100 }] }
+        })
+      ],
       markers: []
     });
     updateMutate.mockResolvedValue({});
 
     await syncLineClipToTimeline("script-1", "line-1", take({ words: [] }));
 
-    expect(updateMutate.mock.calls[0][0].document.clips[0].caption).toBeUndefined();
+    expect(
+      updateMutate.mock.calls[0][0].document.clips[0].caption
+    ).toBeUndefined();
   });
 
   it("removes the linked clip when a line no longer has a current take", async () => {
@@ -179,5 +192,94 @@ describe("syncLineClipToTimeline", () => {
     const result = await syncLineClipToTimeline("script-1", "line-1", take());
     expect(result).toBe(false);
     warn.mockRestore();
+  });
+
+  it("re-reads and reapplies the selected take after a revision conflict", async () => {
+    seedScript("tl-1");
+    const original = linkedClip();
+    const concurrent = linkedClip({ name: "Renamed by editor" });
+    getQuery
+      .mockResolvedValueOnce({
+        id: "tl-1",
+        updatedAt: "rev-1",
+        tracks: [track],
+        clips: [original],
+        markers: []
+      })
+      .mockResolvedValueOnce({
+        id: "tl-1",
+        updatedAt: "rev-2",
+        tracks: [track],
+        clips: [concurrent],
+        markers: []
+      });
+    updateMutate
+      .mockRejectedValueOnce({
+        data: { apiCode: "ALREADY_EXISTS" },
+        message: "revision conflict"
+      })
+      .mockResolvedValueOnce({});
+
+    expect(await syncLineClipToTimeline("script-1", "line-1", take())).toBe(
+      true
+    );
+    expect(updateMutate).toHaveBeenCalledTimes(2);
+    expect(updateMutate.mock.calls[1][0].baseUpdatedAt).toBe("rev-2");
+    expect(updateMutate.mock.calls[1][0].document.clips[0]).toEqual(
+      expect.objectContaining({
+        name: "Renamed by editor",
+        currentAssetId: "new-asset"
+      })
+    );
+  });
+
+  it("uses the latest selected take when an older selection loses a revision race", async () => {
+    seedScript("tl-1");
+    const oldTake = take({ id: "take-old", assetId: "asset-old" });
+    const latestTake = take({ id: "take-latest", assetId: "asset-latest" });
+    useScriptStore.getState().loadScript("script-1", {
+      title: "S",
+      cast: [],
+      timelineId: "tl-1",
+      storyboardId: null,
+      sections: [
+        {
+          id: "sec",
+          lines: [
+            {
+              id: "line-1",
+              text: "One",
+              takes: [oldTake, latestTake],
+              currentTakeId: oldTake.id
+            }
+          ]
+        }
+      ]
+    });
+    getQuery.mockResolvedValue({
+      id: "tl-1",
+      updatedAt: "rev-2",
+      tracks: [track],
+      clips: [linkedClip()],
+      markers: []
+    });
+    updateMutate
+      .mockImplementationOnce(async () => {
+        useScriptStore
+          .getState()
+          .setCurrentTake("script-1", "line-1", latestTake.id);
+        throw {
+          data: { apiCode: "ALREADY_EXISTS" },
+          message: "revision conflict"
+        };
+      })
+      .mockResolvedValueOnce({});
+
+    expect(await syncLineClipToTimeline("script-1", "line-1", oldTake)).toBe(
+      true
+    );
+    expect(updateMutate.mock.calls[1][0].document.clips[0].currentAssetId).toBe(
+      "asset-latest"
+    );
   });
 });
