@@ -51,7 +51,9 @@ one working on this repository alike.
 
 The job skills that sit on `storyboard-core`, each one a brief shape rather
 than a tool contract: `ugc-video`, `product-commercial`, `script-video`,
-`short-film`, `video-clone`, `launch-kit`, `video-workflow`.
+`short-film`, `video-clone`, `launch-kit`, `video-workflow`, `motion-ad`.
+`motion-ad` is the one that renders nothing by default: its board holds the
+real product images as stills and its motion is built on the timeline.
 
 ## The craft and the model lines
 

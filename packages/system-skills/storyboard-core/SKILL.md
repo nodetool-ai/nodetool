@@ -19,6 +19,7 @@ from an example. Load other sections only when the task reaches them.
 |---|---|
 | Phone-shot video with a person: UGC ad, testimonial, comedy, day-in-the-life, vlog | `/ugc-video` |
 | Product film: pack shot, hero, brand spot, with or without talent | `/product-commercial` |
+| Sound-off motion-graphics ad from real screenshots and product photos, no generated footage | `/motion-ad` |
 | Rebuild an existing ad or clip you were given | `/video-clone` |
 | Voiceover drives the picture: explainer, faceless video, narrated piece | `/script-video` |
 | Narrative with dialogue, score and a title: short film, trailer, scene | `/short-film` |
