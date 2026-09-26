@@ -39,6 +39,24 @@ describe("registerTimelineCommands", () => {
     );
   });
 
+  it("registers render with its frame, stills and scale options", () => {
+    const cmd = timelineSubcommand("render");
+    expect(cmd.registeredArguments.map((a) => a.name())).toEqual([
+      "timeline_id_or_file"
+    ]);
+    expect(cmd.options.map((o) => o.long)).toEqual(
+      expect.arrayContaining([
+        "--out",
+        "--format",
+        "--frames",
+        "--stills",
+        "--scale",
+        "--bitrate",
+        "--json"
+      ])
+    );
+  });
+
   it("registers the versions group with its five subcommands", () => {
     const versions = timelineSubcommand("versions");
     expect(versions.commands.map((c) => c.name()).sort()).toEqual([

@@ -52,6 +52,7 @@ export interface TimelineSequenceSettings {
   fps?: number;
   width?: number;
   height?: number;
+  durationMs?: number;
 }
 
 export interface ResolvedTimelineTarget {
@@ -73,9 +74,11 @@ function settingsOf(raw: unknown): TimelineSequenceSettings {
   const fps = numberOr(raw.fps);
   const width = numberOr(raw.width);
   const height = numberOr(raw.height);
+  const durationMs = numberOr(raw.durationMs);
   if (fps !== undefined) settings.fps = fps;
   if (width !== undefined) settings.width = width;
   if (height !== undefined) settings.height = height;
+  if (durationMs !== undefined) settings.durationMs = durationMs;
   return settings;
 }
 

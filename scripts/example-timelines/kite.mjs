@@ -135,9 +135,7 @@ function loop(clip, dur, curves) {
 
 /** Grow a clip from its bottom edge: scaleY and a matching offset share one easing. */
 function grow(clip, f0, dur, h, easing) {
-  // A glow on a zero-scale clip draws untransformed at the frame centre, so
-  // growth starts just above zero.
-  return on(clip, f0, dur, [cv("scaleY", 0.001, 1, easing), cv("offsetY", h / 2, 0, easing)]);
+  return on(clip, f0, dur, [cv("scaleY", 0, 1, easing), cv("offsetY", h / 2, 0, easing)]);
 }
 
 // ---------------------------------------------------------------------------
@@ -186,11 +184,11 @@ function mark(x, y, f0, parent) {
   const spar = path([["M", ...P.left], ["L", ...P.right]], { name: "spar", parent: g.id, stroke: INK, sw: 4 });
   const tail = path([["M", 0, 104], ["C", 26, 128, -26, 146, 4, 170]], { name: "tail", parent: g.id, stroke: MINT, sw: 5 });
   if (f0 !== null) {
-    on(edge, f0, 16, [cv("trimEnd", 0.001, 1, EASE_IO)]);
+    on(edge, f0, 16, [cv("trimEnd", 0, 1, EASE_IO)]);
     on(sail, f0 + 12, 10, [cv("opacity", 0, 1, "easeOut"), cv("scale", 0.85, 1, "spring(170,16,1)")]);
-    on(spine, f0 + 16, 8, [cv("trimEnd", 0.001, 1)]);
-    on(spar, f0 + 18, 8, [cv("trimEnd", 0.001, 1)]);
-    on(tail, f0 + 20, 14, [cv("trimEnd", 0.001, 1, "easeOut")]);
+    on(spine, f0 + 16, 8, [cv("trimEnd", 0, 1)]);
+    on(spar, f0 + 18, 8, [cv("trimEnd", 0, 1)]);
+    on(tail, f0 + 20, 14, [cv("trimEnd", 0, 1, "easeOut")]);
   }
   return g;
 }
@@ -332,10 +330,10 @@ function buildS3() {
   const chart = group({ name: "chart", parent: phone.id, y: -20 });
   box(400, 250, "rgba(244,251,248,0.03)", { parent: chart.id, r: 24, y: -40, stroke: LINE });
   const { area, line, dot } = phoneChart(chart.id);
-  on(line, 12, 40, [cv("trimEnd", 0.001, 1, EASE_IO)]);
+  on(line, 12, 40, [cv("trimEnd", 0, 1, EASE_IO)]);
   on(area, 12, 40, [cv("wipeProgress", 0, 1, EASE_IO)]);
   area.animations.at(-1).custom.mask = { direction: "left", softness: 0.02 };
-  on(dot, 50, 14, [cv("scale", 0.001, 1, "spring(200,12,1)")]);
+  on(dot, 50, 14, [cv("scale", 0, 1, "spring(200,12,1)")]);
   loop(dot, 30, [kfs("scale", [[0, 1], [0.5, 1.25, "easeInOut"], [1, 1, "easeInOut"]])]);
 
   // The goal card: a ring that fills to 78 percent.
@@ -346,7 +344,7 @@ function buildS3() {
   const ring = ellipse(140, null, { name: "goal-ring", parent: goal.id, x: -105, stroke: LIME, sw: 14, shape: { lineCap: "round" }, transform: tf(-105, 0, 1, { rotation: rad(-90) }) });
   // Held at 78% to the clip end, so the curve stays an entrance and the ring
   // is empty, not full, before it starts.
-  on(ring, 26, 102, [kfs("trimEnd", [[0, 0.001], [44 / 102, 0.78, EASE_IO], [1, 0.78, "linear"]])]);
+  on(ring, 26, 102, [kfs("trimEnd", [[0, 0], [44 / 102, 0.78, EASE_IO], [1, 0.78, "linear"]])]);
   const pct = text("0%", 34, 700, TEXT, { parent: goal.id, x: -105, y: 0, mw: 0.1 });
   on(pct, 26, 44, [NOOP], { textAnimator: { kind: "ticker", from: 0, to: 78, suffix: "%" }, easing: EASE_IO });
   text("Lisbon trip", 28, 600, TEXT, { parent: goal.id, anchor: "left", mw: 0.12, x: -10, y: -22 });
@@ -371,7 +369,7 @@ function buildS3() {
     on(r, 42 + i * 8, 14, [cv("offsetX", 40, 0), cv("opacity", 0, 1, "easeOut")]);
     ellipse(52, "rgba(52,211,153,0.16)", { parent: r.id, x: 26, stroke: "rgba(52,211,153,0.5)", sw: 1.5 });
     const check = path([["M", 14, 1], ["L", 23, 10], ["L", 39, -9]], { parent: r.id, stroke: MINT, sw: 4 });
-    on(check, 50 + i * 8, 10, [cv("trimEnd", 0.001, 1, "easeOut")]);
+    on(check, 50 + i * 8, 10, [cv("trimEnd", 0, 1, "easeOut")]);
     text(label, 36, 500, TEXT, { parent: r.id, anchor: "left", mw: 0.4, x: 78, y: 0 });
   });
 }

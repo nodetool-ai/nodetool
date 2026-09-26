@@ -29,6 +29,7 @@ import {
   UNPREMULTIPLY_FRAGMENT,
   WebGPULayerCompositor,
   forwardClipMatrixToInverseAffine,
+  invertClipPlacement,
   type InverseAffine
 } from "@nodetool-ai/gpu/webgpu";
 
@@ -718,14 +719,15 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       stackOrder: layer.stackOrder,
       // The composite is frame-sized, so it blends 1:1: the layer's placement
       // already ran when it was drawn onto its own texture.
-      invAffine: this.placementOf({}, this.width, this.height),
+      invAffine: this.framePlacement(undefined),
       borderRadius: 0
     };
   }
 
   /**
    * Upload a layer's pixels, run its own effect chain and shape mask, and work
-   * out where it sits. Null when the layer has no drawable source.
+   * out where it sits. Null when the layer has no drawable source, or when
+   * its placement covers no area.
    */
   private resolvePlacedLayer(
     layer: FrameLayer<TSource>,
@@ -737,6 +739,20 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     // contain fit, the border radius — then sees the cropped rectangle as the
     // layer's whole picture, which is what a crop means.
     const src = this.cropSource(layer, uploaded, encoder);
+    const invAffine = this.placementOf(
+      {
+        transform: transitionTransform(
+          layer.transform,
+          layer.transition,
+          this.referenceWidth,
+          this.referenceHeight
+        ),
+        parentMatrix: layer.parentMatrix
+      },
+      src.width,
+      src.height
+    );
+    if (!invAffine) return null;
 
     const clipEffects = layer.transition?.effect
       ? [...(layer.effects ?? []), layer.transition.effect]
@@ -784,19 +800,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       blendMode: layer.blendMode,
       zIndex: layer.zIndex,
       stackOrder: layer.stackOrder,
-      invAffine: this.placementOf(
-        {
-          transform: transitionTransform(
-            layer.transform,
-            layer.transition,
-            this.referenceWidth,
-            this.referenceHeight
-          ),
-          parentMatrix: layer.parentMatrix
-        },
-        src.width,
-        src.height
-      ),
+      invAffine,
       borderRadius:
         radiusPx > 0
           ? Math.min(0.5, radiusPx / Math.min(src.width, src.height))
@@ -809,12 +813,35 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     };
   }
 
-  /** Where a source of this size lands on the frame, as the shader's affine. */
+  /**
+   * The placement of a frame-sized texture: 1:1, or moved by a transition's
+   * transform. A transition never scales to zero, so this is never empty.
+   */
+  private framePlacement(transform: ClipTransform | undefined): InverseAffine {
+    return forwardClipMatrixToInverseAffine(
+      buildTransformMatrix(
+        transform ?? IDENTITY_TRANSFORM,
+        containBaseScale(this.width, this.height, this.width, this.height),
+        this.referenceWidth,
+        this.referenceHeight
+      ),
+      this.width,
+      this.height,
+      this.width,
+      this.height
+    );
+  }
+
+  /**
+   * Where a source of this size lands on the frame, as the shader's affine.
+   * Null when the placement covers no area, such as a scale of 0 on either
+   * axis: that layer draws nothing.
+   */
   private placementOf(
     layer: Pick<FrameLayer<TSource>, "transform" | "parentMatrix">,
     sourceWidth: number,
     sourceHeight: number
-  ): InverseAffine {
+  ): InverseAffine | null {
     const matrix = buildTransformMatrix(
       layer.transform ?? IDENTITY_TRANSFORM,
       containBaseScale(sourceWidth, sourceHeight, this.width, this.height),
@@ -822,7 +849,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       this.referenceHeight,
       layer.parentMatrix
     );
-    return forwardClipMatrixToInverseAffine(
+    return invertClipPlacement(
       matrix,
       sourceWidth,
       sourceHeight,
@@ -1028,14 +1055,14 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         stackOrder: group.stackOrder,
         // The texture is frame-sized, so it composites 1:1: the group's own
         // matrix already rode into each child through `parentMatrix`.
-        invAffine: this.placementOf({
-          transform: transitionTransform(
+        invAffine: this.framePlacement(
+          transitionTransform(
             undefined,
             group.transition,
             this.referenceWidth,
             this.referenceHeight
           )
-        }, this.width, this.height),
+        ),
         borderRadius: 0,
         mask: group.transition?.mask,
         iris: group.transition?.iris
@@ -1552,6 +1579,14 @@ export class HeadlessFrameCompositor {
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
       });
     this.readbacks = [makeReadback(0), makeReadback(1)];
+  }
+
+  /**
+   * Set the sequence resolution a stored transform is expressed against, for
+   * a frame smaller or larger than the sequence. Unset, it is the frame size.
+   */
+  setReferenceSize(width: number, height: number): void {
+    this.compositor.setReferenceSize(width, height);
   }
 
   /**

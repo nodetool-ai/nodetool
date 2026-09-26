@@ -21,6 +21,7 @@ vi.mock("@nodetool-ai/timeline/render", async (importOriginal) => {
       gpuStarted = true;
       return new Promise((resolve) => { resolveGpu = resolve; });
     }
+    setReferenceSize(): void {}
     dispose(): void {
       compositorDisposals += 1;
       if (decodeStarted && !decodeSettled) disposedBeforeDecode = true;

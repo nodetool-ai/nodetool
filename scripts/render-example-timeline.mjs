@@ -63,8 +63,8 @@ const { skippedClips } = await renderTimelineComposited({
   // Example timelines are pure motion graphics: no clip reads an asset.
   resolveAssetPath: async () => null,
   outPath,
-  // 12 Mbps keeps gradients and fine type clean at 1080p.
-  output: resolveTimelineOutput({ format: "mp4", bitrate: 12_000_000 }),
+  // 4 Mbps keeps gradients and fine type clean at 1080p at a size the repo can carry.
+  output: resolveTimelineOutput({ format: "mp4", bitrate: 4_000_000 }),
   onProgress: (frame) => {
     const tenth = Math.floor((frame / totalFrames) * 10);
     if (tenth !== lastLogged) {
@@ -78,3 +78,5 @@ if (skippedClips.length) console.warn(`Skipped clips: ${skippedClips.join(", ")}
 execFileSync("ffmpeg", ["-v", "error", "-y", "-i", outPath, "-vf", `select=eq(n\\,${posterFrame}),scale=1280:-2`, "-frames:v", "1", "-q:v", "3", posterPath]);
 console.log(`${totalFrames} frames in ${((Date.now() - started) / 1000).toFixed(1)}s -> ${outPath}`);
 console.log(`poster (frame ${posterFrame}) -> ${posterPath}`);
+// The GPU device keeps the event loop alive after the last frame.
+process.exit(0);

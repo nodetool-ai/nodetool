@@ -633,6 +633,22 @@ the verdict is ok. Validation and report rules live in
 `@nodetool-ai/execution/timeline-debug`; the CLI keeps target resolution, the
 interaction script, and the bundle.
 
+### nodetool timeline render (GPU Frame Render)
+
+Renders a timeline through the GPU compositor behind the Render Timeline node,
+from the same targets as `validate`. `--stills` writes selected frames as PNGs
+named by timeline index, which is how an export is checked frame by frame:
+`preview_timeline_frame` draws through Canvas 2D and can differ from the GPU
+render. `--scale` makes a fast draft with the full-size layout.
+
+```bash
+npm run dev:nodetool -- timeline render sequence.json --stills --frames 175,290,376-384 --scale 0.5
+npm run dev:nodetool -- timeline render <timeline_id> --out ad.mp4
+```
+
+The picture only. Audio is not mixed. Flags are in
+[CLI Reference](cli.md#nodetool-timeline-render-timeline_id_or_file).
+
 ### 3D clips in preview_timeline_frame
 
 `preview_timeline_frame` composites a sequence at one or more timecodes on

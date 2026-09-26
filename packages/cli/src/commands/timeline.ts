@@ -1,13 +1,15 @@
 /**
- * `nodetool timeline validate`, `debug` and `versions` — the timeline harness
- * commands.
+ * `nodetool timeline validate`, `debug`, `render` and `versions` — the
+ * timeline harness commands.
  *
  * `validate` checks a timeline document statically: tracks a clip points at,
  * fields a round trip through the schema would strip, timings that cannot
  * render. `debug` additionally replays a scripted `--interact` edit session
  * against the headless `ui_timeline_*` bridge and writes a bundle. Both take a
- * timeline JSON file or a `timeline_sequences` row id. `versions`
- * (timeline-versions.ts) reads and restores a sequence's snapshot history.
+ * timeline JSON file or a `timeline_sequences` row id. `render`
+ * (timeline-render.ts) renders the picture through the GPU compositor.
+ * `versions` (timeline-versions.ts) reads and restores a sequence's snapshot
+ * history.
  *
  * Heavy dependencies (the database, the validator core, the bridge) are
  * imported lazily inside each action, so command registration stays light and
@@ -18,6 +20,7 @@ import type { TimelineDebugReport } from "@nodetool-ai/execution/timeline-debug"
 import type { TimelineSequenceRecord } from "../timeline-debug/target.js";
 import { printCommandError } from "../command-errors.js";
 import { renderTimelineValidation } from "./timeline-validation-output.js";
+import { registerTimelineRenderCommand } from "./timeline-render.js";
 import { registerTimelineVersionsCommands } from "./timeline-versions.js";
 
 export { renderTimelineValidation };
@@ -148,6 +151,7 @@ export function registerTimelineCommands(program: Command): void {
       }
     });
 
+  registerTimelineRenderCommand(timeline, sequenceLoader);
   registerTimelineVersionsCommands(timeline);
 }
 
