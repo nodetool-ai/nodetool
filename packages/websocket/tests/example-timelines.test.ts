@@ -24,6 +24,7 @@ describe("example timelines", () => {
     const examples = listExampleTimelines(options);
     expect(examples.map((example) => [example.slug, example.durationMs, example.fps])).toEqual([
       ["kite", 15000, 30],
+      ["prism", 18000, 30],
       ["serein", 26000, 30],
       ["t-minus-30", 30000, 30],
       ["voltra", 23000, 30]

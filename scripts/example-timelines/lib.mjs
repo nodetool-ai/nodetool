@@ -1,5 +1,5 @@
 // Document plumbing shared by the example-timeline builders (kite.mjs,
-// voltra.mjs).
+// voltra.mjs, prism.mjs).
 //
 // To add an example timeline:
 //
@@ -12,6 +12,9 @@
 //    and poster that the bundle's `videoUri` and `posterUri` name.
 // 4. Run `npm run dev:nodetool -- timeline validate <bundle>` and
 //    `node scripts/validate-examples.mjs`.
+//
+// The failure modes in docs/timeline-motion-design.md#failure-modes render
+// without an error. Check the rendered frames against them.
 //
 // Frames are the unit throughout. Positions are px from the frame centre. A
 // scene is a group clip on the `t_scenes` track; its layers are children of
@@ -36,7 +39,7 @@ export function tf(x = 0, y = 0, s = 1, extra = {}) {
 }
 
 const FIELDS = ["shapeStyle", "textStyle", "effects", "animations", "opacity", "blendMode", "layout", "repeater", "motionBlur",
-  "temporalEcho", "mask", "matte", "crop", "borderRadius", "currentAssetId", "caption", "transitionIn", "animationLinks"];
+  "temporalEcho", "mask", "matte", "crop", "borderRadius", "currentAssetId", "caption", "transitionIn", "animationLinks", "steppedTime"];
 
 export function createBuilder({ W, H, FPS, font = "Inter" }) {
   const ms = (f) => Math.floor((f * 1000) / FPS);
@@ -98,11 +101,15 @@ export function createBuilder({ W, H, FPS, font = "Inter" }) {
   }
   const ellipse = (d, fill, o = {}) => box(d, d, fill, { ...o, kind: "ellipse" });
 
+  /** SVG path data for points in px from the frame centre, normalized to the frame. */
+  function pathData(points) {
+    const X = (v) => ((W / 2 + v) / W).toFixed(5), Y = (v) => ((H / 2 + v) / H).toFixed(5);
+    return points.map(([cmd, ...xy]) => cmd + xy.map((v, i) => (i % 2 ? Y(v) : X(v))).join(" ")).join(" ");
+  }
+
   /** An SVG path given in px from the frame centre. */
   function path(points, o = {}) {
-    const X = (v) => ((W / 2 + v) / W).toFixed(5), Y = (v) => ((H / 2 + v) / H).toFixed(5);
-    const d = points.map(([cmd, ...xy]) => cmd + xy.map((v, i) => (i % 2 ? Y(v) : X(v))).join(" ")).join(" ");
-    const shape = { kind: "path", d, lineCap: "round", lineJoin: "round" };
+    const shape = { kind: "path", d: pathData(points), lineCap: "round", lineJoin: "round" };
     if (o.fill) { if (typeof o.fill === "string") shape.fill = o.fill; else shape.fillStyle = o.fill; }
     if (o.stroke) { shape.stroke = o.stroke; shape.strokeWidthPx = o.sw ?? 4; }
     return add("shape", { ...o, shapeStyle: shape });
@@ -123,7 +130,9 @@ export function createBuilder({ W, H, FPS, font = "Inter" }) {
   /**
    * One custom animation on `clip`, starting at scene frame `f0` and running
    * `dur` frames. An "in" that ends mid-clip away from its rest pose becomes an
-   * "out" so its end value holds for the rest of the clip.
+   * "out" so its end value holds for the rest of the clip. A staggered "in"
+   * stays one: an "out" ending mid-clip leaves the stagger no room, and its
+   * units move in sync. Its curves and style tracks should end at rest.
    */
   function on(clip, f0, dur, curves, opts = {}) {
     const local = cur.start + f0 - clip._from;
@@ -132,7 +141,7 @@ export function createBuilder({ W, H, FPS, font = "Inter" }) {
     const a = { id: nid("a"), role: "in", preset: "custom", delayMs, durationMs, custom: { curves }, ...opts };
     const endMs = a.delayMs + a.durationMs;
     const leavesRest = curves.some((c) => c.keyframes.at(-1).value !== (REST[c.property] ?? 0)) || (a.styleTracks && !a.textAnimator);
-    if (a.role === "in" && endMs < clip.durationMs && leavesRest) {
+    if (a.role === "in" && endMs < clip.durationMs && leavesRest && !a.stagger) {
       a.role = "out";
       a.delayMs = clip.durationMs - endMs;
     }
@@ -262,7 +271,7 @@ export function createBuilder({ W, H, FPS, font = "Inter" }) {
 
   return {
     ms, nid, scenes, current: () => cur,
-    scene, add, group, image, adjust, box, ellipse, path, text,
+    scene, add, group, image, adjust, box, ellipse, path, pathData, text,
     on, across, loop, fadeOut, typewriter, rainShimmer,
     sceneTracks, bankTracks, beatGrid
   };

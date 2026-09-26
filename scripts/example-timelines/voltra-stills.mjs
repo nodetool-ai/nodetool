@@ -1,19 +1,14 @@
 // The Voltra stills: every prompt, model and seed behind the example's images.
 //
 // `node scripts/example-timelines/voltra.mjs --stills [name…]` regenerates them
-// through NodeTool's single-node harness and writes 1920×1080 JPEGs to the
-// package asset folder. Bike shots pass the hero still as a reference image so
-// the same machine appears in every frame. Needs a Replicate token and ffmpeg.
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+// through stills.mjs. Bike shots pass the hero still as a reference image so
+// the same machine appears in every frame.
+import { join } from "node:path";
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
+import { generateStills as generate, ROOT } from "./stills.mjs";
+
 export const STILLS_DIR = join(ROOT, "packages/base-nodes/nodetool/assets/nodetool-base/timelines/voltra");
 export const stillUri = (name) => `package://nodetool-base/timelines/voltra/${name}.jpg`;
-
-export const MODEL = { node: "replicate.image.generate.Flux_2_Pro", provider: "replicate", model: "black-forest-labs/flux-2-pro" };
 
 const BIKE =
   "the Voltra R1, a fictional electric street motorcycle: matte graphite-black angular bodywork, " +
@@ -44,35 +39,7 @@ export const STILLS = [
   { name: "plate-smoke", seed: 2501, prompt: `Soft drifting white smoke and fog wisps lit from the side, ${PLATE}` }
 ];
 
-function runNode(props) {
-  const out = execFileSync("npm", ["run", "dev:nodetool", "--silent", "--", "node", "run", MODEL.node, "--json", "--props", JSON.stringify(props)], {
-    cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"]
-  });
-  const result = JSON.parse(out);
-  const uri = result.chunks?.find((c) => c.output?.uri)?.output.uri;
-  if (!result.ok || !uri) throw new Error(`${MODEL.node} failed: ${result.error ?? "no image"}`);
-  return uri;
-}
-
 /** Generate the named stills (all when `names` is empty), in dependency order. */
 export async function generateStills(names = []) {
-  mkdirSync(STILLS_DIR, { recursive: true });
-  const wanted = STILLS.filter((s) => names.length === 0 || names.includes(s.name));
-  for (const still of wanted) {
-    const props = { prompt: still.prompt, seed: still.seed, aspect_ratio: "custom", width: 1920, height: 1088, output_format: "png", safety_tolerance: 2 };
-    if (still.ref) {
-      const ref = join(STILLS_DIR, `${still.ref}.jpg`);
-      if (!existsSync(ref)) throw new Error(`${still.name} needs ${still.ref}.jpg first`);
-      props.input_images = [{ type: "image", data: readFileSync(ref).toString("base64") }];
-    }
-    const uri = runNode(props);
-    const res = await fetch(uri);
-    if (!res.ok) throw new Error(`download ${uri}: ${res.status}`);
-    const tmp = join(STILLS_DIR, `${still.name}.src.png`);
-    writeFileSync(tmp, Buffer.from(await res.arrayBuffer()));
-    // Centre-crop 1920×1088 to the frame; q 4 keeps the folder small.
-    execFileSync("ffmpeg", ["-v", "error", "-y", "-i", tmp, "-vf", "scale=1920:-2,crop=1920:1080", "-q:v", "4", join(STILLS_DIR, `${still.name}.jpg`)]);
-    rmSync(tmp);
-    console.log(`${still.name}.jpg`);
-  }
+  await generate(STILLS_DIR, STILLS, names);
 }

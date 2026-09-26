@@ -256,6 +256,23 @@ field. Easing uses the same grammar as animation easing.
   "softness": 0.12, "easing": "easeInOutExpo" }
 ```
 
+## Failure modes
+
+These authoring mistakes render without an error. The frame is wrong, and the
+render does not say why. `nodetool timeline validate` reports the ones with a
+code.
+
+| Symptom | Cause | Fix | Code |
+|---|---|---|---|
+| Every letter or word of a staggered text moves at once. | The compiler fits `durationMs` plus every unit's delay into the time left in the clip. When the span does not fit, it shrinks the offset, down to 0. An animation as long as its clip, or an `"out"` animation that ends mid-clip, leaves no room. | Use role `"in"` with `delayMs + durationMs + (units − 1) × offsetMs` inside the clip. End the curves and style tracks at rest. | `stagger_compressed` |
+| A generator or stylize effect with `animate: true` stays still. | `animate` stamps the frame time into the effect's `time`. Some modes never read it, such as `conicGradient`, which turns only through `angle`. | Animate the field the mode reads, such as `effect.<id>.angle`, with a style track. | `effect_animate_ignored` |
+| A stylize `gradientWipe` changes shape over time. | That mode reads `time` as its map selector. `animate` stamps seconds into it, so the map goes from linear to radial to noise. | Set `time` and leave `animate` off. | `effect_animate_ignored` |
+| A wiggle or a follow link removes the clip's own motion or placement on that channel. | A link sets the channel's value. It does not add to the clip's animations or transform, and a wiggle centres on the channel's identity. | Put the link on a child clip and the other motion on its parent group. | `animation_link_overrides` |
+| Repeater copies show on top of the next clip on the same track. | Each copy starts `index × timeStepMs` later and keeps the original duration, so the copies run past the original's end. | Keep `(count − 1) × timeStepMs` inside the gap, or parent the repeater to a group whose window ends at the cut. | `clips_overlap` |
+| A spinning layer that is tilted in 3D wobbles instead of turning flat. | The clip's own `rotation` turns the picture after its own `rotationX` tilt, in the screen plane. | Put `rotationX` and `perspective` on a parent group. Put the spin on the child. | |
+| A generated green-screen subject keeps a dark smudge under it. | `chromaKey` matches by RGB distance. A floor shadow is darker than the key colour and survives the tolerance. | Add a `rect` mask that ends above the floor. | |
+| A lens flare, light rays or a light leak does not reach the background. | The lighting stylize modes (`lightRays`, `lensFlare`, `innerGlow`, `edgeHighlight`, `lightLeakOverlay`) add light only where the layer has alpha. | Put the effect on an `adjustment` clip, which treats the composite below it. | |
+
 ## Composition examples
 
 The repository includes stored composition examples for `title-slam`,

@@ -265,6 +265,14 @@ describe("validateTimelineSequence — stagger_compressed", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("warns when the offset is squeezed all the way to zero", () => {
+    // A 400ms clip holds one 400ms unit and nothing else, so the five words
+    // move in sync. The compiler used to drop the stagger here, silently.
+    const found = of(validateTimelineSequence(doc([staggered(400, 100)])), "stagger_compressed");
+    expect(found).toHaveLength(1);
+    expect(found[0]?.message).toContain("shrunk to 0ms");
+  });
+
   it("says nothing when the stagger has no text to split", () => {
     const result = validateTimelineSequence(
       doc([
@@ -511,5 +519,37 @@ describe("validateTimelineSequence — animation_holds_rest_before_window", () =
     expect(found).toHaveLength(1);
     expect(found[0]?.severity).toBe("warning");
     expect(found[0]?.message).toContain("trimEnd");
+  });
+});
+
+describe("validateTimelineSequence — animation_link_overrides", () => {
+  const transform = (x: number, rotation = 0): Json => ({
+    position: { x, y: 0 }, scale: { x: 1, y: 1 }, rotation, anchor: { x: 0.5, y: 0.5 }
+  });
+  const wiggle = (target: string): Json => ({ target, kind: "wiggle", amplitude: 10, frequencyHz: 1 });
+  const links = (over: Json) => of(validateTimelineSequence(doc([clip(over)])), "animation_link_overrides");
+
+  it("stays quiet when the link drives a channel nothing else sets", () => {
+    expect(links({
+      transform: transform(0),
+      animationLinks: [wiggle("rotation")],
+      animations: [animation({ preset: "slide", params: { direction: "left" } })]
+    })).toEqual([]);
+  });
+
+  it("warns when a link discards the clip's own animation on that channel", () => {
+    const found = links({
+      transform: transform(0),
+      animationLinks: [wiggle("positionX")],
+      animations: [animation({ preset: "slide", params: { direction: "left" } })]
+    });
+    expect(found).toHaveLength(1);
+    expect(found[0]?.message).toContain("offsetX");
+  });
+
+  it("warns when a wiggle discards the clip's placement", () => {
+    const found = links({ transform: transform(400), animationLinks: [wiggle("positionX")] });
+    expect(found).toHaveLength(1);
+    expect(found[0]?.message).toContain("400");
   });
 });
