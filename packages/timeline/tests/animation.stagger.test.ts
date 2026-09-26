@@ -74,11 +74,14 @@ describe("stagger compile", () => {
     expect(c.windowEndMs).toBeCloseTo(550, 6);
   });
 
-  it("degenerates to a plain block animation when no offset fits", () => {
+  it("keeps per-unit timing at a zero offset when no offset fits", () => {
+    // Dropping to a block animation here would move every unit's pivot to the
+    // block's, so the picture would jump when the squeeze reached 0.
     const [c] = compileClipAnimations([anim()], 300, CANVAS, {
       staggerCount: 4
     });
-    expect(c.stagger).toBeUndefined();
+    expect(c.stagger?.offsetMs).toBe(0);
+    expect(c.stagger?.compressed).toBe(true);
     expect(c.windowEndMs).toBe(300);
   });
 
@@ -291,6 +294,17 @@ describe("stagger units on the compiled animation", () => {
     });
     expect(squeezed.stagger?.compressed).toBe(true);
     expect(squeezed.stagger?.offsetMs).toBeLessThan(100);
+  });
+
+  it("keeps a stagger squeezed to a zero offset, so glyph tracks still draw", () => {
+    // 4 units × 400ms leaves no room in a 400ms clip. The units move in sync,
+    // but the stagger stays compiled and reports the squeeze.
+    const [flat] = compileClipAnimations([anim()], 400, CANVAS, {
+      staggerCount: 4
+    });
+    expect(flat.stagger?.compressed).toBe(true);
+    expect(flat.stagger?.offsetMs).toBe(0);
+    expect(flat.stagger?.count).toBe(4);
   });
 
   it("carries the unit the count was taken in", () => {

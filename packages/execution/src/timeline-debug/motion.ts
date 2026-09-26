@@ -360,6 +360,62 @@ function timeRemapIssues(clip: TimelineClip): TimelineDebugIssue[] {
   return issues;
 }
 
+/** The animated properties a link on each channel replaces (`resolveAnimatedLayerProps`). */
+const LINK_REPLACES = {
+  positionX: ["positionX", "offsetX"],
+  positionY: ["positionY", "offsetY"],
+  scale: ["scale", "scaleX", "scaleY"],
+  rotation: ["rotation"],
+  opacity: ["opacity"]
+} as const;
+
+/** The clip's own value on a link channel, and the value a wiggle centres on. */
+function staticChannel(clip: TimelineClip, channel: string) {
+  const t = clip.transform;
+  switch (channel) {
+    case "positionX": return { value: t?.position.x ?? 0, wiggleBase: 0 };
+    case "positionY": return { value: t?.position.y ?? 0, wiggleBase: 0 };
+    case "scale": return { value: ((t?.scale.x ?? 1) + (t?.scale.y ?? 1)) / 2, wiggleBase: 1 };
+    case "rotation": return { value: t?.rotation ?? 0, wiggleBase: 0 };
+    default: return { value: clip.opacity ?? 1, wiggleBase: 1 };
+  }
+}
+
+/**
+ * A link that silently discards other motion on its channel.
+ *
+ * A link sets its channel's value outright: the clip's animations on that
+ * channel are ignored while it is set, and a wiggle centres on the channel's
+ * identity, not on the clip's own placement.
+ */
+function linkOverrideIssues(
+  clip: TimelineClip,
+  compiled: CompiledAnimation[]
+): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  for (const [index, link] of (clip.animationLinks ?? []).entries()) {
+    const replaced = new Set<string>(LINK_REPLACES[link.target]);
+    const animated = [...new Set(compiled.flatMap((entry) =>
+      entry.curves.map((curve) => curve.property).filter((property) => replaced.has(property))))];
+    const reasons: string[] = [];
+    if (animated.length) reasons.push(`the clip's own ${animated.join(", ")} animation`);
+    if ("kind" in link) {
+      const { value, wiggleBase } = staticChannel(clip, link.target);
+      if (Math.abs(value - wiggleBase) > 1e-6) reasons.push(`its authored ${link.target} of ${Math.round(value * 1000) / 1000} (the wiggle centres on ${wiggleBase})`);
+    }
+    if (!reasons.length) continue;
+    issues.push({
+      severity: "warning",
+      code: "animation_link_overrides",
+      message: `Clip "${clipLabel(clip)}" links ${link.target}, which sets that channel outright and discards ${reasons.join(" and ")}. Put the link on a child clip and the other motion on its parent group.`,
+      path: `animationLinks[${index}]`,
+      clipId: clip.id,
+      trackId: clip.trackId
+    });
+  }
+  return issues;
+}
+
 /**
  * Every motion finding for one clip. `canvas` is the sequence's pixel size,
  * which the compiler needs to resolve a preset's normalized distances and to
@@ -371,7 +427,7 @@ export function checkClipMotion(
 ): TimelineDebugIssue[] {
   const issues = timeRemapIssues(clip);
   const animations = compilableAnimations(clip);
-  if (animations.length === 0) return issues;
+  if (animations.length === 0) return [...issues, ...linkOverrideIssues(clip, [])];
 
   const { unit: staggerUnit, count: staggerCount } = clipStaggerCount(
     clip,
@@ -389,7 +445,8 @@ export function checkClipMotion(
     ...staggerIssues(clip, compiled),
     ...typewriterIssues(clip, animations),
     ...restBeforeWindowIssues(clip, animations, compiled),
-    ...replaceOverlapIssues(clip, compiled)
+    ...replaceOverlapIssues(clip, compiled),
+    ...linkOverrideIssues(clip, compiled)
   );
   return issues;
 }

@@ -571,7 +571,7 @@ function checkClip(
   }
 
   issues.push(...maskIssues(clip));
-  issues.push(...unknownEffectIssues(clip));
+  issues.push(...unknownEffectIssues(clip), ...animateIgnoredIssues(clip));
   issues.push(...cropIssues(clip));
   const shapeKind = unknownShapeKindIssue(clip);
   if (shapeKind) issues.push(shapeKind);
@@ -673,6 +673,45 @@ function unknownEffectIssues(clip: TimelineClip): TimelineDebugIssue[] {
       code: "unknown_effect",
       message: `Clip "${clipLabel(clip)}" carries a "${effect.type}" effect, which this build cannot apply — the layer draws without it. Expected one of ${EFFECT_GRAMMAR}.`,
       path: `effects[${index}].type`,
+      clipId: clip.id,
+      trackId: clip.trackId
+    });
+  }
+  return issues;
+}
+
+/**
+ * Generator and stylize modes whose shader never reads `time`, the value
+ * `animate` stamps each frame (`filters.visualFx@1` in `@nodetool-ai/gpu`).
+ * `gradientWipe` is listed apart: it reads `time` as its map selector, so the
+ * stamped seconds switch it from linear to radial to noise.
+ */
+const CLOCKLESS_MODES = new Set([
+  "generator:conicGradient", "generator:gridPattern",
+  "stylize:rgbSplit", "stylize:radialBlur", "stylize:zoomBlur", "stylize:halftone",
+  "stylize:dither", "stylize:lightRays", "stylize:lensFlare", "stylize:innerShadow",
+  "stylize:innerGlow", "stylize:edgeHighlight"
+]);
+
+/** An `animate` flag that moves nothing, or that breaks a gradient wipe. */
+function animateIgnoredIssues(clip: TimelineClip): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  for (const [index, effect] of (clip.effects ?? []).entries()) {
+    if (effect.type !== "generator" && effect.type !== "stylize") continue;
+    if (effect.enabled === false || effect.animate !== true) continue;
+    const key = `${effect.type}:${effect.mode}`;
+    let consequence: string | null = null;
+    if (key === "stylize:gradientWipe") {
+      consequence = "reads `time` as the value that selects the map, so the stamped clock switches it from linear to radial to noise. Set `time` instead and turn `animate` off";
+    } else if (CLOCKLESS_MODES.has(key)) {
+      consequence = `never reads the clock \`animate\` drives, so it stays still. Animate \`effect.${effect.id}.${effect.mode === "conicGradient" ? "angle" : "amount"}\` with a style track instead`;
+    }
+    if (!consequence) continue;
+    issues.push({
+      severity: "warning",
+      code: "effect_animate_ignored",
+      message: `Clip "${clipLabel(clip)}" sets animate on its ${effect.mode} ${effect.type}, which ${consequence}.`,
+      path: `effects[${index}].animate`,
       clipId: clip.id,
       trackId: clip.trackId
     });
@@ -1143,6 +1182,22 @@ function overlapConsequence(
     : auto;
 }
 
+/**
+ * Where a clip's last repeater copy ends. `expandTemporalClips` starts each
+ * copy `timeStepMs` after the one before and keeps the original's duration,
+ * so the copies reach past the clip. A parent group's window still clips them.
+ */
+function repeaterReachMs(clip: TimelineClip, byId: ReadonlyMap<string, TimelineClip>): number {
+  const end = clip.startMs + Math.max(0, clip.durationMs);
+  const repeater = clip.repeater;
+  if (!repeater || !(repeater.timeStepMs > 0)) return end;
+  const count = Math.max(1, Math.min(128, Math.floor(repeater.count)));
+  let reach = end + (count - 1) * repeater.timeStepMs;
+  const parent = clip.parentId ? byId.get(clip.parentId) : undefined;
+  if (parent) reach = Math.min(reach, parent.startMs + Math.max(0, parent.durationMs));
+  return Math.max(end, reach);
+}
+
 function checkOverlaps(doc: TimelineDocument): TimelineDebugIssue[] {
   const issues: TimelineDebugIssue[] = [];
   const trackTypes = new Map(doc.tracks.map((t) => [t.id, t.type]));
@@ -1152,18 +1207,23 @@ function checkOverlaps(doc: TimelineDocument): TimelineDebugIssue[] {
     if (list) list.push(clip);
     else byTrack.set(clip.trackId, [clip]);
   }
+  const byId = new Map(doc.clips.map((clip) => [clip.id, clip]));
   for (const [trackId, clips] of byTrack) {
     const ordered = [...clips].sort((a, b) => a.startMs - b.startMs);
     for (let i = 0; i < ordered.length - 1; i += 1) {
       const current = ordered[i]!;
       const end = current.startMs + Math.max(0, current.durationMs);
+      const reach = repeaterReachMs(current, byId);
       for (let j = i + 1; j < ordered.length; j += 1) {
         const next = ordered[j]!;
-        if (next.startMs >= end) break;
+        if (next.startMs >= reach) break;
+        const copies = next.startMs >= end
+          ? ` Its repeater copies run to ${reach}ms, each starting a step later with the full duration.`
+          : "";
         issues.push({
           severity: "warning",
           code: "clips_overlap",
-          message: `Clips "${clipLabel(current)}" (${current.startMs}–${end}ms) and "${clipLabel(next)}" (${next.startMs}–${next.startMs + next.durationMs}ms) overlap on track "${trackId}". ${overlapConsequence(next, trackTypes.get(trackId))}`,
+          message: `Clips "${clipLabel(current)}" (${current.startMs}–${end}ms) and "${clipLabel(next)}" (${next.startMs}–${next.startMs + next.durationMs}ms) overlap on track "${trackId}".${copies} ${overlapConsequence(next, trackTypes.get(trackId))}`,
           trackId,
           clipId: current.id
         });

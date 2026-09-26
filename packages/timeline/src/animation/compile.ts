@@ -481,7 +481,9 @@ export function compileClipAnimations(
     }
     if (timeBase === "source") compiled.timeBase = timeBase;
     if (mask) compiled.mask = mask;
-    if (staggerConfig && staggerOffsetMs > 0) {
+    // A stagger squeezed to a zero offset stays compiled: its units move in
+    // sync, but glyph tracks still draw per unit and `compressed` reports it.
+    if (staggerConfig) {
       compiled.stagger = {
         unit: options.staggerUnit ?? "word",
         count: staggerCount,
