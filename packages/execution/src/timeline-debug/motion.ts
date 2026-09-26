@@ -12,11 +12,13 @@ import type { TimelineClip } from "@nodetool-ai/protocol/api-schemas/timeline.js
 import {
   ANIMATED_PROPERTY_FOLD,
   CUSTOM_ANIMATION_PRESET_ID,
+  IDENTITY_SAMPLE,
   compileClipAnimations,
   getAnimationPreset,
   normalizeCustomCurves,
   resolveCustomMask,
   type Canvas,
+  type AnimatedProperty,
   type ClipAnimation,
   type CompiledAnimation
 } from "@nodetool-ai/timeline";
@@ -222,6 +224,114 @@ function staggerIssues(
 }
 
 /**
+ * A typewriter stored with a plain duration.
+ *
+ * `animate_clip` stores the preset as `durationMs: 1` plus a per-character
+ * `stagger` (`typewriterTiming`). Without the stagger the preset is one held
+ * opacity step over the whole block, and the caret draws only on a staggered
+ * reveal, so nothing types.
+ */
+function typewriterIssues(
+  clip: TimelineClip,
+  animations: ClipAnimation[]
+): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  for (const animation of animations) {
+    if (animation.preset !== "typewriter" || animation.stagger) continue;
+    issues.push({
+      severity: "warning",
+      code: "typewriter_not_staggered",
+      message: `Clip "${clipLabel(clip)}" animation "${animation.id}" stores a typewriter as a ${animation.durationMs}ms duration with no stagger — nothing draws for ${animation.durationMs}ms, then the whole text appears at once with no caret. Store the per-character form \`animate_clip\` writes: \`durationMs: 1\` with \`stagger: {unit: "character", offsetMs}\`, or re-apply the preset through \`animate_clip\`.`,
+      path: "animations[*].stagger",
+      clipId: clip.id,
+      trackId: clip.trackId
+    });
+  }
+  return issues;
+}
+
+/**
+ * The value a channel shows when no animation drives it: the sampler's
+ * identity for a composing channel, the clip's own value (and the field that
+ * stores it) for a replace channel. `undefined` when that value comes from
+ * layout this check does not resolve (a clip with no stored transform).
+ */
+function restValue(
+  clip: TimelineClip,
+  property: AnimatedProperty
+): { value: number; field?: string } | undefined {
+  const own = (value: number | undefined, field: string) =>
+    value === undefined ? undefined : { value, field };
+  switch (property) {
+    case "wipeProgress":
+      return { value: 1 };
+    case "trimStart":
+      return own(clip.shapeStyle?.trimStart ?? 0, "shapeStyle.trimStart");
+    case "trimEnd":
+      return own(clip.shapeStyle?.trimEnd ?? 1, "shapeStyle.trimEnd");
+    case "positionX":
+      return own(clip.transform?.position.x, "transform.position.x");
+    case "positionY":
+      return own(clip.transform?.position.y, "transform.position.y");
+    case "anchorX":
+      return own(clip.transform?.anchor.x, "transform.anchor.x");
+    case "anchorY":
+      return own(clip.transform?.anchor.y, "transform.anchor.y");
+    default:
+      return { value: IDENTITY_SAMPLE[property] };
+  }
+}
+
+/**
+ * A custom `"out"` whose curve starts away from rest after clip start.
+ *
+ * An `"out"` holds its t=1 value to clip end but contributes nothing before its
+ * window, so the channel shows its rest value there and jumps to the first
+ * keyframe when the window opens. Builders turn an `"in"` that ends away from
+ * rest into an `"out"` to keep the end value, which is how a gauge arc drawn
+ * from `trimEnd: 0` shows a full ring first. A preset `"out"` is reversed to
+ * start at rest, and a source-anchored curve has no clip-time first value, so
+ * only clip-based custom curves are checked.
+ */
+function restBeforeWindowIssues(
+  clip: TimelineClip,
+  animations: ClipAnimation[],
+  compiled: CompiledAnimation[]
+): TimelineDebugIssue[] {
+  const custom = new Set(
+    animations
+      .filter((animation) => animation.preset === CUSTOM_ANIMATION_PRESET_ID)
+      .map((animation) => animation.id)
+  );
+  const issues: TimelineDebugIssue[] = [];
+  for (const entry of compiled) {
+    if (entry.role !== "out" || !custom.has(entry.id)) continue;
+    if (entry.timeBase === "source" || entry.windowStartMs <= EPSILON_MS) continue;
+    for (const curve of entry.curves) {
+      const first = curve.keyframes[0]?.value;
+      const rest = restValue(clip, curve.property);
+      if (first === undefined || rest === undefined) continue;
+      if (Math.abs(first - rest.value) <= 1e-3) continue;
+      // A replace channel takes the clip's own value only while undriven, so
+      // storing the first keyframe there fixes the frames before the window
+      // alone. A composing channel's rest is fixed, so only the window can move.
+      const fix = rest.field
+        ? `Set the clip's \`${rest.field}\` to ${first}, or lengthen the animation so its window starts at clip start.`
+        : "Lengthen the animation so its window starts at clip start.";
+      issues.push({
+        severity: "warning",
+        code: "animation_holds_rest_before_window",
+        message: `Clip "${clipLabel(clip)}" animation "${entry.id}" (custom, out) starts its ${curve.property} curve at ${first}, but an "out" does not apply before its window — ${curve.property} renders at the rest value ${rest.value} until ${Math.round(entry.windowStartMs)}ms, then jumps to ${first}. ${fix}`,
+        path: "animations[*].custom.curves",
+        clipId: clip.id,
+        trackId: clip.trackId
+      });
+    }
+  }
+  return issues;
+}
+
+/**
  * `timeRemap.keyframes` must ascend in `t` (D13). `sourceMs` may descend —
  * that is reverse playback — but a `t` that repeats or goes backwards makes the
  * piecewise evaluation ambiguous: the source time for an instant depends on
@@ -277,6 +387,8 @@ export function checkClipMotion(
   issues.push(
     ...windowIssues(clip, animations, compiled),
     ...staggerIssues(clip, compiled),
+    ...typewriterIssues(clip, animations),
+    ...restBeforeWindowIssues(clip, animations, compiled),
     ...replaceOverlapIssues(clip, compiled)
   );
   return issues;
