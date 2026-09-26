@@ -83,6 +83,26 @@ function slugOf(name: string): string {
 }
 
 /**
+ * The shipped `package://` assets in a checkout, which the server serves from
+ * `packages/base-nodes/nodetool/assets`. The runtime reads that directory when
+ * `NODETOOL_PACKAGE_ASSETS_DIR` names it and otherwise asks a running server,
+ * so without this a rendered example's stills need the server up.
+ */
+async function checkoutPackageAssetsDir(): Promise<string | null> {
+  const { existsSync } = await import("node:fs");
+  const { createRequire } = await import("node:module");
+  const path = await import("node:path");
+  try {
+    const entry = createRequire(import.meta.url).resolve("@nodetool-ai/base-nodes");
+    const dir = path.resolve(path.dirname(entry), "..", "nodetool", "assets");
+    return existsSync(dir) ? dir : null;
+  } catch {
+    // Not installed beside the CLI: package assets resolve over HTTP.
+    return null;
+  }
+}
+
+/**
  * Resolve clip assets to local files through the local asset store. The
  * database opens on the first asset a clip needs, so a pure motion-graphics
  * timeline renders without one.
@@ -90,37 +110,34 @@ function slugOf(name: string): string {
 async function localAssetResolver(
   workDir: string
 ): Promise<(assetId: string) => Promise<string | null>> {
-  const fs = await import("node:fs/promises");
-  const path = await import("node:path");
-  let context:
-    | Promise<import("@nodetool-ai/runtime").ProcessingContext>
+  let files:
+    | Promise<import("@nodetool-ai/video-nodes/nodes/timeline/assetFiles").AssetFiles>
     | undefined;
-  const openContext = async (): Promise<
-    import("@nodetool-ai/runtime").ProcessingContext
-  > => {
+  const open = async () => {
     const { initDb } = await import("@nodetool-ai/models");
     const { getDefaultAssetsPath, getDefaultDbPath } =
       await import("@nodetool-ai/config");
     const { ProcessingContext } = await import("@nodetool-ai/runtime");
     const { FileStorageAdapter } = await import("@nodetool-ai/storage");
+    const { AssetFiles } = await import(
+      "@nodetool-ai/video-nodes/nodes/timeline/assetFiles"
+    );
+    const packageAssets = await checkoutPackageAssetsDir();
     initDb(getDefaultDbPath());
-    return new ProcessingContext({
+    const context = new ProcessingContext({
       jobId: `timeline-render-${Date.now()}`,
       workflowId: null,
       userId: "1",
-      storage: new FileStorageAdapter(getDefaultAssetsPath())
+      storage: new FileStorageAdapter(getDefaultAssetsPath()),
+      ...(packageAssets && {
+        environment: { NODETOOL_PACKAGE_ASSETS_DIR: packageAssets }
+      })
     });
+    return new AssetFiles(workDir, context);
   };
   return async (assetId: string) => {
-    context ??= openContext();
-    const ctx = await context;
-    const local = await ctx.localPath(assetId);
-    if (local) return local;
-    const { bytes } = await ctx.resolveAssetBytes(assetId);
-    if (!bytes) return null;
-    const file = path.join(workDir, `asset_${assetId}`);
-    await fs.writeFile(file, bytes);
-    return file;
+    files ??= open();
+    return (await files).path(assetId);
   };
 }
 
