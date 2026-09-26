@@ -14,6 +14,7 @@ import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
+import { packageClipMediaUrl } from "../../components/timeline/packageClipMedia";
 import {
   renderTimeline,
   type BrowserExportFormat,
@@ -141,6 +142,10 @@ export function useTimelineExport(): UseTimelineExportResult {
       const resolveUrl = async (
         assetId: string
       ): Promise<string | undefined> => {
+        const packageUrl = packageClipMediaUrl(assetId);
+        if (packageUrl) {
+          return packageUrl;
+        }
         try {
           const asset = await getAsset(assetId);
           return getAssetUrl(asset) ?? undefined;
