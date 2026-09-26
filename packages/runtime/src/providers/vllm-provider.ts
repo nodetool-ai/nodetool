@@ -3,7 +3,8 @@ import {
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
 import { trimTrailingSlashes } from "./openai-compat/index.js";
-import type { LanguageModel } from "./types.js";
+import type { ProviderCapability } from "./base-provider.js";
+import type { ASRModel, EmbeddingModel, LanguageModel } from "./types.js";
 
 interface VLLMProviderOptions extends OpenAICompatProviderOptions {
   baseURL?: string;
@@ -61,7 +62,43 @@ export class VLLMProvider extends OpenAICompatProvider {
     return true;
   }
 
+  /**
+   * vLLM serves chat, embeddings (`/v1/embeddings`) and transcription
+   * (`/v1/audio/transcriptions`). Declaring this set keeps the image, video
+   * and speech capabilities inherited from {@link OpenAIProvider} off, since
+   * vLLM has no endpoint for them.
+   */
+  protected override declaredCapabilities(): ProviderCapability[] {
+    return [
+      "generate_message",
+      "generate_messages",
+      "generate_embedding",
+      "automatic_speech_recognition"
+    ];
+  }
+
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    const ids = await this.listServedModelIds();
+    return ids.map((id) => ({ id, name: id, provider: "vllm" }));
+  }
+
+  /**
+   * `/v1/models` does not report a model's task, so every served model is
+   * offered as a candidate. The server rejects a call to an endpoint its
+   * model does not support.
+   */
+  override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
+    const ids = await this.listServedModelIds();
+    return ids.map((id) => ({ id, name: id, provider: "vllm" }));
+  }
+
+  /** Same listing as {@link getAvailableEmbeddingModels}, for transcription. */
+  override async getAvailableASRModels(): Promise<ASRModel[]> {
+    const ids = await this.listServedModelIds();
+    return ids.map((id) => ({ id, name: id, provider: "vllm" }));
+  }
+
+  private async listServedModelIds(): Promise<string[]> {
     try {
       const response = await this._vllmFetch(`${this._vllmBaseURL}/v1/models`, {
         headers: {
@@ -77,17 +114,12 @@ export class VLLMProvider extends OpenAICompatProvider {
         data?: Array<{ id?: string }>;
       };
       // Stryker disable next-line ArrayDeclaration: the fallback is filtered downstream (rows need a string id), so [] vs any array is observably identical.
-    const rows = payload.data ?? [];
+      const rows = payload.data ?? [];
       return rows
+        .map((row) => row.id)
         .filter(
-          (row): row is { id: string } =>
-            typeof row.id === "string" && row.id.length > 0
-        )
-        .map((row) => ({
-          id: row.id,
-          name: row.id,
-          provider: "vllm"
-        }));
+          (id): id is string => typeof id === "string" && id.length > 0
+        );
     } catch {
       return [];
     }
