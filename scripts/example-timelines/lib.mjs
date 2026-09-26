@@ -1,5 +1,5 @@
 // Document plumbing shared by the example-timeline builders (kite.mjs,
-// voltra.mjs, prism.mjs).
+// voltra.mjs, prism.mjs, tidewater.mjs).
 //
 // To add an example timeline:
 //
