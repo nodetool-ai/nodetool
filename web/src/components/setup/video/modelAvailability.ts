@@ -33,10 +33,6 @@ export interface ReportedOption {
   label: string;
 }
 
-/** A select value: neither a model id nor a voice id is unique on its own. */
-export const reportedKey = (option: ReportedOption): string =>
-  `${option.provider}::${option.modelId}::${option.id}`;
-
 export interface CuratedAvailability {
   /** The provider's model list has not answered yet. */
   loading: boolean;

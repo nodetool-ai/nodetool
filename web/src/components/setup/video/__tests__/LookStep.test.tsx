@@ -42,6 +42,65 @@ jest.mock("../../modelSamples", () => ({
   useModelSamples: () => ({})
 }));
 
+// The fallback pickers are the shared model selects, whose dialogs are backed
+// by tRPC. Each stub offers one pick of a BYOK model.
+jest.mock("../../../properties/VideoModelSelect", () => {
+  const react = jest.requireActual("react");
+  return {
+    __esModule: true,
+    default: ({
+      value,
+      onChange
+    }: {
+      value: string;
+      onChange: (value: unknown) => void;
+    }) =>
+      react.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () =>
+            onChange({
+              type: "video_model",
+              id: "kling-v2",
+              provider: "fal_ai",
+              name: "Kling v2"
+            })
+        },
+        `Video model select: ${value || "none"}`
+      )
+  };
+});
+jest.mock("../../../properties/TTSModelSelect", () => {
+  const react = jest.requireActual("react");
+  return {
+    __esModule: true,
+    default: ({
+      value,
+      onChange
+    }: {
+      value: string | { selected_voice: string };
+      onChange: (value: unknown) => void;
+    }) =>
+      react.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () =>
+            onChange({
+              type: "tts_model",
+              id: "eleven_multilingual_v2",
+              provider: "elevenlabs",
+              name: "Multilingual v2",
+              voices: ["rachel", "adam"],
+              selected_voice: "adam"
+            })
+        },
+        `TTS model select: ${typeof value === "object" ? value.selected_voice : "none"}`
+      )
+  };
+});
+
 interface CatalogState {
   models: Array<{
     id: string;
@@ -471,8 +530,21 @@ describe("LookStep on an install without the curated catalog", () => {
     byokVideo();
     renderBody(false);
     expect(
-      screen.getByRole("combobox", { name: /Video model/ })
+      screen.getByRole("button", { name: "Video model select: none" })
     ).toBeInTheDocument();
+  });
+
+  it("stores a video model picked from the shared select", async () => {
+    const user = userEvent.setup();
+    seedPlan();
+    byokVideo();
+    renderBody(false);
+    await user.click(
+      screen.getByRole("button", { name: "Video model select: none" })
+    );
+    expect(
+      useTimelineStore.getState().setup?.generation_settings
+    ).toMatchObject({ video: { provider: "fal_ai", model: "kling-v2" } });
   });
 
   it("does not blame the providers when one reports voices", () => {
@@ -484,8 +556,26 @@ describe("LookStep on an install without the curated catalog", () => {
       screen.queryByText(/providers offer no voice/)
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("combobox", { name: /Voice/ })
+      screen.getByRole("button", { name: /^TTS model select/ })
     ).toBeInTheDocument();
+  });
+
+  it("stores a voice picked from the shared TTS select", async () => {
+    const user = userEvent.setup();
+    seedPlan();
+    byokVideo();
+    byokVoice();
+    renderBody(true);
+    await user.click(screen.getByRole("button", { name: /^TTS model select/ }));
+    expect(
+      useTimelineStore.getState().setup?.generation_settings
+    ).toMatchObject({
+      voice: {
+        provider: "elevenlabs",
+        model: "eleven_multilingual_v2",
+        voice: "adam"
+      }
+    });
   });
 
   it("still says so when nothing at all reports a video model", () => {
