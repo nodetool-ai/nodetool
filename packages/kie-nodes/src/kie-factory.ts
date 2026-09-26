@@ -13,7 +13,8 @@ import {
   classNameToTitle,
   defaultForPropType,
   propertyOf,
-  registerDeclaredProperty
+  registerDeclaredProperty,
+  unsetZeroBelowMin
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
 import type {
@@ -348,7 +349,8 @@ async function buildParams(
       // `else` branch emits the value unconditionally. The previous
       // `else if (!conditional)` was dead code inside `if (conditional)`, so
       // "not_default" fields were silently dropped from the request.
-      params[paramName] = cast;
+      const sent = unsetZeroBelowMin(cast, field.min, field.default);
+      if (sent !== null) params[paramName] = sent;
     }
   }
 

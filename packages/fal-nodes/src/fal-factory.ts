@@ -17,7 +17,8 @@ import {
   isListAssetPropType,
   promptAssetOverridesFor,
   propertyOf,
-  registerDeclaredProperty
+  registerDeclaredProperty,
+  unsetZeroBelowMin
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -261,10 +262,10 @@ async function buildArgs(
         }
       }
     } else {
-      args[apiName] = coerceManifestScalar(
-        value,
-        field.propType,
-        field.enumValues
+      args[apiName] = unsetZeroBelowMin(
+        coerceManifestScalar(value, field.propType, field.enumValues),
+        field.min,
+        field.default
       );
     }
   }

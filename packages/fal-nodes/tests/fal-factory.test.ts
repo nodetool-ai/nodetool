@@ -760,3 +760,40 @@ describe("FAL factory scalar coercion", () => {
     });
   });
 });
+
+describe("FAL factory numeric zero arguments", () => {
+  beforeEach(() => {
+    falSubmit.mockClear();
+  });
+
+  it("omits a zero its field's minimum forbids and keeps a zero it allows", async () => {
+    const intField = (name: string, min: number) => ({
+      name,
+      propType: "int",
+      tsType: "number",
+      default: 0,
+      description: "",
+      fieldType: "input" as const,
+      required: false,
+      min
+    });
+    const NodeClass = createFalNodeClass({
+      endpointId: "fal-ai/test",
+      className: "ZeroModel",
+      moduleName: "x",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "str",
+      outputFields: [],
+      enums: [],
+      inputFields: [intField("duration", 1), intField("seed", 0)]
+    });
+
+    await new NodeClass({}).process();
+
+    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
+      seed: 0
+    });
+  });
+});

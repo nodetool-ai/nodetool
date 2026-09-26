@@ -214,6 +214,26 @@ export function coerceManifestScalar(
   }
 }
 
+/**
+ * Answer `null` for a numeric `0` that the field's `min` forbids, so arg
+ * cleanup drops it.
+ *
+ * The provider codegens fill an optional number that has no schema default
+ * with `0`. Where the field's `min` is above zero (Flux 2 `width`/`height`,
+ * min 256, used only with `aspect_ratio=custom`), that placeholder can never
+ * be valid, and sending it makes the provider reject the whole request. A `0`
+ * inside the declared range is a real value and passes through.
+ */
+export function unsetZeroBelowMin(
+  value: NodeValue,
+  min: number | undefined,
+  defaultValue: unknown
+): NodeValue {
+  return value === 0 && defaultValue === 0 && min !== undefined && min > 0
+    ? null
+    : value;
+}
+
 /** The field shape {@link promptAssetOverridesFor} reads. */
 export interface ManifestPromptField {
   name: string;

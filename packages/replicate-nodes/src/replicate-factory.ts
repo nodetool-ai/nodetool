@@ -18,7 +18,8 @@ import {
   manifestEnumIsNumeric,
   promptAssetOverridesFor,
   propertyOf,
-  registerDeclaredProperty
+  registerDeclaredProperty,
+  unsetZeroBelowMin
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
 import {
@@ -155,11 +156,10 @@ async function buildArgs(
         if (url) args[apiName] = url;
       }
     } else {
-      args[apiName] = coerceManifestScalar(
-        value,
-        field.propType,
-        field.enumValues,
-        "parsed"
+      args[apiName] = unsetZeroBelowMin(
+        coerceManifestScalar(value, field.propType, field.enumValues, "parsed"),
+        field.min,
+        field.default
       );
     }
   }
