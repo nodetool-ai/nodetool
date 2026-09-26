@@ -10,7 +10,8 @@ import {
   initDb,
   initTestDb,
   migrateSqliteDb,
-  pingDb
+  pingDb,
+  resolvePostgresClientOptions
 } from "../src/db.js";
 
 describe("db", () => {
@@ -229,5 +230,37 @@ describe("db", () => {
         originalClose;
       originalClose();
     }
+  });
+});
+
+describe("resolvePostgresClientOptions", () => {
+  const sessionUrl =
+    "postgresql://u:p@aws-0-eu-central-1.pooler.supabase.com:5432/postgres";
+  const transactionUrl =
+    "postgresql://u:p@aws-0-eu-central-1.pooler.supabase.com:6543/postgres";
+
+  it("keeps the default pool and prepared statements on a session pooler", () => {
+    expect(resolvePostgresClientOptions(sessionUrl, {})).toMatchObject({
+      max: 10,
+      prepare: true
+    });
+  });
+
+  it("caps the pool at DATABASE_POOL_MAX", () => {
+    expect(
+      resolvePostgresClientOptions(sessionUrl, { DATABASE_POOL_MAX: " 4 " }).max
+    ).toBe(4);
+  });
+
+  it("rejects a DATABASE_POOL_MAX that is not a positive integer", () => {
+    for (const value of ["0", "-2", "3.5", "many"]) {
+      expect(() =>
+        resolvePostgresClientOptions(sessionUrl, { DATABASE_POOL_MAX: value })
+      ).toThrow(/DATABASE_POOL_MAX/);
+    }
+  });
+
+  it("disables prepared statements on the transaction pooler port", () => {
+    expect(resolvePostgresClientOptions(transactionUrl, {}).prepare).toBe(false);
   });
 });

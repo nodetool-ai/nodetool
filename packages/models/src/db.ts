@@ -84,6 +84,56 @@ export function initDb(dbPath: string): BetterSQLite3Database<typeof schema> {
   return _db;
 }
 
+const DEFAULT_PG_POOL_MAX = 10;
+const TRANSACTION_POOLER_PORT = "6543";
+
+export interface PostgresClientOptions {
+  max: number;
+  idle_timeout: number;
+  connect_timeout: number;
+  prepare: boolean;
+}
+
+/**
+ * Options for the application's postgres.js client.
+ *
+ * `DATABASE_POOL_MAX` caps the connections one process opens. A Supabase
+ * session-mode pooler gives every client its own server connection and
+ * rejects a new one with `EMAXCONNSESSION` once its pool size is reached, so
+ * the cap times the number of server processes must stay under that size.
+ *
+ * Port 6543 is Supabase's transaction-mode pooler, which shares server
+ * connections between clients and cannot keep named prepared statements
+ * across transactions, so prepared statements are turned off there.
+ */
+export function resolvePostgresClientOptions(
+  connectionString: string,
+  env: NodeJS.ProcessEnv = process.env
+): PostgresClientOptions {
+  const rawMax = env["DATABASE_POOL_MAX"]?.trim();
+  let max = DEFAULT_PG_POOL_MAX;
+  if (rawMax) {
+    max = Number(rawMax);
+    if (!Number.isInteger(max) || max < 1) {
+      throw new Error(
+        `DATABASE_POOL_MAX must be a positive integer, got "${rawMax}".`
+      );
+    }
+  }
+  let port = "";
+  try {
+    port = new URL(connectionString).port;
+  } catch {
+    /* postgres.js reports a malformed URL itself */
+  }
+  return {
+    max,
+    idle_timeout: 20,
+    connect_timeout: 10,
+    prepare: port !== TRANSACTION_POOLER_PORT
+  };
+}
+
 /**
  * Initialize a PostgreSQL database connection.
  * Accepts a connection string (e.g. Supabase DATABASE_URL or DIRECT_URL).
@@ -91,6 +141,7 @@ export function initDb(dbPath: string): BetterSQLite3Database<typeof schema> {
  * For Supabase, use the connection pooler URL (port 6543, transaction mode)
  * for the application, and the direct URL (port 5432) for migrations.
  * Migrations must be run separately via MigrationRunner + PostgresJsMigrationAdapter.
+ * See {@link resolvePostgresClientOptions} for the pool size and pooler mode.
  */
 export async function initPostgresDb(connectionString: string): Promise<void> {
   _allowLegacyProjectWritesForTests = false;
@@ -106,11 +157,10 @@ export async function initPostgresDb(connectionString: string): Promise<void> {
   const { default: postgres } = await import("postgres");
   const { drizzle: drizzlePg } = await import("drizzle-orm/postgres-js");
 
-  const client = postgres(connectionString, {
-    max: 10,
-    idle_timeout: 20,
-    connect_timeout: 10
-  });
+  const client = postgres(
+    connectionString,
+    resolvePostgresClientOptions(connectionString)
+  );
 
   _pgClient = client;
   _db = drizzlePg(client, { schema: pgSchema });
