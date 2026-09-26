@@ -250,7 +250,7 @@ rg -n "used\.has\(" packages
 ```
 
 Manual check: IDs need a counter or random component. Resource IDs follow the
-[Resource ID Principles](../AGENTS.md#resource-id-principles).
+[Resource ID Principles](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#resource-id-principles).
 
 ## P12. Compact Resource IDs Not Resolved at a Boundary
 
