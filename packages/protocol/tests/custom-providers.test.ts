@@ -77,6 +77,15 @@ describe("normalizeBaseUrl", () => {
       "https://p.example.com/v1"
     );
   });
+
+  it("handles a long slash run before a non-slash in bounded time", () => {
+    const url = `https://p.example.com/${"/".repeat(50_000)}x`;
+    expect(customProviderBaseUrlError(url)).toBeNull();
+
+    const start = performance.now();
+    expect(normalizeBaseUrl(url)).toBe(url);
+    expect(performance.now() - start).toBeLessThan(500);
+  });
 });
 
 describe("parseCustomProviderCatalog", () => {
