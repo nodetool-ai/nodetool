@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import { SLOT_METADATA_KEY } from "@nodetool-ai/protocol";
 import { createLocalWorkspace, MemoryCache, ProcessingContext } from "@nodetool-ai/runtime";
-import { getNativeTemplate, LoadGameTemplateNode, resolveFills, StageGameAssetsNode } from "../src/index.js";
+import { getNativeTemplate, LoadGameTemplateNode, resolveFills, SlotPromptNode, StageGameAssetsNode } from "../src/index.js";
 
 const dirs: string[] = [];
 function context(): ProcessingContext {
@@ -23,6 +23,17 @@ describe("native game nodes", () => {
     const result = await node.process();
     expect(result.manifest.engineVersion).toBe("1");
     expect(result.slots.map((slot) => slot.id)).toEqual(["player", "wall", "gem", "sfx.collect"]);
+  });
+
+  it("turns a template slot into generation inputs", async () => {
+    const slot = getNativeTemplate("topdown").manifest.slots[0];
+    const node = new SlotPromptNode({ slot, style: null, cast: [] });
+    const result = await node.process();
+    expect(result.kind).toBe(slot.kind);
+    expect(result.prompt.length).toBeGreaterThan(0);
+    expect(result.width).toBeGreaterThan(0);
+    expect(result.height).toBeGreaterThan(0);
+    expect(result.checker).toBeDefined();
   });
 
   it("rejects a bare layout fill with wiring advice", () => {

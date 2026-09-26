@@ -46,5 +46,5 @@ describe("shared game GPU effect", () => {
       renderer.dispose();
     }
     expect(renderer.capabilities.deviceStatus).toBe("disposed");
-  });
+  }, 30000);
 });

@@ -27,12 +27,12 @@ can remain the same.
 
 | Finding | Evidence | Design implication |
 |---|---|---|
-| F1. NodeTool has a portable GPU foundation. | [GPU context](../../packages/gpu/src/context.ts), [browser entry](../../packages/gpu/src/webgpu/index.ts), and [Node/Dawn adapter](../../packages/gpu/src/node.ts). | Reuse device integration, shader definitions, texture metadata, scratch textures, pipeline caching, and uniform buffers. |
-| F2. It supports fragment effects and compute. | [Executor](../../packages/gpu/src/executor.ts) encodes full-screen fragment passes or compute dispatches. [Shader pool](../../packages/gpu/src/pool.ts) exposes filters, transforms, masks, color operations, sources, and multipass recipes. | Game post-processing can use this catalog on the same device. The executor is image-oriented, so sprite geometry needs a separate rendering path. |
-| F3. The layer compositor is not a sprite batcher. | [renderBlendPass](../../packages/gpu/src/compositor/compositor.ts) samples a layer and an accumulation texture, then draws a full-screen quad into another texture. | Using one such pass per sprite scales with layer count and screen area. Build instanced quad batches and reserve compositing passes for effects and groups. This is a structural inference, not a measured game benchmark. |
-| F4. Browser fallback and device-loss handling exist in individual surfaces. | [Sketch initialization](../../web/src/components/sketch/rendering/initWebGPU.ts), [sketch runtime](../../web/src/components/sketch/rendering/WebGPURuntime.ts), [timeline initialization](../../web/src/components/timeline/preview/gpu/createCompositor.ts), and [timeline compositor](../../web/src/components/timeline/preview/gpu/compositor.ts). | Follow their lifecycle patterns. A game still needs its own capability report and recovery behavior. These surfaces do not establish one application-wide device owner. |
-| F5. The former games were Godot asset-production projects. | [Game nodes](../../packages/game-nodes/src/nodes/game.ts) and [games router](../../packages/websocket/src/trpc/routers/games.ts). | Reuse asset generation and validation in the native game model. |
-| F6. NodeTool already edits and renders 3D assets. | [glTF scene operations](../../packages/model3d/src/scene.ts) and [Three.js rendering](../../packages/video-nodes/src/nodes/model3d/render3d-core.ts). | Reuse glTF assets and import/edit operations later. The inspected render session creates a WebGLRenderer, so it is not already a shared WebGPU game renderer. |
+| F1. NodeTool has a portable GPU foundation. | [GPU context](https://github.com/nodetool-ai/nodetool/blob/main/packages/gpu/src/context.ts), [browser entry](https://github.com/nodetool-ai/nodetool/blob/main/packages/gpu/src/webgpu/index.ts), and [Node/Dawn adapter](https://github.com/nodetool-ai/nodetool/blob/main/packages/gpu/src/node.ts). | Reuse device integration, shader definitions, texture metadata, scratch textures, pipeline caching, and uniform buffers. |
+| F2. It supports fragment effects and compute. | [Executor](https://github.com/nodetool-ai/nodetool/blob/main/packages/gpu/src/executor.ts) encodes full-screen fragment passes or compute dispatches. [Shader pool](https://github.com/nodetool-ai/nodetool/blob/main/packages/gpu/src/pool.ts) exposes filters, transforms, masks, color operations, sources, and multipass recipes. | Game post-processing can use this catalog on the same device. The executor is image-oriented, so sprite geometry needs a separate rendering path. |
+| F3. The layer compositor is not a sprite batcher. | [renderBlendPass](https://github.com/nodetool-ai/nodetool/blob/main/packages/gpu/src/compositor/compositor.ts) samples a layer and an accumulation texture, then draws a full-screen quad into another texture. | Using one such pass per sprite scales with layer count and screen area. Build instanced quad batches and reserve compositing passes for effects and groups. This is a structural inference, not a measured game benchmark. |
+| F4. Browser fallback and device-loss handling exist in individual surfaces. | [Sketch initialization](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/sketch/rendering/initWebGPU.ts), [sketch runtime](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/sketch/rendering/WebGPURuntime.ts), [timeline initialization](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/timeline/preview/gpu/createCompositor.ts), and [timeline compositor](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/timeline/preview/gpu/compositor.ts). | Follow their lifecycle patterns. A game still needs its own capability report and recovery behavior. These surfaces do not establish one application-wide device owner. |
+| F5. The former games were Godot asset-production projects. | [Game nodes](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-nodes/src/nodes/game.ts) and [games router](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/trpc/routers/games.ts). | Reuse asset generation and validation in the native game model. |
+| F6. NodeTool already edits and renders 3D assets. | [glTF scene operations](https://github.com/nodetool-ai/nodetool/blob/main/packages/model3d/src/scene.ts) and [Three.js rendering](https://github.com/nodetool-ai/nodetool/blob/main/packages/video-nodes/src/nodes/model3d/render3d-core.ts). | Reuse glTF assets and import/edit operations later. The inspected render session creates a WebGLRenderer, so it is not already a shared WebGPU game renderer. |
 
 ### Local GPU evidence
 
@@ -60,12 +60,12 @@ npm run test --workspace=packages/gpu -- \
 
 They verify compute output, compositing, and uniform-buffer behavior on the
 available software adapter. They do not measure hardware FPS. The shell used
-Node 22.23.2, while [.nvmrc](../../.nvmrc) specifies the repository runtime.
+Node 22.23.2, while [.nvmrc](https://github.com/nodetool-ai/nodetool/blob/main/.nvmrc) specifies the repository runtime.
 No browser capability probe or device-driver change was performed.
 
 ### GPU work required before an engine ships
 
-The current [GPUCapabilities](../../packages/gpu/src/context.ts) is too narrow for
+The current [GPUCapabilities](https://github.com/nodetool-ai/nodetool/blob/main/packages/gpu/src/context.ts) is too narrow for
 game admission. It hardcodes external-texture support and derives `f16Storage`
 from `shader-f16`. The latter feature enables the WGSL `f16` type, so it must not
 stand in for a format-and-usage capability table. This is a design concern to
@@ -85,14 +85,14 @@ Dawn instance retention also keeps one-shot processes alive, as documented in
 the implementation. Headless game commands should run in a managed subprocess
 with an explicit completion and teardown policy.
 
-The [texture pool](../../packages/gpu/src/context.ts) retains released allocations
+The [texture pool](https://github.com/nodetool-ai/nodetool/blob/main/packages/gpu/src/context.ts) retains released allocations
 until disposal. Add game-session accounting and bounded eviction before loading
 many scenes. Use exact-size screen targets: its existing bucket policy would
 round a 1920×1080 request to 2048×2048 unless `exact` is set. One exact RGBA8 target
 is about 7.91 MiB, while that bucket is 16 MiB. Two RGBA16F targets at exact
 1080p require about 31.64 MiB, before textures and other allocations.
 
-The [executor](../../packages/gpu/src/executor.ts) currently defers strict
+The [executor](https://github.com/nodetool-ai/nodetool/blob/main/packages/gpu/src/executor.ts) currently defers strict
 color-space checking. Reuse of its labels does not establish color correctness.
 Define sprite import, working-space, effect, and presentation conversions and
 test them against reference images before enabling shared effects in games.
@@ -143,7 +143,7 @@ flowchart TD
 ### D1. Give games their own persistent identity
 
 Add `game` to the project document model. The current
-[document union](../../packages/protocol/src/api-schemas/projects.ts) has no game
+[document union](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/api-schemas/projects.ts) has no game
 entry. A proposed game record holds `id`, `project_id`, `workspace_id`,
 `source_root`, and the current immutable revision reference. There is no engine
 selector. The engine version identifies a version of the built-in runtime.
@@ -291,7 +291,7 @@ and tests before generating arbitrary runtime code.
 
 For authored JavaScript, extend the existing QuickJS approach with a persistent
 game behavior session and bounded tick calls. The current
-[sandbox](../../packages/agents/src/js-sandbox.ts) is an action/run abstraction,
+[sandbox](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/src/js-sandbox.ts) is an action/run abstraction,
 not an established low-latency game scripting interface. Measure its bridge cost
 before selecting per-entity callbacks. Prefer one bulk tick call returning a
 bounded command buffer. Extract only the shared low-level sandbox implementation
@@ -348,12 +348,12 @@ The inspected removal and replacement surfaces are:
 | Surface | Required change |
 |---|---|
 | Former `packages/godot` and `packages/godot-templates` packages | Remove both packages, their dependencies and TypeScript references, shipped Godot files, runner, and package-specific tests. |
-| [Game nodes](../../packages/game-nodes/src/nodes/game.ts) and former `packages/game-nodes/src/project.ts` | Replace Godot export/project assembly with native game creation, asset installation, and build operations. Retain only nodes that have a defined native purpose. |
-| [Asset contract](../../packages/protocol/src/game-assets.ts), [graph construction](../../packages/protocol/src/game-graph.ts), and [designer](../../packages/protocol/src/game-design.ts) | Replace Godot-version and script-hook assumptions with native template/schema versions and behavior configuration. Keep useful sprite, tile, image, and audio layout metadata. |
-| [Image validators](../../packages/image-nodes/src/nodes/game.ts) and [audio validators](../../packages/audio-nodes/src/nodes/game.ts) | Preserve byte validation and generation outputs. Remove Godot-specific wording and dependencies in their contracts. |
+| [Game nodes](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-nodes/src/nodes/game.ts) and former `packages/game-nodes/src/project.ts` | Replace Godot export/project assembly with native game creation, asset installation, and build operations. Retain only nodes that have a defined native purpose. |
+| [Asset contract](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-assets.ts), [graph construction](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-graph.ts), and [designer](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-design.ts) | Replace Godot-version and script-hook assumptions with native template/schema versions and behavior configuration. Keep useful sprite, tile, image, and audio layout metadata. |
+| [Image validators](https://github.com/nodetool-ai/nodetool/blob/main/packages/image-nodes/src/nodes/game.ts) and [audio validators](https://github.com/nodetool-ai/nodetool/blob/main/packages/audio-nodes/src/nodes/game.ts) | Preserve byte validation and generation outputs. Remove Godot-specific wording and dependencies in their contracts. |
 | Former `packages/agents/src/capabilities/godot.ts` and `packages/system-skills/godot-game/SKILL.md` | Remove the Godot tools and skill. Register native game authoring, bounded playtesting, and build tools, and update product knowledge and skill discovery. |
-| [Games router](../../packages/websocket/src/trpc/routers/games.ts) and former `web/src/components/setup/game/useGameSetupFlow.ts` | Serve native templates and open the native editor/player after creation. Replace instructions to download or open a Godot project. |
-| [Packaged assets](../../packages/config/src/package-asset-registry.ts), [harness registry](../../packages/cli/src/harness/registry.ts), examples, and generated DSL bindings | Remove Godot packaging and checks, register native equivalents, rebuild examples, and regenerate bindings from the node registry. |
+| [Games router](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/trpc/routers/games.ts) and former `web/src/components/setup/game/useGameSetupFlow.ts` | Serve native templates and open the native editor/player after creation. Replace instructions to download or open a Godot project. |
+| [Packaged assets](https://github.com/nodetool-ai/nodetool/blob/main/packages/config/src/package-asset-registry.ts), [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts), examples, and generated DSL bindings | Remove Godot packaging and checks, register native equivalents, rebuild examples, and regenerate bindings from the node registry. |
 
 Search manifests, lockfiles, build configuration, documentation, prompts, fixtures,
 and agent instructions again during implementation. This table identifies the
@@ -397,7 +397,7 @@ capabilities, independently of the browser playing the game.
 
 The `nodetool game validate|simulate|capture|build` CLI family and corresponding
 agent tools provide headless access. The game surface is registered in the
-[harness registry](../../packages/cli/src/harness/registry.ts) following
+[harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts) following
 [Harness-First Engineering](../HARNESS_FIRST.md).
 
 ### Performance targets and verification limits
@@ -420,7 +420,7 @@ Use exact assertions for simulation and bounded pixel tolerances for visual
 regressions. Do not promise identical screenshots across GPUs. Add resource-ID
 tests at tool, persistence, and media-resolution interfaces, including the exact
 short IDs returned to agents. Once implementation changes code, run the
-[mandatory repository checks](../../AGENTS.md#mandatory-post-change-verification).
+[mandatory repository checks](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification).
 
 ## Remaining risks
 
