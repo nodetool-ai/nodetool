@@ -1,8 +1,6 @@
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import {
-  isObjectLike,
-  isString
-} from "@nodetool-ai/node-sdk";
+import { loadMediaRefBytes } from "@nodetool-ai/runtime/media-ref-bytes";
+import { isObjectLike } from "@nodetool-ai/node-sdk";
 
 export type ImageRefLike = {
   data?: string | Uint8Array;
@@ -12,46 +10,14 @@ export type ImageRefLike = {
   [k: string]: unknown;
 };
 
-const ASSET_EXTENSIONS: Record<string, string[]> = {
-  image: ["png", "jpg", "jpeg", "webp"],
-  audio: ["mp3", "wav", "ogg"],
-  video: ["mp4", "webm"]
-};
-
 export async function decodeImage(
   ref: unknown,
   context?: ProcessingContext
 ): Promise<Buffer | null> {
   if (!isObjectLike(ref)) return null;
   const r = ref as ImageRefLike;
-
-  // Inline data (base64 or Uint8Array)
-  if (r.data) {
-    if (r.data instanceof Uint8Array) return Buffer.from(r.data);
-    if (isString(r.data)) return Buffer.from(r.data, "base64");
-  }
-
-  // Resolve from storage via asset_id or uri
-  if (context?.storage) {
-    const candidates: string[] = [];
-    if (r.uri) candidates.push(r.uri);
-    if (r.asset_id) {
-      const exts = ASSET_EXTENSIONS[(r.type ?? "image").toLowerCase()] ?? [
-        "png"
-      ];
-      for (const ext of exts) {
-        candidates.push(`/api/storage/${r.asset_id}.${ext}`);
-      }
-    }
-    for (const candidate of candidates) {
-      const stored = await context.storage.retrieve(candidate);
-      if (stored !== null) {
-        return Buffer.from(stored);
-      }
-    }
-  }
-
-  return null;
+  const bytes = await loadMediaRefBytes(r, context);
+  return bytes ? Buffer.from(bytes) : null;
 }
 
 /**
