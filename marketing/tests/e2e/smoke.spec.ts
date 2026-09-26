@@ -460,7 +460,9 @@ test.describe("marketing smoke", () => {
 
     await page.goto("/studio");
     await expect(
-      page.getByRole("link", { name: "visual node-based AI guide" })
+      page
+        .locator("footer")
+        .getByRole("link", { name: "Node-based AI", exact: true })
     ).toHaveAttribute("href", "/node-based-ai");
   });
 });
