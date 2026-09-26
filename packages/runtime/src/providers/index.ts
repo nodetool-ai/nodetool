@@ -44,6 +44,7 @@ import { MinimaxProvider } from "./minimax-provider.js";
 import { MistralProvider } from "./mistral-provider.js";
 import { MoonshotProvider } from "./moonshot-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
+import { RequestyProvider } from "./requesty-provider.js";
 import { TogetherProvider } from "./together-provider.js";
 import {
   ALIBABA_DEFAULT_BASE_URL,
@@ -229,6 +230,7 @@ export { MinimaxProvider };
 export { MistralProvider };
 export { MoonshotProvider };
 export { OpenRouterProvider };
+export { RequestyProvider };
 export { TogetherProvider };
 export { AlibabaProvider };
 export { CerebrasProvider };
@@ -545,6 +547,9 @@ registerBuiltinProvider(PROVIDER_IDS.RODIN, RodinProvider, {
 });
 registerBuiltinProvider(PROVIDER_IDS.OPENROUTER, OpenRouterProvider, {
   OPENROUTER_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.REQUESTY, RequestyProvider, {
+  REQUESTY_API_KEY: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.TOGETHER, TogetherProvider, {
   TOGETHER_API_KEY: ""

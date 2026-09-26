@@ -191,6 +191,7 @@ NodeTool supports 20+ AI model providers through a unified provider interface:
 | **Alibaba Cloud** | Text (Qwen models) |
 | **GMI Cloud** | Open-weight text inference |
 | **OpenRouter** | Multi-provider routing |
+| **Requesty** | Multi-provider routing |
 | **vLLM** | Self-hosted inference |
 
 Each provider implements a base interface that handles authentication, model listing, and inference calls. A built-in cost calculator tracks token usage across providers.

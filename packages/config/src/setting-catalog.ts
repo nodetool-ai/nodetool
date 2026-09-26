@@ -299,6 +299,11 @@ sec(
   "OpenRouter API key for accessing multiple AI models through a unified API. Get yours at https://openrouter.ai/settings/keys"
 );
 sec(
+  "REQUESTY_API_KEY",
+  "Requesty",
+  "Requesty API key for accessing multiple AI models through one OpenAI-compatible router. Get yours at https://app.requesty.ai/api-keys"
+);
+sec(
   "ANTHROPIC_API_KEY",
   "Anthropic",
   "Anthropic API key for accessing Claude models and other Anthropic services. Get yours at https://console.anthropic.com/settings/keys"
