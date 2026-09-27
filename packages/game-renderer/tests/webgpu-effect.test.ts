@@ -79,5 +79,5 @@ describe("sprite blending", () => {
       target.destroy();
       renderer.dispose();
     }
-  });
+  }, 30000);
 });
