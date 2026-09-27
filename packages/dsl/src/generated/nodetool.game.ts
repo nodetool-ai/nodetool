@@ -129,10 +129,12 @@ export interface SlotPromptOutputs {
   kind: string;
   checker: Record<string, unknown>;
   seconds: number;
+  reference_images: ImageRef[];
+  reference_asset_id: string;
 }
 
 export function slotPrompt(inputs: SlotPromptInputs): DslNode<SlotPromptOutputs> {
-  return createNode("nodetool.game.SlotPrompt", inputs, { outputNames: ["prompt", "width", "height", "kind", "checker", "seconds"] });
+  return createNode("nodetool.game.SlotPrompt", inputs, { outputNames: ["prompt", "width", "height", "kind", "checker", "seconds", "reference_images", "reference_asset_id"] });
 }
 
 // Stage Game Assets — nodetool.game.StageGameAssets
@@ -140,6 +142,9 @@ export type StageGameAssetsInputs = {
   template?: Connectable<string>;
   game_id?: Connectable<string>;
   fills?: Connectable<(ImageRef | AudioRef)[]>;
+  preparation?: Connectable<Record<string, unknown>>;
+  reference_asset_id?: Connectable<string>;
+  fonts?: Connectable<Record<string, unknown>>;
 };
 
 export interface StageGameAssetsOutputs {

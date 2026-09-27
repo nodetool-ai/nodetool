@@ -25,6 +25,7 @@ describe("standalone game build", () => {
     const bytes = canvas.toBuffer("image/png");
     const digest = createHash("sha256").update(bytes).digest("hex");
     game.assets.player!.digest = digest;
+    game.assets.player!.sampling = "linear";
     const build = await buildStandaloneGame({
       document: game,
       outputDir,
@@ -33,6 +34,7 @@ describe("standalone game build", () => {
     const exported = JSON.parse(await readFile(build.gamePath, "utf8"));
     expect(exported.assets.player.assetId).toBe(`./assets/${digest}.png`);
     expect(exported.assets.player.digest).toBe(digest);
+    expect(exported.assets.player.sampling).toBe("linear");
     expect(exported.assets.gem.assetId).toBe("builtin:gem");
     expect(JSON.stringify(exported)).not.toContain(sourceId);
     expect(await readdir(outputDir)).toEqual(expect.arrayContaining(["assets", "game.json", "index.html", "player-v1.js", "style.css", "emscripten-module.wasm"]));
@@ -49,5 +51,42 @@ describe("standalone game build", () => {
     game.assets.player!.assetId = "a".repeat(32);
     await expect(buildStandaloneGame({ document: game, outputDir, resolveAsset: async () => null })).rejects.toThrow("Missing asset for player");
     await expect(readdir(outputDir)).rejects.toThrow();
+  });
+
+  it("rejects a transparent LUT before publishing", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nodetool-game-lut-export-"));
+    directories.push(directory);
+    const game = createTopDownRoomGame("lut-export");
+    game.schemaVersion = 2;
+    game.renderEffects = [{ kind: "lut", assetId: "grade", size: 2, intensity: 1, required: true,
+      domainMin: [0, 0, 0], domainMax: [1, 1, 1] }];
+    const canvas = createCanvas(4, 2);
+    canvas.getContext("2d").fillRect(0, 0, 2, 2);
+    const bytes = canvas.toBuffer("image/png");
+    const sourceId = "c".repeat(32);
+    game.assets.grade = { assetId: sourceId, digest: createHash("sha256").update(bytes).digest("hex"),
+      mediaKind: "image", width: 4, height: 2, pivot: { x: 0.5, y: 0.5 }, sampling: "nearest" };
+    await expect(buildStandaloneGame({ document: game, outputDir: join(directory, "build"),
+      resolveAsset: async (id) => id === sourceId ? { bytes, mimeType: "image/png" } : null })).rejects.toThrow("must be opaque");
+    await expect(readdir(join(directory, "build"))).rejects.toThrow();
+  });
+
+  it("exports a scene-owned music asset for offline playback", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nodetool-game-music-export-"));
+    directories.push(directory);
+    const game = createTopDownRoomGame("music-export");
+    game.schemaVersion = 2;
+    game.scenes[0].music = { assetId: "music", volume: 0.5, fadeInTicks: 30, fadeOutTicks: 30 };
+    const bytes = Buffer.from("RIFF0000WAVE");
+    const sourceId = "b".repeat(32);
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    game.assets.music = { assetId: sourceId, digest, mediaKind: "audio", width: 1, height: 1,
+      pivot: { x: 0.5, y: 0.5 }, sampling: "nearest" };
+    const built = await buildStandaloneGame({ document: game, outputDir: join(directory, "build"),
+      resolveAsset: async (id) => id === sourceId ? { bytes, mimeType: "audio/wav" } : null });
+    const exported = JSON.parse(await readFile(built.gamePath, "utf8"));
+    expect(exported.scenes[0].music).toEqual({ assetId: "music", volume: 0.5, fadeInTicks: 30, fadeOutTicks: 30 });
+    expect(exported.assets.music.assetId).toBe(`./assets/${digest}.wav`);
+    expect(await readFile(join(built.outputDir, "assets", `${digest}.wav`))).toEqual(bytes);
   });
 });

@@ -135,6 +135,8 @@ export interface SlotPromptOutputs {
   kind: string;
   checker: Record<string, unknown>;
   seconds: number;
+  reference_images: ImageRef[];
+  reference_asset_id: string;
 }
 
 export function slotPrompt(inputs: SlotPromptInputs): Promise<SlotPromptOutputs> {
@@ -146,6 +148,9 @@ export type StageGameAssetsInputs = {
   template?: string;
   game_id?: string;
   fills?: (ImageRef | AudioRef)[];
+  preparation?: Record<string, unknown>;
+  reference_asset_id?: string;
+  fonts?: Record<string, unknown>;
 };
 
 export interface StageGameAssetsOutputs {

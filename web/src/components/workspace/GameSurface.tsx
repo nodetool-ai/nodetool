@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { GameDocument, GameEvent, GameInputFrame, GameRenderFrame } from "@nodetool-ai/protocol/game.js";
+import type { GameDocument, GameInputFrame, GameRenderFrame } from "@nodetool-ai/protocol/game.js";
 import { gameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, validateGame, type GameSession } from "@nodetool-ai/game-runtime";
-import { createGameRenderer } from "@nodetool-ai/game-renderer/browser";
+import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
+import { GameAudioPlayer } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer } from "@nodetool-ai/game-renderer";
 
 import { trpc, trpcClient } from "../../trpc/client";
@@ -55,8 +56,7 @@ const GameSurface = ({ refId, active }: GameSurfaceProps) => {
   const sessionGenerationRef = useRef(0);
   const keysRef = useRef(new Set<string>());
   const newlyPressedRef = useRef(new Set<string>());
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const soundsRef = useRef(new Map<string, HTMLAudioElement>());
+  const audioRef = useRef<GameAudioPlayer | null>(null);
   const [playing, setPlaying] = useState(false);
   const [playState, setPlayState] = useState<PlayState>({ tick: 0, score: 0, won: false });
   const [backend, setBackend] = useState<string>("Initializing");
@@ -80,6 +80,10 @@ const GameSurface = ({ refId, active }: GameSurfaceProps) => {
         renderer.resize(width, height);
       }
       await renderer.render(frame, interpolation);
+      if (renderer.capabilities.fallbackReason) {
+        setBackend("Canvas 2D");
+        setError("GPU effects omitted after WebGPU failure");
+      }
     }
   }, []);
 
@@ -94,39 +98,6 @@ const GameSurface = ({ refId, active }: GameSurfaceProps) => {
     });
   }, [renderFrame]);
 
-  const unlockAudio = () => {
-    if (!audioContextRef.current) audioContextRef.current = new AudioContext();
-    void audioContextRef.current.resume();
-  };
-
-  const playAudio = useCallback((event: GameEvent) => {
-    if (event.kind !== "audio" || !document) return;
-    const ref = document.assets[event.assetId]?.assetId;
-    const audioContext = audioContextRef.current;
-    if (ref?.startsWith("builtin:") && audioContext) {
-      const oscillator = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      oscillator.frequency.value = 660;
-      gain.gain.setValueAtTime(0.08, audioContext.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.12);
-      oscillator.connect(gain).connect(audioContext.destination);
-      oscillator.start();
-      oscillator.stop(audioContext.currentTime + 0.12);
-      return;
-    }
-    if (!ref) return;
-    void resolveMediaUri(`asset://${ref}`).then((url) => {
-      if (!url) return;
-      let sound = soundsRef.current.get(ref);
-      if (!sound) {
-        sound = new Audio(url);
-        soundsRef.current.set(ref, sound);
-      }
-      sound.currentTime = 0;
-      void sound.play();
-    });
-  }, [document]);
-
   const disposeSession = useCallback(() => {
     const current = sessionRef.current;
     sessionRef.current = null;
@@ -138,8 +109,9 @@ const GameSurface = ({ refId, active }: GameSurfaceProps) => {
     if (!session) return;
     try {
       const result = session.step(input);
-      result.events.forEach(playAudio);
+      result.events.forEach((event) => audioRef.current?.handle(event));
       const state = session.snapshot();
+      audioRef.current?.sync(state);
       setPlayState({ tick: state.tick, score: state.score, won: state.won });
       void renderFrame(result.frame, 1).catch((cause: unknown) => {
         setError(cause instanceof Error ? cause.message : String(cause));
@@ -149,7 +121,7 @@ const GameSurface = ({ refId, active }: GameSurfaceProps) => {
       setError(cause instanceof Error ? cause.message : String(cause));
       setPlaying(false);
     }
-  }, [playAudio, renderFrame]);
+  }, [renderFrame]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -157,10 +129,18 @@ const GameSurface = ({ refId, active }: GameSurfaceProps) => {
     let cancelled = false;
     const generation = ++sessionGenerationRef.current;
     let renderer: GameRenderer | null = null;
+    let loadedFonts: Awaited<ReturnType<typeof loadBrowserGameFonts>> | null = null;
     setBackend("Initializing");
     const keys = keysRef.current;
     const newlyPressed = newlyPressedRef.current;
-    const sounds = soundsRef.current;
+    const audio = new GameAudioPlayer({
+      assets: document.assets,
+      tickRate: document.tickRate,
+      resolveAsset: async (binding) => binding.assetId.startsWith("builtin:") ? null : resolveMediaUri(`asset://${binding.assetId}`),
+      status: setError
+    });
+    audioRef.current = audio;
+    audio.preload();
     setTitle(refId, "game", data?.game.name ?? "Game");
     const resolveAsset = async (assetId: string): Promise<HTMLImageElement | null> => {
       const binding = document.assets[assetId];
@@ -177,25 +157,38 @@ const GameSurface = ({ refId, active }: GameSurfaceProps) => {
         return null;
       }
     };
-    void createScriptedGameSession(document, 1)
+    void loadBrowserGameFonts(document, async (sourceId) => {
+      if (sourceId.startsWith("builtin:")) return null;
+      return resolveMediaUri(`asset://${sourceId}`);
+    }).then((fonts) => {
+      if (cancelled) {
+        fonts.dispose();
+        return null;
+      }
+      loadedFonts = fonts;
+      if (fonts.diagnostics.length > 0) setError(fonts.diagnostics.join("; "));
+      return createScriptedGameSession(document, 1);
+    })
       .then(async (createdSession) => {
+        if (!createdSession) return;
         if (cancelled || sessionGenerationRef.current !== generation) {
           createdSession.dispose();
           return;
         }
         sessionRef.current = createdSession;
+        audio.sync(createdSession.snapshot());
         const created = await createGameRenderer({ canvas, backend: "auto", assets: resolveAsset });
         if (cancelled) {
           created.dispose();
           return;
         }
-        const effect = document.renderEffects?.[0];
-        if (effect && !created.capabilities.gpuEffects && effect.required) {
+        const effects = document.renderEffects ?? [];
+        if (effects.some((effect) => effect.required) && !created.capabilities.gpuEffects) {
           created.dispose();
           throw new Error("This game requires a WebGPU effect, but WebGPU is unavailable");
         }
-        if (effect && created.capabilities.gpuEffects) created.setEffect(effect);
-        if (effect && !created.capabilities.gpuEffects) setError("GPU effect unavailable; playing without it");
+        created.setEffects(effects, document.hudEffectOrder);
+        if (effects.length > 0 && !created.capabilities.gpuEffects) setError("GPU effects unavailable; playing without them");
         renderer = created;
         rendererRef.current = created;
         setBackend(created.backend === "webgpu" ? "WebGPU" : "Canvas 2D");
@@ -211,14 +204,15 @@ const GameSurface = ({ refId, active }: GameSurfaceProps) => {
       disposeSession();
       rendererRef.current = null;
       renderer?.dispose();
-      for (const sound of sounds.values()) sound.pause();
-      sounds.clear();
-      void audioContextRef.current?.close();
-      audioContextRef.current = null;
+      loadedFonts?.dispose();
+      audio.dispose();
+      if (audioRef.current === audio) audioRef.current = null;
     };
   }, [data?.game.name, disposeSession, document, refId, setTitle, showCurrentFrame]);
 
   useEffect(() => {
+    if (!active || !playing) audioRef.current?.pause();
+    else audioRef.current?.resume();
     if (!active || !playing) {
       keysRef.current.clear();
       newlyPressedRef.current.clear();
@@ -270,6 +264,7 @@ const GameSurface = ({ refId, active }: GameSurfaceProps) => {
       }
       disposeSession();
       sessionRef.current = next;
+      audioRef.current?.reset(next.snapshot());
       showCurrentFrame();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -301,6 +296,7 @@ const GameSurface = ({ refId, active }: GameSurfaceProps) => {
       setPlaying(false);
       disposeSession();
       sessionRef.current = restored;
+      audioRef.current?.reset(restored.snapshot());
       showCurrentFrame();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -386,8 +382,8 @@ const GameSurface = ({ refId, active }: GameSurfaceProps) => {
     <FlexColumn gap={SPACING.md} sx={{ p: SPACING.lg, height: "100%" }}>
       <FlexRow align="center" gap={SPACING.md} wrap>
         <Text size="big">{data.game.name}</Text>
-        <EditorButton onClick={() => { unlockAudio(); setPlaying((current) => !current); canvasRef.current?.focus(); }} disabled={backend === "Initializing"}>{playing ? "Pause" : "Play"}</EditorButton>
-        <EditorButton onClick={() => { unlockAudio(); step(); }} disabled={playing || backend === "Initializing"}>Step</EditorButton>
+        <EditorButton onClick={() => { if (playing) audioRef.current?.pause(); else audioRef.current?.resume(); setPlaying((current) => !current); canvasRef.current?.focus(); }} disabled={backend === "Initializing"}>{playing ? "Pause" : "Play"}</EditorButton>
+        <EditorButton onClick={() => step()} disabled={playing || backend === "Initializing"}>Step</EditorButton>
         <EditorButton onClick={() => void reset()} disabled={backend === "Initializing"}>Reset</EditorButton>
         <EditorButton onClick={save} disabled={backend === "Initializing"}>Save</EditorButton>
         <EditorButton onClick={() => void load()} disabled={backend === "Initializing"}>Load</EditorButton>

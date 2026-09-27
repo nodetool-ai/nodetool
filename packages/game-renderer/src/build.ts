@@ -4,6 +4,8 @@ import { mkdir, mkdtemp, readFile, readdir, rename, rm, rmdir, writeFile } from 
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
+import { GlobalFonts } from "@napi-rs/canvas";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { validateGame } from "@nodetool-ai/game-runtime";
 import type { GameDocument } from "@nodetool-ai/protocol";
 
@@ -48,6 +50,12 @@ function mediaExtension(bytes: Uint8Array, mimeType: string): string {
   if (mime === "audio/mpeg" && bytes.length >= 3 && (Buffer.from(bytes.subarray(0, 3)).toString("ascii") === "ID3" || (bytes[0] === 255 && (bytes[1] ?? 0) >= 224))) {
     return "mp3";
   }
+  if ((mime === "font/ttf" || mime === "application/x-font-ttf") && bytes.length >= 4 && bytes[0] === 0 && bytes[1] === 1 && bytes[2] === 0 && bytes[3] === 0) {
+    return "ttf";
+  }
+  if ((mime === "font/otf" || mime === "application/vnd.ms-opentype") && bytes.length >= 4 && Buffer.from(bytes.subarray(0, 4)).toString("ascii") === "OTTO") {
+    return "otf";
+  }
   throw new Error(`Asset bytes do not match a supported media type: ${mimeType}`);
 }
 
@@ -61,7 +69,7 @@ function html(): string {
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#000000">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob:; media-src 'self' blob:; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob:; media-src 'self' blob:; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'">
   <title>NodeTool Game</title>
   <link rel="stylesheet" href="./style.css">
 </head>
@@ -156,10 +164,16 @@ export async function buildStandaloneGame(options: BuildStandaloneGameOptions): 
         assetId: binding.assetId,
         digest: binding.digest,
         mediaKind: binding.mediaKind,
+        fontFormat: binding.fontFormat,
         width: binding.width,
         height: binding.height,
         pivot: binding.pivot,
         sampling: binding.sampling,
+        required: binding.required,
+        preparation: binding.preparation,
+        originalDimensions: binding.originalDimensions,
+        trim: binding.trim,
+        referenceAssetId: binding.referenceAssetId,
       };
       if (binding.frame) {
         exportedBinding.frame = binding.frame;
@@ -173,9 +187,34 @@ export async function buildStandaloneGame(options: BuildStandaloneGameOptions): 
         throw new Error(`Missing asset for ${logicalId}`);
       }
       const extension = mediaExtension(asset.bytes, asset.mimeType);
-      const image = extension === "png" || extension === "jpg" || extension === "webp";
-      if ((binding.mediaKind === "image") !== image) {
+      const kind = extension === "png" || extension === "jpg" || extension === "webp" ? "image"
+        : extension === "ttf" || extension === "otf" ? "font" : "audio";
+      if (binding.mediaKind !== kind) {
         throw new Error(`Asset type does not match ${logicalId}`);
+      }
+      if (kind === "font" && binding.fontFormat !== extension) {
+        throw new Error(`Font format does not match ${logicalId}`);
+      }
+      if (kind === "font") {
+        const key = GlobalFonts.register(Buffer.from(asset.bytes), `ntg-export-check-${logicalId}`);
+        if (!key) throw new Error(`Invalid font bytes for ${logicalId}`);
+        GlobalFonts.remove(key);
+      }
+      const lut = document.renderEffects?.find((effect) => effect.kind === "lut" && effect.assetId === logicalId);
+      if (lut?.kind === "lut") {
+        const image = await loadImage(Buffer.from(asset.bytes));
+        if (image.width !== lut.size * lut.size || image.height !== lut.size) {
+          throw new Error(`LUT ${logicalId} has invalid decoded dimensions`);
+        }
+        const canvas = createCanvas(image.width, image.height);
+        const context = canvas.getContext("2d");
+        context.drawImage(image, 0, 0);
+        const pixels = context.getImageData(0, 0, image.width, image.height).data;
+        for (let index = 3; index < pixels.length; index += 4) {
+          if (pixels[index] !== 255) {
+            throw new Error(`LUT ${logicalId} must be opaque`);
+          }
+        }
       }
       const digest = createHash("sha256").update(asset.bytes).digest("hex");
       if (digest !== binding.digest) {

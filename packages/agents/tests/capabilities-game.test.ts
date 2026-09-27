@@ -175,6 +175,26 @@ describe("native game capabilities", () => {
     })).toEqual({ error: "Game not found" });
   });
 
+  it("installs a staged font for a version two game", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const agent = run(USER, storage);
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Font room" }) as GameReply;
+    const published = await agent.invoke("publish_native_game", { game_id: created.game.id,
+      base_revision: created.game.revision, document: { ...created.document, schemaVersion: 2 } }) as GameReply;
+    const bytes = await readFile(new URL("../../timeline/fonts/BebasNeue-Regular.ttf", import.meta.url));
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    const [row] = await Workspace.listByProject(USER, PROJECT);
+    if (!row) throw new Error("Project workspace missing");
+    const workspace = workspaceFromRow(row);
+    if (!workspace) throw new Error("Workspace storage missing");
+    await workspace.write(`games/${created.game.id}/assets/${digest}.ttf`, bytes, "font/ttf");
+    const installed = await agent.invoke("install_native_game_asset", { game_id: created.game.id,
+      base_revision: published.game.revision, slot: "display",
+      binding: { assetId: "font-candidate", digest, mediaKind: "font", fontFormat: "ttf",
+        width: 1, height: 1, pivot: { x: 0.5, y: 0.5 }, sampling: "nearest", required: true } }) as GameReply;
+    expect(installed.document.assets.display).toMatchObject({ digest, mediaKind: "font", fontFormat: "ttf" });
+  });
+
   it("requires authorized asset bytes matching the published digest", async () => {
     const storage = new InMemoryStorageAdapter();
     const agent = run(USER, storage);

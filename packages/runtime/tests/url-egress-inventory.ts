@@ -540,6 +540,30 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "The exported player fetches its fixed relative game.json and only asset paths under ./assets/ from its own static origin."
   },
   {
+    file: "packages/game-renderer/src/audio.ts",
+    owner: "browser game audio assets",
+    inputSource: "workflow",
+    schemes: ["http", "https", "relative"],
+    authScope: "the page's own cookies",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "browser",
+    guardedBy: [],
+    note: "The browser player supplies asset URLs resolved by the web app or relative paths under ./assets/ in a standalone export."
+  },
+  {
+    file: "packages/game-renderer/src/browser-fonts.ts",
+    owner: "browser game font assets",
+    inputSource: "workflow",
+    schemes: ["http", "https", "relative"],
+    authScope: "the page's own cookies",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "browser",
+    guardedBy: [],
+    note: "The browser player supplies asset URLs resolved by the web app or relative paths under ./assets/ in a standalone export."
+  },
+  {
     file: "packages/image-nodes/src/nodes/image-io.ts",
     owner: "image ref → bytes (browser branch)",
     inputSource: "workflow",

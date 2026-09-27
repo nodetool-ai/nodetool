@@ -35,6 +35,107 @@ describe("native game runtime", () => {
     resumed.dispose();
   });
 
+  it("resumes declarative tracks across delay and ping-pong boundaries", () => {
+    const base = createTopDownRoomGame("8".repeat(32));
+    const game = gameDocument.parse({ ...base, schemaVersion: 2, scenes: [{ ...base.scenes[0],
+      entities: base.scenes[0].entities.map((entity) => entity.id === "gem" ? { ...entity,
+        visualAnimation: { tracks: [
+          { property: "rotation", from: 0, to: Math.PI * 2, durationTicks: 2, delayTicks: 1, repeat: true, pingPong: true, easing: "linear" },
+          { property: "opacity", from: 1, to: 0, durationTicks: 2, delayTicks: 1, repeat: true, pingPong: true, easing: "linear" }
+        ] } } : entity) }] });
+    const continuous = createGameSession(game, 0);
+    for (let index = 0; index < 3; index += 1) continuous.step(input());
+    const save = continuous.snapshot();
+    const resumed = createGameSession(game, 0, save);
+    for (let index = 0; index < 8; index += 1) {
+      expect(resumed.frame()).toEqual(continuous.frame());
+      resumed.step(input());
+      continuous.step(input());
+    }
+    expect(resumed.snapshot()).toEqual(continuous.snapshot());
+    continuous.dispose();
+    resumed.dispose();
+  });
+
+  it("rejects duplicate and invalid visual tracks", () => {
+    const base = createTopDownRoomGame("9".repeat(32));
+    const game = gameDocument.parse({ ...base, schemaVersion: 2, scenes: [{ ...base.scenes[0],
+      entities: base.scenes[0].entities.map((entity) => entity.id === "gem" ? { ...entity,
+        visualAnimation: { tracks: [
+          { property: "scaleX", from: 1, to: -1, durationTicks: 2 },
+          { property: "scaleX", from: 1, to: 2, durationTicks: 2 }
+        ] } } : entity) }] });
+    expect(validateGame(game).errors.join(" ")).toMatch(/duplicate scaleX track/);
+    expect(validateGame(game).errors.join(" ")).toMatch(/scale values must be positive/);
+  });
+
+  it("projects scene lighting and rejects lighting on a version 1 document", () => {
+    const base = createTopDownRoomGame("7".repeat(32));
+    const lighting = { ambient: { color: "#202020", intensity: 0.5 },
+      points: [{ x: 1, y: 2, color: "#ff0000", intensity: 2, radius: 3, falloff: 2 }] };
+    const scene = { ...base.scenes[0], lighting };
+    const game = gameDocument.parse({ ...base, schemaVersion: 2, scenes: [scene] });
+    const session = createGameSession(game, 0);
+    expect(session.frame().lighting).toEqual(lighting);
+    expect(validateGame({ ...game, schemaVersion: 1 }).errors.join(" ")).toContain("requires schema version 2");
+    session.dispose();
+  });
+
+  it("reproduces background positions from the saved tick", () => {
+    const base = createTopDownRoomGame("6".repeat(32));
+    const background = { id: "mist", assetId: "wall", width: 3, height: 3, layer: -2,
+      origin: { x: -1, y: 1 }, parallax: { x: 0.4, y: 0 }, scrollRate: { x: -2, y: 0.5 }, mode: "repeat" };
+    const game = gameDocument.parse({ ...base, schemaVersion: 2,
+      scenes: [{ ...base.scenes[0], backgrounds: [background] }] });
+    const session = createGameSession(game, 2);
+    for (let index = 0; index < 20; index += 1) session.step(input());
+    const resumed = createGameSession(game, 2, session.snapshot());
+    expect(resumed.frame().backgrounds).toEqual(session.frame().backgrounds);
+    expect(resumed.frame().tick).toBe(20);
+    session.dispose();
+    resumed.dispose();
+  });
+
+  it("keeps scene music at its logical start tick across save and load", () => {
+    const base = createTopDownRoomGame("b".repeat(32));
+    const game = gameDocument.parse({ ...base, schemaVersion: 2, scenes: [{ ...base.scenes[0], music: { assetId: "sfx.collect", volume: 0.4, fadeInTicks: 12, fadeOutTicks: 6 } }] });
+    const session = createGameSession(game, 2);
+    expect(session.snapshot().music).toEqual({ voiceId: `scene:${game.entrySceneId}:music`, assetId: "sfx.collect", startTick: 0,
+      volume: 0.4, fadeInTicks: 12, fadeOutTicks: 6 });
+    for (let index = 0; index < 90; index += 1) session.step(input());
+    const saved = session.snapshot();
+    const restored = createGameSession(game, 2, saved);
+    expect(restored.snapshot().music).toEqual(saved.music);
+    expect(restored.step(input()).events.filter((event) => event.kind === "audio")).toEqual([]);
+    session.dispose();
+    restored.dispose();
+  });
+
+  it("replaces scene music once at the transition tick", () => {
+    const base = createTopDownRoomGame("music-transition");
+    const room = base.scenes[0];
+    const game = gameDocument.parse({ ...base, schemaVersion: 2,
+      scenes: [
+        { ...room, music: { assetId: "sfx.collect" }, entities: room.entities.map((entity) => {
+          if (entity.id === "player") return { ...entity, behaviors: [...entity.behaviors,
+            { kind: "sceneTransition", sceneId: "next", onEvent: "next" }] };
+          if (entity.id === "gem") return { ...entity, transform2d: { ...entity.transform2d, x: 0 },
+            behaviors: [{ kind: "trigger", event: "next" }] };
+          return entity;
+        }) },
+        { id: "next", name: "Next", music: { assetId: "sfx.collect" }, entities: [] }
+      ] });
+    const session = createGameSession(game, 1);
+    expect(session.snapshot().music?.voiceId).toBe("scene:room:music");
+    session.step(input());
+    const transition = session.step(input());
+    expect(transition.events.filter((event) => event.kind === "sceneTransition")).toHaveLength(1);
+    expect(session.snapshot().music).toMatchObject({ voiceId: "scene:next:music", startTick: 2 });
+    session.step(input());
+    expect(session.snapshot().music?.startTick).toBe(2);
+    session.dispose();
+  });
+
   it("blocks movement through walls", () => {
     const game = createTopDownRoomGame("c".repeat(32));
     const result = replayGame(game, 0, Array.from({ length: 400 }, () => input(["right"])));

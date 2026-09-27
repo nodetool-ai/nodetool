@@ -33,6 +33,7 @@ import {
 // ── The node types a game graph is made of ──────────────────────────────────
 
 export const GAME_TEXT_TO_IMAGE_NODE_TYPE = "nodetool.image.TextToImage";
+export const GAME_IMAGE_TO_IMAGE_NODE_TYPE = "nodetool.image.ImageToImage";
 export const GAME_RESIZE_NODE_TYPE = "nodetool.image.ResizeImage";
 export const GAME_TEXT_TO_MUSIC_NODE_TYPE = "nodetool.audio.TextToMusic";
 export const GAME_SPRITESHEET_NODE_TYPE = "nodetool.game.SpriteSheet";
@@ -93,7 +94,7 @@ export interface GameGraphChoices {
   sfxNodeType: string | null;
   /** The `music_model` property value, or null to keep the placeholder. */
   musicModel: Record<string, unknown> | null;
-  style: { name: string; descriptor: string } | null;
+  style: { name: string; descriptor: string; referenceAssetId?: string } | null;
   projectName: string;
   /** Workspace-relative export directory, `games/<slug>`. */
   directory: string;
@@ -208,12 +209,16 @@ function entitiesFor(
 ): Record<string, unknown>[] {
   const entities: Record<string, unknown>[] = [];
   if (choices.style) {
-    entities.push({
+    const styleEntity: Record<string, unknown> = {
       type: "entity",
       kind: "style",
       name: choices.style.name,
       descriptor: choices.style.descriptor
-    });
+    };
+    if (choices.style.referenceAssetId) {
+      styleEntity.reference_images = [{ type: "image", asset_id: choices.style.referenceAssetId }];
+    }
+    entities.push(styleEntity);
   }
   const member = design.cast.find((entry) => entry.slot_id === slot.id);
   if (member) {
@@ -330,7 +335,7 @@ export function gameGraphPlacement(
       ? slot.kind === "sfx"
         ? choices.sfxNodeType
         : GAME_TEXT_TO_MUSIC_NODE_TYPE
-      : GAME_TEXT_TO_IMAGE_NODE_TYPE;
+      : choices.style?.referenceAssetId ? GAME_IMAGE_TO_IMAGE_NODE_TYPE : GAME_TEXT_TO_IMAGE_NODE_TYPE;
 
     // Keeping the template's placeholder audio is a choice (D27), not an issue.
     if (slot.kind === "sfx" && choices.sfxNodeType === null) {
@@ -340,6 +345,11 @@ export function gameGraphPlacement(
       return;
     }
     if (generatorType === null) {
+      return;
+    }
+    if (!audio && choices.style?.referenceAssetId && Array.isArray(choices.imageModel.supported_tasks) &&
+      !choices.imageModel.supported_tasks.includes("image_to_image")) {
+      issues.push(`${label} needs an image-to-image model to use the selected style reference.`);
       return;
     }
 
@@ -444,18 +454,20 @@ export function gameGraphPlacement(
         return;
       }
       const resizeId = `resize_${row + 1}`;
+      const generatorProperties: Record<string, unknown> = {
+        model: choices.imageModel,
+        prompt: built.prompt,
+        aspect_ratio: built.aspectRatio,
+        resolution: resolutionFor(width, height),
+        entities: entitiesFor(choices, design, slot)
+      };
+      if (choices.style?.referenceAssetId) generatorProperties.image = [];
       chainNodes.push(
         {
           id: generatorId,
           type: generatorType,
           position: position(COLUMN_GENERATE, row),
-          properties: {
-            model: choices.imageModel,
-            prompt: built.prompt,
-            aspect_ratio: built.aspectRatio,
-            resolution: resolutionFor(width, height),
-            entities: entitiesFor(choices, design, slot)
-          },
+          properties: generatorProperties,
           setupStepId: slot.id
         },
         {
@@ -553,7 +565,8 @@ export function gameGraphPlacement(
     position: position(COLUMN_EXPORT, 0),
     properties: {
       template: manifest.template,
-      game_id: choices.gameId ?? ""
+      game_id: choices.gameId ?? "",
+      reference_asset_id: choices.style?.referenceAssetId ?? ""
     }
   });
   // Many edges into one list input: the kernel folds them into the `fills`

@@ -13,7 +13,7 @@ import { getDeclaredPropertiesForClass } from "@nodetool-ai/node-sdk";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Entity } from "@nodetool-ai/protocol";
 
-import { TextToImageNode } from "../src/nodes/image.js";
+import { ImageToImageNode, TextToImageNode } from "../src/nodes/image.js";
 
 const FOX: Entity = {
   type: "entity",
@@ -86,5 +86,19 @@ describe("TextToImageNode entities", () => {
       (entry) => entry.name === "entities"
     );
     expect(declared?.options.type).toBe("list[entity]");
+  });
+});
+
+describe("game style image generation", () => {
+  it("puts the shared image reference in the image-to-image provider request", async () => {
+    const { context, runProviderPrediction } = contextWithProvider(false);
+    const node = new ImageToImageNode();
+    node.assign({ prompt: "paint a game sprite", image: [], model: { type: "image_model", provider: "fake", id: "image-edit" },
+      entities: [{ type: "entity", kind: "style", name: "Game style", descriptor: "painted pixel art",
+        reference_images: [{ type: "image", asset_id: "shared-style", uri: "asset://shared-style" }] }] });
+    await node.process(context);
+    const request = runProviderPrediction.mock.calls[0][0] as { capability: string; params: { entities: Entity[] } };
+    expect(request.capability).toBe("image_to_image");
+    expect(request.params.entities[0].reference_images?.[0]).toMatchObject({ asset_id: "shared-style", uri: "asset://shared-style" });
   });
 });

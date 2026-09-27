@@ -1067,8 +1067,27 @@ nodetool game validate game.json
 nodetool game simulate game.json --ticks 120 --inputs inputs.json --expect-score 1 --expect-win
 nodetool game simulate game.json --ticks 120 --inputs inputs.json --assertions assertions.json --verify-replay
 nodetool game capture game.json --ticks 120 --inputs inputs.json --out frame.png
+nodetool game capture game.json --ticks 120 --out frame.png --backend webgpu
 nodetool game build game.json --out game-build --assets-dir game-assets
 ```
+
+Schema version 2 adds sprite `visualAnimation` tracks and scene `backgrounds`.
+Tracks use scene or spawn age in ticks and animate rotation, scale, opacity, and
+tint. Backgrounds use per-axis parallax (`0` screen-fixed, `1` world-fixed),
+scroll rate in world units per second, and `none`, `repeat`, or `mirror` tiling.
+`game capture` derives both at the selected tick, so a resumed simulation and
+an arbitrary-tick capture use the same positions.
+Scene `lighting` adds ambient color and up to 32 colored point lights. Each
+point has world position, radius, intensity, and falloff. Set `sprite.unlit`
+for emissive art. Lighting applies to the world before effects and leaves HUD
+text unchanged.
+
+`game capture` uses Canvas2D by default. It reports omitted optional GPU
+effects and fails if an effect is required. Choose `--backend webgpu` to run
+bloom, brightness/contrast, and LUT grading through the GPU modules used by
+the browser. The command fails when a required effect cannot run. The JSON
+report includes effect diagnostics. GPU capture requires the local Dawn WebGPU
+adapter.
 
 `--assertions` checks selected ticks. Tick 0 is the initial state; tick 1 is
 after the first input frame. Each listed tick may check `sceneId`, entity
@@ -1100,6 +1119,28 @@ tick and path when it fails. This check excludes script execution timing.
 `--assets-dir` supplies media files named `<full-asset-id>.<extension>` for
 capture and export. The build copies media into a content-addressed folder and
 includes a standalone browser player. Built-in sample art needs no media files.
+
+Schema version 2 permits up to eight ordered `renderEffects`. `brightnessContrast`
+sets `brightness` from `-1` to `1` and `contrast` from `0` to `4`.
+`bloom` sets `threshold`, `softness`, `radius` in pixels, and `intensity`.
+`lut` references an opaque image asset laid out as a packed 2D cube with
+dimensions `size² × size`. `hudEffectOrder` chooses `beforeEffects` or
+`afterEffects`; bloom defaults to HUD after effects, while a legacy one-effect
+document keeps its earlier output. Each effect has `required`: a missing GPU
+capability fails for required effects and reports omitted optional effects.
+Canvas capture reports the same omission policy; GPU capture applies the chain.
+HUD labels may refer to an embedded font asset by `fontId`. Capture loads the
+font bytes before drawing; a missing required font fails and an optional font
+reports its fallback. To compare browser and headless text metrics, run
+`NODETOOL_BROWSER_FONT_TEST=1 npm run test --workspace=packages/game-renderer -- fonts.test.ts`.
+
+Schema version 2 scenes can set `music: {"assetId":"music","volume":0.5,
+"fadeInTicks":30,"fadeOutTicks":30}` to loop an installed audio asset. Audio
+sources on entities remain one-shot effects. Their `volume` defaults to `1`,
+and triggered effects can overlap up to the browser player's 32-voice cap.
+Music position is saved as a scene start tick; loading seeks within the decoded
+loop. Audio starts after a browser gesture. The CLI simulation and image capture
+record logical audio events and state without producing audio samples.
 
 ## Job Management
 
