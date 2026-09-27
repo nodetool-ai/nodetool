@@ -103,6 +103,29 @@ A program that must open in the editor, be validated, or run on the server still
 builds a graph. Use `nodetool-workflow-builder`
 for that.
 
+## Building a timeline from code
+
+```js
+import { createBuilder, cv, saveTimeline } from "@nodetool-ai/sandbox-timeline";
+
+const { ms, scenes, scene, text, on, sceneTracks } = createBuilder({ W: 1920, H: 1080, FPS: 30 });
+scene("title", 0, 89);
+on(text("Hello", 120, 600, "#ffffff"), 0, 15, [cv("opacity", 0, 1)]);
+const layers = sceneTracks(1);
+const tracks = [{ id: "t_scenes", name: "scenes", type: "video" }, ...layers.tracks];
+const clips = [...layers.clips, ...scenes.map((s) => s.group)];
+const saved = await saveTimeline(
+  { name: "Hello", fps: 30, width: 1920, height: 1080, durationMs: ms(90), document: { tracks, clips } },
+  { timelines: nodetool.timelines }
+);
+await output("timeline_id", saved.timeline_id);
+```
+
+The pack authors a whole motion-graphics cut in frames and saves it with one
+`set_timeline_document`, instead of one `edit_timeline` op per clip. Pass the
+body's `nodetool.timelines` to `saveTimeline`: a module cannot see the belt.
+`get_sandbox_package_docs` on the specifier returns the full builder API.
+
 ## The loop
 
 1. **Write or read the body.** `get_js_script` for a saved script.

@@ -1,15 +1,15 @@
 // The Prism stills: every prompt and seed behind the example's images.
 //
-// `node scripts/example-timelines/prism.mjs --stills [name…]` regenerates them
+// `node scripts/example-timelines/prism-stills.mjs [name…]` regenerates them
 // through stills.mjs. The subjects stand on a flat chroma green so the ad keys
 // them out; the shoe still is the reference for the others, so the same shoe
 // appears in every frame.
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { generateStills as generate, ROOT } from "./stills.mjs";
 
 export const STILLS_DIR = join(ROOT, "packages/base-nodes/nodetool/assets/nodetool-base/timelines/prism");
-export const stillUri = (name) => `package://nodetool-base/timelines/prism/${name}.jpg`;
 
 const SHOE =
   "the Prism, a fictional running shoe: a seamless knit upper in iridescent holographic chrome that shifts from cyan to magenta to lime, " +
@@ -29,3 +29,5 @@ export const STILLS = [
 export async function generateStills(names = []) {
   await generate(STILLS_DIR, STILLS, names);
 }
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) await generateStills(process.argv.slice(2));

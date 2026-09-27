@@ -1,17 +1,13 @@
 // Kite: a 15-second savings-app ad built only from timeline motion graphics.
 //
-// `node scripts/example-timelines/kite.mjs` writes the shipped bundle
+// `node scripts/example-timelines/build.mjs kite` writes the shipped bundle
 // packages/base-nodes/nodetool/examples/timelines/kite.timeline.json.
 // `node scripts/render-example-timeline.mjs kite` renders its video and poster.
 //
 // Frames are at 30 fps. Positions are px from the frame centre. Each scene is a
 // group clip on the scenes track; its layers alternate between two track banks
 // so a transition's overlapping scenes never share a track.
-import { writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { createBuilder, cv, hash, kfs, NOOP, rad, tf } from "./lib.mjs";
+import { createBuilder, cv, hash, kfs, NOOP, rad, saveTimeline, tf } from "@nodetool-ai/sandbox-timeline";
 
 const W = 1920, H = 1080, FPS = 30, FRAMES = 450;
 
@@ -401,6 +397,4 @@ const bundle = {
   document: { tracks, trackFolders, clips, markers: [], camera2d }
 };
 
-const out = join(dirname(fileURLToPath(import.meta.url)), "../../packages/base-nodes/nodetool/examples/timelines/kite.timeline.json");
-writeFileSync(out, `${JSON.stringify(bundle)}\n`);
-console.log(`${clips.length} clips, ${tracks.length} tracks -> ${out}`);
+await output("timeline", await saveTimeline(bundle, { timelines: nodetool.timelines }));

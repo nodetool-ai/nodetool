@@ -1,26 +1,17 @@
-// Document plumbing shared by the example-timeline builders (kite.mjs,
-// voltra.mjs, prism.mjs, tidewater.mjs).
-//
-// To add an example timeline:
-//
-// 1. Write `scripts/example-timelines/<slug>.mjs`. Build each scene with
-//    `createBuilder`, lay out its tracks with `sceneTracks` (or `bankTracks`),
-//    and write the bundle to
-//    `packages/base-nodes/nodetool/examples/timelines/<slug>.timeline.json`.
-// 2. Run `node scripts/example-timelines/<slug>.mjs` to write the bundle.
-// 3. Run `node scripts/render-example-timeline.mjs <slug>` to render the video
-//    and poster that the bundle's `videoUri` and `posterUri` name.
-// 4. Run `npm run dev:nodetool -- timeline validate <bundle>` and
-//    `node scripts/validate-examples.mjs`.
-//
-// The failure modes in docs/timeline-motion-design.md#failure-modes render
-// without an error. Check the rendered frames against them.
-//
-// Frames are the unit throughout. Positions are px from the frame centre. A
-// scene is a group clip on the `t_scenes` track; its layers are children of
-// that group, placed on tracks by the assembly functions at the end.
-import { typewriterTiming } from "@nodetool-ai/timeline";
-import { applyTimelineOp } from "@nodetool-ai/timeline/ops";
+/**
+ * A motion-graphics timeline builder for the sandbox.
+ *
+ * Author a cut as code: scenes of shapes, text, images and adjustment layers,
+ * keyframed in frames, laid out on tracks, and saved with `saveTimeline`
+ * through `nodetool.timelines`. See the pack's SKILL.md.
+ *
+ * Frames are the unit throughout. Positions are px from the frame centre. A
+ * scene is a group clip on the `t_scenes` track; its layers are children of
+ * that group, placed on tracks by `sceneTracks` or `bankTracks`.
+ */
+
+/** Ticks per quarter note in a midi clip, as the `ui_timeline_*` ops count them. */
+export const MIDI_PPQ = 960;
 
 export const rad = (d) => (d * Math.PI) / 180;
 export const hash = (n) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
@@ -174,26 +165,13 @@ export function createBuilder({ W, H, FPS, font = "Inter" }) {
 
   /**
    * A typewriter on a text clip, `delay` frames after the clip starts and
-   * `dur` frames long. Stored the way `animate_clip` stores it: one-millisecond
-   * reveals, one per character. A typewriter written with a plain duration
-   * draws nothing until its window ends. It replaces the clip's animations.
+   * `dur` frames long. `set_timeline_document` resolves the plain duration to
+   * one-millisecond reveals, one per character, the way `animate_clip` does.
+   * It replaces the clip's animations.
    */
   function typewriter(clip, delay, dur, opts = {}) {
-    const typed = typewriterTiming(clip.textStyle.text, clip.durationMs - ms(delay), ms(dur));
-    clip.animations = [{ id: nid("a"), role: "in", preset: "typewriter", delayMs: ms(delay), ...typed, ...opts }];
+    clip.animations = [{ id: nid("a"), role: "in", preset: "typewriter", delayMs: ms(delay), durationMs: ms(dur), ...opts }];
     return clip;
-  }
-
-  /**
-   * Rain that falls: the plate jumps to a new offset every two frames on held
-   * keys, the way a flicker of streaks reads in live action. A scrolling tile
-   * showed its seam, because the generated plate is denser at the top.
-   */
-  function rainShimmer(clip, seed, reach = 140) {
-    const frames = Math.round((clip.durationMs / 1000) * FPS);
-    const steps = Math.max(2, Math.floor(frames / 2));
-    const at = (axis) => kfs(axis, Array.from({ length: steps + 1 }, (_, k) => [k / steps, Math.round((hash(seed * 97 + k * 3 + (axis === "offsetX" ? 1 : 2)) - 0.5) * 2 * reach), k ? "hold" : undefined]));
-    return across(clip, [at("offsetX"), at("offsetY")]);
   }
 
   function finish(clip, trackId) {
@@ -245,34 +223,53 @@ export function createBuilder({ W, H, FPS, font = "Inter" }) {
   }
 
   /**
-   * The beat grid, through the same ops the editor's tempo tools run: markers
-   * on every beat of `durationMs`, then the `snap` clip ids snapped to it. A
-   * cut off the grid fails the build instead of shipping a drag. Returns the
-   * resulting editor state.
+   * The beat grid, as the ops the editor's tempo tools run: markers on every
+   * beat of `durationMs`, then the `snap` clip ids snapped to it. Pass them to
+   * `saveTimeline`, which throws on a cut off the grid instead of saving a
+   * drag.
    */
-  async function beatGrid(tracks, clips, { bpm, durationMs, snap }) {
-    let state = { fps: FPS, width: W, height: H, tracks, clips, markers: [], mediaTracks: [], playheadMs: 0, selectedClipIds: [] };
-    const opCtx = { newId: (kind) => nid(kind) };
+  function beatGrid({ bpm, durationMs, snap }) {
     const beats = Math.floor((durationMs / 1000) * (bpm / 60));
-    for (const op of [
+    return [
       { op: "set_markers_from_beats", bpm, offset_ms: 0, count: beats, label: "Beat" },
       { op: "snap_to_beats", targets: snap, bpm, offset_ms: 0, mode: "start", action: "move", tolerance_ms: 40 }
-    ]) {
-      const outcome = await applyTimelineOp(state, op, opCtx);
-      if (outcome.error) throw new Error(`${op.op}: ${outcome.error}`);
-      if (op.op === "snap_to_beats") {
-        const off = outcome.result.clips.filter((c) => !c.snapped && c.reason !== "already on the grid");
-        if (off.length) throw new Error(`cut off the beat: ${JSON.stringify(off)}`);
-      }
-      state = outcome.state;
-    }
-    return state;
+    ];
   }
 
   return {
     ms, nid, scenes, current: () => cur,
     scene, add, group, image, adjust, box, ellipse, path, pathData, text,
-    on, across, loop, fadeOut, typewriter, rainShimmer,
+    on, across, loop, fadeOut, typewriter,
     sceneTracks, bankTracks, beatGrid
   };
+}
+
+/**
+ * Save a bundle as a new timeline and return its metadata with the saved
+ * `timeline_id`. Pass the script's `nodetool.timelines` as `timelines`: a
+ * module cannot see the belt the body has. The document goes in with one
+ * `setDocument`, then `ops` (such as `beatGrid`'s) run in one `edit`. A
+ * refused write, a failed op, a cut `snap_to_beats` could not place, or a
+ * validation error throws, so a cut that did not land never reads as saved.
+ */
+export async function saveTimeline(bundle, { timelines, ops = [] } = {}) {
+  if (!timelines) {
+    throw new Error("saveTimeline(bundle, {timelines: nodetool.timelines}) — pass the script's nodetool.timelines.");
+  }
+  const { document, ...meta } = bundle;
+  const fail = (step, detail) => { throw new Error(`${meta.name}: ${step}: ${JSON.stringify(detail, null, 2)}`); };
+  const { timeline_id: id } = await timelines.create(meta.name, { fps: meta.fps, width: meta.width, height: meta.height });
+  const set = await timelines.setDocument(id, document);
+  if (!set.written) fail("set_timeline_document", set.validation ?? set.error);
+  if (ops.length) {
+    const edit = await timelines.edit(id, ops);
+    if (edit.failed) fail("edit_timeline", edit.ops.filter((record) => !record.ok));
+    for (const record of edit.ops) {
+      const off = (record.result?.clips ?? []).filter((c) => c.snapped === false && c.reason !== "already on the grid");
+      if (off.length) fail("cut off the beat", off);
+    }
+  }
+  const validation = await timelines.validate(id);
+  if (!validation.ok) fail("validate_timeline", validation.errors);
+  return { ...meta, timeline_id: id };
 }

@@ -8,12 +8,7 @@
  * Python bridge at execution time. Static tools (validate) therefore treat
  * unknown types as "not in the local TS registry".
  */
-import {
-  NodeRegistry,
-  discoverSandboxCatalog
-} from "@nodetool-ai/node-sdk";
-import { setProcessSandboxModuleCatalog } from "@nodetool-ai/runtime";
-import { createCachedNpmLookup } from "@nodetool-ai/sandbox-compiler/cache";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerAtlasCloudNodes } from "@nodetool-ai/atlascloud-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
@@ -23,30 +18,7 @@ import { registerFalNodes } from "@nodetool-ai/fal-nodes";
 import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
 import { registerReveNodes } from "@nodetool-ai/reve-nodes";
 import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
-
-/**
- * Discover installed sandbox packs and make the catalog this process's default,
- * so the CLI's validation and execution harnesses resolve sandbox modules
- * through the same instance the server uses. Discovery executes no pack code.
- * A failure leaves the CLI without a catalog rather than without a registry.
- *
- * This path never compiles. npm-backed modules resolve only from the cache,
- * whose entries are re-verified against their inputs' current contents; a miss
- * becomes the `pending-compile` diagnostic naming `nodetool packs compile`.
- */
-export function installSandboxCatalog(): void {
-  try {
-    setProcessSandboxModuleCatalog(
-      discoverSandboxCatalog(undefined, { compiled: createCachedNpmLookup() }).catalog
-    );
-  } catch (error) {
-    console.warn(
-      `Sandbox module catalog unavailable: ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    );
-  }
-}
+import { installSandboxCatalog } from "./sandbox-catalog.js";
 
 export function buildFullRegistry(): NodeRegistry {
   installSandboxCatalog();

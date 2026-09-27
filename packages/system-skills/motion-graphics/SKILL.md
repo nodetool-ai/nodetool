@@ -79,6 +79,14 @@ document sections below are fields to merge into that complete document, not
 `edit_timeline` ops. The editor may lack controls for them even though they
 render and survive a save.
 
+A new cut with many clips is cheaper as code than as ops. In a JS script or a
+Code node, import `@nodetool-ai/sandbox-timeline`: it builds scenes of shapes,
+text and images keyframed in frames, and its `saveTimeline` writes the whole
+document with one `set_timeline_document` and runs a beat grid with one
+`edit_timeline`. Its documentation is the pack's skill
+(`nodetool.packs.docs("@nodetool-ai/sandbox-timeline")`). NodeTool's shipped
+example timelines are built with it.
+
 ## Track layering
 
 **Lowest `index` renders on top.** Track 0 covers track 1, which covers track 2

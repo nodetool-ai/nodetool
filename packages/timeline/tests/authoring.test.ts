@@ -3,7 +3,12 @@
  * what is filled in, what is left alone, and what is lifted out.
  */
 import { describe, expect, it } from "vitest";
-import { normalizeAuthoredDocument, sourceTypeForClip } from "../src/authoring.js";
+import { typewriterTiming } from "../src/animation/typewriter.js";
+import {
+  normalizeAuthoredDocument,
+  sourceTypeForClip
+} from "../src/authoring.js";
+import { findInstrumentPreset } from "../src/midi/presets.js";
 
 describe("normalizeAuthoredDocument", () => {
   it("fills the fields the schema requires and the caller omitted", () => {
@@ -22,7 +27,14 @@ describe("normalizeAuthoredDocument", () => {
       ]
     });
     expect(document.tracks).toEqual([
-      { id: "T1", name: "Video", type: "video", index: 0, visible: true, locked: false }
+      {
+        id: "T1",
+        name: "Video",
+        type: "video",
+        index: 0,
+        visible: true,
+        locked: false
+      }
     ]);
     const clip = (document.clips as Record<string, unknown>[])[0];
     expect(clip).toMatchObject({
@@ -54,7 +66,11 @@ describe("normalizeAuthoredDocument", () => {
       { id: "T1", index: 4, visible: false, locked: true }
     ]);
     const clip = (document.clips as Record<string, unknown>[])[0];
-    expect(clip).toMatchObject({ status: "draft", locked: true, sourceType: "generated" });
+    expect(clip).toMatchObject({
+      status: "draft",
+      locked: true,
+      sourceType: "generated"
+    });
     expect((clip.animations as Record<string, unknown>[])[0].id).toBe("keep");
     expect(document.markers).toHaveLength(1);
   });
@@ -62,7 +78,10 @@ describe("normalizeAuthoredDocument", () => {
   it("numbers filled animation ids uniquely across the document", () => {
     const { document } = normalizeAuthoredDocument({
       clips: [
-        { id: "C1", animations: [{ role: "in" }, { id: "anim_2", role: "out" }] },
+        {
+          id: "C1",
+          animations: [{ role: "in" }, { id: "anim_2", role: "out" }]
+        },
         { id: "C2", animations: [{ role: "in" }] }
       ]
     });
@@ -85,6 +104,63 @@ describe("normalizeAuthoredDocument", () => {
     expect(document.fps).toBeUndefined();
     expect(document.width).toBeUndefined();
     expect(document.height).toBeUndefined();
+  });
+
+  it("resolves a typewriter's plain duration the way animate_clip does", () => {
+    const text = { text: "Hello there" };
+    const typewriter = {
+      role: "in",
+      preset: "typewriter",
+      delayMs: 200,
+      durationMs: 500
+    };
+    const { document } = normalizeAuthoredDocument({
+      tracks: [],
+      clips: [
+        {
+          id: "C1",
+          mediaType: "text",
+          durationMs: 2000,
+          textStyle: text,
+          animations: [typewriter]
+        }
+      ]
+    });
+    const [animation] = (document.clips as Array<{ animations: unknown[] }>)[0]!
+      .animations;
+    expect(animation).toMatchObject({
+      delayMs: 200,
+      ...typewriterTiming(text.text, 1800, 500)
+    });
+
+    // Already resolved: a second pass leaves it alone.
+    const again = normalizeAuthoredDocument(document);
+    expect(again.document.clips).toEqual(document.clips);
+  });
+
+  it("resolves a midi track's instrument preset and leaves an unknown one", () => {
+    const { document } = normalizeAuthoredDocument({
+      tracks: [
+        {
+          id: "T1",
+          name: "drums",
+          type: "midi",
+          instrument: { preset: "dr1-tr-void" }
+        },
+        {
+          id: "T2",
+          name: "bass",
+          type: "midi",
+          instrument: { preset: "no-such-voice" }
+        }
+      ],
+      clips: []
+    });
+    const [drums, bass] = document.tracks as Array<{ instrument: unknown }>;
+    expect(drums!.instrument).toEqual(
+      findInstrumentPreset("dr1-tr-void")!.instrument
+    );
+    expect(bass!.instrument).toEqual({ preset: "no-such-voice" });
   });
 });
 

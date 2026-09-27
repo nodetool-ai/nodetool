@@ -1,0 +1,32 @@
+{
+  "name": "Timeline pack import",
+  "document": {
+    "schemaVersion": 1,
+    "description": "Imports the shipped @nodetool-ai/sandbox-timeline pack and builds a one-scene document without saving it.",
+    "code": "import { createBuilder, cv } from \"@nodetool-ai/sandbox-timeline\";\n\nconst { scenes, scene, box, text, on, sceneTracks } = createBuilder({ W: 1920, H: 1080, FPS: 30 });\nscene(\"title\", 0, 29);\nbox(1920, 1080, \"#000000\");\non(text(\"Hi\", 96, 600, \"#ffffff\"), 0, 10, [cv(\"opacity\", 0, 1)]);\nconst layers = sceneTracks(1);\nawait output(\"tracks\", layers.tracks.length);\nawait output(\"clips\", layers.clips.length + scenes.length);",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "tracks",
+        "type": "int"
+      },
+      {
+        "name": "clips",
+        "type": "int"
+      }
+    ],
+    "packages": [],
+    "secrets": [],
+    "timeoutSeconds": 10,
+    "tests": [
+      {
+        "name": "builds a scene from the pack",
+        "inputs": {},
+        "expect": {
+          "tracks": 2,
+          "clips": 3
+        }
+      }
+    ]
+  }
+}

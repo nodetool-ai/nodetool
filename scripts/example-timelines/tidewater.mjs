@@ -2,7 +2,7 @@
 // to look like a three-ink risograph print that moves.
 //
 // `python3 scripts/example-timelines/tidewater-score.py` writes the score.
-// `node scripts/example-timelines/tidewater.mjs` writes the shipped bundle
+// `node scripts/example-timelines/build.mjs tidewater` writes the shipped bundle
 // packages/base-nodes/nodetool/examples/timelines/tidewater.timeline.json.
 // `node scripts/render-example-timeline.mjs tidewater` renders its video and poster.
 //
@@ -11,11 +11,7 @@
 // pass out of register. Every animated clip samples its clock at 12 fps, so
 // the motion steps on twos like cut paper under a camera. Frames are at
 // 24 fps against a 120 BPM score: a beat is 12 frames and a bar is 48.
-import { writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { createBuilder, cv, kfs, rad, tf, track } from "./lib.mjs";
+import { createBuilder, cv, kfs, track, tf, rad, saveTimeline } from "@nodetool-ai/sandbox-timeline";
 
 const W = 1080, H = 1350, FPS = 24, FRAMES = 384, BEAT = 12, BAR = 48;
 
@@ -341,6 +337,4 @@ const bundle = {
   }
 };
 
-const out = join(dirname(fileURLToPath(import.meta.url)), "../../packages/base-nodes/nodetool/examples/timelines/tidewater.timeline.json");
-writeFileSync(out, `${JSON.stringify(bundle)}\n`);
-console.log(`${clips.length} clips, ${tracks.length} tracks -> ${out}`);
+await output("timeline", await saveTimeline(bundle, { timelines: nodetool.timelines }));

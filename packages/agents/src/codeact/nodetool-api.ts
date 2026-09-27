@@ -1808,7 +1808,11 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   bookkeeping is filled in: track \`index\`/\`visible\`/\`locked\`, clip
   \`sourceType\`/\`status\`/\`locked\`/\`versions\`, animation ids and
   \`markers\`; document-level \`fps\`/\`width\`/\`height\` are read as
-  the sequence's settings —
+  the sequence's settings; a midi track's \`instrument: {preset}\` and a
+  typewriter's plain \`durationMs\` resolve as the edit ops resolve them. To
+  build that document in code — scenes, shapes, text, keyframes, a beat grid —
+  import \`@nodetool-ai/sandbox-timeline\` and save it with its
+  \`saveTimeline\` —
   \`render(id, {wait, preview_scale, format, alpha, timeout_ms})\` — the cut
   as a video, run as a job; render and look before you call a cut done, and
   draft at a \`preview_scale\` below 1 while you are still iterating — and
