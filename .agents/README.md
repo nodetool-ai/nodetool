@@ -12,7 +12,7 @@ without being told how.
 | `commands/serve.md` | `/serve` — start the API on :7777 in the background and poll until it answers. |
 | `commands/verify.md` | `/verify` — typecheck, lint, test, and fix what breaks. |
 | `commands/onboard.md` | `/onboard <area>` — locate the owning workspace, entry point, nearest example, and the pitfalls that apply. |
-| `skills/` | Repository engineering skills, plus a symlink per NodeTool skill into `packages/system-skills/`. The `.agents` symlink exposes the same files to Codex. |
+| `skills/` | Repository engineering skills, plus a symlink per NodeTool skill into `packages/system-skills/`. The `.claude` symlink exposes the same files to Claude Code. |
 | `skills/<name>/agents/openai.yaml` | Codex's invocation policy, where a skill is typed rather than reached for. |
 
 ## Engineering skills
@@ -103,8 +103,8 @@ replacing them wholesale.
 
 ## Codex reads the same skills
 
-Codex scans `.agents/skills` at the repository root, and `.agents` is a symlink
-to `.claude`, so both agents read one tree — including the NodeTool skills,
+Codex scans `.agents/skills` at the repository root, and `.claude` is a symlink
+to `.agents`, so both agents read one tree — including the NodeTool skills,
 which are themselves symlinks into `packages/system-skills/`. Codex follows a
 symlinked skill folder to its target, so the two hops resolve.
 
@@ -120,8 +120,8 @@ policy:
 ```
 
 Without it Codex reaches for a skill the repository says to type. The two are
-kept in step by `npm run check:agents-docs`, which also fails on a `.agents`
-that stops pointing at `.claude` and on a skill Codex would silently skip. That
+kept in step by `npm run check:agents-docs`, which also fails on a `.claude`
+that stops pointing at `.agents` and on a skill Codex would silently skip. That
 file also carries `interface` (display name, icon, colour) and `dependencies`
 (MCP servers a skill needs); this repository sets neither.
 
