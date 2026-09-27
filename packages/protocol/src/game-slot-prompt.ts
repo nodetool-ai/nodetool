@@ -39,6 +39,9 @@ export interface SlotPromptResult {
   height: number;
   /** The prop bag the `nodetool.game.*` checker for this kind takes. */
   checker: Record<string, unknown>;
+  /** Primary style image for an image-to-image generator. */
+  referenceImages: NonNullable<Entity["reference_images"]>;
+  referenceAssetId: string;
 }
 
 /**
@@ -274,6 +277,8 @@ export function slotPrompt(
   return {
     prompt: injected.prompt,
     ...canvas(slot),
-    checker: slotCheckerProps(slot)
+    checker: slotCheckerProps(slot),
+    referenceImages: style?.reference_images?.slice(0, 1) ?? [],
+    referenceAssetId: style?.reference_images?.[0]?.asset_id ?? ""
   };
 }

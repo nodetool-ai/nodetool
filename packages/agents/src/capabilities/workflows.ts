@@ -1492,13 +1492,18 @@ function modelValue(
 async function loadStyle(
   run: CapabilityRun,
   entityId: string | undefined
-): Promise<{ name: string; descriptor: string } | null> {
+): Promise<{ name: string; descriptor: string; referenceAssetId?: string } | null> {
   if (!entityId) return null;
   const { Asset } = await import("@nodetool-ai/models");
   const asset = await Asset.find(userIdOf(run.context), entityId);
   const marker = readEntityMarker(asset?.metadata ?? null);
   if (!marker || marker.kind !== "style") return null;
-  return { name: marker.name, descriptor: marker.descriptor };
+  const style: { name: string; descriptor: string; referenceAssetId?: string } =
+    { name: marker.name, descriptor: marker.descriptor };
+  const referenceAssetId = marker.reference_asset_id ??
+    (asset?.content_type.startsWith("image/") ? asset.id : undefined);
+  if (referenceAssetId) style.referenceAssetId = referenceAssetId;
+  return style;
 }
 
 /**

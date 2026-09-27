@@ -1,6 +1,7 @@
 import { createScriptedGameSession, validateGame } from "@nodetool-ai/game-runtime";
-import { gameSnapshot, type GameEvent, type GameRenderFrame } from "@nodetool-ai/protocol";
-import { createGameRenderer } from "./browser.js";
+import { gameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
+import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
+import { GameAudioPlayer } from "./audio.js";
 import { mountTouchControls } from "./touch-controls.js";
 
 const PLAYER_VERSION = "1";
@@ -40,57 +41,20 @@ async function start(): Promise<void> {
   if (game.engineVersion !== PLAYER_VERSION) {
     throw new Error(`This player supports engine version ${PLAYER_VERSION}`);
   }
+  const fonts = await loadBrowserGameFonts(game, async (assetId) =>
+    assetId.startsWith("./assets/") ? assetId : null);
   const canvas = element("game");
   if (!(canvas instanceof HTMLCanvasElement)) {
     throw new Error("Game viewport is not a canvas");
   }
-  const audioContext = new AudioContext();
-  // Web Audio plays from decoded buffers, so one unlocking gesture enables every sound on mobile browsers.
-  const sounds = new Map<string, Promise<AudioBuffer | null>>();
-  function sound(ref: string): Promise<AudioBuffer | null> {
-    let buffer = sounds.get(ref);
-    if (!buffer) {
-      buffer = fetch(ref, { cache: "force-cache" })
-        .then((response) => response.ok ? response.arrayBuffer() : Promise.reject(new Error(`Audio failed to load (${response.status})`)))
-        .then((bytes) => audioContext.decodeAudioData(bytes))
-        .catch(() => null);
-      sounds.set(ref, buffer);
-    }
-    return buffer;
-  }
-  for (const binding of Object.values(game.assets)) {
-    if (binding.mediaKind === "audio" && binding.assetId.startsWith("./assets/")) void sound(binding.assetId);
-  }
-  function unlockAudio(): void {
-    if (audioContext.state !== "running") void audioContext.resume().catch(() => showStatus("Audio could not start"));
-  }
-  function playAudio(event: GameEvent): void {
-    if (event.kind !== "audio") {
-      return;
-    }
-    const ref = game.assets[event.assetId]?.assetId;
-    if (ref?.startsWith("builtin:")) {
-      const oscillator = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      oscillator.frequency.value = 660;
-      gain.gain.setValueAtTime(0.08, audioContext.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.12);
-      oscillator.connect(gain).connect(audioContext.destination);
-      oscillator.start();
-      oscillator.stop(audioContext.currentTime + 0.12);
-      return;
-    }
-    if (!ref?.startsWith("./assets/")) {
-      return;
-    }
-    void sound(ref).then((buffer) => {
-      if (!buffer || audioContext.state !== "running") return;
-      const source = audioContext.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioContext.destination);
-      source.start();
-    });
-  }
+  const audio = new GameAudioPlayer({
+    assets: game.assets,
+    tickRate: game.tickRate,
+    resolveAsset: async (binding) => binding.assetId.startsWith("./assets/") ? binding.assetId : null,
+    status: showStatus
+  });
+  audio.preload();
+  function unlockAudio(): void { void audio.unlock(); }
   const renderer = await createGameRenderer({
     canvas,
     assets: async (logicalId) => {
@@ -105,18 +69,19 @@ async function start(): Promise<void> {
       return createImageBitmap(await assetResponse.blob(), { premultiplyAlpha: "none" });
     },
   });
-  const effect = game.renderEffects?.[0];
+  const effects = game.renderEffects ?? [];
   let effectNotice = "";
-  if (effect) {
+  if (effects.length > 0) {
     if (renderer.capabilities.gpuEffects) {
-      renderer.setEffect(effect);
-    } else if (effect.required) {
+      renderer.setEffects(effects, game.hudEffectOrder);
+    } else if (effects.some((effect) => effect.required)) {
       throw new Error("This game requires WebGPU effects, which are unavailable on this device");
     } else {
       effectNotice = "GPU effect omitted on this device";
     }
   }
   let session = await createScriptedGameSession(game, 1);
+  audio.sync(session.snapshot());
   let latest: GameRenderFrame = session.frame();
   renderer.resize(latest.width * latest.pixelsPerUnit, latest.height * latest.pixelsPerUnit);
   document.documentElement.style.setProperty("--game-aspect", String(latest.width / latest.height));
@@ -183,8 +148,8 @@ async function start(): Promise<void> {
     }
     rendering = renderer.render(latest, interpolation)
       .then(() => {
-        if (effect && !effect.required && renderer.capabilities.fallbackReason) {
-          showStatus("GPU effect omitted after device loss");
+        if (effects.some((effect) => !effect.required) && renderer.capabilities.fallbackReason) {
+          showStatus("GPU effect omitted after WebGPU failure");
         }
       })
       .catch((error) => showStatus(error instanceof Error ? error.message : "Rendering failed"))
@@ -196,7 +161,8 @@ async function start(): Promise<void> {
       const result = session.step({ pressed: [...pressed], justPressed: [...justPressed] });
       justPressed.clear();
       latest = result.frame;
-      result.events.forEach(playAudio);
+      result.events.forEach((event) => audio.handle(event));
+      audio.sync(session.snapshot());
       return true;
     } catch (error) {
       paused = true;
@@ -258,6 +224,8 @@ async function start(): Promise<void> {
   });
   element("pause").addEventListener("click", () => {
     paused = !paused;
+    if (paused) audio.pause();
+    else audio.resume();
     element("pause").textContent = pauseLabel(paused);
     lastTime = performance.now();
   });
@@ -271,6 +239,7 @@ async function start(): Promise<void> {
     void createScriptedGameSession(game, 1).then((restored) => {
       session.dispose();
       session = restored;
+      audio.reset(session.snapshot());
       latest = session.frame();
       releaseAll();
       accumulator = 0;
@@ -296,6 +265,7 @@ async function start(): Promise<void> {
       void createScriptedGameSession(game, 1, gameSnapshot.parse(JSON.parse(saved))).then((restored) => {
         session.dispose();
         session = restored;
+        audio.reset(session.snapshot());
         latest = session.frame();
         accumulator = 0;
         showStatus("Game loaded");
@@ -309,9 +279,10 @@ async function start(): Promise<void> {
     cancelAnimationFrame(animationFrame);
     session.dispose();
     renderer.dispose();
-    void audioContext.close();
+    fonts.dispose();
+    audio.dispose();
   });
-  showStatus(`Ready (${renderer.backend})${effectNotice ? ` · ${effectNotice}` : ""}`);
+  showStatus(`Ready (${renderer.backend})${effectNotice ? ` · ${effectNotice}` : ""}${fonts.diagnostics.length ? ` · ${fonts.diagnostics.join("; ")}` : ""}`);
   render(1);
   animationFrame = requestAnimationFrame(tick);
 }

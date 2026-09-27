@@ -190,6 +190,9 @@ at 24 hours.
 **Browser-side.** The socket belongs to the viewer's browser, not the server:
 `packages/game-renderer/src/standalone-player.ts` (fixed relative game document
 and bundled `./assets/` paths),
+`packages/game-renderer/src/audio.ts` and
+`packages/game-renderer/src/browser-fonts.ts` (asset URLs resolved by the web
+app, or bundled `./assets/` paths in a standalone export),
 `packages/image-nodes/src/nodes/image-io.ts` (behind `!IS_NODE`),
 `packages/core-nodes/src/nodes/fake-media.ts`,
 `packages/browser/src/capture.ts` (inside `page.evaluate`).

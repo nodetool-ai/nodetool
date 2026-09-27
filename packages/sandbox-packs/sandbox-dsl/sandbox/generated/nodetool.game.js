@@ -19,7 +19,7 @@ function loadGameTemplate(inputs) {
   return createNode("nodetool.game.LoadGameTemplate", inputs, { outputNames: ["manifest", "slots", "slot"], streaming: true });
 }
 function slotPrompt(inputs) {
-  return createNode("nodetool.game.SlotPrompt", inputs, { outputNames: ["prompt", "width", "height", "kind", "checker", "seconds"] });
+  return createNode("nodetool.game.SlotPrompt", inputs, { outputNames: ["prompt", "width", "height", "kind", "checker", "seconds", "reference_images", "reference_asset_id"] });
 }
 function stageGameAssets(inputs) {
   return createNode("nodetool.game.StageGameAssets", inputs, { outputNames: ["output", "bindings", "paths"] });

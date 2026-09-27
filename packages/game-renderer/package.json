@@ -12,6 +12,7 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "node ../../scripts/run-vitest.mjs run",
     "test:watch": "node ../../scripts/run-vitest.mjs",
+    "benchmark:effects": "node --conditions=nodetool-dev --import=tsx scripts/benchmark-effects.ts",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
@@ -20,9 +21,11 @@
     "@nodetool-ai/gpu": "*",
     "@nodetool-ai/game-runtime": "*",
     "@nodetool-ai/protocol": "*",
-    "esbuild": "^0.28.1"
+    "esbuild": "^0.28.1",
+    "typegpu": "^0.11.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@webgpu/types": "^0.1.70",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^5.0.1"
@@ -37,6 +40,11 @@
       "nodetool-dev": "./src/browser.ts",
       "types": "./dist/browser.d.ts",
       "import": "./dist/browser.js"
+    },
+    "./audio": {
+      "nodetool-dev": "./src/audio.ts",
+      "types": "./dist/audio.d.ts",
+      "import": "./dist/audio.js"
     },
     "./node": {
       "nodetool-dev": "./src/node.ts",

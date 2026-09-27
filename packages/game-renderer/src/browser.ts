@@ -1,7 +1,8 @@
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import { AssetCache, Canvas2DGameRenderer, type GameAssetResolver } from "./canvas2d.js";
-import type { GameRenderer, GameRendererBackend, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
+import type { GameHudEffectOrder, GameRenderer, GameRendererBackend, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
 import { WebGPUGameRenderer } from "./webgpu.js";
+export { loadBrowserGameFonts } from "./browser-fonts.js";
 
 export interface CreateGameRendererOptions {
   readonly canvas: HTMLCanvasElement;
@@ -21,7 +22,7 @@ function replacementCanvas(canvas: HTMLCanvasElement): HTMLCanvasElement {
 }
 
 class RecoveringGameRenderer implements GameRenderer {
-  private effect: GameRendererEffect | null = null;
+  private effects: readonly GameRendererEffect[] = [];
   private deviceLossCount = 0;
   private fallbackReason: string | null = null;
   constructor(private current: GameRenderer, private readonly assets: GameAssetResolver) {}
@@ -32,30 +33,31 @@ class RecoveringGameRenderer implements GameRenderer {
     return { ...this.current.capabilities, deviceLossCount: this.deviceLossCount,
       fallbackReason: this.fallbackReason };
   }
-  setEffect(effect: GameRendererEffect | null): void {
-    this.current.setEffect(effect);
-    this.effect = effect;
+  setEffects(effects: readonly GameRendererEffect[], hudOrder?: GameHudEffectOrder): void {
+    this.current.setEffects(effects, hudOrder);
+    this.effects = effects;
   }
 
   async render(frame: GameRenderFrame, interpolation: number): Promise<GameRendererStats> {
-    if (this.effect?.required !== false && this.effect && !this.current.capabilities.gpuEffects) {
-      throw new Error("Required GPU effect is unavailable after device loss");
+    if (this.effects.some((effect) => effect.required) && !this.current.capabilities.gpuEffects) {
+      throw new Error("Required GPU effect is unavailable after WebGPU failure");
     }
     try {
       return await this.current.render(frame, interpolation);
     } catch (error) {
-      if (this.current.backend !== "webgpu" || !(error instanceof Error) || error.message !== "WebGPU device was lost") {
+      if (this.current.backend !== "webgpu" || !(error instanceof Error) ||
+        (error.message !== "WebGPU device was lost" && !error.message.startsWith("WebGPU game render failed"))) {
         throw error;
       }
       const canvas = replacementCanvas(this.current.canvas);
       this.current.dispose();
       this.current = new Canvas2DGameRenderer(canvas, new AssetCache(this.assets));
       this.deviceLossCount++;
-      this.fallbackReason = "WebGPU device was lost";
-      if (this.effect?.required !== false && this.effect) {
-        throw new Error("Required GPU effect is unavailable after device loss");
+      this.fallbackReason = error.message;
+      if (this.effects.some((effect) => effect.required)) {
+        throw new Error("Required GPU effect is unavailable after WebGPU failure");
       }
-      this.effect = null;
+      this.effects = [];
       return this.current.render(frame, interpolation);
     }
   }

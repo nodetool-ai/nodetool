@@ -16,6 +16,7 @@ import {
   GAME_SOUND_EFFECT_NODE_TYPE,
   GAME_SPRITESHEET_NODE_TYPE,
   GAME_TEXT_TO_IMAGE_NODE_TYPE,
+  GAME_IMAGE_TO_IMAGE_NODE_TYPE,
   GAME_TEXT_TO_MUSIC_NODE_TYPE,
   GAME_TILESET_NODE_TYPE,
   GAME_CHECKER_NODE_TYPES,
@@ -57,6 +58,17 @@ const SHAPES: Record<string, PlanNodeShape> = {
       { name: "prompt", type: "str" },
       { name: "model", type: "image_model" },
       { name: "negative_prompt", type: "str" },
+      { name: "entities", type: "list[dict]" },
+      { name: "aspect_ratio", type: "str" },
+      { name: "resolution", type: "str" }
+    ],
+    outputs: [{ name: "output", type: "image" }]
+  },
+  [GAME_IMAGE_TO_IMAGE_NODE_TYPE]: {
+    inputs: [
+      { name: "image", type: "list[image]" },
+      { name: "prompt", type: "str" },
+      { name: "model", type: "image_model" },
       { name: "entities", type: "list[dict]" },
       { name: "aspect_ratio", type: "str" },
       { name: "resolution", type: "str" }
@@ -244,6 +256,29 @@ const typesOf = (placement: WorkflowPlacement, slotId: string): string[] =>
     .map((node) => node.type);
 
 describe("gameGraphPlacement", () => {
+  it("sends one selected style image to every visual generation request", () => {
+    const placement = gameGraphPlacement(platformer, design,
+      choices({ style: { name: "16-bit console", descriptor: "pixel art", referenceAssetId: "style-image" } }), lookup);
+    expect(placement.issues).toEqual([]);
+    const generators = placement.nodes.filter((node) => node.type === GAME_IMAGE_TO_IMAGE_NODE_TYPE);
+    expect(generators.length).toBeGreaterThan(0);
+    for (const generator of generators) {
+      expect(generator.properties["entities"]).toEqual(expect.arrayContaining([
+        expect.objectContaining({ reference_images: [{ type: "image", asset_id: "style-image" }] })
+      ]));
+    }
+    expect(placement.nodes.find((node) => node.type === GAME_EXPORT_NODE_TYPE)?.properties["reference_asset_id"])
+      .toBe("style-image");
+  });
+
+  it("rejects a selected model that cannot accept the style reference", () => {
+    const placement = gameGraphPlacement(platformer, design, choices({
+      style: { name: "Style", descriptor: "pixel art", referenceAssetId: "style-image" },
+      imageModel: { type: "image_model", provider: "fake", id: "text-only", supported_tasks: ["text_to_image"] }
+    }), lookup);
+    expect(placement.issues.join(" ")).toContain("needs an image-to-image model");
+    expect(placement.nodes.some((node) => node.type === GAME_IMAGE_TO_IMAGE_NODE_TYPE)).toBe(false);
+  });
   it("repairs scrolling backgrounds but leaves title artwork untouched", () => {
     const placement = gameGraphPlacement(manifestOf("shmup"), chipDesign("shmup"), choices(), lookup);
     const checkers = placement.nodes.filter((node) => node.type === GAME_SEAMLESS_IMAGE_NODE_TYPE);

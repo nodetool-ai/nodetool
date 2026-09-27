@@ -10,6 +10,7 @@ import type {
 } from "@nodetool-ai/protocol";
 import { gameSnapshot } from "@nodetool-ai/protocol";
 import { validateGame } from "./validate.js";
+import { evaluateVisual } from "./visual-animation.js";
 import { hasGameScripts, prepareGameScripts, scriptSourceKey, type GameScriptCall, type GameScriptRunner, type GameScriptStats } from "./scripts.js";
 
 interface EntityState {
@@ -238,7 +239,7 @@ function animationFrame(entity: GameEntity, age: number): GameRenderFrame["sprit
   return animator.frames[animator.loop ? index % animator.frames.length : Math.min(index, animator.frames.length - 1)];
 }
 
-function frameFor(document: GameDocument, states: readonly EntityState[], tick: number, score: number, won: boolean, hud: ReadonlyMap<string, GameHudLabel>): GameRenderFrame {
+function frameFor(document: GameDocument, scene: GameScene, states: readonly EntityState[], tick: number, score: number, won: boolean, hud: ReadonlyMap<string, GameHudLabel>): GameRenderFrame {
   const cameraState = states.find((state) => state.active && state.definition.camera2d);
   const camera = cameraState?.definition.camera2d;
   const sprites: GameRenderFrame["sprites"] = [];
@@ -249,13 +250,21 @@ function frameFor(document: GameDocument, states: readonly EntityState[], tick: 
     }
     const entity = state.definition;
     if (entity.sprite) {
+      const spriteDefinition = entity.sprite;
+      const binding = document.assets[entity.sprite.assetId];
       const age = tick - state.spawnTick;
       const lifetime = entity.behaviors.find((behavior) => behavior.kind === "lifetime");
       const progress = lifetime?.kind === "lifetime" ? Math.min(1, age / lifetime.ticks) : 0;
+      const previousProgress = lifetime?.kind === "lifetime" ? Math.min(1, Math.max(0, age - 1) / lifetime.ticks) : 0;
       const lifeScale = lifetime?.kind === "lifetime" ? 1 + (lifetime.endScale - 1) * progress : 1;
+      const previousLifeScale = lifetime?.kind === "lifetime" ? 1 + (lifetime.endScale - 1) * previousProgress : 1;
       const lifeOpacity = lifetime?.kind === "lifetime" && lifetime.fade ? 1 - progress : 1;
+      const previousLifeOpacity = lifetime?.kind === "lifetime" && lifetime.fade ? 1 - previousProgress : 1;
       const visual = state.visual;
-      const opacity = (visual?.opacity ?? entity.sprite.opacity ?? 1) * lifeOpacity;
+      const authored = evaluateVisual(entity, age, state.rotation, state.scaleX, state.scaleY);
+      const previousAuthored = evaluateVisual(entity, Math.max(0, age - 1), state.rotation, state.scaleX, state.scaleY);
+      const opacity = (visual?.opacity ?? authored.opacity) * lifeOpacity;
+      const previousOpacity = (visual?.opacity ?? previousAuthored.opacity) * previousLifeOpacity;
       const sprite: GameRenderFrame["sprites"][number] = {
         entityId: entity.id,
         assetId: entity.sprite.assetId,
@@ -263,21 +272,50 @@ function frameFor(document: GameDocument, states: readonly EntityState[], tick: 
         y: state.y,
         previousX: state.previousX,
         previousY: state.previousY,
-        rotation: visual?.rotation ?? state.rotation,
-        scaleX: (visual?.scaleX ?? state.scaleX) * lifeScale,
-        scaleY: (visual?.scaleY ?? state.scaleY) * lifeScale,
+        rotation: visual?.rotation ?? authored.rotation,
+        previousRotation: visual?.rotation ?? previousAuthored.rotation,
+        scaleX: (visual?.scaleX ?? authored.scaleX) * lifeScale,
+        previousScaleX: (visual?.scaleX ?? previousAuthored.scaleX) * previousLifeScale,
+        scaleY: (visual?.scaleY ?? authored.scaleY) * lifeScale,
+        previousScaleY: (visual?.scaleY ?? previousAuthored.scaleY) * previousLifeScale,
         width: entity.sprite.width,
         height: entity.sprite.height,
         layer: entity.sprite.layer
       };
       const spriteFrame = animationFrame(entity, age) ?? entity.sprite.frame;
+      if (document.schemaVersion === 2 && binding && !spriteFrame) {
+        const sourceWidth = binding.trim?.sourceWidth ?? binding.width;
+        const sourceHeight = binding.trim?.sourceHeight ?? binding.height;
+        const cropX = binding.trim?.x ?? 0;
+        const cropY = binding.trim?.y ?? 0;
+        const anchorOffset = (rotation: number, scaleX: number, scaleY: number): { x: number; y: number } => {
+          const x = ((cropX + binding.width / 2) / sourceWidth - binding.pivot.x) * spriteDefinition.width * scaleX;
+          const y = (binding.pivot.y - (cropY + binding.height / 2) / sourceHeight) * spriteDefinition.height * scaleY;
+          const cosine = Math.cos(rotation);
+          const sine = Math.sin(rotation);
+          return { x: x * cosine - y * sine, y: x * sine + y * cosine };
+        };
+        const current = anchorOffset(sprite.rotation, sprite.scaleX, sprite.scaleY);
+        const previous = anchorOffset(sprite.previousRotation ?? sprite.rotation,
+          sprite.previousScaleX ?? sprite.scaleX, sprite.previousScaleY ?? sprite.scaleY);
+        sprite.x += current.x;
+        sprite.y += current.y;
+        sprite.previousX += previous.x;
+        sprite.previousY += previous.y;
+        sprite.width *= binding.width / sourceWidth;
+        sprite.height *= binding.height / sourceHeight;
+      }
       if (spriteFrame) {
         sprite.frame = { ...spriteFrame };
       }
-      const tint = visual?.tint ?? entity.sprite.tint;
+      const tint = visual?.tint ?? authored.tint;
       if (tint) sprite.tint = tint;
+      const previousTint = visual?.tint ?? previousAuthored.tint;
+      if (previousTint) sprite.previousTint = previousTint;
       if (opacity !== 1 || entity.sprite.opacity !== undefined) sprite.opacity = Math.max(0, Math.min(1, opacity));
+      if (previousOpacity !== 1 || entity.sprite.opacity !== undefined) sprite.previousOpacity = Math.max(0, Math.min(1, previousOpacity));
       if (entity.sprite.blend === "additive") sprite.blend = "additive";
+      if (entity.sprite.unlit) sprite.unlit = true;
       if (document.assets[entity.sprite.assetId]?.sampling === "linear") sprite.sampling = "linear";
       sprites.push(sprite);
     }
@@ -302,14 +340,17 @@ function frameFor(document: GameDocument, states: readonly EntityState[], tick: 
   }
   sprites.sort((a, b) => a.layer - b.layer);
   tiles.sort((a, b) => a.layer - b.layer);
-  return {
+  const frame: GameRenderFrame = {
+    gameId: document.id,
+    fonts: Object.fromEntries(Object.entries(document.assets).filter(([, binding]) => binding.mediaKind === "font")),
     tick,
     width: camera?.width ?? 16,
     height: camera?.height ?? 9,
     pixelsPerUnit: document.pixelsPerUnit,
-    camera: { x: cameraState?.x ?? 0, y: cameraState?.y ?? 0, zoom: camera?.zoom ?? 1 },
+    camera: { x: cameraState?.x ?? 0, y: cameraState?.y ?? 0, previousX: cameraState?.previousX ?? 0, previousY: cameraState?.previousY ?? 0, zoom: camera?.zoom ?? 1 },
     sprites,
     tiles,
+    backgrounds: (scene.backgrounds ?? []).map((layer) => document.assets[layer.assetId]?.sampling === "linear" ? { ...layer, sampling: "linear" as const } : layer),
     // A script label with the id of a built-in label replaces it.
     hud: [
       ...(usesCollectibles(document) && !hud.has("score") ? [{ id: "score", text: `Score: ${score}`, x: 16, y: 16 }] : []),
@@ -317,6 +358,8 @@ function frameFor(document: GameDocument, states: readonly EntityState[], tick: 
       ...[...hud.values()].map((label) => ({ ...label }))
     ]
   };
+  if (scene.lighting) frame.lighting = scene.lighting;
+  return frame;
 }
 
 function usesCollectibles(document: GameDocument): boolean {
@@ -351,6 +394,10 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
     throw new Error(`Missing entry scene ${sceneId}`);
   }
   let scene: GameScene = initialScene;
+  let music: GameSnapshot["music"] = scene.music ? {
+    voiceId: `scene:${scene.id}:music`, assetId: scene.music.assetId, startTick: 0,
+    volume: scene.music.volume, fadeInTicks: scene.music.fadeInTicks, fadeOutTicks: scene.music.fadeOutTicks
+  } : null;
   let states = initialSceneStates(scene);
   let tick = 0;
   let score = 0;
@@ -375,6 +422,13 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
     }
     scene = savedScene;
     sceneId = savedScene.id;
+    music = parsed.music ?? (savedScene.music ? {
+      voiceId: `scene:${savedScene.id}:music`, assetId: savedScene.music.assetId, startTick: parsed.tick,
+      volume: savedScene.music.volume, fadeInTicks: savedScene.music.fadeInTicks, fadeOutTicks: savedScene.music.fadeOutTicks
+    } : null);
+    if (music && (!savedScene.music || music.assetId !== savedScene.music.assetId || music.voiceId !== `scene:${savedScene.id}:music` || music.startTick > parsed.tick)) {
+      throw new Error("Save music does not match the scene");
+    }
     states = initialSceneStates(savedScene, parsed.tick);
     const byId = new Map(parsed.entities.map((entity) => [entity.id, entity]));
     if (byId.size !== parsed.entities.length || states.some((state) => !byId.has(state.definition.id))) {
@@ -446,6 +500,7 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
       rngState,
       score,
       won,
+      music: music ? { ...music } : null,
       spawnSequence,
       pendingEvents: structuredClone(previousEvents),
       activeContacts: [...activeContacts.values()].map(({ entityId, otherId, sensor }) => ({ entityId, otherId, sensor })),
@@ -561,6 +616,9 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
             if (command.kind === "sceneTransition" && !document.scenes.some((candidate) => candidate.id === command.sceneId)) {
               throw new Error(`Game script uses missing scene ${command.sceneId}`);
             }
+            if (command.kind === "hud" && command.fontId && document.assets[command.fontId]?.mediaKind !== "font") {
+              throw new Error(`Game script uses missing font ${command.fontId}`);
+            }
             // A spawned instance can expire in the tick before a script reacts to its contact.
             if (command.kind === "despawn" && !byId.get(command.entityId)?.active && !isSpawnedId(command.entityId)) {
               throw new Error(`Game script uses missing entity ${command.entityId}`);
@@ -579,6 +637,8 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
             } else if (command.kind === "setPosition") {
               state.x = command.x;
               state.y = command.y;
+              state.previousX = command.x;
+              state.previousY = command.y;
             } else if (command.kind === "setVisual") {
               const { kind: _kind, ...visual } = command;
               state.visual = { ...state.visual, ...visual };
@@ -744,7 +804,9 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
         const audio = state.definition.audioSource;
         if (audio && events.some((event) => (event.kind === audio.onEvent && (event.kind !== "collected" || event.entityId === state.definition.id)) ||
           (event.kind === "trigger" && event.event === audio.onEvent))) {
-          emit({ kind: "audio", assetId: audio.assetId });
+          emit({ kind: "audio", action: "start", assetId: audio.assetId,
+            voiceId: `effect:${sceneId}:${state.definition.id}:${tick + 1}:${events.length}`,
+            loop: false, volume: audio.volume, fadeInTicks: 0, fadeOutTicks: 0 });
         }
       }
       if (queuedDespawns.size > 0) {
@@ -784,6 +846,10 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
         }
         scene = nextScene;
         sceneId = nextScene.id;
+        music = nextScene.music ? {
+          voiceId: `scene:${sceneId}:music`, assetId: nextScene.music.assetId, startTick: tick + 1,
+          volume: nextScene.music.volume, fadeInTicks: nextScene.music.fadeInTicks, fadeOutTicks: nextScene.music.fadeOutTicks
+        } : null;
         states = initialSceneStates(nextScene, tick + 1);
         activeContacts = new Map();
         spawnSequence = 0;
@@ -794,7 +860,7 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
       previousEvents = structuredClone(events);
       rngState = (Math.imul(1664525, rngState) + 1013904223) >>> 0;
       tick += 1;
-      const result: GameStepResult = { tick, events, frame: frameFor(document, states, tick, score, won, hud) };
+      const result: GameStepResult = { tick, events, frame: frameFor(document, scene, states, tick, score, won, hud) };
       if (scriptStats) {
         return { ...result, scriptStats };
       }
@@ -814,7 +880,7 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
       if (failed) {
         throw new Error("Game session stopped after a failed step");
       }
-      return frameFor(document, states, tick, score, won, hud);
+      return frameFor(document, scene, states, tick, score, won, hud);
     },
     inspect(query): GameInspection {
       const current = snapshot();

@@ -60,6 +60,20 @@ rotation?, scaleX?, scaleY?}`, `spawn {prefabId, x?, y?, velocityX?,
 velocityY?}`, `despawn`, `emit`, `sceneTransition`, and `hud {id, text, x, y,
 size?, color?, align?}`. HUD coordinates are canvas pixels. Empty text removes a
 label. A label with the id `score` or `win` replaces the built-in label.
+Set `fontId` to a logical font binding for a HUD label. Font assets use
+`mediaKind: "font"`, `fontFormat: "ttf" | "otf"`, and `required: true` by default.
+Required fonts load before the first frame or fail play and capture; an optional
+font (`required: false`) reports a fallback before play. Export embeds the
+font bytes for offline use. Fonts and other prepared assets require
+`schemaVersion: 2`.
+
+For generated art, pass one style entity with a reference image. The guided
+graph sends that image through an image-to-image generation input for every
+visual slot. `StageGameAssets.preparation` accepts per-slot alpha trimming,
+target size with a crop policy, pivot, nearest or linear sampling, and mirror
+tiling for single images. Trimming records crop offsets so placement keeps its
+anchor. `StageGameAssets.fonts` stages TrueType or OpenType assets by logical
+font ID.
 
 1. Use `sprite.blend: "additive"` for light drawn on black, such as glows and
    sparks. Set `sampling: "linear"` on painted or soft assets.
@@ -68,7 +82,47 @@ label. A label with the id `score` or `win` replaces the built-in label.
 3. Use `animator` frames on a sprite sheet. Playback starts when the entity
    spawns.
 4. Give `audioSource.onEvent` an event kind or the name of an emitted trigger.
+   Set `audioSource.volume` from `0` to `1` for effect loudness. Effects receive
+   distinct voice ids, so repeated triggers can overlap within the 32-voice cap.
 5. Make hazards sensors. Only a non-sensor body collects a `collectible`.
+
+For schema version 2, set `scene.music` to an installed audio `assetId` for
+looping music. `volume` ranges from `0` to `1`; `fadeInTicks` and `fadeOutTicks`
+range from `0` to `600`. Music starts at the scene's entry tick. Pause suspends
+audio, reset restarts the entry scene once, and loading resumes the loop at the saved
+logical tick. Browser playback starts after a user gesture. A missing or
+undecodable audio asset is reported in the player.
+
+Schema version 2 supports `visualAnimation` on sprites. Its `tracks` animate
+`rotation`, `scaleX`, `scaleY`, `opacity`, or `tint` from `from` to `to` over
+`durationTicks`. `delayTicks`, `repeat`, `pingPong`, and `easing` control timing.
+`rotationRate` adds radians per tick for continuous spins and cannot share a
+rotation track. Each property has at most one track. Tracks start at scene entry
+or spawn time. The visual order is authored transform and sprite values, tracks,
+script `setVisual`, then lifetime fade and scale. Tracks do not change collision.
+
+Scene `backgrounds` define image layers independent of entities. Each layer
+sets `assetId`, world-unit `width` and `height`, `origin` at the tile center,
+`layer`, per-axis `parallax`, `scrollRate` in world units per second, and `mode`
+(`none`, `repeat`, or `mirror`). Parallax `0` stays fixed to the screen and `1`
+stays fixed in the world. Optional `frame` selects an atlas rectangle.
+
+Schema version 2 also accepts scene `lighting`: an `ambient` color and intensity
+plus up to 32 `points` with world position, color, intensity, radius, and
+falloff. Lighting multiplies world color before effects. HUD stays unlit. Set
+`sprite.unlit: true` for emissive art such as glows; Canvas2D capture paints
+these sprites above the lit world.
+
+Schema version 2 accepts an ordered `renderEffects` chain of at most eight
+effects. `brightnessContrast` uses `brightness` from `-1` to `1` and `contrast`
+from `0` to `4`. `bloom` uses `threshold` from `0` to `1`, `softness` from `0`
+to `0.5`, `radius` from `0` to `64` pixels, and `intensity` from `0` to `4`.
+`lut` refers to an opaque packed 2D cube image with dimensions `size² × size`
+and an optional intensity and color domain. Effects run in listed order. Set
+`hudEffectOrder` to `afterEffects` to keep text crisp, or `beforeEffects` to
+process HUD with the world. A bloom chain defaults to `afterEffects`.
+`required: true` makes unsupported GPU effects fail before play or capture;
+optional effects are omitted with a diagnostic on Canvas 2D.
 
 Collider `category` and `mask` are unsigned 32-bit bitsets. They default to `1`
 and `4294967295`. A pair interacts only when each mask includes a category bit

@@ -53,6 +53,7 @@ interface CaptureOptions {
   inputs?: string;
   out: string;
   scale: string;
+  backend: string;
   assetsDir?: string;
   json?: boolean;
 }
@@ -69,7 +70,9 @@ const MEDIA_TYPES: Readonly<Record<string, string>> = {
   webp: "image/webp",
   wav: "audio/wav",
   ogg: "audio/ogg",
-  mp3: "audio/mpeg"
+  mp3: "audio/mpeg",
+  ttf: "font/ttf",
+  otf: "font/otf"
 };
 
 async function readBuildAsset(directory: string | undefined, sourceAssetId: string): Promise<{ bytes: Uint8Array; mimeType: string } | null> {
@@ -349,6 +352,7 @@ export function registerGameCommands(program: Command): void {
     .option("--seed <integer>", "Random seed", "1")
     .option("--inputs <file>", "JSON array of tick-indexed input frames")
     .option("--scale <factor>", "Output scale", "1")
+    .option("--backend <canvas2d|webgpu>", "Capture backend", "canvas2d")
     .option("--assets-dir <directory>", "Local media files named <full-asset-id>.<extension>")
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: CaptureOptions) => {
@@ -364,6 +368,9 @@ export function registerGameCommands(program: Command): void {
         if (!Number.isFinite(scale) || scale <= 0) {
           throw new Error("scale must be a positive number");
         }
+        if (options.backend !== "canvas2d" && options.backend !== "webgpu") {
+          throw new Error("backend must be canvas2d or webgpu");
+        }
         const inputs = await readInputs(options.inputs);
         const session = await createScriptedGameSession(validated.document, seed);
         try {
@@ -373,8 +380,13 @@ export function registerGameCommands(program: Command): void {
           }
           if (!frame) throw new Error("Game produced no render frame");
           const { captureGameFrame } = await import("@nodetool-ai/game-renderer/node");
+          const diagnostics: string[] = [];
           const png = await captureGameFrame(frame, {
             scale,
+            backend: options.backend,
+            effects: validated.document.renderEffects,
+            hudEffectOrder: validated.document.hudEffectOrder,
+            onDiagnostic: (message) => diagnostics.push(message),
             resolveAsset: async (key) => {
               const sourceId = validated.document?.assets[key]?.assetId;
               if (!sourceId) return null;
@@ -382,8 +394,8 @@ export function registerGameCommands(program: Command): void {
             }
           });
           await writeFile(options.out, png);
-          const report = { path: options.out, tick: frame.tick, bytes: png.byteLength };
-          process.stdout.write(options.json ? `${JSON.stringify(report)}\n` : `Captured tick ${report.tick} to ${report.path}\n`);
+          const report = { path: options.out, tick: frame.tick, bytes: png.byteLength, diagnostics };
+          process.stdout.write(options.json ? `${JSON.stringify(report)}\n` : `Captured tick ${report.tick} to ${report.path}\n${diagnostics.map((message) => `${message}\n`).join("")}`);
         } finally {
           session.dispose();
         }

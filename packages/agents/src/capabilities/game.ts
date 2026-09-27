@@ -214,6 +214,9 @@ const install: CapabilityExport = {
     if (!parsed.success || !/^[a-f0-9]{64}$/.test(parsed.data.digest)) {
       return { error: "Invalid asset binding or digest" };
     }
+    if (parsed.data.mediaKind === "font" && !parsed.data.fontFormat) {
+      return { error: "Font binding needs a TrueType or OpenType format" };
+    }
     const workspace = await workspaceOf(user, game);
     if (!workspace) return { error: "Game workspace is unavailable" };
     const candidateId = args["candidate_workspace_id"];
@@ -226,7 +229,7 @@ const install: CapabilityExport = {
       if (!resolved) return { error: "Candidate workspace is unavailable" };
       candidateWorkspace = resolved;
     }
-    const extension = parsed.data.mediaKind === "audio" ? "wav" : "png";
+    const extension = parsed.data.mediaKind === "audio" ? "wav" : parsed.data.mediaKind === "font" ? parsed.data.fontFormat : "png";
     const path = `${game.source_root}/assets/${parsed.data.digest}.${extension}`;
     const bytes = await candidateWorkspace.read(path);
     if (!bytes || createHash("sha256").update(bytes).digest("hex") !== parsed.data.digest) {
@@ -237,7 +240,7 @@ const install: CapabilityExport = {
     if (!document) return { error: "Current game revision is missing" };
     const storage = run.context.assetStorage;
     if (!storage) return { error: "Asset storage is unavailable" };
-    const contentType = extension === "wav" ? "audio/wav" : "image/png";
+    const contentType = extension === "wav" ? "audio/wav" : extension === "ttf" ? "font/ttf" : extension === "otf" ? "font/otf" : "image/png";
     if (candidateWorkspace !== workspace) await workspace.write(path, bytes, contentType);
     const installed = await Asset.create({
       user_id: user,

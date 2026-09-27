@@ -67,6 +67,38 @@ describe("game validation boundaries", () => {
     expect(result.valid).toBe(true);
   });
 
+  it("keeps legacy effect semantics and requires version 2 for a new chain", () => {
+    const base = document({});
+    const brightness = { kind: "brightnessContrast", brightness: 0.1, contrast: 1, required: true };
+    expect(validateGame({ ...base, renderEffects: [brightness] }).valid).toBe(true);
+    expect(validateGame({ ...base, renderEffects: [brightness, brightness] }).errors.join(" ")).toContain("schema version 2");
+    expect(validateGame({ ...base, schemaVersion: 2, renderEffects: [brightness, brightness] }).valid).toBe(true);
+    expect(validateGame({ ...base, schemaVersion: 2, renderEffects: [{ kind: "unknown" }] }).valid).toBe(false);
+    expect(validateGame({ ...base, schemaVersion: 2, renderEffects: Array(9).fill(brightness) }).valid).toBe(false);
+  });
+
+  it("checks LUT asset shape and domain before play", () => {
+    const base = { ...document({}), schemaVersion: 2 };
+    const lut = { kind: "lut", assetId: "grade", size: 2, intensity: 1, required: true };
+    expect(validateGame({ ...base, renderEffects: [lut] }).errors.join(" ")).toContain("requires an image asset");
+    expect(validateGame({ ...base, assets: { grade: { ...image, width: 3, height: 2 } },
+      renderEffects: [lut] }).errors.join(" ")).toContain("LUT dimensions");
+    expect(validateGame({ ...base, assets: { grade: { ...image, width: 4, height: 2 } },
+      renderEffects: [{ ...lut, domainMin: [1, 0, 0], domainMax: [0, 1, 1] }] }).errors.join(" ")).toContain("minimum");
+    expect(validateGame({ ...base, assets: { grade: { ...image, width: 4, height: 2 } },
+      renderEffects: [lut] }).valid).toBe(true);
+  });
+
+  it("requires a version 2 audio binding for scene music", () => {
+    const base = document({}, { music: { ...image, mediaKind: "audio" } });
+    const withMusic = { ...base, scenes: [{ ...base.scenes[0], music: { assetId: "music" } }] };
+    expect(validateGame(withMusic).errors.join(" ")).toContain("requires schema version 2");
+    const wrongKind = { ...withMusic, schemaVersion: 2, assets: { music: image } };
+    expect(validateGame(wrongKind).errors.join(" ")).toContain("requires audio");
+    expect(validateGame({ ...withMusic, schemaVersion: 2, scenes: [{ ...withMusic.scenes[0], music: { assetId: "music", volume: 2 } }] }).valid).toBe(false);
+    expect(validateGame({ ...withMusic, schemaVersion: 2 }).valid).toBe(true);
+  });
+
   it("counts script source limits in UTF-8 bytes", () => {
     const game = document({});
     game.scenes[0].entities = Array.from({ length: 5 }, (_, index) => ({
