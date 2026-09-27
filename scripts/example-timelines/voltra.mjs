@@ -483,6 +483,8 @@ const tracks = [
   { id: "t_scenes", name: "scenes", type: "video", index: 2, visible: true, locked: false }
 ];
 const layers = sceneTracks(tracks.length);
+const trackFolders = scenes.map((scene, index) => ({ id: `f_${scene.name}`, name: `${index + 1} · ${scene.name}` }));
+for (const track of layers.tracks) track.folderId = `f_${track.id.split("_")[1]}`;
 const clips = [...layers.clips];
 tracks.push(...layers.tracks);
 const offset = tracks.length;
@@ -539,7 +541,7 @@ const bundle = {
   // Render output settings: a film-standard shutter over the whole ad. The
   // ride plates ask for a wider one of their own.
   render: { motionBlurSamples: 4, shutterAngle: 180 },
-  document: { tracks: state.tracks, clips: state.clips, markers: state.markers, camera2d, tempo: { bpm: BPM, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } } }
+  document: { tracks: state.tracks, trackFolders, clips: state.clips, markers: state.markers, camera2d, tempo: { bpm: BPM, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } } }
 };
 
 const out = join(dirname(fileURLToPath(import.meta.url)), "../../packages/base-nodes/nodetool/examples/timelines/voltra.timeline.json");

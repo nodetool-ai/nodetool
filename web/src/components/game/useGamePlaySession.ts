@@ -201,14 +201,15 @@ export function useGamePlaySession({ refId, active, document, name }: UseGamePla
       setBackend(created.backend === "webgpu" ? "WebGPU" : "Canvas 2D");
       showCurrentFrame();
     }).catch((cause: unknown) => {
+      if (cancelled || sessionGenerationRef.current !== generation) return;
       const message = cause instanceof Error ? cause.message : String(cause);
       setError(message);
       if (message.includes("Game script")) setScriptError(scriptFailure(message, 0));
+      setPlaying(false);
     });
     return () => {
       cancelled = true;
       sessionGenerationRef.current += 1;
-      setPlaying(false);
       keys.clear();
       newlyPressed.clear();
       disposeSession();
