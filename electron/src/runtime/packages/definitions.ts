@@ -116,7 +116,7 @@ export const RUNTIME_PACKAGES = {
       "Anthropic's Claude Agent SDK. Powers the Claude Agent LLM provider, which talks to Claude through your logged-in Claude subscription (no API key). Bundles its own claude binary.",
     category: "library",
     versionRange: "0.3.x",
-    npmPackages: ["@anthropic-ai/claude-agent-sdk@0.3.190"],
+    npmPackages: ["@anthropic-ai/claude-agent-sdk@0.3.283"],
     packageNames: ["@anthropic-ai/claude-agent-sdk"],
     approxSizeMB: 211,
   }),
