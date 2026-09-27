@@ -11,7 +11,8 @@ import type {
 import { gameSnapshot } from "@nodetool-ai/protocol";
 import { validateGame } from "./validate.js";
 import { evaluateVisual } from "./visual-animation.js";
-import { hasGameScripts, prepareGameScripts, scriptSourceKey, type GameScriptCall, type GameScriptRunner, type GameScriptStats } from "./scripts.js";
+import { FACE_LEFT, FACE_RIGHT, faceOf, queryTiles, sweepBox, tileCollision, type Box, type SweepHit } from "./physics.js";
+import { hasGameScripts, prepareGameScripts, scriptSourceKey, type GameScriptCall, type GameScriptRunner, type GameScriptStats, type GameScriptTouching } from "./scripts.js";
 
 interface EntityState {
   readonly definition: GameEntity;
@@ -31,6 +32,8 @@ interface EntityState {
   health?: number;
   patrolOrigin?: number;
   patrolDirection?: -1 | 1;
+  animation?: string;
+  animationTick?: number;
 }
 
 export interface GameStepResult {
@@ -71,14 +74,6 @@ function overlaps(a: EntityState, b: EntityState): boolean {
     Math.abs(a.y - b.y) * 2 < ac.height + bc.height;
 }
 
-function touches(a: EntityState, b: EntityState): boolean {
-  const ac = a.definition.collider2d;
-  const bc = b.definition.collider2d;
-  return Boolean(ac && bc &&
-    Math.abs(a.x - b.x) * 2 <= ac.width + bc.width &&
-    Math.abs(a.y - b.y) * 2 <= ac.height + bc.height);
-}
-
 const MAX_EVENTS_PER_TICK = 512;
 const MAX_SPAWNED_INSTANCES = 1024;
 
@@ -102,49 +97,65 @@ function canCollide(a: EntityState, b: EntityState): boolean {
     ((bc.mask ?? 0xffffffff) & (ac.category ?? 1)) !== 0);
 }
 
-interface SweepHit {
-  readonly time: number;
-  readonly normalX: number;
-  readonly normalY: number;
+function colliderBox(state: EntityState): Box | undefined {
+  const collider = state.definition.collider2d;
+  return collider ? { x: state.x, y: state.y, halfWidth: collider.width / 2, halfHeight: collider.height / 2 } : undefined;
 }
 
-/** Sweep the moving AABB through one displacement against a stationary AABB. */
+/** Sweep one entity's collider through a displacement against another entity's collider. */
 function sweepAabb(moving: EntityState, other: EntityState, dx: number, dy: number): SweepHit | undefined {
-  const a = moving.definition.collider2d;
-  const b = other.definition.collider2d;
+  const a = colliderBox(moving);
+  const b = colliderBox(other);
   if (!a || !b) {
     return undefined;
   }
-  const halfX = (a.width + b.width) / 2;
-  const halfY = (a.height + b.height) / 2;
-  const offsetX = other.x - moving.x;
-  const offsetY = other.y - moving.y;
-  if (Math.abs(offsetX) < halfX && Math.abs(offsetY) < halfY) {
-    const useX = halfX - Math.abs(offsetX) <= halfY - Math.abs(offsetY);
-    const normalX = useX ? Math.sign(-offsetX) || -Math.sign(dx) : 0;
-    const normalY = useX ? 0 : Math.sign(-offsetY) || -Math.sign(dy);
-    if (dx * normalX + dy * normalY >= 0 && !a.sensor && !b.sensor) {
-      return undefined;
-    }
-    return { time: 0, normalX, normalY };
-  }
-  const xEntry = dx > 0 ? (offsetX - halfX) / dx : dx < 0 ? (offsetX + halfX) / dx : -Infinity;
-  const xExit = dx > 0 ? (offsetX + halfX) / dx : dx < 0 ? (offsetX - halfX) / dx : Infinity;
-  const yEntry = dy > 0 ? (offsetY - halfY) / dy : dy < 0 ? (offsetY + halfY) / dy : -Infinity;
-  const yExit = dy > 0 ? (offsetY + halfY) / dy : dy < 0 ? (offsetY - halfY) / dy : Infinity;
-  if (dx === 0 && Math.abs(offsetX) >= halfX || dy === 0 && Math.abs(offsetY) >= halfY) {
-    return undefined;
-  }
-  const entry = Math.max(xEntry, yEntry);
-  if (entry > Math.min(xExit, yExit) || entry < 0 || entry > 1) {
-    return undefined;
-  }
-  return xEntry >= yEntry
-    ? { time: entry, normalX: -Math.sign(dx), normalY: 0 }
-    : { time: entry, normalX: 0, normalY: -Math.sign(dy) };
+  return sweepBox(a, b, dx, dy, Boolean(moving.definition.collider2d?.sensor || other.definition.collider2d?.sensor));
 }
 
+/** A box that kinematic bodies test against: a non-kinematic collider or one solid tile. */
+interface Obstacle {
+  readonly owner: EntityState;
+  readonly box: Box;
+  /** Blocks movement: a static collider or a solid tile. Other colliders only report contact. */
+  readonly solid: boolean;
+  readonly sensor: boolean;
+  readonly oneWay: boolean;
+  readonly internal: number;
+  readonly category: number;
+  readonly mask: number;
+}
+
+function obstaclesOf(state: EntityState, minX: number, minY: number, maxX: number, maxY: number, into: Obstacle[]): void {
+  const entity = state.definition;
+  const collider = entity.collider2d;
+  if (collider && Math.abs(state.x - (minX + maxX) / 2) * 2 <= maxX - minX + collider.width &&
+    Math.abs(state.y - (minY + maxY) / 2) * 2 <= maxY - minY + collider.height) {
+    into.push({ owner: state, box: { x: state.x, y: state.y, halfWidth: collider.width / 2, halfHeight: collider.height / 2 },
+      solid: entity.body2d?.type === "static", sensor: collider.sensor, oneWay: collider.oneWay ?? false, internal: 0,
+      category: collider.category ?? 1, mask: collider.mask ?? 0xffffffff });
+  }
+  const tilemap = entity.tilemap;
+  if (tilemap && tilemap.tiles.length > 0) {
+    for (const tile of queryTiles(tileCollision(tilemap), minX - state.x, minY - state.y, maxX - state.x, maxY - state.y)) {
+      into.push({ owner: state, box: { x: state.x + tile.x, y: state.y + tile.y, halfWidth: tile.halfWidth, halfHeight: tile.halfHeight },
+        solid: true, sensor: false, oneWay: tile.oneWay, internal: tile.internal,
+        category: tilemap.category ?? 1, mask: tilemap.mask ?? 0xffffffff });
+    }
+  }
+}
+
+function canCollideObstacle(state: EntityState, obstacle: Obstacle): boolean {
+  const collider = state.definition.collider2d;
+  return Boolean(collider && obstacle.owner.active && obstacle.owner !== state &&
+    ((collider.mask ?? 0xffffffff) & obstacle.category) !== 0 &&
+    (obstacle.mask & (collider.category ?? 1)) !== 0);
+}
+
+const TOUCH_EPSILON = 1e-3;
+const RIDE_EPSILON = 0.02;
+
 interface ScriptVisual {
+  flipX?: boolean;
   rotation?: number;
   scaleX?: number;
   scaleY?: number;
@@ -232,18 +243,31 @@ function initialSceneStates(scene: GameScene, spawnTick = 0): EntityState[] {
   });
 }
 
-function animationFrame(entity: GameEntity, age: number): GameRenderFrame["sprites"][number]["frame"] {
-  const animator = entity.animator;
+/** The animator's current frame: the clip a script selected, or the default frames from spawn. */
+function animationFrame(state: EntityState, tick: number): GameRenderFrame["sprites"][number]["frame"] {
+  const animator = state.definition.animator;
   if (!animator) return undefined;
-  const index = Math.floor(Math.max(0, age) / animator.ticksPerFrame);
-  return animator.frames[animator.loop ? index % animator.frames.length : Math.min(index, animator.frames.length - 1)];
+  const clip = (state.animation !== undefined ? animator.clips?.[state.animation] : undefined) ?? animator;
+  const age = tick - (state.animation !== undefined ? state.animationTick ?? state.spawnTick : state.spawnTick);
+  const index = Math.floor(Math.max(0, age) / clip.ticksPerFrame);
+  return clip.frames[clip.loop ? index % clip.frames.length : Math.min(index, clip.frames.length - 1)];
 }
+
+const MAX_LIGHTS = 32;
 
 function frameFor(document: GameDocument, scene: GameScene, states: readonly EntityState[], tick: number, score: number, won: boolean, hud: ReadonlyMap<string, GameHudLabel>): GameRenderFrame {
   const cameraState = states.find((state) => state.active && state.definition.camera2d);
   const camera = cameraState?.definition.camera2d;
   const sprites: GameRenderFrame["sprites"] = [];
   const tiles: GameRenderFrame["tiles"] = [];
+  const cameraX = cameraState?.x ?? 0;
+  const cameraY = cameraState?.y ?? 0;
+  // Tiles and lights outside the view plus a margin never reach the renderer, so large levels stay cheap.
+  const viewHalfWidth = (camera?.width ?? 16) / (2 * (camera?.zoom ?? 1));
+  const viewHalfHeight = (camera?.height ?? 9) / (2 * (camera?.zoom ?? 1));
+  const cullHalfWidth = viewHalfWidth * 1.5 + 2;
+  const cullHalfHeight = viewHalfHeight * 1.5 + 2;
+  const entityLights: { x: number; y: number; color: string; intensity: number; radius: number; falloff: number; distance: number }[] = [];
   for (const state of states) {
     if (!state.active) {
       continue;
@@ -282,7 +306,7 @@ function frameFor(document: GameDocument, scene: GameScene, states: readonly Ent
         height: entity.sprite.height,
         layer: entity.sprite.layer
       };
-      const spriteFrame = animationFrame(entity, age) ?? entity.sprite.frame;
+      const spriteFrame = animationFrame(state, tick) ?? entity.sprite.frame;
       if (document.schemaVersion === 2 && binding && !spriteFrame) {
         const sourceWidth = binding.trim?.sourceWidth ?? binding.width;
         const sourceHeight = binding.trim?.sourceHeight ?? binding.height;
@@ -316,11 +340,18 @@ function frameFor(document: GameDocument, scene: GameScene, states: readonly Ent
       if (previousOpacity !== 1 || entity.sprite.opacity !== undefined) sprite.previousOpacity = Math.max(0, Math.min(1, previousOpacity));
       if (entity.sprite.blend === "additive") sprite.blend = "additive";
       if (entity.sprite.unlit) sprite.unlit = true;
+      const facing = entity.sprite.faceMotion;
+      const turned = facing !== undefined && state.velocityX !== 0 && (state.velocityX < 0) !== (facing === "left");
+      if (visual?.flipX ?? (entity.sprite.flipX || turned)) sprite.flipX = true;
       if (document.assets[entity.sprite.assetId]?.sampling === "linear") sprite.sampling = "linear";
       sprites.push(sprite);
     }
     if (entity.tilemap) {
       for (const tile of entity.tilemap.tiles) {
+        if (Math.abs(state.x + tile.x - cameraX) - tile.width / 2 > cullHalfWidth ||
+          Math.abs(state.y + tile.y - cameraY) - tile.height / 2 > cullHalfHeight) {
+          continue;
+        }
         const item: GameRenderFrame["tiles"][number] = {
           entityId: entity.id,
           assetId: entity.tilemap.assetId,
@@ -335,6 +366,15 @@ function frameFor(document: GameDocument, scene: GameScene, states: readonly Ent
         }
         if (document.assets[entity.tilemap.assetId]?.sampling === "linear") item.sampling = "linear";
         tiles.push(item);
+      }
+    }
+    if (entity.light2d && scene.lighting) {
+      const light = entity.light2d;
+      const x = state.x + (light.offset?.x ?? 0);
+      const y = state.y + (light.offset?.y ?? 0);
+      if (Math.abs(x - cameraX) - light.radius <= viewHalfWidth && Math.abs(y - cameraY) - light.radius <= viewHalfHeight) {
+        entityLights.push({ x, y, color: light.color, intensity: light.intensity, radius: light.radius, falloff: light.falloff,
+          distance: Math.hypot(x - cameraX, y - cameraY) });
       }
     }
   }
@@ -358,7 +398,13 @@ function frameFor(document: GameDocument, scene: GameScene, states: readonly Ent
       ...[...hud.values()].map((label) => ({ ...label }))
     ]
   };
-  if (scene.lighting) frame.lighting = scene.lighting;
+  if (scene.lighting) {
+    // Entity lights follow their entities; the nearest ones fill the slots the scene's fixed lights leave.
+    const free = Math.max(0, MAX_LIGHTS - scene.lighting.points.length);
+    const moving = entityLights.sort((a, b) => a.distance - b.distance).slice(0, free)
+      .map(({ distance: _distance, ...point }) => point);
+    frame.lighting = moving.length === 0 ? scene.lighting : { ...scene.lighting, points: [...scene.lighting.points, ...moving] };
+  }
   return frame;
 }
 
@@ -466,7 +512,10 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
       state.health = saved.health;
       state.patrolOrigin = saved.patrolOrigin;
       state.patrolDirection = saved.patrolDirection;
+      state.animation = saved.animation;
+      state.animationTick = saved.animationTick;
       const visual: ScriptVisual = {};
+      if (saved.flipX !== undefined) visual.flipX = saved.flipX;
       if (saved.rotation !== undefined) visual.rotation = saved.rotation;
       if (saved.scaleX !== undefined) visual.scaleX = saved.scaleX;
       if (saved.scaleY !== undefined) visual.scaleY = saved.scaleY;
@@ -525,6 +574,8 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
         if (state.health !== undefined) entity.health = state.health;
         if (state.patrolOrigin !== undefined) entity.patrolOrigin = state.patrolOrigin;
         if (state.patrolDirection !== undefined) entity.patrolDirection = state.patrolDirection;
+        if (state.animation !== undefined) entity.animation = state.animation;
+        if (state.animationTick !== undefined) entity.animationTick = state.animationTick;
         return entity;
       })
     };
@@ -534,6 +585,67 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
     const separator = entityId.lastIndexOf("#");
     const prefabId = entityId.slice(0, separator);
     return separator > 0 && scene.entities.some((entity) => entity.templateOnly && entity.id === prefabId);
+  }
+
+  function gravityScaleOf(state: EntityState): number {
+    return scene.gravity && state.definition.body2d?.type === "kinematic" ? state.definition.body2d.gravityScale ?? 1 : 0;
+  }
+
+  function obstacleStates(): EntityState[] {
+    return states.filter((state) => state.active && state.definition.body2d?.type !== "kinematic" &&
+      (state.definition.collider2d !== undefined || (state.definition.tilemap?.tiles.length ?? 0) > 0));
+  }
+
+  /** Solid obstacles that could block this body, near its collider grown by a margin. */
+  function solidsNear(state: EntityState, margin: number, only?: EntityState): Obstacle[] {
+    const box = colliderBox(state);
+    if (!box || box && state.definition.collider2d?.sensor) return [];
+    const found: Obstacle[] = [];
+    for (const other of only ? [only] : obstacleStates()) {
+      if (other !== state) {
+        obstaclesOf(other, box.x - box.halfWidth - margin, box.y - box.halfHeight - margin,
+          box.x + box.halfWidth + margin, box.y + box.halfHeight + margin, found);
+      }
+    }
+    return found.filter((obstacle) => obstacle.solid && !obstacle.sensor && canCollideObstacle(state, obstacle));
+  }
+
+  /** Sides of the collider that rest against a solid. A one-way solid supports only from below. */
+  function touchingOf(state: EntityState): GameScriptTouching {
+    const box = colliderBox(state);
+    const touching = { down: false, up: false, left: false, right: false };
+    if (!box) return touching;
+    for (const obstacle of solidsNear(state, TOUCH_EPSILON)) {
+      const o = obstacle.box;
+      const overlapX = Math.min(box.x + box.halfWidth, o.x + o.halfWidth) - Math.max(box.x - box.halfWidth, o.x - o.halfWidth);
+      const overlapY = Math.min(box.y + box.halfHeight, o.y + o.halfHeight) - Math.max(box.y - box.halfHeight, o.y - o.halfHeight);
+      if (overlapX > TOUCH_EPSILON && Math.abs(box.y - box.halfHeight - (o.y + o.halfHeight)) <= TOUCH_EPSILON) touching.down = true;
+      if (obstacle.oneWay) continue;
+      if (overlapX > TOUCH_EPSILON && Math.abs(box.y + box.halfHeight - (o.y - o.halfHeight)) <= TOUCH_EPSILON) touching.up = true;
+      if (overlapY > TOUCH_EPSILON && (obstacle.internal & FACE_RIGHT) === 0 &&
+        Math.abs(box.x - box.halfWidth - (o.x + o.halfWidth)) <= TOUCH_EPSILON) touching.left = true;
+      if (overlapY > TOUCH_EPSILON && (obstacle.internal & FACE_LEFT) === 0 &&
+        Math.abs(box.x + box.halfWidth - (o.x - o.halfWidth)) <= TOUCH_EPSILON) touching.right = true;
+    }
+    return touching;
+  }
+
+  /** Whether the body rests on top of one of the platform's solids. */
+  function standsOn(body: EntityState, platform: EntityState): boolean {
+    const box = colliderBox(body);
+    if (!box) return false;
+    return solidsNear(body, RIDE_EPSILON, platform).some(({ box: o }) =>
+      Math.min(box.x + box.halfWidth, o.x + o.halfWidth) - Math.max(box.x - box.halfWidth, o.x - o.halfWidth) > TOUCH_EPSILON &&
+      Math.abs(box.y - box.halfHeight - (o.y + o.halfHeight)) <= RIDE_EPSILON);
+  }
+
+  /** Whether ground continues just past the body's leading edge. */
+  function solidBelowAhead(state: EntityState, direction: number): boolean {
+    const box = colliderBox(state);
+    if (!box) return false;
+    const probeX = state.x + direction * (box.halfWidth + 0.05);
+    const probeY = state.y - box.halfHeight - 0.1;
+    return solidsNear(state, 0.3).some(({ box: o }) => Math.abs(probeX - o.x) <= o.halfWidth && Math.abs(probeY - o.y) <= o.halfHeight);
   }
 
   function step(input: GameInputFrame): GameStepResult {
@@ -580,12 +692,15 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
           } else if (behavior.kind === "patrol") {
             const coordinate = behavior.axis === "x" ? state.x : state.y;
             const origin = state.patrolOrigin ?? coordinate;
-            if (Math.abs(coordinate - origin) >= behavior.distance) {
+            // Only travel away from the origin turns the body, so a wall at the limit cannot cancel a turn.
+            if ((coordinate - origin) * (state.patrolDirection ?? 1) >= behavior.distance) {
               state.patrolDirection = state.patrolDirection === 1 ? -1 : 1;
             }
             const speed = behavior.speed * (state.patrolDirection ?? 1);
-            state.velocityX = behavior.axis === "x" ? speed : 0;
-            state.velocityY = behavior.axis === "y" ? speed : 0;
+            // A body under gravity keeps its fall speed while it walks.
+            const falls = gravityScaleOf(state) !== 0;
+            state.velocityX = behavior.axis === "x" ? speed : falls ? state.velocityX : 0;
+            state.velocityY = behavior.axis === "y" ? speed : falls ? state.velocityY : 0;
           } else if (behavior.kind === "sceneTransition" && previousEvents.some((event) => event.kind === "trigger" && event.event === behavior.onEvent)) {
             transitionTo = behavior.sceneId;
           } else if (behavior.kind === "spawn" && previousEvents.some((event) => event.kind === "trigger" && event.event === behavior.onEvent)) {
@@ -597,6 +712,7 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
             const stateKey = scriptSourceKey(scene.id, entity.id, index);
             scriptCalls.push({ sourceKey, stateKey, entityId: entity.id, source: state.sourceId ?? entity.id, state: scriptState[stateKey] ?? null,
               x: state.x, y: state.y, velocityX: state.velocityX, velocityY: state.velocityY,
+              touching: touchingOf(state),
               maxCommands: behavior.maxCommands, maxTickMs: behavior.maxTickMs });
           }
         }
@@ -615,6 +731,9 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
             }
             if (command.kind === "sceneTransition" && !document.scenes.some((candidate) => candidate.id === command.sceneId)) {
               throw new Error(`Game script uses missing scene ${command.sceneId}`);
+            }
+            if (command.kind === "playAnimation" && !byId.get(item.entityId)?.definition.animator?.clips?.[command.clip]) {
+              throw new Error(`Game script plays missing animation clip ${command.clip} on ${item.entityId}`);
             }
             if (command.kind === "hud" && command.fontId && document.assets[command.fontId]?.mediaKind !== "font") {
               throw new Error(`Game script uses missing font ${command.fontId}`);
@@ -642,6 +761,12 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
             } else if (command.kind === "setVisual") {
               const { kind: _kind, ...visual } = command;
               state.visual = { ...state.visual, ...visual };
+            } else if (command.kind === "playAnimation") {
+              // Replaying the current clip continues it, so scripts can request a clip every tick.
+              if (state.animation !== command.clip) {
+                state.animation = command.clip;
+                state.animationTick = tick + 1;
+              }
             } else if (command.kind === "hud") {
               const { kind: _kind, ...label } = command;
               if (label.text === "") hud.delete(label.id);
@@ -679,33 +804,86 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
           });
         }
       };
-      for (const state of states) {
-        if (!state.active || state.definition.body2d?.type !== "kinematic") {
+      const kinematic = states.filter((state) => state.active && state.definition.body2d?.type === "kinematic");
+      const obstacles = obstacleStates();
+      const gravity = scene.gravity;
+      if (gravity) {
+        for (const state of kinematic) {
+          const scale = gravityScaleOf(state);
+          state.velocityX += gravity.x * scale * dt;
+          state.velocityY += gravity.y * scale * dt;
+        }
+      }
+      // Static bodies with a velocity are moving solids. They move first and carry the bodies that
+      // stand on them; a body in the way is pushed out along the motion.
+      const carries = new Map<EntityState, { dx: number; dy: number; platform: EntityState }>();
+      for (const platform of states) {
+        if (!platform.active || platform.definition.body2d?.type !== "static" || platform.velocityX === 0 && platform.velocityY === 0) {
           continue;
         }
-        let remainingX = state.velocityX * dt;
-        let remainingY = state.velocityY * dt;
-        if (!state.definition.collider2d) {
-          state.x += remainingX;
-          state.y += remainingY;
-          continue;
+        const dx = platform.velocityX * dt;
+        const dy = platform.velocityY * dt;
+        const riders = kinematic.filter((body) => !carries.has(body) && standsOn(body, platform));
+        platform.x += dx;
+        platform.y += dy;
+        for (const rider of riders) carries.set(rider, { dx, dy, platform });
+        for (const body of kinematic) {
+          const box = colliderBox(body);
+          if (!box || carries.get(body)?.platform === platform || body.definition.collider2d?.sensor) continue;
+          const found: Obstacle[] = [];
+          obstaclesOf(platform, body.x - box.halfWidth, body.y - box.halfHeight, body.x + box.halfWidth, body.y + box.halfHeight, found);
+          for (const obstacle of found) {
+            if (!obstacle.solid || obstacle.sensor || obstacle.oneWay || !canCollideObstacle(body, obstacle)) continue;
+            const o = obstacle.box;
+            if (Math.abs(body.x - o.x) >= box.halfWidth + o.halfWidth - TOUCH_EPSILON ||
+              Math.abs(body.y - o.y) >= box.halfHeight + o.halfHeight - TOUCH_EPSILON) continue;
+            if (Math.abs(dy) >= Math.abs(dx)) body.y = o.y + Math.sign(dy) * (o.halfHeight + box.halfHeight);
+            else body.x = o.x + Math.sign(dx) * (o.halfWidth + box.halfWidth);
+          }
         }
+      }
+      const moveBody = (state: EntityState, dx: number, dy: number, exclude: EntityState | undefined): { blockedX: number; blockedY: number } => {
+        const collider = state.definition.collider2d;
+        const blocked = { blockedX: 0, blockedY: 0 };
+        if (!collider) return blocked;
+        const halfWidth = collider.width / 2;
+        const halfHeight = collider.height / 2;
+        let remainingX = dx;
+        let remainingY = dy;
         for (let pass = 0; pass < 2 && (remainingX !== 0 || remainingY !== 0); pass += 1) {
-          const hits = states.flatMap((other) => {
-            if (state === other || !canCollide(state, other) || other.definition.body2d?.type === "kinematic") {
-              return [];
+          const box = { x: state.x, y: state.y, halfWidth, halfHeight };
+          const found: Obstacle[] = [];
+          const minX = state.x - halfWidth + Math.min(0, remainingX);
+          const maxX = state.x + halfWidth + Math.max(0, remainingX);
+          const minY = state.y - halfHeight + Math.min(0, remainingY);
+          const maxY = state.y + halfHeight + Math.max(0, remainingY);
+          for (const other of obstacles) {
+            if (other !== state && other !== exclude) obstaclesOf(other, minX, minY, maxX, maxY, found);
+          }
+          const hits: { obstacle: Obstacle; hit: SweepHit; blocks: boolean }[] = [];
+          for (const obstacle of found) {
+            if (!canCollideObstacle(state, obstacle)) continue;
+            const hit = sweepBox(box, obstacle.box, remainingX, remainingY, obstacle.sensor || collider.sensor);
+            if (!hit) continue;
+            const blocks = obstacle.solid && !obstacle.sensor && !collider.sensor;
+            if (blocks) {
+              // A face shared with a neighboring tile is inside the wall, so it never stops a body.
+              if ((obstacle.internal & faceOf(hit)) !== 0) continue;
+              // A one-way solid stops only a body that falls onto its top from above.
+              if (obstacle.oneWay && !(hit.normalY > 0 && state.y - halfHeight >= obstacle.box.y + obstacle.box.halfHeight - TOUCH_EPSILON)) continue;
             }
-            const hit = sweepAabb(state, other, remainingX, remainingY);
-            return hit ? [{ other, hit }] : [];
-          }).sort((a, b) => a.hit.time - b.hit.time || (a.other.definition.id < b.other.definition.id ? -1 : a.other.definition.id > b.other.definition.id ? 1 : 0));
-          const solid = hits.find(({ other }) => other.definition.body2d?.type === "static" && !other.definition.collider2d?.sensor && !state.definition.collider2d?.sensor);
+            hits.push({ obstacle, hit, blocks });
+          }
+          hits.sort((a, b) => a.hit.time - b.hit.time ||
+            (a.obstacle.owner.definition.id < b.obstacle.owner.definition.id ? -1 : a.obstacle.owner.definition.id > b.obstacle.owner.definition.id ? 1 : 0));
+          const solid = hits.find((item) => item.blocks);
           const travel = solid?.hit.time ?? 1;
-          for (const { other, hit } of hits) {
+          for (const { obstacle, hit, blocks } of hits) {
             if (hit.time > travel) {
               break;
             }
-            if (other.definition.collider2d?.sensor || state.definition.collider2d?.sensor || other === solid?.other) {
-              recordContact(state, other, hit);
+            if (!blocks || obstacle === solid?.obstacle) {
+              recordContact(state, obstacle.owner, hit);
             }
           }
           state.x += remainingX * travel;
@@ -713,8 +891,30 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
           if (!solid) {
             break;
           }
+          if (solid.hit.normalX !== 0) blocked.blockedX = solid.hit.normalX;
+          if (solid.hit.normalY !== 0) blocked.blockedY = solid.hit.normalY;
           remainingX = solid.hit.normalX === 0 ? remainingX * (1 - travel) : 0;
           remainingY = solid.hit.normalY === 0 ? remainingY * (1 - travel) : 0;
+        }
+        return blocked;
+      };
+      for (const state of kinematic) {
+        if (!state.definition.collider2d) {
+          state.x += state.velocityX * dt;
+          state.y += state.velocityY * dt;
+          continue;
+        }
+        const carry = carries.get(state);
+        if (carry) moveBody(state, carry.dx, carry.dy, carry.platform);
+        const { blockedX, blockedY } = moveBody(state, state.velocityX * dt, state.velocityY * dt, undefined);
+        // A blocked body loses the velocity that pushed into the solid, so gravity cannot build up while resting.
+        if (blockedX * state.velocityX < 0) state.velocityX = 0;
+        if (blockedY * state.velocityY < 0) state.velocityY = 0;
+        const patrol = state.definition.behaviors.find((behavior) => behavior.kind === "patrol");
+        if (patrol?.kind === "patrol" && patrol.axis === "x") {
+          const direction = state.patrolDirection ?? 1;
+          const ledge = patrol.turnAtLedges && touchingOf(state).down && !solidBelowAhead(state, direction);
+          if (blockedX === -direction || ledge) state.patrolDirection = direction === 1 ? -1 : 1;
         }
       }
       for (let index = 0; index < states.length; index += 1) {
@@ -742,19 +942,34 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
           }
         }
       }
-      for (const state of states) {
-        if (!state.active || state.definition.body2d?.type !== "kinematic") {
+      const recordTouch = (state: EntityState, other: EntityState, a: Box, b: Box): void => {
+        const horizontalGap = Math.abs(a.x - b.x) - (a.halfWidth + b.halfWidth);
+        const verticalGap = Math.abs(a.y - b.y) - (a.halfHeight + b.halfHeight);
+        const horizontal = horizontalGap >= verticalGap;
+        recordContact(state, other, { time: 0, normalX: horizontal ? Math.sign(a.x - b.x) : 0, normalY: horizontal ? 0 : Math.sign(a.y - b.y) });
+      };
+      for (const state of kinematic) {
+        const box = colliderBox(state);
+        if (!box) {
           continue;
         }
-        for (const other of states) {
-          if (state === other || !canCollide(state, other) ||
-            !(overlaps(state, other) || other.definition.body2d?.type === "static" && !other.definition.collider2d?.sensor && touches(state, other))) {
-            continue;
+        for (const other of kinematic) {
+          if (state !== other && canCollide(state, other) && overlaps(state, other)) {
+            recordTouch(state, other, box, colliderBox(other)!);
           }
-          const horizontalGap = Math.abs(state.x - other.x) - ((state.definition.collider2d?.width ?? 0) + (other.definition.collider2d?.width ?? 0)) / 2;
-          const verticalGap = Math.abs(state.y - other.y) - ((state.definition.collider2d?.height ?? 0) + (other.definition.collider2d?.height ?? 0)) / 2;
-          const horizontal = horizontalGap >= verticalGap;
-          recordContact(state, other, { time: 0, normalX: horizontal ? Math.sign(state.x - other.x) : 0, normalY: horizontal ? 0 : Math.sign(state.y - other.y) });
+        }
+        const found: Obstacle[] = [];
+        for (const other of obstacles) {
+          if (other !== state) obstaclesOf(other, box.x - box.halfWidth, box.y - box.halfHeight, box.x + box.halfWidth, box.y + box.halfHeight, found);
+        }
+        for (const obstacle of found) {
+          if (!canCollideObstacle(state, obstacle)) continue;
+          const o = obstacle.box;
+          const gapX = Math.abs(box.x - o.x) - (box.halfWidth + o.halfWidth);
+          const gapY = Math.abs(box.y - o.y) - (box.halfHeight + o.halfHeight);
+          const overlapping = gapX < 0 && gapY < 0;
+          const touching = gapX <= 0 && gapY <= 0 && obstacle.solid && !obstacle.sensor;
+          if (overlapping || touching) recordTouch(state, obstacle.owner, box, o);
         }
       }
       const stateById = new Map(states.map((state) => [state.definition.id, state]));

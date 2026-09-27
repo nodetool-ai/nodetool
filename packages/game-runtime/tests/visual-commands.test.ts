@@ -178,6 +178,6 @@ describe("built-in visual behaviors", () => {
   it("accepts a kinematic body without a collider and rejects a static one", () => {
     expect(validateGame(game([{ id: "p", transform2d: { x: 0, y: 0 }, body2d: { type: "kinematic" } }])).valid).toBe(true);
     expect(validateGame(game([{ id: "w", transform2d: { x: 0, y: 0 }, body2d: { type: "static" } }])).errors)
-      .toContain("Static body w needs a collider2d");
+      .toContain("Static body w needs a collider2d or solid tiles");
   });
 });

@@ -36,6 +36,25 @@ describe("game frame projection", () => {
     expect(sprite).toMatchObject({ x: 2, rotation: Math.PI, width: 2, opacity: 0.5, tint: "#808080" });
   });
 
+  it("mirrors a sprite that sets flipX", () => {
+    const input = frame();
+    const unflipped = visibleItems(input, 1).find((item) => item.item.entityId === "player");
+    input.sprites[0]!.flipX = true;
+    const flipped = visibleItems(input, 1).find((item) => item.item.entityId === "player");
+    expect([unflipped?.flipX, flipped?.flipX, flipped?.flipY]).toEqual([false, true, false]);
+  });
+
+  it("repeats a repeatX background sideways only", () => {
+    const input = frame();
+    input.sprites = [];
+    input.tiles = [];
+    input.backgrounds = [{ id: "ruins", assetId: "atlas", width: 4, height: 2, layer: -10,
+      origin: { x: 0, y: 0 }, parallax: { x: 1, y: 1 }, scrollRate: { x: 0, y: 0 }, mode: "repeatX" }];
+    const items = visibleItems(input, 1);
+    expect(new Set(items.map((item) => item.y))).toEqual(new Set([0]));
+    expect(items.length).toBeGreaterThanOrEqual(5);
+  });
+
   it("projects repeat and mirror backgrounds across negative offsets", () => {
     const input = frame();
     input.sprites = [];
@@ -92,6 +111,20 @@ describe("game frame projection", () => {
       origin: { x: 0, y: 0 }, parallax: { x: 1, y: 1 }, scrollRate: { x: 1, y: -1 }, mode: "mirror" }];
     const center = visibleItems(input, 0).find((item) => item.x === 0 && item.y === 0);
     expect(center).toMatchObject({ flipX: true, flipY: true });
+  });
+
+  it("leaves no seam between adjacent tiles at a fractional camera offset", async () => {
+    const input = frame();
+    input.sprites = [];
+    input.camera = { x: 0.013, y: 0.027, zoom: 1 };
+    input.tiles = [-1.5, -0.5, 0.5, 1.5].map((x) => ({ entityId: "floor", assetId: "wall", x, y: 0, width: 1, height: 1, layer: 0 }));
+    const image = await loadImage(Buffer.from(await captureGameFrame(input)));
+    const canvas = createCanvas(image.width, image.height);
+    const context = canvas.getContext("2d");
+    context.drawImage(image, 0, 0);
+    const row = context.getImageData(200, 144, 112, 1).data;
+    const alphas = Array.from({ length: 112 }, (_, index) => row[index * 4 + 3]);
+    expect(alphas.every((alpha) => alpha === 255)).toBe(true);
   });
 
   it("captures colored placeholders at world positions with painter order", async () => {

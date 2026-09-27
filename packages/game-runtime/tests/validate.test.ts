@@ -45,14 +45,15 @@ describe("game validation boundaries", () => {
     expect(result.errors.join("\n")).toContain(`requires ${expected}`);
   });
 
-  it.each([movement, { kind: "patrol", axis: "x", speed: 1, distance: 2 }])(
-    "rejects $kind without a kinematic body", (behavior) => {
-      const result = validateGame(document({ behaviors: [behavior] }));
-      expect(result.valid).toBe(false);
-      expect(result.errors.join("\n")).toContain("scenes.0.entities.0.behaviors.0");
-      expect(result.errors.join("\n")).toContain("requires a kinematic body2d");
-    }
-  );
+  it.each([
+    [movement, "movement requires a kinematic body2d"],
+    [{ kind: "patrol", axis: "x", speed: 1, distance: 2 }, "patrol requires a body2d"]
+  ])("rejects %o without a suitable body", (behavior, message) => {
+    const result = validateGame(document({ behaviors: [behavior] }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.join("\n")).toContain("scenes.0.entities.0.behaviors.0");
+    expect(result.errors.join("\n")).toContain(message);
+  });
 
   it("rejects an animator without a sprite", () => {
     const result = validateGame(document({ animator: { frames: [{ x: 0, y: 0, width: 1, height: 1 }], ticksPerFrame: 2 } }));

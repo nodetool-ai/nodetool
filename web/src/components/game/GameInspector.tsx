@@ -20,7 +20,7 @@ const DOCUMENT_SCHEMA = gameSchemaFields(gameDocument);
 const BEHAVIOR_SCHEMA = gameSchemaFields(gameBehavior);
 const EFFECT_SCHEMA = gameSchemaFields(gameRenderEffect);
 const ASSET_SCHEMA = gameSchemaFields(gameAssetBinding);
-const COMPONENTS = ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource"] as const;
+const COMPONENTS = ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d"] as const;
 const BEHAVIORS = ["movement", "patrol", "collectible", "health", "trigger", "spawn", "sceneTransition", "winWhenCollected", "lifetime", "script"] as const;
 const EFFECTS = ["bloom", "lut", "brightnessContrast"] as const;
 const DEFAULT_GAME_LIGHT_COLOR = "#ffffff";
@@ -47,6 +47,7 @@ function newComponent(kind: ComponentKind, document: GameDocument): GameEntity[C
     case "animator": return { frames: [{ x: 0, y: 0, width: 1, height: 1 }], ticksPerFrame: 6, loop: true };
     case "visualAnimation": return { tracks: [] };
     case "audioSource": return { assetId: audio, onEvent: "play", volume: 1 };
+    case "light2d": return { color: DEFAULT_GAME_LIGHT_COLOR, intensity: 1, radius: 3, falloff: 1 };
   }
 }
 
