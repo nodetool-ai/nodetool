@@ -13,6 +13,7 @@ import type {
   ProviderStreamItem
 } from "../../src/providers/types.js";
 import type { Options, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import { generateStructured } from "../../src/providers/structured-output.js";
 
 describe("toolResultToMcpContent", () => {
   it("wraps a plain string in a text block", () => {
@@ -255,6 +256,35 @@ describe("ClaudeAgentProvider", () => {
         "ToolSearch"
       ])
     );
+  });
+
+  it("returns SDK structured output through the forced schema tool contract", async () => {
+    const schema = {
+      type: "object",
+      required: ["shots"],
+      properties: { shots: { type: "array", items: { type: "object" } } }
+    };
+    const screenplay = { shots: [{ action: "The lighthouse goes dark" }] };
+    const structuredResult = {
+      ...successResult(),
+      structured_output: screenplay
+    } as SDKMessage;
+    const { fn, calls } = fakeQuery([sysInit("sess-structured"), structuredResult]);
+    const provider = new ClaudeAgentProvider({}, { queryFn: fn });
+
+    const result = await generateStructured(provider, {
+      messages: [userMsg("Write one storyboard beat")],
+      model: "sonnet",
+      toolName: "screenplay",
+      toolDescription: "Submit the screenplay",
+      schema
+    });
+
+    expect(calls[0].options?.outputFormat).toEqual({
+      type: "json_schema",
+      schema
+    });
+    expect(result).toEqual(screenplay);
   });
 
   it("streams text and thinking as SEPARATE chunks, never merged", async () => {
