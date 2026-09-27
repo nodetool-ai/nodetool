@@ -1,4 +1,6 @@
 import type { GameRenderEffect, GameRenderFrame } from "@nodetool-ai/protocol";
+export { gameKeyAction } from "./input.js";
+export { projectedCamera } from "./frame.js";
 
 export type GameRendererBackend = "webgpu" | "canvas2d";
 

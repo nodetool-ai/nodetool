@@ -26,6 +26,8 @@ export {
 } from "./application-budgets.js";
 export { projects } from "./projects.js";
 export { games } from "./games.js";
+export { gameDraftChanges } from "./game-draft-changes.js";
+export { gameRevisionMessages } from "./game-revision-messages.js";
 export { scripts } from "./scripts.js";
 export { jsScripts } from "./js-scripts.js";
 export { skills } from "./skills.js";

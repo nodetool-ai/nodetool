@@ -32,7 +32,8 @@ describe("game revision pointer", () => {
   it("publishes with compare-and-swap", async () => {
     const game = await insert(`${PREFIX}${"1".repeat(20)}`);
     const next = "b".repeat(32);
-    expect((await Game.publish(USER, game.id, game.current_revision, next))?.current_revision).toBe(next);
-    expect(await Game.publish(USER, game.id, game.current_revision, "c".repeat(32))).toBeNull();
+    expect((await Game.publish(USER, game.id, game.current_revision, next, undefined, undefined, "First release"))?.current_revision).toBe(next);
+    expect(await Game.publish(USER, game.id, game.current_revision, "c".repeat(32), undefined, undefined, "Stale release")).toBeNull();
+    expect(await Game.listRevisionMessages(USER, game.id)).toEqual(new Map([[next, "First release"]]));
   });
 });

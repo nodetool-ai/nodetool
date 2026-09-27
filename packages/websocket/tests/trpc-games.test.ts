@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
+import { Asset, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -116,6 +116,82 @@ describe("native game revisions", () => {
     expect((await caller.games.get({ id: created.game.id, revision: published.game.revision })).document.scenes[0]?.name).toBe("Edited room");
   });
 
+  it("saves draft ops without publishing and rejects stale or invalid edits", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Draft room" });
+    const sceneId = created.document.scenes[0]?.id;
+    if (!sceneId) throw new Error("Starter scene missing");
+    const first = await caller.games.getDraft({ id: created.game.id });
+    expect(first.document).toEqual(created.document);
+    let observedOps: unknown[] | undefined;
+    ModelObserver.subscribe((_instance, _event, meta) => { observedOps = meta?.ops; }, "Game");
+    const saved = await caller.games.saveDraft({
+      id: created.game.id,
+      baseUpdatedAt: first.game.draftUpdatedAt,
+      ops: [{ op: "update_scene", scene_id: sceneId, set: { name: "Edited draft" } }]
+    });
+    expect(saved.document.scenes[0]?.name).toBe("Edited draft");
+    expect(observedOps).toEqual([{ tool: "update_scene", input: { op: "update_scene", scene_id: sceneId, set: { name: "Edited draft" } } }]);
+    expect(saved.game.revision).toBe(created.game.revision);
+    expect(saved.game.draftUpdatedAt).not.toBe(first.game.draftUpdatedAt);
+    expect((await caller.games.get({ id: created.game.id })).document.scenes[0]?.name).toBe(created.document.scenes[0]?.name);
+    expect((await caller.games.getDraft({ id: created.game.id })).document.scenes[0]?.name).toBe("Edited draft");
+    const changes = await caller.games.draftChanges({ id: created.game.id });
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ actor: "user", beforeUpdatedAt: first.game.draftUpdatedAt });
+    expect(await caller.games.draftBeforeChange({ id: created.game.id, changeId: changes[0].id })).toEqual(created.document);
+    await expect(caller.games.saveDraft({
+      id: created.game.id, baseUpdatedAt: first.game.draftUpdatedAt,
+      ops: [{ op: "update_scene", scene_id: sceneId, set: { name: "Stale" } }]
+    })).rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(caller.games.saveDraft({
+      id: created.game.id, baseUpdatedAt: saved.game.draftUpdatedAt,
+      ops: [{ op: "update_scene", scene_id: "missing", set: { name: "Invalid" } }]
+    })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect((await caller.games.getDraft({ id: created.game.id })).document.scenes[0]?.name).toBe("Edited draft");
+    expect(await caller.games.revisions({ id: created.game.id })).toHaveLength(1);
+    const published = await caller.games.publish({ id: created.game.id, baseRevision: created.game.revision, message: "Room finished" });
+    expect(published.document.scenes[0]?.name).toBe("Edited draft");
+    expect((await caller.games.getDraft({ id: created.game.id })).document.scenes[0]?.name).toBe("Edited draft");
+    expect(await caller.games.draftChanges({ id: created.game.id })).toEqual([]);
+    expect((await caller.games.revisions({ id: created.game.id })).find((item) => item.revision === published.game.revision)?.message)
+      .toBe("Room finished");
+  });
+
+  it("restores a revision into the draft without publishing it", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Restore room" });
+    const sceneId = created.document.scenes[0]?.id;
+    if (!sceneId) throw new Error("Starter scene missing");
+    const edited = await caller.games.saveDraft({
+      id: created.game.id, baseUpdatedAt: created.game.draftUpdatedAt,
+      ops: [{ op: "update_scene", scene_id: sceneId, set: { name: "Changed" } }]
+    });
+    const restored = await caller.games.restoreDraft({
+      id: created.game.id, baseUpdatedAt: edited.game.draftUpdatedAt, revision: created.game.revision
+    });
+    expect(restored.document.scenes[0]?.name).toBe(created.document.scenes[0]?.name);
+    expect(restored.game.revision).toBe(created.game.revision);
+    expect(await caller.games.revisions({ id: created.game.id })).toHaveLength(1);
+    expect((await caller.games.draftChanges({ id: created.game.id }))[0]?.summary).toBe("Restored a revision");
+  });
+
+  it("keeps the winning draft when concurrent writers share a base timestamp", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Concurrent room" });
+    const sceneId = created.document.scenes[0]?.id;
+    if (!sceneId) throw new Error("Starter scene missing");
+    const results = await Promise.allSettled(["First", "Second"].map((name) =>
+      caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: created.game.draftUpdatedAt,
+        ops: [{ op: "update_scene", scene_id: sceneId, set: { name } }] })));
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    const winner = results.find((result) => result.status === "fulfilled");
+    if (!winner || winner.status !== "fulfilled") throw new Error("No winning draft write");
+    expect((await caller.games.getDraft({ id: created.game.id })).document.scenes[0]?.name)
+      .toBe(winner.value.document.scenes[0]?.name);
+  });
+
   it("keeps game source owner scoped", async () => {
     const owner = createCaller(makeCtx(USER_ID));
     const other = createCaller(makeCtx("another-user"));
@@ -176,6 +252,7 @@ describe("native game revisions", () => {
     const installed = await caller.games.installCandidate({
       id: created.game.id,
       baseRevision: published.game.revision,
+      baseUpdatedAt: published.game.draftUpdatedAt,
       slot: "player",
       binding
     });
@@ -186,14 +263,45 @@ describe("native game revisions", () => {
     await expect(caller.games.installCandidate({
       id: created.game.id,
       baseRevision: published.game.revision,
+      baseUpdatedAt: published.game.draftUpdatedAt,
       slot: "player",
       binding
     })).rejects.toMatchObject({ code: "CONFLICT" });
     await expect(caller.games.installCandidate({
       id: created.game.id,
       baseRevision: installed.game.revision,
+      baseUpdatedAt: installed.game.draftUpdatedAt,
       slot: "player",
       binding: { ...binding, digest: "0".repeat(64) }
     })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("keeps staged JPEG and MP3 formats while binding them to the draft", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Media room" });
+    const [row] = await Workspace.listByProject(USER_ID, PROJECT_ID);
+    if (!row) throw new Error("Project workspace missing");
+    const workspace = workspaceFromRow(row);
+    if (!workspace) throw new Error("Workspace storage missing");
+    let updatedAt = created.game.draftUpdatedAt;
+    for (const media of [
+      { extension: "jpg", contentType: "image/jpeg", mediaKind: "image" as const, slot: "player" },
+      { extension: "mp3", contentType: "audio/mpeg", mediaKind: "audio" as const, slot: "sfx.collect" }
+    ]) {
+      const bytes = new Uint8Array([1, 2, 3, media.extension.length]);
+      const digest = createHash("sha256").update(bytes).digest("hex");
+      await workspace.write(`games/${created.game.id}/assets/${digest}.${media.extension}`, bytes, media.contentType);
+      const installed = await caller.games.installCandidate({
+        id: created.game.id, baseRevision: created.game.revision, baseUpdatedAt: updatedAt,
+        slot: media.slot,
+        binding: { assetId: `candidate-${media.extension}`, digest, mediaKind: media.mediaKind,
+          width: 1, height: 1, pivot: { x: 0.5, y: 0.5 }, sampling: "nearest" }
+      });
+      updatedAt = installed.game.draftUpdatedAt;
+      const asset = await Asset.find(USER_ID, installed.document.assets[media.slot]?.assetId ?? "");
+      expect(asset?.content_type).toBe(media.contentType);
+      expect(installed.game.revision).toBe(created.game.revision);
+    }
+    expect(await caller.games.revisions({ id: created.game.id })).toHaveLength(1);
   });
 });

@@ -1,0 +1,405 @@
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type RefObject } from "react";
+import { useTheme } from "@mui/material/styles";
+import type { GameDocument, GameRenderFrame } from "@nodetool-ai/protocol/game.js";
+import { projectedCamera } from "@nodetool-ai/game-renderer";
+
+import { Box, EditorButton, FlexRow, SPACING, Z_INDEX } from "../ui_primitives";
+import { hitEntityIcons, hitSprites, spriteHandle, spriteRotationAt, spriteScaleAt, worldPoint } from "./viewportGeometry";
+
+interface GameViewportProps {
+  canvasRef: RefObject<HTMLCanvasElement | null>;
+  frame: GameRenderFrame | null;
+  document: GameDocument;
+  playing: boolean;
+  paused: boolean;
+  active: boolean;
+  selectedIds: readonly string[];
+  highlightedIds: readonly string[];
+  onSelect: (id: string, additive: boolean) => void;
+  onSelectMany: (ids: string[], additive: boolean) => void;
+  onMove: (id: string, x: number, y: number) => void;
+  onTransform: (id: string, set: { scaleX?: number; scaleY?: number; rotation?: number }) => void;
+  onLight: (sceneId: string, index: number, set: { x?: number; y?: number; radius?: number }) => void;
+  onCamera: (camera: { x: number; y: number; zoom: number }) => void;
+  onViewportAspect: (aspect: number) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLCanvasElement>) => void;
+  onKeyUp: (event: KeyboardEvent<HTMLCanvasElement>) => void;
+  onBlur: () => void;
+}
+
+interface MoveDrag {
+  kind: "move";
+  entityId: string;
+  startX: number;
+  startY: number;
+  entityX: number;
+  entityY: number;
+}
+interface GizmoDrag { kind: "scale" | "rotate"; sprite: GameRenderFrame["sprites"][number] }
+interface MarqueeDrag { kind: "marquee"; startX: number; startY: number; additive: boolean }
+interface LightDrag { kind: "light_move" | "light_radius"; sceneId: string; index: number; x: number; y: number; radius: number; startX: number; startY: number }
+type DragState = MoveDrag | GizmoDrag | MarqueeDrag | LightDrag;
+
+interface PanState { pixelX: number; pixelY: number; cameraX: number; cameraY: number }
+
+function point(event: { clientX: number; clientY: number }, canvas: HTMLCanvasElement): { x: number; y: number } {
+  const rect = canvas.getBoundingClientRect();
+  const scale = Math.min(rect.width / canvas.width, rect.height / canvas.height);
+  const insetX = (rect.width - canvas.width * scale) / 2;
+  const insetY = (rect.height - canvas.height * scale) / 2;
+  return {
+    x: (event.clientX - rect.left - insetX) / scale,
+    y: (event.clientY - rect.top - insetY) / scale
+  };
+}
+
+export default function GameViewport({ canvasRef, frame, document, playing, paused, active, selectedIds, highlightedIds, onSelect, onSelectMany, onMove, onTransform, onLight, onCamera, onViewportAspect, onKeyDown, onKeyUp, onBlur }: GameViewportProps) {
+  const theme = useTheme();
+  const [showGrid, setShowGrid] = useState(false);
+  const [snapToGrid, setSnapToGrid] = useState(true);
+  const [showSelection, setShowSelection] = useState(true);
+  const [showColliders, setShowColliders] = useState(false);
+  const [showLights, setShowLights] = useState(false);
+  const [showBackgrounds, setShowBackgrounds] = useState(false);
+  const [showCameraBounds, setShowCameraBounds] = useState(false);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const previewRef = useRef<{ entityId: string; x?: number; y?: number; rotation?: number; scaleX?: number; scaleY?: number } | null>(null);
+  const marqueeRef = useRef<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
+  const lightPreviewRef = useRef<{ sceneId: string; index: number; x: number; y: number; radius: number } | null>(null);
+  const panRef = useRef<PanState | null>(null);
+  const spaceHeldRef = useRef(false);
+
+  const paintOverlay = useCallback(() => {
+    const overlay = overlayRef.current;
+    if (!overlay || !frame) return;
+    const context = overlay.getContext("2d");
+    if (!context) return;
+    const width = Math.round(frame.width * frame.pixelsPerUnit);
+    const height = Math.round(frame.height * frame.pixelsPerUnit);
+    if (overlay.width !== width || overlay.height !== height) {
+      overlay.width = width;
+      overlay.height = height;
+    }
+    context.clearRect(0, 0, width, height);
+    const camera = projectedCamera(frame, 1);
+    const scale = camera.zoom * frame.pixelsPerUnit;
+    const project = (x: number, y: number) => ({ x: width / 2 + (x - camera.x) * scale,
+      y: height / 2 - (y - camera.y) * scale });
+    const scene = document.scenes.find((item) => item.id === document.entrySceneId) ?? document.scenes[0];
+    if (showGrid) {
+      let step = 0.25;
+      while (frame.width / frame.camera.zoom / step > 100) step *= 2;
+      context.strokeStyle = theme.vars.palette.divider;
+      context.lineWidth = 1;
+      const left = frame.camera.x - frame.width / (2 * frame.camera.zoom);
+      const right = frame.camera.x + frame.width / (2 * frame.camera.zoom);
+      const bottom = frame.camera.y - frame.height / (2 * frame.camera.zoom);
+      const top = frame.camera.y + frame.height / (2 * frame.camera.zoom);
+      for (let x = Math.ceil(left / step) * step; x <= right; x += step) {
+        const screen = project(x, 0).x;
+        context.beginPath(); context.moveTo(screen, 0); context.lineTo(screen, height); context.stroke();
+      }
+      for (let y = Math.ceil(bottom / step) * step; y <= top; y += step) {
+        const screen = project(0, y).y;
+        context.beginPath(); context.moveTo(0, screen); context.lineTo(width, screen); context.stroke();
+      }
+    }
+    if (scene && showColliders) {
+      for (const entity of scene.entities) {
+        if (!entity.collider2d) continue;
+        const category = Math.log2(entity.collider2d.category & -entity.collider2d.category);
+        const colors = [theme.vars.palette.info.main, theme.vars.palette.warning.main,
+          theme.vars.palette.success.main, theme.vars.palette.error.main];
+        context.strokeStyle = colors[(Number.isFinite(category) ? category : 0) % colors.length];
+        const center = project(entity.transform2d.x, entity.transform2d.y);
+        context.save(); context.translate(center.x, center.y); context.rotate(-entity.transform2d.rotation);
+        context.strokeRect(-entity.collider2d.width * entity.transform2d.scaleX * scale / 2,
+          -entity.collider2d.height * entity.transform2d.scaleY * scale / 2,
+          entity.collider2d.width * entity.transform2d.scaleX * scale,
+          entity.collider2d.height * entity.transform2d.scaleY * scale);
+        context.restore();
+      }
+    }
+    if (scene && showLights) {
+      context.strokeStyle = theme.vars.palette.warning.main;
+      for (const [index, original] of (scene.lighting?.points ?? []).entries()) {
+        const light = lightPreviewRef.current?.sceneId === scene.id && lightPreviewRef.current.index === index
+          ? lightPreviewRef.current : original;
+        const center = project(light.x, light.y);
+        context.beginPath(); context.arc(center.x, center.y, light.radius * scale, 0, Math.PI * 2); context.stroke();
+        context.beginPath(); context.arc(center.x, center.y, 4, 0, Math.PI * 2); context.fillStyle = theme.vars.palette.warning.main; context.fill();
+      }
+    }
+    if (scene && showBackgrounds) {
+      context.strokeStyle = theme.vars.palette.secondary.main;
+      for (const background of scene.backgrounds ?? []) {
+        const origin = project(background.origin.x, background.origin.y);
+        context.beginPath(); context.moveTo(origin.x - 6, origin.y); context.lineTo(origin.x + 6, origin.y);
+        context.moveTo(origin.x, origin.y - 6); context.lineTo(origin.x, origin.y + 6); context.stroke();
+      }
+    }
+    if (scene && showCameraBounds) {
+      context.strokeStyle = theme.vars.palette.success.main;
+      for (const entity of scene.entities) {
+        if (!entity.camera2d) continue;
+        const center = project(entity.transform2d.x, entity.transform2d.y);
+        context.strokeRect(center.x - entity.camera2d.width * scale / 2, center.y - entity.camera2d.height * scale / 2,
+          entity.camera2d.width * scale, entity.camera2d.height * scale);
+      }
+    }
+    if (scene && !playing) {
+      const visibleSprites = new Set(frame.sprites.map((sprite) => sprite.entityId));
+      for (const entity of scene.entities) {
+        if (visibleSprites.has(entity.id)) continue;
+        const center = project(entity.transform2d.x, entity.transform2d.y);
+        context.fillStyle = selectedIds.includes(entity.id) ? theme.vars.palette.warning.main : theme.vars.palette.text.secondary;
+        context.fillRect(center.x - 4, center.y - 4, 8, 8);
+      }
+    }
+    context.lineWidth = 2;
+    if (showSelection) for (const sprite of frame.sprites) {
+      if (!selectedIds.includes(sprite.entityId) && !highlightedIds.includes(sprite.entityId)) continue;
+      context.strokeStyle = selectedIds.includes(sprite.entityId) ? theme.vars.palette.warning.main : theme.vars.palette.info.main;
+      const preview = previewRef.current?.entityId === sprite.entityId ? previewRef.current : null;
+      const current = { ...sprite, ...preview };
+      const x = width / 2 + (current.x - frame.camera.x) * scale;
+      const y = height / 2 - (current.y - frame.camera.y) * scale;
+      context.save();
+      context.translate(x, y);
+      context.rotate(-current.rotation);
+      context.strokeRect(-current.width * current.scaleX * scale / 2, -current.height * current.scaleY * scale / 2,
+        current.width * current.scaleX * scale, current.height * current.scaleY * scale);
+      context.restore();
+      if (!paused && selectedIds.includes(sprite.entityId)) {
+        const corner = spriteHandle(current, "scale");
+        const rotate = spriteHandle(current, "rotate");
+        const cornerX = width / 2 + (corner.x - frame.camera.x) * scale;
+        const cornerY = height / 2 - (corner.y - frame.camera.y) * scale;
+        const rotateX = width / 2 + (rotate.x - frame.camera.x) * scale;
+        const rotateY = height / 2 - (rotate.y - frame.camera.y) * scale;
+        context.fillStyle = theme.vars.palette.warning.main;
+        context.fillRect(cornerX - 5, cornerY - 5, 10, 10);
+        context.beginPath();
+        context.arc(rotateX, rotateY, 5, 0, Math.PI * 2);
+        context.fill();
+      }
+    }
+    if (marqueeRef.current) {
+      const start = project(marqueeRef.current.startX, marqueeRef.current.startY);
+      const end = project(marqueeRef.current.endX, marqueeRef.current.endY);
+      context.strokeStyle = theme.vars.palette.info.main;
+      context.strokeRect(Math.min(start.x, end.x), Math.min(start.y, end.y), Math.abs(start.x - end.x), Math.abs(start.y - end.y));
+    }
+  }, [frame, document, selectedIds, highlightedIds, showGrid, showColliders, showLights, showCameraBounds,
+    showSelection, showBackgrounds, paused, playing,
+    theme.vars.palette.warning.main, theme.vars.palette.info.main, theme.vars.palette.success.main,
+    theme.vars.palette.error.main, theme.vars.palette.secondary.main, theme.vars.palette.text.secondary, theme.vars.palette.divider]);
+
+  useEffect(() => { paintOverlay(); }, [paintOverlay]);
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+        onViewportAspect(entry.contentRect.width / entry.contentRect.height);
+      }
+    });
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [onViewportAspect]);
+
+  const onPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (!frame || (playing && !paused) || !active) return;
+    const canvas = event.currentTarget;
+    const pixel = point(event, canvas);
+    canvasRef.current?.focus();
+    if (event.button === 1 || spaceHeldRef.current) {
+      panRef.current = { pixelX: pixel.x, pixelY: pixel.y, cameraX: frame.camera.x, cameraY: frame.camera.y };
+      canvas.setPointerCapture(event.pointerId);
+      return;
+    }
+    const world = worldPoint(pixel.x, pixel.y, frame, canvas.width, canvas.height);
+    if (paused) {
+      const hits = hitSprites(frame, world.x, world.y);
+      const selectedIndex = hits.findIndex((sprite) => selectedIds.includes(sprite.entityId));
+      const sprite = event.altKey && hits.length > 0 ? hits[(selectedIndex + 1) % hits.length] : hits[0];
+      if (sprite) onSelect(sprite.entityId, event.shiftKey);
+      return;
+    }
+    const scale = frame.camera.zoom * frame.pixelsPerUnit;
+    const scene = document.scenes.find((item) => item.id === document.entrySceneId) ?? document.scenes[0];
+    if (showLights && scene?.lighting) {
+      for (const [index, light] of scene.lighting.points.entries()) {
+        const distance = Math.hypot((light.x - world.x) * scale, (light.y - world.y) * scale);
+        const kind = distance <= 10 ? "light_move" : Math.abs(distance - light.radius * scale) <= 10 ? "light_radius" : null;
+        if (!kind) continue;
+        dragRef.current = { kind, sceneId: scene.id, index, x: light.x, y: light.y, radius: light.radius,
+          startX: world.x, startY: world.y };
+        canvas.setPointerCapture(event.pointerId);
+        return;
+      }
+    }
+    for (const selected of frame.sprites.filter((sprite) => selectedIds.includes(sprite.entityId))) {
+      for (const kind of ["rotate", "scale"] as const) {
+        const handle = spriteHandle(selected, kind);
+        const handleX = canvas.width / 2 + (handle.x - frame.camera.x) * scale;
+        const handleY = canvas.height / 2 - (handle.y - frame.camera.y) * scale;
+        if (Math.hypot(handleX - pixel.x, handleY - pixel.y) <= 10) {
+          dragRef.current = { kind, sprite: selected };
+          canvas.setPointerCapture(event.pointerId);
+          return;
+        }
+      }
+    }
+    const hits = hitSprites(frame, world.x, world.y);
+    const selectedIndex = hits.findIndex((sprite) => selectedIds.includes(sprite.entityId));
+    const sprite = event.altKey && hits.length > 0 ? hits[(selectedIndex + 1) % hits.length] : hits[0];
+    if (!sprite) {
+      const icons = scene ? hitEntityIcons(scene, frame, world.x, world.y) : [];
+      const selectedIconIndex = icons.findIndex((entity) => selectedIds.includes(entity.id));
+      const icon = event.altKey && icons.length > 0 ? icons[(selectedIconIndex + 1) % icons.length] : icons[0];
+      if (icon) {
+        onSelect(icon.id, event.shiftKey);
+        if (event.altKey) return;
+        dragRef.current = { kind: "move", entityId: icon.id, startX: world.x, startY: world.y,
+          entityX: icon.transform2d.x, entityY: icon.transform2d.y };
+      } else {
+        dragRef.current = { kind: "marquee", startX: world.x, startY: world.y, additive: event.shiftKey };
+        marqueeRef.current = { startX: world.x, startY: world.y, endX: world.x, endY: world.y };
+      }
+      canvas.setPointerCapture(event.pointerId);
+      return;
+    }
+    onSelect(sprite.entityId, event.shiftKey);
+    if (event.altKey) return;
+    dragRef.current = { kind: "move", entityId: sprite.entityId, startX: world.x, startY: world.y, entityX: sprite.x, entityY: sprite.y };
+    canvas.setPointerCapture(event.pointerId);
+  };
+
+  const onPointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (!frame) return;
+    const canvas = event.currentTarget;
+    const pixel = point(event, canvas);
+    if (panRef.current) {
+      const scale = frame.camera.zoom * frame.pixelsPerUnit;
+      onCamera({ x: panRef.current.cameraX - (pixel.x - panRef.current.pixelX) / scale,
+        y: panRef.current.cameraY + (pixel.y - panRef.current.pixelY) / scale, zoom: frame.camera.zoom });
+      return;
+    }
+    const drag = dragRef.current;
+    if (!drag) return;
+    const world = worldPoint(pixel.x, pixel.y, frame, canvas.width, canvas.height);
+    if (drag.kind === "move") {
+      let deltaX = world.x - drag.startX;
+      let deltaY = world.y - drag.startY;
+      if (event.shiftKey) {
+        if (Math.abs(deltaX) >= Math.abs(deltaY)) deltaY = 0;
+        else deltaX = 0;
+      }
+      previewRef.current = { entityId: drag.entityId, x: drag.entityX + deltaX, y: drag.entityY + deltaY };
+    } else if (drag.kind === "scale") {
+      previewRef.current = { entityId: drag.sprite.entityId, ...spriteScaleAt(drag.sprite, world.x, world.y, event.shiftKey) };
+    } else if (drag.kind === "rotate") {
+      previewRef.current = { entityId: drag.sprite.entityId,
+        rotation: spriteRotationAt(drag.sprite, world.x, world.y, event.shiftKey) };
+    } else if (drag.kind === "marquee") {
+      marqueeRef.current = { startX: drag.startX, startY: drag.startY, endX: world.x, endY: world.y };
+    } else if (drag.kind === "light_move") {
+      lightPreviewRef.current = { sceneId: drag.sceneId, index: drag.index,
+        x: drag.x + world.x - drag.startX, y: drag.y + world.y - drag.startY, radius: drag.radius };
+    } else if (drag.kind === "light_radius") {
+      lightPreviewRef.current = { sceneId: drag.sceneId, index: drag.index, x: drag.x, y: drag.y,
+        radius: Math.max(0.01, Math.hypot(world.x - drag.x, world.y - drag.y)) };
+    }
+    paintOverlay();
+  };
+
+  const onPointerUp = () => {
+    const drag = dragRef.current;
+    const preview = previewRef.current;
+    const marquee = marqueeRef.current;
+    const lightPreview = lightPreviewRef.current;
+    dragRef.current = null;
+    previewRef.current = null;
+    marqueeRef.current = null;
+    lightPreviewRef.current = null;
+    panRef.current = null;
+    if (drag?.kind === "move" && preview?.x !== undefined && preview.y !== undefined &&
+        (preview.x !== drag.entityX || preview.y !== drag.entityY)) {
+      onMove(drag.entityId, snapToGrid ? Math.round(preview.x * 4) / 4 : preview.x,
+        snapToGrid ? Math.round(preview.y * 4) / 4 : preview.y);
+    } else if (drag?.kind === "scale" && preview?.scaleX !== undefined && preview.scaleY !== undefined) {
+      onTransform(drag.sprite.entityId, { scaleX: preview.scaleX, scaleY: preview.scaleY });
+    } else if (drag?.kind === "rotate" && preview?.rotation !== undefined) {
+      onTransform(drag.sprite.entityId, { rotation: preview.rotation });
+    } else if (drag?.kind === "marquee" && marquee && frame) {
+      const minX = Math.min(marquee.startX, marquee.endX);
+      const maxX = Math.max(marquee.startX, marquee.endX);
+      const minY = Math.min(marquee.startY, marquee.endY);
+      const maxY = Math.max(marquee.startY, marquee.endY);
+      const scene = document.scenes.find((item) => item.id === document.entrySceneId) ?? document.scenes[0];
+      const ids = new Set(frame.sprites.filter((sprite) => sprite.x >= minX && sprite.x <= maxX && sprite.y >= minY && sprite.y <= maxY)
+        .map((sprite) => sprite.entityId));
+      for (const entity of scene?.entities ?? []) {
+        if (entity.transform2d.x >= minX && entity.transform2d.x <= maxX &&
+            entity.transform2d.y >= minY && entity.transform2d.y <= maxY) ids.add(entity.id);
+      }
+      onSelectMany([...ids], drag.additive);
+    } else if (drag?.kind === "light_move" && lightPreview) {
+      onLight(drag.sceneId, drag.index, { x: lightPreview.x, y: lightPreview.y });
+    } else if (drag?.kind === "light_radius" && lightPreview) {
+      onLight(drag.sceneId, drag.index, { radius: lightPreview.radius });
+    }
+    paintOverlay();
+  };
+
+  const onPointerCancel = () => {
+    dragRef.current = null;
+    previewRef.current = null;
+    marqueeRef.current = null;
+    lightPreviewRef.current = null;
+    panRef.current = null;
+    paintOverlay();
+  };
+
+  return (
+    <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "auto", bgcolor: "background.default" }}>
+      <Box ref={stageRef} sx={{ position: "relative", width: "100%", height: "100%" }}>
+        {!playing && <FlexRow gap={SPACING.xs} sx={{ position: "absolute", top: SPACING.xs, left: SPACING.xs, zIndex: Z_INDEX.raised }}>
+          <EditorButton variant={showSelection ? "contained" : "text"} onClick={() => setShowSelection((value) => !value)}>Selection</EditorButton>
+          <EditorButton variant={showGrid ? "contained" : "text"} onClick={() => setShowGrid((value) => !value)}>Grid</EditorButton>
+          <EditorButton variant={snapToGrid ? "contained" : "text"} onClick={() => setSnapToGrid((value) => !value)}>Snap</EditorButton>
+          <EditorButton variant={showColliders ? "contained" : "text"} onClick={() => setShowColliders((value) => !value)}>Colliders</EditorButton>
+          <EditorButton variant={showLights ? "contained" : "text"} onClick={() => setShowLights((value) => !value)}>Lights</EditorButton>
+          <EditorButton variant={showBackgrounds ? "contained" : "text"} onClick={() => setShowBackgrounds((value) => !value)}>Backgrounds</EditorButton>
+          <EditorButton variant={showCameraBounds ? "contained" : "text"} onClick={() => setShowCameraBounds((value) => !value)}>Camera</EditorButton>
+        </FlexRow>}
+        <Box component="canvas" ref={canvasRef} width={512} height={288} aria-label="Game viewport" role="group" tabIndex={0}
+          onKeyDown={(event) => {
+            if (!playing && event.code === "Space") { event.preventDefault(); spaceHeldRef.current = true; }
+            if (!playing && event.code === "KeyG" && !event.repeat) { event.preventDefault(); setSnapToGrid((value) => !value); }
+            onKeyDown(event);
+          }}
+          onKeyUp={(event) => { if (event.code === "Space") spaceHeldRef.current = false; onKeyUp(event); }}
+          onBlur={() => { spaceHeldRef.current = false; onBlur(); }}
+          sx={{ width: "100%", height: "100%", objectFit: "contain" }} />
+        {(!playing || paused) && frame && <Box component="canvas" ref={overlayRef} width={Math.round(frame.width * frame.pixelsPerUnit)} height={Math.round(frame.height * frame.pixelsPerUnit)}
+          aria-label="Game edit overlay" role="group"
+          onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}
+          onWheel={(event) => {
+            if (!active) return;
+            event.preventDefault();
+            const canvas = event.currentTarget;
+            const pixel = point(event, canvas);
+            const before = worldPoint(pixel.x, pixel.y, frame, canvas.width, canvas.height);
+            const zoom = Math.min(4, Math.max(0.25, frame.camera.zoom * Math.exp(-event.deltaY * 0.001)));
+            onCamera({ x: before.x - (pixel.x - canvas.width / 2) / (zoom * frame.pixelsPerUnit),
+              y: before.y + (pixel.y - canvas.height / 2) / (zoom * frame.pixelsPerUnit), zoom });
+          }}
+          sx={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", touchAction: "none" }} />}
+      </Box>
+    </Box>
+  );
+}

@@ -5,7 +5,7 @@ import type { GameDocument, GameSnapshot } from "@nodetool-ai/protocol";
 const encoder = new TextEncoder();
 const finite = z.number().finite();
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
-const command = z.discriminatedUnion("kind", [
+export const gameScriptCommand = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("setVelocity"), x: finite, y: finite }),
   z.strictObject({ kind: z.literal("setPosition"), x: finite, y: finite }),
   z.strictObject({ kind: z.literal("setVisual"), tint: color.optional(), opacity: finite.min(0).max(1).optional(),
@@ -20,8 +20,8 @@ const command = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("sceneTransition"), sceneId: z.string().min(1) })
 ]);
 
-const result = z.strictObject({ state: z.json(), commands: z.array(command) });
-export type GameScriptCommand = z.infer<typeof command>;
+const result = z.strictObject({ state: z.json(), commands: z.array(gameScriptCommand) });
+export type GameScriptCommand = z.infer<typeof gameScriptCommand>;
 
 export interface GameScriptCall {
   readonly sourceKey: string;
@@ -47,6 +47,7 @@ export interface GameScriptStats {
   readonly durationMs: number;
   readonly commands: number;
   readonly calls: number;
+  readonly byEntity: Readonly<Record<string, { readonly durationMs: number; readonly calls: number }>>;
 }
 
 export interface GameScriptBatch {
@@ -160,7 +161,7 @@ export async function prepareGameScripts(document: GameDocument): Promise<GameSc
     return {
       run(calls, input, rngState): GameScriptBatch {
         if (calls.length === 0) {
-          return { results: [], rngState, stats: { durationMs: 0, commands: 0, calls: 0 } };
+          return { results: [], rngState, stats: { durationMs: 0, commands: 0, calls: 0, byEntity: {} } };
         }
         const started = performance.now();
         const batchDeadline = started + 50;
@@ -175,6 +176,7 @@ export async function prepareGameScripts(document: GameDocument): Promise<GameSc
         let nextRngState = rngState;
         let serializedResultsBytes = 0;
         let commandCount = 0;
+        const byEntity: Record<string, { durationMs: number; calls: number }> = Object.create(null);
         const results: GameScriptResult[] = [];
         for (const call of calls) {
           assertBeforeDeadline(batchDeadline, batchBudget);
@@ -182,7 +184,8 @@ export async function prepareGameScripts(document: GameDocument): Promise<GameSc
           if (source === undefined) {
             throw new Error(`Game script source ${call.sourceKey} is missing for ${call.entityId} at tick ${input.tick}`);
           }
-          const deadline = Math.min(batchDeadline, performance.now() + call.maxTickMs);
+          const callStarted = performance.now();
+          const deadline = Math.min(batchDeadline, callStarted + call.maxTickMs);
           const checkCallDeadline = (): void => {
             assertBeforeDeadline(batchDeadline, batchBudget);
             assertBeforeDeadline(deadline, `call ${call.maxTickMs} ms for ${call.entityId} at tick ${input.tick}`);
@@ -238,9 +241,11 @@ export async function prepareGameScripts(document: GameDocument): Promise<GameSc
             context.dispose();
           }
           checkCallDeadline();
+          const previous = byEntity[call.entityId] ?? { durationMs: 0, calls: 0 };
+          byEntity[call.entityId] = { durationMs: previous.durationMs + performance.now() - callStarted, calls: previous.calls + 1 };
         }
         assertBeforeDeadline(batchDeadline, batchBudget);
-        return { results, rngState: nextRngState, stats: { durationMs: performance.now() - started, commands: commandCount, calls: calls.length } };
+        return { results, rngState: nextRngState, stats: { durationMs: performance.now() - started, commands: commandCount, calls: calls.length, byEntity } };
       },
       dispose(): void {
         runtime.dispose();

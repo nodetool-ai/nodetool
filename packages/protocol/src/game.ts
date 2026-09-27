@@ -132,6 +132,7 @@ export const gameDocument = z.strictObject({
   pixelsPerUnit: positive,
   tickRate: z.literal(60),
   inputActions: z.array(z.string().min(1)),
+  collisionLayers: z.array(z.string().min(1)).max(32).optional(),
   renderEffects: z.array(gameRenderEffect).max(8).optional(),
   hudEffectOrder: z.enum(["beforeEffects", "afterEffects"]).optional(),
   assets: z.record(z.string(), gameAssetBinding),

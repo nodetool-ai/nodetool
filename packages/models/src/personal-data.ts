@@ -67,6 +67,8 @@ import { generationAttachments } from "./schema/generation-attachments.js";
 import { generationAttempts } from "./schema/generation-attempts.js";
 import { generationOutputs } from "./schema/generation-outputs.js";
 import { generationWebhookDeliveries } from "./schema/generation-webhook-deliveries.js";
+import { gameDraftChanges } from "./schema/game-draft-changes.js";
+import { gameRevisionMessages } from "./schema/game-revision-messages.js";
 import { games } from "./schema/games.js";
 import { imageDocumentVersions } from "./schema/image-document-versions.js";
 import { imageDocuments } from "./schema/image-documents.js";
@@ -253,6 +255,7 @@ interface ErasureContext {
   readonly userId: string;
   /** Job ids, which are the run ids `run_events` and friends hang off. */
   readonly runIds: readonly string[];
+  readonly gameIds: readonly string[];
   readonly applicationIds: readonly string[];
   readonly grantIds: readonly string[];
   readonly workflowIds: readonly string[];
@@ -273,6 +276,7 @@ async function collectContext(
   return {
     userId,
     runIds: await selectIds(jobs, jobs.id, eq(jobs.user_id, userId)),
+    gameIds: await selectIds(games, games.id, eq(games.user_id, userId)),
     applicationIds: await selectIds(
       applications,
       applications.id,
@@ -470,6 +474,8 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
   directStep("nodetool_memories", memories, memories.user_id),
   directStep("nodetool_settings", appSettings, appSettings.user_id),
   directStep("nodetool_workspaces", workspacesSchema, workspacesSchema.user_id),
+  indirectStep("game_draft_changes", gameDraftChanges, gameDraftChanges.game_id, (c) => c.gameIds),
+  indirectStep("game_revision_messages", gameRevisionMessages, gameRevisionMessages.game_id, (c) => c.gameIds),
   directStep("games", games, games.user_id),
   directStep("projects", projects, projects.user_id),
   directStep("skills", skills, skills.user_id),
@@ -700,6 +706,7 @@ const DEFAULT_MAX_ROWS_PER_TABLE = 50_000;
 interface ExportContext {
   readonly userId: string;
   readonly runIds: readonly string[];
+  readonly gameIds: readonly string[];
   readonly applicationIds: readonly string[];
   readonly limit: number;
 }
@@ -818,6 +825,8 @@ export const EXPORT_HANDLERS: Readonly<Record<string, ExportHandler>> = {
   ),
   nodetool_workflows: directExport(workflows, workflows.user_id),
   nodetool_workspaces: directExport(workspacesSchema, workspacesSchema.user_id),
+  game_draft_changes: indirectExport(gameDraftChanges, gameDraftChanges.game_id, (c) => c.gameIds),
+  game_revision_messages: indirectExport(gameRevisionMessages, gameRevisionMessages.game_id, (c) => c.gameIds),
   games: directExport(games, games.user_id),
   projects: directExport(projects, projects.user_id),
   run_events: indirectExport(runEvents, runEvents.run_id, (c) => c.runIds),
@@ -885,6 +894,7 @@ export async function exportPersonalData(
   const ctx: ExportContext = {
     userId,
     runIds: await selectIds(jobs, jobs.id, eq(jobs.user_id, userId)),
+    gameIds: await selectIds(games, games.id, eq(games.user_id, userId)),
     applicationIds: await selectIds(
       applications,
       applications.id,

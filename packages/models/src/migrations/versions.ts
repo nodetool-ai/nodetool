@@ -3646,6 +3646,59 @@ export const migrations: MigrationDef[] = [
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS games");
     }
+  },
+  {
+    version: "20260927_000000",
+    name: "add_game_drafts_and_changes",
+    createsTables: ["game_draft_changes"],
+    modifiesTables: ["games"],
+    async up(db) {
+      if (!(await db.columnExists("games", "draft_updated_at"))) {
+        await db.execute("ALTER TABLE games ADD COLUMN draft_updated_at TEXT NOT NULL DEFAULT ''");
+      }
+      if (!(await db.columnExists("games", "draft_base_revision"))) {
+        await db.execute("ALTER TABLE games ADD COLUMN draft_base_revision TEXT NOT NULL DEFAULT ''");
+      }
+      if (!(await db.columnExists("games", "draft_version_id"))) {
+        await db.execute("ALTER TABLE games ADD COLUMN draft_version_id TEXT NOT NULL DEFAULT ''");
+      }
+      await db.execute("UPDATE games SET draft_updated_at = updated_at WHERE draft_updated_at = ''");
+      await db.execute("UPDATE games SET draft_base_revision = current_revision WHERE draft_base_revision = ''");
+      await db.execute(`CREATE TABLE IF NOT EXISTS game_draft_changes (
+        id TEXT PRIMARY KEY NOT NULL,
+        game_id TEXT NOT NULL,
+        actor TEXT NOT NULL,
+        thread_id TEXT,
+        message_id TEXT,
+        ops TEXT NOT NULL,
+        summary TEXT NOT NULL,
+        before_updated_at TEXT NOT NULL,
+        before_digest TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )`);
+      await db.execute("CREATE INDEX IF NOT EXISTS idx_game_draft_change_game_created ON game_draft_changes (game_id, created_at)");
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS game_draft_changes");
+    }
+  },
+  {
+    version: "20260927_000001",
+    name: "add_game_revision_messages",
+    createsTables: ["game_revision_messages"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`CREATE TABLE IF NOT EXISTS game_revision_messages (
+        revision TEXT PRIMARY KEY NOT NULL,
+        game_id TEXT NOT NULL,
+        message TEXT,
+        created_at TEXT NOT NULL
+      )`);
+      await db.execute("CREATE INDEX IF NOT EXISTS idx_game_revision_message_game ON game_revision_messages (game_id)");
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS game_revision_messages");
+    }
   }
 ];
 
