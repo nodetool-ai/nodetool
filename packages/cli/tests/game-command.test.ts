@@ -161,11 +161,12 @@ describe("game simulate behavioral contracts", () => {
     await writeFile(gamePath, JSON.stringify({ ...base, scenes: base.scenes.map((scene) => ({
       ...scene,
       entities: scene.entities.map((entity) => entity.id === "player"
-        ? { ...entity, behaviors: [{ kind: "script",
+        ? { ...entity, behaviors: [{ kind: "script", maxTickMs: 50,
           source: "({state}) => ({state: {count: (state?.count ?? 0) + 1}, commands: []})" }] }
         : entity)
     })) }));
     const report = await runSimulation("--ticks", "4", "--verify-replay");
+    expect(report.error).toBeUndefined();
     expect(report.replay).toMatchObject({ resumeTick: 2, verified: true });
     expect(report.ok).toBe(true);
   });

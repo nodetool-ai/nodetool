@@ -181,6 +181,9 @@ interface TurnConfig {
    * needs the agent loop to be usable. Null / absent otherwise.
    */
   skillsPlugin?: { dir: string; names: string[] } | null;
+  /** SDK structured output replaces the forced result tool on single turns. */
+  outputFormat?: Options["outputFormat"];
+  resultToolName?: string;
 }
 
 interface ClaudeAgentProviderOptions {
@@ -527,12 +530,23 @@ export class ClaudeAgentProvider extends BaseProvider {
     signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
     // Single-turn, tool-free primitive. The agent loop lives in generateLoop.
-    yield* this.runWithSession(args, {
+    const resultTool =
+      args.tools?.length === 1 &&
+      args.toolChoice === args.tools[0].name
+        ? args.tools[0]
+        : undefined;
+    const resultSchema = resultTool?.inputSchema;
+    const config: TurnConfig = {
       emitMessages: false,
       maxTurns: args.maxTurns ?? 1,
       mcp: null,
       toolsOffered: false
-    });
+    };
+    if (resultTool && resultSchema) {
+      config.outputFormat = { type: "json_schema", schema: resultSchema };
+      config.resultToolName = resultTool.name;
+    }
+    yield* this.runWithSession(args, config);
   }
 
   /**
@@ -699,6 +713,9 @@ export class ClaudeAgentProvider extends BaseProvider {
       env: buildChildEnv(),
       abortController
     };
+    if (plan.config.outputFormat) {
+      options.outputFormat = plan.config.outputFormat;
+    }
     // Anchor the path-scoped built-ins to the run's workspace, which is where
     // the NodeTool tools they replace were contained.
     if (plan.config.cwd) {
@@ -889,6 +906,18 @@ export class ClaudeAgentProvider extends BaseProvider {
           if (msg.subtype === "success") {
             const flushed = flushPending();
             if (flushed) yield flushed;
+            const structured = msg.structured_output;
+            if (
+              plan.config.resultToolName &&
+              isObjectLike(structured) &&
+              !Array.isArray(structured)
+            ) {
+              yield {
+                id: `result_${msg.uuid}`,
+                name: plan.config.resultToolName,
+                args: structured
+              };
+            }
             yield { type: "chunk", content: "", done: true };
           } else {
             throw resultError(msg);
