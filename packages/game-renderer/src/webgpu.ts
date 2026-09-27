@@ -1,7 +1,7 @@
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import { colorBrightnessContrastV1, createExecutor, createGPUContextFromDevice, createLabeledTexture, type LabeledTexture } from "@nodetool-ai/gpu/pool";
 import { AssetCache, imageHeight, imageWidth, type GameImage } from "./canvas2d.js";
-import { parseTint, visibleItems } from "./frame.js";
+import { paintHud, parseTint, visibleItems } from "./frame.js";
 import type { GameRenderer, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
 
 const INSTANCE_FLOATS = 14;
@@ -77,8 +77,11 @@ interface TextureEntry {
   readonly height: number;
 }
 
+type Blend = "normal" | "additive";
+
 interface Batch {
   readonly texture: TextureEntry;
+  readonly blend: Blend;
   readonly first: number;
   count: number;
 }
@@ -88,6 +91,9 @@ export class WebGPUGameRenderer implements GameRenderer {
   readonly backend = "webgpu";
   private readonly pipeline: GPURenderPipeline;
   private readonly effectSpritePipeline: GPURenderPipeline;
+  private readonly additivePipeline: GPURenderPipeline;
+  private readonly effectAdditivePipeline: GPURenderPipeline;
+  private readonly linearSampler: GPUSampler;
   private readonly presentPipeline: GPURenderPipeline;
   private readonly presentLayout: GPUBindGroupLayout;
   private readonly effectContext;
@@ -124,7 +130,7 @@ export class WebGPUGameRenderer implements GameRenderer {
       { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
     ] });
     const pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [spriteLayout] });
-    const pipelineDescriptor = (targetFormat: GPUTextureFormat, linearizeInput: boolean): GPURenderPipelineDescriptor => ({
+    const pipelineDescriptor = (targetFormat: GPUTextureFormat, linearizeInput: boolean, blend: Blend = "normal"): GPURenderPipelineDescriptor => ({
       layout: pipelineLayout,
       vertex: {
         module,
@@ -147,7 +153,10 @@ export class WebGPUGameRenderer implements GameRenderer {
         constants: { linearizeInput: linearizeInput ? 1 : 0 },
         targets: [{
           format: targetFormat,
-          blend: {
+          blend: blend === "additive" ? {
+            color: { srcFactor: "one", dstFactor: "one", operation: "add" },
+            alpha: { srcFactor: "zero", dstFactor: "one", operation: "add" },
+          } : {
             color: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
             alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
           },
@@ -157,6 +166,8 @@ export class WebGPUGameRenderer implements GameRenderer {
     });
     this.pipeline = device.createRenderPipeline(pipelineDescriptor(format, false));
     this.effectSpritePipeline = device.createRenderPipeline(pipelineDescriptor("rgba8unorm", true));
+    this.additivePipeline = device.createRenderPipeline(pipelineDescriptor(format, false, "additive"));
+    this.effectAdditivePipeline = device.createRenderPipeline(pipelineDescriptor("rgba8unorm", true, "additive"));
     this.presentLayout = device.createBindGroupLayout({ entries: [
       { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
       { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
@@ -170,6 +181,7 @@ export class WebGPUGameRenderer implements GameRenderer {
     });
     this.effectContext = createGPUContextFromDevice(device);
     this.sampler = device.createSampler({ magFilter: "nearest", minFilter: "nearest", mipmapFilter: "nearest" });
+    this.linearSampler = device.createSampler({ magFilter: "linear", minFilter: "linear", mipmapFilter: "linear" });
     this.cameraBuffer = device.createBuffer({ size: 32, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
     const fallbackTexture = device.createTexture({ size: [1, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
     device.queue.writeTexture({ texture: fallbackTexture }, new Uint8Array([255, 0, 255, 255]), { bytesPerRow: 4 }, [1, 1]);
@@ -216,7 +228,7 @@ export class WebGPUGameRenderer implements GameRenderer {
       label: "game-effect-output" });
   }
 
-  private textureEntry(texture: GPUTexture, width: number, height: number): TextureEntry {
+  private textureEntry(texture: GPUTexture, width: number, height: number, sampling: "nearest" | "linear" = "nearest"): TextureEntry {
     return {
       texture,
       width,
@@ -225,25 +237,27 @@ export class WebGPUGameRenderer implements GameRenderer {
         layout: this.pipeline.getBindGroupLayout(0),
         entries: [
           { binding: 0, resource: { buffer: this.cameraBuffer } },
-          { binding: 1, resource: this.sampler },
+          { binding: 1, resource: sampling === "linear" ? this.linearSampler : this.sampler },
           { binding: 2, resource: texture.createView() },
         ],
       }),
     };
   }
 
-  private upload(image: GameImage | HTMLCanvasElement): TextureEntry {
+  private upload(image: GameImage | HTMLCanvasElement, sampling: "nearest" | "linear" = "nearest"): TextureEntry {
     const width = image instanceof HTMLCanvasElement ? image.width : imageWidth(image);
     const height = image instanceof HTMLCanvasElement ? image.height : imageHeight(image);
     if (width <= 0 || height <= 0) {
       return this.fallback;
     }
-    const texture = this.device.createTexture({ size: [width, height], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+    // copyExternalImageToTexture requires RENDER_ATTACHMENT on the destination as well as COPY_DST.
+    const texture = this.device.createTexture({ size: [width, height], format: "rgba8unorm",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT });
     this.device.queue.copyExternalImageToTexture({ source: image }, { texture, premultipliedAlpha: false }, [width, height]);
-    return this.textureEntry(texture, width, height);
+    return this.textureEntry(texture, width, height, sampling);
   }
 
-  private async getTexture(assetId: string): Promise<{ texture: TextureEntry; uploadedBytes: number }> {
+  private async getTexture(assetId: string, sampling: "nearest" | "linear"): Promise<{ texture: TextureEntry; uploadedBytes: number }> {
     const cached = this.textures.get(assetId);
     if (cached) {
       return { texture: cached, uploadedBytes: 0 };
@@ -252,7 +266,7 @@ export class WebGPUGameRenderer implements GameRenderer {
     if (!image) {
       return { texture: this.placeholder(assetId), uploadedBytes: 0 };
     }
-    const texture = this.upload(image);
+    const texture = this.upload(image, sampling);
     this.textures.set(assetId, texture);
     return { texture, uploadedBytes: texture.width * texture.height * 4 };
   }
@@ -281,8 +295,9 @@ export class WebGPUGameRenderer implements GameRenderer {
       throw new Error(this.lost ? "WebGPU device was lost" : "Game renderer is disposed");
     }
     const items = visibleItems(frame, interpolation);
-    const assetIds = [...new Set(items.map((item) => item.assetId))];
-    const textureResults = await Promise.all(assetIds.map((assetId) => this.getTexture(assetId)));
+    const sampling = new Map(items.map((item) => [item.assetId, item.sampling]));
+    const assetIds = [...sampling.keys()];
+    const textureResults = await Promise.all(assetIds.map((assetId) => this.getTexture(assetId, sampling.get(assetId) ?? "nearest")));
     const textureById = new Map(assetIds.map((assetId, index) => [assetId, textureResults[index]]));
     const hudTexture = this.updateHud(frame);
     const count = items.length + (hudTexture ? 1 : 0);
@@ -301,13 +316,13 @@ export class WebGPUGameRenderer implements GameRenderer {
       this.writeInstance(instances, index, item.x, item.y, item.width, item.height,
         rect.x / texture.width, rect.y / texture.height, rect.width / texture.width, rect.height / texture.height,
         tint[0], tint[1], tint[2], item.opacity, item.rotation);
-      this.appendBatch(batches, texture, index);
+      this.appendBatch(batches, texture, item.blend, index);
     }
     if (hudTexture) {
       const scale = frame.camera.zoom;
       this.writeInstance(instances, items.length, frame.camera.x, frame.camera.y,
         frame.width / scale, frame.height / scale, 0, 0, 1, 1, 1, 1, 1, 1, 0);
-      this.appendBatch(batches, hudTexture, items.length);
+      this.appendBatch(batches, hudTexture, "normal", items.length);
     }
     const camera = new Float32Array([frame.camera.x, frame.camera.y, frame.width, frame.height, frame.camera.zoom, 0, 0, 0]);
     this.device.queue.writeBuffer(this.cameraBuffer, 0, camera);
@@ -324,10 +339,16 @@ export class WebGPUGameRenderer implements GameRenderer {
       storeOp: "store",
       clearValue: { r: 0, g: 0, b: 0, a: 0 },
     }] });
-    pass.setPipeline(this.effect ? this.effectSpritePipeline : this.pipeline);
     if (this.instanceBuffer) {
       pass.setVertexBuffer(0, this.instanceBuffer);
+      let blend: Blend | undefined;
       for (const batch of batches) {
+        if (batch.blend !== blend) {
+          blend = batch.blend;
+          pass.setPipeline(blend === "additive"
+            ? this.effect ? this.effectAdditivePipeline : this.additivePipeline
+            : this.effect ? this.effectSpritePipeline : this.pipeline);
+        }
         pass.setBindGroup(0, batch.texture.bindGroup);
         pass.draw(6, batch.count, 0, batch.first);
       }
@@ -383,12 +404,8 @@ export class WebGPUGameRenderer implements GameRenderer {
       if (!context) {
         throw new Error("HUD canvas is unavailable");
       }
-      context.fillStyle = "#ffffff";
-      context.font = "16px sans-serif";
-      context.textBaseline = "top";
-      for (const label of frame.hud) {
-        context.fillText(label.text, label.x, label.y);
-      }
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      paintHud(context, frame.hud);
       this.hudTexture?.texture.destroy();
       this.hudTexture = this.upload(canvas);
       this.hudCanvas = canvas;
@@ -397,12 +414,12 @@ export class WebGPUGameRenderer implements GameRenderer {
     return this.hudTexture;
   }
 
-  private appendBatch(batches: Batch[], texture: TextureEntry, index: number): void {
+  private appendBatch(batches: Batch[], texture: TextureEntry, blend: Blend, index: number): void {
     const last = batches[batches.length - 1];
-    if (last?.texture === texture) {
+    if (last?.texture === texture && last.blend === blend) {
       last.count++;
     } else {
-      batches.push({ texture, first: index, count: 1 });
+      batches.push({ texture, blend, first: index, count: 1 });
     }
   }
 

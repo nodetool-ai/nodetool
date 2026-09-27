@@ -2,6 +2,7 @@ import type {
   GameDocument,
   GameEntity,
   GameEvent,
+  GameHudLabel,
   GameInputFrame,
   GameRenderFrame,
   GameScene,
@@ -14,9 +15,11 @@ import { hasGameScripts, prepareGameScripts, scriptSourceKey, type GameScriptCal
 interface EntityState {
   readonly definition: GameEntity;
   readonly sourceId?: string;
+  readonly spawnTick: number;
   readonly rotation: number;
   readonly scaleX: number;
   readonly scaleY: number;
+  visual?: ScriptVisual;
   x: number;
   y: number;
   previousX: number;
@@ -67,6 +70,14 @@ function overlaps(a: EntityState, b: EntityState): boolean {
     Math.abs(a.y - b.y) * 2 < ac.height + bc.height;
 }
 
+interface ScriptVisual {
+  rotation?: number;
+  scaleX?: number;
+  scaleY?: number;
+  tint?: string;
+  opacity?: number;
+}
+
 interface WorldTransform {
   readonly x: number;
   readonly y: number;
@@ -75,11 +86,12 @@ interface WorldTransform {
   readonly scaleY: number;
 }
 
-function initialState(entity: GameEntity, world: WorldTransform): EntityState {
+function initialState(entity: GameEntity, world: WorldTransform, spawnTick = 0): EntityState {
   const health = entity.behaviors.find((behavior) => behavior.kind === "health");
   const patrol = entity.behaviors.find((behavior) => behavior.kind === "patrol");
   const state: EntityState = {
     definition: entity,
+    spawnTick,
     x: world.x,
     y: world.y,
     previousX: world.x,
@@ -146,7 +158,14 @@ function initialSceneStates(scene: GameScene): EntityState[] {
   });
 }
 
-function frameFor(document: GameDocument, states: readonly EntityState[], tick: number, score: number, won: boolean): GameRenderFrame {
+function animationFrame(entity: GameEntity, age: number): GameRenderFrame["sprites"][number]["frame"] {
+  const animator = entity.animator;
+  if (!animator) return undefined;
+  const index = Math.floor(Math.max(0, age) / animator.ticksPerFrame);
+  return animator.frames[animator.loop ? index % animator.frames.length : Math.min(index, animator.frames.length - 1)];
+}
+
+function frameFor(document: GameDocument, states: readonly EntityState[], tick: number, score: number, won: boolean, hud: ReadonlyMap<string, GameHudLabel>): GameRenderFrame {
   const cameraState = states.find((state) => state.active && state.definition.camera2d);
   const camera = cameraState?.definition.camera2d;
   const sprites: GameRenderFrame["sprites"] = [];
@@ -157,6 +176,13 @@ function frameFor(document: GameDocument, states: readonly EntityState[], tick: 
     }
     const entity = state.definition;
     if (entity.sprite) {
+      const age = tick - state.spawnTick;
+      const lifetime = entity.behaviors.find((behavior) => behavior.kind === "lifetime");
+      const progress = lifetime?.kind === "lifetime" ? Math.min(1, age / lifetime.ticks) : 0;
+      const lifeScale = lifetime?.kind === "lifetime" ? 1 + (lifetime.endScale - 1) * progress : 1;
+      const lifeOpacity = lifetime?.kind === "lifetime" && lifetime.fade ? 1 - progress : 1;
+      const visual = state.visual;
+      const opacity = (visual?.opacity ?? entity.sprite.opacity ?? 1) * lifeOpacity;
       const sprite: GameRenderFrame["sprites"][number] = {
         entityId: entity.id,
         assetId: entity.sprite.assetId,
@@ -164,16 +190,20 @@ function frameFor(document: GameDocument, states: readonly EntityState[], tick: 
         y: state.y,
         previousX: state.previousX,
         previousY: state.previousY,
-        rotation: state.rotation,
-        scaleX: state.scaleX,
-        scaleY: state.scaleY,
+        rotation: visual?.rotation ?? state.rotation,
+        scaleX: (visual?.scaleX ?? state.scaleX) * lifeScale,
+        scaleY: (visual?.scaleY ?? state.scaleY) * lifeScale,
         width: entity.sprite.width,
         height: entity.sprite.height,
         layer: entity.sprite.layer
       };
-      if (entity.sprite.frame) sprite.frame = entity.sprite.frame;
-      if (entity.sprite.tint) sprite.tint = entity.sprite.tint;
-      if (entity.sprite.opacity !== undefined) sprite.opacity = entity.sprite.opacity;
+      const spriteFrame = animationFrame(entity, age) ?? entity.sprite.frame;
+      if (spriteFrame) sprite.frame = spriteFrame;
+      const tint = visual?.tint ?? entity.sprite.tint;
+      if (tint) sprite.tint = tint;
+      if (opacity !== 1 || entity.sprite.opacity !== undefined) sprite.opacity = Math.max(0, Math.min(1, opacity));
+      if (entity.sprite.blend === "additive") sprite.blend = "additive";
+      if (document.assets[entity.sprite.assetId]?.sampling === "linear") sprite.sampling = "linear";
       sprites.push(sprite);
     }
     if (entity.tilemap) {
@@ -188,6 +218,7 @@ function frameFor(document: GameDocument, states: readonly EntityState[], tick: 
           layer: entity.tilemap.layer
         };
         if (tile.frame) item.frame = tile.frame;
+        if (document.assets[entity.tilemap.assetId]?.sampling === "linear") item.sampling = "linear";
         tiles.push(item);
       }
     }
@@ -202,11 +233,26 @@ function frameFor(document: GameDocument, states: readonly EntityState[], tick: 
     camera: { x: cameraState?.x ?? 0, y: cameraState?.y ?? 0, zoom: camera?.zoom ?? 1 },
     sprites,
     tiles,
+    // A script label with the id of a built-in label replaces it.
     hud: [
-      { id: "score", text: `Score: ${score}`, x: 16, y: 16 },
-      ...(won ? [{ id: "win", text: "You win!", x: 16, y: 48 }] : [])
+      ...(usesCollectibles(document) && !hud.has("score") ? [{ id: "score", text: `Score: ${score}`, x: 16, y: 16 }] : []),
+      ...(won && !hud.has("win") ? [{ id: "win", text: "You win!", x: 16, y: 48 }] : []),
+      ...hud.values()
     ]
   };
+}
+
+function usesCollectibles(document: GameDocument): boolean {
+  return document.scenes.some((scene) => scene.entities.some((entity) =>
+    entity.behaviors.some((behavior) => behavior.kind === "collectible" || behavior.kind === "winWhenCollected")));
+}
+
+interface QueuedSpawn {
+  readonly prefabId: string;
+  readonly x?: number;
+  readonly y?: number;
+  readonly velocityX?: number;
+  readonly velocityY?: number;
 }
 
 /** One session owns mutable simulation state. All boundaries remain plain data. */
@@ -236,6 +282,7 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
   let spawnSequence = 0;
   let previousEvents: GameEvent[] = [];
   let scriptState: GameSnapshot["scriptState"] = {};
+  let hud = new Map<string, GameHudLabel>();
   let disposed = false;
 
   if (savedSnapshot) {
@@ -267,7 +314,7 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
       }
       const sourceState = states.find((state) => state.definition.id === source.id);
       if (!sourceState) throw new Error(`Missing spawn template state ${source.id}`);
-      const spawned = initialState({ ...source, id: saved.id, templateOnly: false }, sourceState);
+      const spawned = initialState({ ...source, id: saved.id, templateOnly: false }, sourceState, saved.spawnTick ?? 0);
       states.push({ ...spawned, sourceId: source.id });
     }
     for (const state of states) {
@@ -285,6 +332,13 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
       state.health = saved.health;
       state.patrolOrigin = saved.patrolOrigin;
       state.patrolDirection = saved.patrolDirection;
+      const visual: ScriptVisual = {};
+      if (saved.rotation !== undefined) visual.rotation = saved.rotation;
+      if (saved.scaleX !== undefined) visual.scaleX = saved.scaleX;
+      if (saved.scaleY !== undefined) visual.scaleY = saved.scaleY;
+      if (saved.tint !== undefined) visual.tint = saved.tint;
+      if (saved.opacity !== undefined) visual.opacity = saved.opacity;
+      state.visual = Object.keys(visual).length > 0 ? visual : undefined;
     }
     tick = parsed.tick;
     score = parsed.score;
@@ -293,6 +347,7 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
     spawnSequence = parsed.spawnSequence;
     previousEvents = parsed.pendingEvents;
     scriptState = { ...parsed.scriptState };
+    hud = new Map(parsed.hud.map((label) => [label.id, label]));
   }
 
   function snapshot(): GameSnapshot {
@@ -310,6 +365,7 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
       spawnSequence,
       pendingEvents: previousEvents,
       scriptState: { ...scriptState },
+      hud: [...hud.values()],
       entities: states.map((state) => {
         const entity: GameSnapshot["entities"][number] = {
           id: state.definition.id,
@@ -321,13 +377,23 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
           velocityY: state.velocityY,
           active: state.active
         };
-        if (state.sourceId) entity.sourceId = state.sourceId;
+        if (state.sourceId) {
+          entity.sourceId = state.sourceId;
+          entity.spawnTick = state.spawnTick;
+        }
+        if (state.visual) Object.assign(entity, state.visual);
         if (state.health !== undefined) entity.health = state.health;
         if (state.patrolOrigin !== undefined) entity.patrolOrigin = state.patrolOrigin;
         if (state.patrolDirection !== undefined) entity.patrolDirection = state.patrolDirection;
         return entity;
       })
     };
+  }
+
+  function isSpawnedId(entityId: string): boolean {
+    const separator = entityId.lastIndexOf("#");
+    const prefabId = entityId.slice(0, separator);
+    return separator > 0 && scene.entities.some((entity) => entity.templateOnly && entity.id === prefabId);
   }
 
   function step(input: GameInputFrame): GameStepResult {
@@ -346,7 +412,7 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
       eventSink?.(event);
     };
     const queuedDespawns = new Set<string>();
-    const queuedSpawns: string[] = [];
+    const queuedSpawns: QueuedSpawn[] = [];
     let transitionTo: string | undefined;
     const scriptCalls: GameScriptCall[] = [];
     for (const state of states) {
@@ -375,11 +441,13 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
         } else if (behavior.kind === "sceneTransition" && previousEvents.some((event) => event.kind === "trigger" && event.event === behavior.onEvent)) {
           transitionTo = behavior.sceneId;
         } else if (behavior.kind === "spawn" && previousEvents.some((event) => event.kind === "trigger" && event.event === behavior.onEvent)) {
-          queuedSpawns.push(behavior.prefabId);
+          queuedSpawns.push({ prefabId: behavior.prefabId });
+        } else if (behavior.kind === "lifetime" && tick - state.spawnTick >= behavior.ticks) {
+          queuedDespawns.add(entity.id);
         } else if (behavior.kind === "script") {
           const sourceKey = scriptSourceKey(scene.id, state.sourceId ?? entity.id, index);
           const stateKey = scriptSourceKey(scene.id, entity.id, index);
-          scriptCalls.push({ sourceKey, stateKey, entityId: entity.id, state: scriptState[stateKey] ?? null,
+          scriptCalls.push({ sourceKey, stateKey, entityId: entity.id, source: state.sourceId ?? entity.id, state: scriptState[stateKey] ?? null,
             x: state.x, y: state.y, velocityX: state.velocityX, velocityY: state.velocityY,
             maxCommands: behavior.maxCommands, maxTickMs: behavior.maxTickMs });
         }
@@ -387,7 +455,11 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
     }
     let scriptStats: GameScriptStats | undefined;
     if (scriptRunner && scriptCalls.length > 0) {
-      const batch = scriptRunner.run(scriptCalls, { tick, pressed: [...pressed], justPressed: input.justPressed, events: previousEvents }, rngState);
+      const world = states
+        .filter((state) => state.active && (state.definition.collider2d || state.definition.camera2d))
+        .map((state) => ({ id: state.definition.id, source: state.sourceId ?? state.definition.id, x: state.x, y: state.y }));
+      const batch = scriptRunner.run(scriptCalls, { tick, pressed: [...pressed], justPressed: input.justPressed, events: previousEvents, world }, rngState);
+      const byId = new Map(states.map((state) => [state.definition.id, state]));
       for (const item of batch.results) {
         for (const command of item.commands) {
           if (command.kind === "spawn" && !scene.entities.some((entity) => entity.id === command.prefabId && entity.templateOnly)) {
@@ -396,7 +468,8 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
           if (command.kind === "sceneTransition" && !document.scenes.some((candidate) => candidate.id === command.sceneId)) {
             throw new Error(`Game script uses missing scene ${command.sceneId}`);
           }
-          if (command.kind === "despawn" && !states.some((state) => state.definition.id === command.entityId && state.active)) {
+          // A spawned instance can expire in the tick before a script reacts to its contact.
+          if (command.kind === "despawn" && !byId.get(command.entityId)?.active && !isSpawnedId(command.entityId)) {
             throw new Error(`Game script uses missing entity ${command.entityId}`);
           }
         }
@@ -404,16 +477,27 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
       for (const [index, item] of batch.results.entries()) {
         const call = scriptCalls[index];
         scriptState[call.stateKey] = item.state;
-        const state = states.find((candidate) => candidate.definition.id === item.entityId);
+        const state = byId.get(item.entityId);
         if (!state) throw new Error(`Game script entity ${item.entityId} disappeared`);
         for (const command of item.commands) {
           if (command.kind === "setVelocity") {
             state.velocityX = command.x;
             state.velocityY = command.y;
+          } else if (command.kind === "setPosition") {
+            state.x = command.x;
+            state.y = command.y;
+          } else if (command.kind === "setVisual") {
+            const { kind: _kind, ...visual } = command;
+            state.visual = { ...state.visual, ...visual };
+          } else if (command.kind === "hud") {
+            const { kind: _kind, ...label } = command;
+            if (label.text === "") hud.delete(label.id);
+            else hud.set(label.id, label);
           } else if (command.kind === "emit") {
             emit({ kind: "trigger", event: command.event, entityId: item.entityId });
           } else if (command.kind === "spawn") {
-            queuedSpawns.push(command.prefabId);
+            const { kind: _kind, ...spawn } = command;
+            queuedSpawns.push(spawn);
           } else if (command.kind === "despawn") {
             queuedDespawns.add(command.entityId);
           } else if (command.kind === "sceneTransition") {
@@ -450,7 +534,8 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
         }
         emit({ kind: "contact", entityId: state.definition.id, otherId: other.definition.id });
         for (const behavior of other.definition.behaviors) {
-          if (behavior.kind === "collectible" && !queuedDespawns.has(other.definition.id)) {
+          // Sensors detect contact but never collect, so patrolling hazards leave pickups alone.
+          if (behavior.kind === "collectible" && !state.definition.collider2d?.sensor && !queuedDespawns.has(other.definition.id)) {
             queuedDespawns.add(other.definition.id);
             score += behavior.score;
             emit({ kind: "collected", entityId: other.definition.id, byId: state.definition.id, score: behavior.score });
@@ -471,11 +556,23 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
         }
       }
       const audio = state.definition.audioSource;
-      if (audio && events.some((event) => event.kind === audio.onEvent && (event.kind !== "collected" || event.entityId === state.definition.id))) {
+      if (audio && events.some((event) => (event.kind === audio.onEvent && (event.kind !== "collected" || event.entityId === state.definition.id)) ||
+        (event.kind === "trigger" && event.event === audio.onEvent))) {
         emit({ kind: "audio", assetId: audio.assetId });
       }
     }
-    for (const prefabId of queuedSpawns) {
+    if (queuedDespawns.size > 0) {
+      // Spawned instances leave the world when despawned; authored entities stay as inactive state.
+      states = states.filter((state) => {
+        if (!state.sourceId || !queuedDespawns.has(state.definition.id)) return true;
+        state.definition.behaviors.forEach((behavior, index) => {
+          if (behavior.kind === "script") delete scriptState[scriptSourceKey(scene.id, state.definition.id, index)];
+        });
+        return false;
+      });
+    }
+    for (const spawn of queuedSpawns) {
+      const prefabId = spawn.prefabId;
       const source = scene.entities.find((entity) => entity.id === prefabId && entity.templateOnly);
       if (!source) {
         throw new Error(`Missing spawn template ${prefabId}`);
@@ -483,7 +580,11 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
       spawnSequence += 1;
       const sourceState = states.find((state) => state.definition.id === source.id);
       if (!sourceState) throw new Error(`Missing spawn template state ${source.id}`);
-      const spawned = initialState({ ...source, id: `${prefabId}#${spawnSequence}`, templateOnly: false }, sourceState);
+      const spawned = initialState({ ...source, id: `${prefabId}#${spawnSequence}`, templateOnly: false }, sourceState, tick + 1);
+      if (spawn.x !== undefined) spawned.x = spawned.previousX = spawn.x;
+      if (spawn.y !== undefined) spawned.y = spawned.previousY = spawn.y;
+      if (spawn.velocityX !== undefined) spawned.velocityX = spawn.velocityX;
+      if (spawn.velocityY !== undefined) spawned.velocityY = spawn.velocityY;
       states.push({ ...spawned, sourceId: prefabId });
     }
     if (transitionTo) {
@@ -496,12 +597,13 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
       states = initialSceneStates(nextScene);
       spawnSequence = 0;
       scriptState = {};
+      hud = new Map();
       emit({ kind: "sceneTransition", sceneId });
     }
     previousEvents = events;
     rngState = (Math.imul(1664525, rngState) + 1013904223) >>> 0;
     tick += 1;
-    const result: GameStepResult = { tick, events, frame: frameFor(document, states, tick, score, won) };
+    const result: GameStepResult = { tick, events, frame: frameFor(document, states, tick, score, won, hud) };
     if (scriptStats) return { ...result, scriptStats };
     return result;
   }
@@ -510,7 +612,7 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
     step,
     frame(): GameRenderFrame {
       if (disposed) throw new Error("Game session is disposed");
-      return frameFor(document, states, tick, score, won);
+      return frameFor(document, states, tick, score, won, hud);
     },
     inspect(query): GameInspection {
       const current = snapshot();

@@ -88,8 +88,9 @@ export function validateGame(value: unknown): GameValidationResult {
       if (children.has(entity.id) && entity.transform2d.scaleX !== entity.transform2d.scaleY) {
         errors.push(`Non-uniformly scaled parent ${entity.id} is not supported`);
       }
-      if (entity.body2d && !entity.collider2d) {
-        errors.push(`Physics body ${entity.id} needs a collider2d`);
+      // A kinematic body without a collider moves but never collides, which suits cosmetic particles.
+      if (entity.body2d?.type === "static" && !entity.collider2d) {
+        errors.push(`Static body ${entity.id} needs a collider2d`);
       }
       for (const assetId of [entity.sprite?.assetId, entity.tilemap?.assetId, entity.audioSource?.assetId]) {
         if (assetId && !document.assets[assetId]) {

@@ -1,6 +1,6 @@
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import type { GameRenderer, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
-import { visibleItems, type VisibleItem } from "./frame.js";
+import { paintHud, visibleItems, type VisibleItem } from "./frame.js";
 
 export type GameImage = ImageBitmap | HTMLImageElement;
 export type GameAssetResolver = (assetId: string) => Promise<GameImage | null>;
@@ -83,12 +83,7 @@ export class Canvas2DGameRenderer implements GameRenderer {
       }
       this.drawSprite(context, entry, image, frame, pixelScale, sx, sy);
     }
-    context.fillStyle = "#ffffff";
-    context.font = "16px sans-serif";
-    context.textBaseline = "top";
-    for (const label of frame.hud) {
-      context.fillText(label.text, label.x, label.y);
-    }
+    paintHud(context, frame.hud);
     return { backend: this.backend, visibleSprites: items.length, drawCalls: items.length + frame.hud.length,
       uploadedBytes: 0, textureBytes: 0, targetBytes: 0, instanceBufferBytes: 0 };
   }
@@ -112,6 +107,8 @@ export class Canvas2DGameRenderer implements GameRenderer {
     context.translate(x, y);
     context.rotate(-entry.rotation);
     context.globalAlpha = entry.opacity;
+    context.globalCompositeOperation = entry.blend === "additive" ? "lighter" : "source-over";
+    context.imageSmoothingEnabled = entry.sampling === "linear";
     if (tinted) {
       context.drawImage(tinted, -targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
     } else if (image && source) {

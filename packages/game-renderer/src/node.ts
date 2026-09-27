@@ -1,6 +1,6 @@
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
-import { visibleItems } from "./frame.js";
+import { paintHud, visibleItems } from "./frame.js";
 
 export interface CaptureGameFrameOptions {
   readonly resolveAsset?: (assetId: string) => Promise<Uint8Array | null>;
@@ -50,6 +50,8 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
     context.translate(x, y);
     context.rotate(-item.rotation);
     context.globalAlpha = item.opacity;
+    context.globalCompositeOperation = item.blend === "additive" ? "lighter" : "source-over";
+    context.imageSmoothingEnabled = item.sampling === "linear";
     if (image) {
       const source = item.frame ?? { x: 0, y: 0, width: image.width, height: image.height };
       if (item.tint && item.tint.toLowerCase() !== "#ffffff") {
@@ -76,11 +78,6 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
     }
     context.restore();
   }
-  context.fillStyle = "#ffffff";
-  context.font = `${Math.round(16 * scale)}px sans-serif`;
-  context.textBaseline = "top";
-  for (const label of frame.hud) {
-    context.fillText(label.text, label.x * scale, label.y * scale);
-  }
+  paintHud(context, frame.hud, scale);
   return canvas.toBuffer("image/png");
 }

@@ -55,3 +55,17 @@ describe("game frame projection", () => {
     expect(Array.from(output.getImageData(320, 144, 1, 1).data)).toEqual([0, 0, 255, 255]);
   });
 });
+
+describe("headless blending", () => {
+  it("adds additive sprites in captures", async () => {
+    const input = frame();
+    input.tiles = [];
+    input.sprites = ["normal", "additive"].map((blend, index) => ({ entityId: `s${index}`, assetId: "wall", x: 0, y: 0,
+      previousX: 0, previousY: 0, rotation: 0, scaleX: 1, scaleY: 1, width: 2, height: 2, layer: 0, blend: blend as "normal" | "additive" }));
+    const image = await loadImage(Buffer.from(await captureGameFrame(input)));
+    const canvas = createCanvas(image.width, image.height);
+    const context = canvas.getContext("2d");
+    context.drawImage(image, 0, 0);
+    expect([...context.getImageData(256, 144, 1, 1).data]).toEqual([184, 210, 240, 255]);
+  });
+});

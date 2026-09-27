@@ -2,10 +2,18 @@ import type { QuickJSContext, QuickJSRuntime } from "quickjs-emscripten-core";
 import { z } from "zod";
 import type { GameDocument, GameSnapshot } from "@nodetool-ai/protocol";
 
+const finite = z.number().finite();
+const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const command = z.discriminatedUnion("kind", [
-  z.strictObject({ kind: z.literal("setVelocity"), x: z.number().finite(), y: z.number().finite() }),
+  z.strictObject({ kind: z.literal("setVelocity"), x: finite, y: finite }),
+  z.strictObject({ kind: z.literal("setPosition"), x: finite, y: finite }),
+  z.strictObject({ kind: z.literal("setVisual"), tint: color.optional(), opacity: finite.min(0).max(1).optional(),
+    rotation: finite.optional(), scaleX: finite.positive().optional(), scaleY: finite.positive().optional() }),
+  z.strictObject({ kind: z.literal("hud"), id: z.string().min(1).max(64), text: z.string().max(256), x: finite, y: finite,
+    size: finite.positive().max(256).optional(), color: color.optional(), align: z.enum(["left", "center", "right"]).optional() }),
   z.strictObject({ kind: z.literal("emit"), event: z.string().min(1).max(128) }),
-  z.strictObject({ kind: z.literal("spawn"), prefabId: z.string().min(1) }),
+  z.strictObject({ kind: z.literal("spawn"), prefabId: z.string().min(1), x: finite.optional(), y: finite.optional(),
+    velocityX: finite.optional(), velocityY: finite.optional() }),
   z.strictObject({ kind: z.literal("despawn"), entityId: z.string().min(1) }),
   z.strictObject({ kind: z.literal("sceneTransition"), sceneId: z.string().min(1) })
 ]);
@@ -17,6 +25,7 @@ export interface GameScriptCall {
   readonly sourceKey: string;
   readonly stateKey: string;
   readonly entityId: string;
+  readonly source: string;
   readonly state: GameSnapshot["scriptState"][string];
   readonly x: number;
   readonly y: number;
@@ -44,8 +53,24 @@ export interface GameScriptBatch {
   readonly stats: GameScriptStats;
 }
 
+/** An active entity with a collider or camera, as every script sees it this tick. */
+export interface GameScriptWorldEntity {
+  readonly id: string;
+  readonly source: string;
+  readonly x: number;
+  readonly y: number;
+}
+
+export interface GameScriptInput {
+  readonly tick: number;
+  readonly pressed: readonly string[];
+  readonly justPressed: readonly string[];
+  readonly events: readonly unknown[];
+  readonly world: readonly GameScriptWorldEntity[];
+}
+
 export interface GameScriptRunner {
-  run(calls: readonly GameScriptCall[], input: { tick: number; pressed: readonly string[]; justPressed: readonly string[]; events: readonly unknown[] }, rngState: number): GameScriptBatch;
+  run(calls: readonly GameScriptCall[], input: GameScriptInput, rngState: number): GameScriptBatch;
   dispose(): void;
 }
 
@@ -99,9 +124,9 @@ export async function prepareGameScripts(document: GameDocument): Promise<GameSc
           const value = __gameScripts[call.sourceKey]({
             tick: input.tick, pressed: input.pressed, justPressed: input.justPressed,
             events: input.events, entity: {
-              id: call.entityId, x: call.x, y: call.y,
+              id: call.entityId, source: call.source, x: call.x, y: call.y,
               velocityX: call.velocityX, velocityY: call.velocityY
-            }, state: call.state, random: Math.random
+            }, world: input.world, state: call.state, random: Math.random
           });
           return { entityId: call.entityId, value };
         });

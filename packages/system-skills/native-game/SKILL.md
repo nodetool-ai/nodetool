@@ -26,7 +26,9 @@ rendering, and web export. A new game starts as a playable top-down room.
    replay. Each input has `pressed` actions and optional `justPressed` actions.
    Inspect the returned state and events, then revise and replay as needed.
 5. `build_native_game {game_id, revision?}` writes a standalone web player for
-   an owned revision under the project workspace and returns its path. Installed
+   an owned revision under the project workspace and returns its path. On a touch
+   screen the player adds a floating stick for `left`/`right`/`up`/`down` and one
+   button per other input action, labeled with the action name. Installed
    media must still exist, match its recorded digest, and use a supported format.
 
 For a workflow-based brief, `design_game` writes its design and `build_game
@@ -34,6 +36,30 @@ For a workflow-based brief, `design_game` writes its design and `build_game
 graph. The graph's generated media are candidates until installed. A game
 revision can be played in the workspace. The `nodetool game` CLI validates,
 simulates, captures, and builds a standalone web player from a game document.
+
+## Scripts and visuals
+
+A `script` behavior is a function expression. It receives `{tick, pressed,
+justPressed, events, entity, world, state, random}` and returns `{state,
+commands}`. `events` are the previous tick's events. `world` lists every active
+entity with a collider or camera as `{id, source, x, y}`. A spawned instance has
+the id `<prefab>#<n>`, its `source` is the prefab id, and it runs the prefab's
+script with its own state.
+
+The commands are `setVelocity`, `setPosition`, `setVisual {tint?, opacity?,
+rotation?, scaleX?, scaleY?}`, `spawn {prefabId, x?, y?, velocityX?,
+velocityY?}`, `despawn`, `emit`, `sceneTransition`, and `hud {id, text, x, y,
+size?, color?, align?}`. HUD coordinates are canvas pixels. Empty text removes a
+label. A label with the id `score` or `win` replaces the built-in label.
+
+1. Use `sprite.blend: "additive"` for light drawn on black, such as glows and
+   sparks. Set `sampling: "linear"` on painted or soft assets.
+2. Use `lifetime {ticks, fade, endScale}` for particles. A kinematic body without
+   a collider moves but never collides, which keeps particles cheap.
+3. Use `animator` frames on a sprite sheet. Playback starts when the entity
+   spawns.
+4. Give `audioSource.onEvent` an event kind or the name of an emitted trigger.
+5. Make hazards sensors. Only a non-sensor body collects a `collectible`.
 
 ## Scope
 
