@@ -13,9 +13,9 @@ import {
   Box,
   MOTION,
   BORDER_RADIUS,
-  Z_INDEX
+  Z_INDEX,
+  FONT_SIZE_SANS
 } from "../ui_primitives";
-import { SKETCH_FONT } from "./sketchStyles";
 
 export interface SketchToolIconLabelProps {
   /** Rendered icon (e.g. Mui SvgIcon with sx fontSize). */
@@ -60,7 +60,7 @@ function SketchToolIconLabel({
         py: compact ? 0.12 : 0.1,
         borderRadius: BORDER_RADIUS.xs,
         backgroundColor: shortcutBg,
-        fontSize: compact ? SKETCH_FONT.xs : SKETCH_FONT.sm,
+        fontSize: compact ? FONT_SIZE_SANS.caption : FONT_SIZE_SANS.label,
         fontWeight: 600,
         lineHeight: 1.2,
         color: "text.secondary",
@@ -130,7 +130,7 @@ function SketchToolIconLabel({
         component="span"
         className="sketch-tool-icon-label__label"
         sx={{
-          fontSize: compact ? SKETCH_FONT.xxs : SKETCH_FONT.sm,
+          fontSize: compact ? FONT_SIZE_SANS.caption : FONT_SIZE_SANS.label,
           fontWeight: 600,
           color: row ? "text.primary" : "text.secondary",
           lineHeight: 1.15,

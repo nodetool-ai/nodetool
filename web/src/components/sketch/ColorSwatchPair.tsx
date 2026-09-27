@@ -17,15 +17,13 @@ import {
   Text,
   Tooltip,
   BORDER_RADIUS,
-  Z_INDEX
+  Z_INDEX,
+  FONT_SIZE_SANS,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import { colorToHex6 } from "./types";
-import {
-  SKETCH_FONT,
-  SKETCH_SPACING,
-  SKETCH_TOOLTIP_DELAY_MS,
-  colorSwatchSx
-} from "./sketchStyles";
+import { SKETCH_TOOLTIP_DELAY_MS, colorSwatchSx } from "./sketchStyles";
 import ColorPickerPopover from "./ColorPickerPopover";
 
 /** Square edge (px) — matches colorSwatchSx. */
@@ -78,7 +76,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
   return (
     <FlexColumn
       className="color-swatch-pair"
-      sx={{ width: "100%", alignItems: "center", gap: SKETCH_SPACING.sm }}
+      sx={{ width: "100%", alignItems: "center", gap: getSpacingPx(SPACING.xs) }}
     >
       {/* ── Overlapping FG (front) / BG (behind) squares, Photoshop-style ── */}
       <Box
@@ -179,7 +177,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
             sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: BORDER_RADIUS.sm }}
           >
             <Text
-              sx={{ fontSize: SKETCH_FONT.xxs, fontWeight: 600, lineHeight: 1 }}
+              sx={{ fontSize: FONT_SIZE_SANS.caption, fontWeight: 600, lineHeight: 1 }}
             >
               D
             </Text>

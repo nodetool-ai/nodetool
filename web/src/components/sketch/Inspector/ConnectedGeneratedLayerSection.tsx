@@ -10,10 +10,9 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 
-import { CollapsibleSection, Text, SPACING, TYPOGRAPHY } from "../../ui_primitives";
+import { CollapsibleSection, Text, SPACING, TYPOGRAPHY, FONT_SIZE_SANS} from "../../ui_primitives";
 import { useSketchStore } from "../state/useSketchStore";
 import { useLayerBinding } from "../../../stores/sketch/SketchSessionStore";
-import { SKETCH_FONT } from "../sketchStyles";
 import { SketchAIToolbar } from "./SketchAIToolbar";
 import { SketchInspector } from "./SketchInspector";
 
@@ -42,7 +41,7 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
           sx={{
             ...TYPOGRAPHY.sans.label,
             color: "text.primary",
-            fontSize: SKETCH_FONT.section
+            fontSize: FONT_SIZE_SANS.label
           }}
         >
           {titleText}

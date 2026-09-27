@@ -14,7 +14,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import ResolutionIcon from "@mui/icons-material/Tv";
 import { CANVAS_PRESETS } from "./types";
-import { sketchFieldSx, SKETCH_COLORS, SKETCH_FONT, SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
+import { sketchFieldSx, SKETCH_COLORS, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 import {
   FlexColumn,
   FlexRow,
@@ -24,7 +24,10 @@ import {
   MenuItem,
   Select,
   Switch,
-  TextField
+  TextField,
+  FONT_SIZE_SANS,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import MediaControlChip from "../chat/composer/MediaControlChip";
 import MediaOptionMenu, {
@@ -71,13 +74,13 @@ const dimensionFieldSx = {
   minWidth: 0,
   "& .MuiInputBase-root": {
     ...sketchFieldSx,
-    fontSize: SKETCH_FONT.md,
+    fontSize: FONT_SIZE_SANS.label,
     height: "28px"
   },
   "& .MuiInputBase-input": {
-    padding: `${SKETCH_SPACING.sm} ${SKETCH_SPACING.lg}`
+    padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`
   },
-  "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm }
+  "& .MuiInputLabel-root": { fontSize: FONT_SIZE_SANS.label }
 } as const;
 
 interface SketchCanvasSizePanelProps {
@@ -203,7 +206,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
   return (
     <FlexColumn className="sketch-canvas-size-panel" padding={1} gap={1}>
       <FlexRow align="center" justify="space-between" sx={{ minHeight: 32 }}>
-        <Text sx={{ fontSize: SKETCH_FONT.sm, color: SKETCH_COLORS.textMuted }}>
+        <Text sx={{ fontSize: FONT_SIZE_SANS.label, color: SKETCH_COLORS.textMuted }}>
           Resize handles
         </Text>
         <Tooltip
@@ -246,7 +249,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
           ...sketchFieldSx,
           width: "100%",
           marginTop: 0.5,
-          fontSize: SKETCH_FONT.sm,
+          fontSize: FONT_SIZE_SANS.label,
           "& .MuiSelect-select": { py: 1, px: 2 }
         }}
         renderValue={() => {
@@ -256,7 +259,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
           return (
             <Text
               sx={{
-                fontSize: SKETCH_FONT.sm,
+                fontSize: FONT_SIZE_SANS.label,
                 color: match ? "grey.200" : SKETCH_COLORS.textFaint
               }}
             >
@@ -269,7 +272,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
           <MenuItem
             key={preset.label}
             value={preset.label}
-            sx={{ fontSize: SKETCH_FONT.sm }}
+            sx={{ fontSize: FONT_SIZE_SANS.label }}
           >
             {preset.label} - {preset.width}×{preset.height}
           </MenuItem>
@@ -277,7 +280,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
       </Select>
 
       <FlexColumn gap={0.5} sx={{ mt: 2 }}>
-        <Text sx={{ fontSize: SKETCH_FONT.sm, color: SKETCH_COLORS.textMuted }}>
+        <Text sx={{ fontSize: FONT_SIZE_SANS.label, color: SKETCH_COLORS.textMuted }}>
           Aspect &amp; resolution
         </Text>
         <FlexRow align="center" gap={0.5}>
@@ -325,7 +328,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
           inputProps={{ min: 1, max: 4096, step: 1 }}
           sx={dimensionFieldSx}
         />
-        <Text sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textFaint }}>
+        <Text sx={{ fontSize: FONT_SIZE_SANS.label, color: SKETCH_COLORS.textFaint }}>
           ×
         </Text>
         <TextField

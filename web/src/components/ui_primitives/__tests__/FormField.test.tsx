@@ -106,6 +106,15 @@ describe("FormField", () => {
     expect(document.querySelector("label")).toHaveAttribute("for", input.id);
   });
 
+  it("keeps the standard label size in compact layout", () => {
+    renderWithTheme(
+      <FormField label="Name" compact>
+        <TextInput />
+      </FormField>
+    );
+    expect(screen.getByText("Name")).toHaveStyle({ fontSize: "var(--fontSizeSmall)" });
+  });
+
   it("still renders a child's own helperText", () => {
     renderWithTheme(
       <FormField label="Name">

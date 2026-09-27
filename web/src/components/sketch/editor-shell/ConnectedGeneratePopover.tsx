@@ -37,7 +37,9 @@ import {
   Popover,
   TextInput,
   Toast,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import MediaControlChip from "../../chat/composer/MediaControlChip";
 import MediaAspectRatioMenu from "../../chat/composer/MediaAspectRatioMenu";
@@ -58,7 +60,6 @@ import { useMediaOptions } from "../../../hooks/useModelsByProvider";
 import { useLayerCostEstimate } from "../../../hooks/sketch/useLayerCostEstimate";
 import CostEstimateLine from "../../costs/CostEstimateLine";
 import { generationCostLine } from "../../costs/costLine";
-import { SKETCH_SPACING } from "../sketchStyles";
 
 /** Most recent direct-gen binding's model, to seed the form's picker. */
 function seedModelFromBindings() {
@@ -260,7 +261,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
           className="sketch-generate-form"
           data-testid="sketch-generate-form"
           gap={1}
-          sx={{ padding: SKETCH_SPACING.lg }}
+          sx={{ padding: getSpacingPx(SPACING.md) }}
         >
           <TextInput
             value={prompt}

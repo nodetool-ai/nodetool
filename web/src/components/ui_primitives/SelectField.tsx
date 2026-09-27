@@ -22,7 +22,8 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Label } from "./Label";
-import { CONTROL, FONT_SIZE_SANS } from "./tokens";
+import { BORDER_RADIUS, CONTROL, FONT_SIZE_SANS, TYPOGRAPHY } from "./tokens";
+import { SPACING } from "./spacing";
 import { useFormFieldContext } from "./formFieldContext";
 
 /** Compact editor typography also reaches dropdown menus rendered in portals. */
@@ -56,6 +57,8 @@ export interface SelectFieldProps {
   id?: string;
   /** Size variant */
   size?: "small" | "medium";
+  /** Inspector controls use mono values and a compact outlined surface. */
+  appearance?: "default" | "inspector";
   /** MUI variant. `filled` is not part of the token-height contract. */
   variant?: "standard" | "outlined";
   /** Additional class name for the root element */
@@ -117,6 +120,7 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
       disabled = false,
       id,
       size = "medium",
+      appearance = "default",
       variant = "outlined",
       className,
       hideLabel = false,
@@ -156,8 +160,9 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
     const hasEmptyOption = options.some((option) => option.value === "");
 
     const density = useContext(SelectFieldDensityContext);
-    const fieldFontSize =
-      density === "compact" ? FONT_SIZE_SANS.caption : FONT_SIZE_SANS.body;
+    const fieldFontSize = appearance === "inspector"
+      ? TYPOGRAPHY.mono.label.fontSize
+      : density === "compact" ? FONT_SIZE_SANS.caption : FONT_SIZE_SANS.body;
     const controlHeight =
       size === "small" ? CONTROL.height.sm : CONTROL.height.lg;
 
@@ -201,7 +206,8 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
               // fields. The standard variant keeps its transparent underline
               // look.
               "&.MuiOutlinedInput-root": {
-                backgroundColor: theme.vars.palette.Paper.overlay
+                backgroundColor: appearance === "inspector"
+                  ? theme.vars.palette.background.default : theme.vars.palette.Paper.overlay
               },
               // minHeight is only a floor: MUI's select display carries its own
               // line-height minimum and vertical padding, which pushed measured
@@ -216,15 +222,26 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
               // under the dropdown arrow. The InputBase root is already a
               // centering flex row, so nothing here has to center it.
               "& .MuiSelect-select": {
-                fontSize: fieldFontSize,
-                lineHeight: 1.4375,
+                fontFamily: appearance === "inspector" ? TYPOGRAPHY.mono.label.fontFamily : undefined,
+                fontWeight: appearance === "inspector" ? TYPOGRAPHY.mono.label.fontWeight : undefined,
+                fontSize: appearance === "inspector" ? TYPOGRAPHY.mono.label.fontSize : fieldFontSize,
+                lineHeight: appearance === "inspector" ? TYPOGRAPHY.mono.label.lineHeight : 1.4375,
                 display: "block",
                 minHeight: "0px",
                 paddingTop: "0px",
                 paddingBottom: "0px",
+                paddingLeft: appearance === "inspector" ? theme.spacing(SPACING.md) : undefined,
+                paddingRight: appearance === "inspector" ? theme.spacing(SPACING.xxl) : undefined,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap"
+              },
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: appearance === "inspector" ? theme.vars.palette.c_overlay : undefined,
+                borderRadius: appearance === "inspector" ? BORDER_RADIUS.sm : undefined
+              },
+              "& .MuiSelect-icon": {
+                right: appearance === "inspector" ? theme.spacing(SPACING.micro) : undefined
               }
             }}
           >
@@ -233,7 +250,7 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
                 key={option.value}
                 value={option.value}
                 disabled={option.disabled}
-                sx={{ fontSize: fieldFontSize }}
+                sx={appearance === "inspector" ? TYPOGRAPHY.mono.label : { fontSize: fieldFontSize }}
               >
                 {option.label}
               </MenuItem>

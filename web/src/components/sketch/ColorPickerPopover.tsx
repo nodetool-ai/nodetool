@@ -26,7 +26,8 @@ import {
   TextField,
   Slider,
   IconButton,
-  Popover
+  Popover,
+  FONT_SIZE_SANS
 } from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/Close";
 import {
@@ -39,7 +40,13 @@ import {
   rgbToHsv,
   hsvToRgb
 } from "./types";
-import { SKETCH_FONT, SKETCH_SPACING, SKETCH_Z_INDEX, SKETCH_COLORS, SKETCH_TOOLTIP_DELAY_MS, toggleButtonSmallSx, colorPickerSliderThumbSx } from "./sketchStyles";
+import {
+  SKETCH_Z_INDEX,
+  SKETCH_COLORS,
+  SKETCH_TOOLTIP_DELAY_MS,
+  toggleButtonSmallSx,
+  colorPickerSliderThumbSx
+} from "./sketchStyles";
 
 const SV_SIZE = 160;
 const HUE_HEIGHT = 12;
@@ -169,7 +176,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
 
   const numSx = {
     "& .MuiInputBase-input": {
-      fontSize: SKETCH_FONT.xs,
+      fontSize: FONT_SIZE_SANS.caption,
       py: 0.5,
       px: 1,
       textAlign: "center" as const
@@ -193,23 +200,23 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
             border: "1px solid",
             borderColor: SKETCH_COLORS.border,
             borderRadius: BORDER_RADIUS.sm,
-            p: SKETCH_SPACING.md,
+            p: getSpacingPx(SPACING.sm),
             display: "flex",
             flexDirection: "column",
-            gap: SKETCH_SPACING.lg,
+            gap: getSpacingPx(SPACING.md),
             zIndex: SKETCH_Z_INDEX.popover,
             userSelect: "none"
           }
         }
       }}
     >
-      <FlexRow className="color-picker__header" align="center" justify="flex-end" sx={{ minHeight: "22px", mt: `-${SKETCH_SPACING.md}`, mr: `-${SKETCH_SPACING.md}`, mb: SKETCH_SPACING.xs }}>
+      <FlexRow className="color-picker__header" align="center" justify="flex-end" sx={{ minHeight: "22px", mt: `-${getSpacingPx(SPACING.sm)}`, mr: `-${getSpacingPx(SPACING.sm)}`, mb: getSpacingPx(SPACING.micro) }}>
         <Tooltip title="Cancel — keep previous color" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <IconButton
             size="small"
             onClick={handleCancel}
             aria-label="Cancel color change"
-            sx={{ p: SKETCH_SPACING.xs, color: SKETCH_COLORS.textSecondary, "&:hover": { color: SKETCH_COLORS.textPrimary, bgcolor: "rgba(255,255,255,0.06)" } }}
+            sx={{ p: getSpacingPx(SPACING.micro), color: SKETCH_COLORS.textSecondary, "&:hover": { color: SKETCH_COLORS.textPrimary, bgcolor: "rgba(255,255,255,0.06)" } }}
           >
             <CloseIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
           </IconButton>
@@ -259,7 +266,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         }} />
       </Box>
 
-      <Box className="color-picker__hue" sx={{ px: SKETCH_SPACING.sm }}>
+      <Box className="color-picker__hue" sx={{ px: getSpacingPx(SPACING.xs) }}>
         <Slider
           value={localHue}
           min={0}
@@ -287,9 +294,9 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         />
       </Box>
 
-      <Box className="color-picker__opacity" sx={{ px: SKETCH_SPACING.sm }}>
-        <FlexRow align="center" sx={{ gap: SKETCH_SPACING.md }}>
-          <Text sx={{ fontSize: SKETCH_FONT.xs, color: SKETCH_COLORS.textSecondary, minWidth: "24px" }}>A</Text>
+      <Box className="color-picker__opacity" sx={{ px: getSpacingPx(SPACING.xs) }}>
+        <FlexRow align="center" sx={{ gap: getSpacingPx(SPACING.sm) }}>
+          <Text sx={{ fontSize: FONT_SIZE_SANS.caption, color: SKETCH_COLORS.textSecondary, minWidth: "24px" }}>A</Text>
           <Slider
             value={Math.round(a * 100)}
             min={0}
@@ -317,14 +324,14 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
               }
             }}
           />
-          <Text sx={{ fontSize: SKETCH_FONT.xs, color: SKETCH_COLORS.textSecondary, minWidth: "28px", textAlign: "right" }}>
+          <Text sx={{ fontSize: FONT_SIZE_SANS.caption, color: SKETCH_COLORS.textSecondary, minWidth: "28px", textAlign: "right" }}>
             {Math.round(a * 100)}%
           </Text>
         </FlexRow>
       </Box>
 
       {/* Color preview: old → new */}
-      <FlexRow className="color-picker__preview" sx={{ gap: SKETCH_SPACING.xs, height: "20px", borderRadius: BORDER_RADIUS.xs, overflow: "hidden" }}>
+      <FlexRow className="color-picker__preview" sx={{ gap: getSpacingPx(SPACING.micro), height: "20px", borderRadius: BORDER_RADIUS.xs, overflow: "hidden" }}>
         <Box sx={{ flex: 1, backgroundColor: initialColor, border: "1px solid rgba(255,255,255,0.1)" }} />
         <Box sx={{ flex: 1, backgroundColor: color, border: "1px solid rgba(255,255,255,0.1)" }} />
       </FlexRow>
@@ -348,17 +355,17 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
           onChange={(e) => handleHex(e.target.value)}
           inputProps={{ maxLength: 7, "aria-label": "Hex color" }}
           sx={{
-            "& .MuiInputBase-root": { fontSize: SKETCH_FONT.sm, height: "22px" },
+            "& .MuiInputBase-root": { fontSize: FONT_SIZE_SANS.label, height: "22px" },
             "& .MuiInputBase-input": { padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`, textAlign: "center" }
           }}
         />
       )}
 
       {mode === "rgb" && (
-        <FlexRow className="color-picker__rgb-inputs" sx={{ gap: SKETCH_SPACING.xs }}>
+        <FlexRow className="color-picker__rgb-inputs" sx={{ gap: getSpacingPx(SPACING.micro) }}>
           {(["r", "g", "b"] as const).map((ch) => (
             <FlexColumn key={ch} align="center" sx={{ flex: 1 }}>
-              <Text sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted }}>{ch.toUpperCase()}</Text>
+              <Text sx={{ fontSize: FONT_SIZE_SANS.caption, color: SKETCH_COLORS.textMuted }}>{ch.toUpperCase()}</Text>
               <TextField
                 size="small"
                 type="number"
@@ -377,10 +384,10 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
       )}
 
       {mode === "hsl" && (
-        <FlexRow className="color-picker__hsl-inputs" sx={{ gap: SKETCH_SPACING.xs }}>
+        <FlexRow className="color-picker__hsl-inputs" sx={{ gap: getSpacingPx(SPACING.micro) }}>
           {(["h", "s", "l"] as const).map((ch) => (
             <FlexColumn key={ch} align="center" sx={{ flex: 1 }}>
-              <Text sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted }}>
+              <Text sx={{ fontSize: FONT_SIZE_SANS.caption, color: SKETCH_COLORS.textMuted }}>
                 {ch === "h" ? "H°" : ch === "s" ? "S%" : "L%"}
               </Text>
               <TextField
@@ -406,8 +413,8 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         onClick={handleDismiss}
         fullWidth
         sx={{
-          fontSize: SKETCH_FONT.sm,
-          py: SKETCH_SPACING.xs,
+          fontSize: FONT_SIZE_SANS.label,
+          py: getSpacingPx(SPACING.micro),
           minHeight: "24px",
           bgcolor: SKETCH_COLORS.bgHover,
           color: SKETCH_COLORS.textPrimary,

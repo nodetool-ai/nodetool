@@ -6,6 +6,8 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import {
   MOTION,
   BORDER_RADIUS,
+  CONTROL,
+  FONT_SIZE_SANS,
   SPACING,
   TYPOGRAPHY,
   reducedMotion,
@@ -34,31 +36,7 @@ export const SKETCH_CHECKERBOARD = {
   backgroundSize: "8px 8px"
 } as const;
 
-// ─── Typography Scale ──────────────────────────────────────────────────────────
-
-/** Monospace stack — keep in sync with ThemeNodetool `fontFamily2`. */
-const SKETCH_FONT_FAMILY_MONO =
-  "'JetBrains Mono', 'Inter', Arial, sans-serif" as const;
-
-export const SKETCH_FONT = {
-  /** Monospace for coordinates, dimensions readouts, hex. Same as `theme.fontFamily2`. */
-  familyMono: SKETCH_FONT_FAMILY_MONO,
-  /** Channel labels (R/G/B, H/S/L) */ xxs: "var(--fontSizeSmaller)",
-  /** FG/BG labels, tiny readouts */ xs: "var(--fontSizeSmaller)",
-  /** Setting labels, value readouts */ sm: "var(--fontSizeSmall)",
-  /** Layer names, general UI */ md: "var(--fontSizeSmall)",
-  /** Panel section headings */ section: "var(--fontSizeSmall)",
-} as const;
-
-// ─── Spacing / Size Scale ─────────────────────────────────────────────────────
-
-export const SKETCH_SPACING = {
-  /** Tight inner padding (icon buttons, tiny gaps) */  xs: "2px",
-  /** Standard inner gap (between small elements) */    sm: "4px",
-  /** Default component gap */                          md: "6px",
-  /** Generous gap (between sections) */                lg: "8px",
-  /** Panel-level padding */                            xl: "12px",
-} as const;
+// ─── Sketch layout dimensions ────────────────────────────────────────────────
 
 export const SKETCH_SIZE = {
   /** Row min-height matches the thumbnail so the row background never shows
@@ -66,10 +44,6 @@ export const SKETCH_SIZE = {
   layerItemHeight: "32px",
   layerThumbnail: "32px",
   panelWidth: "260px",
-  /** One height for every control on a tool bar — picker, toggle, field, button. */
-  control: "28px",
-  iconButtonPad: getSpacingPx(SPACING.xs),
-  borderRadius: BORDER_RADIUS.sm
 } as const;
 
 // ─── Tooltip delay ───────────────────────────────────────────────────────────
@@ -95,7 +69,7 @@ export const SKETCH_Z_INDEX = {
  */
 export const sketchSliderSx: SxProps<Theme> = (t) => {
   return {
-    padding: `${SKETCH_SPACING.lg} 0`,
+    padding: `${getSpacingPx(SPACING.md)} 0`,
     "& .MuiSlider-rail": {
       height: "2px",
       opacity: 0.3,
@@ -137,9 +111,9 @@ export const sketchSliderSx: SxProps<Theme> = (t) => {
  * Selected state uses MUI's default theme styling (no loud override).
  */
 export const toggleButtonSmallSx: SxProps<Theme> = {
-  fontSize: SKETCH_FONT.xs,
-  py: SKETCH_SPACING.xs,
-  px: SKETCH_SPACING.md,
+  fontSize: FONT_SIZE_SANS.caption,
+  py: getSpacingPx(SPACING.micro),
+  px: getSpacingPx(SPACING.sm),
   fontWeight: 500
 };
 
@@ -147,7 +121,7 @@ export const toggleButtonSmallSx: SxProps<Theme> = {
  * Compact icon button padding used across panels and toolbars.
  */
 export const iconButtonCompactSx: SxProps<Theme> = {
-  padding: SKETCH_SIZE.iconButtonPad,
+  padding: getSpacingPx(SPACING.xs),
 };
 
 /**
@@ -182,13 +156,13 @@ export const settingRowChildrenSx = (t: Theme) => ({
     minWidth: 0,
     maxWidth: "100%",
     gap: getSpacingPx(SPACING.lg),
-    minHeight: SKETCH_SIZE.control
+    minHeight: CONTROL.height.sm
   },
   "& .setting-row": {
     display: "flex",
     alignItems: "center",
     gap: getSpacingPx(SPACING.sm),
-    minHeight: SKETCH_SIZE.control,
+    minHeight: CONTROL.height.sm,
     // Reserve a fixed-width column for the numeric value so the row
     // length never changes when digits flip (e.g. 100% → 99% → 100%).
     // Previously `minWidth: 24px` allowed the value cell to grow with
@@ -222,7 +196,7 @@ export const settingRowChildrenSx = (t: Theme) => ({
   // all sit on the same 28px band, so a wrapped row is a straight line rather
   // than a staircase.
   "& .MuiToggleButtonGroup-root, & .MuiInputBase-root, & .MuiButton-root": {
-    minHeight: SKETCH_SIZE.control
+    minHeight: CONTROL.height.sm
   },
   "& .MuiInputBase-input": {
     ...TYPOGRAPHY.sans.label,
@@ -273,20 +247,20 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (t) => {
     display: "flex",
     flexDirection: "column",
     alignItems: "stretch",
-    gap: SKETCH_SPACING.md,
+    gap: getSpacingPx(SPACING.sm),
     minWidth: 0,
     // Stacked context: a group is a column of rows, with no divider.
     "& .setting-group": {
       display: "flex",
       flexDirection: "column",
       alignItems: "stretch",
-      gap: SKETCH_SPACING.md,
+      gap: getSpacingPx(SPACING.sm),
       minWidth: 0
     },
     "& .setting-row": {
       display: "flex",
       alignItems: "center",
-      gap: SKETCH_SPACING.md,
+      gap: getSpacingPx(SPACING.sm),
       flexWrap: "nowrap",
       "& .MuiSlider-root": {
         flex: "1 1 80px",
@@ -325,7 +299,7 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (t) => {
       },
     },
     "& .MuiIconButton-root": {
-      padding: SKETCH_SIZE.iconButtonPad,
+      padding: getSpacingPx(SPACING.xs),
     },
   };
 };
@@ -339,7 +313,7 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (t) => {
 export const sketchButtonSmallSx: SxProps<Theme> = {
   ...TYPOGRAPHY.sans.label,
   py: SPACING.micro,
-  minHeight: SKETCH_SIZE.control,
+  minHeight: CONTROL.height.sm,
   minWidth: "56px",
 };
 
@@ -347,7 +321,7 @@ export const sketchButtonSmallSx: SxProps<Theme> = {
  * Italic hint text (e.g. "Alt+click to set source point", "No settings for this tool").
  */
 export const sketchHintTextSx: SxProps<Theme> = {
-  fontSize: SKETCH_FONT.md,
+  fontSize: FONT_SIZE_SANS.label,
   color: SKETCH_COLORS.textFaint,
   fontStyle: "italic",
 };

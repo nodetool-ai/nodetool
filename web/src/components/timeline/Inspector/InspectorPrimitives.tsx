@@ -2,21 +2,14 @@
 /**
  * Inspector primitives
  *
- * Small visual building blocks used by `TimelineInspector` and its child
- * panels to keep the inspector's distinctive look (eyebrow header, identity
- * card, label-on-left + value-pill rows, iOS-style switches) consistent
- * without leaking these styles into the project-wide `ui_primitives`.
+ * Timeline-specific inspector composition and undo adapters. Shared fields
+ * live in `ui_primitives` so other document editors use the same controls.
  */
 
 import React, {
   memo,
   useCallback,
-  useEffect,
-  useId,
   useMemo,
-  useRef,
-  useState,
-  type Ref
 } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -29,17 +22,17 @@ import {
   MOTION,
   BORDER_RADIUS,
   FONT_SIZE_SANS,
-  FONT_SIZE_MONO,
-  FONT_WEIGHT,
+  TYPOGRAPHY,
   SPACING,
   getSpacingPx,
   reducedMotion,
-  SelectField,
-  Switch,
-  type SelectOption
+  InspectorFieldRow,
+  InspectorToggleRow as SharedInspectorToggleRow,
+  type InspectorToggleRowProps,
+  InspectorValueInput,
+  type InspectorValueInputProps,
 } from "../../ui_primitives";
 import { useBatchedGesture } from "../../../hooks/timeline/useBatchedGesture";
-import { isFunction } from "../../../utils/typePredicates";
 
 /**
  * Square box for the inline delete buttons that sit at the right edge of a
@@ -52,13 +45,6 @@ export const INSPECTOR_ROW_BUTTON_SX = {
   width: CONTROL.height.xs,
   height: CONTROL.height.xs
 } as const;
-
-/**
- * Width of a row's value column: the widest pill the inspector renders (the
- * 112px timecode) — a column width, which the spacing scale does not cover, so
- * it is named here and kept on the 4px grid.
- */
-const ROW_CONTROL_MIN_WIDTH = 112;
 
 // ── Header ─────────────────────────────────────────────────────────────────
 
@@ -74,8 +60,7 @@ const eyebrowStyles = (theme: Theme) =>
   css({
     flex: "1 1 auto",
     color: theme.vars.palette.text.secondary,
-    fontSize: FONT_SIZE_SANS.caption,
-    fontWeight: FONT_WEIGHT.semibold,
+    ...TYPOGRAPHY.sans.label,
     letterSpacing: "0.12em",
     textTransform: "uppercase",
     userSelect: "none"
@@ -174,10 +159,7 @@ const identityWrapStyles = (theme: Theme) =>
 
 const identityNameStyles = (theme: Theme) =>
   css({
-    fontFamily:
-      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: FONT_SIZE_MONO.strong,
-    fontWeight: FONT_WEIGHT.medium,
+    ...TYPOGRAPHY.mono.label,
     color: theme.vars.palette.text.primary,
     lineHeight: 1.3,
     wordBreak: "break-all"
@@ -201,8 +183,7 @@ const identitySwatchStyles = (color: string) =>
 const identityMetaStyles = (theme: Theme) =>
   css({
     color: theme.vars.palette.text.secondary,
-    fontSize: FONT_SIZE_MONO.caption,
-    lineHeight: 1.3
+    ...TYPOGRAPHY.mono.caption
   });
 
 interface ClipIdentityCardProps {
@@ -236,33 +217,6 @@ ClipIdentityCard.displayName = "ClipIdentityCard";
 
 // ── Rows ────────────────────────────────────────────────────────────────────
 
-const rowStyles = css({
-  display: "flex",
-  alignItems: "center",
-  gap: getSpacingPx(SPACING.sm),
-  minHeight: CONTROL.height.xs,
-  padding: `0 ${getSpacingPx(SPACING.xs)}`
-});
-
-const rowLabelStyles = (theme: Theme) =>
-  css({
-    flex: "1 1 auto",
-    minWidth: 0,
-    color: theme.vars.palette.text.secondary,
-    fontSize: FONT_SIZE_SANS.caption,
-    fontWeight: FONT_WEIGHT.normal,
-    lineHeight: 1.3
-  });
-
-const rowControlStyles = css({
-  flex: "0 0 auto",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  gap: getSpacingPx(SPACING.xs),
-  minWidth: ROW_CONTROL_MIN_WIDTH
-});
-
 interface InspectorRowProps {
   label: React.ReactNode;
   children: React.ReactNode;
@@ -270,21 +224,7 @@ interface InspectorRowProps {
 }
 
 export const InspectorRow: React.FC<InspectorRowProps> = memo(
-  ({ label, children, htmlFor }) => {
-    const theme = useTheme();
-    return (
-      <div css={rowStyles}>
-        {htmlFor ? (
-          <label css={rowLabelStyles(theme)} htmlFor={htmlFor}>
-            {label}
-          </label>
-        ) : (
-          <span css={rowLabelStyles(theme)}>{label}</span>
-        )}
-        <div css={rowControlStyles}>{children}</div>
-      </div>
-    );
-  }
+  ({ label, children, htmlFor }) => <InspectorFieldRow layout="inline" label={label} htmlFor={htmlFor}>{children}</InspectorFieldRow>
 );
 InspectorRow.displayName = "InspectorRow";
 
@@ -292,10 +232,7 @@ InspectorRow.displayName = "InspectorRow";
 
 const staticValueStyles = (theme: Theme) =>
   css({
-    fontFamily:
-      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: FONT_SIZE_MONO.caption,
-    fontWeight: FONT_WEIGHT.medium,
+    ...TYPOGRAPHY.mono.code,
     color: theme.vars.palette.text.secondary,
     maxWidth: 160,
     overflow: "hidden",
@@ -316,402 +253,22 @@ export const InspectorStaticValue: React.FC<{ value: string }> = memo(
 );
 InspectorStaticValue.displayName = "InspectorStaticValue";
 
-// ── Pill input ─────────────────────────────────────────────────────────────
+// ── Shared inspector controls ─────────────────────────────────────────────
 
-const pillWrapStyles = (
-  theme: Theme,
-  disabled: boolean,
-  focused: boolean,
-  scrubbable: boolean
-) =>
-  css({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: getSpacingPx(SPACING.micro),
-    height: 20,
-    padding: theme.spacing(0, 2),
-    backgroundColor: theme.vars.palette.background.default,
-    border: `1px solid ${
-      focused ? theme.vars.palette.primary.main : theme.vars.palette.c_overlay
-    }`,
-    borderRadius: BORDER_RADIUS.sm,
-    minWidth: 64,
-    justifyContent: "flex-end",
-    opacity: disabled ? 0.5 : 1,
-    transition: `border-color ${MOTION.fast}`,
-    // Value scrubbing (drag left/right) — the horizontal-resize cursor is the
-    // affordance, matching FCP/AE numeric fields.
-    cursor: scrubbable && !focused && !disabled ? "ew-resize" : undefined,
-    touchAction: scrubbable ? "none" : undefined,
-    "&:hover": {
-      borderColor: focused
-        ? theme.vars.palette.primary.main
-        : theme.vars.palette.divider
-    }
-  });
+export { InspectorSelect } from "../../ui_primitives";
 
-const pillInputStyles = (theme: Theme, scrubbable: boolean, focused: boolean) =>
-  css({
-    flex: "1 1 auto",
-    minWidth: 0,
-    background: "transparent",
-    border: "none",
-    outline: "none",
-    color: theme.vars.palette.text.primary,
-    fontFamily:
-      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: FONT_SIZE_MONO.caption,
-    fontWeight: FONT_WEIGHT.medium,
-    letterSpacing: "0",
-    textAlign: "right",
-    padding: 0,
-    width: "100%",
-    cursor: scrubbable && !focused ? "ew-resize" : undefined
-  });
-
-const pillUnitStyles = (theme: Theme) =>
-  css({
-    color: theme.vars.palette.text.secondary,
-    fontFamily:
-      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: FONT_SIZE_MONO.caption,
-    fontWeight: FONT_WEIGHT.medium,
-    flexShrink: 0
-  });
-
-interface InspectorPillScrub {
-  /** Value change per horizontal pixel dragged. Shift ×10, Alt ×0.1. */
-  step: number;
-  min?: number;
-  max?: number;
-}
-
-interface InspectorPillInputProps {
-  value: string;
-  onCommit: (raw: string) => void;
-  /** Small trailing unit token, e.g. "s", "×", "px". */
-  unit?: string;
-  placeholder?: string;
-  disabled?: boolean;
-  ariaLabel?: string;
-  id?: string;
-  /** Optional minWidth override for the pill (for long timecodes etc.). */
-  minWidth?: number;
-  /**
-   * FCP-style value scrubbing: drag horizontally on the field to change the
-   * value; a plain click still focuses it for typing. Only for fields whose
-   * `value` parses as a plain number (not timecodes).
-   */
-  scrub?: InspectorPillScrub;
-  ref?: Ref<HTMLInputElement>;
-}
-
-export const InspectorPillInput = memo(function InspectorPillInput({
-  value,
-  onCommit,
-  unit,
-  placeholder,
-  disabled = false,
-  ariaLabel,
-  id,
-  minWidth,
-  scrub,
-  ref
-}: InspectorPillInputProps) {
-  const theme = useTheme();
-  const [draft, setDraft] = useState(value);
-  const [focused, setFocused] = useState(false);
-
-  // The draft follows the store while the field is not being typed in. Derived
-  // during render rather than in an effect: an effect would paint one frame of
-  // the stale draft after every scrub tick and every undo.
-  const [syncedValue, setSyncedValue] = useState(value);
-  if (!focused && value !== syncedValue) {
-    setSyncedValue(value);
-    setDraft(value);
-  }
-
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const setRefs = useCallback(
-    (node: HTMLInputElement | null) => {
-      inputRef.current = node;
-      if (isFunction(ref)) {
-        ref(node);
-      } else if (ref) {
-        ref.current = node;
-      }
-    },
-    [ref]
-  );
-
-  const commit = useCallback(() => {
-    if (draft !== value) {
-      onCommit(draft);
-    }
-  }, [draft, value, onCommit]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
-        (e.target as HTMLInputElement).blur();
-      } else if (e.key === "Escape") {
-        setDraft(value);
-        (e.target as HTMLInputElement).blur();
-      }
-    },
-    [value]
-  );
-
-  // ── Scrub gesture ────────────────────────────────────────────────────
-  // Drag scrubs; a click without movement focuses the input for typing.
-  // pointerdown preventDefault stops the native focus so the drag doesn't
-  // enter edit mode.
-
-  const gesture = useBatchedGesture(onCommit);
-  const gestureRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startValue: number;
-    moved: boolean;
-  } | null>(null);
-
-  const scrubDecimals = useMemo(() => {
-    if (!scrub) return 0;
-    return (String(scrub.step).split(".")[1] ?? "").length;
-  }, [scrub]);
-
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!scrub || disabled || focused || e.button !== 0) return;
-      const start = parseFloat(value);
-      if (!Number.isFinite(start)) return;
-      e.preventDefault();
-      e.currentTarget.setPointerCapture(e.pointerId);
-      gestureRef.current = {
-        pointerId: e.pointerId,
-        startX: e.clientX,
-        startValue: start,
-        moved: false
-      };
-    },
-    [scrub, disabled, focused, value]
-  );
-
-  const handlePointerMove = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      const drag = gestureRef.current;
-      if (!drag || !scrub) return;
-      const dx = e.clientX - drag.startX;
-      if (!drag.moved) {
-        if (Math.abs(dx) < 3) return;
-        drag.moved = true;
-        gesture.begin();
-      }
-      const multiplier = e.shiftKey ? 10 : e.altKey ? 0.1 : 1;
-      let next = drag.startValue + dx * scrub.step * multiplier;
-      if (scrub.min != null) next = Math.max(scrub.min, next);
-      if (scrub.max != null) next = Math.min(scrub.max, next);
-      const formatted = next.toFixed(scrubDecimals);
-      setDraft(formatted);
-      gesture.schedule(formatted);
-    },
-    [scrub, scrubDecimals, gesture]
-  );
-
-  const handlePointerUp = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      const drag = gestureRef.current;
-      if (!drag || drag.pointerId !== e.pointerId) return;
-      gestureRef.current = null;
-      if (drag.moved) {
-        gesture.commit();
-      } else {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      }
-    },
-    [gesture]
-  );
-
-  // A scrub re-renders this pill per rAF; no style reads the dragged value.
-  const hasScrub = !!scrub;
-  const wrapCss = useMemo(
-    () => pillWrapStyles(theme, disabled, focused, hasScrub),
-    [theme, disabled, focused, hasScrub]
-  );
-  const inputCss = useMemo(
-    () => pillInputStyles(theme, hasScrub, focused),
-    [theme, hasScrub, focused]
-  );
-  const unitCss = useMemo(() => pillUnitStyles(theme), [theme]);
-
-  return (
-    <div
-      css={wrapCss}
-      style={minWidth ? { minWidth } : undefined}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-    >
-      <input
-        id={id}
-        ref={setRefs}
-        type="text"
-        // size=1 kills the input's ~20-char intrinsic width so the pill
-        // sizes from minWidth instead of overflowing narrow panels.
-        size={1}
-        css={inputCss}
-        value={draft}
-        placeholder={placeholder}
-        disabled={disabled}
-        aria-label={ariaLabel}
-        onChange={(e) => setDraft(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => {
-          setFocused(false);
-          commit();
-          // A commit the parent rejects (unparseable, out of range) leaves
-          // `value` untouched, so the field goes back to what the store holds
-          // instead of keeping text that never landed. A commit it accepts
-          // re-syncs from the new `value` on the next render.
-          setDraft(value);
-        }}
-        onKeyDown={handleKeyDown}
-      />
-      {unit && <span css={unitCss}>{unit}</span>}
-    </div>
-  );
+/** Timeline rows keep the shared switch styling in the inline field layout. */
+export const InspectorToggleRow = memo(function InspectorToggleRow(props: InspectorToggleRowProps) {
+  return <SharedInspectorToggleRow {...props} layout="inline" />;
 });
 
-// ── Select ─────────────────────────────────────────────────────────────────
-
-const inspectorSelectStyles = (theme: Theme) =>
-  css({
-    minWidth: 92,
-    "& .MuiInputBase-root": {
-      minHeight: 20
-    },
-    "& .MuiSelect-select": {
-      minHeight: 20,
-      height: 20,
-      padding: `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.sm)}`,
-      fontFamily:
-        "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-      fontSize: FONT_SIZE_MONO.caption,
-      fontWeight: FONT_WEIGHT.medium,
-      backgroundColor: theme.vars.palette.background.default
-    },
-    "& .MuiOutlinedInput-notchedOutline": {
-      borderColor: theme.vars.palette.c_overlay,
-      borderRadius: BORDER_RADIUS.sm
-    },
-    "&:hover .MuiOutlinedInput-notchedOutline": {
-      borderColor: theme.vars.palette.divider
-    },
-    "& .MuiSelect-icon": {
-      fontSize: FONT_SIZE_SANS.label,
-      right: getSpacingPx(SPACING.micro)
-    }
-  });
-
-interface InspectorSelectProps {
-  /** Accessible name — the visible label lives on the enclosing row. */
-  label: string;
-  value: string;
-  options: readonly SelectOption[];
-  onChange: (value: string) => void;
-  disabled?: boolean;
-  /** Fill the available width instead of sizing to the pill minimum. */
-  grow?: boolean;
-}
-
-/**
- * Pill-register select for inspector rows, matching `InspectorPillInput`'s
- * 20px height and mono caption. Wraps the shared `SelectField` primitive —
- * `NodeSelect` is for the node canvas only.
- */
-export const InspectorSelect: React.FC<InspectorSelectProps> = memo(
-  ({ label, value, options, onChange, disabled, grow }) => {
-    const theme = useTheme();
-    return (
-      <SelectField
-        label={label}
-        hideLabel
-        size="small"
-        value={value}
-        options={options}
-        onChange={onChange}
-        disabled={disabled}
-        css={[
-          inspectorSelectStyles(theme),
-          grow && css({ flex: "1 1 auto", minWidth: 0 })
-        ]}
-      />
-    );
-  }
-);
-InspectorSelect.displayName = "InspectorSelect";
-
-// ── Toggle row ─────────────────────────────────────────────────────────────
-
-const toggleSwitchSx = {
-  width: 28,
-  height: 16,
-  padding: 0,
-  "& .MuiSwitch-switchBase": {
-    padding: 0,
-    margin: getSpacingPx(SPACING.micro),
-    transitionDuration: "var(--motion-normal)",
-    "&.Mui-checked": {
-      // Track width less the thumb and its two margins — one grid step, so it
-      // reads from the spacing scale like the rest of the box.
-      transform: `translateX(${getSpacingPx(SPACING.lg)})`,
-      color: "var(--palette-primary-contrastText)",
-      "& + .MuiSwitch-track": {
-        backgroundColor: "var(--palette-primary-main)",
-        opacity: 1,
-        border: 0
-      }
-    }
-  },
-  "& .MuiSwitch-thumb": {
-    boxSizing: "border-box",
-    width: 12,
-    height: 12,
-    boxShadow: "0 1px 2px var(--palette-c_scrim)"
-  },
-  "& .MuiSwitch-track": {
-    borderRadius: BORDER_RADIUS.pill,
-    backgroundColor: "var(--palette-c_overlay_strong)",
-    opacity: 1
-  }
-} as const;
-
-interface InspectorToggleRowProps {
-  label: React.ReactNode;
-  checked: boolean;
-  onChange: (next: boolean) => void;
-  disabled?: boolean;
-}
-
-export const InspectorToggleRow: React.FC<InspectorToggleRowProps> = memo(
-  ({ label, checked, onChange, disabled }) => {
-    const id = useId();
-    return (
-      <InspectorRow label={label} htmlFor={id}>
-        <Switch
-          id={id}
-          size="small"
-          checked={checked}
-          disabled={disabled}
-          onChange={(_e, next) => onChange(next)}
-          sx={toggleSwitchSx}
-        />
-      </InspectorRow>
-    );
-  }
-);
-InspectorToggleRow.displayName = "InspectorToggleRow";
+/** Timeline adapter supplies undo batching to the shared value input. */
+export const InspectorPillInput = memo(function InspectorPillInput(
+  props: Omit<InspectorValueInputProps, "scrubGesture">
+) {
+  const gesture = useBatchedGesture(props.onCommit);
+  return <InspectorValueInput {...props} scrubGesture={gesture} />;
+});
 
 // ── Slider row ─────────────────────────────────────────────────────────────
 
@@ -729,9 +286,7 @@ const sliderLabelStyles = (theme: Theme) =>
     flex: "0 1 auto",
     minWidth: 60,
     color: theme.vars.palette.text.secondary,
-    fontSize: FONT_SIZE_SANS.caption,
-    fontWeight: FONT_WEIGHT.normal,
-    lineHeight: 1.3,
+    ...TYPOGRAPHY.sans.label,
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap"
@@ -747,10 +302,7 @@ const sliderTrackStyles = css({
 const sliderValueStyles = (theme: Theme) =>
   css({
     flex: "0 0 44px",
-    fontFamily:
-      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: FONT_SIZE_MONO.caption,
-    fontWeight: FONT_WEIGHT.medium,
+    ...TYPOGRAPHY.mono.label,
     color: theme.vars.palette.text.secondary,
     textAlign: "right",
     fontVariantNumeric: "tabular-nums"
@@ -920,8 +472,7 @@ const sectionTitleStyles = (theme: Theme, dimmed: boolean) =>
     color: dimmed
       ? theme.vars.palette.text.disabled
       : theme.vars.palette.text.primary,
-    fontSize: FONT_SIZE_SANS.caption,
-    fontWeight: FONT_WEIGHT.semibold,
+    ...TYPOGRAPHY.sans.label,
     letterSpacing: "0.06em",
     textTransform: "uppercase",
     transition: `color ${MOTION.fast}`,

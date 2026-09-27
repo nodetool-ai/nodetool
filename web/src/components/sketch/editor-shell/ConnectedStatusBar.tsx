@@ -23,7 +23,9 @@ import {
   ColorSwatch,
   FlexRow,
   ToolbarIconButton,
-  Tooltip
+  Tooltip,
+  FONT_SIZE_SANS,
+  TYPOGRAPHY
 } from "../../ui_primitives";
 import CostEstimateLine from "../../costs/CostEstimateLine";
 import { useSketchCostEstimate } from "../../../hooks/sketch/useSketchCostEstimate";
@@ -33,7 +35,6 @@ import { useSketchCanvasRefStore } from "../../../stores/sketch/SketchCanvasRefS
 import { getSelectionBounds } from "../selection";
 import { displayCombo } from "../shortcuts";
 import { colorToHex6 } from "../types";
-import { SKETCH_FONT } from "../sketchStyles";
 
 /** OS-aware combo for the fit-to-screen action ("⌘0" on Mac, "Ctrl+0" elsewhere). */
 const FIT_LABEL = `Fit to screen (${displayCombo("zoom-fit")})`;
@@ -95,8 +96,8 @@ const ConnectedStatusBarInner: React.FC = () => {
         backgroundColor: theme.vars.palette.grey[900],
         borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
         color: theme.vars.palette.text.secondary,
-        fontFamily: SKETCH_FONT.familyMono,
-        fontSize: SKETCH_FONT.sm,
+        fontFamily: TYPOGRAPHY.mono.code.fontFamily,
+        fontSize: FONT_SIZE_SANS.label,
         userSelect: "none",
         overflow: "hidden",
         whiteSpace: "nowrap"

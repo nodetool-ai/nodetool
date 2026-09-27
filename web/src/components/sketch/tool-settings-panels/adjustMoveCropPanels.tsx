@@ -11,7 +11,8 @@ import {
   getSpacingPx,
   Checkbox,
   FormControlLabel,
-  Slider
+  Slider,
+  TYPOGRAPHY
 } from "../../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
@@ -20,7 +21,6 @@ import {
   sketchSliderSx,
   sketchButtonSmallSx,
   sketchHintTextSx,
-  SKETCH_FONT,
   SKETCH_COLORS
 } from "../sketchStyles";
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
@@ -134,7 +134,7 @@ export const MoveSettingsPanel = memo(function MoveSettingsPanel({
       }
       label={
         <Text
-          sx={{ ...SKETCH_FONT, fontSize: "var(--fontSizeSmall)", userSelect: "none" }}
+          sx={{ ...TYPOGRAPHY.sans.label, userSelect: "none" }}
         >
           Auto-Select
         </Text>
@@ -183,7 +183,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         }
         label={
           <Text
-            sx={{ ...SKETCH_FONT, fontSize: "var(--fontSizeSmall)", userSelect: "none" }}
+            sx={{ ...TYPOGRAPHY.sans.label, userSelect: "none" }}
           >
             Auto-Select
           </Text>

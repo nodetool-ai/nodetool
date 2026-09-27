@@ -21,9 +21,7 @@ import {
   sketchFieldSx,
   SKETCH_CHECKERBOARD,
   SKETCH_COLORS,
-  SKETCH_FONT,
   SKETCH_SIZE,
-  SKETCH_SPACING,
   SKETCH_TOOLTIP_DELAY_MS
 } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
@@ -40,6 +38,7 @@ import {
   MOTION,
   reducedMotion,
   TYPOGRAPHY,
+  FONT_SIZE_SANS,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
@@ -248,23 +247,14 @@ const styles = (theme: Theme) =>
     maxHeight: "100%",
     overflowY: "auto",
     "& .section-label": {
-      fontSize: SKETCH_FONT.md,
+      fontSize: FONT_SIZE_SANS.label,
       fontWeight: 600,
       textTransform: "uppercase",
       color: theme.vars.palette.grey[300]
     },
     "& .layer-item": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(1),
-      padding: theme.spacing(SPACING.xs),
-      borderRadius: BORDER_RADIUS.lg,
-      cursor: "pointer",
-      fontSize: SKETCH_FONT.md,
+      fontSize: FONT_SIZE_SANS.label,
       minHeight: SKETCH_SIZE.layerItemHeight,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.selected
-      },
       /* Selected row: a restrained elevated surface with a full primary ring,
          rather than a saturated blue fill. Reads as clearly "active" while
          keeping the layer's own thumbnail and name the focus. */
@@ -341,7 +331,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: SKETCH_FONT.xxs,
+      fontSize: FONT_SIZE_SANS.caption,
       color: theme.vars.palette.grey[500]
     },
     "& .layer-visibility-cell": {
@@ -364,7 +354,7 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap"
     },
     "& .layer-item.group-layer .layer-name": {
-      fontSize: SKETCH_FONT.sm,
+      fontSize: FONT_SIZE_SANS.label,
       fontWeight: 600,
       letterSpacing: "0.02em",
       color: theme.vars.palette.grey[400]
@@ -1371,7 +1361,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             className="opacity-row sketch-layers-panel__opacity-row"
           >
             <Text
-              sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textMuted }}
+              sx={{ fontSize: FONT_SIZE_SANS.label, color: SKETCH_COLORS.textMuted }}
             >
               Opacity
             </Text>
@@ -1388,7 +1378,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             />
             <Text
               sx={{
-                fontSize: SKETCH_FONT.md,
+                fontSize: FONT_SIZE_SANS.label,
                 width: "40px",
                 flexShrink: 0,
                 fontVariantNumeric: "tabular-nums",
@@ -1415,7 +1405,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }
               onKeyDownCapture={handleBlendModeQuickCycleKeyDownCapture}
               onWheelCapture={handleBlendModeQuickCycleWheelCapture}
-              sx={{ ...sketchFieldSx, fontSize: SKETCH_FONT.md, height: "28px" }}
+              sx={{ ...sketchFieldSx, fontSize: FONT_SIZE_SANS.label, height: "28px" }}
             >
               <MenuItem value="normal">Normal</MenuItem>
               <MenuItem value="multiply">Multiply</MenuItem>
@@ -1441,7 +1431,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             >
               <Text
                 sx={{
-                  fontSize: SKETCH_FONT.xs,
+                  fontSize: FONT_SIZE_SANS.caption,
                   color: SKETCH_COLORS.textFaint,
                   lineHeight: 1.35,
                   wordBreak: "break-all",

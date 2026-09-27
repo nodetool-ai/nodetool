@@ -20,7 +20,9 @@ import {
   reducedMotion,
   BORDER_RADIUS,
   ToggleButtonGroup,
-  ToggleButton
+  ToggleButton,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import type { SelectToolMode, SketchTool } from "./types";
 import {
@@ -30,7 +32,7 @@ import {
 } from "./toolDefinitions";
 import { displayCombo } from "./shortcuts";
 import ColorSwatchPair from "./ColorSwatchPair";
-import { SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
+import { SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 
 const BTN = 32; // button size px
 
@@ -38,8 +40,8 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: SKETCH_SPACING.md,
-    padding: `${SKETCH_SPACING.lg} ${SKETCH_SPACING.sm}`,
+    gap: getSpacingPx(SPACING.sm),
+    padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}`,
     backgroundColor: theme.vars.palette.background.paper,
     borderRight: `1px solid ${theme.vars.palette.divider}`,
     width: `${BTN + 8 + 2}px`, // single column + padding + border
@@ -50,7 +52,7 @@ const styles = (theme: Theme) =>
     "& .tool-sections": {
       display: "flex",
       flexDirection: "column",
-      gap: SKETCH_SPACING.lg
+      gap: getSpacingPx(SPACING.md)
     },
     "& .tool-section": {
       display: "flex",
@@ -60,11 +62,11 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: SKETCH_SPACING.sm,
+      gap: getSpacingPx(SPACING.xs),
       width: "100%"
     },
     "& .MuiToggleButton-root": {
-      padding: SKETCH_SPACING.sm,
+      padding: getSpacingPx(SPACING.xs),
       width: `${BTN}px`,
       height: `${BTN}px`,
       minWidth: `${BTN}px`,
@@ -87,7 +89,7 @@ const styles = (theme: Theme) =>
     },
     "& .MuiDivider-root": {
       borderColor: theme.vars.palette.divider,
-      mx: SKETCH_SPACING.xs
+      mx: getSpacingPx(SPACING.micro)
     }
   });
 
@@ -175,7 +177,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
       <Divider flexItem />
 
       {/* ── Colors ── */}
-      <FlexColumn sx={{ px: SKETCH_SPACING.xs }}>
+      <FlexColumn sx={{ px: getSpacingPx(SPACING.micro) }}>
         <ColorSwatchPair
           foregroundColor={foregroundColor}
           backgroundColor={backgroundColor}

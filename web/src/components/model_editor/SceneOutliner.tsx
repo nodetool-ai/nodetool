@@ -1,74 +1,25 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import { memo, useCallback } from "react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import CategoryIcon from "@mui/icons-material/Category";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
-import { FlexColumn, Text, ScrollArea, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { FlexColumn, IconButton, Text, ScrollArea, SPACING, TreeRow } from "../ui_primitives";
 import type { SceneTreeNode } from "./sceneTree";
-
-const styles = (theme: Theme) =>
-  css({
-    "&": {
-      width: "100%",
-      height: "100%",
-      minHeight: 0
-    },
-    ".outliner-row": {
-      display: "flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.xs),
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
-      cursor: "pointer",
-      borderRadius: BORDER_RADIUS.sm,
-      userSelect: "none",
-      color: theme.vars.palette.text.secondary,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover
-      }
-    },
-    ".outliner-row.selected": {
-      backgroundColor: theme.vars.palette.action.selected,
-      color: theme.vars.palette.text.primary
-    },
-    ".outliner-row .row-label": {
-      flex: 1,
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    },
-    ".outliner-row .type-icon": {
-      fontSize: "var(--fontSizeNormal)",
-      opacity: 0.7
-    },
-    ".outliner-row .visibility-toggle": {
-      display: "flex",
-      alignItems: "center",
-      opacity: 0.6,
-      "&:hover": { opacity: 1 }
-    },
-    ".visibility-toggle svg": { fontSize: "var(--fontSizeNormal)" },
-    ".empty": {
-      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.md)}`
-    }
-  });
 
 const typeIcon = (type: string) => {
   if (type.includes("Light")) {
-    return <LightModeIcon className="type-icon" />;
+    return <LightModeIcon sx={{ fontSize: "var(--fontSizeNormal)", opacity: 0.7 }} />;
   }
   if (type.includes("Camera")) {
-    return <CameraAltIcon className="type-icon" />;
+    return <CameraAltIcon sx={{ fontSize: "var(--fontSizeNormal)", opacity: 0.7 }} />;
   }
   if (type === "Mesh") {
-    return <ViewInArIcon className="type-icon" />;
+    return <ViewInArIcon sx={{ fontSize: "var(--fontSizeNormal)", opacity: 0.7 }} />;
   }
-  return <CategoryIcon className="type-icon" />;
+  return <CategoryIcon sx={{ fontSize: "var(--fontSizeNormal)", opacity: 0.7 }} />;
 };
 
 interface OutlinerRowProps {
@@ -95,29 +46,30 @@ const OutlinerRow = memo(({
 
   return (
     <>
-      <div
-        className={`outliner-row ${node.uuid === selectedUuid ? "selected" : ""}`}
+      <TreeRow
         role="button"
         tabIndex={0}
-        style={{ paddingLeft: `${8 + node.depth * 14}px` }}
+        aria-pressed={node.uuid === selectedUuid}
+        aria-label={`${node.name} (${node.type})`}
+        selected={node.uuid === selectedUuid}
+        interactive
+        depth={node.depth}
         onClick={handleSelect}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { handleSelect(); } }}
+        onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) { e.preventDefault(); handleSelect(); } }}
       >
         {typeIcon(node.type)}
-        <Text size="small" className="row-label" title={`${node.name} (${node.type})`}>
+        <Text size="small" title={`${node.name} (${node.type})`} sx={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {node.name}
         </Text>
-        <span
-          className="visibility-toggle"
-          role="button"
-          tabIndex={0}
+        <IconButton
+          size="small"
           aria-label={node.visible ? "Hide object" : "Show object"}
           onClick={handleToggle}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onToggleVisible(node.uuid); } }}
+          sx={{ opacity: 0.6, "&:hover": { opacity: 1 }, "& svg": { fontSize: "var(--fontSizeNormal)" } }}
         >
           {node.visible ? <VisibilityIcon /> : <VisibilityOffIcon />}
-        </span>
-      </div>
+        </IconButton>
+      </TreeRow>
       {node.children.map((child) => (
         <OutlinerRow
           key={child.uuid}
@@ -144,12 +96,11 @@ const SceneOutliner = ({
   onSelect,
   onToggleVisible
 }: SceneOutlinerProps) => {
-  const theme = useTheme();
   return (
-    <FlexColumn css={styles(theme)} className="scene-outliner" fullHeight>
+    <FlexColumn className="scene-outliner" fullHeight sx={{ width: "100%", minHeight: 0 }}>
       <ScrollArea>
         {nodes.length === 0 ? (
-          <Text size="small" color="secondary" className="empty">
+          <Text size="small" color="secondary" sx={{ py: SPACING.lg, px: SPACING.md }}>
             Scene is empty
           </Text>
         ) : (

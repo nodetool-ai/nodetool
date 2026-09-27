@@ -17,12 +17,14 @@ import {
   FlexRow,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  FONT_SIZE_SANS,
+  TYPOGRAPHY
 } from "../ui_primitives";
 import { useSketchStore } from "./state";
 import type { Point, SketchTool } from "./types";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
-import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
+import { SKETCH_Z_INDEX } from "./sketchStyles";
 import { selectionAntCanvasMarginCssPx } from "./sketchCanvasHooks";
 import { TransformGizmo } from "./transform/gizmo/TransformGizmo";
 import { SelectionActionBar } from "./SelectionActionBar";
@@ -146,7 +148,7 @@ const CursorPosReadout = memo(function CursorPosReadout() {
     return null;
   }
   return (
-    <span style={{ fontSize: SKETCH_FONT.sm, minWidth: 65 }}>
+    <span style={{ fontSize: FONT_SIZE_SANS.label, minWidth: 65 }}>
       {cursorDocPos.x}, {cursorDocPos.y}
     </span>
   );
@@ -341,8 +343,8 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
               color: "var(--palette-grey-200)",
               padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.lg)}`,
               borderRadius: BORDER_RADIUS.sm,
-              fontSize: SKETCH_FONT.md,
-              fontFamily: SKETCH_FONT.familyMono,
+              fontSize: FONT_SIZE_SANS.label,
+              fontFamily: TYPOGRAPHY.mono.code.fontFamily,
               pointerEvents: "none",
               zIndex: SKETCH_Z_INDEX.readout,
               gap: getSpacingPx(SPACING.lg)

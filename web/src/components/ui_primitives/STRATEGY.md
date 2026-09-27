@@ -62,7 +62,7 @@ These primitives exist but are barely adopted:
 `Text` | `Label` | `Caption` | `TruncatedText` | `TextLink` | `ExternalLink`
 
 ### Inputs (replace raw TextField/Select/Switch)
-`NodeTextField` | `TextInput` | `NodeSelect` | `SelectField` | `NodeSwitch` | `LabeledSwitch` | `NodeSlider` | `Checkbox` | `Autocomplete` | `AutocompleteTagInput` | `TagInput` | `SearchInput`
+`NodeTextField` | `TextInput` | `NumericField` | `InspectorValueInput` | `NodeSelect` | `SelectField` | `InspectorSelect` | `NodeSwitch` | `LabeledSwitch` | `NodeSlider` | `Checkbox` | `Autocomplete` | `AutocompleteTagInput` | `TagInput` | `SearchInput`
 
 ### Buttons (replace raw Button/IconButton)
 `EditorButton` | `ToolbarIconButton` | `StateIconButton` | `CircularActionButton` | `NavButton` | `CreateFab` | `PlaybackButton` | `RunWorkflowButton` | `ExpandCollapseButton` | `RefreshButton` | `ViewModeToggle` | `LabeledToggle`
@@ -79,7 +79,7 @@ Media that is being generated shows `MagicGenerationFill` over its host: the ske
 `ConflictBanner` — the one document-level notice listing the external values a dirty draft refused, with per-value Accept/Discard and an optional viewer. A string `detail` shows the external value; with `draftDetail` too, the viewer is a two-pane Your-edit / External view (JS script `code`). Mounted by every document editor shell; fed by `useDocumentConflicts`.
 
 ### Composite (replace manual layout combos)
-`FormField` | `SectionHeader` | `CollapsibleSection` | `TabGroup` / `TabPanel` | `ActionButtonGroup` | `ButtonGroup` | `ToggleGroup` | `SelectionControls` | `ListGroup` / `ListItemRow` | `DataTable`
+`FormField` | `PropertyFieldRow` | `InspectorFieldRow` | `InspectorToggleRow` | `SectionHeader` | `CollapsibleSection` | `TabGroup` / `TabPanel` | `ActionButtonGroup` | `ButtonGroup` | `ToggleGroup` | `SelectionControls` | `ListGroup` / `ListItemRow` | `TreeRow` | `DataTable`
 
 ### Menus & Navigation
 `EditorMenu` | `EditorMenuItem` | `MenuItemPrimitive` | `ContextMenu` | `Breadcrumbs` | `Tooltip` | `Popover`
@@ -153,13 +153,15 @@ Need a button?
 
 Need an input?
 ├── Text → NodeTextField (in nodes) / TextInput (elsewhere)
-├── Number → NumberInput (components/inputs/NumberInput.tsx — not a primitive yet)
+├── Number → NumericField (commit on edit, clamp on blur) / NumberInput (components/inputs/NumberInput.tsx)
 ├── Boolean → NodeSwitch / LabeledSwitch / Checkbox
 ├── Select from options → NodeSelect / SelectField
 ├── Slider → NodeSlider
 ├── Search → SearchInput
 ├── Tags → TagInput / AutocompleteTagInput
 └── Label + input + help → FormField (wraps any input)
+
+For a compact inspector with one label and several controls, use `PropertyFieldRow` and give each control its own accessible name.
 
 Need a container/surface?
 ├── Content card → Card

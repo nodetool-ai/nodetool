@@ -112,7 +112,7 @@ export const FormField: React.FC<FormFieldProps> = ({
           // aria-labelledby={`${controlId}-label`} since htmlFor only
           // associates with native form elements.
           id={`${controlId}-label`}
-          size={compact ? "small" : "normal"}
+          size="normal"
           required={required}
           error={Boolean(error)}
           sx={{

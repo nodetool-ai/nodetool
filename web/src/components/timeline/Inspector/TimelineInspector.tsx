@@ -86,7 +86,7 @@ const containerStyles = css({
 const sectionContentStyles = (theme: Theme) =>
   css({
     gap: getSpacingPx(SPACING.micro),
-    padding: theme.spacing(SPACING.micro, SPACING.none, SPACING.md)
+    padding: theme.spacing(SPACING.micro, SPACING.none, SPACING.md, SPACING.xxxl)
   });
 
 const inspectorPanelSx = {

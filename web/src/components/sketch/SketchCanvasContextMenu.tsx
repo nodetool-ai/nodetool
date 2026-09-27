@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useEffect } from "react";
-import { sketchToolSettingsContainerSx, SKETCH_FONT } from "./sketchStyles";
+import { sketchToolSettingsContainerSx } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
   FlexColumn,
@@ -12,7 +12,8 @@ import {
   MOTION,
   BORDER_RADIUS,
   ButtonBase,
-  Popover
+  Popover,
+  FONT_SIZE_SANS
 } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import DeselectIcon from "@mui/icons-material/Deselect";
@@ -53,7 +54,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <Text
       sx={{
         mb: 1,
-        fontSize: SKETCH_FONT.section,
+        fontSize: FONT_SIZE_SANS.label,
         fontWeight: 600,
         letterSpacing: "0.08em",
         textTransform: "uppercase",
@@ -78,7 +79,7 @@ function ColorPreview({ label, color }: { label: string; color: string }) {
           background: color
         }}
       />
-      <Text sx={{ fontSize: SKETCH_FONT.xs, fontWeight: 600, color: "text.secondary" }}>
+      <Text sx={{ fontSize: FONT_SIZE_SANS.caption, fontWeight: 600, color: "text.secondary" }}>
         {label}
       </Text>
     </FlexColumn>
@@ -126,11 +127,11 @@ function SelectionMenuItem({
       <FlexRow sx={{ flex: "0 0 auto", color: "text.secondary" }}>
         {icon}
       </FlexRow>
-      <Text sx={{ flex: 1, fontSize: SKETCH_FONT.md, fontWeight: 500, color: "text.primary" }}>
+      <Text sx={{ flex: 1, fontSize: FONT_SIZE_SANS.label, fontWeight: 500, color: "text.primary" }}>
         {label}
       </Text>
       {shortcut && (
-        <Text sx={{ fontSize: SKETCH_FONT.xs, fontWeight: 600, color: "text.secondary", whiteSpace: "nowrap" }}>
+        <Text sx={{ fontSize: FONT_SIZE_SANS.caption, fontWeight: 600, color: "text.secondary", whiteSpace: "nowrap" }}>
           {shortcut}
         </Text>
       )}
@@ -511,7 +512,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 borderRadius: BORDER_RADIUS.lg,
                 border: "1px solid",
                 borderColor: theme.vars.palette.grey[600],
-                fontSize: SKETCH_FONT.sm,
+                fontSize: FONT_SIZE_SANS.label,
                 fontWeight: 600,
                 lineHeight: 1.2,
                 color: "text.secondary",

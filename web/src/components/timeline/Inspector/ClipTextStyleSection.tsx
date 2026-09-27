@@ -282,7 +282,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
           onToggle={setOpen}
           unmountOnExit
         >
-          <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
+          <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs, pl: SPACING.xxxl }}>
             <TextInput
               value={textStyle.text}
               multiline

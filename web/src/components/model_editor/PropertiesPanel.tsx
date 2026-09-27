@@ -17,6 +17,8 @@ import {
   TabPanel,
   type TabItem,
   NodeSlider,
+  NumericField,
+  PropertyFieldRow,
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
@@ -38,32 +40,6 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       margin: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}`
     },
-    ".field-row": {
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
-      gap: getSpacingPx(SPACING.sm),
-      alignItems: "center"
-    },
-    ".field-label": {
-      width: "72px",
-      flexShrink: 0,
-      color: theme.vars.palette.text.secondary
-    },
-    ".num-field .MuiInputBase-input": {
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`,
-      fontSize: theme.fontSizeSmall
-    },
-    ".num-cell": { flex: 1, minWidth: 0 },
-    ".slider": { flex: 1, margin: `0 ${getSpacingPx(SPACING.md)}`, minWidth: 0 },
-    ".slider-value": {
-      width: "52px",
-      flexShrink: 0,
-      ".num-field": { width: "52px" }
-    },
-    ".color-row": {
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
-      gap: getSpacingPx(SPACING.md),
-      alignItems: "center"
-    },
     ".select-field": {
       flex: 1,
       ".MuiSelect-select": {
@@ -74,87 +50,6 @@ const styles = (theme: Theme) =>
     },
     ".empty": { padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}` }
   });
-
-const roundTo = (value: number, digits = 4): number => {
-  const factor = 10 ** digits;
-  return Math.round(value * factor) / factor;
-};
-
-interface NumberFieldProps {
-  value: number;
-  onCommit: (value: number) => void;
-  step?: number;
-  min?: number;
-  max?: number;
-  integer?: boolean;
-}
-
-const NumberField = ({
-  value,
-  onCommit,
-  step = 0.1,
-  min,
-  max,
-  integer = false
-}: NumberFieldProps) => {
-  const [text, setText] = useState(String(roundTo(value)));
-  // Resync the text buffer when the external value changes (e.g. gizmo drag),
-  // without clobbering in-progress typing. Adjusting state during render is the
-  // React-recommended pattern for deriving state from a changing prop.
-  const [prevValue, setPrevValue] = useState(value);
-  if (value !== prevValue) {
-    setPrevValue(value);
-    const parsed = parseFloat(text);
-    if (!Number.isFinite(parsed) || Math.abs(parsed - value) > 1e-6) {
-      setText(String(roundTo(value)));
-    }
-  }
-
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const next = e.target.value;
-      setText(next);
-      const parsed = parseFloat(next);
-      if (Number.isFinite(parsed)) {
-        // Commit raw while typing; clamp/round on blur so multi-digit entry
-        // (e.g. typing "12" into a min-3 field) isn't fought by the clamp.
-        onCommit(integer ? Math.round(parsed) : parsed);
-      }
-    },
-    [onCommit, integer]
-  );
-
-  const handleBlur = useCallback(() => {
-    let parsed = parseFloat(text);
-    if (!Number.isFinite(parsed)) {
-      setText(String(roundTo(value)));
-      return;
-    }
-    if (integer) {
-      parsed = Math.round(parsed);
-    }
-    if (min !== undefined) {
-      parsed = Math.max(min, parsed);
-    }
-    if (max !== undefined) {
-      parsed = Math.min(max, parsed);
-    }
-    setText(String(integer ? parsed : roundTo(parsed)));
-    onCommit(parsed);
-  }, [text, value, integer, min, max, onCommit]);
-
-  return (
-    <TextInput
-      className="num-field nodrag nowheel"
-      type="number"
-      size="small"
-      inputProps={{ step }}
-      value={text}
-      onChange={handleChange}
-      onBlur={handleBlur}
-    />
-  );
-};
 
 interface NumberRowProps {
   label: string;
@@ -172,31 +67,32 @@ interface NumberRowProps {
 const NumberRow = memo(({ label, value, onCommit, step, min, max, integer }: NumberRowProps) => {
   const isSlider = min !== undefined && max !== undefined;
   return (
-    <FlexRow className="field-row" fullWidth>
-      <Text size="small" className="field-label">
-        {label}
-      </Text>
-      {isSlider && (
-        <NodeSlider
-          className="slider"
-          value={value}
-          min={min}
-          max={max}
-          step={integer ? 1 : step ?? 0.01}
-          onChange={(_e, v) => onCommit(Array.isArray(v) ? v[0] : v)}
-        />
-      )}
-      <div className={isSlider ? "slider-value" : "num-cell"}>
-        <NumberField
-          value={value}
-          onCommit={onCommit}
-          step={step}
-          min={min}
-          max={max}
-          integer={integer}
-        />
-      </div>
-    </FlexRow>
+    <PropertyFieldRow label={label}>
+      <FlexRow align="center" gap={SPACING.md} fullWidth sx={{ minWidth: 0 }}>
+        {isSlider && (
+          <NodeSlider
+            aria-label={label}
+            value={value}
+            min={min}
+            max={max}
+            step={integer ? 1 : step ?? 0.01}
+            onChange={(_e, v) => onCommit(Array.isArray(v) ? v[0] : v)}
+            sx={{ flex: 1, minWidth: 0 }}
+          />
+        )}
+        <FlexRow sx={{ flex: isSlider ? "0 0 25%" : 1, minWidth: 0 }}>
+          <NumericField
+            label={label}
+            value={value}
+            onCommit={onCommit}
+            step={step}
+            min={min}
+            max={max}
+            integer={integer}
+          />
+        </FlexRow>
+      </FlexRow>
+    </PropertyFieldRow>
   );
 });
 
@@ -207,12 +103,9 @@ interface CheckboxRowProps {
 }
 
 const CheckboxRow = ({ label, checked, onChange }: CheckboxRowProps) => (
-  <FlexRow className="field-row" fullWidth>
-    <Text size="small" className="field-label">
-      {label}
-    </Text>
-    <Checkbox checked={checked} onChange={(_e, c) => onChange(c)} />
-  </FlexRow>
+  <PropertyFieldRow label={label}>
+    <Checkbox inputProps={{ "aria-label": label }} checked={checked} onChange={(_e, c) => onChange(c)} />
+  </PropertyFieldRow>
 );
 
 interface ColorRowProps {
@@ -222,10 +115,7 @@ interface ColorRowProps {
 }
 
 const ColorRow = ({ label, color, onChange }: ColorRowProps) => (
-  <FlexRow className="color-row" fullWidth>
-    <Text size="small" className="field-label">
-      {label}
-    </Text>
+  <PropertyFieldRow label={label} spacious>
     <ColorPicker
       showCustom
       color={`#${color.getHexString()}`}
@@ -236,7 +126,7 @@ const ColorRow = ({ label, color, onChange }: ColorRowProps) => (
         }
       }}
     />
-  </FlexRow>
+  </PropertyFieldRow>
 );
 
 interface Vector3RowProps {
@@ -261,14 +151,13 @@ const Vector3Row = ({
     onChanged();
   };
   return (
-    <FlexRow className="field-row" fullWidth>
-      <Text size="small" className="field-label">
-        {label}
-      </Text>
-      <NumberField value={toDisplay(vector.x)} onCommit={commit("x")} step={step} />
-      <NumberField value={toDisplay(vector.y)} onCommit={commit("y")} step={step} />
-      <NumberField value={toDisplay(vector.z)} onCommit={commit("z")} step={step} />
-    </FlexRow>
+    <PropertyFieldRow label={label}>
+      <FlexRow gap={SPACING.sm} fullWidth sx={{ minWidth: 0 }}>
+        <NumericField label={`${label} X`} value={toDisplay(vector.x)} onCommit={commit("x")} step={step} />
+        <NumericField label={`${label} Y`} value={toDisplay(vector.y)} onCommit={commit("y")} step={step} />
+        <NumericField label={`${label} Z`} value={toDisplay(vector.z)} onCommit={commit("z")} step={step} />
+      </FlexRow>
+    </PropertyFieldRow>
   );
 };
 
@@ -367,7 +256,7 @@ const PropertiesPanel = ({ object, tick, onChanged }: PropertiesPanelProps) => {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState("object");
   // `tick` is intentionally a render trigger: bumping it re-renders this panel
-  // so NumberField inputs resync from objects mutated by gizmo drags.
+  // so NumericField inputs resync from objects mutated by gizmo drags.
   void tick;
 
   const handleNameChange = useCallback(
@@ -439,20 +328,19 @@ const PropertiesPanel = ({ object, tick, onChanged }: PropertiesPanelProps) => {
       />
       <ScrollArea>
         {/* Remount fields only when the selected object changes; live value
-            updates from gizmo drags are handled by NumberField's value sync. */}
+            updates from gizmo drags are handled by NumericField's value sync. */}
         <FlexColumn key={object.uuid} fullWidth>
           <TabPanel value="object" activeValue={effectiveTab}>
-          <FlexRow className="field-row" fullWidth>
-            <Text size="small" className="field-label">
-              Name
-            </Text>
+          <PropertyFieldRow label="Name">
             <TextInput
-              className="num-field nodrag"
+              className="nodrag"
+              label="Name"
+              hideLabel
               size="small"
               value={object.name}
               onChange={handleNameChange}
             />
-          </FlexRow>
+          </PropertyFieldRow>
           <Text size="smaller" color="secondary" sx={{ padding: `0 ${getSpacingPx(SPACING.md)}` }}>{object.type}</Text>
           <CheckboxRow
             label="Visible"
@@ -654,10 +542,7 @@ const PropertiesPanel = ({ object, tick, onChanged }: PropertiesPanelProps) => {
                 }}
               />
 
-              <FlexRow className="field-row" fullWidth>
-                <Text size="small" className="field-label">
-                  Side
-                </Text>
+              <PropertyFieldRow label="Side">
                 <SelectField
                   className="select-field nodrag"
                   hideLabel
@@ -671,7 +556,7 @@ const PropertiesPanel = ({ object, tick, onChanged }: PropertiesPanelProps) => {
                     onChanged();
                   }}
                 />
-              </FlexRow>
+              </PropertyFieldRow>
 
               {MATERIAL_FLAG_FIELDS.map(({ key, label, recompile }) => {
                 const checked = getBoolProp(material, key);

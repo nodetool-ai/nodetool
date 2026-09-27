@@ -117,7 +117,7 @@ const sectionContentStyles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     gap: getSpacingPx(SPACING.micro),
-    padding: theme.spacing(SPACING.micro, SPACING.none, SPACING.md)
+    padding: theme.spacing(SPACING.micro, SPACING.none, SPACING.md, SPACING.xxxl)
   });
 
 // Hoisted so InspectorPillInput's memo holds: an inline literal would be a

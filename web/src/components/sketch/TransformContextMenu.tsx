@@ -14,9 +14,9 @@ import {
   FlexRow,
   MenuItemPrimitive,
   Text,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  FONT_SIZE_SANS
 } from "../ui_primitives";
-import { SKETCH_FONT } from "./sketchStyles";
 
 interface TransformContextMenuProps {
   open: boolean;
@@ -106,7 +106,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
         <TransformIcon sx={{ fontSize: 16, color: "primary.light" }} />
         <Text
           sx={{
-            fontSize: SKETCH_FONT.section,
+            fontSize: FONT_SIZE_SANS.label,
             fontWeight: 600,
             color: "text.primary"
           }}

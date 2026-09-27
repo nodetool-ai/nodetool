@@ -8,7 +8,8 @@ import {
   Checkbox,
   FormControlLabel,
   Slider,
-  activateOnKey
+  activateOnKey,
+  FONT_SIZE_SANS
 } from "../../ui_primitives";
 import {
   BlurSettings,
@@ -21,12 +22,7 @@ import {
   ShapeSettings,
   ShapeToolType
 } from "../types";
-import {
-  colorSwatchSx,
-  sketchHintTextSx,
-  sketchSliderSx,
-  SKETCH_FONT
-} from "../sketchStyles";
+import { colorSwatchSx, sketchHintTextSx, sketchSliderSx } from "../sketchStyles";
 import ColorPickerPopover from "../ColorPickerPopover";
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 
@@ -127,7 +123,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
               />
             }
             label={
-              <Text sx={{ fontSize: SKETCH_FONT.section }}>Fill</Text>
+              <Text sx={{ fontSize: FONT_SIZE_SANS.label }}>Fill</Text>
             }
           />
           {settings.filled && (

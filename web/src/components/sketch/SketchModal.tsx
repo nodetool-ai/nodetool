@@ -37,13 +37,7 @@ import {
   DEFAULT_PEN_PRESSURE
 } from "./types";
 import type { SketchTool } from "./types";
-import {
-  SKETCH_SPACING,
-  SKETCH_SIZE,
-  SKETCH_Z_INDEX,
-  SKETCH_TOOLTIP_DELAY_MS,
-  settingRowChildrenSx
-} from "./sketchStyles";
+import { SKETCH_Z_INDEX, SKETCH_TOOLTIP_DELAY_MS, settingRowChildrenSx } from "./sketchStyles";
 import { displayCombo } from "./shortcuts";
 import {
   Caption,
@@ -85,20 +79,20 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       flexWrap: "wrap",
-      rowGap: SKETCH_SPACING.md,
-      columnGap: SKETCH_SPACING.lg,
-      padding: `${SKETCH_SPACING.sm} ${SKETCH_SPACING.xl}`,
+      rowGap: getSpacingPx(SPACING.sm),
+      columnGap: getSpacingPx(SPACING.md),
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
       backgroundColor: theme.vars.palette.grey[800],
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
       minHeight: "36px",
       "& .MuiIconButton-root": {
-        padding: SKETCH_SIZE.iconButtonPad,
+        padding: getSpacingPx(SPACING.xs),
       },
       "& .sketch-modal-pen-inline": {
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
-        gap: SKETCH_SPACING.lg,
+        gap: getSpacingPx(SPACING.md),
         flexShrink: 0,
         ...settingRowChildrenSx(theme),
       },
@@ -462,8 +456,8 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 justify="space-between"
                 gap={1}
                 sx={{
-                  px: SKETCH_SPACING.md,
-                  py: SKETCH_SPACING.sm,
+                  px: getSpacingPx(SPACING.sm),
+                  py: getSpacingPx(SPACING.xs),
                   borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
                   flexShrink: 0
                 }}
@@ -502,8 +496,8 @@ const SketchModal: React.FC<SketchModalProps> = ({
                   fullWidth
                   sx={{
                     flexShrink: 0,
-                    px: SKETCH_SPACING.md,
-                    pt: SKETCH_SPACING.sm,
+                    px: getSpacingPx(SPACING.sm),
+                    pt: getSpacingPx(SPACING.xs),
                     borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
                   }}
                 />
@@ -512,9 +506,9 @@ const SketchModal: React.FC<SketchModalProps> = ({
                     flex: 1,
                     minHeight: 0,
                     overflow: "hidden",
-                    px: SKETCH_SPACING.md,
-                    pb: SKETCH_SPACING.md,
-                    pt: SKETCH_SPACING.sm
+                    px: getSpacingPx(SPACING.sm),
+                    pb: getSpacingPx(SPACING.sm),
+                    pt: getSpacingPx(SPACING.xs)
                   }}
                 >
                   <TabPanel

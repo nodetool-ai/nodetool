@@ -199,6 +199,20 @@ export type { EditorUiScope } from "../editor_ui/EditorUiContext";
 export { Box } from "./Box";
 export type { BoxProps } from "./Box";
 
+export { InspectorFieldRow } from "./InspectorFieldRow";
+export { InspectorSelect } from "./InspectorSelect";
+export type { InspectorSelectProps } from "./InspectorSelect";
+export { InspectorToggleRow } from "./InspectorToggleRow";
+export type { InspectorToggleRowProps } from "./InspectorToggleRow";
+export { InspectorValueInput } from "./InspectorValueInput";
+export type { InspectorValueInputProps, InspectorValueScrub, InspectorValueGesture } from "./InspectorValueInput";
+export { NumericField } from "./NumericField";
+export type { NumericFieldProps } from "./NumericField";
+export { PropertyFieldRow } from "./PropertyFieldRow";
+export type { PropertyFieldRowProps } from "./PropertyFieldRow";
+export { TreeRow } from "./TreeRow";
+export type { TreeRowProps } from "./TreeRow";
+
 export { FlexColumn } from "./FlexColumn";
 export type { FlexColumnProps } from "./FlexColumn";
 

@@ -19,9 +19,9 @@ import {
   SPACING,
   TYPOGRAPHY,
   type ToggleGroupProps,
-  type ToggleOptionProps
+  type ToggleOptionProps,
+  CONTROL
 } from "../../ui_primitives";
-import { SKETCH_SIZE } from "../sketchStyles";
 import type { SxProps, Theme } from "@mui/material/styles";
 
 const TEXT_OPTION_SX: SxProps<Theme> = {
@@ -32,7 +32,7 @@ const TEXT_OPTION_SX: SxProps<Theme> = {
   "&.Mui-selected": { backgroundColor: "action.selected", color: "text.primary" },
   py: SPACING.micro,
   px: SPACING.md,
-  minHeight: SKETCH_SIZE.control
+  minHeight: CONTROL.height.sm
 };
 
 const ICON_OPTION_SX: SxProps<Theme> = {
@@ -44,7 +44,7 @@ const ICON_OPTION_SX: SxProps<Theme> = {
   py: SPACING.micro,
   px: SPACING.micro,
   minWidth: 30,
-  minHeight: SKETCH_SIZE.control,
+  minHeight: CONTROL.height.sm,
   "& .MuiSvgIcon-root": { fontSize: "1.2em" }
 };
 

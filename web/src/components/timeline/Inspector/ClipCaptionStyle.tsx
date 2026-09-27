@@ -43,7 +43,7 @@ const sectionContentStyles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     gap: getSpacingPx(SPACING.micro),
-    padding: theme.spacing(SPACING.micro, SPACING.none, SPACING.md)
+    padding: theme.spacing(SPACING.micro, SPACING.none, SPACING.md, SPACING.xxxl)
   });
 
 /** The colours `drawCaption` falls back to, so the swatches show what renders. */

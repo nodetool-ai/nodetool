@@ -55,7 +55,8 @@ import {
   Tooltip,
   SPACING,
   TYPOGRAPHY,
-  Z_INDEX
+  Z_INDEX,
+  FONT_SIZE_SANS
 } from "../ui_primitives";
 import TransformContextMenu from "./TransformContextMenu";
 import type { SketchDocument } from "./types";
@@ -82,7 +83,7 @@ import { useSketchAgentBridge } from "../../hooks/sketch/useSketchAgentBridge";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { useSketchWorkflowFreshnessCheck } from "../../hooks/sketch/useSketchWorkflowFreshnessCheck";
-import { SKETCH_SIZE, SKETCH_FONT } from "./sketchStyles";
+import { SKETCH_SIZE } from "./sketchStyles";
 import { ColorFieldPicker } from "./ColorFieldPicker";
 import { SKETCH_PRESET_SWATCHES, colorToHex6 } from "./types";
 import { useSketchStore } from "./state/useSketchStore";
@@ -122,7 +123,7 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({
     sx={{
       ...TYPOGRAPHY.sans.label,
       color: "text.primary",
-      fontSize: SKETCH_FONT.section
+      fontSize: FONT_SIZE_SANS.label
     }}
   >
     {children}
@@ -169,7 +170,7 @@ const ColorSectionHeader = memo(function ColorSectionHeader() {
       <Chip
         compact
         label={colorToHex6(foregroundColor)}
-        sx={{ fontFamily: SKETCH_FONT.familyMono, border: "none", backgroundColor: "transparent", color: "text.secondary" }}
+        sx={{ fontFamily: TYPOGRAPHY.mono.code.fontFamily, border: "none", backgroundColor: "transparent", color: "text.secondary" }}
       />
     </FlexRow>
   );

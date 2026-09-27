@@ -3,7 +3,9 @@ import React, { memo, useState } from "react";
 import {
   Box,
   Text,
-  Slider
+  Slider,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import { EditorButton } from "../../editor_ui";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -19,7 +21,7 @@ import {
   StrokeAssistPreset,
   StrokeAssistSettings
 } from "../types";
-import { sketchSliderSx, SKETCH_SPACING } from "../sketchStyles";
+import { sketchSliderSx } from "../sketchStyles";
 import { effectiveEraserMode } from "./shared";
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import { isNumber } from "../../../utils/typePredicates";
@@ -38,8 +40,8 @@ const SETTING_GROUP_SX = {
   display: "flex",
   alignItems: "center",
   flexWrap: "wrap" as const,
-  columnGap: SKETCH_SPACING.lg,
-  rowGap: SKETCH_SPACING.sm
+  columnGap: getSpacingPx(SPACING.md),
+  rowGap: getSpacingPx(SPACING.xs)
 };
 
 const SettingGroup: React.FC<{ children: React.ReactNode }> = ({
@@ -70,7 +72,7 @@ const AdvancedToggleButton: React.FC<{
     aria-label="Toggle advanced stroke options"
     sx={{
       minWidth: 0,
-      padding: `${SKETCH_SPACING.xs} ${SKETCH_SPACING.sm}`,
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
       // Force the button to ride at the end of row 1 (after the paint-
       // params group) so it stays anchored beside the controls it
       // governs. Without this it could be pushed onto row 2 by the
