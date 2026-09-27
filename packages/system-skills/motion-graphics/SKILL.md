@@ -5,25 +5,36 @@ description: Author and inspect NodeTool timeline motion, including clip animati
 
 # Motion Graphics → Timeline Agent
 
+## Before the first edit of a new piece
+
+When starting a piece from a brief, load `motion-direction` and
+`motion-principles` with `load_skill` before the first timeline edit. Use them
+to set the motion language and timing for the whole piece. Do not start
+animating from this tool contract alone.
+
+If the piece has a title layout or an end card, also load `frame-composition`
+before that first edit. If it has an end card, load `logo-reveal` too. These
+loads are required even when this skill was the only one selected from the
+catalog.
+
+For showcase, hero, launch, or "best" briefs, follow `motion-direction`'s
+depth plan and example timelines before choosing timeline operations.
+
 Motion is timed, layered and checked. Author animations with `edit_timeline`,
 then look at the frames with `preview_timeline_frame`. A change you have not
 looked at is not done.
 
-## Load the craft skill for the job
+## Load other craft skills for the job
 
-This file is the tool contract: what a call takes and what it refuses. Eight
-skills sit on top of it and decide what to put in those calls. Load the one the
-job is about, and come back here for argument shapes.
+This file is the tool contract: what a call takes and what it refuses. After
+the required loads above, load other relevant craft skills for the job and
+come back here for argument shapes.
 
 | The question | Skill |
 |---|---|
-| How long, which easing, how much stagger, why does this feel stiff | `motion-principles` |
-| What rules does the whole piece obey; it feels busy or inconsistent | `motion-direction` |
-| Where does it sit, does it survive 9:16, how do I get depth | `frame-composition` |
 | Where do the cuts land, how do I pace it, how do I ramp a hit | `beat-sync-editing` |
 | Which colours, in what order do I grade, what can actually move | `color-motion` |
 | A preset is close but not right; overshoot, decay, wiggle, arc, draw-on | `motion-curves` |
-| A logo sting, an end card, a splash | `logo-reveal` |
 | An ambient bed behind the content | `motion-background` |
 
 Three are neighbours rather than layers. `caption-titles` decides what text
@@ -732,6 +743,12 @@ the order to check is: is the element on screen at all (layer present in the
 report), is it in the right stacking position (`z_index`), is it at the right
 opacity (`opacity`), is it in the right place (look at the frame). Working down
 that list beats re-authoring the animation.
+
+For every defect named by a `view_image` look, a preview layer report, or a
+model critique of the render, fix it and re-check the same timecode, or tell
+the user it remains open and why. Never ship past a named defect silently. If
+`view_image` returns no pixels, tell the user you could not see the frames.
+Do not claim a visual check.
 
 `compare_timeline_frames {a, b, times_ms | range}` measures what actually moved
 between two documents or two versions. Run it after a change the user did not

@@ -32,12 +32,51 @@ tool calls.
 | Stagger rhythm | One `offsetMs` and one `from` | 80ms, `from: "start"` |
 | Motion intensity | The travel, scale and overshoot budget | `distance` ≤ 0.15, `overshoot` ≤ 1.05 |
 | Hold discipline | Minimum stillness between moves | ≥ 400ms with nothing animating |
-| Type family | One bundled font | `Inter` for UI, `Bebas Neue` for a title card |
+| Type family and weights | One bundled family and a weight for each text tier | `Inter` 800 for the hero, 400 for support |
 | Space and focus | One camera path and a depth plan, if the piece needs 2.5D | Hero at `depthPx: 0`, background farther away |
 | Shutter and texture | Which layers blur, echo, or step | Hero blur on the impact, background held |
 
 Two easings maximum: one for entrances and landings, one for exits. A third has
 to justify itself.
+
+## Match depth to the brief
+
+For a showcase, hero, launch, or "best" piece, plan each scene with a background
+bed, midground, foreground, and a grain or grade finish. Group each scene. Use
+path shapes, masks, repeaters, style tracks, animation links, and effects where
+they give the composition depth. Read the full document with `get_timeline` and
+use `set_timeline_document` for fields `edit_timeline` cannot write, including
+`styleTracks` and `repeater`.
+
+Study `prism.mjs`, `kite.mjs`, `voltra.mjs`, and `tidewater.mjs` in
+`scripts/example-timelines/`, or their shipped `.timeline.json` bundles in
+`packages/base-nodes/nodetool/examples/timelines/`. In the app, install a copy
+from Examples → Timelines, then inspect it with `get_timeline`.
+`get_example_workflow` loads workflow graphs, not these timelines. Budget for a
+generated still or music bed in a showcase unless the user sets a cost limit.
+
+## Typography
+
+Choose the family and weights in the motion-language spec before building text
+clips. NodeTool ships `Inter`, `Space Grotesk`, `Bebas Neue`, `Playfair Display`,
+`Lora`, and `JetBrains Mono`. Use one family across a piece and make the hero
+visibly heavier than support, such as Inter 800 against 400. `Bebas Neue` ships
+only at 400, so use size and spacing for contrast if you choose it.
+
+On a 1920×1080 frame, start a hero title at 96–160 `fontSizePx`, support at
+42–64, and a short kicker at 28–36. Keep large display tracking tight
+(`letterSpacingPx` −2 to 1); open an uppercase kicker to 2–5px. Check the
+actual words at the target frame size and adjust for fit and legibility.
+
+For an existing text clip, `edit_timeline` can set the type as a
+`set_clip_params` patch:
+
+```json
+{"timeline_id":"<id>","ops":[{"op":"set_clip_params","target":"Hero title","textStyle":{"fontFamily":"Inter","fontWeight":800,"letterSpacingPx":-1,"fontSizePx":128}}]}
+```
+
+`motion-graphics` owns the full tool contract. `frame-composition` handles
+placement and safe areas for each aspect ratio.
 
 ## Tone and energy
 

@@ -1543,7 +1543,7 @@ describe("ProcessingContext – asset helper methods", () => {
       { type: "text", text: "recreate this image" },
       {
         type: "text",
-        text: "[attached image could not be loaded: asset://missing.png]"
+        text: "[attached image could not be shown: asset://missing.png]"
       }
     ]);
   });

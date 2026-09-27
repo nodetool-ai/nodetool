@@ -216,3 +216,21 @@ export const gameSnapshot = z.object({
     animation: z.string().optional(), animationTick: z.number().int().nonnegative().optional(), x: finite, y: finite, previousX: finite, previousY: finite, velocityX: finite, velocityY: finite, active: z.boolean(), health: z.number().int().optional(), patrolOrigin: finite.optional(), patrolDirection: z.union([z.literal(-1), z.literal(1)]).optional() }))
 });
 export type GameSnapshot = z.infer<typeof gameSnapshot>;
+
+/** A shipped example game as the Examples page lists it. */
+export const exampleGameSummary = z.object({
+  slug: z.string(),
+  name: z.string(),
+  description: z.string(),
+  controls: z.string(),
+  sceneCount: z.number().int().positive(),
+  assetCount: z.number().int().nonnegative(),
+  posterUri: z.string()
+});
+export type ExampleGameSummary = z.infer<typeof exampleGameSummary>;
+
+export const installExampleGameInput = z.object({
+  slug: z.string(),
+  projectId: z.string().min(1),
+  name: z.string().min(1).max(200).optional()
+});

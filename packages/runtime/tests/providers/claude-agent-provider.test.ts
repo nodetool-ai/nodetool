@@ -14,6 +14,8 @@ import type {
 } from "../../src/providers/types.js";
 import type { Options, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { generateStructured } from "../../src/providers/structured-output.js";
+import { ProcessingContext } from "../../src/context.js";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 
 describe("toolResultToMcpContent", () => {
   it("wraps a plain string in a text block", () => {
@@ -53,12 +55,23 @@ describe("toolResultToMcpContent", () => {
     ]);
   });
 
-  it("degrades a remote-URL image to a text reference", () => {
+  it("reports a remote-URL image that cannot be shown", () => {
     expect(
       toolResultToMcpContent([
         { type: "image_url", image: { uri: "https://example.com/c.png" } }
       ])
-    ).toEqual([{ type: "text", text: "[image at https://example.com/c.png]" }]);
+    ).toEqual([
+      {
+        type: "text",
+        text: "[image could not be shown: https://example.com/c.png]"
+      }
+    ]);
+  });
+
+  it("reports an image result with no usable payload", () => {
+    expect(toolResultToMcpContent([{ type: "image_url", image: {} }])).toEqual([
+      { type: "text", text: "[image could not be shown]" }
+    ]);
   });
 });
 
@@ -905,6 +918,80 @@ describe("ClaudeAgentProvider", () => {
       content: [{ type: "text", text: "result-for-echo" }]
     });
     expect(executed[0]).toMatchObject({ name: "echo", args: { text: "hi" } });
+  });
+
+  it("returns asset-backed view_image pixels from the SDK tool callback", async () => {
+    const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+    const assetStorage = new InMemoryStorageAdapter();
+    const storage = new InMemoryStorageAdapter();
+    await assetStorage.store("u1/contact.png", bytes, "image/png");
+    const storageUri = await storage.store("u1/contact.png", bytes, "image/png");
+    const context = new ProcessingContext({
+      jobId: "j1",
+      userId: "u1",
+      assetStorage,
+      storage,
+      fetchFn: async () => new Response("not found", { status: 404 })
+    });
+    const { fn } = fakeQuery([sysInit("sess-image"), successResult()]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    let imageUri = "asset://contact.png";
+
+    await collect(
+      provider.generateLoop({
+        messages: [userMsg("Read the contact sheet")],
+        model: "haiku",
+        tools: [{ name: "view_image" }],
+        executeTool: async () => [
+          { type: "text", text: "Is text legible?" },
+          {
+            type: "image_url",
+            image: { uri: imageUri, mimeType: "image/png" }
+          }
+        ],
+        resolveMedia: (messages) => context.resolveMessageMediaUris(messages)
+      })
+    );
+
+    expect(await mcp.captured.defs[0].handler({ image_id: "contact.png" })).toEqual({
+      content: [
+        { type: "text", text: "Is text legible?" },
+        {
+          type: "image",
+          data: Buffer.from(bytes).toString("base64"),
+          mimeType: "image/png"
+        },
+        { type: "text", text: "[attached image asset://contact.png]" }
+      ]
+    });
+
+    imageUri = storageUri;
+    expect(await mcp.captured.defs[0].handler({ image_id: storageUri })).toEqual({
+      content: [
+        { type: "text", text: "Is text legible?" },
+        {
+          type: "image",
+          data: Buffer.from(bytes).toString("base64"),
+          mimeType: "image/png"
+        },
+        { type: "text", text: `[attached image ${storageUri}]` }
+      ]
+    });
+
+    imageUri = "asset://missing.png";
+    expect(await mcp.captured.defs[0].handler({ image_id: imageUri })).toEqual({
+      content: [
+        { type: "text", text: "Is text legible?" },
+        {
+          type: "text",
+          text: "[attached image could not be shown: asset://missing.png]"
+        }
+      ]
+    });
   });
 
   it("gives parallel calls of one tool distinct ids within one millisecond", async () => {

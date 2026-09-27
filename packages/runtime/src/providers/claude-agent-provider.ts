@@ -311,6 +311,7 @@ export class ClaudeAgentProvider extends BaseProvider {
   override async *generateLoop(
     args: Parameters<ClaudeAgentProvider["generateMessages"]>[0] & {
       executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
+      resolveMedia?: (messages: Message[]) => Promise<Message[]>;
       maxIterations?: number;
       turnBudget?: TurnBudget | RunBudget;
       workspaceDir?: string;
@@ -385,23 +386,27 @@ export class ClaudeAgentProvider extends BaseProvider {
       // (view_image) are returned as real image blocks the SDK hands to Claude —
       // no flattening to text on the agent-SDK path.
       const defs = tools.map((t) =>
-        toolDefinition(t, async (name, toolArgs) => {
-          // The SDK runs parallel calls of one tool in the same millisecond,
-          // so a clock alone would hand them one id.
-          const toolCallId = `call_${name}_${crypto.randomUUID()}`;
-          const result = t.execute
-            ? await t.execute(toolArgs, toolCallId)
-            : executeTool
-              ? await executeTool({
-                  id: toolCallId,
-                  name,
-                  args: toolArgs
-                })
-              : `Tool "${name}" is not available`;
-          // A terminal tool ends the SDK loop after its result is delivered.
-          if (t.terminal) abortController.abort();
-          return result;
-        })
+        toolDefinition(
+          t,
+          async (name, toolArgs) => {
+            // The SDK runs parallel calls of one tool in the same millisecond,
+            // so a clock alone would hand them one id.
+            const toolCallId = `call_${name}_${crypto.randomUUID()}`;
+            const result = t.execute
+              ? await t.execute(toolArgs, toolCallId)
+              : executeTool
+                ? await executeTool({
+                    id: toolCallId,
+                    name,
+                    args: toolArgs
+                  })
+                : `Tool "${name}" is not available`;
+            // A terminal tool ends the SDK loop after its result is delivered.
+            if (t.terminal) abortController.abort();
+            return result;
+          },
+          args.resolveMedia
+        )
       );
       const server = createServer({
         name: TOOL_SERVER_NAME,
@@ -1223,7 +1228,8 @@ function toolDefinition(
   run: (
     name: string,
     args: Record<string, unknown>
-  ) => Promise<string | MessageContent[]>
+  ) => Promise<string | MessageContent[]>,
+  resolveMedia?: (messages: Message[]) => Promise<Message[]>
 ): SdkMcpToolDefinition {
   return {
     name: tool.name,
@@ -1231,7 +1237,18 @@ function toolDefinition(
     inputSchema: jsonSchemaToZodShape(tool.inputSchema) as never,
     handler: async (toolArgs: Record<string, unknown>) => {
       const result = await run(tool.name, toolArgs ?? {});
-      return { content: toolResultToMcpContent(result) };
+      const resolved =
+        Array.isArray(result) &&
+        result.some((part) => part.type === "image_url") &&
+        resolveMedia
+          ? await resolveMedia([{ role: "user", content: result }])
+          : null;
+      const content = resolved?.[0]?.content;
+      return {
+        content: toolResultToMcpContent(
+          Array.isArray(content) ? content : result
+        )
+      };
     }
   };
 }
@@ -1243,7 +1260,7 @@ type McpContentBlock =
 /**
  * Decode a NodeTool image content part into an MCP image block (raw base64 +
  * mimeType). Returns null for a remote URL we cannot inline — MCP image content
- * is base64-only, so the caller degrades it to a text reference.
+ * is base64-only, so the caller reports that the image could not be shown.
  */
 function toMcpImageBlock(image: {
   uri?: string;
@@ -1278,7 +1295,7 @@ function toMcpImageBlock(image: {
 /**
  * Convert a tool result into MCP content blocks. Text passes through; image
  * parts become MCP image blocks (the SDK forwards them to Claude as real
- * images). A remote-URL image that can't be inlined degrades to a text note.
+ * images). An image that can't be inlined becomes a failure note.
  */
 export function toolResultToMcpContent(
   result: string | MessageContent[]
@@ -1293,8 +1310,13 @@ export function toolResultToMcpContent(
     } else if (part.type === "image_url") {
       const img = toMcpImageBlock(part.image);
       if (img) blocks.push(img);
-      else if (isString(part.image.uri)) {
-        blocks.push({ type: "text", text: `[image at ${part.image.uri}]` });
+      else {
+        blocks.push({
+          type: "text",
+          text: isString(part.image.uri)
+            ? `[image could not be shown: ${part.image.uri}]`
+            : "[image could not be shown]"
+        });
       }
     }
   }
