@@ -25,7 +25,12 @@ export function SetupFooterField({
 }: SetupFooterFieldProps): React.ReactElement {
   return (
     <FlexRow gap={GAP.tight} align="center">
-      <Caption color="secondary" component="span" sx={{ whiteSpace: "nowrap" }}>
+      <Caption
+        size="small"
+        color="secondary"
+        component="span"
+        sx={{ whiteSpace: "nowrap" }}
+      >
         {label}
       </Caption>
       <Box sx={{ width, minWidth: 0 }}>{children}</Box>

@@ -379,12 +379,18 @@ export function SetupFlow<Stage extends string>({
 
   // Why the button is off comes first, and replaces the detail: a cost
   // estimate beside a dead button answers a question nobody asked.
+  // Every status reads at the estimate's size, so the line holds one size
+  // whichever state it is in.
   const status = pending ? (
-    <ThinkingIndicator label={step.pendingLabel ?? "Working"} announce />
+    <Text size="small" component="div">
+      <ThinkingIndicator label={step.pendingLabel ?? "Working"} announce />
+    </Text>
   ) : canceled ? (
-    <Caption color="secondary">Canceled</Caption>
+    <Caption size="small" color="secondary">
+      Canceled
+    </Caption>
   ) : blocked && step.blockedReason ? (
-    <Caption color="secondary" id={blockedReasonId}>
+    <Caption size="small" color="secondary" id={blockedReasonId}>
       {step.blockedReason}
     </Caption>
   ) : step.primaryDetail ? (
