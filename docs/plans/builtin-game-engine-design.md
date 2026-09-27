@@ -296,7 +296,7 @@ This replaces the original bulk-call preference: persistent functions can retain
 closure or global state that snapshots cannot restore. Separate contexts also
 prevent one script from changing another script's input. Measure context creation,
 source evaluation, and serialization costs before increasing instance budgets.
-The implementation lives in [game-runtime scripts](../../packages/game-runtime/src/scripts.ts)
+The implementation lives in `packages/game-runtime/src/scripts.ts`
 without depending on the agents package.
 
 Game scripts receive state, tick input, seeded random functions, and allowed game
