@@ -1,9 +1,9 @@
 // Prism: an 18-second launch ad for a fictional running shoe, built on four
 // generated stills shot against chroma green and keyed out in the timeline.
 //
-// `node scripts/example-timelines/prism.mjs` writes the shipped bundle
+// `node scripts/example-timelines/build.mjs prism` writes the shipped bundle
 // packages/base-nodes/nodetool/examples/timelines/prism.timeline.json.
-// `node scripts/example-timelines/prism.mjs --stills [name…]` regenerates the
+// `node scripts/example-timelines/prism-stills.mjs [name…]` regenerates the
 // stills (see prism-stills.mjs for every prompt and seed).
 // `node scripts/render-example-timeline.mjs prism` renders its video and poster.
 //
@@ -43,17 +43,7 @@
 // | `scramble` and `ticker` text | `intro` (S3), `weight`, `energy` (S4) | 270 |
 // | `iris`, `gradientWipe` (noise map), `push`, `slide`, `zoomBlur`, `dipToColor` | S3, S4, `card-b`, `card-c`, S5, S6 | 243 |
 // | Tempo and beat markers without music, cuts checked against the grid | `word-*` (S2) | 75 |
-import { writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { createBuilder, cv, kfs, NOOP, rad, track } from "./lib.mjs";
-import { generateStills, stillUri } from "./prism-stills.mjs";
-
-if (process.argv[2] === "--stills") {
-  await generateStills(process.argv.slice(3));
-  process.exit(0);
-}
+import { createBuilder, cv, kfs, track, rad, NOOP, saveTimeline } from "@nodetool-ai/sandbox-timeline";
 
 const W = 1920, H = 1080, FPS = 30, FRAMES = 540, BPM = 120;
 
@@ -74,7 +64,7 @@ const ABOVE_FLOOR = (height) => ({ kind: "rect", x: 0, y: 0, width: 1, height })
 // Document plumbing
 
 const { ms, nid, scenes, current, scene, group, image: asset, adjust, box, ellipse, path, pathData, text, on, across, loop, sceneTracks, beatGrid } = createBuilder({ W, H, FPS, font: SANS });
-const image = (still, o = {}) => asset(stillUri(still), { name: still, ...o });
+const image = (still, o = {}) => asset(`package://nodetool-base/timelines/prism/${still}.jpg`, { name: still, ...o });
 
 /** A catalog preset starting at scene frame `f0`. A loop's `dur` is its period. */
 function preset(clip, id, role, f0, dur, params = {}, extra = {}) {
@@ -419,7 +409,7 @@ clips.push({
 });
 
 // Markers on every beat, and the word cuts snapped to them.
-const state = await beatGrid(tracks, clips, { bpm: BPM, durationMs: ms(FRAMES), snap: wordIds });
+const ops = beatGrid({ bpm: BPM, durationMs: ms(FRAMES), snap: wordIds });
 
 const bundle = {
   name: "Prism — Run in Every Colour",
@@ -430,9 +420,7 @@ const bundle = {
   durationMs: ms(FRAMES),
   videoUri: "package://nodetool-base/timelines/prism/ad.mp4",
   posterUri: "package://nodetool-base/timelines/prism/poster.jpg",
-  document: { tracks: state.tracks, clips: state.clips, markers: state.markers, tempo: { bpm: BPM, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } } }
+  document: { tracks, clips, markers: [], tempo: { bpm: BPM, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } } }
 };
 
-const out = join(dirname(fileURLToPath(import.meta.url)), "../../packages/base-nodes/nodetool/examples/timelines/prism.timeline.json");
-writeFileSync(out, `${JSON.stringify(bundle)}\n`);
-console.log(`${state.clips.length} clips, ${state.tracks.length} tracks, ${state.markers.length} markers -> ${out}`);
+await output("timeline", await saveTimeline(bundle, { timelines: nodetool.timelines, ops }));

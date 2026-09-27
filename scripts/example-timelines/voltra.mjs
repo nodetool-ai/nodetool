@@ -1,9 +1,9 @@
 // Voltra: a 23-second launch ad for a fictional electric motorcycle, built on
 // fifteen generated stills and as many timeline features as one ad can carry.
 //
-// `node scripts/example-timelines/voltra.mjs` writes the shipped bundle
+// `node scripts/example-timelines/build.mjs voltra` writes the shipped bundle
 // packages/base-nodes/nodetool/examples/timelines/voltra.timeline.json.
-// `node scripts/example-timelines/voltra.mjs --stills [name…]` regenerates the
+// `node scripts/example-timelines/voltra-stills.mjs [name…]` regenerates the
 // stills (see voltra-stills.mjs for every prompt and seed, stills.mjs for the model).
 // `node scripts/render-example-timeline.mjs voltra` renders its video and poster.
 //
@@ -70,19 +70,7 @@
 // | Markers popping in from scale 0 | `tick-*` (S4) | 397 |
 // | `camera2d` move across a wide board | `board` (S2) | 180 |
 // | Motion blur from the render output settings | `render` in the bundle; `road` asks for more | 106 |
-import { writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { findInstrumentPreset, MIDI_PPQ } from "@nodetool-ai/timeline";
-
-import { createBuilder, cv, kfs, NOOP, rad, track } from "./lib.mjs";
-import { generateStills, stillUri } from "./voltra-stills.mjs";
-
-if (process.argv[2] === "--stills") {
-  await generateStills(process.argv.slice(3));
-  process.exit(0);
-}
+import { createBuilder, cv, kfs, track, rad, NOOP, MIDI_PPQ, hash, saveTimeline } from "@nodetool-ai/sandbox-timeline";
 
 const W = 1920, H = 1080, FPS = 30, FRAMES = 690, BPM = 120, BEAT = 15;
 
@@ -95,8 +83,20 @@ const EASE_IO = "cubic-bezier(0.65,0,0.35,1)", SNAP = "cubic-bezier(0.16,1,0.3,1
 // ---------------------------------------------------------------------------
 // Document plumbing
 
-const { ms, nid, scenes, scene, add, group, image: asset, adjust, box, ellipse, path, text, on, across, loop, fadeOut, typewriter, rainShimmer, sceneTracks, beatGrid } = createBuilder({ W, H, FPS, font: SANS });
-const image = (still, o = {}) => asset(stillUri(still), { name: still, ...o });
+const { ms, nid, scenes, scene, add, group, image: asset, adjust, box, ellipse, path, text, on, across, loop, fadeOut, typewriter, sceneTracks, beatGrid } = createBuilder({ W, H, FPS, font: SANS });
+
+/**
+ * Rain that falls: the plate jumps to a new offset every two frames on held
+ * keys, the way a flicker of streaks reads in live action. A scrolling tile
+ * showed its seam, because the generated plate is denser at the top.
+ */
+function rainShimmer(clip, seed, reach = 140) {
+  const frames = Math.round((clip.durationMs / 1000) * FPS);
+  const steps = Math.max(2, Math.floor(frames / 2));
+  const at = (axis) => kfs(axis, Array.from({ length: steps + 1 }, (_, k) => [k / steps, Math.round((hash(seed * 97 + k * 3 + (axis === "offsetX" ? 1 : 2)) - 0.5) * 2 * reach), k ? "hold" : undefined]));
+  return across(clip, [at("offsetX"), at("offsetY")]);
+}
+const image = (still, o = {}) => asset(`package://nodetool-base/timelines/voltra/${still}.jpg`, { name: still, ...o });
 
 /** Text that slams in: large to rest size, out of a blur. */
 function slam(clip, f0, from = 1.4) {
@@ -487,8 +487,8 @@ const clips = [...layers.clips];
 tracks.push(...layers.tracks);
 const offset = tracks.length;
 tracks.push(
-  { id: "t_drums", name: "drums", type: "midi", index: offset, visible: true, locked: false, instrument: findInstrumentPreset("dr1-tr-void").instrument },
-  { id: "t_bass", name: "bass", type: "midi", index: offset + 1, visible: true, locked: false, instrument: findInstrumentPreset("bl1-acid").instrument }
+  { id: "t_drums", name: "drums", type: "midi", index: offset, visible: true, locked: false, instrument: { preset: "dr1-tr-void" } },
+  { id: "t_bass", name: "bass", type: "midi", index: offset + 1, visible: true, locked: false, instrument: { preset: "bl1-acid" } }
 );
 tracks.sort((a, b) => a.index - b.index);
 for (const s of scenes) clips.push(s.group);
@@ -525,7 +525,7 @@ const camera2d = {
 };
 
 // Markers on every beat, and the montage cuts snapped to them.
-const state = await beatGrid(tracks, clips, { bpm: BPM, durationMs: ms(FRAMES), snap: montageIds });
+const ops = beatGrid({ bpm: BPM, durationMs: ms(FRAMES), snap: montageIds });
 
 const bundle = {
   name: "Voltra — Silent. Violent.",
@@ -539,9 +539,7 @@ const bundle = {
   // Render output settings: a film-standard shutter over the whole ad. The
   // ride plates ask for a wider one of their own.
   render: { motionBlurSamples: 4, shutterAngle: 180 },
-  document: { tracks: state.tracks, clips: state.clips, markers: state.markers, camera2d, tempo: { bpm: BPM, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } } }
+  document: { tracks, clips, markers: [], camera2d, tempo: { bpm: BPM, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } } }
 };
 
-const out = join(dirname(fileURLToPath(import.meta.url)), "../../packages/base-nodes/nodetool/examples/timelines/voltra.timeline.json");
-writeFileSync(out, `${JSON.stringify(bundle)}\n`);
-console.log(`${state.clips.length} clips, ${state.tracks.length} tracks, ${state.markers.length} markers -> ${out}`);
+await output("timeline", await saveTimeline(bundle, { timelines: nodetool.timelines, ops }));

@@ -159,13 +159,19 @@ async function loadExecutor(): Promise<JsScriptExecutor> {
   const { JS_SCRIPT_MAX_TIMEOUT_SECONDS } =
     await import("@nodetool-ai/protocol/api-schemas/js-scripts.js");
 
+  // The toolbelt's `nodetool.*` modules read and write the database, so a
+  // body that saves a timeline needs it even when it declares no secrets.
+  const { initDb, getSecret } = await import("@nodetool-ai/models");
+  const { getDefaultDbPath } = await import("@nodetool-ai/config");
+  initDb(getDefaultDbPath());
+  // A body imports installed sandbox packs by name, as it does on the server.
+  const { installSandboxCatalog } = await import("../sandbox-catalog.js");
+  installSandboxCatalog();
+
   let seq = 0;
   return async (document, inputs, inputStreams) => {
     let secretResolver;
     if (document.secrets.length > 0) {
-      const { initDb, getSecret } = await import("@nodetool-ai/models");
-      const { getDefaultDbPath } = await import("@nodetool-ai/config");
-      initDb(getDefaultDbPath());
       secretResolver = getSecret;
     }
     const contextInit: ConstructorParameters<typeof ProcessingContext>[0] = {

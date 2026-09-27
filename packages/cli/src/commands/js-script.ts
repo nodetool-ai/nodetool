@@ -172,7 +172,13 @@ export function registerJsScriptCommands(program: Command): void {
         );
 
         if (opts.json) {
-          console.log(JSON.stringify(result, null, 2));
+          // process.exit below drops what a pipe has not taken yet, so a
+          // result past the pipe buffer (64 KB) arrived cut off.
+          await new Promise<void>((resolve) =>
+            process.stdout.write(`${JSON.stringify(result, null, 2)}\n`, () =>
+              resolve()
+            )
+          );
         } else {
           printRunResult(result);
         }

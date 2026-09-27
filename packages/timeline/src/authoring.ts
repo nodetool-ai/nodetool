@@ -10,8 +10,15 @@
  *
  * Only absent fields are filled. A value the caller sent is never replaced —
  * the point of a whole-document write is that what was sent is what is stored.
+ * Two shorthands the `ui_timeline_*` ops accept are resolved the way those ops
+ * resolve them: a typewriter's author-facing duration becomes its per-character
+ * reveal windows, and a midi track's `instrument: {preset}` becomes the sound
+ * the preset names.
  */
 
+import { typewriterTiming } from "./animation/typewriter.js";
+import { findInstrumentPreset } from "./midi/presets.js";
+import type { AnimationStagger, StaggerFrom } from "./animation/types.js";
 import type { TimelineClip } from "./types.js";
 
 /** Render settings that belong on the sequence row, not in the document. */
@@ -73,7 +80,60 @@ function normalizeTrack(
   if (next["index"] === undefined) next["index"] = index;
   if (next["visible"] === undefined) next["visible"] = true;
   if (next["locked"] === undefined) next["locked"] = false;
+  const instrument = next["instrument"];
+  if (isRecord(instrument) && typeof instrument["preset"] === "string") {
+    const preset = findInstrumentPreset(instrument["preset"]);
+    // An unknown preset stays as sent, for validation to report.
+    if (preset) next["instrument"] = structuredClone(preset.instrument);
+  }
   return next;
+}
+
+const STAGGER_FROM: readonly StaggerFrom[] = ["start", "end", "center"];
+
+function parseStagger(raw: unknown): AnimationStagger | undefined {
+  if (!isRecord(raw)) return undefined;
+  const { unit, offsetMs, from } = raw;
+  if (typeof unit !== "string" || typeof offsetMs !== "number") {
+    return undefined;
+  }
+  const stagger: AnimationStagger = { unit, offsetMs };
+  const start = STAGGER_FROM.find((value) => value === from);
+  if (start) stagger.from = start;
+  return stagger;
+}
+
+/**
+ * A typewriter written with a plain duration draws nothing until its window
+ * ends. `animate_clip` resolves it to one-millisecond reveals, one per
+ * character, and a resolved one has a 1 ms duration, so resolving is
+ * idempotent.
+ */
+function resolveTypewriter(
+  animation: Record<string, unknown>,
+  clip: Record<string, unknown>
+): Record<string, unknown> {
+  if (animation["preset"] !== "typewriter" || animation["durationMs"] === 1) {
+    return animation;
+  }
+  const textStyle = clip["textStyle"];
+  const text =
+    isRecord(textStyle) && typeof textStyle["text"] === "string"
+      ? textStyle["text"]
+      : "";
+  const delayMs =
+    typeof animation["delayMs"] === "number" ? animation["delayMs"] : 0;
+  const clipMs =
+    typeof clip["durationMs"] === "number" ? clip["durationMs"] : 0;
+  const requested =
+    typeof animation["durationMs"] === "number"
+      ? animation["durationMs"]
+      : undefined;
+  const stagger = parseStagger(animation["stagger"]);
+  return {
+    ...animation,
+    ...typewriterTiming(text, clipMs - delayMs, requested, stagger)
+  };
 }
 
 function normalizeClip(
@@ -93,10 +153,11 @@ function normalizeClip(
   const animations = next["animations"];
   if (Array.isArray(animations)) {
     next["animations"] = animations.map((animation) => {
-      if (!isRecord(animation) || animation["id"] !== undefined) {
-        return animation;
-      }
-      return { ...animation, id: nextAnimationId() };
+      if (!isRecord(animation)) return animation;
+      const resolved = resolveTypewriter(animation, next);
+      return resolved["id"] !== undefined
+        ? resolved
+        : { ...resolved, id: nextAnimationId() };
     });
   }
   return next;

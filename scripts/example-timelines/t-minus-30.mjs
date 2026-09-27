@@ -3,7 +3,7 @@
 //
 // `python3 scripts/example-timelines/t-minus-30-media.py` regenerates source
 // media on macOS using Pillow, ffmpeg, and the system Alex voice.
-// `node scripts/example-timelines/t-minus-30.mjs` writes the document.
+// `node scripts/example-timelines/build.mjs t-minus-30` writes the document.
 // `node scripts/render-example-timeline.mjs t-minus-30 --poster-frame 805`
 // renders the deliverable.
 //
@@ -19,11 +19,7 @@
 // | Recovery speed ramp and ignition | 655, 705 |
 // | Clean launch and live telemetry | 825 |
 // | Audible countdown, alarm, and launch rumble | 375, 570, 765 |
-import { writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { createBuilder, cv } from "./lib.mjs";
+import { createBuilder, cv, saveTimeline } from "@nodetool-ai/sandbox-timeline";
 
 const W = 1280, H = 720, FPS = 30, FRAMES = 900;
 const CYAN = "#7de5ea", WHITE = "#eef7f5", MUTED = "#9ab7bd";
@@ -161,6 +157,5 @@ const bundle = {
     { id: "ascent", timeMs: ms(780), label: "Ascent" }
   ] }
 };
-const out = join(dirname(fileURLToPath(import.meta.url)), "../../packages/base-nodes/nodetool/examples/timelines/t-minus-30.timeline.json");
-writeFileSync(out, `${JSON.stringify(bundle)}\n`);
-console.log(`${clips.length} clips, ${tracks.length} tracks -> ${out}`);
+
+await output("timeline", await saveTimeline(bundle, { timelines: nodetool.timelines }));

@@ -1,14 +1,14 @@
 // The Voltra stills: every prompt, model and seed behind the example's images.
 //
-// `node scripts/example-timelines/voltra.mjs --stills [name…]` regenerates them
+// `node scripts/example-timelines/voltra-stills.mjs [name…]` regenerates them
 // through stills.mjs. Bike shots pass the hero still as a reference image so
 // the same machine appears in every frame.
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { generateStills as generate, ROOT } from "./stills.mjs";
 
 export const STILLS_DIR = join(ROOT, "packages/base-nodes/nodetool/assets/nodetool-base/timelines/voltra");
-export const stillUri = (name) => `package://nodetool-base/timelines/voltra/${name}.jpg`;
 
 const BIKE =
   "the Voltra R1, a fictional electric street motorcycle: matte graphite-black angular bodywork, " +
@@ -43,3 +43,5 @@ export const STILLS = [
 export async function generateStills(names = []) {
   await generate(STILLS_DIR, STILLS, names);
 }
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) await generateStills(process.argv.slice(2));

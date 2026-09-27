@@ -1,0 +1,41 @@
+{
+  "name": "@nodetool-ai/sandbox-timeline",
+  "version": "0.8.0",
+  "description": "Author a motion-graphics timeline as code: scenes of shapes, text and images, keyframed in frames, saved in one call",
+  "license": "MIT",
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "js",
+        "file": "sandbox/index.js"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-timeline"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md",
+    "sandbox"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "timeline",
+    "motion-graphics",
+    "animation"
+  ]
+}

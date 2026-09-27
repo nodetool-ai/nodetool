@@ -903,8 +903,11 @@ of `--inputs`; a staged handle the script does not declare is refused. `test`
 runs the document's own saved cases (which stage their own items in
 `inputStreams`), grades them the way `test_code` grades a case list, and exits
 non-zero on any failure — the keyless selfcheck the harness gate runs, against
-`packages/cli/tests/fixtures/js-script-sum.json` and
-`js-script-running-total.json`. `debug` replays each
+`packages/cli/tests/fixtures/js-script-sum.json`,
+`js-script-running-total.json` and `js-script-timeline-pack.json`, which
+imports a shipped sandbox pack. `run` and `test` open the database and install
+the sandbox pack catalog, so a body can import packs and save through
+`nodetool.*`. `debug` replays each
 `--interact` step against the headless `ui_jsscript_*` bridge (tool names with
 or without the prefix; a failing step is recorded and the script continues),
 validates the document the session left behind, and writes
