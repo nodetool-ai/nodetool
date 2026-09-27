@@ -12,6 +12,7 @@
  */
 import {
   isLoopFeedbackHandle,
+  legacyGameNodeDiagnostic,
   migrateGraphNodeTypes,
   type DynamicSlotMeta
 } from "@nodetool-ai/protocol";
@@ -1349,7 +1350,7 @@ export function validateGraph(
         code: "unknown_node",
         nodeId: id,
         nodeType: type,
-        message: `Unknown node type "${type}" (not in the registry; Python-only nodes are not validated statically)`
+        message: legacyGameNodeDiagnostic(type) ?? `Unknown node type "${type}" (not in the registry; Python-only nodes are not validated statically)`
       });
     }
   }

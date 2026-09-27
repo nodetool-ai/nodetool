@@ -9,8 +9,6 @@
     { "path": "../protocol" },
     { "path": "../runtime" },
     { "path": "../node-sdk" },
-    { "path": "../nodes-utils" },
-    { "path": "../godot" },
-    { "path": "../godot-templates" }
+    { "path": "../nodes-utils" }
   ]
 }

@@ -528,6 +528,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
 
   // ---------------------------------------------------------- browser-side only
   {
+    file: "packages/game-renderer/src/standalone-player.ts",
+    owner: "standalone game player assets",
+    inputSource: "fixed",
+    schemes: ["relative"],
+    authScope: "the page's own cookies",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "browser",
+    guardedBy: [],
+    note: "The exported player fetches its fixed relative game.json and only asset paths under ./assets/ from its own static origin."
+  },
+  {
     file: "packages/image-nodes/src/nodes/image-io.ts",
     owner: "image ref → bytes (browser branch)",
     inputSource: "workflow",

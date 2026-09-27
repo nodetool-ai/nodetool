@@ -268,6 +268,8 @@ async function loadDocument(
     return row;
   };
   switch (type) {
+    case "game":
+      throw new ProjectCopyError("Game copies are not supported yet");
     case "storyboard":
       return { type, id, row: assertOwned(await Storyboard.findById(id)) };
     case "script":

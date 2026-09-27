@@ -17,7 +17,6 @@ export {
   type FolderAssetEntry,
   type ProcessingContextModelInterfaces,
   type EntityUpsertArgs,
-  type GameTemplateInfo,
   type GenerationRequest,
   type GenerationResult,
   type GenerationRunOptions,

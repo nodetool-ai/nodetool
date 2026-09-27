@@ -1185,6 +1185,20 @@ export function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_project_updated" ON "projects" ("updated_at");
     CREATE INDEX IF NOT EXISTS "idx_project_lifecycle" ON "projects" ("user_id", "archived_at", "deleted_at");
 
+    CREATE TABLE IF NOT EXISTS "games" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "project_id" text NOT NULL,
+      "workspace_id" text NOT NULL,
+      "name" text NOT NULL,
+      "source_root" text NOT NULL,
+      "current_revision" text NOT NULL,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_game_user_project" ON "games" ("user_id", "project_id");
+    CREATE INDEX IF NOT EXISTS "idx_game_workspace" ON "games" ("workspace_id");
+
     CREATE TABLE IF NOT EXISTS "scripts" (
       "id" text PRIMARY KEY NOT NULL,
       "user_id" text NOT NULL,

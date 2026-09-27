@@ -3622,6 +3622,30 @@ export const migrations: MigrationDef[] = [
     async down() {
       // The column stays: dropping one is unsafe across dialects and versions.
     }
+  },
+  {
+    version: "20260926_000000",
+    name: "create_games",
+    createsTables: ["games"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`CREATE TABLE IF NOT EXISTS games (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL,
+        project_id TEXT NOT NULL,
+        workspace_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        source_root TEXT NOT NULL,
+        current_revision TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`);
+      await db.execute("CREATE INDEX IF NOT EXISTS idx_game_user_project ON games (user_id, project_id)");
+      await db.execute("CREATE INDEX IF NOT EXISTS idx_game_workspace ON games (workspace_id)");
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS games");
+    }
   }
 ];
 

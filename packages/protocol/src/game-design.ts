@@ -17,9 +17,9 @@
  *   template, so a keyless install walks the whole flow and the harness has
  *   something to build against.
  *
- * The slot ids in the chips are written out rather than read from
- * `@nodetool-ai/godot-templates`: protocol sits below that package in the
- * dependency order. `game-design.test.ts` reads the shipped manifests off disk
+ * The slot ids in the chips are written out rather than read from a template
+ * package: protocol sits below game nodes in the dependency order.
+ * `game-design.test.ts` reads the fixture manifests off disk
  * and fails when a chip stops covering one.
  */
 
@@ -39,7 +39,7 @@ export const GAME_DESIGN_TOOL_DESCRIPTION =
   "The written design for one game: its premise, loop, cast, enemies and level, plus the subject of every asset the chosen template needs.";
 
 export const GAME_DESIGNER_SYSTEM_PROMPT = [
-  "You design small 2D games for a fixed Godot template. You write text; you",
+  "You design small 2D games for a native game template. You write text; you",
   "build nothing.",
   "",
   "You are given the template's asset manifest — every slot it needs, that",

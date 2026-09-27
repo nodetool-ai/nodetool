@@ -1,6 +1,6 @@
 /**
  * Game-asset audio slots: fit a clip to the length a template asked for and
- * stamp it with the {@link SlotFill} the Godot writer reads.
+ * stamp it with the {@link SlotFill} native game staging reads.
  *
  * Both nodes operate in sample space (decode → edit → re-encode), per this
  * package's rules. The fill is validated with the protocol Zod schema before it
@@ -150,7 +150,7 @@ function withSlotMetadata(ref: AudioRef, fill: SfxFill | MusicFill, seconds: num
 /**
  * Store the trimmed clip as its own asset when the context can. The bytes
  * differ from the input's (trimmed, faded, crossfaded), so the stored asset
- * is the only durable copy `export_godot_project` can read, and the fill
+ * is the durable copy native game staging reads, and the fill
  * rides on its metadata.
  */
 async function persistStamped(
@@ -183,7 +183,7 @@ export class SoundEffectNode extends BaseNode {
   static readonly nodeType = "nodetool.game.SoundEffect";
   static readonly title = "Game Sound Effect";
   static readonly description =
-    "Fits a clip to a game template's sound-effect slot: trims it to the target length with a short fade-out and stamps it with the slot fill.\n    audio, game, godot, sfx";
+    "Fits a clip to a game template's sound-effect slot: trims it to the target length with a short fade-out and stamps it with the slot fill.\n    audio, game, sfx";
   static readonly metadataOutputTypes = {
     output: "audio",
     fill: "dict"
@@ -271,7 +271,7 @@ export class MusicLoopNode extends BaseNode {
   static readonly nodeType = "nodetool.game.MusicLoop";
   static readonly title = "Game Music Loop";
   static readonly description =
-    "Fits a track to a game template's music slot: trims it to the target length and crossfades the end into the start so it loops without a click.\n    audio, game, godot, music, loop";
+    "Fits a track to a game template's music slot: trims it to the target length and crossfades the end into the start so it loops without a click.\n    audio, game, music, loop";
   static readonly metadataOutputTypes = {
     output: "audio",
     fill: "dict"

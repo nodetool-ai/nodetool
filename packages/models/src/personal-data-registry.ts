@@ -413,6 +413,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "The person's project folders — the container the documents, scripts and storyboards below hang off. Deleted after them, so nothing is orphaned."
   },
   {
+    table: "games",
+    schemaExport: "games",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "Game records name the person's authored source and current revision. Delete the row on erasure and include it in their data export."
+  },
+  {
     table: "skills",
     schemaExport: "skills",
     disposition: "delete",

@@ -113,22 +113,14 @@ const WORKFLOW_PLAN_SUITES =
   "npm run test --workspace=packages/agents -- app-build-workflow-plan && " +
   "npm run test --workspace=web -- src/components/setup/workflow src/hooks/workflow src/lib/tools/builtin/__tests__/workflowSetupTools";
 
-/**
- * The Game-flow suites: the protocol contracts (designer, slot prompt, graph
- * builder, settings), criterion 5's chip build against the real node registry,
- * the export node over the filled fixture, the four headless capabilities, and
- * the browser flow's steps and tools. One constant so the entry's `command` and
- * its `selfcheck` cannot drift.
- *
- * Vitest takes these positional arguments as file-path filters.
- */
+/** Native game schemas, simulation, renderer, graph, and persistence checks. */
 const GAME_FLOW_SUITES =
   "npm run test --workspace=packages/protocol -- game && " +
   "npm run test --workspace=packages/base-nodes -- game-graph-chips && " +
   "npm run test --workspace=packages/game-nodes && " +
-  "npm run test --workspace=packages/agents -- capabilities-game-setup capabilities-godot && " +
-  "npm run test --workspace=packages/websocket -- trpc-games && " +
-  "npm run test --workspace=web -- src/components/setup/game src/hooks/game src/lib/tools/builtin/__tests__/gameSetupTools";
+  "npm run test --workspace=packages/game-runtime && " +
+  "npm run test --workspace=packages/game-renderer && " +
+  "npm run test --workspace=packages/websocket -- trpc-games";
 
 /**
  * Durable generation recovery without a provider call. These suites exercise
@@ -707,20 +699,11 @@ export const HARNESSES: HarnessEntry[] = [
   },
   {
     id: "game-flow",
-    title:
-      "Game flow (design contract, slot graph, export node, headless tools)",
-    // No CLI command owns the flow: the surface is `settings.game` on a
-    // workflow and the Godot project the graph it builds writes. The checked-in
-    // suites are the headless surface — they build every shipped chip's design
-    // against the real node registry and hand the graph to the same validator
-    // `validate_workflow` runs, then run the export node over the filled
-    // fixture and read the project it wrote. Verification under real Godot is
-    // the one part that needs a binary: those cases skip with a reason when
-    // `GODOT_BIN` is unset rather than reporting green.
+    title: "Native game engine (validate, simulate, render, stage, persist)",
     command: GAME_FLOW_SUITES,
     kind: "static",
     capabilities: ["no-db"],
-    docs: "docs/creation-flows/game-prd.md § 8",
+    docs: "docs/plans/builtin-game-engine-design.md",
     selfcheck: { command: GAME_FLOW_SUITES, cost: "cheap" }
   },
   {
@@ -1135,8 +1118,7 @@ export const SURFACES: SurfaceEntry[] = [
   },
   {
     id: "game-creation-flow",
-    title:
-      "Game creation flow (settings.game, designer, slot graph, export node, seeds)",
+    title: "Native game creation and editing",
     harnesses: ["game-flow", "capability-suites", "validate"],
     paths: [
       "packages/protocol/src/game-design.ts",
@@ -1144,12 +1126,15 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/protocol/src/game-flow-prompt.ts",
       "packages/protocol/src/style-presets.ts",
       "packages/game-nodes/",
+      "packages/game-runtime/",
+      "packages/game-renderer/",
+      "packages/godot/",
+      "packages/godot-templates/",
       "packages/base-nodes/tests/game-graph-chips.test.ts",
       "packages/websocket/src/trpc/routers/games.ts",
       "packages/websocket/src/lib/style-presets.ts",
-      "web/src/components/setup/game/",
-      "web/src/hooks/game/",
-      "web/src/lib/tools/builtin/gameSetup.ts"
+      "web/src/components/workspace/GameSurface.tsx",
+      "web/src/components/projects/NewProjectSurface.tsx"
     ]
   },
   {
@@ -1408,20 +1393,19 @@ export const SURFACES: SurfaceEntry[] = [
     ]
   },
   {
-    id: "godot",
-    title:
-      "Godot game pipeline (slot contract, game nodes, project writer, templates, godot capabilities)",
+    id: "native-game",
+    title: "Native game assets, nodes, renderer, and agent capabilities",
     harnesses: ["capability-suites"],
     paths: [
       "packages/protocol/src/game-assets.ts",
       "packages/protocol/fixtures/game-assets/",
-      "packages/godot/",
-      "packages/godot-templates/",
+      "packages/game-runtime/",
+      "packages/game-renderer/",
       "packages/image-nodes/src/nodes/game.ts",
       "packages/audio-nodes/src/nodes/game.ts",
-      "packages/game-nodes/src/project.ts",
-      "packages/agents/src/capabilities/godot.ts",
-      "packages/agents/src/capabilities/godot.specs.ts"
+      "packages/game-nodes/src/nodes/game.ts",
+      "packages/agents/src/capabilities/game.ts",
+      "packages/agents/src/capabilities/game.specs.ts"
     ]
   },
   {
@@ -1463,7 +1447,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/video-nodes/src/nodes/storyboard.ts",
       "packages/base-nodes/nodetool/examples/nodetool-base/Per-SKU Ad Factory.json",
       "packages/base-nodes/nodetool/examples/nodetool-base/Localized Explainer.json",
-      "packages/base-nodes/nodetool/examples/nodetool-base/Platformer Asset Pack.json",
+      "packages/base-nodes/nodetool/examples/nodetool-base/Top-down Native Asset Pack.json",
       "packages/base-nodes/nodetool/examples/nodetool-base/Three Ratios.json",
       "packages/cli/fixtures/graph-resources/",
       "scripts/graph-resources-fixtures.mjs"

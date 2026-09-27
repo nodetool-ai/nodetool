@@ -13,20 +13,25 @@
  * generates nothing (criterion 4).
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { Workflow, initTestDb } from "@nodetool-ai/models";
+import { ModelObserver, Project, Workspace, Workflow, initTestDb } from "@nodetool-ai/models";
 import {
   GAME_INSPIRATION_CHIPS,
   GAME_PLACEHOLDER_SENTINEL
 } from "@nodetool-ai/protocol";
 import { readGameSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
-import { getTemplate } from "@nodetool-ai/godot-templates";
+import { getNativeTemplate } from "@nodetool-ai/game-nodes";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 
-const CHIP = GAME_INSPIRATION_CHIPS[0];
+const CHIP = GAME_INSPIRATION_CHIPS.find((chip) => chip.template === "topdown")!;
+const PROJECT_ID = "game-setup-project";
+let directory: string;
 
 /** One node's metadata, in the shape `planNodeShape` reads. */
 function meta(
@@ -143,20 +148,17 @@ const METADATA: Record<string, unknown> = {
     ],
     { input_fields: ["audio"] }
   ),
-  "nodetool.game.ExportGodotProject": meta(
-    "nodetool.game.ExportGodotProject",
+  "nodetool.game.StageGameAssets": meta(
+    "nodetool.game.StageGameAssets",
     [
       ["template", "str"],
-      ["name", "str"],
+      ["game_id", "str"],
       ["fills", "list[union[image,audio]]"],
-      ["directory", "str"],
-      ["verify", "bool"]
     ],
     [
       ["output", "dict"],
-      ["directory", "str"],
-      ["verified", "bool"],
-      ["archive", "str"]
+      ["bindings", "dict"],
+      ["paths", "list[str]"]
     ],
     { input_fields: ["fills"] }
   ),
@@ -192,6 +194,7 @@ const run = () =>
 const makeWorkflow = () =>
   Workflow.create<Workflow>({
     user_id: "u1",
+    project_id: PROJECT_ID,
     name: "G",
     description: "",
     access: "private",
@@ -217,7 +220,16 @@ async function designedWorkflow(): Promise<string> {
   return row.id;
 }
 
-beforeEach(() => initTestDb());
+beforeEach(async () => {
+  initTestDb();
+  directory = await mkdtemp(join(tmpdir(), "nodetool-game-setup-"));
+  await Project.insertNew({ id: PROJECT_ID, user_id: "u1", name: "Game", kind: "game" });
+  await Workspace.create({ user_id: "u1", project_id: PROJECT_ID, name: "Game files", path: directory, is_default: false });
+});
+afterEach(async () => {
+  ModelObserver.clear();
+  await rm(directory, { recursive: true, force: true });
+});
 
 describe("capability shape", () => {
   it("carries the four wire names and the gate's categories", () => {
@@ -238,7 +250,7 @@ describe("set_game_setup", () => {
     const result = (await run().invoke("set_game_setup", {
       workflow_id: row.id,
       brief: CHIP.brief,
-      template: "platformer",
+      template: "topdown",
       style_entity_id: "style-1",
       image_model: "fal_ai:fal-ai/flux/schnell",
       sfx_node_type: "nodetool.audio.TextToSpeech",
@@ -248,7 +260,7 @@ describe("set_game_setup", () => {
     })) as { game: Record<string, unknown> };
     expect(result.game).toMatchObject({
       brief: CHIP.brief,
-      template: "platformer",
+      template: "topdown",
       style_entity_id: "style-1",
       image_model: "fal_ai:fal-ai/flux/schnell",
       sfx_node_type: "nodetool.audio.TextToSpeech",
@@ -264,12 +276,12 @@ describe("set_game_setup", () => {
     await run().invoke("set_game_setup", {
       workflow_id: row.id,
       brief: CHIP.brief,
-      template: "platformer"
+      template: "topdown"
     });
     await run().invoke("set_game_setup", { workflow_id: row.id, stage: "look" });
     expect(await reload(row.id)).toMatchObject({
       brief: CHIP.brief,
-      template: "platformer",
+      template: "topdown",
       stage: "look"
     });
   });
@@ -329,9 +341,8 @@ describe("design_game", () => {
     expect(result.stage).toBe("review");
     expect(result.design.title).toBe(CHIP.design.title);
     expect(result.nodes_placed).toBe(0);
-    // The chip covers its whole template, so nothing is filled from it.
-    expect(result.filled_from_manifest).toEqual([]);
-    const manifest = getTemplate(CHIP.template).manifest;
+    expect(result.filled_from_manifest).toContain("slot_prompts.wall");
+    const manifest = getNativeTemplate(CHIP.template).manifest;
     expect(result.design.slot_prompts.map((entry) => entry.slot_id).sort()).toEqual(
       manifest.slots.map((slot) => slot.id).sort()
     );
@@ -357,11 +368,11 @@ describe("design_game", () => {
       design: {
         ...CHIP.design,
         slot_prompts: CHIP.design.slot_prompts.filter(
-          (entry) => entry.slot_id !== "title"
+          (entry) => entry.slot_id !== "player"
         )
       }
     })) as { filled_from_manifest: string[] };
-    expect(result.filled_from_manifest).toContain("slot_prompts.title");
+    expect(result.filled_from_manifest).toContain("slot_prompts.player");
   });
 
   it("says what it needs when the brief matches no chip and no model was given", async () => {
@@ -369,7 +380,7 @@ describe("design_game", () => {
     await run().invoke("set_game_setup", {
       workflow_id: row.id,
       brief: "a game about nothing in particular",
-      template: "platformer"
+      template: "topdown"
     });
     expect(
       await run().invoke("design_game", { workflow_id: row.id })
@@ -381,7 +392,7 @@ describe("design_game", () => {
     await run().invoke("set_game_setup", { workflow_id: row.id, brief: "x" });
     expect(
       await run().invoke("design_game", { workflow_id: row.id })
-    ).toMatchObject({ error: expect.stringContaining("no game template") });
+    ).toMatchObject({ error: expect.stringContaining("no native game template") });
   });
 });
 
@@ -392,7 +403,7 @@ describe("update_game_design", () => {
       workflow_id: id,
       title: "Ember Dash",
       cast: [{ slot_id: "player", name: "Vix" }],
-      slot_prompts: [{ slot_id: "title", prompt: "a title card" }]
+      slot_prompts: [{ slot_id: "wall", prompt: "a stone wall" }]
     })) as {
       design: {
         title: string;
@@ -408,8 +419,8 @@ describe("update_game_design", () => {
       CHIP.design.cast.find((c) => c.slot_id === "player")?.descriptor
     );
     expect(
-      result.design.slot_prompts.find((p) => p.slot_id === "title")?.prompt
-    ).toBe("a title card");
+      result.design.slot_prompts.find((p) => p.slot_id === "wall")?.prompt
+    ).toBe("a stone wall");
     expect((await reload(id))?.design?.title).toBe("Ember Dash");
   });
 
@@ -417,9 +428,9 @@ describe("update_game_design", () => {
     const id = await designedWorkflow();
     const result = (await run().invoke("update_game_design", {
       workflow_id: id,
-      slot_prompts: [{ slot_id: "title", prompt: "  " }]
+      slot_prompts: [{ slot_id: "wall", prompt: "  " }]
     })) as { gaps: string[] };
-    expect(result.gaps).toEqual(['slot "title" has no prompt']);
+    expect(result.gaps).toEqual(['slot "wall" has no prompt']);
   });
 
   it("refuses before there is a design", async () => {
@@ -449,9 +460,9 @@ describe("build_game", () => {
     expect(result.issues).toEqual([]);
     expect(result.saved).toBe(true);
     expect(result.stage).toBe("done");
-    expect(result.directory).toBe("games/ember-run");
+    expect(result.directory).toMatch(/^games\/[a-f0-9]{32}$/);
     const types = result.graph.nodes.map((node) => node.type);
-    expect(types).toContain("nodetool.game.ExportGodotProject");
+    expect(types).toContain("nodetool.game.StageGameAssets");
     expect(types).toContain("nodetool.image.TextToImage");
     expect(result.node_count).toBe(result.graph.nodes.length);
     expect((await reload(id))?.stage).toBe("done");
@@ -475,13 +486,13 @@ describe("build_game", () => {
     const id = await designedWorkflow();
     await run().invoke("update_game_design", {
       workflow_id: id,
-      slot_prompts: [{ slot_id: "title", prompt: "" }]
+      slot_prompts: [{ slot_id: "wall", prompt: "" }]
     });
     const result = (await run().invoke("build_game", {
       workflow_id: id
     })) as { error: string; gaps: string[] };
-    expect(result.error).toContain('slot "title" has no prompt');
-    expect(result.gaps).toEqual(['slot "title" has no prompt']);
+    expect(result.error).toContain('slot "wall" has no prompt');
+    expect(result.gaps).toEqual(['slot "wall" has no prompt']);
     expect((await reload(id))?.stage).toBe("review");
   });
 
@@ -516,14 +527,14 @@ describe("build_game", () => {
     };
     expect(result.issues).toEqual([]);
     const types = result.graph.nodes.map((node) => node.type);
-    expect(types).toContain("nodetool.game.ExportGodotProject");
+    expect(types).toContain("nodetool.game.StageGameAssets");
     expect(types).not.toContain("nodetool.audio.TextToMusic");
     expect(types).not.toContain("nodetool.game.MusicLoop");
     expect(types).not.toContain(GAME_PLACEHOLDER_SENTINEL);
     expect(types).not.toContain("nodetool.game.SoundEffect");
   });
 
-  it("adds the music chain when a music model is chosen", async () => {
+  it("does not add an unused music chain when the template has no music slot", async () => {
     const id = await designedWorkflow();
     await run().invoke("set_game_setup", {
       workflow_id: id,
@@ -533,7 +544,7 @@ describe("build_game", () => {
       workflow_id: id
     })) as { issues: string[]; graph: { nodes: Array<{ type: string }> } };
     expect(result.issues).toEqual([]);
-    expect(result.graph.nodes.map((node) => node.type)).toContain(
+    expect(result.graph.nodes.map((node) => node.type)).not.toContain(
       "nodetool.audio.TextToMusic"
     );
   });

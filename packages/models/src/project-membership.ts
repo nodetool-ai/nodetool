@@ -11,6 +11,7 @@
 import { and, eq } from "drizzle-orm";
 import { readEntityMarker } from "@nodetool-ai/protocol";
 import { Asset } from "./asset.js";
+import { Game } from "./game.js";
 import { getDb } from "./db.js";
 import { applications } from "./schema/applications.js";
 import { assets } from "./schema/assets.js";
@@ -199,6 +200,9 @@ export async function reassignProjectDocuments(
   fromProjectId: string,
   toProjectId: string
 ): Promise<number> {
+  if ((await Game.listByProject(userId, fromProjectId)).length > 0) {
+    throw new Error("Moving games requires moving their workspace source");
+  }
   const db = getDb();
   let moved = 0;
   for (const table of DOCUMENT_TABLES) {
@@ -300,6 +304,9 @@ export async function moveDocumentToProject(
         .where(and(eq(jsScripts.id, documentId), eq(jsScripts.user_id, userId)))
         .returning({ id: jsScripts.id });
       return rows.length > 0;
+    }
+    case "game": {
+      return false;
     }
     default: {
       const exhaustive: never = type;

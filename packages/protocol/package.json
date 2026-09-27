@@ -42,6 +42,12 @@
       "import": "./dist/blend-modes.js",
       "default": "./dist/blend-modes.js"
     },
+    "./game.js": {
+      "nodetool-dev": "./src/game.ts",
+      "types": "./dist/game.d.ts",
+      "import": "./dist/game.js",
+      "default": "./dist/game.js"
+    },
     "./zod-schema": {
       "nodetool-dev": "./src/zod-schema.ts",
       "types": "./dist/zod-schema.d.ts",

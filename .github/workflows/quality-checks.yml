@@ -314,9 +314,11 @@ jobs:
           # The four backend test shards. Each runs `turbo run test` over a
           # disjoint slice of the workspace graph: the two heaviest packages
           # alone, the node packages (`./packages/*-nodes` plus the packages
-          # only they use), and everything else. The `core` shard also carries
-          # the two root-level suites (`test:oxlint-rules`, `test:scripts`),
-          # which take a second. The `nodes` and `core` filter lists are the
+          # only they use), and everything else. The `core` shard runs
+          # game-runtime before the other packages because its script deadlines
+          # are sensitive to CPU contention. It also carries the two root-level
+          # suites (`test:oxlint-rules`, `test:scripts`), which take a second.
+          # The `nodes` and `core` filter lists are the
           # same list with the sign flipped — a package added to one must be
           # removed from the other, or it runs twice or not at all.
           #
@@ -367,7 +369,7 @@ jobs:
             is-test: "true"
             fetch-depth: "0"
           - check: test-packages-core
-            command: npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' $TURBO_AFFECTED
+            command: npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter=@nodetool-ai/game-runtime $TURBO_AFFECTED && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' $TURBO_AFFECTED
             mobile-deps: "false"
             extra-apt: "mesa-vulkan-drivers ffmpeg"
             is-test: "true"

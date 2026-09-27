@@ -21,6 +21,9 @@ function extractor(inputs) {
 function classifier(inputs) {
   return callNode("nodetool.agents.Classifier", inputs);
 }
+function decision(inputs) {
+  return callNode("nodetool.agents.Decision", inputs);
+}
 function agent(inputs) {
   return callNode("nodetool.agents.Agent", inputs);
 }
@@ -31,6 +34,7 @@ export {
   agent,
   classifier,
   createThread,
+  decision,
   enhancePrompt,
   extractor,
   summarizer

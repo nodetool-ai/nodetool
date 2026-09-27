@@ -63,7 +63,7 @@ jobs:
         working-directory: web
         env:
           CI: "true"
-        run: npm run test:benchmark:chat-history
+        run: xvfb-run -a npm run test:benchmark:chat-history
 
       - name: Upload Playwright diagnostics
         if: always()

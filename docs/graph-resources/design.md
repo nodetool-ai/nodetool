@@ -4,6 +4,7 @@
 > Precedent: [script-storyboard-link/design.md](../script-storyboard-link/design.md)
 > for the "pure functions in a shared package, consumed by editor, agent tools
 > and nodes alike" pattern this design continues.
+> The game export section is historical. The [built-in game engine design](../plans/builtin-game-engine-design.md) replaces that pipeline.
 
 ## 0. The problem in one paragraph
 

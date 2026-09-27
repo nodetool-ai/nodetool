@@ -1,6 +1,6 @@
 /**
  * Game asset slot nodes. Each takes a generated image, measures it, and stamps
- * the ref with a `SlotFill` under `metadata.nodetool_slot` so the Godot writer
+ * the ref with a `SlotFill` under `metadata.nodetool_slot` so native game staging
  * reads frame regions off the sheet without looking at pixels. Nothing here
  * calls a model; generation is upstream.
  */
@@ -35,7 +35,7 @@ const EMPTY_IMAGE = {
   metadata: null
 };
 
-/** A measured image, its bytes always PNG: the Godot writer names them so. */
+/** A measured image, normalized to PNG for native game assets. */
 type Measured = { buf: Buffer; width: number; height: number };
 
 /**
@@ -154,7 +154,7 @@ function parseDict(
 
 /**
  * Store the stamped sheet as its own asset when the context can, so the fill
- * outlives the run: `export_godot_project` reads it back off the asset row.
+ * outlives the run: native game staging reads it back off the asset row.
  * Without `createAsset` (a hermetic run, a graph with no store) the ref is
  * returned inline and the caller keeps it.
  */
@@ -198,7 +198,7 @@ export class SpriteSheetNode extends BaseNode {
   static readonly nodeType = "nodetool.game.SpriteSheet";
   static readonly title = "Sprite Sheet";
   static readonly description =
-    "Describe a generated sprite sheet for a game slot: derive the grid from the cell size, assign each animation a row-major frame range, and stamp the image with the slot fill.\n    game, sprite, spritesheet, animation, godot, slot\n\n    Use cases:\n    - Fill a spritesheet slot of a game template from a generated sheet\n    - Give Godot the frame regions and loop flags without slicing the image\n    - Reject sheets whose size does not match the cell or hold too few frames";
+    "Describe a generated sprite sheet for a game slot: derive the grid from the cell size, assign each animation a row-major frame range, and stamp the image with the slot fill.\n    game, sprite, spritesheet, animation, slot\n\n    Use cases:\n    - Fill a spritesheet slot of a game template from a generated sheet\n    - Record frame regions and loop flags without slicing the image\n    - Reject sheets whose size does not match the cell or hold too few frames";
   static readonly metadataOutputTypes = {
     output: "image",
     fill: "dict"
@@ -351,7 +351,7 @@ export class TilesetNode extends BaseNode {
   static readonly nodeType = "nodetool.game.Tileset";
   static readonly title = "Tileset";
   static readonly description =
-    "Describe a generated tileset for a game slot: derive the grid from the cell size and stamp the image with the slot fill.\n    game, tileset, tiles, tilemap, godot, slot\n\n    Use cases:\n    - Fill a tileset slot of a game template from a generated sheet\n    - Give Godot the cell size and tile count without slicing the image\n    - Reject sheets whose size does not match the cell or hold too few tiles";
+    "Describe a generated tileset for a game slot: derive the grid from the cell size and stamp the image with the slot fill.\n    game, tileset, tiles, tilemap, slot\n\n    Use cases:\n    - Fill a tileset slot of a game template from a generated sheet\n    - Record the cell size and tile count without slicing the image\n    - Reject sheets whose size does not match the cell or hold too few tiles";
   static readonly metadataOutputTypes = {
     output: "image",
     fill: "dict"
@@ -504,7 +504,7 @@ export class SeamlessImageNode extends BaseNode {
   static readonly nodeType = "nodetool.game.SeamlessImage";
   static readonly title = "Seamless Image";
   static readonly description =
-    "Describe a generated image for a game slot: measure it, compare its opposite edges to decide whether it tiles, and stamp the image with the slot fill.\n    game, image, seamless, tileable, background, godot, slot\n\n    Use cases:\n    - Fill an image slot of a game template from a generated background\n    - Prove a background tiles horizontally before Godot scrolls it\n    - Reject images that a template expects to tile but do not";
+    "Describe a generated image for a game slot: measure it, compare its opposite edges to decide whether it tiles, and stamp the image with the slot fill.\n    game, image, seamless, tileable, background, slot\n\n    Use cases:\n    - Fill an image slot of a game template from a generated background\n    - Prove a background tiles horizontally before use in a scrolling scene\n    - Reject images that a template expects to tile but do not";
   static readonly metadataOutputTypes = {
     output: "image",
     fill: "dict"

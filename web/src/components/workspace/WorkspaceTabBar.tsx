@@ -68,6 +68,7 @@ const SUPPORTS_BOTH_MODES = {
   "workspace-file": true,
   chat: false,
   application: false,
+  game: false,
   page: false,
   "project-list": false,
   project: false,

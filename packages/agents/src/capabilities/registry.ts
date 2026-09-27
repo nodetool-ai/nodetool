@@ -49,7 +49,7 @@ import { jsScriptsSpecs } from "./js-scripts.specs.js";
 import { mediaSpecs } from "./media.specs.js";
 import { memorySpecs } from "./memory.specs.js";
 import { model3dSpecs } from "./model3d.specs.js";
-import { godotSpecs } from "./godot.specs.js";
+import { gameSpecs } from "./game.specs.js";
 import { modelsSpecs } from "./models.specs.js";
 import { nodesSpecs } from "./nodes.specs.js";
 import { packsSpecs } from "./packs.specs.js";
@@ -191,9 +191,9 @@ const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
     loader: () => import("./model3d.js").then((m) => m.module),
     specs: model3dSpecs
   },
-  godot: {
-    loader: () => import("./godot.js").then((m) => m.module),
-    specs: godotSpecs
+  game: {
+    loader: () => import("./game.js").then((m) => m.module),
+    specs: gameSpecs
   },
   scripts: {
     loader: () => import("./scripts.js").then((m) => m.module),

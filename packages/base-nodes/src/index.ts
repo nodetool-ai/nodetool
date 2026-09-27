@@ -350,7 +350,7 @@ export {
 export {
   LoadGameTemplateNode,
   SlotPromptNode,
-  ExportGodotProjectNode,
+  StageGameAssetsNode,
   GAME_TEMPLATE_NODES
 } from "@nodetool-ai/game-nodes";
 export {

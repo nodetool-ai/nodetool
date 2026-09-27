@@ -319,17 +319,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "platformer-asset-pack",
-        "name": "Platformer Asset Pack",
-        "description": "A Godot template's asset slots, filled and checked in one run. LoadGameTemplate streams every slot the platformer needs; SlotPrompt turns each into a prompt, a canvas and the prop bag its checker wants, all seasoned with one style entity — swap that entity and the whole pack re-skins. Every generated asset goes through the nodetool.game checker for its kind before ExportGodotProject lays out a project you can open.",
-        "tags": [
-          "game",
-          "godot",
-          "image",
-          "audio"
-        ]
-      },
-      {
         "slug": "poster-on-kie",
         "name": "Poster on Kie",
         "description": "Generate a poster-style image through Kie's Seedream 4.5. Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
@@ -456,6 +445,17 @@ export const templateCatalog: CatalogCategory[] = [
         "description": "Upscale the approved product photo, then sharpen fine detail with an adjustable, light finishing pass. Set sharpness to 0 to disable it.",
         "tags": [
           "image"
+        ]
+      },
+      {
+        "slug": "top-down-native-asset-pack",
+        "name": "Top-down Native Asset Pack",
+        "description": "A native top-down game asset pack. LoadGameTemplate streams the slots; SlotPrompt sizes each asset request; each result is checked before StageGameAssets writes content-addressed candidates. Install selected bindings into a game revision to play them.",
+        "tags": [
+          "game",
+          "native-game",
+          "image",
+          "audio"
         ]
       },
       {

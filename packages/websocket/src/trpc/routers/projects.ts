@@ -33,6 +33,7 @@ import {
   ImageDocument,
   Application,
   JsScript,
+  Game,
   hasProjectDocumentDependents,
   listProjectDocuments,
   moveDocumentToProject,
@@ -78,6 +79,7 @@ const restorableTab = z.object({
     "text",
     "model3d",
     "application",
+    "game",
     "chat",
     "workspace-file"
   ]),
@@ -119,6 +121,9 @@ async function isOwnedRestorableTab(
       break;
     case "application":
       row = await Application.findById(tab.ref);
+      break;
+    case "game":
+      row = await Game.findOwned(userId, tab.ref);
       break;
     case "chat":
       row = await Thread.find(userId, tab.ref);
@@ -365,6 +370,9 @@ export const projectsRouter = router({
     .output(okOutput)
     .mutation(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
+      if (input.type === "game") {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Moving a game requires moving its workspace source");
+      }
       if (input.projectId !== LOOSE_PROJECT_ID) {
         await loadOwned(ctx.userId, input.projectId);
       }
@@ -401,6 +409,9 @@ export const projectsRouter = router({
     .output(copyProjectDocumentOutput)
     .mutation(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
+      if (input.type === "game") {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Game copies are not supported yet");
+      }
       await loadOwned(ctx.userId, input.destinationProjectId);
       try {
         const copied = await copyProjectDocument({

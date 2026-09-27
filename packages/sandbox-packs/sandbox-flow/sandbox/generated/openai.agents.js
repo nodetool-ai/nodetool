@@ -12,7 +12,14 @@ function realtimeTranscription(inputs) {
 realtimeTranscription.stream = function(inputs) {
   return streamNode("openai.agents.RealtimeTranscription", inputs);
 };
+function liveAgent(inputs) {
+  return callNode("openai.agents.LiveAgent", inputs);
+}
+liveAgent.stream = function(inputs) {
+  return streamNode("openai.agents.LiveAgent", inputs);
+};
 export {
+  liveAgent,
   realtimeAgent,
   realtimeTranscription
 };

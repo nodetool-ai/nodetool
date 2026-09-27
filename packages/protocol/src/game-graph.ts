@@ -1,6 +1,6 @@
 /**
- * Manifest + design + choices → the graph that fills every slot and exports the
- * Godot project (game-prd § 5.3).
+ * Manifest + design + choices → the graph that fills native game asset slots
+ * and stages candidate media for explicit installation.
  *
  * Pure, and built without a model call (D26): every slot is a fixed chain its
  * kind determines, so the cost is countable before the run, a re-run
@@ -40,7 +40,7 @@ export const GAME_TILESET_NODE_TYPE = "nodetool.game.Tileset";
 export const GAME_SEAMLESS_IMAGE_NODE_TYPE = "nodetool.game.SeamlessImage";
 export const GAME_SOUND_EFFECT_NODE_TYPE = "nodetool.game.SoundEffect";
 export const GAME_MUSIC_LOOP_NODE_TYPE = "nodetool.game.MusicLoop";
-export const GAME_EXPORT_NODE_TYPE = "nodetool.game.ExportGodotProject";
+export const GAME_EXPORT_NODE_TYPE = "nodetool.game.StageGameAssets";
 export const GAME_PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 
 /**
@@ -57,8 +57,8 @@ export const GAME_CHECKER_NODE_TYPES: readonly string[] = [
   GAME_MUSIC_LOOP_NODE_TYPE
 ];
 
-/** The output node the export result lands on, named for the landing step. */
-export const GAME_PROJECT_OUTPUT_NAME = "project";
+/** The output node that receives staged asset candidates. */
+export const GAME_PROJECT_OUTPUT_NAME = "asset_candidates";
 
 /** The checker handle the export node reads: the stamped asset, not the bare fill. */
 const CHECKER_ASSET_HANDLE = "output";
@@ -85,6 +85,8 @@ const IMAGE_RESOLUTIONS: readonly (readonly [string, number])[] = [
 // ── Choices the Look step makes ─────────────────────────────────────────────
 
 export interface GameGraphChoices {
+  /** Full native game ID created before the generation workflow runs. */
+  gameId?: string;
   /** The `image_model` property value, as the model tile row produced it. */
   imageModel: Record<string, unknown>;
   /** A text-to-audio node type, or null to keep the template's placeholders. */
@@ -102,7 +104,7 @@ export interface GameGraphChoices {
 
 /**
  * A directory-safe slug for a project name: lowercase, dashes, nothing a
- * workspace path or a Godot project folder has to quote. An empty or
+ * workspace path has to quote. An empty or
  * punctuation-only name falls back to `game` rather than to an empty segment,
  * which would export to the `games/` directory itself.
  */
@@ -528,11 +530,11 @@ export function gameGraphPlacement(
     });
   });
 
-  // The export node, fed by every placed checker at once.
+  // Stage candidates; game revision publication is an explicit later operation.
   const exportShape = lookup(GAME_EXPORT_NODE_TYPE);
   if (!exportShape) {
     issues.push(
-      `the export node "${GAME_EXPORT_NODE_TYPE}" is not in the registry, so the graph fills slots but writes no project.`
+      `the staging node "${GAME_EXPORT_NODE_TYPE}" is not in the registry, so the graph fills slots but stages no assets.`
     );
     return { nodes, edges, issues };
   }
@@ -540,7 +542,7 @@ export function gameGraphPlacement(
   const fillsInput = inputNamed(exportShape, EXPORT_FILLS_INPUT);
   if (!fillsInput) {
     issues.push(
-      `the export node has no "${EXPORT_FILLS_INPUT}" input, so the checked assets have nowhere to land.`
+      `the staging node has no "${EXPORT_FILLS_INPUT}" input, so the checked assets have nowhere to land.`
     );
     return { nodes, edges, issues };
   }
@@ -551,9 +553,7 @@ export function gameGraphPlacement(
     position: position(COLUMN_EXPORT, 0),
     properties: {
       template: manifest.template,
-      name: choices.projectName,
-      directory: choices.directory,
-      verify: choices.verify
+      game_id: choices.gameId ?? ""
     }
   });
   // Many edges into one list input: the kernel folds them into the `fills`

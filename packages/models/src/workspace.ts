@@ -161,9 +161,14 @@ export class Workspace extends DBModel {
    * locally-created workspace row might still point at.
    */
   isManaged(): boolean {
+    const projectSegment = /[\\/]projects[\\/][a-f0-9]{64}$/;
     return (
       this.path === getManagedWorkspaceDir(this.user_id) ||
-      this.path === managedWorkspaceKey(this.user_id)
+      this.path === managedWorkspaceKey(this.user_id) ||
+      (this.path.startsWith(`${getManagedWorkspaceDir(this.user_id)}/`) &&
+        projectSegment.test(this.path)) ||
+      (this.path.startsWith(`${managedWorkspaceKey(this.user_id)}/`) &&
+        projectSegment.test(this.path))
     );
   }
 

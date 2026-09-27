@@ -1,7 +1,7 @@
 {
   "version": 1,
   "template": "platformer",
-  "godot": "4.3",
+  "engineVersion": "1",
   "slots": [
     {
       "id": "player",
@@ -38,6 +38,5 @@
     { "id": "sfx.hurt", "kind": "sfx", "seconds": 0.5, "prompt": "player hit" },
     { "id": "music.level", "kind": "music", "seconds": 60, "loop": true, "prompt": "level theme" },
     { "id": "title", "kind": "image", "size": [1920, 1080], "seamless_x": false, "seamless_y": false, "prompt": "title screen key art" }
-  ],
-  "hooks": ["scripts/player.gd", "scripts/enemy_walker.gd", "scenes/level_01.tscn"]
+  ]
 }

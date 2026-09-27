@@ -121,7 +121,7 @@ async function greyVideo(
     format: new Mp4OutputFormat(),
     target: new BufferTarget()
   });
-  const source = new VideoSampleSource({ codec, bitrate: 1_000_000 });
+  const source = new VideoSampleSource({ codec, bitrate: 1_000_000, hardwareAcceleration: "prefer-software" });
   output.addVideoTrack(source, { frameRate: VIDEO_FPS });
   await output.start();
   for (let index = 0; index < VIDEO_FRAMES; index += 1) {

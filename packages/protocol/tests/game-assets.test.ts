@@ -26,7 +26,7 @@ const clone = <T>(v: T): T => structuredClone(v);
 describe("game asset manifest", () => {
   it("parses the platformer fixture", () => {
     expect(manifest.slots).toHaveLength(8);
-    expect(manifest.hooks).toContain("scripts/player.gd");
+    expect(manifest.engineVersion).toBe("1");
   });
 
   it("rejects duplicate slot ids", () => {

@@ -100,8 +100,10 @@ for (const id of ["storyboard", "script", "timeline", "sketch", "3d"]) {
       .getByRole("tablist", { name: "Editing surfaces" })
       .evaluate((element) => element.scrollIntoView({ block: "center" }));
     await page.locator(`#surface-tab-${id}`).dispatchEvent("click");
+    const panel = page.locator(`#surface-panel-${id}`);
+    await panel.scrollIntoViewIfNeeded();
     const video = page.locator(`#surface-panel-${id} video`);
-    await expect(video).toHaveClass(/opacity-100/);
+    await expect(video).toHaveClass(/opacity-100/, { timeout: 15_000 });
   });
 }
 

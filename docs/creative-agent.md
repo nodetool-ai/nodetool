@@ -175,12 +175,12 @@ unless the run derived it, so a batch cannot draw over the template.
 | `nodetool.timeline.RetargetTimeline` | `timeline`, `aspect_ratio`, `fit` | a new `timeline`, `cropped` |
 | `nodetool.game.LoadGameTemplate` | `template` | `manifest`, `slots`; streams one `slot` |
 | `nodetool.game.SlotPrompt` | `slot`, `style`, `cast` | `prompt`, `width`, `height`, `kind`, `checker`, `seconds` |
-| `nodetool.game.ExportGodotProject` | `template`, `name`, `fills`, `directory` | `directory`, `files`, `verified`, `errors` |
+| `nodetool.game.StageGameAssets` | `template`, `game_id`, `fills` | `bindings`, `paths` — candidates for a native game revision |
 
 `RenderStills`, `RenderClips` and `AssembleTimeline` refuse a board this run
 did not derive; `allow_writes` is the per-node override for a graph whose whole
 purpose is to render the board a person picked. Four shipped examples wire
-them: **Per-SKU Ad Factory**, **Localized Explainer**, **Platformer Asset
+them: **Per-SKU Ad Factory**, **Localized Explainer**, **Top-down Native Asset
 Pack**, **Three Ratios**.
 
 ## Driving it from outside

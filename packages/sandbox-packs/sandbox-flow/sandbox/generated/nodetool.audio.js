@@ -78,8 +78,12 @@ function textToSpeech(inputs) {
 function textToMusic(inputs) {
   return callNode("nodetool.audio.TextToMusic", inputs);
 }
+function audioToAudio(inputs) {
+  return callNode("nodetool.audio.AudioToAudio", inputs);
+}
 export {
   audioMixer,
+  audioToAudio,
   chunkToAudio,
   concat,
   concatList,

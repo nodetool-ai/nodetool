@@ -14807,676 +14807,6 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
-    "route": "/templates/platformer-asset-pack",
-    "title": "Platformer Asset Pack — NodeTool AI Workflow Template",
-    "description": "A Godot template's asset slots, filled and checked in one run. LoadGameTemplate streams every slot the platformer needs; SlotPrompt turns each into a prompt, a canvas and the prop bag its checker wants, all seasoned with one style entity — swap that entity and the whole pack re-skins. Every generated asset goes through the nodetool.game checker for its kind before ExportGodotProject lays out a project you can open.",
-    "priority": 0.3,
-    "changeFrequency": "monthly",
-    "indexable": false,
-    "slug": "platformer-asset-pack",
-    "name": "Platformer Asset Pack",
-    "summary": "A Godot template's asset slots, filled and checked in one run. LoadGameTemplate streams every slot the platformer needs; SlotPrompt turns each into a prompt, a canvas and the prop bag its checker wants, all seasoned with one style entity — swap that entity and the whole pack re-skins. Every generated asset goes through the nodetool.game checker for its kind before ExportGodotProject lays out a project you can open.",
-    "tags": [
-      "game",
-      "godot",
-      "image",
-      "audio",
-      "example"
-    ],
-    "category": "Audio & Music",
-    "nodeTypes": [
-      {
-        "type": "nodetool.control.FilterCode",
-        "label": "Filter Code",
-        "count": 5
-      },
-      {
-        "type": "nodetool.game.SlotPrompt",
-        "label": "Slot Prompt",
-        "count": 5
-      },
-      {
-        "type": "nodetool.control.Reroute",
-        "label": "Reroute",
-        "count": 3
-      },
-      {
-        "type": "nodetool.image.TextToImage",
-        "label": "Text To Image",
-        "count": 3
-      },
-      {
-        "type": "nodetool.constant.Entity",
-        "label": "Entity",
-        "count": 2
-      },
-      {
-        "type": "nodetool.audio.TextToMusic",
-        "label": "Text To Music",
-        "count": 2
-      },
-      {
-        "type": "nodetool.control.Collect",
-        "label": "Collect",
-        "count": 1
-      },
-      {
-        "type": "nodetool.game.ExportGodotProject",
-        "label": "Export Godot Project",
-        "count": 1
-      },
-      {
-        "type": "nodetool.control.ForEach",
-        "label": "For Each",
-        "count": 1
-      },
-      {
-        "type": "nodetool.game.LoadGameTemplate",
-        "label": "Load Game Template",
-        "count": 1
-      },
-      {
-        "type": "nodetool.game.MusicLoop",
-        "label": "Music Loop",
-        "count": 1
-      },
-      {
-        "type": "nodetool.game.SeamlessImage",
-        "label": "Seamless Image",
-        "count": 1
-      },
-      {
-        "type": "nodetool.game.SoundEffect",
-        "label": "Sound Effect",
-        "count": 1
-      },
-      {
-        "type": "nodetool.game.SpriteSheet",
-        "label": "Sprite Sheet",
-        "count": 1
-      },
-      {
-        "type": "nodetool.game.Tileset",
-        "label": "Tileset",
-        "count": 1
-      }
-    ],
-    "nodeCount": 29,
-    "thumbnail": null,
-    "graph": {
-      "nodes": [
-        {
-          "id": "template",
-          "type": "nodetool.game.LoadGameTemplate",
-          "title": "Load Game Template",
-          "x": 0,
-          "y": 400,
-          "width": 240
-        },
-        {
-          "id": "style",
-          "type": "nodetool.constant.Entity",
-          "title": "Entity",
-          "x": 0,
-          "y": 0,
-          "width": 240
-        },
-        {
-          "id": "hero",
-          "type": "nodetool.constant.Entity",
-          "title": "Entity",
-          "x": 0,
-          "y": 160,
-          "width": 240
-        },
-        {
-          "id": "sheet_slots",
-          "type": "nodetool.control.FilterCode",
-          "title": "Filter Code",
-          "x": 300,
-          "y": 0,
-          "width": 220
-        },
-        {
-          "id": "sheet_prompt",
-          "type": "nodetool.game.SlotPrompt",
-          "title": "Slot Prompt",
-          "x": 560,
-          "y": 0,
-          "width": 220
-        },
-        {
-          "id": "sheet_image",
-          "type": "nodetool.image.TextToImage",
-          "title": "Text To Image",
-          "x": 820,
-          "y": 0,
-          "width": 220,
-          "subtitle": "fal-ai/flux/schnell"
-        },
-        {
-          "id": "sheet_pass",
-          "type": "nodetool.control.Reroute",
-          "title": "Reroute",
-          "x": 1080,
-          "y": 0,
-          "width": 200
-        },
-        {
-          "id": "sheet_check",
-          "type": "nodetool.game.SpriteSheet",
-          "title": "Sprite Sheet",
-          "x": 1320,
-          "y": 0,
-          "width": 220
-        },
-        {
-          "id": "tile_slots",
-          "type": "nodetool.control.FilterCode",
-          "title": "Filter Code",
-          "x": 300,
-          "y": 200,
-          "width": 220
-        },
-        {
-          "id": "tile_prompt",
-          "type": "nodetool.game.SlotPrompt",
-          "title": "Slot Prompt",
-          "x": 560,
-          "y": 200,
-          "width": 220
-        },
-        {
-          "id": "tile_image",
-          "type": "nodetool.image.TextToImage",
-          "title": "Text To Image",
-          "x": 820,
-          "y": 200,
-          "width": 220,
-          "subtitle": "fal-ai/flux/schnell"
-        },
-        {
-          "id": "tile_pass",
-          "type": "nodetool.control.Reroute",
-          "title": "Reroute",
-          "x": 1080,
-          "y": 200,
-          "width": 200
-        },
-        {
-          "id": "tile_check",
-          "type": "nodetool.game.Tileset",
-          "title": "Tileset",
-          "x": 1320,
-          "y": 200,
-          "width": 220
-        },
-        {
-          "id": "image_slots",
-          "type": "nodetool.control.FilterCode",
-          "title": "Filter Code",
-          "x": 300,
-          "y": 400,
-          "width": 220
-        },
-        {
-          "id": "image_prompt",
-          "type": "nodetool.game.SlotPrompt",
-          "title": "Slot Prompt",
-          "x": 560,
-          "y": 400,
-          "width": 220
-        },
-        {
-          "id": "image_image",
-          "type": "nodetool.image.TextToImage",
-          "title": "Text To Image",
-          "x": 820,
-          "y": 400,
-          "width": 220,
-          "subtitle": "fal-ai/flux/schnell"
-        },
-        {
-          "id": "image_pass",
-          "type": "nodetool.control.Reroute",
-          "title": "Reroute",
-          "x": 1080,
-          "y": 400,
-          "width": 200
-        },
-        {
-          "id": "image_check",
-          "type": "nodetool.game.SeamlessImage",
-          "title": "Seamless Image",
-          "x": 1320,
-          "y": 400,
-          "width": 220
-        },
-        {
-          "id": "sfx_slots",
-          "type": "nodetool.control.FilterCode",
-          "title": "Filter Code",
-          "x": 300,
-          "y": 600,
-          "width": 220
-        },
-        {
-          "id": "sfx_prompt",
-          "type": "nodetool.game.SlotPrompt",
-          "title": "Slot Prompt",
-          "x": 560,
-          "y": 600,
-          "width": 220
-        },
-        {
-          "id": "sfx_audio",
-          "type": "nodetool.audio.TextToMusic",
-          "title": "Text To Music",
-          "x": 820,
-          "y": 600,
-          "width": 220,
-          "subtitle": "meta/musicgen"
-        },
-        {
-          "id": "sfx_check",
-          "type": "nodetool.game.SoundEffect",
-          "title": "Sound Effect",
-          "x": 1080,
-          "y": 600,
-          "width": 220
-        },
-        {
-          "id": "music_slots",
-          "type": "nodetool.control.FilterCode",
-          "title": "Filter Code",
-          "x": 300,
-          "y": 800,
-          "width": 220
-        },
-        {
-          "id": "music_prompt",
-          "type": "nodetool.game.SlotPrompt",
-          "title": "Slot Prompt",
-          "x": 560,
-          "y": 800,
-          "width": 220
-        },
-        {
-          "id": "music_audio",
-          "type": "nodetool.audio.TextToMusic",
-          "title": "Text To Music",
-          "x": 820,
-          "y": 800,
-          "width": 220,
-          "subtitle": "meta/musicgen"
-        },
-        {
-          "id": "music_check",
-          "type": "nodetool.game.MusicLoop",
-          "title": "Music Loop",
-          "x": 1080,
-          "y": 800,
-          "width": 220
-        },
-        {
-          "id": "each_fill",
-          "type": "nodetool.control.ForEach",
-          "title": "For Each",
-          "x": 1620,
-          "y": 300,
-          "width": 220
-        },
-        {
-          "id": "fills",
-          "type": "nodetool.control.Collect",
-          "title": "Collect",
-          "x": 1880,
-          "y": 300,
-          "width": 220
-        },
-        {
-          "id": "export",
-          "type": "nodetool.game.ExportGodotProject",
-          "title": "Export Godot Project",
-          "x": 2140,
-          "y": 300,
-          "width": 240
-        }
-      ],
-      "edges": [
-        {
-          "source": "template",
-          "sourceHandle": "slot",
-          "target": "sheet_slots",
-          "targetHandle": "input_item",
-          "color": "any"
-        },
-        {
-          "source": "sheet_slots",
-          "sourceHandle": "output",
-          "target": "sheet_prompt",
-          "targetHandle": "slot",
-          "color": "any"
-        },
-        {
-          "source": "style",
-          "sourceHandle": "output",
-          "target": "sheet_prompt",
-          "targetHandle": "style",
-          "color": "any"
-        },
-        {
-          "source": "hero",
-          "sourceHandle": "output",
-          "target": "sheet_prompt",
-          "targetHandle": "cast",
-          "color": "any"
-        },
-        {
-          "source": "sheet_prompt",
-          "sourceHandle": "prompt",
-          "target": "sheet_image",
-          "targetHandle": "prompt",
-          "color": "any"
-        },
-        {
-          "source": "sheet_image",
-          "sourceHandle": "output",
-          "target": "sheet_pass",
-          "targetHandle": "input_value",
-          "color": "any"
-        },
-        {
-          "source": "sheet_pass",
-          "sourceHandle": "output",
-          "target": "sheet_check",
-          "targetHandle": "image",
-          "color": "any"
-        },
-        {
-          "source": "sheet_slots",
-          "sourceHandle": "output",
-          "target": "sheet_check",
-          "targetHandle": "slot",
-          "color": "any"
-        },
-        {
-          "source": "template",
-          "sourceHandle": "slot",
-          "target": "tile_slots",
-          "targetHandle": "input_item",
-          "color": "any"
-        },
-        {
-          "source": "tile_slots",
-          "sourceHandle": "output",
-          "target": "tile_prompt",
-          "targetHandle": "slot",
-          "color": "any"
-        },
-        {
-          "source": "style",
-          "sourceHandle": "output",
-          "target": "tile_prompt",
-          "targetHandle": "style",
-          "color": "any"
-        },
-        {
-          "source": "tile_prompt",
-          "sourceHandle": "prompt",
-          "target": "tile_image",
-          "targetHandle": "prompt",
-          "color": "any"
-        },
-        {
-          "source": "tile_image",
-          "sourceHandle": "output",
-          "target": "tile_pass",
-          "targetHandle": "input_value",
-          "color": "any"
-        },
-        {
-          "source": "tile_pass",
-          "sourceHandle": "output",
-          "target": "tile_check",
-          "targetHandle": "image",
-          "color": "any"
-        },
-        {
-          "source": "tile_slots",
-          "sourceHandle": "output",
-          "target": "tile_check",
-          "targetHandle": "slot",
-          "color": "any"
-        },
-        {
-          "source": "template",
-          "sourceHandle": "slot",
-          "target": "image_slots",
-          "targetHandle": "input_item",
-          "color": "any"
-        },
-        {
-          "source": "image_slots",
-          "sourceHandle": "output",
-          "target": "image_prompt",
-          "targetHandle": "slot",
-          "color": "any"
-        },
-        {
-          "source": "style",
-          "sourceHandle": "output",
-          "target": "image_prompt",
-          "targetHandle": "style",
-          "color": "any"
-        },
-        {
-          "source": "image_prompt",
-          "sourceHandle": "prompt",
-          "target": "image_image",
-          "targetHandle": "prompt",
-          "color": "any"
-        },
-        {
-          "source": "image_image",
-          "sourceHandle": "output",
-          "target": "image_pass",
-          "targetHandle": "input_value",
-          "color": "any"
-        },
-        {
-          "source": "image_pass",
-          "sourceHandle": "output",
-          "target": "image_check",
-          "targetHandle": "image",
-          "color": "any"
-        },
-        {
-          "source": "image_slots",
-          "sourceHandle": "output",
-          "target": "image_check",
-          "targetHandle": "slot",
-          "color": "any"
-        },
-        {
-          "source": "template",
-          "sourceHandle": "slot",
-          "target": "sfx_slots",
-          "targetHandle": "input_item",
-          "color": "any"
-        },
-        {
-          "source": "sfx_slots",
-          "sourceHandle": "output",
-          "target": "sfx_prompt",
-          "targetHandle": "slot",
-          "color": "any"
-        },
-        {
-          "source": "style",
-          "sourceHandle": "output",
-          "target": "sfx_prompt",
-          "targetHandle": "style",
-          "color": "any"
-        },
-        {
-          "source": "sfx_prompt",
-          "sourceHandle": "seconds",
-          "target": "sfx_audio",
-          "targetHandle": "duration",
-          "color": "any"
-        },
-        {
-          "source": "sfx_audio",
-          "sourceHandle": "audio",
-          "target": "sfx_check",
-          "targetHandle": "audio",
-          "color": "any"
-        },
-        {
-          "source": "sfx_slots",
-          "sourceHandle": "output",
-          "target": "sfx_check",
-          "targetHandle": "slot",
-          "color": "any"
-        },
-        {
-          "source": "template",
-          "sourceHandle": "slot",
-          "target": "music_slots",
-          "targetHandle": "input_item",
-          "color": "any"
-        },
-        {
-          "source": "music_slots",
-          "sourceHandle": "output",
-          "target": "music_prompt",
-          "targetHandle": "slot",
-          "color": "any"
-        },
-        {
-          "source": "style",
-          "sourceHandle": "output",
-          "target": "music_prompt",
-          "targetHandle": "style",
-          "color": "any"
-        },
-        {
-          "source": "music_prompt",
-          "sourceHandle": "seconds",
-          "target": "music_audio",
-          "targetHandle": "duration",
-          "color": "any"
-        },
-        {
-          "source": "music_audio",
-          "sourceHandle": "audio",
-          "target": "music_check",
-          "targetHandle": "audio",
-          "color": "any"
-        },
-        {
-          "source": "music_slots",
-          "sourceHandle": "output",
-          "target": "music_check",
-          "targetHandle": "slot",
-          "color": "any"
-        },
-        {
-          "source": "sheet_check",
-          "sourceHandle": "output",
-          "target": "each_fill",
-          "targetHandle": "input_list",
-          "color": "any"
-        },
-        {
-          "source": "tile_check",
-          "sourceHandle": "output",
-          "target": "each_fill",
-          "targetHandle": "input_list",
-          "color": "any"
-        },
-        {
-          "source": "image_check",
-          "sourceHandle": "output",
-          "target": "each_fill",
-          "targetHandle": "input_list",
-          "color": "any"
-        },
-        {
-          "source": "sfx_check",
-          "sourceHandle": "output",
-          "target": "each_fill",
-          "targetHandle": "input_list",
-          "color": "any"
-        },
-        {
-          "source": "music_check",
-          "sourceHandle": "output",
-          "target": "each_fill",
-          "targetHandle": "input_list",
-          "color": "any"
-        },
-        {
-          "source": "each_fill",
-          "sourceHandle": "output",
-          "target": "fills",
-          "targetHandle": "input_item",
-          "color": "any"
-        },
-        {
-          "source": "fills",
-          "sourceHandle": "output",
-          "target": "export",
-          "targetHandle": "fills",
-          "color": "any"
-        },
-        {
-          "source": "sfx_prompt",
-          "sourceHandle": "prompt",
-          "target": "sfx_audio",
-          "targetHandle": "prompt",
-          "color": "any"
-        },
-        {
-          "source": "music_prompt",
-          "sourceHandle": "prompt",
-          "target": "music_audio",
-          "targetHandle": "prompt",
-          "color": "any"
-        },
-        {
-          "source": "hero",
-          "sourceHandle": "output",
-          "target": "tile_prompt",
-          "targetHandle": "cast",
-          "color": "any"
-        },
-        {
-          "source": "hero",
-          "sourceHandle": "output",
-          "target": "image_prompt",
-          "targetHandle": "cast",
-          "color": "any"
-        },
-        {
-          "source": "hero",
-          "sourceHandle": "output",
-          "target": "sfx_prompt",
-          "targetHandle": "cast",
-          "color": "any"
-        },
-        {
-          "source": "hero",
-          "sourceHandle": "output",
-          "target": "music_prompt",
-          "targetHandle": "cast",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
     "route": "/templates/podcast-episode-to-show-notes",
     "title": "Podcast Episode to Show Notes — NodeTool AI Workflow Template",
     "description": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topics with rough timings, and the links mentioned.",
@@ -24422,6 +23752,676 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "out",
           "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/top-down-native-asset-pack",
+    "title": "Top-down Native Asset Pack — NodeTool AI Workflow Template",
+    "description": "A native top-down game asset pack. LoadGameTemplate streams the slots; SlotPrompt sizes each asset request; each result is checked before StageGameAssets writes content-addressed candidates. Install selected bindings into a game revision to play them.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "top-down-native-asset-pack",
+    "name": "Top-down Native Asset Pack",
+    "summary": "A native top-down game asset pack. LoadGameTemplate streams the slots; SlotPrompt sizes each asset request; each result is checked before StageGameAssets writes content-addressed candidates. Install selected bindings into a game revision to play them.",
+    "tags": [
+      "game",
+      "native-game",
+      "image",
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.control.FilterCode",
+        "label": "Filter Code",
+        "count": 5
+      },
+      {
+        "type": "nodetool.game.SlotPrompt",
+        "label": "Slot Prompt",
+        "count": 5
+      },
+      {
+        "type": "nodetool.control.Reroute",
+        "label": "Reroute",
+        "count": 3
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 3
+      },
+      {
+        "type": "nodetool.constant.Entity",
+        "label": "Entity",
+        "count": 2
+      },
+      {
+        "type": "nodetool.audio.TextToMusic",
+        "label": "Text To Music",
+        "count": 2
+      },
+      {
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.ForEach",
+        "label": "For Each",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.LoadGameTemplate",
+        "label": "Load Game Template",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.MusicLoop",
+        "label": "Music Loop",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.SeamlessImage",
+        "label": "Seamless Image",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.SoundEffect",
+        "label": "Sound Effect",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.SpriteSheet",
+        "label": "Sprite Sheet",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.StageGameAssets",
+        "label": "Stage Game Assets",
+        "count": 1
+      },
+      {
+        "type": "nodetool.game.Tileset",
+        "label": "Tileset",
+        "count": 1
+      }
+    ],
+    "nodeCount": 29,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "template",
+          "type": "nodetool.game.LoadGameTemplate",
+          "title": "Load Game Template",
+          "x": 0,
+          "y": 400,
+          "width": 240
+        },
+        {
+          "id": "style",
+          "type": "nodetool.constant.Entity",
+          "title": "Entity",
+          "x": 0,
+          "y": 0,
+          "width": 240
+        },
+        {
+          "id": "hero",
+          "type": "nodetool.constant.Entity",
+          "title": "Entity",
+          "x": 0,
+          "y": 160,
+          "width": 240
+        },
+        {
+          "id": "sheet_slots",
+          "type": "nodetool.control.FilterCode",
+          "title": "Filter Code",
+          "x": 300,
+          "y": 0,
+          "width": 220
+        },
+        {
+          "id": "sheet_prompt",
+          "type": "nodetool.game.SlotPrompt",
+          "title": "Slot Prompt",
+          "x": 560,
+          "y": 0,
+          "width": 220
+        },
+        {
+          "id": "sheet_image",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 820,
+          "y": 0,
+          "width": 220,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "sheet_pass",
+          "type": "nodetool.control.Reroute",
+          "title": "Reroute",
+          "x": 1080,
+          "y": 0,
+          "width": 200
+        },
+        {
+          "id": "sheet_check",
+          "type": "nodetool.game.SpriteSheet",
+          "title": "Sprite Sheet",
+          "x": 1320,
+          "y": 0,
+          "width": 220
+        },
+        {
+          "id": "tile_slots",
+          "type": "nodetool.control.FilterCode",
+          "title": "Filter Code",
+          "x": 300,
+          "y": 200,
+          "width": 220
+        },
+        {
+          "id": "tile_prompt",
+          "type": "nodetool.game.SlotPrompt",
+          "title": "Slot Prompt",
+          "x": 560,
+          "y": 200,
+          "width": 220
+        },
+        {
+          "id": "tile_image",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 820,
+          "y": 200,
+          "width": 220,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "tile_pass",
+          "type": "nodetool.control.Reroute",
+          "title": "Reroute",
+          "x": 1080,
+          "y": 200,
+          "width": 200
+        },
+        {
+          "id": "tile_check",
+          "type": "nodetool.game.Tileset",
+          "title": "Tileset",
+          "x": 1320,
+          "y": 200,
+          "width": 220
+        },
+        {
+          "id": "image_slots",
+          "type": "nodetool.control.FilterCode",
+          "title": "Filter Code",
+          "x": 300,
+          "y": 400,
+          "width": 220
+        },
+        {
+          "id": "image_prompt",
+          "type": "nodetool.game.SlotPrompt",
+          "title": "Slot Prompt",
+          "x": 560,
+          "y": 400,
+          "width": 220
+        },
+        {
+          "id": "image_image",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 820,
+          "y": 400,
+          "width": 220,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "image_pass",
+          "type": "nodetool.control.Reroute",
+          "title": "Reroute",
+          "x": 1080,
+          "y": 400,
+          "width": 200
+        },
+        {
+          "id": "image_check",
+          "type": "nodetool.game.SeamlessImage",
+          "title": "Seamless Image",
+          "x": 1320,
+          "y": 400,
+          "width": 220
+        },
+        {
+          "id": "sfx_slots",
+          "type": "nodetool.control.FilterCode",
+          "title": "Filter Code",
+          "x": 300,
+          "y": 600,
+          "width": 220
+        },
+        {
+          "id": "sfx_prompt",
+          "type": "nodetool.game.SlotPrompt",
+          "title": "Slot Prompt",
+          "x": 560,
+          "y": 600,
+          "width": 220
+        },
+        {
+          "id": "sfx_audio",
+          "type": "nodetool.audio.TextToMusic",
+          "title": "Text To Music",
+          "x": 820,
+          "y": 600,
+          "width": 220,
+          "subtitle": "meta/musicgen"
+        },
+        {
+          "id": "sfx_check",
+          "type": "nodetool.game.SoundEffect",
+          "title": "Sound Effect",
+          "x": 1080,
+          "y": 600,
+          "width": 220
+        },
+        {
+          "id": "music_slots",
+          "type": "nodetool.control.FilterCode",
+          "title": "Filter Code",
+          "x": 300,
+          "y": 800,
+          "width": 220
+        },
+        {
+          "id": "music_prompt",
+          "type": "nodetool.game.SlotPrompt",
+          "title": "Slot Prompt",
+          "x": 560,
+          "y": 800,
+          "width": 220
+        },
+        {
+          "id": "music_audio",
+          "type": "nodetool.audio.TextToMusic",
+          "title": "Text To Music",
+          "x": 820,
+          "y": 800,
+          "width": 220,
+          "subtitle": "meta/musicgen"
+        },
+        {
+          "id": "music_check",
+          "type": "nodetool.game.MusicLoop",
+          "title": "Music Loop",
+          "x": 1080,
+          "y": 800,
+          "width": 220
+        },
+        {
+          "id": "each_fill",
+          "type": "nodetool.control.ForEach",
+          "title": "For Each",
+          "x": 1620,
+          "y": 300,
+          "width": 220
+        },
+        {
+          "id": "fills",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 1880,
+          "y": 300,
+          "width": 220
+        },
+        {
+          "id": "export",
+          "type": "nodetool.game.StageGameAssets",
+          "title": "Stage Game Assets",
+          "x": 2140,
+          "y": 300,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "template",
+          "sourceHandle": "slot",
+          "target": "sheet_slots",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "sheet_slots",
+          "sourceHandle": "output",
+          "target": "sheet_prompt",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "style",
+          "sourceHandle": "output",
+          "target": "sheet_prompt",
+          "targetHandle": "style",
+          "color": "any"
+        },
+        {
+          "source": "hero",
+          "sourceHandle": "output",
+          "target": "sheet_prompt",
+          "targetHandle": "cast",
+          "color": "any"
+        },
+        {
+          "source": "sheet_prompt",
+          "sourceHandle": "prompt",
+          "target": "sheet_image",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "sheet_image",
+          "sourceHandle": "output",
+          "target": "sheet_pass",
+          "targetHandle": "input_value",
+          "color": "any"
+        },
+        {
+          "source": "sheet_pass",
+          "sourceHandle": "output",
+          "target": "sheet_check",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "sheet_slots",
+          "sourceHandle": "output",
+          "target": "sheet_check",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "template",
+          "sourceHandle": "slot",
+          "target": "tile_slots",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "tile_slots",
+          "sourceHandle": "output",
+          "target": "tile_prompt",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "style",
+          "sourceHandle": "output",
+          "target": "tile_prompt",
+          "targetHandle": "style",
+          "color": "any"
+        },
+        {
+          "source": "tile_prompt",
+          "sourceHandle": "prompt",
+          "target": "tile_image",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "tile_image",
+          "sourceHandle": "output",
+          "target": "tile_pass",
+          "targetHandle": "input_value",
+          "color": "any"
+        },
+        {
+          "source": "tile_pass",
+          "sourceHandle": "output",
+          "target": "tile_check",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "tile_slots",
+          "sourceHandle": "output",
+          "target": "tile_check",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "template",
+          "sourceHandle": "slot",
+          "target": "image_slots",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "image_slots",
+          "sourceHandle": "output",
+          "target": "image_prompt",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "style",
+          "sourceHandle": "output",
+          "target": "image_prompt",
+          "targetHandle": "style",
+          "color": "any"
+        },
+        {
+          "source": "image_prompt",
+          "sourceHandle": "prompt",
+          "target": "image_image",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "image_image",
+          "sourceHandle": "output",
+          "target": "image_pass",
+          "targetHandle": "input_value",
+          "color": "any"
+        },
+        {
+          "source": "image_pass",
+          "sourceHandle": "output",
+          "target": "image_check",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "image_slots",
+          "sourceHandle": "output",
+          "target": "image_check",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "template",
+          "sourceHandle": "slot",
+          "target": "sfx_slots",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "sfx_slots",
+          "sourceHandle": "output",
+          "target": "sfx_prompt",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "style",
+          "sourceHandle": "output",
+          "target": "sfx_prompt",
+          "targetHandle": "style",
+          "color": "any"
+        },
+        {
+          "source": "sfx_prompt",
+          "sourceHandle": "seconds",
+          "target": "sfx_audio",
+          "targetHandle": "duration",
+          "color": "any"
+        },
+        {
+          "source": "sfx_audio",
+          "sourceHandle": "audio",
+          "target": "sfx_check",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "sfx_slots",
+          "sourceHandle": "output",
+          "target": "sfx_check",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "template",
+          "sourceHandle": "slot",
+          "target": "music_slots",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "music_slots",
+          "sourceHandle": "output",
+          "target": "music_prompt",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "style",
+          "sourceHandle": "output",
+          "target": "music_prompt",
+          "targetHandle": "style",
+          "color": "any"
+        },
+        {
+          "source": "music_prompt",
+          "sourceHandle": "seconds",
+          "target": "music_audio",
+          "targetHandle": "duration",
+          "color": "any"
+        },
+        {
+          "source": "music_audio",
+          "sourceHandle": "audio",
+          "target": "music_check",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "music_slots",
+          "sourceHandle": "output",
+          "target": "music_check",
+          "targetHandle": "slot",
+          "color": "any"
+        },
+        {
+          "source": "sheet_check",
+          "sourceHandle": "output",
+          "target": "each_fill",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "tile_check",
+          "sourceHandle": "output",
+          "target": "each_fill",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "image_check",
+          "sourceHandle": "output",
+          "target": "each_fill",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "sfx_check",
+          "sourceHandle": "output",
+          "target": "each_fill",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "music_check",
+          "sourceHandle": "output",
+          "target": "each_fill",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "each_fill",
+          "sourceHandle": "output",
+          "target": "fills",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "fills",
+          "sourceHandle": "output",
+          "target": "export",
+          "targetHandle": "fills",
+          "color": "any"
+        },
+        {
+          "source": "sfx_prompt",
+          "sourceHandle": "prompt",
+          "target": "sfx_audio",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "music_prompt",
+          "sourceHandle": "prompt",
+          "target": "music_audio",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "hero",
+          "sourceHandle": "output",
+          "target": "tile_prompt",
+          "targetHandle": "cast",
+          "color": "any"
+        },
+        {
+          "source": "hero",
+          "sourceHandle": "output",
+          "target": "image_prompt",
+          "targetHandle": "cast",
+          "color": "any"
+        },
+        {
+          "source": "hero",
+          "sourceHandle": "output",
+          "target": "sfx_prompt",
+          "targetHandle": "cast",
+          "color": "any"
+        },
+        {
+          "source": "hero",
+          "sourceHandle": "output",
+          "target": "music_prompt",
+          "targetHandle": "cast",
           "color": "any"
         }
       ]

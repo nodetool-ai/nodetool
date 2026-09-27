@@ -20,10 +20,10 @@
       "path": "../game-nodes"
     },
     {
-      "path": "../godot"
+      "path": "../game-renderer"
     },
     {
-      "path": "../godot-templates"
+      "path": "../game-runtime"
     },
     {
       "path": "../image-editor"

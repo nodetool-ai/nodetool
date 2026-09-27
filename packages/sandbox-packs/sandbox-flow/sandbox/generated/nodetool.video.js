@@ -6,6 +6,9 @@ function textToVideo(inputs) {
 function imageToVideo(inputs) {
   return callNode("nodetool.video.ImageToVideo", inputs);
 }
+function referenceToVideo(inputs) {
+  return callNode("nodetool.video.ReferenceToVideo", inputs);
+}
 function loadVideoFile(inputs) {
   return callNode("nodetool.video.LoadVideoFile", inputs);
 }
@@ -121,6 +124,7 @@ export {
   loadVideoAssets,
   loadVideoFile,
   overlay,
+  referenceToVideo,
   resize,
   reverse,
   rotate,

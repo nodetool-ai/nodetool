@@ -140,7 +140,7 @@ document and nothing else in the directory reaches the product.
 | Build a browser automation agent | [nodetool-browser-agent](.claude/skills/nodetool-browser-agent/SKILL.md) |
 | Integrate over REST, tRPC, WebSocket, MCP or the chat API | [nodetool-api-reference](.claude/skills/nodetool-api-reference/SKILL.md) |
 | Deploy or operate a server or worker | [nodetool-deployment](.claude/skills/nodetool-deployment/SKILL.md) |
-| Build a playable Godot game or an asset pack | [godot-game](.claude/skills/godot-game/SKILL.md) |
+| Build a playable native game or an asset pack | [native-game](.claude/skills/native-game/SKILL.md) |
 
 The full shipped set, including the model-line prompting guides and the motion
 craft skills, is in
@@ -442,7 +442,7 @@ Other task references:
 |---|---|
 | Graph authoring, jobs, assets | [Workflows](docs/harnesses.md#nodetool-workflows), [jobs](docs/harnesses.md#nodetool-jobs), [assets](docs/harnesses.md#nodetool-assets) |
 | Scripts and storyboards | [Script/storyboard link design](docs/script-storyboard-link/design.md), [script voicing](docs/harnesses.md#script-voicing-tools-no-workflow-no-browser), [storyboard rendering](docs/harnesses.md#storyboard-render-tools-no-workflow-no-browser) |
-| 3D scenes and games | [3D tools](docs/harnesses.md#3d-scene-tools-no-editor-no-browser), [Godot pipeline](docs/harnesses.md#godot-game-pipeline-templates-slot-nodes-project-export), [game flow](docs/harnesses.md#game-flow-guided-build-design-graph-export) |
+| 3D scenes and games | [3D tools](docs/harnesses.md#3d-scene-tools-no-editor-no-browser), [native game pipeline](docs/harnesses.md#native-game-pipeline-templates-staging-playtest-web-build), [game flow](docs/harnesses.md#game-flow-guided-design-and-asset-graph) |
 | Entities and media | [Entity library](docs/harnesses.md#entity-library-tools-no-browser), [media analysis](docs/harnesses.md#media-analysis-tools-no-model-no-ffmpeg), [timeline previews](docs/harnesses.md#nodetool-timeline-validate--debug-timeline-harness) |
 | Chat and remote deployment | [Chat](docs/harnesses.md#nodetool-chat), [deployment and workers](docs/cli.md#deployment-and-workers) |
 

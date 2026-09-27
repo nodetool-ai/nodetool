@@ -188,6 +188,8 @@ at 24 hours.
   overridable for a self-hosted one.
 
 **Browser-side.** The socket belongs to the viewer's browser, not the server:
+`packages/game-renderer/src/standalone-player.ts` (fixed relative game document
+and bundled `./assets/` paths),
 `packages/image-nodes/src/nodes/image-io.ts` (behind `!IS_NODE`),
 `packages/core-nodes/src/nodes/fake-media.ts`,
 `packages/browser/src/capture.ts` (inside `page.evaluate`).

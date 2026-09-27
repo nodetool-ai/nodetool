@@ -1100,7 +1100,7 @@ Three claims a green run alone would not make:
 | Fixture | What it asserts |
 |---|---|
 | `per-sku-ad-factory.fake.json` | The exported sequence carries the overlay with both placeholders replaced — so the template's cut survived recast, render and assembly, and `FillTimelineText` reached the clip that inherited it. |
-| `platformer-asset-pack.fake.json` | Every slot the platformer manifest declares reaches the exported file list, and nothing in the project points at a resource that is not there. |
+| `topdown-native-asset-pack.fake.json` | Every top-down slot receives a staged asset binding and content-addressed path. |
 | `three-ratios.fake.json` | Both retargets are new rows naming the source as their template, and every clip keeps the name, start and duration the approved cut gave it. |
 
 The verdict comes from the debug bundle, not the exit code: a graph carrying a
@@ -1116,10 +1116,6 @@ outside this harness:
   `documentModelInterfaces()`, which is what the CLI installs. Every script node
   fails under `nodetool debug` with "ProcessingContext model interface
   'getScript' is not configured".
-- **`ExportGodotProject` is the last node in the E3 fixture.** Wiring anything
-  downstream of it — an `Output` on `directory` or on `files` — makes the run
-  never complete: the node emits, the downstream node runs, and then the
-  runner's promise never settles and the process exits 0 with no bundle.
 
 The pure half of the harness is the derivation suites — `packages/storyboard`,
 `packages/timeline`'s `derive`, protocol's `script-fill` and
@@ -1154,80 +1150,44 @@ answers "how big is this and where is it" without one. Implementations:
 `packages/agents/src/capabilities/model3d.ts`. The `ui_3d_*` tools remain the
 path when the model is open in a browser.
 
-### Godot game pipeline (templates, slot nodes, project export)
+### Native game pipeline (templates, staging, playtest, web build)
 
-A 2D game is a Godot template plus the assets that fill its slots.
-**`list_game_templates`** lists the shipped Godot 4.3 projects (platformer,
-top-down, shoot-em-up) with the slot manifest each one declares: sprite sheets
-with named animations and frame counts, tilesets, seamless backgrounds, sound
-effects, a music loop, and the hook scripts an agent edits after export. The
-`nodetool.game.*` nodes fill one slot each and stamp the fill on the stored
-asset under `metadata.nodetool_slot`: `SpriteSheet` derives frame ranges from
-a generated sheet and the cell size, `Tileset` counts tiles, `SeamlessImage`
-measures the opposite edges, `SoundEffect` trims to the slot's length, and
-`MusicLoop` crossfades the tail into the head. **`export_godot_project`** takes
-the template id and one asset per slot, checks every fill against the
-manifest, copies the template into a workspace directory, writes the
-`SpriteFrames` and `TileSet` resources with atlas regions from the fills and
-collision on the tiles the slot's `solid` list names, copies the asset bytes
-to the paths the scenes reference, and reports any `res://` reference no file
-answers. Exporting again into a directory that already holds a project
-refreshes the resources and assets and keeps every script and scene as it is,
-so an art change does not undo the hook edits; `overwrite` starts over. **`verify_godot_project`** runs
-headless Godot over a project directory: import, `--check-only` on every
-script, and `test/smoke.gd` for sixty physics frames. Both say when Godot
-could not run (no binary, or a virtual workspace) rather than reporting green.
+A built-in game is a versioned game document in a project workspace. The
+`@nodetool-ai/game-runtime` package validates and simulates it at a fixed tick
+rate. `@nodetool-ai/game-renderer` renders it through batched WebGPU quads or a
+Canvas 2D fallback, captures a headless PNG, and builds a standalone web player.
+The starter top-down room can run without generated media.
 
-The slot contract and the acceptance check are `@nodetool-ai/protocol`
-(`game-assets.ts`, fixture under `fixtures/game-assets/`), the resource writer
-and reference checker are `@nodetool-ai/godot`, the templates and the runner
-are `@nodetool-ai/godot-templates`. A template's placeholders sit at the
-exact paths the writer emits, so the template runs before any asset exists
-and a filled export replaces files without touching a scene. Godot is found
-through `GODOT_BIN` or `godot`/`godot4`/`Godot` on `PATH`; the suites that
-need it skip with a named reason when it is absent. Implementations:
-`packages/agents/src/capabilities/godot.ts`.
+The `nodetool.game.*` nodes retain asset checks. `LoadGameTemplate` lists native
+asset slots. `SlotPrompt` prepares a request for one slot. `SpriteSheet`,
+`Tileset`, `SeamlessImage`, `SoundEffect`, and `MusicLoop` check generated media.
+`StageGameAssets` validates the fills and writes content-addressed candidates to
+the project workspace. Staging does not alter a published game revision.
+`install_native_game_asset` installs a selected candidate binding with a
+revision check. Existing scene and behavior edits remain in place.
 
-### Game flow (guided build: design, graph, export)
+Agents can use `create_native_game`, `get_native_game`,
+`publish_native_game`, `install_native_game_asset`, and
+`playtest_native_game`. The web Game tab supplies play, pause, step, reset,
+local save/load, a scene tree, position editing, and revision publish. The
+[`nodetool game` CLI](cli.md#nodetool-game) validates, simulates, captures, and
+builds a standalone web player. A legacy export node reports a migration
+diagnostic; external-engine scene behavior requires manual reconstruction.
 
-The Game entry card turns one sentence into a graph that fills every slot the
-pipeline above declares and ends in `nodetool.game.ExportGodotProject`. Three
-pure pieces carry it, each with its own suite: `packages/protocol/src/game-design.ts`
-holds the designer contract that writes the cast, the level and one prompt per
-slot; `game-flow-prompt.ts` wraps `slotPrompt` so the reviewed subject, the
-style preset and the slot's cast member become a sized prompt with the aspect
-ratio the generator takes; and `game-graph.ts`'s `gameGraphPlacement` is a pure
-function of manifest, design and choices, so nothing a model decides changes
-the chain a slot gets. The flow's state is `settings.game` on the workflow, so
-a half-built game resumes at the step it stopped on.
+### Game flow (guided design and asset graph)
 
-`game-flow` is the harness over that path. Its selfcheck runs the `game`
-suites in `packages/protocol`; the `game-graph-chips` suite in
-`packages/base-nodes`, which builds each shipped inspiration chip's pinned
-design against the real node registry and passes the result through
-`validateGraph`, so a slot chain naming a node type nobody registered fails
-here instead of on a creator's canvas; the `packages/game-nodes` suite over the
-export node; the `capabilities-game-setup` and `capabilities-godot` suites in
-`packages/agents`, which drive the four `ui_game_*` mirrors and the export join
-both the node and the capability call; the `trpc-games` suite in
-`packages/websocket` over the templates query and the preset seed; and the web
-suites under `web/src/components/setup/game`, `web/src/hooks/game` and
-`web/src/lib/tools/builtin/__tests__/gameSetupTools.test.ts`. `harness gate`
-fires it on any diff touching those paths.
+The Game entry creates a playable native game. `design_game` writes a reviewed
+game brief to workflow settings. `build_game` creates or selects a game in the
+workflow's project and stages a generation graph. The pure design, prompt, and
+graph placement contracts live in `packages/protocol/src/game-design.ts`,
+`game-flow-prompt.ts`, and `game-graph.ts`. Re-running the graph produces asset
+candidates; it does not overwrite a published game.
 
-It simulates everything up to the art. A design is parsed and the slots the
-model skipped are filled from the manifest and reported, prompts are sized from
-the slot spec, the placement is built and validated against the registry, the
-export node writes the project directory and the zip from the filled fixture in
-`packages/protocol/fixtures/game-assets/`, and the `ui_game_*` tools drive
-every step with no browser open.
-
-It does not generate art, call a provider, or assume Godot. No image, sound or
-music model runs, so whether a sheet still reads at the slot's exact cell size
-is not answered here (game-prd R8) — `nodetool debug` on the built graph is
-where that shows up. Godot runs only where `GODOT_BIN` or a binary on `PATH` is
-found; without one the export node reports `verified: false` with a reason, and
-the suite asserts the reason rather than skipping the case.
+The `game-flow` harness covers those protocol contracts, node registration,
+native staging, agent capabilities, persistence, simulation, and renderer
+behavior. `npm run fixtures:graph-resources` runs the platformer asset graph
+with fake generators and checks that every declared slot gets a staged binding
+and path with a content digest. It does not call a media provider.
 
 ### Entity library tools (no browser)
 
