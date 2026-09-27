@@ -56,30 +56,66 @@ function html(): string {
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob:; media-src 'self' blob:; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'">
   <title>NodeTool Game</title>
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
   <main>
-    <canvas id="game" aria-label="Game viewport"></canvas>
+    <div class="stage"><canvas id="game" aria-label="Game viewport"></canvas></div>
     <div class="controls">
       <button id="pause" type="button">Pause</button>
       <button id="step" type="button">Step</button>
       <button id="reset" type="button">Reset</button>
       <button id="save" type="button">Save</button>
       <button id="load" type="button">Load</button>
+      <button id="fullscreen" type="button">Fullscreen</button>
     </div>
     <p id="status" role="status" aria-live="polite"></p>
   </main>
+  <div id="touch" class="touch-layer"></div>
+  <div class="rotate" role="alert">Turn your device sideways to play</div>
   <script type="module" src="./${PLAYER_FILE}"></script>
 </body>
 </html>
 `;
 }
 
-const CSS = `:root{color-scheme:dark;font-family:system-ui,sans-serif}body{margin:0;background:#111;color:#fff}main{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}canvas{max-width:100vw;max-height:75vh;image-rendering:pixelated;background:#202631}.controls{display:flex;gap:.5rem}button{font:inherit;padding:.4rem .8rem}#status{min-height:1.5em;margin:0}`;
+// Desktop keeps the toolbar under the game. A coarse pointer gets a full-screen stage, a
+// compact toolbar, touch controls from touch-controls.ts, and a prompt to turn a landscape game sideways.
+const CSS = `:root{color-scheme:dark;font-family:system-ui,sans-serif;--game-aspect:1.7778}
+html,body{height:100%}
+body{margin:0;background:#000;color:#fff;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+main{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
+.stage{width:min(100vw,calc((100dvh - 6rem) * var(--game-aspect)));aspect-ratio:var(--game-aspect)}
+canvas{display:block;width:100%;height:100%;image-rendering:pixelated;background:#202631;touch-action:none}
+.controls{display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem}
+button{font:inherit;padding:.4rem .8rem}
+#status{min-height:1.5em;margin:0}
+.touch-layer,.rotate{display:none}
+body.touch{position:fixed;inset:0;overflow:hidden;touch-action:none}
+body.touch main{position:fixed;inset:0;gap:0}
+body.touch .stage{width:min(100vw,calc(100dvh * var(--game-aspect)))}
+body.touch .controls{position:fixed;top:max(.5rem,env(safe-area-inset-top));right:max(.5rem,env(safe-area-inset-right));z-index:3;opacity:.5;flex-direction:column;gap:.4rem}
+body.touch .controls button{width:2.25rem;height:2.25rem;padding:0;font-size:1rem;line-height:1;border-radius:50%;border:1px solid #fff4;background:#0008;color:#fff}
+body.touch #step,body.touch #save,body.touch #load{display:none}
+body.touch #status{position:fixed;bottom:max(.5rem,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);font-size:.75rem;z-index:3;pointer-events:none;opacity:0}
+body.touch #status.flash{animation:status-flash 3.5s ease-out}
+@keyframes status-flash{0%,70%{opacity:.7}100%{opacity:0}}
+body.touch .touch-layer{display:block;position:fixed;inset:0;z-index:2;pointer-events:none}
+.touch-stick-zone{position:absolute;left:0;top:0;bottom:0;width:50%;pointer-events:auto;touch-action:none}
+.touch-stick{position:absolute;left:25%;top:70%;width:7.5rem;height:7.5rem;margin:-3.75rem 0 0 -3.75rem;border-radius:50%;border:2px solid #fff5;background:#fff1;opacity:.35;transition:opacity .15s}
+.touch-stick.active{opacity:.9}
+.touch-knob{position:absolute;left:50%;top:50%;width:3.25rem;height:3.25rem;margin:-1.625rem 0 0 -1.625rem;border-radius:50%;background:#fff8;box-shadow:0 0 1rem #fff6}
+.touch-buttons{position:absolute;right:max(1.25rem,env(safe-area-inset-right));bottom:max(1.25rem,env(safe-area-inset-bottom));display:flex;flex-direction:column-reverse;gap:1rem;pointer-events:auto}
+.touch-button{width:5.25rem;height:5.25rem;border-radius:50%;border:2px solid #fff6;background:#ffffff1f;color:#fff;font:600 .8rem system-ui,sans-serif;letter-spacing:.05em;touch-action:none;box-shadow:0 0 1.25rem #0008}
+.touch-button.active{background:#ffffff59;transform:scale(.94)}
+@media (orientation:portrait){body.touch.landscape-game .rotate{display:flex;position:fixed;inset:0;z-index:4;align-items:center;justify-content:center;padding:2rem;text-align:center;font-size:1.25rem;background:#000e}}`;
 
 /** Builds a self-contained web player with local content-addressed media. */
 export async function buildStandaloneGame(options: BuildStandaloneGameOptions): Promise<StandaloneGameBuild> {

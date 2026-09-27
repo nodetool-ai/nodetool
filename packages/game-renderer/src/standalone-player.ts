@@ -1,6 +1,7 @@
 import { createScriptedGameSession, validateGame } from "@nodetool-ai/game-runtime";
 import { gameSnapshot, type GameEvent, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { createGameRenderer } from "./browser.js";
+import { mountTouchControls } from "./touch-controls.js";
 
 const PLAYER_VERSION = "1";
 
@@ -13,7 +14,17 @@ function element(id: string): HTMLElement {
 }
 
 function showStatus(message: string): void {
-  element("status").textContent = message;
+  const status = element("status");
+  status.textContent = message;
+  // Touch layouts overlay the status on the game, so it fades out after each message.
+  status.classList.remove("flash");
+  void status.offsetWidth;
+  status.classList.add("flash");
+}
+
+let touchMode = false;
+function pauseLabel(paused: boolean): string {
+  return touchMode ? (paused ? "\u25B6" : "\u275A\u275A") : (paused ? "Resume" : "Pause");
 }
 
 async function start(): Promise<void> {
@@ -34,7 +45,25 @@ async function start(): Promise<void> {
     throw new Error("Game viewport is not a canvas");
   }
   const audioContext = new AudioContext();
-  const sounds = new Map<string, HTMLAudioElement>();
+  // Web Audio plays from decoded buffers, so one unlocking gesture enables every sound on mobile browsers.
+  const sounds = new Map<string, Promise<AudioBuffer | null>>();
+  function sound(ref: string): Promise<AudioBuffer | null> {
+    let buffer = sounds.get(ref);
+    if (!buffer) {
+      buffer = fetch(ref, { cache: "force-cache" })
+        .then((response) => response.ok ? response.arrayBuffer() : Promise.reject(new Error(`Audio failed to load (${response.status})`)))
+        .then((bytes) => audioContext.decodeAudioData(bytes))
+        .catch(() => null);
+      sounds.set(ref, buffer);
+    }
+    return buffer;
+  }
+  for (const binding of Object.values(game.assets)) {
+    if (binding.mediaKind === "audio" && binding.assetId.startsWith("./assets/")) void sound(binding.assetId);
+  }
+  function unlockAudio(): void {
+    if (audioContext.state !== "running") void audioContext.resume().catch(() => showStatus("Audio could not start"));
+  }
   function playAudio(event: GameEvent): void {
     if (event.kind !== "audio") {
       return;
@@ -54,13 +83,13 @@ async function start(): Promise<void> {
     if (!ref?.startsWith("./assets/")) {
       return;
     }
-    let audio = sounds.get(ref);
-    if (!audio) {
-      audio = new Audio(ref);
-      sounds.set(ref, audio);
-    }
-    audio.currentTime = 0;
-    void audio.play().catch(() => showStatus("Audio could not play"));
+    void sound(ref).then((buffer) => {
+      if (!buffer || audioContext.state !== "running") return;
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioContext.destination);
+      source.start();
+    });
   }
   const renderer = await createGameRenderer({
     canvas,
@@ -90,9 +119,57 @@ async function start(): Promise<void> {
   let session = await createScriptedGameSession(game, 1);
   let latest: GameRenderFrame = session.frame();
   renderer.resize(latest.width * latest.pixelsPerUnit, latest.height * latest.pixelsPerUnit);
+  document.documentElement.style.setProperty("--game-aspect", String(latest.width / latest.height));
+  document.body.classList.toggle("landscape-game", latest.width > latest.height);
+  let paused = false;
+  // Keyboard and touch hold actions independently; the simulation sees their union.
+  const keyboard = new Set<string>();
+  let touch: ReadonlySet<string> = new Set<string>();
   const pressed = new Set<string>();
   const justPressed = new Set<string>();
-  let paused = false;
+  function syncPressed(): void {
+    const next = new Set([...keyboard, ...touch]);
+    for (const action of next) {
+      if (!pressed.has(action)) justPressed.add(action);
+    }
+    pressed.clear();
+    next.forEach((action) => pressed.add(action));
+  }
+  function releaseAll(): void {
+    keyboard.clear();
+    touch = new Set();
+    pressed.clear();
+    justPressed.clear();
+  }
+  const touchRoot = element("touch");
+  function enableTouch(): void {
+    if (touchMode) return;
+    touchMode = true;
+    document.body.classList.add("touch");
+    // The touch toolbar is a narrow column of icon buttons in the screen margin.
+    for (const [id, icon, label] of [["reset", "\u21BA", "Reset"], ["fullscreen", "\u26F6", "Fullscreen"]] as const) {
+      element(id).textContent = icon;
+      element(id).setAttribute("aria-label", label);
+    }
+    element("pause").setAttribute("aria-label", "Pause");
+    element("pause").textContent = pauseLabel(paused);
+    mountTouchControls(touchRoot, { inputActions: game.inputActions, onChange: (actions) => {
+      touch = actions;
+      syncPressed();
+    } });
+  }
+  if (window.matchMedia("(pointer: coarse)").matches) enableTouch();
+  window.addEventListener("touchstart", enableTouch, { passive: true });
+  for (const type of ["pointerdown", "touchend", "keydown"] as const) window.addEventListener(type, unlockAudio, { passive: true });
+  const fullscreen = element("fullscreen");
+  if (!document.fullscreenEnabled) fullscreen.hidden = true;
+  fullscreen.addEventListener("click", () => {
+    const request = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen({ navigationUI: "hide" });
+    void request.then(() => {
+      const orientation = screen.orientation as ScreenOrientation & { lock?: (value: string) => Promise<void> };
+      if (document.fullscreenElement && latest.width > latest.height) void orientation.lock?.("landscape").catch(() => undefined);
+    }).catch(() => showStatus("Fullscreen is unavailable"));
+  });
   let rendering: Promise<unknown> | undefined;
   let accumulator = 0;
   let lastTime = performance.now();
@@ -123,7 +200,7 @@ async function start(): Promise<void> {
       return true;
     } catch (error) {
       paused = true;
-      element("pause").textContent = "Resume";
+      element("pause").textContent = pauseLabel(true);
       showStatus(error instanceof Error ? error.message : "Game script failed");
       return false;
     }
@@ -156,6 +233,7 @@ async function start(): Promise<void> {
       case "ArrowRight": case "KeyD": return "right";
       case "ArrowUp": case "KeyW": return "up";
       case "ArrowDown": case "KeyS": return "down";
+      case "Space": return "space";
       default: return key.toLowerCase();
     }
   }
@@ -165,26 +243,22 @@ async function start(): Promise<void> {
       return;
     }
     event.preventDefault();
-    if (!pressed.has(action)) {
-      justPressed.add(action);
-    }
-    pressed.add(action);
-    void audioContext.resume().catch(() => showStatus("Audio could not start"));
+    keyboard.add(action);
+    syncPressed();
   });
   window.addEventListener("keyup", (event) => {
-    const action = keyAction(event.code, event.key);
-    pressed.delete(action);
+    keyboard.delete(keyAction(event.code, event.key));
+    syncPressed();
   });
-  window.addEventListener("blur", () => { pressed.clear(); justPressed.clear(); });
+  window.addEventListener("blur", releaseAll);
   document.addEventListener("visibilitychange", () => {
-    pressed.clear();
-    justPressed.clear();
+    releaseAll();
     accumulator = 0;
     lastTime = performance.now();
   });
   element("pause").addEventListener("click", () => {
     paused = !paused;
-    element("pause").textContent = paused ? "Resume" : "Pause";
+    element("pause").textContent = pauseLabel(paused);
     lastTime = performance.now();
   });
   element("step").addEventListener("click", () => {
@@ -198,8 +272,7 @@ async function start(): Promise<void> {
       session.dispose();
       session = restored;
       latest = session.frame();
-      pressed.clear();
-      justPressed.clear();
+      releaseAll();
       accumulator = 0;
       showStatus("Game reset");
       render(1);
