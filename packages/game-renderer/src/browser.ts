@@ -21,10 +21,11 @@ function replacementCanvas(canvas: HTMLCanvasElement): HTMLCanvasElement {
   return replacement;
 }
 
-class RecoveringGameRenderer implements GameRenderer {
+export class RecoveringGameRenderer implements GameRenderer {
   private effects: readonly GameRendererEffect[] = [];
   private deviceLossCount = 0;
   private fallbackReason: string | null = null;
+  private renderTail: Promise<void> = Promise.resolve();
   constructor(private current: GameRenderer, private readonly assets: GameAssetResolver) {}
 
   get backend(): GameRendererBackend { return this.current.backend; }
@@ -38,7 +39,14 @@ class RecoveringGameRenderer implements GameRenderer {
     this.effects = effects;
   }
 
-  async render(frame: GameRenderFrame, interpolation: number): Promise<GameRendererStats> {
+  render(frame: GameRenderFrame, interpolation: number): Promise<GameRendererStats> {
+    // A later frame can replace HUD textures while an earlier frame is still being encoded.
+    const result = this.renderTail.then(() => this.renderCurrent(frame, interpolation));
+    this.renderTail = result.then(() => undefined, () => undefined);
+    return result;
+  }
+
+  private async renderCurrent(frame: GameRenderFrame, interpolation: number): Promise<GameRendererStats> {
     if (this.effects.some((effect) => effect.required) && !this.current.capabilities.gpuEffects) {
       throw new Error("Required GPU effect is unavailable after WebGPU failure");
     }

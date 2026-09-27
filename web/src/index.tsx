@@ -114,6 +114,9 @@ const TutorialsPage = React.lazy(
 const ChainEditorPage = React.lazy(
   () => import("./components/chain_editor/ChainEditorPage")
 );
+const GamePlayerPage = React.lazy(
+  () => import("./components/game/GamePlayerPage")
+);
 const CostsDashboard = React.lazy(
   () => import("./components/costs/CostsDashboard")
 );
@@ -480,6 +483,16 @@ function getRoutes() {
         </ProtectedRoute>
       )
     })),
+    {
+      path: "/game/:gameId",
+      element: (
+        <ProtectedRoute>
+          <React.Suspense fallback={<LoadingSpinner />}>
+            <GamePlayerPage />
+          </React.Suspense>
+        </ProtectedRoute>
+      )
+    },
     {
       // New tabbed-document workspace (in progress). Lives alongside the
       // existing routes; will become the default once all document types

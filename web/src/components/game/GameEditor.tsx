@@ -13,7 +13,7 @@ import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStor
 import { diffGameDocuments } from "../../stores/game/diffGameDocuments";
 import { acceptServerGameUnit, gameMergeAdapter } from "../../stores/game/merge";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
-import { Caption, ConflictBanner, Dialog, EditorButton, EmptyState, FlexColumn, FlexRow, LoadingSpinner, MobileBottomSheet, ResizableDock, SPACING, Text, TextInput } from "../ui_primitives";
+import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, EditorUiProvider, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, LoadingSpinner, MobileBottomSheet, ResizableDock, SPACING, Text, TextInput } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./GameAgentPanel";
 import GameChanges from "./GameChanges";
@@ -43,13 +43,19 @@ const GameEditor = ({ refId, active }: GameEditorProps) => {
   const conflicts = useDocumentConflicts("game", refId);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [editorSceneId, setEditorSceneId] = useState<string | null>(null);
+  const activeSceneId = document?.scenes.some((scene) => scene.id === editorSceneId)
+    ? editorSceneId : document?.entrySceneId ?? null;
   const { canvasRef, keysRef, newlyPressedRef, playing, playDocument, playState, backend, error, setError,
     scriptError, setScriptError, frame, onViewportAspect, onCamera, resetCamera, step, beginPlay, stop,
-    save, load, replayBeforeError, runtimeEntities } = useGamePlaySession({ refId, active, document, name: data?.game.name });
+    save, load, replayBeforeError, runtimeEntities } = useGamePlaySession({ refId, active, document,
+      editorSceneId: activeSceneId ?? undefined, name: data?.game.name });
   const [runSummary, setRunSummary] = useState<string | null>(null);
   const [runEntityStats, setRunEntityStats] = useState<{ entityId: string; durationMs: number; calls: number }[]>([]);
   const [runningTenSeconds, setRunningTenSeconds] = useState(false);
-  const [assistantOpen, setAssistantOpen] = useState(true);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [sceneTreeOpen, setSceneTreeOpen] = useState(true);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
   const [focusMessage, setFocusMessage] = useState<{ threadId: string; messageId: string; requestId: number } | null>(null);
   const focusRequestRef = useRef(0);
   const [assistantThreadId, setAssistantThreadId] = useState<string | null>(null);
@@ -64,6 +70,17 @@ const GameEditor = ({ refId, active }: GameEditorProps) => {
   const savingPromiseRef = useRef<Promise<void> | null>(null);
   const playDraftOps = playDocument && document ? diffGameDocuments(playDocument, document) : [];
   const needsPlayRestart = playDraftOps.some((op) => op.op !== "bind_asset" && op.op !== "unbind_asset");
+
+  const selectScene = (sceneId: string) => {
+    setEditorSceneId(sceneId);
+    getGameDraftStore(refId).getState().selectMany([]);
+  };
+
+  const selectEntity = (id: string, additive: boolean) => {
+    const scene = document?.scenes.find((item) => item.entities.some((entity) => entity.id === id));
+    if (scene) setEditorSceneId(scene.id);
+    getGameDraftStore(refId).getState().select(id, additive);
+  };
 
   useEffect(() => {
     if (!data || loadedTokenRef.current === data.game.draftUpdatedAt) return;
@@ -340,11 +357,13 @@ const GameEditor = ({ refId, active }: GameEditorProps) => {
   }
 
   return (
+    <EditorUiProvider scope="inspector">
     <FlexColumn gap={SPACING.sm} sx={{ p: SPACING.md, height: "100%", minHeight: 0 }}>
       <GameToolbar
         name={data.game.name} playing={playing} playSession={Boolean(playDocument)} loading={backend === "Initializing"} saving={saving}
         saveStatus={saveStatus} tick={playState.tick} score={playState.score} won={playState.won} backend={backend}
-        assistantOpen={assistantOpen}
+        assistantOpen={assistantOpen} sceneTreeOpen={sceneTreeOpen} inspectorOpen={inspectorOpen}
+        playHref={`/game/${encodeURIComponent(refId)}`}
         onPlay={beginPlay}
         onStop={stop}
         onStep={() => { if (playDocument) step(); }}
@@ -352,6 +371,8 @@ const GameEditor = ({ refId, active }: GameEditorProps) => {
         onLoad={() => void load()}
         onPublish={() => setPublishOpen(true)}
         onAssistant={() => setAssistantOpen((current) => !current)}
+        onSceneTree={() => setSceneTreeOpen((current) => !current)}
+        onInspector={() => setInspectorOpen((current) => !current)}
       />
       {(error || draftError) && <FlexRow gap={SPACING.sm} align="center">
         <Caption color="error" role="alert">{error ?? draftError}</Caption>
@@ -365,10 +386,15 @@ const GameEditor = ({ refId, active }: GameEditorProps) => {
           setAssistantOpen(true);
         }} />
       <FlexRow gap={SPACING.sm} sx={{ flex: 1, minHeight: 0 }}>
-        {!isMobile && <FlexColumn gap={SPACING.sm} sx={{ width: "20%", minWidth: 0, overflowY: "auto" }}>
-          <GameSceneTree document={document} selectedIds={selectedIds} issues={validationIssues} scriptErrorEntityId={scriptError?.entityId}
-            onSelect={(id, additive) => getGameDraftStore(refId).getState().select(id, additive)} onOps={onOps} />
-          <Text>Revisions</Text>
+        {!isMobile && sceneTreeOpen && <ResizableDock storageKey="sceneTree" storagePrefix="nodetool.gameEditor." side="left"
+          defaultWidth={260} minWidth={220} maxWidth={480} ariaLabel="Resize scene tree">
+          <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+          <GameSceneTree document={document} selectedIds={selectedIds} activeSceneId={activeSceneId ?? document.entrySceneId}
+            issues={validationIssues} scriptErrorEntityId={scriptError?.entityId}
+            onSelect={selectEntity} onSelectScene={selectScene} onOps={onOps} />
+          <CollapsibleSection title={<Label component="span" sx={{ mb: 0 }}>Revisions</Label>} compact defaultOpen={false}
+            sx={{ flexShrink: 0, maxHeight: "30%", overflowY: "auto", px: SPACING.md,
+              "& > [role='button'] > svg": { fontSize: FONT_SIZE_SANS.body } }}>
           {revisions?.slice(0, 10).map((entry) => <FlexRow key={entry.revision} gap={SPACING.xs} align="center">
             <Caption>{entry.message || entry.revision.slice(0, 12)} · {new Date(entry.modifiedAt).toLocaleString()}{entry.current ? " · Current" : ""}</Caption>
             <EditorButton disabled={saving} onClick={async () => {
@@ -386,10 +412,14 @@ const GameEditor = ({ refId, active }: GameEditorProps) => {
               finally { setSaving(false); }
             }}>Restore to draft</EditorButton>
           </FlexRow>)}
-        </FlexColumn>}
+          </CollapsibleSection>
+          </FlexColumn>
+        </ResizableDock>}
         <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
-          <GameViewport canvasRef={canvasRef} frame={frame} document={document} playing={Boolean(playDocument)} paused={Boolean(playDocument && !playing)} active={active} selectedIds={selectedIds} highlightedIds={highlightedIds}
-            onSelect={(id, additive) => getGameDraftStore(refId).getState().select(id, additive)}
+          <GameViewport canvasRef={canvasRef} frame={frame} document={document}
+            sceneId={playDocument ? playState.sceneId || playDocument.entrySceneId : activeSceneId ?? document.entrySceneId}
+            playing={Boolean(playDocument)} paused={Boolean(playDocument && !playing)} active={active} selectedIds={selectedIds} highlightedIds={highlightedIds}
+            onSelect={selectEntity}
             onSelectMany={(ids, additive) => getGameDraftStore(refId).getState().selectMany(ids, additive)}
             onMove={moveEntity} onTransform={transformEntity} onLight={transformLight}
             onCamera={onCamera}
@@ -409,20 +439,24 @@ const GameEditor = ({ refId, active }: GameEditorProps) => {
                 onChange={(source) => onOps([{ op: "set_script", entity_id: activeScript.id, scene_id: scriptKey.sceneId, index: scriptKey.index, source }])} />
             </FlexColumn>}
         </FlexColumn>
-        {!isMobile && <FlexColumn sx={{ width: "25%", minWidth: 0, overflowY: "auto" }}>
+        {!isMobile && inspectorOpen && <ResizableDock storageKey="inspector" storagePrefix="nodetool.gameEditor."
+          defaultWidth={340} minWidth={280} maxWidth={640} ariaLabel="Resize game inspector">
           {playDocument && !playing && <GameRuntimeInspector tick={playState.tick} entity={runtimeEntity} />}
-          <GameInspector document={document} selectedIds={selectedIds} issues={validationIssues} onOps={onOps}
+          <GameInspector document={document} selectedIds={selectedIds} activeSceneId={activeSceneId ?? document.entrySceneId}
+            onSceneChange={selectScene} issues={validationIssues} onOps={onOps}
             onEditScript={(sceneId, entityId, index) => setScriptKey({ sceneId, entityId, index })} />
-        </FlexColumn>}
+        </ResizableDock>}
         {!isMobile && assistantOpen && <ResizableDock storageKey="game_assistant" ariaLabel="Resize game assistant">
           <GameAgentPanel gameId={refId} name={data.game.name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={setAssistantThreadId} focusMessage={focusMessage} />
         </ResizableDock>}
       </FlexRow>
       {isMobile && <>
         {playDocument && !playing && <GameRuntimeInspector tick={playState.tick} entity={runtimeEntity} />}
-        <GameSceneTree document={document} selectedIds={selectedIds} issues={validationIssues} scriptErrorEntityId={scriptError?.entityId}
-          onSelect={(id, additive) => getGameDraftStore(refId).getState().select(id, additive)} onOps={onOps} />
-        <GameInspector document={document} selectedIds={selectedIds} issues={validationIssues} onOps={onOps}
+        <GameSceneTree document={document} selectedIds={selectedIds} activeSceneId={activeSceneId ?? document.entrySceneId}
+          issues={validationIssues} scriptErrorEntityId={scriptError?.entityId}
+          onSelect={selectEntity} onSelectScene={selectScene} onOps={onOps} />
+        <GameInspector document={document} selectedIds={selectedIds} activeSceneId={activeSceneId ?? document.entrySceneId}
+          onSceneChange={selectScene} issues={validationIssues} onOps={onOps}
           onEditScript={(sceneId, entityId, index) => setScriptKey({ sceneId, entityId, index })} />
         <MobileBottomSheet open={assistantOpen} onClose={() => setAssistantOpen(false)} title="Game assistant" ariaLabel="Game assistant panel">
           <GameAgentPanel gameId={refId} name={data.game.name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={setAssistantThreadId} focusMessage={focusMessage} />
@@ -437,6 +471,7 @@ const GameEditor = ({ refId, active }: GameEditorProps) => {
         </FlexColumn>
       </Dialog>
     </FlexColumn>
+    </EditorUiProvider>
   );
 };
 

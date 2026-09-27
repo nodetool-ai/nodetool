@@ -5,7 +5,7 @@ export function pressGameKey(keys: Map<string, string>, newlyPressed: Set<string
   actions: readonly string[]): boolean {
   const action = gameKeyAction(code, key);
   if (!actions.includes(action)) return false;
-  if (!keys.has(code)) newlyPressed.add(code);
+  if (!keys.has(code)) newlyPressed.add(action);
   keys.set(code, action);
   return true;
 }
@@ -13,7 +13,7 @@ export function pressGameKey(keys: Map<string, string>, newlyPressed: Set<string
 export function gameInputFrame(keys: ReadonlyMap<string, string>, newlyPressed: ReadonlySet<string>,
   document: GameDocument): GameInputFrame {
   const pressed = [...new Set(keys.values())];
-  const justPressed = [...new Set([...newlyPressed].map((code) => keys.get(code)).filter((action): action is string => Boolean(action)))];
+  const justPressed = [...newlyPressed];
   return {
     pressed: pressed.filter((action) => document.inputActions.includes(action)),
     justPressed: justPressed.filter((action) => document.inputActions.includes(action))

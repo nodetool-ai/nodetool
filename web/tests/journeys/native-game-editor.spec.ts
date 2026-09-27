@@ -47,6 +47,18 @@ test("reviews a game change, undoes it, and publishes the draft", async ({ page 
   await page.goto("/workspace", { waitUntil: "domcontentloaded" });
   await waitForAppReady(page);
   await expect(page.getByText("Assistant added")).toBeVisible();
+  const sceneTreeDivider = page.getByRole("separator", { name: "Resize scene tree" });
+  const inspectorDivider = page.getByRole("separator", { name: "Resize game inspector" });
+  await sceneTreeDivider.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(sceneTreeDivider).toHaveAttribute("aria-valuenow", "276");
+  await inspectorDivider.focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(inspectorDivider).toHaveAttribute("aria-valuenow", "356");
+  expect(await page.evaluate(() => [
+    localStorage.getItem("nodetool.gameEditor.sceneTree"),
+    localStorage.getItem("nodetool.gameEditor.inspector")
+  ])).toEqual(["276", "356"]);
   const beforePlay = (await client.games.getDraft.query({ id: created.game.id })).document;
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();

@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import type { GameDocument } from "@nodetool-ai/protocol/game.js";
 import type { GameValidationIssue } from "@nodetool-ai/game-runtime";
 
-import NumberInput from "../../inputs/NumberInput";
-import { Caption, Checkbox, CollapsibleSection, EditorButton, FlexColumn, FlexRow, LabeledSwitch, SelectField, SPACING, TextInput } from "../../ui_primitives";
+import { Caption, Checkbox, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorSelect, InspectorToggleRow, InspectorValueInput, Label, SPACING, TextInput, TYPOGRAPHY } from "../../ui_primitives";
 import type { FieldSchema } from "./schemaForm";
 import { schemaDefault, schemaVariant } from "./schemaForm";
 
@@ -18,6 +17,8 @@ interface SchemaFieldsProps {
   collisionLayers?: readonly string[];
 }
 
+const FIELD_WIDTH = { width: "100%", minWidth: 0 } as const;
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
@@ -31,6 +32,14 @@ function assetKind(path: string): "image" | "audio" | "font" | undefined {
   if (path.includes("music") || path.includes("audioSource")) return "audio";
   if (path.includes("font")) return "font";
   return "image";
+}
+
+function fieldLabel(path: string): string {
+  const parts = path.split(".");
+  const key = parts.at(-1) ?? path;
+  if (/^\d+$/.test(key)) return `Item ${Number(key) + 1}`;
+  return key.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/2d\b/i, "2D")
+    .replace(/^./, (letter) => letter.toUpperCase()).replace(/\bId\b/g, "ID").replace(/\bHud\b/g, "HUD");
 }
 
 function trackCurve(easing: string): string {
@@ -48,30 +57,40 @@ function StringField({ label, value, schema, error, onChange }: { label: string;
   const validLength = local.length >= (schema.minLength ?? 0);
   const validPattern = !schema.pattern || new RegExp(schema.pattern).test(local);
   const localError = !validLength ? `Enter at least ${schema.minLength} character${schema.minLength === 1 ? "" : "s"}` : !validPattern ? "Invalid format" : undefined;
-  return <TextInput label={label} size="small" type={schema.pattern === "^#[0-9a-fA-F]{6}$" || /^#[0-9a-fA-F]{6}$/.test(local) ? "color" : "text"}
-    value={local} errorMessage={localError ?? error} onChange={(event) => {
+  return <FlexColumn gap={SPACING.xs} sx={{ width: "100%" }}><InspectorFieldRow label={label}>
+    <TextInput label={label} hideLabel compact type={schema.pattern === "^#[0-9a-fA-F]{6}$" || /^#[0-9a-fA-F]{6}$/.test(local) ? "color" : "text"}
+    sx={{ minWidth: 0,
+      "& .MuiInputBase-root:not(.MuiInputBase-multiline)": { minHeight: CONTROL.height.sm, height: CONTROL.height.sm },
+      "& .MuiInputBase-input": { ...TYPOGRAPHY.sans.label, px: SPACING.md }
+    }} value={local} onChange={(event) => {
       const next = event.target.value;
       setLocal(next);
       if (next.length >= (schema.minLength ?? 0) && (!schema.pattern || new RegExp(schema.pattern).test(next))) onChange(next);
-    }} />;
+    }} />
+  </InspectorFieldRow>{(localError ?? error) && <Caption color="error">{localError ?? error}</Caption>}</FlexColumn>;
 }
 
-function NumberField({ label, value, schema, degrees, error, id, onChange }: { label: string; value: number; schema: FieldSchema; degrees: boolean; error?: string; id: string; onChange: (value: number) => void }) {
+function NumberField({ label, value, schema, degrees, error, axis, onChange }: { label: string; value: number; schema: FieldSchema; degrees: boolean; error?: string; axis?: string; onChange: (value: number) => void }) {
   const displayed = degrees ? Math.round(value * 180 / Math.PI * 100) / 100 : value;
-  const [local, setLocal] = useState(displayed);
-  useEffect(() => setLocal(displayed), [displayed]);
-  const actual = degrees ? local * Math.PI / 180 : local;
-  const invalid = (schema.minimum !== undefined && actual < schema.minimum) || (schema.exclusiveMinimum !== undefined && actual <= schema.exclusiveMinimum) ||
+  const [local, setLocal] = useState(String(displayed));
+  useEffect(() => setLocal(String(displayed)), [displayed]);
+  const numeric = Number(local);
+  const actual = degrees ? numeric * Math.PI / 180 : numeric;
+  const invalid = local.trim() === "" || !Number.isFinite(actual) ||
+    (schema.minimum !== undefined && actual < schema.minimum) || (schema.exclusiveMinimum !== undefined && actual <= schema.exclusiveMinimum) ||
     (schema.maximum !== undefined && actual > schema.maximum) || (schema.type === "integer" && !Number.isInteger(actual));
-  return <FlexColumn gap={SPACING.xs}><NumberInput nodeId="game-inspector" id={id} name={label}
-    value={local} inputType={schema.type === "integer" ? "int" : "float"}
-    onChange={(_, next) => {
-      setLocal(next);
+  const control = <FlexRow gap={SPACING.xs} sx={{ minWidth: 0, width: "100%" }}>
+    <InspectorValueInput ariaLabel={label} value={local} unit={degrees ? "°" : undefined} size="medium" grow onCommit={(raw) => {
+      setLocal(raw);
+      const next = Number(raw);
       const converted = degrees ? next * Math.PI / 180 : next;
-      if (Number.isFinite(converted) && (schema.minimum === undefined || converted >= schema.minimum) &&
+      if (raw.trim() !== "" && Number.isFinite(converted) && (schema.minimum === undefined || converted >= schema.minimum) &&
         (schema.exclusiveMinimum === undefined || converted > schema.exclusiveMinimum) &&
         (schema.maximum === undefined || converted <= schema.maximum) && (schema.type !== "integer" || Number.isInteger(converted))) onChange(converted);
     }} />
+  </FlexRow>;
+  return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>
+    {axis ? control : <InspectorFieldRow label={label}>{control}</InspectorFieldRow>}
     {(invalid || error) && <Caption color="error">{invalid ? "Value is outside the allowed range" : error}</Caption>}
   </FlexColumn>;
 }
@@ -81,8 +100,8 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
   if (selected !== schema) {
     const variants = schema.oneOf ?? schema.anyOf ?? [];
     const discriminator = Object.entries(selected.properties ?? {}).find(([, child]) => child.const !== undefined)?.[0];
-    return <FlexColumn gap={SPACING.sm}>
-      {discriminator && variants.length > 1 && <SelectField label={discriminator} value={String(asRecord(value)[discriminator] ?? "")}
+    return <FlexColumn gap={SPACING.sm} sx={FIELD_WIDTH}>
+      {discriminator && variants.length > 1 && <InspectorFieldRow label={fieldLabel(discriminator)}><InspectorSelect grow label={fieldLabel(discriminator)} value={String(asRecord(value)[discriminator] ?? "")}
         options={variants.map((option) => ({ value: String(option.properties?.[discriminator]?.const ?? ""), label: String(option.properties?.[discriminator]?.const ?? "") }))}
         onChange={(next) => {
           const variant = variants.find((option) => option.properties?.[discriminator]?.const === next);
@@ -91,36 +110,55 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
             onChange(path.includes("tracks.") && (next === "scaleX" || next === "scaleY")
               ? { ...defaults, from: 1, to: 1 } : defaults);
           }
-        }} />}
+        }} /></InspectorFieldRow>}
       <SchemaFields schema={selected} value={value} onChange={onChange} path={path} issuePath={issuePath} issues={issues} assets={assets} collisionLayers={collisionLayers} />
     </FlexColumn>;
   }
   if (schema.type === "object" || schema.properties) {
     const record = asRecord(value);
-    return <FlexColumn gap={SPACING.sm}>
-      {Object.entries(schema.properties ?? {}).filter(([key]) => key !== "kind" && key !== "property").map(([key, child]) => {
+    const properties = Object.entries(schema.properties ?? {}).filter(([key]) => key !== "kind" && key !== "property");
+    const pairs = [
+      { label: path.endsWith("transform2d") ? "Position" : "Axes", keys: ["x", "y"], axes: ["X", "Y"] },
+      { label: "Scale", keys: ["scaleX", "scaleY"], axes: ["X", "Y"] },
+      { label: "Size", keys: ["width", "height"], axes: ["W", "H"] }
+    ].filter((pair) => pair.keys.every((key) => typeof record[key] === "number" &&
+      ["number", "integer"].includes(schema.properties?.[key]?.type ?? "") && schema.required?.includes(key)));
+    const absent = properties.filter(([key]) => record[key] === undefined);
+    return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>
+      {properties.filter(([key]) => record[key] !== undefined).map(([key, child]) => {
+        const pair = pairs.find((entry) => entry.keys.includes(key));
+        if (pair) {
+          if (key !== pair.keys[0]) return null;
+          return <InspectorFieldRow key={key} label={pair.label}>
+            {pair.keys.map((axisKey, index) => <NumberField key={axisKey} label={fieldLabel(axisKey)} axis={pair.axes[index]}
+              value={Number(record[axisKey])} schema={schema.properties?.[axisKey] ?? { type: "number" }} degrees={false}
+              error={fieldError(issues, [...issuePath, axisKey])} onChange={(next) => onChange({ ...record, [axisKey]: next })} />)}
+          </InspectorFieldRow>;
+        }
         const childValue = record[key];
         const label = path ? `${path}.${key}` : key;
         const childPath = [...issuePath, key];
-        if (childValue === undefined) return <EditorButton key={key} onClick={() => onChange({ ...record, [key]: schemaDefault(child) })}>Add {key}</EditorButton>;
         const field = <SchemaFields schema={child} value={childValue} path={label} issuePath={childPath} issues={issues} assets={assets} collisionLayers={collisionLayers}
           onChange={(next) => onChange({ ...record, [key]: next })} />;
         const optional = !schema.required?.includes(key);
         return child.type === "object" || child.properties || child.type === "array"
-          ? <CollapsibleSection key={key} title={key} compact>{field}{optional && <EditorButton onClick={() => {
+          ? <CollapsibleSection key={key} title={fieldLabel(key)} compact sx={{ width: "100%", pt: SPACING.xs }}><FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>{field}{optional && <EditorButton onClick={() => {
             const copy = { ...record }; delete copy[key]; onChange(copy);
-          }}>Remove {key}</EditorButton>}</CollapsibleSection>
-          : <FlexRow key={key} gap={SPACING.xs} align="center" sx={{ minWidth: 0 }}>{field}{optional && <EditorButton onClick={() => {
+          }}>Remove {fieldLabel(key)}</EditorButton>}</FlexColumn></CollapsibleSection>
+          : <FlexColumn key={key} gap={SPACING.xs} sx={FIELD_WIDTH}>{field}{optional && <EditorButton sx={{ alignSelf: "flex-end" }} onClick={() => {
             const copy = { ...record }; delete copy[key]; onChange(copy);
-          }}>Remove</EditorButton>}</FlexRow>;
+          }}>Remove</EditorButton>}</FlexColumn>;
       })}
+      {absent.length > 0 && <FlexRow gap={SPACING.xs} sx={{ flexWrap: "wrap", pt: SPACING.xs }}>
+        {absent.map(([key, child]) => <EditorButton key={key} onClick={() => onChange({ ...record, [key]: schemaDefault(child) })}>Add {fieldLabel(key)}</EditorButton>)}
+      </FlexRow>}
       {fieldError(issues, issuePath) && <Caption color="error">{fieldError(issues, issuePath)}</Caption>}
     </FlexColumn>;
   }
   if (schema.type === "array") {
     const items = Array.isArray(value) ? value : [];
     const fixedLength = Boolean(schema.prefixItems?.length);
-    return <FlexColumn gap={SPACING.sm}>
+    return <FlexColumn gap={SPACING.sm} sx={FIELD_WIDTH}>
       {items.map((item, index) => <FlexColumn key={typeof asRecord(item).id === "string" ? String(asRecord(item).id) : index} gap={SPACING.xs}>
         {path.endsWith("tracks") && <svg role="img" aria-label={`${String(asRecord(item).easing ?? "linear")} curve`} width="64" height="40" viewBox="0 0 40 40">
           <polyline points={trackCurve(String(asRecord(item).easing ?? "linear"))} fill="none" stroke="currentColor" strokeWidth="2" />
@@ -144,8 +182,8 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
   }
   const error = fieldError(issues, issuePath);
   if ((path.endsWith("collider2d.category") || path.endsWith("collider2d.mask")) && typeof value === "number") {
-    return <FlexColumn gap={SPACING.xs}>
-      <Caption>{path.endsWith("category") ? "Category" : "Mask"}</Caption>
+    return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>
+      <Label component="span" sx={{ mb: 0 }}>{path.endsWith("category") ? "Category" : "Mask"}</Label>
       <FlexRow gap={SPACING.xs} sx={{ flexWrap: "wrap" }}>
         {Array.from({ length: 32 }, (_, bit) => <Checkbox key={bit} compact size="small" label={collisionLayers?.[bit] ?? String(bit + 1)}
           checked={((value >>> bit) & 1) === 1} onChange={() => onChange(((value ^ (1 << bit)) >>> 0))}
@@ -154,16 +192,16 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
       {error && <Caption color="error">{error}</Caption>}
     </FlexColumn>;
   }
-  if (schema.enum) return <FlexColumn gap={SPACING.xs}><SelectField label={path} value={String(value ?? "")}
+  if (schema.enum) return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}><InspectorFieldRow label={fieldLabel(path)}><InspectorSelect grow label={fieldLabel(path)} value={String(value ?? "")}
     options={schema.enum.map((option) => ({ value: option, label: String(option) }))}
-    onChange={(next) => onChange(schema.enum?.find((option) => String(option) === next) ?? next)} />
+    onChange={(next) => onChange(schema.enum?.find((option) => String(option) === next) ?? next)} /></InspectorFieldRow>
     {error && <Caption color="error">{error}</Caption>}</FlexColumn>;
-  if (schema.type === "boolean") return <FlexColumn gap={SPACING.xs}><LabeledSwitch label={path} checked={Boolean(value)} onChange={onChange} />
+  if (schema.type === "boolean") return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}><InspectorToggleRow label={fieldLabel(path)} checked={Boolean(value)} onChange={onChange} />
     {error && <Caption color="error">{error}</Caption>}</FlexColumn>;
   if (schema.type === "number" || schema.type === "integer") {
     const degrees = path.endsWith("transform2d.rotation");
-    return <NumberField label={degrees ? "Rotation (degrees)" : path} value={typeof value === "number" ? value : 0} schema={schema}
-      degrees={degrees} error={error} id={issuePath.join(".")} onChange={onChange} />;
+    return <NumberField label={degrees ? "Rotation" : fieldLabel(path)} value={typeof value === "number" ? value : 0} schema={schema}
+      degrees={degrees} error={error} onChange={onChange} />;
   }
   if (schema.type === "string") {
     const kind = assetKind(path);
@@ -171,10 +209,10 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
       const slots = Object.entries(assets).filter(([, binding]) => binding.mediaKind === kind).map(([slot]) => slot);
       const current = typeof value === "string" ? value : "";
       if (current && !slots.includes(current)) slots.unshift(current);
-      return <FlexColumn gap={SPACING.xs}><SelectField label={path} value={current} options={slots.map((slot) => ({ value: slot, label: slot }))}
-        onChange={onChange} />{error && <Caption color="error">{error}</Caption>}</FlexColumn>;
+      return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}><InspectorFieldRow label={fieldLabel(path)}><InspectorSelect grow label={fieldLabel(path)} value={current} options={slots.map((slot) => ({ value: slot, label: slot }))}
+        onChange={onChange} /></InspectorFieldRow>{error && <Caption color="error">{error}</Caption>}</FlexColumn>;
     }
-    return <StringField label={path} value={typeof value === "string" ? value : ""} schema={schema} error={error} onChange={onChange} />;
+    return <StringField label={fieldLabel(path)} value={typeof value === "string" ? value : ""} schema={schema} error={error} onChange={onChange} />;
   }
   return <Caption>{path}: unsupported field</Caption>;
 }

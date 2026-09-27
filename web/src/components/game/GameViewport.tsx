@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type RefObject } from "react";
-import { useTheme } from "@mui/material/styles";
+import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { GameDocument, GameRenderFrame } from "@nodetool-ai/protocol/game.js";
 import { projectedCamera } from "@nodetool-ai/game-renderer";
 
 import { Box, EditorButton, FlexRow, SPACING, Z_INDEX } from "../ui_primitives";
+import { isMac } from "../../utils/platform";
 import { hitEntityIcons, hitSprites, spriteHandle, spriteRotationAt, spriteScaleAt, worldPoint } from "./viewportGeometry";
 
 interface GameViewportProps {
   canvasRef: RefObject<HTMLCanvasElement | null>;
   frame: GameRenderFrame | null;
   document: GameDocument;
+  sceneId?: string;
   playing: boolean;
   paused: boolean;
   active: boolean;
@@ -53,11 +55,17 @@ function point(event: { clientX: number; clientY: number }, canvas: HTMLCanvasEl
   };
 }
 
-export default function GameViewport({ canvasRef, frame, document, playing, paused, active, selectedIds, highlightedIds, onSelect, onSelectMany, onMove, onTransform, onLight, onCamera, onViewportAspect, onKeyDown, onKeyUp, onBlur }: GameViewportProps) {
+export default function GameViewport({ canvasRef, frame, document, sceneId, playing, paused, active, selectedIds, highlightedIds, onSelect, onSelectMany, onMove, onTransform, onLight, onCamera, onViewportAspect, onKeyDown, onKeyUp, onBlur }: GameViewportProps) {
   const theme = useTheme();
+  const mac = isMac();
+  const { mode, systemMode } = useColorScheme();
+  const colorMode = mode === "dark" || (mode === "system" && systemMode === "dark") ? "dark" : "light";
+  const palette = theme.colorSchemes?.[colorMode]?.palette ?? theme.palette;
   const [showGrid, setShowGrid] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [showSelection, setShowSelection] = useState(true);
+  const [panTool, setPanTool] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
   const [showColliders, setShowColliders] = useState(false);
   const [showLights, setShowLights] = useState(false);
   const [showBackgrounds, setShowBackgrounds] = useState(false);
@@ -70,6 +78,7 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
   const lightPreviewRef = useRef<{ sceneId: string; index: number; x: number; y: number; radius: number } | null>(null);
   const panRef = useRef<PanState | null>(null);
   const spaceHeldRef = useRef(false);
+  const scene = document.scenes.find((item) => item.id === (sceneId ?? document.entrySceneId)) ?? document.scenes[0];
 
   const paintOverlay = useCallback(() => {
     const overlay = overlayRef.current;
@@ -87,11 +96,10 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
     const scale = camera.zoom * frame.pixelsPerUnit;
     const project = (x: number, y: number) => ({ x: width / 2 + (x - camera.x) * scale,
       y: height / 2 - (y - camera.y) * scale });
-    const scene = document.scenes.find((item) => item.id === document.entrySceneId) ?? document.scenes[0];
     if (showGrid) {
       let step = 0.25;
       while (frame.width / frame.camera.zoom / step > 100) step *= 2;
-      context.strokeStyle = theme.vars.palette.divider;
+      context.strokeStyle = palette.divider;
       context.lineWidth = 1;
       const left = frame.camera.x - frame.width / (2 * frame.camera.zoom);
       const right = frame.camera.x + frame.width / (2 * frame.camera.zoom);
@@ -110,8 +118,8 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
       for (const entity of scene.entities) {
         if (!entity.collider2d) continue;
         const category = Math.log2(entity.collider2d.category & -entity.collider2d.category);
-        const colors = [theme.vars.palette.info.main, theme.vars.palette.warning.main,
-          theme.vars.palette.success.main, theme.vars.palette.error.main];
+        const colors = [palette.info.main, palette.warning.main,
+          palette.success.main, palette.error.main];
         context.strokeStyle = colors[(Number.isFinite(category) ? category : 0) % colors.length];
         const center = project(entity.transform2d.x, entity.transform2d.y);
         context.save(); context.translate(center.x, center.y); context.rotate(-entity.transform2d.rotation);
@@ -123,17 +131,17 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
       }
     }
     if (scene && showLights) {
-      context.strokeStyle = theme.vars.palette.warning.main;
+      context.strokeStyle = palette.warning.main;
       for (const [index, original] of (scene.lighting?.points ?? []).entries()) {
         const light = lightPreviewRef.current?.sceneId === scene.id && lightPreviewRef.current.index === index
           ? lightPreviewRef.current : original;
         const center = project(light.x, light.y);
         context.beginPath(); context.arc(center.x, center.y, light.radius * scale, 0, Math.PI * 2); context.stroke();
-        context.beginPath(); context.arc(center.x, center.y, 4, 0, Math.PI * 2); context.fillStyle = theme.vars.palette.warning.main; context.fill();
+        context.beginPath(); context.arc(center.x, center.y, 4, 0, Math.PI * 2); context.fillStyle = palette.warning.main; context.fill();
       }
     }
     if (scene && showBackgrounds) {
-      context.strokeStyle = theme.vars.palette.secondary.main;
+      context.strokeStyle = palette.secondary.main;
       for (const background of scene.backgrounds ?? []) {
         const origin = project(background.origin.x, background.origin.y);
         context.beginPath(); context.moveTo(origin.x - 6, origin.y); context.lineTo(origin.x + 6, origin.y);
@@ -141,7 +149,7 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
       }
     }
     if (scene && showCameraBounds) {
-      context.strokeStyle = theme.vars.palette.success.main;
+      context.strokeStyle = palette.success.main;
       for (const entity of scene.entities) {
         if (!entity.camera2d) continue;
         const center = project(entity.transform2d.x, entity.transform2d.y);
@@ -154,14 +162,14 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
       for (const entity of scene.entities) {
         if (visibleSprites.has(entity.id)) continue;
         const center = project(entity.transform2d.x, entity.transform2d.y);
-        context.fillStyle = selectedIds.includes(entity.id) ? theme.vars.palette.warning.main : theme.vars.palette.text.secondary;
+        context.fillStyle = selectedIds.includes(entity.id) ? palette.warning.main : palette.text.secondary;
         context.fillRect(center.x - 4, center.y - 4, 8, 8);
       }
     }
     context.lineWidth = 2;
     if (showSelection) for (const sprite of frame.sprites) {
       if (!selectedIds.includes(sprite.entityId) && !highlightedIds.includes(sprite.entityId)) continue;
-      context.strokeStyle = selectedIds.includes(sprite.entityId) ? theme.vars.palette.warning.main : theme.vars.palette.info.main;
+      context.strokeStyle = selectedIds.includes(sprite.entityId) ? palette.warning.main : palette.info.main;
       const preview = previewRef.current?.entityId === sprite.entityId ? previewRef.current : null;
       const current = { ...sprite, ...preview };
       const x = width / 2 + (current.x - frame.camera.x) * scale;
@@ -179,7 +187,7 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
         const cornerY = height / 2 - (corner.y - frame.camera.y) * scale;
         const rotateX = width / 2 + (rotate.x - frame.camera.x) * scale;
         const rotateY = height / 2 - (rotate.y - frame.camera.y) * scale;
-        context.fillStyle = theme.vars.palette.warning.main;
+        context.fillStyle = palette.warning.main;
         context.fillRect(cornerX - 5, cornerY - 5, 10, 10);
         context.beginPath();
         context.arc(rotateX, rotateY, 5, 0, Math.PI * 2);
@@ -189,13 +197,12 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
     if (marqueeRef.current) {
       const start = project(marqueeRef.current.startX, marqueeRef.current.startY);
       const end = project(marqueeRef.current.endX, marqueeRef.current.endY);
-      context.strokeStyle = theme.vars.palette.info.main;
+      context.strokeStyle = palette.info.main;
       context.strokeRect(Math.min(start.x, end.x), Math.min(start.y, end.y), Math.abs(start.x - end.x), Math.abs(start.y - end.y));
     }
-  }, [frame, document, selectedIds, highlightedIds, showGrid, showColliders, showLights, showCameraBounds,
+  }, [frame, scene, selectedIds, highlightedIds, showGrid, showColliders, showLights, showCameraBounds,
     showSelection, showBackgrounds, paused, playing,
-    theme.vars.palette.warning.main, theme.vars.palette.info.main, theme.vars.palette.success.main,
-    theme.vars.palette.error.main, theme.vars.palette.secondary.main, theme.vars.palette.text.secondary, theme.vars.palette.divider]);
+    palette]);
 
   useEffect(() => { paintOverlay(); }, [paintOverlay]);
   useEffect(() => {
@@ -215,8 +222,9 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
     const canvas = event.currentTarget;
     const pixel = point(event, canvas);
     canvasRef.current?.focus();
-    if (event.button === 1 || spaceHeldRef.current) {
+    if (event.button === 1 || event.button === 2 || spaceHeldRef.current || (panTool && event.button === 0)) {
       panRef.current = { pixelX: pixel.x, pixelY: pixel.y, cameraX: frame.camera.x, cameraY: frame.camera.y };
+      setIsPanning(true);
       canvas.setPointerCapture(event.pointerId);
       return;
     }
@@ -229,7 +237,6 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
       return;
     }
     const scale = frame.camera.zoom * frame.pixelsPerUnit;
-    const scene = document.scenes.find((item) => item.id === document.entrySceneId) ?? document.scenes[0];
     if (showLights && scene?.lighting) {
       for (const [index, light] of scene.lighting.points.entries()) {
         const distance = Math.hypot((light.x - world.x) * scale, (light.y - world.y) * scale);
@@ -326,6 +333,7 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
     marqueeRef.current = null;
     lightPreviewRef.current = null;
     panRef.current = null;
+    setIsPanning(false);
     if (drag?.kind === "move" && preview?.x !== undefined && preview.y !== undefined &&
         (preview.x !== drag.entityX || preview.y !== drag.entityY)) {
       onMove(drag.entityId, snapToGrid ? Math.round(preview.x * 4) / 4 : preview.x,
@@ -339,7 +347,6 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
       const maxX = Math.max(marquee.startX, marquee.endX);
       const minY = Math.min(marquee.startY, marquee.endY);
       const maxY = Math.max(marquee.startY, marquee.endY);
-      const scene = document.scenes.find((item) => item.id === document.entrySceneId) ?? document.scenes[0];
       const ids = new Set(frame.sprites.filter((sprite) => sprite.x >= minX && sprite.x <= maxX && sprite.y >= minY && sprite.y <= maxY)
         .map((sprite) => sprite.entityId));
       for (const entity of scene?.entities ?? []) {
@@ -361,13 +368,18 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
     marqueeRef.current = null;
     lightPreviewRef.current = null;
     panRef.current = null;
+    setIsPanning(false);
     paintOverlay();
   };
 
   return (
     <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "auto", bgcolor: "background.default" }}>
       <Box ref={stageRef} sx={{ position: "relative", width: "100%", height: "100%" }}>
-        {!playing && <FlexRow gap={SPACING.xs} sx={{ position: "absolute", top: SPACING.xs, left: SPACING.xs, zIndex: Z_INDEX.raised }}>
+        {!playing && <FlexRow gap={SPACING.xs} wrap sx={{ position: "absolute", top: SPACING.xs, left: SPACING.xs, right: SPACING.xs, zIndex: Z_INDEX.raised }}>
+          <EditorButton variant={panTool ? "contained" : "text"} aria-pressed={panTool}
+            title={mac ? "Two-finger scroll or right/middle drag to pan. Pinch or Ctrl+scroll to zoom."
+              : "Right/middle drag to pan. Mouse wheel zooms."}
+            onClick={() => setPanTool((value) => !value)}>Pan</EditorButton>
           <EditorButton variant={showSelection ? "contained" : "text"} onClick={() => setShowSelection((value) => !value)}>Selection</EditorButton>
           <EditorButton variant={showGrid ? "contained" : "text"} onClick={() => setShowGrid((value) => !value)}>Grid</EditorButton>
           <EditorButton variant={snapToGrid ? "contained" : "text"} onClick={() => setSnapToGrid((value) => !value)}>Snap</EditorButton>
@@ -387,18 +399,29 @@ export default function GameViewport({ canvasRef, frame, document, playing, paus
           sx={{ width: "100%", height: "100%", objectFit: "contain" }} />
         {(!playing || paused) && frame && <Box component="canvas" ref={overlayRef} width={Math.round(frame.width * frame.pixelsPerUnit)} height={Math.round(frame.height * frame.pixelsPerUnit)}
           aria-label="Game edit overlay" role="group"
+          onContextMenu={(event) => event.preventDefault()}
           onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}
           onWheel={(event) => {
             if (!active) return;
             event.preventDefault();
             const canvas = event.currentTarget;
+            if (mac && !event.ctrlKey && !event.metaKey) {
+              const rect = canvas.getBoundingClientRect();
+              const cssScale = Math.min(rect.width / canvas.width, rect.height / canvas.height);
+              const wheelScale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? rect.height : 1;
+              const scale = cssScale * frame.camera.zoom * frame.pixelsPerUnit;
+              onCamera({ x: frame.camera.x + event.deltaX * wheelScale / scale,
+                y: frame.camera.y - event.deltaY * wheelScale / scale, zoom: frame.camera.zoom });
+              return;
+            }
             const pixel = point(event, canvas);
             const before = worldPoint(pixel.x, pixel.y, frame, canvas.width, canvas.height);
             const zoom = Math.min(4, Math.max(0.25, frame.camera.zoom * Math.exp(-event.deltaY * 0.001)));
             onCamera({ x: before.x - (pixel.x - canvas.width / 2) / (zoom * frame.pixelsPerUnit),
               y: before.y + (pixel.y - canvas.height / 2) / (zoom * frame.pixelsPerUnit), zoom });
           }}
-          sx={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", touchAction: "none" }} />}
+          sx={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", touchAction: "none",
+            cursor: isPanning ? "grabbing" : panTool ? "grab" : undefined }} />}
       </Box>
     </Box>
   );

@@ -1,15 +1,27 @@
 import { useState, type DragEvent, type KeyboardEvent } from "react";
+import AddIcon from "@mui/icons-material/Add";
+import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
+import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
+import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import type { GameDocument, GameEntity, GameScene } from "@nodetool-ai/protocol/game.js";
 import type { GameDocumentOp, GameValidationIssue } from "@nodetool-ai/game-runtime";
 
-import { Caption, EditorButton, EditorMenu, FlexColumn, FlexRow, MenuItemPrimitive, SearchInput, SPACING, Text } from "../ui_primitives";
+import { Box, CONTROL, Divider, EditorButton, EditorMenu, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, MenuItemPrimitive, SearchInput, SPACING, Text, Tooltip, TreeRow, TYPOGRAPHY } from "../ui_primitives";
 
 interface GameSceneTreeProps {
   document: GameDocument;
+  activeSceneId: string;
   selectedIds: readonly string[];
   issues?: readonly GameValidationIssue[];
   scriptErrorEntityId?: string | null;
   onSelect: (id: string, additive: boolean) => void;
+  onSelectScene: (id: string) => void;
   onOps: (ops: GameDocumentOp[]) => void;
 }
 
@@ -20,6 +32,7 @@ const PRESETS: readonly { kind: Preset; label: string }[] = [
   { kind: "collectible", label: "Collectible" }, { kind: "trigger", label: "Trigger" },
   { kind: "camera", label: "Camera" }, { kind: "empty", label: "Empty" }
 ];
+const TREE_ICON_SX = { fontSize: FONT_SIZE_SANS.body } as const;
 
 function presetEntity(kind: Preset, id: string, imageSlot?: string): Extract<GameDocumentOp, { op: "add_entity" }>["entity"] {
   const entity: Extract<GameDocumentOp, { op: "add_entity" }>["entity"] = {
@@ -118,14 +131,34 @@ function dropPosition(event: DragEvent<HTMLElement>): DropPosition {
   return fraction < 0.3 ? "before" : fraction > 0.7 ? "after" : "inside";
 }
 
-export default function GameSceneTree({ document, selectedIds, issues = [], scriptErrorEntityId, onSelect, onOps }: GameSceneTreeProps) {
+function entityIcon(entity: GameEntity) {
+  if (entity.camera2d) return <CameraAltOutlinedIcon sx={TREE_ICON_SX} />;
+  if (entity.light2d) return <LightModeOutlinedIcon sx={TREE_ICON_SX} />;
+  if (entity.sprite || entity.tilemap) return <ImageOutlinedIcon sx={TREE_ICON_SX} />;
+  return <ViewInArOutlinedIcon sx={TREE_ICON_SX} />;
+}
+
+export default function GameSceneTree({ document, activeSceneId, selectedIds, issues = [], scriptErrorEntityId, onSelect, onSelectScene, onOps }: GameSceneTreeProps) {
   const [search, setSearch] = useState("");
   const [addSceneId, setAddSceneId] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
   const [dragged, setDragged] = useState<{ sceneId: string; entityId: string } | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [collapsedScenes, setCollapsedScenes] = useState<Set<string>>(() => new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
+  const [searchCollapsedScenes, setSearchCollapsedScenes] = useState<Set<string>>(() => new Set());
+  const [searchCollapsedGroups, setSearchCollapsedGroups] = useState<Set<string>>(() => new Set());
   const needle = search.trim().toLowerCase();
   const imageSlot = Object.entries(document.assets).find(([, binding]) => binding.mediaKind === "image")?.[0];
+
+  const toggleCollapsed = (key: string, setter: typeof setCollapsedScenes) => {
+    setter((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const add = (kind: Preset) => {
     if (!addSceneId) return;
@@ -142,7 +175,7 @@ export default function GameSceneTree({ document, selectedIds, issues = [], scri
     setDragged(null);
     setDropTarget(null);
   };
-  const moveWithKeyboard = (event: KeyboardEvent<HTMLButtonElement>, scene: GameScene, entity: GameEntity) => {
+  const moveWithKeyboard = (event: KeyboardEvent<HTMLElement>, scene: GameScene, entity: GameEntity) => {
     if (!event.altKey || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
     const siblings = scene.entities.filter((item) => item.parentId === entity.parentId && item.templateOnly === entity.templateOnly);
     const index = siblings.findIndex((item) => item.id === entity.id);
@@ -159,33 +192,72 @@ export default function GameSceneTree({ document, selectedIds, issues = [], scri
   };
 
   return (
-    <FlexColumn gap={SPACING.sm} sx={{ minHeight: 0, overflowY: "auto" }}>
-      <Text>Scenes</Text>
-      <SearchInput value={search} onChange={setSearch} placeholder="Search entities" ariaLabel="Search entities" size="small" />
-      <Caption>Alt+arrow keys move or nest a focused entity</Caption>
-      {document.scenes.map((scene, sceneIndex) => (
-        <FlexColumn key={scene.id} gap={SPACING.xs}>
-          <FlexRow align="center" justify="space-between">
-            <Caption>{scene.name}</Caption>
-            <EditorButton aria-label={`Add entity to ${scene.name}`} onClick={(event) => {
+    <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minHeight: 0 }}>
+      <FlexRow align="center" justify="space-between" sx={{ px: SPACING.md, pt: SPACING.md }}>
+        <Text size="small">Scene tree</Text>
+        <Tooltip title="Alt+arrow keys move or nest a focused entity"><HelpOutlineIcon sx={{ ...TREE_ICON_SX, color: "text.secondary" }} /></Tooltip>
+      </FlexRow>
+      <Box sx={{ px: SPACING.md }}><SearchInput value={search} onChange={(value) => {
+        setSearch(value);
+        setSearchCollapsedScenes(new Set());
+        setSearchCollapsedGroups(new Set());
+      }} placeholder="Search entities" ariaLabel="Search entities" size="small"
+        sx={{ "&& .MuiInputBase-input": TYPOGRAPHY.sans.label, "& .search-icon, & .clear-button svg": TREE_ICON_SX }} /></Box>
+      <Divider />
+      <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      {document.scenes.map((scene, sceneIndex) => {
+        const sceneExpanded = !((needle ? searchCollapsedScenes : collapsedScenes).has(scene.id));
+        return (
+        <FlexColumn key={scene.id} gap={SPACING.micro} sx={{ px: SPACING.xs }}>
+          <FlexRow align="center" justify="space-between" sx={{ px: SPACING.md, py: SPACING.micro }}>
+            <EditorButton variant="text" aria-label={`${sceneExpanded ? "Collapse" : "Expand"} ${scene.name}`}
+              aria-expanded={sceneExpanded}
+              onClick={() => toggleCollapsed(scene.id, needle ? setSearchCollapsedScenes : setCollapsedScenes)}
+              sx={{ width: CONTROL.height.xs, minWidth: 0, px: SPACING.none, flexShrink: 0, color: "text.secondary" }}>
+              {sceneExpanded ? <ExpandMoreIcon sx={TREE_ICON_SX} aria-hidden="true" /> : <ChevronRightIcon sx={TREE_ICON_SX} aria-hidden="true" />}
+            </EditorButton>
+            <EditorButton variant="text" aria-label={`Scene ${scene.name}`} aria-pressed={activeSceneId === scene.id}
+              onClick={() => onSelectScene(scene.id)}
+              sx={{ flex: 1, minWidth: 0, justifyContent: "flex-start", gap: SPACING.xs,
+                bgcolor: activeSceneId === scene.id ? "action.selected" : "transparent",
+                color: activeSceneId === scene.id ? "text.primary" : "text.secondary" }}>
+              <FolderOpenOutlinedIcon sx={TREE_ICON_SX} />
+              <Text component="span" size="small" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{scene.name}</Text>
+            </EditorButton>
+            <EditorButton aria-label={`Add entity to ${scene.name}`} title={`Add entity to ${scene.name}`} onClick={(event) => {
               setAnchor(event.currentTarget); setAddSceneId(scene.id);
-            }}>+</EditorButton>
+            }}><AddIcon sx={TREE_ICON_SX} /></EditorButton>
           </FlexRow>
+          {sceneExpanded && <FlexColumn gap={SPACING.micro}>
           {([false, true] as const).map((prefabs) => {
             const rows = visibleRows(scene, prefabs, needle);
             if (prefabs && rows.length === 0 && !dragged) return null;
+            const groupKey = `${scene.id}:${prefabs ? "prefabs" : "entities"}`;
+            const groupExpanded = !((needle ? searchCollapsedGroups : collapsedGroups).has(groupKey));
+            const groupName = prefabs ? "Prefabs" : "Entities";
             return (
-              <FlexColumn key={String(prefabs)} gap={SPACING.xs}>
-                <Caption onDragOver={(event) => { if (dragged?.sceneId === scene.id) event.preventDefault(); }}
+              <FlexColumn key={String(prefabs)} gap={SPACING.micro}>
+                <FlexRow onDragOver={(event) => { if (dragged?.sceneId === scene.id) event.preventDefault(); }}
                   onDrop={(event) => { event.preventDefault(); drop(scene, null, "inside", prefabs); }}
-                  sx={{ color: "text.secondary" }}>{prefabs ? "Prefabs" : "Entities"}</Caption>
+                  sx={{ pl: SPACING.xxxl, pr: SPACING.md, py: SPACING.xs }}>
+                  <EditorButton variant="text" aria-label={`${groupName} in ${scene.name}`} aria-expanded={groupExpanded}
+                    onClick={() => toggleCollapsed(groupKey, needle ? setSearchCollapsedGroups : setCollapsedGroups)}
+                    sx={{ width: "100%", color: "text.secondary", justifyContent: "flex-start", gap: SPACING.xs,
+                      textTransform: "uppercase", letterSpacing: "0.12em" }}>
+                    {groupExpanded ? <ExpandMoreIcon sx={TREE_ICON_SX} aria-hidden="true" /> : <ChevronRightIcon sx={TREE_ICON_SX} aria-hidden="true" />}
+                    <Label component="span" sx={{ mb: 0 }}>{groupName}</Label>
+                  </EditorButton>
+                </FlexRow>
+                {groupExpanded && <FlexColumn gap={SPACING.micro}>
                 {rows.map(({ entity, depth }) => {
                   const hasIssue = entity.id === scriptErrorEntityId || issues.some((issue) => issue.path[0] === "scenes" &&
                     issue.path[1] === sceneIndex && issue.path[2] === "entities" && scene.entities[issue.path[3] as number]?.id === entity.id);
+                  const selected = selectedIds.includes(entity.id);
                   return (
-                    <EditorButton key={entity.id} draggable variant={selectedIds.includes(entity.id) ? "contained" : "text"}
+                    <TreeRow key={entity.id} component="button" type="button" draggable interactive selected={selected}
+                      depth={depth} baseIndent={SPACING.xxxl * 2} indentStep={SPACING.xl}
                       aria-label={`${entity.name || entity.id}${hasIssue ? ", has errors" : ""}`}
-                      aria-pressed={selectedIds.includes(entity.id)}
+                      aria-pressed={selected}
                       aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"
                       onClick={(event) => onSelect(entity.id, event.shiftKey || event.metaKey || event.ctrlKey)}
                       onKeyDown={(event) => moveWithKeyboard(event, scene, entity)}
@@ -198,18 +270,23 @@ export default function GameSceneTree({ document, selectedIds, issues = [], scri
                       onDragOver={(event) => { if (dragged?.sceneId !== scene.id) return; event.preventDefault(); setDropTarget(entity.id); }}
                       onDragLeave={() => setDropTarget((current) => current === entity.id ? null : current)}
                       onDrop={(event) => { event.preventDefault(); drop(scene, entity.id, dropPosition(event)); }}
-                      sx={{ ml: depth * SPACING.md, justifyContent: "flex-start", textAlign: "left",
+                      sx={{ color: hasIssue ? "error.main" : undefined,
                         outline: dropTarget === entity.id ? "1px solid" : undefined,
-                        outlineColor: "primary.main", color: hasIssue ? "error.main" : undefined }}>
-                      {entity.name || entity.id}
-                    </EditorButton>
+                        outlineColor: "primary.main" }}>
+                      <Box component="span" sx={{ display: "inline-flex", opacity: 0.7, flexShrink: 0 }}>{entityIcon(entity)}</Box>
+                      <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{entity.name || entity.id}</Box>
+                      {hasIssue && <ErrorOutlineIcon sx={TREE_ICON_SX} aria-hidden="true" />}
+                    </TreeRow>
                   );
                 })}
+                </FlexColumn>}
               </FlexColumn>
             );
           })}
+          </FlexColumn>}
         </FlexColumn>
-      ))}
+      ); })}
+      </FlexColumn>
       <EditorMenu anchorEl={anchor} open={Boolean(addSceneId)} onClose={() => setAddSceneId(null)}
         slotProps={{ list: { "aria-label": "Add game entity" } }}>
         {PRESETS.map(({ kind, label }) => (

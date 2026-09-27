@@ -21,14 +21,15 @@ function fixture(): GameDocument {
   });
 }
 
-function renderTree(document = fixture(), scriptErrorEntityId?: string) {
+function renderTree(document = fixture(), scriptErrorEntityId?: string, activeSceneId = "room") {
   const onOps = jest.fn<void, [GameDocumentOp[]]>();
   const onSelect = jest.fn();
+  const onSelectScene = jest.fn();
   render(<ThemeProvider theme={mockTheme}>
-    <GameSceneTree document={document} selectedIds={[]} scriptErrorEntityId={scriptErrorEntityId}
-      onSelect={onSelect} onOps={onOps} />
+    <GameSceneTree document={document} activeSceneId={activeSceneId} selectedIds={[]} scriptErrorEntityId={scriptErrorEntityId}
+      onSelect={onSelect} onSelectScene={onSelectScene} onOps={onOps} />
   </ThemeProvider>);
-  return { onOps, onSelect };
+  return { onOps, onSelect, onSelectScene };
 }
 
 function drag(source: HTMLElement, target: HTMLElement, y: number) {
@@ -44,6 +45,68 @@ function drag(source: HTMLElement, target: HTMLElement, y: number) {
 }
 
 describe("GameSceneTree", () => {
+  it("uses inspector label typography and indents each tree level", () => {
+    renderTree();
+    const group = screen.getByRole("button", { name: "Entities in Room" });
+    const parent = screen.getByRole("button", { name: "Parent" });
+    const child = screen.getByRole("button", { name: "Child" });
+    const groupIndent = parseFloat(getComputedStyle(group.parentElement!).paddingLeft) +
+      parseFloat(getComputedStyle(group).paddingLeft);
+    const parentIndent = parseFloat(getComputedStyle(parent).paddingLeft);
+    const childIndent = parseFloat(getComputedStyle(child).paddingLeft);
+
+    expect(parent).toHaveStyle({ fontSize: "var(--fontSizeSmall)" });
+    expect(parentIndent).toBeGreaterThan(groupIndent);
+    expect(childIndent).toBeGreaterThan(parentIndent);
+    expect(parent.querySelector("svg")).toHaveStyle({ fontSize: "var(--fontSizeNormal)" });
+    expect(screen.getByRole("textbox", { name: "Search entities" })).toHaveStyle({ fontSize: "var(--fontSizeSmall)" });
+  });
+
+  it("selects a scene without collapsing it and marks the active scene", async () => {
+    const document = fixture();
+    document.scenes.push({ id: "arena", name: "Arena", entities: [] });
+    const { onSelectScene } = renderTree(document);
+    expect(screen.getByRole("button", { name: "Scene Room" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Scene Arena" })).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(screen.getByRole("button", { name: "Scene Arena" }));
+    expect(onSelectScene).toHaveBeenCalledWith("arena");
+    expect(screen.getByRole("button", { name: "Child" })).toBeInTheDocument();
+  });
+
+  it("collapses scenes and groups independently", async () => {
+    renderTree();
+    await userEvent.click(screen.getByRole("button", { name: "Entities in Room" }));
+    expect(screen.getByRole("button", { name: "Entities in Room" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "Parent" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Prefab" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Collapse Room" }));
+    expect(screen.getByRole("button", { name: "Expand Room" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "Prefab" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Expand Room" }));
+    expect(screen.getByRole("button", { name: "Prefabs in Room" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Entities in Room" })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("shows search matches inside collapsed sections and restores collapse state afterward", async () => {
+    renderTree();
+    await userEvent.click(screen.getByRole("button", { name: "Entities in Room" }));
+    await userEvent.click(screen.getByRole("button", { name: "Collapse Room" }));
+    const search = screen.getByRole("textbox", { name: "Search entities" });
+    await userEvent.type(search, "child");
+    expect(screen.getByRole("button", { name: "Parent" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Child" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Entities in Room" }));
+    expect(screen.queryByRole("button", { name: "Child" })).not.toBeInTheDocument();
+    await userEvent.type(search, "x");
+    expect(screen.getByRole("button", { name: "Entities in Room" })).toHaveAttribute("aria-expanded", "true");
+    await userEvent.clear(search);
+    await userEvent.type(search, "child");
+    expect(screen.getByRole("button", { name: "Child" })).toBeInTheDocument();
+    await userEvent.clear(search);
+    expect(screen.getByRole("button", { name: "Expand Room" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Child" })).not.toBeInTheDocument();
+  });
+
   it("keeps the ancestor visible when search matches a nested child and groups prefabs", async () => {
     renderTree();
     expect(screen.getByText("Prefabs")).toBeInTheDocument();
@@ -97,6 +160,16 @@ describe("GameSceneTree", () => {
 
   it("moves a whole subtree into the prefab group", () => {
     const { onOps } = renderTree();
+    drag(screen.getByRole("button", { name: "Parent" }), screen.getByText("Prefabs"), 50);
+    const next = applyGameOps(fixture(), onOps.mock.calls[0][0]);
+    expect(next.scenes[0].entities.find((entity) => entity.id === "parent")?.templateOnly).toBe(true);
+    expect(next.scenes[0].entities.find((entity) => entity.id === "child")?.templateOnly).toBe(true);
+  });
+
+  it("accepts drops on a collapsed group header", async () => {
+    const { onOps } = renderTree();
+    await userEvent.click(screen.getByRole("button", { name: "Prefabs in Room" }));
+    expect(screen.queryByRole("button", { name: "Prefab" })).not.toBeInTheDocument();
     drag(screen.getByRole("button", { name: "Parent" }), screen.getByText("Prefabs"), 50);
     const next = applyGameOps(fixture(), onOps.mock.calls[0][0]);
     expect(next.scenes[0].entities.find((entity) => entity.id === "parent")?.templateOnly).toBe(true);

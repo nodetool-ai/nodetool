@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameDocument, GameInputFrame, GameRenderFrame } from "@nodetool-ai/protocol/game.js";
 import { gameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, type GameSession } from "@nodetool-ai/game-runtime";
@@ -10,7 +10,7 @@ import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
 import { gameInputFrame } from "./gameInputFrame";
 
-interface PlayState { tick: number; score: number; won: boolean }
+interface PlayState { tick: number; score: number; won: boolean; sceneId: string }
 export interface ScriptFailure { message: string; tick: number; entityId: string | null }
 
 export function scriptFailure(message: string, tick: number): ScriptFailure {
@@ -31,10 +31,11 @@ interface UseGamePlaySessionOptions {
   refId: string;
   active: boolean;
   document: GameDocument | null;
+  editorSceneId?: string;
   name?: string;
 }
 
-export function useGamePlaySession({ refId, active, document, name }: UseGamePlaySessionOptions) {
+export function useGamePlaySession({ refId, active, document, editorSceneId, name }: UseGamePlaySessionOptions) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sessionRef = useRef<GameSession | null>(null);
   const rendererRef = useRef<GameRenderer | null>(null);
@@ -50,13 +51,19 @@ export function useGamePlaySession({ refId, active, document, name }: UseGamePla
   const [playing, setPlaying] = useState(false);
   const [playDocument, setPlayDocument] = useState<GameDocument | null>(null);
   const [renderDocument, setRenderDocument] = useState<GameDocument | null>(null);
-  const [playState, setPlayState] = useState<PlayState>({ tick: 0, score: 0, won: false });
+  const [playState, setPlayState] = useState<PlayState>({ tick: 0, score: 0, won: false, sceneId: "" });
   const [backend, setBackend] = useState("Initializing");
   const [error, setError] = useState<string | null>(null);
   const [scriptError, setScriptError] = useState<ScriptFailure | null>(null);
   const [frame, setFrame] = useState<GameRenderFrame | null>(null);
   const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
-  const sessionDocument = playDocument ?? renderDocument;
+  const editorDocument = useMemo(() => renderDocument && editorSceneId &&
+    renderDocument.scenes.some((scene) => scene.id === editorSceneId)
+    ? { ...renderDocument, entrySceneId: editorSceneId }
+    : renderDocument, [renderDocument, editorSceneId]);
+  const sessionDocument = playDocument ?? editorDocument;
+  const playbackActiveRef = useRef(false);
+  playbackActiveRef.current = active && playing;
   assetBindingsRef.current = document?.assets ?? null;
 
   useEffect(() => {
@@ -64,6 +71,10 @@ export function useGamePlaySession({ refId, active, document, name }: UseGamePla
     const timer = window.setTimeout(() => setRenderDocument(document), 100);
     return () => window.clearTimeout(timer);
   }, [document, playDocument]);
+
+  useEffect(() => {
+    editorCameraRef.current = null;
+  }, [editorSceneId]);
 
   const renderFrame = useCallback(async (current: GameRenderFrame, interpolation: number) => {
     const renderer = rendererRef.current;
@@ -83,7 +94,7 @@ export function useGamePlaySession({ refId, active, document, name }: UseGamePla
     if (!session) return;
     const state = session.snapshot();
     lastTickRef.current = state.tick;
-    setPlayState({ tick: state.tick, score: state.score, won: state.won });
+    setPlayState({ tick: state.tick, score: state.score, won: state.won, sceneId: state.sceneId });
     const rawFrame = session.frame();
     const current = !playDocument
       ? { ...rawFrame, camera: editorCameraRef.current ?? rawFrame.camera,
@@ -128,7 +139,7 @@ export function useGamePlaySession({ refId, active, document, name }: UseGamePla
       const state = session.snapshot();
       lastTickRef.current = state.tick;
       audioRef.current?.sync(state);
-      setPlayState({ tick: state.tick, score: state.score, won: state.won });
+      setPlayState({ tick: state.tick, score: state.score, won: state.won, sceneId: state.sceneId });
       setFrame(result.frame);
       void renderFrame(result.frame, 1).catch((cause: unknown) => {
         setError(cause instanceof Error ? cause.message : String(cause));
@@ -161,6 +172,8 @@ export function useGamePlaySession({ refId, active, document, name }: UseGamePla
       status: setError
     });
     audioRef.current = audio;
+    if (playbackActiveRef.current) audio.resume();
+    else audio.pause();
     audio.preload();
     setTitle(refId, "game", name ?? "Game");
     const resolveAsset = async (assetId: string): Promise<HTMLImageElement | null> => {

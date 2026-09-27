@@ -15,4 +15,14 @@ describe("editor game input", () => {
     newlyPressed.clear();
     expect(gameInputFrame(keys, newlyPressed, document).justPressed).toEqual([]);
   });
+
+  it("keeps a quick tap until the next game frame", () => {
+    const document = createTopDownRoomGame("quick-tap-game");
+    document.inputActions = ["space"];
+    const keys = new Map<string, string>();
+    const newlyPressed = new Set<string>();
+    pressGameKey(keys, newlyPressed, "Space", " ", document.inputActions);
+    keys.delete("Space");
+    expect(gameInputFrame(keys, newlyPressed, document)).toEqual({ pressed: [], justPressed: ["space"] });
+  });
 });

@@ -24,10 +24,10 @@ describe("generated game inspector fields", () => {
     const user = userEvent.setup();
     render(<FormFixture />);
 
-    expect(screen.getByRole("textbox", { name: "name" })).toHaveValue("Player");
-    expect(screen.queryByRole("textbox", { name: "newOptionalField" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Add newOptionalField" }));
-    expect(screen.getByRole("textbox", { name: "newOptionalField" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("Player");
+    expect(screen.queryByRole("textbox", { name: "New Optional Field" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add New Optional Field" }));
+    expect(screen.getByRole("textbox", { name: "New Optional Field" })).toBeInTheDocument();
   });
 
   it("uses schema defaults for an added object and leaves optional fields absent", () => {
@@ -52,14 +52,58 @@ describe("generated game inspector fields", () => {
   it("keeps an out-of-range number visible until correction", () => {
     const onChange = jest.fn();
     render(<ThemeProvider theme={mockTheme}><SchemaFields schema={gameSchemaFields(z.number().int().min(1))} value={2} onChange={onChange} path="Count" /></ThemeProvider>);
-    fireEvent.click(screen.getByRole("button", { name: "Decrease Count" }));
-    onChange.mockClear();
-    fireEvent.click(screen.getByRole("button", { name: "Decrease Count" }));
+    const input = screen.getByRole("textbox", { name: "Count" });
+    fireEvent.change(input, { target: { value: "0" } });
+    fireEvent.blur(input);
     expect(onChange).not.toHaveBeenCalledWith(0);
     expect(screen.getByText("Value is outside the allowed range")).toBeInTheDocument();
-    expect(screen.getByText("0")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Increase Count" }));
+    expect(input).toHaveValue("0");
+    fireEvent.change(input, { target: { value: "1" } });
+    fireEvent.blur(input);
     expect(onChange).toHaveBeenLastCalledWith(1);
+  });
+
+  it("shows rotation in degrees and stores the converted angle", () => {
+    const onChange = jest.fn();
+    render(<ThemeProvider theme={mockTheme}><SchemaFields schema={gameSchemaFields(z.number())} value={Math.PI / 2}
+      onChange={onChange} path="transform2d.rotation" /></ThemeProvider>);
+    const input = screen.getByRole("textbox", { name: "Rotation" });
+    expect(input).toHaveValue("90");
+    expect(screen.getByText("°")).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: "180" } });
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenCalledWith(Math.PI);
+  });
+
+  it("edits paired transform axes without replacing their sibling values", async () => {
+    const user = userEvent.setup();
+    const onChange = jest.fn();
+    const transform = { x: 2, y: 3, rotation: 0, scaleX: 1, scaleY: 2 };
+    const transformSchema = z.object({ x: z.number(), y: z.number(), rotation: z.number(), scaleX: z.number().positive(), scaleY: z.number().positive() });
+    render(<ThemeProvider theme={mockTheme}><SchemaFields schema={gameSchemaFields(transformSchema)} value={transform}
+      path="transform2d" onChange={onChange} /></ThemeProvider>);
+
+    expect(screen.getByText("Position")).toBeInTheDocument();
+    expect(screen.getByText("Scale")).toBeInTheDocument();
+    expect(screen.queryAllByText(/^[XY]$/)).toHaveLength(0);
+    expect(screen.getByRole("textbox", { name: "X" })).toHaveValue("2");
+    const scale = screen.getByRole("textbox", { name: "Scale X" });
+    await user.clear(scale);
+    await user.type(scale, "4");
+    await user.tab();
+    expect(onChange).toHaveBeenLastCalledWith({ ...transform, scaleX: 4 });
+    expect(screen.getByRole("textbox", { name: "Y" })).toHaveValue("3");
+    expect(screen.getByRole("textbox", { name: "Scale Y" })).toHaveValue("2");
+  });
+
+  it("keeps paired size inputs named without visible axis markers", () => {
+    render(<ThemeProvider theme={mockTheme}><SchemaFields schema={gameSchemaFields(z.object({ width: z.number(), height: z.number() }))}
+      value={{ width: 4, height: 3 }} path="size" onChange={() => undefined} /></ThemeProvider>);
+
+    expect(screen.getByText("Size")).toBeInTheDocument();
+    expect(screen.queryAllByText(/^[WH]$/)).toHaveLength(0);
+    expect(screen.getByRole("textbox", { name: "Width" })).toHaveValue("4");
+    expect(screen.getByRole("textbox", { name: "Height" })).toHaveValue("3");
   });
 
   it("supports moving and removing array entries", async () => {
