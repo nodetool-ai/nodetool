@@ -77,6 +77,7 @@ import { VoyageProvider } from "./voyage-provider.js";
 import { JinaProvider } from "./jina-provider.js";
 import { FakeProvider } from "./fake-provider.js";
 import { HiggsfieldProvider } from "./higgsfield-provider.js";
+import { UseapiProvider } from "./useapi-provider.js";
 export {
   BaseProvider,
   estimatePromptTokens,
@@ -216,6 +217,7 @@ export type {
 } from "./provider-transport.js";
 export { AnthropicProvider };
 export { HiggsfieldProvider };
+export { UseapiProvider };
 export { ClaudeAgentProvider };
 export { GeminiProvider };
 export { LlamaProvider };
@@ -535,6 +537,12 @@ registerBuiltinProvider(PROVIDER_IDS.ATLASCLOUD, AtlasCloudProvider, {
 registerBuiltinProvider(PROVIDER_IDS.HIGGSFIELD, HiggsfieldProvider, {
   HIGGSFIELD_API_KEY_ID: "",
   HIGGSFIELD_API_KEY_SECRET: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.USEAPI, UseapiProvider, {
+  USEAPI_API_TOKEN: ""
+}, {
+  USEAPI_GOOGLE_FLOW_EMAIL: "",
+  USEAPI_DREAMINA_ACCOUNT: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.AKI, AkiProvider, { AKI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, {
