@@ -881,7 +881,14 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "read_asset returns the bytes to the run instead."
   },
   "games.create": { capability: "create_native_game" },
+  "games.draftBeforeChange": {
+    gap: "Agent-turn undo snapshots are available to the editor; the agent has no change-history read capability."
+  },
+  "games.draftChanges": {
+    gap: "The editor lists draft change cards; the agent reads the current draft through get_native_game."
+  },
   "games.get": { capability: "get_native_game" },
+  "games.getDraft": { capability: "get_native_game" },
   "games.installAsset": {
     gap: "Installing an existing image asset is available in the editor, but the agent only installs staged candidates."
   },
@@ -896,6 +903,10 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "games.revisions": {
     gap: "The agent can read a known revision but cannot enumerate revisions yet."
   },
+  "games.restoreDraft": {
+    gap: "Restoring a revision to the draft is an editor action; the agent has no whole-revision restore capability."
+  },
+  "games.saveDraft": { capability: "edit_native_game" },
   "storyboards.create": { capability: "create_storyboard" },
   "storyboards.delete": { capability: "delete_storyboard" },
   "storyboards.examples": {

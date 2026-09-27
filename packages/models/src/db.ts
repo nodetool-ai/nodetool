@@ -1193,11 +1193,36 @@ export function getCreateSchemaSql(): string {
       "name" text NOT NULL,
       "source_root" text NOT NULL,
       "current_revision" text NOT NULL,
+      "draft_updated_at" text NOT NULL DEFAULT '',
+      "draft_base_revision" text NOT NULL DEFAULT '',
+      "draft_version_id" text NOT NULL DEFAULT '',
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
     CREATE INDEX IF NOT EXISTS "idx_game_user_project" ON "games" ("user_id", "project_id");
     CREATE INDEX IF NOT EXISTS "idx_game_workspace" ON "games" ("workspace_id");
+
+    CREATE TABLE IF NOT EXISTS "game_draft_changes" (
+      "id" text PRIMARY KEY NOT NULL,
+      "game_id" text NOT NULL,
+      "actor" text NOT NULL,
+      "thread_id" text,
+      "message_id" text,
+      "ops" text NOT NULL,
+      "summary" text NOT NULL,
+      "before_updated_at" text NOT NULL,
+      "before_digest" text NOT NULL,
+      "created_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_game_draft_change_game_created" ON "game_draft_changes" ("game_id", "created_at");
+
+    CREATE TABLE IF NOT EXISTS "game_revision_messages" (
+      "revision" text PRIMARY KEY NOT NULL,
+      "game_id" text NOT NULL,
+      "message" text,
+      "created_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_game_revision_message_game" ON "game_revision_messages" ("game_id");
 
     CREATE TABLE IF NOT EXISTS "scripts" (
       "id" text PRIMARY KEY NOT NULL,

@@ -357,6 +357,11 @@ const tracks = [
 ];
 const clips = [glitchJoin];
 const layers = bankTracks(tracks.length, ["A", "B"]);
+const trackFolders = [
+  { id: "f_A", name: "Scene layers · bank A" },
+  { id: "f_B", name: "Scene layers · bank B" }
+];
+for (const track of layers.tracks) track.folderId = `f_${track.id[2]}`;
 tracks.push(...layers.tracks);
 clips.push(...layers.clips);
 for (const s of scenes) clips.push(s.group);
@@ -389,7 +394,7 @@ const bundle = {
   durationMs: ms(FRAMES),
   videoUri: "package://nodetool-base/timelines/kite/ad.mp4",
   posterUri: "package://nodetool-base/timelines/kite/poster.jpg",
-  document: { tracks, clips, markers: [], camera2d }
+  document: { tracks, trackFolders, clips, markers: [], camera2d }
 };
 
 await output("timeline", await saveTimeline(bundle, { timelines: nodetool.timelines }));

@@ -82,6 +82,7 @@ function filler(column: ColumnMeta, tag: string): unknown {
 function links(tag: string): Record<string, string> {
   return {
     application_id: `${tag}-application`,
+    game_id: `${tag}-game`,
     run_id: `${tag}-job`,
     grant_id: `${tag}-grant`,
     workflow_id: `${tag}-workflow`,
@@ -100,6 +101,7 @@ function links(tag: string): Record<string, string> {
 function parentIds(tag: string): Record<string, string> {
   return {
     applications: `${tag}-application`,
+    games: `${tag}-game`,
     nodetool_jobs: `${tag}-job`,
     mcp_oauth_grants: `${tag}-grant`,
     nodetool_workflows: `${tag}-workflow`,
@@ -120,6 +122,7 @@ const SEED_ORDER = [
   "projects",
   "nodetool_threads",
   "applications",
+  "games",
   "nodetool_jobs",
   "mcp_oauth_grants",
   "image_documents",
@@ -255,7 +258,7 @@ describe("erasePersonalData", () => {
     expect(left).toEqual([]);
   });
 
-  it("reaches the run-scoped tables that have no user_id", async () => {
+  it("reaches indirect tables that have no user_id", async () => {
     // The failure this guards: deleting nodetool_jobs first, which orphans
     // run_events and leaves prompt text unreachable and undeleted.
     const indirect = PERSONAL_DATA_REGISTRY.filter(
@@ -263,6 +266,8 @@ describe("erasePersonalData", () => {
     );
     expect(indirect.map((entry) => entry.table).sort()).toEqual([
       "application_budgets",
+      "game_draft_changes",
+      "game_revision_messages",
       "mcp_oauth_tokens",
       "nodetool_generation_attachments",
       "nodetool_generation_attempts",

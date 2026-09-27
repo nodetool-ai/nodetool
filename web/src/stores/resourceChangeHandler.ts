@@ -72,6 +72,7 @@ const DOCUMENT_TRPC_ROUTER = {
   storyboard: "storyboards",
   script: "scripts",
   jsscript: "jsScripts",
+  game: "games",
   application: "applications"
 } satisfies Record<SyncedDocumentType, string>;
 
@@ -82,7 +83,8 @@ const DOCUMENT_TRPC_ROUTER = {
  */
 const DOCUMENT_EXTRA_PROCEDURES: Partial<Record<SyncedDocumentType, string[]>> =
   {
-    jsscript: ["palette"]
+    jsscript: ["palette"],
+    game: ["draftChanges", "revisions"]
   };
 
 const isSyncedDocumentType = (value: string): value is SyncedDocumentType =>

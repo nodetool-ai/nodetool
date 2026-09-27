@@ -7,3 +7,4 @@ export {
 } from "./nodes/game.js";
 export { resolveFills, type ResolvedFills } from "./fills.js";
 export { getNativeTemplate, listNativeTemplates, type NativeGameTemplate } from "./templates.js";
+export { prepareGameImage, imagePreparationSettings } from "./image-preparation.js";

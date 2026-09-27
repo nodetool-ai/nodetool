@@ -766,6 +766,7 @@ export type UiSurfaceType =
   | "workflow"
   | "sketch"
   | "timeline"
+  | "game"
   | "storyboard"
   | "script"
   | "jsscript"
@@ -781,6 +782,7 @@ export type ChatSource =
   | "workflow_canvas"
   | "sketch_assistant"
   | "timeline_assistant"
+  | "game_assistant"
   | "storyboard_assistant"
   | "script_assistant"
   | "jsscript_assistant"
@@ -802,6 +804,8 @@ export interface UiContext {
     shot_ids?: string[] | null;
     line_ids?: string[] | null;
     component_ids?: string[] | null;
+    entity_ids?: string[] | null;
+    behavior_index?: number | null;
   } | null;
   /** Chat surface the user typed in. The server names it in the system prompt. */
   source?: ChatSource | null;

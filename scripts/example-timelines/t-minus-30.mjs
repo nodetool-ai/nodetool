@@ -136,6 +136,8 @@ on(recovery, 660, 10, [cv("opacity", 1, 0, "linear")]);
 const tracks = [{ id: "t_scenes", name: "broadcast", type: "video", index: 0,
   visible: true, locked: false }];
 const layers = sceneTracks(1);
+const trackFolders = [{ id: "f_broadcast", name: "Broadcast layers" }];
+for (const track of layers.tracks) track.folderId = "f_broadcast";
 tracks.push(...layers.tracks);
 tracks.push({ id: "t_score", name: "countdown / room / ignition", type: "audio",
   index: tracks.length, visible: true, locked: false });
@@ -151,7 +153,7 @@ const bundle = {
   description: "A 30-second fictional launch broadcast with three moving cameras, a live inset, a fault freeze, a recovery speed ramp, editable telemetry, and an audible countdown.",
   fps: FPS, width: W, height: H, durationMs: ms(FRAMES),
   videoUri: uri("broadcast.mp4"), posterUri: uri("poster.jpg"),
-  document: { tracks, clips, markers: [
+  document: { tracks, trackFolders, clips, markers: [
     { id: "fault", timeMs: ms(561), label: "Fault / freeze" },
     { id: "resume", timeMs: ms(660), label: "Ignition" },
     { id: "ascent", timeMs: ms(780), label: "Ascent" }

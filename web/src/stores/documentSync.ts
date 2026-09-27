@@ -229,6 +229,7 @@ export type SyncedDocumentType =
   | "storyboard"
   | "script"
   | "jsscript"
+  | "game"
   | "application";
 
 interface DocumentChangeNotice {

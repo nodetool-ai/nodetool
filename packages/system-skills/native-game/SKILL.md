@@ -10,22 +10,32 @@ rendering, and web export. A new game starts as a playable top-down room.
 
 ## Build and revise
 
-1. `create_native_game {project_id, name}` creates a game and returns its full id
-   and current immutable revision. `get_native_game {game_id, revision?}` reads
-   that source. Resource ids may be full ids or exact 12-character prefixes.
-2. Edit the returned document's scenes, entities, components, and asset bindings.
-   Keep the engine schema valid. `publish_native_game
-   {game_id, base_revision, document}` validates and publishes only when the
-   revision is still current. On a conflict, read the current revision and
-   reconcile the edits before publishing again.
-3. Use `install_native_game_asset
-   {game_id, base_revision, slot, binding, candidate_workspace_id?}` to install
-   a staged, content-addressed image or audio asset. The staged bytes must match
-   `binding.digest`. Installation keeps scene and behavior edits.
-4. `playtest_native_game {game_id, revision?, seed?, inputs}` runs a fixed-tick
-   replay. Each input has `pressed` actions and optional `justPressed` actions.
-   Inspect the returned state and events, then revise and replay as needed.
-5. `build_native_game {game_id, revision?}` writes a standalone web player for
+1. `create_native_game {project_id, name}` creates a playable draft and returns
+   its full id and current immutable revision. Resource ids may be full ids or
+   exact 12-character prefixes.
+2. `get_native_game {game_id, view: "outline"}` reads the compact draft outline.
+   Use `view: "entity"` with `entity_id` for one entity or `view: "full"` for
+   the whole document. `source: "revision"` reads an immutable revision.
+3. `edit_native_game {game_id, base_updated_at?, ops}` applies ordered ops to
+   the draft and validates the result atomically. Use the `draft_updated_at`
+   from a read for compare-and-swap when an edit depends on that exact state.
+   Invalid edits return an op index and field path.
+4. `capture_native_game_frame {game_id, ticks?}` renders draft frames. Look at
+   the returned image before reporting visual changes as complete.
+   `playtest_native_game {game_id, inputs?, assertions?, capture_ticks?}` runs
+   the draft for up to 3,600 ticks. An input can repeat with `ticks`.
+5. `generate_game_asset {game_id, slot, kind, prompt}` generates, prepares,
+   installs, and binds an image, speech audio, or music asset. Use
+   `reference_slot` for image-to-image generation from an installed slot.
+   For a slow model, pass `background: true`, await the returned generation,
+   then call `generate_game_asset` again with `generation_id` and the same
+   game, slot, kind, prompt, and preparation to install its output.
+   `install_native_game_asset {game_id, slot, binding,
+   candidate_workspace_id?}` installs a staged candidate and binds it to the
+   draft. The staged bytes must match `binding.digest`.
+6. `publish_native_game {game_id, base_revision}` publishes the current draft
+   only when the user asks. On a conflict, read the draft and reconcile edits.
+7. `build_native_game {game_id, revision?}` writes a standalone web player for
    an owned revision under the project workspace and returns its path. On a touch
    screen the player adds a floating stick for `left`/`right`/`up`/`down` and one
    button per other input action, labeled with the action name. Installed

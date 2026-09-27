@@ -394,6 +394,8 @@ const tracks = [
   { id: "t_scenes", name: "scenes", type: "video", index: 1, visible: true, locked: false }
 ];
 const layers = sceneTracks(tracks.length);
+const trackFolders = scenes.map((scene, index) => ({ id: `f_${scene.name}`, name: `${index + 1} · ${scene.name}` }));
+for (const track of layers.tracks) track.folderId = `f_${track.id.split("_")[1]}`;
 const clips = [...layers.clips];
 tracks.push(...layers.tracks);
 tracks.sort((a, b) => a.index - b.index);
@@ -420,7 +422,7 @@ const bundle = {
   durationMs: ms(FRAMES),
   videoUri: "package://nodetool-base/timelines/prism/ad.mp4",
   posterUri: "package://nodetool-base/timelines/prism/poster.jpg",
-  document: { tracks, clips, markers: [], tempo: { bpm: BPM, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } } }
+  document: { tracks, trackFolders, clips, markers: [], tempo: { bpm: BPM, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } } }
 };
 
 await output("timeline", await saveTimeline(bundle, { timelines: nodetool.timelines, ops }));

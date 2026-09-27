@@ -429,6 +429,7 @@ const UI_SURFACE_LABELS = {
   workflow: "workflow",
   sketch: "image document",
   timeline: "timeline sequence",
+  game: "native game",
   storyboard: "storyboard",
   script: "script",
   jsscript: "js script",
@@ -441,6 +442,7 @@ const CHAT_SOURCE_LABELS = {
   workflow_canvas: "workflow canvas",
   sketch_assistant: "sketch editor assistant",
   timeline_assistant: "timeline editor assistant",
+  game_assistant: "native game editor assistant",
   storyboard_assistant: "storyboard assistant",
   script_assistant: "script editor assistant",
   jsscript_assistant: "JS script assistant",
@@ -500,12 +502,14 @@ function formatUiContext(uiContext?: UiContext | null): string {
     lines.push(`Selected in the focused document — ${selected.join("; ")}.`);
   }
 
-  lines.push(
-    "Every `ui_*` tool requires the id of the document it should act on; pass one of the ids above. These tools act on documents the user has open, so prefer the focused document unless the user points at another one."
-  );
-  lines.push(
-    "A document that is not in that list can be opened: call `ui_open_document` with its type and id (from `list_timelines`, `list_sketches`, `list_storyboards`, `list_scripts`, or a resource link). It opens the document as a tab and returns once its `ui_*` tools work, so never tell the user a document cannot be edited because it is not open."
-  );
+  if (focused?.type !== "game") {
+    lines.push(
+      "Every `ui_*` tool requires the id of the document it should act on; pass one of the ids above. These tools act on documents the user has open, so prefer the focused document unless the user points at another one."
+    );
+    lines.push(
+      "A document that is not in that list can be opened: call `ui_open_document` with its type and id (from `list_timelines`, `list_sketches`, `list_storyboards`, `list_scripts`, or a resource link). It opens the document as a tab and returns once its `ui_*` tools work, so never tell the user a document cannot be edited because it is not open."
+    );
+  }
 
   const hasTimeline =
     focused?.type === "timeline" || open.some((ref) => ref.type === "timeline");
@@ -518,6 +522,13 @@ function formatUiContext(uiContext?: UiContext | null): string {
     );
     lines.push(
       "Snapshot before a large edit: `create_timeline_version` with a name, or `set_timeline_document`'s `snapshot_name`, so a restructure the user did not like is one `restore_timeline_version` away."
+    );
+  }
+
+  const hasGame = focused?.type === "game" || open.some((ref) => ref.type === "game");
+  if (hasGame) {
+    lines.push(
+      "For a native game, call `get_native_game` with `view: \"outline\"` first. Edit the draft with `edit_native_game` and capture the result with `capture_native_game_frame` before reporting a visual change as done. Leave publishing to the user unless they ask for it."
     );
   }
 

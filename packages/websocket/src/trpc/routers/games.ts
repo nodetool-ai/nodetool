@@ -5,7 +5,7 @@ import sharp from "sharp";
 import { getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
 import { AmbiguousGameIdError, Asset, Game, Project, Workspace } from "@nodetool-ai/models";
 import { gameAssetBinding, gameDocument, type GameDocument } from "@nodetool-ai/protocol/game.js";
-import { createTopDownRoomGame, validateGame } from "@nodetool-ai/game-runtime";
+import { createTopDownRoomGame, gameDocumentOp, GameOpError, validateGame } from "@nodetool-ai/game-runtime";
 import type { Workspace as RunWorkspace } from "@nodetool-ai/runtime";
 import { getAssetAdapter } from "../../lib/storage.js";
 import { getAssetStorageKey, retrieveAssetBytes } from "../../lib/asset-paths.js";
@@ -22,11 +22,13 @@ const gameInfo = z.object({
   workspaceId: z.string(),
   name: z.string(),
   revision: z.string(),
+  draftUpdatedAt: z.string(),
+  draftBaseRevision: z.string(),
   createdAt: z.string(),
   updatedAt: z.string()
 });
 const gameWithDocument = z.object({ game: gameInfo, document: gameDocument });
-const gameRevisionInfo = z.object({ revision: z.string(), modifiedAt: z.number(), current: z.boolean() });
+const gameRevisionInfo = z.object({ revision: z.string(), modifiedAt: z.number(), current: z.boolean(), message: z.string().nullable() });
 
 function info(game: Game): z.infer<typeof gameInfo> {
   return {
@@ -35,6 +37,8 @@ function info(game: Game): z.infer<typeof gameInfo> {
     workspaceId: game.workspace_id,
     name: game.name,
     revision: game.current_revision,
+    draftUpdatedAt: game.draft_updated_at,
+    draftBaseRevision: game.draft_base_revision,
     createdAt: game.created_at,
     updatedAt: game.updated_at
   };
@@ -134,18 +138,27 @@ async function writeRevision(workspace: RunWorkspace, game: Game, document: Game
   await workspace.write(sourcePath(game, document.revision), JSON.stringify(document), "application/json");
 }
 
-async function publishDocument(userId: string, game: Game, baseRevision: string, value: unknown): Promise<{ game: z.infer<typeof gameInfo>; document: GameDocument }> {
+async function publishDocument(userId: string, game: Game, baseRevision: string, value?: unknown, message?: string): Promise<{ game: z.infer<typeof gameInfo>; document: GameDocument }> {
   if (baseRevision !== game.current_revision) {
     throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game was modified concurrently");
   }
-  const revision = newRevision();
-  const document = validatedDocument(value, game.id, revision);
   const workspace = await gameWorkspace(userId, game);
+  const draft = await Game.readDraft(userId, game.id, workspace);
+  if (!draft) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "Game draft not found");
+  }
+  const revision = newRevision();
+  const document = validatedDocument(value ?? draft?.document, game.id, revision);
   await writeRevision(workspace, game, document);
-  const updated = await Game.publish(userId, game.id, baseRevision, revision);
+  const updated = await Game.publish(userId, game.id, baseRevision, revision, draft.game.draft_updated_at, workspace, message);
   if (!updated) {
+    await workspace.delete(sourcePath(game, revision));
     throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game was modified concurrently");
   }
+  if (draft.game.draft_version_id) {
+    await workspace.delete(`${game.source_root}/drafts/${draft.game.draft_version_id}.json`);
+  }
+  await workspace.write(`${game.source_root}/draft.json`, JSON.stringify(document), "application/json");
   return { game: info(updated), document };
 }
 
@@ -206,25 +219,82 @@ export const gamesRouter = router({
       return { game: info(game), document: await readRevision(workspace, game, input.revision ?? game.current_revision) };
     }),
 
+  getDraft: protectedProcedure
+    .input(idInput)
+    .output(gameWithDocument)
+    .query(async ({ ctx, input }) => {
+      const game = await ownedGame(ctx.userId, input.id);
+      const draft = await Game.readDraft(ctx.userId, game.id, await gameWorkspace(ctx.userId, game));
+      if (!draft) throwApiError(ApiErrorCode.NOT_FOUND, "Game draft not found");
+      return { game: info(draft.game), document: draft.document };
+    }),
+
+  saveDraft: protectedProcedure
+    .input(idInput.extend({ baseUpdatedAt: z.string(), ops: z.array(gameDocumentOp).min(1) }))
+    .output(gameWithDocument)
+    .mutation(async ({ ctx, input }) => {
+      const game = await ownedGame(ctx.userId, input.id);
+      try {
+        const saved = await Game.updateDraft(
+          ctx.userId, game.id, input.baseUpdatedAt, input.ops,
+          await gameWorkspace(ctx.userId, game), { actor: "user" }
+        );
+        if (!saved) throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently");
+        return { game: info(saved.game), document: saved.document };
+      } catch (error) {
+        if (error instanceof GameOpError) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, `Op ${error.opIndex}: ${error.path}: ${error.message}`);
+        }
+        throw error;
+      }
+    }),
+
+  draftChanges: protectedProcedure
+    .input(idInput)
+    .output(z.array(z.object({
+      id: z.string(), actor: z.enum(["agent", "user"]), threadId: z.string().nullable(),
+      messageId: z.string().nullable(), summary: z.string(), beforeUpdatedAt: z.string(),
+      beforeDigest: z.string(), createdAt: z.string(), ops: z.array(gameDocumentOp),
+      affectedEntityIds: z.array(z.string())
+    })))
+    .query(async ({ ctx, input }) => {
+      const game = await ownedGame(ctx.userId, input.id);
+      return (await Game.listDraftChanges(ctx.userId, game.id)).map(({ gameId: _gameId, ...change }) => change);
+    }),
+
+  draftBeforeChange: protectedProcedure
+    .input(idInput.extend({ changeId: z.string() }))
+    .output(gameDocument)
+    .query(async ({ ctx, input }) => {
+      const game = await ownedGame(ctx.userId, input.id);
+      const document = await Game.readDraftBeforeChange(
+        ctx.userId, game.id, input.changeId, await gameWorkspace(ctx.userId, game)
+      );
+      if (!document) throwApiError(ApiErrorCode.NOT_FOUND, "Game draft change not found");
+      return document;
+    }),
+
   revisions: protectedProcedure
     .input(idInput)
     .output(z.array(gameRevisionInfo))
     .query(async ({ ctx, input }) => {
       const game = await ownedGame(ctx.userId, input.id);
       const workspace = await gameWorkspace(ctx.userId, game);
+      const messages = await Game.listRevisionMessages(ctx.userId, game.id);
       const entries = await workspace.list(`${game.source_root}/revisions`, { recursive: true });
       const revisions = entries.flatMap((entry) => {
         const match = /^([a-f0-9]{32})\/game\.json$/.exec(entry.path.slice(`${game.source_root}/revisions/`.length));
-        return match ? [{ revision: match[1], modifiedAt: entry.modifiedAt, current: match[1] === game.current_revision }] : [];
+        return match ? [{ revision: match[1], modifiedAt: entry.modifiedAt, current: match[1] === game.current_revision,
+          message: messages.get(match[1]) ?? null }] : [];
       });
       return revisions.sort((a, b) => b.modifiedAt - a.modifiedAt);
     }),
 
   publish: protectedProcedure
-    .input(idInput.extend({ baseRevision: z.string(), document: gameDocument }))
+    .input(idInput.extend({ baseRevision: z.string(), document: gameDocument.optional(), message: z.string().trim().max(500).optional() }))
     .output(gameWithDocument)
     .mutation(async ({ ctx, input }) =>
-      publishDocument(ctx.userId, await ownedGame(ctx.userId, input.id), input.baseRevision, input.document)
+      publishDocument(ctx.userId, await ownedGame(ctx.userId, input.id), input.baseRevision, input.document, input.message)
     ),
 
   restore: protectedProcedure
@@ -237,8 +307,20 @@ export const gamesRouter = router({
       return publishDocument(ctx.userId, game, input.baseRevision, oldDocument);
     }),
 
+  restoreDraft: protectedProcedure
+    .input(idInput.extend({ baseUpdatedAt: z.string(), revision: z.string() }))
+    .output(gameWithDocument)
+    .mutation(async ({ ctx, input }) => {
+      const game = await ownedGame(ctx.userId, input.id);
+      const workspace = await gameWorkspace(ctx.userId, game);
+      const document = await readRevision(workspace, game, input.revision);
+      const restored = await Game.replaceDraft(ctx.userId, game.id, input.baseUpdatedAt, document, workspace);
+      if (!restored) throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently");
+      return { game: info(restored.game), document: restored.document };
+    }),
+
   installAsset: protectedProcedure
-    .input(idInput.extend({ baseRevision: z.string(), slot: z.string().min(1), assetId: z.string(), expectedDigest: z.string().optional() }))
+    .input(idInput.extend({ baseRevision: z.string().optional(), baseUpdatedAt: z.string().optional(), slot: z.string().min(1), assetId: z.string(), expectedDigest: z.string().optional() }))
     .output(gameWithDocument)
     .mutation(async ({ ctx, input }) => {
       const game = await ownedGame(ctx.userId, input.id);
@@ -262,27 +344,31 @@ export const gamesRouter = router({
         throwApiError(ApiErrorCode.INVALID_INPUT, "Image dimensions are unavailable");
       }
       const workspace = await gameWorkspace(ctx.userId, game);
-      const document = await readRevision(workspace, game, game.current_revision);
-      return publishDocument(ctx.userId, game, input.baseRevision, {
-        ...document,
-        assets: {
-          ...document.assets,
-          [input.slot]: {
-            assetId: asset.id,
-            digest,
-            width: metadata.width,
-            height: metadata.height,
-            pivot: document.assets[input.slot]?.pivot ?? { x: 0.5, y: 0.5 },
-            sampling: document.assets[input.slot]?.sampling ?? "nearest",
-            provenance: asset.workflow_id ?? undefined
-          }
+      const draft = await Game.readDraft(ctx.userId, game.id, workspace);
+      if (!draft) throwApiError(ApiErrorCode.NOT_FOUND, "Game draft not found");
+      if (input.baseRevision && game.current_revision !== input.baseRevision) {
+        throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game was modified concurrently");
+      }
+      if (input.baseUpdatedAt && draft.game.draft_updated_at !== input.baseUpdatedAt) {
+        throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently");
+      }
+      const saved = await Game.updateDraft(ctx.userId, game.id, draft.game.draft_updated_at, [{
+        op: "bind_asset", slot: input.slot,
+        binding: {
+          assetId: asset.id, digest, width: metadata.width, height: metadata.height,
+          pivot: draft.document.assets[input.slot]?.pivot ?? { x: 0.5, y: 0.5 },
+          sampling: draft.document.assets[input.slot]?.sampling ?? "nearest",
+          provenance: asset.workflow_id ?? undefined
         }
-      });
+      }], workspace, { actor: "user" });
+      if (!saved) throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently");
+      return { game: info(saved.game), document: saved.document };
     }),
 
   installCandidate: protectedProcedure
     .input(idInput.extend({
-      baseRevision: z.string(),
+      baseRevision: z.string().optional(),
+      baseUpdatedAt: z.string().optional(),
       slot: z.string().min(1),
       candidateWorkspaceId: z.string().optional(),
       binding: gameAssetBinding
@@ -308,20 +394,36 @@ export const gamesRouter = router({
       if (input.binding.mediaKind === "font" && !input.binding.fontFormat) {
         throwApiError(ApiErrorCode.INVALID_INPUT, "Font binding needs a TrueType or OpenType format");
       }
-      const extension = input.binding.mediaKind === "audio" ? "wav" : input.binding.mediaKind === "font" ? input.binding.fontFormat : "png";
-      const path = `${game.source_root}/assets/${digest}.${extension}`;
-      const bytes = await candidateWorkspace.read(path);
-      if (!bytes || createHash("sha256").update(bytes).digest("hex") !== digest) {
+      const formats = input.binding.mediaKind === "audio"
+        ? [["wav", "audio/wav"], ["mp3", "audio/mpeg"], ["ogg", "audio/ogg"]]
+        : input.binding.mediaKind === "font"
+          ? [[input.binding.fontFormat, `font/${input.binding.fontFormat}`]]
+          : [["png", "image/png"], ["jpg", "image/jpeg"], ["webp", "image/webp"]];
+      let candidate: { path: string; extension: string; contentType: string; bytes: Uint8Array } | null = null;
+      for (const [extension, contentType] of formats) {
+        if (!extension || !contentType) continue;
+        const path = `${game.source_root}/assets/${digest}.${extension}`;
+        const bytes = await candidateWorkspace.read(path);
+        if (bytes) {
+          candidate = { path, extension, contentType, bytes };
+          break;
+        }
+      }
+      if (!candidate || createHash("sha256").update(candidate.bytes).digest("hex") !== digest) {
         throwApiError(ApiErrorCode.INVALID_INPUT, "Candidate asset is missing or changed");
       }
-      if (game.current_revision !== input.baseRevision) {
+      const { path, extension, contentType, bytes } = candidate;
+      if (input.baseRevision && game.current_revision !== input.baseRevision) {
         throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game was modified concurrently");
       }
-      const contentType = extension === "wav" ? "audio/wav" : extension === "ttf" ? "font/ttf" : extension === "otf" ? "font/otf" : "image/png";
+      const draft = await Game.readDraft(ctx.userId, game.id, workspace);
+      if (!draft) throwApiError(ApiErrorCode.NOT_FOUND, "Game draft not found");
+      if (input.baseUpdatedAt && draft.game.draft_updated_at !== input.baseUpdatedAt) {
+        throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently");
+      }
       if (candidateRow && candidateRow.id !== game.workspace_id) {
         await workspace.write(path, bytes, contentType);
       }
-      const document = await readRevision(workspace, game, game.current_revision);
       const installed = (await Asset.create({
         user_id: ctx.userId,
         project_id: game.project_id,
@@ -336,13 +438,11 @@ export const gamesRouter = router({
       let uri: string | null = null;
       try {
         uri = await storage.store(key, bytes, contentType);
-        return await publishDocument(ctx.userId, game, input.baseRevision, {
-          ...document,
-          assets: {
-            ...document.assets,
-            [input.slot]: { ...input.binding, assetId: installed.id }
-          }
-        });
+        const saved = await Game.updateDraft(ctx.userId, game.id, draft.game.draft_updated_at, [{
+          op: "bind_asset", slot: input.slot, binding: { ...input.binding, assetId: installed.id }
+        }], workspace, { actor: "user" });
+        if (!saved) throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently");
+        return { game: info(saved.game), document: saved.document };
       } catch (error) {
         if (uri) await storage.delete(uri);
         await installed.delete();

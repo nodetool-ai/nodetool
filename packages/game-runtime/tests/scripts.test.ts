@@ -46,6 +46,19 @@ describe("game scripts", () => {
     excessive.dispose();
   });
 
+  it("fails on the 120th step and replays safely to tick 119", async () => {
+    const game = scriptedGame("({tick, state}) => { if (tick === 119) throw new Error('planned failure'); return {state, commands: []}; }");
+    const session = await createScriptedGameSession(game, 1);
+    const input = { pressed: [] };
+    for (let tick = 1; tick < 120; tick++) session.step(input);
+    expect(session.snapshot().tick).toBe(119);
+    expect(() => session.step(input)).toThrow(/planned failure.*tick 119|tick 119.*planned failure/);
+    session.dispose();
+
+    const replay = await replayScriptedGame(game, 1, Array.from({ length: 119 }, () => input));
+    expect(replay.snapshot.tick).toBe(119);
+  });
+
   it("rejects a document with more scripted behaviors than can be prepared", () => {
     const game = scriptedGame("({state}) => ({state, commands: []})");
     const entities = Array.from({ length: 33 }, (_, index) => ({
@@ -73,6 +86,8 @@ describe("game scripts", () => {
       expect(result.scriptStats?.calls).toBe(1);
       expect(result.scriptStats?.commands).toBe(1);
       expect(result.scriptStats?.durationMs).toBeGreaterThanOrEqual(0);
+      expect(result.scriptStats?.byEntity.player?.calls).toBe(1);
+      expect(result.scriptStats?.byEntity.player?.durationMs).toBeGreaterThanOrEqual(0);
     }
     expect(second.snapshot()).toEqual(first.snapshot());
     const replay = await replayScriptedGame(game, 7, Array.from({ length: 20 }, () => ({ pressed: [] })));

@@ -3,17 +3,52 @@ import { gameDocument, type GameDocument } from "@nodetool-ai/protocol";
 export interface GameValidationResult {
   readonly valid: boolean;
   readonly document?: GameDocument;
+  readonly issues: readonly GameValidationIssue[];
   readonly errors: readonly string[];
+}
+
+export interface GameValidationIssue {
+  readonly path: readonly (string | number)[];
+  readonly message: string;
+}
+
+function pathOf(path: readonly PropertyKey[]): (string | number)[] {
+  return path.map((part) => typeof part === "symbol" ? part.toString() : part);
+}
+
+function formatIssue(issue: GameValidationIssue): string {
+  return issue.path.length > 0 ? `${issue.path.join(".")}: ${issue.message}` : issue.message;
+}
+
+function issueFromError(error: string, document: GameDocument): GameValidationIssue {
+  const separator = error.indexOf(": ");
+  if (separator < 0) return { path: [], message: error };
+  const prefix = error.slice(0, separator);
+  if (!/^(assets|scenes|renderEffects|entrySceneId|inputActions|collisionLayers)(\.|$)/.test(prefix)) return { path: [], message: error };
+  if (prefix.startsWith("assets.")) {
+    const slot = Object.keys(document.assets).sort((left, right) => right.length - left.length)
+      .find((key) => prefix === `assets.${key}` || prefix.startsWith(`assets.${key}.`));
+    if (slot) {
+      const remainder = prefix.slice(`assets.${slot}`.length).replace(/^\./, "");
+      return { path: ["assets", slot, ...remainder.split(".").filter(Boolean)], message: error.slice(separator + 2) };
+    }
+  }
+  return { path: prefix.split(".").map((part) => /^\d+$/.test(part) ? Number(part) : part), message: error.slice(separator + 2) };
 }
 
 /** Validate structure and references before publishing or starting a session. */
 export function validateGame(value: unknown): GameValidationResult {
   const parsed = gameDocument.safeParse(value);
   if (!parsed.success) {
-    return { valid: false, errors: parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`) };
+    const issues = parsed.error.issues.map((issue) => ({ path: pathOf(issue.path), message: issue.message }));
+    return { valid: false, issues, errors: issues.map(formatIssue) };
   }
   const document = parsed.data;
   const errors: string[] = [];
+  const issueOverrides = new Map<number, GameValidationIssue>();
+  if (document.schemaVersion === 1 && document.collisionLayers) {
+    errors.push("collisionLayers: requires schema version 2");
+  }
   if (document.schemaVersion === 1 && ((document.renderEffects?.length ?? 0) > 1 ||
     document.renderEffects?.some((effect) => effect.kind !== "brightnessContrast") || document.hudEffectOrder)) {
     errors.push("Effect chains, bloom, and HUD effect order require game schema version 2");
@@ -37,14 +72,14 @@ export function validateGame(value: unknown): GameValidationResult {
   let scriptSourceBytes = 0;
   const encoder = new TextEncoder();
   const sceneIds = new Set<string>();
-  for (const scene of document.scenes) {
+  for (const [sceneIndex, scene] of document.scenes.entries()) {
     if (sceneIds.has(scene.id)) {
-      errors.push(`Duplicate scene id: ${scene.id}`);
+      errors.push(`scenes.${sceneIndex}.id: Duplicate scene id ${scene.id}`);
     }
     sceneIds.add(scene.id);
   }
   if (!sceneIds.has(document.entrySceneId)) {
-    errors.push(`Entry scene does not exist: ${document.entrySceneId}`);
+    errors.push(`entrySceneId: Scene ${document.entrySceneId} does not exist`);
   }
   const actions = new Set<string>();
   for (const [assetId, binding] of Object.entries(document.assets)) {
@@ -62,9 +97,9 @@ export function validateGame(value: unknown): GameValidationResult {
       errors.push(`assets.${assetId}.trim: crop must fit the source image`);
     }
   }
-  for (const action of document.inputActions) {
+  for (const [actionIndex, action] of document.inputActions.entries()) {
     if (actions.has(action)) {
-      errors.push(`Duplicate input action: ${action}`);
+      errors.push(`inputActions.${actionIndex}: Duplicate input action ${action}`);
     }
     actions.add(action);
   }
@@ -73,7 +108,7 @@ export function validateGame(value: unknown): GameValidationResult {
     if (document.schemaVersion === 1 && scene.backgrounds) errors.push(`scenes.${sceneIndex}.backgrounds: requires schema version 2`);
     const layerIds = new Set<string>();
     for (const [layerIndex, layer] of (scene.backgrounds ?? []).entries()) {
-      if (layerIds.has(layer.id)) errors.push(`Duplicate background id in scene ${scene.id}: ${layer.id}`);
+      if (layerIds.has(layer.id)) errors.push(`scenes.${sceneIndex}.backgrounds.${layerIndex}.id: Duplicate background id ${layer.id}`);
       layerIds.add(layer.id);
       const asset = document.assets[layer.assetId];
       if (!asset || asset.mediaKind !== "image") errors.push(`scenes.${sceneIndex}.backgrounds.${layerIndex}.assetId: requires an image asset`);
@@ -88,13 +123,14 @@ export function validateGame(value: unknown): GameValidationResult {
       }
     }
     const entities = new Map(scene.entities.map((entity) => [entity.id, entity]));
+    const entityIndexes = new Map(scene.entities.map((entity, index) => [entity.id, index]));
     const children = new Map<string, string[]>();
     if (entities.size !== scene.entities.length) {
-      errors.push(`Duplicate entity id in scene ${scene.id}`);
+      errors.push(`scenes.${sceneIndex}.entities: Duplicate entity id in scene ${scene.id}`);
     }
-    for (const entity of scene.entities) {
+    for (const [entityIndex, entity] of scene.entities.entries()) {
       if (entity.parentId && !entities.has(entity.parentId)) {
-        errors.push(`Entity ${entity.id} has missing parent ${entity.parentId}`);
+        errors.push(`scenes.${sceneIndex}.entities.${entityIndex}.parentId: Entity ${entity.id} has missing parent ${entity.parentId}`);
       }
       if (entity.parentId && entities.has(entity.parentId)) {
         const siblings = children.get(entity.parentId) ?? [];
@@ -113,15 +149,15 @@ export function validateGame(value: unknown): GameValidationResult {
       if (!entity) continue;
       if (entity.collider2d && (invalidPhysicsAncestor.get(id) ||
         entity.transform2d.rotation !== 0 || entity.transform2d.scaleX !== 1 || entity.transform2d.scaleY !== 1)) {
-        errors.push(`Collider ${id} cannot be rotated or scaled`);
+        errors.push(`scenes.${sceneIndex}.entities.${entityIndexes.get(id)}.collider2d: Collider ${id} cannot be rotated or scaled`);
       }
       if (entity.tilemap && (invalidPhysicsAncestor.get(id) ||
         entity.transform2d.rotation !== 0 || entity.transform2d.scaleX !== 1 || entity.transform2d.scaleY !== 1)) {
-        errors.push(`Tilemap ${id} cannot be rotated or scaled`);
+        errors.push(`scenes.${sceneIndex}.entities.${entityIndexes.get(id)}.tilemap: Tilemap ${id} cannot be rotated or scaled`);
       }
       if (entity.camera2d && (invalidPhysicsAncestor.get(id) || entity.transform2d.rotation !== 0 ||
         entity.transform2d.scaleX !== 1 || entity.transform2d.scaleY !== 1)) {
-        errors.push(`Camera ${id} cannot be rotated or scaled`);
+        errors.push(`scenes.${sceneIndex}.entities.${entityIndexes.get(id)}.camera2d: Camera ${id} cannot be rotated or scaled`);
       }
       const invalidForChildren = Boolean(invalidPhysicsAncestor.get(id)) ||
         entity.transform2d.rotation !== 0 || entity.transform2d.scaleX !== 1 || entity.transform2d.scaleY !== 1;
@@ -132,18 +168,20 @@ export function validateGame(value: unknown): GameValidationResult {
     }
     for (const [entityIndex, entity] of scene.entities.entries()) {
       if (!visited.has(entity.id)) {
-        errors.push(`Parent cycle at entity ${entity.id}`);
+        errors.push(`scenes.${sceneIndex}.entities.${entityIndex}.parentId: Parent cycle at entity ${entity.id}`);
       }
       if (children.has(entity.id) &&
         (entity.body2d?.type === "kinematic" || entity.behaviors.some((behavior) => behavior.kind === "movement" || behavior.kind === "patrol"))) {
-        errors.push(`Moving parent ${entity.id} is not supported`);
+        errors.push(`scenes.${sceneIndex}.entities.${entityIndex}.behaviors: Moving parent ${entity.id} is not supported`);
       }
       if (children.has(entity.id) && entity.transform2d.scaleX !== entity.transform2d.scaleY) {
-        errors.push(`Non-uniformly scaled parent ${entity.id} is not supported`);
+        errors.push(`scenes.${sceneIndex}.entities.${entityIndex}.transform2d: Non-uniformly scaled parent ${entity.id} is not supported`);
       }
       // A kinematic body without a collider moves but never collides, which suits cosmetic particles.
       if (entity.body2d?.type === "static" && !entity.collider2d) {
-        errors.push(`Static body ${entity.id} needs a collider2d`);
+        const message = `Static body ${entity.id} needs a collider2d`;
+        issueOverrides.set(errors.length, { path: ["scenes", sceneIndex, "entities", entityIndex, "collider2d"], message });
+        errors.push(message);
       }
       const path = `scenes.${sceneIndex}.entities.${entityIndex}`;
       for (const [component, assetId, expectedKind] of [
@@ -201,20 +239,21 @@ export function validateGame(value: unknown): GameValidationResult {
         if (behavior.kind === "movement") {
           for (const action of [behavior.left, behavior.right, behavior.up, behavior.down]) {
             if (!actions.has(action)) {
-              errors.push(`Movement on ${entity.id} uses undeclared action ${action}`);
+              errors.push(`${path}.behaviors.${behaviorIndex}: Movement on ${entity.id} uses undeclared action ${action}`);
             }
           }
         }
         if (behavior.kind === "sceneTransition" && !sceneIds.has(behavior.sceneId)) {
-          errors.push(`Transition on ${entity.id} uses missing scene ${behavior.sceneId}`);
+          errors.push(`${path}.behaviors.${behaviorIndex}.sceneId: Transition on ${entity.id} uses missing scene ${behavior.sceneId}`);
         }
         if (behavior.kind === "spawn" && !entities.get(behavior.prefabId)?.templateOnly) {
-          errors.push(`Spawn on ${entity.id} uses missing prefab entity ${behavior.prefabId}`);
+          errors.push(`${path}.behaviors.${behaviorIndex}.prefabId: Spawn on ${entity.id} uses missing prefab entity ${behavior.prefabId}`);
         }
       }
     }
   }
   if (scriptCount > 32) errors.push("Game exceeds the limit of 32 scripted behaviors");
   if (scriptSourceBytes > 64 * 1024) errors.push("Game script source exceeds 64 KiB");
-  return errors.length === 0 ? { valid: true, document, errors } : { valid: false, errors };
+  const issues = errors.map((error, index) => issueOverrides.get(index) ?? issueFromError(error, document));
+  return errors.length === 0 ? { valid: true, document, issues, errors } : { valid: false, issues, errors };
 }

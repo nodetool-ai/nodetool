@@ -33,6 +33,7 @@ jest.mock("@tanstack/react-virtual", () => ({
       getTotalSize: () => mockTotalSize ?? count * 200,
       measureElement: () => {},
       scrollToIndex: mockScrollToIndex,
+      scrollElement: document.createElement("div"),
       shouldAdjustScrollPositionOnItemSizeChange: undefined as unknown
     };
     Object.defineProperty(
@@ -151,6 +152,21 @@ describe("ChatThreadView", () => {
     expect(screen.getByTestId("message-2")).toHaveTextContent("Hi there");
   });
 
+  it("focuses a message after its thread messages load", () => {
+    mockScrollToIndex.mockClear();
+    const focusMessage = { messageId: "2", requestId: 1 };
+    const view = renderWithTheme(
+      <ChatThreadView {...defaultProps} messages={[]} focusMessage={focusMessage} />
+    );
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+    view.rerender(
+      <ThemeProvider theme={mockTheme}>
+        <ChatThreadView {...defaultProps} focusMessage={focusMessage} />
+      </ThemeProvider>
+    );
+    expect(mockScrollToIndex).toHaveBeenCalledWith(1, { align: "center" });
+  });
+
   it("leaves scroll positioning to an external replay controller", () => {
     jest.useFakeTimers();
     mockScrollToIndex.mockClear();
@@ -232,9 +248,11 @@ describe("ChatThreadView", () => {
     );
     expect(host).toHaveAttribute("data-scroll-mode", "free-scrolling");
     expect(mockScrollToIndex).not.toHaveBeenCalled();
-    useGlobalChatStore.setState({
-      loadMessages: originalLoad,
-      messageCursors: {}
+    act(() => {
+      useGlobalChatStore.setState({
+        loadMessages: originalLoad,
+        messageCursors: {}
+      });
     });
     jest.useRealTimers();
   });
@@ -645,6 +663,7 @@ describe("ChatThreadView", () => {
   });
 
   it("collapses consecutive tool-call-only messages of the same tool", () => {
+    mockScrollToIndex.mockClear();
     const toolMessage = (id: string, callId: string): Message =>
       ({
         type: "message",
@@ -657,6 +676,7 @@ describe("ChatThreadView", () => {
     renderWithTheme(
       <ChatThreadView
         {...defaultProps}
+        focusMessage={{ messageId: "s3", requestId: 7 }}
         messages={[
           mockMessages[0],
           toolMessage("s1", "a"),
@@ -685,5 +705,6 @@ describe("ChatThreadView", () => {
     expect(screen.queryByTestId("message-s3")).not.toBeInTheDocument();
     expect(screen.queryByTestId("message-t1")).not.toBeInTheDocument();
     expect(screen.getByTestId("message-final")).toBeInTheDocument();
+    expect(mockScrollToIndex).toHaveBeenCalledWith(1, { align: "center" });
   });
 });

@@ -784,7 +784,7 @@ export class ChatTurnHandler {
    */
   private async saveMessageToDb(
     messageData: Record<string, unknown>
-  ): Promise<void> {
+  ): Promise<Message> {
     const data = { ...messageData };
     delete data.id;
     delete data.type;
@@ -793,7 +793,7 @@ export class ChatTurnHandler {
     const userId = this.session.requireUserId();
     delete data.user_id;
 
-    await Message.create({
+    return Message.create<Message>({
       thread_id: threadId,
       user_id: userId,
       ...data
@@ -1444,7 +1444,7 @@ export class ChatTurnHandler {
     log.debug("Chat message", { threadId, model, provider: providerId });
 
     // Save user message to DB — matches Python's _save_message_to_db_async(data)
-    await this.saveMessageToDb(data);
+    const turnMessage = await this.saveMessageToDb(data);
 
     if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
 
@@ -1938,6 +1938,7 @@ export class ChatTurnHandler {
       workspace: chatWorkspace,
       authToken: this.deps.authToken()
     });
+    ctx.set("chat_message_id", turnMessage.id);
     const detachPredictions = attachChatPredictionForwarder(
       (listener) => ctx.addMessageListener(listener),
       (msg) => this.session.sendDetached(msg),
