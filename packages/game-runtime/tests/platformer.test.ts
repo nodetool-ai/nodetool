@@ -162,7 +162,7 @@ describe("platformer physics", () => {
       body("hero", 0.1, 0.9, {
         sprite: { assetId: "tiles", width: 1, height: 1 },
         animator: { frames, ticksPerFrame: 4, clips: { run: { frames: [{ x: 16, y: 0, width: 16, height: 16 }, { x: 32, y: 0, width: 16, height: 16 }], ticksPerFrame: 2 } } },
-        behaviors: [{ kind: "script", source: `({ entity, state }) => ({
+        behaviors: [{ kind: "script", maxTickMs: 30, source: `({ entity, state }) => ({
           state: entity.touching,
           commands: [{ kind: "playAnimation", clip: "run" }, { kind: "setVisual", flipX: true }]
         })` }]
@@ -183,7 +183,7 @@ describe("platformer physics", () => {
       body("hero", 0.1, 0.9, {
         sprite: { assetId: "tiles", width: 1, height: 1 },
         animator: { frames, ticksPerFrame: 4, clips: { run: { frames: [{ x: 16, y: 0, width: 16, height: 16 }, { x: 32, y: 0, width: 16, height: 16 }], ticksPerFrame: 2 } } },
-        behaviors: [{ kind: "script", source: `({ state }) => ({ state, commands: [] })` }]
+        behaviors: [{ kind: "script", maxTickMs: 30, source: `({ state }) => ({ state, commands: [] })` }]
       })
     ]), 0, session.snapshot());
     expect(restored.frame().sprites.find((item) => item.entityId === "hero")).toMatchObject({ flipX: true, frame: { x: 32 } });
@@ -212,7 +212,7 @@ describe("platformer physics", () => {
       body("hero", 0, 3, {
         sprite: { assetId: "tiles", width: 1, height: 1 },
         animator: { frames: [{ x: 0, y: 0, width: 16, height: 16 }], ticksPerFrame: 4 },
-        behaviors: [{ kind: "script", source: `() => ({ state: null, commands: [{ kind: "playAnimation", clip: "fly" }] })` }]
+        behaviors: [{ kind: "script", maxTickMs: 30, source: `() => ({ state: null, commands: [{ kind: "playAnimation", clip: "fly" }] })` }]
       })
     ]), 0);
     expect(() => session.step(idle)).toThrow("missing animation clip fly");
