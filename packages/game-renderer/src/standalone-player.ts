@@ -3,6 +3,7 @@ import { gameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
 import { GameAudioPlayer } from "./audio.js";
 import { mountTouchControls } from "./touch-controls.js";
+import { gameKeyAction } from "./input.js";
 
 const PLAYER_VERSION = "1";
 
@@ -193,18 +194,8 @@ async function start(): Promise<void> {
     animationFrame = requestAnimationFrame(tick);
   }
 
-  function keyAction(code: string, key: string): string {
-    switch (code) {
-      case "ArrowLeft": case "KeyA": return "left";
-      case "ArrowRight": case "KeyD": return "right";
-      case "ArrowUp": case "KeyW": return "up";
-      case "ArrowDown": case "KeyS": return "down";
-      case "Space": return "space";
-      default: return key.toLowerCase();
-    }
-  }
   window.addEventListener("keydown", (event) => {
-    const action = keyAction(event.code, event.key);
+    const action = gameKeyAction(event.code, event.key);
     if (!game.inputActions.includes(action)) {
       return;
     }
@@ -213,7 +204,7 @@ async function start(): Promise<void> {
     syncPressed();
   });
   window.addEventListener("keyup", (event) => {
-    keyboard.delete(keyAction(event.code, event.key));
+    keyboard.delete(gameKeyAction(event.code, event.key));
     syncPressed();
   });
   window.addEventListener("blur", releaseAll);

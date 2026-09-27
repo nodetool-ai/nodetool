@@ -181,6 +181,7 @@ type ChatViewProps = {
    * (e.g. a workspace chat tab) that may not be `currentThreadId`.
    */
   threadId?: string | null;
+  focusMessage?: { messageId: string; requestId: number } | null;
   /** A deterministic replay owns thread scrolling. */
   externalScroll?: boolean;
 };
@@ -237,7 +238,8 @@ const ChatView = ({
   hideModelPicker,
   showNewChatButton = false,
   projectDocumentsSidebar,
-  threadId
+  threadId,
+  focusMessage
 }: ChatViewProps) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -485,6 +487,7 @@ const ChatView = ({
             {messages.length > 0 ? (
               <ChatThreadView
                 threadId={effectiveThreadId}
+                focusMessage={focusMessage}
                 messages={messages}
                 status={status}
                 replayElapsedSeconds={replayElapsedSeconds}

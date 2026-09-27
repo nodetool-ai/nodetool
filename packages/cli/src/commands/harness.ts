@@ -367,6 +367,10 @@ export function registerHarnessCommands(program: Command): void {
           const timedOut = errorCode === "ETIMEDOUT";
           const killed = r.signal != null || r.error !== undefined;
           const exitCode = timedOut ? TIMEOUT_EXIT_CODE : (r.status ?? 1);
+          if (opts.json && (timedOut || killed || exitCode !== 0)) {
+            const output = `${r.stdout ?? ""}\n${r.stderr ?? ""}`.slice(-20_000);
+            process.stderr.write(`\n${check.harnessId} failed (exit ${exitCode}):\n${output}\n`);
+          }
           if (!opts.json && timedOut) {
             console.log(
               `\nTIMEOUT ${check.harnessId} exceeded ${timeoutSeconds}s: ${check.command}`

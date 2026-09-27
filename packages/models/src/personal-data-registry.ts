@@ -422,6 +422,24 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Game records name the person's authored source and current revision. Delete the row on erasure and include it in their data export."
   },
   {
+    table: "game_draft_changes",
+    schemaExport: "gameDraftChanges",
+    disposition: "delete",
+    reach: { kind: "indirect", column: "game_id", parent: "games" },
+    exported: true,
+    justification:
+      "Draft change operations and chat provenance belong to the game author. Erase and export them through the owned game."
+  },
+  {
+    table: "game_revision_messages",
+    schemaExport: "gameRevisionMessages",
+    disposition: "delete",
+    reach: { kind: "indirect", column: "game_id", parent: "games" },
+    exported: true,
+    justification:
+      "Published revision messages are authored game content. Erase and export them through the owned game."
+  },
+  {
     table: "skills",
     schemaExport: "skills",
     disposition: "delete",

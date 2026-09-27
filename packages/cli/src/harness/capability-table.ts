@@ -2478,7 +2478,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "77c9dd598b03",
+    contract: "24fc05a439c1",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
@@ -2488,7 +2488,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "publish_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "f4f5d94368e2",
+    contract: "ec2046a0436f",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
@@ -2498,7 +2498,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "install_native_game_asset",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "41ea83d94d07",
+    contract: "33bd1702d04b",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
@@ -2508,7 +2508,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "playtest_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "45068a5bb41c",
+    contract: "b406e4551e3b",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
@@ -2519,6 +2519,36 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
     contract: "5cd873c47684",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game.test.ts",
+    ],
+  },
+  {
+    name: "edit_native_game",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "00203530f2d4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game.test.ts",
+    ],
+  },
+  {
+    name: "capture_native_game_frame",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "7fe9c9560685",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game.test.ts",
+    ],
+  },
+  {
+    name: "generate_game_asset",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "ae7732e7a1bd",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",

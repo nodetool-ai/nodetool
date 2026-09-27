@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useRef, useCallback, useMemo, useState, memo } from "react";
+import React, { useRef, useCallback, useEffect, useMemo, useState, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import {
   Caption,
@@ -59,6 +59,7 @@ interface ChatThreadViewProps {
   showTaskUpdate?: boolean;
   /** A deterministic replay owns scrolling and needs every row mounted. */
   externalScroll?: boolean;
+  focusMessage?: { messageId: string; requestId: number } | null;
 }
 
 // StatusFooter re-renders once a second while a reply streams; a fresh `[]`
@@ -244,7 +245,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   currentLogUpdate,
   onInsertCode,
   showTaskUpdate = true,
-  externalScroll = false
+  externalScroll = false,
+  focusMessage
 }) => {
   const theme = useTheme();
 
@@ -450,6 +452,22 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     loadOlderMessages: olderCursor ? loadOlderMessages : undefined,
     externalScroll
   });
+
+  const lastFocusedRequest = useRef<number | null>(null);
+  useEffect(() => {
+    if (!focusMessage || !virtualizer.scrollElement || lastFocusedRequest.current === focusMessage.requestId) return;
+    const visibleIndexById = new Map(filteredMessages.map((message, index) => [message.id, index]));
+    let index = visibleIndexById.get(focusMessage.messageId) ?? -1;
+    if (index < 0) {
+      const sourceIndex = messages.findIndex((message) => message.id === focusMessage.messageId);
+      for (let i = sourceIndex - 1; i >= 0 && index < 0; i--) {
+        index = visibleIndexById.get(messages[i].id) ?? -1;
+      }
+    }
+    if (index < 0) return;
+    virtualizer.scrollToIndex(index, { align: "center" });
+    lastFocusedRequest.current = focusMessage.requestId;
+  }, [filteredMessages, focusMessage, messages, virtualizer, virtualizer.scrollElement]);
 
   const isThoughtExpanded = useCallback(
     (key: string) => expandedThoughtsRef.current[key] ?? false,

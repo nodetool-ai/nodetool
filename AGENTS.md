@@ -96,8 +96,8 @@ Use these sections for the detailed rules summarized below.
 
 ## Repository Skills
 
-Skills live in `.claude/skills/`. The `.agents` symlink exposes the same files
-through `.agents/skills/`, which is the path Codex scans; a skill that must be
+Skills live in `.agents/skills/`, which is the path Codex scans. The `.claude`
+symlink exposes the same files to Claude Code; a skill that must be
 typed rather than invoked on its own says so once for each agent, in
 `disable-model-invocation` and in `agents/openai.yaml`. Use a skill when
 requested or when its description and invocation policy match the task. Read the selected `SKILL.md`, then only
@@ -108,7 +108,7 @@ Two kinds sit in that directory. An **engineering skill** is a real directory
 and directs work on this repository. A **NodeTool skill** teaches a product
 surface, so it ships to every install as a system skill: the document lives in
 [`packages/system-skills/<name>/`](packages/system-skills/README.md) and
-`.claude/skills/<name>` is a symlink to it. Edit the shipped copy, never a
+`.agents/skills/<name>` is a symlink to it. Edit the shipped copy, never a
 second one, and keep it to a single `SKILL.md` — `load_skill` returns one
 document and nothing else in the directory reaches the product.
 `npm run check:agents-docs` enforces both.

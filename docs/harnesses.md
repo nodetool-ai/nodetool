@@ -1152,7 +1152,7 @@ path when the model is open in a browser.
 
 ### Native game pipeline (templates, staging, playtest, web build)
 
-A built-in game is a versioned game document in a project workspace. The
+A built-in game has one mutable draft and immutable published revisions in a project workspace. The
 `@nodetool-ai/game-runtime` package validates and simulates it at a fixed tick
 rate. `@nodetool-ai/game-renderer` renders it through batched WebGPU quads or a
 Canvas 2D fallback, captures a headless PNG, and builds a standalone web player.
@@ -1163,13 +1163,15 @@ asset slots. `SlotPrompt` prepares a request for one slot. `SpriteSheet`,
 `Tileset`, `SeamlessImage`, `SoundEffect`, and `MusicLoop` check generated media.
 `StageGameAssets` validates the fills and writes content-addressed candidates to
 the project workspace. Staging does not alter a published game revision.
-`install_native_game_asset` installs a selected candidate binding with a
-revision check. Existing scene and behavior edits remain in place.
+`install_native_game_asset` installs a selected candidate binding into the draft
+with a draft timestamp check. Existing scene and behavior edits remain in place.
 
-Agents can use `create_native_game`, `get_native_game`,
-`publish_native_game`, `install_native_game_asset`, and
-`playtest_native_game`. The web Game tab supplies play, pause, step, reset,
-local save/load, a scene tree, position editing, and revision publish. The
+Agents can use `create_native_game`, `get_native_game` (compact outline by
+default), `edit_native_game` (ordered draft ops), `capture_native_game_frame`,
+`playtest_native_game`, `generate_game_asset`, and `install_native_game_asset`. Publishing the draft
+with `publish_native_game` creates a revision when the user asks. The web Game
+tab supplies direct editing, play, pause, step, reset, a scene tree, and draft
+review. The
 [`nodetool game` CLI](cli.md#nodetool-game) validates, simulates, captures, and
 builds a standalone web player. A legacy export node reports a migration
 diagnostic; external-engine scene behavior requires manual reconstruction.

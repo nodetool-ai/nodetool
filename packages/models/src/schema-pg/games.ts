@@ -10,6 +10,9 @@ export const games = pgTable(
     name: text("name").notNull(),
     source_root: text("source_root").notNull(),
     current_revision: text("current_revision").notNull(),
+    draft_updated_at: text("draft_updated_at").notNull().default(""),
+    draft_base_revision: text("draft_base_revision").notNull().default(""),
+    draft_version_id: text("draft_version_id").notNull().default(""),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

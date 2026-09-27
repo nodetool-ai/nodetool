@@ -37,6 +37,8 @@ export default {
       "<rootDir>/../packages/app-runtime/src/index.ts",
     "^@nodetool-ai/game-runtime$":
       "<rootDir>/../packages/game-runtime/src/index.ts",
+    "^@nodetool-ai/game-renderer$":
+      "<rootDir>/../packages/game-renderer/src/index.ts",
     "^@nodetool-ai/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
     // Subpath imports carry the ESM `.js` extension (`api-schemas/code-gen.js`);
     // strip it before the generic subpath mapping resolves to source.
