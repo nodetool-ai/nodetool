@@ -150,6 +150,46 @@ describe("usePackageManager", () => {
     expect(result.current.bulkUpdate).toBeNull();
   });
 
+  it("offers an update for an outdated desktop runtime package", () => {
+    const update = jest.fn().mockResolvedValue(true);
+    useRuntimePackagesStore.setState({
+      available: true,
+      statuses: [
+        {
+          id: "claude-agent-sdk",
+          name: "Claude Agent SDK",
+          description: "SDK",
+          installed: true,
+          installing: false,
+          installedVersion: "0.3.190",
+          latestVersion: "0.3.283",
+          updateAvailable: true
+        },
+        {
+          id: "ffmpeg",
+          name: "FFmpeg",
+          description: "Media",
+          installed: true,
+          installing: false
+        }
+      ],
+      update
+    });
+    const { result } = renderHook(() =>
+      usePackageManager({ tab: "software", cat: "all", q: "", filter: "all" })
+    );
+    const sdk = result.current.rows.find((r) => r.key === "claude-agent-sdk");
+    expect(sdk?.badge).toBe("update");
+    expect(sdk?.version).toBe("v0.3.190  →  v0.3.283");
+    expect(sdk?.buttons?.update).toBe(true);
+    sdk?.buttons?.onUpdate();
+    expect(update).toHaveBeenCalledWith("claude-agent-sdk");
+
+    const ffmpeg = result.current.rows.find((r) => r.key === "ffmpeg");
+    expect(ffmpeg?.badge).toBe("installed");
+    expect(ffmpeg?.buttons?.update).toBe(false);
+  });
+
   it("shows a desktop-only notice for software without the runtime IPC", () => {
     const { result } = renderHook(() =>
       usePackageManager({ tab: "software", cat: "all", q: "", filter: "all" })

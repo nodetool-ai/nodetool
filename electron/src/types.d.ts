@@ -93,6 +93,9 @@ declare global {
         uninstallRuntime: (
           packageId: RuntimePackageId,
         ) => Promise<{ success: boolean; message: string }>;
+        updateRuntime: (
+          packageId: RuntimePackageId,
+        ) => Promise<{ success: boolean; message: string }>;
         getInstallLocation: () => Promise<string>;
         selectInstallLocation: () => Promise<string | null>;
       };
@@ -581,6 +584,7 @@ export enum IpcChannels {
   RUNTIME_PACKAGE_STATUSES = "runtime-package-statuses",
   RUNTIME_PACKAGE_INSTALL = "runtime-package-install",
   RUNTIME_PACKAGE_UNINSTALL = "runtime-package-uninstall",
+  RUNTIME_PACKAGE_UPDATE = "runtime-package-update",
   RUNTIME_GET_INSTALL_LOCATION = "runtime-get-install-location",
   RUNTIME_SELECT_INSTALL_LOCATION = "runtime-select-install-location",
   // Log viewer channels
@@ -752,6 +756,7 @@ export interface IpcRequest {
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: void;
   [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { packageId: string; installLocation?: string };
   [IpcChannels.RUNTIME_PACKAGE_UNINSTALL]: { packageId: string };
+  [IpcChannels.RUNTIME_PACKAGE_UPDATE]: { packageId: string };
   [IpcChannels.RUNTIME_GET_INSTALL_LOCATION]: void;
   [IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION]: void;
   // Log viewer
@@ -865,6 +870,7 @@ export interface IpcResponse {
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: RuntimePackageStatus[];
   [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { success: boolean; message: string };
   [IpcChannels.RUNTIME_PACKAGE_UNINSTALL]: { success: boolean; message: string };
+  [IpcChannels.RUNTIME_PACKAGE_UPDATE]: { success: boolean; message: string };
   [IpcChannels.RUNTIME_GET_INSTALL_LOCATION]: string;
   [IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION]: string | null;
   // Log viewer
@@ -1044,6 +1050,12 @@ export interface RuntimePackageStatus {
   description: string;
   installed: boolean;
   installing: boolean;
+  /** Version on disk, for a package installed at a pin (npm packages). */
+  installedVersion?: string;
+  /** The version this build pins. */
+  latestVersion?: string;
+  /** The installed version differs from the pin. */
+  updateAvailable?: boolean;
 }
 
 declare module "*.png" {

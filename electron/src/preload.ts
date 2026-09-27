@@ -340,6 +340,10 @@ const api = {
     uninstallRuntime: (packageId: RuntimePackageId) =>
       ipcRenderer.invoke(IpcChannels.RUNTIME_PACKAGE_UNINSTALL, { packageId }),
 
+    /** Reinstall a runtime package at the version this build pins */
+    updateRuntime: (packageId: RuntimePackageId) =>
+      ipcRenderer.invoke(IpcChannels.RUNTIME_PACKAGE_UPDATE, { packageId }),
+
     /** Get current conda install location */
     getInstallLocation: () =>
       ipcRenderer.invoke(IpcChannels.RUNTIME_GET_INSTALL_LOCATION),

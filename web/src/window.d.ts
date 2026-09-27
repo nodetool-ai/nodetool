@@ -387,6 +387,9 @@ declare global {
             description: string;
             installed: boolean;
             installing: boolean;
+            installedVersion?: string;
+            latestVersion?: string;
+            updateAvailable?: boolean;
           }>
         >;
         installRuntime: (
@@ -394,6 +397,11 @@ declare global {
           installLocation?: string
         ) => Promise<{ success: boolean; message: string }>;
         uninstallRuntime: (
+          packageId: string
+        ) => Promise<{ success: boolean; message: string }>;
+        /** Reinstall a runtime package at the version the app pins. Older
+         *  desktop builds lack it. */
+        updateRuntime?: (
           packageId: string
         ) => Promise<{ success: boolean; message: string }>;
         getInstallLocation: () => Promise<string>;

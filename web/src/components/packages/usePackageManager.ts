@@ -185,6 +185,7 @@ export function usePackageManager(params: {
     rtRefresh,
     rtInstall,
     rtUninstall,
+    rtUpdate,
     selectInstallLocation,
     rtSubscribe,
     rtUnsubscribe,
@@ -200,6 +201,7 @@ export function usePackageManager(params: {
       rtRefresh: s.refresh,
       rtInstall: s.install,
       rtUninstall: s.uninstall,
+      rtUpdate: s.update,
       selectInstallLocation: s.selectInstallLocation,
       rtSubscribe: s.subscribeConsole,
       rtUnsubscribe: s.unsubscribeConsole,
@@ -404,22 +406,32 @@ export function usePackageManager(params: {
       ]);
       rows = filtered.map((rt) => {
         const busy = rtBusy.includes(rt.id) || rt.installing;
+        const hasUpdate = rt.installed && Boolean(rt.updateAvailable);
         const row: PMRow = {
           key: rt.id,
           name: rt.name,
           desc: rt.description,
-          badge: rt.installed ? "installed" : "notInstalled"
+          badge: hasUpdate
+            ? "update"
+            : rt.installed
+              ? "installed"
+              : "notInstalled"
         };
+        if (hasUpdate) {
+          row.version = `v${rt.installedVersion}  →  v${rt.latestVersion}`;
+        } else if (rt.installed && rt.installedVersion) {
+          row.version = `v${rt.installedVersion}`;
+        }
         // Installing runs through the desktop app; in the browser the row is
         // status-only.
         if (rtAvailable) {
           row.buttons = {
             install: !rt.installed,
-            update: false,
+            update: hasUpdate,
             uninstall: rt.installed,
             busy,
             onInstall: () => void rtInstall(rt.id),
-            onUpdate: () => {},
+            onUpdate: () => void rtUpdate(rt.id),
             onUninstall: () => void rtUninstall(rt.id)
           };
         }
@@ -575,6 +587,7 @@ export function usePackageManager(params: {
     setBuiltinEnabled,
     rtInstall,
     rtUninstall,
+    rtUpdate,
     pyInstall,
     pyUpdate,
     pyUpdateAll,
