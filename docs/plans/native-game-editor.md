@@ -426,7 +426,7 @@ Each slice is one PR. S2 and S4 give the agent a useful loop before any UI work.
 
 ## Verification
 
-- Each slice runs the [mandatory checks](../../AGENTS.md#mandatory-post-change-verification).
+- Each slice runs the [mandatory checks](../../AGENTS.md).
 - Reducer and merge: unit tests for each op and each merge rule, plus a test with 1,000 entities.
 - Capture: a test in `packages/agents` renders a fixture draft with an overlay and checks a known pixel. WebGPU tests need the Vulkan ICD, as the renderer suite does.
 - Web: component tests for the gizmos (drag to ops), the inspector generation (A4.b), and the change cards (A2.d). Run only the related Jest suites.
