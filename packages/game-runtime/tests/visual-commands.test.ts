@@ -29,7 +29,7 @@ describe("script world and commands", () => {
         { property: "opacity", from: 1, to: 0.2, durationTicks: 2 }
       ] },
       behaviors: [{ kind: "lifetime", ticks: 2, fade: true, endScale: 2 },
-        { kind: "script", source: "({ state }) => ({ state: 1, commands: [{ kind: 'setVisual', rotation: 5, scaleX: 2, opacity: 0.8 }] })" }] }
+        { kind: "script", maxTickMs: 30, source: "({ state }) => ({ state: 1, commands: [{ kind: 'setVisual', rotation: 5, scaleX: 2, opacity: 0.8 }] })" }] }
     ], { schemaVersion: 2 });
     const session = await createScriptedGameSession(document, 1);
     const sprite = session.step(idle).frame.sprites.find((item) => item.entityId === "spark");
@@ -43,7 +43,7 @@ describe("script world and commands", () => {
     const session = await createScriptedGameSession(game([
       { id: "target", transform2d: { x: 3, y: -2 }, collider2d: { width: 1, height: 1 } },
       { id: "decor", transform2d: { x: 9, y: 9 }, sprite: { assetId: "dot", width: 1, height: 1 } },
-      { id: "seeker", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source:
+      { id: "seeker", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", maxTickMs: 30, source:
         "({ world }) => ({ state: world.map((item) => item.id + '@' + item.x + ',' + item.y).join(' '), commands: [] })" }] }
     ]), 1);
     session.step(idle);
@@ -55,7 +55,7 @@ describe("script world and commands", () => {
     const session = await createScriptedGameSession(game([
       { id: "spark", templateOnly: true, transform2d: { x: 0, y: 0 }, body2d: { type: "kinematic" },
         sprite: { assetId: "glow", width: 1, height: 1, blend: "additive" } },
-      { id: "emitter", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source:
+      { id: "emitter", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", maxTickMs: 30, source:
         "({ tick, state }) => ({ state: 1, commands: tick === 0 ? [{ kind: 'spawn', prefabId: 'spark', x: 2, y: 1, velocityX: 60, velocityY: 0 }] : [] })" }] }
     ]), 1);
     session.step(idle);
@@ -67,7 +67,7 @@ describe("script world and commands", () => {
 
   it("applies script visuals and positions, and keeps them through save and load", async () => {
     const document = game([
-      { id: "ship", transform2d: { x: 0, y: 0 }, sprite: { assetId: "dot", width: 1, height: 1 }, behaviors: [{ kind: "script", source:
+      { id: "ship", transform2d: { x: 0, y: 0 }, sprite: { assetId: "dot", width: 1, height: 1 }, behaviors: [{ kind: "script", maxTickMs: 30, source:
         "({ state }) => ({ state: 1, commands: [{ kind: 'setPosition', x: 4, y: 5 }, { kind: 'setVisual', rotation: 1.5, scaleX: 2, tint: '#ff0000', opacity: 0.5 }] })" }] }
     ]);
     const session = await createScriptedGameSession(document, 1);
@@ -82,7 +82,7 @@ describe("script world and commands", () => {
   it("shows script HUD labels, replaces built-in labels by id, and removes a label with empty text", async () => {
     const session = await createScriptedGameSession(game([
       { id: "gem", transform2d: { x: 50, y: 0 }, collider2d: { width: 1, height: 1 }, behaviors: [{ kind: "collectible" }] },
-      { id: "hud", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source:
+      { id: "hud", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", maxTickMs: 30, source:
         "({ tick }) => ({ state: 1, commands: tick === 0 ? [{ kind: 'hud', id: 'score', text: 'Gems 0', x: 10, y: 10, size: 30, color: '#abcdef', align: 'center' }, { kind: 'hud', id: 'title', text: 'Hi', x: 1, y: 2 }] : [{ kind: 'hud', id: 'title', text: '', x: 0, y: 0 }] })" }] }
     ]), 1);
     expect(session.step(idle).frame.hud).toEqual([
@@ -96,7 +96,7 @@ describe("script world and commands", () => {
   it("ignores despawning an expired spawned instance but rejects unknown entities", async () => {
     const withTemplate = (target: string) => game([
       { id: "bolt", templateOnly: true, transform2d: { x: 0, y: 0 } },
-      { id: "killer", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source:
+      { id: "killer", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", maxTickMs: 30, source:
         `({ state }) => ({ state: 1, commands: [{ kind: 'despawn', entityId: '${target}' }] })` }] }
     ]);
     const expired = await createScriptedGameSession(withTemplate("bolt#7"), 1);
@@ -136,7 +136,7 @@ describe("built-in visual behaviors", () => {
     const session = await createScriptedGameSession(game([
       { id: "puff", templateOnly: true, transform2d: { x: 0, y: 0 }, sprite: { assetId: "dot", width: 1, height: 1 },
         behaviors: [{ kind: "lifetime", ticks: 4, endScale: 3 }] },
-      { id: "emitter", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source:
+      { id: "emitter", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", maxTickMs: 30, source:
         "({ tick }) => ({ state: 1, commands: tick === 0 ? [{ kind: 'spawn', prefabId: 'puff' }] : [] })" }] }
     ]), 1);
     session.step(idle);
@@ -163,7 +163,7 @@ describe("built-in visual behaviors", () => {
 
   it("plays an audio source on a named trigger event", async () => {
     const session = await createScriptedGameSession(game([
-      { id: "gun", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source:
+      { id: "gun", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", maxTickMs: 30, source:
         "({ justPressed }) => ({ state: 1, commands: justPressed.includes('fire') ? [{ kind: 'emit', event: 'shoot' }] : [] })" }] },
       { id: "sfx", transform2d: { x: 0, y: 0 }, audioSource: { assetId: "sound", onEvent: "shoot" } }
     ]), 1);
