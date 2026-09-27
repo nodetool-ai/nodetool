@@ -2990,16 +2990,11 @@ export class ProcessingContext {
     };
 
     // Strict, anchored sanitizer for the URIs that may flow into the asset /
-    // storage retrieval path. Two schemes are recognized — `asset://<id>.<ext>`
-    // (the user-mentioned-asset scheme) and the legacy `/api/storage/<key>`
-    // browser-facing path that older DB messages still carry. The character
-    // class matches the one in `prompt-asset-refs`' parser regex, so a
-    // hand-typed token and an inline expansion behave identically. Everything
-    // else (data URIs, external http(s), arbitrary or attacker-supplied
-    // strings) is rejected and the part passes through untouched — so the
-    // storage adapter never sees an unrecognized URI shape.
+    // storage retrieval path. Accept asset references, the browser-facing
+    // storage route, and URIs from configured storage adapters. External URLs
+    // and unrecognized schemes stay out of the storage adapter.
     const RESOLVABLE_URI_RE =
-      /^(?:asset:\/\/|\/api\/storage\/)[A-Za-z0-9._~\-/]+$/;
+      /^(?:asset:\/\/|\/?api\/storage\/|(?:memory|file|s3|supabase):\/\/)[A-Za-z0-9._~/%-]+$/;
     const isResolvableUri = (uri: string): boolean =>
       RESOLVABLE_URI_RE.test(uri);
 
@@ -3011,14 +3006,14 @@ export class ProcessingContext {
     // must not break every later turn in the thread.
     const unresolvedNote = (kind: string, uri: string): MessageContent => ({
       type: "text",
-      text: `[attached ${kind} could not be loaded: ${uri}]`
+      text: `[attached ${kind} could not be ${kind === "image" ? "shown" : "loaded"}: ${uri}]`
     });
 
     // A resolved block reaches the provider as a `data:` URI, which the model
     // cannot pass to a tool. Emit the stored handle beside it so "make it like
     // this" can become `edit_image({input_file: "asset://…"})` — only for the
-    // two schemes `isResolvableUri` admits, never for a `data:` URI the caller
-    // already inlined.
+    // URIs `isResolvableUri` admits, never for a `data:` URI the caller already
+    // inlined.
     const attachedNote = (kind: string, uri: string): MessageContent => ({
       type: "text",
       text: `[attached ${kind} ${uri}]`
