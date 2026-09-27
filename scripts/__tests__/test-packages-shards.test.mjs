@@ -20,20 +20,21 @@ const WORKFLOW = resolve(ROOT, ".github/workflows/quality-checks.yml");
 const FULL_SUITE = ["--filter=./packages/*", "--filter=./reliability/*"];
 
 /**
- * Every `- check: test-packages-<name>` entry with the `--filter=` arguments
- * of its `command:` line. Regex over the file rather than a YAML parse: the
- * root workspace has no YAML dependency of its own, and the two lines are
- * adjacent by convention.
+ * Every `- check: test-packages-<name>` entry with the filter arguments of
+ * each `turbo run test` command. A shard can run multiple commands in sequence.
+ * Regex over the file rather than a YAML parse: the root workspace has no YAML
+ * dependency of its own, and the two lines are adjacent by convention.
  */
 export function readShardFilters(workflowSource) {
   const shards = new Map();
   const entry =
     /- check: (test-packages-[\w-]+)\n\s+command: (.+)/g;
   for (const [, name, command] of workflowSource.matchAll(entry)) {
-    const filters = [...command.matchAll(/--filter=('[^']*'|\S+)/g)].map(
-      ([, value]) => `--filter=${value.replace(/^'|'$/g, "")}`
-    );
-    shards.set(name, filters);
+    const invocations = command.split("npx turbo run test ").slice(1).map((part) => {
+      const filters = [...part.split(" && ")[0].matchAll(/--filter=('[^']*'|\S+)/g)];
+      return filters.map(([, value]) => `--filter=${value.replace(/^'|'$/g, "")}`);
+    });
+    shards.set(name, invocations);
   }
   return shards;
 }
@@ -63,8 +64,11 @@ describe("test-packages shards", () => {
 
   it("finds the shards and a filter for each", () => {
     expect(shards.size).toBeGreaterThanOrEqual(2);
-    for (const [name, filters] of shards) {
-      expect(filters.length, name).toBeGreaterThan(0);
+    for (const [name, invocations] of shards) {
+      expect(invocations.length, name).toBeGreaterThan(0);
+      for (const filters of invocations) {
+        expect(filters.length, name).toBeGreaterThan(0);
+      }
     }
   });
 
@@ -73,9 +77,11 @@ describe("test-packages shards", () => {
     expect(full.size).toBeGreaterThan(0);
 
     const seen = new Map();
-    for (const [name, filters] of shards) {
-      for (const pkg of packagesInScope(filters)) {
-        seen.set(pkg, [...(seen.get(pkg) ?? []), name]);
+    for (const [name, invocations] of shards) {
+      for (const filters of invocations) {
+        for (const pkg of packagesInScope(filters)) {
+          seen.set(pkg, [...(seen.get(pkg) ?? []), name]);
+        }
       }
     }
 
