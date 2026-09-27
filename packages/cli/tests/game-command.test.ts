@@ -157,6 +157,12 @@ describe("game simulate behavioral contracts", () => {
   });
 
   it("compares scripted replay state without script timing", async () => {
+    // Replay state must not depend on CI scheduling delays between script checks.
+    let clock = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => {
+      clock += 0.1;
+      return clock;
+    });
     const base = createTopDownRoomGame("c".repeat(32));
     await writeFile(gamePath, JSON.stringify({ ...base, scenes: base.scenes.map((scene) => ({
       ...scene,

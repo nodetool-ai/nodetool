@@ -1,6 +1,6 @@
 import { createCanvas, GlobalFonts, loadImage } from "@napi-rs/canvas";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
-import { paintHud, projectedCamera, visibleItems } from "./frame.js";
+import { paintHud, pixelRect, projectedCamera, visibleItems } from "./frame.js";
 import { applyLighting, spritePixelBounds } from "./lighting.js";
 import { gameFontFamily } from "./fonts.js";
 import { applyGpuEffects } from "./gpu-capture.js";
@@ -63,10 +63,8 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
       return;
     }
     const image = images[index];
-    const x = canvas.width / 2 + (item.x - camera.x) * pixelScale;
-    const y = canvas.height / 2 - (item.y - camera.y) * pixelScale;
-    const width = item.width * pixelScale;
-    const height = item.height * pixelScale;
+    const { x, y, width, height } = pixelRect(item, canvas.width / 2 + (item.x - camera.x) * pixelScale,
+      canvas.height / 2 - (item.y - camera.y) * pixelScale, item.width * pixelScale, item.height * pixelScale);
     drawContext.save();
     drawContext.translate(x, y);
     drawContext.rotate(-item.rotation);

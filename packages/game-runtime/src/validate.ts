@@ -106,6 +106,7 @@ export function validateGame(value: unknown): GameValidationResult {
   for (const [sceneIndex, scene] of document.scenes.entries()) {
     if (document.schemaVersion === 1 && scene.lighting) errors.push(`scenes.${sceneIndex}.lighting: requires schema version 2`);
     if (document.schemaVersion === 1 && scene.backgrounds) errors.push(`scenes.${sceneIndex}.backgrounds: requires schema version 2`);
+    if (document.schemaVersion === 1 && scene.gravity) errors.push(`scenes.${sceneIndex}.gravity: requires schema version 2`);
     const layerIds = new Set<string>();
     for (const [layerIndex, layer] of (scene.backgrounds ?? []).entries()) {
       if (layerIds.has(layer.id)) errors.push(`scenes.${sceneIndex}.backgrounds.${layerIndex}.id: Duplicate background id ${layer.id}`);
@@ -178,8 +179,9 @@ export function validateGame(value: unknown): GameValidationResult {
         errors.push(`scenes.${sceneIndex}.entities.${entityIndex}.transform2d: Non-uniformly scaled parent ${entity.id} is not supported`);
       }
       // A kinematic body without a collider moves but never collides, which suits cosmetic particles.
-      if (entity.body2d?.type === "static" && !entity.collider2d) {
-        const message = `Static body ${entity.id} needs a collider2d`;
+      const solidTiles = Boolean(entity.tilemap?.tiles.some((tile) => tile.solid ?? entity.tilemap?.solid ?? false));
+      if (entity.body2d?.type === "static" && !entity.collider2d && !solidTiles) {
+        const message = `Static body ${entity.id} needs a collider2d or solid tiles`;
         issueOverrides.set(errors.length, { path: ["scenes", sceneIndex, "entities", entityIndex, "collider2d"], message });
         errors.push(message);
       }
@@ -214,6 +216,21 @@ export function validateGame(value: unknown): GameValidationResult {
       if (entity.visualAnimation && !entity.sprite) errors.push(`${path}.visualAnimation: requires a sprite`);
       if (document.schemaVersion === 1 && entity.visualAnimation) errors.push(`${path}.visualAnimation: requires schema version 2`);
       if (document.schemaVersion === 1 && entity.sprite?.unlit !== undefined) errors.push(`${path}.sprite.unlit: requires schema version 2`);
+      if (document.schemaVersion === 1) {
+        for (const [field, present] of [
+          ["light2d", entity.light2d !== undefined],
+          ["animator.clips", entity.animator?.clips !== undefined],
+          ["sprite.flipX", entity.sprite?.flipX !== undefined],
+          ["sprite.faceMotion", entity.sprite?.faceMotion !== undefined],
+          ["body2d.gravityScale", entity.body2d?.gravityScale !== undefined],
+          ["collider2d.oneWay", entity.collider2d?.oneWay !== undefined],
+          ["tilemap", entity.tilemap !== undefined && (entity.tilemap.solid !== undefined || entity.tilemap.category !== undefined ||
+            entity.tilemap.mask !== undefined || entity.tilemap.tiles.some((tile) => tile.solid !== undefined || tile.oneWay !== undefined))]
+        ] as const) {
+          if (present) errors.push(`${path}.${field}: requires schema version 2`);
+        }
+      }
+      if (entity.light2d && !scene.lighting) errors.push(`${path}.light2d: requires scene lighting`);
       const tracked = new Set<string>();
       for (const track of entity.visualAnimation?.tracks ?? []) {
         if (tracked.has(track.property)) errors.push(`${path}.visualAnimation: duplicate ${track.property} track`);
@@ -229,8 +246,15 @@ export function validateGame(value: unknown): GameValidationResult {
         errors.push(`${path}.visualAnimation: rotation track conflicts with rotationRate`);
       }
       for (const [behaviorIndex, behavior] of entity.behaviors.entries()) {
-        if ((behavior.kind === "movement" || behavior.kind === "patrol") && entity.body2d?.type !== "kinematic") {
-          errors.push(`${path}.behaviors.${behaviorIndex}: ${behavior.kind} requires a kinematic body2d`);
+        if (behavior.kind === "movement" && entity.body2d?.type !== "kinematic") {
+          errors.push(`${path}.behaviors.${behaviorIndex}: movement requires a kinematic body2d`);
+        }
+        // A patrolling static body is a moving solid that carries the bodies standing on it.
+        if (behavior.kind === "patrol" && !entity.body2d) {
+          errors.push(`${path}.behaviors.${behaviorIndex}: patrol requires a body2d`);
+        }
+        if (behavior.kind === "patrol" && behavior.turnAtLedges && (behavior.axis !== "x" || entity.body2d?.type !== "kinematic")) {
+          errors.push(`${path}.behaviors.${behaviorIndex}.turnAtLedges: requires a kinematic body patrolling the x axis`);
         }
         if (behavior.kind === "script") {
           scriptCount += 1;

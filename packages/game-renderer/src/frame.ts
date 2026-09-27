@@ -19,6 +19,19 @@ export interface VisibleItem {
   readonly flipX: boolean;
   readonly flipY: boolean;
   readonly unlit: boolean;
+  /** Tiles and background tiles snap to whole pixels so neighbors meet without antialiased seams. */
+  readonly snap: boolean;
+}
+
+/** A drawing rectangle by pixel center and size, snapped to whole pixels when the item asks for it. */
+export function pixelRect(item: VisibleItem, x: number, y: number, width: number, height: number):
+  { x: number; y: number; width: number; height: number } {
+  if (!item.snap) return { x, y, width, height };
+  const left = Math.round(x - width / 2);
+  const top = Math.round(y - height / 2);
+  const snappedWidth = Math.round(x + width / 2) - left;
+  const snappedHeight = Math.round(y + height / 2) - top;
+  return { x: left + snappedWidth / 2, y: top + snappedHeight / 2, width: snappedWidth, height: snappedHeight };
 }
 
 /** Camera projection for the sample between the previous and current tick. */
@@ -45,7 +58,7 @@ export function visibleItems(frame: GameRenderFrame, interpolation: number, over
   const halfHeight = frame.height / (2 * scale) + overscanWorld;
   const items: VisibleItem[] = [];
   function add(item: RenderItem, x: number, y: number, width: number, height: number, rotation: number,
-    opacity = item.opacity ?? 1, tint = item.tint, flipX = false, flipY = false): void {
+    opacity = item.opacity ?? 1, tint = item.tint, flipX = false, flipY = false, snap = false): void {
     const radius = Math.hypot(width, height) / 2;
     if (x + radius < camera.x - halfWidth || x - radius > camera.x + halfWidth ||
         y + radius < camera.y - halfHeight || y - radius > camera.y + halfHeight) {
@@ -67,6 +80,7 @@ export function visibleItems(frame: GameRenderFrame, interpolation: number, over
       flipX,
       flipY,
       unlit: "unlit" in item && item.unlit === true,
+      snap,
     });
   }
   for (const layer of frame.backgrounds ?? []) {
@@ -75,11 +89,13 @@ export function visibleItems(frame: GameRenderFrame, interpolation: number, over
     const scrollX = layer.scrollRate.x * time;
     const scrollY = layer.scrollRate.y * time;
     const baseX = layer.origin.x + (layer.mode === "none" ? scrollX : scrollX % (layer.width * period)) + camera.x * (1 - layer.parallax.x);
-    const baseY = layer.origin.y + (layer.mode === "none" ? scrollY : scrollY % (layer.height * period)) + camera.y * (1 - layer.parallax.y);
+    const baseY = layer.origin.y + (layer.mode === "none" || layer.mode === "repeatX" ? scrollY : scrollY % (layer.height * period)) + camera.y * (1 - layer.parallax.y);
     const minX = layer.mode === "none" ? 0 : Math.floor((camera.x - halfWidth - baseX) / layer.width);
     const maxX = layer.mode === "none" ? 0 : Math.ceil((camera.x + halfWidth - baseX) / layer.width);
-    const minY = layer.mode === "none" ? 0 : Math.floor((camera.y - halfHeight - baseY) / layer.height);
-    const maxY = layer.mode === "none" ? 0 : Math.ceil((camera.y + halfHeight - baseY) / layer.height);
+    // A repeatX layer tiles sideways only, so a strip of scenery never stacks above itself.
+    const tilesY = layer.mode === "repeat" || layer.mode === "mirror";
+    const minY = tilesY ? Math.floor((camera.y - halfHeight - baseY) / layer.height) : 0;
+    const maxY = tilesY ? Math.ceil((camera.y + halfHeight - baseY) / layer.height) : 0;
     if ((maxX - minX + 1) * (maxY - minY + 1) > 4096) throw new Error(`Background ${layer.id} exceeds 4096 visible tiles`);
     for (let iy = minY; iy <= maxY; iy += 1) {
       for (let ix = minX; ix <= maxX; ix += 1) {
@@ -90,12 +106,12 @@ export function visibleItems(frame: GameRenderFrame, interpolation: number, over
         if (layer.frame) item.frame = layer.frame;
         if (layer.sampling) item.sampling = layer.sampling;
         add(item, item.x, item.y, item.width, item.height, 0, 1, undefined,
-          layer.mode === "mirror" && Math.abs(ix % 2) === 1, layer.mode === "mirror" && Math.abs(iy % 2) === 1);
+          layer.mode === "mirror" && Math.abs(ix % 2) === 1, layer.mode === "mirror" && Math.abs(iy % 2) === 1, true);
       }
     }
   }
   for (const item of frame.tiles) {
-    add(item, item.x, item.y, item.width, item.height, 0);
+    add(item, item.x, item.y, item.width, item.height, 0, item.opacity ?? 1, item.tint, false, false, true);
   }
   for (const item of frame.sprites) {
     add(item, item.previousX + (item.x - item.previousX) * alpha,
@@ -104,7 +120,7 @@ export function visibleItems(frame: GameRenderFrame, interpolation: number, over
       item.height * ((item.previousScaleY ?? item.scaleY) * (1 - alpha) + item.scaleY * alpha),
       (item.previousRotation ?? item.rotation) * (1 - alpha) + item.rotation * alpha,
       (item.previousOpacity ?? item.opacity ?? 1) * (1 - alpha) + (item.opacity ?? 1) * alpha,
-      interpolateTint(item.previousTint, item.tint, alpha));
+      interpolateTint(item.previousTint, item.tint, alpha), item.flipX === true);
   }
   items.sort((a, b) => a.item.layer - b.item.layer);
   return items;

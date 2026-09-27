@@ -130,7 +130,7 @@ describe("game collision and session boundaries", () => {
   });
 
   it("isolates event callbacks and nested script state from the live session", async () => {
-    const document = game([{ id: "actor", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source:
+    const document = game([{ id: "actor", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", maxTickMs: 30, source:
       "({ tick }) => ({ state: { nested: { count: tick + 1 } }, commands: [{ kind: 'emit', event: 'ping' }, { kind: 'hud', id: 'label', text: 'Ready', x: 0, y: 0 }] })" }] }]);
     const seen: string[] = [];
     const session = await createScriptedGameSession(document, 0, undefined, (event) => {
@@ -172,7 +172,7 @@ describe("game collision and session boundaries", () => {
 
   it("does not save partial state after a script fails during a tick", async () => {
     const session = await createScriptedGameSession(game([
-      { id: "actor", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source: "() => { throw new Error('boom') }" }] }
+      { id: "actor", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", maxTickMs: 30, source: "() => { throw new Error('boom') }" }] }
     ]), 0);
     expect(() => session.step(idle)).toThrow(/boom/);
     expect(() => session.snapshot()).toThrow(/session stopped/);

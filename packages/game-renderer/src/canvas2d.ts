@@ -1,6 +1,6 @@
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import type { GameRenderer, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
-import { paintHud, projectedCamera, visibleItems, type VisibleItem } from "./frame.js";
+import { paintHud, pixelRect, projectedCamera, visibleItems, type VisibleItem } from "./frame.js";
 import { applyLighting, spritePixelBounds } from "./lighting.js";
 
 export type GameImage = ImageBitmap | HTMLImageElement;
@@ -138,10 +138,9 @@ export class Canvas2DGameRenderer implements GameRenderer {
     normalBlend = false,
   ): void {
     const source = image ? entry.frame ?? { x: 0, y: 0, width: imageWidth(image), height: imageHeight(image) } : undefined;
-    const targetWidth = entry.width * pixelScale * sx;
-    const targetHeight = entry.height * pixelScale * sy;
-    const x = (frame.width / 2 + (entry.x - camera.x) * pixelScale) * sx;
-    const y = (frame.height / 2 - (entry.y - camera.y) * pixelScale) * sy;
+    const { x, y, width: targetWidth, height: targetHeight } = pixelRect(entry,
+      (frame.width / 2 + (entry.x - camera.x) * pixelScale) * sx, (frame.height / 2 - (entry.y - camera.y) * pixelScale) * sy,
+      entry.width * pixelScale * sx, entry.height * pixelScale * sy);
     const tinted = image && source ? this.tint(image, entry.assetId, source, entry.tint) : undefined;
     context.save();
     context.translate(x, y);

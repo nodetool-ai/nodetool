@@ -55,7 +55,10 @@ snapshot and reports the first tick and field that differ from continuous play.
 A `script` behavior is a function expression. It receives `{tick, pressed,
 justPressed, events, entity, world, state, random}` and returns `{state,
 commands}`. `events` are the previous tick's events. `world` lists every active
-entity with a collider or camera as `{id, source, x, y}`. A spawned instance has
+entity with a collider or camera as `{id, source, x, y}`. `entity` holds the
+caller's `id`, `source`, position, velocity, and `touching {down, up, left,
+right}`, which names the sides of its collider that rest against a solid at the
+start of the tick. A spawned instance has
 the id `<prefab>#<n>`, its `source` is the prefab id, and it runs the prefab's
 script with its own state.
 
@@ -66,9 +69,9 @@ the seeded random generator. `maxTickMs` limits each call, subject to the total
 script budget for the tick. Source and input/output limits count UTF-8 bytes.
 
 The commands are `setVelocity`, `setPosition`, `setVisual {tint?, opacity?,
-rotation?, scaleX?, scaleY?}`, `spawn {prefabId, x?, y?, velocityX?,
-velocityY?}`, `despawn`, `emit`, `sceneTransition`, and `hud {id, text, x, y,
-size?, color?, align?}`. HUD coordinates are canvas pixels. Empty text removes a
+rotation?, scaleX?, scaleY?, flipX?}`, `playAnimation {clip}`, `spawn {prefabId,
+x?, y?, velocityX?, velocityY?}`, `despawn`, `emit`, `sceneTransition`, and
+`hud {id, text, x, y, size?, color?, align?}`. HUD coordinates are canvas pixels. Empty text removes a
 label. A label with the id `score` or `win` replaces the built-in label.
 Set `fontId` to a logical font binding for a HUD label. Font assets use
 `mediaKind: "font"`, `fontFormat: "ttf" | "otf"`, and `required: true` by default.
@@ -90,7 +93,11 @@ font ID.
 2. Use `lifetime {ticks, fade, endScale}` for particles. A kinematic body without
    a collider moves but never collides, which keeps particles cheap.
 3. Use `animator` frames on a sprite sheet. Playback starts when the entity
-   spawns.
+   spawns. Named `animator.clips` hold other frame sets. `playAnimation` starts
+   a clip from its first frame, and a repeated request for the current clip
+   continues it. Set `sprite.flipX` or the `setVisual` flag to mirror art, or
+   `sprite.faceMotion: "left" | "right"` to turn art that faces that way toward
+   the body's horizontal motion.
 4. Give `audioSource.onEvent` an event kind or the name of an emitted trigger.
    Set `audioSource.volume` from `0` to `1` for effect loudness. Effects receive
    distinct voice ids, so repeated triggers can overlap within the 32-voice cap.
@@ -114,14 +121,17 @@ script `setVisual`, then lifetime fade and scale. Tracks do not change collision
 Scene `backgrounds` define image layers independent of entities. Each layer
 sets `assetId`, world-unit `width` and `height`, `origin` at the tile center,
 `layer`, per-axis `parallax`, `scrollRate` in world units per second, and `mode`
-(`none`, `repeat`, or `mirror`). Parallax `0` stays fixed to the screen and `1`
+(`none`, `repeat`, `repeatX`, or `mirror`). `repeatX` tiles only sideways, which
+suits a strip of scenery. Parallax `0` stays fixed to the screen and `1`
 stays fixed in the world. Optional `frame` selects an atlas rectangle.
 
 Schema version 2 also accepts scene `lighting`: an `ambient` color and intensity
 plus up to 32 `points` with world position, color, intensity, radius, and
 falloff. Lighting multiplies world color before effects. HUD stays unlit. Set
 `sprite.unlit: true` for emissive art such as glows; Canvas2D capture paints
-these sprites above the lit world.
+these sprites above the lit world. An entity `light2d {color, intensity, radius,
+falloff, offset?}` moves with its entity. Each frame adds the entity lights
+nearest the camera to the scene's fixed points, up to 32 lights in total.
 
 Schema version 2 accepts an ordered `renderEffects` chain of at most eight
 effects. `brightnessContrast` uses `brightness` from `-1` to `1` and `contrast`
@@ -146,12 +156,36 @@ Swept collisions detect fast movement through thin static walls and sensors.
 Scene entry starts authored entities' animation and lifetime clocks, and saves
 preserve those clocks and active contact pairs.
 
+## Platformers
+
+Schema version 2 supports side-view physics.
+
+1. Set scene `gravity {x, y}` in world units per second squared. Kinematic
+   bodies fall at `body2d.gravityScale` times the gravity, which defaults to
+   `1`. Give particles `gravityScale: 0` when they must float.
+2. A body that strikes a solid loses the velocity that pushed into it. A resting
+   body therefore keeps zero fall speed, and a script can add a jump to
+   `entity.velocityY`.
+3. Mark a tilemap `solid: true`, or a single tile `solid`, to make its tiles
+   static colliders. Tilemap `category` and `mask` filter them. Faces shared by
+   neighboring solid tiles never stop a body, so a body slides along a row of
+   tiles without catching on the seams.
+4. A `oneWay` collider or tile stops only a body that falls onto its top.
+   A body passes through it from below and from the sides.
+5. A static body with a velocity, from `patrol` or a script, is a moving solid.
+   It carries the bodies that stand on it and pushes out bodies in its way.
+6. A patrolling kinematic body turns when a wall blocks it. Set
+   `turnAtLedges: true` on an x-axis patrol to also turn at the edge of its
+   ground.
+7. Frames omit tiles far outside the camera, so a large tilemap costs little to
+   draw.
+
 Runtime event and spawned-instance limits stop the session when exceeded.
 A failed tick cannot be saved or resumed. Reset the session or load a snapshot
 from before the failure, then reduce overlapping pairs or spawning.
 
-Validation rejects unsupported component fields. Movement and patrol require a
-kinematic body, animation requires a sprite, and asset media kinds must match
+Validation rejects unsupported component fields. Movement requires a kinematic
+body, patrol requires a body, animation requires a sprite, and asset media kinds must match
 their image or audio components. Resolve validation errors before publishing.
 
 ## Scope

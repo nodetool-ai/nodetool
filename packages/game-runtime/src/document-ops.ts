@@ -25,9 +25,11 @@ const entitySet = gameEntity.partial().extend({
   animator: gameEntity.shape.animator.unwrap().partial().nullable().optional(),
   visualAnimation: gameEntity.shape.visualAnimation.unwrap().partial().nullable().optional(),
   audioSource: gameEntity.shape.audioSource.unwrap().partial().nullable().optional(),
+  light2d: gameEntity.shape.light2d.unwrap().partial().nullable().optional(),
   parentId: id.nullable().optional()
 });
-const sceneSet = z.strictObject({ name: gameScene.shape.name.optional(), music: gameScene.shape.music.nullable().optional() });
+const sceneSet = z.strictObject({ name: gameScene.shape.name.optional(), music: gameScene.shape.music.nullable().optional(),
+  gravity: gameScene.shape.gravity.nullable().optional() });
 const light = gameScene.shape.lighting.unwrap().shape.points.element;
 const lightSet = light.partial();
 const backgroundSet = gameBackgroundLayer.partial();
@@ -183,7 +185,7 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
         const { scene, entity, entityIndex } = findEntity(draft, entityIndexesByScene, op.entity_id, op.scene_id, opIndex);
         const merged = deepMerge(entity, op.set);
         if (!isRecord(merged)) { fail(opIndex, ["set"], "Entity update must be an object"); }
-        for (const key of ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "parentId"] as const) {
+        for (const key of ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d", "parentId"] as const) {
           if (merged[key] === null) { delete merged[key]; }
         }
         const next = gameEntity.safeParse(merged);
@@ -281,7 +283,8 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
       }
       case "update_scene": {
         const { scene, sceneIndex } = findScene(draft, op.scene_id, opIndex);
-        const next = gameScene.safeParse({ ...scene, ...op.set, music: op.set.music === null ? undefined : op.set.music ?? scene.music });
+        const next = gameScene.safeParse({ ...scene, ...op.set, music: op.set.music === null ? undefined : op.set.music ?? scene.music,
+          gravity: op.set.gravity === null ? undefined : op.set.gravity ?? scene.gravity });
         if (!next.success) { fail(opIndex, ["set", ...pathOf(next.error.issues[0].path)], next.error.issues[0].message); }
         draft.scenes[sceneIndex] = next.data;
         break;

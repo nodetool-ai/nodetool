@@ -4,6 +4,7 @@ const finite = z.number().finite();
 const positive = finite.positive();
 const uint32 = z.number().int().min(0).max(0xffffffff);
 const vec2 = z.strictObject({ x: finite, y: finite });
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const frame = z.strictObject({
   x: z.number().int().nonnegative(),
   y: z.number().int().nonnegative(),
@@ -49,7 +50,7 @@ export type GameTransform2D = z.infer<typeof gameTransform2D>;
 
 export const gameBehavior = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("movement"), speed: positive, left: z.string(), right: z.string(), up: z.string(), down: z.string() }),
-  z.strictObject({ kind: z.literal("patrol"), speed: positive, distance: positive, axis: z.enum(["x", "y"]) }),
+  z.strictObject({ kind: z.literal("patrol"), speed: positive, distance: positive, axis: z.enum(["x", "y"]), turnAtLedges: z.boolean().optional() }),
   z.strictObject({ kind: z.literal("collectible"), score: z.number().int().positive().default(1) }),
   z.strictObject({ kind: z.literal("health"), maximum: z.number().int().positive() }),
   z.strictObject({ kind: z.literal("trigger"), event: z.string().min(1) }),
@@ -73,10 +74,12 @@ export const gameBackgroundLayer = z.strictObject({
   id: z.string().min(1), assetId: z.string().min(1), width: positive, height: positive,
   layer: z.number().int().default(-100), origin: vec2.default({ x: 0, y: 0 }),
   parallax: z.strictObject({ x: finite.min(0).max(1), y: finite.min(0).max(1) }).default({ x: 1, y: 1 }),
-  scrollRate: vec2.default({ x: 0, y: 0 }), mode: z.enum(["none", "repeat", "mirror"]).default("repeat"),
+  scrollRate: vec2.default({ x: 0, y: 0 }), mode: z.enum(["none", "repeat", "repeatX", "mirror"]).default("repeat"),
   frame: frame.optional(), sampling: z.enum(["nearest", "linear"]).optional()
 });
 export type GameBackgroundLayer = z.infer<typeof gameBackgroundLayer>;
+
+const animationClip = z.strictObject({ frames: z.array(frame).min(1), ticksPerFrame: z.number().int().positive(), loop: z.boolean().default(true) });
 
 export const gameEntity = z.strictObject({
   id: z.string().min(1),
@@ -84,13 +87,21 @@ export const gameEntity = z.strictObject({
   parentId: z.string().optional(),
   templateOnly: z.boolean().default(false),
   transform2d: gameTransform2D,
-  sprite: z.strictObject({ assetId: z.string().min(1), width: positive, height: positive, layer: z.number().int().default(0), frame: frame.optional(), tint: z.string().optional(), opacity: finite.min(0).max(1).optional(), blend: z.enum(["normal", "additive"]).optional(), unlit: z.boolean().optional() }).optional(),
-  tilemap: z.strictObject({ assetId: z.string().min(1), tiles: z.array(z.strictObject({ x: finite, y: finite, width: positive, height: positive, frame: frame.optional() })), layer: z.number().int().default(0) }).optional(),
+  sprite: z.strictObject({ assetId: z.string().min(1), width: positive, height: positive, layer: z.number().int().default(0), frame: frame.optional(), tint: z.string().optional(), opacity: finite.min(0).max(1).optional(), blend: z.enum(["normal", "additive"]).optional(), unlit: z.boolean().optional(), flipX: z.boolean().optional(),
+    // The direction the art faces. The sprite then turns to face the body's horizontal motion.
+    faceMotion: z.enum(["left", "right"]).optional() }).optional(),
+  // Solid tiles block kinematic bodies like static colliders. A tile's own flags override the map's.
+  tilemap: z.strictObject({ assetId: z.string().min(1),
+    tiles: z.array(z.strictObject({ x: finite, y: finite, width: positive, height: positive, frame: frame.optional(), solid: z.boolean().optional(), oneWay: z.boolean().optional() })),
+    layer: z.number().int().default(0), solid: z.boolean().optional(), category: uint32.optional(), mask: uint32.optional() }).optional(),
   camera2d: z.strictObject({ zoom: positive.default(1), width: positive, height: positive }).optional(),
-  body2d: z.strictObject({ type: z.enum(["static", "kinematic"]), velocity: vec2.default({ x: 0, y: 0 }) }).optional(),
+  body2d: z.strictObject({ type: z.enum(["static", "kinematic"]), velocity: vec2.default({ x: 0, y: 0 }), gravityScale: finite.optional() }).optional(),
   collider2d: z.strictObject({ width: positive, height: positive, sensor: z.boolean().default(false),
-    category: uint32.default(1), mask: uint32.default(0xffffffff) }).optional(),
-  animator: z.strictObject({ frames: z.array(frame).min(1), ticksPerFrame: z.number().int().positive(), loop: z.boolean().default(true) }).optional(),
+    category: uint32.default(1), mask: uint32.default(0xffffffff), oneWay: z.boolean().optional() }).optional(),
+  animator: z.strictObject({ frames: z.array(frame).min(1), ticksPerFrame: z.number().int().positive(), loop: z.boolean().default(true),
+    clips: z.record(z.string().min(1), animationClip).optional() }).optional(),
+  light2d: z.strictObject({ color: hexColor, intensity: finite.min(0).max(4), radius: positive, falloff: finite.min(0.5).max(4).default(1),
+    offset: vec2.optional() }).optional(),
   visualAnimation: z.strictObject({ tracks: z.array(gameVisualTrack).max(5).default([]), rotationRate: finite.optional() }).optional(),
   audioSource: z.strictObject({ assetId: z.string().min(1), onEvent: z.string().min(1), volume: finite.min(0).max(1).default(1) }).optional(),
   behaviors: z.array(gameBehavior).default([])
@@ -104,6 +115,7 @@ export const gameScene = z.strictObject({
   lighting: z.strictObject({ required: z.boolean().optional(), ambient: z.strictObject({ color: z.string().regex(/^#[0-9a-fA-F]{6}$/), intensity: finite.min(0).max(1) }),
     points: z.array(z.strictObject({ x: finite, y: finite, color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
       intensity: finite.min(0).max(4), radius: positive, falloff: finite.min(0.5).max(4) })).max(32) }).optional(),
+  gravity: vec2.optional(),
   entities: z.array(gameEntity),
   backgrounds: z.array(gameBackgroundLayer).max(32).optional()
 });
@@ -177,7 +189,7 @@ export const gameRenderFrame = z.object({
   height: positive,
   pixelsPerUnit: positive,
   camera: z.object({ x: finite, y: finite, previousX: finite.optional(), previousY: finite.optional(), zoom: positive }),
-  sprites: z.array(z.object({ entityId: z.string(), assetId: z.string(), x: finite, y: finite, previousX: finite, previousY: finite, rotation: finite, previousRotation: finite.optional(), scaleX: positive, scaleY: positive, previousScaleX: positive.optional(), previousScaleY: positive.optional(), width: positive, height: positive, frame: frame.optional(), layer: z.number().int(), tint: z.string().optional(), previousTint: z.string().optional(), opacity: finite.min(0).max(1).optional(), previousOpacity: finite.min(0).max(1).optional(), blend: z.enum(["normal", "additive"]).optional(), sampling: z.enum(["nearest", "linear"]).optional(), unlit: z.boolean().optional() })),
+  sprites: z.array(z.object({ entityId: z.string(), assetId: z.string(), x: finite, y: finite, previousX: finite, previousY: finite, rotation: finite, previousRotation: finite.optional(), scaleX: positive, scaleY: positive, previousScaleX: positive.optional(), previousScaleY: positive.optional(), width: positive, height: positive, frame: frame.optional(), layer: z.number().int(), tint: z.string().optional(), previousTint: z.string().optional(), opacity: finite.min(0).max(1).optional(), previousOpacity: finite.min(0).max(1).optional(), blend: z.enum(["normal", "additive"]).optional(), sampling: z.enum(["nearest", "linear"]).optional(), unlit: z.boolean().optional(), flipX: z.boolean().optional() })),
   backgrounds: z.array(gameBackgroundLayer).optional(),
   lighting: gameScene.shape.lighting,
   tiles: z.array(z.object({ entityId: z.string(), assetId: z.string(), x: finite, y: finite, width: positive, height: positive, frame: frame.optional(), layer: z.number().int(), tint: z.string().optional(), opacity: finite.min(0).max(1).optional(), sampling: z.enum(["nearest", "linear"]).optional() })),
@@ -200,6 +212,7 @@ export const gameSnapshot = z.object({
   scriptState: z.record(z.string(), z.json()).default({}),
   hud: z.array(gameHudLabel).default([]),
   entities: z.array(z.object({ id: z.string(), sourceId: z.string().optional(), spawnTick: z.number().int().nonnegative().optional(),
-    rotation: finite.optional(), scaleX: positive.optional(), scaleY: positive.optional(), tint: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), opacity: finite.min(0).max(1).optional(), x: finite, y: finite, previousX: finite, previousY: finite, velocityX: finite, velocityY: finite, active: z.boolean(), health: z.number().int().optional(), patrolOrigin: finite.optional(), patrolDirection: z.union([z.literal(-1), z.literal(1)]).optional() }))
+    rotation: finite.optional(), scaleX: positive.optional(), scaleY: positive.optional(), tint: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), opacity: finite.min(0).max(1).optional(), flipX: z.boolean().optional(),
+    animation: z.string().optional(), animationTick: z.number().int().nonnegative().optional(), x: finite, y: finite, previousX: finite, previousY: finite, velocityX: finite, velocityY: finite, active: z.boolean(), health: z.number().int().optional(), patrolOrigin: finite.optional(), patrolDirection: z.union([z.literal(-1), z.literal(1)]).optional() }))
 });
 export type GameSnapshot = z.infer<typeof gameSnapshot>;

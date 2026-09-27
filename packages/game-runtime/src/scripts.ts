@@ -9,7 +9,8 @@ export const gameScriptCommand = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("setVelocity"), x: finite, y: finite }),
   z.strictObject({ kind: z.literal("setPosition"), x: finite, y: finite }),
   z.strictObject({ kind: z.literal("setVisual"), tint: color.optional(), opacity: finite.min(0).max(1).optional(),
-    rotation: finite.optional(), scaleX: finite.positive().optional(), scaleY: finite.positive().optional() }),
+    rotation: finite.optional(), scaleX: finite.positive().optional(), scaleY: finite.positive().optional(), flipX: z.boolean().optional() }),
+  z.strictObject({ kind: z.literal("playAnimation"), clip: z.string().min(1) }),
   z.strictObject({ kind: z.literal("hud"), id: z.string().min(1).max(64), text: z.string().max(256), x: finite, y: finite,
     size: finite.positive().max(256).optional(), color: color.optional(), align: z.enum(["left", "center", "right"]).optional(),
     fontId: z.string().min(1).optional() }),
@@ -33,8 +34,17 @@ export interface GameScriptCall {
   readonly y: number;
   readonly velocityX: number;
   readonly velocityY: number;
+  readonly touching: GameScriptTouching;
   readonly maxCommands: number;
   readonly maxTickMs: number;
+}
+
+/** Which sides of an entity's collider rest against a solid at the start of the tick. */
+export interface GameScriptTouching {
+  readonly down: boolean;
+  readonly up: boolean;
+  readonly left: boolean;
+  readonly right: boolean;
 }
 
 export interface GameScriptResult {
@@ -207,7 +217,8 @@ export async function prepareGameScripts(document: GameDocument): Promise<GameSc
                 tick: data.input.tick, pressed: data.input.pressed, justPressed: data.input.justPressed,
                 events: data.input.events, entity: {
                   id: data.call.entityId, source: data.call.source, x: data.call.x, y: data.call.y,
-                  velocityX: data.call.velocityX, velocityY: data.call.velocityY
+                  velocityX: data.call.velocityX, velocityY: data.call.velocityY,
+                  touching: data.call.touching
                 }, world: data.input.world, state: data.call.state, random: __gameRandom
               });
               return JSON.stringify({ value, rngState: __gameRandom.state });
