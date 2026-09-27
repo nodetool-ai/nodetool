@@ -99,6 +99,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | AtlasCloud media pass-through | `packages/atlascloud-nodes/src/atlascloud-factory.ts` | workflow |
 | AtlasCloud prediction downloads | `packages/runtime/src/providers/atlascloud-transport.ts` | provider response |
 | Higgsfield uploads and prediction downloads | `packages/runtime/src/providers/higgsfield-transport.ts` | provider response |
+| useapi.net Google Flow and Dreamina result downloads | `packages/runtime/src/providers/useapi-provider.ts` | provider response |
 | KIE result downloads | `packages/kie-nodes/src/kie-base.ts` | provider response |
 | Topaz result downloads | `packages/topaz-nodes/src/topaz-base.ts` | provider response |
 | MiniMax audio / file downloads | `packages/minimax-nodes/src/minimax-base.ts` | provider response |
@@ -190,6 +191,9 @@ at 24 hours.
 **Browser-side.** The socket belongs to the viewer's browser, not the server:
 `packages/game-renderer/src/standalone-player.ts` (fixed relative game document
 and bundled `./assets/` paths),
+`packages/game-renderer/src/audio.ts` and
+`packages/game-renderer/src/browser-fonts.ts` (asset URLs resolved by the web
+app, or bundled `./assets/` paths in a standalone export),
 `packages/image-nodes/src/nodes/image-io.ts` (behind `!IS_NODE`),
 `packages/core-nodes/src/nodes/fake-media.ts`,
 `packages/browser/src/capture.ts` (inside `page.evaluate`).

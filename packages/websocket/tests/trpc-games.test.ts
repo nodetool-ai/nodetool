@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -48,6 +48,24 @@ describe("native game revisions", () => {
   afterEach(async () => {
     ModelObserver.clear();
     await rm(workspaceDir, { recursive: true, force: true });
+  });
+
+  it("installs a staged TrueType font into a version two game", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Font room" });
+    const published = await caller.games.publish({ id: created.game.id, baseRevision: created.game.revision,
+      document: { ...created.document, schemaVersion: 2 } });
+    const [row] = await Workspace.listByProject(USER_ID, PROJECT_ID);
+    if (!row) throw new Error("Project workspace missing");
+    const workspace = workspaceFromRow(row);
+    if (!workspace) throw new Error("Workspace storage missing");
+    const bytes = await readFile(new URL("../../timeline/fonts/BebasNeue-Regular.ttf", import.meta.url));
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    await workspace.write(`games/${created.game.id}/assets/${digest}.ttf`, bytes, "font/ttf");
+    const installed = await caller.games.installCandidate({ id: created.game.id, baseRevision: published.game.revision,
+      slot: "display", binding: { assetId: "font-candidate", digest, mediaKind: "font", fontFormat: "ttf",
+        width: 1, height: 1, pivot: { x: 0.5, y: 0.5 }, sampling: "nearest", required: true } });
+    expect(installed.document.assets.display).toMatchObject({ digest, mediaKind: "font", fontFormat: "ttf" });
   });
 
   it("creates a playable native source, reopens it, rejects stale edits, and restores a revision", async () => {

@@ -184,9 +184,9 @@ row stays in the database for the UI and for `nodetool.threads.*`, and the web
 renders the record as a collapsed "Earlier conversation summarized" card the
 user can open.
 
-Two triggers: the estimated prompt crossing
-`NODETOOL_CHAT_COMPACTION_TOKENS`, and the provider reporting that the prompt
-did not fit, which compacts and retries the turn once. A provider that holds the
+Two triggers: the prompt reaching 90% of the model's input window (or
+`NODETOOL_CHAT_COMPACTION_TOKENS` when set), and the provider reporting that
+the prompt did not fit, which compacts and retries the turn once. A provider that holds the
 transcript itself skips the first — shortening what NodeTool sends does not
 shorten what that provider already has. A summarizer call that fails leaves the
 thread whole and lets the turn run, since the alternative to an imperfect

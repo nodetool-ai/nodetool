@@ -18,7 +18,8 @@
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/runtime": "*"
+    "@nodetool-ai/runtime": "*",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "@nodetool-ai/audio-nodes": "*",

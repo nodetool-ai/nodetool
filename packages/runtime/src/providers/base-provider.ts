@@ -468,6 +468,7 @@ export abstract class BaseProvider {
     cachedTokens: 0
   };
   private _unpricedReason: string | null = null;
+  private _lastCallTokens: number | null = null;
   private _emitMessage: ((msg: unknown) => void) | null = null;
 
   /**
@@ -796,6 +797,15 @@ export abstract class BaseProvider {
     return true;
   }
 
+  /**
+   * The input window, in tokens, this provider's own API reports for `model`,
+   * or null when it has no such endpoint. Callers go through
+   * `resolveContextWindow`, which falls back to models.dev.
+   */
+  async getContextWindow(_model: string): Promise<number | null> {
+    return null;
+  }
+
   trackUsage(model: string, usage: UsageInfo): number {
     // Accounting must never break a generation that already ran (and was
     // already billed by the provider): keep the token counts and record the
@@ -817,6 +827,9 @@ export abstract class BaseProvider {
     this._usageTotals.inputTokens += usage.inputTokens ?? 0;
     this._usageTotals.outputTokens += usage.outputTokens ?? 0;
     this._usageTotals.cachedTokens += usage.cachedTokens ?? 0;
+    if (usage.inputTokens !== undefined) {
+      this._lastCallTokens = usage.inputTokens + (usage.outputTokens ?? 0);
+    }
     const tracked: LlmUsage = {
       inputTokens: usage.inputTokens ?? 0,
       outputTokens: usage.outputTokens ?? 0,
@@ -852,6 +865,17 @@ export abstract class BaseProvider {
     return this._cost;
   }
 
+  /**
+   * Input (cache reads and writes included) plus output tokens of the most
+   * recent tracked call, as the provider reported them. The prompt of the next
+   * call on the same transcript is at least this large, and unlike a local
+   * estimate it counts the tool definitions and system prompt too. Null until
+   * a call reports usage.
+   */
+  get lastCallTokens(): number | null {
+    return this._lastCallTokens;
+  }
+
   /** Running token counts across every call tracked on this instance. */
   get usageTotals(): ProviderUsageTotals {
     return { ...this._usageTotals };
@@ -881,6 +905,7 @@ export abstract class BaseProvider {
     this._cost = 0;
     this._unpricedReason = null;
     this._usageTotals = { inputTokens: 0, outputTokens: 0, cachedTokens: 0 };
+    this._lastCallTokens = null;
   }
 
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {

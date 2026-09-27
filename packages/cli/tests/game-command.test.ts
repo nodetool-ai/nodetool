@@ -1,6 +1,8 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createGameSession, createScriptedGameSession, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
@@ -159,11 +161,12 @@ describe("game simulate behavioral contracts", () => {
     await writeFile(gamePath, JSON.stringify({ ...base, scenes: base.scenes.map((scene) => ({
       ...scene,
       entities: scene.entities.map((entity) => entity.id === "player"
-        ? { ...entity, behaviors: [{ kind: "script",
+        ? { ...entity, behaviors: [{ kind: "script", maxTickMs: 50,
           source: "({state}) => ({state: {count: (state?.count ?? 0) + 1}, commands: []})" }] }
         : entity)
     })) }));
     const report = await runSimulation("--ticks", "4", "--verify-replay");
+    expect(report.error).toBeUndefined();
     expect(report.replay).toMatchObject({ resumeTick: 2, verified: true });
     expect(report.ok).toBe(true);
   });
@@ -202,4 +205,49 @@ describe("game simulate behavioral contracts", () => {
       divergence: { tick: 3, path: "events.length" } });
     expect(process.exitCode).toBe(1);
   });
+});
+
+describe("game capture backend", () => {
+  it("reports omitted optional effects in Canvas2D and runs a required effect with WebGPU", async () => {
+    const game = createTopDownRoomGame("capture-backend");
+    game.schemaVersion = 2;
+    game.renderEffects = [{ kind: "brightnessContrast", brightness: 0.2, contrast: 1, required: false }];
+    await writeFile(gamePath, JSON.stringify(game));
+    const program = new Command();
+    registerGameCommands(program);
+    const canvasPath = join(directory, "canvas.png");
+    await program.parseAsync(["node", "nodetool", "game", "capture", gamePath,
+      "--ticks", "1", "--out", canvasPath, "--json"]);
+    expect(JSON.parse(output.trim())).toMatchObject({ diagnostics: ["Optional GPU effects omitted in Canvas2D capture"] });
+    expect((await readFile(canvasPath)).length).toBeGreaterThan(0);
+    game.renderEffects[0]!.required = true;
+    await writeFile(gamePath, JSON.stringify(game));
+    output = "";
+    const gpuPath = join(directory, "gpu.png");
+    await program.parseAsync(["node", "nodetool", "game", "capture", gamePath,
+      "--ticks", "1", "--out", gpuPath, "--backend", "webgpu", "--json"]);
+    expect(JSON.parse(output.trim())).toMatchObject({ diagnostics: [], path: gpuPath });
+    expect((await readFile(gpuPath)).length).toBeGreaterThan(0);
+  }, 30000);
+});
+
+describe("game build assets", () => {
+  it("reads TrueType fonts from the assets directory", async () => {
+    const game = createTopDownRoomGame("font-build");
+    game.schemaVersion = 2;
+    const bytes = await readFile(fileURLToPath(new URL("../../timeline/fonts/BebasNeue-Regular.ttf", import.meta.url)));
+    const assetId = "f".repeat(32);
+    game.assets.display = { assetId, digest: createHash("sha256").update(bytes).digest("hex"), mediaKind: "font",
+      fontFormat: "ttf", required: true, width: 1, height: 1, pivot: { x: 0.5, y: 0.5 }, sampling: "nearest" };
+    await writeFile(gamePath, JSON.stringify(game));
+    const assetsDir = join(directory, "assets");
+    await mkdir(assetsDir);
+    await writeFile(join(assetsDir, `${assetId}.ttf`), bytes);
+    const program = new Command();
+    registerGameCommands(program);
+    const outDir = join(directory, "web");
+    await program.parseAsync(["node", "nodetool", "game", "build", gamePath, "--out", outDir, "--assets-dir", assetsDir, "--json"]);
+    expect(process.exitCode ?? 0).toBe(0);
+    expect((await readdir(join(outDir, "assets"))).some((file) => file.endsWith(".ttf"))).toBe(true);
+  }, 60000);
 });

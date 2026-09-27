@@ -1,18 +1,15 @@
-import type { GameRenderFrame } from "@nodetool-ai/protocol";
+import type { GameRenderEffect, GameRenderFrame } from "@nodetool-ai/protocol";
 
 export type GameRendererBackend = "webgpu" | "canvas2d";
 
-export interface GameRendererEffect {
-  readonly kind: "brightnessContrast";
-  readonly brightness: number;
-  readonly contrast: number;
-  readonly required?: boolean;
-}
+export type GameRendererEffect = GameRenderEffect;
+export type GameHudEffectOrder = "beforeEffects" | "afterEffects";
 
 export interface GameRendererCapabilities {
   readonly backend: GameRendererBackend;
   readonly core2D: true;
   readonly gpuEffects: boolean;
+  readonly lighting: boolean;
   readonly adapterType: "hardware" | "software" | "unknown";
   readonly deviceStatus: "ready" | "lost" | "disposed";
   readonly enabledFeatures: readonly string[];
@@ -38,7 +35,7 @@ export interface GameRenderer {
   readonly canvas: HTMLCanvasElement;
   readonly capabilities: GameRendererCapabilities;
   render(frame: GameRenderFrame, interpolation: number): Promise<GameRendererStats>;
-  setEffect(effect: GameRendererEffect | null): void;
+  setEffects(effects: readonly GameRendererEffect[], hudOrder?: GameHudEffectOrder): void;
   resize(width: number, height: number): void;
   invalidateAsset(assetId: string): void;
   dispose(): void;

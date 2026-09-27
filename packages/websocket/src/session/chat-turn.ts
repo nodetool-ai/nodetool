@@ -76,7 +76,9 @@ import {
   groqRequestFailureMessage,
   mediaResolverFor,
   providerFailureDetail,
+  resolveContextWindow,
   type ActiveModelSelection,
+  type ContextWindow,
   type RunBudget
 } from "@nodetool-ai/runtime";
 import {
@@ -159,6 +161,7 @@ import {
 } from "./chat-history.js";
 import {
   chooseCompactionCut,
+  compactionThreshold,
   COMPACTION_SUMMARY_MAX_TOKENS,
   holdsTranscriptServerSide,
   readCompactionSettings,
@@ -628,6 +631,20 @@ export class ChatTurnHandler {
    * 11 is what switches the guest onto `run.invoke`.
    */
   private chatCapabilityRun: CapabilityRun | null = null;
+  /**
+   * Input window per `provider/model`, resolved once per connection and again
+   * whenever a turn selects a model this connection has not used.
+   */
+  private contextWindows = new Map<string, Promise<ContextWindow>>();
+  /**
+   * The provider-reported size of each thread's last call, keyed by thread,
+   * with the `provider/model` it was measured on. The next turn's prompt is at
+   * least this large, and this counts what the local estimate cannot see.
+   */
+  private measuredThreadTokens = new Map<
+    string,
+    { modelKey: string; tokens: number }
+  >();
 
   constructor(
     private readonly session: ClientSession,
@@ -2389,6 +2406,16 @@ export class ChatTurnHandler {
     // The rows stay in the database for the UI and `nodetool.threads.*`; only
     // the provider's view is cut.
     const compaction = await readCompactionSettings();
+    const modelKey = `${providerId}/${model}`;
+    let contextWindow = this.contextWindows.get(modelKey);
+    if (!contextWindow && compaction.thresholdTokens === null) {
+      contextWindow = resolveContextWindow(provider, model);
+      this.contextWindows.set(modelKey, contextWindow);
+    }
+    const compactionThresholdTokens = compactionThreshold(
+      compaction,
+      contextWindow ? (await contextWindow).tokens : 0
+    );
     /** Spent by the reactive trigger below; bounds the turn to one retry. */
     let compactionRetryUsed = false;
 
@@ -2449,7 +2476,7 @@ export class ChatTurnHandler {
         {
           // Leave room for the summary, turn context and subsequent replies.
           maxTokens:
-            compaction.thresholdTokens * 0.75 -
+            compactionThresholdTokens * 0.75 -
             COMPACTION_SUMMARY_MAX_TOKENS -
             estimatePromptTokens([systemChatMessage()]) -
             estimatePromptTokens([
@@ -2509,6 +2536,7 @@ export class ChatTurnHandler {
       // The upstream transcript a session token resumes is the history the cut
       // just replaced, so nothing resumes across a compaction.
       capturedSession = null;
+      this.measuredThreadTokens.delete(threadId);
       loadFullHistory = null;
       sessionCheckpointOverride = null;
       await this.session.send({
@@ -2531,25 +2559,28 @@ export class ChatTurnHandler {
       return true;
     };
 
-    // Trigger 1, proactive: the estimated prompt is over the configured
-    // ceiling. `estimatePromptTokens` tokenizes the message text and tool
-    // calls and scores each attached image, audio, video or document at a
-    // fixed per-modality figure, so a resolved `data:` uri never reaches the
-    // tokenizer. The number is still not the prompt — the tool definitions
-    // this turn also sends are missing from it. It is a size signal, which is
-    // why the default ceiling sits well under any shipping context window
-    // rather than close to one.
+    // Trigger 1, proactive: the prompt reached the threshold, 90% of the
+    // model's input window unless `NODETOOL_CHAT_COMPACTION_TOKENS` sets it.
+    // The size is the larger of two numbers. The provider-reported size of
+    // this thread's last call counts the system prompt and tool definitions.
+    // `estimatePromptTokens` counts the messages added since, scoring each
+    // attached image, audio, video or document at a fixed per-modality figure
+    // so a resolved `data:` uri never reaches the tokenizer.
     //
     // A provider holding the conversation upstream is sent only the turns since
     // its session token, so this number would describe a fraction of what it
     // actually has. Those get trigger 2 alone: the provider itself says when
     // the transcript stopped fitting.
     if (!holdsTranscriptServerSide(providerId, capturedSession !== null)) {
-      const promptTokens = estimatePromptTokens(messagesToSend);
-      if (promptTokens > compaction.thresholdTokens) {
+      const measured = this.measuredThreadTokens.get(threadId);
+      const promptTokens = Math.max(
+        estimatePromptTokens(messagesToSend),
+        measured?.modelKey === modelKey ? measured.tokens : 0
+      );
+      if (promptTokens >= compactionThresholdTokens) {
         await compactThread(
-          `it reached about ${promptTokens} tokens, over the ` +
-            `${compaction.thresholdTokens}-token limit`
+          `it reached about ${promptTokens} tokens, at or over the ` +
+            `${compactionThresholdTokens}-token limit`
         );
       }
     }
@@ -2693,6 +2724,13 @@ export class ChatTurnHandler {
       for (;;) {
         try {
           await streamTurn();
+          const lastCallTokens = provider.lastCallTokens;
+          if (typeof lastCallTokens === "number") {
+            this.measuredThreadTokens.set(threadId, {
+              modelKey,
+              tokens: lastCallTokens
+            });
+          }
           break;
         } catch (err) {
           if (

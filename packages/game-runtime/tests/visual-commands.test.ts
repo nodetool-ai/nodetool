@@ -20,6 +20,25 @@ function game(entities: unknown[], extra: Partial<GameDocument> = {}): GameDocum
 const idle = { pressed: [], justPressed: [] };
 
 describe("script world and commands", () => {
+  it("composes authored tracks, script overrides, and lifetime effects", async () => {
+    const document = game([{ id: "spark", transform2d: { x: 0, y: 0 },
+      sprite: { assetId: "dot", width: 1, height: 1, opacity: 1 },
+      visualAnimation: { tracks: [
+        { property: "rotation", from: 0, to: 2, durationTicks: 2 },
+        { property: "scaleX", from: 1, to: 3, durationTicks: 2 },
+        { property: "opacity", from: 1, to: 0.2, durationTicks: 2 }
+      ] },
+      behaviors: [{ kind: "lifetime", ticks: 2, fade: true, endScale: 2 },
+        { kind: "script", source: "({ state }) => ({ state: 1, commands: [{ kind: 'setVisual', rotation: 5, scaleX: 2, opacity: 0.8 }] })" }] }
+    ], { schemaVersion: 2 });
+    const session = await createScriptedGameSession(document, 1);
+    const sprite = session.step(idle).frame.sprites.find((item) => item.entityId === "spark");
+    expect(sprite).toMatchObject({ rotation: 5, scaleX: 3, opacity: 0.4 });
+    const restored = await createScriptedGameSession(document, 1, session.snapshot());
+    expect(restored.frame()).toEqual(session.frame());
+    session.dispose();
+    restored.dispose();
+  });
   it("gives scripts the positions of collider and camera entities", async () => {
     const session = await createScriptedGameSession(game([
       { id: "target", transform2d: { x: 3, y: -2 }, collider2d: { width: 1, height: 1 } },
@@ -149,7 +168,10 @@ describe("built-in visual behaviors", () => {
       { id: "sfx", transform2d: { x: 0, y: 0 }, audioSource: { assetId: "sound", onEvent: "shoot" } }
     ]), 1);
     expect(session.step(idle).events).toEqual([]);
-    expect(session.step({ pressed: ["fire"], justPressed: ["fire"] }).events).toContainEqual({ kind: "audio", assetId: "sound" });
+    expect(session.step({ pressed: ["fire"], justPressed: ["fire"] }).events).toContainEqual(expect.objectContaining({
+      kind: "audio", action: "start", assetId: "sound", loop: false, volume: 1,
+      voiceId: "effect:main:sfx:2:1"
+    }));
     session.dispose();
   });
 

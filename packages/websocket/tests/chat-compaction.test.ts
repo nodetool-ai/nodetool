@@ -14,15 +14,21 @@ import {
   isCompactionMessage,
   Message
 } from "@nodetool-ai/models";
-import { estimatePromptTokens, markContextExceeded } from "@nodetool-ai/runtime";
 import {
-  COMPACTION_DEFAULTS,
+  CONTEXT_WINDOW_FALLBACK,
+  estimatePromptTokens,
+  markContextExceeded
+} from "@nodetool-ai/runtime";
+import {
   chooseCompactionCut,
+  COMPACTION_SUMMARY_MAX_TOKENS,
+  compactionThreshold,
   renderTranscriptForSummary
 } from "../src/session/chat-compaction.js";
 import {
   fakeProvider,
   makeChatTurnHarness,
+  type FakeProviderShape,
   type GenerateLoopArgs
 } from "./chat-turn-test-harness.js";
 
@@ -105,13 +111,15 @@ interface TurnRecord {
  */
 async function runTurn(
   threadId: string,
-  loop: (record: TurnRecord, args: GenerateLoopArgs) => void
+  loop: (record: TurnRecord, args: GenerateLoopArgs) => void,
+  providerExtras: FakeProviderShape = {}
 ): Promise<{ record: TurnRecord; errors: Array<Record<string, unknown>> }> {
   const record: TurnRecord = { attempts: [], summarized: [] };
   const harness = makeChatTurnHarness({
     session: {
       resolveProvider: async () =>
         fakeProvider({
+          ...providerExtras,
           generateLoop: async function* (args: GenerateLoopArgs) {
             record.attempts.push(args.messages);
             loop(record, args);
@@ -314,7 +322,10 @@ describe("chat compaction", () => {
    * is nowhere in its message.
    */
   it("removes oversized recent turns so the next turn does not compact again", async () => {
-    const threshold = COMPACTION_DEFAULTS.thresholdTokens;
+    const threshold = compactionThreshold(
+      { thresholdTokens: null },
+      CONTEXT_WINDOW_FALLBACK
+    );
     process.env.NODETOOL_CHAT_COMPACTION_TOKENS = String(threshold);
     const threadId = "t-large-recent-turn";
     await seedThread(threadId);
@@ -468,5 +479,87 @@ describe("chat compaction", () => {
     expect(record.summarized).toHaveLength(0);
     expect(await compactionRows(threadId)).toHaveLength(0);
     expect(record.attempts[0].map(textOf).join("\n")).toContain("ask 1");
+  });
+
+  it("sets the threshold at 90% of the context window the provider reports", async () => {
+    const threadId = "t-window";
+    await seedThread(threadId);
+    const big = "large observation ".repeat(75000);
+    await Message.create({
+      thread_id: threadId,
+      user_id: "1",
+      created_at: at(20),
+      role: "assistant",
+      content: big
+    });
+    const size = estimatePromptTokens([{ role: "assistant", content: big }]);
+
+    // A window with room to spare: the same thread runs uncompacted.
+    const roomy = await runTurn(threadId, () => {}, {
+      getContextWindow: async () => size * 3
+    });
+    expect(roomy.record.summarized).toHaveLength(0);
+    expect(await compactionRows(threadId)).toHaveLength(0);
+
+    // A window the thread fills past 90% of: it compacts before the call.
+    const tight = await runTurn(threadId, () => {}, {
+      getContextWindow: async () => size
+    });
+    expect(tight.record.summarized).toHaveLength(1);
+    expect(await compactionRows(threadId)).toHaveLength(1);
+  });
+
+  it("measures the next turn by the size the provider reported for the last call", async () => {
+    const threadId = "t-measured";
+    await seedThread(threadId);
+    const record: TurnRecord = { attempts: [], summarized: [] };
+    const provider = fakeProvider({
+      // What the provider billed: far more than the local estimate of this
+      // short thread, as with a large tool catalog the estimate cannot see.
+      lastCallTokens: 950_000,
+      getContextWindow: async () => 1_000_000,
+      generateLoop: async function* (args: GenerateLoopArgs) {
+        record.attempts.push(args.messages);
+        yield { type: "chunk", content: "ok", done: true };
+      },
+      generateMessageTraced: async (args) => {
+        record.summarized.push(args.messages);
+        return { role: "assistant", content: "Goals: keep going" };
+      }
+    });
+    const harness = makeChatTurnHarness({
+      session: { resolveProvider: async () => provider }
+    });
+
+    await harness.handler.handleChatMessage(chatTurn(threadId));
+    expect(record.summarized).toHaveLength(0);
+
+    await harness.handler.handleChatMessage(chatTurn(threadId));
+    expect(record.summarized).toHaveLength(1);
+    expect(await compactionRows(threadId)).toHaveLength(1);
+  });
+});
+
+describe("compactionThreshold", () => {
+  it("is 90% of the window", () => {
+    expect(compactionThreshold({ thresholdTokens: null }, 200_000)).toBe(
+      180_000
+    );
+    expect(compactionThreshold({ thresholdTokens: null }, 1_000_000)).toBe(
+      900_000
+    );
+  });
+
+  it("leaves room for the summarizer call on a small window", () => {
+    const window = 32_000;
+    const threshold = compactionThreshold({ thresholdTokens: null }, window);
+    expect(threshold).toBeLessThan(window * 0.9);
+    expect(window - threshold).toBeGreaterThan(COMPACTION_SUMMARY_MAX_TOKENS);
+  });
+
+  it("uses an explicit setting over the window", () => {
+    expect(compactionThreshold({ thresholdTokens: 50_000 }, 1_000_000)).toBe(
+      50_000
+    );
   });
 });

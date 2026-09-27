@@ -305,7 +305,10 @@ export const gamesRouter = router({
       if (!/^[a-f0-9]{64}$/.test(digest)) {
         throwApiError(ApiErrorCode.INVALID_INPUT, "Invalid candidate digest");
       }
-      const extension = input.binding.mediaKind === "audio" ? "wav" : "png";
+      if (input.binding.mediaKind === "font" && !input.binding.fontFormat) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Font binding needs a TrueType or OpenType format");
+      }
+      const extension = input.binding.mediaKind === "audio" ? "wav" : input.binding.mediaKind === "font" ? input.binding.fontFormat : "png";
       const path = `${game.source_root}/assets/${digest}.${extension}`;
       const bytes = await candidateWorkspace.read(path);
       if (!bytes || createHash("sha256").update(bytes).digest("hex") !== digest) {
@@ -314,7 +317,7 @@ export const gamesRouter = router({
       if (game.current_revision !== input.baseRevision) {
         throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game was modified concurrently");
       }
-      const contentType = extension === "wav" ? "audio/wav" : "image/png";
+      const contentType = extension === "wav" ? "audio/wav" : extension === "ttf" ? "font/ttf" : extension === "otf" ? "font/otf" : "image/png";
       if (candidateRow && candidateRow.id !== game.workspace_id) {
         await workspace.write(path, bytes, contentType);
       }

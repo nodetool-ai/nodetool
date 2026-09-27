@@ -148,6 +148,10 @@ export interface FakeProviderShape {
   cost?: number;
   unpricedReason?: string | null;
   setMessageEmitter?: (emit: (msg: unknown) => void) => void;
+  /** The input window the provider's own API reports, for compaction. */
+  getContextWindow?: (model: string) => Promise<number | null>;
+  /** Provider-reported size of the last call, for compaction. */
+  lastCallTokens?: number | null;
   generateLoop?: (args: GenerateLoopArgs) => AsyncGenerator<unknown>;
   /** The single-shot call chat compaction summarizes with. */
   generateMessageTraced?: (args: {

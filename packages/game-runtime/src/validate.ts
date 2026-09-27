@@ -14,6 +14,25 @@ export function validateGame(value: unknown): GameValidationResult {
   }
   const document = parsed.data;
   const errors: string[] = [];
+  if (document.schemaVersion === 1 && ((document.renderEffects?.length ?? 0) > 1 ||
+    document.renderEffects?.some((effect) => effect.kind !== "brightnessContrast") || document.hudEffectOrder)) {
+    errors.push("Effect chains, bloom, and HUD effect order require game schema version 2");
+  }
+  for (const [index, effect] of (document.renderEffects ?? []).entries()) {
+    if (effect.kind !== "lut") {
+      continue;
+    }
+    const path = `renderEffects.${index}`;
+    const asset = document.assets[effect.assetId];
+    if (!asset || asset.mediaKind !== "image") {
+      errors.push(`${path}.assetId: LUT requires an image asset`);
+    } else if (asset.width !== effect.size * effect.size || asset.height !== effect.size) {
+      errors.push(`${path}.assetId: LUT dimensions must be ${effect.size * effect.size}×${effect.size}`);
+    }
+    if (effect.domainMin.some((value, channel) => value >= effect.domainMax[channel]!)) {
+      errors.push(`${path}: LUT domain minimum must be less than maximum in every channel`);
+    }
+  }
   let scriptCount = 0;
   let scriptSourceBytes = 0;
   const encoder = new TextEncoder();
@@ -28,6 +47,21 @@ export function validateGame(value: unknown): GameValidationResult {
     errors.push(`Entry scene does not exist: ${document.entrySceneId}`);
   }
   const actions = new Set<string>();
+  for (const [assetId, binding] of Object.entries(document.assets)) {
+    if (document.schemaVersion === 1 && (binding.mediaKind === "font" || binding.preparation || binding.originalDimensions || binding.trim || binding.referenceAssetId)) {
+      errors.push(`assets.${assetId}: prepared assets and fonts require game schema version 2`);
+    }
+    if (binding.mediaKind !== "font" && binding.required !== undefined) {
+      errors.push(`assets.${assetId}.required: only fonts may set required`);
+    }
+    if ((binding.mediaKind === "font") !== (binding.fontFormat !== undefined)) {
+      errors.push(`assets.${assetId}.fontFormat: font assets require a format and other assets cannot set one`);
+    }
+    if (binding.trim && (binding.mediaKind !== "image" || binding.trim.x + binding.width > binding.trim.sourceWidth ||
+      binding.trim.y + binding.height > binding.trim.sourceHeight)) {
+      errors.push(`assets.${assetId}.trim: crop must fit the source image`);
+    }
+  }
   for (const action of document.inputActions) {
     if (actions.has(action)) {
       errors.push(`Duplicate input action: ${action}`);
@@ -35,6 +69,24 @@ export function validateGame(value: unknown): GameValidationResult {
     actions.add(action);
   }
   for (const [sceneIndex, scene] of document.scenes.entries()) {
+    if (document.schemaVersion === 1 && scene.lighting) errors.push(`scenes.${sceneIndex}.lighting: requires schema version 2`);
+    if (document.schemaVersion === 1 && scene.backgrounds) errors.push(`scenes.${sceneIndex}.backgrounds: requires schema version 2`);
+    const layerIds = new Set<string>();
+    for (const [layerIndex, layer] of (scene.backgrounds ?? []).entries()) {
+      if (layerIds.has(layer.id)) errors.push(`Duplicate background id in scene ${scene.id}: ${layer.id}`);
+      layerIds.add(layer.id);
+      const asset = document.assets[layer.assetId];
+      if (!asset || asset.mediaKind !== "image") errors.push(`scenes.${sceneIndex}.backgrounds.${layerIndex}.assetId: requires an image asset`);
+    }
+    if (scene.music) {
+      if (document.schemaVersion < 2) errors.push(`scenes.${sceneIndex}.music: requires schema version 2`);
+      const binding = document.assets[scene.music.assetId];
+      if (!binding) {
+        errors.push(`scenes.${sceneIndex}.music.assetId: Scene ${scene.id} references missing asset ${scene.music.assetId}`);
+      } else if (binding.mediaKind !== "audio") {
+        errors.push(`scenes.${sceneIndex}.music.assetId: requires audio, but ${scene.music.assetId} is ${binding.mediaKind}`);
+      }
+    }
     const entities = new Map(scene.entities.map((entity) => [entity.id, entity]));
     const children = new Map<string, string[]>();
     if (entities.size !== scene.entities.length) {
@@ -111,6 +163,32 @@ export function validateGame(value: unknown): GameValidationResult {
       }
       if (entity.animator && !entity.sprite) {
         errors.push(`${path}.animator: requires a sprite`);
+      }
+      if (entity.sprite) {
+        const binding = document.assets[entity.sprite.assetId];
+        if (binding?.trim && (entity.sprite.frame || entity.animator)) {
+          errors.push(`${path}.sprite: a trimmed asset cannot use frames or an animator`);
+        }
+      }
+      if (entity.tilemap && document.assets[entity.tilemap.assetId]?.trim) {
+        errors.push(`${path}.tilemap: a trimmed asset cannot be a tilemap`);
+      }
+      if (entity.visualAnimation && !entity.sprite) errors.push(`${path}.visualAnimation: requires a sprite`);
+      if (document.schemaVersion === 1 && entity.visualAnimation) errors.push(`${path}.visualAnimation: requires schema version 2`);
+      if (document.schemaVersion === 1 && entity.sprite?.unlit !== undefined) errors.push(`${path}.sprite.unlit: requires schema version 2`);
+      const tracked = new Set<string>();
+      for (const track of entity.visualAnimation?.tracks ?? []) {
+        if (tracked.has(track.property)) errors.push(`${path}.visualAnimation: duplicate ${track.property} track`);
+        tracked.add(track.property);
+        if ((track.property === "scaleX" || track.property === "scaleY") && (track.from <= 0 || track.to <= 0)) {
+          errors.push(`${path}.visualAnimation: scale values must be positive`);
+        }
+        if (track.property === "opacity" && (track.from < 0 || track.from > 1 || track.to < 0 || track.to > 1)) {
+          errors.push(`${path}.visualAnimation: opacity must be between 0 and 1`);
+        }
+      }
+      if (entity.visualAnimation?.rotationRate !== undefined && tracked.has("rotation")) {
+        errors.push(`${path}.visualAnimation: rotation track conflicts with rotationRate`);
       }
       for (const [behaviorIndex, behavior] of entity.behaviors.entries()) {
         if ((behavior.kind === "movement" || behavior.kind === "patrol") && entity.body2d?.type !== "kinematic") {
