@@ -39,6 +39,8 @@ column  = (1720 − 11×24) / 12 = 121.3px
 
 Space everything in multiples of 8. `fontSizePx` for body copy sits near 2.5–4%
 of frame height; below 2.5% `validate_timeline` reports `text_illegible`.
+Choose the family, weights, and title scale from `motion-direction` § Typography
+before placing text on this grid.
 
 ## One focal point
 
