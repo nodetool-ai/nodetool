@@ -288,6 +288,12 @@ Claude Code web setup and slash commands are in [.claude/README.md](.claude/READ
 - Node packages using decorators and loading from `dist/` (`base-nodes`,
   `node-sdk`, `fal-nodes`, `replicate-nodes`, `elevenlabs-nodes`) need
   `npm run build:packages` after edits and before `npm run dev`.
+- On macOS, give a new worktree its dependencies by cloning every
+  `node_modules/` and `dist/` from an installed checkout with `cp -cR`, not
+  with `npm install`. Rebuild with `npm run build:packages`. After a
+  dependency change, check the package's placement with `npm explain` and
+  run `npm run fix:lockfile-libc`. See
+  [worktrees with cloned dependencies](docs/dev-environment.md#worktrees-with-cloned-dependencies-macos).
 
 ## Build, Lint & Test Commands
 

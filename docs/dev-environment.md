@@ -60,6 +60,69 @@ Docker image and every fresh clone rather than on a developer's machine.
 missing again. Rerun the fix after any `npm install` under npm 10 that rewrites
 the lock, and commit the result.
 
+### Worktrees with cloned dependencies (macOS)
+
+A full `npm install` in a new worktree takes minutes and several GB. On APFS,
+clone the dependency and build folders from an existing checkout instead.
+`cp -c` makes a copy-on-write clone: it takes seconds, uses almost no disk,
+and a later write in one tree does not change the other.
+
+```bash
+MAIN=~/workspace/nodetool                  # checkout with installed deps
+WT=~/workspace/nodetool-wt/<name>
+git -C "$MAIN" fetch origin
+git -C "$MAIN" worktree add -b <branch> "$WT" origin/main
+cd "$MAIN"
+{ find . -name node_modules -type d -prune | grep -v '/node_modules/.*node_modules'
+  find . -path ./node_modules -prune -o -name dist -type d -prune -print | grep -v node_modules
+} | sort -u | while read -r d; do
+  mkdir -p "$WT/$(dirname "$d")" && cp -cR "$d" "$WT/$d"
+done
+cd "$WT" && npm run build:packages        # the cloned dist/ is from the source branch
+```
+
+- The workspace links in `node_modules/@nodetool-ai/` are relative, so they
+  resolve to the new worktree's `packages/`.
+- The cloned `dist/` folders match the source checkout's branch. Run
+  `npm run build:packages` before you trust a test or harness result.
+- `du` counts a clone at full size. Measure the space you get back with `df`.
+- On Linux, `cp --reflink=auto` does the same on btrfs and XFS. On other file
+  systems it makes a full copy, so run `npm ci` instead.
+
+#### Change dependencies in a worktree
+
+An install in a worktree writes only to that worktree's clones. The source
+checkout does not change.
+
+- A failed root `postinstall` deletes the `better-sqlite3` binary it tried to
+  rebuild. Clone it back with
+  `cp -cR "$MAIN/node_modules/better-sqlite3/build" node_modules/better-sqlite3/`,
+  or install with `--ignore-scripts` and run `npm run rebuild:native`.
+- After `npm install` changes a version range, run `npm explain <package>`.
+  npm can place the new version under `packages/<name>/node_modules/` instead
+  of the root. A package that the runtime loads by name, such as
+  `@anthropic-ai/claude-agent-sdk`, must stay at the root. Record the root
+  placement in the lockfile. A later `npm install` keeps a placement that
+  already satisfies the range.
+- npm 10 removes `libc` on every install that rewrites the lockfile. Run
+  `npm run fix:lockfile-libc` last, and confirm with
+  `npm run check:lockfile-libc`.
+- `mobile/node_modules` is cloned with the rest but can be incomplete. Run
+  `npm --prefix mobile ci` before mobile typecheck or tests.
+
+#### Remove worktrees
+
+`git worktree remove --force` deletes uncommitted work. First list the work
+that only the worktree holds:
+
+```bash
+git -C "$WT" status --porcelain                        # uncommitted
+git -C "$WT" rev-list --count HEAD --not --remotes     # unpushed commits
+```
+
+Commit anything you keep to a branch, then run
+`git worktree remove --force "$WT"` and `git worktree prune`.
+
 ### Install in sandboxed / proxied environments
 
 Three postinstall steps break `npm install` in locked-down containers (CI
