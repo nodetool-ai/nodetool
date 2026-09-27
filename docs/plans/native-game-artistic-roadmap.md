@@ -15,11 +15,11 @@ The findings below retain the identifiers from the architecture review.
 
 | Finding | Current implementation | Consequence |
 |---|---|---|
-| F9 | [The document](../../packages/protocol/src/game.ts) permits one brightness/contrast effect. The GPU package already has [glow](../../packages/gpu/src/shaders/filters/glow/v1/module.ts) and [LUT grading](../../packages/gpu/src/shaders/color/cubeLut/v1/module.ts). | Integrate the existing modules, including their different color-space contracts. |
-| F10 | [WebGPU rendering](../../packages/game-renderer/src/webgpu.ts) composites HUD before effects. [Headless capture](../../packages/game-renderer/src/node.ts) has no post-processing. | Define HUD order and capture capability before exposing bloom. |
-| F11 | [Frame interpolation](../../packages/game-renderer/src/frame.ts) covers sprite position only. [Canvas2D tinting](../../packages/game-renderer/src/canvas2d.ts) retains a bitmap for each color. | Smooth tweens require more interpolation and bounded tint memory. |
-| F12 | [Workspace audio](../../web/src/components/workspace/GameSurface.tsx) and [export audio](../../packages/game-renderer/src/standalone-player.ts) use different playback implementations. | Share audio lifecycle behavior before adding persistent music. |
-| F13 | [Asset staging](../../packages/game-nodes/src/nodes/game.ts) copies bytes and selects nearest sampling. [Slot prompts](../../packages/protocol/src/game-slot-prompt.ts) already accept shared style entities. | Add preparation and visual-reference propagation to the existing pipeline. |
+| F9 | `packages/protocol/src/game.ts` permits one brightness/contrast effect. The GPU package already has `packages/gpu/src/shaders/filters/glow/v1/module.ts` and `packages/gpu/src/shaders/color/cubeLut/v1/module.ts`. | Integrate the existing modules, including their different color-space contracts. |
+| F10 | `packages/game-renderer/src/webgpu.ts` composites HUD before effects. `packages/game-renderer/src/node.ts` has no post-processing. | Define HUD order and capture capability before exposing bloom. |
+| F11 | `packages/game-renderer/src/frame.ts` covers sprite position only. `packages/game-renderer/src/canvas2d.ts` retains a bitmap for each color. | Smooth tweens require more interpolation and bounded tint memory. |
+| F12 | `web/src/components/workspace/GameSurface.tsx` and `packages/game-renderer/src/standalone-player.ts` use different playback implementations. | Share audio lifecycle behavior before adding persistent music. |
+| F13 | `packages/game-nodes/src/nodes/game.ts` copies bytes and selects nearest sampling. `packages/protocol/src/game-slot-prompt.ts` already accept shared style entities. | Add preparation and visual-reference propagation to the existing pipeline. |
 | F14 | There is no light component or font asset kind in the document. | Ship embedded fonts and simple point lights separately from advanced lighting. |
 
 ## Shared decisions
@@ -227,11 +227,11 @@ Acceptance criteria:
 ## Verification and delivery
 
 Use public document, session, renderer, staging, and export boundaries. Extend
-[frame tests](../../packages/game-renderer/tests/frame.test.ts),
-[GPU effect tests](../../packages/game-renderer/tests/webgpu-effect.test.ts),
-[export tests](../../packages/game-renderer/tests/build.test.ts),
-[session tests](../../packages/game-runtime/tests/session.test.ts), and
-[asset node tests](../../packages/game-nodes/tests/native-game-nodes.test.ts).
+`packages/game-renderer/tests/frame.test.ts`,
+`packages/game-renderer/tests/webgpu-effect.test.ts`,
+`packages/game-renderer/tests/build.test.ts`,
+`packages/game-runtime/tests/session.test.ts`, and
+`packages/game-nodes/tests/native-game-nodes.test.ts`.
 Reuse the GPU package's recipe, alpha, and color-grading tests for module
 contracts. New assertions must fail on deliberately invalid fixtures.
 
@@ -241,9 +241,9 @@ and disposal in tests for persistent resources. Measure software-adapter
 correctness separately from hardware performance.
 
 For code changes, build packages first, then run the
-[mandatory repository checks](../../AGENTS.md#mandatory-post-change-verification).
+`AGENTS.md` mandatory post-change verification.
 Update [CLI guidance](../cli.md) and the
-[native game skill](../../packages/system-skills/native-game/SKILL.md) when their
+`packages/system-skills/native-game/SKILL.md` when their
 contracts change. Keep each action reviewable independently and split shared
 protocol changes from later features when necessary.
 
