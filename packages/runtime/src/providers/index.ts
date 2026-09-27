@@ -113,6 +113,15 @@ export {
   type ContextExceededSignal
 } from "./context-exceeded.js";
 export {
+  CONTEXT_WINDOW_FALLBACK,
+  MODELS_DEV_URL,
+  modelsDevContextWindow,
+  resetModelsDevCache,
+  resolveContextWindow,
+  type ContextWindow,
+  type ContextWindowSource
+} from "./context-window.js";
+export {
   annotateGroqRequestFailure,
   estimateGroqRequestTokens,
   groqRequestFailureMessage,

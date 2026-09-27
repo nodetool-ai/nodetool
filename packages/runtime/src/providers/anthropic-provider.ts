@@ -510,6 +510,29 @@ export class AnthropicProvider extends BaseProvider {
     return true;
   }
 
+  /**
+   * `max_input_tokens` from the Models API. The request carries the same
+   * `anthropic-beta` header as Messages, so a 1M-context beta reports the 1M
+   * window. Null when the endpoint fails, as it does on gateways that reuse
+   * this provider without implementing it.
+   */
+  override async getContextWindow(model: string): Promise<number | null> {
+    try {
+      const info = await this.getClient().models.retrieve(model, null, {
+        ...this.requestOptions(),
+        timeout: 10_000,
+        maxRetries: 0
+      });
+      return info.max_input_tokens ?? null;
+    } catch (error) {
+      log.debug("Anthropic model lookup failed", {
+        model,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return null;
+    }
+  }
+
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     const maxRetries = 3;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
