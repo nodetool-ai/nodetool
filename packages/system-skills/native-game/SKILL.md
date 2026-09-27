@@ -36,6 +36,9 @@ For a workflow-based brief, `design_game` writes its design and `build_game
 graph. The graph's generated media are candidates until installed. A game
 revision can be played in the workspace. The `nodetool game` CLI validates,
 simulates, captures, and builds a standalone web player from a game document.
+`simulate --assertions <file>` checks selected ticks for scene, entity position,
+active state, and ordered events. `simulate --verify-replay` restores a midpoint
+snapshot and reports the first tick and field that differ from continuous play.
 
 ## Scripts and visuals
 
@@ -45,6 +48,12 @@ commands}`. `events` are the previous tick's events. `world` lists every active
 entity with a collider or camera as `{id, source, x, y}`. A spawned instance has
 the id `<prefab>#<n>`, its `source` is the prefab id, and it runs the prefab's
 script with its own state.
+
+Each call evaluates its source in a fresh sandbox context. Store persistent
+values in returned `state`. Closure variables, globals, and mutations of input
+objects do not survive or reach another script. Source initialization also uses
+the seeded random generator. `maxTickMs` limits each call, subject to the total
+script budget for the tick. Source and input/output limits count UTF-8 bytes.
 
 The commands are `setVelocity`, `setPosition`, `setVisual {tint?, opacity?,
 rotation?, scaleX?, scaleY?}`, `spawn {prefabId, x?, y?, velocityX?,
@@ -60,6 +69,26 @@ label. A label with the id `score` or `win` replaces the built-in label.
    spawns.
 4. Give `audioSource.onEvent` an event kind or the name of an emitted trigger.
 5. Make hazards sensors. Only a non-sensor body collects a `collectible`.
+
+Collider `category` and `mask` are unsigned 32-bit bitsets. They default to `1`
+and `4294967295`. A pair interacts only when each mask includes a category bit
+from the other collider. Give bullets masks that exclude other bullets when
+bullet-to-bullet interaction is unnecessary.
+
+Contacts report `phase: "enter" | "stay" | "exit"` and `normalX`/`normalY`.
+Check both `entityId` and `otherId`, since each pair emits one contact per tick.
+Built-in triggers fire on entry. Use `stay` contacts for repeated overlap logic.
+Swept collisions detect fast movement through thin static walls and sensors.
+Scene entry starts authored entities' animation and lifetime clocks, and saves
+preserve those clocks and active contact pairs.
+
+Runtime event and spawned-instance limits stop the session when exceeded.
+A failed tick cannot be saved or resumed. Reset the session or load a snapshot
+from before the failure, then reduce overlapping pairs or spawning.
+
+Validation rejects unsupported component fields. Movement and patrol require a
+kinematic body, animation requires a sprite, and asset media kinds must match
+their image or audio components. Resolve validation errors before publishing.
 
 ## Scope
 

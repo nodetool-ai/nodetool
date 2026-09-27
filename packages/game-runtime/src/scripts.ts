@@ -2,6 +2,7 @@ import type { QuickJSContext, QuickJSRuntime } from "quickjs-emscripten-core";
 import { z } from "zod";
 import type { GameDocument, GameSnapshot } from "@nodetool-ai/protocol";
 
+const encoder = new TextEncoder();
 const finite = z.number().finite();
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const command = z.discriminatedUnion("kind", [
@@ -94,7 +95,31 @@ function evaluate(context: QuickJSContext, code: string): unknown {
   return value;
 }
 
-/** One isolated QuickJS runtime compiles all scene scripts and receives one bulk call per tick. */
+function initializeContext(context: QuickJSContext, seed: number): void {
+  evaluate(context, `
+    globalThis.Date = undefined;
+    Object.defineProperty(globalThis, "__gameRandom", {
+      value: (() => {
+        let state = ${seed >>> 0};
+        const random = () => {
+          state = (Math.imul(1664525, state) + 1013904223) >>> 0;
+          return state / 4294967296;
+        };
+        Object.defineProperty(random, "state", { get: () => state });
+        return random;
+      })(), writable: false, configurable: false
+    });
+    Object.defineProperty(Math, "random", { value: __gameRandom, writable: false, configurable: false });
+  `);
+}
+
+function assertBeforeDeadline(deadline: number, budget: string): void {
+  if (performance.now() >= deadline) {
+    throw new Error(`Game script interrupted: ${budget} budget exceeded`);
+  }
+}
+
+/** Script calls use fresh contexts so only returned state and RNG survive a tick. */
 export async function prepareGameScripts(document: GameDocument): Promise<GameScriptRunner> {
   const [{ newQuickJSWASMModuleFromVariant }, quickJsVariantModule] = await Promise.all([
     import("quickjs-emscripten-core"),
@@ -105,81 +130,122 @@ export async function prepareGameScripts(document: GameDocument): Promise<GameSc
   const runtime: QuickJSRuntime = module.newRuntime();
   runtime.setMemoryLimit(16 * 1024 * 1024);
   runtime.setMaxStackSize(256 * 1024);
-  const context = runtime.newContext();
+  const sources = new Map<string, string>();
   try {
-    runtime.setInterruptHandler(() => false);
-    evaluate(context, `
-      globalThis.Date = undefined;
-      globalThis.__gameRandomState = 0;
-      Object.defineProperty(Math, "random", {
-        value: () => {
-          __gameRandomState = (Math.imul(1664525, __gameRandomState) + 1013904223) >>> 0;
-          return __gameRandomState / 4294967296;
-        }, writable: false, configurable: false
-      });
-      globalThis.__gameScripts = Object.create(null);
-      globalThis.__gameRun = (calls, input, seed) => {
-        __gameRandomState = seed >>> 0;
-        const results = calls.map((call) => {
-          const value = __gameScripts[call.sourceKey]({
-            tick: input.tick, pressed: input.pressed, justPressed: input.justPressed,
-            events: input.events, entity: {
-              id: call.entityId, source: call.source, x: call.x, y: call.y,
-              velocityX: call.velocityX, velocityY: call.velocityY
-            }, world: input.world, state: call.state, random: Math.random
-          });
-          return { entityId: call.entityId, value };
-        });
-        return JSON.stringify({ results, rngState: __gameRandomState });
-      };
-    `);
     for (const scene of document.scenes) {
       for (const entity of scene.entities) {
         entity.behaviors.forEach((behavior, index) => {
-          if (behavior.kind !== "script") return;
-          const deadline = performance.now() + 100;
-          runtime.setInterruptHandler(() => performance.now() >= deadline);
-          const key = scriptSourceKey(scene.id, entity.id, index);
-          evaluate(context, `__gameScripts[${JSON.stringify(key)}] = (${behavior.source});`);
-          if (evaluate(context, `typeof __gameScripts[${JSON.stringify(key)}]`) !== "function") {
-            throw new Error(`Game script ${key} must be a function expression`);
+          if (behavior.kind !== "script") {
+            return;
           }
+          const key = scriptSourceKey(scene.id, entity.id, index);
+          const context = runtime.newContext();
+          try {
+            const deadline = performance.now() + 100;
+            runtime.setInterruptHandler(() => performance.now() >= deadline);
+            initializeContext(context, 0);
+            if (evaluate(context, `globalThis.__gameScript = (${behavior.source}); typeof __gameScript`) !== "function") {
+              throw new Error(`Game script ${key} must be a function expression`);
+            }
+          } catch (error) {
+            throw new Error(`Game script ${key} could not be prepared: ${error instanceof Error ? error.message : String(error)}`);
+          } finally {
+            context.dispose();
+          }
+          sources.set(key, behavior.source);
         });
       }
     }
     return {
       run(calls, input, rngState): GameScriptBatch {
-        if (calls.length === 0) return { results: [], rngState, stats: { durationMs: 0, commands: 0, calls: 0 } };
-        const serialized = JSON.stringify({ calls, input, rngState });
-        if (serialized.length > 64 * 1024) throw new Error("Game script input exceeds 64 KiB");
+        if (calls.length === 0) {
+          return { results: [], rngState, stats: { durationMs: 0, commands: 0, calls: 0 } };
+        }
         const started = performance.now();
-        const deadline = started + Math.min(50, ...calls.map((call) => call.maxTickMs));
-        runtime.setInterruptHandler(() => performance.now() >= deadline);
-        const output = evaluate(context, `(() => { const data = JSON.parse(${JSON.stringify(serialized)}); return __gameRun(data.calls, data.input, data.rngState); })()`);
-        const durationMs = performance.now() - started;
-        if (typeof output !== "string" || output.length > 64 * 1024) throw new Error("Game script output exceeds 64 KiB");
-        const parsed: unknown = JSON.parse(output);
-        const envelope = z.object({ results: z.array(z.object({ entityId: z.string(), value: result })), rngState: z.number().int().nonnegative() }).parse(parsed);
-        if (envelope.results.length !== calls.length) throw new Error("Game script result count does not match calls");
+        const batchDeadline = started + 50;
+        // This limits the logical tick payload; each isolated call gets its own JSON copy.
+        const serialized = JSON.stringify({ calls, input, rngState });
+        const inputBytes = encoder.encode(serialized).byteLength;
+        if (inputBytes > 64 * 1024) {
+          throw new Error(`Game script input exceeds 64 KiB (${inputBytes} bytes, ${calls.length} calls, tick ${input.tick})`);
+        }
+        const batchBudget = `batch 50 ms at tick ${input.tick}`;
+        assertBeforeDeadline(batchDeadline, batchBudget);
+        let nextRngState = rngState;
+        let serializedResultsBytes = 0;
         let commandCount = 0;
-        const results = envelope.results.map((item, index): GameScriptResult => {
-          const call = calls[index];
-          if (item.entityId !== call.entityId || item.value.commands.length > call.maxCommands) {
-            throw new Error(`Game script command limit or entity mismatch for ${call.entityId}`);
+        const results: GameScriptResult[] = [];
+        for (const call of calls) {
+          assertBeforeDeadline(batchDeadline, batchBudget);
+          const source = sources.get(call.sourceKey);
+          if (source === undefined) {
+            throw new Error(`Game script source ${call.sourceKey} is missing for ${call.entityId} at tick ${input.tick}`);
           }
-          if (item.value.state === undefined) throw new Error(`Game script ${call.entityId} must return state`);
-          commandCount += item.value.commands.length;
-          return { entityId: item.entityId, state: item.value.state, commands: item.value.commands };
-        });
-        return { results, rngState: envelope.rngState, stats: { durationMs, commands: commandCount, calls: calls.length } };
+          const deadline = Math.min(batchDeadline, performance.now() + call.maxTickMs);
+          const checkCallDeadline = (): void => {
+            assertBeforeDeadline(batchDeadline, batchBudget);
+            assertBeforeDeadline(deadline, `call ${call.maxTickMs} ms for ${call.entityId} at tick ${input.tick}`);
+          };
+          runtime.setInterruptHandler(() => performance.now() >= deadline);
+          const context = runtime.newContext();
+          try {
+            initializeContext(context, nextRngState);
+            checkCallDeadline();
+            if (evaluate(context, `globalThis.__gameScript = (${source}); typeof __gameScript`) !== "function") {
+              throw new Error("Source must be a function expression");
+            }
+            checkCallDeadline();
+            const data = JSON.stringify({ call, input, rngState: nextRngState });
+            checkCallDeadline();
+            const output = evaluate(context, `(() => {
+              const data = JSON.parse(${JSON.stringify(data)});
+              const value = __gameScript({
+                tick: data.input.tick, pressed: data.input.pressed, justPressed: data.input.justPressed,
+                events: data.input.events, entity: {
+                  id: data.call.entityId, source: data.call.source, x: data.call.x, y: data.call.y,
+                  velocityX: data.call.velocityX, velocityY: data.call.velocityY
+                }, world: data.input.world, state: data.call.state, random: __gameRandom
+              });
+              return JSON.stringify({ value, rngState: __gameRandom.state });
+            })()`);
+            if (typeof output !== "string") {
+              throw new Error("Output is not JSON");
+            }
+            checkCallDeadline();
+            const rawOutputBytes = encoder.encode(output).byteLength;
+            if (rawOutputBytes > 64 * 1024) {
+              throw new Error(`Output exceeds 64 KiB (${rawOutputBytes} bytes in call ${results.length + 1})`);
+            }
+            const parsed: unknown = JSON.parse(output);
+            const envelope = z.object({ value: result, rngState: z.number().int().nonnegative() }).parse(parsed);
+            if (envelope.value.commands.length > call.maxCommands) {
+              throw new Error(`Game script command limit exceeded for ${call.entityId}`);
+            }
+            const itemBytes = encoder.encode(JSON.stringify({ entityId: call.entityId, value: envelope.value })).byteLength;
+            serializedResultsBytes += itemBytes + (results.length > 0 ? 1 : 0);
+            const outputBytes = encoder.encode(JSON.stringify({ results: [], rngState: envelope.rngState })).byteLength + serializedResultsBytes;
+            if (outputBytes > 64 * 1024) {
+              throw new Error(`Output exceeds 64 KiB (${outputBytes} bytes across ${results.length + 1} calls)`);
+            }
+            checkCallDeadline();
+            commandCount += envelope.value.commands.length;
+            nextRngState = envelope.rngState;
+            results.push({ entityId: call.entityId, state: envelope.value.state, commands: envelope.value.commands });
+          } catch (error) {
+            throw new Error(`Game script ${call.sourceKey} for ${call.entityId} at tick ${input.tick} failed: ${error instanceof Error ? error.message : String(error)}`);
+          } finally {
+            context.dispose();
+          }
+          checkCallDeadline();
+        }
+        assertBeforeDeadline(batchDeadline, batchBudget);
+        return { results, rngState: nextRngState, stats: { durationMs: performance.now() - started, commands: commandCount, calls: calls.length } };
       },
       dispose(): void {
-        context.dispose();
         runtime.dispose();
       }
     };
   } catch (error) {
-    context.dispose();
     runtime.dispose();
     throw error;
   }

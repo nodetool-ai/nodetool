@@ -15,7 +15,8 @@ export function validateGame(value: unknown): GameValidationResult {
   const document = parsed.data;
   const errors: string[] = [];
   let scriptCount = 0;
-  let scriptSourceLength = 0;
+  let scriptSourceBytes = 0;
+  const encoder = new TextEncoder();
   const sceneIds = new Set<string>();
   for (const scene of document.scenes) {
     if (sceneIds.has(scene.id)) {
@@ -33,7 +34,7 @@ export function validateGame(value: unknown): GameValidationResult {
     }
     actions.add(action);
   }
-  for (const scene of document.scenes) {
+  for (const [sceneIndex, scene] of document.scenes.entries()) {
     const entities = new Map(scene.entities.map((entity) => [entity.id, entity]));
     const children = new Map<string, string[]>();
     if (entities.size !== scene.entities.length) {
@@ -77,7 +78,7 @@ export function validateGame(value: unknown): GameValidationResult {
         queue.push(childId);
       }
     }
-    for (const entity of scene.entities) {
+    for (const [entityIndex, entity] of scene.entities.entries()) {
       if (!visited.has(entity.id)) {
         errors.push(`Parent cycle at entity ${entity.id}`);
       }
@@ -92,15 +93,32 @@ export function validateGame(value: unknown): GameValidationResult {
       if (entity.body2d?.type === "static" && !entity.collider2d) {
         errors.push(`Static body ${entity.id} needs a collider2d`);
       }
-      for (const assetId of [entity.sprite?.assetId, entity.tilemap?.assetId, entity.audioSource?.assetId]) {
-        if (assetId && !document.assets[assetId]) {
-          errors.push(`Entity ${entity.id} references missing asset ${assetId}`);
+      const path = `scenes.${sceneIndex}.entities.${entityIndex}`;
+      for (const [component, assetId, expectedKind] of [
+        ["sprite", entity.sprite?.assetId, "image"],
+        ["tilemap", entity.tilemap?.assetId, "image"],
+        ["audioSource", entity.audioSource?.assetId, "audio"]
+      ] as const) {
+        if (!assetId) {
+          continue;
+        }
+        const binding = document.assets[assetId];
+        if (!binding) {
+          errors.push(`${path}.${component}.assetId: Entity ${entity.id} references missing asset ${assetId}`);
+        } else if (binding.mediaKind !== expectedKind) {
+          errors.push(`${path}.${component}.assetId: requires ${expectedKind}, but ${assetId} is ${binding.mediaKind}`);
         }
       }
-      for (const behavior of entity.behaviors) {
+      if (entity.animator && !entity.sprite) {
+        errors.push(`${path}.animator: requires a sprite`);
+      }
+      for (const [behaviorIndex, behavior] of entity.behaviors.entries()) {
+        if ((behavior.kind === "movement" || behavior.kind === "patrol") && entity.body2d?.type !== "kinematic") {
+          errors.push(`${path}.behaviors.${behaviorIndex}: ${behavior.kind} requires a kinematic body2d`);
+        }
         if (behavior.kind === "script") {
           scriptCount += 1;
-          scriptSourceLength += behavior.source.length;
+          scriptSourceBytes += encoder.encode(behavior.source).byteLength;
         }
         if (behavior.kind === "movement") {
           for (const action of [behavior.left, behavior.right, behavior.up, behavior.down]) {
@@ -119,6 +137,6 @@ export function validateGame(value: unknown): GameValidationResult {
     }
   }
   if (scriptCount > 32) errors.push("Game exceeds the limit of 32 scripted behaviors");
-  if (scriptSourceLength > 64 * 1024) errors.push("Game script source exceeds 64 KiB");
+  if (scriptSourceBytes > 64 * 1024) errors.push("Game script source exceeds 64 KiB");
   return errors.length === 0 ? { valid: true, document, errors } : { valid: false, errors };
 }

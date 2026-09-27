@@ -8,7 +8,7 @@ function game(entities: unknown[], extra: Partial<GameDocument> = {}): GameDocum
   return gameDocument.parse({
     schemaVersion: 1, engineVersion: "1", id: "g", revision: "r1", entrySceneId: "main",
     pixelsPerUnit: 32, tickRate: 60, inputActions: ["fire"],
-    assets: { dot: IMAGE, glow: { ...IMAGE, sampling: "linear" } },
+    assets: { dot: IMAGE, glow: { ...IMAGE, sampling: "linear" }, sound: { assetId: "builtin:sound", digest: "builtin:sound-v1", mediaKind: "audio", width: 1, height: 1 } },
     scenes: [{ id: "main", name: "Main", entities: [
       { id: "camera", transform2d: { x: 0, y: 0 }, camera2d: { width: 16, height: 9 } },
       ...entities
@@ -102,6 +102,12 @@ describe("built-in visual behaviors", () => {
       return frame.sprites.map((sprite) => sprite.frame?.x);
     };
     expect(at(1)).toEqual([0, 0]);
+    const exposed = session.frame().sprites[0].frame;
+    if (!exposed) {
+      throw new Error("Expected animation frame");
+    }
+    exposed.x = 999;
+    expect(session.frame().sprites[0].frame?.x).toBe(0);
     expect(at(3)).toEqual([16, 16]);
     expect(at(4)).toEqual([8, 16]);
     session.dispose();
@@ -140,10 +146,10 @@ describe("built-in visual behaviors", () => {
     const session = await createScriptedGameSession(game([
       { id: "gun", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source:
         "({ justPressed }) => ({ state: 1, commands: justPressed.includes('fire') ? [{ kind: 'emit', event: 'shoot' }] : [] })" }] },
-      { id: "sfx", transform2d: { x: 0, y: 0 }, audioSource: { assetId: "dot", onEvent: "shoot" } }
+      { id: "sfx", transform2d: { x: 0, y: 0 }, audioSource: { assetId: "sound", onEvent: "shoot" } }
     ]), 1);
     expect(session.step(idle).events).toEqual([]);
-    expect(session.step({ pressed: ["fire"], justPressed: ["fire"] }).events).toContainEqual({ kind: "audio", assetId: "dot" });
+    expect(session.step({ pressed: ["fire"], justPressed: ["fire"] }).events).toContainEqual({ kind: "audio", assetId: "sound" });
     session.dispose();
   });
 

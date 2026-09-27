@@ -15,7 +15,7 @@ export function createTopDownRoomGame(id: string): GameDocument {
       player: { assetId: "builtin:player", digest: "builtin:player-v1", width: 32, height: 32 },
       wall: { assetId: "builtin:wall", digest: "builtin:wall-v1", width: 32, height: 32 },
       gem: { assetId: "builtin:gem", digest: "builtin:gem-v1", width: 32, height: 32 },
-      "sfx.collect": { assetId: "builtin:sfx.collect", digest: "builtin:sfx.collect-v1", width: 1, height: 1 }
+      "sfx.collect": { assetId: "builtin:sfx.collect", digest: "builtin:sfx.collect-v1", mediaKind: "audio", width: 1, height: 1 }
     },
     scenes: [{
       id: "room",

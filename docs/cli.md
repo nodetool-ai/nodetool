@@ -1065,9 +1065,37 @@ recording is a JSON array of `{ "pressed": ["right"] }` frames, one per tick.
 ```bash
 nodetool game validate game.json
 nodetool game simulate game.json --ticks 120 --inputs inputs.json --expect-score 1 --expect-win
+nodetool game simulate game.json --ticks 120 --inputs inputs.json --assertions assertions.json --verify-replay
 nodetool game capture game.json --ticks 120 --inputs inputs.json --out frame.png
 nodetool game build game.json --out game-build --assets-dir game-assets
 ```
+
+`--assertions` checks selected ticks. Tick 0 is the initial state; tick 1 is
+after the first input frame. Each listed tick may check `sceneId`, entity
+`x`/`y`/`active`, and the complete ordered `events` array for that tick. Omitted
+fields are not checked. A missing entity fails the assertion. The default
+position tolerance is `1e-9`; set `tolerance` at the top level to change it.
+Assertions beyond `--ticks` and duplicate tick entries are errors.
+
+```json
+{
+  "tolerance": 0.000001,
+  "ticks": [
+    {
+      "tick": 0,
+      "sceneId": "room",
+      "entities": [{ "id": "player", "x": 0, "y": 0, "active": true }],
+      "events": []
+    },
+    { "tick": 1, "events": [] }
+  ]
+}
+```
+
+`--verify-replay` saves the midpoint state, resumes it in a second session,
+and compares snapshots and ordered events after each remaining tick. The JSON
+report includes `replay.resumeTick`, `replay.verified`, and the first divergent
+tick and path when it fails. This check excludes script execution timing.
 
 `--assets-dir` supplies media files named `<full-asset-id>.<extension>` for
 capture and export. The build copies media into a content-addressed folder and

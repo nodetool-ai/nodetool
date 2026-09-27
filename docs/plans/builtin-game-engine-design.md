@@ -289,19 +289,24 @@ Start with declarative behavior built from reviewed modules: movement, patrol,
 triggers, health, collectible, spawn, and scene transitions. An agent edits data
 and tests before generating arbitrary runtime code.
 
-For authored JavaScript, extend the existing QuickJS approach with a persistent
-game behavior session and bounded tick calls. The current
-[sandbox](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/src/js-sandbox.ts) is an action/run abstraction,
-not an established low-latency game scripting interface. Measure its bridge cost
-before selecting per-entity callbacks. Prefer one bulk tick call returning a
-bounded command buffer. Extract only the shared low-level sandbox implementation
-needed by games, without making game-runtime depend on the agents package.
+Authored JavaScript uses one memory-limited QuickJS runtime per game session,
+with a fresh context for each script call. The source is evaluated again in that
+context. Only returned JSON state and the seeded random generator's state persist.
+This replaces the original bulk-call preference: persistent functions can retain
+closure or global state that snapshots cannot restore. Separate contexts also
+prevent one script from changing another script's input. Measure context creation,
+source evaluation, and serialization costs before increasing instance budgets.
+The implementation lives in [game-runtime scripts](../../packages/game-runtime/src/scripts.ts)
+without depending on the agents package.
 
 Game scripts receive state, tick input, seeded random functions, and allowed game
 commands. They receive no secrets, filesystem, network, toolbelt, DOM, or raw GPU
-device. Enforce CPU and command-volume limits, validate returned commands, and use
-a terminable worker for runaway behavior. A worker alone is not the security
-mechanism. QuickJS isolation and the restricted host interface are both required.
+device. Per-call timeouts share a total tick deadline, including host serialization
+and validation. UTF-8 limits count the logical tick input and complete output
+envelope. An interrupt stops runaway guest code. A failed tick terminates the
+session and cannot produce a save of partially updated state. A separate worker
+remains future work. QuickJS isolation and the restricted host interface are both
+required.
 The existing [sandbox limits](../javascript-sandbox.md#limits) also warn that
 typed-array and string payloads need accounting beyond the guest heap limit.
 
@@ -383,7 +388,7 @@ Godot runtime installed.
 | A1. Prove the renderer choice | Instanced sprites, one atlas, animated frames, tile chunks, and one shared effect on the same device. Compare a PixiJS scene using the same assets. | Measure submission cost, draw calls, upload bytes, frame times, and texture memory on hardware. Check alpha, UVs, ordering, and effect color. Reconsider O1 if maintaining it is disproportionate. |
 | A2. Build a playable vertical slice | One small top-down room with movement, wall collisions, collectibles, a win state, camera, HUD, and sound. Use built-in behaviors. | Browser and headless replay reach the same asserted state. Core rendering works with WebGPU unavailable. Pause, single-step, reset, and save/load work. |
 | A3. Persist and edit the game | Game document, revision operations, scene editor, asset installation, and agent playtest tools. | Reopen the game, regenerate only its player art, preserve scene changes, reject stale edits, and restore a previous revision. |
-| A4. Add scripted behavior and web export | Persistent restricted QuickJS session and a version-pinned standalone player. | Infinite loops terminate, invalid commands fail, script budgets are measured, and an exported build runs from an HTTP server without NodeTool credentials or backend access. |
+| A4. Add scripted behavior and web export | Session-owned QuickJS runtime with isolated calls and a version-pinned standalone player. | Infinite loops terminate, invalid commands fail, script budgets are measured, and an exported build runs from an HTTP server without NodeTool credentials or backend access. |
 | A6. Cut over and remove Godot | Switch game creation to the native runtime and perform D7's removal and migration. This precedes A5 despite retaining the existing action codes. | A clean installation and packaged artifact complete the native game lifecycle without Godot. Legacy source assets survive and workflows with removed nodes report migration errors. |
 | A5. Add complexity after profiling | Platformer controller, additional scenes, approved effects, then 2.5D or 3D. | Replay regressions, renderer capability checks, and measured performance remain within the selected target profile. |
 
@@ -428,6 +433,6 @@ short IDs returned to agents. Once implementation changes code, run the
 |---|---|---|
 | R1. No hardware performance measurement yet | Software-adapter correctness can conceal unacceptable frame times. | Run A1 on working integrated and discrete GPUs, and probe the actual browser/Electron device. |
 | R2. Owning the renderer grows the scope | Text, clipping, batching, and recovery can consume more work than expected. | Keep the first feature set bounded and compare against O2 before building the editor. |
-| R3. Persistent game scripting is unproven | QuickJS bridge work or payloads may exceed the tick budget. | Start with built-in behaviors, benchmark bulk calls, and enforce termination and output limits. |
+| R3. Per-call script isolation costs CPU time | Context creation, source evaluation, and input copying may exceed the frame budget. | Benchmark representative scenes and optimize without retaining hidden state outside snapshots. Keep termination and output limits. |
 | R4. GPU compatibility differs by host | Browser play, cloud capture, and Electron can select different devices and capabilities. | Pin required capabilities in the game, expose fallback decisions, and test each supported host. |
 | R5. Removing Godot leaves legacy gameplay to rebuild | Existing GDScript and scenes cannot be made playable by importing their artwork. | Preserve source files and assets, report migration gaps, and remove runtime support without pretending conversion is automatic. |

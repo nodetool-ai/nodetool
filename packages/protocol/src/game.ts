@@ -2,15 +2,16 @@ import { z } from "zod";
 
 const finite = z.number().finite();
 const positive = finite.positive();
-const vec2 = z.object({ x: finite, y: finite });
-const frame = z.object({
+const uint32 = z.number().int().min(0).max(0xffffffff);
+const vec2 = z.strictObject({ x: finite, y: finite });
+const frame = z.strictObject({
   x: z.number().int().nonnegative(),
   y: z.number().int().nonnegative(),
   width: z.number().int().positive(),
   height: z.number().int().positive()
 });
 
-export const gameAssetBinding = z.object({
+export const gameAssetBinding = z.strictObject({
   assetId: z.string().min(1),
   digest: z.string().min(1),
   mediaKind: z.enum(["image", "audio"]).default("image"),
@@ -23,7 +24,7 @@ export const gameAssetBinding = z.object({
 });
 export type GameAssetBinding = z.infer<typeof gameAssetBinding>;
 
-export const gameTransform2D = z.object({
+export const gameTransform2D = z.strictObject({
   x: finite,
   y: finite,
   rotation: finite.default(0),
@@ -33,16 +34,16 @@ export const gameTransform2D = z.object({
 export type GameTransform2D = z.infer<typeof gameTransform2D>;
 
 export const gameBehavior = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("movement"), speed: positive, left: z.string(), right: z.string(), up: z.string(), down: z.string() }),
-  z.object({ kind: z.literal("patrol"), speed: positive, distance: positive, axis: z.enum(["x", "y"]) }),
-  z.object({ kind: z.literal("collectible"), score: z.number().int().positive().default(1) }),
-  z.object({ kind: z.literal("health"), maximum: z.number().int().positive() }),
-  z.object({ kind: z.literal("trigger"), event: z.string().min(1) }),
-  z.object({ kind: z.literal("spawn"), prefabId: z.string().min(1), onEvent: z.string().min(1) }),
-  z.object({ kind: z.literal("sceneTransition"), sceneId: z.string().min(1), onEvent: z.string().min(1) }),
-  z.object({ kind: z.literal("winWhenCollected"), count: z.number().int().positive() }),
-  z.object({ kind: z.literal("lifetime"), ticks: z.number().int().positive(), fade: z.boolean().default(true), endScale: positive.default(1) }),
-  z.object({ kind: z.literal("script"), source: z.string().min(1).max(16_384), maxCommands: z.number().int().min(1).max(64).default(16), maxTickMs: z.number().int().min(1).max(50).default(8) })
+  z.strictObject({ kind: z.literal("movement"), speed: positive, left: z.string(), right: z.string(), up: z.string(), down: z.string() }),
+  z.strictObject({ kind: z.literal("patrol"), speed: positive, distance: positive, axis: z.enum(["x", "y"]) }),
+  z.strictObject({ kind: z.literal("collectible"), score: z.number().int().positive().default(1) }),
+  z.strictObject({ kind: z.literal("health"), maximum: z.number().int().positive() }),
+  z.strictObject({ kind: z.literal("trigger"), event: z.string().min(1) }),
+  z.strictObject({ kind: z.literal("spawn"), prefabId: z.string().min(1), onEvent: z.string().min(1) }),
+  z.strictObject({ kind: z.literal("sceneTransition"), sceneId: z.string().min(1), onEvent: z.string().min(1) }),
+  z.strictObject({ kind: z.literal("winWhenCollected"), count: z.number().int().positive() }),
+  z.strictObject({ kind: z.literal("lifetime"), ticks: z.number().int().positive(), fade: z.boolean().default(true), endScale: positive.default(1) }),
+  z.strictObject({ kind: z.literal("script"), source: z.string().min(1).max(16_384), maxCommands: z.number().int().min(1).max(64).default(16), maxTickMs: z.number().int().min(1).max(50).default(8) })
 ]);
 export type GameBehavior = z.infer<typeof gameBehavior>;
 
@@ -52,18 +53,19 @@ export const gameEntity = z.strictObject({
   parentId: z.string().optional(),
   templateOnly: z.boolean().default(false),
   transform2d: gameTransform2D,
-  sprite: z.object({ assetId: z.string().min(1), width: positive, height: positive, layer: z.number().int().default(0), frame: frame.optional(), tint: z.string().optional(), opacity: finite.min(0).max(1).optional(), blend: z.enum(["normal", "additive"]).optional() }).optional(),
-  tilemap: z.object({ assetId: z.string().min(1), tiles: z.array(z.object({ x: finite, y: finite, width: positive, height: positive, frame: frame.optional() })), layer: z.number().int().default(0) }).optional(),
-  camera2d: z.object({ zoom: positive.default(1), width: positive, height: positive }).optional(),
-  body2d: z.object({ type: z.enum(["static", "kinematic"]), velocity: vec2.default({ x: 0, y: 0 }) }).optional(),
-  collider2d: z.object({ width: positive, height: positive, sensor: z.boolean().default(false) }).optional(),
-  animator: z.object({ frames: z.array(frame).min(1), ticksPerFrame: z.number().int().positive(), loop: z.boolean().default(true) }).optional(),
-  audioSource: z.object({ assetId: z.string().min(1), onEvent: z.string().min(1) }).optional(),
+  sprite: z.strictObject({ assetId: z.string().min(1), width: positive, height: positive, layer: z.number().int().default(0), frame: frame.optional(), tint: z.string().optional(), opacity: finite.min(0).max(1).optional(), blend: z.enum(["normal", "additive"]).optional() }).optional(),
+  tilemap: z.strictObject({ assetId: z.string().min(1), tiles: z.array(z.strictObject({ x: finite, y: finite, width: positive, height: positive, frame: frame.optional() })), layer: z.number().int().default(0) }).optional(),
+  camera2d: z.strictObject({ zoom: positive.default(1), width: positive, height: positive }).optional(),
+  body2d: z.strictObject({ type: z.enum(["static", "kinematic"]), velocity: vec2.default({ x: 0, y: 0 }) }).optional(),
+  collider2d: z.strictObject({ width: positive, height: positive, sensor: z.boolean().default(false),
+    category: uint32.default(1), mask: uint32.default(0xffffffff) }).optional(),
+  animator: z.strictObject({ frames: z.array(frame).min(1), ticksPerFrame: z.number().int().positive(), loop: z.boolean().default(true) }).optional(),
+  audioSource: z.strictObject({ assetId: z.string().min(1), onEvent: z.string().min(1) }).optional(),
   behaviors: z.array(gameBehavior).default([])
 });
 export type GameEntity = z.infer<typeof gameEntity>;
 
-export const gameScene = z.object({
+export const gameScene = z.strictObject({
   id: z.string().min(1),
   name: z.string().min(1),
   entities: z.array(gameEntity)
@@ -92,7 +94,8 @@ export const gameInputFrame = z.object({
 export type GameInputFrame = z.infer<typeof gameInputFrame>;
 
 export const gameEvent = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("contact"), entityId: z.string(), otherId: z.string() }),
+  z.object({ kind: z.literal("contact"), entityId: z.string(), otherId: z.string(),
+    phase: z.enum(["enter", "stay", "exit"]).optional(), normalX: finite.optional(), normalY: finite.optional() }),
   z.object({ kind: z.literal("collected"), entityId: z.string(), byId: z.string(), score: z.number() }),
   z.object({ kind: z.literal("win"), score: z.number() }),
   z.object({ kind: z.literal("audio"), assetId: z.string() }),
@@ -134,6 +137,7 @@ export const gameSnapshot = z.object({
   won: z.boolean(),
   spawnSequence: z.number().int().nonnegative().default(0),
   pendingEvents: z.array(gameEvent).default([]),
+  activeContacts: z.array(z.strictObject({ entityId: z.string(), otherId: z.string(), sensor: z.boolean() })).default([]),
   scriptState: z.record(z.string(), z.json()).default({}),
   hud: z.array(gameHudLabel).default([]),
   entities: z.array(z.object({ id: z.string(), sourceId: z.string().optional(), spawnTick: z.number().int().nonnegative().optional(),

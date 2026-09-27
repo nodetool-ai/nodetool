@@ -1,7 +1,9 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import type { Command } from "commander";
-import { gameInputFrame, type GameInputFrame } from "@nodetool-ai/protocol/game.js";
+import { z } from "zod";
+import { gameEvent, gameInputFrame, type GameEvent, type GameInputFrame, type GameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, validateGame } from "@nodetool-ai/game-runtime";
 import { printCommandError } from "../command-errors.js";
 
@@ -11,7 +13,38 @@ interface SimulateOptions {
   inputs?: string;
   expectScore?: string;
   expectWin?: boolean;
+  assertions?: string;
+  verifyReplay?: boolean;
   json?: boolean;
+}
+
+const strictGameEvent = z.union(gameEvent.options.map((variant) => variant.strict()));
+const jsonFields = z.record(z.string(), z.unknown());
+
+const tickAssertion = z.strictObject({
+  tick: z.number().int().nonnegative(),
+  sceneId: z.string().min(1).optional(),
+  entities: z.array(z.strictObject({
+    id: z.string().min(1),
+    x: z.number().finite().optional(),
+    y: z.number().finite().optional(),
+    active: z.boolean().optional()
+  })).optional(),
+  events: z.array(strictGameEvent).optional()
+});
+
+const gameAssertions = z.strictObject({
+  tolerance: z.number().finite().nonnegative().default(1e-9),
+  ticks: z.array(tickAssertion)
+});
+
+type TickAssertion = z.infer<typeof tickAssertion>;
+
+interface AssertionFailure {
+  readonly tick: number;
+  readonly path: string;
+  readonly expected: unknown;
+  readonly actual: unknown;
 }
 
 interface CaptureOptions {
@@ -82,6 +115,95 @@ async function readInputs(path: string | undefined): Promise<GameInputFrame[]> {
   });
 }
 
+async function readAssertions(path: string | undefined, ticks: number): Promise<{ byTick: Map<number, TickAssertion>; tolerance: number } | undefined> {
+  if (!path) {
+    return undefined;
+  }
+  const parsed = gameAssertions.safeParse(await readDocument(path));
+  if (!parsed.success) {
+    throw new Error(`Invalid game assertions: ${parsed.error.message}`);
+  }
+  const byTick = new Map<number, TickAssertion>();
+  for (const assertion of parsed.data.ticks) {
+    if (assertion.tick > ticks) {
+      throw new Error(`Assertion tick ${assertion.tick} exceeds requested ${ticks} ticks`);
+    }
+    if (byTick.has(assertion.tick)) {
+      throw new Error(`Duplicate assertion for tick ${assertion.tick}`);
+    }
+    byTick.set(assertion.tick, assertion);
+  }
+  return { byTick, tolerance: parsed.data.tolerance };
+}
+
+function firstDifference(expected: unknown, actual: unknown, path: string): { path: string; expected: unknown; actual: unknown } | undefined {
+  if (isDeepStrictEqual(expected, actual)) {
+    return undefined;
+  }
+  if (Array.isArray(expected) && Array.isArray(actual)) {
+    if (expected.length !== actual.length) {
+      return { path: `${path}.length`, expected: expected.length, actual: actual.length };
+    }
+    for (let index = 0; index < expected.length; index += 1) {
+      const difference = firstDifference(expected[index], actual[index], `${path}[${index}]`);
+      if (difference) {
+        return difference;
+      }
+    }
+  }
+  const expectedObject = jsonFields.safeParse(expected);
+  const actualObject = jsonFields.safeParse(actual);
+  if (expectedObject.success && actualObject.success) {
+    const expectedFields = expectedObject.data;
+    const actualFields = actualObject.data;
+    for (const key of new Set([...Object.keys(expectedFields), ...Object.keys(actualFields)])) {
+      const difference = firstDifference(expectedFields[key], actualFields[key], `${path}.${key}`);
+      if (difference) {
+        return difference;
+      }
+    }
+  }
+  return { path, expected: expected ?? null, actual: actual ?? null };
+}
+
+function checkTick(assertion: TickAssertion | undefined, snapshot: GameSnapshot, events: readonly GameEvent[], tolerance: number): AssertionFailure[] {
+  if (!assertion) {
+    return [];
+  }
+  const failures: AssertionFailure[] = [];
+  const check = (path: string, expected: unknown, actual: unknown): void => {
+    if (!isDeepStrictEqual(expected, actual)) {
+      failures.push({ tick: assertion.tick, path, expected, actual: actual ?? null });
+    }
+  };
+  if (assertion.sceneId !== undefined) {
+    check("sceneId", assertion.sceneId, snapshot.sceneId);
+  }
+  for (const entityAssertion of assertion.entities ?? []) {
+    const entity = snapshot.entities.find((candidate) => candidate.id === entityAssertion.id);
+    if (!entity) {
+      failures.push({ tick: assertion.tick, path: `entities.${entityAssertion.id}`, expected: "present", actual: "missing" });
+      continue;
+    }
+    for (const coordinate of ["x", "y"] as const) {
+      const expected = entityAssertion[coordinate];
+      if (expected !== undefined && Math.abs(entity[coordinate] - expected) > tolerance) {
+        failures.push({ tick: assertion.tick, path: `entities.${entity.id}.${coordinate}`, expected, actual: entity[coordinate] });
+      }
+    }
+    if (entityAssertion.active !== undefined) {
+      check(`entities.${entity.id}.active`, entityAssertion.active, entity.active);
+    }
+  }
+  if (assertion.events !== undefined) {
+    const difference = firstDifference(assertion.events, events, "events");
+    if (difference) {
+      failures.push({ tick: assertion.tick, ...difference });
+    }
+  }
+  return failures;
+}
+
 /** Register native game validation and deterministic simulation commands. */
 export function registerGameCommands(program: Command): void {
   const game = program.command("game").description("Validate and playtest native games");
@@ -117,6 +239,8 @@ export function registerGameCommands(program: Command): void {
     .option("--inputs <file>", "JSON array of tick-indexed input frames")
     .option("--expect-score <score>", "Fail if the final score differs")
     .option("--expect-win", "Fail unless the win condition is reached")
+    .option("--assertions <file>", "JSON assertions for scene, entities, and ordered events at selected ticks")
+    .option("--verify-replay", "Resume at the midpoint and compare snapshots and events tick by tick")
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: SimulateOptions) => {
       try {
@@ -124,33 +248,91 @@ export function registerGameCommands(program: Command): void {
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
         }
+        const document = validated.document;
         const ticks = nonnegativeInteger(options.ticks, "ticks");
         const seed = nonnegativeInteger(options.seed, "seed");
         const expectedScore = options.expectScore === undefined
           ? undefined
           : nonnegativeInteger(options.expectScore, "expect-score");
         const inputs = await readInputs(options.inputs);
-        const session = await createScriptedGameSession(validated.document, seed);
+        const contract = await readAssertions(options.assertions, ticks);
+        const session = await createScriptedGameSession(document, seed);
+        let resumed: Awaited<ReturnType<typeof createScriptedGameSession>> | undefined;
         try {
-          const events = [];
+          const events: GameEvent[] = [];
+          const initialAssertion = contract?.byTick.get(0);
+          const failures = initialAssertion
+            ? checkTick(initialAssertion, session.snapshot(), [], contract?.tolerance ?? 1e-9)
+            : [];
+          const resumeTick = Math.floor(ticks / 2);
+          let replayDivergence: AssertionFailure | undefined;
+          const startReplay = async (saved: GameSnapshot): Promise<void> => {
+            resumed = await createScriptedGameSession(document, seed, saved);
+            const difference = firstDifference(saved, resumed.snapshot(), "snapshot");
+            if (difference) {
+              replayDivergence = { tick: saved.tick, ...difference };
+            }
+          };
+          if (options.verifyReplay && resumeTick === 0) {
+            await startReplay(session.snapshot());
+          }
           for (let tick = 0; tick < ticks; tick += 1) {
-            const result = session.step(inputs[tick] ?? { pressed: [], justPressed: [] });
+            const input = inputs[tick] ?? EMPTY_INPUT;
+            const result = session.step(input);
             events.push(...result.events);
+            const assertion = contract?.byTick.get(result.tick);
+            const snapshot = assertion || (options.verifyReplay && result.tick >= resumeTick)
+              ? session.snapshot()
+              : undefined;
+            if (assertion && snapshot) {
+              failures.push(...checkTick(assertion, snapshot, result.events, contract?.tolerance ?? 1e-9));
+            }
+            if (snapshot && options.verifyReplay && result.tick === resumeTick) {
+              await startReplay(snapshot);
+            }
+            if (resumed && snapshot && !replayDivergence && result.tick > resumeTick) {
+              const replayStep = resumed.step(input);
+              const difference = firstDifference(result.events, replayStep.events, "events")
+                ?? firstDifference(snapshot, resumed.snapshot(), "snapshot");
+              if (difference) {
+                replayDivergence = { tick: result.tick, ...difference };
+              }
+            }
           }
           const snapshot = session.snapshot();
           const assertions = {
             score: expectedScore === undefined || snapshot.score === expectedScore,
-            win: options.expectWin !== true || snapshot.won
+            win: options.expectWin !== true || snapshot.won,
+            ticks: failures.length === 0,
+            replay: !replayDivergence
           };
-          const report = { ticks, seed, snapshot, events, assertions, ok: assertions.score && assertions.win };
+          const replay = options.verifyReplay
+            ? { resumeTick, verified: !replayDivergence, divergence: replayDivergence }
+            : undefined;
+          const report = {
+            ticks, seed, snapshot, events, assertions, failures,
+            replay,
+            ok: Object.values(assertions).every(Boolean)
+          };
           if (options.json) {
             process.stdout.write(`${JSON.stringify(report)}\n`);
           } else {
             process.stdout.write(`Tick ${snapshot.tick}: score ${snapshot.score}, won ${snapshot.won}\n`);
-            if (!report.ok) process.stdout.write("Game assertions failed\n");
+            for (const failure of failures) {
+              process.stdout.write(`Tick ${failure.tick} ${failure.path}: expected ${JSON.stringify(failure.expected)}, got ${JSON.stringify(failure.actual)}\n`);
+            }
+            if (replayDivergence) {
+              process.stdout.write(`Replay diverged at tick ${replayDivergence.tick} ${replayDivergence.path}: expected ${JSON.stringify(replayDivergence.expected)}, got ${JSON.stringify(replayDivergence.actual)}\n`);
+            }
+            if (!assertions.score || !assertions.win) {
+              process.stdout.write("Game assertions failed\n");
+            }
           }
-          if (!report.ok) process.exitCode = 1;
+          if (!report.ok) {
+            process.exitCode = 1;
+          }
         } finally {
+          resumed?.dispose();
           session.dispose();
         }
       } catch (error) {
