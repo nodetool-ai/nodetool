@@ -9,6 +9,9 @@ const DashboardExampleStoryboards = lazy(
 const DashboardExampleTimelines = lazy(
   () => import("../portal/DashboardExampleTimelines")
 );
+const DashboardExampleGames = lazy(
+  () => import("../portal/DashboardExampleGames")
+);
 
 interface StartExamplesProps {
   onBrowseAll: () => void;
@@ -18,7 +21,8 @@ const EXAMPLE_TABS = [
   { value: "apps", label: "Apps" },
   { value: "workflows", label: "Workflows" },
   { value: "storyboards", label: "Storyboards" },
-  { value: "timelines", label: "Timelines" }
+  { value: "timelines", label: "Timelines" },
+  { value: "games", label: "Games" }
 ];
 
 const StartExamples = ({ onBrowseAll }: StartExamplesProps) => {
@@ -40,8 +44,10 @@ const StartExamples = ({ onBrowseAll }: StartExamplesProps) => {
           <DashboardTemplates />
         ) : activeTab === "storyboards" ? (
           <DashboardExampleStoryboards />
-        ) : (
+        ) : activeTab === "timelines" ? (
           <DashboardExampleTimelines />
+        ) : (
+          <DashboardExampleGames />
         )}
       </Suspense>
     </section>

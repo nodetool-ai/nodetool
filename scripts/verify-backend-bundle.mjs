@@ -358,6 +358,29 @@ export function verifyBackendBundle(bundleDir) {
     summary.push(`${timelines.length} example timeline(s) staged with their media`);
   }
 
+  const gameDir = path.join(bundleDir, "examples", "games");
+  const games = (listFiles(gameDir) ?? []).filter((file) => file.endsWith(".game.json"));
+  for (const file of games) {
+    let bundle;
+    try {
+      bundle = JSON.parse(readFileSync(path.join(gameDir, file), "utf8"));
+    } catch (err) {
+      errors.push(`examples/games/${file} is not readable: ${err.message}`);
+      continue;
+    }
+    const media = Object.values(bundle.document?.assets ?? {}).map((binding) => binding.assetId);
+    for (const uri of [bundle.posterUri, ...media]) {
+      const match = /^package:\/\/([^/]+)\/(.+)$/.exec(uri ?? "");
+      const asset = match && path.join(bundleDir, "assets", match[1], ...match[2].split("/"));
+      if (!asset || !existsSync(asset)) {
+        errors.push(`examples/games/${file} has missing media: ${uri}`);
+      }
+    }
+  }
+  if (games.length > 0) {
+    summary.push(`${games.length} example game(s) staged with their media`);
+  }
+
   const assets = listFiles(path.join(bundleDir, "assets", "nodetool-base"));
   if (!assets || assets.length === 0) {
     errors.push(

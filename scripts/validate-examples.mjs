@@ -294,7 +294,38 @@ function checkStoryboard(file) {
   return problems.length > 0 ? problems.join("\n") : null;
 }
 
-/** Check a shipped timeline's document, dimensions, and package media. */
+/**
+ * A game bundle ships a document whose asset slots bind `package://` files,
+ * which installing copies into the user's assets. The document must pass the
+ * engine's validator, and every bound file and the poster must be on disk.
+ */
+async function checkGame(file) {
+  let bundle;
+  try {
+    bundle = JSON.parse(readFileSync(file, "utf8"));
+  } catch (err) {
+    return `not parsable JSON: ${err.message}`;
+  }
+  const problems = [];
+  for (const key of ["name", "description", "controls"]) {
+    if (!bundle?.[key]) problems.push(`bundle has no ${key}`);
+  }
+  const { validateGame } = await import("@nodetool-ai/game-runtime");
+  const report = validateGame(bundle?.document);
+  if (!report.valid) problems.push(...report.errors.map((error) => `invalid game: ${error}`));
+  const media = Object.values(bundle?.document?.assets ?? {}).map((binding) => binding.assetId);
+  for (const uri of [bundle?.posterUri, ...media]) {
+    const match = /^package:\/\/([^/]+)\/(.+)$/.exec(uri ?? "");
+    if (!match || match[2].split("/").some((part) => part === ".." || part === ".")) {
+      problems.push(`invalid package media: ${uri}`);
+      continue;
+    }
+    const onDisk = join(repoRoot, "packages/base-nodes/nodetool/assets", match[1], ...match[2].split("/"));
+    if (!statSafe(onDisk)?.isFile()) problems.push(`missing package media: ${uri}`);
+  }
+  return problems.length > 0 ? problems.join("\n") : null;
+}
+
 async function checkTimeline(file) {
   let bundle;
   try {
@@ -505,6 +536,7 @@ async function main() {
   const bundles = examples.filter((f) => f.endsWith(".app.json"));
   const storyboards = examples.filter((f) => f.endsWith(".storyboard.json"));
   const timelines = examples.filter((f) => f.endsWith(".timeline.json"));
+  const games = examples.filter((f) => f.endsWith(".game.json"));
   const compositions = examples.filter((f) => f.endsWith(".composition.json"));
   const recipes = examples.filter((f) => f.endsWith(".recipe.json"));
   const workflowExamples = examples.filter(
@@ -512,6 +544,7 @@ async function main() {
       !f.endsWith(".app.json") &&
       !f.endsWith(".storyboard.json") &&
       !f.endsWith(".timeline.json") &&
+      !f.endsWith(".game.json") &&
       !f.endsWith(".composition.json") &&
       !f.endsWith(".recipe.json")
   );
@@ -561,6 +594,7 @@ async function main() {
       `${bundles.length} app bundle(s), ` +
       `${storyboards.length} storyboard(s), ` +
       `${timelines.length} timeline(s), ` +
+      `${games.length} game(s), ` +
       `${compositions.length} composition(s), and ` +
       `${recipes.length} recipe(s)...\n`
   );
@@ -623,6 +657,9 @@ async function main() {
   }
   for (const file of timelines) {
     jobs.push({ label: file.slice(repoRoot.length + 1), failure: await checkTimeline(file) });
+  }
+  for (const file of games) {
+    jobs.push({ label: file.slice(repoRoot.length + 1), failure: await checkGame(file) });
   }
   // A composition is a document fragment, not a graph: what rots is a
   // parameter pointer that no longer lands on a child field, or a clip the

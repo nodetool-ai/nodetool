@@ -4,11 +4,12 @@ import { z } from "zod";
 import sharp from "sharp";
 import { getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
 import { AmbiguousGameIdError, Asset, Game, Project, Workspace } from "@nodetool-ai/models";
-import { gameAssetBinding, gameDocument, type GameDocument } from "@nodetool-ai/protocol/game.js";
+import { exampleGameSummary, gameAssetBinding, gameDocument, installExampleGameInput, type GameDocument } from "@nodetool-ai/protocol/game.js";
 import { createTopDownRoomGame, gameDocumentOp, GameOpError, validateGame } from "@nodetool-ai/game-runtime";
 import type { Workspace as RunWorkspace } from "@nodetool-ai/runtime";
 import { getAssetAdapter } from "../../lib/storage.js";
 import { getAssetStorageKey, retrieveAssetBytes } from "../../lib/asset-paths.js";
+import { installExampleGameAssets, listExampleGames } from "../../lib/example-games.js";
 import { workspaceFromRow } from "../../lib/workflow-workspace.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -162,6 +163,44 @@ async function publishDocument(userId: string, game: Game, baseRevision: string,
   return { game: info(updated), document };
 }
 
+async function createGame(
+  userId: string,
+  projectId: string,
+  name: string,
+  source?: GameDocument
+): Promise<{ game: z.infer<typeof gameInfo>; document: GameDocument }> {
+  if (!(await Project.findOwned(userId, projectId))) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+  }
+  const workspaceRow = await projectWorkspace(userId, projectId);
+  const workspace = workspaceFromRow(workspaceRow);
+  if (!workspace) {
+    throwApiError(ApiErrorCode.SERVICE_UNAVAILABLE, "Workspace storage is unavailable");
+  }
+  const id = randomUUID().replace(/-/g, "");
+  const revision = newRevision();
+  const document = validatedDocument(source ?? createTopDownRoomGame(id), id, revision);
+  const candidate = new Game({
+    id,
+    user_id: userId,
+    project_id: projectId,
+    workspace_id: workspaceRow.id,
+    name,
+    current_revision: revision
+  });
+  await writeRevision(workspace, candidate, document);
+  const game = await Game.insertNew({
+    id,
+    userId,
+    projectId,
+    workspaceId: workspaceRow.id,
+    name,
+    revision
+  });
+  if (!game) throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game already exists");
+  return { game: info(game), document };
+}
+
 export const gamesRouter = router({
   list: protectedProcedure
     .input(z.object({ projectId: z.string() }))
@@ -176,38 +215,29 @@ export const gamesRouter = router({
   create: protectedProcedure
     .input(z.object({ projectId: z.string(), name: z.string().min(1).max(200), document: gameDocument.optional() }))
     .output(gameWithDocument)
+    .mutation(({ ctx, input }) => createGame(ctx.userId, input.projectId, input.name, input.document)),
+
+  examples: protectedProcedure
+    .output(z.array(exampleGameSummary))
+    .query(({ ctx }) => listExampleGames(ctx.apiOptions)),
+
+  installExample: protectedProcedure
+    .input(installExampleGameInput)
+    .output(gameWithDocument)
     .mutation(async ({ ctx, input }) => {
+      // The Examples page targets the personal project, which exists only
+      // once something has been saved to it.
+      if (input.projectId === `personal:${ctx.userId}`) await Project.ensurePersonal(ctx.userId);
       if (!(await Project.findOwned(ctx.userId, input.projectId))) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
       }
-      const workspaceRow = await projectWorkspace(ctx.userId, input.projectId);
-      const workspace = workspaceFromRow(workspaceRow);
-      if (!workspace) {
-        throwApiError(ApiErrorCode.SERVICE_UNAVAILABLE, "Workspace storage is unavailable");
+      const installed = await installExampleGameAssets(ctx.userId, input.projectId, ctx.apiOptions, input.slug);
+      try {
+        return await createGame(ctx.userId, input.projectId, input.name ?? installed.bundle.name, installed.document);
+      } catch (error) {
+        await installed.rollback();
+        throw error;
       }
-      const id = randomUUID().replace(/-/g, "");
-      const revision = newRevision();
-      const source = input.document ?? createTopDownRoomGame(id);
-      const document = validatedDocument(source, id, revision);
-      const candidate = new Game({
-        id,
-        user_id: ctx.userId,
-        project_id: input.projectId,
-        workspace_id: workspaceRow.id,
-        name: input.name,
-        current_revision: revision
-      });
-      await writeRevision(workspace, candidate, document);
-      const game = await Game.insertNew({
-        id,
-        userId: ctx.userId,
-        projectId: input.projectId,
-        workspaceId: workspaceRow.id,
-        name: input.name,
-        revision
-      });
-      if (!game) throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game already exists");
-      return { game: info(game), document };
     }),
 
   get: protectedProcedure

@@ -1312,6 +1312,13 @@ async function main() {
     await copyDir(exampleTimelinesSrc, exampleTimelinesDest);
   }
 
+  const exampleGamesSrc = path.join(BASE_NODES_NODETOOL_DIR, "examples", "games");
+  const exampleGamesDest = path.join(BUNDLE_DIR, "examples", "games");
+  if (fs.existsSync(exampleGamesSrc)) {
+    await fsp.mkdir(path.dirname(exampleGamesDest), { recursive: true });
+    await copyDir(exampleGamesSrc, exampleGamesDest);
+  }
+
   if (fs.existsSync(assetsSrc)) {
     await fsp.mkdir(path.dirname(assetsDest), { recursive: true });
     await copyDir(assetsSrc, assetsDest);

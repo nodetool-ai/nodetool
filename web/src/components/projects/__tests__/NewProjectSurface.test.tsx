@@ -29,6 +29,11 @@ jest.mock("../../portal/DashboardExampleTimelines", () => ({
   default: () => <div>Timeline examples</div>
 }));
 
+jest.mock("../../portal/DashboardExampleGames", () => ({
+  __esModule: true,
+  default: () => <div>Game examples</div>
+}));
+
 const createProject = jest.fn(async () => ({
   id: "p9",
   name: "A spot for our desk lamp",
@@ -857,7 +862,8 @@ describe("NewProjectSurface", () => {
     for (const [tab, content] of [
       ["Workflows", "Workflow examples"],
       ["Storyboards", "Storyboard examples"],
-      ["Timelines", "Timeline examples"]
+      ["Timelines", "Timeline examples"],
+      ["Games", "Game examples"]
     ]) {
       await user.click(within(examples).getByRole("tab", { name: tab }));
       expect(await within(examples).findByText(content)).toBeInTheDocument();
