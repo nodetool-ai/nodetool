@@ -24,23 +24,44 @@ import {
 import { getSetting } from "../settings-registry.js";
 import { extractTextContent } from "./chat-history.js";
 
-/**
- * Documented defaults for the two numeric compaction settings.
- *
- * `thresholdTokens` is compared against `estimatePromptTokens`, which
- * tokenizes the serialized messages and their tool calls and nothing else — it
- * cannot see the tool definitions the same turn sends, and it reads a resolved
- * image as the length of its base64. The comparison is therefore a size signal
- * rather than a prompt measurement, and the default sits well under any
- * shipping context window instead of close to one.
- */
+/** Documented default for how many recent user turns survive a compaction. */
 export const COMPACTION_DEFAULTS = {
-  thresholdTokens: 120_000,
   keepUserTurns: 4
 } as const;
 
+/** Share of the model's input window at which a chat turn compacts. */
+export const COMPACTION_WINDOW_FRACTION = 0.9;
+
 /** Ceiling on the summary itself, so a compaction cannot grow the prompt. */
 export const COMPACTION_SUMMARY_MAX_TOKENS = 4_000;
+
+/**
+ * Room kept for the summarizer's own instructions on top of its transcript,
+ * so a thread compacted at the threshold still fits one summarizer call.
+ */
+const COMPACTION_PROMPT_RESERVE_TOKENS = 1_000;
+
+/**
+ * The prompt size at which a turn compacts: {@link COMPACTION_WINDOW_FRACTION}
+ * of the input window, lowered on a small window so the summarizer request
+ * (the transcript plus its instructions plus the summary it writes) still
+ * fits. An explicit `NODETOOL_CHAT_COMPACTION_TOKENS` wins over both.
+ */
+export function compactionThreshold(
+  settings: Pick<CompactionSettings, "thresholdTokens">,
+  contextWindowTokens: number
+): number {
+  if (settings.thresholdTokens !== null) return settings.thresholdTokens;
+  return Math.max(
+    1,
+    Math.min(
+      Math.floor(contextWindowTokens * COMPACTION_WINDOW_FRACTION),
+      contextWindowTokens -
+        COMPACTION_SUMMARY_MAX_TOKENS -
+        COMPACTION_PROMPT_RESERVE_TOKENS
+    )
+  );
+}
 
 /**
  * Per-field cut in the transcript the summarizer reads. The same bound the
@@ -51,7 +72,11 @@ const SUMMARY_FIELD_CHARS = 25_000;
 
 /** What a compaction reads out of the settings store. */
 export interface CompactionSettings {
-  thresholdTokens: number;
+  /**
+   * Explicit `NODETOOL_CHAT_COMPACTION_TOKENS`, or null to derive the
+   * threshold from the model's context window ({@link compactionThreshold}).
+   */
+  thresholdTokens: number | null;
   keepUserTurns: number;
   /** `provider/model`, a bare model id, or null to use the turn's own. */
   model: string | null;
@@ -71,7 +96,10 @@ export async function readCompactionSettings(): Promise<CompactionSettings> {
       return null;
     }
   };
-  const positive = (raw: string | null, fallback: number): number => {
+  const positive = <T extends number | null>(
+    raw: string | null,
+    fallback: T
+  ): number | T => {
     if (raw === null) return fallback;
     const parsed = Number(raw.trim());
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -82,7 +110,7 @@ export async function readCompactionSettings(): Promise<CompactionSettings> {
     read("NODETOOL_COMPACTION_MODEL")
   ]);
   return {
-    thresholdTokens: positive(threshold, COMPACTION_DEFAULTS.thresholdTokens),
+    thresholdTokens: positive(threshold, null),
     keepUserTurns: Math.floor(
       positive(keep, COMPACTION_DEFAULTS.keepUserTurns)
     ),

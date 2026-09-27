@@ -2500,12 +2500,19 @@ in two different places.
   provider's view is shortened — the full thread stays in the database for the
   UI and `nodetool.threads.*`. The cut lands on a user message, which is what
   keeps a tool call attached to its result.
-- **Two triggers**: the estimated prompt crossing
-  `NODETOOL_CHAT_COMPACTION_TOKENS` before the loop, and the provider itself
+- **Two triggers**: the prompt reaching the threshold before the loop, and the provider itself
   reporting that the prompt did not fit, which compacts and retries the turn
   once. A provider holding the transcript upstream skips the first, since
   shortening what NodeTool sends does not shorten what that provider already
   has.
+- **The threshold is 90% of the model's input window** unless
+  `NODETOOL_CHAT_COMPACTION_TOKENS` sets it. `resolveContextWindow` in
+  `packages/runtime/src/providers/context-window.ts` asks the provider's
+  Models API first (`BaseProvider.getContextWindow`), then models.dev by
+  provider route and model, then falls back to 128 000 tokens with a warning.
+  The chat turn caches the window per connection and `provider/model`. The
+  prompt size is the larger of the local estimate and the provider-reported
+  size of the thread's last call (`BaseProvider.lastCallTokens`).
 - **A failed summarizer leaves the thread uncompacted** and the turn runs
   against the full history, with a `log_update` saying so. The alternative to
   an imperfect summary is a turn that cannot run at all.
