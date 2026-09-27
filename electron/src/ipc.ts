@@ -978,6 +978,18 @@ export function initializeIpcHandlers(): void {
     },
   );
 
+  createIpcMainHandler(
+    IpcChannels.RUNTIME_PACKAGE_UPDATE,
+    async (_event, data: { packageId: string }) => {
+      if (!isRuntimePackageId(data.packageId)) {
+        return { success: false, message: `Unknown package ID: ${data.packageId}` };
+      }
+      logMessage(`Updating runtime package: ${data.packageId}`);
+      const { updateRuntimePackage } = await import("./packageManager");
+      return await updateRuntimePackage(data.packageId);
+    },
+  );
+
   createIpcMainHandler(IpcChannels.RUNTIME_GET_INSTALL_LOCATION, async () => {
     return getCondaInstallLocation();
   });

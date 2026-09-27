@@ -1411,6 +1411,9 @@ export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[
       description: pkg.description,
       installed: s.installed,
       installing: runtimeRegistry.isInstalling(s.id),
+      installedVersion: s.installedVersion,
+      latestVersion: s.latestVersion,
+      updateAvailable: s.updateAvailable,
     };
   });
 }
@@ -1449,6 +1452,17 @@ export async function installRuntimePackage(
   }
   logMessage(`Failed to install runtime package ${packageId}: ${result.message}`, "error");
   return { success: false, message: `Failed to install: ${result.message}` };
+}
+
+/**
+ * Reinstall a runtime package at the version this build pins. Delegates to
+ * the registry's `update` lifecycle.
+ */
+export async function updateRuntimePackage(
+  packageId: RuntimePackageId,
+): Promise<{ success: boolean; message: string }> {
+  logMessage(`Updating runtime: ${packageId}`);
+  return runLifecycleToCompletion(packageId, "update");
 }
 
 /**

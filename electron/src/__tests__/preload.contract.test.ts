@@ -58,6 +58,7 @@ const IpcChannels = {
   RUNTIME_PACKAGE_STATUSES: "runtime-package-statuses",
   RUNTIME_PACKAGE_INSTALL: "runtime-package-install",
   RUNTIME_PACKAGE_UNINSTALL: "runtime-package-uninstall",
+  RUNTIME_PACKAGE_UPDATE: "runtime-package-update",
   RUNTIME_GET_INSTALL_LOCATION: "runtime-get-install-location",
   RUNTIME_SELECT_INSTALL_LOCATION: "runtime-select-install-location",
   GET_LOGS: "get-logs",
@@ -168,6 +169,20 @@ describe("preload contract", () => {
       IpcChannels.PACKAGE_LIST_INSTALLED,
       IpcChannels.PACKAGE_INSTALL,
       IpcChannels.PACKAGE_UNINSTALL,
+    ]);
+  });
+
+  test("runtime package methods route to expected IPC channels", () => {
+    jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
+
+    api.packages.installRuntime("claude-agent-sdk");
+    api.packages.uninstallRuntime("claude-agent-sdk");
+    api.packages.updateRuntime("claude-agent-sdk");
+
+    expect(jest.mocked(electronMock.ipcRenderer.invoke).mock.calls).toEqual([
+      [IpcChannels.RUNTIME_PACKAGE_INSTALL, { packageId: "claude-agent-sdk", installLocation: undefined }],
+      [IpcChannels.RUNTIME_PACKAGE_UNINSTALL, { packageId: "claude-agent-sdk" }],
+      [IpcChannels.RUNTIME_PACKAGE_UPDATE, { packageId: "claude-agent-sdk" }],
     ]);
   });
 

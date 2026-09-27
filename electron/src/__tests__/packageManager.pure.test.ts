@@ -1,10 +1,12 @@
 import {
+  getRuntimePackageStatuses,
   getPackageDescription,
   needsTorchPlatformDetection,
   isRegistryWheelPackage,
   validateRepoId,
   selectRegistryWheelUrl,
 } from "../packageManager";
+import { runtimeRegistry } from "../runtime/packages/registry";
 
 describe("getPackageDescription", () => {
   it("returns override for known repo_id", () => {
@@ -134,5 +136,30 @@ describe("selectRegistryWheelUrl", () => {
       cudaTag: "cu12.4",
     });
     expect(result).toContain("cu12.4");
+  });
+});
+
+describe("getRuntimePackageStatuses", () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it("passes an npm package's installed and pinned versions to the renderer", async () => {
+    jest.spyOn(runtimeRegistry, "statuses").mockResolvedValue([
+      {
+        id: "claude-agent-sdk",
+        installed: true,
+        installedVersion: "0.3.190",
+        latestVersion: "0.3.283",
+        updateAvailable: true,
+      },
+    ]);
+    const [status] = await getRuntimePackageStatuses();
+    expect(status).toMatchObject({
+      id: "claude-agent-sdk",
+      name: "Claude Agent SDK",
+      installed: true,
+      installedVersion: "0.3.190",
+      latestVersion: "0.3.283",
+      updateAvailable: true,
+    });
   });
 });
