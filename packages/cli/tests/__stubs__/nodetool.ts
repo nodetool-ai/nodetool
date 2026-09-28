@@ -200,14 +200,17 @@ export class ProcessingContext {
     | ((key: string, userId: string) => Promise<string | null> | string | null)
     | null;
   readonly userId: string;
+  readonly storage: unknown;
   constructor(opts?: {
     userId?: string;
+    storage?: unknown;
     secretResolver?: (
       key: string,
       userId: string
     ) => Promise<string | null> | string | null;
   }) {
     this.userId = opts?.userId ?? "1";
+    this.storage = opts?.storage ?? null;
     this._secretResolver = opts?.secretResolver ?? null;
   }
   setModelInterfaces(interfaces: Record<string, unknown>): void {

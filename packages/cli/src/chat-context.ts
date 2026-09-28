@@ -11,8 +11,10 @@
  * anything downstream to reference.
  */
 
-import { resolveLocalSecret } from "./local-secrets.js";
+import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { createLocalWorkspace, ProcessingContext } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
+import { resolveLocalSecret } from "./local-secrets.js";
 import { localModelInterfaces } from "./local-model-interfaces.js";
 
 export async function createChatContext(opts: {
@@ -24,7 +26,10 @@ export async function createChatContext(opts: {
     jobId: crypto.randomUUID(),
     userId: opts.userId ?? "1",
     workspace: workspaceDir ? createLocalWorkspace(workspaceDir) : null,
-    secretResolver: resolveLocalSecret
+    secretResolver: resolveLocalSecret,
+    // The store `createAsset` writes to. Without it a turn cannot read back
+    // an asset it made unless a server answers on port 7777.
+    storage: new FileStorageAdapter(getDefaultAssetsPath())
   });
   context.setModelInterfaces(await localModelInterfaces());
   return context;
