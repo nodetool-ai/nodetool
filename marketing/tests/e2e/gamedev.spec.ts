@@ -6,15 +6,15 @@ const games = [
   { name: "Neon Drift", slug: "neon-drift", scene: "arena" }
 ];
 
-test("the game page loads each playable example only on request", async ({ page }) => {
-  test.setTimeout(60_000);
-  await page.goto("/gamedev");
-  await expect(page).toHaveTitle(/Game Development with NodeTool/);
-  await expect(page.locator("h1")).toHaveCount(1);
-  const section = page.locator("#example-games");
-  expect(await section.getByRole("group", { name: "Example games" }).getByRole("button").allTextContents()).toEqual(games.map((game) => game.name));
-  await expect(section.locator("iframe")).toHaveCount(0);
-  for (const game of games) {
+for (const game of games) {
+  test(`${game.name} loads only on request and starts its playable scene`, async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto("/gamedev");
+    await expect(page).toHaveTitle(/Game Development with NodeTool/);
+    await expect(page.locator("h1")).toHaveCount(1);
+    const section = page.locator("#example-games");
+    expect(await section.getByRole("group", { name: "Example games" }).getByRole("button").allTextContents()).toEqual(games.map((example) => example.name));
+    await expect(section.locator("iframe")).toHaveCount(0);
     await section.getByRole("button", { name: game.name, exact: true }).click();
     await expect(section.locator("iframe")).toHaveCount(0);
     await section.getByRole("button", { name: `Play ${game.name} here`, exact: true }).click();
@@ -32,8 +32,8 @@ test("the game page loads each playable example only on request", async ({ page 
     await expect(section.getByRole("link", { name: "Open full game" })).toHaveAttribute("href", `/games/${game.slug}/index.html`);
     await section.getByRole("button", { name: "Stop game", exact: true }).click();
     await expect(section.locator("iframe")).toHaveCount(0);
-  }
-});
+  });
+}
 
 test("changing games removes the running player and works by keyboard", async ({ page }) => {
   await page.goto("/gamedev");
