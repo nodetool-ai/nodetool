@@ -1,6 +1,7 @@
 ---
 name: nodetool-app-builder
 description: "Build or repair a NodeTool mini app: operations, widgets, bindings, variables, resources. Use when the deliverable is a screen a person runs, not a graph."
+featured: true
 ---
 
 # Build NodeTool mini apps

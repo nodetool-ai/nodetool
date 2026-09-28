@@ -1,6 +1,7 @@
 ---
 name: motion-curves
 description: Write NodeTool timeline animation curves by hand or bake a JavaScript body into curves once. Use for overshoot, bounce, anticipation, arcs, path draw-on, style-property animation, or motion a preset cannot express.
+featured: true
 ---
 
 # Motion Curves → animation nobody had a preset for

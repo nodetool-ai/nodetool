@@ -32,7 +32,8 @@ import { buildCliToolbelt } from "../agent-toolbelt.js";
 import {
   applySystemPrompt,
   buildCliAgentBelt,
-  createCliCodeActTurn
+  createCliCodeActTurn,
+  loadCliSkillCatalog
 } from "../chat-codeact.js";
 import { createChatContext } from "../chat-context.js";
 import {
@@ -324,6 +325,7 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
   const turn = createCliCodeActTurn({
     tools: belt,
     context,
+    skillCatalog: await loadCliSkillCatalog(context.userId),
     // Calls the sandbox makes have no provider tool-call id of their own.
     onToolCall: ({ name, args }) => {
       emit({ type: "tool_call_update", name, args });

@@ -1,6 +1,7 @@
 ---
 name: motion-direction
 description: Set the motion language for a piece before anything is animated — one easing family, one timing unit, one transition family, one stagger rhythm — and audit a timeline against it. Use when starting a title pass or a whole cut, when animation feels busy, cheap or inconsistent across shots, or when turning a brand or brief into motion rules an agent can follow. Not for individual clip mechanics — that is motion-graphics.
+featured: true
 ---
 
 # Motion Direction → the rules everything else obeys

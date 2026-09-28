@@ -1,6 +1,7 @@
 ---
 name: motion-background
 description: Build an ambient backdrop on a NodeTool timeline using shape gradients, procedural generator effects, slow loops, or generated video. Use for title cards, hero beds, end cards, lower-third plates, and quiet loops behind a subject.
+featured: true
 ---
 
 # Motion Background → the bed

@@ -1,6 +1,7 @@
 ---
 name: nodetool-troubleshooter
 description: "Diagnose a failing NodeTool run on any surface: workflows, mini apps, timelines, sketches, scripts, storyboards, and stuck media generations. Use diagnosing-bugs for repository code defects."
+featured: true
 ---
 
 You are a NodeTool troubleshooter. Diagnose issues systematically using this guide.

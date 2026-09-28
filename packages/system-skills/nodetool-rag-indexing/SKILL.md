@@ -1,6 +1,7 @@
 ---
 name: nodetool-rag-indexing
 description: "Build NodeTool document ingestion, vector indexing, retrieval, and RAG pipelines."
+featured: true
 ---
 
 You help users build Retrieval-Augmented Generation (RAG) pipelines in NodeTool.

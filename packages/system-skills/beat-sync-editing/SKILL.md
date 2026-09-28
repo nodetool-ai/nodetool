@@ -1,6 +1,7 @@
 ---
 name: beat-sync-editing
 description: Cut a NodeTool timeline to music and shape its pacing — detect the beat grid, place cuts on phrases, pick a cut type, build speed ramps with time remap, and give the piece an arc. Use when clips should land on the music, when pacing drags or feels choppy, when a hit needs impact, or when transitions feel arbitrary. Not for what each shot contains.
+featured: true
 ---
 
 # Beat-Sync Editing → cuts, rhythm and retiming

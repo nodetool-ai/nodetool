@@ -1,6 +1,7 @@
 ---
 name: nodetool-js-scripting
 description: "Write JavaScript that runs in NodeTool's QuickJS sandbox: Code node bodies, saved JS script documents, sandbox package imports, and calling nodes from code."
+featured: true
 ---
 
 # Write NodeTool sandbox JavaScript

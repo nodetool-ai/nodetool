@@ -1,6 +1,7 @@
 ---
 name: logo-reveal
 description: Animate a brand mark on a NodeTool timeline — stroke draw-on, mask wipe, staggered build, wordmark type, an idle loop, and landing the settle on a sound logo. Use for an intro sting, a sign-off, an end card, a splash, or a loader loop. Not for designing the mark itself.
+featured: true
 ---
 
 # Logo Reveal → the sting

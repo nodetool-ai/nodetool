@@ -1,6 +1,7 @@
 ---
 name: native-game
 description: "Build or revise a playable 2D game in NodeTool's built-in engine, install generated assets, playtest it, and prepare a standalone web build."
+featured: true
 ---
 
 # Build a native game

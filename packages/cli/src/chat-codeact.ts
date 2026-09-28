@@ -33,9 +33,12 @@ import {
   Tool,
   toolForCapabilityName,
   createChatCodeActSession,
+  formatSkillCatalogForPrompt,
+  mergeSystemSkills,
   type ChatCodeActSession,
   type PermissionGateOptions
 } from "@nodetool-ai/agents";
+import { Skill } from "@nodetool-ai/models";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { isNonBlankString } from "./predicates.js";
 
@@ -91,6 +94,8 @@ interface CliCodeActTurnOptions {
   signal?: AbortSignal;
   /** Fires before each tool the sandbox calls. */
   onToolCall?: (record: { name: string; args: Record<string, unknown> }) => void;
+  /** The skill catalog section from {@link loadCliSkillCatalog}. */
+  skillCatalog?: string;
 }
 
 export function createCliCodeActTurn(
@@ -125,7 +130,29 @@ export function createCliCodeActTurn(
   const viewImage = byName.get(VIEW_IMAGE_TOOL);
   if (viewImage) tools.push(viewImage);
 
-  return { tools, systemPrompt: session.systemPromptSection, session };
+  const systemPrompt = options.skillCatalog
+    ? `${session.systemPromptSection}\n\n${options.skillCatalog}`
+    : session.systemPromptSection;
+  return { tools, systemPrompt, session };
+}
+
+/**
+ * The skill catalog a server chat turn carries: the user's skills plus the
+ * shipped ones. Without it the turn has `load_skill` but no list of names to
+ * load. A database failure costs the user's rows, not the shipped skills.
+ */
+export async function loadCliSkillCatalog(userId: string): Promise<string> {
+  let rows: Skill[] = [];
+  try {
+    rows = await Skill.listByUser(userId);
+  } catch {
+    // The shipped skills still apply.
+  }
+  return formatSkillCatalogForPrompt(
+    mergeSystemSkills(
+      rows.map((row) => ({ name: row.name, description: row.description }))
+    )
+  );
 }
 
 // ---------------------------------------------------------------------------

@@ -41,8 +41,22 @@ const executedCalls: Array<{
 
 const sessionsCreated: Array<{ toolNames: string[] }> = [];
 
+const listSkillsByUser = vi.fn(
+  async (_userId: string): Promise<Array<{ name: string; description: string }>> => []
+);
+
+vi.mock("@nodetool-ai/models", () => ({
+  Skill: { listByUser: (userId: string) => listSkillsByUser(userId) }
+}));
+
 vi.mock("@nodetool-ai/agents", () => ({
   Tool: StubTool,
+  mergeSystemSkills: (rows: Array<{ name: string; description: string }>) => [
+    ...rows,
+    { name: "motion-direction", description: "Set the motion language." }
+  ],
+  formatSkillCatalogForPrompt: (skills: Array<{ name: string }>) =>
+    `## Skills\n${skills.map((skill) => `- /${skill.name}`).join("\n")}`,
   createChatCodeActSession: (options: {
     tools: Array<{ name: string }>;
     executeTool: (call: {
@@ -68,7 +82,7 @@ vi.mock("@nodetool-ai/agents", () => ({
   }
 }));
 
-const { applySystemPrompt, createCliCodeActTurn } = await import(
+const { applySystemPrompt, createCliCodeActTurn, loadCliSkillCatalog } = await import(
   "../src/chat-codeact.js"
 );
 
@@ -169,6 +183,33 @@ describe("createCliCodeActTurn", () => {
     await expect(
       bridge({ id: "codeact_2", name: "nope", args: {} })
     ).rejects.toThrow('Tool "nope" not available');
+  });
+});
+
+describe("skill catalog", () => {
+  it("appends the catalog to the CodeAct contract", () => {
+    const turn = createCliCodeActTurn({
+      tools: [new EchoTool() as never],
+      context,
+      skillCatalog: "## Skills\n- /motion-direction"
+    });
+    expect(turn.systemPrompt).toBe(
+      "CODEACT CONTRACT\n\n## Skills\n- /motion-direction"
+    );
+  });
+
+  it("lists the user's skills and the shipped ones", async () => {
+    listSkillsByUser.mockResolvedValueOnce([
+      { name: "house-style", description: "Our colours." }
+    ]);
+    const catalog = await loadCliSkillCatalog("1");
+    expect(listSkillsByUser).toHaveBeenLastCalledWith("1");
+    expect(catalog).toBe("## Skills\n- /house-style\n- /motion-direction");
+  });
+
+  it("keeps the shipped skills when the skills table cannot be read", async () => {
+    listSkillsByUser.mockRejectedValueOnce(new Error("no database"));
+    expect(await loadCliSkillCatalog("1")).toBe("## Skills\n- /motion-direction");
   });
 });
 

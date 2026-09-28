@@ -1,6 +1,7 @@
 ---
 name: frame-composition
 description: Stage the frame on a NodeTool timeline — grids, focal placement, safe areas per aspect ratio, depth layers and parallax, camera moves, and where elements enter and leave. Use when placing titles, lower thirds, shapes or overlays, when a layout must survive 16:9 and 9:16, when adding a push or a parallax move, or when a frame reads flat or cramped. Not for what a clip says or when it cuts.
+featured: true
 ---
 
 # Frame Composition → staging on the timeline

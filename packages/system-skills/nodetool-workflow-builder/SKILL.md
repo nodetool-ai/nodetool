@@ -1,6 +1,7 @@
 ---
 name: nodetool-workflow-builder
 description: "Create or edit NodeTool workflow graphs, connections, and properties using UI, headless tools, or requested workflow files."
+featured: true
 ---
 
 # Build NodeTool workflows

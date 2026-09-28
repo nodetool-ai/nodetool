@@ -1,6 +1,7 @@
 ---
 name: motion-principles
 description: Choose timing, easing, stagger, anticipation, and follow-through for a NodeTool timeline. Use when motion feels stiff, floaty, busy, or late, or when an entrance, transition, or beat-bound animation needs a duration and curve. The tool contract lives in motion-graphics.
+featured: true
 ---
 
 # Motion Principles → the numbers before the call

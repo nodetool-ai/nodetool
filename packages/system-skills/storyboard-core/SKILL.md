@@ -1,6 +1,7 @@
 ---
 name: storyboard-core
 description: "Use NodeTool storyboard, entity-casting, rendering, and timeline-assembly tools for video production or debugging their contracts."
+featured: true
 ---
 
 The shared half of every NodeTool video job. The use-case skills carry the style,

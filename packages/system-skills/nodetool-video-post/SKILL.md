@@ -1,6 +1,7 @@
 ---
 name: nodetool-video-post
 description: "Repair or re-generate footage already on a NodeTool timeline: cutouts, tracking, outpainting, upscaling, generated sound, voice replacement, lip sync. Covers the candidate review protocol these return."
+featured: true
 ---
 
 # Post on a saved timeline

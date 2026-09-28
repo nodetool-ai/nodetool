@@ -93,6 +93,27 @@ describe("skills capabilities", () => {
     expect(listed.count).toBe(1);
   });
 
+  it("matches a query word by word, best match first", async () => {
+    await call("create_skill", {
+      name: "motion-curves",
+      description: "Custom timeline animation curves.",
+      content: "body"
+    });
+    await call("create_skill", {
+      name: "motion-graphics",
+      description: "Author motion graphics on a timeline.",
+      content: "body"
+    });
+    await call("create_skill", {
+      name: "release-notes",
+      description: "Writing release notes.",
+      content: "body"
+    });
+    const listed = await call("list_skills", { query: "motion graphics timeline" });
+    const names = (listed.skills as Array<{ name: string }>).map((s) => s.name);
+    expect(names).toEqual(["motion-graphics", "motion-curves"]);
+  });
+
   it("refuses a duplicate name and reports a missing skill", async () => {
     await call("create_skill", {
       name: "release-notes",
@@ -154,6 +175,29 @@ describe("skill prompt blocks", () => {
     expect(block).toContain("`/release-notes` — Writing release notes.");
     expect(block).toContain("`/bug-triage` — Triaging incoming bugs.");
     expect(formatSkillCatalogForPrompt([])).toBe("");
+  });
+
+  it("lists user and featured shipped skills, and points at list_skills for the rest", () => {
+    const block = formatSkillCatalogForPrompt([
+      { name: "mine", description: "My own skill." },
+      {
+        name: "motion-graphics",
+        description: "Timeline motion.",
+        system: true,
+        featured: true
+      },
+      {
+        name: "veo-3-prompting",
+        description: "Prompt Veo 3.",
+        system: true,
+        featured: false
+      }
+    ]);
+    expect(block).toContain("`/mine` — My own skill.");
+    expect(block).toContain("`/motion-graphics` — Timeline motion.");
+    expect(block).not.toContain("veo-3-prompting");
+    expect(block).toContain("1 more shipped skill");
+    expect(block).toContain("list_skills");
   });
 
   it("finds only known names invoked at a word boundary", () => {

@@ -73,8 +73,25 @@ describe("parseSkillMarkdown", () => {
     expect(parseSkillMarkdown(`---\nname: alpha\n${line}\n---\nbody`)).toEqual({
       name: "alpha",
       description,
-      content: "body"
+      content: "body",
+      featured: false
     });
+  });
+
+  // The always-on catalog lists only featured shipped skills. A value other
+  // than a literal true must not feature a skill by accident.
+  it.each([
+    ["featured: true", true],
+    ["featured: false", false],
+    ["featured: yes", false]
+  ])("reads %j as featured %s", (line, featured) => {
+    expect(
+      parseSkillMarkdown(`---\nname: alpha\ndescription: d\n${line}\n---\nbody`)
+        ?.featured
+    ).toBe(featured);
+    expect(
+      parseSkillMarkdown("---\nname: alpha\ndescription: d\n---\nbody")?.featured
+    ).toBe(false);
   });
 
   it("strips a matched quote pair from a name", () => {
@@ -106,12 +123,22 @@ describe("parseSkillMarkdown", () => {
       parseSkillMarkdown(
         "---\nname: alpha\ndescription: d\n--- and more\n---\nbody"
       )
-    ).toEqual({ name: "alpha", description: "d", content: "body" });
+    ).toEqual({
+      name: "alpha",
+      description: "d",
+      content: "body",
+      featured: false
+    });
     expect(
       parseSkillMarkdown(
         "---\nname: alpha\n--- and more\ndescription: d\n---\nbody"
       )
-    ).toEqual({ name: "alpha", description: "d", content: "body" });
+    ).toEqual({
+      name: "alpha",
+      description: "d",
+      content: "body",
+      featured: false
+    });
   });
 
   // Pinned by enumeration rather than chosen: these are the readings the
@@ -120,37 +147,44 @@ describe("parseSkillMarkdown", () => {
     ["lowercases the name", "---\nname: ALPHA\ndescription: d\n---\nbody", {
       name: "alpha",
       description: "d",
-      content: "body"
+      content: "body",
+      featured: false
     }],
     ["keeps a body horizontal rule", "---\nname: alpha\ndescription: d\n---\na\n\n---\n\nb", {
       name: "alpha",
       description: "d",
-      content: "a\n\n---\n\nb"
+      content: "a\n\n---\n\nb",
+      featured: false
     }],
     ["reads CRLF", "---\r\nname: alpha\r\ndescription: d\r\n---\r\nbody\r\n", {
       name: "alpha",
       description: "d",
-      content: "body"
+      content: "body",
+      featured: false
     }],
     ["takes the first of a repeated key", "---\nname: alpha\ndescription: one\ndescription: two\n---\nbody", {
       name: "alpha",
       description: "one",
-      content: "body"
+      content: "body",
+      featured: false
     }],
     ["ignores a comment line", "---\n#name: fake\nname: alpha\ndescription: d\n---\nbody", {
       name: "alpha",
       description: "d",
-      content: "body"
+      content: "body",
+      featured: false
     }],
     ["keeps a colon inside a value", "---\nname: alpha\ndescription: Use when: it matters\n---\nbody", {
       name: "alpha",
       description: "Use when: it matters",
-      content: "body"
+      content: "body",
+      featured: false
     }],
     ["keeps dashes inside a value", "---\nname: alpha\ndescription: a --- b\n---\nbody", {
       name: "alpha",
       description: "a --- b",
-      content: "body"
+      content: "body",
+      featured: false
     }]
   ])("%s", (_label, source, expected) => {
     expect(parseSkillMarkdown(source)).toEqual(expected);

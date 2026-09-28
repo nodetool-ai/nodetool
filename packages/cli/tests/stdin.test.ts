@@ -77,6 +77,8 @@ vi.mock("@nodetool-ai/chat", () => ({
 }));
 
 vi.mock("@nodetool-ai/agents", async () => ({
+  mergeSystemSkills: () => [],
+  formatSkillCatalogForPrompt: () => "",
   // The permission ladder is the real one: the session's gate is built from
   // it, and a second copy of the classification map is the thing A2 exists to
   // prevent.

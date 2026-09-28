@@ -1,6 +1,7 @@
 ---
 name: caption-titles
 description: Add and animate a consistent text layer on an existing NodeTool timeline. Use for titles, lower-thirds, captions, callouts, end cards, number tickers, deterministic scrambles, and text on a path.
+featured: true
 ---
 
 # Caption & Titles → Timeline Agent

@@ -154,6 +154,8 @@ vi.mock("@nodetool-ai/agents", async () => {
       if (typeof run === "function") run({});
       return new NamedTool(name);
     },
+    mergeSystemSkills: () => [],
+    formatSkillCatalogForPrompt: () => "",
     createChatCodeActSession: (options: { tools: Array<{ name: string }> }) => {
       sessionBelts.push(options.tools.map((t) => t.name));
       return {

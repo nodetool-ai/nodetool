@@ -1,6 +1,7 @@
 ---
 name: motion-ad
 description: "Make a short sound-off motion-graphics ad (a 15s Facebook, Instagram or TikTok ad, 4:5 or 9:16) from a product's real screenshots and photos, with every claim checked against the page it links to. Use for an animated promo, a kinetic-type ad, a 9:16 version of one, or a revision of one (swap the hero, change the CTA, re-render). For generated footage use product-commercial, for a person on camera ugc-video."
+featured: true
 ---
 
 # Motion ad

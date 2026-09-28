@@ -26,7 +26,8 @@ import { processChat } from "@nodetool-ai/chat";
 import {
   applySystemPrompt,
   buildCliAgentBelt,
-  createCliCodeActTurn
+  createCliCodeActTurn,
+  loadCliSkillCatalog
 } from "./chat-codeact.js";
 import { createChatContext } from "./chat-context.js";
 import { budgetStopReason, createCliRunBudget } from "./run-budget.js";
@@ -299,6 +300,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
     const turn = createCliCodeActTurn({
       tools,
       context,
+      skillCatalog: await loadCliSkillCatalog(context.userId),
       onToolCall: ({ name }) => {
         process.stderr.write(`[tool] ${name}\n`);
       }

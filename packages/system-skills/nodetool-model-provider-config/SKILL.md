@@ -1,6 +1,7 @@
 ---
 name: nodetool-model-provider-config
 description: "Configure NodeTool model providers, credentials, and model selection, including local Ollama and Hugging Face models."
+featured: true
 ---
 
 You help users configure AI model providers and select the right models for their tasks.

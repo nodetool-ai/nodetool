@@ -10,8 +10,10 @@ import {
 } from "../src/codeact/chat-codeact.js";
 import {
   buildNodetoolApiPromptSection,
-  hasNodetoolApiTools
+  hasNodetoolApiTools,
+  NODETOOL_API_NAMESPACE_TOOLS
 } from "../src/codeact/nodetool-api.js";
+import { findSystemSkill } from "../src/system-skills.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
 const objectSchema = (props: Record<string, unknown>) => ({
@@ -675,6 +677,17 @@ describe("nodetool object model", () => {
     const { executeTool } = createFakeRouter();
     const session = makeSession(WORKFLOW_TOOLS, executeTool);
     expect(session.systemPromptSection).toContain("nodetool");
+  });
+
+  it("names each namespace's shipped skill when the belt can load skills", () => {
+    const every = Object.values(NODETOOL_API_NAMESPACE_TOOLS).flat();
+    const section = buildNodetoolApiPromptSection([...every, "load_skill"]);
+    const named = [...section.matchAll(/Skill: `([a-z0-9-]+)`/g)].map((m) => m[1]);
+    expect(named.length).toBeGreaterThan(15);
+    // A pointer at a skill that does not ship is a load that fails mid-task.
+    expect(named.filter((name) => findSystemSkill(name) === null)).toEqual([]);
+    // Without load_skill on the belt the pointers would name a dead end.
+    expect(buildNodetoolApiPromptSection(every)).not.toContain("Skill: `");
   });
 
   it("runs a single node and delegates to sub-agents", async () => {

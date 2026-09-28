@@ -101,17 +101,38 @@ const listSkills: CapabilityExport = {
             system: true
           }))
       ];
-      const skills = merged.filter(
-        (skill) =>
-          !query ||
-          `${skill.name} ${skill.description}`.toLowerCase().includes(query)
-      );
+      const skills = query ? rankByQuery(merged, query) : merged;
       return { success: true, count: skills.length, skills };
     } catch (e) {
       return { success: false, error: errorMessage(e) };
     }
   }
 };
+
+/**
+ * The skills a query finds, best match first. A query is read word by word: a
+ * whole-phrase substring missed "motion graphics timeline" for a skill named
+ * `motion-graphics` whose description says "on a timeline". A skill that
+ * holds more of the words ranks higher; one that holds none is left out.
+ */
+function rankByQuery<T extends { name: string; description: string }>(
+  skills: readonly T[],
+  query: string
+): T[] {
+  const words = query.split(/[^a-z0-9]+/).filter((word) => word.length > 1);
+  if (words.length === 0) return [...skills];
+  return skills
+    .map((skill) => {
+      const text = `${skill.name} ${skill.description}`.toLowerCase();
+      const score =
+        words.filter((word) => text.includes(word)).length +
+        (text.includes(query) ? words.length : 0);
+      return { skill, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((entry) => entry.skill);
+}
 
 // ---------------------------------------------------------------------------
 // load_skill

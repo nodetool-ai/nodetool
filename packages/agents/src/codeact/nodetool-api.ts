@@ -1564,6 +1564,12 @@ export const NODETOOL_API_GLOBALS = [
 interface PromptEntry {
   /** Namespace key in {@link NODETOOL_API_NAMESPACE_TOOLS}. */
   namespace: string;
+  /**
+   * The shipped skill with every option, return shape and example for this
+   * namespace. The prompt names it; the detail lives there, so the prompt
+   * pays for a signature list rather than a reference manual.
+   */
+  skill: string;
   /** Rendered doc lines for the prompt. */
   doc: string;
 }
@@ -1571,350 +1577,175 @@ interface PromptEntry {
 const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "workflows",
-    doc: `- \`nodetool.workflows\` — \`list()\` returns \`{workflows}\`
-  (an envelope, not a bare array), \`get(id)\`, \`run(id, params, {interactive})\`,
-  \`start(id, params)\` (background job), \`debug(id, params)\`, \`validate(idOrGraph)\`,
-  \`create(name, graph, {description, tags})\`, \`versions(id)\`, \`getVersion(id, n)\`,
-  \`snapshot(id, {name})\`, \`restore(id, n)\`, \`deleteVersion(id, n)\`,
-  \`open(id?)\` (the editable object
-  model — see the graph-editing section). \`validate\` answers
-  \`{ok, issues}\` and throws when the graph has errors. \`debug\` runs the
-  workflow and answers one report: \`{workflow_id, run, job, workflow}\` where
-  \`run\` carries \`{status, outputs, error, verdict}\`, \`job\` carries status,
-  cost and logs, and \`outputs\` is keyed by output name with an array of
-  emitted values per name (\`outputs.hook[0]\`). An interactive run returns an
-  escalation: answer it with \`resolve(sessionId, escalationId, action,
-  {outputs, reason, apply_to})\` — retry/substitute/skip/end_stream/fail — and
-  get the next escalation or the final report. Write the whole
-  run-and-resolve loop (\`while (report.status === "escalated") ...\`) in one
-  action. \`list({workflow_type: "example"})\` enumerates the shipped
-  example workflows and \`example("<package>/<name>")\` loads one with its
-  graph — a worked example to read before authoring one.`
+    skill: "api-workflows",
+    doc: `- \`nodetool.workflows\` — saved graphs and their runs: \`list()\` (→
+  \`{workflows}\`, an envelope), \`get(id)\`, \`create(name, graph)\`,
+  \`validate(idOrGraph)\` (throws on errors), \`run(id, params)\`,
+  \`start(id, params)\` (→ job receipt), \`debug(id, params)\`,
+  \`resolve(sessionId, escalationId, action)\`, \`example("<package>/<name>")\`,
+  \`versions\`, \`getVersion\`, \`snapshot\`, \`restore\`, \`deleteVersion\`,
+  \`open(id?)\`. Saving a graph does not run it.`
   },
   {
     namespace: "settings",
-    doc: `- \`nodetool.settings\` — this install's configuration. \`list({group})\`,
-  \`get(key)\` and \`set(key, value)\` cover the ordinary settings; \`secrets()\`
-  reports which credentials are configured, without their values. A secret is
-  never set from code: \`requestSecret(key, {reason, help_url})\` opens a dialog
-  where the user types it, and answers only whether they saved one — read it
-  afterwards with \`nodetool.secrets.get(key)\`, which works only if this run
-  declares the name in its secret scope. When a run has no interactive client
-  the request is refused; say what is missing instead of asking again.`
+    skill: "api-settings",
+    doc: `- \`nodetool.settings\` — \`list({group})\`, \`get(key)\`, \`set(key, value)\`,
+  \`secrets()\` (names only), \`requestSecret(key, {reason, help_url})\`. A secret
+  is never set from code: \`requestSecret\` opens a dialog for the user.`
   },
   {
     namespace: "nodes",
-    doc: `- \`nodetool.nodes\` — the graph author's discovery half. \`search_nodes\`,
-  \`get_node_info\` and \`list_nodes\` are direct tool calls — reach for those
-  when you are only looking something up; these are the same lookups inside an
-  action. NEVER guess a node
-  type: \`await search(["summarize text"], {n_results, input_type, output_type})\`
-  (a bare string works too) to find candidates — it returns
-  \`{total, results}\`, and each result carries its node type on \`type\`
-  (not \`node_type\`) — then
-  \`await info("nodetool.text.Concat")\` for the exact properties, inputs and
-  outputs before you import that node's namespace from the DSL package.
-  \`list({namespace, limit})\`
-  browses a namespace. \`run(type, inputs)\` is the single-node harness — probe
-  one node with a property bag before wiring it into a graph.`
+    skill: "api-workflows",
+    doc: `- \`nodetool.nodes\` — \`search(query)\` (→ \`{total, results}\`, the type is on
+  \`type\`), \`info(type)\`, \`list({namespace})\`, \`run(type, inputs)\` (one node,
+  no graph). NEVER guess a node type: search, then \`info\`.`
   },
   {
     namespace: "agents",
-    doc: `- \`nodetool.agents\` — delegate to sub-agents. \`await run(prompt, {description})\`
-  spawns a child with this belt's tools but a FRESH context: the prompt must be
-  self-contained (ask for JSON in it when you want structure back). Fan out
-  with \`nodetool.batch(prompts, (p) => nodetool.agents.run(p))\` — one
-  settled \`{ok, value | error}\` entry per prompt. For independent work that
-  can run while you do something else, \`start(prompt)\` returns
-  \`(subtask_id)\` immediately and \`await wait({ids})\` collects
-  \`(status, result | error)\` later in the same action — never end without
-  waiting for results you need. Delegate work that benefits
-  from a fresh focused context, not one-tool errands.`
+    skill: "api-agents",
+    doc: `- \`nodetool.agents\` — \`run(prompt)\`, \`start(prompt)\` (→ \`{subtask_id}\`),
+  \`wait({ids})\`. A sub-agent has your tools and a FRESH context, so the
+  prompt must be self-contained.`
   },
   {
     namespace: "models",
-    doc: `- \`nodetool.models\` — model discovery. \`find_model\` / \`list_models\` are
-  direct tool calls, so a plain lookup is one call and not an action; these are
-  the same lookups from inside an action, where a picked model feeds the next
-  call. \`await pick(capability)\` resolves ONE model — the best for that job,
-  the top of the quality leaderboard for image, video, speech and music
-  (e.g. \`pick("text_to_image")\` → \`{provider, model_id, ref}\`). Do not shop
-  around: pick with no options IS the good default. When the user
-  named a model, search for it in the SAME call:
-  \`pick("text_to_image", {query: "flux schnell"})\` — \`query\` is free text over
-  model id and name, and \`pick\` throws when nothing matches instead of
-  returning something else. \`find(capability,
-  {query, provider_hint, prefer_local, limit})\` for the ranked list (returns
-  \`{results}\`),
-  \`list({provider, model_type})\` to browse (also \`{results}\` — neither
-  answers with a bare array), \`forProvider(provider)\` for one
-  provider's own catalog. Never guess a model id — pick one, then pass it to
-  \`nodetool.media.*\`. To set a node's model property, assign the result's
-  \`ref\` verbatim (it is the typed \`{type, provider, id, name}\` value the
-  property wants — the flat \`model_id\` field does not fit).`
+    skill: "api-models",
+    doc: `- \`nodetool.models\` — \`pick(capability, {query})\` (→ one model),
+  \`find(capability)\` (→ \`{results}\`), \`list()\`, \`forProvider(provider)\`,
+  \`generate(prompt, model)\`. Never guess a model id. A node's model property
+  takes the result's \`ref\` verbatim.`
   },
   {
     namespace: "media",
-    doc: `- \`nodetool.media\` — direct generation, no workflow needed. Each call takes a
-  model from \`nodetool.models.pick/find\` (or \`{provider, model_id}\`):
-  \`generateImage(prompt, model, {width, height, output_file})\`,
-  \`editImage(inputFile, prompt, model, {reference_files})\`,
-  \`generateVideo(prompt, model)\`,
-  \`animateImage(inputFile, model)\`,
-  \`videoFromReferences(referenceFiles, model, {prompt})\` — one clip from several
-  image/video references, when more than one reference defines the shot,
-  \`speak(text, model, {voice})\`,
-  \`generateMusic(prompt, model, {lyrics, duration_seconds})\`,
-  \`transcribe(inputFile, model)\`, \`embed(text, model)\`. Results are saved as
-  assets (\`asset://\` URI); pass \`output_file\` for a workspace copy too.
-  Hold each result in a local variable and feed it straight into the next call;
-  record the uris a later action or turn will need with
-  \`nodetool.memory.save\` — never re-run generation for something already saved.
-  Feed results into \`image.*\`, \`audio.*\`, or \`video.*\` by uri. These namespaces take a
-  result, its \`asset_uri\`, or an asset id and return run-local handles. They
-  can combine media too: for example, \`video.addAudio(videoHandle, audioHandle)\`.
-  Save finished handles with \`nodetool.media.toImage/toAudio/toVideo\` before
-  the action ends; keep the returned \`asset://\` ref (in memory if a
-  later turn needs it). Do not pull bytes into the guest, and do not use a
-  handle in a later action — it is dead there.
-  \`editImage\` is the call for "make it like this": pass the image the user
-  attached (or an earlier approved result) as \`inputFile\`, and any further
-  images to match in \`reference_files\` — both take an \`asset://\` uri or a
-  workspace path.
-  To put words on a picture, draw them yourself: \`createCanvas\` with
-  \`fillText\` in the guest, or the flow call
-  \`import { renderText } from "@nodetool-ai/sandbox-flow/lib.image.draw"\`.
-  Never send the user to another tool for text on an image.
-  Judging lives here too, so generate → critique → regenerate is one namespace:
-  \`critique(image, brief, visionModel, {taste_profile})\`,
-  \`compare([imageA, imageB, ...], brief, visionModel)\` (pairwise knockout),
-  \`scoreAdherence(image, brief, visionModel, {questions})\`. The judge takes a
-  VISION chat model — \`pick("generate_message")\` on a vision-capable one, not
-  the image model that generated the picture.
-  \`understandVideo(video, prompt, videoModel, {max_tokens})\` reads a whole clip
-  with a model that takes video (Gemini) and answers \`prompt\` as \`{text}\` —
-  describe it, summarize it, or pull the on-screen text out.
-  Host binaries: \`ffmpeg(args, {inputs, output_file, timeout_seconds})\` runs
-  ffmpeg in the workspace (no shell, workspace paths only, no URL inputs).
-  \`inputs\` stages refs under workspace names first, which is how an asset
-  reaches ffmpeg — concatenating two of them is one call:
-  \`ffmpeg(["-i", "a.mp4", "-i", "b.mp4", "-filter_complex",
-  "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]", "-map", "[v]", "-map", "[a]",
-  "out.mp4"], {inputs: {"a.mp4": uriA, "b.mp4": uriB}, output_file: "out.mp4"})\`;
-  \`ffprobe(path)\` reads a file's format and streams before you decide what to
-  run; \`downloadVideo(url, outputFile, {format,
-  timeout_seconds})\` downloads with yt-dlp. Browse pages with
-  \`nodetool.web.browse(url)\`.`
+    skill: "api-media",
+    doc: `- \`nodetool.media\` — one generation with a picked model, saved as an asset:
+  \`generateImage(prompt, model)\`, \`editImage(inputFile, prompt, model)\`,
+  \`generateVideo(prompt, model)\`, \`animateImage(inputFile, model)\`,
+  \`videoFromReferences(files, model)\`, \`speak(text, model)\`,
+  \`generateMusic(prompt, model)\`, \`transcribe(inputFile, model)\`,
+  \`embed(text, model)\`; judges \`critique(\`, \`compare(\`, \`scoreAdherence(\`,
+  \`understandVideo(\`; \`ffmpeg(args)\`, \`ffprobe(path)\`, \`downloadVideo(url)\`;
+  \`toImage/toAudio/toVideo(handle)\` saves a handle.
+  Hold each result in a local variable and feed it straight into the next
+  call; record the uris a later action or turn will need with
+  \`nodetool.memory.save\` — never re-run generation for something already saved.`
   },
   {
     namespace: "documents",
-    doc: `- \`nodetool.documents\` — file-to-file document conversion (Pandoc/PDF), paths
-  relative to the workspace: \`convert(inputFile, outputFile, {from_format,
-  to_format, extra_args})\`, \`extractText(pdfPath, {start_page, end_page})\`
-  (returns \`{text}\`), \`extractTables(pdfPath, outputJsonFile)\`,
+    skill: "api-assets",
+    doc: `- \`nodetool.documents\` — workspace file conversion: \`convert(inputFile,
+  outputFile)\`, \`extractText(pdfPath)\`, \`extractTables(pdfPath, outFile)\`,
   \`markdownToPdf(inputFile, outputFile)\`, \`pdfToMarkdown(inputFile, outputFile)\`.`
   },
   {
     namespace: "web",
-    doc: `- \`nodetool.web\` — the outside world. \`await search(query, {provider})\`
-  and \`news(query)\` route across the configured search backends host-side;
-  \`provider\` pins one (\`"default"\`, \`"openai"\`, \`"google"\`,
-  \`"dataforseo"\`). \`images(query, {provider})\` is the dedicated image search
-  — title, page link, original image URL, thumbnail URL — routed the same way
-  minus the two providers that answer with prose instead of results
-  (\`"openai"\`, \`"google"\`). \`browse(url)\` returns a page's readable text,
-  \`fetch(url, {method, headers, body})\` is a raw HTTP request,
-  \`download(url, outputFile)\` saves bytes into the workspace, and
-  \`screenshot(url, outputFile)\` renders a page to PNG.`
+    skill: "api-web",
+    doc: `- \`nodetool.web\` — \`search(query)\`, \`news(query)\`, \`images(query)\`,
+  \`browse(url)\` (readable text), \`fetch(url, {method, headers, body})\`,
+  \`download(url, outputFile)\`, \`screenshot(url, outputFile)\`.`
   },
   {
     namespace: "memory",
-    doc: `- \`nodetool.memory\` — durable notes that outlive the conversation. What
-  you save here is readable from every later thread; this thread's notes are
-  shown back to you at the start of each turn, the rest you search for.
-  \`save(content, {title, kind, resources})\` — put the assets, workflows and
-  collections you produce in \`resources\` so you can reuse them later —
-  \`search(query, {limit, thread, kinds})\` finds them by keyword — every word
-  must appear in the title or content — plus \`list({limit, thread, kinds})\`,
-  \`update(memoryId, {content, title, resources})\`, and \`remove(memoryId)\`.`
+    skill: "api-memory",
+    doc: `- \`nodetool.memory\` — durable notes across conversations: \`save(content,
+  {title, kind, resources})\`, \`search(query)\`, \`list()\`, \`update(id, fields)\`,
+  \`remove(id)\`. Put what you produce in \`resources\`.`
   },
   {
     namespace: "threads",
-    doc: `- \`nodetool.threads\` — the chat history, read-only. \`list({limit,
-  workflow_id, cursor})\` returns past conversations newest first, each with
-  its last message; \`get(threadId, {limit, newest_first, cursor, max_chars})\`
-  reads a page of messages; \`last(threadId)\` is the newest one; and
-  \`message(messageId)\` is the full record when a summarized message is not
-  enough. Use it to answer "what did we decide last time" instead of asking
-  the user to repeat it.`
+    skill: "api-memory",
+    doc: `- \`nodetool.threads\` — chat history, read-only: \`list()\`, \`get(threadId)\`,
+  \`last(threadId)\`, \`message(messageId)\`.`
   },
   {
     namespace: "shared",
-    doc: `- \`nodetool.shared\` — the scratchpad for THIS run, gone when it ends (use
-  \`nodetool.memory\` for anything that must outlive it). \`list({kind,
-  key_prefix, sources})\` returns metadata only — keys, titles, kinds, byte
-  sizes — so discovery costs no tokens; \`read(keys)\` fetches the full values
-  of the keys you name and reports misses in \`missing\`; \`publish(key, value,
-  {title, description})\` stores under \`shared:<key>\` for later steps and
-  sub-agents to find. Upstream step and task results land here, so read them
-  rather than asking for them again.`
+    skill: "api-memory",
+    doc: `- \`nodetool.shared\` — the scratchpad of THIS run: \`list()\` (metadata
+  only), \`read(keys)\`, \`publish(key, value)\`. Earlier step and task results
+  land here.`
   },
   {
     namespace: "email",
-    doc: `- \`nodetool.email\` — \`search({subject, text, since_hours_ago, max_results})\`,
+    skill: "api-web",
+    doc: `- \`nodetool.email\` — \`search({subject, text, since_hours_ago})\`,
   \`archive(messageIds)\`, \`label(messageId, label)\`.`
   },
   {
     namespace: "assets",
-    doc: `- \`nodetool.assets\` — \`list({content_type, limit})\`, \`search(query)\`,
-  \`images({query, limit})\` (image handles — pass an id to \`view_image\`),
-  \`get(assetId)\` (the row — no bytes), \`save(name, {content |
-  content_base64 | source, content_type})\` — \`source\` is the asset_url or
-  /api/storage/ key another tool returned, an \`asset://\` URI, or an http(s)
-  URL, copied host-side: to keep a file download_file or run_apify_actor
-  produced, pass its \`asset_url\` as \`source\`; never \`read()\` it to base64
-  first. \`read(nameOrUri)\` (an \`asset://\` URI, an asset id, a
-  /api/storage/ key, or a stored file name → \`{content, content_base64}\`).
-  To edit a generated image, pass the generation result to \`image.*\` and
-  save with \`nodetool.media.toImage(handle).\``
+    skill: "api-assets",
+    doc: `- \`nodetool.assets\` — the library: \`list()\`, \`search(query)\`,
+  \`images()\` (handles for \`view_image\`), \`get(id)\`, \`read(nameOrUri)\`,
+  \`save(name, {content | content_base64 | source})\`. Keep a file another tool
+  stored by passing it as \`source\`, never by reading it to base64.`
   },
   {
     namespace: "jobs",
-    doc: `- \`nodetool.jobs\` — \`list({workflow_id})\`, \`get(jobId)\`, \`logs(jobId)\`,
-  \`await wait(jobId, {timeoutMs, pollMs})\` polls until the job settles
-  (completed/failed/cancelled) and returns the job, whose \`outputs\` hold what
-  the run produced. Pair it with
-  \`nodetool.workflows.start(id, params)\`: start the run — it returns a
-  receipt immediately, it does not wait — do other work, then \`wait\` on
-  \`receipt.job_id\` instead of blocking on \`run()\`. \`wait\` replaces a
-  \`get()\` polling loop — start, wait, and read \`settled.outputs\` in one
-  action, never one \`get()\` per action.`
+    skill: "api-workflows",
+    doc: `- \`nodetool.jobs\` — \`list()\`, \`get(id)\`, \`logs(id)\`,
+  \`wait(idOrReceipt, {timeoutMs})\` (polls until the job settles).`
   },
   {
     namespace: "generations",
-    doc: `- \`nodetool.generations\` — the record of every media generation:
-  \`list({status, provider, capability, thread_id, job_id, since, limit})\`,
-  \`get(generationId)\` (status, cost and how it was priced, the assets it
-  produced, the provider's request id), \`await wait(generationId,
-  {timeout_seconds})\` for one started with \`background: true\`,
-  \`cancel(generationId)\`, \`reconcile(generationId)\` to ask the provider
-  what it billed. Every \`generateImage\`/\`generateVideo\`/… result carries
-  \`generation_id\`; read its cost with \`get\` instead of guessing. For the
-  provider's own record — generations this installation never ran, at the price
-  the provider billed — \`fromProvider(provider, {model, status, since, limit})\`
-  and \`getFromProvider(provider, requestId, {model})\`.`
+    skill: "api-media",
+    doc: `- \`nodetool.generations\` — status and cost of every media generation:
+  \`list()\`, \`get(id)\`, \`wait(id)\` (for \`background: true\`), \`cancel(id)\`,
+  \`reconcile(id)\`, \`fromProvider(provider)\`, \`getFromProvider(provider, requestId)\`.`
   },
   {
     namespace: "collections",
-    doc: `- \`nodetool.collections\` — RAG, end to end. Index with
-  \`index(text, sourceId, {metadata})\` or \`indexBatch([{text, source_id, metadata}],
-  {base_metadata})\`, then retrieve with \`search(text, {n_results})\`,
-  \`hybridSearch(text, {n_results, k_constant})\` (semantic + keyword), or
-  \`query(collection, text, {n_results})\` against a named collection;
-  \`list()\` shows what exists.`
+    skill: "api-collections",
+    doc: `- \`nodetool.collections\` — vector search: \`list()\`, \`query(collection,
+  text)\`, \`index(text, sourceId)\`, \`indexBatch(chunks)\`, \`search(text)\`,
+  \`hybridSearch(text)\`.`
   },
   {
     namespace: "apps",
-    doc: `- \`nodetool.apps\` — \`list()\`, \`get(id)\`, \`create(name,
-  {description, from_workflow_id})\`, \`edit(id, steps)\` and
-  \`debug(applicationId, {params, interact, run, poll})\`. Build an app by
-  creating it, then driving the App Builder tools through \`edit\`:
-  \`[{tool: "add_operation", input: {…}}, {tool: "add_component", input: {…}}]\`
-  — \`edit(id, [])\` returns every tool and its schema. \`debug\` with
-  \`{run: false}\` is the free, instant wiring check after each change.`
+    skill: "api-apps",
+    doc: `- \`nodetool.apps\` — mini apps: \`list()\`, \`get(id)\`, \`create(name)\`,
+  \`edit(id, steps)\` (\`edit(id, [])\` lists the App Builder tools),
+  \`debug(id, {run: false})\` (the free wiring check).`
   },
   {
     namespace: "games",
-    doc: `- \`nodetool.games\` — \`create(name, {project_id})\`, \`get(id, {view, source, revision})\`,
-  \`edit(id, ops, {base_updated_at})\`, and \`setDocument(id, document, {base_updated_at})\`.
-  A whole document is one \`set_document\` edit, validated atomically. Build it with
-  \`@nodetool-ai/sandbox-game\` and \`saveGame({name, document}, {games: nodetool.games, project_id})\`.
-  \`publish(id, {base_revision, message})\` saves an immutable revision when requested.
-  \`installAsset(id, slot, binding, opts)\`, \`generateAsset(id, slot, kind, prompt, opts)\`,
-  \`playtest(id, opts)\`, \`capture(id, opts)\`, \`autoplay(id, {win, target_prefix})\`,
-  and \`build(id, {revision})\` install art, verify routes, inspect frames and export.
-  Read a shipped benchmark with \`listExamples()\` and \`getExample("kindle")\`, then
-  \`installExample(slug, {project_id, name})\` to copy it into a project.`
+    skill: "api-games",
+    doc: `- \`nodetool.games\` — built-in games: \`create(name, {project_id})\`,
+  \`get(id)\`, \`edit(id, ops)\`, \`setDocument(id, document)\`,
+  \`generateAsset(id, slot, kind, prompt)\`, \`installAsset\`, \`playtest(id)\`,
+  \`autoplay(id, {win})\`, \`capture(id)\`, \`publish(id)\`, \`build(id)\`,
+  \`listExamples()\`, \`getExample(slug)\`, \`installExample(slug)\`.`
   },
   {
     namespace: "timelines",
-    doc: `- \`nodetool.timelines\` — \`list()\` (→ \`{timelines}\`),
-  \`create(name, {fps, width, height})\` (→ \`{timeline_id}\`; make your own
-  rather than editing one the user has open — vertical is 1080×1920),
-  \`examples.list({query})\` and \`examples.get(slug, {scene_id, clip_offset,
-  clip_limit})\` — shipped reference timelines, structural stats and bounded
-  scene excerpts. Read a scene before building a showcase. The examples are
-  readable directly; they do not need to be installed in the user's library.
-  \`validate(idOrDocument, {tier: "showcase"})\` — structural validation plus
-  showcase warnings about scene groups, custom animation, finish, camera and
-  concurrent visual layers. Omit the tier for standard validation. Warnings
-  describe document structure; inspect rendered frames to judge the picture.
-  \`preview(idOrDocument, {times_ms, count, range, sheet, width})\` (composited
-  frames at chosen timecodes — read the picture back instead of guessing at it;
-  \`range\` sweeps a window and \`sheet: true\` returns it as one labelled
-  contact sheet),
-  \`compare(a, b, {times_ms, range})\` (what actually changed between two
-  timelines or two versions — per-frame pixel difference and a side-by-side
-  sheet),
-  \`versions(id)\`,
-  \`getVersion(id, n)\`, \`snapshot(id, {name})\` (also \`createVersion\`,
-  the same call under the tool's own name), \`restore(id, n)\`,
-  \`deleteVersion(id, n)\`,
-  \`setDocument(id, document, {fps, width, height, expected_updated_at,
-  snapshot_name})\` — the whole document in one call, validated before it is
-  written and snapshotted first, for authoring a cut from scratch. Missing
-  bookkeeping is filled in: track \`index\`/\`visible\`/\`locked\`, clip
-  \`sourceType\`/\`status\`/\`locked\`/\`versions\`, animation ids and
-  \`markers\`; document-level \`fps\`/\`width\`/\`height\` are read as
-  the sequence's settings; a midi track's \`instrument: {preset}\` and a
-  typewriter's plain \`durationMs\` resolve as the edit ops resolve them. To
-  build that document in code — scenes, shapes, text, keyframes, a beat grid —
-  import \`@nodetool-ai/sandbox-timeline\` and save it with its
-  \`saveTimeline\` —
-  \`render(id, {wait, preview_scale, format, alpha, timeout_ms})\` — the cut
-  as a video, run as a job; render and look before you call a cut done, and
-  draft at a \`preview_scale\` below 1 while you are still iterating — and
-  \`edit(id, ops)\` — the cut itself, server-side: \`[{op: "add_track", type:
-  "audio"}, {op: "add_text_clip", text: "Hi"}, {op: "split_clip", target:
-  "shot", atMs: 3000}, {op: "animate_clip", target: "Hi", animations:
-  [{role: "in", preset: "fade"}]}]\`. Start with \`{op: "get_state"}\` for ids.
-  Shape \`shape.x/y/width/height\` use 0..1 frame fractions from the top-left.
-  Every clip's \`transform.position.x/y\` uses sequence pixels relative to
-  the frame center (positive x right, positive y down), including text and
-  shapes. \`set_effects\` blur takes \`{type: "blur", radius: 80}\` in pixels;
-  unknown effect parameters are rejected.
-  Existing library media goes on with \`{op: "add_media_clip", asset:
-  "asset://<id>.mp4"}\`, which appends after the track's last clip — so one
-  call per asset lays them end to end.`
+    skill: "api-timelines",
+    doc: `- \`nodetool.timelines\` — \`list()\` (→ \`{timelines}\`), \`create(name, {fps,
+  width, height})\`, \`get(id)\`, \`edit(id, ops)\`, \`setDocument(id, document)\`,
+  \`validate(idOrDocument, {tier: "showcase"})\`, \`preview(idOrDocument,
+  {times_ms, range, sheet})\`, \`compare(a, b)\`, \`render(id)\`, versions,
+  \`examples.list/get\`, \`compositions.*\`. Build a motion-graphics piece in
+  code with \`@nodetool-ai/sandbox-timeline\`, and look at previewed frames
+  before you call it done.`
   },
   {
     namespace: "sketches",
-    doc: `- \`nodetool.sketches\` — \`list()\`, \`create(name, {width, height})\`,
-  \`validate(idOrDocument)\`, \`versions(id)\`, \`getVersion(id, n)\`,
-  \`snapshot(id, {name})\`, \`restore(id, n)\`, \`deleteVersion(id, n)\`, and \`edit(id, ops)\` for layer
-  structure server-side: \`[{op: "add_layer", name: "Shadow"}, {op:
-  "set_layer_props", target: "Shadow", opacity: 0.4, blendMode:
-  "multiply"}]\`. Create a blank canvas first, then edit. Pixels are never
-  touched — painting and generation stay with an open editor or a workflow
-  run.`
+    skill: "api-sketches",
+    doc: `- \`nodetool.sketches\` — layered image documents: \`list()\`,
+  \`create(name, {width, height})\`, \`get(id)\`, \`edit(id, ops)\`,
+  \`validate(idOrDocument)\`, versions. Layers only; pixels stay with an editor
+  or a workflow run.`
   },
   {
     namespace: "scripts",
-    doc: `- \`nodetool.scripts\` — \`list()\`, \`get(id)\`, \`voice(id, {targets, provider,
-  model, voice})\`, \`assembleTimeline(id)\`, and \`edit(id, ops)\` for the words
-  themselves: \`[{op: "add_speaker", name: "Narrator"}, {op: "add_line", text:
-  "Once upon a time.", speaker: "Narrator"}]\`. Rewriting a line leaves its
-  takes stale, so \`voice()\` re-records exactly those.`
+    skill: "api-scripts",
+    doc: `- \`nodetool.scripts\` — voice scripts: \`list()\`, \`create(name)\`,
+  \`get(id)\`, \`edit(id, ops)\`, \`voice(id)\`, \`assembleTimeline(id)\`.`
   },
   {
     namespace: "storyboards",
-    doc: `- \`nodetool.storyboards\` — \`list()\`, \`create(name, {brief, style,
-  aspect_ratio})\`, \`get(id)\`, \`renderStills(id, {targets})\`,
-  \`renderClips(id, {targets})\`, \`reviseClip(id, target, instruction)\`,
-  \`assembleTimeline(id)\`, and \`edit(id, ops)\` for the shot list:
-  \`[{op: "add_shot", action: "Wide of the lighthouse at dusk",
-  duration_seconds: 4}, {op: "reorder_shot", target: "shot_2", index: 0}]\`.
-  Create a blank board first, then add shots with \`edit\`.`
+    skill: "api-storyboards",
+    doc: `- \`nodetool.storyboards\` — shot lists: \`list()\`, \`create(name, {brief,
+  style, aspect_ratio})\`, \`get(id)\`, \`edit(id, ops)\`, \`renderStills(id)\`
+  (cheap), \`renderClips(id)\` (expensive), \`reviseClip(id, target,
+  instruction)\`, \`assembleTimeline(id)\`.`
   }
 ];
 
@@ -2086,9 +1917,22 @@ available. A method whose backing tool is missing throws and names the tool.`,
 namespace. Each export takes the one arguments object its tool takes. This is
 the same gated implementation \`nodetool.*\` calls — \`nodetool.*\` stays
 available, and the two cannot disagree. A module this session does not mount
-fails the action by name, before any code runs.`,
-    active.map((entry) => entry.doc).join("\n")
+fails the action by name, before any code runs.`
   ];
+  // A skill is only worth naming when this belt can load it.
+  const skills = names.has("load_skill");
+  if (skills) {
+    sections.push(`Each line below is a summary. Its skill (\`load_skill\`) holds every
+option, return shape and example: load it before the first call into that
+namespace.`);
+  }
+  sections.push(
+    active
+      .map((entry) =>
+        skills ? `${entry.doc} Skill: \`${entry.skill}\`.` : entry.doc
+      )
+      .join("\n")
+  );
   const choice = surfaceChoiceSection(options, names);
   if (choice) sections.push(choice);
   if (options.graphDsl) sections.push(GRAPH_DSL_PROMPT_SECTION);

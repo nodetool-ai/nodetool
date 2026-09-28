@@ -14,6 +14,10 @@
 export interface SkillCatalogEntry {
   name: string;
   description: string;
+  /** A skill that ships with NodeTool, as opposed to one the user wrote. */
+  system?: boolean;
+  /** A shipped skill the always-on catalog lists. */
+  featured?: boolean;
 }
 
 /** One skill in full. */
@@ -41,22 +45,40 @@ export function findInvokedSkillNames(
   return found;
 }
 
-/** The always-on catalog block: what exists, and how to read one in full. */
+/**
+ * The always-on catalog block: what exists, and how to read one in full.
+ *
+ * It lists the user's own skills and the featured shipped ones. Every shipped
+ * description in every request cost more than the rest of the prompt, so the
+ * others are named by count and found with `list_skills`.
+ */
 export function formatSkillCatalogForPrompt(
   skills: readonly SkillCatalogEntry[]
 ): string {
   if (skills.length === 0) return "";
+  const listed = skills.filter((skill) => !skill.system || skill.featured);
+  const unlisted = skills.length - listed.length;
   const lines = [
     "## Skills",
     "",
-    "The user has these skills — saved instructions for a kind of work. The",
-    "description says when a skill applies; call `load_skill` with its name to",
-    "read the instructions before you act on it. A message that names one with",
-    "a leading slash (`/name`) is asking for that skill.",
+    "Skills are saved instructions for a kind of work. The description says",
+    "when a skill applies; call `load_skill` with its name to read the",
+    "instructions before you act on it. A message that names one with a",
+    "leading slash (`/name`) is asking for that skill.",
     ""
   ];
-  for (const skill of skills) {
+  for (const skill of listed) {
     lines.push(`- \`/${skill.name}\` — ${skill.description}`);
+  }
+  if (unlisted > 0) {
+    lines.push(
+      "",
+      `${unlisted} more shipped skill${unlisted === 1 ? " is" : "s are"} not listed: brief shapes`,
+      "for commercials, trailers, explainers and films, a guide for each image,",
+      "video and audio model line, and one reference for each `nodetool.*`",
+      "namespace. Find one with `list_skills({query})` before work of that",
+      "kind, then `load_skill`."
+    );
   }
   return lines.join("\n");
 }

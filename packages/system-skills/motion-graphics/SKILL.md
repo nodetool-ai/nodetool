@@ -1,6 +1,7 @@
 ---
 name: motion-graphics
 description: Author and inspect NodeTool timeline motion, including clip animations, document-level style tracks, links, layout, camera, effects, transitions, and reusable compositions. Use for title cards, kinetic text, lower thirds, clip entrances and exits, and layered motion.
+featured: true
 ---
 
 # Motion Graphics → Timeline Agent

@@ -32,6 +32,11 @@ export interface SystemSkill {
   readonly content: string;
   /** Always true — the field exists so a merged list stays self-describing. */
   readonly system: true;
+  /**
+   * Whether the always-on catalog lists this skill. The rest are found with
+   * `list_skills`, so the prompt does not pay for every shipped description.
+   */
+  readonly featured: boolean;
 }
 
 /** The directory holding the shipped skills, or null when this build has none. */
@@ -57,7 +62,7 @@ export function systemSkillsDir(): string | null {
 /**
  * Split a `SKILL.md` into its frontmatter fields and body.
  *
- * Deliberately not a YAML parse: the frontmatter is two scalar fields, and
+ * Deliberately not a YAML parse: the frontmatter is a few scalar fields, and
  * pulling js-yaml into the host to read them would buy nothing. A file whose
  * frontmatter is missing or malformed yields null and is skipped rather than
  * failing the whole catalog — one bad shipped file must not cost a user every
@@ -67,6 +72,7 @@ export function parseSkillMarkdown(text: string): {
   name: string;
   description: string;
   content: string;
+  featured: boolean;
 } | null {
   // A fence is a whole line. Matching it as a substring ended the frontmatter
   // on any line merely starting with "---", spilling the fields below it into
@@ -98,7 +104,7 @@ export function parseSkillMarkdown(text: string): {
   if (!isValidSkillName(name) || !isValidSkillDescription(description)) {
     return null;
   }
-  return { name, description, content };
+  return { name, description, content, featured: field("featured") === "true" };
 }
 
 let cache: readonly SystemSkill[] | null = null;

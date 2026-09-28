@@ -76,6 +76,7 @@ vi.mock("../src/chat-codeact.js", () => ({
     return [];
   },
   createCliCodeActTurn: () => ({ tools: [], systemPrompt: "catalog" }),
+  loadCliSkillCatalog: async () => "",
   applySystemPrompt: () => {}
 }));
 vi.mock("@nodetool-ai/chat", () => ({

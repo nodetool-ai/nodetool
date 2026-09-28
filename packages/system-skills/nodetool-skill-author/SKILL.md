@@ -1,6 +1,7 @@
 ---
 name: nodetool-skill-author
 description: "Write or revise a NodeTool skill: a user skill row through create_skill, or a shipped system skill under packages/system-skills. Use when instructions should persist across sessions."
+featured: true
 ---
 
 # Author a NodeTool skill
@@ -48,6 +49,11 @@ The instructions.
   **It is the only part always in context**, so write it as *when to use this*,
   not as what the skill contains. A description that does not name the trigger
   means the skill never loads.
+- `featured: true` is for a shipped skill only. It puts the skill in the
+  catalog that every turn carries. Every other shipped skill is found with
+  `list_skills({query})`, so feature a skill only when a turn needs it before
+  its first call: the entry point of a product surface, or a craft skill that
+  work on that surface always reads.
 - The body must be non-empty. Frontmatter is parsed as scalar `key: value`
   pairs, not full YAML, and the fence is the first `---` line after the opening
   one, so a `---` rule inside the body survives.

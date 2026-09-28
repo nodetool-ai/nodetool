@@ -1,6 +1,7 @@
 ---
 name: nodetool-sketch
 description: "Build or edit a NodeTool sketch (image document): layers, blend modes, placed images, generation briefs, version history."
+featured: true
 ---
 
 # Work a NodeTool sketch

@@ -1,6 +1,7 @@
 ---
 name: video-audio-continuity
 description: Keep sound continuous across a multi-scene piece cut from generated video — why one clip per scene hard-cuts the audio at every boundary, when to write all the scenes into a single generation instead, the sound-design vocabulary that survives a provider's copyright filter, and how to check the length, the aspect ratio and the mix of what came back. Use when a piece has more than one scene and the video model writes its own audio (Seedance 2, Veo 3, MiniMax H3, Kling 2.6 and later), or when a cut's sound drops out at the shot changes.
+featured: true
 ---
 
 # One clip, one bed

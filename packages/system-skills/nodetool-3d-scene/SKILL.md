@@ -1,6 +1,7 @@
 ---
 name: nodetool-3d-scene
 description: "Build, edit, validate or render a NodeTool 3D model: glTF objects, transforms, lights, materials, and headless Blender renders."
+featured: true
 ---
 
 # Work a NodeTool 3D model

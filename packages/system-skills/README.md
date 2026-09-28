@@ -24,6 +24,44 @@ directory, and a file beside `SKILL.md` — the last two are mistakes the loader
 would otherwise absorb in silence, leaving the skill out of the catalog with no
 error anywhere.
 
+## What the prompt carries
+
+Every turn carries a catalog of the user's own skills and of the shipped
+skills whose frontmatter says `featured: true`. The others are named by count
+and found with `list_skills({query})`, which matches a query word by word. The
+catalog is rendered by `formatSkillCatalogForPrompt` in
+`packages/agents/src/skill-prompt.ts`. Feature the entry point of each
+surface and the motion craft skills beside `motion-graphics`, because a
+timeline piece needs them before the first call. The model guides are reached
+through `find_model`, and the brief shapes and `api-*` references through the
+skills and prompt lines that point at them.
+
+## The object-model references
+
+One `api-*` skill for each area of the `nodetool` object model that code
+actions call. The prompt lists each namespace as a line of signatures and
+names its skill; the skill holds every option, return shape and example.
+`NAMESPACE_DOCS` in `packages/agents/src/codeact/nodetool-api.ts` maps a
+namespace to its skill.
+
+| Skill | Namespaces |
+| :--- | :--- |
+| `api-workflows` | `workflows`, `jobs`, `nodes` |
+| `api-models` | `models` |
+| `api-media` | `media`, `generations` |
+| `api-assets` | `assets`, `documents` |
+| `api-web` | `web`, `email` |
+| `api-memory` | `memory`, `shared`, `threads` |
+| `api-agents` | `agents` |
+| `api-settings` | `settings`, `secrets` |
+| `api-collections` | `collections` |
+| `api-apps` | `apps` |
+| `api-timelines` | `timelines` |
+| `api-sketches` | `sketches` |
+| `api-scripts` | `scripts` |
+| `api-storyboards` | `storyboards` |
+| `api-games` | `games` |
+
 ## The surfaces
 
 One skill per NodeTool document kind, for the agent inside the product and the

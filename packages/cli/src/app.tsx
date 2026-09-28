@@ -40,7 +40,8 @@ import { BashTool } from "./bash-tool.js";
 import {
   applySystemPrompt,
   buildCliAgentBelt,
-  createCliCodeActTurn
+  createCliCodeActTurn,
+  loadCliSkillCatalog
 } from "./chat-codeact.js";
 import { createChatContext } from "./chat-context.js";
 import { isNumber, isRecord, isString } from "./predicates.js";
@@ -1024,6 +1025,7 @@ export function App({
           const turn = createCliCodeActTurn({
             tools: belt,
             context: ctx,
+            skillCatalog: await loadCliSkillCatalog(ctx.userId),
             signal: abort.signal,
             onToolCall: ({ name }) => setStatus(friendlyToolName(name))
           });

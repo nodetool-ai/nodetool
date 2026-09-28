@@ -1,6 +1,7 @@
 ---
 name: color-motion
 description: Choose and animate colour on a NodeTool timeline, including shape and text gradients, colour grades, 3D LUTs, and dither. Use when building a look, matching shots, animating colour, or fixing muddy, washed-out, or banded frames.
+featured: true
 ---
 
 # Colour in Motion → palettes, grades and what can move
