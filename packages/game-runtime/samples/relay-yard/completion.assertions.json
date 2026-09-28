@@ -1,0 +1,10 @@
+{
+  "tolerance": 0.02,
+  "ticks": [
+    { "tick": 0, "sceneId": "level", "entities": [{ "id": "player", "x": 0, "y": 1, "z": 3 }], "events": [] },
+    { "tick": 55, "entities": [{ "id": "pickup", "active": false }] },
+    { "tick": 82, "entities": [{ "id": "door", "y": 4.5 }] },
+    { "tick": 120, "entities": [{ "id": "player", "y": 0.81, "z": -6.62, "grounded": true }] },
+    { "tick": 165, "entities": [{ "id": "goal", "active": false }, { "id": "player", "grounded": true }] }
+  ]
+}

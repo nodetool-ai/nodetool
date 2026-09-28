@@ -1,7 +1,10 @@
 # Native game engine: 3D upgrade
 
-Status: proposed architecture. This document records source inspection and design
-decisions. It does not claim an implemented or benchmarked 3D runtime.
+This design defines the explicit schema version 3 native game implementation.
+The [runtime contract](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/README.md) and
+[renderer contract](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-renderer/README.md) describe its public
+entry points and verification fixtures. Hardware performance targets below
+remain unmeasured.
 
 Extends the [built-in engine design](builtin-game-engine-design.md) and
 [game editor design](native-game-editor.md).
@@ -34,20 +37,20 @@ packaging. Also defer general inventory/combat systems, nested prefab variants,
 and new built-in damage/death mechanics. Mixed 2D/3D worlds are outside this
 release. Screen-space HUD and billboards do not require a second physics world.
 
-## What the source supports today
+## Baseline source findings
 
 | Finding | Evidence | Consequence |
 | --- | --- | --- |
-| F1. Spatial data is explicitly 2D. | [Game schemas](../../packages/protocol/src/game.ts) require `transform2d`, expose static/kinematic `body2d`, box colliders, sprite frames, and a planar camera. Documents accept schema versions 1 and 2 with engine version `1`. | Introduce a discriminated 3D document. Adding optional `z` fields would leave physics, scripts, and rendering with incompatible meanings. |
-| F2. The session is already the useful simulation seam. | [Session](../../packages/game-runtime/src/session.ts) exposes `step`, `frame`, `inspect`, `snapshot`, and `dispose`, with separate asynchronous script preparation. [Physics](../../packages/game-runtime/src/physics.ts) implements swept boxes and tile queries. | Retain the public lifecycle and extract its common gameplay implementation. Keep 2D collision behavior behind the spatial seam. |
-| F3. Scripts already exchange data and commands. | [QuickJS runner](../../packages/game-runtime/src/scripts.ts) constrains execution and seeds randomness. [Script declarations](../../packages/game-runtime/src/script-types.ts) expose 2D positions, velocities, contacts, and commands. | Preserve isolation and JSON state. Add a versioned 3D script contract rather than exposing Three.js or Rapier objects. |
-| F4. Rendering is separate, but its interface is 2D. | [Renderer interface](../../packages/game-renderer/src/index.ts), [frame projection](../../packages/game-renderer/src/frame.ts), and [capture](../../packages/game-renderer/src/node.ts) consume sprites, tiles, and pixels-per-unit. | A mesh renderer needs its own frame and capability report. Canvas2D is not a fallback for a 3D scene. |
-| F5. Asset editing and browser 3D rendering already exist. | [model3d](../../packages/model3d/README.md) edits glTF and preserves skins and animations. [Render core](../../packages/video-nodes/src/nodes/model3d/render3d-core.ts) uses `GLTFLoader`, `AnimationMixer`, and `WebGLRenderer`. [Headless driver](../../packages/video-nodes/src/nodes/model3d/render3d-headless.ts) runs a bundled renderer in Chromium. | Reuse document operations and loading patterns. The video render session is not a game scene or physics runtime. |
-| F6. Persistence and authoring already have revision semantics. | [Game model](../../packages/models/src/game.ts), [games router](../../packages/websocket/src/trpc/routers/games.ts), and [document operations](../../packages/game-runtime/src/document-ops.ts) implement drafts, validation, and conflict checks. | Extend existing records and operations. A separate 3D project type or database table is unnecessary. |
-| F7. Verification and export need spatial extensions. | [Agent tools](../../packages/agents/src/capabilities/game.ts), [autoplay](../../packages/game-runtime/src/autoplay.ts), and [web build](../../packages/game-renderer/src/build.ts) assume 2D state or image/audio/font assets. | Preserve tool names while adding 3D inputs, assertions, capture, and model packaging. Existing autoplay cannot establish 3D reachability. |
-| F8. Gameplay rules are embedded in the 2D session. | [Session](../../packages/game-runtime/src/session.ts) handles collection, score, win, lifetime, spawn, transitions, HUD, audio events, and script state alongside movement. | Copying this session for 3D would duplicate mechanics. Extract these rules once, with spatial observations as inputs. |
-| F9. Some apparent mechanics are narrower than their names suggest. | The same session initializes/restores `health` but defines no general damage/death operation. `winWhenCollected.count` compares against score. [Script commands](../../packages/game-runtime/src/scripts.ts) contain no inventory or damage command. | Preserve actual semantics. Treat inventory, damage, and death as future additions rather than existing shared capabilities. |
-| F10. Existing order is observable. | [Collision regressions](../../packages/game-runtime/tests/collision-regressions.test.ts) check swept impact order, sensor pickup eligibility, scene-entry age, and event isolation. [Session tests](../../packages/game-runtime/tests/session.test.ts) cover replay and pending-event restore. | Freeze these contracts before extraction. Stable ordering does not mean globally sorting existing events or entities. |
+| F1. Spatial data is explicitly 2D. | [Game schemas](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game.ts) require `transform2d`, expose static/kinematic `body2d`, box colliders, sprite frames, and a planar camera. Documents accept schema versions 1 and 2 with engine version `1`. | Introduce a discriminated 3D document. Adding optional `z` fields would leave physics, scripts, and rendering with incompatible meanings. |
+| F2. The session is already the useful simulation seam. | [Session](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/session.ts) exposes `step`, `frame`, `inspect`, `snapshot`, and `dispose`, with separate asynchronous script preparation. [Physics](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/physics.ts) implements swept boxes and tile queries. | Retain the public lifecycle and extract its common gameplay implementation. Keep 2D collision behavior behind the spatial seam. |
+| F3. Scripts already exchange data and commands. | [QuickJS runner](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/scripts.ts) constrains execution and seeds randomness. [Script declarations](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/script-types.ts) expose 2D positions, velocities, contacts, and commands. | Preserve isolation and JSON state. Add a versioned 3D script contract rather than exposing Three.js or Rapier objects. |
+| F4. Rendering is separate, but its interface is 2D. | [Renderer interface](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-renderer/src/index.ts), [frame projection](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-renderer/src/frame.ts), and [capture](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-renderer/src/node.ts) consume sprites, tiles, and pixels-per-unit. | A mesh renderer needs its own frame and capability report. Canvas2D is not a fallback for a 3D scene. |
+| F5. Asset editing and browser 3D rendering already exist. | [model3d](https://github.com/nodetool-ai/nodetool/blob/main/packages/model3d/README.md) edits glTF and preserves skins and animations. [Render core](https://github.com/nodetool-ai/nodetool/blob/main/packages/video-nodes/src/nodes/model3d/render3d-core.ts) uses `GLTFLoader`, `AnimationMixer`, and `WebGLRenderer`. [Headless driver](https://github.com/nodetool-ai/nodetool/blob/main/packages/video-nodes/src/nodes/model3d/render3d-headless.ts) runs a bundled renderer in Chromium. | Reuse document operations and loading patterns. The video render session is not a game scene or physics runtime. |
+| F6. Persistence and authoring already have revision semantics. | [Game model](https://github.com/nodetool-ai/nodetool/blob/main/packages/models/src/game.ts), [games router](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/trpc/routers/games.ts), and [document operations](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/document-ops.ts) implement drafts, validation, and conflict checks. | Extend existing records and operations. A separate 3D project type or database table is unnecessary. |
+| F7. Verification and export need spatial extensions. | [Agent tools](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/src/capabilities/game.ts), [autoplay](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/autoplay.ts), and [web build](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-renderer/src/build.ts) assume 2D state or image/audio/font assets. | Preserve tool names while adding 3D inputs, assertions, capture, and model packaging. Existing autoplay cannot establish 3D reachability. |
+| F8. Gameplay rules are embedded in the 2D session. | [Session](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/session.ts) handles collection, score, win, lifetime, spawn, transitions, HUD, audio events, and script state alongside movement. | Copying this session for 3D would duplicate mechanics. Extract these rules once, with spatial observations as inputs. |
+| F9. Some apparent mechanics are narrower than their names suggest. | The same session initializes/restores `health` but defines no general damage/death operation. `winWhenCollected.count` compares against score. [Script commands](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/scripts.ts) contain no inventory or damage command. | Preserve actual semantics. Treat inventory, damage, and death as future additions rather than existing shared capabilities. |
+| F10. Existing order is observable. | [Collision regressions](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/tests/collision-regressions.test.ts) check swept impact order, sensor pickup eligibility, scene-entry age, and event isolation. [Session tests](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/tests/session.test.ts) cover replay and pending-event restore. | Freeze these contracts before extraction. Stable ordering does not mean globally sorting existing events or entities. |
 
 The earlier engine design proposed Rapier 2D. The current implementation uses
 custom 2D collision code. This proposal does not treat the earlier plan as
@@ -475,18 +478,18 @@ No model download or generation runs in the gameplay tick.
 
 ### D7. Extend the existing editor and agent tools
 
-Reuse the [game draft store](../../web/src/stores/game/GameDraftStore.ts), change
+Reuse the [game draft store](https://github.com/nodetool-ai/nodetool/blob/main/web/src/stores/game/GameDraftStore.ts), change
 history, scene tree, scripts, inspector shell, and publish controls. Dispatch the
-[viewport](../../web/src/components/game/GameViewport.tsx) and
-[play-session host](../../web/src/components/game/useGamePlaySession.ts) by
+[viewport](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/game/GameViewport.tsx) and
+[play-session host](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/game/useGamePlaySession.ts) by
 dimension. Implement a 3D viewport with orbit/fly editing, ray picking, transform
 gizmos, snapping, frame-selection, and collider/camera/light overlays.
 
 Editor camera state stays outside the game document. Playing uses the authored
 camera. A gizmo drag previews locally, then commits one validated operation on
 release for undo. Stop restores the authored draft rather than writing simulated
-positions. Follow the [design system](../DESIGN.md) and
-[primitives strategy](../../web/src/components/ui_primitives/STRATEGY.md).
+positions. Follow the [design system](https://github.com/nodetool-ai/nodetool/blob/main/docs/DESIGN.md) and
+[primitives strategy](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/ui_primitives/STRATEGY.md).
 
 Add a 3D choice at creation, initially with one playable template. Imported
 models can open in the existing model editor for asset-level edits. That editor
@@ -543,7 +546,7 @@ interface for virtual workspaces.
 The exported game runs from a static HTTP server with no NodeTool connection,
 credentials, remote assets, or provider calls. Do not promise `file://` support.
 Register new bundled runtime assets for Electron in the
-[package asset registry](../../packages/config/src/package-asset-registry.ts).
+[package asset registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/config/src/package-asset-registry.ts).
 
 ## Delivery sequence and proof
 
@@ -586,8 +589,8 @@ mechanics must not rely exclusively on mocked physics.
 | `spawn`, `despawn`, `sceneTransition` commands | Shared lifecycle with typed spawn poses | Same-tick commit, deterministic IDs, authored inactivity versus spawned removal, script-state cleanup, and subtree restore. |
 
 The extraction fixture list is checked against the unions in
-[game schemas](../../packages/protocol/src/game.ts) and
-[script commands](../../packages/game-runtime/src/scripts.ts) so new cases cannot
+[game schemas](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game.ts) and
+[script commands](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/scripts.ts) so new cases cannot
 quietly bypass coverage. Preserve old snapshot wire output, not just final score.
 
 For paired 2D/3D tests, arrange equivalent contacts and compare gameplay events,
@@ -597,7 +600,7 @@ Run replay/restore separately for each dimension and across Node/browser for 3D.
 Regeneration and prefab tests verify that shared definitions never acquire
 per-instance health, script state, or animation state.
 
-Register the 3D checks in the [harness registry](../../packages/cli/src/harness/registry.ts)
+Register the 3D checks in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts)
 with affected paths for schemas, runtime, renderer, preparation, tools, packaging,
 and UI. A missing GPU skips neither rendering verification nor failure reporting.
 Report unavailable render capability separately from a simulation pass.

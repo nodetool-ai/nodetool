@@ -1,20 +1,22 @@
 ---
 name: native-game
-description: "Build or revise a playable 2D game in NodeTool's built-in engine, install generated assets, playtest it, and prepare a standalone web build."
+description: "Build or revise a playable 2D or 3D game in NodeTool's built-in engine, install generated assets, playtest it, and prepare a standalone web build."
 featured: true
 ---
 
 # Build a native game
 
 Create and edit a versioned built-in game document. The engine owns simulation,
-rendering, and web export. A new game starts as a playable top-down room.
+rendering, and web export. The default is a playable 2D top-down room.
+Use `dimension: "3d"` for an exploration blockout with a capsule controller,
+follow camera, ramps, a moving platform, a crate and scripted interactions.
 Load `game-direction` before the first edit of a new game or a requested art
 overhaul. Lock its style string, layer plan, feel parameters, and pacing sheet,
 then keep later edits and asset prompts consistent with that spec.
 
 ## Build and revise
 
-1. `create_native_game {project_id, name}` creates a playable draft and returns
+1. `create_native_game {project_id, name, dimension?}` creates a playable draft and returns
    its full id and current immutable revision. Resource ids may be full ids or
    exact 12-character prefixes.
 2. `get_native_game {game_id, view: "outline"}` reads the compact draft outline.
@@ -67,7 +69,7 @@ then keep later edits and asset prompts consistent with that spec.
    only when the user asks. On a conflict, read the draft and reconcile edits.
 7. `build_native_game {game_id, revision?}` writes a standalone web player for
    an owned revision under the project workspace and returns its path. On a touch
-   screen the player adds a floating stick for `left`/`right`/`up`/`down` and one
+   screen the 2D player adds a floating stick for `left`/`right`/`up`/`down` and one
    button per other input action, labeled with the action name. Installed
    media must still exist, match its recorded digest, and use a supported format.
 
@@ -113,7 +115,67 @@ simulates, captures, and builds a standalone web player from a game document.
 active state, and ordered events. `simulate --verify-replay` restores a midpoint
 snapshot and reports the first tick and field that differ from continuous play.
 
-## Scripts and visuals
+## 3D authoring
+
+Create with `dimension: "3d"` and optional `template: "exploration"`.
+The document uses `schemaVersion: 3`, `engineVersion: "2"`, meters, Y up,
+forward `-Z`, and quaternion rotations `[x, y, z, w]`. A game keeps its dimension.
+Read the returned outline before editing. The 2D sandbox helpers and sprite
+preparation below retain their 2D contracts.
+
+Keep controller, body, collider and interactions on a gameplay root. Put the
+replaceable model on a visual child using `parentId`. Physics roots have unit
+scale and one pose owner. `character3d` requires a kinematic body and a capsule.
+Dynamic props use primitives or prepared convex hulls. Triangle meshes require
+static bodies. Collision category and mask use 16 bits in 3D. Each scene names
+one `activeCameraId`. The camera supports perspective or orthographic projection
+and fixed or follow behavior.
+
+`generate_game_asset {game_id, slot, kind: "model", input_file, preparation?}`
+imports an owned GLB or glTF. Provider generation requires an explicit registered
+`node_type` with its `params`. Preparation normalizes dependencies to a closed
+GLB, records bounds and stable `node:<index>`/`clip:<index>` selectors, and checks
+resource budgets. Import settings specify `scale`, `forward` and `origin`.
+For glTF with separate files, pass `dependency_files` as a map from declared
+buffer or image URI to an owned workspace path. Unresolved dependencies fail
+preparation.
+Model and collider results are candidates. Review them, then call
+`install_native_game_asset` with the returned binding and draft timestamp.
+Reinstall after editing source model bytes. The existing model editor edits
+model assets. Gameplay stays in the game document.
+
+A `set_prefab` definition includes `rootId`, `entities`, `externalAssets` and
+`externalScenes`. `instantiate_prefab` clones that subtree with a new
+`instance_id` and remaps internal entity references. Each runtime instance owns
+its script state, physics bodies and animation state. Bind prepared clips through
+`animator3d.clips`. An idle/run/jump rig can replace the placeholder visual
+without changing its root controller or collider.
+
+3D script input adds analog `axes`, `look`, XYZ `entity.position`/`velocity`,
+`grounded`, world entities and query observations. It preserves isolated JSON
+state, seeded `random`, and previous-tick event delivery. Use `characterIntent`
+for character motion, `setKinematicPose` for kinematic targets, `impulse` or
+`setVelocity` for dynamic bodies, and `teleport` for explicit discontinuities.
+`setVisual` changes only a nonphysical visual. `spawn` accepts a prefab and XYZ
+position, rotation and velocity. Shared `emit`, `hud`, `playAnimation`, `despawn`
+and `sceneTransition` commands retain their meanings. Ray and shape queries are
+bounded commands with a caller-supplied `queryId`. Results arrive in the next
+tick. Scripts receive no Three.js or Rapier objects.
+
+Playtests accept run-length frames with `pressed`, `justPressed`, `axes`, `look`
+and `ticks`. Use XYZ `near`, region and `grounded` assertions to check motion.
+Set `restore_at_tick` with a `replay_matches` assertion to compare restored
+continuation against the recorded route. `autoplay_native_game` reports 3D as
+unsupported. Supply a route and a win assertion. Capture the same source,
+revision, seed and inputs to review actual WebGL2 frames and state hashes.
+Browser capture requires Chromium. A failed tick invalidates the session.
+Reset or restore a snapshot from before the failure.
+
+`build_native_game` exports a self-contained directory for an immutable revision.
+Serve it over static HTTP. Models, colliders, fonts, audio and pinned runtime
+files are included. The first 3D release targets desktop web and Electron.
+
+## 2D scripts and visuals
 
 A `script` behavior is a function expression. It receives `{tick, pressed,
 justPressed, events, entity, world, state, random}` and returns `{state,
@@ -253,8 +315,9 @@ their image or audio components. Resolve validation errors before publishing.
 
 ## Scope
 
-The current runtime supports 2D scenes. Future 3D games will use this built-in
-engine with explicit 3D scene and physics types. A glTF model is an asset, so use
+The runtime supports separate 2D and 3D games. Mixed dimensions, multiplayer,
+terrain streaming, navigation meshes, vehicles, ragdolls, retargeting and root
+motion are outside this release. A glTF model is an asset, so use
 `nodetool-3d-scene` to edit one. Existing external-engine source files can remain
 in a workspace as files; their scripts and scenes need reconstruction in the
 built-in game document to become playable.

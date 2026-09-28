@@ -58,6 +58,16 @@ describe("capability coverage table", () => {
     expect(CAPABILITY_COVERAGE.length).toBeGreaterThan(100);
   });
 
+  it("keeps 2D and 3D game contracts in the generated suite mapping", () => {
+    for (const name of ["create_native_game", "edit_native_game", "playtest_native_game"]) {
+      const entry = CAPABILITY_COVERAGE.find((candidate) => candidate.name === name);
+      expect(entry?.suites, name).toEqual(expect.arrayContaining([
+        "packages/agents/tests/capabilities-game.test.ts",
+        "packages/agents/tests/capabilities-game3d.test.ts"
+      ]));
+    }
+  });
+
   it("names each capability once", () => {
     const result = auditCapabilityCoverage(
       declared,

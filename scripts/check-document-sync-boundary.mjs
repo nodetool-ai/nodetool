@@ -20,6 +20,7 @@ const CONTROLLER_FILES = new Set([
 const SUBSCRIBER_FILES = new Set([
   "web/src/components/appbuilder/ApplicationAppBuilder.tsx",
   "web/src/components/game/GameEditor.tsx",
+  "web/src/components/game/GameEditor3D.tsx",
   "web/src/hooks/jsScript/useJsScriptServerSync.ts",
   "web/src/hooks/script/useScriptServerSync.ts",
   "web/src/hooks/storyboard/useStoryboardServerSync.ts",

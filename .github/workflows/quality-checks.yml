@@ -315,8 +315,9 @@ jobs:
           # disjoint slice of the workspace graph: the two heaviest packages
           # alone, the node packages (`./packages/*-nodes` plus the packages
           # only they use), and everything else. The `core` shard runs
-          # game-runtime before the other packages because its script deadlines
-          # are sensitive to CPU contention. It also carries the two root-level
+          # game-runtime, game-renderer, and cli serially before the other packages
+          # because their script deadlines are sensitive to CPU contention.
+          # It also carries the two root-level
           # suites (`test:oxlint-rules`, `test:scripts`), which take a second.
           # The `nodes` and `core` filter lists are the
           # same list with the sign flipped — a package added to one must be
@@ -369,7 +370,7 @@ jobs:
             is-test: "true"
             fetch-depth: "0"
           - check: test-packages-core
-            command: npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter=@nodetool-ai/game-runtime $TURBO_AFFECTED && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' $TURBO_AFFECTED
+            command: npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter=@nodetool-ai/game-runtime --filter=@nodetool-ai/game-renderer --filter=@nodetool-ai/cli --concurrency=1 $TURBO_AFFECTED && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' --filter='!@nodetool-ai/game-renderer' --filter='!@nodetool-ai/cli' $TURBO_AFFECTED
             mobile-deps: "false"
             extra-apt: "mesa-vulkan-drivers ffmpeg"
             is-test: "true"
@@ -444,6 +445,35 @@ jobs:
           extra-apt: ${{ matrix.extra-apt }}
           # The dist comes from the artifact below; don't rebuild it per leg.
           build-packages: "false"
+
+      - name: Install Chromium for native 3D tests
+        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-agents' || matrix.check == 'harness-gate'
+        run: npx playwright install --with-deps chromium
+
+      # Ubuntu restricts user namespaces for downloaded Chromium binaries.
+      # Allow only Playwright's browser paths so capture keeps its sandbox.
+      # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
+      - name: Enable and verify the Chromium sandbox
+        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-agents' || matrix.check == 'harness-gate'
+        run: |
+          sudo tee /etc/apparmor.d/nodetool-playwright > /dev/null <<'PROFILE'
+          abi <abi/4.0>,
+          include <tunables/global>
+
+          profile nodetool-playwright-chromium /@{HOME}/.cache/ms-playwright/chromium-*/chrome-linux*/chrome flags=(unconfined) {
+            userns,
+          }
+
+          profile nodetool-playwright-headless /@{HOME}/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux*/chrome-headless-shell flags=(unconfined) {
+            userns,
+          }
+          PROFILE
+          sudo apparmor_parser -r /etc/apparmor.d/nodetool-playwright
+          node --input-type=module <<'JS'
+          import { chromium } from "playwright";
+          const browser = await chromium.launch({ headless: true, chromiumSandbox: true });
+          await browser.close();
+          JS
 
       - name: Download package dist
         uses: actions/download-artifact@v8

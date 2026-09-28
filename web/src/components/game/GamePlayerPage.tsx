@@ -1,4 +1,4 @@
-import { useEffect, type KeyboardEvent } from "react";
+import { lazy, Suspense, useEffect, type KeyboardEvent } from "react";
 import { useParams } from "react-router-dom";
 import type { GameDocument } from "@nodetool-ai/protocol/game.js";
 
@@ -55,6 +55,8 @@ function GamePlayer({ gameId, name, document }: GamePlayerProps) {
   </FlexColumn>;
 }
 
+const Player3D = lazy(() => import("./GamePlayer3D"));
+
 export default function GamePlayerPage() {
   const { gameId } = useParams<{ gameId: string }>();
   const { data, isPending, error } = trpc.games.getDraft.useQuery({ id: gameId ?? "" },
@@ -62,5 +64,8 @@ export default function GamePlayerPage() {
   if (!gameId) return <EmptyState variant="error" title="Game not found" description="The game link is incomplete." />;
   if (isPending) return <LoadingSpinner text="Loading game" />;
   if (error || !data) return <EmptyState variant="error" title="Could not load game" description={error?.message ?? "The game may have been deleted."} />;
+  if (data.document.schemaVersion === 3) {
+    return <Suspense fallback={<LoadingSpinner text="Loading 3D player" />}><Player3D gameId={gameId} name={data.game.name} document={data.document} /></Suspense>;
+  }
   return <GamePlayer gameId={gameId} name={data.game.name} document={data.document} />;
 }
