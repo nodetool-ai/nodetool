@@ -5,7 +5,7 @@
  * that does not — a check that has only ever been green is indistinguishable
  * from one that examines nothing.
  */
-import { describe, it, expect } from "vitest";
+import { beforeAll, describe, it, expect } from "vitest";
 import {
   emptyJsScriptDocument,
   type JsScriptDocument
@@ -41,6 +41,13 @@ const codes = (validation: {
 ];
 
 describe("validateJsScriptDoc", () => {
+  // validateJsScriptDoc lazy-imports @nodetool-ai/node-sdk, and vitest
+  // transforms that whole source graph on first use. Under CI load the cold
+  // import alone can outlast the per-test timeout, so pay for it here.
+  beforeAll(async () => {
+    await import("@nodetool-ai/node-sdk");
+  }, 120_000);
+
   it("passes a sound document with no issues", async () => {
     const validation = await validateJsScriptDoc(doc());
     expect(validation.ok).toBe(true);
