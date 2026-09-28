@@ -239,6 +239,15 @@ const seeds: FaqSeed[] = [
     surfaces: ["landing", "agents"],
   },
   {
+    slug: "use-nodetool-from-claude-code",
+    question: "Can I use NodeTool from Claude Code, Codex, or Cursor?",
+    answerMd:
+      "Yes. NodeTool runs as an MCP server. Run `npx -y --package=@nodetool-ai/cli nodetool mcp install` and restart the agent. The command registers NodeTool with Claude Code, Codex, and OpenCode, and `nodetool mcp config` prints a config block for Cursor, Claude Desktop, and other clients. The agent gets workflows, image, video, and audio generation, and your asset library as tools. Studio is optional. When Studio runs, the agent's changes appear in the open editor.",
+    category: "general",
+    relatedRoute: "/agents",
+    surfaces: ["agents"],
+  },
+  {
     slug: "what-is-a-planning-agent",
     question: "What is a planning agent?",
     answerMd:

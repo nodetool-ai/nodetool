@@ -46,6 +46,7 @@
 - [Is NodeTool open source?](https://nodetool.ai/faq/is-nodetool-open-source)
 - [Is NodeTool local-first and private?](https://nodetool.ai/faq/is-nodetool-local-first)
 - [What does it mean that NodeTool is agent-first?](https://nodetool.ai/faq/what-does-agent-first-mean)
+- [Can I use NodeTool from Claude Code, Codex, or Cursor?](https://nodetool.ai/faq/use-nodetool-from-claude-code)
 - [What does "bring your own keys" mean for me?](https://nodetool.ai/faq/what-is-byok)
 - [How much does NodeTool cost?](https://nodetool.ai/faq/how-much-does-nodetool-cost)
 - [Does NodeTool mark up model pricing?](https://nodetool.ai/faq/does-nodetool-mark-up-model-pricing)

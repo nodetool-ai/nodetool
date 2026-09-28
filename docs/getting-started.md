@@ -230,7 +230,8 @@ Every one of those steps has a button and a tool behind it. You can click the
 whole pipeline, ask for the whole pipeline in chat, or mix the two — press
 **Direct** yourself and let the assistant render the shots you point at.
 External agents reach the same tools over MCP (`nodetool mcp serve`), so Claude
-Code can direct a board you then open and finish by hand.
+Code can direct a board you then open and finish by hand. See
+[NodeTool as an MCP Server](mcp-server.md).
 
 ---
 

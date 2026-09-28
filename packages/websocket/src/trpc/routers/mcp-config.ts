@@ -11,15 +11,25 @@
  * procedure.
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { homedir } from "node:os";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import { getLocalMcpServerUrl } from "../../mcp-server.js";
 import {
-  mcpTarget,
+  MCP_CLIENT_IDS,
+  MCP_CLIENT_LABELS,
+  describeLaunch,
+  hasNodetoolCli,
+  mcpClientConfigPath,
+  readMcpClientEntry,
+  removeMcpClientEntry,
+  stdioLaunch,
+  writeMcpClientEntry,
+  type McpLaunch
+} from "../../mcp-client-config.js";
+import {
   statusOutput,
   installInput,
   installOutput,
@@ -31,16 +41,6 @@ import {
   type UninstallResult
 } from "@nodetool-ai/protocol/api-schemas/mcp-config.js";
 
-const ALL_TARGETS: McpTarget[] = ["claude", "codex", "opencode"];
-const TARGET_LABELS = {
-  claude: "Claude Code",
-  codex: "Codex",
-  opencode: "OpenCode"
-} satisfies Record<McpTarget, string>;
-
-const NODETOOL_MCP_BEGIN = "# BEGIN NODETOOL MCP";
-const NODETOOL_MCP_END = "# END NODETOOL MCP";
-
 /** Guard: MCP config is disabled in production. */
 function requireNonProduction(): void {
   if (process.env["NODETOOL_ENV"] === "production") {
@@ -51,219 +51,56 @@ function requireNonProduction(): void {
   }
 }
 
-function defaultMcpUrl(): string {
-  const port = Number(process.env["PORT"] ?? 7777);
-  const tlsEnabled = Boolean(
-    process.env["TLS_CERT"] && process.env["TLS_KEY"]
-  );
-  return `${tlsEnabled ? "https" : "http"}://127.0.0.1:${port}/mcp`;
+/**
+ * A stdio entry works whether or not this server runs, so it wins when the
+ * `nodetool` CLI is installed. Without the CLI, the client reaches this
+ * server over HTTP, which works while the server runs.
+ */
+function defaultLaunch(url: string | undefined): McpLaunch {
+  if (url) return { transport: "http", url };
+  if (hasNodetoolCli()) return stdioLaunch({ npx: false });
+  return { transport: "http", url: getLocalMcpServerUrl() };
 }
 
 function getStatus(target: McpTarget): TargetStatus {
   const home = homedir();
   const base: TargetStatus = {
     target,
-    label: TARGET_LABELS[target],
+    label: MCP_CLIENT_LABELS[target],
     installed: false,
     url: null,
-    configPath: null
+    command: null,
+    configPath: mcpClientConfigPath(target, home)
   };
-
-  switch (target) {
-    case "claude": {
-      const p = join(home, ".claude.json");
-      base.configPath = p;
-      if (existsSync(p)) {
-        try {
-          const config = JSON.parse(readFileSync(p, "utf8"));
-          const srv = config?.projects?.[home]?.mcpServers?.nodetool;
-          if (srv) {
-            base.installed = true;
-            base.url = srv.url ?? null;
-          }
-        } catch {
-          /* ignore parse errors */
-        }
-      }
-      break;
-    }
-    case "codex": {
-      const p = join(home, ".codex", "config.toml");
-      base.configPath = p;
-      if (existsSync(p)) {
-        try {
-          const content = readFileSync(p, "utf8");
-          const m = /# BEGIN NODETOOL MCP[\s\S]*?url\s*=\s*"([^"]*)"/.exec(
-            content
-          );
-          if (m) {
-            base.installed = true;
-            base.url = m[1] ?? null;
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-      break;
-    }
-    case "opencode": {
-      const p = join(home, ".config", "opencode", "opencode.json");
-      base.configPath = p;
-      if (existsSync(p)) {
-        try {
-          const config = JSON.parse(readFileSync(p, "utf8"));
-          if (config?.mcp?.nodetool) {
-            base.installed = true;
-            base.url = config.mcp.nodetool.url ?? null;
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-      break;
-    }
+  let launch: McpLaunch | null = null;
+  try {
+    launch = readMcpClientEntry(target, home);
+  } catch {
+    // An unreadable config reads as "not installed". Install reports the error.
   }
-  return base;
+  if (!launch) return base;
+  return {
+    ...base,
+    installed: true,
+    url: launch.transport === "http" ? launch.url : null,
+    command: launch.transport === "stdio" ? describeLaunch(launch) : null
+  };
 }
 
-function installTarget(target: McpTarget, mcpUrl: string): string {
-  const home = homedir();
-
-  switch (target) {
-    case "claude": {
-      const p = join(home, ".claude.json");
-      let config: Record<string, unknown> = {};
-      if (existsSync(p)) {
-        config = JSON.parse(readFileSync(p, "utf8"));
-      }
-      const projects = (config["projects"] ?? {}) as Record<
-        string,
-        Record<string, unknown>
-      >;
-      const global = projects[home] ?? {};
-      const servers = (global["mcpServers"] ?? {}) as Record<string, unknown>;
-      servers["nodetool"] = { type: "http", url: mcpUrl };
-      global["mcpServers"] = servers;
-      projects[home] = global;
-      config["projects"] = projects;
-      writeFileSync(p, JSON.stringify(config, null, 2) + "\n");
-      return p;
-    }
-    case "codex": {
-      const dir = join(home, ".codex");
-      const p = join(dir, "config.toml");
-      mkdirSync(dir, { recursive: true });
-
-      const block = [
-        NODETOOL_MCP_BEGIN,
-        "[mcp_servers.nodetool]",
-        // TOML-escape the url. Interpolating it raw let a value with a quote or
-        // newline terminate the string early and inject arbitrary TOML tables
-        // (e.g. an extra [mcp_servers.evil] with a command). JSON string
-        // escaping is a valid TOML basic string.
-        `url = ${JSON.stringify(mcpUrl)}`,
-        "startup_timeout_sec = 20",
-        "tool_timeout_sec = 60",
-        "enabled = true",
-        "required = true",
-        NODETOOL_MCP_END
-      ].join("\n");
-
-      let content = "";
-      if (existsSync(p)) {
-        content = readFileSync(p, "utf8");
-        const re = new RegExp(
-          `${NODETOOL_MCP_BEGIN}[\\s\\S]*?${NODETOOL_MCP_END}\\n?`
-        );
-        content = re.test(content)
-          ? content.replace(re, block + "\n")
-          : content.trimEnd() + "\n\n" + block + "\n";
-      } else {
-        content = block + "\n";
-      }
-      writeFileSync(p, content);
-      return p;
-    }
-    case "opencode": {
-      const dir = join(home, ".config", "opencode");
-      const p = join(dir, "opencode.json");
-      mkdirSync(dir, { recursive: true });
-
-      let config: Record<string, unknown> = {};
-      if (existsSync(p)) {
-        config = JSON.parse(readFileSync(p, "utf8"));
-      }
-      const mcp = (config["mcp"] ?? {}) as Record<string, unknown>;
-      mcp["nodetool"] = { type: "remote", url: mcpUrl };
-      config["mcp"] = mcp;
-      writeFileSync(p, JSON.stringify(config, null, 2) + "\n");
-      return p;
-    }
-  }
-}
-
-function uninstallTarget(target: McpTarget): boolean {
-  const home = homedir();
-
-  switch (target) {
-    case "claude": {
-      const p = join(home, ".claude.json");
-      if (!existsSync(p)) return false;
-      try {
-        const config = JSON.parse(readFileSync(p, "utf8"));
-        const servers = config?.projects?.[home]?.mcpServers;
-        if (!servers || !("nodetool" in servers)) return false;
-        delete servers["nodetool"];
-        writeFileSync(p, JSON.stringify(config, null, 2) + "\n");
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    case "codex": {
-      const p = join(home, ".codex", "config.toml");
-      if (!existsSync(p)) return false;
-      try {
-        let content = readFileSync(p, "utf8");
-        const re = /# BEGIN NODETOOL MCP[\s\S]*?# END NODETOOL MCP\n?/;
-        if (!re.test(content)) return false;
-        content = content.replace(re, "").trimEnd() + "\n";
-        writeFileSync(p, content);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    case "opencode": {
-      const p = join(home, ".config", "opencode", "opencode.json");
-      if (!existsSync(p)) return false;
-      try {
-        const config = JSON.parse(readFileSync(p, "utf8"));
-        if (!config?.mcp?.nodetool) return false;
-        delete config.mcp.nodetool;
-        writeFileSync(p, JSON.stringify(config, null, 2) + "\n");
-        return true;
-      } catch {
-        return false;
-      }
-    }
-  }
-}
-
-/** Filter an unknown input.targets array down to the valid McpTarget enum. */
-function resolveTargets(
-  raw: readonly McpTarget[] | undefined
-): McpTarget[] {
-  if (!raw || raw.length === 0) return ALL_TARGETS;
-  // Zod already validated against the enum, but keep the guard for clarity.
-  return raw.filter((t) => mcpTarget.safeParse(t).success);
+/** Empty or missing `targets` means every client. */
+function resolveTargets(raw: readonly McpTarget[] | undefined): McpTarget[] {
+  return raw && raw.length > 0 ? [...raw] : [...MCP_CLIENT_IDS];
 }
 
 export const mcpConfigRouter = router({
   status: protectedProcedure.output(statusOutput).query(() => {
     requireNonProduction();
-    const statuses = ALL_TARGETS.map(getStatus);
-    return { targets: statuses, defaultUrl: defaultMcpUrl() };
+    const launch = defaultLaunch(undefined);
+    return {
+      targets: MCP_CLIENT_IDS.map(getStatus),
+      defaultUrl: getLocalMcpServerUrl(),
+      defaultLaunch: describeLaunch(launch)
+    };
   }),
 
   install: protectedProcedure
@@ -272,27 +109,27 @@ export const mcpConfigRouter = router({
     .mutation(({ input }) => {
       requireNonProduction();
       const targets = resolveTargets(input.targets);
-      const mcpUrl = input.url ?? defaultMcpUrl();
+      const launch = defaultLaunch(input.url);
 
       const results: InstallResult[] = targets.map((t) => {
         try {
-          const configPath = installTarget(t, mcpUrl);
+          const configPath = writeMcpClientEntry(t, launch, homedir());
           return {
             target: t,
-            label: TARGET_LABELS[t],
+            label: MCP_CLIENT_LABELS[t],
             success: true,
             configPath
           };
         } catch (e) {
           return {
             target: t,
-            label: TARGET_LABELS[t],
+            label: MCP_CLIENT_LABELS[t],
             success: false,
             error: String(e)
           };
         }
       });
-      return { results, url: mcpUrl };
+      return { results, launch: describeLaunch(launch) };
     }),
 
   uninstall: protectedProcedure
@@ -304,12 +141,12 @@ export const mcpConfigRouter = router({
 
       const results: UninstallResult[] = targets.map((t) => {
         try {
-          const removed = uninstallTarget(t);
-          return { target: t, label: TARGET_LABELS[t], removed };
+          const removed = removeMcpClientEntry(t, homedir());
+          return { target: t, label: MCP_CLIENT_LABELS[t], removed };
         } catch (e) {
           return {
             target: t,
-            label: TARGET_LABELS[t],
+            label: MCP_CLIENT_LABELS[t],
             removed: false,
             error: String(e)
           };

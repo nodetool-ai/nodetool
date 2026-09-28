@@ -11,7 +11,8 @@ vi.mock("node:fs", async (orig) => {
     existsSync: vi.fn(),
     readFileSync: vi.fn(),
     writeFileSync: vi.fn(),
-    mkdirSync: vi.fn()
+    mkdirSync: vi.fn(),
+    realpathSync: vi.fn()
   };
 });
 vi.mock("node:os", async (orig) => {
@@ -26,7 +27,8 @@ import {
   existsSync,
   readFileSync,
   writeFileSync,
-  mkdirSync
+  mkdirSync,
+  realpathSync
 } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -42,6 +44,7 @@ const OPENCODE_DIR = join(HOME, ".config", "opencode");
 const OPENCODE_JSON = join(OPENCODE_DIR, "opencode.json");
 
 const createCaller = createCallerFactory(appRouter);
+const ORIGINAL_PATH = process.env.PATH;
 
 function makeCtx(overrides: Partial<Context> = {}): Context {
   return {
@@ -63,13 +66,18 @@ describe("mcpConfig router", () => {
     // Re-install defaults that the whole suite relies on.
     (homedir as ReturnType<typeof vi.fn>).mockReturnValue("/home/user");
     (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    (realpathSync as ReturnType<typeof vi.fn>).mockImplementation(
+      (p: string) => p
+    );
     delete process.env.NODETOOL_ENV;
     delete process.env.PORT;
     delete process.env.TLS_CERT;
     delete process.env.TLS_KEY;
+    process.env.PATH = "";
   });
 
   afterEach(() => {
+    process.env.PATH = ORIGINAL_PATH;
     vi.restoreAllMocks();
   });
 
@@ -128,18 +136,14 @@ describe("mcpConfig router", () => {
       expect(result.defaultUrl).toMatch(/^https:\/\//);
     });
 
-    it("reads claude installation when .claude.json has nodetool MCP server", async () => {
+    it("reads claude installation from the user-scope mcpServers", async () => {
       (existsSync as ReturnType<typeof vi.fn>).mockImplementation(
         (p: string) => p === CLAUDE_JSON
       );
       (readFileSync as ReturnType<typeof vi.fn>).mockReturnValue(
         JSON.stringify({
-          projects: {
-            "/home/user": {
-              mcpServers: {
-                nodetool: { type: "http", url: "http://127.0.0.1:7777/mcp" }
-              }
-            }
+          mcpServers: {
+            nodetool: { type: "http", url: "http://127.0.0.1:7777/mcp" }
           }
         })
       );
@@ -150,6 +154,26 @@ describe("mcpConfig router", () => {
       expect(claude?.installed).toBe(true);
       expect(claude?.url).toBe("http://127.0.0.1:7777/mcp");
       expect(claude?.configPath).toBe(CLAUDE_JSON);
+    });
+
+    it("reports a stdio entry by its command", async () => {
+      (existsSync as ReturnType<typeof vi.fn>).mockImplementation(
+        (p: string) => p === CLAUDE_JSON
+      );
+      (readFileSync as ReturnType<typeof vi.fn>).mockReturnValue(
+        JSON.stringify({
+          mcpServers: {
+            nodetool: { type: "stdio", command: "nodetool", args: ["mcp", "serve"] }
+          }
+        })
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.mcpConfig.status();
+      const claude = result.targets.find((t) => t.target === "claude");
+      expect(claude?.installed).toBe(true);
+      expect(claude?.url).toBeNull();
+      expect(claude?.command).toBe("nodetool mcp serve");
     });
 
     it("reads codex installation by regex from config.toml", async () => {
@@ -217,7 +241,33 @@ url = "http://127.0.0.1:7777/mcp"
       const result = await caller.mcpConfig.install({});
       expect(result.results).toHaveLength(3);
       expect(writeFileSync).toHaveBeenCalledTimes(3);
-      expect(result.url).toMatch(/^http/);
+      expect(result.launch).toMatch(/^http/);
+    });
+
+    it("writes a stdio entry when the nodetool CLI is on PATH", async () => {
+      const cli = join("/opt/bin", "nodetool");
+      process.env.PATH = "/opt/bin";
+      (existsSync as ReturnType<typeof vi.fn>).mockImplementation(
+        (p: string) => p === cli
+      );
+      (readFileSync as ReturnType<typeof vi.fn>).mockImplementation(
+        (p: string) => {
+          if (p === cli) return "#!/usr/bin/env node\nrequire('./dist/nodetool.js')";
+          throw new Error(`unexpected read of ${p}`);
+        }
+      );
+      const caller = createCaller(makeCtx());
+      const result = await caller.mcpConfig.install({ targets: ["claude"] });
+      expect(result.launch).toBe("nodetool mcp serve");
+      const written = JSON.parse(
+        (writeFileSync as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as string
+      );
+      expect(written.mcpServers.nodetool).toEqual({
+        type: "stdio",
+        command: "nodetool",
+        args: ["mcp", "serve"],
+        env: {}
+      });
     });
 
     it("installs only requested targets", async () => {
@@ -237,7 +287,7 @@ url = "http://127.0.0.1:7777/mcp"
         targets: ["claude"],
         url: "http://example.com:9000/mcp"
       });
-      expect(result.url).toBe("http://example.com:9000/mcp");
+      expect(result.launch).toBe("http://example.com:9000/mcp");
     });
 
     it("creates parent directories for codex/opencode", async () => {
@@ -296,13 +346,9 @@ url = "http://127.0.0.1:7777/mcp"
       );
       (readFileSync as ReturnType<typeof vi.fn>).mockReturnValue(
         JSON.stringify({
-          projects: {
-            "/home/user": {
-              mcpServers: {
-                nodetool: { url: "x" },
-                other: { url: "y" }
-              }
-            }
+          mcpServers: {
+            nodetool: { url: "x" },
+            other: { url: "y" }
           }
         })
       );
@@ -315,8 +361,8 @@ url = "http://127.0.0.1:7777/mcp"
       expect(writeCalls).toHaveLength(1);
       const writtenContent = writeCalls[0]?.[1] as string;
       const parsed = JSON.parse(writtenContent);
-      expect(parsed.projects["/home/user"].mcpServers.nodetool).toBeUndefined();
-      expect(parsed.projects["/home/user"].mcpServers.other).toBeDefined();
+      expect(parsed.mcpServers.nodetool).toBeUndefined();
+      expect(parsed.mcpServers.other).toBeDefined();
     });
 
     it("removes block from codex config.toml", async () => {

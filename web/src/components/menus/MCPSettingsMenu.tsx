@@ -7,7 +7,16 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import InstallDesktopIcon from "@mui/icons-material/InstallDesktop";
-import { Text, FlexRow, FlexColumn, NavButton, getSpacingPx, SPACING } from "../ui_primitives";
+import {
+  Caption,
+  CopyButton,
+  Text,
+  FlexRow,
+  FlexColumn,
+  NavButton,
+  getSpacingPx,
+  SPACING
+} from "../ui_primitives";
 import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import AgentAccessSection from "./AgentAccessSection";
@@ -19,13 +28,19 @@ interface TargetStatus {
   label: string;
   installed: boolean;
   url: string | null;
+  command: string | null;
   configPath: string | null;
 }
 
 interface McpStatusResponse {
   targets: TargetStatus[];
   defaultUrl: string;
+  defaultLaunch: string;
 }
+
+/** Registers the stdio server from any terminal, with no global install. */
+const TERMINAL_INSTALL =
+  "npx -y --package=@nodetool-ai/cli nodetool mcp install";
 
 type McpTarget = "claude" | "codex" | "opencode";
 
@@ -178,10 +193,9 @@ const MCPSettingsMenu = () => {
     >
       <div className="settings-main-content">
         <Text className="description" sx={{ mb: 1 }}>
-          Connect AI coding assistants to NodeTool via the{" "}
-          <strong>Model Context Protocol</strong>. When installed, Claude Code,
-          Codex, and OpenCode can use NodeTool workflows, assets, nodes, and
-          collections as tools.
+          Use NodeTool from Claude Code, Codex, or OpenCode through the{" "}
+          <strong>Model Context Protocol</strong>. The agent gets NodeTool
+          workflows, media generation, assets, nodes, and collections as tools.
         </Text>
 
         {isLoading && <Text sx={{ padding: getSpacingPx(SPACING.xl) }}>Loading…</Text>}
@@ -192,14 +206,17 @@ const MCPSettingsMenu = () => {
               <Text sx={{ fontWeight: 500, mb: 0.5 }}>
                 Install on this machine
               </Text>
-              {data.defaultUrl && (
-                <Text
-                  className="description"
-                  sx={{ mb: 1, fontFamily: "monospace", opacity: 0.6 }}
-                >
-                  {data.defaultUrl}
-                </Text>
-              )}
+              <Text className="description" sx={{ mb: 1 }}>
+                {data.defaultLaunch.startsWith("http")
+                  ? "The client connects to this server. It works while NodeTool runs."
+                  : "The client starts NodeTool itself. It works whether or not this app runs."}
+              </Text>
+              <Text
+                className="description"
+                sx={{ mb: 1, fontFamily: "monospace", opacity: 0.6 }}
+              >
+                {data.defaultLaunch}
+              </Text>
               {data.targets.map((t) => (
                 <div key={t.target} className="settings-item">
                   <FlexRow align="center" justify="space-between" fullWidth>
@@ -221,12 +238,12 @@ const MCPSettingsMenu = () => {
                       )}
                       <FlexColumn gap={0}>
                         <Text sx={{ fontWeight: 500 }}>{t.label}</Text>
-                        {t.installed && t.url && (
+                        {t.installed && (t.command ?? t.url) && (
                           <Text
                             className="description"
                             sx={{ fontSize: "var(--fontSizeSmall) !important" }}
                           >
-                            {t.url}
+                            {t.command ?? t.url}
                           </Text>
                         )}
                       </FlexColumn>
@@ -280,6 +297,34 @@ const MCPSettingsMenu = () => {
             )}
           </>
         )}
+
+        <div
+          className="settings-section"
+          style={{ marginTop: getSpacingPx(SPACING.xxl) }}
+        >
+          <Text sx={{ fontWeight: 500, mb: 0.5 }}>Install from a terminal</Text>
+          <Text className="description" sx={{ mb: 1 }}>
+            Registers NodeTool with every agent harness found on the machine.
+            The agent starts NodeTool on demand, so this app does not need to
+            run.
+          </Text>
+          <FlexColumn gap={0.5}>
+            <Caption>Run this</Caption>
+            <FlexRow align="center" gap={1}>
+              <Text
+                sx={{
+                  flex: 1,
+                  fontFamily: "monospace",
+                  fontSize: "var(--fontSizeSmall) !important",
+                  wordBreak: "break-all"
+                }}
+              >
+                {TERMINAL_INSTALL}
+              </Text>
+              <CopyButton value={TERMINAL_INSTALL} tooltip="Copy the command" />
+            </FlexRow>
+          </FlexColumn>
+        </div>
 
         {installBundle && (
           <div className="settings-section" style={{ marginTop: getSpacingPx(SPACING.xxl) }}>
