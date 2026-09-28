@@ -114,7 +114,13 @@ export function createBuilder({ W, H, FPS, font = "Inter" }) {
     const x0 = o.x ?? 0;
     const x = anchor === "left" ? x0 + (mw * W) / 2 : anchor === "right" ? x0 - (mw * W) / 2 : x0;
     const style = { text: str, fontFamily: o.font ?? font, fontSizePx: size, fontWeight: weight, color, align: anchor, maxWidthFrac: mw, ...(o.style ?? {}) };
-    if (o.tracking) style.letterSpacingPx = o.tracking * size;
+    if (o.tracking) {
+      // Em, like CSS `em`: -0.04 is tight display type, 0.2 wide caps.
+      if (Math.abs(o.tracking) > 1) {
+        throw new Error(`text "${str}": tracking is in em (a fraction of the font size, e.g. -0.04 or 0.2), not ${o.tracking}`);
+      }
+      style.letterSpacingPx = o.tracking * size;
+    }
     if (o.fill) style.fill = o.fill;
     return add("text", { ...o, x, textStyle: style });
   }

@@ -337,3 +337,34 @@ describe("timeline pack persistence", () => {
     expect(await run.invoke("list_timelines", {})).toEqual(before);
   });
 });
+
+describe("the builder's text tracking", () => {
+  const packEntry = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    "sandbox-packs",
+    "sandbox-timeline",
+    "sandbox",
+    "index.js"
+  );
+
+  it("reads tracking in em, a fraction of the font size", async () => {
+    const { createBuilder } = await import(packEntry);
+    const b = createBuilder({ W: 1920, H: 1080, FPS: 30 });
+    b.scene("s", 0, 29);
+    const clip = b.text("MERIDIAN", 80, 700, "#fff", { tracking: -0.04 });
+    expect(clip.textStyle.letterSpacingPx).toBeCloseTo(-3.2);
+  });
+
+  it("refuses a tracking value in pixels or percent", async () => {
+    // A run passed `tracking: 10` and `-1`: 340px between 34px letters, and
+    // an 84px word folded onto itself.
+    const { createBuilder } = await import(packEntry);
+    const b = createBuilder({ W: 1920, H: 1080, FPS: 30 });
+    b.scene("s", 0, 29);
+    expect(() => b.text("STUDIO", 34, 500, "#fff", { tracking: 10 })).toThrow(
+      /tracking is in em/
+    );
+  });
+});

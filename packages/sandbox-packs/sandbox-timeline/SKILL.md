@@ -117,7 +117,7 @@ frames to judge how those choices look.
 | `scene(name, start, end, extra)` | a group clip; the following calls add to it |
 | `box(w, h, fill, o)`, `ellipse(d, fill, o)` | shape clips; `fill` is a colour or a gradient `{type, angle, stops}`; `o.r` corner radius, `o.stroke`, `o.sw` |
 | `path(points, o)` | an SVG path from `[["M", x, y], ["L", x, y], …]` in centre px |
-| `text(str, size, weight, color, o)` | a text clip; `o.anchor` `"left"`/`"right"`, `o.mw` max width as a frame fraction, `o.tracking`, `o.font` |
+| `text(str, size, weight, color, o)` | a text clip; `o.anchor` `"left"`/`"right"`, `o.mw` max width as a frame fraction, `o.tracking` letter spacing in em (a fraction of the font size: -0.04 tight, 0.2 wide caps), `o.font` |
 | `image(assetId, o)`, `group(o)`, `adjust(effects, o)` | a placed still, a nested group, an adjustment layer |
 | `on(clip, f0, dur, curves, opts)` | a custom animation at scene frame `f0` |
 | `across(clip, curves)`, `loop(clip, period, curves)`, `fadeOut(clip, dur)` | a curve over the whole clip, a loop, a fade at the end |
