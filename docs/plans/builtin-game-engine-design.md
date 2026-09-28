@@ -18,7 +18,7 @@ are implemented. Hardware profiling, atlas packing, tile chunking, an isolated
 script/render worker, native mobile packaging, multiplayer, and 3D remain later
 work in this design.
 
-The [3D upgrade design](native-game-3d-upgrade.md) defines a shared gameplay
+The [3D upgrade design](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/native-game-3d-upgrade.md) defines a shared gameplay
 lifecycle with separate 2D/3D spatial implementations, plus 3D rendering, asset
 preparation, and compatibility gates.
 

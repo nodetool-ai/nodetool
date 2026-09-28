@@ -1177,7 +1177,7 @@ committed simulation hashes and projected bounds. The renderer package's tests
 exercise skinning, shadows, context recovery, disposal and a closed-network
 standalone completion route. Desktop capture uses packaged Playwright. A server
 build without browser automation reports unavailable capture capability.
-See the [3D design](plans/native-game-3d-upgrade.md) and
+See the [3D design](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/native-game-3d-upgrade.md) and
 [runtime contract](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/README.md).
 
 The `nodetool.game.*` nodes retain asset checks. `LoadGameTemplate` lists native
