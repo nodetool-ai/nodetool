@@ -315,7 +315,7 @@ jobs:
           # disjoint slice of the workspace graph: the two heaviest packages
           # alone, the node packages (`./packages/*-nodes` plus the packages
           # only they use), and everything else. The `core` shard runs
-          # game-runtime and game-renderer serially before the other packages
+          # game-runtime, game-renderer, and cli serially before the other packages
           # because their script deadlines are sensitive to CPU contention.
           # It also carries the two root-level
           # suites (`test:oxlint-rules`, `test:scripts`), which take a second.
@@ -370,7 +370,7 @@ jobs:
             is-test: "true"
             fetch-depth: "0"
           - check: test-packages-core
-            command: npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter=@nodetool-ai/game-runtime --filter=@nodetool-ai/game-renderer --concurrency=1 $TURBO_AFFECTED && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' --filter='!@nodetool-ai/game-renderer' $TURBO_AFFECTED
+            command: npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter=@nodetool-ai/game-runtime --filter=@nodetool-ai/game-renderer --filter=@nodetool-ai/cli --concurrency=1 $TURBO_AFFECTED && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' --filter='!@nodetool-ai/game-renderer' --filter='!@nodetool-ai/cli' $TURBO_AFFECTED
             mobile-deps: "false"
             extra-apt: "mesa-vulkan-drivers ffmpeg"
             is-test: "true"
