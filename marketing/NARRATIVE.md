@@ -121,6 +121,11 @@ makes ours different from a hosted platform's is stated as fact in the benefit
 paragraph ("on your own keys, at provider list prices") and then dropped.
 
 Advertising and marketing (`/marketing`) is the current industry vertical.
+Game development (`/gamedev`) leads with the shipped Kindle, Lumen, and Neon
+Drift games. Visitors can play a standalone browser export, then open the same
+example in Studio to edit its art, levels, and rules.
+Regenerate its browser exports with `npm run build:packages`, then
+`npm --prefix marketing run gen:games`.
 `/studio` is the desktop-edition page and `/agents` is the builder/operator
 page. Film production remains a strong demonstration on both routes, but it is
 not their product category.

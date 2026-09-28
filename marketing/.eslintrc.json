@@ -1,5 +1,6 @@
 {
   "extends": "next/core-web-vitals",
+  "ignorePatterns": ["public/games/**", "playwright-report/**", "test-results/**"],
   "rules": {
     "@next/next/no-html-link-for-pages": "off"
   }

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob:; media-src 'self' blob:; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'">
+  <meta name="robots" content="noindex"><title>Neon Drift | NodeTool Game</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main>
+    <div class="stage"><canvas id="game" aria-label="Game viewport"></canvas></div>
+    <div class="controls">
+      <button id="pause" type="button">Pause</button>
+      <button id="step" type="button">Step</button>
+      <button id="reset" type="button">Reset</button>
+      <button id="save" type="button">Save</button>
+      <button id="load" type="button">Load</button>
+      <button id="fullscreen" type="button">Fullscreen</button>
+    </div>
+    <p id="status" role="status" aria-live="polite"></p>
+  </main>
+  <div id="touch" class="touch-layer"></div>
+  <div class="rotate" role="alert">Turn your device sideways to play</div>
+  <script type="module" src="./player-v1.js"></script>
+</body>
+</html>

@@ -35,6 +35,7 @@ const COLUMNS: Col[] = [
       { name: "Agents", href: "/agents" },
       { name: "Developers", href: "/developers" },
       { name: "Marketing", href: "/marketing" },
+      { name: "Game development", href: "/gamedev" },
       { name: "Local-first", href: "/solutions/local-first" },
       { name: "Researchers", href: "/solutions/researchers" },
       { name: "All solutions", href: "/solutions" },

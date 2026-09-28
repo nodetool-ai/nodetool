@@ -26,6 +26,7 @@ export const staticEntries: PageEntry[] = [
   { route: "/agents", title: "AI Agents", description: "Build planning agents on a visual canvas.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/developers", title: "For Developers", description: "One QuickJS sandbox for your code and your agent's.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/marketing", title: "For Marketing", description: "Produce campaign assets with AI workflows.", priority: 0.8, changeFrequency: "monthly", indexable: true },
+  { route: "/gamedev", title: "Game Development", description: "Play and edit example games made in NodeTool Studio.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   // /alternatives/* comes from the competitorEntries engine module.
   { route: "/templates", title: "AI Workflow Templates", description: "Browse ready-to-run NodeTool workflow templates by category.", priority: 0.8, changeFrequency: "weekly", indexable: true },
   { route: "/recipes", title: "AI Workflow Recipes", description: "Multi-step NodeTool recipes: the workflows to run, in order, shipped inside Studio.", priority: 0.8, changeFrequency: "monthly", indexable: true },
