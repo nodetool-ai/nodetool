@@ -445,6 +445,10 @@ jobs:
           # The dist comes from the artifact below; don't rebuild it per leg.
           build-packages: "false"
 
+      - name: Install Chromium for native 3D tests
+        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-agents' || matrix.check == 'harness-gate'
+        run: npx playwright install --with-deps chromium
+
       - name: Download package dist
         uses: actions/download-artifact@v8
         with:

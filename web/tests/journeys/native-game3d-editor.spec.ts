@@ -1,5 +1,5 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
@@ -22,7 +22,9 @@ function modelFixture(): Buffer {
 }
 
 test("edits, undoes, installs a model, plays and publishes the same 3D draft", async ({ page }) => {
-  const modelDirectory = await mkdtemp(join(tmpdir(), "game3d-journey-"));
+  const fixtureRoot = join(homedir(), ".cache", "nodetool-journeys");
+  await mkdir(fixtureRoot, { recursive: true });
+  const modelDirectory = await mkdtemp(join(fixtureRoot, "game3d-"));
   try {
     const port = Number(process.env.SCREENSHOT_WEB_PORT ?? 3000);
     const client = createTRPCClient<AppRouter>({ links: [httpBatchLink({ url: `http://localhost:${port}/trpc`, methodOverride: "POST" })] });
