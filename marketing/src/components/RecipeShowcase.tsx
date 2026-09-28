@@ -13,8 +13,15 @@ const HOMEPAGE_RECIPE_ORDER = [
   "storyboard-to-trailer"
 ];
 
-export default function RecipeShowcase() {
-  const projects = HOMEPAGE_RECIPE_ORDER.map((slug) =>
+interface RecipeShowcaseProps {
+  readonly compact?: boolean;
+}
+
+export default function RecipeShowcase({ compact = false }: RecipeShowcaseProps) {
+  const order = compact
+    ? ["ecommerce-sku-visual-factory", "multilingual-video-dubber", "storyboard-to-trailer"]
+    : HOMEPAGE_RECIPE_ORDER;
+  const projects = order.map((slug) =>
     recipeEntries.find((recipe) => recipe.slug === slug)
   ).filter((recipe): recipe is RecipeEntry => Boolean(recipe));
 
@@ -30,15 +37,17 @@ export default function RecipeShowcase() {
             id="jobs-title"
             className="text-3xl font-semibold tracking-tight text-slate-100 md:text-5xl"
           >
-            Made with NodeTool
+            {compact ? "Build your next campaign" : "Made with NodeTool"}
           </h2>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-300">
-            Ads, catalogue images, dubbed videos, and storyboards. Start with an example.
+            {compact
+              ? "Follow a recipe for product images, dubbed video, or a storyboard."
+              : "Ads, catalogue images, dubbed videos, and storyboards. Start with an example."}
           </p>
         </div>
-        {projects[0] && <RecipeCard recipe={projects[0]} featured />}
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          {projects.slice(1).map((recipe) => (
+        {!compact && projects[0] && <RecipeCard recipe={projects[0]} featured />}
+        <div className={`mt-6 grid gap-6 ${compact ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
+          {(compact ? projects : projects.slice(1)).map((recipe) => (
             <RecipeCard key={recipe.slug} recipe={recipe} />
           ))}
         </div>

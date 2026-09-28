@@ -11,6 +11,7 @@ import BuildRunDeploy from "../components/BuildRunDeploy";
 import OwnershipSection from "../components/OwnershipSection";
 import ModelSupportSection from "../components/ModelSupportSection";
 import SurfaceShowcase from "../components/SurfaceShowcase";
+import TimelineShowcase from "../components/TimelineShowcase";
 import ProjectSection from "../components/ProjectSection";
 import CommunitySection from "../components/CommunitySection";
 import ContactSection from "../components/ContactSection";
@@ -226,9 +227,11 @@ export default function Home() {
             five editors, each over a loop of the real thing (#surface-<id>) */}
         <SurfaceShowcase />
 
+        <TimelineShowcase />
+
         {/* Proof, after the product is understood: guided recipes with editable
             steps and example media */}
-        <RecipeShowcase />
+        <RecipeShowcase compact />
 
         {/* Model breadth on your own keys, under the agent story rather than in
             front of it */}

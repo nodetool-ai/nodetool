@@ -22,6 +22,7 @@ import CommunitySection from "../../components/CommunitySection";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import RecipeShowcase from "../../components/RecipeShowcase";
+import TimelineShowcase from "../../components/TimelineShowcase";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 
 const marketingBenefits = [
@@ -166,11 +167,11 @@ export default function MarketingSegmentPage() {
                     classNameOverride="group relative inline-flex items-center gap-2.5 px-9 py-4 rounded-full bg-amber-500 text-white font-semibold transition-all shadow-[0_10px_30px_-10px_rgba(245,158,11,0.6)] hover:bg-amber-400 hover:shadow-[0_14px_40px_-10px_rgba(245,158,11,0.75)]"
                   />
                   <a
-                    href="#product-video"
+                    href="#example-timelines"
                     className="inline-flex items-center gap-2.5 px-9 py-4 rounded-full border border-white/15 bg-[#0a0a14]/70 backdrop-blur-sm text-white font-semibold hover:bg-white/5 hover:border-white/25 transition-all"
                   >
                     <Play className="w-5 h-5" />
-                    Try now
+                    Watch examples
                   </a>
                 </div>
 
@@ -198,6 +199,8 @@ export default function MarketingSegmentPage() {
             </div>
           </div>
         </section>
+
+        <TimelineShowcase />
 
         {/* Why marketing teams choose NodeTool */}
         <section className="py-20 relative">

@@ -74,8 +74,8 @@ claims, not next to them. On the homepage they are one strip of links to
 
 Hero → **the agent builds the project** (a brief, then a board, takes, and a cut
 that opens) → the three steps (Pitch / Automate / Direct) → the editors, framed
-as control over that project → how teams are using it (the recipes, each a real
-run with its bundle) → **every model, your keys** → **apps for everything** →
+as control over that project → finished films with their editable timelines →
+recipes for related production work → **every model, your keys** → **apps for everything** →
 ownership → **build the workflows that work for you** → comparison → Studio vs
 Cloud → ways in → FAQ → community → download.
 
@@ -153,13 +153,19 @@ ownership.
 
 ## Jobs, not demos
 
-The homepage shows selected recipes (`/recipes`) under "Made with NodeTool".
-Each pairs example media with a guide to making related work in Studio. The four use cases on `/use-cases`
+The homepage shows shipped timeline examples under "Watch the film. Make it
+yours." Each pairs a full film with a capture of its editable timeline. Lead
+with Serein, Kite, and Tidewater, followed by Prism and Voltra. T minus 30 stays
+outside the marketing showcase. The advertising page uses the same showcase
+directly below its hero.
+
+Selected recipes (`/recipes`) follow under "Build your next campaign". Each
+pairs example media with a guide to making related work in Studio. The use cases on `/use-cases`
 (trailer, teaser, product video, poster) are demos of a surface; they stay on
 their own pages.
 
 Each recipe card shows one result, a short description, and a link to the guide.
-The featured card plays the finished ad on request. Model details belong on the
+Expanded recipe showcases play the featured ad on request. Model details belong on the
 recipe page. Internal review status and production checklists stay in the run
 records. Describe the visible result accurately, including when it is a
 storyboard rather than a finished film. Do not put estimated costs on cards.

@@ -64,16 +64,12 @@ test.describe("marketing smoke", () => {
     await page.goto("/");
 
     const proof = page.getByRole("region", {
-      name: "Made with NodeTool"
+      name: "Build your next campaign"
     });
     await expect(proof).toBeVisible();
     await expect(proof.getByText("Still to review")).toHaveCount(0);
 
     const expectedRoutes = [
-      "/recipes/ugc-product-video",
-      "/recipes/directed-campaign-kit",
-      "/recipes/viral-video-ad-engine",
-      "/recipes/impossible-product-worlds",
       "/recipes/ecommerce-sku-visual-factory",
       "/recipes/multilingual-video-dubber",
       "/recipes/storyboard-to-trailer"
@@ -115,17 +111,17 @@ test.describe("marketing smoke", () => {
       await expect(project.getByText(run.essentialLimitation)).toHaveCount(0);
     }
 
-    const campaignProject = proof.locator("article", {
-      has: page.locator('a[href="/recipes/directed-campaign-kit"]')
+    const catalogueProject = proof.locator("article", {
+      has: page.locator('a[href="/recipes/ecommerce-sku-visual-factory"]')
     });
-    const campaignImage = campaignProject.getByRole("img", {
-      name: /square campaign image of an olive travel cup/i
+    const catalogueImage = catalogueProject.getByRole("img", {
+      name: /accepted olive travel cup reference/i
     });
-    await expect(campaignImage).toHaveCount(1);
+    await expect(catalogueImage).toHaveCount(1);
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(campaignImage).toBeVisible();
-    expect((await campaignImage.boundingBox())?.width ?? 0).toBeGreaterThan(
+    await expect(catalogueImage).toBeVisible();
+    expect((await catalogueImage.boundingBox())?.width ?? 0).toBeGreaterThan(
       300
     );
     expect(
