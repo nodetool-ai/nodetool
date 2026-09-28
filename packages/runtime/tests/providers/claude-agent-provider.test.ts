@@ -269,6 +269,11 @@ describe("ClaudeAgentProvider", () => {
         "ToolSearch"
       ])
     );
+    // No built-in, connector, bundled skill or agent listing reaches the turn.
+    expect(opts.tools).toEqual([]);
+    expect(opts.strictMcpConfig).toBe(true);
+    expect(opts.skills).toEqual([]);
+    expect(opts.env?.ENABLE_CLAUDEAI_MCP_SERVERS).toBe("false");
   });
 
   it("returns SDK structured output through the forced schema tool contract", async () => {
@@ -775,9 +780,9 @@ describe("ClaudeAgentProvider", () => {
     );
     expect((calls[0].options as Options).maxTurns).toBe(1);
     expect((calls[0].options as Options).mcpServers).toBeUndefined();
-    // No skills handed in: the native skill loop stays off (identical to before).
+    // No skills handed in: no plugin, and the bundled skills stay hidden.
     expect((calls[0].options as Options).plugins).toBeUndefined();
-    expect((calls[0].options as Options).skills).toBeUndefined();
+    expect((calls[0].options as Options).skills).toEqual([]);
     const msgs = messagesOf(items);
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({ role: "assistant", content: "hello" });
@@ -830,6 +835,8 @@ describe("ClaudeAgentProvider", () => {
     // Native skills ride `plugins`, never `settingSources` (kept []).
     expect(opts.settingSources).toEqual([]);
     expect(opts.skills).toEqual(["release-notes"]);
+    // The native Skill tool is the one built-in the plugin needs.
+    expect(opts.tools).toEqual(["Skill"]);
     expect(opts.plugins).toEqual([
       { type: "local", path: pluginDir, skipMcpDiscovery: true }
     ]);
@@ -1131,6 +1138,9 @@ describe("ClaudeAgentProvider", () => {
     // always-empty ToolSearch is taken off the table.
     expect(opts.disallowedTools).toEqual(["ToolSearch"]);
     expect(opts.cwd).toBe("/tmp/ws");
+    // Only the built-ins that replace an offered tool, plus the web pair.
+    expect(opts.tools).toEqual(["Read", "Grep", "WebSearch", "WebFetch"]);
+    expect(opts.strictMcpConfig).toBe(true);
   });
 
   it("keeps the path-scoped NodeTool tools when no workspace is given", async () => {

@@ -50,7 +50,10 @@ import {
   budgetStopItem,
   resolveTurnBudget
 } from "./base-provider.js";
-import { sdkNativeReplacements } from "./core-tools.js";
+import {
+  SDK_NATIVE_TOOL_REPLACEMENTS,
+  sdkNativeReplacements
+} from "./core-tools.js";
 import {
   isProviderMessageEvent,
   isProviderSessionUpdate,
@@ -107,6 +110,9 @@ const SDK_BUILTIN_TOOLS = [
   "Task",
   "TodoWrite"
 ];
+
+/** The built-ins a tool-using turn keeps even when it offered no counterpart. */
+const SDK_WEB_TOOLS = ["WebSearch", "WebFetch"];
 
 /**
  * Env vars a nested Claude subscription session leaks into its children. The
@@ -168,6 +174,12 @@ interface TurnConfig {
    * SDK built-in. Only the first case may disable the built-ins.
    */
   toolsOffered: boolean;
+  /**
+   * The SDK built-ins the turn may use, passed as `tools`. Every other
+   * built-in stays out of the prompt, where its schema would be re-read on
+   * every request of the loop.
+   */
+  builtinTools: string[];
   /**
    * Session working directory. Set to the run's workspace so the SDK's
    * path-scoped built-ins (`Read`/`Write`/`Edit`/`Glob`/`Grep`) resolve where
@@ -448,6 +460,11 @@ export class ClaudeAgentProvider extends BaseProvider {
             offered.length > 0 ? (args.maxIterations ?? DEFAULT_TOOL_TURNS) : 1,
           mcp,
           toolsOffered: offered.length > 0,
+          builtinTools: turnBuiltins(
+            replaced,
+            offered.length > 0,
+            skillsPlugin !== null
+          ),
           cwd: args.workspaceDir,
           skillsPlugin
         }
@@ -545,7 +562,8 @@ export class ClaudeAgentProvider extends BaseProvider {
       emitMessages: false,
       maxTurns: args.maxTurns ?? 1,
       mcp: null,
-      toolsOffered: false
+      toolsOffered: false,
+      builtinTools: []
     };
     if (resultTool && resultSchema) {
       config.outputFormat = { type: "json_schema", schema: resultSchema };
@@ -689,8 +707,8 @@ export class ClaudeAgentProvider extends BaseProvider {
       // Do NOT load repo .claude / CLAUDE.md / skills.
       settingSources: [],
       // Run without asking for permissions: never prompt AND never deny. This
-      // lets the SDK agent use its built-in tools (WebSearch/WebFetch/Bash/…)
-      // alongside NodeTool's MCP tools. bypassPermissions requires the explicit
+      // lets the SDK agent use the built-ins `tools` keeps alongside
+      // NodeTool's MCP tools. bypassPermissions requires the explicit
       // safety flag below.
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
@@ -712,6 +730,13 @@ export class ClaudeAgentProvider extends BaseProvider {
       disallowedTools: plan.config.toolsOffered
         ? ["ToolSearch"]
         : [...SDK_BUILTIN_TOOLS, "ToolSearch"],
+      tools: plan.config.builtinTools,
+      // Only the in-process NodeTool server. Without this the child also loads
+      // the account's claude.ai connectors and the user's MCP servers, and
+      // their tool schemas grow every request of the loop.
+      strictMcpConfig: true,
+      // Hide the skills bundled with the SDK. The plugin below names its own.
+      skills: [],
       includePartialMessages: true,
       // Setting env REPLACES the child env, so spread process.env minus the
       // nested-session leakage. Preserves PATH/HOME/ANTHROPIC_BASE_URL/proxies.
@@ -1034,7 +1059,30 @@ function buildChildEnv() {
       continue;
     env[key] = value;
   }
+  // The claude.ai connectors come from the account login, not from settings.
+  // This turns them off in the child.
+  env.ENABLE_CLAUDEAI_MCP_SERVERS = "false";
   return env;
+}
+
+/**
+ * The built-ins one loop turn keeps: those that replace an offered NodeTool
+ * tool, the web pair when the caller offered any tool, and `Skill` when a
+ * skills plugin is loaded.
+ */
+function turnBuiltins(
+  replaced: ReadonlySet<string>,
+  toolsOffered: boolean,
+  hasSkillsPlugin: boolean
+): string[] {
+  const builtins = new Set<string>();
+  for (const name of replaced) {
+    const builtin = SDK_NATIVE_TOOL_REPLACEMENTS.get(name);
+    if (builtin) builtins.add(builtin);
+  }
+  if (toolsOffered) for (const name of SDK_WEB_TOOLS) builtins.add(name);
+  if (hasSkillsPlugin) builtins.add("Skill");
+  return [...builtins];
 }
 
 /**
