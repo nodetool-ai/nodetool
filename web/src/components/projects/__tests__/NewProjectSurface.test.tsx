@@ -1003,16 +1003,19 @@ describe("NewProjectSurface", () => {
     ["a `/skill` prompt", "/launch-commercial A spot for our desk lamp"]
   ])("opens normal chat for %s and never mounts the flow", async (
     _name,
-    typed
+    promptText
   ) => {
+    const user = userEvent.setup();
     renderSurface();
-    await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
-      typed
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
+    await user.click(screen.getByPlaceholderText(/30-second launch spot/));
+    await user.paste(promptText);
+    await user.click(screen.getByRole("button", { name: "Send to chat" }));
 
     await waitFor(() => expect(createNewThread).toHaveBeenCalled());
+    expect(peekChatTurn("chat-1")?.[0]).toEqual({
+      type: "text",
+      text: promptText
+    });
     expect(createProject).not.toHaveBeenCalled();
     expect(openProject).not.toHaveBeenCalled();
     expect(createStoryboard).not.toHaveBeenCalled();
