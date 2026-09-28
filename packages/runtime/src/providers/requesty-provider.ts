@@ -18,6 +18,10 @@ const REQUESTY_MODEL_LISTINGS = [
 ];
 
 export class RequestyProvider extends OpenAICompatProvider {
+  /** `supports_tool_calling` per model id, as reported by the last discovery. */
+  private toolSupport = new Map<string, boolean>();
+  private toolSupportLoad: Promise<unknown> | null = null;
+
   static override requiredSecrets(): string[] {
     return ["REQUESTY_API_KEY"];
   }
@@ -50,8 +54,18 @@ export class RequestyProvider extends OpenAICompatProvider {
     return { REQUESTY_API_KEY: this.apiKey };
   }
 
-  override async hasToolSupport(_model: string): Promise<boolean> {
-    return true;
+  /**
+   * Requesty reports `supports_tool_calling` per model on both listings. Only
+   * an explicit `false` disables native tools; a model the listings did not
+   * describe keeps tools on. Discovery runs once per instance when no
+   * listing has been seen yet.
+   */
+  override async hasToolSupport(model: string): Promise<boolean> {
+    if (!this.toolSupport.has(model)) {
+      this.toolSupportLoad ??= this.getAvailableLanguageModels();
+      await this.toolSupportLoad;
+    }
+    return this.toolSupport.get(model) ?? true;
   }
 
   /**
@@ -86,6 +100,7 @@ export class RequestyProvider extends OpenAICompatProvider {
       if (row.api !== undefined && row.api !== "chat") continue;
       if (seen.has(row.id)) continue;
       seen.add(row.id);
+      this.toolSupport.set(row.id, row.supports_tool_calling !== false);
       models.push({ id: row.id, name: row.id, provider: this.provider });
     }
     return models;

@@ -42,13 +42,88 @@ describe("RequestyProvider", () => {
     });
   });
 
-  it("reports tool support for every model", async () => {
+  it("honors supports_tool_calling from discovery, defaulting to true", async () => {
+    const mockFetch = vi.fn(async (url: string) =>
+      url.endsWith("/models/managed")
+        ? modelsResponse([
+            { id: "gpt-5.4-mini", api: "chat", supports_tool_calling: true },
+            { id: "laguna-xs.2", api: "chat", supports_tool_calling: false }
+          ])
+        : modelsResponse([
+            { id: "openai/gpt-4o-mini", api: "chat" },
+            {
+              id: "deepinfra/microsoft/phi-4",
+              api: "chat",
+              supports_tool_calling: false
+            }
+          ])
+    );
     const provider = new RequestyProvider(
       { REQUESTY_API_KEY: "k" },
-      { client: {} as any }
+      { client: {} as any, fetchFn: mockFetch as any }
     );
-    expect(await provider.hasToolSupport("openai/gpt-4o-mini")).toBe(true);
+
     expect(await provider.hasToolSupport("gpt-5.4-mini")).toBe(true);
+    expect(await provider.hasToolSupport("openai/gpt-4o-mini")).toBe(true);
+    expect(await provider.hasToolSupport("laguna-xs.2")).toBe(false);
+    expect(await provider.hasToolSupport("deepinfra/microsoft/phi-4")).toBe(
+      false
+    );
+    expect(await provider.hasToolSupport("unlisted/model")).toBe(true);
+    // One discovery pass serves every lookup.
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps native tools off the request for a model that reports no tool calling", async () => {
+    const chatFetch = mockChatFetch(
+      chatJsonResponse({
+        choices: [{ message: { content: "ok", tool_calls: null } }]
+      })
+    );
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) =>
+      url.endsWith("/models/managed")
+        ? modelsResponse([])
+        : url.endsWith("/models")
+          ? modelsResponse([
+              {
+                id: "openai/gpt-4o-mini",
+                api: "chat",
+                supports_tool_calling: true
+              },
+              {
+                id: "deepinfra/microsoft/phi-4",
+                api: "chat",
+                supports_tool_calling: false
+              }
+            ])
+          : chatFetch(url, init)
+    );
+    const provider = new RequestyProvider(
+      { REQUESTY_API_KEY: "k" },
+      { fetchFn: fetchMock as unknown as typeof fetch }
+    );
+    const tools = [
+      {
+        name: "lookup",
+        description: "Look something up",
+        inputSchema: { type: "object", properties: {} }
+      }
+    ];
+    const messages: Message[] = [{ role: "user", content: "hi" }];
+
+    await provider.generateMessage({
+      messages,
+      model: "deepinfra/microsoft/phi-4",
+      tools
+    });
+    await provider.generateMessage({
+      messages,
+      model: "openai/gpt-4o-mini",
+      tools
+    });
+
+    expect(requestBodyOf(chatFetch, 0).tools).toBeUndefined();
+    expect(requestBodyOf(chatFetch, 1).tools).toHaveLength(1);
   });
 
   it("lists managed models first, then the catalog, chat only and deduplicated", async () => {
