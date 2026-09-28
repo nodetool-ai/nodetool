@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/game-runtime",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Deterministic built-in game simulation",
   "type": "module",
   "engines": { "node": ">=22.0.0" },

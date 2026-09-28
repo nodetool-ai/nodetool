@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/core-nodes",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Core NodeTool nodes — pure-JS logic, control flow, constants, list, input, subgraph",
   "type": "module",
   "engines": {

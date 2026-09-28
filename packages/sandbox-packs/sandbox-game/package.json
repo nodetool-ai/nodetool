@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-game",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Build a complete native game document with entities, scripts and level geometry, then save the draft in one edit",
   "license": "MIT",
   "nodetool": {

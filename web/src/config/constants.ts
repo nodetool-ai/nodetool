@@ -1,5 +1,5 @@
 // APP
-export const VERSION = "0.8.0";
+export const VERSION = "0.8.1";
 
 // Build provenance injected by Vite at build time (see web/vite.config.ts).
 // In non-Vite contexts (e.g. Jest), the defines are absent — fall back to a

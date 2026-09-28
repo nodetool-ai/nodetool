@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/auth",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"

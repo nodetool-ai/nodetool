@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/storyboard",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Storyboard derivations: recast a board onto a new cast, and plan/run its shot renders",
   "type": "module",
   "engines": {
