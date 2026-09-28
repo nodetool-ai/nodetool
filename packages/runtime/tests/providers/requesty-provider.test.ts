@@ -117,6 +117,57 @@ describe("RequestyProvider", () => {
     expect(models.map((m) => m.id)).toEqual(["openai/gpt-4o-mini"]);
   });
 
+  const invalidJsonResponse = () => ({
+    ok: true,
+    json: async () => {
+      throw new SyntaxError("Unexpected token '<' in JSON at position 0");
+    }
+  });
+
+  it.each([
+    [
+      "the managed fetch rejects",
+      "/models/managed",
+      () => Promise.reject(new TypeError("fetch failed")),
+      ["openai/gpt-4o-mini"]
+    ],
+    [
+      "the managed listing is not valid JSON",
+      "/models/managed",
+      async () => invalidJsonResponse(),
+      ["openai/gpt-4o-mini"]
+    ],
+    [
+      "the catalog fetch rejects",
+      "/models",
+      () => Promise.reject(new TypeError("fetch failed")),
+      ["gpt-5.4-mini"]
+    ],
+    [
+      "the catalog listing is not valid JSON",
+      "/models",
+      async () => invalidJsonResponse(),
+      ["gpt-5.4-mini"]
+    ]
+  ])(
+    "keeps the other listing when %s",
+    async (_case, failingPath, failure, expected) => {
+      const mockFetch = vi.fn(async (url: string) => {
+        if (url.endsWith(failingPath)) return failure();
+        return url.endsWith("/models/managed")
+          ? modelsResponse([{ id: "gpt-5.4-mini", api: "chat" }])
+          : modelsResponse([{ id: "openai/gpt-4o-mini", api: "chat" }]);
+      });
+      const provider = new RequestyProvider(
+        { REQUESTY_API_KEY: "k" },
+        { client: {} as any, fetchFn: mockFetch as any }
+      );
+
+      const models = await provider.getAvailableLanguageModels();
+      expect(models.map((m) => m.id)).toEqual(expected);
+    }
+  );
+
   it("returns empty list when both model fetches fail", async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: false });
     const provider = new RequestyProvider(
