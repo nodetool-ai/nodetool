@@ -13,3 +13,6 @@
 ## 2024-11-20 - Concurrent sequential promises
 **Learning:** `await` calls executed sequentially in `for...of` loops cause massive time overhead when bounded by I/O (e.g., querying external AI model providers).
 **Action:** Always replace independent, sequential `await` calls in a `for` loop with `Promise.all` inside `.map` to execute them concurrently.
+## 2024-11-20 - O(1) concurrent database execution with Promise.all
+**Learning:** Using `for (const statement of statements) await statement;` for Drizzle ORM statements creates an unnecessary I/O bottleneck by executing sequentially.
+**Action:** Replace independent sequential `await` statements in loops with `await Promise.all()` to execute the queries concurrently, leveraging database batching and concurrent I/O performance.
