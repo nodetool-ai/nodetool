@@ -449,6 +449,31 @@ jobs:
         if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-agents' || matrix.check == 'harness-gate'
         run: npx playwright install --with-deps chromium
 
+      # Ubuntu restricts user namespaces for downloaded Chromium binaries.
+      # Allow only Playwright's browser paths so capture keeps its sandbox.
+      # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
+      - name: Enable and verify the Chromium sandbox
+        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-agents' || matrix.check == 'harness-gate'
+        run: |
+          sudo tee /etc/apparmor.d/nodetool-playwright > /dev/null <<'PROFILE'
+          abi <abi/4.0>,
+          include <tunables/global>
+
+          profile nodetool-playwright-chromium /@{HOME}/.cache/ms-playwright/chromium-*/chrome-linux*/chrome flags=(unconfined) {
+            userns,
+          }
+
+          profile nodetool-playwright-headless /@{HOME}/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux*/chrome-headless-shell flags=(unconfined) {
+            userns,
+          }
+          PROFILE
+          sudo apparmor_parser -r /etc/apparmor.d/nodetool-playwright
+          node --input-type=module <<'JS'
+          import { chromium } from "playwright";
+          const browser = await chromium.launch({ headless: true, chromiumSandbox: true });
+          await browser.close();
+          JS
+
       - name: Download package dist
         uses: actions/download-artifact@v8
         with:
