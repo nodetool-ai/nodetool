@@ -60,6 +60,33 @@ function createScriptedLoopProvider(actionsByCall: string[][]): BaseProvider {
 }
 
 const SOLUTIONS: Record<string, string[]> = {
+  "game-whole-document-save": [
+    `const created = await nodetool.games.create("Long Level");
+     const document = created.document;
+     const revision = document.revision;
+     document.id = "builder-draft";
+     document.revision = "builder-revision";
+     document.schemaVersion = 2;
+     document.entrySceneId = "level";
+     const tiles = [];
+     for (let i = 0; i < 3446; i++) tiles.push({x: i % 86, y: Math.floor(i / 86), width: 1, height: 1});
+     const entities = [
+       {id: "camera", transform2d: {x: 0, y: 0}, camera2d: {width: 16, height: 9}},
+       {id: "terrain", transform2d: {x: 0, y: 0}, tilemap: {assetId: "wall", tiles, solid: true}}
+     ];
+     for (let i = 0; i < 115; i++) entities.push({id: "item-" + i, transform2d: {x: i, y: 0}});
+     document.scenes = [{id: "level", name: "level", entities}];
+     await nodetool.games.edit(created.game.id, [{op: "set_document", document}], {base_updated_at: created.draft_updated_at});
+     const saved = await nodetool.games.get(created.game.id, {view: "full"});
+     const level = saved.document.scenes[0];
+     await finish({
+       gameId: saved.game.id,
+       entityCount: level.entities.length,
+       tileCount: level.entities[1].tilemap.tiles.length,
+       entrySceneId: saved.document.entrySceneId,
+       preservedIdentity: saved.document.id === created.game.id && saved.document.revision === revision
+     });`
+  ],
   "rag-index-and-answer": [
     `const docs = await nodetool.collections.query(
        "handbook", "refund window shipping warranty policy", {n_results: 10});
@@ -302,6 +329,12 @@ describe("codeact nodetool API surface cases", () => {
 
   it("the timeline repair scores 1.0 through nodetool.timelines", async () => {
     const result = await runOne("timeline-fix-and-validate");
+    expect(result.accepted, JSON.stringify(result.checks)).toBe(true);
+    expect(result.score).toBe(1);
+  });
+
+  it("the whole-game save scores 1.0 through nodetool.games", async () => {
+    const result = await runOne("game-whole-document-save");
     expect(result.accepted, JSON.stringify(result.checks)).toBe(true);
     expect(result.score).toBe(1);
   });

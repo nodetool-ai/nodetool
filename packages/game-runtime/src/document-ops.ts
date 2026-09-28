@@ -36,6 +36,7 @@ const backgroundSet = gameBackgroundLayer.partial();
 const behaviorSet = z.record(z.string(), z.unknown());
 
 export const gameDocumentOp = z.discriminatedUnion("op", [
+  z.strictObject({ op: z.literal("set_document"), document: gameDocument }),
   z.strictObject({ op: z.literal("add_entity"), scene_id: id, entity: gameEntity.partial().extend({ id }), index: index.optional() }),
   z.strictObject({ op: z.literal("update_entity"), ...target, set: entitySet }),
   z.strictObject({ op: z.literal("remove_entity"), ...target, children: z.enum(["remove", "reparent"]).default("remove") }),
@@ -140,6 +141,7 @@ function responsibleOpIndex(document: GameDocument, ops: readonly GameDocumentOp
   const entity = section === "entities" && typeof entityPosition === "number" ? scene?.entities[entityPosition] : undefined;
   for (let index = ops.length - 1; index >= 0; index -= 1) {
     const op = ops[index];
+    if (op.op === "set_document") { return index; }
     if (entity && (("entity_id" in op && op.entity_id === entity.id) ||
       (op.op === "add_entity" && op.entity.id === entity.id) ||
       (op.op === "duplicate_entity" && op.new_id === entity.id))) return index;
@@ -160,7 +162,7 @@ function referencesAsset(document: GameDocument, slot: string): boolean {
 
 /** Applies a complete ordered edit atomically. The input document is never mutated. */
 export function applyGameOps(document: GameDocument, ops: readonly GameDocumentOp[]): GameDocument {
-  const draft = structuredClone(document);
+  let draft = structuredClone(document);
   const entityIndexesByScene = new Map(draft.scenes.map((scene) => [scene.id, indexEntities(scene)]));
   for (const [opIndex, input] of ops.entries()) {
     const parsed = gameDocumentOp.safeParse(input);
@@ -171,6 +173,14 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
     }
     const op = parsed.data;
     switch (op.op) {
+      case "set_document": {
+        draft = { ...op.document, id: document.id, revision: document.revision };
+        entityIndexesByScene.clear();
+        for (const scene of draft.scenes) {
+          entityIndexesByScene.set(scene.id, indexEntities(scene));
+        }
+        break;
+      }
       case "add_entity": {
         const { scene, sceneIndex } = findScene(draft, op.scene_id, opIndex);
         if (entityIndexesByScene.get(scene.id)?.has(op.entity.id)) fail(opIndex, ["scenes", sceneIndex, "entities"], `Entity ${op.entity.id} already exists`);

@@ -5,7 +5,8 @@ import { loadMediaRefBytes, resolveEntities, type ProcessingContext } from "@nod
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { resolveFills } from "../fills.js";
 import { getNativeTemplate, listNativeTemplates } from "../templates.js";
-import { imagePreparationSettings, prepareGameImage } from "../image-preparation.js";
+import { imagePreparationMetadata, imagePreparationSettings, prepareGameImage } from "../image-preparation.js";
+import { gameFontFormat } from "../font-preparation.js";
 
 const TEMPLATE_IDS = listNativeTemplates().map((template) => template.id);
 const trimmed = (value: unknown): string => isString(value) ? value.trim() : "";
@@ -126,8 +127,11 @@ export class StageGameAssetsNode extends BaseNode {
       if (parsed && !parsed.success) throw new Error(`Invalid preparation for ${slot.slot_id}: ${parsed.error.message}`);
       const settings = parsed?.success ? parsed.data : null;
       if (settings && slot.fill.kind !== "image" &&
-        (settings.trimAlpha || settings.targetWidth !== undefined || settings.mirrorX || settings.mirrorY)) {
-        throw new Error(`Only single-image slots support trimming, resizing and mirror tiling: ${slot.slot_id}`);
+        (settings.trimAlpha || settings.targetWidth !== undefined || settings.mirrorX || settings.mirrorY || settings.tileset || settings.lut)) {
+        throw new Error(`Only single-image slots support trimming, resizing, mirror tiling, tileset creation and LUT creation: ${slot.slot_id}`);
+      }
+      if (settings?.sheet && (slot.fill.kind !== "spritesheet" || settings.sheet.cols !== slot.fill.columns || settings.sheet.rows !== slot.fill.rows)) {
+        throw new Error(`Sheet preparation must match the checked spritesheet grid: ${slot.slot_id}`);
       }
       const expectedWidth = slot.fill.kind === "spritesheet" || slot.fill.kind === "tileset" ? slot.fill.columns * slot.fill.cell[0] : slot.fill.kind === "image" ? slot.fill.size[0] : 1;
       const expectedHeight = slot.fill.kind === "spritesheet" || slot.fill.kind === "tileset" ? slot.fill.rows * slot.fill.cell[1] : slot.fill.kind === "image" ? slot.fill.size[1] : 1;
@@ -145,13 +149,11 @@ export class StageGameAssetsNode extends BaseNode {
         width: prepared?.width ?? expectedWidth, height: prepared?.height ?? expectedHeight,
         pivot: settings?.pivot ?? { x: 0.5, y: 0.5 }, sampling: settings?.sampling ?? "nearest",
         provenance: `template:${manifest.template}:${slot.slot_id}${referenceAssetId ? `:style:${referenceAssetId}` : ""}` };
+      if (prepared?.baseline !== undefined && prepared.frames?.[0]) {
+        binding.pivot = { x: 0.5, y: (prepared.baseline + 1) / prepared.frames[0].height };
+      }
       if (settings && requested !== undefined) {
-        binding.preparation = { trimAlpha: settings.trimAlpha, mirrorX: settings.mirrorX, mirrorY: settings.mirrorY };
-        if (settings.targetWidth && settings.targetHeight) {
-          binding.preparation.targetWidth = settings.targetWidth;
-          binding.preparation.targetHeight = settings.targetHeight;
-          binding.preparation.cropPolicy = settings.cropPolicy ?? "contain";
-        }
+        binding.preparation = imagePreparationMetadata(settings);
       }
       if (prepared?.trim) binding.trim = prepared.trim;
       if (prepared && requested !== undefined) binding.originalDimensions = { width: prepared.originalWidth, height: prepared.originalHeight };
@@ -165,9 +167,7 @@ export class StageGameAssetsNode extends BaseNode {
       if (bindings[fontId]) throw new Error(`Font ID conflicts with a template slot: ${fontId}`);
       const bytes = await loadMediaRefBytes({ type: "image", uri }, context);
       if (!bytes || bytes.length < 4) throw new Error(`Cannot read font bytes for ${fontId}`);
-      const prefix = Buffer.from(bytes.subarray(0, 4)).toString("ascii");
-      const fontFormat = bytes[0] === 0 && bytes[1] === 1 && bytes[2] === 0 && bytes[3] === 0 ? "ttf"
-        : prefix === "OTTO" ? "otf" : null;
+      const fontFormat = gameFontFormat(bytes);
       if (!fontFormat) throw new Error(`Font ${fontId} must be a TrueType or OpenType font`);
       const digest = createHash("sha256").update(bytes).digest("hex");
       const path = `games/${gameId}/assets/${digest}.${fontFormat}`;

@@ -306,15 +306,17 @@ function frameFor(document: GameDocument, scene: GameScene, states: readonly Ent
         height: entity.sprite.height,
         layer: entity.sprite.layer
       };
-      const spriteFrame = animationFrame(state, tick) ?? entity.sprite.frame;
-      if (document.schemaVersion === 2 && binding && !spriteFrame) {
-        const sourceWidth = binding.trim?.sourceWidth ?? binding.width;
-        const sourceHeight = binding.trim?.sourceHeight ?? binding.height;
-        const cropX = binding.trim?.x ?? 0;
-        const cropY = binding.trim?.y ?? 0;
+      const spriteFrame = animationFrame(state, tick) ?? entity.sprite.frame ?? binding?.frame;
+      if (document.schemaVersion === 2 && binding) {
+        const sourceWidth = spriteFrame?.width ?? binding.trim?.sourceWidth ?? binding.width;
+        const sourceHeight = spriteFrame?.height ?? binding.trim?.sourceHeight ?? binding.height;
+        const renderedWidth = spriteFrame?.width ?? binding.width;
+        const renderedHeight = spriteFrame?.height ?? binding.height;
+        const cropX = spriteFrame ? 0 : binding.trim?.x ?? 0;
+        const cropY = spriteFrame ? 0 : binding.trim?.y ?? 0;
         const anchorOffset = (rotation: number, scaleX: number, scaleY: number): { x: number; y: number } => {
-          const x = ((cropX + binding.width / 2) / sourceWidth - binding.pivot.x) * spriteDefinition.width * scaleX;
-          const y = (binding.pivot.y - (cropY + binding.height / 2) / sourceHeight) * spriteDefinition.height * scaleY;
+          const x = ((cropX + renderedWidth / 2) / sourceWidth - binding.pivot.x) * spriteDefinition.width * scaleX;
+          const y = (binding.pivot.y - (cropY + renderedHeight / 2) / sourceHeight) * spriteDefinition.height * scaleY;
           const cosine = Math.cos(rotation);
           const sine = Math.sin(rotation);
           return { x: x * cosine - y * sine, y: x * sine + y * cosine };
@@ -326,8 +328,8 @@ function frameFor(document: GameDocument, scene: GameScene, states: readonly Ent
         sprite.y += current.y;
         sprite.previousX += previous.x;
         sprite.previousY += previous.y;
-        sprite.width *= binding.width / sourceWidth;
-        sprite.height *= binding.height / sourceHeight;
+        sprite.width *= renderedWidth / sourceWidth;
+        sprite.height *= renderedHeight / sourceHeight;
       }
       if (spriteFrame) {
         sprite.frame = { ...spriteFrame };
@@ -361,8 +363,9 @@ function frameFor(document: GameDocument, scene: GameScene, states: readonly Ent
           height: tile.height,
           layer: entity.tilemap.layer
         };
-        if (tile.frame) {
-          item.frame = { ...tile.frame };
+        const tileFrame = tile.frame ?? document.assets[entity.tilemap.assetId]?.frame;
+        if (tileFrame) {
+          item.frame = { ...tileFrame };
         }
         if (document.assets[entity.tilemap.assetId]?.sampling === "linear") item.sampling = "linear";
         tiles.push(item);

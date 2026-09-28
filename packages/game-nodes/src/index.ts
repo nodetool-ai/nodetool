@@ -7,4 +7,5 @@ export {
 } from "./nodes/game.js";
 export { resolveFills, type ResolvedFills } from "./fills.js";
 export { getNativeTemplate, listNativeTemplates, type NativeGameTemplate } from "./templates.js";
-export { prepareGameImage, imagePreparationSettings } from "./image-preparation.js";
+export { prepareGameImage, imagePreparationSettings, imagePreparationMetadata, type ImagePreparationSettings, type PreparedImage } from "./image-preparation.js";
+export { gameFontFormat } from "./font-preparation.js";

@@ -202,6 +202,42 @@ async function runAction(
 }
 
 describe("nodetool object model", () => {
+  it("routes game document and example methods through their belt capabilities", async () => {
+    const names = ["create_native_game", "get_native_game", "edit_native_game", "publish_native_game",
+      "install_native_game_asset", "playtest_native_game", "capture_native_game_frame", "generate_game_asset",
+      "build_native_game", "list_example_games", "get_example_game", "install_example_game", "autoplay_native_game"];
+    const calls: ChatCodeActToolCall[] = [];
+    const session = makeSession(names.map(toolDef), async (call) => { calls.push(call); return JSON.stringify({ ok: true }); });
+    const observation = await runAction(session, `
+      await nodetool.games.create("Level", {project_id: "project"});
+      await nodetool.games.get("game", {view: "full"});
+      await nodetool.games.setDocument("game", {scenes: []}, {base_updated_at: "before"});
+      await nodetool.games.edit("game", [{op: "set_game", pixels_per_unit: 48}]);
+      await nodetool.games.publish("game", {base_revision: "revision"});
+      await nodetool.games.installAsset("game", "hero", {digest: "sha"}, {candidate_workspace_id: "workspace"});
+      await nodetool.games.playtest("game", {inputs: []});
+      await nodetool.games.capture("game", {ticks: [0]});
+      await nodetool.games.generateAsset("game", "jump", "sfx", "jump", {provider: "provider"});
+      await nodetool.games.build("game", {revision: "revision"});
+      await nodetool.games.listExamples();
+      await nodetool.games.getExample("kindle");
+      await nodetool.games.installExample("kindle", {project_id: "project"});
+      await nodetool.games.autoplay("game", {target_prefix: "beacon"});
+      return "done";
+    `);
+    expect(observation.ok, JSON.stringify(observation)).toBe(true);
+    expect(calls.map((call) => call.name)).toEqual([
+      ...names.slice(0, 2), "edit_native_game", "edit_native_game", ...names.slice(3)
+    ]);
+    expect(calls[0].args).toEqual({ name: "Level", project_id: "project" });
+    expect(calls[1].args).toEqual({ game_id: "game", view: "full" });
+    expect(calls[2].args).toEqual({ game_id: "game", base_updated_at: "before", ops: [{ op: "set_document", document: { scenes: [] } }] });
+    expect(calls[5].args).toEqual({ game_id: "game", slot: "hero", binding: { digest: "sha" }, candidate_workspace_id: "workspace" });
+    expect(calls[8].args).toEqual({ game_id: "game", slot: "jump", kind: "sfx", prompt: "jump", provider: "provider" });
+    expect(calls[12].args).toEqual({ slug: "kindle", project_id: "project" });
+    expect(calls[13].args).toEqual({ game_id: "game", target_prefix: "beacon" });
+  });
+
   it("reports capabilities from the belt", async () => {
     const { executeTool } = createFakeRouter();
     const session = makeSession([...WORKFLOW_TOOLS, ...MODEL_TOOLS], executeTool);

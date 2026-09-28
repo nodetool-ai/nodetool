@@ -33,7 +33,7 @@ afterAll(() => cleanup(workspace));
 describe("every shipped pack", () => {
   for (const pack of BRIDGE_PACKS) {
     describe(pack.specifier, () => {
-      it("is a config-only pack: no authored code, one module", () => {
+      it("declares one module with the expected implementation", () => {
         const manifest = JSON.parse(
           readFileSync(join(packDir(pack.packName), "package.json"), "utf8")
         ) as {
@@ -45,10 +45,17 @@ describe("every shipped pack", () => {
         };
         const modules = manifest.nodetool?.sandboxModules ?? [];
         expect(modules).toHaveLength(1);
-        expect(modules[0]?.file).toBeUndefined();
         // The registry mark the index reads.
         expect(manifest.nodetool?.recommended).toBe(true);
-        if (pack.runs === "guest") {
+        if (pack.source === "authored") {
+          expect(modules[0]?.kind).toBe("js");
+          expect(modules[0]?.file).toBe("sandbox/index.js");
+          expect(modules[0]?.npm).toBeUndefined();
+          expect(manifest.dependencies).toBeUndefined();
+          return;
+        }
+        expect(modules[0]?.file).toBeUndefined();
+        if (pack.runs === "guest" && pack.source !== "authored") {
           expect(modules[0]?.kind).toBe("js");
           expect(modules[0]?.npm).toBe(pack.library);
           // A guest pack compiles its own dependency, so it declares it.
@@ -68,11 +75,11 @@ describe("every shipped pack", () => {
         expect(discovery.name).toBe(pack.packName);
         expect(discovery.modules[0]?.specifier).toBe(pack.specifier);
         expect(discovery.modules[0]?.source).toBeDefined();
-        if (pack.runs === "guest") {
+        if (pack.runs === "guest" && pack.source !== "authored") {
           expect(
             discovery.statuses.some((status) => status.code === "npm-module-compiled")
           ).toBe(true);
-        } else {
+        } else if (pack.runs === "host") {
           expect(discovery.modules[0]?.kind).toBe("host");
         }
         expect(

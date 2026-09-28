@@ -1,9 +1,11 @@
 import sharp from "sharp";
 import { z } from "zod";
+import { gameImagePreparation } from "@nodetool-ai/protocol";
+import { prepareSheet, prepareTileset, prepareLut } from "./atlas-preparation.js";
 
 const MAX_DIMENSION = 4096;
 const dimension = z.number().int().min(1).max(MAX_DIMENSION);
-export const imagePreparationSettings = z.strictObject({
+export const imagePreparationSettings = gameImagePreparation.extend({
   trimAlpha: z.boolean().default(false),
   targetWidth: dimension.optional(),
   targetHeight: dimension.optional(),
@@ -17,7 +19,12 @@ export const imagePreparationSettings = z.strictObject({
   .refine((settings) => !settings.cropPolicy || settings.targetWidth !== undefined,
     "cropPolicy needs targetWidth and targetHeight")
   .refine((settings) => !(settings.trimAlpha && (settings.mirrorX || settings.mirrorY)),
-    "alpha trimming and mirror tiling cannot be combined");
+    "alpha trimming and mirror tiling cannot be combined")
+  .refine((settings) => [settings.sheet, settings.tileset, settings.lut].filter(Boolean).length <= 1,
+    "choose only one of sheet, tileset or lut")
+  .refine((settings) => !(settings.sheet || settings.tileset || settings.lut) ||
+    !(settings.trimAlpha || settings.targetWidth || settings.mirrorX || settings.mirrorY),
+    "sheet, tileset and lut cannot be combined with single-image transforms");
 export type ImagePreparationSettings = z.infer<typeof imagePreparationSettings>;
 
 export interface PreparedImage {
@@ -27,16 +34,29 @@ export interface PreparedImage {
   readonly originalWidth: number;
   readonly originalHeight: number;
   readonly trim?: { readonly sourceWidth: number; readonly sourceHeight: number; readonly x: number; readonly y: number };
+  readonly frames?: readonly PreparedFrame[];
+  readonly baseline?: number;
+  readonly tiles?: readonly { readonly mask: number; readonly frame: PreparedFrame }[];
+  readonly lutSize?: number;
+}
+export interface PreparedFrame { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
+
+export function imagePreparationMetadata(settings: ImagePreparationSettings): NonNullable<import("@nodetool-ai/protocol").GameAssetBinding["preparation"]> {
+  const { pivot: _pivot, sampling: _sampling, ...metadata } = settings;
+  return metadata;
 }
 
 /** Decode, transform and encode canonical PNG bytes before a digest is computed. */
 export async function prepareGameImage(bytes: Uint8Array, settings: ImagePreparationSettings): Promise<PreparedImage> {
+  if (settings.lut) { return prepareLut(settings.lut); }
   const metadata = await sharp(bytes, { failOn: "error", limitInputPixels: MAX_DIMENSION * MAX_DIMENSION }).metadata();
   const originalWidth = metadata.width;
   const originalHeight = metadata.height;
   if (!originalWidth || !originalHeight || originalWidth > MAX_DIMENSION || originalHeight > MAX_DIMENSION) {
     throw new Error("Game image has invalid dimensions");
   }
+  if (settings.sheet) { return prepareSheet(bytes, originalWidth, originalHeight, settings.sheet); }
+  if (settings.tileset) { return prepareTileset(bytes, originalWidth, originalHeight, settings.tileset, settings.sampling); }
   const resized = sharp(bytes, { failOn: "error", limitInputPixels: MAX_DIMENSION * MAX_DIMENSION }).ensureAlpha();
   if (settings.targetWidth && settings.targetHeight) {
     resized.resize(settings.targetWidth, settings.targetHeight, {
@@ -60,20 +80,20 @@ export async function prepareGameImage(bytes: Uint8Array, settings: ImagePrepara
     bottom = 0;
     for (let y = 0; y < sourceHeight; y += 1) {
       for (let x = 0; x < sourceWidth; x += 1) {
-        if (source[(y * sourceWidth + x) * 4 + 3] === 0) continue;
+        if (source[(y * sourceWidth + x) * 4 + 3] === 0) { continue; }
         left = Math.min(left, x);
         top = Math.min(top, y);
         right = Math.max(right, x + 1);
         bottom = Math.max(bottom, y + 1);
       }
     }
-    if (right === 0 || bottom === 0) throw new Error("Cannot trim a fully transparent game image");
+    if (right === 0 || bottom === 0) { throw new Error("Cannot trim a fully transparent game image"); }
   }
   const contentWidth = right - left;
   const contentHeight = bottom - top;
   const width = contentWidth * (settings.mirrorX ? 2 : 1);
   const height = contentHeight * (settings.mirrorY ? 2 : 1);
-  if (width > MAX_DIMENSION || height > MAX_DIMENSION) throw new Error("Prepared game image exceeds 4096 pixels per axis");
+  if (width > MAX_DIMENSION || height > MAX_DIMENSION) { throw new Error("Prepared game image exceeds 4096 pixels per axis"); }
   const output = Buffer.alloc(width * height * 4);
   for (let y = 0; y < height; y += 1) {
     const localY = y < contentHeight ? y : 2 * contentHeight - y - 1;
@@ -85,9 +105,9 @@ export async function prepareGameImage(bytes: Uint8Array, settings: ImagePrepara
   }
   const prepared = await sharp(output, { raw: { width, height, channels: 4 } }).png({ compressionLevel: 9, palette: false }).toBuffer();
   const decodedPrepared = await sharp(prepared).metadata();
-  if (decodedPrepared.width !== width || decodedPrepared.height !== height) throw new Error("Prepared image dimensions changed during encoding");
+  if (decodedPrepared.width !== width || decodedPrepared.height !== height) { throw new Error("Prepared image dimensions changed during encoding"); }
   const trimmed = left !== 0 || top !== 0 || contentWidth !== sourceWidth || contentHeight !== sourceHeight;
   const result = { bytes: prepared, width, height, originalWidth, originalHeight };
-  if (trimmed) return { ...result, trim: { sourceWidth, sourceHeight, x: left, y: top } };
+  if (trimmed) { return { ...result, trim: { sourceWidth, sourceHeight, x: left, y: top } }; }
   return result;
 }

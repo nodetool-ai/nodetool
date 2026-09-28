@@ -9,6 +9,50 @@ const light = { x: 1, y: 2, color: "#ffffff", intensity: 1, radius: 3, falloff: 
 const background = { id: "bg", assetId: "player", width: 16, height: 9 };
 
 describe("applyGameOps", () => {
+  it("replaces a whole level and applies following edits atomically", () => {
+    const original = game();
+    const replacement = { ...game(), id: "builder-id", revision: "builder-revision", entrySceneId: "level", scenes: [{
+      id: "level", name: "Large level", entities: Array.from({ length: 117 }, (_, number) => ({
+        id: `item-${number}`, name: "", templateOnly: false,
+        transform2d: { x: number, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }, behaviors: [],
+        ...(number === 0 ? { tilemap: { assetId: "wall", layer: 0, solid: true,
+          tiles: Array.from({ length: 3446 }, (_, tile) => ({ x: tile, y: 0, width: 1, height: 1 })) } } : {})
+      }))
+    }] };
+    const result = applyGameOps(original, [
+      { op: "set_document", document: replacement },
+      { op: "update_entity", entity_id: "item-116", set: { name: "Goal" } }
+    ]);
+    expect(result.id).toBe(original.id);
+    expect(result.revision).toBe(original.revision);
+    expect(result.scenes[0].entities).toHaveLength(117);
+    expect(result.scenes[0].entities[0].tilemap?.tiles).toHaveLength(3446);
+    expect(result.scenes[0].entities[116].name).toBe("Goal");
+    expect(original).toEqual(game());
+    expect(replacement.scenes[0].entities[116].name).toBe("");
+    expect(() => applyGameOps(original, [
+      { op: "set_document", document: replacement },
+      { op: "update_entity", entity_id: "missing", set: { name: "Goal" } }
+    ])).toThrow(/does not exist/);
+    expect(original).toEqual(game());
+  });
+
+  it("reports invalid replacement references against the replacement op", () => {
+    const replacement = game();
+    replacement.scenes[0].entities[1].sprite!.assetId = "missing";
+    try {
+      applyGameOps(game(), [
+        { op: "set_game", pixels_per_unit: 24 },
+        { op: "set_document", document: replacement },
+        { op: "update_entity", entity_id: "gem", set: { name: "Gem" } }
+      ]);
+      expect.fail("Invalid document was accepted");
+    } catch (error) {
+      expect(error).toBeInstanceOf(GameOpError);
+      expect(error).toMatchObject({ opIndex: 1, path: ["scenes", 0, "entities", 1, "sprite", "assetId"] });
+    }
+  });
+
   it("adds, updates, duplicates, removes, and reparents entities without mutating input", () => {
     const original = game();
     const result = applyGameOps(original, [

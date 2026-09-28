@@ -1,7 +1,7 @@
 /**
  * CodeAct eval cases for the `nodetool.*` object model — data and creative
  * namespaces: collections, memory, shared, web, documents, email, apps,
- * timelines, sketches, scripts, storyboards.
+ * games, timelines, sketches, scripts, storyboards.
  *
  * The fakes here are named EXACTLY like the belt tools those namespaces wrap
  * (`NODETOOL_API_NAMESPACE_TOOLS`), so the real guest prelude loads and every
@@ -13,6 +13,8 @@
  * order.
  */
 
+import { applyGameOps, createTopDownRoomGame, gameDocumentOp } from "@nodetool-ai/game-runtime";
+import type { GameDocument } from "@nodetool-ai/protocol";
 import { Tool } from "../tools/base-tool.js";
 import {
   RecordingTool,
@@ -980,6 +982,7 @@ function resolveShots(doc: StoryboardDoc, targets: unknown): Shot[] {
  */
 export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
   const world = createWorld();
+  const games = new Map<string, { name: string; document: GameDocument; draft_updated_at: string }>();
   const tool = <TResult>(
     name: string,
     description: string,
@@ -1633,6 +1636,47 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
             { id: "Text-1", type: "Text" }
           ]
         };
+      }
+    ),
+
+    // -- games ------------------------------------------------------------
+    tool(
+      "create_native_game",
+      "Create a native game draft.",
+      obj({ name: S }, ["name"]),
+      (params) => {
+        const id = `game_${games.size + 1}`;
+        const saved = { name: str(params["name"]), document: createTopDownRoomGame(id), draft_updated_at: "draft_0" };
+        games.set(id, saved);
+        return { game: { id, name: saved.name, revision: saved.document.revision }, document: clone(saved.document), draft_updated_at: saved.draft_updated_at };
+      }
+    ),
+    tool(
+      "edit_native_game",
+      "Apply validated game document operations atomically.",
+      obj({ game_id: S, ops: ANY_ARRAY, base_updated_at: S }, ["game_id", "ops"]),
+      (params) => {
+        const id = str(params["game_id"]);
+        const saved = games.get(id);
+        if (!saved) { throw new Error(`no game with id "${id}"`); }
+        if (params["base_updated_at"] !== undefined && params["base_updated_at"] !== saved.draft_updated_at) {
+          return { error: "conflict", message: "Game draft was modified concurrently" };
+        }
+        const ops = recList(params["ops"]).map((op) => gameDocumentOp.parse(op));
+        saved.document = applyGameOps(saved.document, ops);
+        saved.draft_updated_at = `draft_${Number(saved.draft_updated_at.slice(6)) + 1}`;
+        return { game: { id, name: saved.name, revision: saved.document.revision }, document: clone(saved.document), draft_updated_at: saved.draft_updated_at };
+      }
+    ),
+    tool(
+      "get_native_game",
+      "Read a native game draft.",
+      obj({ game_id: S, view: S }, ["game_id"]),
+      (params) => {
+        const id = str(params["game_id"]);
+        const saved = games.get(id);
+        if (!saved) { throw new Error(`no game with id "${id}"`); }
+        return { game: { id, name: saved.name, revision: saved.document.revision }, document: clone(saved.document), draft_updated_at: saved.draft_updated_at };
       }
     ),
 
@@ -2369,6 +2413,36 @@ const asString = (value: unknown): string =>
   isString(value) ? value : "";
 
 export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
+  {
+    id: "game-whole-document-save",
+    description: "Write and read a complete game level in one atomic edit",
+    namespaces: ["games"],
+    objective:
+      'Create a native game named "Long Level". Replace its entire draft ' +
+      "in one set_document operation with schema version 2 and a scene named level containing " +
+      "117 entities: one camera, one solid terrain tilemap using the built-in " +
+      "wall asset, and 115 entities named item-0 through item-114. The terrain " +
+      "must have 3,446 tiles. Use the created draft timestamp as the edit guard. " +
+      "Read the saved document back. Finish with {gameId, entityCount, tileCount, " +
+      "entrySceneId, preservedIdentity}, where preservedIdentity confirms the " +
+      "saved document kept the created game id and revision.",
+    outputSchema: obj({ gameId: S, entityCount: N, tileCount: N, entrySceneId: S, preservedIdentity: B }, [
+      "gameId", "entityCount", "tileCount", "entrySceneId", "preservedIdentity"
+    ]),
+    expect: {
+      requiredTools: ["create_native_game", "edit_native_game", "get_native_game"],
+      maxActions: 3,
+      minToolCalls: 3,
+      maxToolCalls: 3,
+      resultCheck: (r: unknown) =>
+        asString(field(r, "gameId")) === "game_1" &&
+        asNumber(field(r, "entityCount")) === 117 &&
+        asNumber(field(r, "tileCount")) === 3446 &&
+        asString(field(r, "entrySceneId")) === "level" &&
+        field(r, "preservedIdentity") === true,
+      resultCheckLabel: "one whole-document save preserves identity and 117 entities / 3446 tiles"
+    }
+  },
   {
     id: "rag-index-and-answer",
     description:

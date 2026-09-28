@@ -5,6 +5,7 @@
 // Types
 export type { Step, Task, TaskPlan } from "./types.js";
 export { PERMISSION_GATE_CONTEXT_KEY } from "./types.js";
+export { GAME_ASSET_NODE_RUNNER_CONTEXT_KEY, type GameAssetNodeRunner } from "./capabilities/game-asset-source.js";
 
 // Tools
 export { Tool } from "./tools/base-tool.js";

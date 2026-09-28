@@ -122,6 +122,12 @@
       "types": "./dist/sandbox-module-fixtures.d.ts",
       "import": "./dist/sandbox-module-fixtures.js",
       "default": "./dist/sandbox-module-fixtures.js"
+    },
+    "./game-examples": {
+      "nodetool-dev": "./src/game-examples.ts",
+      "types": "./dist/game-examples.d.ts",
+      "import": "./dist/game-examples.js",
+      "default": "./dist/game-examples.js"
     }
   },
   "license": "MIT",

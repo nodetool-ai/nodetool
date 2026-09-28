@@ -8,7 +8,7 @@
  * path — nothing here loads, resolves, or vouches for a pack.
  */
 
-/** A pack this repo ships as a config-only sandbox module. */
+/** A pack this repo ships as a sandbox module. */
 export interface BridgePack {
   /** The import specifier guest code uses. */
   readonly specifier: string;
@@ -25,6 +25,8 @@ export interface BridgePack {
    * the guest could not enforce.
    */
   readonly runs: "guest" | "host";
+  /** Authored guest code rather than a compiled npm dependency. */
+  readonly source?: "authored";
 }
 
 export const BRIDGE_PACKS: readonly BridgePack[] = [
@@ -105,6 +107,13 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     packName: "@nodetool-ai/sandbox-gif",
     library: "gifenc",
     runs: "guest"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-game",
+    packName: "@nodetool-ai/sandbox-game",
+    library: "NodeTool's game builder",
+    runs: "guest",
+    source: "authored"
   },
   {
     specifier: "@nodetool-ai/sandbox-html",

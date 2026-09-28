@@ -101,7 +101,8 @@ import { annotateFailure } from "./action-diagnostics.js";
 import {
   mountActionModules,
   packagePromptLines,
-  sessionAllowedPackages
+  sessionAllowedPackages,
+  withGamePackage
 } from "./sandbox-packages.js";
 import {
   SANDBOX_PACKAGE_DOCS_TOOL_NAME,
@@ -551,15 +552,19 @@ export class CodeActExecutor {
     // Authoring a graph is a package, not a builder: a belt that can save,
     // validate and run a workflow gets the DSL pack on its allowlist, provided
     // this machine installed it.
-    this.sandboxPackages = withFlowPackage(
-      withFabricPackage(
-        withGraphDslPackage(
-          this.sandboxPackages,
-          this.tools.map((t) => t.name),
+    this.sandboxPackages = withGamePackage(
+      withFlowPackage(
+        withFabricPackage(
+          withGraphDslPackage(
+            this.sandboxPackages,
+            this.tools.map((t) => t.name),
+            this.context.sandboxModuleCatalog
+          ),
           this.context.sandboxModuleCatalog
         ),
         this.context.sandboxModuleCatalog
       ),
+      this.tools.map((t) => t.name),
       this.context.sandboxModuleCatalog
     );
     this.withGraphDsl = this.sandboxPackages.includes(GRAPH_DSL_PACKAGE);

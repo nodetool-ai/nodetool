@@ -47,7 +47,8 @@ describe("native game capabilities", () => {
     expect(gameModule.exports.map((entry) => entry.spec.name)).toEqual([
       "create_native_game", "get_native_game", "publish_native_game",
       "install_native_game_asset", "playtest_native_game", "build_native_game",
-      "edit_native_game", "capture_native_game_frame", "generate_game_asset"
+      "edit_native_game", "capture_native_game_frame", "generate_game_asset",
+      "list_example_games", "get_example_game", "install_example_game", "autoplay_native_game"
     ]);
   });
 
@@ -93,8 +94,8 @@ describe("native game capabilities", () => {
     expect((await agent.invoke("get_native_game", { game_id: played.game_id }) as GameReply).game.id).toBe(created.game.id);
     expect(await agent.invoke("playtest_native_game", {
       game_id: created.game.id,
-      inputs: Array.from({ length: 3601 }, () => ({ pressed: [] }))
-    })).toMatchObject({ error: expect.stringContaining("at most 3600") });
+      inputs: Array.from({ length: 18001 }, () => ({ pressed: [] }))
+    })).toMatchObject({ error: expect.stringContaining("at most 18000") });
     expect(await run("stranger").invoke("get_native_game", { game_id: created.game.id })).toEqual({ error: "Game not found" });
   });
 

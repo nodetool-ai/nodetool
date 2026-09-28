@@ -120,6 +120,8 @@ import {
   BackgroundSubtaskRegistry,
   UNGATED,
   PERMISSION_GATE_CONTEXT_KEY,
+  GAME_ASSET_NODE_RUNNER_CONTEXT_KEY,
+  type GameAssetNodeRunner,
   extractInjectableImages,
   registerTemporaryImageHandle,
   type CapabilityRun,
@@ -1991,6 +1993,9 @@ export class ChatTurnHandler {
       ...mcpToolHostDeps(),
       capabilities: [capabilityFromTool(runNodeTool)]
     });
+    const gameAssetRun = this.chatCapabilityRun;
+    const gameAssetNodeRunner: GameAssetNodeRunner = (args) => gameAssetRun.invoke("run_node", args);
+    ctx.set(GAME_ASSET_NODE_RUNNER_CONTEXT_KEY, gameAssetNodeRunner);
 
     // CodeAct session for this turn. Created here so its prompt section is in
     // place before the system message is materialized below. The tool router

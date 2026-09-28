@@ -48,6 +48,7 @@ one working on this repository alike.
 | `nodetool-skill-author` | Writing a user skill row or a shipped one |
 | `storyboard-core` | Storyboards, entity casting, rendering, timeline assembly — the contract the job skills quote |
 | `native-game` | Built-in games, generated asset installation, and playtests |
+| `game-direction` | Game feel, teaching beats, layered art, and completion evidence |
 
 The job skills that sit on `storyboard-core`, each one a brief shape rather
 than a tool contract: `ugc-video`, `product-commercial`, `script-video`,

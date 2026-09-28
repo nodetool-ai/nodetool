@@ -1169,9 +1169,22 @@ the project workspace. Staging does not alter a published game revision.
 `install_native_game_asset` installs a selected candidate binding into the draft
 with a draft timestamp check. Existing scene and behavior edits remain in place.
 
-Agents can use `create_native_game`, `get_native_game` (compact outline by
-default), `edit_native_game` (ordered draft ops), `capture_native_game_frame`,
-`playtest_native_game`, `generate_game_asset`, and `install_native_game_asset`. Publishing the draft
+Agents can build a complete document with `@nodetool-ai/sandbox-game` and save
+it through `edit_native_game`'s atomic `set_document` op. The builder supplies
+entities, scripts, asset registration, and tile and arc helpers.
+`list_example_games`, `get_example_game`, and `install_example_game` expose
+the shipped benchmarks and copy their verified assets into an owned project.
+`generate_game_asset` prepares aligned sprite sheets, terrain edge variants,
+and packed grade LUTs. It also generates sound through sound-effect nodes and
+imports TTF/OTF fonts.
+
+`autoplay_native_game` steers standard controls to target contacts or an
+observed win and returns a replayable route and level stats. Its search is
+bounded. A stalled search is inconclusive. `playtest_native_game` accepts up to
+18,000 ticks and can assert engine wins or scripted victory events.
+`capture_native_game_frame` supplies images for review against the locked
+`game-direction` spec. Schema validation and a successful route do not measure
+visual quality. Publishing the draft
 with `publish_native_game` creates a revision when the user asks. The web Game
 tab supplies direct editing, play, pause, step, reset, a scene tree, and draft
 review. The

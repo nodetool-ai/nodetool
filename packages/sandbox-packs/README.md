@@ -1,8 +1,8 @@
 # Sandbox library packs
 
-One npm package per library the sandbox offers. Each pack is two declarative
-files — a config-only `nodetool.sandboxModules` manifest in package.json and a
-SKILL.md. No pack here authors a line of code.
+One npm package per library the sandbox offers. Library bridge packs contain
+a config-only `nodetool.sandboxModules` manifest and a SKILL.md. Authoring packs
+such as sandbox-game and sandbox-timeline also ship guest JavaScript.
 
 There is one import surface and no second route: a library is reached with
 `import`, from a pack that is installed and declared on the node. The `data.*`
@@ -28,6 +28,7 @@ guest globals are gone.
 | `@nodetool-ai/sandbox-rrule` | rrule | guest | compiler admits it |
 | `@nodetool-ai/sandbox-ics` | ics | host | Node-shaped helpers |
 | `@nodetool-ai/sandbox-gif` | gifenc | guest | compiler admits it |
+| `@nodetool-ai/sandbox-game` | NodeTool's game builder | guest | creates complete game documents and saves drafts atomically |
 | `@nodetool-ai/sandbox-csv` | papaparse | host | imports `node:stream` |
 | `@nodetool-ai/sandbox-html` | cheerio + turndown | host | 25 Node builtins; turndown wants a DOM |
 | `@nodetool-ai/sandbox-xml` | fast-xml-parser | host | reads a bare `window` |
@@ -56,6 +57,10 @@ through a generated ESM facade over a per-run dispatcher; the pack's manifest
 entry is `{"kind": "host", "host": "<id>"}` and the implementation lives in
 `packages/agents/src/host-modules/`.
 
+An authored guest pack declares `{"kind": "js", "file": "sandbox/index.js"}`.
+Discovery reads that file directly. The game builder uses this form and runs
+inside QuickJS with the same module admission rules as other guest code.
+
 ### The service packs build requests; they never send one
 
 The last four packs replace the S3, Notion, Supabase and Twilio nodes.
@@ -65,10 +70,9 @@ headers. The guest passes that to its own `fetch`, so the run's fetch cap, its
 SSRF guard and its body limit still apply — moving the header math to the host
 must not move the network call with it.
 
-They run on the host for the reason `kind: "host"` exists at all: the code is
-NodeTool's, and a config-only pack cannot ship code. `-aws` has a second reason
-— SigV4 is an HMAC-SHA256 chain over a canonical form of the request, and the
-guest has no library that can build one.
+They run through the host registry of NodeTool's service helpers. SigV4 uses
+an HMAC-SHA256 chain over the canonical request, which the guest cannot
+compute with its own globals.
 
 ### Why zip is a host pack
 
@@ -153,6 +157,11 @@ so the extra metadata costs the host nothing.
 skips is a pack nobody can import; `nodetool packs compile --json` reports the
 named skip. Then write the package.json with `{"kind": "js", "npm": "<dep>"}`
 and the dependency pinned to a range this tree already resolves.
+
+**Authored guest pack.** Write browser-safe JavaScript and declare it with
+`{"kind": "js", "file": "sandbox/index.js"}`. Mark its bridge table row
+`source: "authored"` and test importing it in QuickJS through discovery and
+the module catalog. It needs no npm compilation.
 
 **Host pack.** Add the row to `SANDBOX_HOST_MODULES` and the loader to
 `packages/agents/src/host-modules/registry.ts`, with the implementation beside

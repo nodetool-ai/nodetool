@@ -4,15 +4,16 @@ import { join } from "node:path";
 import { getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
 import { AmbiguousGameIdError, Asset, Game, Prediction, Project, Workspace } from "@nodetool-ai/models";
 import { gameAssetBinding, gameDocument, gameInputFrame, shortResourceId, type GameDocument, type GameInputFrame, type GameRenderFrame } from "@nodetool-ai/protocol";
-import { createScriptedGameSession, createTopDownRoomGame, validateGame, gameDocumentOp, GameOpError } from "@nodetool-ai/game-runtime";
+import { autoplayNativeGame, MAX_GAME_ROUTE_TICKS, createScriptedGameSession, createTopDownRoomGame, validateGame, gameDocumentOp, GameOpError, type GameAutoplayOptions } from "@nodetool-ai/game-runtime";
 import { workspaceFromRow } from "@nodetool-ai/execution/service";
 import { assetKeyCandidates, assetObjectKey } from "@nodetool-ai/storage";
 import type { Workspace as RunWorkspace } from "@nodetool-ai/runtime";
 import type { CapabilityExport, CapabilityModule, CapabilityRun } from "./types.js";
 import { gameSpecs } from "./game.specs.js";
 import { persistOutput } from "../tools/asset-persist.js";
+import { getExampleGameBundle, installExampleGameAssets, listExampleGames } from "../game-examples.js";
 
-const MAX_PLAYTEST_TICKS = 3600;
+const MAX_PLAYTEST_TICKS = MAX_GAME_ROUTE_TICKS;
 const MAX_CAPTURE_FRAMES = 8;
 const MAX_BUILD_ASSETS = 128;
 const MAX_BUILD_ASSET_BYTES = 64 * 1024 * 1024;
@@ -165,7 +166,17 @@ function captureTicks(value: unknown, fallback: number[]): number[] | { error: s
   return [...new Set(ticks)].sort((a, b) => a - b);
 }
 
-async function captureFrames(run: CapabilityRun, user: string, document: GameDocument, ticks: readonly number[], inputs: readonly GameInputFrame[], seed: number, options: { camera?: unknown; scale?: unknown; sheet?: unknown; overlays?: unknown }): Promise<unknown> {
+async function captureFrames(run: CapabilityRun, user: string, document: GameDocument, ticks: readonly number[], inputs: readonly GameInputFrame[], seed: number, options: { camera?: unknown; scale?: unknown; sheet?: unknown; overlays?: unknown; deadlineAt?: number }): Promise<unknown> {
+  const started = Date.now();
+  const deadlineAt = options.deadlineAt ?? started + 15_000;
+  let cancelled = false;
+  let wallTimeLimited = false;
+  let simulatedTicks = 0;
+  const budgetReached = (): boolean => {
+    cancelled = run.context.signal?.aborted === true;
+    wallTimeLimited = Date.now() >= deadlineAt;
+    return cancelled || wallTimeLimited;
+  };
   const { captureGameFrame } = await import("@nodetool-ai/game-renderer/node");
   const diagnostics: string[] = [];
   const storage = run.context.assetStorage;
@@ -191,8 +202,20 @@ async function captureFrames(run: CapabilityRun, user: string, document: GameDoc
   const entries: Array<{ tick: number; png: Uint8Array; visible_entities: unknown[]; hud_texts: string[]; diagnostics: string[] }> = [];
   try {
     for (const tick of ticks) {
-      while (session.inspect().tick < tick) {
-        session.step(inputs[session.inspect().tick] ?? { pressed: [], justPressed: [] });
+      if (budgetReached()) {
+        break;
+      }
+      while (simulatedTicks < tick) {
+        if (simulatedTicks % 240 === 0) {
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        }
+        if (budgetReached()) {
+          break;
+        }
+        simulatedTicks = session.step(inputs[simulatedTicks] ?? { pressed: [], justPressed: [] }).tick;
+      }
+      if (budgetReached()) {
+        break;
       }
       let frame: GameRenderFrame = session.frame();
       const camera = options.camera;
@@ -210,6 +233,9 @@ async function captureFrames(run: CapabilityRun, user: string, document: GameDoc
       } catch (error) {
         diagnostics.push(`WebGPU capture failed: ${error instanceof Error ? error.message : String(error)}`);
         png = await captureGameFrame(frame, { resolveAsset, scale, backend: "canvas2d", onDiagnostic: (message: string) => diagnostics.push(message) });
+      }
+      if (budgetReached()) {
+        break;
       }
       const pixelScale = frame.pixelsPerUnit * frame.camera.zoom * scale;
       const overlays = Array.isArray(options.overlays) ? options.overlays.filter((value): value is string => typeof value === "string") : [];
@@ -255,18 +281,25 @@ async function captureFrames(run: CapabilityRun, user: string, document: GameDoc
   } finally {
     session.dispose();
   }
+  const outcome = {
+    ticks: simulatedTicks,
+    cancelled,
+    wall_time_limited: wallTimeLimited,
+    route_complete: !cancelled && !wallTimeLimited && entries.length === ticks.length,
+    wall_time_ms: Date.now() - started
+  };
   if (options.sheet && entries.length > 1) {
     const { composeContactSheet } = await import("../timeline-preview/sheet.js");
     const sheet = await composeContactSheet(entries.map((entry) => ({ label: `Tick ${entry.tick}`, png: entry.png })));
     const saved = await persistOutput(run.context, sheet.png, { namePrefix: `game-${document.id}-sheet`, mime: "image/png" });
-    return { image: { type: "image", asset_id: saved.asset_id, uri: saved.asset_uri ?? saved.path, path: saved.path, mime_type: saved.mime_type }, frames: entries.map(({ tick, visible_entities, hud_texts, diagnostics }) => ({ tick, visible_entities, hud_texts, diagnostics })) };
+    return { ...outcome, image: { type: "image", asset_id: saved.asset_id, uri: saved.asset_uri ?? saved.path, path: saved.path, mime_type: saved.mime_type }, frames: entries.map(({ tick, visible_entities, hud_texts, diagnostics }) => ({ tick, visible_entities, hud_texts, diagnostics })) };
   }
   const frames = [];
   for (const entry of entries) {
     const saved = await persistOutput(run.context, entry.png, { namePrefix: `game-${document.id}-tick-${entry.tick}`, mime: "image/png" });
     frames.push({ tick: entry.tick, image: { type: "image", asset_id: saved.asset_id, uri: saved.asset_uri ?? saved.path, path: saved.path, mime_type: saved.mime_type }, visible_entities: entry.visible_entities, hud_texts: entry.hud_texts, diagnostics: entry.diagnostics });
   }
-  return { frames };
+  return { ...outcome, frames };
 }
 
 function validateSource(source: unknown, gameId: string, revision: string): GameDocument | { error: string } {
@@ -319,7 +352,7 @@ const create: CapabilityExport = {
 };
 
 /** Shared by explicit game creation and the guided asset workflow builder. */
-export async function createNativeGame(user: string, projectId: string, name: string): Promise<{ game: Game; document: GameDocument } | { error: string }> {
+export async function createNativeGame(user: string, projectId: string, name: string, source?: GameDocument): Promise<{ game: Game; document: GameDocument } | { error: string }> {
     const project = await Project.findOwned(user, projectId);
     if (!project) return { error: "Project not found" };
     const workspaceRow = await projectWorkspace(user, project.id);
@@ -327,7 +360,7 @@ export async function createNativeGame(user: string, projectId: string, name: st
     if (!workspace || !workspaceRow) return { error: "Project workspace is unavailable" };
     const id = randomUUID().replace(/-/g, "");
     const revision = randomUUID().replace(/-/g, "");
-    const document = validateSource(createTopDownRoomGame(id), id, revision);
+    const document = validateSource(source ?? { ...createTopDownRoomGame(id), schemaVersion: 2 }, id, revision);
     if ("error" in document) return document;
     const game = new Game({
       id,
@@ -537,21 +570,30 @@ const playtest: CapabilityExport = {
     const session = await createScriptedGameSession(document, seed);
     const events: unknown[] = [];
     const contacts = new Map<string, number>();
-    const inspections = new Map<number, ReturnType<typeof session.inspect>>([[0, session.inspect()]]);
+    const inspectionTicks = new Set(assertions.flatMap((item) => {
+      if (!item || typeof item !== "object" || !("at_tick" in item)) return [];
+      return typeof item.at_tick === "number" ? [item.at_tick] : [];
+    }));
+    let state = session.inspect();
+    const inspections = new Map<number, ReturnType<typeof session.inspect>>([[0, state]]);
     const started = Date.now();
     let wallTimeLimited = false;
+    let cancelled = false;
     let scriptError: { tick: number; message: string } | null = null;
     try {
       for (const input of inputs) {
+        if (state.tick % 240 === 0) await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        if (run.context.signal?.aborted) { cancelled = true; break; }
         if (Date.now() - started > 15_000) { wallTimeLimited = true; break; }
         let result;
         try {
           result = session.step(input);
         } catch (error) {
-          scriptError = { tick: session.inspect().tick + 1, message: error instanceof Error ? error.message : String(error) };
+          scriptError = { tick: state.tick + 1, message: error instanceof Error ? error.message : String(error) };
           break;
         }
-        inspections.set(result.tick, session.inspect());
+        state = session.inspect();
+        if (inspectionTicks.has(result.tick)) inspections.set(result.tick, state);
         for (const event of result.events) {
           if (event.kind === "contact") {
             const pair = [event.entityId, event.otherId].sort().join("|");
@@ -562,15 +604,18 @@ const playtest: CapabilityExport = {
           }
         }
       }
-      const state = session.inspect();
       const assertion_results = assertions.map((item) => {
         if (!item || typeof item !== "object") return { passed: false, error: "Invalid assertion" };
         const assertion = item as Record<string, unknown>;
         if (assertion.no_script_errors === true) return { passed: scriptError === null, assertion, observed: scriptError };
-        if (assertion.event === "win") {
-          const win = events.find((event) => typeof event === "object" && event !== null && "kind" in event && event.kind === "win") as { tick?: number } | undefined;
-          const passed = !!win && (typeof assertion.before_tick !== "number" || (win.tick ?? Infinity) <= assertion.before_tick);
-          return { passed, assertion, observed: win ?? null };
+        if (typeof assertion.event === "string") {
+          const observed = events.find((event) => {
+            if (typeof event !== "object" || event === null || !("kind" in event)) return false;
+            if (event.kind === assertion.event) return true;
+            return event.kind === "trigger" && "event" in event && (event.event === assertion.event || assertion.event === "win" && event.event === "victory");
+          });
+          const tick = typeof observed === "object" && observed !== null && "tick" in observed && typeof observed.tick === "number" ? observed.tick : Infinity;
+          return { passed: observed !== undefined && (typeof assertion.before_tick !== "number" || tick <= assertion.before_tick), assertion, observed: observed ?? null };
         }
         if (typeof assertion.entity_id === "string" && assertion.near && typeof assertion.near === "object") {
           const near = assertion.near as Record<string, unknown>;
@@ -582,7 +627,9 @@ const playtest: CapabilityExport = {
         }
         return { passed: false, assertion, error: "Unsupported assertion" };
       });
-      const images = captures.length && scriptError === null ? await captureFrames(run, user, document, captures, inputs, seed, { sheet: true }) : undefined;
+      const images = captures.length && scriptError === null && !cancelled && !wallTimeLimited && state.tick === inputs.length
+        ? await captureFrames(run, user, document, captures, inputs, seed, { sheet: true, deadlineAt: started + 15_000 })
+        : undefined;
       return {
         game_id: shortResourceId(game.id),
         revision: document.revision,
@@ -592,6 +639,8 @@ const playtest: CapabilityExport = {
         contacts: [...contacts].map(([pair_phase, count]) => ({ pair_phase, count })),
         assertion_results,
         wall_time_limited: wallTimeLimited,
+        cancelled,
+        route_complete: state.tick === inputs.length,
         wall_time_ms: Date.now() - started,
         script_error: scriptError,
         captures: images
@@ -619,7 +668,13 @@ const capture: CapabilityExport = {
     const inputs = inputFrames(args["inputs"], Math.max(0, ...ticks));
     if ("error" in inputs) return inputs;
     const seed = typeof args["seed"] === "number" && Number.isSafeInteger(args["seed"]) ? args["seed"] : 1;
-    return captureFrames(run, user, document, ticks, inputs, seed, args);
+    const options: { camera?: unknown; scale?: unknown; sheet?: unknown; overlays?: unknown } = {};
+    for (const key of ["camera", "scale", "sheet", "overlays"] as const) {
+      if (args[key] !== undefined) {
+        options[key] = args[key];
+      }
+    }
+    return captureFrames(run, user, document, ticks, inputs, seed, options);
   }
 };
 
@@ -631,111 +686,176 @@ const generateAsset: CapabilityExport = {
     const slot = args["slot"];
     const kind = args["kind"];
     const prompt = args["prompt"];
-    if (!user || typeof id !== "string" || typeof slot !== "string" || !slot || typeof prompt !== "string" || !prompt.trim() || !["image", "audio", "music"].includes(String(kind))) {
-      return { error: "game_id, slot, kind, and prompt are required" };
+    const inputFile = args["input_file"];
+    if (!user || typeof id !== "string" || typeof slot !== "string" || !slot || !["image", "audio", "music", "sfx", "font"].includes(String(kind))) {
+      return { error: "game_id, slot, and kind are required" };
     }
+    if (inputFile !== undefined && (typeof inputFile !== "string" || !inputFile.trim())) { return { error: "input_file must be a nonempty string" }; }
     const game = await ownedGame(user, id);
-    if (!game) return { error: "Game not found" };
+    if (!game) { return { error: "Game not found" }; }
     const workspace = await workspaceOf(user, game);
-    if (!workspace) return { error: "Game workspace is unavailable" };
+    if (!workspace) { return { error: "Game workspace is unavailable" }; }
     const draft = await Game.readDraft(user, game.id, workspace);
-    if (!draft) return { error: "Game draft not found" };
+    if (!draft) { return { error: "Game draft not found" }; }
     const reference = typeof args["reference_slot"] === "string" ? draft.document.assets[args["reference_slot"]] : undefined;
-    if (args["reference_slot"] !== undefined && !reference) return { error: "reference_slot is not bound" };
-    const capability = kind === "image" ? reference ? "image_to_image" : "text_to_image" : kind === "music" ? "text_to_music" : "text_to_speech";
-    const resumedId = args["generation_id"];
+    if (args["reference_slot"] !== undefined && !reference) { return { error: "reference_slot is not bound" }; }
+    if (reference && kind !== "image") { return { error: "reference_slot requires kind image" }; }
+    const { imagePreparationSettings, prepareGameImage, imagePreparationMetadata, gameFontFormat } = await import("@nodetool-ai/game-nodes");
+    const settings = kind === "image" ? imagePreparationSettings.safeParse(args["preparation"] ?? {}) : null;
+    if (settings && !settings.success) { return { error: "Invalid image preparation", issues: settings.error.issues }; }
+    if (kind !== "image" && args["preparation"] !== undefined) { return { error: "preparation requires kind image" }; }
+    const { readGameAssetInput, generateGameSoundEffect, gameGenerationResult, gameModelResult } = await import("./game-asset-source.js");
     let provider = args["provider"];
     let model = args["model"];
-    let generated: { error?: string; asset_uri?: string; path?: string; generation_id?: string; mime_type?: string; background?: boolean };
-    if (typeof resumedId === "string") {
-      const row = await Prediction.findForUser(user, resumedId);
-      if (!row || row.capability !== capability) return { error: "Generation not found for this game asset kind" };
-      const { generationRecord } = await import("./generations.js");
-      const record = generationRecord(row);
-      if (record.status !== "completed") return { generation_id: resumedId, status: record.status, error: record.generation_error ?? undefined };
-      const assetId = record.asset_ids[0];
-      if (!assetId) return { error: "Generation completed without an asset", generation_id: resumedId };
-      const asset = await Asset.find(user, assetId);
-      if (!asset) return { error: "Generated asset is unavailable", generation_id: resumedId };
-      generated = { asset_uri: `asset://${assetId}`, generation_id: resumedId, mime_type: asset.content_type };
-      provider = row.provider;
-      model = row.model;
-    } else {
-      if (typeof provider !== "string" || typeof model !== "string") {
-        const { findModel } = await import("./models.js");
-        const found = await findModel.impl(run, { capability }) as { ref?: { provider?: string; id?: string }; error?: string };
-        provider = found.ref?.provider;
-        model = found.ref?.id;
-      }
-      if (typeof provider !== "string" || typeof model !== "string") return { error: `No ${capability} model is available; pass provider and model` };
-      const media = await import("./media.js");
-      const generator = kind === "music" ? media.generateMusic : kind === "audio" ? media.generateSpeech : reference ? media.editImage : media.generateImage;
-      const generationArgs: Record<string, unknown> = { provider, model, prompt };
-      if (kind === "audio") generationArgs["text"] = prompt;
-      if (args["background"] === true) generationArgs["background"] = true;
-      if (reference) {
-        const referenceAsset = await Asset.find(user, reference.assetId);
-        const suffix = referenceAsset && MEDIA_EXTENSIONS[referenceAsset.content_type];
-        if (!suffix) return { error: "Reference asset is unavailable" };
-        generationArgs["input_file"] = `asset://${reference.assetId}.${suffix}`;
-      }
-      generated = await generator.impl(run, generationArgs) as typeof generated;
+    let generated: { error?: string; asset_uri?: string; path?: string; generation_id?: string; mime_type?: string; background?: boolean } = {};
+    let sourceBytes: Uint8Array | null = null;
+    const makeLut = settings?.success && settings.data.lut !== undefined;
+    if (makeLut && (inputFile !== undefined || reference || args["generation_id"] !== undefined)) {
+      return { error: "LUT preparation creates a color cube directly and cannot use input_file, reference_slot or generation_id" };
     }
-    if (generated.error) return generated;
-    if (generated.background) return { ...generated, next: "Call await_generation, then call generate_game_asset again with generation_id and the same game_id, slot, kind, prompt, and preparation." };
-    const handle = generated.asset_uri ?? generated.path;
-    if (!handle) return { error: "Generation returned no readable asset", generation_id: generated.generation_id };
-    const resolved = handle.startsWith("asset://") ? await run.context.resolveAssetBytes(handle) : { bytes: await run.context.workspace?.read(handle) ?? null };
-    if (!resolved.bytes) return { error: "Generated asset bytes are unavailable", generation_id: generated.generation_id };
-    let bytes = resolved.bytes;
+    if (makeLut) {
+      sourceBytes = new Uint8Array();
+    } else if (typeof inputFile === "string") {
+      if (args["generation_id"] !== undefined) { return { error: "input_file and generation_id cannot be combined" }; }
+      try {
+        sourceBytes = await readGameAssetInput(run, workspace, inputFile);
+      } catch (error) {
+        return { error: error instanceof Error ? error.message : String(error) };
+      }
+      if (!sourceBytes) { return { error: "input_file is unavailable in this user's assets or workspace" }; }
+    } else if (kind === "font") {
+      return { error: "Font assets require input_file naming an owned TTF or OTF asset or workspace file" };
+    } else if (kind === "sfx") {
+      const sound = await generateGameSoundEffect(run, args);
+      if ("error" in sound) { return sound; }
+      sourceBytes = sound.bytes;
+      generated.mime_type = sound.mime_type;
+    } else {
+      if (typeof prompt !== "string" || !prompt.trim()) { return { error: "prompt is required for generation" }; }
+      const capability = kind === "image" ? reference ? "image_to_image" : "text_to_image" : kind === "music" ? "text_to_music" : "text_to_speech";
+      const resumedId = args["generation_id"];
+      if (typeof resumedId === "string") {
+        const row = await Prediction.findForUser(user, resumedId);
+        if (!row || row.capability !== capability) { return { error: "Generation not found for this game asset kind" }; }
+        const { generationRecord } = await import("./generations.js");
+        const record = generationRecord(row);
+        if (record.status !== "completed") { return { generation_id: resumedId, status: record.status, error: record.generation_error ?? undefined }; }
+        const assetId = record.asset_ids[0];
+        if (!assetId) { return { error: "Generation completed without an asset", generation_id: resumedId }; }
+        const asset = await Asset.find(user, assetId);
+        if (!asset) { return { error: "Generated asset is unavailable", generation_id: resumedId }; }
+        generated = { asset_uri: `asset://${assetId}`, generation_id: resumedId, mime_type: asset.content_type };
+        provider = row.provider;
+        model = row.model;
+      } else {
+        if (typeof provider !== "string" || typeof model !== "string") {
+          const { findModel } = await import("./models.js");
+          const found = gameModelResult.safeParse(await findModel.impl(run, { capability }));
+          provider = found.success ? found.data.ref?.provider : undefined;
+          model = found.success ? found.data.ref?.id : undefined;
+        }
+        if (typeof provider !== "string" || typeof model !== "string") { return { error: `No ${capability} model is available; pass provider and model` }; }
+        const media = await import("./media.js");
+        const generator = kind === "music" ? media.generateMusic : kind === "audio" ? media.generateSpeech : reference ? media.editImage : media.generateImage;
+        const generationArgs: Record<string, unknown> = { provider, model, prompt };
+        if (kind === "audio") { generationArgs["text"] = prompt; }
+        if (args["background"] === true) { generationArgs["background"] = true; }
+        if (reference) {
+          const referenceAsset = await Asset.find(user, reference.assetId);
+          const suffix = referenceAsset && MEDIA_EXTENSIONS[referenceAsset.content_type];
+          if (!suffix) { return { error: "Reference asset is unavailable" }; }
+          generationArgs["input_file"] = `asset://${reference.assetId}.${suffix}`;
+        }
+        const result = gameGenerationResult.safeParse(await generator.impl(run, generationArgs));
+        if (!result.success) { return { error: "Generation returned an invalid asset result" }; }
+        generated = result.data;
+      }
+      if (generated.error) { return generated; }
+      if (generated.background) { return { ...generated, next: "Call await_generation, then call generate_game_asset again with generation_id and the same game_id, slot, kind, prompt, and preparation." }; }
+      const handle = generated.asset_uri ?? generated.path;
+      if (!handle) { return { error: "Generation returned no readable asset", generation_id: generated.generation_id }; }
+      sourceBytes = handle.startsWith("asset://") ? (await run.context.resolveAssetBytes(handle)).bytes : await run.context.workspace?.read(handle) ?? null;
+      if (!sourceBytes) { return { error: "Generated asset bytes are unavailable", generation_id: generated.generation_id }; }
+    }
+    if (sourceBytes.byteLength > MAX_BUILD_ASSET_BYTES) { return { error: "Game asset exceeds the supported asset size" }; }
+    let bytes = sourceBytes;
     let width = 1;
     let height = 1;
-    let preparation: Record<string, unknown> | undefined;
-    let trim: { sourceWidth: number; sourceHeight: number; x: number; y: number } | undefined;
-    let originalDimensions: { width: number; height: number } | undefined;
-    const audioExtension = generated.mime_type === "audio/wav" || generated.mime_type === "audio/x-wav" ? "wav"
-      : generated.mime_type === "audio/ogg" ? "ogg"
-      : generated.mime_type === "audio/mpeg" || generated.mime_type === "audio/mp3" ? "mp3"
-      : handle.endsWith(".wav") ? "wav" : handle.endsWith(".ogg") ? "ogg" : "mp3";
-    let extension = kind === "image" ? "png" : audioExtension;
-    if (kind === "image") {
-      const { imagePreparationSettings, prepareGameImage } = await import("@nodetool-ai/game-nodes");
-      const settings = imagePreparationSettings.safeParse(args["preparation"] ?? {});
-      if (!settings.success) return { error: "Invalid image preparation", issues: settings.error.issues };
-      const prepared = await prepareGameImage(bytes, settings.data);
+    const previous = draft.document.assets[slot];
+    const binding: Record<string, unknown> = {
+      width, height, pivot: previous?.pivot ?? { x: 0.5, y: 0.5 }, sampling: previous?.sampling ?? "nearest"
+    };
+    let frames: readonly { readonly x: number; readonly y: number; readonly width: number; readonly height: number }[] | undefined;
+    let tiles: readonly { readonly mask: number; readonly frame: { readonly x: number; readonly y: number; readonly width: number; readonly height: number } }[] | undefined;
+    let lutSize: number | undefined;
+    let extension: string;
+    let contentType: string;
+    if (kind === "image" && settings?.success) {
+      let prepared;
+      try {
+        prepared = await prepareGameImage(bytes, settings.data);
+      } catch (error) {
+        return { error: `Image preparation failed: ${error instanceof Error ? error.message : String(error)}` };
+      }
       bytes = prepared.bytes;
       width = prepared.width;
       height = prepared.height;
       extension = "png";
-      preparation = { trimAlpha: settings.data.trimAlpha, mirrorX: settings.data.mirrorX, mirrorY: settings.data.mirrorY };
-      if (settings.data.targetWidth) { preparation.targetWidth = settings.data.targetWidth; preparation.targetHeight = settings.data.targetHeight; preparation.cropPolicy = settings.data.cropPolicy ?? "contain"; }
-      originalDimensions = { width: prepared.originalWidth, height: prepared.originalHeight };
-      trim = prepared.trim;
+      contentType = "image/png";
+      binding.mediaKind = "image";
+      binding.pivot = settings.data.pivot;
+      binding.sampling = settings.data.sampling;
+      frames = prepared.frames;
+      tiles = prepared.tiles;
+      lutSize = prepared.lutSize;
+      if (frames?.[0]) { binding.frame = frames[0]; }
+      if (prepared.baseline !== undefined && frames?.[0]) { binding.pivot = { x: 0.5, y: (prepared.baseline + 1) / frames[0].height }; }
+      if (draft.document.schemaVersion === 2) {
+        binding.preparation = imagePreparationMetadata(settings.data);
+        binding.originalDimensions = { width: prepared.originalWidth, height: prepared.originalHeight };
+        if (prepared.trim) { binding.trim = prepared.trim; }
+        if (reference) { binding.referenceAssetId = reference.assetId; }
+      }
+    } else if (kind === "font") {
+      const format = gameFontFormat(bytes);
+      if (!format) { return { error: "input_file must contain a valid TrueType or OpenType font" }; }
+      extension = format;
+      contentType = `font/${format}`;
+      binding.mediaKind = "font";
+      binding.fontFormat = format;
+    } else {
+      const { sniffAudioMimeOrNull } = await import("@nodetool-ai/runtime");
+      const mime = generated.mime_type ?? sniffAudioMimeOrNull(bytes);
+      extension = mime === "audio/wav" || mime === "audio/x-wav" ? "wav" : mime === "audio/ogg" ? "ogg"
+        : mime === "audio/mpeg" || mime === "audio/mp3" ? "mp3" : "";
+      if (!extension) { return { error: "Audio assets must be encoded WAV, Ogg or MP3" }; }
+      contentType = extension === "wav" ? "audio/wav" : extension === "ogg" ? "audio/ogg" : "audio/mpeg";
+      binding.mediaKind = "audio";
     }
     const digest = createHash("sha256").update(bytes).digest("hex");
-    const contentType = extension === "png" ? "image/png" : extension === "wav" ? "audio/wav" : extension === "ogg" ? "audio/ogg" : "audio/mpeg";
     await workspace.write(`${game.source_root}/assets/${digest}.${extension}`, bytes, contentType);
-    const previous = draft.document.assets[slot];
-    const binding: Record<string, unknown> = {
-      assetId: `generated:${digest}`,
-      digest,
-      mediaKind: kind === "image" ? "image" : "audio",
-      width,
-      height,
-      pivot: previous?.pivot ?? { x: 0.5, y: 0.5 },
-      sampling: previous?.sampling ?? "nearest"
-    };
-    if (draft.document.schemaVersion === 2) {
-      binding.preparation = preparation;
-      binding.originalDimensions = originalDimensions;
-      binding.trim = trim;
-      binding.referenceAssetId = reference?.assetId;
-      binding.provenance = `${provider}:${model}:${generated.generation_id ?? ""}`;
-    }
+    binding.assetId = `generated:${digest}`;
+    binding.digest = digest;
+    binding.width = width;
+    binding.height = height;
+    if (draft.document.schemaVersion === 2) { binding.provenance = typeof inputFile === "string" ? `import:${inputFile}`
+      : makeLut ? "generated:color-cube" : kind === "sfx" ? `node:${args["node_type"]}` : `${provider}:${model}:${generated.generation_id ?? ""}`; }
     const installed = await install.impl(run, { game_id: game.id, slot, binding, base_updated_at: draft.game.draft_updated_at });
-    return typeof installed === "object" && installed !== null
-      ? { generation_id: generated.generation_id, ...installed }
-      : { generation_id: generated.generation_id, result: installed };
+    if (typeof installed !== "object" || installed === null) { return { generation_id: generated.generation_id, result: installed }; }
+    const extras: Record<string, unknown> = {};
+    if (!("error" in installed) && "document" in installed) {
+      const parsedDocument = gameDocument.safeParse(installed.document);
+      const asset = parsedDocument.success ? parsedDocument.data.assets[slot] : undefined;
+      if (asset && (frames || tiles)) {
+        extras.bindings = Object.fromEntries(frames ? frames.map((frame, index) => [`${slot}.frame.${index}`, { ...asset, frame }])
+          : (tiles ?? []).map((tile) => [`${slot}.tile.${tile.mask}`, { ...asset, frame: tile.frame }]));
+        extras.next = "Bind the returned atlas frame bindings with one edit_native_game ops array or registerAssets in the game builder.";
+      }
+    }
+    if (frames) { extras.frames = frames; }
+    if (tiles) { extras.tiles = tiles; }
+    if (lutSize) { extras.lut_size = lutSize; }
+    return { generation_id: generated.generation_id, ...installed, ...extras };
   }
 };
 
@@ -854,7 +974,102 @@ const buildGame: CapabilityExport = {
   }
 };
 
+const listExamples: CapabilityExport = {
+  spec: gameSpecs[9],
+  impl: async (_run, args) => {
+    const query = args["query"];
+    const limit = args["limit"] ?? 20;
+    if (query !== undefined && typeof query !== "string") return { error: "query must be a string" };
+    if (typeof limit !== "number" || !Number.isSafeInteger(limit) || limit < 1 || limit > 100) return { error: "limit must be between 1 and 100" };
+    const needle = typeof query === "string" ? query.toLowerCase().trim() : "";
+    return { examples: listExampleGames({}).filter((example) => !needle || `${example.slug} ${example.name} ${example.description}`.toLowerCase().includes(needle)).slice(0, limit) };
+  }
+};
+
+const getExample: CapabilityExport = {
+  spec: gameSpecs[10],
+  impl: async (_run, args) => {
+    const slug = args["slug"];
+    if (typeof slug !== "string") return { error: "slug is required" };
+    const bundle = getExampleGameBundle({}, slug);
+    if (!bundle) return { error: "Example game not found" };
+    const { document, ...metadata } = bundle;
+    const view = args["view"] ?? "outline";
+    if (view === "full") return { slug, ...metadata, document };
+    if (view === "entity") {
+      const entityId = args["entity_id"];
+      if (typeof entityId !== "string") return { error: "entity_id is required for entity view" };
+      const matches = document.scenes.flatMap((scene) => scene.entities.filter((entity) => entity.id === entityId).map((entity) => ({ scene_id: scene.id, entity })));
+      return matches.length ? { slug, ...metadata, matches } : { error: "Entity not found" };
+    }
+    return view === "outline" ? { slug, ...metadata, outline: outline(document) } : { error: "Unknown example game view" };
+  }
+};
+
+const installExample: CapabilityExport = {
+  spec: gameSpecs[11],
+  impl: async (run, args) => {
+    const user = userId(run);
+    const projectId = args["project_id"];
+    const slug = args["slug"];
+    const name = args["name"];
+    if (!user || typeof projectId !== "string" || typeof slug !== "string") return { error: "project_id and slug are required in a user session" };
+    if (name !== undefined && (typeof name !== "string" || !name.trim())) return { error: "name must be a nonempty string" };
+    if (!(await Project.findOwned(user, projectId))) return { error: "Project not found" };
+    const storage = run.context.assetStorage;
+    if (!storage) return { error: "Asset storage is unavailable" };
+    if (!getExampleGameBundle({}, slug)) return { error: "Example game not found" };
+    const installed = await installExampleGameAssets(user, projectId, {}, slug, storage);
+    try {
+      const created = await createNativeGame(user, projectId, typeof name === "string" ? name.trim() : installed.bundle.name, installed.document);
+      if ("error" in created) {
+        await installed.rollback();
+        return created;
+      }
+      return { game: summary(created.game), document: created.document };
+    } catch (error) {
+      await installed.rollback();
+      throw error;
+    }
+  }
+};
+
+const autoplay: CapabilityExport = {
+  spec: gameSpecs[12],
+  impl: async (run, args) => {
+    const user = userId(run);
+    const id = args["game_id"];
+    if (!user || typeof id !== "string") return { error: "game_id is required in a user session" };
+    const game = await ownedGame(user, id);
+    if (!game) return { error: "Game not found" };
+    const workspace = await workspaceOf(user, game);
+    if (!workspace) return { error: "Game workspace is unavailable" };
+    const document = await readSource(workspace, game, args["source"], args["revision"]);
+    if (!document) return { error: "Game source not found" };
+    const targetPrefix = args["target_prefix"];
+    const playerId = args["player_id"];
+    const win = args["win"];
+    const maxTicks = args["max_ticks"];
+    const seed = args["seed"];
+    if (targetPrefix !== undefined && (typeof targetPrefix !== "string" || !targetPrefix.trim())) return { error: "target_prefix must be a nonempty string" };
+    if (playerId !== undefined && typeof playerId !== "string") return { error: "player_id must be a string" };
+    if (win !== undefined && typeof win !== "boolean") return { error: "win must be a boolean" };
+    if (targetPrefix !== undefined && win === true) return { error: "Choose target_prefix or win, not both" };
+    if (maxTicks !== undefined && (typeof maxTicks !== "number" || !Number.isSafeInteger(maxTicks) || maxTicks < 1 || maxTicks > MAX_PLAYTEST_TICKS)) return { error: `max_ticks must be between 1 and ${MAX_PLAYTEST_TICKS}` };
+    if (seed !== undefined && (typeof seed !== "number" || !Number.isSafeInteger(seed))) return { error: "seed must be an integer" };
+    const options: { -readonly [Key in keyof GameAutoplayOptions]: GameAutoplayOptions[Key] } = { signal: run.context.signal };
+    if (typeof targetPrefix === "string") options.targetPrefix = targetPrefix;
+    else options.win = true;
+    if (typeof playerId === "string") options.playerId = playerId;
+    if (typeof seed === "number") options.seed = seed;
+    if (typeof maxTicks === "number") options.maxTicks = maxTicks;
+    const result = await autoplayNativeGame(document, options);
+    const { winTick, reachedTargets, levelStats, snapshot, ...route } = result;
+    return { game_id: shortResourceId(game.id), revision: document.revision, ...route, win_tick: winTick, reached_targets: reachedTargets, level_stats: levelStats, state: snapshot };
+  }
+};
+
 export const module: CapabilityModule = {
   module: "game",
-  exports: [create, get, save, install, playtest, buildGame, edit, capture, generateAsset]
+  exports: [create, get, save, install, playtest, buildGame, edit, capture, generateAsset, listExamples, getExample, installExample, autoplay]
 };

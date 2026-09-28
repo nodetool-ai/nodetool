@@ -41,7 +41,9 @@ const CONTENT_TYPE_TO_EXTENSION: Record<string, string> = {
   "video/x-msvideo": "avi",
   "video/webm": "webm",
   "model/gltf-binary": "glb",
-  "model/gltf+json": "gltf"
+  "model/gltf+json": "gltf",
+  "font/ttf": "ttf",
+  "font/otf": "otf"
 };
 
 const EXTENSION_TO_INFERRED_TYPE: Record<string, string> = {
@@ -105,15 +107,16 @@ export function normalizeAssetContentType(
 }
 
 /**
- * Names to try when reading an asset, newest first. 3D models used to be
- * stored as `.bin` because this map had no `model/*` entries.
+ * Names to try when reading an asset, newest first. Models and fonts used
+ * to be stored as `.bin` before their content types had extension mappings.
  */
 export function assetFileNameCandidates(
   assetId: string,
   contentType: string
 ): string[] {
   const canonical = getAssetFileName(assetId, contentType);
-  if (canonical.endsWith(".glb") || canonical.endsWith(".gltf")) {
+  if (canonical.endsWith(".glb") || canonical.endsWith(".gltf") ||
+      canonical.endsWith(".ttf") || canonical.endsWith(".otf")) {
     return [canonical, `${assetId}.bin`];
   }
   return [canonical];

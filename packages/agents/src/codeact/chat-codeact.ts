@@ -46,7 +46,8 @@ import { buildCodeActSystemPrompt } from "./prompt.js";
 import {
   mountActionModules,
   packagePromptLines,
-  sessionAllowedPackages
+  sessionAllowedPackages,
+  withGamePackage
 } from "./sandbox-packages.js";
 import {
   SANDBOX_PACKAGE_DOCS_TOOL_NAME,
@@ -237,15 +238,19 @@ export function createChatCodeActSession(
   // Authoring a graph is a package, not a builder: a turn whose belt can save,
   // validate and run a workflow gets the DSL pack on its allowlist, provided
   // this machine installed it.
-  const sandboxPackages = withFlowPackage(
-    withFabricPackage(
-      withGraphDslPackage(
-        sessionAllowedPackages(options.sandboxPackages),
-        options.tools.map((t) => t.name),
+  const sandboxPackages = withGamePackage(
+    withFlowPackage(
+      withFabricPackage(
+        withGraphDslPackage(
+          sessionAllowedPackages(options.sandboxPackages),
+          options.tools.map((t) => t.name),
+          sandboxModuleCatalog
+        ),
         sandboxModuleCatalog
       ),
       sandboxModuleCatalog
     ),
+    options.tools.map((t) => t.name),
     sandboxModuleCatalog
   );
   const withGraphDsl = sandboxPackages.includes(GRAPH_DSL_PACKAGE);

@@ -7,6 +7,9 @@ description: "Build or revise a playable 2D game in NodeTool's built-in engine, 
 
 Create and edit a versioned built-in game document. The engine owns simulation,
 rendering, and web export. A new game starts as a playable top-down room.
+Load `game-direction` before the first edit of a new game or a requested art
+overhaul. Lock its style string, layer plan, feel parameters, and pacing sheet,
+then keep later edits and asset prompts consistent with that spec.
 
 ## Build and revise
 
@@ -20,12 +23,38 @@ rendering, and web export. A new game starts as a playable top-down room.
    the draft and validates the result atomically. Use the `draft_updated_at`
    from a read for compare-and-swap when an edit depends on that exact state.
    Invalid edits return an op index and field path.
+   A generated level can replace the whole draft with
+   `ops: [{op: "set_document", document}]`. Build it in local loops with
+   `@nodetool-ai/sandbox-game`, then call `saveGame` once. The replacement
+   preserves the stored game id and revision and supports undo.
 4. `capture_native_game_frame {game_id, ticks?}` renders draft frames. Look at
-   the returned image before reporting visual changes as complete.
+   the returned image before reporting visual changes as complete. Captures
+   report `cancelled`, `wall_time_limited`, and `route_complete`. An interrupted
+   capture returns only frames rendered before interruption.
    `playtest_native_game {game_id, inputs?, assertions?, capture_ticks?}` runs
-   the draft for up to 3,600 ticks. An input can repeat with `ticks`.
-5. `generate_game_asset {game_id, slot, kind, prompt}` generates, prepares,
-   installs, and binds an image, speech audio, or music asset. Use
+   the draft for up to 18,000 ticks, subject to the wall time budget. An input
+   can repeat with `ticks`. `justPressed` fires on the first repeated tick.
+   `autoplay_native_game {game_id, target_prefix? | win?, player_id?, seed?,
+   max_ticks?}` steers a supported player and returns an executed `route`,
+   observed win tick, target contacts, and authored level stats. Replay `route`
+   as playtest `inputs` with the same seed. Standard direction actions and a
+   jump action are supported. A prefix selects every matching authored
+   collider, whose IDs must be unique across scenes. Win steering targets
+   collectibles or an authored `win` or `victory` trigger. Other scripted goals
+   need `target_prefix`.
+   A failed steering search or exhausted budget does not prove the game
+   impossible. Inspect captures against the direction spec before reporting
+   visual quality or polish.
+   Assert `{event: "win", before_tick}` to require an engine win or a scripted
+   `win`/`victory` trigger. Assert `{event: "victory"}` or another emitted
+   event name for a specific scripted signal. A target contact alone does not
+   prove completion. Check `route_complete` before accepting a replay.
+5. `generate_game_asset {game_id, slot, kind, prompt?, input_file?}` generates,
+   prepares, installs, and binds an image, speech audio, music, sound effect, or
+   font asset. `audio` is speech. `sfx` uses an explicit registered
+   `node_type` and its `params`, or imports an existing audio file. `font`
+   imports a TrueType or OpenType `input_file`; it has no generation model.
+   An `input_file` is an owned asset URI or current workspace path. Use
    `reference_slot` for image-to-image generation from an installed slot.
    For a slow model, pass `background: true`, await the returned generation,
    then call `generate_game_asset` again with `generation_id` and the same
@@ -40,6 +69,39 @@ rendering, and web export. A new game starts as a playable top-down room.
    screen the player adds a floating stick for `left`/`right`/`up`/`down` and one
    button per other input action, labeled with the action name. Installed
    media must still exist, match its recorded digest, and use a supported format.
+
+## Build a complete document
+
+Load the `sandbox-game` pack skill for the helper signatures and an example.
+It exports `game`, `entity`, `script`, `registerAssets`, `fill`, `plank`, `arc`,
+and `saveGame`. Asset registration records bindings; installation supplies the
+bytes. `saveGame({name, document}, {games: nodetool.games, project_id})` creates
+a game and saves the generated draft in one edit. To replace an existing draft,
+pass `game_id` and its last-read `base_updated_at` instead of `project_id`.
+Publish separately when requested.
+
+`list_example_games {query?}` discovers shipped references.
+`get_example_game {slug: "kindle"}` reads its outline. Use `view: "entity"`
+with `entity_id` to study the controller or `view: "full"` for the document.
+Kindle is the platformer benchmark for layered art, aligned poses, terrain
+edges, feel, and pacing. `install_example_game {project_id, slug}` copies a
+bundle and its verified media into the project. A raw example document has
+`package://` bindings; install the bundle before editing it as a user game.
+
+## Asset preparation
+
+Image preparation supports alpha trim, target size and crop policy, pivot,
+sampling, and mirror tiling. Choose at most one of these atlas or grade modes:
+
+| Preparation | Result |
+|---|---|
+| `sheet: {cols, rows, baseline?}` | Slices a row-major sheet, trims each pose, and aligns the feet on one output row. Returns equal-sized atlas `frames` and bindings named `<slot>.frame.<index>`. `baseline` is a zero-based output foot row. |
+| `tileset: {tileWidth?, tileHeight?, edges?, highlight?, shadow?}` | Builds 16 terrain variants with baked exposed-edge treatments. Returns `tiles` and `<slot>.tile.<mask>` bindings. Mask bits are top `1`, right `2`, bottom `4`, left `8`. |
+| `lut: {size?, brightness?, contrast?, saturation?, lift?, gain?, gamma?}` | Creates an opaque packed `size² × size` color cube from numeric grade settings, without a generation model. Bind it to a `lut` render effect. |
+
+Use returned atlas rectangles as animator frames or tile frames. Keep the
+locked style string in every generated visual prompt. Review foot alignment,
+terrain joins, lighting, and grade in captures before accepting the art pass.
 
 For a workflow-based brief, `design_game` writes its design and `build_game
 {workflow_id, save?}` creates or selects the native game and stages its asset

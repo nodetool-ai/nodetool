@@ -887,18 +887,14 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "games.draftChanges": {
     gap: "The editor lists draft change cards; the agent reads the current draft through get_native_game."
   },
-  "games.examples": {
-    gap: "Lists the shipped example games for the Examples page. A headless run creates a game with create_native_game."
-  },
+  "games.examples": { capability: "list_example_games" },
   "games.get": { capability: "get_native_game" },
   "games.getDraft": { capability: "get_native_game" },
   "games.installAsset": {
     gap: "Installing an existing image asset is available in the editor, but the agent only installs staged candidates."
   },
   "games.installCandidate": { capability: "install_native_game_asset" },
-  "games.installExample": {
-    gap: "Copies a shipped example game and its media into the caller's project. Headless runs build games with create_native_game."
-  },
+  "games.installExample": { capability: "install_example_game" },
   "games.list": {
     gap: "The agent can read a known game but cannot list a project's games yet."
   },

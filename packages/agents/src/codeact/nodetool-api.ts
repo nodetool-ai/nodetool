@@ -2,7 +2,7 @@
  * The `nodetool` object model — the agent-facing JS API for the CodeAct
  * sandbox. Where an imported capability is the raw RPC surface, `nodetool.*` is the
  * platform as objects: workflows, models, assets,
- * jobs, collections, timelines, sketches, scripts, and storyboards, plus a
+ * jobs, collections, games, timelines, sketches, scripts, and storyboards, plus a
  * bounded-concurrency `batch()` for fan-out (run a workflow once per CSV row,
  * validate every timeline, render all boards).
  *
@@ -128,6 +128,12 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "vector_hybrid_search"
   ],
   apps: ["list_apps", "get_app", "create_app", "edit_app", "debug_app"],
+  games: [
+    "create_native_game", "get_native_game", "edit_native_game", "publish_native_game",
+    "install_native_game_asset", "playtest_native_game", "capture_native_game_frame",
+    "generate_game_asset", "build_native_game", "list_example_games", "get_example_game",
+    "install_example_game", "autoplay_native_game"
+  ],
   timelines: [
     "list_timelines",
     "create_timeline",
@@ -1201,6 +1207,27 @@ const nodetool = (() => {
         __need("debug_app")(__merge(opts, { application_id: id }))
     },
 
+    games: {
+      create: (name, opts) =>
+        __need("create_native_game")(__named(name, opts, "games.create")),
+      get: (id, opts) => __need("get_native_game")(__merge(opts, { game_id: id })),
+      edit: (id, ops, opts) => __need("edit_native_game")(__merge(opts, { game_id: id, ops })),
+      setDocument: (id, document, opts) =>
+        __need("edit_native_game")(__merge(opts, { game_id: id, ops: [{ op: "set_document", document }] })),
+      publish: (id, opts) => __need("publish_native_game")(__merge(opts, { game_id: id })),
+      installAsset: (id, slot, binding, opts) =>
+        __need("install_native_game_asset")(__merge(opts, { game_id: id, slot, binding })),
+      playtest: (id, opts) => __need("playtest_native_game")(__merge(opts, { game_id: id })),
+      capture: (id, opts) => __need("capture_native_game_frame")(__merge(opts, { game_id: id })),
+      generateAsset: (id, slot, kind, prompt, opts) =>
+        __need("generate_game_asset")(__merge(opts, { game_id: id, slot, kind, prompt })),
+      build: (id, opts) => __need("build_native_game")(__merge(opts, { game_id: id })),
+      listExamples: (opts) => __need("list_example_games")(__merge(opts)),
+      getExample: (slug) => __need("get_example_game")({ slug }),
+      installExample: (slug, opts) => __need("install_example_game")(__merge(opts, { slug })),
+      autoplay: (id, opts) => __need("autoplay_native_game")(__merge(opts, { game_id: id }))
+    },
+
     timelines: {
       list: (opts) => __need("list_timelines")(__merge(opts)),
       create: (name, opts) =>
@@ -1784,6 +1811,19 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`[{tool: "add_operation", input: {…}}, {tool: "add_component", input: {…}}]\`
   — \`edit(id, [])\` returns every tool and its schema. \`debug\` with
   \`{run: false}\` is the free, instant wiring check after each change.`
+  },
+  {
+    namespace: "games",
+    doc: `- \`nodetool.games\` — \`create(name, {project_id})\`, \`get(id, {view, source, revision})\`,
+  \`edit(id, ops, {base_updated_at})\`, and \`setDocument(id, document, {base_updated_at})\`.
+  A whole document is one \`set_document\` edit, validated atomically. Build it with
+  \`@nodetool-ai/sandbox-game\` and \`saveGame({name, document}, {games: nodetool.games, project_id})\`.
+  \`publish(id, {base_revision, message})\` saves an immutable revision when requested.
+  \`installAsset(id, slot, binding, opts)\`, \`generateAsset(id, slot, kind, prompt, opts)\`,
+  \`playtest(id, opts)\`, \`capture(id, opts)\`, \`autoplay(id, {win, target_prefix})\`,
+  and \`build(id, {revision})\` install art, verify routes, inspect frames and export.
+  Read a shipped benchmark with \`listExamples()\` and \`getExample("kindle")\`, then
+  \`installExample(slug, {project_id, name})\` to copy it into a project.`
   },
   {
     namespace: "timelines",

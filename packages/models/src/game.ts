@@ -62,6 +62,7 @@ function summarizeOps(ops: readonly GameDocumentOp[]): string {
     counts.set(op.op, (counts.get(op.op) ?? 0) + 1);
   }
   const labels: Record<GameDocumentOp["op"], [string, string]> = {
+    set_document: ["Replaced game document", "Replaced game documents"],
     add_entity: ["Added entity", "Added entities"],
     update_entity: ["Changed entity", "Changed entities"],
     remove_entity: ["Removed entity", "Removed entities"],
@@ -353,6 +354,7 @@ export class Game extends DBModel {
     })).map((change) => ({
       ...change,
       affectedEntityIds: [...new Set(change.ops.flatMap((op) => {
+        if (op.op === "set_document") return op.document.scenes.flatMap((scene) => scene.entities.map((entity) => entity.id));
         if (op.op === "add_entity") return [op.entity.id];
         if (op.op === "duplicate_entity") return [op.entity_id, op.new_id];
         return "entity_id" in op ? [op.entity_id] : [];
