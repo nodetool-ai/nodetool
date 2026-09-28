@@ -27,6 +27,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Alibaba Cloud | ✅ | | | | | | |
 | GMI Cloud | ✅ | | | | | | |
 | OpenRouter | ✅ | ✅ | | | | | |
+| Requesty | ✅ | | | | | | |
 | Together AI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Moonshot (Kimi) | ✅ | | | | | | |
 | MiniMax | ✅ | ✅ | ✅ | ✅ | | | |
@@ -106,6 +107,10 @@ GMI Cloud is an OpenAI-compatible chat endpoint for open-weight models — Llama
 ## OpenRouter
 
 OpenRouter proxies 300+ chat models plus image generation through a single key. Cloud only, keyed by `OPENROUTER_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+
+## Requesty
+
+Requesty routes chat models from OpenAI, Anthropic, Google, DeepSeek, xAI and others through one OpenAI-compatible endpoint, `https://router.requesty.ai/v1`. Text only. Cloud only, keyed by `REQUESTY_API_KEY`. The model picker lists the managed models from `/v1/models/managed` (short ids such as `gpt-5.4-mini`) followed by the full `vendor/model` catalog from `/v1/models` (for example `openai/gpt-4o-mini`). Get a key at [Requesty](https://app.requesty.ai/api-keys). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
 ## Together AI
 

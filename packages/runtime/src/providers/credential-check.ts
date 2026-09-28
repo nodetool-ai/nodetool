@@ -77,6 +77,11 @@ const PROBES: Record<string, CredentialProbe> = {
     url: () => "https://openrouter.ai/api/v1/key",
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   },
+  REQUESTY_API_KEY: {
+    label: "Requesty",
+    url: () => "https://router.requesty.ai/v1/models",
+    headers: (v) => ({ Authorization: `Bearer ${v}` })
+  },
   DEEPSEEK_API_KEY: {
     label: "DeepSeek",
     url: () => "https://api.deepseek.com/v1/models",

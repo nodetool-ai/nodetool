@@ -42,8 +42,9 @@ Chat flags:
 ```
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
                          moonshot, minimax, cerebras, meta, alibaba, together,
-                         openrouter, huggingface, replicate, kie, aki, ollama,
-                         lmstudio, claude_agent_sdk, codex, gmi, mlx, node_llama_cpp
+                         openrouter, requesty, huggingface, replicate, kie, aki,
+                         ollama, lmstudio, claude_agent_sdk, codex, gmi, mlx,
+                         node_llama_cpp
                          (any registry provider id also works, e.g. vllm, llama_cpp)
 -m, --model <id>         Model ID (e.g. claude-sonnet-5, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools

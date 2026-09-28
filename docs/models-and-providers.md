@@ -59,6 +59,7 @@ The generic `nodetool.agents.Agent` and chat nodes route to whichever provider o
 | Moonshot | Kimi K2, Kimi latest |
 | <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | MiniMax-Text, MiniMax M2 |
 | OpenRouter | 300+ models proxied through one key (Claude, GPT, Gemini, Llama, Qwen, DeepSeek, …) |
+| Requesty | Claude, GPT, Gemini, DeepSeek, Grok and more through one OpenAI-compatible router |
 | Together AI | Llama, Qwen, DeepSeek, Mixtral, GLM, Kimi, and more open models |
 | Evolink | GPT, Claude, Gemini, DeepSeek through one gateway key |
 | kie.ai | GPT-5.5, Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5, Gemini 3.1 Pro, Gemini 3 Flash (chat gateway) |
