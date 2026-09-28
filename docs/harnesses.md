@@ -1178,7 +1178,7 @@ exercise skinning, shadows, context recovery, disposal and a closed-network
 standalone completion route. Desktop capture uses packaged Playwright. A server
 build without browser automation reports unavailable capture capability.
 See the [3D design](plans/native-game-3d-upgrade.md) and
-[runtime contract](../packages/game-runtime/README.md).
+[runtime contract](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/README.md).
 
 The `nodetool.game.*` nodes retain asset checks. `LoadGameTemplate` lists native
 asset slots. `SlotPrompt` prepares a request for one slot. `SpriteSheet`,
