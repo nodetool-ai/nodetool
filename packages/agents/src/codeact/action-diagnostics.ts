@@ -13,7 +13,8 @@
  * `at action:<line>:<col>` and the excerpt sits under it.
  */
 
-import { parseCodeBody } from "@nodetool-ai/node-sdk";
+import type { Pattern } from "acorn";
+import { parseCodeBody, type CodeBodyStatement } from "@nodetool-ai/node-sdk";
 import { entryBodyLineOffset } from "../js-sandbox-worker/interpreter.js";
 import {
   RESERVED_ACTION_BINDINGS,
@@ -103,7 +104,8 @@ export function annotateFailure(
   prelude: string,
   code: string
 ): { readonly error?: string; readonly stack?: string } {
-  const collision = reservedRedeclaration(error);
+  const collision =
+    reservedRedeclaration(error) ?? reservedDeclarationInAction(error, code);
   if (collision !== undefined) return { error: collision };
   const reparsed = reparseSyntaxError(error, code);
   if (reparsed !== undefined) return reparsed;
@@ -163,6 +165,63 @@ function reservedRedeclaration(error: string | undefined): string | undefined {
   if (name === undefined || !RESERVED_ACTION_BINDINGS.includes(name)) {
     return undefined;
   }
+  return reservedCollisionMessage(error, name);
+}
+
+/**
+ * The same collision when QuickJS reports something else. An action with a
+ * static `import` that also redeclares a prelude binding does not parse, so
+ * the import is never hoisted and QuickJS fails on it first
+ * ("SyntaxError: expecting '('" at the import line). The redeclaration is
+ * read from the action's own top-level declarations instead.
+ */
+function reservedDeclarationInAction(
+  error: string | undefined,
+  code: string
+): string | undefined {
+  if (error === undefined || !error.includes("SyntaxError")) return undefined;
+  const parsed = parseCodeBody(code);
+  if ("error" in parsed) return undefined;
+  const name = parsed.statements
+    .flatMap(topLevelDeclaredNames)
+    .find((declared) => RESERVED_ACTION_BINDINGS.includes(declared));
+  return name === undefined ? undefined : reservedCollisionMessage(error, name);
+}
+
+function topLevelDeclaredNames(statement: CodeBodyStatement): string[] {
+  switch (statement.type) {
+    case "VariableDeclaration":
+      return statement.declarations.flatMap((d) => patternNames(d.id));
+    case "FunctionDeclaration":
+    case "ClassDeclaration":
+      return statement.id ? [statement.id.name] : [];
+    case "ImportDeclaration":
+      return statement.specifiers.map((s) => s.local.name);
+    default:
+      return [];
+  }
+}
+
+function patternNames(pattern: Pattern): string[] {
+  switch (pattern.type) {
+    case "Identifier":
+      return [pattern.name];
+    case "ObjectPattern":
+      return pattern.properties.flatMap((p) =>
+        patternNames(p.type === "RestElement" ? p.argument : p.value)
+      );
+    case "ArrayPattern":
+      return pattern.elements.flatMap((e) => (e ? patternNames(e) : []));
+    case "RestElement":
+      return patternNames(pattern.argument);
+    case "AssignmentPattern":
+      return patternNames(pattern.left);
+    default:
+      return [];
+  }
+}
+
+function reservedCollisionMessage(error: string, name: string): string {
   return (
     `${error.trim()} — \`${name}\` is a binding the action prelude declares ` +
     `before your code runs, not one of yours. Rename your variable (e.g. ` +

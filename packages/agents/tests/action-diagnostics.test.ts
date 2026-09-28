@@ -165,6 +165,23 @@ describe("annotateFailure — redeclaring a prelude binding", () => {
     expect(result.error).toContain("`nodetool`");
   });
 
+  it("names a reserved binding the action redeclares when QuickJS reports its import instead", () => {
+    // A static import keeps the action out of the hoisting path, so QuickJS
+    // fails on the import line and never mentions the redeclared `finish`.
+    const code =
+      'import { cv } from "@nodetool-ai/sandbox-timeline";\n' +
+      "function finish(vig = 0.4) { return vig; }\n" +
+      "return finish();";
+    const result = annotateFailure(
+      "SyntaxError: expecting '('",
+      "SyntaxError: expecting '('\n    at user-code:4:7",
+      "async function finish(result) {}",
+      code
+    );
+    expect(result.error).toContain("`finish` is a binding the action prelude declares");
+    expect(result.error).toContain("myFinish");
+  });
+
   it("leaves a collision between two of the action's own names alone", () => {
     const error = "SyntaxError: lexical redefinition of 'shots'";
     expect(
