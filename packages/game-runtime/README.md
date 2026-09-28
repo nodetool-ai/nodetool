@@ -38,6 +38,6 @@ physics, script isolation, prefab and replay fixtures. See the
 [3D design](../../docs/plans/native-game-3d-upgrade.md) for ownership rules and
 release scope.
 
-The [Relay Yard example](examples/relay-yard/README.md) provides an asset-free
+The [Relay Yard example](samples/relay-yard/README.md) provides an asset-free
 3D course, a completion recording and CLI assertions for collection, gate
 movement and the finish.

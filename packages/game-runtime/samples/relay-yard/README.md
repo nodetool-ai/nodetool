@@ -9,9 +9,9 @@ returns the player to the last checkpoint while preserving collected progress.
 From the repository root, after `npm run build:packages`:
 
 ```bash
-npm run nodetool -- game validate packages/game-runtime/examples/relay-yard/game.json
-npm run nodetool -- game simulate packages/game-runtime/examples/relay-yard/game.json --ticks 165 --seed 1 --inputs packages/game-runtime/examples/relay-yard/completion.inputs.json --assertions packages/game-runtime/examples/relay-yard/completion.assertions.json --expect-score 2 --expect-win --verify-replay
-npm run nodetool -- game build packages/game-runtime/examples/relay-yard/game.json --out .cache/relay-yard-web
+npm run nodetool -- game validate packages/game-runtime/samples/relay-yard/game.json
+npm run nodetool -- game simulate packages/game-runtime/samples/relay-yard/game.json --ticks 165 --seed 1 --inputs packages/game-runtime/samples/relay-yard/completion.inputs.json --assertions packages/game-runtime/samples/relay-yard/completion.assertions.json --expect-score 2 --expect-win --verify-replay
+npm run nodetool -- game build packages/game-runtime/samples/relay-yard/game.json --out .cache/relay-yard-web
 python3 -m http.server 8893 --bind 127.0.0.1 --directory .cache/relay-yard-web
 ```
 
