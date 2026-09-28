@@ -89,7 +89,7 @@ describe("native game autoplay", () => {
     const document = gameDocument.parse({
       schemaVersion: 2, engineVersion: "1", id: "jump-test", revision: "r1", entrySceneId: "main", pixelsPerUnit: 32, tickRate: 60,
       inputActions: ["left", "right", "jump"], assets: {}, scenes: [{ id: "main", name: "Main", gravity: { x: 0, y: -30 }, entities: [
-        { id: "hero", transform2d: { x: 0, y: 0.9 }, body2d: { type: "kinematic" }, collider2d: { width: 0.8, height: 0.8 }, behaviors: [{ kind: "script", source:
+        { id: "hero", transform2d: { x: 0, y: 0.9 }, body2d: { type: "kinematic" }, collider2d: { width: 0.8, height: 0.8 }, behaviors: [{ kind: "script", maxTickMs: 50, source:
           `({pressed, justPressed, entity, events}) => ({state: null, commands: [
             {kind: "setVelocity", x: (pressed.includes("right") ? 4 : 0) - (pressed.includes("left") ? 4 : 0), y: justPressed.includes("jump") && entity.touching.down ? 12 : entity.velocityY},
             ...(events.some(e => e.kind === "contact" && (e.entityId === "goal" || e.otherId === "goal")) ? [{kind: "emit", event: "victory"}] : [])
