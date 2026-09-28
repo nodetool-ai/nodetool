@@ -12,14 +12,18 @@ export const targetStatus = z.object({
   target: mcpTarget,
   label: z.string(),
   installed: z.boolean(),
+  // An HTTP entry has a URL. A stdio entry has the command the client runs.
   url: z.string().nullable(),
+  command: z.string().nullable(),
   configPath: z.string().nullable()
 });
 export type TargetStatus = z.infer<typeof targetStatus>;
 
 export const statusOutput = z.object({
   targets: z.array(targetStatus),
-  defaultUrl: z.string()
+  defaultUrl: z.string(),
+  // What an install writes now: the stdio command, or the HTTP URL.
+  defaultLaunch: z.string()
 });
 export type StatusOutput = z.infer<typeof statusOutput>;
 
@@ -54,7 +58,8 @@ export type InstallResult = z.infer<typeof installResult>;
 
 export const installOutput = z.object({
   results: z.array(installResult),
-  url: z.string()
+  // The stdio command or HTTP URL that was written.
+  launch: z.string()
 });
 export type InstallOutput = z.infer<typeof installOutput>;
 

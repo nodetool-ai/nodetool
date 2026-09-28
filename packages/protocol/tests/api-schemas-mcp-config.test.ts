@@ -24,14 +24,28 @@ describe("mcp-config.mcpTarget", () => {
 });
 
 describe("mcp-config.targetStatus", () => {
-  it("parses with nullable url/configPath", () => {
+  it("parses with nullable url/command/configPath", () => {
     expect(
       targetStatus.safeParse({
         target: "claude",
         label: "Claude Code",
         installed: false,
         url: null,
+        command: null,
         configPath: null
+      }).success
+    ).toBe(true);
+  });
+
+  it("parses a stdio entry by its command", () => {
+    expect(
+      targetStatus.safeParse({
+        target: "claude",
+        label: "Claude Code",
+        installed: true,
+        url: null,
+        command: "nodetool mcp serve",
+        configPath: "/home/user/.claude.json"
       }).success
     ).toBe(true);
   });
@@ -43,6 +57,7 @@ describe("mcp-config.targetStatus", () => {
         label: "x",
         installed: true,
         url: null,
+        command: null,
         configPath: null
       }).success
     ).toBe(false);
@@ -50,9 +65,13 @@ describe("mcp-config.targetStatus", () => {
 });
 
 describe("mcp-config.statusOutput", () => {
-  it("parses targets and defaultUrl", () => {
+  it("parses targets, defaultUrl, and defaultLaunch", () => {
     expect(
-      statusOutput.safeParse({ targets: [], defaultUrl: "http://x" }).success
+      statusOutput.safeParse({
+        targets: [],
+        defaultUrl: "http://x",
+        defaultLaunch: "nodetool mcp serve"
+      }).success
     ).toBe(true);
   });
 });
@@ -119,9 +138,10 @@ describe("mcp-config.installResult (discriminated union)", () => {
 });
 
 describe("mcp-config.installOutput", () => {
-  it("parses results and url", () => {
+  it("parses results and the written launch", () => {
     expect(
-      installOutput.safeParse({ results: [], url: "http://x" }).success
+      installOutput.safeParse({ results: [], launch: "nodetool mcp serve" })
+        .success
     ).toBe(true);
   });
 });
