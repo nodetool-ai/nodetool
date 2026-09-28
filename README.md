@@ -223,13 +223,17 @@ Everything the film surfaces do is reachable on the canvas without the film.
 
 ## MCP
 
-The installed CLI registers NodeTool's local toolbelt with Claude Code, Codex,
-or OpenCode:
+Use NodeTool from Claude Code, Codex, or OpenCode. One command registers the
+server with every client it finds. The desktop app is optional:
 
 ```bash
-npm install -g @nodetool-ai/cli
-nodetool mcp install
+npx -y --package=@nodetool-ai/cli nodetool mcp install
 ```
+
+The command starts the server once to check it, then writes each client's
+config. Restart the client and ask it to use NodeTool. For other clients,
+`nodetool mcp config` prints an `mcpServers` block. See
+[NodeTool as an MCP Server](https://docs.nodetool.ai/mcp-server).
 
 For Claude Desktop, build the source MCP bundle after installing dependencies
 and building packages:
@@ -281,7 +285,7 @@ providers and local setup. Do not add a key to a committed file.
 
 ## CLI
 
-Install the CLI as shown in [MCP](#mcp), using Node.js 22.22.1. The
+Install the CLI with `npm install -g @nodetool-ai/cli`, using Node.js 22.22.1. The
 [CLI package guide](packages/cli/README.md) covers running workflows with the
 installed command.
 

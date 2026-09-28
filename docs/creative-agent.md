@@ -188,5 +188,5 @@ Pack**, **Three Ratios**.
 `nodetool mcp serve` exposes the workflow and creative tools over MCP
 (stdio), so an external agent can search nodes, build and run workflows, and
 generate media; `nodetool mcp install` writes the config for Claude Code,
-Codex, or OpenCode. Inside NodeTool, the chat agent reaches every surface
+Codex, or OpenCode. See [NodeTool as an MCP Server](mcp-server.md). Inside NodeTool, the chat agent reaches every surface
 through the same frontend tools the buttons use.
