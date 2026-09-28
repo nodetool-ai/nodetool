@@ -17,7 +17,7 @@ import React from "react";
 import { App } from "./app.js";
 import { enterTerminalScreen } from "./terminal-screen.js";
 import { MouseInput } from "./terminal-mouse.js";
-import { ALWAYS_ENABLED_TOOLS, loadSettings } from "./settings.js";
+import { loadSettings } from "./settings.js";
 import { installLocalModelInterfaces } from "./local-model-interfaces.js";
 import { runStdinMode } from "./stdin.js";
 import {
@@ -30,11 +30,11 @@ import {
   DEFAULT_MODELS,
   KNOWN_PROVIDERS
 } from "./providers.js";
-import { initDb, getSecret } from "@nodetool-ai/models";
+import { initDb } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { buildFullRegistry } from "./node-registry.js";
 
 // Configure logging: in interactive mode, suppress non-error logs to a file
 // so they don't interfere with the Ink TUI. Env vars can still override.
@@ -222,48 +222,17 @@ if (opts.agent !== undefined) {
 }
 
 const workspace = opts.workspace ?? process.cwd();
-const explicitTools = opts.tools
+// `--tools` narrows the belt to the names given. Without it the chat offers the
+// full belt, as a server chat turn does.
+const enabledTools = opts.tools
   ? opts.tools.split(",").map((t) => t.trim())
-  : null;
-const enabledTools = [...(explicitTools ?? settings.enabledTools)];
+  : undefined;
 
-// Tools that gate on no credential — documents, discovery, generation — added
-// to a settings file written before they existed. `--tools` is left exactly as
-// typed: a caller who names a belt means that belt.
-if (!explicitTools) {
-  for (const tool of ALWAYS_ENABLED_TOOLS) {
-    if (!enabledTools.includes(tool)) enabledTools.push(tool);
-  }
-}
-
-// Auto-enable based on available secrets (env or encrypted DB)
-async function autoEnable(key: string, tools: string[]): Promise<void> {
-  const val = process.env[key] ?? (await getSecret(key, "1"));
-  if (val) {
-    for (const tool of tools) {
-      if (!enabledTools.includes(tool)) enabledTools.push(tool);
-    }
-  }
-}
-
-if (!explicitTools)
-  await Promise.all([
-    autoEnable("SERPAPI_API_KEY", ["google_search", "web_search"]),
-    // `generate_image` / `generate_speech` are not here: they route by the model
-    // they are given, so an OpenAI key is not what makes them usable.
-    autoEnable("OPENAI_API_KEY", ["web_search"]),
-    autoEnable("DATA_FOR_SEO_LOGIN", ["web_search"]),
-    autoEnable("IMAP_USERNAME", ["search_email", "archive_email"])
-  ]);
-
-// Build a NodeRegistry once per session for the graph-native agent. Only
-// when running locally (no --url): the WebSocket server has its own
-// registry and doesn't need the CLI to provide one.
-let cliRegistry: NodeRegistry | undefined;
-if (!opts.url) {
-  cliRegistry = new NodeRegistry();
-  registerBaseNodes(cliRegistry);
-}
+// The full node registry, which also installs the sandbox pack catalog. Only
+// when running locally (no --url): the server has its own.
+const cliRegistry: NodeRegistry | undefined = opts.url
+  ? undefined
+  : buildFullRegistry();
 
 // Build configured providers unconditionally so `find_model` and the
 // media-generation tools (generate_image, generate_speech, etc.) are

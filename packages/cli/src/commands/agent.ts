@@ -21,19 +21,14 @@ import chalk from "chalk";
 
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 import { RUN_BUDGET_CONTEXT_KEY } from "@nodetool-ai/runtime";
-import {
-  getBuiltinTools,
-  getAllMcpTools,
-  PERMISSION_GATE_CONTEXT_KEY,
-  type Tool
-} from "@nodetool-ai/agents";
+import { PERMISSION_GATE_CONTEXT_KEY } from "@nodetool-ai/agents";
 import { processChat } from "@nodetool-ai/chat";
 import { initDb } from "@nodetool-ai/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import { type ProcessingMessage } from "@nodetool-ai/protocol";
 import { createProvider, buildConfiguredProviders } from "../providers.js";
 import { buildFullRegistry } from "../node-registry.js";
-import { mcpToolHostDeps } from "@nodetool-ai/websocket";
+import { buildCliToolbelt } from "../agent-toolbelt.js";
 import {
   applySystemPrompt,
   buildCliAgentBelt,
@@ -75,35 +70,6 @@ function expandTilde(p: string): string {
     return path.join(process.env["HOME"] ?? "", p.slice(1));
   }
   return p;
-}
-
-// ---------------------------------------------------------------------------
-// Toolbelt
-// ---------------------------------------------------------------------------
-
-/**
- * The default toolbelt, keyed by name. This is the same belt every
- * model-facing surface assembles: `getBuiltinTools()` plus the platform tools
- * (workflows, nodes, jobs, assets, apps, models, media).
- *
- * The platform tools run in-process (no HTTP fallback), so this host injects
- * what they need: the full TS node registry, and the server's host deps
- * (example catalog, DSL exporter, package assets, and the lazy Python-aware
- * run environment — the bridge starts only when a run needs it).
- */
-function buildToolMap(
-  providers: Record<string, BaseProvider>
-): Map<string, Tool> {
-  const map = new Map<string, Tool>();
-  for (const tool of getBuiltinTools()) map.set(tool.name, tool);
-  for (const tool of getAllMcpTools({
-    providers,
-    registry: buildFullRegistry(),
-    ...mcpToolHostDeps()
-  })) {
-    map.set(tool.name, tool);
-  }
-  return map;
 }
 
 // ---------------------------------------------------------------------------
@@ -334,7 +300,7 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
   // configuration — the thing YAML configs were removed for — and an agent
   // run that behaves differently from the last one is not reproducible.
   const belt = buildCliAgentBelt({
-    baseTools: [...buildToolMap(configuredProviders).values()],
+    baseTools: buildCliToolbelt(configuredProviders, buildFullRegistry()),
     provider,
     model: modelId,
     forwardMessage: emit,

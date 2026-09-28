@@ -13,8 +13,6 @@ import {
 import type { ProcessingMessage, TodoItem } from "@nodetool-ai/protocol";
 import { processChat } from "@nodetool-ai/chat";
 import {
-  getBuiltinTools,
-  getAllMcpTools,
   type PermissionMode,
   type PermissionGateOptions
 } from "@nodetool-ai/agents";
@@ -37,6 +35,7 @@ import {
   isFormattedTool
 } from "./tool-format.js";
 import { saveSettings } from "./settings.js";
+import { buildCliToolbelt } from "./agent-toolbelt.js";
 import { BashTool } from "./bash-tool.js";
 import {
   applySystemPrompt,
@@ -69,7 +68,8 @@ export interface AppProps {
   readonly mouseEvents?: EventEmitter;
   readonly initialProvider: string;
   readonly initialModel: string;
-  readonly enabledTools: string[];
+  /** `--tools`: narrows the belt to these names. Unset offers the full belt. */
+  readonly enabledTools?: string[];
   readonly workspaceDir: string;
   readonly wsUrl?: string;
   readonly registry?: import("@nodetool-ai/node-sdk").NodeRegistry;
@@ -543,17 +543,13 @@ export function App({
     }
   }
   function tools(): import("@nodetool-ai/agents").Tool[] {
-    const byName = new Map(
-      [
-        ...getBuiltinTools(),
-        ...getAllMcpTools({ registry, providers: agentProviders }),
-        new BashTool(workspaceDir)
-      ].map((tool) => [tool.name, tool])
-    );
-    return enabledTools.flatMap((name) => {
-      const tool = byName.get(name);
-      return tool ? [tool] : [];
-    });
+    const belt = [
+      ...buildCliToolbelt(agentProviders ?? {}, registry),
+      new BashTool(workspaceDir)
+    ];
+    return enabledTools
+      ? belt.filter((tool) => enabledTools.includes(tool.name))
+      : belt;
   }
   function processEvent(message: ProcessingMessage): void {
     agentEvent(message);

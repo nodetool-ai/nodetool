@@ -24,10 +24,7 @@ vi.mock("@nodetool-ai/runtime", () => ({
   RUN_BUDGET_CONTEXT_KEY: "budget",
   estimatePromptTokens: (messages: unknown[]) => messages.length * 10
 }));
-vi.mock("@nodetool-ai/agents", () => ({
-  getBuiltinTools: () => [],
-  getAllMcpTools: () => []
-}));
+vi.mock("../src/agent-toolbelt.js", () => ({ buildCliToolbelt: () => [] }));
 vi.mock("../src/bash-tool.js", () => ({
   BashTool: class {
     readonly name = "bash";

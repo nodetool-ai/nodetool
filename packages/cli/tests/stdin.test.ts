@@ -163,6 +163,14 @@ vi.mock("@nodetool-ai/agents", async () => ({
   })
 }));
 
+// The belt is the server's: builtins plus the platform tools. The platform
+// half pulls in the websocket package, so the suite answers with the builtins.
+vi.mock("../src/agent-toolbelt.js", async () => {
+  const agents = await import("@nodetool-ai/agents");
+  return { buildCliToolbelt: () => agents.getBuiltinTools() };
+});
+
+let _mockChatSpy = vi.fn();
 let _mockCancelJobSpy = vi.fn();
 let _mockGetStatusSpy = vi.fn();
 let _mockStopSpy = vi.fn();
@@ -172,7 +180,10 @@ vi.mock("../src/websocket-client.js", () => ({
     constructor(_url: string) {}
     async connect() {}
     disconnect() {}
-    async *chat(): AsyncGenerator<{ type: string; content?: string }> {
+    async *chat(
+      ...args: unknown[]
+    ): AsyncGenerator<{ type: string; content?: string }> {
+      _mockChatSpy(...args);
       yield { type: "chunk", content: "ws-response" };
       yield { type: "done" };
     }
@@ -467,6 +478,26 @@ describe("runStdinMode — WebSocket chat", () => {
       wsUrl: "ws://test"
     });
     expect(stdoutLines.some((s) => s.includes("ws-response"))).toBe(true);
+  });
+
+  it("sends --permission-mode to the server, which holds the gate", async () => {
+    _mockChatSpy = vi.fn();
+    _nextLines = ["Hello WS"];
+    await runStdinMode({
+      provider: "openai",
+      model: "gpt-4o",
+      workspaceDir: "/tmp",
+      wsUrl: "ws://test",
+      permissionMode: "auto"
+    });
+    expect(_mockChatSpy).toHaveBeenCalledWith(
+      "Hello WS",
+      expect.any(String),
+      "gpt-4o",
+      "openai",
+      undefined,
+      { permissionMode: "auto" }
+    );
   });
 });
 

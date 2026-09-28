@@ -268,7 +268,8 @@ is restored on exit. Piped input keeps its line-based interface.
 - `-a, --agent` — **deprecated, no-op.** Every chat session runs the unified agent loop; this flag has no effect.
 - `-u, --url <url>` — WebSocket server URL (default: uses a local provider).
 - `-w, --workspace <path>` — workspace directory for file operations (default: current directory).
-- `--tools <tools>` — comma-separated list of enabled tools.
+- `--tools <tools>` — comma-separated tool names that narrow the belt. Without
+  it, a local session offers the same belt as a server chat turn.
 - `--permission-mode <default|auto|plan>` — how tool calls are gated
   (see [Permission mode](#permission-mode)). Interactive chat defaults to
   `default`, with approval prompts. Piped input defaults to `auto`.

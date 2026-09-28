@@ -125,6 +125,8 @@ vi.mock("@nodetool-ai/agents", async () => {
     truncateToolResult: (value: string) => value,
     getBuiltinTools: () => [new NamedTool("read_file")],
     getAllMcpTools: () => [new NamedTool("list_workflows")],
+    getApifyTools: () => [],
+    getSerpApiTools: () => [],
     BackgroundSubtaskRegistry: class {},
     // The real classification map, headless gate and context key: the CLI's
     // gate is supposed to be the shared one, not a second table.
