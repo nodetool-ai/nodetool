@@ -136,6 +136,8 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   timelines: [
     "list_timelines",
+    "list_example_timelines",
+    "get_example_timeline",
     "create_timeline",
     "get_timeline",
     "list_timeline_versions",
@@ -528,11 +530,12 @@ const nodetool = (() => {
             specifier: String(specifier === undefined ? "" : specifier)
           });
         },
-        /** A pack's SKILL.md, for the specifier you are about to import. */
-        docs(specifier) {
-          return __need("get_sandbox_package_docs")({
+        /** Returns a pack's SKILL.md as a markdown string. Untrusted docs retain their warning wrapper. */
+        async docs(specifier) {
+          const result = await __need("get_sandbox_package_docs")({
             specifier: String(specifier === undefined ? "" : specifier)
           });
+          return result.documentation;
         }
       };
     })(),
@@ -1230,6 +1233,11 @@ const nodetool = (() => {
 
     timelines: {
       list: (opts) => __need("list_timelines")(__merge(opts)),
+      examples: {
+        list: (opts) => __need("list_example_timelines")(__merge(opts)),
+        get: (slug, opts) =>
+          __need("get_example_timeline")(__merge(opts, { slug: slug }))
+      },
       create: (name, opts) =>
         __need("create_timeline")(__named(name, opts, "timelines.create")),
       get: (id) => __need("get_timeline")({ timeline_id: id }),
@@ -1253,10 +1261,11 @@ const nodetool = (() => {
           timeline_id: id,
           version: version
         }),
-      validate: (target) =>
+      /** Options: {fps, width, height, tier, normalize}. normalize:true preflights authoring defaults for an inline document. */
+      validate: (target, opts) =>
         typeof target === "string"
-          ? __need("validate_timeline")({ timeline_id: target })
-          : __need("validate_timeline")({ document: target }),
+          ? __need("validate_timeline")(__merge(opts, { timeline_id: target }))
+          : __need("validate_timeline")(__merge(opts, { document: target })),
       /**
        * Composited frames at chosen timecodes — the finished picture, with
        * every track layered, animations sampled mid-flight and transitions
@@ -1291,7 +1300,9 @@ const nodetool = (() => {
        * index (its position in the array), visible: true and locked: false; a
        * clip's sourceType (generated when it names a prompt, workflow or
        * binding, else imported), status "generated", locked: false and
-       * versions: []; an animation's id (anim_1, anim_2, …); and markers: [].
+       * versions: []; animation ids (anim_1, anim_2, …), clip and track
+       * effect ids (effect_1, effect_2, …) and enabled: true; missing clip
+       * tracks inferred from mediaType; and markers: [].
        * Anything you do send is kept as sent. fps/width/height on the document
        * itself are read as the sequence's settings when the options omit them.
        */
@@ -1830,7 +1841,14 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.timelines\` — \`list()\` (→ \`{timelines}\`),
   \`create(name, {fps, width, height})\` (→ \`{timeline_id}\`; make your own
   rather than editing one the user has open — vertical is 1080×1920),
-  \`validate(idOrDocument)\`,
+  \`examples.list({query})\` and \`examples.get(slug, {scene_id, clip_offset,
+  clip_limit})\` — shipped reference timelines, structural stats and bounded
+  scene excerpts. Read a scene before building a showcase. The examples are
+  readable directly; they do not need to be installed in the user's library.
+  \`validate(idOrDocument, {tier: "showcase"})\` — structural validation plus
+  showcase warnings about scene groups, custom animation, finish, camera and
+  concurrent visual layers. Omit the tier for standard validation. Warnings
+  describe document structure; inspect rendered frames to judge the picture.
   \`preview(idOrDocument, {times_ms, count, range, sheet, width})\` (composited
   frames at chosen timecodes — read the picture back instead of guessing at it;
   \`range\` sweeps a window and \`sheet: true\` returns it as one labelled
@@ -1860,6 +1878,11 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   "audio"}, {op: "add_text_clip", text: "Hi"}, {op: "split_clip", target:
   "shot", atMs: 3000}, {op: "animate_clip", target: "Hi", animations:
   [{role: "in", preset: "fade"}]}]\`. Start with \`{op: "get_state"}\` for ids.
+  Shape \`shape.x/y/width/height\` use 0..1 frame fractions from the top-left.
+  Every clip's \`transform.position.x/y\` uses sequence pixels relative to
+  the frame center (positive x right, positive y down), including text and
+  shapes. \`set_effects\` blur takes \`{type: "blur", radius: 80}\` in pixels;
+  unknown effect parameters are rejected.
   Existing library media goes on with \`{op: "add_media_clip", asset:
   "asset://<id>.mp4"}\`, which appends after the track's last clip — so one
   call per asset lays them end to end.`

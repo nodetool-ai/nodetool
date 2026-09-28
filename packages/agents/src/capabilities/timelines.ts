@@ -1071,6 +1071,10 @@ const validateTimeline: CapabilityExport = {
   // capability in this module reads it. The "no loader" refusal this replaced
   // meant a chat belt could edit a sequence it could not then validate.
   impl: async (run, params) => {
+    const tier = params["tier"];
+    if (tier !== undefined && tier !== "standard" && tier !== "showcase") {
+      return { error: "Unsupported validation tier. Use standard or showcase." };
+    }
     const inline = params["document"];
     const timelineId = params["timeline_id"] as string | undefined;
 
@@ -1112,7 +1116,22 @@ const validateTimeline: CapabilityExport = {
 
     const { validateTimelineSequence } =
       await import("@nodetool-ai/execution/timeline-debug");
-    const validation = validateTimelineSequence(document, meta);
+    const validationMeta: typeof meta & {
+      tier?: "standard" | "showcase";
+    } = { ...meta };
+    if (tier !== undefined) {
+      validationMeta.tier = tier;
+    }
+    // Inline preflight must use the same authoring normalization as setDocument.
+    if (inline !== undefined && params["normalize"] === true && isRecord(document)) {
+      const normalized = documentToStore(document);
+      document = normalized.document;
+      meta = { ...normalized.settings, ...Object.fromEntries(
+        Object.entries(meta).filter(([, value]) => value !== undefined)
+      ) };
+      Object.assign(validationMeta, meta);
+    }
+    const validation = validateTimelineSequence(document, validationMeta);
     const report: typeof validation & {
       timeline_id?: string;
       name?: string;

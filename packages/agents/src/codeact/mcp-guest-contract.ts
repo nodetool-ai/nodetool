@@ -61,6 +61,7 @@ Rules:
 - Unknown tool: \`await nodetool.searchTools("query")\` first. Each hit carries the \`import\` line to write. Do not guess arguments, and do not guess the module.
 - Static \`import\` only for allowed packs. This session lists them below; anything else fails.
 - \`return\` a small summary. Nothing carries over between actions except what a tool saved — generation results are already assets (\`asset://\`). Record anything a later action needs with \`nodetool.memory.save\`; the next action must reuse it, not generate again.
+- \`await nodetool.packs.docs(specifier)\` returns a markdown string. Use string methods directly. Operator-allowlisted packs return their guide unchanged. Other packs retain the untrusted reference-data wrapper.
 - A failed tool throws. Use \`try/catch\`.
 - ${RESERVED_BINDINGS_SENTENCE}
 - This is a chat turn: there is no \`finish()\`. A plain assistant message ends the turn.

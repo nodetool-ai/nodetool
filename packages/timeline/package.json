@@ -61,6 +61,12 @@
       "types": "./dist/fonts/register-node.d.ts",
       "import": "./dist/fonts/register-node.js",
       "default": "./dist/fonts/register-node.js"
+    },
+    "./examples/node": {
+      "nodetool-dev": "./src/examples/node.ts",
+      "types": "./dist/examples/node.d.ts",
+      "import": "./dist/examples/node.js",
+      "default": "./dist/examples/node.js"
     }
   },
   "license": "MIT",

@@ -1847,6 +1847,21 @@ export const timelineDocument = z.object({
 });
 export type TimelineDocument = z.infer<typeof timelineDocument>;
 
+/** Read-only bundle shipped in the example timeline catalog. */
+export const exampleTimelineBundle = z.object({
+  name: z.string().min(1),
+  description: z.string().min(1),
+  fps: z.number().int().positive(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  durationMs: z.number().int().positive(),
+  videoUri: z.string(),
+  posterUri: z.string(),
+  document: timelineDocument
+});
+export type ExampleTimelineBundle = z.infer<typeof exampleTimelineBundle>;
+
+
 export const exampleTimelineSummary = z.object({
   slug: z.string(),
   name: z.string(),

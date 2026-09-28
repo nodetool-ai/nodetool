@@ -57,6 +57,22 @@ describe("timeline tool contracts", () => {
 });
 
 describe("uiToolParams", () => {
+  it("rejects effect parameters the named effect cannot use", () => {
+    const params = uiToolParams(contracts.ui_timeline_set_effects);
+    expect(() => params.parse({
+      target: "background",
+      effects: [{ type: "blur", amount: 80 }]
+    })).toThrow(/blur.*amount.*radius/);
+    expect(() => params.parse({
+      target: "background",
+      effects: [{ type: "blur", raduis: 80 }]
+    })).toThrow(/raduis/);
+    expect(params.parse({
+      target: "background",
+      effects: [{ type: "blur", radius: 80 }]
+    })).toMatchObject({ effects: [{ type: "blur", radius: 80 }] });
+  });
+
   it("validates the shared Smart Reframe arguments", () => {
     expect(
       uiToolParams(contracts.ui_timeline_retarget_format).parse({

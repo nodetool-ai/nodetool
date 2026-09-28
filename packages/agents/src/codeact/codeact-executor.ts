@@ -112,6 +112,7 @@ import {
 } from "../capabilities/packs.js";
 import { GRAPH_DSL_PACKAGE, withGraphDslPackage } from "./graph-dsl-package.js";
 import { FLOW_PACKAGE, withFlowPackage } from "./flow-package.js";
+import { withTimelinePackage } from "./timeline-package.js";
 import {
   FABRIC_PACKAGE,
   FABRIC_PROMPT_SECTION,
@@ -552,19 +553,22 @@ export class CodeActExecutor {
     // Authoring a graph is a package, not a builder: a belt that can save,
     // validate and run a workflow gets the DSL pack on its allowlist, provided
     // this machine installed it.
-    this.sandboxPackages = withGamePackage(
-      withFlowPackage(
-        withFabricPackage(
-          withGraphDslPackage(
-            this.sandboxPackages,
-            this.tools.map((t) => t.name),
+    this.sandboxPackages = withTimelinePackage(
+      withGamePackage(
+        withFlowPackage(
+          withFabricPackage(
+            withGraphDslPackage(
+              this.sandboxPackages,
+              this.tools.map((t) => t.name),
+              this.context.sandboxModuleCatalog
+            ),
             this.context.sandboxModuleCatalog
           ),
           this.context.sandboxModuleCatalog
         ),
+        this.tools.map((t) => t.name),
         this.context.sandboxModuleCatalog
       ),
-      this.tools.map((t) => t.name),
       this.context.sandboxModuleCatalog
     );
     this.withGraphDsl = this.sandboxPackages.includes(GRAPH_DSL_PACKAGE);

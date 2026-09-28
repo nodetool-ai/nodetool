@@ -736,6 +736,32 @@ not recognize. A known effect such as chroma key, vignette, sharpen, or LUT
 should render in the frame preview; a missing scratch surface instead appears
 in `degraded`.
 
+## Required showcase comparison
+
+For a showcase, run `validate_timeline` with `tier: "showcase"` before
+rendering. Every `showcase_*` warning is a hard stop. Resolve it, or explain
+the specific artistic exclusion to the user before rendering. Zero warnings
+establishes a structural floor. Aim for the example medians reported in the
+warnings, and check the rendered result against a shipped example.
+
+The measured showcase medians, excluding the countdown utility, are 22
+scene groups, 4.48 custom animations per visible second, 7 distinct effect
+types and 9.33 clips per visible second. Measure your piece against these
+targets as well as the warning floor.
+
+Before calling the piece done:
+
+1. Fetch the closest reference with `get_example_timeline`. Render preview
+   sheets of your piece and that example with `preview_timeline_frame`,
+   `sheet: true`, at matching entrance, hero hold, transition and exit beats.
+   Map beats across differing durations and sample the middle of moves.
+2. Call `view_image` on both sheets with this explicit comparison question:
+   "Compared with the example, what is missing in layer count, secondary
+   motion, texture and light, and camera depth? Name the beat and the gap."
+3. List what the example has that your piece lacks. Close each gap and
+   compare the same beats again, or state why the creative direction
+   excludes it. A defect-only review does not complete this comparison.
+
 ## The render loop
 
 Change one thing, preview the same timecodes, compare. When motion is wrong,

@@ -138,7 +138,11 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "sequence and must be the only op in its call; call it once per " +
         "target format. " +
         "Clip transforms accept rotationX and rotationY in degrees and perspective " +
-        "in pixels through add_*_clip and set_clip_params. Custom animation curves " +
+        "in pixels through add_*_clip and set_clip_params. For every clip, " +
+        "transform.position.x/y are sequence pixels relative to the frame " +
+        "center (0/0 means no offset, positive x moves right, positive y " +
+        "moves down), including add_text_clip and add_shape_clip. " +
+        "Custom animation curves " +
         "can animate rotationX and rotationY. Start with get_state to " +
         "read track and clip ids. To lay existing videos end to end, call " +
         'add_media_clip once per asset ({"op": "add_media_clip", "asset": ' +
@@ -190,7 +194,8 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "width, height, fill?, stroke?, strokeWidthPx?}, where x/y/width/" +
         "height are 0..1 fractions of the frame; those keys are also read " +
         "from the op itself, and with no geometry at all the shape is a " +
-        "full-frame rect. " +
+        "full-frame rect. Shape geometry uses the top-left frame origin, " +
+        "so shape.x/y are not transform.position.x/y. " +
         'set_clip_params takes {"target", ...fields}; a caption clip\'s look ' +
         'is "captionStyle": {fontFamily?, fontSizeFrac?, color?, activeColor?, ' +
         "outline?, bottomMarginFrac?, background?}, each field optional and " +
@@ -200,9 +205,13 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         '"outPointMs" — and refuses a key it does not know by name rather ' +
         "than ignoring it. " +
         'set_effects takes {"target", "effects": [{type, ...}]} and replaces ' +
-        "the whole chain — types color, blur, glow, dropShadow, vignette, " +
-        "sharpen, chromaKey, curves, levels, liftGammaGain, applied in the " +
-        "order given. An empty list clears it. " +
+        "the whole chain — types color, blur, pixelate, posterize, " +
+        "directionalBlur, lensDistortion, stylize, generator, lut, glow, " +
+        "dropShadow, vignette, sharpen, chromaKey, grain, curves, levels, " +
+        "liftGammaGain, applied in the " +
+        "order given. blur takes radius in pixels, e.g. {type: \"blur\", " +
+        "radius: 80}; unknown parameters such as amount are rejected. " +
+        "An empty list clears it. " +
         'add_marker takes {"timeMs", "label"?, "color"?, "note"?} and ' +
         'delete_marker {"target"} (marker id or label). ' +
         "set_markers_from_beats and snap_to_beats both take a grid — " +
@@ -277,6 +286,15 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
 export const VALIDATE_TIMELINE_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
+    normalize: {
+      type: "boolean",
+      description: "For inline authoring preflight, fill omitted bookkeeping, effect ids and referenced tracks exactly as set_timeline_document does. Default false inspects the document as sent."
+    },
+    tier: {
+      type: "string",
+      enum: ["standard", "showcase"],
+      description: "Default standard checks correctness. Showcase compares scene-group count, custom-animation density, effect variety and clip density with shipped examples, and checks fast-motion blur, finish, camera depth and concurrent layers. These structural checks do not judge aesthetic quality."
+    },
     timeline_id: {
       type: "string",
       description: "The ID of a saved timeline sequence to validate"
@@ -554,7 +572,7 @@ export const validateTimelineSpec: CapabilitySpec = {
     "render, unknown animation presets, incomplete bindings, and fields a " +
     "schema round trip would strip. Pass an inline `document` to check one you " +
     "are building, or `timeline_id` to validate a saved sequence. Run it after " +
-    "timeline edits and before rendering.",
+    "timeline edits and before rendering. Pass tier: \"showcase\" for structural warnings about scene-group count, custom animations per visible second, effect variety, clip density, fast motion without blur, finish and camera depth. Each gap names a shipped example. Warnings do not change ok and cannot certify aesthetic quality.",
   inputSchema: VALIDATE_TIMELINE_SCHEMA,
   category: "read",
   userMessage: (params) =>

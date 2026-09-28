@@ -53,6 +53,7 @@ describe("MCP guest contract", () => {
     expect(catalog.runtime).toBe(manifest.runtime);
     expect(catalog.resource).toBe(MCP_SANDBOX_RESOURCE_URI);
     expect(catalog.contract).toBe(MCP_GUEST_CONTRACT);
+    expect(catalog.contract).toContain("packs.docs(specifier)` returns a markdown string");
     expect(catalog.blocked_globals).toEqual(manifest.blockedGlobals);
     expect(catalog.unavailable_bridges).toEqual(chatUnavailableBridges(manifest));
     expect(catalog.unavailable_bridges).toEqual(

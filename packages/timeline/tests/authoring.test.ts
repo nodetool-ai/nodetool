@@ -11,6 +11,68 @@ import {
 import { findInstrumentPreset } from "../src/midi/presets.js";
 
 describe("normalizeAuthoredDocument", () => {
+  it("fills clip and track effect ids without collisions or overwriting authored ids", () => {
+    const raw = {
+      tracks: [
+        {
+          id: "video",
+          name: "Video",
+          type: "video",
+          effects: [
+            { type: "grain", enabled: true },
+            { id: "effect_1", type: "vignette", enabled: true }
+          ]
+        }
+      ],
+      clips: [{ trackId: "video", effects: [{ type: "glow", enabled: true }] }]
+    };
+    const { document } = normalizeAuthoredDocument(raw);
+    expect(document.tracks).toMatchObject([
+      { effects: [{ id: "effect_2" }, { id: "effect_1" }] }
+    ]);
+    expect(document.clips).toMatchObject([{ effects: [{ id: "effect_3" }] }]);
+    expect(normalizeAuthoredDocument(document).document).toEqual(document);
+    expect(raw.clips[0].effects[0]).not.toHaveProperty("id");
+  });
+
+  it("declares omitted scene, audio and midi tracks from clip media types", () => {
+    const { document } = normalizeAuthoredDocument({
+      tracks: [],
+      clips: [
+        { trackId: "t_scenes", mediaType: "group" },
+        { trackId: "sound", mediaType: "audio" },
+        { trackId: "notes", mediaType: "midi" },
+        { trackId: "t_scenes", mediaType: "group" }
+      ]
+    });
+    expect(document.tracks).toEqual([
+      {
+        id: "t_scenes",
+        name: "t_scenes",
+        type: "video",
+        index: 0,
+        visible: true,
+        locked: false
+      },
+      {
+        id: "sound",
+        name: "sound",
+        type: "audio",
+        index: 1,
+        visible: true,
+        locked: false
+      },
+      {
+        id: "notes",
+        name: "notes",
+        type: "midi",
+        index: 2,
+        visible: true,
+        locked: false
+      }
+    ]);
+  });
+
   it("fills the fields the schema requires and the caller omitted", () => {
     const { document } = normalizeAuthoredDocument({
       tracks: [{ id: "T1", name: "Video", type: "video" }],

@@ -278,7 +278,7 @@ describe("nodetool.packs", () => {
     const session = makeSession({ packages: ["@acme/geo"] });
     const observation = await run(
       session,
-      `return (await nodetool.packs.docs("@acme/geo")).documentation;`
+      `return await nodetool.packs.docs("@acme/geo");`
     );
     expect(observation.ok).toBe(true);
     expect(observation.result).toBe("Call distance(a, b).");

@@ -48,12 +48,27 @@ they give the composition depth. Read the full document with `get_timeline` and
 use `set_timeline_document` for fields `edit_timeline` cannot write, including
 `styleTracks` and `repeater`.
 
-Study `prism.mjs`, `kite.mjs`, `voltra.mjs`, and `tidewater.mjs` in
-`scripts/example-timelines/`, or their shipped `.timeline.json` bundles in
-`packages/base-nodes/nodetool/examples/timelines/`. In the app, install a copy
-from Examples → Timelines, then inspect it with `get_timeline`.
-`get_example_workflow` loads workflow graphs, not these timelines. Budget for a
-generated still or music bed in a showcase unless the user sets a cost limit.
+Study a shipped reference before building. Call `list_example_timelines` to
+choose a slug, then `get_example_timeline` to read its stats, scene catalog and
+first scene excerpt. Use `scene_id` to choose another scene and `clip_offset` /
+`clip_limit` to page through its layers. The CodeAct forms are
+`nodetool.timelines.examples.list()` and
+`nodetool.timelines.examples.get("kite", {clip_limit: 12})`. No library install
+or repository filesystem is needed. Kite, Prism, Voltra and Tidewater show
+different ways to group scenes and combine keyframed layers.
+
+Load the `@nodetool-ai/sandbox-timeline` package documentation for builder code
+and reusable `slam`, `rise` and `grow` helpers. Build repeated layers in
+JavaScript, then save the whole document. Budget for a generated still or music
+bed in a showcase unless the user sets a cost limit.
+
+After saving a showcase, call
+`validate_timeline` with `{"timeline_id":"<id>","tier":"showcase"}`, or
+`nodetool.timelines.validate(id, {tier: "showcase"})`. Address its warnings
+about scene groups, custom keyframes, finish, camera and concurrent visual
+layers. These checks inspect document structure. Preview the result to judge
+composition and readability. Standard validation remains appropriate for
+ordinary edits and intentionally minimal pieces.
 
 ## Typography
 
@@ -201,3 +216,27 @@ every clip against the spec. A miss is a direction defect, not a preference.
 Then look: `preview_timeline_frame` over the midpoints of the moves you just
 audited. An audit that only read the document has checked the spec, not the
 picture.
+
+## Required example comparison
+
+For a showcase, validate with `tier: "showcase"` before rendering. Every
+`showcase_*` warning is a hard stop. Resolve each warning or justify the
+specific exclusion to the user before rendering. Use the example medians as
+the design target, even when the document clears the warning floor.
+
+The measured showcase medians, excluding the countdown utility, are 22
+scene groups, 4.48 custom animations per visible second, 7 distinct effect
+types and 9.33 clips per visible second. Measure your piece against these
+targets as well as the warning floor.
+
+Before declaring the direction complete:
+
+1. Choose the closest shipped example with `get_example_timeline`.
+   Render a `preview_timeline_frame` sheet of that example and your own
+   piece at matching entrance, hero hold, transition and exit beats.
+2. Call `view_image` on both sheets and ask explicitly: "Compared with the
+   example, what is missing in layer count, secondary motion, texture and
+   light, and camera depth? Identify each gap by beat."
+3. List what the example has that the piece lacks. Close each gap, then
+   inspect the same beats again. If the direction excludes a technique,
+   state the reason. Reviewing only defects does not satisfy this step.

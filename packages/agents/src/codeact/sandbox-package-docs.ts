@@ -1,7 +1,7 @@
 /**
  * Trust-scoped disclosure of a sandbox pack's SKILL.md.
  *
- * A pack's documentation is third-party prompt content. Quoting it is risk
+ * Non-allowlisted pack documentation is third-party prompt content. Quoting it is risk
  * reduction, not isolation — a model can follow instructions inside a quoted
  * block — so the policy is about *when* the agent sees a body, not only how it
  * is delimited:

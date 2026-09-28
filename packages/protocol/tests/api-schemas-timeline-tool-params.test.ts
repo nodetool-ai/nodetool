@@ -168,14 +168,25 @@ describe("build helpers keep only the fields the named type reads", () => {
     expect(buildMask(maskParams.parse({ kind: "ellipse", radiusPx: 12 }))).not.toHaveProperty("radiusPx");
   });
 
-  it("drops a levels knob off a glow", () => {
-    expect(buildEffect({ type: "glow", radius: 9, inBlack: 0.5 }, 0)).toEqual({
+  it("rejects a levels knob on a glow and preserves supported knobs", () => {
+    expect(() => buildEffect({ type: "glow", radius: 9, inBlack: 0.5 }, 0)).toThrow(/glow.*inBlack/);
+    expect(buildEffect({ type: "glow", radius: 9 }, 0)).toEqual({
       id: "fx-1",
       type: "glow",
       enabled: true,
       radius: 9,
       intensity: 1,
       color: undefined
+    });
+  });
+
+  it("rejects blur amount before building a silently neutral effect", () => {
+    expect(() => buildEffect({ type: "blur", amount: 80 }, 0)).toThrow(/blur.*amount.*radius/);
+    expect(buildEffect({ type: "blur", radius: 80 }, 0)).toMatchObject({
+      type: "blur", radius: 80
+    });
+    expect(buildEffect({ type: "dropShadow", radius: 12 }, 0)).toMatchObject({
+      type: "dropShadow", blur: 12
     });
   });
 });

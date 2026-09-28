@@ -131,7 +131,11 @@ export function extractErrorPayload(result: unknown): string | null {
   const record = result as Record<string, unknown>;
   if (isString(record["error"])) {
     const message = record["message"];
-    return isNonEmptyString(message) ? message : record["error"];
+    const summary = isNonEmptyString(message) ? message : record["error"];
+    const validation = record["validation"];
+    return isObjectLike(validation)
+      ? summary + "\n" + JSON.stringify(validation, null, 2)
+      : summary;
   }
   const { applied, failed, ops } = record;
   if (isNumber(applied) && isNumber(failed) && failed > 0 && Array.isArray(ops)) {

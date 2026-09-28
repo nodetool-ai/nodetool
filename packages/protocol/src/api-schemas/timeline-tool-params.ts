@@ -1185,11 +1185,33 @@ const curvePoints = z.array(z.object({ x: z.number(), y: z.number() }));
 /** Three numbers, one per channel, for the three-way grade. */
 const rgbTriple = z.tuple([z.number(), z.number(), z.number()]);
 
+const EFFECT_PARAMETER_FIELDS: Record<
+  typeof KNOWN_CLIP_EFFECT_TYPE_LIST[number], readonly string[]
+> = {
+  color: ["brightness", "contrast", "saturation", "hue", "temperature", "tint", "shadows", "highlights"],
+  blur: ["radius"],
+  pixelate: ["cellSize"],
+  posterize: ["levels"],
+  directionalBlur: ["radius", "angle"],
+  lensDistortion: ["amount"],
+  stylize: ["mode", "amount", "scale", "angle", "time", "seed", "animate", "color", "softness"],
+  generator: ["mode", "amount", "scale", "angle", "time", "seed", "animate", "colorA", "colorB"],
+  lut: ["cube", "intensity"],
+  glow: ["radius", "intensity", "color"],
+  dropShadow: ["offsetX", "offsetY", "blur", "radius", "color", "opacity"],
+  vignette: ["amount", "softness"],
+  sharpen: ["amount", "radius"],
+  chromaKey: ["color", "tolerance", "softness", "spill"],
+  grain: ["amount", "size", "colorAmount", "animate"],
+  curves: ["master", "r", "g", "b"],
+  levels: ["inBlack", "inWhite", "gamma", "outBlack", "outWhite"],
+  liftGammaGain: ["lift", "gammaRgb", "gain"]
+};
+
 /**
  * One effect in a clip's chain (D7). `type` decides which of the other fields
- * mean anything, the way {@link transitionParams} does: a tool call sends one
- * flat object, so {@link buildEffect} keeps only the fields the named type
- * uses rather than storing a `radius` on a `levels` that the next save strips.
+ * are accepted. A tool call sends one flat object, and a knob the named type
+ * cannot read is rejected before {@link buildEffect} writes the chain.
  *
  * `enabled` and `id` are not asked for — the chain is replaced whole, so an
  * effect the caller sent is an effect it wants on, and an id it never sees is
@@ -1276,7 +1298,18 @@ export const effectParams = z.object({
   gammaRgb: rgbTriple
     .optional()
     .describe("liftGammaGain: midtone gamma per channel.")
-}).strict();
+}).strict().superRefine((input, context) => {
+  const allowed = EFFECT_PARAMETER_FIELDS[input.type];
+  for (const [field, value] of Object.entries(input)) {
+    if (field !== "type" && value !== undefined && !allowed.includes(field)) {
+      context.addIssue({
+        code: "custom",
+        path: [field],
+        message: `${input.type} does not accept parameter "${field}". Allowed parameters: ${allowed.join(", ")}.`
+      });
+    }
+  }
+});
 
 export type EffectParams = z.infer<typeof effectParams>;
 
@@ -1289,6 +1322,7 @@ export function buildEffect(
   input: EffectParams,
   index: number
 ): KnownClipEffect {
+  effectParams.parse(input);
   const base = { id: `fx-${index + 1}`, enabled: true };
   switch (input.type) {
     case "color":

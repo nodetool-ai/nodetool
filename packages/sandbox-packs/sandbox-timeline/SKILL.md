@@ -46,6 +46,54 @@ await output("timeline", saved);   // {name, fps, width, height, durationMs, tim
 Then look at it: `nodetool.timelines.preview(saved.timeline_id, {count: 3})`
 returns composited frames, and `render(id, {preview_scale: 0.5})` a draft video.
 
+## Study a reference and reuse scene helpers
+
+`nodetool.timelines.examples.list()` lists shipped cuts with structural stats.
+`nodetool.timelines.examples.get("kite", {clip_limit: 12})` returns its scene
+catalog and a bounded scene excerpt. Select another `scene_id` or page with
+`clip_offset` to read more layers. Inspect the clip hierarchy, curve windows and
+effects before choosing your own scene structure.
+
+These helpers use Kite's entrance patterns. Bind `on` from your builder, then
+call them on clips within the current scene. Times are scene frames, and travel
+distances are pixels.
+
+```js
+import { createBuilder, cv } from "@nodetool-ai/sandbox-timeline";
+const b = createBuilder({ W: 1920, H: 1080, FPS: 30 });
+const { on } = b;
+
+function slam(clip, start, from = 1.35) {
+  on(clip, start, 8, [cv("scale", from, 1), cv("blur", 26, 0, "easeOut")]);
+  return on(clip, start, 3, [cv("opacity", 0, 1, "linear")]);
+}
+function rise(clip, start, duration = 12, distance = 24) {
+  return on(clip, start, duration, [
+    cv("opacity", 0, 1, "easeOut"), cv("offsetY", distance, 0)
+  ]);
+}
+function grow(clip, start, duration, height, easing = "easeOut") {
+  return on(clip, start, duration, [
+    cv("scaleY", 0, 1, easing), cv("offsetY", height / 2, 0, easing)
+  ]);
+}
+
+b.scene("intro", 0, 89);
+b.box(1920, 1080, "#06110e", { name: "Bed" });
+const plate = b.box(900, 260, "#0f1f1a", { name: "Plate" });
+grow(plate, 0, 12, 260);
+const title = b.text("Kite", 144, 600, "#f4fbf8", { name: "Hero" });
+slam(title, 8);
+const support = b.text("Save at your pace", 48, 400, "#8fb3a6", { y: 180 });
+rise(support, 16);
+```
+
+Assemble `b.scenes` and `b.sceneTracks(1)` into a document and save it as in the
+title-card example. For a showcase, add the planned finish and camera, then call
+`nodetool.timelines.validate(id, {tier: "showcase"})`. Its warnings check scene
+structure, custom keyframes, finish, camera and concurrent visual layers. Render
+frames to judge how those choices look.
+
 ## Units and placement
 
 - **Frames** everywhere: `scene(name, startFrame, endFrame)`, `on(clip, f0,
@@ -79,7 +127,15 @@ returns composited frames, and `render(id, {preview_scale: 0.5})` a draft video.
 Every shape, text and image option object also takes clip fields as-is:
 `effects`, `opacity`, `blendMode`, `mask`, `matte`, `crop`, `transitionIn`,
 `motionBlur`, `steppedTime`, `layout`, `repeater` and the rest, plus
-`transform: tf(x, y, scale, extra)` for a full transform.
+`transform: tf(x, y, scale, extra)` for a full transform. For a camera
+depth plane, use `transform: tf(0, 0, 1, { depthPx: -400 })`.
+Negative depth places the layer farther away. Camera depth is separate from
+track stacking order.
+
+`saveTimeline` preflights the document before creating a timeline row. The
+host fills missing scene tracks, animation ids, clip and track effect ids,
+and effect `enabled: true`. Explicit values remain unchanged.
+`nodetool.packs.docs(specifier)` returns the markdown string.
 
 Curves: `cv(property, from, to, easing)` for two keys, `kfs(property,
 [[t, value, easing], …])` for more, with `t` from 0 to 1 across the

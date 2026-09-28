@@ -825,6 +825,19 @@ describe("timelines capability behaviour", () => {
     expect(missing.error).toContain("was not found");
   });
 
+  it("adds showcase warnings for inline and saved documents and rejects unknown tiers", async () => {
+    const row = await makeTimeline();
+    for (const target of [{ document: JSON.parse(document()) }, { timeline_id: row.id }]) {
+      const result = await run().invoke("validate_timeline", { ...target, tier: "showcase" });
+      expect(result).toMatchObject({ ok: true, warnings: expect.arrayContaining([
+        expect.objectContaining({ code: "showcase_scene_groups_missing" }),
+        expect.objectContaining({ code: "showcase_layer_density_low" })
+      ]) });
+      expect(await run().invoke("validate_timeline", { ...target, tier: "standard" })).toMatchObject({ summary: "No issues found." });
+    }
+    expect(await run().invoke("validate_timeline", { document: JSON.parse(document()), tier: "cinematic" })).toMatchObject({ error: expect.any(String) });
+  });
+
   it("reads a saved sequence through the run's loader", async () => {
     const loaded = createCapabilityRun({
       context: ctx(),
@@ -1029,9 +1042,8 @@ describe("set_timeline_document", () => {
     const row = await makeTimeline();
     const before = await TimelineSequence.findById(row.id);
     const broken = replacement();
-    // A clip on a track the document does not have: an error the validator
-    // raises, and a cut that cannot render.
-    broken.clips[0].trackId = "track-does-not-exist";
+    // Duplicate clip ids remain invalid after authoring normalization.
+    broken.clips[0].id = broken.clips[1].id;
 
     const result = (await run().invoke("set_timeline_document", {
       timeline_id: row.id,
@@ -1045,7 +1057,7 @@ describe("set_timeline_document", () => {
     expect(result.written).toBe(false);
     expect(result.validation.ok).toBe(false);
     expect(result.validation.errors.map((e) => e.code)).toContain(
-      "clip_track_missing"
+      "duplicate_id"
     );
     expect(result.error).toContain("was not written");
 

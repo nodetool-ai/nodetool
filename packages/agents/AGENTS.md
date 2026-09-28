@@ -1593,6 +1593,12 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   allowlist entry covers that specifier's subpaths, which is what makes
   seventy-two namespace modules one prompt line. Tests:
   `tests/codeact-graph-dsl.test.ts`.
+- Timeline authoring uses `@nodetool-ai/sandbox-timeline` for scene builders,
+  loops, custom curves and `saveTimeline`. `withTimelinePackage`
+  (`src/codeact/timeline-package.ts`) adds the installed pack to chat and step
+  session allowlists when their catalog serves it. Saving still goes through
+  the session's timeline tools and their permission gates. Tests:
+  `tests/codeact-timeline-package.test.ts`.
 - Eval suite `codeact` scores the executor on offline instrumented cases:
   `nodetool eval codeact -p <p> -m <m>`. Beyond the four toy-toolbelt cases
   it covers the full `nodetool.*` API surface over two

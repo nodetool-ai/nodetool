@@ -39,6 +39,7 @@ import { compositionsSpecs } from "./compositions.specs.js";
 import { costsSpecs } from "./costs.specs.js";
 import { documentsSpecs } from "./documents.specs.js";
 import { emailSpecs } from "./email.specs.js";
+import { exampleTimelinesSpecs } from "./example-timelines.specs.js";
 import { entitiesSpecs } from "./entities.specs.js";
 import { filesSpecs } from "./files.specs.js";
 import { flowSpecs } from "./flow.specs.js";
@@ -178,6 +179,10 @@ const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
   projects: {
     loader: () => import("./projects.js").then((m) => m.module),
     specs: projectsSpecs
+  },
+  "example-timelines": {
+    loader: () => import("./example-timelines.js").then((m) => m.module),
+    specs: exampleTimelinesSpecs
   },
   timelines: {
     loader: () => import("./timelines.js").then((m) => m.module),

@@ -25,6 +25,7 @@ export const track = (target, list) => ({ target, keyframes: keyframes(list) });
 export const NOOP = cv("opacity", 1, 1, "linear");
 const REST = { opacity: 1, scale: 1, scaleX: 1, scaleY: 1, trimEnd: 1, wipeProgress: 1 };
 
+/** Full transform. Pass { depthPx: -400 } as extra to place a layer behind the camera plane. */
 export function tf(x = 0, y = 0, s = 1, extra = {}) {
   return { position: { x, y }, scale: { x: s, y: s }, rotation: 0, anchor: { x: 0.5, y: 0.5 }, ...extra };
 }
@@ -258,6 +259,10 @@ export async function saveTimeline(bundle, { timelines, ops = [] } = {}) {
   }
   const { document, ...meta } = bundle;
   const fail = (step, detail) => { throw new Error(`${meta.name}: ${step}: ${JSON.stringify(detail, null, 2)}`); };
+  const preflight = await timelines.validate(document, { normalize: true, fps: meta.fps, width: meta.width, height: meta.height });
+  if (!preflight.ok) {
+    fail("validate_timeline", preflight.errors);
+  }
   const { timeline_id: id } = await timelines.create(meta.name, { fps: meta.fps, width: meta.width, height: meta.height });
   const set = await timelines.setDocument(id, document);
   if (!set.written) fail("set_timeline_document", set.validation ?? set.error);

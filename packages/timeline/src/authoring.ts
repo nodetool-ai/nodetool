@@ -74,9 +74,10 @@ export function sourceTypeForClip(
 
 function normalizeTrack(
   track: Record<string, unknown>,
-  index: number
+  index: number,
+  nextEffectId: () => string
 ): Record<string, unknown> {
-  const next = { ...track };
+  const next = normalizeEffects(track, nextEffectId);
   if (next["index"] === undefined) next["index"] = index;
   if (next["visible"] === undefined) next["visible"] = true;
   if (next["locked"] === undefined) next["locked"] = false;
@@ -138,9 +139,10 @@ function resolveTypewriter(
 
 function normalizeClip(
   clip: Record<string, unknown>,
-  nextAnimationId: () => string
+  nextAnimationId: () => string,
+  nextEffectId: () => string
 ): Record<string, unknown> {
-  const next = { ...clip };
+  const next = normalizeEffects(clip, nextEffectId);
   if (next["sourceType"] === undefined) {
     next["sourceType"] = sourceTypeForClip(next as Partial<TimelineClip>);
   }
@@ -163,20 +165,51 @@ function normalizeClip(
   return next;
 }
 
-/** Collect the animation ids already in use, so a filled one cannot collide. */
-function usedAnimationIds(clips: unknown[]): Set<string> {
+function normalizeEffects(
+  owner: Record<string, unknown>,
+  nextId: () => string
+): Record<string, unknown> {
+  const next = { ...owner };
+  if (Array.isArray(owner.effects)) {
+    next.effects = owner.effects.map((effect) => {
+      if (!isRecord(effect)) {
+        return effect;
+      }
+      return {
+        ...effect,
+        id: effect.id === undefined ? nextId() : effect.id,
+        enabled: effect.enabled === undefined ? true : effect.enabled
+      };
+    });
+  }
+  return next;
+}
+
+function missingIds(
+  owners: readonly unknown[],
+  field: string,
+  prefix: string
+): () => string {
   const used = new Set<string>();
-  for (const clip of clips) {
-    if (!isRecord(clip)) continue;
-    const animations = clip["animations"];
-    if (!Array.isArray(animations)) continue;
-    for (const animation of animations) {
-      if (isRecord(animation) && typeof animation["id"] === "string") {
-        used.add(animation["id"]);
+  for (const owner of owners) {
+    if (!isRecord(owner) || !Array.isArray(owner[field])) {
+      continue;
+    }
+    for (const entry of owner[field]) {
+      if (isRecord(entry) && typeof entry.id === "string") {
+        used.add(entry.id);
       }
     }
   }
-  return used;
+  let counter = 0;
+  return () => {
+    let id = `${prefix}_${++counter}`;
+    while (used.has(id)) {
+      id = `${prefix}_${++counter}`;
+    }
+    used.add(id);
+    return id;
+  };
 }
 
 /**
@@ -195,24 +228,36 @@ export function normalizeAuthoredDocument(
     if (document[key] !== undefined) delete document[key];
   }
 
-  if (Array.isArray(document["tracks"])) {
-    document["tracks"] = document["tracks"].map((track, index) =>
-      isRecord(track) ? normalizeTrack(track, index) : track
+  const clips = Array.isArray(document.clips) ? document.clips : [];
+  const tracks = Array.isArray(document.tracks) ? [...document.tracks] : [];
+  const nextAnimationId = missingIds(clips, "animations", "anim");
+  const nextEffectId = missingIds([...tracks, ...clips], "effects", "effect");
+  // Only infer absent tracks. Existing declarations and malformed track ids
+  // remain untouched so validation can report them.
+  const declared = new Set(tracks.filter(isRecord).map((track) => track.id));
+  for (const clip of clips) {
+    if (
+      !isRecord(clip) ||
+      typeof clip.trackId !== "string" ||
+      declared.has(clip.trackId)
+    ) {
+      continue;
+    }
+    const type =
+      clip.mediaType === "audio" || clip.mediaType === "midi"
+        ? clip.mediaType
+        : "video";
+    tracks.push({ id: clip.trackId, name: clip.trackId, type });
+    declared.add(clip.trackId);
+  }
+  if (document.tracks === undefined || Array.isArray(document.tracks)) {
+    document.tracks = tracks.map((track, index) =>
+      isRecord(track) ? normalizeTrack(track, index, nextEffectId) : track
     );
   }
-
-  if (Array.isArray(document["clips"])) {
-    const clips = document["clips"];
-    const used = usedAnimationIds(clips);
-    let counter = 0;
-    const nextAnimationId = (): string => {
-      let id = `anim_${++counter}`;
-      while (used.has(id)) id = `anim_${++counter}`;
-      used.add(id);
-      return id;
-    };
-    document["clips"] = clips.map((clip) =>
-      isRecord(clip) ? normalizeClip(clip, nextAnimationId) : clip
+  if (Array.isArray(document.clips)) {
+    document.clips = clips.map((clip) =>
+      isRecord(clip) ? normalizeClip(clip, nextAnimationId, nextEffectId) : clip
     );
   }
 

@@ -118,6 +118,8 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
 
   // Timeline snapshot history (find a cut, pin a state, roll one back)
   "list_timelines",
+  "list_example_timelines",
+  "get_example_timeline",
   "create_timeline",
   "get_timeline",
   "list_timeline_versions",

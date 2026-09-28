@@ -50,11 +50,14 @@ import {
   parseTransitionType
 } from "@nodetool-ai/timeline/scene";
 
+import { checkShowcase } from "./showcase.js";
 import { checkLegibility } from "./legibility.js";
 import { checkClipMotion } from "./motion.js";
 import type { TimelineDebugIssue, TimelineValidation } from "./types.js";
 
 export interface TimelineValidationMeta {
+  /** Opt-in structural guidance. Warnings never change correctness (`ok`). */
+  tier?: "standard" | "showcase";
   fps?: number;
   width?: number;
   height?: number;
@@ -1587,7 +1590,8 @@ export function validateTimelineSequence(
     ...checkOverlaps(doc),
     ...checkVideoLayerCap(doc),
     ...checkMidi(doc),
-    ...checkDocumentLevel(doc)
+    ...checkDocumentLevel(doc),
+    ...(meta?.tier === "showcase" ? checkShowcase(doc, canvas) : [])
   ];
 
   const errors = issues.filter((issue) => issue.severity === "error");

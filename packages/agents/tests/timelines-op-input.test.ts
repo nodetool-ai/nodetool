@@ -727,17 +727,14 @@ describe("set_effects", () => {
     expect(effectsOf(bridge)).toBeUndefined();
   });
 
-  it("keeps a levels' knobs off a glow — the type decides the fields", async () => {
-    // A flat input object is all a tool call can express, so an `inBlack` sent
-    // with a glow would be stored and stripped on the next save, which reads as
-    // a `field_stripped` warning about a field that never meant anything.
+  it("rejects a levels knob on a glow before replacing its chain", async () => {
     const { bridge, byName } = await bridgeWithOneClip();
-    await byName["ui_timeline_set_effects"].execute({
+    expect(() => byName["ui_timeline_set_effects"].execute({
       target: "shot a",
       effects: [{ type: "glow", radius: 9, intensity: 1, inBlack: 0.5 }]
-    });
+    })).toThrow(/glow.*inBlack/);
 
-    expect(effectsOf(bridge)?.[0]).not.toHaveProperty("inBlack");
+    expect(effectsOf(bridge)).toBeUndefined();
   });
 
   it("refuses a type this build cannot apply", async () => {
@@ -1295,6 +1292,40 @@ describe("edit_timeline continues past a failing op", () => {
       ],
       markers: []
     });
+
+  it("reports blur amount as a failed op and preserves the last valid chain", async () => {
+    const row = await TimelineSequence.create<TimelineSequence>({
+      user_id: "u1",
+      project_id: "default",
+      name: "Blur regression",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      duration_ms: 2000,
+      document: seedDocument()
+    });
+    const run = createCapabilityRun({
+      // This capability reads only the caller's user ID from the context.
+      context: { userId: "u1" } as unknown as ProcessingContext,
+      gate: UNGATED
+    });
+    const result = await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        { op: "set_effects", target: "Shot 1", effects: [{ type: "blur", radius: 12 }] },
+        { op: "set_effects", target: "Shot 1", effects: [{ type: "blur", amount: 80 }] }
+      ]
+    });
+    expect(result).toMatchObject({
+      applied: 1,
+      failed: 1,
+      ops: [{ ok: true }, { ok: false, error: expect.stringMatching(/blur.*amount.*radius/) }]
+    });
+    const saved = await TimelineSequence.findById(row.id);
+    expect(saved?.toDocument().clips[0]?.effects).toEqual([
+      { id: "fx-1", type: "blur", enabled: true, radius: 12 }
+    ]);
+  });
 
   it("records the failures and applies the ops around them", async () => {
     const row = await TimelineSequence.create<TimelineSequence>({
