@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
 import { and, desc, eq, inArray, like } from "drizzle-orm";
+import { z } from "zod";
 import { createLogger } from "@nodetool-ai/config";
-import { isShortResourceId } from "@nodetool-ai/protocol";
-import { gameDocument, type GameDocument } from "@nodetool-ai/protocol/game.js";
-import { applyGameOps, type GameDocumentOp } from "@nodetool-ai/game-runtime";
+import { isShortResourceId, parseGameDocument, type GameDiagnostic } from "@nodetool-ai/protocol";
+import { type AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
+import { applyAnyGameOps as applyGameOps, anyGameDocumentOp, validateAnyGame, type AnyGameDocumentOp as GameDocumentOp } from "@nodetool-ai/game-runtime";
 import {
   DBModel,
   ModelChangeEvent,
@@ -57,7 +58,7 @@ function draftVersionPath(game: Game, versionId: string): string {
 }
 
 function summarizeOps(ops: readonly GameDocumentOp[]): string {
-  const counts = new Map<string, number>();
+  const counts = new Map<GameDocumentOp["op"], number>();
   for (const op of ops) {
     counts.set(op.op, (counts.get(op.op) ?? 0) + 1);
   }
@@ -87,12 +88,28 @@ function summarizeOps(ops: readonly GameDocumentOp[]): string {
     set_effects: ["Changed effects", "Changed effects"],
     set_game: ["Changed game settings", "Changed game settings"],
     bind_asset: ["Bound asset", "Bound assets"],
-    unbind_asset: ["Unbound asset", "Unbound assets"]
+    unbind_asset: ["Unbound asset", "Unbound assets"],
+    set_prefab: ["Changed prefab", "Changed prefabs"],
+    remove_prefab: ["Removed prefab", "Removed prefabs"],
+    instantiate_prefab: ["Instantiated prefab", "Instantiated prefabs"]
   };
   return [...counts].map(([type, count]) => {
-    const [singular, plural] = labels[type as GameDocumentOp["op"]];
+    const [singular, plural] = labels[type];
     return `${count === 1 ? singular : plural} (${count})`;
   }).join("; ");
+}
+
+export class InvalidGameDocumentError extends Error {
+  constructor(readonly diagnostics: readonly GameDiagnostic[]) {
+    super(diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; "));
+    this.name = "InvalidGameDocumentError";
+  }
+}
+
+function parseStoredDocument(value: unknown): GameDocument {
+  const result = parseGameDocument(value);
+  if (!result.ok) { throw new InvalidGameDocumentError(result.diagnostics); }
+  return result.document;
 }
 
 export class AmbiguousGameIdError extends Error {
@@ -211,7 +228,7 @@ export class Game extends DBModel {
     if (versioned !== null && createHash("sha256").update(versioned).digest("hex") !== game.draft_version_id) {
       throw new Error("Game draft source is corrupt");
     }
-    const document = gameDocument.parse(JSON.parse(source));
+    const document = parseStoredDocument(JSON.parse(source));
     if (document.id !== game.id) throw new Error("Game draft belongs to another game");
     if (document.revision !== game.current_revision) throw new Error("Game draft revision is stale");
     return { game, document };
@@ -268,7 +285,12 @@ export class Game extends DBModel {
     const current = await Game.readDraft(userId, id, workspace);
     if (!current || current.game.draft_updated_at !== expectedUpdatedAt) return null;
     const { game, document: before } = current;
-    const replacement = gameDocument.parse({ ...document, id: game.id, revision: game.current_revision });
+    const checked = validateAnyGame({ ...document, id: game.id, revision: game.current_revision });
+    if (!checked.valid) { throw new InvalidGameDocumentError(checked.diagnostics); }
+    const replacement = checked.document;
+    if ((before.schemaVersion === 3) !== (replacement.schemaVersion === 3)) {
+      throw new InvalidGameDocumentError([{ code: "dimension_mismatch", path: ["dimension"], message: "A game cannot change dimension" }]);
+    }
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
     const beforeSource = JSON.stringify(before);
     const beforeDigest = createHash("sha256").update(beforeSource).digest("hex");
@@ -342,10 +364,10 @@ export class Game extends DBModel {
     return rows.map((row): GameDraftChange => ({
       id: row.id,
       gameId: row.game_id,
-      actor: row.actor as GameDraftChange["actor"],
+      actor: z.enum(["agent", "user"]).parse(row.actor),
       threadId: row.thread_id,
       messageId: row.message_id,
-      ops: JSON.parse(row.ops) as GameDocumentOp[],
+      ops: z.array(anyGameDocumentOp).parse(JSON.parse(row.ops)),
       affectedEntityIds: [],
       summary: row.summary,
       beforeUpdatedAt: row.before_updated_at,
@@ -357,6 +379,7 @@ export class Game extends DBModel {
         if (op.op === "set_document") return op.document.scenes.flatMap((scene) => scene.entities.map((entity) => entity.id));
         if (op.op === "add_entity") return [op.entity.id];
         if (op.op === "duplicate_entity") return [op.entity_id, op.new_id];
+        if (op.op === "instantiate_prefab") return [op.instance_id];
         return "entity_id" in op ? [op.entity_id] : [];
       }))]
     }));
@@ -377,7 +400,7 @@ export class Game extends DBModel {
     const digest = rows[0]?.before_digest;
     if (!digest) return null;
     const source = await workspace.readText(`${game.source_root}/drafts/${digest}.json`);
-    return source ? gameDocument.parse(JSON.parse(source)) : null;
+    return source ? parseStoredDocument(JSON.parse(source)) : null;
   }
 
   private static async pruneDraftChanges(game: Game, workspace: GameDraftWorkspace): Promise<void> {

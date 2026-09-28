@@ -1,0 +1,363 @@
+{
+  "document": {
+    "schemaVersion": 2,
+    "engineVersion": "1",
+    "id": "all-engine1-contracts",
+    "revision": "legacy",
+    "entrySceneId": "main",
+    "pixelsPerUnit": 32,
+    "tickRate": 60,
+    "inputActions": [
+      "left",
+      "right",
+      "up",
+      "down"
+    ],
+    "assets": {
+      "image": {
+        "assetId": "builtin:player",
+        "digest": "builtin:v1",
+        "mediaKind": "image",
+        "width": 32,
+        "height": 32,
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "sampling": "nearest"
+      },
+      "sound": {
+        "assetId": "builtin:sfx.collect",
+        "digest": "builtin:v1",
+        "mediaKind": "audio",
+        "width": 1,
+        "height": 1,
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "sampling": "nearest"
+      }
+    },
+    "scenes": [
+      {
+        "id": "main",
+        "name": "Main",
+        "entities": [
+          {
+            "id": "camera",
+            "name": "",
+            "templateOnly": false,
+            "transform2d": {
+              "x": 0,
+              "y": 0,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1
+            },
+            "camera2d": {
+              "zoom": 1,
+              "width": 16,
+              "height": 9
+            },
+            "behaviors": []
+          },
+          {
+            "id": "player",
+            "name": "",
+            "templateOnly": false,
+            "transform2d": {
+              "x": 0,
+              "y": 0,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1
+            },
+            "sprite": {
+              "assetId": "image",
+              "width": 1,
+              "height": 1,
+              "layer": 0
+            },
+            "body2d": {
+              "type": "kinematic",
+              "velocity": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "collider2d": {
+              "width": 1,
+              "height": 1,
+              "sensor": false,
+              "category": 1,
+              "mask": 4294967295
+            },
+            "animator": {
+              "frames": [
+                {
+                  "x": 0,
+                  "y": 0,
+                  "width": 16,
+                  "height": 16
+                }
+              ],
+              "ticksPerFrame": 2,
+              "loop": true,
+              "clips": {
+                "run": {
+                  "frames": [
+                    {
+                      "x": 16,
+                      "y": 0,
+                      "width": 16,
+                      "height": 16
+                    }
+                  ],
+                  "ticksPerFrame": 2,
+                  "loop": true
+                }
+              }
+            },
+            "behaviors": [
+              {
+                "kind": "movement",
+                "speed": 1,
+                "left": "left",
+                "right": "right",
+                "up": "up",
+                "down": "down"
+              },
+              {
+                "kind": "health",
+                "maximum": 5
+              },
+              {
+                "kind": "winWhenCollected",
+                "count": 1
+              },
+              {
+                "kind": "script",
+                "source": "(input)=>({state:{age:(input.state?.age||0)+1,random:input.random()},commands:input.tick===0?[\n      {kind:\"setVelocity\",x:0.5,y:0},{kind:\"setPosition\",x:0,y:0},\n      {kind:\"setVisual\",opacity:0.7,tint:\"#ff0000\",rotation:0.2,scaleX:1.2,scaleY:1.1,flipX:true},\n      {kind:\"playAnimation\",clip:\"run\"},{kind:\"hud\",id:\"custom\",text:\"hello\",x:3,y:4},\n      {kind:\"emit\",event:\"make\"},{kind:\"spawn\",prefabId:\"particle\",x:2,y:0,velocityX:0.3}]:input.tick===1?[\n      {kind:\"hud\",id:\"custom\",text:\"\",x:0,y:0},{kind:\"despawn\",entityId:\"particle#1\"},{kind:\"sceneTransition\",sceneId:\"next\"}]:[]})",
+                "maxCommands": 16,
+                "maxTickMs": 50
+              }
+            ]
+          },
+          {
+            "id": "gem",
+            "name": "",
+            "templateOnly": false,
+            "transform2d": {
+              "x": 0,
+              "y": 0,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1
+            },
+            "collider2d": {
+              "width": 1,
+              "height": 1,
+              "sensor": true,
+              "category": 1,
+              "mask": 4294967295
+            },
+            "audioSource": {
+              "assetId": "sound",
+              "onEvent": "collected",
+              "volume": 1
+            },
+            "behaviors": [
+              {
+                "kind": "collectible",
+                "score": 1
+              },
+              {
+                "kind": "trigger",
+                "event": "touch"
+              }
+            ]
+          },
+          {
+            "id": "patrol",
+            "name": "",
+            "templateOnly": false,
+            "transform2d": {
+              "x": 4,
+              "y": 0,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1
+            },
+            "body2d": {
+              "type": "kinematic",
+              "velocity": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "collider2d": {
+              "width": 1,
+              "height": 1,
+              "sensor": true,
+              "category": 1,
+              "mask": 4294967295
+            },
+            "behaviors": [
+              {
+                "kind": "patrol",
+                "speed": 1,
+                "distance": 2,
+                "axis": "x"
+              }
+            ]
+          },
+          {
+            "id": "reactor",
+            "name": "",
+            "templateOnly": false,
+            "transform2d": {
+              "x": 0,
+              "y": 3,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1
+            },
+            "behaviors": [
+              {
+                "kind": "spawn",
+                "prefabId": "particle",
+                "onEvent": "make"
+              },
+              {
+                "kind": "sceneTransition",
+                "sceneId": "next",
+                "onEvent": "missing"
+              }
+            ]
+          },
+          {
+            "id": "particle",
+            "name": "",
+            "templateOnly": true,
+            "transform2d": {
+              "x": 2,
+              "y": 2,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1
+            },
+            "sprite": {
+              "assetId": "image",
+              "width": 1,
+              "height": 1,
+              "layer": 0
+            },
+            "body2d": {
+              "type": "kinematic",
+              "velocity": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "behaviors": [
+              {
+                "kind": "lifetime",
+                "ticks": 2,
+                "fade": true,
+                "endScale": 1
+              },
+              {
+                "kind": "health",
+                "maximum": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "next",
+        "name": "Next",
+        "entities": [
+          {
+            "id": "spark",
+            "name": "",
+            "templateOnly": false,
+            "transform2d": {
+              "x": 1,
+              "y": 1,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1
+            },
+            "behaviors": [
+              {
+                "kind": "lifetime",
+                "ticks": 2,
+                "fade": true,
+                "endScale": 1
+              },
+              {
+                "kind": "health",
+                "maximum": 10
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "inputs": [
+    {
+      "pressed": [
+        "right"
+      ],
+      "justPressed": []
+    },
+    {
+      "pressed": [
+        "right"
+      ],
+      "justPressed": []
+    },
+    {
+      "pressed": [
+        "right"
+      ],
+      "justPressed": []
+    },
+    {
+      "pressed": [
+        "right"
+      ],
+      "justPressed": []
+    },
+    {
+      "pressed": [
+        "right"
+      ],
+      "justPressed": []
+    },
+    {
+      "pressed": [
+        "right"
+      ],
+      "justPressed": []
+    },
+    {
+      "pressed": [
+        "right"
+      ],
+      "justPressed": []
+    }
+  ],
+  "hashes": [
+    "e812e74408b945025199dab61bd149f02510f159cca50f4e6bf352ed3a75c33d",
+    "9f95f8a4cb0c4b93fb8d793a81642999ed875d47190e39543e89ba462486ad95",
+    "bc8f86c1a19019b22aefa3246e3f46059cb81d2f56b701b1696820549d54b587",
+    "fd628fb5e14c22c9cd7b02ca8d26e207f83eb34f796ac01285202ac595cbd303",
+    "35e277daea27b4bdbdb6b25771b710c8783d7eea38e69b5e217630ed68e487b0",
+    "4794dfec242de4cf91956b8855d59ab2fa207585741f76918380b96b00291483",
+    "85b25af8d2c8675dab51d1d0b841d10a925914c66ddac8e3bd0e93f3c238459e"
+  ]
+}

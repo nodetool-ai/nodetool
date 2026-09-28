@@ -1,10 +1,10 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
-import type { GameDocument } from "@nodetool-ai/protocol/game.js";
-import { applyGameOps, type GameDocumentOp } from "@nodetool-ai/game-runtime";
+import type { AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
+import { applyAnyGameOps as applyGameOps, type AnyGameDocumentOp as GameDocumentOp } from "@nodetool-ai/game-runtime";
 
 import { temporal, type WithTemporal } from "../temporal";
-import { diffGameDocuments } from "./diffGameDocuments";
+import { diffAnyGameDocuments as diffGameDocuments } from "./diffAnyGameDocuments";
 
 export type GameSaveStatus = "saved" | "unsaved" | "saving" | "error";
 

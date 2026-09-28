@@ -1,6 +1,6 @@
 import type { QuickJSContext, QuickJSRuntime } from "quickjs-emscripten-core";
 import { z } from "zod";
-import type { GameDocument, GameSnapshot } from "@nodetool-ai/protocol";
+import { gameNonSpatialScriptCommand, type GameDocument, type GameSnapshot } from "@nodetool-ai/protocol";
 
 const encoder = new TextEncoder();
 const finite = z.number().finite();
@@ -10,18 +10,15 @@ export const gameScriptCommand = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("setPosition"), x: finite, y: finite }),
   z.strictObject({ kind: z.literal("setVisual"), tint: color.optional(), opacity: finite.min(0).max(1).optional(),
     rotation: finite.optional(), scaleX: finite.positive().optional(), scaleY: finite.positive().optional(), flipX: z.boolean().optional() }),
-  z.strictObject({ kind: z.literal("playAnimation"), clip: z.string().min(1) }),
-  z.strictObject({ kind: z.literal("hud"), id: z.string().min(1).max(64), text: z.string().max(256), x: finite, y: finite,
-    size: finite.positive().max(256).optional(), color: color.optional(), align: z.enum(["left", "center", "right"]).optional(),
-    fontId: z.string().min(1).optional() }),
-  z.strictObject({ kind: z.literal("emit"), event: z.string().min(1).max(128) }),
+  gameNonSpatialScriptCommand.options[0],
+  gameNonSpatialScriptCommand.options[1],
+  gameNonSpatialScriptCommand.options[2],
   z.strictObject({ kind: z.literal("spawn"), prefabId: z.string().min(1), x: finite.optional(), y: finite.optional(),
     velocityX: finite.optional(), velocityY: finite.optional() }),
-  z.strictObject({ kind: z.literal("despawn"), entityId: z.string().min(1) }),
-  z.strictObject({ kind: z.literal("sceneTransition"), sceneId: z.string().min(1) })
+  gameNonSpatialScriptCommand.options[3],
+  gameNonSpatialScriptCommand.options[4]
 ]);
 
-const result = z.strictObject({ state: z.json(), commands: z.array(gameScriptCommand) });
 export type GameScriptCommand = z.infer<typeof gameScriptCommand>;
 
 export interface GameScriptCall {
@@ -132,7 +129,41 @@ function assertBeforeDeadline(deadline: number, budget: string): void {
 }
 
 /** Script calls use fresh contexts so only returned state and RNG survive a tick. */
-export async function prepareGameScripts(document: GameDocument): Promise<GameScriptRunner> {
+export interface IsolatedScriptCall {
+  readonly sourceKey: string;
+  readonly stateKey: string;
+  readonly entityId: string;
+  readonly source: string;
+  readonly state: GameSnapshot["scriptState"][string];
+  readonly maxCommands: number;
+  readonly maxTickMs: number;
+}
+
+export interface IsolatedScriptInput {
+  readonly tick: number;
+}
+
+export interface IsolatedScriptRunner<Call extends IsolatedScriptCall, Input extends IsolatedScriptInput, Command> {
+  run(calls: readonly Call[], input: Input, rngState: number): {
+    readonly results: readonly { readonly entityId: string; readonly state: GameSnapshot["scriptState"][string]; readonly commands: readonly Command[] }[];
+    readonly rngState: number;
+    readonly stats: GameScriptStats;
+  };
+  dispose(): void;
+}
+
+interface ScriptDefinitions {
+  readonly scenes: readonly { readonly id: string; readonly entities: readonly {
+    readonly id: string; readonly behaviors: readonly { readonly kind: string; readonly source?: string }[]
+  }[] }[];
+}
+
+export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall, Input extends IsolatedScriptInput, Command>(
+  document: ScriptDefinitions,
+  commandSchema: z.ZodType<Command>,
+  payloadExpression: string
+): Promise<IsolatedScriptRunner<Call, Input, Command>> {
+  const resultSchema = z.strictObject({ state: z.json(), commands: z.array(commandSchema) });
   const [{ newQuickJSWASMModuleFromVariant }, quickJsVariantModule] = await Promise.all([
     import("quickjs-emscripten-core"),
     import("@jitl/quickjs-ng-wasmfile-release-sync")
@@ -147,7 +178,7 @@ export async function prepareGameScripts(document: GameDocument): Promise<GameSc
     for (const scene of document.scenes) {
       for (const entity of scene.entities) {
         entity.behaviors.forEach((behavior, index) => {
-          if (behavior.kind !== "script") {
+          if (behavior.kind !== "script" || behavior.source === undefined) {
             return;
           }
           const key = scriptSourceKey(scene.id, entity.id, index);
@@ -169,7 +200,7 @@ export async function prepareGameScripts(document: GameDocument): Promise<GameSc
       }
     }
     return {
-      run(calls, input, rngState): GameScriptBatch {
+      run(calls: readonly Call[], input: Input, rngState: number): ReturnType<IsolatedScriptRunner<Call, Input, Command>["run"]> {
         if (calls.length === 0) {
           return { results: [], rngState, stats: { durationMs: 0, commands: 0, calls: 0, byEntity: {} } };
         }
@@ -187,7 +218,7 @@ export async function prepareGameScripts(document: GameDocument): Promise<GameSc
         let serializedResultsBytes = 0;
         let commandCount = 0;
         const byEntity: Record<string, { durationMs: number; calls: number }> = Object.create(null);
-        const results: GameScriptResult[] = [];
+        const results: { entityId: string; state: GameSnapshot["scriptState"][string]; commands: Command[] }[] = [];
         for (const call of calls) {
           assertBeforeDeadline(batchDeadline, batchBudget);
           const source = sources.get(call.sourceKey);
@@ -213,14 +244,7 @@ export async function prepareGameScripts(document: GameDocument): Promise<GameSc
             checkCallDeadline();
             const output = evaluate(context, `(() => {
               const data = JSON.parse(${JSON.stringify(data)});
-              const value = __gameScript({
-                tick: data.input.tick, pressed: data.input.pressed, justPressed: data.input.justPressed,
-                events: data.input.events, entity: {
-                  id: data.call.entityId, source: data.call.source, x: data.call.x, y: data.call.y,
-                  velocityX: data.call.velocityX, velocityY: data.call.velocityY,
-                  touching: data.call.touching
-                }, world: data.input.world, state: data.call.state, random: __gameRandom
-              });
+              const value = __gameScript(${payloadExpression});
               return JSON.stringify({ value, rngState: __gameRandom.state });
             })()`);
             if (typeof output !== "string") {
@@ -232,7 +256,7 @@ export async function prepareGameScripts(document: GameDocument): Promise<GameSc
               throw new Error(`Output exceeds 64 KiB (${rawOutputBytes} bytes in call ${results.length + 1})`);
             }
             const parsed: unknown = JSON.parse(output);
-            const envelope = z.object({ value: result, rngState: z.number().int().nonnegative() }).parse(parsed);
+            const envelope = z.object({ value: resultSchema, rngState: z.number().int().nonnegative() }).parse(parsed);
             if (envelope.value.commands.length > call.maxCommands) {
               throw new Error(`Game script command limit exceeded for ${call.entityId}`);
             }
@@ -266,4 +290,14 @@ export async function prepareGameScripts(document: GameDocument): Promise<GameSc
     runtime.dispose();
     throw error;
   }
+}
+
+export function prepareGameScripts(document: GameDocument): Promise<GameScriptRunner> {
+  return prepareIsolatedGameScripts<GameScriptCall, GameScriptInput, GameScriptCommand>(document, gameScriptCommand, `{
+    tick: data.input.tick, pressed: data.input.pressed, justPressed: data.input.justPressed,
+    events: data.input.events, entity: {
+      id: data.call.entityId, source: data.call.source, x: data.call.x, y: data.call.y,
+      velocityX: data.call.velocityX, velocityY: data.call.velocityY, touching: data.call.touching
+    }, world: data.input.world, state: data.call.state, random: __gameRandom
+  }`);
 }

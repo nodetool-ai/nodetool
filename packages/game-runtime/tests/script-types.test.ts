@@ -27,3 +27,26 @@ describe("game script editor types", () => {
     }
   });
 });
+
+describe("schema-derived 3D script declarations", () => {
+  it("includes every 3D command kind and checks shape command fields", async () => {
+    const { gameScriptCommand3D } = await import("@nodetool-ai/protocol");
+    const { GAME_SCRIPT_TYPES_3D } = await import("../src/script-types3d.js");
+    const runtime = gameScriptCommand3D.options.map((option) => option.shape.kind.value).sort();
+    const declared = [...GAME_SCRIPT_TYPES_3D.matchAll(/kind: "([A-Za-z]+)"/g)].map((match) => match[1]).filter((kind) => !["box", "sphere", "capsule"].includes(kind)).sort();
+    expect(declared).toEqual(runtime);
+    const directory = await mkdtemp(join(tmpdir(), "game-script-types3d-"));
+    try {
+      const types = join(directory, "game.d.ts");
+      const valid = join(directory, "valid.js");
+      const invalid = join(directory, "invalid.js");
+      await writeFile(types, GAME_SCRIPT_TYPES_3D);
+      await writeFile(valid, '/** @type {GameScript3D} */\n((input) => ({state:input.state,commands:[{kind:"shapeQuery",queryId:"area",shape:{kind:"sphere",radius:1},position:{x:0,y:0,z:0}}]}))');
+      await writeFile(invalid, '/** @type {GameScript3D} */\n((input) => ({state:input.state,commands:[{kind:"shapeQuery",queryId:"area",shape:{kind:"sphere",halfExtents:{x:1,y:1,z:1}},position:{x:0,y:0,z:0}}]}))');
+      const program = ts.createProgram([types, valid, invalid], { allowJs: true, checkJs: true, noEmit: true, skipLibCheck: true, target: ts.ScriptTarget.ES2020 });
+      const diagnostics = ts.getPreEmitDiagnostics(program);
+      expect(diagnostics.filter((diagnostic) => diagnostic.file?.fileName === valid)).toEqual([]);
+      expect(diagnostics.some((diagnostic) => diagnostic.file?.fileName === invalid)).toBe(true);
+    } finally { await rm(directory, { recursive: true, force: true }); }
+  });
+});

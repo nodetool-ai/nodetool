@@ -1,4 +1,4 @@
-import type { GameAssetBinding, GameDocument, GameEvent, GameSnapshot } from "@nodetool-ai/protocol";
+import type { GameAssetBinding, GameAssetBinding3D, GameEvent, GameSnapshot } from "@nodetool-ai/protocol";
 
 const MAX_VOICES = 32;
 
@@ -11,9 +11,9 @@ interface Voice {
 }
 
 export interface GameAudioOptions {
-  readonly assets: GameDocument["assets"];
+  readonly assets: Readonly<Record<string, GameAssetBinding | GameAssetBinding3D>>;
   readonly tickRate: number;
-  readonly resolveAsset: (binding: GameAssetBinding) => Promise<string | null>;
+  readonly resolveAsset: (binding: GameAssetBinding | GameAssetBinding3D) => Promise<string | null>;
   readonly status: (message: string) => void;
   readonly context?: AudioContext;
 }
@@ -85,7 +85,7 @@ export class GameAudioPlayer {
     void this.unlock();
   }
 
-  sync(snapshot: GameSnapshot): void {
+  sync(snapshot: Pick<GameSnapshot, "tick" | "music" | "sceneId">): void {
     if (this.disposed) return;
     this.tick = snapshot.tick;
     if (this.sceneId && this.sceneId !== snapshot.sceneId) {
@@ -204,7 +204,7 @@ export class GameAudioPlayer {
     voice.source.stop(now + fadeTicks / this.options.tickRate);
   }
 
-  reset(snapshot: GameSnapshot): void {
+  reset(snapshot: Pick<GameSnapshot, "tick" | "music" | "sceneId">): void {
     this.generation += 1;
     this.pending.clear();
     for (const id of this.voices.keys()) this.stop(id, 0);

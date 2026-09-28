@@ -1,0 +1,2421 @@
+{
+  "schemaVersion": 3,
+  "engineVersion": "2",
+  "dimension": "3d",
+  "id": "a614db383fbd4dc6b3880503267a2fc1",
+  "revision": "relay-yard-v1",
+  "entrySceneId": "level",
+  "tickRate": 60,
+  "presentation": {
+    "aspectRatio": 1.7777777777777777,
+    "hudWidth": 960,
+    "hudHeight": 540
+  },
+  "inputActions": [
+    "jump",
+    "respawn"
+  ],
+  "inputAxes": [
+    "moveX",
+    "moveZ"
+  ],
+  "assets": {},
+  "prefabs": {},
+  "scenes": [
+    {
+      "id": "level",
+      "name": "Relay Yard",
+      "activeCameraId": "camera",
+      "gravity": {
+        "x": 0,
+        "y": -9.81,
+        "z": 0
+      },
+      "environment": {
+        "background": "#15243b",
+        "ambient": {
+          "color": "#d5e7ff",
+          "intensity": 0.85
+        },
+        "shadows": {
+          "enabled": true,
+          "mapSize": 1024,
+          "extent": 30
+        }
+      },
+      "entities": [
+        {
+          "id": "camera",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "camera3d": {
+            "projection": {
+              "kind": "perspective",
+              "fov": 64,
+              "near": 0.1,
+              "far": 1000
+            },
+            "behavior": {
+              "kind": "follow",
+              "targetId": "player",
+              "offset": {
+                "x": 0,
+                "y": 4.3,
+                "z": 7.5
+              },
+              "lookAtOffset": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "yaw": 0,
+              "pitch": 0,
+              "minPitch": -60,
+              "maxPitch": 60,
+              "sensitivity": 0.002,
+              "collisionRadius": 0.2
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "sun",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              -0.479425538604203,
+              0,
+              0,
+              0.8775825618903728
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "light3d": {
+            "kind": "directional",
+            "color": "#fff1d5",
+            "intensity": 2,
+            "castShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "player",
+          "name": "Player",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 1,
+              "z": 3
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "body3d": {
+            "type": "kinematic",
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "angularVelocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "gravityScale": 1,
+            "linearDamping": 0,
+            "angularDamping": 0,
+            "ccd": false
+          },
+          "collider3d": {
+            "kind": "capsule",
+            "radius": 0.3,
+            "halfHeight": 0.5,
+            "offset": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "sensor": false,
+            "category": 1,
+            "mask": 65535,
+            "friction": 0.5,
+            "restitution": 0
+          },
+          "character3d": {
+            "speed": 5,
+            "acceleration": 30,
+            "jumpSpeed": 6,
+            "slopeLimit": 45,
+            "stepHeight": 0.3,
+            "groundSnap": 0.2,
+            "coyoteTicks": 6,
+            "jumpBufferTicks": 6,
+            "moveXAxis": "moveX",
+            "moveZAxis": "moveZ",
+            "jumpAction": "jump"
+          },
+          "interactionActor": {
+            "collects": true,
+            "activatesTriggers": true
+          },
+          "behaviors": [
+            {
+              "kind": "winWhenCollected",
+              "count": 2
+            },
+            {
+              "kind": "script",
+              "source": "(input) => {\n  const state = input.state || { checkpoint: { x: 0, y: 1, z: 3 }, saved: false, finished: false };\n  for (const event of input.events) {\n    if (event.kind === 'win') state.finished = true;\n    if (event.kind === 'trigger' && event.event === 'checkpoint') {\n      state.saved = true;\n      state.checkpoint = { x: 0, y: 1, z: -7 };\n    }\n  }\n  const commands = [];\n  if (input.entity.position.y < -8 || input.justPressed.includes('respawn')) {\n    commands.push({ kind: 'teleport', position: state.checkpoint });\n  }\n  commands.push({ kind: 'hud', id: 'title', text: 'RELAY YARD', x: 24, y: 32, size: 26, color: '#eef5ff' });\n  commands.push({ kind: 'hud', id: 'score', text: state.finished ? 'Course complete' : 'Collect the two amber cells', x: 24, y: 61, size: 17, color: '#ffd273' });\n  commands.push({ kind: 'hud', id: 'win', text: state.finished ? 'Explore the test lanes, or Reset to run again.' : 'Follow the amber line through the blue gate.', x: 24, y: 86, size: 14, color: '#c1d4ea' });\n  commands.push({ kind: 'hud', id: 'checkpoint-status', text: state.saved ? 'CHECKPOINT SAVED' : 'CHECKPOINT AHEAD', x: 936, y: 32, size: 14, align: 'right', color: '#67e7c5' });\n  commands.push({ kind: 'hud', id: 'stations', text: 'LEFT: STEPS + LIFT     RIGHT: RAMP + CRATE', x: 480, y: 475, size: 14, align: 'center', color: '#c1d4ea' });\n  commands.push({ kind: 'hud', id: 'help', text: 'WASD / arrows: move     Space: jump     R: respawn     Drag: camera', x: 480, y: 510, size: 15, align: 'center', color: '#eef5ff' });\n  return { state, commands };\n}",
+              "maxCommands": 16,
+              "maxTickMs": 50
+            }
+          ]
+        },
+        {
+          "id": "player-visual",
+          "name": "",
+          "parentId": "player",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "capsule",
+            "dimensions": {
+              "x": 0.6,
+              "y": 1.6,
+              "z": 0.6
+            },
+            "material": {
+              "color": "#47dfb5",
+              "metalness": 0,
+              "roughness": 0.8,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "floor",
+          "name": "floor",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": -0.5,
+              "z": -3
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 14,
+              "y": 1,
+              "z": 22
+            },
+            "material": {
+              "color": "#334760",
+              "metalness": 0,
+              "roughness": 0.8,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "body3d": {
+            "type": "static",
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "angularVelocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "gravityScale": 1,
+            "linearDamping": 0,
+            "angularDamping": 0,
+            "ccd": false
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 7,
+              "y": 0.5,
+              "z": 11
+            },
+            "offset": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "sensor": false,
+            "category": 1,
+            "mask": 65535,
+            "friction": 0.5,
+            "restitution": 0
+          },
+          "behaviors": []
+        },
+        {
+          "id": "step-1",
+          "name": "step-1",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": -3,
+              "y": 0.1,
+              "z": -2
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 2,
+              "y": 0.2,
+              "z": 1
+            },
+            "material": {
+              "color": "#6b86a5",
+              "metalness": 0,
+              "roughness": 0.8,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "body3d": {
+            "type": "static",
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "angularVelocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "gravityScale": 1,
+            "linearDamping": 0,
+            "angularDamping": 0,
+            "ccd": false
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 1,
+              "y": 0.1,
+              "z": 0.5
+            },
+            "offset": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "sensor": false,
+            "category": 1,
+            "mask": 65535,
+            "friction": 0.5,
+            "restitution": 0
+          },
+          "behaviors": []
+        },
+        {
+          "id": "step-2",
+          "name": "step-2",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": -3,
+              "y": 0.25,
+              "z": -3
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 2,
+              "y": 0.5,
+              "z": 1
+            },
+            "material": {
+              "color": "#87a2bd",
+              "metalness": 0,
+              "roughness": 0.8,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "body3d": {
+            "type": "static",
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "angularVelocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "gravityScale": 1,
+            "linearDamping": 0,
+            "angularDamping": 0,
+            "ccd": false
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 1,
+              "y": 0.25,
+              "z": 0.5
+            },
+            "offset": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "sensor": false,
+            "category": 1,
+            "mask": 65535,
+            "friction": 0.5,
+            "restitution": 0
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ramp",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 3,
+              "y": 0.7,
+              "z": -3
+            },
+            "rotation": [
+              0.19866933079506122,
+              0,
+              0,
+              0.9800665778412416
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 2.2,
+              "y": 0.3,
+              "z": 4
+            },
+            "material": {
+              "color": "#8094b9",
+              "metalness": 0,
+              "roughness": 0.8,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "body3d": {
+            "type": "static",
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "angularVelocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "gravityScale": 1,
+            "linearDamping": 0,
+            "angularDamping": 0,
+            "ccd": false
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 1.1,
+              "y": 0.15,
+              "z": 2
+            },
+            "offset": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "sensor": false,
+            "category": 1,
+            "mask": 65535,
+            "friction": 0.5,
+            "restitution": 0
+          },
+          "behaviors": []
+        },
+        {
+          "id": "moving-platform",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": -3,
+              "y": 0.7,
+              "z": -6
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 2,
+              "y": 0.3,
+              "z": 2
+            },
+            "material": {
+              "color": "#efbd58",
+              "metalness": 0,
+              "roughness": 0.8,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "body3d": {
+            "type": "kinematic",
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "angularVelocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "gravityScale": 1,
+            "linearDamping": 0,
+            "angularDamping": 0,
+            "ccd": false
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 1,
+              "y": 0.15,
+              "z": 1
+            },
+            "offset": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "sensor": false,
+            "category": 1,
+            "mask": 65535,
+            "friction": 0.5,
+            "restitution": 0
+          },
+          "behaviors": [
+            {
+              "kind": "script",
+              "source": "(input) => ({ state: null, commands: [{ kind: \"setKinematicPose\", position: { x: -3 + Math.sin((input.tick + 1) / 60) * 1.5, y: 0.7, z: -6 } }] })",
+              "maxCommands": 16,
+              "maxTickMs": 50
+            }
+          ]
+        },
+        {
+          "id": "crate",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 1.5,
+              "y": 0.5,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.8,
+              "y": 0.8,
+              "z": 0.8
+            },
+            "material": {
+              "color": "#b77b46",
+              "metalness": 0,
+              "roughness": 0.8,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "body3d": {
+            "type": "dynamic",
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "angularVelocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "gravityScale": 1,
+            "linearDamping": 0,
+            "angularDamping": 0,
+            "ccd": true,
+            "mass": 8
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.4,
+              "y": 0.4,
+              "z": 0.4
+            },
+            "offset": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "sensor": false,
+            "category": 1,
+            "mask": 65535,
+            "friction": 0.5,
+            "restitution": 0
+          },
+          "behaviors": []
+        },
+        {
+          "id": "pickup",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.8,
+              "z": -2
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 0.55,
+              "y": 0.55,
+              "z": 0.55
+            },
+            "material": {
+              "color": "#ffcc47",
+              "metalness": 0,
+              "roughness": 0.8,
+              "opacity": 1,
+              "emissive": "#8e5200",
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "body3d": {
+            "type": "static",
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "angularVelocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "gravityScale": 1,
+            "linearDamping": 0,
+            "angularDamping": 0,
+            "ccd": false
+          },
+          "collider3d": {
+            "kind": "sphere",
+            "radius": 0.55,
+            "offset": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "sensor": true,
+            "category": 1,
+            "mask": 65535,
+            "friction": 0.5,
+            "restitution": 0
+          },
+          "behaviors": [
+            {
+              "kind": "collectible",
+              "score": 1
+            }
+          ]
+        },
+        {
+          "id": "door-switch",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.06,
+              "z": -4
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 1.6,
+              "y": 0.1,
+              "z": 0.8
+            },
+            "material": {
+              "color": "#59aaff",
+              "metalness": 0,
+              "roughness": 0.8,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "body3d": {
+            "type": "static",
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "angularVelocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "gravityScale": 1,
+            "linearDamping": 0,
+            "angularDamping": 0,
+            "ccd": false
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.8,
+              "y": 1,
+              "z": 0.4
+            },
+            "offset": {
+              "x": 0,
+              "y": 0.74,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "sensor": true,
+            "category": 1,
+            "mask": 65535,
+            "friction": 0.5,
+            "restitution": 0
+          },
+          "behaviors": [
+            {
+              "kind": "trigger",
+              "event": "open-door"
+            }
+          ]
+        },
+        {
+          "id": "door",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 1.3,
+              "z": -5.5
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 3,
+              "y": 2.6,
+              "z": 0.4
+            },
+            "material": {
+              "color": "#477acd",
+              "metalness": 0,
+              "roughness": 0.8,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "body3d": {
+            "type": "kinematic",
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "angularVelocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "gravityScale": 1,
+            "linearDamping": 0,
+            "angularDamping": 0,
+            "ccd": false
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 1.5,
+              "y": 1.3,
+              "z": 0.2
+            },
+            "offset": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "sensor": false,
+            "category": 1,
+            "mask": 65535,
+            "friction": 0.5,
+            "restitution": 0
+          },
+          "behaviors": [
+            {
+              "kind": "script",
+              "source": "(input) => {\n            const state = input.state || { open: false };\n            if (input.events.some(event => event.kind === \"trigger\" && event.event === \"open-door\")) state.open = true;\n            return { state, commands: state.open ? [{ kind: \"setKinematicPose\", position: { x: 0, y: 4.5, z: -5.5 } }] : [] };\n          }",
+              "maxCommands": 16,
+              "maxTickMs": 50
+            }
+          ]
+        },
+        {
+          "id": "checkpoint",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.8,
+              "z": -7
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.5,
+              "y": 1,
+              "z": 0.5
+            },
+            "material": {
+              "color": "#5ce6c0",
+              "metalness": 0,
+              "roughness": 0.8,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "body3d": {
+            "type": "static",
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "angularVelocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "gravityScale": 1,
+            "linearDamping": 0,
+            "angularDamping": 0,
+            "ccd": false
+          },
+          "collider3d": {
+            "kind": "sphere",
+            "radius": 0.8,
+            "offset": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "sensor": true,
+            "category": 1,
+            "mask": 65535,
+            "friction": 0.5,
+            "restitution": 0
+          },
+          "behaviors": [
+            {
+              "kind": "trigger",
+              "event": "checkpoint"
+            }
+          ]
+        },
+        {
+          "id": "goal",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.8,
+              "z": -10
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 0.8,
+              "y": 0.8,
+              "z": 0.8
+            },
+            "material": {
+              "color": "#ffdf67",
+              "metalness": 0,
+              "roughness": 0.8,
+              "opacity": 1,
+              "emissive": "#886800",
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "body3d": {
+            "type": "static",
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "angularVelocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "gravityScale": 1,
+            "linearDamping": 0,
+            "angularDamping": 0,
+            "ccd": false
+          },
+          "collider3d": {
+            "kind": "sphere",
+            "radius": 0.7,
+            "offset": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "sensor": true,
+            "category": 1,
+            "mask": 65535,
+            "friction": 0.5,
+            "restitution": 0
+          },
+          "behaviors": [
+            {
+              "kind": "collectible",
+              "score": 1
+            }
+          ]
+        },
+        {
+          "id": "route-2",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.014,
+              "z": 2
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.07,
+              "y": 0.02,
+              "z": 0.62
+            },
+            "material": {
+              "color": "#e3b55e",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "route-0.5",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.014,
+              "z": 0.5
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.07,
+              "y": 0.02,
+              "z": 0.62
+            },
+            "material": {
+              "color": "#e3b55e",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "route--1",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.014,
+              "z": -1
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.07,
+              "y": 0.02,
+              "z": 0.62
+            },
+            "material": {
+              "color": "#e3b55e",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "route--2.5",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.014,
+              "z": -2.5
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.07,
+              "y": 0.02,
+              "z": 0.62
+            },
+            "material": {
+              "color": "#e3b55e",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "route--4",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.014,
+              "z": -4
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.07,
+              "y": 0.02,
+              "z": 0.62
+            },
+            "material": {
+              "color": "#e3b55e",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "route--5.5",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.014,
+              "z": -5.5
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.07,
+              "y": 0.02,
+              "z": 0.62
+            },
+            "material": {
+              "color": "#e3b55e",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "route--7",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.014,
+              "z": -7
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.07,
+              "y": 0.02,
+              "z": 0.62
+            },
+            "material": {
+              "color": "#e3b55e",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "route--8.5",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.014,
+              "z": -8.5
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.07,
+              "y": 0.02,
+              "z": 0.62
+            },
+            "material": {
+              "color": "#e3b55e",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "route--10",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.014,
+              "z": -10
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.07,
+              "y": 0.02,
+              "z": 0.62
+            },
+            "material": {
+              "color": "#e3b55e",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "edge--6.8",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": -6.8,
+              "y": 0.014,
+              "z": -3
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.09,
+              "y": 0.02,
+              "z": 21.4
+            },
+            "material": {
+              "color": "#587397",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "edge-6.8",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 6.8,
+              "y": 0.014,
+              "z": -3
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.09,
+              "y": 0.02,
+              "z": 21.4
+            },
+            "material": {
+              "color": "#587397",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "stripe-start",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.014,
+              "z": 3
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 4,
+              "y": 0.025,
+              "z": 0.12
+            },
+            "material": {
+              "color": "#67e7c5",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "stripe-checkpoint",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.014,
+              "z": -7
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 4,
+              "y": 0.025,
+              "z": 0.12
+            },
+            "material": {
+              "color": "#67e7c5",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "stripe-finish",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.014,
+              "z": -10.8
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 4,
+              "y": 0.025,
+              "z": 0.12
+            },
+            "material": {
+              "color": "#ffd273",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "gate-post--1.8",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": -1.8,
+              "y": 1.5,
+              "z": -5.5
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.25,
+              "y": 3,
+              "z": 0.4
+            },
+            "material": {
+              "color": "#26394f",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "gate-light--1.8",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": -1.8,
+              "y": 2.75,
+              "z": -5.24
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.13,
+              "y": 0.3,
+              "z": 0.07
+            },
+            "material": {
+              "color": "#59aaff",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "gate-post-1.8",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 1.8,
+              "y": 1.5,
+              "z": -5.5
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.25,
+              "y": 3,
+              "z": 0.4
+            },
+            "material": {
+              "color": "#26394f",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "gate-light-1.8",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 1.8,
+              "y": 2.75,
+              "z": -5.24
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.13,
+              "y": 0.3,
+              "z": 0.07
+            },
+            "material": {
+              "color": "#59aaff",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "gate-header",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 3.1,
+              "z": -5.5
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 3.85,
+              "y": 0.22,
+              "z": 0.4
+            },
+            "material": {
+              "color": "#26394f",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "distant-pillar--10-0",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": -10,
+              "y": 1,
+              "z": -3
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 1.2,
+              "y": 2,
+              "z": 1.2
+            },
+            "material": {
+              "color": "#22334d",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "distant-pillar--10-1",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": -10,
+              "y": 1.3,
+              "z": -8
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 1.2,
+              "y": 2.6,
+              "z": 1.2
+            },
+            "material": {
+              "color": "#22334d",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "distant-pillar--10-2",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": -10,
+              "y": 1.6,
+              "z": -13
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 1.2,
+              "y": 3.2,
+              "z": 1.2
+            },
+            "material": {
+              "color": "#22334d",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "distant-pillar--10-3",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": -10,
+              "y": 1.9,
+              "z": -18
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 1.2,
+              "y": 3.8,
+              "z": 1.2
+            },
+            "material": {
+              "color": "#22334d",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "distant-pillar-10-0",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 10,
+              "y": 1,
+              "z": -3
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 1.2,
+              "y": 2,
+              "z": 1.2
+            },
+            "material": {
+              "color": "#22334d",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "distant-pillar-10-1",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 10,
+              "y": 1.3,
+              "z": -8
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 1.2,
+              "y": 2.6,
+              "z": 1.2
+            },
+            "material": {
+              "color": "#22334d",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "distant-pillar-10-2",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 10,
+              "y": 1.6,
+              "z": -13
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 1.2,
+              "y": 3.2,
+              "z": 1.2
+            },
+            "material": {
+              "color": "#22334d",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "distant-pillar-10-3",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 10,
+              "y": 1.9,
+              "z": -18
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 1.2,
+              "y": 3.8,
+              "z": 1.2
+            },
+            "material": {
+              "color": "#22334d",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "steps-mark",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": -3,
+              "y": 0.015,
+              "z": 0.4
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 2.4,
+              "y": 0.025,
+              "z": 0.15
+            },
+            "material": {
+              "color": "#87a2bd",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ramp-mark",
+          "name": "",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 3,
+              "y": 0.015,
+              "z": 0.4
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 2.4,
+              "y": 0.025,
+              "z": 0.15
+            },
+            "material": {
+              "color": "#87a2bd",
+              "metalness": 0,
+              "roughness": 0.9,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            },
+            "castShadow": true,
+            "receiveShadow": true
+          },
+          "behaviors": []
+        }
+      ]
+    }
+  ]
+}

@@ -48,6 +48,7 @@ export * from "./wasm-binary.js";
 export * from "./resource-id.js";
 export * from "./game-assets.js";
 export * from "./game.js";
+export * from "./game3d.js";
 export * from "./game-migration.js";
 export * from "./game-slot-prompt.js";
 export * from "./asset-generation.js";

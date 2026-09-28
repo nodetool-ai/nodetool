@@ -44,13 +44,13 @@ function writeDeclared(size) {
  * Declared outputs as directories. Opening a directory for reading throws
  * `EISDIR` for every user — including root, which a `chmod 000` file does
  * not stop — so a runner that reads before it stats fails here instead of
- * with `output_too_large`. An empty directory already stats above either
- * test's cap on every filesystem the suite runs on (64 bytes on APFS,
- * 4096 on ext4/overlayfs).
+ * with `output_too_large`. A sentinel child gives the directory metadata
+ * above the fixture caps even on Btrfs, where an empty directory has size zero.
  */
 function writeDeclaredDirs() {
   for (const file of Object.values(outputs)) {
     mkdirSync(file, { recursive: true });
+    writeFileSync(path.join(file, "output-byte-cap-sentinel"), "");
   }
 }
 
@@ -138,8 +138,8 @@ switch (mode) {
     break;
   }
   case "big-output": {
-    // Directories, not files: the test caps one output at 16 bytes and an
-    // empty directory already stats above that (see `writeDeclaredDirs`),
+    // Directories, not files: the test caps one output at 16 bytes and the
+    // sentinel directory metadata exceeds that (see `writeDeclaredDirs`),
     // while opening it throws EISDIR even for root.
     writeDeclaredDirs();
     writeResult({ ok: true, produced: Object.keys(outputs), stats: okStats() });

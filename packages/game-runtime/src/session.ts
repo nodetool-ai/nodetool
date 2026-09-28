@@ -9,6 +9,7 @@ import type {
   GameSnapshot
 } from "@nodetool-ai/protocol";
 import { gameSnapshot } from "@nodetool-ai/protocol";
+import { advanceGameplayRandom, applyGameplayCommand, claimGameplayContact, finalizeGameplayEntities, initialGameplayState, MAX_GAME_EVENTS_PER_TICK, MAX_GAME_SPAWNED_INSTANCES, projectGameplayHud, queueGameplayBehavior, runGameplayPhases, runGameplayTick, type GameplayQueues } from "./gameplay/lifecycle.js";
 import { validateGame } from "./validate.js";
 import { evaluateVisual } from "./visual-animation.js";
 import { FACE_LEFT, FACE_RIGHT, faceOf, queryTiles, sweepBox, tileCollision, type Box, type SweepHit } from "./physics.js";
@@ -74,8 +75,8 @@ function overlaps(a: EntityState, b: EntityState): boolean {
     Math.abs(a.y - b.y) * 2 < ac.height + bc.height;
 }
 
-const MAX_EVENTS_PER_TICK = 512;
-const MAX_SPAWNED_INSTANCES = 1024;
+const MAX_EVENTS_PER_TICK = MAX_GAME_EVENTS_PER_TICK;
+const MAX_SPAWNED_INSTANCES = MAX_GAME_SPAWNED_INSTANCES;
 
 interface ContactPair {
   readonly entityId: string;
@@ -172,11 +173,10 @@ interface WorldTransform {
 }
 
 function initialState(entity: GameEntity, world: WorldTransform, spawnTick = 0): EntityState {
-  const health = entity.behaviors.find((behavior) => behavior.kind === "health");
   const patrol = entity.behaviors.find((behavior) => behavior.kind === "patrol");
   const state: EntityState = {
     definition: entity,
-    spawnTick,
+    ...initialGameplayState(entity, spawnTick),
     x: world.x,
     y: world.y,
     previousX: world.x,
@@ -185,12 +185,8 @@ function initialState(entity: GameEntity, world: WorldTransform, spawnTick = 0):
     scaleX: world.scaleX,
     scaleY: world.scaleY,
     velocityX: entity.body2d?.velocity.x ?? 0,
-    velocityY: entity.body2d?.velocity.y ?? 0,
-    active: !entity.templateOnly
+    velocityY: entity.body2d?.velocity.y ?? 0
   };
-  if (health?.kind === "health") {
-    state.health = health.maximum;
-  }
   if (patrol?.kind === "patrol") {
     state.patrolOrigin = patrol.axis === "x" ? state.x : state.y;
     state.patrolDirection = 1;
@@ -394,12 +390,7 @@ function frameFor(document: GameDocument, scene: GameScene, states: readonly Ent
     sprites,
     tiles,
     backgrounds: (scene.backgrounds ?? []).map((layer) => document.assets[layer.assetId]?.sampling === "linear" ? { ...layer, sampling: "linear" as const } : layer),
-    // A script label with the id of a built-in label replaces it.
-    hud: [
-      ...(usesCollectibles(document) && !hud.has("score") ? [{ id: "score", text: `Score: ${score}`, x: 16, y: 16 }] : []),
-      ...(won && !hud.has("win") ? [{ id: "win", text: "You win!", x: 16, y: 48 }] : []),
-      ...[...hud.values()].map((label) => ({ ...label }))
-    ]
+    hud: projectGameplayHud(usesCollectibles(document), score, won, hud)
   };
   if (scene.lighting) {
     // Entity lights follow their entities; the nearest ones fill the slots the scene's fixed lights leave.
@@ -664,429 +655,389 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
         throw new Error(`Unknown input action ${action}`);
       }
     }
-    try {
-      const events: GameEvent[] = [];
-      const emit = (event: GameEvent): void => {
-        if (events.length >= MAX_EVENTS_PER_TICK) {
-          failed = true;
-          throw new Error(`Game event limit exceeded (${MAX_EVENTS_PER_TICK} per tick)`);
-        }
-        events.push(event);
-        eventSink?.(structuredClone(event));
-      };
+    return runGameplayTick(({ events, emit }) => {
       const queuedDespawns = new Set<string>();
       const queuedSpawns: QueuedSpawn[] = [];
-      let transitionTo: string | undefined;
+      const queues: GameplayQueues<QueuedSpawn> = { despawns: queuedDespawns, spawns: queuedSpawns };
       const scriptCalls: GameScriptCall[] = [];
-      for (const state of states) {
-        state.previousX = state.x;
-        state.previousY = state.y;
-        if (!state.active) {
-          continue;
-        }
-        const entity = state.definition;
-        for (const [index, behavior] of entity.behaviors.entries()) {
-          if (behavior.kind === "movement") {
-            const dx = Number(pressed.has(behavior.right)) - Number(pressed.has(behavior.left));
-            const dy = Number(pressed.has(behavior.up)) - Number(pressed.has(behavior.down));
-            const length = Math.hypot(dx, dy) || 1;
-            state.velocityX = (dx / length) * behavior.speed;
-            state.velocityY = (dy / length) * behavior.speed;
-          } else if (behavior.kind === "patrol") {
-            const coordinate = behavior.axis === "x" ? state.x : state.y;
-            const origin = state.patrolOrigin ?? coordinate;
-            // Only travel away from the origin turns the body, so a wall at the limit cannot cancel a turn.
-            if ((coordinate - origin) * (state.patrolDirection ?? 1) >= behavior.distance) {
-              state.patrolDirection = state.patrolDirection === 1 ? -1 : 1;
-            }
-            const speed = behavior.speed * (state.patrolDirection ?? 1);
-            // A body under gravity keeps its fall speed while it walks.
-            const falls = gravityScaleOf(state) !== 0;
-            state.velocityX = behavior.axis === "x" ? speed : falls ? state.velocityX : 0;
-            state.velocityY = behavior.axis === "y" ? speed : falls ? state.velocityY : 0;
-          } else if (behavior.kind === "sceneTransition" && previousEvents.some((event) => event.kind === "trigger" && event.event === behavior.onEvent)) {
-            transitionTo = behavior.sceneId;
-          } else if (behavior.kind === "spawn" && previousEvents.some((event) => event.kind === "trigger" && event.event === behavior.onEvent)) {
-            queuedSpawns.push({ prefabId: behavior.prefabId });
-          } else if (behavior.kind === "lifetime" && tick - state.spawnTick >= behavior.ticks) {
-            queuedDespawns.add(entity.id);
-          } else if (behavior.kind === "script") {
-            const sourceKey = scriptSourceKey(scene.id, state.sourceId ?? entity.id, index);
-            const stateKey = scriptSourceKey(scene.id, entity.id, index);
-            scriptCalls.push({ sourceKey, stateKey, entityId: entity.id, source: state.sourceId ?? entity.id, state: scriptState[stateKey] ?? null,
-              x: state.x, y: state.y, velocityX: state.velocityX, velocityY: state.velocityY,
-              touching: touchingOf(state),
-              maxCommands: behavior.maxCommands, maxTickMs: behavior.maxTickMs });
-          }
-        }
-      }
       let scriptStats: GameScriptStats | undefined;
-      if (scriptRunner && scriptCalls.length > 0) {
-        const world = states
-          .filter((state) => state.active && (state.definition.collider2d || state.definition.camera2d))
-          .map((state) => ({ id: state.definition.id, source: state.sourceId ?? state.definition.id, x: state.x, y: state.y }));
-        const batch = scriptRunner.run(scriptCalls, { tick, pressed: [...pressed], justPressed: input.justPressed, events: previousEvents, world }, rngState);
-        const byId = new Map(states.map((state) => [state.definition.id, state]));
-        for (const item of batch.results) {
-          for (const command of item.commands) {
-            if (command.kind === "spawn" && !scene.entities.some((entity) => entity.id === command.prefabId && entity.templateOnly)) {
-              throw new Error(`Game script uses missing prefab ${command.prefabId}`);
+      return runGameplayPhases({
+        prepare(): void {
+          for (const state of states) {
+            state.previousX = state.x;
+            state.previousY = state.y;
+            if (!state.active) {
+              continue;
             }
-            if (command.kind === "sceneTransition" && !document.scenes.some((candidate) => candidate.id === command.sceneId)) {
-              throw new Error(`Game script uses missing scene ${command.sceneId}`);
-            }
-            if (command.kind === "playAnimation" && !byId.get(item.entityId)?.definition.animator?.clips?.[command.clip]) {
-              throw new Error(`Game script plays missing animation clip ${command.clip} on ${item.entityId}`);
-            }
-            if (command.kind === "hud" && command.fontId && document.assets[command.fontId]?.mediaKind !== "font") {
-              throw new Error(`Game script uses missing font ${command.fontId}`);
-            }
-            // A spawned instance can expire in the tick before a script reacts to its contact.
-            if (command.kind === "despawn" && !byId.get(command.entityId)?.active && !isSpawnedId(command.entityId)) {
-              throw new Error(`Game script uses missing entity ${command.entityId}`);
-            }
-          }
-        }
-        for (const [index, item] of batch.results.entries()) {
-          const call = scriptCalls[index];
-          scriptState[call.stateKey] = item.state;
-          const state = byId.get(item.entityId);
-          if (!state) throw new Error(`Game script entity ${item.entityId} disappeared`);
-          for (const command of item.commands) {
-            if (command.kind === "setVelocity") {
-              state.velocityX = command.x;
-              state.velocityY = command.y;
-            } else if (command.kind === "setPosition") {
-              state.x = command.x;
-              state.y = command.y;
-              state.previousX = command.x;
-              state.previousY = command.y;
-            } else if (command.kind === "setVisual") {
-              const { kind: _kind, ...visual } = command;
-              state.visual = { ...state.visual, ...visual };
-            } else if (command.kind === "playAnimation") {
-              // Replaying the current clip continues it, so scripts can request a clip every tick.
-              if (state.animation !== command.clip) {
-                state.animation = command.clip;
-                state.animationTick = tick + 1;
+            const entity = state.definition;
+            for (const [index, behavior] of entity.behaviors.entries()) {
+              if (behavior.kind === "movement") {
+                const dx = Number(pressed.has(behavior.right)) - Number(pressed.has(behavior.left));
+                const dy = Number(pressed.has(behavior.up)) - Number(pressed.has(behavior.down));
+                const length = Math.hypot(dx, dy) || 1;
+                state.velocityX = (dx / length) * behavior.speed;
+                state.velocityY = (dy / length) * behavior.speed;
+              } else if (behavior.kind === "patrol") {
+                const coordinate = behavior.axis === "x" ? state.x : state.y;
+                const origin = state.patrolOrigin ?? coordinate;
+                // Only travel away from the origin turns the body, so a wall at the limit cannot cancel a turn.
+                if ((coordinate - origin) * (state.patrolDirection ?? 1) >= behavior.distance) {
+                  state.patrolDirection = state.patrolDirection === 1 ? -1 : 1;
+                }
+                const speed = behavior.speed * (state.patrolDirection ?? 1);
+                // A body under gravity keeps its fall speed while it walks.
+                const falls = gravityScaleOf(state) !== 0;
+                state.velocityX = behavior.axis === "x" ? speed : falls ? state.velocityX : 0;
+                state.velocityY = behavior.axis === "y" ? speed : falls ? state.velocityY : 0;
+              } else if (behavior.kind === "script") {
+                const sourceKey = scriptSourceKey(scene.id, state.sourceId ?? entity.id, index);
+                const stateKey = scriptSourceKey(scene.id, entity.id, index);
+                scriptCalls.push({ sourceKey, stateKey, entityId: entity.id, source: state.sourceId ?? entity.id, state: scriptState[stateKey] ?? null,
+                  x: state.x, y: state.y, velocityX: state.velocityX, velocityY: state.velocityY,
+                  touching: touchingOf(state),
+                  maxCommands: behavior.maxCommands, maxTickMs: behavior.maxTickMs });
+              } else {
+                queueGameplayBehavior(behavior, entity.id, state.spawnTick, tick, previousEvents, queues);
               }
-            } else if (command.kind === "hud") {
-              const { kind: _kind, ...label } = command;
-              if (label.text === "") hud.delete(label.id);
-              else hud.set(label.id, label);
-            } else if (command.kind === "emit") {
-              emit({ kind: "trigger", event: command.event, entityId: item.entityId });
-            } else if (command.kind === "spawn") {
-              const { kind: _kind, ...spawn } = command;
-              queuedSpawns.push(spawn);
-            } else if (command.kind === "despawn") {
-              queuedDespawns.add(command.entityId);
-            } else if (command.kind === "sceneTransition") {
-              transitionTo = command.sceneId;
             }
           }
-        }
-        rngState = batch.rngState;
-        scriptStats = batch.stats;
-      }
-      const dt = 1 / document.tickRate;
-      const motionStarts = new Map(states.map((state) => [state.definition.id, { x: state.x, y: state.y }]));
-      const currentContacts = new Map<string, ContactPair>();
-      const recordContact = (moving: EntityState, other: EntityState, hit: SweepHit): void => {
-        const key = contactKey(moving.definition.id, other.definition.id);
-        if (!currentContacts.has(key)) {
-          if (events.length + currentContacts.size >= MAX_EVENTS_PER_TICK) {
-            throw new Error(`Game event limit exceeded (${MAX_EVENTS_PER_TICK} per tick)`);
-          }
-          currentContacts.set(key, {
-            entityId: moving.definition.id,
-            otherId: other.definition.id,
-            sensor: Boolean(moving.definition.collider2d?.sensor || other.definition.collider2d?.sensor),
-            normalX: hit.normalX,
-            normalY: hit.normalY
-          });
-        }
-      };
-      const kinematic = states.filter((state) => state.active && state.definition.body2d?.type === "kinematic");
-      const obstacles = obstacleStates();
-      const gravity = scene.gravity;
-      if (gravity) {
-        for (const state of kinematic) {
-          const scale = gravityScaleOf(state);
-          state.velocityX += gravity.x * scale * dt;
-          state.velocityY += gravity.y * scale * dt;
-        }
-      }
-      // Static bodies with a velocity are moving solids. They move first and carry the bodies that
-      // stand on them; a body in the way is pushed out along the motion.
-      const carries = new Map<EntityState, { dx: number; dy: number; platform: EntityState }>();
-      for (const platform of states) {
-        if (!platform.active || platform.definition.body2d?.type !== "static" || platform.velocityX === 0 && platform.velocityY === 0) {
-          continue;
-        }
-        const dx = platform.velocityX * dt;
-        const dy = platform.velocityY * dt;
-        const riders = kinematic.filter((body) => !carries.has(body) && standsOn(body, platform));
-        platform.x += dx;
-        platform.y += dy;
-        for (const rider of riders) carries.set(rider, { dx, dy, platform });
-        for (const body of kinematic) {
-          const box = colliderBox(body);
-          if (!box || carries.get(body)?.platform === platform || body.definition.collider2d?.sensor) continue;
-          const found: Obstacle[] = [];
-          obstaclesOf(platform, body.x - box.halfWidth, body.y - box.halfHeight, body.x + box.halfWidth, body.y + box.halfHeight, found);
-          for (const obstacle of found) {
-            if (!obstacle.solid || obstacle.sensor || obstacle.oneWay || !canCollideObstacle(body, obstacle)) continue;
-            const o = obstacle.box;
-            if (Math.abs(body.x - o.x) >= box.halfWidth + o.halfWidth - TOUCH_EPSILON ||
-              Math.abs(body.y - o.y) >= box.halfHeight + o.halfHeight - TOUCH_EPSILON) continue;
-            if (Math.abs(dy) >= Math.abs(dx)) body.y = o.y + Math.sign(dy) * (o.halfHeight + box.halfHeight);
-            else body.x = o.x + Math.sign(dx) * (o.halfWidth + box.halfWidth);
-          }
-        }
-      }
-      const moveBody = (state: EntityState, dx: number, dy: number, exclude: EntityState | undefined): { blockedX: number; blockedY: number } => {
-        const collider = state.definition.collider2d;
-        const blocked = { blockedX: 0, blockedY: 0 };
-        if (!collider) return blocked;
-        const halfWidth = collider.width / 2;
-        const halfHeight = collider.height / 2;
-        let remainingX = dx;
-        let remainingY = dy;
-        for (let pass = 0; pass < 2 && (remainingX !== 0 || remainingY !== 0); pass += 1) {
-          const box = { x: state.x, y: state.y, halfWidth, halfHeight };
-          const found: Obstacle[] = [];
-          const minX = state.x - halfWidth + Math.min(0, remainingX);
-          const maxX = state.x + halfWidth + Math.max(0, remainingX);
-          const minY = state.y - halfHeight + Math.min(0, remainingY);
-          const maxY = state.y + halfHeight + Math.max(0, remainingY);
-          for (const other of obstacles) {
-            if (other !== state && other !== exclude) obstaclesOf(other, minX, minY, maxX, maxY, found);
-          }
-          const hits: { obstacle: Obstacle; hit: SweepHit; blocks: boolean }[] = [];
-          for (const obstacle of found) {
-            if (!canCollideObstacle(state, obstacle)) continue;
-            const hit = sweepBox(box, obstacle.box, remainingX, remainingY, obstacle.sensor || collider.sensor);
-            if (!hit) continue;
-            const blocks = obstacle.solid && !obstacle.sensor && !collider.sensor;
-            if (blocks) {
-              // A face shared with a neighboring tile is inside the wall, so it never stops a body.
-              if ((obstacle.internal & faceOf(hit)) !== 0) continue;
-              // A one-way solid stops only a body that falls onto its top from above.
-              if (obstacle.oneWay && !(hit.normalY > 0 && state.y - halfHeight >= obstacle.box.y + obstacle.box.halfHeight - TOUCH_EPSILON)) continue;
+          if (scriptRunner && scriptCalls.length > 0) {
+            const world = states
+              .filter((state) => state.active && (state.definition.collider2d || state.definition.camera2d))
+              .map((state) => ({ id: state.definition.id, source: state.sourceId ?? state.definition.id, x: state.x, y: state.y }));
+            const batch = scriptRunner.run(scriptCalls, { tick, pressed: [...pressed], justPressed: input.justPressed, events: previousEvents, world }, rngState);
+            const byId = new Map(states.map((state) => [state.definition.id, state]));
+            for (const item of batch.results) {
+              for (const command of item.commands) {
+                if (command.kind === "spawn" && !scene.entities.some((entity) => entity.id === command.prefabId && entity.templateOnly)) {
+                  throw new Error(`Game script uses missing prefab ${command.prefabId}`);
+                }
+                if (command.kind === "sceneTransition" && !document.scenes.some((candidate) => candidate.id === command.sceneId)) {
+                  throw new Error(`Game script uses missing scene ${command.sceneId}`);
+                }
+                if (command.kind === "playAnimation" && !byId.get(item.entityId)?.definition.animator?.clips?.[command.clip]) {
+                  throw new Error(`Game script plays missing animation clip ${command.clip} on ${item.entityId}`);
+                }
+                if (command.kind === "hud" && command.fontId && document.assets[command.fontId]?.mediaKind !== "font") {
+                  throw new Error(`Game script uses missing font ${command.fontId}`);
+                }
+                // A spawned instance can expire in the tick before a script reacts to its contact.
+                if (command.kind === "despawn" && !byId.get(command.entityId)?.active && !isSpawnedId(command.entityId)) {
+                  throw new Error(`Game script uses missing entity ${command.entityId}`);
+                }
+              }
             }
-            hits.push({ obstacle, hit, blocks });
-          }
-          hits.sort((a, b) => a.hit.time - b.hit.time ||
-            (a.obstacle.owner.definition.id < b.obstacle.owner.definition.id ? -1 : a.obstacle.owner.definition.id > b.obstacle.owner.definition.id ? 1 : 0));
-          const solid = hits.find((item) => item.blocks);
-          const travel = solid?.hit.time ?? 1;
-          for (const { obstacle, hit, blocks } of hits) {
-            if (hit.time > travel) {
-              break;
+            for (const [index, item] of batch.results.entries()) {
+              const call = scriptCalls[index];
+              scriptState[call.stateKey] = item.state;
+              const state = byId.get(item.entityId);
+              if (!state) throw new Error(`Game script entity ${item.entityId} disappeared`);
+              for (const command of item.commands) {
+                if (command.kind === "setVelocity") {
+                  state.velocityX = command.x;
+                  state.velocityY = command.y;
+                } else if (command.kind === "setPosition") {
+                  state.x = command.x;
+                  state.y = command.y;
+                  state.previousX = command.x;
+                  state.previousY = command.y;
+                } else if (command.kind === "setVisual") {
+                  const { kind: _kind, ...visual } = command;
+                  state.visual = { ...state.visual, ...visual };
+                } else if (command.kind === "playAnimation") {
+                  // Replaying the current clip continues it, so scripts can request a clip every tick.
+                  if (state.animation !== command.clip) {
+                    state.animation = command.clip;
+                    state.animationTick = tick + 1;
+                  }
+                } else {
+                  applyGameplayCommand(command, item.entityId, queues, hud, emit);
+                }
+              }
             }
-            if (!blocks || obstacle === solid?.obstacle) {
-              recordContact(state, obstacle.owner, hit);
+            rngState = batch.rngState;
+            scriptStats = batch.stats;
+          }
+        },
+        advanceSpatial(): Map<string, ContactPair> {
+          const dt = 1 / document.tickRate;
+          const motionStarts = new Map(states.map((state) => [state.definition.id, { x: state.x, y: state.y }]));
+          const currentContacts = new Map<string, ContactPair>();
+          const recordContact = (moving: EntityState, other: EntityState, hit: SweepHit): void => {
+            const key = contactKey(moving.definition.id, other.definition.id);
+            if (!currentContacts.has(key)) {
+              if (events.length + currentContacts.size >= MAX_EVENTS_PER_TICK) {
+                throw new Error(`Game event limit exceeded (${MAX_EVENTS_PER_TICK} per tick)`);
+              }
+              currentContacts.set(key, {
+                entityId: moving.definition.id,
+                otherId: other.definition.id,
+                sensor: Boolean(moving.definition.collider2d?.sensor || other.definition.collider2d?.sensor),
+                normalX: hit.normalX,
+                normalY: hit.normalY
+              });
+            }
+          };
+          const kinematic = states.filter((state) => state.active && state.definition.body2d?.type === "kinematic");
+          const obstacles = obstacleStates();
+          const gravity = scene.gravity;
+          if (gravity) {
+            for (const state of kinematic) {
+              const scale = gravityScaleOf(state);
+              state.velocityX += gravity.x * scale * dt;
+              state.velocityY += gravity.y * scale * dt;
             }
           }
-          state.x += remainingX * travel;
-          state.y += remainingY * travel;
-          if (!solid) {
-            break;
-          }
-          if (solid.hit.normalX !== 0) blocked.blockedX = solid.hit.normalX;
-          if (solid.hit.normalY !== 0) blocked.blockedY = solid.hit.normalY;
-          remainingX = solid.hit.normalX === 0 ? remainingX * (1 - travel) : 0;
-          remainingY = solid.hit.normalY === 0 ? remainingY * (1 - travel) : 0;
-        }
-        return blocked;
-      };
-      for (const state of kinematic) {
-        if (!state.definition.collider2d) {
-          state.x += state.velocityX * dt;
-          state.y += state.velocityY * dt;
-          continue;
-        }
-        const carry = carries.get(state);
-        if (carry) moveBody(state, carry.dx, carry.dy, carry.platform);
-        const { blockedX, blockedY } = moveBody(state, state.velocityX * dt, state.velocityY * dt, undefined);
-        // A blocked body loses the velocity that pushed into the solid, so gravity cannot build up while resting.
-        if (blockedX * state.velocityX < 0) state.velocityX = 0;
-        if (blockedY * state.velocityY < 0) state.velocityY = 0;
-        const patrol = state.definition.behaviors.find((behavior) => behavior.kind === "patrol");
-        if (patrol?.kind === "patrol" && patrol.axis === "x") {
-          const direction = state.patrolDirection ?? 1;
-          const ledge = patrol.turnAtLedges && touchingOf(state).down && !solidBelowAhead(state, direction);
-          if (blockedX === -direction || ledge) state.patrolDirection = direction === 1 ? -1 : 1;
-        }
-      }
-      for (let index = 0; index < states.length; index += 1) {
-        const state = states[index];
-        if (!state.active || state.definition.body2d?.type !== "kinematic") {
-          continue;
-        }
-        for (let otherIndex = index + 1; otherIndex < states.length; otherIndex += 1) {
-          const other = states[otherIndex];
-          if (other.definition.body2d?.type !== "kinematic" || !canCollide(state, other)) {
-            continue;
-          }
-          const stateStart = motionStarts.get(state.definition.id);
-          const otherStart = motionStarts.get(other.definition.id);
-          if (!stateStart || !otherStart) {
-            continue;
-          }
-          const relativeX = (state.x - stateStart.x) - (other.x - otherStart.x);
-          const relativeY = (state.y - stateStart.y) - (other.y - otherStart.y);
-          const atStart = { ...state, x: stateStart.x, y: stateStart.y };
-          const targetAtStart = { ...other, x: otherStart.x, y: otherStart.y };
-          const hit = sweepAabb(atStart, targetAtStart, relativeX, relativeY);
-          if (hit) {
-            recordContact(state, other, hit);
-          }
-        }
-      }
-      const recordTouch = (state: EntityState, other: EntityState, a: Box, b: Box): void => {
-        const horizontalGap = Math.abs(a.x - b.x) - (a.halfWidth + b.halfWidth);
-        const verticalGap = Math.abs(a.y - b.y) - (a.halfHeight + b.halfHeight);
-        const horizontal = horizontalGap >= verticalGap;
-        recordContact(state, other, { time: 0, normalX: horizontal ? Math.sign(a.x - b.x) : 0, normalY: horizontal ? 0 : Math.sign(a.y - b.y) });
-      };
-      for (const state of kinematic) {
-        const box = colliderBox(state);
-        if (!box) {
-          continue;
-        }
-        for (const other of kinematic) {
-          if (state !== other && canCollide(state, other) && overlaps(state, other)) {
-            recordTouch(state, other, box, colliderBox(other)!);
-          }
-        }
-        const found: Obstacle[] = [];
-        for (const other of obstacles) {
-          if (other !== state) obstaclesOf(other, box.x - box.halfWidth, box.y - box.halfHeight, box.x + box.halfWidth, box.y + box.halfHeight, found);
-        }
-        for (const obstacle of found) {
-          if (!canCollideObstacle(state, obstacle)) continue;
-          const o = obstacle.box;
-          const gapX = Math.abs(box.x - o.x) - (box.halfWidth + o.halfWidth);
-          const gapY = Math.abs(box.y - o.y) - (box.halfHeight + o.halfHeight);
-          const overlapping = gapX < 0 && gapY < 0;
-          const touching = gapX <= 0 && gapY <= 0 && obstacle.solid && !obstacle.sensor;
-          if (overlapping || touching) recordTouch(state, obstacle.owner, box, o);
-        }
-      }
-      const stateById = new Map(states.map((state) => [state.definition.id, state]));
-      for (const [key, pair] of currentContacts) {
-        const phase = activeContacts.has(key) ? "stay" : "enter";
-        emit({ kind: "contact", entityId: pair.entityId, otherId: pair.otherId, phase, normalX: pair.normalX, normalY: pair.normalY });
-        if (phase !== "enter") {
-          continue;
-        }
-        const state = stateById.get(pair.entityId);
-        const other = stateById.get(pair.otherId);
-        if (!state || !other) {
-          continue;
-        }
-        for (const [actor, target] of [[state, other], [other, state]]) {
-          if (actor.definition.body2d?.type !== "kinematic") {
-            continue;
-          }
-          for (const behavior of target.definition.behaviors) {
-            // Sensors detect contact but never collect, so patrolling hazards leave pickups alone.
-            if (behavior.kind === "collectible" && !actor.definition.collider2d?.sensor && !queuedDespawns.has(target.definition.id)) {
-              queuedDespawns.add(target.definition.id);
-              score += behavior.score;
-              emit({ kind: "collected", entityId: target.definition.id, byId: actor.definition.id, score: behavior.score });
-            } else if (behavior.kind === "trigger") {
-              emit({ kind: "trigger", event: behavior.event, entityId: target.definition.id });
+          // Static bodies with a velocity are moving solids. They move first and carry the bodies that
+          // stand on them; a body in the way is pushed out along the motion.
+          const carries = new Map<EntityState, { dx: number; dy: number; platform: EntityState }>();
+          for (const platform of states) {
+            if (!platform.active || platform.definition.body2d?.type !== "static" || platform.velocityX === 0 && platform.velocityY === 0) {
+              continue;
+            }
+            const dx = platform.velocityX * dt;
+            const dy = platform.velocityY * dt;
+            const riders = kinematic.filter((body) => !carries.has(body) && standsOn(body, platform));
+            platform.x += dx;
+            platform.y += dy;
+            for (const rider of riders) carries.set(rider, { dx, dy, platform });
+            for (const body of kinematic) {
+              const box = colliderBox(body);
+              if (!box || carries.get(body)?.platform === platform || body.definition.collider2d?.sensor) continue;
+              const found: Obstacle[] = [];
+              obstaclesOf(platform, body.x - box.halfWidth, body.y - box.halfHeight, body.x + box.halfWidth, body.y + box.halfHeight, found);
+              for (const obstacle of found) {
+                if (!obstacle.solid || obstacle.sensor || obstacle.oneWay || !canCollideObstacle(body, obstacle)) continue;
+                const o = obstacle.box;
+                if (Math.abs(body.x - o.x) >= box.halfWidth + o.halfWidth - TOUCH_EPSILON ||
+                  Math.abs(body.y - o.y) >= box.halfHeight + o.halfHeight - TOUCH_EPSILON) continue;
+                if (Math.abs(dy) >= Math.abs(dx)) body.y = o.y + Math.sign(dy) * (o.halfHeight + box.halfHeight);
+                else body.x = o.x + Math.sign(dx) * (o.halfWidth + box.halfWidth);
+              }
             }
           }
-        }
-      }
-      for (const [key, pair] of activeContacts) {
-        if (!currentContacts.has(key)) {
-          emit({ kind: "contact", entityId: pair.entityId, otherId: pair.otherId, phase: "exit", normalX: 0, normalY: 0 });
-        }
-      }
-      activeContacts = currentContacts;
-      for (const state of states) {
-        if (queuedDespawns.has(state.definition.id)) {
-          state.active = false;
-        }
-        for (const behavior of state.definition.behaviors) {
-          if (behavior.kind === "winWhenCollected" && !won && score >= behavior.count) {
-            won = true;
-            emit({ kind: "win", score });
+          const moveBody = (state: EntityState, dx: number, dy: number, exclude: EntityState | undefined): { blockedX: number; blockedY: number } => {
+            const collider = state.definition.collider2d;
+            const blocked = { blockedX: 0, blockedY: 0 };
+            if (!collider) return blocked;
+            const halfWidth = collider.width / 2;
+            const halfHeight = collider.height / 2;
+            let remainingX = dx;
+            let remainingY = dy;
+            for (let pass = 0; pass < 2 && (remainingX !== 0 || remainingY !== 0); pass += 1) {
+              const box = { x: state.x, y: state.y, halfWidth, halfHeight };
+              const found: Obstacle[] = [];
+              const minX = state.x - halfWidth + Math.min(0, remainingX);
+              const maxX = state.x + halfWidth + Math.max(0, remainingX);
+              const minY = state.y - halfHeight + Math.min(0, remainingY);
+              const maxY = state.y + halfHeight + Math.max(0, remainingY);
+              for (const other of obstacles) {
+                if (other !== state && other !== exclude) obstaclesOf(other, minX, minY, maxX, maxY, found);
+              }
+              const hits: { obstacle: Obstacle; hit: SweepHit; blocks: boolean }[] = [];
+              for (const obstacle of found) {
+                if (!canCollideObstacle(state, obstacle)) continue;
+                const hit = sweepBox(box, obstacle.box, remainingX, remainingY, obstacle.sensor || collider.sensor);
+                if (!hit) continue;
+                const blocks = obstacle.solid && !obstacle.sensor && !collider.sensor;
+                if (blocks) {
+                  // A face shared with a neighboring tile is inside the wall, so it never stops a body.
+                  if ((obstacle.internal & faceOf(hit)) !== 0) continue;
+                  // A one-way solid stops only a body that falls onto its top from above.
+                  if (obstacle.oneWay && !(hit.normalY > 0 && state.y - halfHeight >= obstacle.box.y + obstacle.box.halfHeight - TOUCH_EPSILON)) continue;
+                }
+                hits.push({ obstacle, hit, blocks });
+              }
+              hits.sort((a, b) => a.hit.time - b.hit.time ||
+                (a.obstacle.owner.definition.id < b.obstacle.owner.definition.id ? -1 : a.obstacle.owner.definition.id > b.obstacle.owner.definition.id ? 1 : 0));
+              const solid = hits.find((item) => item.blocks);
+              const travel = solid?.hit.time ?? 1;
+              for (const { obstacle, hit, blocks } of hits) {
+                if (hit.time > travel) {
+                  break;
+                }
+                if (!blocks || obstacle === solid?.obstacle) {
+                  recordContact(state, obstacle.owner, hit);
+                }
+              }
+              state.x += remainingX * travel;
+              state.y += remainingY * travel;
+              if (!solid) {
+                break;
+              }
+              if (solid.hit.normalX !== 0) blocked.blockedX = solid.hit.normalX;
+              if (solid.hit.normalY !== 0) blocked.blockedY = solid.hit.normalY;
+              remainingX = solid.hit.normalX === 0 ? remainingX * (1 - travel) : 0;
+              remainingY = solid.hit.normalY === 0 ? remainingY * (1 - travel) : 0;
+            }
+            return blocked;
+          };
+          for (const state of kinematic) {
+            if (!state.definition.collider2d) {
+              state.x += state.velocityX * dt;
+              state.y += state.velocityY * dt;
+              continue;
+            }
+            const carry = carries.get(state);
+            if (carry) moveBody(state, carry.dx, carry.dy, carry.platform);
+            const { blockedX, blockedY } = moveBody(state, state.velocityX * dt, state.velocityY * dt, undefined);
+            // A blocked body loses the velocity that pushed into the solid, so gravity cannot build up while resting.
+            if (blockedX * state.velocityX < 0) state.velocityX = 0;
+            if (blockedY * state.velocityY < 0) state.velocityY = 0;
+            const patrol = state.definition.behaviors.find((behavior) => behavior.kind === "patrol");
+            if (patrol?.kind === "patrol" && patrol.axis === "x") {
+              const direction = state.patrolDirection ?? 1;
+              const ledge = patrol.turnAtLedges && touchingOf(state).down && !solidBelowAhead(state, direction);
+              if (blockedX === -direction || ledge) state.patrolDirection = direction === 1 ? -1 : 1;
+            }
           }
+          for (let index = 0; index < states.length; index += 1) {
+            const state = states[index];
+            if (!state.active || state.definition.body2d?.type !== "kinematic") {
+              continue;
+            }
+            for (let otherIndex = index + 1; otherIndex < states.length; otherIndex += 1) {
+              const other = states[otherIndex];
+              if (other.definition.body2d?.type !== "kinematic" || !canCollide(state, other)) {
+                continue;
+              }
+              const stateStart = motionStarts.get(state.definition.id);
+              const otherStart = motionStarts.get(other.definition.id);
+              if (!stateStart || !otherStart) {
+                continue;
+              }
+              const relativeX = (state.x - stateStart.x) - (other.x - otherStart.x);
+              const relativeY = (state.y - stateStart.y) - (other.y - otherStart.y);
+              const atStart = { ...state, x: stateStart.x, y: stateStart.y };
+              const targetAtStart = { ...other, x: otherStart.x, y: otherStart.y };
+              const hit = sweepAabb(atStart, targetAtStart, relativeX, relativeY);
+              if (hit) {
+                recordContact(state, other, hit);
+              }
+            }
+          }
+          const recordTouch = (state: EntityState, other: EntityState, a: Box, b: Box): void => {
+            const horizontalGap = Math.abs(a.x - b.x) - (a.halfWidth + b.halfWidth);
+            const verticalGap = Math.abs(a.y - b.y) - (a.halfHeight + b.halfHeight);
+            const horizontal = horizontalGap >= verticalGap;
+            recordContact(state, other, { time: 0, normalX: horizontal ? Math.sign(a.x - b.x) : 0, normalY: horizontal ? 0 : Math.sign(a.y - b.y) });
+          };
+          for (const state of kinematic) {
+            const box = colliderBox(state);
+            if (!box) {
+              continue;
+            }
+            for (const other of kinematic) {
+              if (state !== other && canCollide(state, other) && overlaps(state, other)) {
+                recordTouch(state, other, box, colliderBox(other)!);
+              }
+            }
+            const found: Obstacle[] = [];
+            for (const other of obstacles) {
+              if (other !== state) obstaclesOf(other, box.x - box.halfWidth, box.y - box.halfHeight, box.x + box.halfWidth, box.y + box.halfHeight, found);
+            }
+            for (const obstacle of found) {
+              if (!canCollideObstacle(state, obstacle)) continue;
+              const o = obstacle.box;
+              const gapX = Math.abs(box.x - o.x) - (box.halfWidth + o.halfWidth);
+              const gapY = Math.abs(box.y - o.y) - (box.halfHeight + o.halfHeight);
+              const overlapping = gapX < 0 && gapY < 0;
+              const touching = gapX <= 0 && gapY <= 0 && obstacle.solid && !obstacle.sensor;
+              if (overlapping || touching) recordTouch(state, obstacle.owner, box, o);
+            }
+          }
+          return currentContacts;
+        },
+        reduceContacts(currentContacts): void {
+          const stateById = new Map(states.map((state) => [state.definition.id, state]));
+          for (const [key, pair] of currentContacts) {
+            const phase = activeContacts.has(key) ? "stay" : "enter";
+            emit({ kind: "contact", entityId: pair.entityId, otherId: pair.otherId, phase, normalX: pair.normalX, normalY: pair.normalY });
+            if (phase !== "enter") {
+              continue;
+            }
+            const state = stateById.get(pair.entityId);
+            const other = stateById.get(pair.otherId);
+            if (!state || !other) {
+              continue;
+            }
+            for (const [actor, target] of [[state, other], [other, state]]) {
+              if (actor.definition.body2d?.type !== "kinematic") {
+                continue;
+              }
+              score = claimGameplayContact(actor, target, {
+                collects: !actor.definition.collider2d?.sensor, activatesTriggers: true
+              }, queues, score, emit);
+            }
+          }
+          for (const [key, pair] of activeContacts) {
+            if (!currentContacts.has(key)) {
+              emit({ kind: "contact", entityId: pair.entityId, otherId: pair.otherId, phase: "exit", normalX: 0, normalY: 0 });
+            }
+          }
+          activeContacts = currentContacts;
+          won = finalizeGameplayEntities(states, queues, score, won, sceneId, tick, events, emit);
+        },
+        commit(): GameStepResult {
+          if (queuedDespawns.size > 0) {
+            // Spawned instances leave the world when despawned; authored entities stay as inactive state.
+            states = states.filter((state) => {
+              if (!state.sourceId || !queuedDespawns.has(state.definition.id)) return true;
+              state.definition.behaviors.forEach((behavior, index) => {
+                if (behavior.kind === "script") delete scriptState[scriptSourceKey(scene.id, state.definition.id, index)];
+              });
+              return false;
+            });
+          }
+          if (states.filter((state) => state.sourceId).length + queuedSpawns.length > MAX_SPAWNED_INSTANCES) {
+            failed = true;
+            throw new Error(`Game spawned instance limit exceeded (${MAX_SPAWNED_INSTANCES})`);
+          }
+          for (const spawn of queuedSpawns) {
+            const prefabId = spawn.prefabId;
+            const source = scene.entities.find((entity) => entity.id === prefabId && entity.templateOnly);
+            if (!source) {
+              throw new Error(`Missing spawn template ${prefabId}`);
+            }
+            spawnSequence += 1;
+            const sourceState = states.find((state) => state.definition.id === source.id);
+            if (!sourceState) throw new Error(`Missing spawn template state ${source.id}`);
+            const spawned = initialState({ ...source, id: `${prefabId}#${spawnSequence}`, templateOnly: false }, sourceState, tick + 1);
+            if (spawn.x !== undefined) spawned.x = spawned.previousX = spawn.x;
+            if (spawn.y !== undefined) spawned.y = spawned.previousY = spawn.y;
+            if (spawn.velocityX !== undefined) spawned.velocityX = spawn.velocityX;
+            if (spawn.velocityY !== undefined) spawned.velocityY = spawn.velocityY;
+            states.push({ ...spawned, sourceId: prefabId });
+          }
+          if (queues.transitionTo) {
+            const nextScene = document.scenes.find((candidate) => candidate.id === queues.transitionTo);
+            if (!nextScene) {
+              throw new Error(`Missing scene ${queues.transitionTo}`);
+            }
+            scene = nextScene;
+            sceneId = nextScene.id;
+            music = nextScene.music ? {
+              voiceId: `scene:${sceneId}:music`, assetId: nextScene.music.assetId, startTick: tick + 1,
+              volume: nextScene.music.volume, fadeInTicks: nextScene.music.fadeInTicks, fadeOutTicks: nextScene.music.fadeOutTicks
+            } : null;
+            states = initialSceneStates(nextScene, tick + 1);
+            activeContacts = new Map();
+            spawnSequence = 0;
+            scriptState = {};
+            hud = new Map();
+            emit({ kind: "sceneTransition", sceneId });
+          }
+          previousEvents = structuredClone(events);
+          rngState = advanceGameplayRandom(rngState);
+          tick += 1;
+          const result: GameStepResult = { tick, events, frame: frameFor(document, scene, states, tick, score, won, hud) };
+          if (scriptStats) {
+            return { ...result, scriptStats };
+          }
+          return result;
         }
-        const audio = state.definition.audioSource;
-        if (audio && events.some((event) => (event.kind === audio.onEvent && (event.kind !== "collected" || event.entityId === state.definition.id)) ||
-          (event.kind === "trigger" && event.event === audio.onEvent))) {
-          emit({ kind: "audio", action: "start", assetId: audio.assetId,
-            voiceId: `effect:${sceneId}:${state.definition.id}:${tick + 1}:${events.length}`,
-            loop: false, volume: audio.volume, fadeInTicks: 0, fadeOutTicks: 0 });
-        }
-      }
-      if (queuedDespawns.size > 0) {
-        // Spawned instances leave the world when despawned; authored entities stay as inactive state.
-        states = states.filter((state) => {
-          if (!state.sourceId || !queuedDespawns.has(state.definition.id)) return true;
-          state.definition.behaviors.forEach((behavior, index) => {
-            if (behavior.kind === "script") delete scriptState[scriptSourceKey(scene.id, state.definition.id, index)];
-          });
-          return false;
-        });
-      }
-      if (states.filter((state) => state.sourceId).length + queuedSpawns.length > MAX_SPAWNED_INSTANCES) {
-        failed = true;
-        throw new Error(`Game spawned instance limit exceeded (${MAX_SPAWNED_INSTANCES})`);
-      }
-      for (const spawn of queuedSpawns) {
-        const prefabId = spawn.prefabId;
-        const source = scene.entities.find((entity) => entity.id === prefabId && entity.templateOnly);
-        if (!source) {
-          throw new Error(`Missing spawn template ${prefabId}`);
-        }
-        spawnSequence += 1;
-        const sourceState = states.find((state) => state.definition.id === source.id);
-        if (!sourceState) throw new Error(`Missing spawn template state ${source.id}`);
-        const spawned = initialState({ ...source, id: `${prefabId}#${spawnSequence}`, templateOnly: false }, sourceState, tick + 1);
-        if (spawn.x !== undefined) spawned.x = spawned.previousX = spawn.x;
-        if (spawn.y !== undefined) spawned.y = spawned.previousY = spawn.y;
-        if (spawn.velocityX !== undefined) spawned.velocityX = spawn.velocityX;
-        if (spawn.velocityY !== undefined) spawned.velocityY = spawn.velocityY;
-        states.push({ ...spawned, sourceId: prefabId });
-      }
-      if (transitionTo) {
-        const nextScene = document.scenes.find((candidate) => candidate.id === transitionTo);
-        if (!nextScene) {
-          throw new Error(`Missing scene ${transitionTo}`);
-        }
-        scene = nextScene;
-        sceneId = nextScene.id;
-        music = nextScene.music ? {
-          voiceId: `scene:${sceneId}:music`, assetId: nextScene.music.assetId, startTick: tick + 1,
-          volume: nextScene.music.volume, fadeInTicks: nextScene.music.fadeInTicks, fadeOutTicks: nextScene.music.fadeOutTicks
-        } : null;
-        states = initialSceneStates(nextScene, tick + 1);
-        activeContacts = new Map();
-        spawnSequence = 0;
-        scriptState = {};
-        hud = new Map();
-        emit({ kind: "sceneTransition", sceneId });
-      }
-      previousEvents = structuredClone(events);
-      rngState = (Math.imul(1664525, rngState) + 1013904223) >>> 0;
-      tick += 1;
-      const result: GameStepResult = { tick, events, frame: frameFor(document, scene, states, tick, score, won, hud) };
-      if (scriptStats) {
-        return { ...result, scriptStats };
-      }
-      return result;
-    } catch (error) {
-      failed = true;
-      throw error;
-    }
+      });
+    }, () => { failed = true; }, eventSink);
   }
 
   return {

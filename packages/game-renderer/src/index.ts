@@ -42,3 +42,6 @@ export interface GameRenderer {
   invalidateAsset(assetId: string): void;
   dispose(): void;
 }
+
+export { FixedTickClock } from "./fixed-tick-host.js";
+export { GameInput3D } from "./input3d.js";

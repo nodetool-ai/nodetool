@@ -7,8 +7,8 @@ const revision: JsonSchema = { type: "string", description: "Full immutable game
 export const gameSpecs: readonly CapabilitySpec[] = [
   {
     name: "create_native_game",
-    description: "Create a built-in game in an owned project and seed a playable top-down room. Returns its full id and revision.",
-    inputSchema: { type: "object", properties: { project_id: { type: "string" }, name: { type: "string" } }, required: ["project_id", "name"] },
+    description: "Create a built-in 2D top-down room or 3D exploration blockout in an owned project. Omitted dimension keeps 2D. Returns its full id and revision.",
+    inputSchema: { type: "object", properties: { project_id: { type: "string" }, name: { type: "string" }, dimension: { type: "string", enum: ["2d", "3d"] }, template: { type: "string", enum: ["topdown", "exploration"] } }, required: ["project_id", "name"] },
     category: "write",
     userMessage: () => "Creating game"
   },
@@ -35,8 +35,8 @@ export const gameSpecs: readonly CapabilitySpec[] = [
   },
   {
     name: "playtest_native_game",
-    description: "Run up to 18,000 ticks of a draft or revision with run-length inputs, assertions, contact counts, and optional captured frames. Use a win assertion to verify a completion route.",
-    inputSchema: { type: "object", properties: { game_id: id, source: { type: "string", enum: ["draft", "revision"] }, revision, seed: { type: "number" }, inputs: { type: "array", items: { type: "object", properties: { pressed: { type: "array", items: { type: "string" } }, justPressed: { type: "array", items: { type: "string" } }, ticks: { type: "integer", minimum: 1 } }, required: ["pressed"] } }, assertions: { type: "array", items: { type: "object" } }, capture_ticks: { type: "array", items: { type: "integer", minimum: 0 }, maxItems: 8 } }, required: ["game_id"] },
+    description: "Run up to 18,000 ticks of a draft or revision with run-length inputs, assertions, contact counts, and optional captured frames. Use a win assertion to verify a completion route. 3D inputs accept axes/look, and assertions support XYZ near, region, grounded and replay_matches with restore_at_tick.",
+    inputSchema: { type: "object", properties: { game_id: id, source: { type: "string", enum: ["draft", "revision"] }, revision, seed: { type: "number" }, inputs: { type: "array", items: { type: "object", properties: { pressed: { type: "array", items: { type: "string" } }, justPressed: { type: "array", items: { type: "string" } }, axes: { type: "object", additionalProperties: { type: "number", minimum: -1, maximum: 1 } }, look: { type: "object", properties: { x: { type: "number" }, y: { type: "number" } }, required: ["x", "y"] }, ticks: { type: "integer", minimum: 1 } }, required: ["pressed"] } }, assertions: { type: "array", items: { type: "object" } }, capture_ticks: { type: "array", items: { type: "integer", minimum: 0 }, maxItems: 8 }, snapshot: { type: "object" }, restore_at_tick: { type: "integer", minimum: 0, maximum: 18000 } }, required: ["game_id"] },
     category: "execute",
     userMessage: () => "Playtesting game"
   },
@@ -50,7 +50,7 @@ export const gameSpecs: readonly CapabilitySpec[] = [
   {
     name: "edit_native_game",
     description: "Apply ordered native game edits to the mutable draft atomically. Use set_document with a complete document for a generated level. Returns validation issues with op index and path; does not publish a revision.",
-    inputSchema: { type: "object", properties: { game_id: id, base_updated_at: { type: "string" }, ops: { type: "array", items: { type: "object" }, minItems: 1 } }, required: ["game_id", "ops"] },
+    inputSchema: { type: "object", properties: { game_id: id, base_updated_at: { type: "string" }, ops: { type: "array", items: { type: "object" }, minItems: 1, description: "3D prefab operations: set_prefab {prefab_id, prefab}, remove_prefab {prefab_id}, instantiate_prefab {scene_id, prefab_id, instance_id, transform?}. Each prefab contains rootId, entities, externalAssets and externalScenes." } }, required: ["game_id", "ops"] },
     category: "write",
     userMessage: () => "Editing game draft"
   },
@@ -63,8 +63,8 @@ export const gameSpecs: readonly CapabilitySpec[] = [
   },
   {
     name: "generate_game_asset",
-    description: "Generate or import game assets, prepare images as aligned sprite sheets, edge tilesets, or grade LUTs, and bind the result to a draft. Audio is speech, music is a music model, sfx uses an explicit sound-effect node_type and params, and font imports a TTF/OTF input_file. For background media generations, resume with generation_id and the same preparation.",
-    inputSchema: { type: "object", properties: { game_id: id, slot: { type: "string" }, kind: { type: "string", enum: ["image", "audio", "music", "sfx", "font"] }, prompt: { type: "string" }, input_file: { type: "string", description: "Owned asset URI or current workspace path to import. Required for font." }, node_type: { type: "string", description: "Registered sound-effect node for sfx generation." }, params: { type: "object" }, reference_slot: { type: "string" }, preparation: { type: "object" }, provider: { type: "string" }, model: { type: "string" }, background: { type: "boolean" }, generation_id: { type: "string" } }, required: ["game_id", "slot", "kind"] },
+    description: "Generate or import game assets, prepare images as aligned sprite sheets, edge tilesets, or grade LUTs, and bind the result to a draft. Audio is speech, music is a music model, sfx uses an explicit sound-effect node_type and params, and font imports a TTF/OTF input_file. For 3D model generation, pass an explicit provider node_type and params or an owned glTF/GLB input_file. Model import preparation accepts scale, forward (-z, +z, +x, -x), and origin (preserve, ground, centerGround). Source dependencies resolve from sibling workspace files or dependency_files mappings to owned files/assets. Collider imports use preparation.shape and accept prepared JSON or glTF/GLB geometry. 3D results are verified candidates requiring explicit install_native_game_asset. For background media generations, resume with generation_id and the same preparation.",
+    inputSchema: { type: "object", properties: { game_id: id, slot: { type: "string" }, kind: { type: "string", enum: ["image", "audio", "music", "sfx", "font", "model", "collider"] }, prompt: { type: "string" }, input_file: { type: "string", description: "Owned asset URI or current workspace path to import. Required for font." }, node_type: { type: "string", description: "Registered provider node for sfx or model generation." }, params: { type: "object" }, dependency_files: { type: "object", additionalProperties: { type: "string" }, description: "Map a glTF buffer/image URI to an owned asset URI or current workspace path." }, reference_slot: { type: "string" }, preparation: { type: "object" }, provider: { type: "string" }, model: { type: "string" }, background: { type: "boolean" }, generation_id: { type: "string" } }, required: ["game_id", "slot", "kind"] },
     category: "write",
     userMessage: () => "Generating game asset"
   },
@@ -91,7 +91,7 @@ export const gameSpecs: readonly CapabilitySpec[] = [
   },
   {
     name: "autoplay_native_game",
-    description: "Search for a deterministic route to an entity prefix or a win using standard movement controls. Returns replayable run-length inputs, win tick, and level statistics. An exhausted budget is inconclusive. Custom controls and scripted goals may need a target prefix or a supplied route.",
+    description: "Search for a deterministic route to an entity prefix or a win using standard movement controls. Returns replayable run-length inputs, win tick, and level statistics. An exhausted budget is inconclusive. Custom controls and scripted goals may need a target prefix or a supplied route. 3D returns structured unsupported; use recorded playtest inputs.",
     inputSchema: { type: "object", properties: { game_id: id, source: { type: "string", enum: ["draft", "revision"] }, revision, target_prefix: { type: "string" }, win: { type: "boolean" }, seed: { type: "integer" }, player_id: { type: "string" }, max_ticks: { type: "integer", minimum: 1, maximum: 18000 } }, required: ["game_id"] },
     category: "execute",
     userMessage: () => "Finding a game route"

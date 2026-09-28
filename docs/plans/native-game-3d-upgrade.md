@@ -1,7 +1,10 @@
 # Native game engine: 3D upgrade
 
-Status: proposed architecture. This document records source inspection and design
-decisions. It does not claim an implemented or benchmarked 3D runtime.
+This design defines the explicit schema version 3 native game implementation.
+The [runtime contract](../../packages/game-runtime/README.md) and
+[renderer contract](../../packages/game-renderer/README.md) describe its public
+entry points and verification fixtures. Hardware performance targets below
+remain unmeasured.
 
 Extends the [built-in engine design](builtin-game-engine-design.md) and
 [game editor design](native-game-editor.md).
@@ -34,7 +37,7 @@ packaging. Also defer general inventory/combat systems, nested prefab variants,
 and new built-in damage/death mechanics. Mixed 2D/3D worlds are outside this
 release. Screen-space HUD and billboards do not require a second physics world.
 
-## What the source supports today
+## Baseline source findings
 
 | Finding | Evidence | Consequence |
 | --- | --- | --- |

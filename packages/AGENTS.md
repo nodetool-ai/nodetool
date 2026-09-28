@@ -36,7 +36,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/storyboard` | Storyboard derivations — `recastStoryboard`, `planShotRenders`, and the one render path under `io/` |
 | `@nodetool-ai/game-nodes` | Native game asset nodes — read template slots, prompt and check assets, stage candidates |
 | `@nodetool-ai/game-runtime` | Deterministic built-in game simulation, validation, and sample |
-| `@nodetool-ai/game-renderer` | Native 2D rendering, headless capture, and standalone web export |
+| `@nodetool-ai/game-renderer` | Native 2D and 3D rendering, headless capture, and standalone web export |
 | `@nodetool-ai/app-runtime` | Mini-app document, bindings, instance state, and the streaming fold — dependency-free, shared by web, mobile, and `app debug` ([README](app-runtime/README.md)) |
 
 ## Package Overlays
