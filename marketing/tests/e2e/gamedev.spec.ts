@@ -22,14 +22,13 @@ test("the game page loads each playable example only on request", async ({ page 
     await expect(player.locator("#status")).toContainText("Ready", { timeout: 30_000 });
     await player.locator("canvas").click();
     await page.keyboard.press("Space");
-    await expect.poll(async () => {
-      await player.getByRole("button", { name: "Save", exact: true }).click();
-      return player.locator("canvas").evaluate((element, slug) => {
-        const storage = element.ownerDocument.defaultView?.localStorage;
-        const key = Object.keys(storage ?? {}).find((entry) => entry.startsWith(`nodetool-game:${slug}:`));
-        return key && storage ? JSON.parse(storage.getItem(key) ?? "{}").sceneId : undefined;
-      }, game.slug);
-    }).toBe(game.scene);
+    await player.getByRole("button", { name: "Save", exact: true }).click();
+    const savedScene = await player.locator("canvas").evaluate((element, slug) => {
+      const storage = element.ownerDocument.defaultView?.localStorage;
+      const key = Object.keys(storage ?? {}).find((entry) => entry.startsWith(`nodetool-game:${slug}:`));
+      return key && storage ? JSON.parse(storage.getItem(key) ?? "{}").sceneId : undefined;
+    }, game.slug);
+    expect(savedScene).toBe(game.scene);
     await expect(section.getByRole("link", { name: "Open full game" })).toHaveAttribute("href", `/games/${game.slug}/index.html`);
     await section.getByRole("button", { name: "Stop game", exact: true }).click();
     await expect(section.locator("iframe")).toHaveCount(0);
