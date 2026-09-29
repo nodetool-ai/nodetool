@@ -2020,7 +2020,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_example_timeline",
     module: "example-timelines",
     impl: "packages/agents/src/capabilities/example-timelines.ts",
-    contract: "cc73934a536d",
+    contract: "2bc26c013376",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-example-timelines.test.ts",
