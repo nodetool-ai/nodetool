@@ -73,9 +73,9 @@ claims, not next to them. On the homepage they are one strip of links to
 ## Order of the page
 
 Hero → **the agent builds the project** (a brief, then a board, takes, and a cut
-that opens) → the three steps (Pitch / Automate / Direct) → the editors, framed
-as control over that project → finished films with their editable timelines →
-recipes for related production work → **every model, your keys** → **apps for everything** →
+that opens) → the editors, framed as control over that project → finished films
+with their editable timelines → recipes for related production work → **every
+model, your keys** → **apps for everything** →
 ownership → **build the workflows that work for you** → comparison → Studio vs
 Cloud → ways in → FAQ → community → download.
 
@@ -295,6 +295,3 @@ Beyond [docs/WRITING_STYLE.md](../docs/WRITING_STYLE.md) and
   the agent. See the avoid table in `BRAND.md`.
 - No "magic", "revolutionary", "seamless", "powerful", "unlock", "empower". If a
   sentence survives its own deletion, delete it.
-- The three steps are the creator's verbs and the agent's in one voice: you
-  pitch, the agent automates, you direct. The visual under each step shows the
-  film story (a board, stills, a cut), never a generic node chain.
