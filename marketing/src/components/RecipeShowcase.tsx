@@ -9,8 +9,7 @@ const HOMEPAGE_RECIPE_ORDER = [
   "viral-video-ad-engine",
   "impossible-product-worlds",
   "ecommerce-sku-visual-factory",
-  "multilingual-video-dubber",
-  "storyboard-to-trailer"
+  "multilingual-video-dubber"
 ];
 
 interface RecipeShowcaseProps {
@@ -42,7 +41,7 @@ export default function RecipeShowcase({ compact = false }: RecipeShowcaseProps)
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-300">
             {compact
               ? "Follow a recipe for product images, dubbed video, or a storyboard."
-              : "Ads, catalogue images, dubbed videos, and storyboards. Start with an example."}
+              : "Ads, catalogue images, and dubbed videos. Start with an example."}
           </p>
         </div>
         {!compact && projects[0] && <RecipeCard recipe={projects[0]} featured />}

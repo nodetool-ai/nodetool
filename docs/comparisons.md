@@ -1,85 +1,156 @@
 ---
 layout: page
-title: "Why NodeTool: Comparisons vs ComfyUI, n8n & More"
+title: "Why NodeTool"
 description: "Why NodeTool exists, what makes it unique, and how it compares to ComfyUI, Dify, Flowise, Langflow, n8n, and Figma Weave (formerly Weavy)."
 ---
 
-> NodeTool is the open-source agent-first creative workspace. It combines every major model, lets you use your own API keys, and puts everything on one simple canvas.
+<p class="why-lead">
+  NodeTool is an open-source, agent-first creative workspace. Tell the agent
+  what to make. It builds the project with image, video, audio, and text models,
+  and you edit every part of the result.
+</p>
 
-Just tell the built-in AI agent what you want to make. It will automatically build a workflow for you using image, video, audio, and text models working together. After it's built, you can easily change it yourself. You can use your own API keys, or run everything locally on your computer. It is completely open source (AGPL-3.0).
+<div class="why-versus">
+  <div class="why-path why-path-old">
+    <p class="why-path-label">The usual way</p>
+    <ol class="why-chain">
+      <li>Write the idea in a chat app</li>
+      <li>Generate stills in an image app</li>
+      <li>Animate them in a video app</li>
+      <li>Cut them with music in an editor</li>
+    </ol>
+    <p class="why-path-foot">Four subscriptions, a downloads folder, and no record of the steps. One change means doing it all again.</p>
+  </div>
+  <div class="why-path why-path-new">
+    <p class="why-path-label">With NodeTool</p>
+    <ol class="why-chain">
+      <li>Write one brief</li>
+      <li>The agent drafts, boards, renders, and cuts</li>
+      <li>Open the project and change any part</li>
+    </ol>
+    <p class="why-path-foot">One project on your own keys. Every step stays editable and re-runnable.</p>
+  </div>
+</div>
 
-Imagine you want to make a short product video. Usually, you write ideas in ChatGPT. Then you make images in another app like Flux and download them one by one. Next, you upload those images to a video app, download the videos, and finally mix them with music in a different video editor. That means paying for four different subscriptions, dealing with messy downloads folders, and manually remembering all the steps if you ever want to change something.
+## The agent builds. You stay in control.
 
-These other tools are great, but they don't work together easily:
+<div class="why-agent">
+  <div class="why-agent-media">
+    <video muted loop playsinline autoplay preload="metadata"
+      poster="https://nodetool.ai/agent-redo-poster-960.webp"
+      aria-label="The agent renders a six-shot storyboard. A one-line note sends shot 3 back for night, and only that shot renders again.">
+      <source src="https://nodetool.ai/agent-redo.webm" type="video/webm">
+      <source src="https://nodetool.ai/agent-redo.mp4" type="video/mp4">
+    </video>
+  </div>
+  <ul class="why-points">
+    <li><strong>No programming needed.</strong> The agent picks the models, connects them, runs them, and fixes errors it finds.</li>
+    <li><strong>Nothing is hidden.</strong> What it builds is an ordinary storyboard, timeline, or graph. Open it, swap a model, rewire a step, and run again.</li>
+    <li><strong>Send a note, not a restart.</strong> Ask for a change to one shot and only that shot renders again.</li>
+    <li><strong>Agents inside workflows.</strong> Put an agent node in your own graph to plan, decide, and call tools.</li>
+  </ul>
+</div>
 
-- **Too many different apps.** You have to constantly download and upload files between different websites.
-- **Extra costs.** Hosted AI tools often charge you 2-5x more for the same AI models.
-- **Local tools can be limited.** Tools like ComfyUI are great for images but not as good for text or other tasks.
-- **Hard to recreate.** Your steps are scattered across chat history and screenshots.
-- **Privacy is all or nothing.** You usually have to send everything to a company or do everything locally. It's hard to mix both.
+## What you keep
 
-## Everything on one canvas
+<div class="why-own-grid">
+  <article class="why-own">
+    <span class="why-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg></span>
+    <h3>Bring your own keys</h3>
+    <p>Connect OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, and the video specialists. Keys stay on your disk in Studio and encrypted in Cloud.</p>
+  </article>
+  <article class="why-own">
+    <span class="why-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg></span>
+    <h3>No markups</h3>
+    <p>If an image costs $0.03 at the provider, you pay $0.03 to the provider. No credit packs. NodeTool takes no cut.</p>
+  </article>
+  <article class="why-own">
+    <span class="why-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg></span>
+    <h3>A project file that opens anywhere</h3>
+    <p>The board, the script with its takes, and the multi-track cut are ordinary files on your disk. Export a <code>.nodetool</code> bundle and open it anywhere.</p>
+  </article>
+  <article class="why-own">
+    <span class="why-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg></span>
+    <h3>Open source, end to end</h3>
+    <p>Studio and Cloud are built from the same AGPL-3.0 source, with no paywalled features. Read it, fork it, or host it yourself.</p>
+  </article>
+</div>
 
-NodeTool fixes this:
+<aside class="why-callout">
+  <p class="why-callout-kicker">Where NodeTool fits</p>
+  <h3>Pick the model. Pick the price.</h3>
+  <p>
+    Take Seedance, one of today's best video models. FAL, Replicate, and KIE
+    each sell it at a different price, and NodeTool lets you pick the cheapest.
+    When the next Veo or Kling arrives, you switch in one click.
+  </p>
+  <p>
+    That is what holding the keys buys you: the best model at the best price
+    each week, and nothing to lose if a tool gets bought, repriced, or shut down.
+  </p>
+</aside>
 
-**An AI assistant that builds the tools for you.** Tell it what you need, and it picks the right models and connects them for you. Instead of just giving you instructions, it gives you a ready-to-use tool.
+## An open studio and a hosted platform
 
-**You are in control.** The AI builds a visual graph of steps. You can open it, change how things connect, swap out models, and run it again.
+<div class="why-table" role="region" aria-label="NodeTool compared with a hosted AI platform" tabindex="0">
+  <table>
+    <thead>
+      <tr><th scope="col"><span class="visually-hidden">Topic</span></th><th scope="col">NodeTool</th><th scope="col">Hosted platforms</th></tr>
+    </thead>
+    <tbody>
+      <tr><th scope="row">Models</th><td>Every major provider, switched in one click</td><td>The list they picked</td></tr>
+      <tr><th scope="row">When a better model ships</th><td>Add it the day it ships</td><td>Wait for them to add it</td></tr>
+      <tr><th scope="row">What you pay</th><td>Provider list prices, on your own keys</td><td>Their credits</td></tr>
+      <tr><th scope="row">What you keep</th><td>The board, the takes, and the multi-track cut as an editable project</td><td>An exported video. The project stays in their app.</td></tr>
+      <tr><th scope="row">Source</th><td>Open, AGPL-3.0</td><td>Closed</td></tr>
+      <tr><th scope="row">Where it runs</th><td>Desktop app and browser, self-host any time</td><td>Their servers only</td></tr>
+      <tr><th scope="row">Local models</th><td>Run on your own GPU in Studio, offline</td><td>Not available</td></tr>
+    </tbody>
+  </table>
+</div>
 
-**You pay the real price.** Use your own keys for OpenAI, Anthropic, Replicate, ElevenLabs, and more. You pay exactly what they charge, with no extra fees. You can also mix local and cloud models easily.
+## Head-to-head
 
-## You don't have to be a programmer
+Comparing NodeTool with a specific tool? Each page covers features, pricing, and when to pick which.
 
-NodeTool is designed for the AI to help you. The AI assistant can use all the tools in NodeTool to build your project. It can even check its own work and fix errors if something goes wrong while running.
+<div class="why-vs-grid">
+  <a class="why-vs" href="https://nodetool.ai/alternatives/comfyui">
+    <h3>ComfyUI</h3>
+    <p>Deep local image control. NodeTool adds video, audio, and text, and runs an exported ComfyUI graph as a node.</p>
+  </a>
+  <a class="why-vs" href="https://nodetool.ai/alternatives/figma-weave">
+    <h3>Figma Weave (Weavy)</h3>
+    <p>A hosted canvas on credits. NodeTool is open source and runs on your own keys.</p>
+  </a>
+  <a class="why-vs" href="https://nodetool.ai/alternatives/n8n">
+    <h3>n8n</h3>
+    <p>Connects business apps. NodeTool is built for creative AI and media generation.</p>
+  </a>
+  <a class="why-vs" href="https://nodetool.ai/alternatives/dify">
+    <h3>Dify</h3>
+    <p>Mostly text apps. NodeTool adds native image, video, and music generation.</p>
+  </a>
+  <a class="why-vs" href="https://nodetool.ai/alternatives/flowise">
+    <h3>Flowise</h3>
+    <p>Chatbots on a canvas. NodeTool builds those too, next to media generation.</p>
+  </a>
+  <a class="why-vs" href="https://nodetool.ai/alternatives/langflow">
+    <h3>Langflow</h3>
+    <p>Text pipelines. NodeTool adds image, video, and music on the same canvas.</p>
+  </a>
+</div>
 
-You can also add an AI Agent as a step inside your own workflows to help make decisions or process information.
-
-## Head-to-head comparisons
-
-Read our full guides on how NodeTool compares to other tools:
-
-- [NodeTool vs ComfyUI](https://nodetool.ai/vs/comfyui) — NodeTool supports image, video, audio, and text all in one place, while ComfyUI focuses mostly on images.
-- [NodeTool vs Dify](https://nodetool.ai/vs/dify) — Dify is mostly for text apps, while NodeTool adds native image, video, and music creation.
-- [NodeTool vs Flowise](https://nodetool.ai/vs/flowise) — NodeTool lets you build chat bots like Flowise, but also includes media creation on the same canvas.
-- [NodeTool vs Langflow](https://nodetool.ai/vs/langflow) — NodeTool goes beyond Langflow's text features to include image, video, and music generation.
-- [NodeTool vs n8n](https://nodetool.ai/vs/n8n) — n8n connects different business apps, while NodeTool is designed for creative AI and generating media.
-- [NodeTool vs Weavy](https://nodetool.ai/vs/weavy) — NodeTool is open source and lets you use your own keys, without locking you into a subscription.
-- [NodeTool vs Figma Weave](https://nodetool.ai/vs/figma-weave) — Figma Weave is a paid service, while NodeTool is open source and gives you full control.
-
-## Feature Comparison
-
-| Feature                        | NodeTool                                        | Figma Weave (formerly Weavy) | ComfyUI                                  |
-| ------------------------------ | ----------------------------------------------- | ---------------------------- | ---------------------------------------- |
-| **Category**                   | Agent-first creative workspace                      | Closed SaaS creative canvas  | Image-focused node editor                |
-| **License**                    | AGPL-3.0 (open source)                          | Proprietary SaaS             | GPL-3.0 (open source)                    |
-| **Runs on your machine**       | ✅ Mac, Windows, Linux desktop                  | ❌ Browser-only, hosted      | ✅ Local-first                           |
-| **Bring your own keys (BYOK)** | ✅ Use your own API keys for all providers      | ❌ Credits only, extra fees  | ⚠️ Hard to use cloud APIs                |
-| **Pricing model**              | Pay providers directly, no extra fees           | Buy proprietary credits      | Free (you pay for your own hardware/API) |
-| **Model coverage**             | Image, video, audio, text, voice                | Image, video, audio          | Image and video                          |
-| **Image generation**           | Local models and Cloud APIs                     | Cloud models only            | Deep control over local models           |
-| **Video generation**           | Local models and Cloud APIs                     | Cloud models only            | Local video models                       |
-| **Audio & music**              | Local models and Cloud APIs                     | Cloud models only            | ⚠️ Requires extra plugins                |
-| **Text & Voice**               | Local models and Cloud APIs                     | Cloud only                   | ⚠️ Requires extra plugins                |
-| **AI assistant editor**        | ✅ AI can build and fix workflows for you       | ❌                           | ❌                                       |
-| **LLMs & AI agents**           | Built-in text AI and agents                     | Limited text AI              | ⚠️ Requires extra plugins                |
-| **Mini-apps**                  | ✅ Turn a workflow into a simple user interface | ⚠️ Share as template only    | ❌                                       |
-| **Source available**           | ✅ Full source on GitHub                        | ❌                           | ✅ Full source on GitHub                 |
-
-### When to pick each tool
-
-**NodeTool** — Choose NodeTool when you want to use image, video, audio, and text models together in one place, without extra fees, and want an AI assistant to help build it.
-
-**Figma Weave** (formerly Weavy) — Choose this if you want a paid, hosted product that works well within Figma and you don't mind paying extra for credits.
-
-**ComfyUI** — Choose this if you are a power user who wants total, complex control over how images are generated locally.
-
-The last one is not exclusive. NodeTool runs an exported ComfyUI workflow as a
-node, so a graph you already tuned keeps working while text, audio, and video
-steps happen around it. See [ComfyUI](comfyui.md).
-
----
+Already have a tuned ComfyUI graph? It keeps working inside NodeTool. See [ComfyUI](comfyui.md).
 
 ## Next steps
 
-- [Quick Start](getting-started.md) — install and run your first workflow in minutes.
-- [Models & Providers](models-and-providers.md) — a list of every model NodeTool supports.
+<div class="why-next">
+  <a class="why-next-card" href="{{ '/getting-started' | relative_url }}">
+    <strong>Quick Start →</strong>
+    <span>Install NodeTool and run your first project in minutes.</span>
+  </a>
+  <a class="why-next-card" href="{{ '/models-and-providers' | relative_url }}">
+    <strong>Models &amp; Providers →</strong>
+    <span>Every model NodeTool supports, and how to connect a key.</span>
+  </a>
+</div>

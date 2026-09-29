@@ -1,0 +1,4005 @@
+[
+  {
+    "id": "R01",
+    "title": "Kinetic offer wall",
+    "implementation_priority": "P0",
+    "engine_fit": "native_2d",
+    "objective": "Make one legitimate offer readable while showing the product range.",
+    "duration_ms": 10000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "3\u20135 transparent product cutouts",
+      "Approved offer, end date and terms",
+      "Brand logo; licensed music optional"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Solid background",
+      "Repeating offer typography",
+      "Product cutouts",
+      "Primary offer line",
+      "Terms and CTA"
+    ],
+    "visual_invariant": "The offer is the hero; repetition creates texture but never competes with the readable offer.",
+    "layout": {
+      "headline_box": [
+        0.09,
+        0.14,
+        0.8,
+        0.21
+      ],
+      "product_box": [
+        0.18,
+        0.39,
+        0.62,
+        0.32
+      ],
+      "cta_box": [
+        0.12,
+        0.72,
+        0.7,
+        0.08
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 1500,
+        "role": "hook",
+        "composition": "Oversized offer occupies the upper-middle canvas; one pack is already visible.",
+        "motion": "Word-staggered entrance, 75 ms offset; 260 ms per word; background rows drift 0.08 canvas widths.",
+        "copy_slot": "offer_short",
+        "audio_cue": "One soft downbeat.",
+        "qa": "Offer readable by 500 ms; no empty opening.",
+        "illustration_asset_id": "R01-B01",
+        "id": "R01-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 45
+      },
+      {
+        "start_ms": 1500,
+        "end_ms": 4000,
+        "role": "range",
+        "composition": "Three products share a consistent center and baseline.",
+        "motion": "Cut to a new pack every 500\u2013750 ms. Each enters 0.12 widths over 240 ms, overshoot <=6%.",
+        "copy_slot": "collection_label",
+        "audio_cue": "Small ticks on swaps.",
+        "qa": "No scaling of legal text; cutout edges clean.",
+        "illustration_asset_id": "R01-B02",
+        "id": "R01-B02",
+        "start_frame": 45,
+        "end_frame_exclusive": 120
+      },
+      {
+        "start_ms": 4000,
+        "end_ms": 6500,
+        "role": "benefit",
+        "composition": "Hero product grows while repeated copy recedes.",
+        "motion": "Slide background text off; product scale 1.00\u21921.08; benefit pops once.",
+        "copy_slot": "benefit_short",
+        "audio_cue": "Music continues; no new competing cue.",
+        "qa": "One benefit only; offer remains understandable muted.",
+        "illustration_asset_id": "R01-B03",
+        "id": "R01-B03",
+        "start_frame": 120,
+        "end_frame_exclusive": 195
+      },
+      {
+        "start_ms": 6500,
+        "end_ms": 8500,
+        "role": "proof_of_offer",
+        "composition": "Offer, eligible product range and end date become a stable card.",
+        "motion": "180 ms fade for supporting line; otherwise hold.",
+        "copy_slot": "offer_terms",
+        "audio_cue": "No transient covering speech.",
+        "qa": "Actual client terms, not unapproved terms.",
+        "illustration_asset_id": "R01-B04",
+        "id": "R01-B04",
+        "start_frame": 195,
+        "end_frame_exclusive": 255
+      },
+      {
+        "start_ms": 8500,
+        "end_ms": 10000,
+        "role": "cta",
+        "composition": "Stable brand/product/CTA lockup.",
+        "motion": "CTA settles within 200 ms; hold the remaining time.",
+        "copy_slot": "cta",
+        "audio_cue": "Resolve, then quiet tail.",
+        "qa": "Final frame complete; no fade to black.",
+        "illustration_asset_id": "R01-B05",
+        "id": "R01-B05",
+        "start_frame": 255,
+        "end_frame_exclusive": 300
+      }
+    ],
+    "variables": [
+      "offer_text",
+      "product_order",
+      "background_palette",
+      "language",
+      "cta"
+    ],
+    "fallback": "Use explicitly duplicated text clips when repeaters are not exposed by the host.",
+    "watch_out": [
+      "Never fabricate a discount or urgency.",
+      "Constrain repeater copies to a parent group ending at the cut.",
+      "Keep all stagger delays inside the text clip window."
+    ],
+    "variants": [
+      "6 s: hook 1 s, product range 3 s, CTA 2 s.",
+      "15 s: add one benefit beat, not more offer words."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      750,
+      1466,
+      1500,
+      2750,
+      3966,
+      4000,
+      5250,
+      6466,
+      6500,
+      7500,
+      8466,
+      8500,
+      9250,
+      9966
+    ],
+    "collection_ids": [
+      "C01"
+    ],
+    "visual_assets": [],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "offer",
+      "complexity": "simple",
+      "use_when": "An approved offer is the main reason to act, with a small product range.",
+      "avoid_when": "The value proposition needs explanation before price matters.",
+      "alternative_recipe_ids": [
+        "R02"
+      ],
+      "motion_principle": "Fixed offer hierarchy; product swaps change supporting evidence, never the offer.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "Offer remains legible during every product swap.",
+      "Terms remain readable at placement size; extend the hold if necessary.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Use the reference composition. Check placement overlays with the actual destination preview.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "offer_short",
+        "required": true,
+        "purpose": "hook",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "collection_label",
+        "required": true,
+        "purpose": "range",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit_short",
+        "required": true,
+        "purpose": "benefit",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "offer_terms",
+        "required": true,
+        "purpose": "proof of offer",
+        "suggested_max_words": 16,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "cta",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 4,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 300,
+    "output_qa_frames": [
+      0,
+      3,
+      23,
+      44,
+      45,
+      83,
+      119,
+      120,
+      158,
+      194,
+      195,
+      225,
+      254,
+      255,
+      278,
+      299
+    ],
+    "slug": "kinetic-offer-wall",
+    "route": "/ad-library/kinetic-offer-wall"
+  },
+  {
+    "id": "R02",
+    "title": "Product cutout shuffle",
+    "implementation_priority": "P0",
+    "engine_fit": "native_2d",
+    "objective": "Turn a static catalog into a short SKU/flavor ad.",
+    "duration_ms": 8000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "3\u20135 aligned transparent product cutouts",
+      "Optional ingredient cutouts",
+      "Approved short labels and CTA"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Color stage",
+      "Ingredient accents",
+      "Contact shadow",
+      "Product",
+      "Flavor label",
+      "CTA"
+    ],
+    "visual_invariant": "The product occupies a fixed visual anchor; surrounding color and supporting cutouts change.",
+    "layout": {
+      "product_anchor": [
+        0.5,
+        0.47
+      ],
+      "product_max_size": [
+        0.62,
+        0.49
+      ],
+      "label_box": [
+        0.1,
+        0.16,
+        0.78,
+        0.13
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 1000,
+        "role": "hook",
+        "composition": "Hero pack is visible at full useful size.",
+        "motion": "Pop from 0.94 to 1.00 in 220 ms; a matching background color arrives on the cut.",
+        "copy_slot": "range_hook",
+        "audio_cue": "Single click/pop.",
+        "qa": "Do not spend the first second building a background.",
+        "illustration_asset_id": "R02-B01",
+        "id": "R02-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 30
+      },
+      {
+        "start_ms": 1000,
+        "end_ms": 3000,
+        "role": "variant_1",
+        "composition": "Product and two ingredient accents make one compact group.",
+        "motion": "Accents drift 20\u201340 px; product remains legible.",
+        "copy_slot": "variant_1",
+        "audio_cue": "Optional two-beat rhythm.",
+        "qa": "Pack label must not be warped.",
+        "illustration_asset_id": "R02-B02",
+        "id": "R02-B02",
+        "start_frame": 30,
+        "end_frame_exclusive": 90
+      },
+      {
+        "start_ms": 3000,
+        "end_ms": 5000,
+        "role": "variant_2",
+        "composition": "Replace with second and third packs at the same anchor.",
+        "motion": "Hard asset swaps; 180 ms counter-motion on accents; label changes on the same frame.",
+        "copy_slot": "variant_2_3",
+        "audio_cue": "One tick per swap.",
+        "qa": "Avoid crossfading two package labels into illegibility.",
+        "illustration_asset_id": "R02-B03",
+        "id": "R02-B03",
+        "start_frame": 90,
+        "end_frame_exclusive": 150
+      },
+      {
+        "start_ms": 5000,
+        "end_ms": 6500,
+        "role": "range",
+        "composition": "All packs form a simple row or shallow fan.",
+        "motion": "Stagger group entrances 100 ms apart.",
+        "copy_slot": "range_benefit",
+        "audio_cue": "Small rising accent.",
+        "qa": "All variants identifiable at phone size.",
+        "illustration_asset_id": "R02-B04",
+        "id": "R02-B04",
+        "start_frame": 150,
+        "end_frame_exclusive": 195
+      },
+      {
+        "start_ms": 6500,
+        "end_ms": 8000,
+        "role": "cta",
+        "composition": "Hold range plus CTA.",
+        "motion": "Only a very small shadow or accent drift.",
+        "copy_slot": "cta",
+        "audio_cue": "Resolve.",
+        "qa": "No essential copy in platform controls.",
+        "illustration_asset_id": "R02-B05",
+        "id": "R02-B05",
+        "start_frame": 195,
+        "end_frame_exclusive": 240
+      }
+    ],
+    "variables": [
+      "sku_images",
+      "labels",
+      "palette_per_sku",
+      "cadence",
+      "ingredient_images"
+    ],
+    "fallback": "Without ingredient images, use circles and short labels; do not generate product packaging text.",
+    "watch_out": [
+      "Match crop scale and baseline before animating.",
+      "This is a 2D shuffle, not a promise of physically correct product rotation."
+    ],
+    "variants": [
+      "1:1: range may form a row.",
+      "9:16: stack label, product and CTA rather than shrink everything."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      500,
+      966,
+      1000,
+      2000,
+      2966,
+      3000,
+      4000,
+      4966,
+      5000,
+      5750,
+      6466,
+      6500,
+      7250,
+      7966
+    ],
+    "collection_ids": [
+      "C02",
+      "C01"
+    ],
+    "visual_assets": [],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "catalog",
+      "complexity": "simple",
+      "use_when": "You have aligned product cutouts and want viewers to distinguish variants.",
+      "avoid_when": "Products need different camera angles or a real demonstration to be understood.",
+      "alternative_recipe_ids": [
+        "R01"
+      ],
+      "motion_principle": "Lock product baseline and apparent scale before introducing motion.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "All variants share a consistent baseline and apparent scale.",
+      "Every label matches the product visible in that beat.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Use the reference composition. Check placement overlays with the actual destination preview.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "range_hook",
+        "required": true,
+        "purpose": "hook",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "variant_1",
+        "required": true,
+        "purpose": "variant 1",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "variant_2_3",
+        "required": true,
+        "purpose": "variant 2",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "range_benefit",
+        "required": true,
+        "purpose": "range",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "cta",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 4,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 240,
+    "output_qa_frames": [
+      0,
+      3,
+      15,
+      29,
+      30,
+      60,
+      89,
+      90,
+      120,
+      149,
+      150,
+      173,
+      194,
+      195,
+      218,
+      239
+    ],
+    "slug": "product-cutout-shuffle",
+    "route": "/ad-library/product-cutout-shuffle"
+  },
+  {
+    "id": "R03",
+    "title": "One hub, three product benefits",
+    "implementation_priority": "P0",
+    "engine_fit": "native_2d",
+    "objective": "Explain a SaaS or service bundle without presenting a full unreadable dashboard.",
+    "duration_ms": 15000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "One hub icon or authorized representative image",
+      "Three cropped UI feature cards",
+      "One genuine outcome statement",
+      "Logo and CTA"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Background",
+      "Connector paths",
+      "UI cards",
+      "Hub image",
+      "Benefit labels",
+      "CTA"
+    ],
+    "visual_invariant": "A single hub remains stable while one benefit card at a time receives attention.",
+    "layout": {
+      "hub_anchor": [
+        0.5,
+        0.26
+      ],
+      "active_card_box": [
+        0.11,
+        0.39,
+        0.76,
+        0.24
+      ],
+      "caption_box": [
+        0.1,
+        0.67,
+        0.78,
+        0.11
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 2000,
+        "role": "hook",
+        "composition": "Hub and plain-language problem are already visible.",
+        "motion": "Hub settles in 300 ms; headline enters by word with 80 ms stagger.",
+        "copy_slot": "problem",
+        "audio_cue": "Optional VO reads the problem.",
+        "qa": "Keep UI out of the headline area.",
+        "illustration_asset_id": "R03-B01",
+        "id": "R03-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 60
+      },
+      {
+        "start_ms": 2000,
+        "end_ms": 5000,
+        "role": "feature_1",
+        "composition": "First card connects to the hub.",
+        "motion": "Draw connector via trimEnd 0\u21921 in 300 ms; card slides 0.08 heights and settles.",
+        "copy_slot": "benefit_1",
+        "audio_cue": "Soft connection tick.",
+        "qa": "Enlarge the important UI state, not the whole app.",
+        "illustration_asset_id": "R03-B02",
+        "id": "R03-B02",
+        "start_frame": 60,
+        "end_frame_exclusive": 150
+      },
+      {
+        "start_ms": 5000,
+        "end_ms": 8000,
+        "role": "feature_2",
+        "composition": "Second card replaces the first as focal point.",
+        "motion": "First dims to 0.45 opacity; second enters in 250 ms.",
+        "copy_slot": "benefit_2",
+        "audio_cue": "Matching tick.",
+        "qa": "Two cards may coexist, but only one is active.",
+        "illustration_asset_id": "R03-B03",
+        "id": "R03-B03",
+        "start_frame": 150,
+        "end_frame_exclusive": 240
+      },
+      {
+        "start_ms": 8000,
+        "end_ms": 11500,
+        "role": "feature_3",
+        "composition": "Third card enters; the completed hub becomes visible.",
+        "motion": "Third connects, then group scales back 8% to show the system.",
+        "copy_slot": "benefit_3",
+        "audio_cue": "Last matching tick.",
+        "qa": "Labels <=5 words each in this proposed template.",
+        "illustration_asset_id": "R03-B04",
+        "id": "R03-B04",
+        "start_frame": 240,
+        "end_frame_exclusive": 345
+      },
+      {
+        "start_ms": 11500,
+        "end_ms": 15000,
+        "role": "outcome_and_cta",
+        "composition": "Three-card system, outcome and CTA hold together.",
+        "motion": "180 ms fade for outcome; no further card movement.",
+        "copy_slot": "outcome_and_cta",
+        "audio_cue": "VO resolves before the end.",
+        "qa": "Outcome must be substantiated; CTA readable for at least 2 s.",
+        "illustration_asset_id": "R03-B05",
+        "id": "R03-B05",
+        "start_frame": 345,
+        "end_frame_exclusive": 450
+      }
+    ],
+    "variables": [
+      "problem",
+      "feature_cards",
+      "benefit_labels",
+      "hub_asset",
+      "outcome",
+      "cta"
+    ],
+    "fallback": "Use static connectors and staggered fades when path trim is unavailable. Use simplified shapes for UI, not tiny screenshots.",
+    "watch_out": [
+      "Do not imply unimplemented integrations or features.",
+      "Avoid four equally prominent cards on a narrow canvas."
+    ],
+    "variants": [
+      "10 s: show two features.",
+      "6 s: one feature and one outcome."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      1000,
+      1966,
+      2000,
+      3500,
+      4966,
+      5000,
+      6500,
+      7966,
+      8000,
+      9750,
+      11466,
+      11500,
+      13250,
+      14966
+    ],
+    "collection_ids": [
+      "C03"
+    ],
+    "visual_assets": [
+      "A01",
+      "A02"
+    ],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "explain",
+      "complexity": "moderate",
+      "use_when": "One service connects several distinct benefits around a clear central idea.",
+      "avoid_when": "The message is a sequence of steps rather than a bundle of benefits.",
+      "alternative_recipe_ids": [
+        "R16"
+      ],
+      "motion_principle": "Use one persistent hub; activate one benefit at a time.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "The active card is unambiguous with audio muted.",
+      "Every shown connection corresponds to a supported product capability.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Use the reference composition. Check placement overlays with the actual destination preview.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "problem",
+        "required": true,
+        "purpose": "hook",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit_1",
+        "required": true,
+        "purpose": "feature 1",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit_2",
+        "required": true,
+        "purpose": "feature 2",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit_3",
+        "required": true,
+        "purpose": "feature 3",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "outcome_and_cta",
+        "required": true,
+        "purpose": "outcome and cta",
+        "suggested_max_words": 8,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 450,
+    "output_qa_frames": [
+      0,
+      3,
+      30,
+      59,
+      60,
+      105,
+      149,
+      150,
+      195,
+      239,
+      240,
+      293,
+      344,
+      345,
+      398,
+      449
+    ],
+    "slug": "one-hub-three-product-benefits",
+    "route": "/ad-library/one-hub-three-product-benefits"
+  },
+  {
+    "id": "R04",
+    "title": "Benefit-led dashboard punch-in",
+    "implementation_priority": "P1",
+    "engine_fit": "native_2d_with_imported_ui",
+    "objective": "Make one product action and its result concrete.",
+    "duration_ms": 12000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "Clean UI crop or approved screen recording",
+      "Before/after state of a real product action",
+      "Optional verified numeric result",
+      "Headline and CTA"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Background",
+      "UI frame",
+      "Screen crop or recording",
+      "Highlight shape",
+      "Metric text",
+      "Caption and CTA"
+    ],
+    "visual_invariant": "The viewer sees one action and its result; a counter is optional and must carry a real, approved value.",
+    "layout": {
+      "headline_box": [
+        0.09,
+        0.13,
+        0.8,
+        0.18
+      ],
+      "ui_box": [
+        0.08,
+        0.34,
+        0.8,
+        0.35
+      ],
+      "cta_box": [
+        0.11,
+        0.72,
+        0.74,
+        0.08
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 1800,
+        "role": "hook",
+        "composition": "Outcome headline appears above a zoomed crop.",
+        "motion": "250 ms upward slide; no full-dashboard flyover.",
+        "copy_slot": "outcome_hook",
+        "audio_cue": "Optional VO repeats the outcome.",
+        "qa": "Keep the opening UI state legible; confirm counter timing in the rendered preview.",
+        "illustration_asset_id": "R04-B01",
+        "id": "R04-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 54
+      },
+      {
+        "start_ms": 1800,
+        "end_ms": 4300,
+        "role": "action",
+        "composition": "Highlight the relevant control or row.",
+        "motion": "Highlight bounds expand over 200 ms; use a real screen recording for actual interaction.",
+        "copy_slot": "action_label",
+        "audio_cue": "One UI click if authentic.",
+        "qa": "Do not simulate functionality the product lacks.",
+        "illustration_asset_id": "R04-B02",
+        "id": "R04-B02",
+        "start_frame": 54,
+        "end_frame_exclusive": 129
+      },
+      {
+        "start_ms": 4300,
+        "end_ms": 7200,
+        "role": "result",
+        "composition": "Replace or reveal the result state.",
+        "motion": "Wipe the result panel over 350 ms; optional ticker reaches approved value in 700 ms.",
+        "copy_slot": "verified_result",
+        "audio_cue": "Small confirmation tone.",
+        "qa": "Ticker values must be approved, accurate, and readable.",
+        "illustration_asset_id": "R04-B03",
+        "id": "R04-B03",
+        "start_frame": 129,
+        "end_frame_exclusive": 216
+      },
+      {
+        "start_ms": 7200,
+        "end_ms": 9500,
+        "role": "context",
+        "composition": "Pull back enough to show where the result lives.",
+        "motion": "Scale 1.12\u21921.00 in 500 ms; supporting line fades in.",
+        "copy_slot": "context",
+        "audio_cue": "No new sound required.",
+        "qa": "Do not shrink important UI to illegibility.",
+        "illustration_asset_id": "R04-B04",
+        "id": "R04-B04",
+        "start_frame": 216,
+        "end_frame_exclusive": 285
+      },
+      {
+        "start_ms": 9500,
+        "end_ms": 12000,
+        "role": "cta",
+        "composition": "Hold result plus a specific next action.",
+        "motion": "Static final card.",
+        "copy_slot": "cta",
+        "audio_cue": "Resolve.",
+        "qa": "Use only substantiated numeric claims; omit unsupported percentages.",
+        "illustration_asset_id": "R04-B05",
+        "id": "R04-B05",
+        "start_frame": 285,
+        "end_frame_exclusive": 360
+      }
+    ],
+    "variables": [
+      "ui_crop",
+      "action",
+      "result_state",
+      "metric_value_optional",
+      "headline",
+      "cta"
+    ],
+    "fallback": "Use two static UI state images with a wipe. Omit the counter unless a verified value exists.",
+    "watch_out": [
+      "Use only substantiated results in a published ad; an illustrated dashboard is a concept.",
+      "UI text should be actual or clearly simplified, never fabricated account data."
+    ],
+    "variants": [
+      "6 s: one action, one result, CTA.",
+      "Square: use a wide UI crop; vertical: focus on one row or card."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      900,
+      1766,
+      1800,
+      3050,
+      4266,
+      4300,
+      5750,
+      7166,
+      7200,
+      8350,
+      9466,
+      9500,
+      10750,
+      11966
+    ],
+    "collection_ids": [
+      "C04"
+    ],
+    "visual_assets": [
+      "A05",
+      "A06"
+    ],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "demonstrate",
+      "complexity": "moderate",
+      "use_when": "You can supply a real before/action/after sequence from the product.",
+      "avoid_when": "Only fictional UI concepts are available for a factual demonstration.",
+      "alternative_recipe_ids": [
+        "R03"
+      ],
+      "motion_principle": "Keep the action target spatially stable through the result reveal.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "The result follows the depicted action without an unexplained state jump.",
+      "Any metric has an approved source and an explicit context.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Use the reference composition. Check placement overlays with the actual destination preview.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "outcome_hook",
+        "required": true,
+        "purpose": "hook",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "action_label",
+        "required": true,
+        "purpose": "action",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "verified_result",
+        "required": true,
+        "purpose": "result",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "context",
+        "required": true,
+        "purpose": "context",
+        "suggested_max_words": 16,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "cta",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 4,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 360,
+    "output_qa_frames": [
+      0,
+      3,
+      27,
+      53,
+      54,
+      92,
+      128,
+      129,
+      173,
+      215,
+      216,
+      251,
+      284,
+      285,
+      323,
+      359
+    ],
+    "slug": "benefit-led-dashboard-punch-in",
+    "route": "/ad-library/benefit-led-dashboard-punch-in"
+  },
+  {
+    "id": "R05",
+    "title": "Fast footage plus kinetic captions",
+    "implementation_priority": "P0",
+    "engine_fit": "native_with_imported_footage",
+    "objective": "Repackage existing footage into a clear vertical ad.",
+    "duration_ms": 15000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "3\u20135 licensed footage clips with crop room",
+      "Three short benefit captions",
+      "Logo, truthful offer and CTA",
+      "Optional licensed music/VO"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Footage",
+      "Optional contrast gradient",
+      "Accent shapes",
+      "Captions",
+      "Persistent brand mark",
+      "CTA"
+    ],
+    "visual_invariant": "Each shot has one message; cuts and typography create speed without making the image unreadable.",
+    "layout": {
+      "caption_box": [
+        0.08,
+        0.16,
+        0.78,
+        0.2
+      ],
+      "cta_box": [
+        0.1,
+        0.68,
+        0.76,
+        0.11
+      ],
+      "brand_anchor": [
+        0.12,
+        0.12
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 1500,
+        "role": "hook",
+        "composition": "Strongest result shot appears immediately with one hook.",
+        "motion": "Cut in; caption settles in 200 ms.",
+        "copy_slot": "hook",
+        "audio_cue": "Beat starts immediately, but silent version still works.",
+        "qa": "No slow logo-only opening.",
+        "illustration_asset_id": "R05-B01",
+        "id": "R05-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 45
+      },
+      {
+        "start_ms": 1500,
+        "end_ms": 5000,
+        "role": "benefit_1",
+        "composition": "Two related shots show the first reason to care.",
+        "motion": "Cut at meaningful action changes; short text slides 5% of canvas height.",
+        "copy_slot": "benefit_1",
+        "audio_cue": "Two simple accents.",
+        "qa": "Do not cut a subject out of the safe crop.",
+        "illustration_asset_id": "R05-B02",
+        "id": "R05-B02",
+        "start_frame": 45,
+        "end_frame_exclusive": 150
+      },
+      {
+        "start_ms": 5000,
+        "end_ms": 8500,
+        "role": "benefit_2",
+        "composition": "Switch scene and caption together.",
+        "motion": "One 200 ms push transition; otherwise straight cuts.",
+        "copy_slot": "benefit_2",
+        "audio_cue": "Music beat, optional VO.",
+        "qa": "No simultaneous word changes and rapid unreadable cuts.",
+        "illustration_asset_id": "R05-B03",
+        "id": "R05-B03",
+        "start_frame": 150,
+        "end_frame_exclusive": 255
+      },
+      {
+        "start_ms": 8500,
+        "end_ms": 12000,
+        "role": "benefit_3",
+        "composition": "Use the clearest proof/result footage.",
+        "motion": "Minimal Ken Burns only on stills; do not add drift to already moving footage.",
+        "copy_slot": "benefit_3",
+        "audio_cue": "Final phrase.",
+        "qa": "Claims align with the visual evidence.",
+        "illustration_asset_id": "R05-B04",
+        "id": "R05-B04",
+        "start_frame": 255,
+        "end_frame_exclusive": 360
+      },
+      {
+        "start_ms": 12000,
+        "end_ms": 15000,
+        "role": "cta",
+        "composition": "Cleanest hero shot becomes an end card.",
+        "motion": "Caption resolves, then stable CTA for >=2 s.",
+        "copy_slot": "cta_and_offer",
+        "audio_cue": "Music resolves under CTA.",
+        "qa": "Offer, brand and next step visible muted.",
+        "illustration_asset_id": "R05-B05",
+        "id": "R05-B05",
+        "start_frame": 360,
+        "end_frame_exclusive": 450
+      }
+    ],
+    "variables": [
+      "hook",
+      "shot_selection",
+      "benefit_order",
+      "music",
+      "cta"
+    ],
+    "fallback": "Replace missing footage with high-resolution stills and gentle crops; preserve the same beats.",
+    "watch_out": [
+      "Retarget each shot rather than center-crop blindly.",
+      "Keep native captions out of platform overlay areas after placement preview."
+    ],
+    "variants": [
+      "6 s: strongest shot, one benefit, CTA.",
+      "4:5 feed: use the extra width for a larger caption, not extra words."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      750,
+      1466,
+      1500,
+      3250,
+      4966,
+      5000,
+      6750,
+      8466,
+      8500,
+      10250,
+      11966,
+      12000,
+      13500,
+      14966
+    ],
+    "collection_ids": [
+      "C05"
+    ],
+    "visual_assets": [],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "footage",
+      "complexity": "moderate",
+      "use_when": "Existing footage already shows the product or benefit clearly.",
+      "avoid_when": "There is no coherent footage or the caption must explain every shot.",
+      "alternative_recipe_ids": [
+        "R06"
+      ],
+      "motion_principle": "One shot, one message; cut only after the focal action becomes readable.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "Each caption is readable before its shot ends.",
+      "Subject framing and captions remain clear at every requested aspect ratio.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Use the reference composition. Check placement overlays with the actual destination preview.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "hook",
+        "required": true,
+        "purpose": "hook",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit_1",
+        "required": true,
+        "purpose": "benefit 1",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit_2",
+        "required": true,
+        "purpose": "benefit 2",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit_3",
+        "required": true,
+        "purpose": "benefit 3",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "cta_and_offer",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 8,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 450,
+    "output_qa_frames": [
+      0,
+      3,
+      23,
+      44,
+      45,
+      98,
+      149,
+      150,
+      203,
+      254,
+      255,
+      308,
+      359,
+      360,
+      405,
+      449
+    ],
+    "slug": "fast-footage-plus-kinetic-captions",
+    "route": "/ad-library/fast-footage-plus-kinetic-captions"
+  },
+  {
+    "id": "R06",
+    "title": "Editorial image panels",
+    "implementation_priority": "P1",
+    "engine_fit": "native_with_imported_stills",
+    "objective": "Make a premium sound-off ad from a small asset set.",
+    "duration_ms": 12000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "3 high-resolution images",
+      "Short benefit copy",
+      "Optional destination or product label",
+      "Logo and CTA"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Neutral stage",
+      "Image panels",
+      "Simple panel borders",
+      "Editorial headline",
+      "CTA"
+    ],
+    "visual_invariant": "A deliberate grid and stable type do most of the work; motion reveals one panel at a time.",
+    "layout": {
+      "headline_box": [
+        0.1,
+        0.14,
+        0.78,
+        0.16
+      ],
+      "media_grid_box": [
+        0.1,
+        0.34,
+        0.78,
+        0.34
+      ],
+      "cta_box": [
+        0.1,
+        0.72,
+        0.78,
+        0.08
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 2000,
+        "role": "hook",
+        "composition": "Headline sits beside or above a single strong image.",
+        "motion": "Image wipes on over 350 ms; type already readable.",
+        "copy_slot": "headline",
+        "audio_cue": "Optional restrained accent.",
+        "qa": "Do not wait for audio to explain the premise.",
+        "illustration_asset_id": "R06-B01",
+        "id": "R06-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 60
+      },
+      {
+        "start_ms": 2000,
+        "end_ms": 4500,
+        "role": "panel_2",
+        "composition": "Second image creates a two-panel composition.",
+        "motion": "Push first panel into its final grid position; reveal second.",
+        "copy_slot": "benefit_1",
+        "audio_cue": "Soft transition.",
+        "qa": "Image subject remains inside its crop.",
+        "illustration_asset_id": "R06-B02",
+        "id": "R06-B02",
+        "start_frame": 60,
+        "end_frame_exclusive": 135
+      },
+      {
+        "start_ms": 4500,
+        "end_ms": 7000,
+        "role": "panel_3",
+        "composition": "Third image completes the grid.",
+        "motion": "250 ms wipe; no independent zoom on every panel.",
+        "copy_slot": "benefit_2",
+        "audio_cue": "Soft transition.",
+        "qa": "One main focal point remains.",
+        "illustration_asset_id": "R06-B03",
+        "id": "R06-B03",
+        "start_frame": 135,
+        "end_frame_exclusive": 210
+      },
+      {
+        "start_ms": 7000,
+        "end_ms": 9500,
+        "role": "hero",
+        "composition": "Return to the strongest image with a short promise.",
+        "motion": "Expand one panel while others exit; use a parent group.",
+        "copy_slot": "promise",
+        "audio_cue": "Quiet.",
+        "qa": "The promise must be supported by approved product evidence.",
+        "illustration_asset_id": "R06-B04",
+        "id": "R06-B04",
+        "start_frame": 210,
+        "end_frame_exclusive": 285
+      },
+      {
+        "start_ms": 9500,
+        "end_ms": 12000,
+        "role": "cta",
+        "composition": "Hero image plus clear next step.",
+        "motion": "Hold.",
+        "copy_slot": "cta",
+        "audio_cue": "Optional resolve.",
+        "qa": "Readable without sound and at feed preview size.",
+        "illustration_asset_id": "R06-B05",
+        "id": "R06-B05",
+        "start_frame": 285,
+        "end_frame_exclusive": 360
+      }
+    ],
+    "variables": [
+      "image_set",
+      "grid_configuration",
+      "headline",
+      "palette",
+      "cta"
+    ],
+    "fallback": "Use straight cuts between two static grid arrangements; retain the editorial hierarchy.",
+    "watch_out": [
+      "Treat the editorial panel rhythm as proposed timing; inspect each output cut.",
+      "Do not reproduce platform chrome in the export."
+    ],
+    "variants": [
+      "4:5: two columns.",
+      "9:16: one large panel above two smaller panels."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      1000,
+      1966,
+      2000,
+      3250,
+      4466,
+      4500,
+      5750,
+      6966,
+      7000,
+      8250,
+      9466,
+      9500,
+      10750,
+      11966
+    ],
+    "collection_ids": [
+      "C05"
+    ],
+    "visual_assets": [],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "editorial",
+      "complexity": "simple",
+      "use_when": "A few strong stills and restrained type can communicate the value.",
+      "avoid_when": "Continuous movement or a detailed process is essential to the claim.",
+      "alternative_recipe_ids": [
+        "R05"
+      ],
+      "motion_principle": "Keep a consistent grid and reveal one panel at a time.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "Panel edges align consistently across cuts.",
+      "Images remain sharp at their largest displayed crop.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "One large panel above two smaller panels. Re-crop each image separately.",
+      "4:5": "Use two columns and maintain consistent gutters; do not stretch the images.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "headline",
+        "required": true,
+        "purpose": "hook",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit_1",
+        "required": true,
+        "purpose": "panel 2",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit_2",
+        "required": true,
+        "purpose": "panel 3",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "promise",
+        "required": true,
+        "purpose": "hero",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "cta",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 4,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 360,
+    "output_qa_frames": [
+      0,
+      3,
+      30,
+      59,
+      60,
+      98,
+      134,
+      135,
+      173,
+      209,
+      210,
+      248,
+      284,
+      285,
+      323,
+      359
+    ],
+    "slug": "editorial-image-panels",
+    "route": "/ad-library/editorial-image-panels"
+  },
+  {
+    "id": "R07",
+    "title": "Binary-choice participation card",
+    "implementation_priority": "P1",
+    "engine_fit": "native_with_imported_footage",
+    "objective": "Invite a clear A/B response without pretending an MP4 is interactive.",
+    "duration_ms": 10000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "One contextual footage shot or product still",
+      "Two truthful, non-misleading choices",
+      "Brand and participation instruction"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Context footage",
+      "Readability scrim",
+      "Question",
+      "Choice A card",
+      "Choice B card",
+      "Participation instruction"
+    ],
+    "visual_invariant": "The two choices have equal visual weight and remain visible long enough to answer.",
+    "layout": {
+      "question_box": [
+        0.1,
+        0.14,
+        0.78,
+        0.18
+      ],
+      "choice_a_box": [
+        0.1,
+        0.38,
+        0.36,
+        0.25
+      ],
+      "choice_b_box": [
+        0.52,
+        0.38,
+        0.36,
+        0.25
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 2000,
+        "role": "question",
+        "composition": "Context image and one short question.",
+        "motion": "Question pops once over 220 ms.",
+        "copy_slot": "question",
+        "audio_cue": "Optional VO asks the question.",
+        "qa": "Question understandable without prior campaign exposure.",
+        "illustration_asset_id": "R07-B01",
+        "id": "R07-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 60
+      },
+      {
+        "start_ms": 2000,
+        "end_ms": 4000,
+        "role": "choice_a",
+        "composition": "Left/top card appears with a simple visual.",
+        "motion": "250 ms slide; small emphasis only.",
+        "copy_slot": "choice_a",
+        "audio_cue": "One accent.",
+        "qa": "Do not favor one choice through unreadable styling.",
+        "illustration_asset_id": "R07-B02",
+        "id": "R07-B02",
+        "start_frame": 60,
+        "end_frame_exclusive": 120
+      },
+      {
+        "start_ms": 4000,
+        "end_ms": 6000,
+        "role": "choice_b",
+        "composition": "Right/bottom card appears in the matching treatment.",
+        "motion": "Same timing/easing as A.",
+        "copy_slot": "choice_b",
+        "audio_cue": "Matching accent.",
+        "qa": "A and B labels remain visible.",
+        "illustration_asset_id": "R07-B03",
+        "id": "R07-B03",
+        "start_frame": 120,
+        "end_frame_exclusive": 180
+      },
+      {
+        "start_ms": 6000,
+        "end_ms": 8000,
+        "role": "compare",
+        "composition": "Both choices are shown together.",
+        "motion": "Very subtle alternating emphasis, or no motion.",
+        "copy_slot": "compare_prompt",
+        "audio_cue": "Pause VO to allow a response.",
+        "qa": "No fake vote counts or fabricated consensus.",
+        "illustration_asset_id": "R07-B04",
+        "id": "R07-B04",
+        "start_frame": 180,
+        "end_frame_exclusive": 240
+      },
+      {
+        "start_ms": 8000,
+        "end_ms": 10000,
+        "role": "cta",
+        "composition": "Explicit instruction: comment A/B, or use a configured native poll.",
+        "motion": "Static instruction.",
+        "copy_slot": "participation_cta",
+        "audio_cue": "Resolve.",
+        "qa": "Native interactive component must be configured separately where supported.",
+        "illustration_asset_id": "R07-B05",
+        "id": "R07-B05",
+        "start_frame": 240,
+        "end_frame_exclusive": 300
+      }
+    ],
+    "variables": [
+      "question",
+      "choice_a",
+      "choice_b",
+      "participation_cta",
+      "context_asset"
+    ],
+    "fallback": "Export a plain comment-A/B version when the placement has no supported native poll.",
+    "watch_out": [
+      "Never bake fake tappable UI or a fake poll result into the video.",
+      "Evaluate participation and sales outcomes separately."
+    ],
+    "variants": [
+      "Vertical: stack the choices when their labels are longer.",
+      "6 s: question 1 s, both choices 3 s, instruction 2 s."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      1000,
+      1966,
+      2000,
+      3000,
+      3966,
+      4000,
+      5000,
+      5966,
+      6000,
+      7000,
+      7966,
+      8000,
+      9000,
+      9966
+    ],
+    "collection_ids": [
+      "C06"
+    ],
+    "visual_assets": [],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "participation",
+      "complexity": "simple",
+      "use_when": "Two understandable choices can invite a meaningful response.",
+      "avoid_when": "A sales CTA is more important than participation, or a choice needs caveats.",
+      "alternative_recipe_ids": [
+        "R02"
+      ],
+      "motion_principle": "Balance the choices and hold both together before asking for a response.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "Both options have equal visual weight and are visible together.",
+      "The participation instruction matches the actual placement behavior.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Stack the choices when either label wraps; keep equal card size and an interval with both visible.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "question",
+        "required": true,
+        "purpose": "question",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "choice_a",
+        "required": true,
+        "purpose": "choice a",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "choice_b",
+        "required": true,
+        "purpose": "choice b",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "compare_prompt",
+        "required": true,
+        "purpose": "compare",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "participation_cta",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 8,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 300,
+    "output_qa_frames": [
+      0,
+      3,
+      30,
+      59,
+      60,
+      90,
+      119,
+      120,
+      150,
+      179,
+      180,
+      210,
+      239,
+      240,
+      270,
+      299
+    ],
+    "slug": "binary-choice-participation-card",
+    "route": "/ad-library/binary-choice-participation-card"
+  },
+  {
+    "id": "R08",
+    "title": "Desktop chaos to one clean result",
+    "implementation_priority": "P0",
+    "engine_fit": "native_2d",
+    "objective": "Visualize a workflow pain point and its resolution.",
+    "duration_ms": 12000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "4\u20138 original/simplified UI cards",
+      "One real result image or output card",
+      "Problem and outcome copy",
+      "Logo and CTA"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Background",
+      "Repeated UI windows",
+      "Pointer/accent",
+      "Clean result card",
+      "Headline",
+      "CTA"
+    ],
+    "visual_invariant": "The contrast is in visual density: a cluttered start resolves into one dominant result.",
+    "layout": {
+      "chaos_box": [
+        0.07,
+        0.24,
+        0.82,
+        0.43
+      ],
+      "result_box": [
+        0.14,
+        0.35,
+        0.7,
+        0.31
+      ],
+      "headline_box": [
+        0.09,
+        0.13,
+        0.8,
+        0.15
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 1800,
+        "role": "hook",
+        "composition": "Several overlapping windows and a short pain statement.",
+        "motion": "Offset copies enter every 100 ms; restrained 1\u20132 px shake on accents only.",
+        "copy_slot": "problem",
+        "audio_cue": "Controlled notification rhythm.",
+        "qa": "No intense flashing; text stays readable.",
+        "illustration_asset_id": "R08-B01",
+        "id": "R08-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 54
+      },
+      {
+        "start_ms": 1800,
+        "end_ms": 4200,
+        "role": "pressure",
+        "composition": "More windows accumulate around the center.",
+        "motion": "Repeater or duplicates advance by 12\u201320 px; keep within parent group duration.",
+        "copy_slot": "pain_detail",
+        "audio_cue": "Rhythm accelerates gently.",
+        "qa": "Copies must not leak into the next beat.",
+        "illustration_asset_id": "R08-B02",
+        "id": "R08-B02",
+        "start_frame": 54,
+        "end_frame_exclusive": 126
+      },
+      {
+        "start_ms": 4200,
+        "end_ms": 6500,
+        "role": "turn",
+        "composition": "All window groups move toward one result anchor.",
+        "motion": "EaseOutExpo collapse over 500 ms; a wipe or clean cut hides the handoff.",
+        "copy_slot": "turning_point",
+        "audio_cue": "One satisfying resolve.",
+        "qa": "The output is visible at the end of the transition.",
+        "illustration_asset_id": "R08-B03",
+        "id": "R08-B03",
+        "start_frame": 126,
+        "end_frame_exclusive": 195
+      },
+      {
+        "start_ms": 6500,
+        "end_ms": 9500,
+        "role": "result",
+        "composition": "One clean output dominates with a short benefit.",
+        "motion": "Result settles; secondary cards stay dim or offscreen.",
+        "copy_slot": "benefit",
+        "audio_cue": "Quiet contrast after the chaos.",
+        "qa": "Result must be a real supported output.",
+        "illustration_asset_id": "R08-B04",
+        "id": "R08-B04",
+        "start_frame": 195,
+        "end_frame_exclusive": 285
+      },
+      {
+        "start_ms": 9500,
+        "end_ms": 12000,
+        "role": "cta",
+        "composition": "Product/result plus CTA.",
+        "motion": "Hold with <=2% gentle motion.",
+        "copy_slot": "cta",
+        "audio_cue": "Resolve.",
+        "qa": "No claim that the visual metaphor itself is proven to improve CPA.",
+        "illustration_asset_id": "R08-B05",
+        "id": "R08-B05",
+        "start_frame": 285,
+        "end_frame_exclusive": 360
+      }
+    ],
+    "variables": [
+      "pain_statement",
+      "window_assets",
+      "density",
+      "result_asset",
+      "cta"
+    ],
+    "fallback": "Use six explicit card groups and a hard cut to the clean state; avoid requiring a simulated desktop.",
+    "watch_out": [
+      "Do not reproduce another app\u2019s private user data.",
+      "Parent repeaters to a group whose duration ends at the transition."
+    ],
+    "variants": [
+      "6 s: clutter 1.5 s, collapse 0.5 s, result 2 s, CTA 2 s.",
+      "NodeTool adaptation: scattered deliverables resolve into one editable project."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      900,
+      1766,
+      1800,
+      3000,
+      4166,
+      4200,
+      5350,
+      6466,
+      6500,
+      8000,
+      9466,
+      9500,
+      10750,
+      11966
+    ],
+    "collection_ids": [
+      "C07"
+    ],
+    "visual_assets": [
+      "A07",
+      "A08",
+      "A13",
+      "A14",
+      "A15"
+    ],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "transformation",
+      "complexity": "moderate",
+      "use_when": "A real workflow outcome can resolve an immediately recognizable pain point.",
+      "avoid_when": "The promised simplification cannot be demonstrated or explained honestly.",
+      "alternative_recipe_ids": [
+        "R04"
+      ],
+      "motion_principle": "Change visual density dramatically while preserving one recognizable link.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "Clutter clears completely before the result becomes the focal point.",
+      "The result is a specific output, not just an empty clean screen.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Use the reference composition. Check placement overlays with the actual destination preview.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "problem",
+        "required": true,
+        "purpose": "hook",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "pain_detail",
+        "required": true,
+        "purpose": "pressure",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "turning_point",
+        "required": true,
+        "purpose": "turn",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit",
+        "required": true,
+        "purpose": "result",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "cta",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 4,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 360,
+    "output_qa_frames": [
+      0,
+      3,
+      27,
+      53,
+      54,
+      90,
+      125,
+      126,
+      161,
+      194,
+      195,
+      240,
+      284,
+      285,
+      323,
+      359
+    ],
+    "slug": "desktop-chaos-to-one-clean-result",
+    "route": "/ad-library/desktop-chaos-to-one-clean-result"
+  },
+  {
+    "id": "R09",
+    "title": "Headline plus inset motion module",
+    "implementation_priority": "P0",
+    "engine_fit": "native_with_imported_media",
+    "objective": "Turn many motion assets into a consistent vertical ad family.",
+    "duration_ms": 10000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "One 4\u20136 s licensed/generated motion module or simple native scene",
+      "Hook and emphasized benefit",
+      "Brand and CTA"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Flat brand stage",
+      "Headline",
+      "Emphasis underline/accent",
+      "Inset media group",
+      "CTA"
+    ],
+    "visual_invariant": "Keep the wrapper fixed while swapping the inner motion, hook and offer.",
+    "layout": {
+      "headline_box": [
+        0.1,
+        0.14,
+        0.78,
+        0.21
+      ],
+      "media_box": [
+        0.1,
+        0.39,
+        0.78,
+        0.32
+      ],
+      "cta_box": [
+        0.1,
+        0.73,
+        0.78,
+        0.07
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 1500,
+        "role": "hook",
+        "composition": "Large headline occupies the upper region; media window is already present.",
+        "motion": "Headline enters in 250 ms; one phrase receives a restrained underline.",
+        "copy_slot": "hook",
+        "audio_cue": "One beat.",
+        "qa": "Keep imitation platform controls out of the exported composition.",
+        "illustration_asset_id": "R09-B01",
+        "id": "R09-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 45
+      },
+      {
+        "start_ms": 1500,
+        "end_ms": 4500,
+        "role": "module_a",
+        "composition": "Inset media demonstrates the premise.",
+        "motion": "Run the module inside a stable crop; wrapper stays still.",
+        "copy_slot": "benefit_a",
+        "audio_cue": "Module audio optional.",
+        "qa": "No important content clipped at the media frame.",
+        "illustration_asset_id": "R09-B02",
+        "id": "R09-B02",
+        "start_frame": 45,
+        "end_frame_exclusive": 135
+      },
+      {
+        "start_ms": 4500,
+        "end_ms": 6500,
+        "role": "module_b",
+        "composition": "A result or continuation plays inside the same window.",
+        "motion": "Cut inside the window rather than animating the full layout again.",
+        "copy_slot": "benefit_b",
+        "audio_cue": "One transition accent.",
+        "qa": "Continuity and aspect ratio remain consistent.",
+        "illustration_asset_id": "R09-B03",
+        "id": "R09-B03",
+        "start_frame": 135,
+        "end_frame_exclusive": 195
+      },
+      {
+        "start_ms": 6500,
+        "end_ms": 8000,
+        "role": "payoff",
+        "composition": "Result freezes or settles while the headline gains a short payoff.",
+        "motion": "180 ms text replacement; hold inner result.",
+        "copy_slot": "payoff",
+        "audio_cue": "VO stops before CTA.",
+        "qa": "Do not cram a second paragraph above the image.",
+        "illustration_asset_id": "R09-B04",
+        "id": "R09-B04",
+        "start_frame": 195,
+        "end_frame_exclusive": 240
+      },
+      {
+        "start_ms": 8000,
+        "end_ms": 10000,
+        "role": "cta",
+        "composition": "CTA strip is visible below the media frame.",
+        "motion": "One 200 ms entrance; hold.",
+        "copy_slot": "cta",
+        "audio_cue": "Resolve.",
+        "qa": "CTA strip is an ad design element, not fake platform UI.",
+        "illustration_asset_id": "R09-B05",
+        "id": "R09-B05",
+        "start_frame": 240,
+        "end_frame_exclusive": 300
+      }
+    ],
+    "variables": [
+      "hook",
+      "emphasis_phrase",
+      "motion_module",
+      "cta",
+      "brand_palette"
+    ],
+    "fallback": "Use a still with slow scale inside the inset; the wrapper remains fully native.",
+    "watch_out": [
+      "Use a clean reusable layout without imitation platform controls.",
+      "A reusable wrapper does not require duplicating copyrighted artwork."
+    ],
+    "variants": [
+      "A/B test only the hook while keeping media and CTA identical.",
+      "4:5: shorten the headline area and enlarge the inset."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      750,
+      1466,
+      1500,
+      3000,
+      4466,
+      4500,
+      5500,
+      6466,
+      6500,
+      7250,
+      7966,
+      8000,
+      9000,
+      9966
+    ],
+    "collection_ids": [
+      "C07"
+    ],
+    "visual_assets": [
+      "A08",
+      "A10",
+      "A12",
+      "A14"
+    ],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "modular",
+      "complexity": "simple",
+      "use_when": "You want a consistent family of ads around replaceable motion modules.",
+      "avoid_when": "The footage needs the full canvas or the headline is too long for a wrapper.",
+      "alternative_recipe_ids": [
+        "R05"
+      ],
+      "motion_principle": "Keep the wrapper fixed; vary one experiment dimension at a time.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "Inset media stays within its crop throughout the sequence.",
+      "Hook, media and CTA read in that order at phone size.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Use the reference composition. Check placement overlays with the actual destination preview.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "hook",
+        "required": true,
+        "purpose": "hook",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit_a",
+        "required": true,
+        "purpose": "module a",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit_b",
+        "required": true,
+        "purpose": "module b",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "payoff",
+        "required": true,
+        "purpose": "payoff",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "cta",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 4,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 300,
+    "output_qa_frames": [
+      0,
+      3,
+      23,
+      44,
+      45,
+      90,
+      134,
+      135,
+      165,
+      194,
+      195,
+      218,
+      239,
+      240,
+      270,
+      299
+    ],
+    "slug": "headline-plus-inset-motion-module",
+    "route": "/ad-library/headline-plus-inset-motion-module"
+  },
+  {
+    "id": "R10",
+    "title": "Integration puzzle that snaps together",
+    "implementation_priority": "P2",
+    "engine_fit": "hybrid_3d_asset_or_2d_adaptation",
+    "objective": "Represent connected products or integrations as a satisfying assembly.",
+    "duration_ms": 10000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "Licensed/original 3D animation, or 6\u20139 flat icon tiles",
+      "Approved integration names/icons",
+      "One benefit and CTA"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Background",
+      "Shadow",
+      "Puzzle asset or tile groups",
+      "Benefit text",
+      "CTA"
+    ],
+    "visual_invariant": "Separate elements become one coherent object; the assembly is the proof metaphor, not the actual proof of integration.",
+    "layout": {
+      "object_box": [
+        0.16,
+        0.3,
+        0.68,
+        0.39
+      ],
+      "headline_box": [
+        0.1,
+        0.14,
+        0.78,
+        0.14
+      ],
+      "cta_box": [
+        0.1,
+        0.73,
+        0.78,
+        0.07
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 1500,
+        "role": "hook",
+        "composition": "Separated tiles or a partly assembled object are already visible.",
+        "motion": "Small opposing offsets create tension.",
+        "copy_slot": "integration_problem",
+        "audio_cue": "Light ticks.",
+        "qa": "Every displayed integration must actually exist.",
+        "illustration_asset_id": "R10-B01",
+        "id": "R10-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 45
+      },
+      {
+        "start_ms": 1500,
+        "end_ms": 4000,
+        "role": "assembly",
+        "composition": "Tiles move toward their assigned cells.",
+        "motion": "Stagger by 100 ms; 350 ms easeOutBack with <=5% overshoot, or play rendered assembly footage.",
+        "copy_slot": "connection_label",
+        "audio_cue": "One click per connection, mixed quietly.",
+        "qa": "No overlapping tile labels during the final settle.",
+        "illustration_asset_id": "R10-B02",
+        "id": "R10-B02",
+        "start_frame": 45,
+        "end_frame_exclusive": 120
+      },
+      {
+        "start_ms": 4000,
+        "end_ms": 6500,
+        "role": "resolve",
+        "composition": "The completed object rotates slightly or pulses once.",
+        "motion": "Native 2D version uses scale only; true depth uses an original 3D asset.",
+        "copy_slot": "benefit",
+        "audio_cue": "Single resolve accent.",
+        "qa": "Do not call a tilted flat PNG a full 3D reconstruction.",
+        "illustration_asset_id": "R10-B03",
+        "id": "R10-B03",
+        "start_frame": 120,
+        "end_frame_exclusive": 195
+      },
+      {
+        "start_ms": 6500,
+        "end_ms": 8000,
+        "role": "explain",
+        "composition": "Short supported benefit sits beside the coherent system.",
+        "motion": "Type fade; object holds.",
+        "copy_slot": "benefit_detail",
+        "audio_cue": "Optional VO.",
+        "qa": "The value proposition is specific, not only abstract eye candy.",
+        "illustration_asset_id": "R10-B04",
+        "id": "R10-B04",
+        "start_frame": 195,
+        "end_frame_exclusive": 240
+      },
+      {
+        "start_ms": 8000,
+        "end_ms": 10000,
+        "role": "cta",
+        "composition": "Final object and next step.",
+        "motion": "Hold.",
+        "copy_slot": "cta",
+        "audio_cue": "Resolve.",
+        "qa": "Logo and integration licenses checked.",
+        "illustration_asset_id": "R10-B05",
+        "id": "R10-B05",
+        "start_frame": 240,
+        "end_frame_exclusive": 300
+      }
+    ],
+    "variables": [
+      "integration_icons",
+      "tile_count",
+      "assembly_order",
+      "benefit",
+      "cta"
+    ],
+    "fallback": "Use a 2D 3\u00d73 tile grid. Match the assembly logic without copying the original tactile CG.",
+    "watch_out": [
+      "Tactile lighting and physical depth require suitable original rendered media.",
+      "Use native model clips only after validating the deployed host; imported rendered video is the conservative path."
+    ],
+    "variants": [
+      "6 s: separated 1 s, assemble 2 s, benefit 1 s, CTA 2 s.",
+      "2D version: use flat assembly shapes with consistent overlap and shadows."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      750,
+      1466,
+      1500,
+      2750,
+      3966,
+      4000,
+      5250,
+      6466,
+      6500,
+      7250,
+      7966,
+      8000,
+      9000,
+      9966
+    ],
+    "collection_ids": [
+      "C07"
+    ],
+    "visual_assets": [
+      "A09",
+      "A10"
+    ],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "connection",
+      "complexity": "advanced",
+      "use_when": "Assembly is a useful metaphor for supported integrations or components.",
+      "avoid_when": "The viewer might mistake a visual metaphor for a literal product demo.",
+      "alternative_recipe_ids": [
+        "R03"
+      ],
+      "motion_principle": "Individual pieces remain identifiable as they assemble into one object.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "No tile passes through another unless the intended overlap is explicit.",
+      "Names and icons correspond to supported, approved integrations.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Use the reference composition. Check placement overlays with the actual destination preview.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "integration_problem",
+        "required": true,
+        "purpose": "hook",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "connection_label",
+        "required": true,
+        "purpose": "assembly",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit",
+        "required": true,
+        "purpose": "resolve",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit_detail",
+        "required": true,
+        "purpose": "explain",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "cta",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 4,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 300,
+    "output_qa_frames": [
+      0,
+      3,
+      23,
+      44,
+      45,
+      83,
+      119,
+      120,
+      158,
+      194,
+      195,
+      218,
+      239,
+      240,
+      270,
+      299
+    ],
+    "slug": "integration-puzzle-that-snaps-together",
+    "route": "/ad-library/integration-puzzle-that-snaps-together"
+  },
+  {
+    "id": "R11",
+    "title": "Hero artwork becomes a type stage",
+    "implementation_priority": "P1",
+    "engine_fit": "native_with_original_art_assets",
+    "objective": "Reuse one artwork system across acquisition and brand variants.",
+    "duration_ms": 12000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "Original/licensed hero artwork with separable layers",
+      "Simpler background derived from that artwork",
+      "Headline and CTA"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Secondary artwork field",
+      "Hero artwork group",
+      "Optional color overlay",
+      "Headline",
+      "CTA"
+    ],
+    "visual_invariant": "The visual world persists while foreground detail gives way to readable typography.",
+    "layout": {
+      "hero_box": [
+        0.04,
+        0.12,
+        0.89,
+        0.58
+      ],
+      "message_box": [
+        0.1,
+        0.24,
+        0.78,
+        0.31
+      ],
+      "cta_box": [
+        0.11,
+        0.71,
+        0.76,
+        0.08
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 2500,
+        "role": "art_hook",
+        "composition": "Hero art fills a composed region of the canvas.",
+        "motion": "Gentle independent layer movement; avoid moving every layer equally.",
+        "copy_slot": "optional_short_hook",
+        "audio_cue": "Musical phrase starts.",
+        "qa": "Use approved original artwork for the production design.",
+        "illustration_asset_id": "R11-B01",
+        "id": "R11-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 75
+      },
+      {
+        "start_ms": 2500,
+        "end_ms": 4500,
+        "role": "transform",
+        "composition": "Hero foreground exits or crops away; related secondary field remains.",
+        "motion": "Group slide/wipe over 400 ms; maintain palette and one anchoring motif.",
+        "copy_slot": "none",
+        "audio_cue": "Transition accent.",
+        "qa": "The simplified field genuinely has room for type.",
+        "illustration_asset_id": "R11-B02",
+        "id": "R11-B02",
+        "start_frame": 75,
+        "end_frame_exclusive": 135
+      },
+      {
+        "start_ms": 4500,
+        "end_ms": 7500,
+        "role": "message",
+        "composition": "One headline occupies the newly quiet stage.",
+        "motion": "Word stagger 90 ms, 300 ms per word, then hold.",
+        "copy_slot": "headline",
+        "audio_cue": "Optional VO mirrors the headline.",
+        "qa": "Check complete stagger span against available duration.",
+        "illustration_asset_id": "R11-B03",
+        "id": "R11-B03",
+        "start_frame": 135,
+        "end_frame_exclusive": 225
+      },
+      {
+        "start_ms": 7500,
+        "end_ms": 9500,
+        "role": "offer",
+        "composition": "Small offer or next-step statement joins the headline.",
+        "motion": "180 ms fade; background drift only.",
+        "copy_slot": "offer_or_benefit",
+        "audio_cue": "No new competing phrase.",
+        "qa": "No fabricated promotional terms.",
+        "illustration_asset_id": "R11-B04",
+        "id": "R11-B04",
+        "start_frame": 225,
+        "end_frame_exclusive": 285
+      },
+      {
+        "start_ms": 9500,
+        "end_ms": 12000,
+        "role": "cta",
+        "composition": "Readable brand and CTA with a small art motif.",
+        "motion": "Hold; optional motif loop.",
+        "copy_slot": "cta",
+        "audio_cue": "Resolve.",
+        "qa": "Every aspect ratio needs its own text-stage crop.",
+        "illustration_asset_id": "R11-B05",
+        "id": "R11-B05",
+        "start_frame": 285,
+        "end_frame_exclusive": 360
+      }
+    ],
+    "variables": [
+      "hero_art",
+      "secondary_art",
+      "headline",
+      "palette",
+      "offer",
+      "cta"
+    ],
+    "fallback": "Create the secondary field with a crop, flat color and one motif; complex artwork animation is optional.",
+    "watch_out": [
+      "The underlying artwork carries much of the craft; timeline primitives alone do not replace it.",
+      "Generated artwork demonstrates composition; it is not a real product or campaign asset."
+    ],
+    "variants": [
+      "Brand variant: more art, less copy.",
+      "Acquisition variant: transition to the type stage earlier."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      1250,
+      2466,
+      2500,
+      3500,
+      4466,
+      4500,
+      6000,
+      7466,
+      7500,
+      8500,
+      9466,
+      9500,
+      10750,
+      11966
+    ],
+    "collection_ids": [
+      "C08"
+    ],
+    "visual_assets": [
+      "A20",
+      "A21",
+      "A22",
+      "A23"
+    ],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "brand",
+      "complexity": "moderate",
+      "use_when": "Original artwork can establish a recognizable visual world before the message.",
+      "avoid_when": "No separable art or clear low-detail type stage is available.",
+      "alternative_recipe_ids": [
+        "R06"
+      ],
+      "motion_principle": "Carry a motif from the hero art into the simpler message stage.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "The transition preserves a recognizable motif or palette.",
+      "Foreground detail no longer competes with the main headline.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Use the reference composition. Check placement overlays with the actual destination preview.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "optional_short_hook",
+        "required": false,
+        "purpose": "art hook",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "headline",
+        "required": true,
+        "purpose": "message",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "offer_or_benefit",
+        "required": true,
+        "purpose": "offer",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "cta",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 4,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 360,
+    "output_qa_frames": [
+      0,
+      3,
+      38,
+      74,
+      75,
+      105,
+      134,
+      135,
+      180,
+      224,
+      225,
+      255,
+      284,
+      285,
+      323,
+      359
+    ],
+    "slug": "hero-artwork-becomes-a-type-stage",
+    "route": "/ad-library/hero-artwork-becomes-a-type-stage"
+  },
+  {
+    "id": "R12",
+    "title": "Fixed glyph, changing world",
+    "implementation_priority": "P2",
+    "engine_fit": "native_2d_adaptation_or_imported_cg",
+    "objective": "Make a memorable product promise through a consistent visual anchor.",
+    "duration_ms": 12000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "An original anchor glyph/icon",
+      "4\u20136 original sector/benefit cutouts or rendered worlds",
+      "Approved promise and CTA"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Background",
+      "Changing worlds",
+      "Anchor glyph",
+      "Short labels",
+      "CTA"
+    ],
+    "visual_invariant": "The anchor never changes position or silhouette while the world around it changes.",
+    "layout": {
+      "anchor_center": [
+        0.5,
+        0.46
+      ],
+      "anchor_size": [
+        0.43,
+        0.34
+      ],
+      "caption_box": [
+        0.1,
+        0.16,
+        0.78,
+        0.14
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 1500,
+        "role": "anchor",
+        "composition": "One large glyph/icon and a short premise.",
+        "motion": "Anchor settles in 250 ms.",
+        "copy_slot": "premise",
+        "audio_cue": "Single memorable musical accent.",
+        "qa": "Do not borrow a zero-fee claim unless it is true and fully qualified.",
+        "illustration_asset_id": "R12-B01",
+        "id": "R12-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 45
+      },
+      {
+        "start_ms": 1500,
+        "end_ms": 4500,
+        "role": "worlds_1",
+        "composition": "Two worlds appear around the same anchor.",
+        "motion": "Cut every 1500 ms; supporting objects move tangentially or scale gently.",
+        "copy_slot": "label_1_2",
+        "audio_cue": "Motif repeats.",
+        "qa": "Anchor position is identical across cuts.",
+        "illustration_asset_id": "R12-B02",
+        "id": "R12-B02",
+        "start_frame": 45,
+        "end_frame_exclusive": 135
+      },
+      {
+        "start_ms": 4500,
+        "end_ms": 7500,
+        "role": "worlds_2",
+        "composition": "Two more worlds expand the range.",
+        "motion": "Repeat timing; vary palette and surrounding objects, not the anchor geometry.",
+        "copy_slot": "label_3_4",
+        "audio_cue": "Same motif.",
+        "qa": "Do not introduce a new grammar on every cut.",
+        "illustration_asset_id": "R12-B03",
+        "id": "R12-B03",
+        "start_frame": 135,
+        "end_frame_exclusive": 225
+      },
+      {
+        "start_ms": 7500,
+        "end_ms": 9500,
+        "role": "promise",
+        "composition": "Worlds clear to reveal the concrete promise.",
+        "motion": "300 ms exits; anchor stays.",
+        "copy_slot": "promise",
+        "audio_cue": "Music resolves.",
+        "qa": "Promise is explicit and substantiated.",
+        "illustration_asset_id": "R12-B04",
+        "id": "R12-B04",
+        "start_frame": 225,
+        "end_frame_exclusive": 285
+      },
+      {
+        "start_ms": 9500,
+        "end_ms": 12000,
+        "role": "cta",
+        "composition": "Anchor becomes part of the brand/CTA lockup.",
+        "motion": "Hold.",
+        "copy_slot": "cta",
+        "audio_cue": "Quiet ending.",
+        "qa": "No imitation of the original jingle or protected brand assets.",
+        "illustration_asset_id": "R12-B05",
+        "id": "R12-B05",
+        "start_frame": 285,
+        "end_frame_exclusive": 360
+      }
+    ],
+    "variables": [
+      "anchor_glyph",
+      "worlds",
+      "world_labels",
+      "promise",
+      "palette",
+      "cta"
+    ],
+    "fallback": "Use 2D cutouts orbiting a fixed circle or original icon; do not pretend this matches the original CG material work.",
+    "watch_out": [
+      "Validate the proposed visual anchor with the intended audience; no performance claim is supplied.",
+      "If the anchor is part of a trademark, use the client\u2019s own licensed mark."
+    ],
+    "variants": [
+      "6 s: two worlds only.",
+      "For NodeTool: an editable project icon stays fixed as image, video and audio outputs change around it."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      750,
+      1466,
+      1500,
+      3000,
+      4466,
+      4500,
+      6000,
+      7466,
+      7500,
+      8500,
+      9466,
+      9500,
+      10750,
+      11966
+    ],
+    "collection_ids": [
+      "C09"
+    ],
+    "visual_assets": [],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "brand",
+      "complexity": "advanced",
+      "use_when": "One stable icon can connect several product contexts or outputs.",
+      "avoid_when": "The anchor has no clear meaning or the changing worlds obscure it.",
+      "alternative_recipe_ids": [
+        "R11"
+      ],
+      "motion_principle": "The anchor silhouette and position remain identical across world changes.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "Anchor center and silhouette remain fixed at all scene boundaries.",
+      "Each world is distinguishable without relying on its caption.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Use the reference composition. Check placement overlays with the actual destination preview.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "premise",
+        "required": true,
+        "purpose": "anchor",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "label_1_2",
+        "required": true,
+        "purpose": "worlds 1",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "label_3_4",
+        "required": true,
+        "purpose": "worlds 2",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "promise",
+        "required": true,
+        "purpose": "promise",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "cta",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 4,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 360,
+    "output_qa_frames": [
+      0,
+      3,
+      23,
+      44,
+      45,
+      90,
+      134,
+      135,
+      180,
+      224,
+      225,
+      255,
+      284,
+      285,
+      323,
+      359
+    ],
+    "slug": "fixed-glyph-changing-world",
+    "route": "/ad-library/fixed-glyph-changing-world"
+  },
+  {
+    "id": "R13",
+    "title": "Calm breathing-shape loop",
+    "implementation_priority": "P0",
+    "engine_fit": "native_2d",
+    "objective": "Create a deliberately calm product-demo or wellness-style ad.",
+    "duration_ms": 12000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "Original simple shape or licensed character layers",
+      "One gentle prompt",
+      "Brand and CTA"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Flat background",
+      "Ground shadow",
+      "Shape/character group",
+      "Prompt",
+      "CTA"
+    ],
+    "visual_invariant": "One clearly observable expansion/contraction cycle carries the experience; the design is quiet rather than empty.",
+    "layout": {
+      "shape_box": [
+        0.2,
+        0.33,
+        0.6,
+        0.31
+      ],
+      "prompt_box": [
+        0.1,
+        0.16,
+        0.78,
+        0.14
+      ],
+      "cta_box": [
+        0.12,
+        0.72,
+        0.74,
+        0.08
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 2000,
+        "role": "invitation",
+        "composition": "Friendly simple form and a short invitation are present immediately.",
+        "motion": "Soft 350 ms opacity entrance; no hard flash.",
+        "copy_slot": "invitation",
+        "audio_cue": "Optional calm tone.",
+        "qa": "Do not imply a medical or therapeutic outcome.",
+        "illustration_asset_id": "R13-B01",
+        "id": "R13-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 60
+      },
+      {
+        "start_ms": 2000,
+        "end_ms": 5000,
+        "role": "expand",
+        "composition": "Form expands slightly around a stable center.",
+        "motion": "Custom scale 1.00\u21921.08 with easeInOut; shadow changes subtly.",
+        "copy_slot": "expand_prompt",
+        "audio_cue": "Optional gentle swell.",
+        "qa": "Scale amplitude restrained; text stays still.",
+        "illustration_asset_id": "R13-B02",
+        "id": "R13-B02",
+        "start_frame": 60,
+        "end_frame_exclusive": 150
+      },
+      {
+        "start_ms": 5000,
+        "end_ms": 8000,
+        "role": "contract",
+        "composition": "Form returns to its resting size.",
+        "motion": "Scale 1.08\u21921.00 using the same easing.",
+        "copy_slot": "contract_prompt",
+        "audio_cue": "Gentle release.",
+        "qa": "Do not animate all text with the character.",
+        "illustration_asset_id": "R13-B03",
+        "id": "R13-B03",
+        "start_frame": 150,
+        "end_frame_exclusive": 240
+      },
+      {
+        "start_ms": 8000,
+        "end_ms": 10000,
+        "role": "benefit",
+        "composition": "Show one supported product benefit, not a health promise.",
+        "motion": "180 ms text fade; form rests.",
+        "copy_slot": "benefit",
+        "audio_cue": "Quiet.",
+        "qa": "The 3-second phases are design timing, not a clinical breathing recommendation.",
+        "illustration_asset_id": "R13-B04",
+        "id": "R13-B04",
+        "start_frame": 240,
+        "end_frame_exclusive": 300
+      },
+      {
+        "start_ms": 10000,
+        "end_ms": 12000,
+        "role": "cta",
+        "composition": "Brand, invitation and next step hold.",
+        "motion": "Subtle 1\u20132% motion or none.",
+        "copy_slot": "cta",
+        "audio_cue": "Resolve softly.",
+        "qa": "If seamless loop is required, make first/last visual states match.",
+        "illustration_asset_id": "R13-B05",
+        "id": "R13-B05",
+        "start_frame": 300,
+        "end_frame_exclusive": 360
+      }
+    ],
+    "variables": [
+      "shape",
+      "palette",
+      "prompt",
+      "cycle_amplitude",
+      "cta"
+    ],
+    "fallback": "Use circles and rounded rectangles instead of character deformation; build expressions from separate simple layers.",
+    "watch_out": [
+      "A calm visual style does not establish advertising effectiveness.",
+      "Complex squash/morphing needs compatible path geometry or original animation assets."
+    ],
+    "variants": [
+      "6 s: a single small expansion/contraction cycle plus stable CTA.",
+      "Use a non-looping end card when acquisition clarity matters more than a seamless loop."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      1000,
+      1966,
+      2000,
+      3500,
+      4966,
+      5000,
+      6500,
+      7966,
+      8000,
+      9000,
+      9966,
+      10000,
+      11000,
+      11966
+    ],
+    "collection_ids": [
+      "C10"
+    ],
+    "visual_assets": [
+      "A16"
+    ],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "calm",
+      "complexity": "simple",
+      "use_when": "A quiet expansion/contraction cycle suits the intended message and pacing.",
+      "avoid_when": "Urgency, a detailed feature explanation or an unsupported health claim drives the ad.",
+      "alternative_recipe_ids": [
+        "R06"
+      ],
+      "motion_principle": "Use a complete, gentle cycle with no abrupt scale reset.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "Expansion and contraction settle without a jump.",
+      "If exported as a loop, first and last displayed states join cleanly; otherwise use an end card.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Use the reference composition. Check placement overlays with the actual destination preview.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "invitation",
+        "required": true,
+        "purpose": "invitation",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "expand_prompt",
+        "required": true,
+        "purpose": "expand",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "contract_prompt",
+        "required": true,
+        "purpose": "contract",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit",
+        "required": true,
+        "purpose": "benefit",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "cta",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 4,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 360,
+    "output_qa_frames": [
+      0,
+      3,
+      30,
+      59,
+      60,
+      105,
+      149,
+      150,
+      195,
+      239,
+      240,
+      270,
+      299,
+      300,
+      330,
+      359
+    ],
+    "slug": "calm-breathing-shape-loop",
+    "route": "/ad-library/calm-breathing-shape-loop"
+  },
+  {
+    "id": "R14",
+    "title": "Macro feature proof",
+    "implementation_priority": "P1",
+    "engine_fit": "native_with_product_stills_or_rendered_footage",
+    "objective": "Show a specific hardware or product detail, then explain why it matters.",
+    "duration_ms": 10000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "High-resolution product macro and full-product still, or original rendered clip",
+      "Accurate feature statement",
+      "Logo and CTA"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Color stage",
+      "Product image/footage",
+      "Feature highlight",
+      "Headline",
+      "Required disclaimer",
+      "CTA"
+    ],
+    "visual_invariant": "Extreme detail turns into a useful, understandable product benefit.",
+    "layout": {
+      "product_box": [
+        0.06,
+        0.28,
+        0.86,
+        0.4
+      ],
+      "headline_box": [
+        0.1,
+        0.14,
+        0.78,
+        0.15
+      ],
+      "disclaimer_box": [
+        0.1,
+        0.67,
+        0.78,
+        0.04
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 1800,
+        "role": "macro_hook",
+        "composition": "Feature detail dominates the frame.",
+        "motion": "Slow scale 1.04\u21921.00; one short label.",
+        "copy_slot": "feature_name",
+        "audio_cue": "Optional tactile accent.",
+        "qa": "Input has enough resolution for the chosen crop.",
+        "illustration_asset_id": "R14-B01",
+        "id": "R14-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 54
+      },
+      {
+        "start_ms": 1800,
+        "end_ms": 4500,
+        "role": "demonstration",
+        "composition": "Demonstrate one actual feature state.",
+        "motion": "Use an authentic clip or swap between approved state images.",
+        "copy_slot": "feature_action",
+        "audio_cue": "Authentic sound only if useful.",
+        "qa": "Do not invent charging speed, security behavior or sensor capabilities.",
+        "illustration_asset_id": "R14-B02",
+        "id": "R14-B02",
+        "start_frame": 54,
+        "end_frame_exclusive": 135
+      },
+      {
+        "start_ms": 4500,
+        "end_ms": 7000,
+        "role": "context",
+        "composition": "Reveal the full product.",
+        "motion": "Match cut to full-product asset; align the feature before the cut.",
+        "copy_slot": "benefit",
+        "audio_cue": "Resolve accent.",
+        "qa": "A full 3D orbit requires geometry or rendered footage, not a flat crop.",
+        "illustration_asset_id": "R14-B03",
+        "id": "R14-B03",
+        "start_frame": 135,
+        "end_frame_exclusive": 210
+      },
+      {
+        "start_ms": 7000,
+        "end_ms": 8500,
+        "role": "proof",
+        "composition": "Hold concise benefit and any necessary qualification.",
+        "motion": "Text fade, no new camera move.",
+        "copy_slot": "qualified_benefit",
+        "audio_cue": "Quiet.",
+        "qa": "Qualifications remain legible.",
+        "illustration_asset_id": "R14-B04",
+        "id": "R14-B04",
+        "start_frame": 210,
+        "end_frame_exclusive": 255
+      },
+      {
+        "start_ms": 8500,
+        "end_ms": 10000,
+        "role": "cta",
+        "composition": "Product, brand and CTA.",
+        "motion": "Hold.",
+        "copy_slot": "cta",
+        "audio_cue": "Resolve.",
+        "qa": "End frame contains the actual client product.",
+        "illustration_asset_id": "R14-B05",
+        "id": "R14-B05",
+        "start_frame": 255,
+        "end_frame_exclusive": 300
+      }
+    ],
+    "variables": [
+      "macro_asset",
+      "full_product_asset",
+      "feature",
+      "qualification",
+      "cta"
+    ],
+    "fallback": "Use a high-res still for the macro and a match cut to a second still. Avoid fake perspective rotation.",
+    "watch_out": [
+      "Keep original product geometry and labels accurate.",
+      "Do not remove legally necessary feature qualifications when adapting the format."
+    ],
+    "variants": [
+      "6 s: macro 1.5 s, full product/result 2.5 s, CTA 2 s.",
+      "4:5: use a wider macro instead of cropping off the key hardware feature."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      900,
+      1766,
+      1800,
+      3150,
+      4466,
+      4500,
+      5750,
+      6966,
+      7000,
+      7750,
+      8466,
+      8500,
+      9250,
+      9966
+    ],
+    "collection_ids": [
+      "C11"
+    ],
+    "visual_assets": [
+      "A17",
+      "A18"
+    ],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "demonstrate",
+      "complexity": "moderate",
+      "use_when": "A genuine product detail can explain a specific, qualified benefit.",
+      "avoid_when": "The macro looks impressive but does not support the feature claim.",
+      "alternative_recipe_ids": [
+        "R15"
+      ],
+      "motion_principle": "Orient the viewer by connecting the macro to a recognizable full product.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "The macro corresponds to the same product detail in the wider view.",
+      "Required qualifications are legible for the entire benefit claim.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Use the reference composition. Check placement overlays with the actual destination preview.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "feature_name",
+        "required": true,
+        "purpose": "macro hook",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "feature_action",
+        "required": true,
+        "purpose": "demonstration",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit",
+        "required": true,
+        "purpose": "context",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "qualified_benefit",
+        "required": true,
+        "purpose": "proof",
+        "suggested_max_words": 16,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "cta",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 4,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 300,
+    "output_qa_frames": [
+      0,
+      3,
+      27,
+      53,
+      54,
+      95,
+      134,
+      135,
+      173,
+      209,
+      210,
+      233,
+      254,
+      255,
+      278,
+      299
+    ],
+    "slug": "macro-feature-proof",
+    "route": "/ad-library/macro-feature-proof"
+  },
+  {
+    "id": "R15",
+    "title": "Result seen through the product",
+    "implementation_priority": "P1",
+    "engine_fit": "native_2d_with_masks",
+    "objective": "Tie an impressive output directly to the product that creates it.",
+    "duration_ms": 12000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "Original output image/video",
+      "Front-facing product frame or app/window frame with transparency",
+      "Approved result claim and CTA"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Output background",
+      "Foreground screen/window crop",
+      "Product frame",
+      "Feature caption",
+      "CTA"
+    ],
+    "visual_invariant": "The result and the product window align spatially; a mask explains the relationship.",
+    "layout": {
+      "frame_box": [
+        0.09,
+        0.32,
+        0.8,
+        0.34
+      ],
+      "headline_box": [
+        0.1,
+        0.15,
+        0.78,
+        0.14
+      ],
+      "cta_box": [
+        0.11,
+        0.72,
+        0.76,
+        0.08
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 2000,
+        "role": "result_hook",
+        "composition": "The impressive output fills the scene.",
+        "motion": "Minimal motion; one short result label.",
+        "copy_slot": "result_label",
+        "audio_cue": "Optional cinematic accent.",
+        "qa": "Use an actual output or label a concept visualization honestly.",
+        "illustration_asset_id": "R15-B01",
+        "id": "R15-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 60
+      },
+      {
+        "start_ms": 2000,
+        "end_ms": 4500,
+        "role": "frame_reveal",
+        "composition": "Product/window frame appears over the aligned result.",
+        "motion": "Frame slides or fades in over 300 ms; underlying image alignment does not jump.",
+        "copy_slot": "product_link",
+        "audio_cue": "Soft reveal cue.",
+        "qa": "Crop and frame corners align pixel-for-pixel.",
+        "illustration_asset_id": "R15-B02",
+        "id": "R15-B02",
+        "start_frame": 60,
+        "end_frame_exclusive": 135
+      },
+      {
+        "start_ms": 4500,
+        "end_ms": 7500,
+        "role": "demonstrate",
+        "composition": "Window content shows a relevant change or detail.",
+        "motion": "Mask bounds or crop animate; use a real before/after only where truthful.",
+        "copy_slot": "feature_action",
+        "audio_cue": "Optional authentic UI sound.",
+        "qa": "Do not fake quality improvements or manufacture before/after evidence.",
+        "illustration_asset_id": "R15-B03",
+        "id": "R15-B03",
+        "start_frame": 135,
+        "end_frame_exclusive": 225
+      },
+      {
+        "start_ms": 7500,
+        "end_ms": 9500,
+        "role": "benefit",
+        "composition": "Pull back to an intelligible product-plus-result composition.",
+        "motion": "Group scale 1.08\u21921.00; benefit fades in.",
+        "copy_slot": "benefit",
+        "audio_cue": "Resolve.",
+        "qa": "Maintain shared aspect ratio inside the frame.",
+        "illustration_asset_id": "R15-B04",
+        "id": "R15-B04",
+        "start_frame": 225,
+        "end_frame_exclusive": 285
+      },
+      {
+        "start_ms": 9500,
+        "end_ms": 12000,
+        "role": "cta",
+        "composition": "Result, product and next step remain visible.",
+        "motion": "Hold.",
+        "copy_slot": "cta",
+        "audio_cue": "Quiet tail.",
+        "qa": "Qualification/disclosure survives the crop.",
+        "illustration_asset_id": "R15-B05",
+        "id": "R15-B05",
+        "start_frame": 285,
+        "end_frame_exclusive": 360
+      }
+    ],
+    "variables": [
+      "result_asset",
+      "product_frame",
+      "feature_action",
+      "benefit",
+      "cta"
+    ],
+    "fallback": "Use an original rectangular app frame instead of a physical device; front-facing geometry avoids corner-pinning requirements.",
+    "watch_out": [
+      "Use an actual product output for a published demonstration; the landscape/device image is a concept.",
+      "For angled screens, use a verified perspective path or pre-rendered asset."
+    ],
+    "variants": [
+      "NodeTool: show an actual generated/editable output inside the real application frame.",
+      "Square: reduce empty vertical space, preserving frame alignment."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      1000,
+      1966,
+      2000,
+      3250,
+      4466,
+      4500,
+      6000,
+      7466,
+      7500,
+      8500,
+      9466,
+      9500,
+      10750,
+      11966
+    ],
+    "collection_ids": [
+      "C11"
+    ],
+    "visual_assets": [
+      "A19"
+    ],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "demonstrate",
+      "complexity": "moderate",
+      "use_when": "A real output can be aligned inside the product or application that made it.",
+      "avoid_when": "Perspective alignment or product provenance cannot be established.",
+      "alternative_recipe_ids": [
+        "R14"
+      ],
+      "motion_principle": "Match the result and the window exactly; let the frame explain provenance.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "Mask edges show no leaks, seams or drift during transforms.",
+      "The depicted output actually comes from the demonstrated product.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Use the reference composition. Check placement overlays with the actual destination preview.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Reduce vertical gaps; keep a single dominant focal point and preserve the intended reading order."
+    },
+    "copy_slots": [
+      {
+        "id": "result_label",
+        "required": true,
+        "purpose": "result hook",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "product_link",
+        "required": true,
+        "purpose": "frame reveal",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "feature_action",
+        "required": true,
+        "purpose": "demonstrate",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "benefit",
+        "required": true,
+        "purpose": "benefit",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "cta",
+        "required": true,
+        "purpose": "cta",
+        "suggested_max_words": 4,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 360,
+    "output_qa_frames": [
+      0,
+      3,
+      30,
+      59,
+      60,
+      98,
+      134,
+      135,
+      180,
+      224,
+      225,
+      255,
+      284,
+      285,
+      323,
+      359
+    ],
+    "slug": "result-seen-through-the-product",
+    "route": "/ad-library/result-seen-through-the-product"
+  },
+  {
+    "id": "R16",
+    "title": "A capability sequence on connected paths",
+    "implementation_priority": "P1",
+    "engine_fit": "native_2d",
+    "objective": "Explain an onboarding or service journey in a compact diagram.",
+    "duration_ms": 12000,
+    "fps": 30,
+    "formats": [
+      "9:16",
+      "4:5",
+      "1:1"
+    ],
+    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
+    "assets_required": [
+      "3\u20134 approved capability icons",
+      "Optional authorized customer/representative imagery",
+      "Outcome and CTA"
+    ],
+    "layer_stack_bottom_to_top": [
+      "Background",
+      "Connector paths",
+      "Progress accent",
+      "Icon/portrait nodes",
+      "Stage labels",
+      "CTA"
+    ],
+    "visual_invariant": "A continuous visual path communicates progression; one node is active at a time.",
+    "layout": {
+      "headline_box": [
+        0.1,
+        0.13,
+        0.78,
+        0.15
+      ],
+      "diagram_box": [
+        0.14,
+        0.32,
+        0.7,
+        0.34
+      ],
+      "cta_box": [
+        0.1,
+        0.72,
+        0.78,
+        0.08
+      ]
+    },
+    "beats": [
+      {
+        "start_ms": 0,
+        "end_ms": 1800,
+        "role": "hook",
+        "composition": "First node and the desired outcome appear together.",
+        "motion": "Node pops in 240 ms; short headline settles.",
+        "copy_slot": "outcome_hook",
+        "audio_cue": "Single beat.",
+        "qa": "The diagram is not presented as a literal measured customer timeline.",
+        "illustration_asset_id": "R16-B01",
+        "id": "R16-B01",
+        "start_frame": 0,
+        "end_frame_exclusive": 54
+      },
+      {
+        "start_ms": 1800,
+        "end_ms": 4200,
+        "role": "stage_1",
+        "composition": "Path connects the first and second nodes.",
+        "motion": "Stroke trim grows over 500 ms; second node activates on arrival.",
+        "copy_slot": "stage_1",
+        "audio_cue": "Connection tick.",
+        "qa": "Use a compatible authored path or static line fallback.",
+        "illustration_asset_id": "R16-B02",
+        "id": "R16-B02",
+        "start_frame": 54,
+        "end_frame_exclusive": 126
+      },
+      {
+        "start_ms": 4200,
+        "end_ms": 6600,
+        "role": "stage_2",
+        "composition": "Next node becomes active.",
+        "motion": "Repeat the same motion grammar; previous node dims slightly.",
+        "copy_slot": "stage_2",
+        "audio_cue": "Matching tick.",
+        "qa": "Labels stay close to their nodes.",
+        "illustration_asset_id": "R16-B03",
+        "id": "R16-B03",
+        "start_frame": 126,
+        "end_frame_exclusive": 198
+      },
+      {
+        "start_ms": 6600,
+        "end_ms": 9000,
+        "role": "stage_3",
+        "composition": "Final node completes the journey.",
+        "motion": "Trim finishes; final node gets one restrained emphasis.",
+        "copy_slot": "stage_3",
+        "audio_cue": "Resolution accent.",
+        "qa": "No invented customer logos or endorsements.",
+        "illustration_asset_id": "R16-B04",
+        "id": "R16-B04",
+        "start_frame": 198,
+        "end_frame_exclusive": 270
+      },
+      {
+        "start_ms": 9000,
+        "end_ms": 12000,
+        "role": "outcome_and_cta",
+        "composition": "Entire journey is visible with a concrete next step.",
+        "motion": "Pull back <=8%; hold CTA >=2 s.",
+        "copy_slot": "outcome_and_cta",
+        "audio_cue": "Quiet finish.",
+        "qa": "Avoid shrinking the diagram below phone legibility.",
+        "illustration_asset_id": "R16-B05",
+        "id": "R16-B05",
+        "start_frame": 270,
+        "end_frame_exclusive": 360
+      }
+    ],
+    "variables": [
+      "stage_icons",
+      "stage_labels",
+      "path_geometry",
+      "outcome",
+      "cta"
+    ],
+    "fallback": "Use static connector lines and staggered circle/icon entrances; no path animation is strictly required.",
+    "watch_out": [
+      "Do not use a portrait as a testimonial without authorization.",
+      "In 9:16, use a vertical path rather than compressing a wide diagram."
+    ],
+    "variants": [
+      "9:16: vertical progression.",
+      "4:5 or 1:1: a three-node horizontal journey can work with short labels."
+    ],
+    "output_qa_times_ms": [
+      0,
+      100,
+      900,
+      1766,
+      1800,
+      3000,
+      4166,
+      4200,
+      5400,
+      6566,
+      6600,
+      7800,
+      8966,
+      9000,
+      10500,
+      11966
+    ],
+    "collection_ids": [
+      "C03"
+    ],
+    "visual_assets": [
+      "A03",
+      "A04"
+    ],
+    "schema_version": "3.0.0",
+    "selection": {
+      "goal": "explain",
+      "complexity": "moderate",
+      "use_when": "The order of onboarding or service steps is the message.",
+      "avoid_when": "Benefits are independent rather than sequential.",
+      "alternative_recipe_ids": [
+        "R03"
+      ],
+      "motion_principle": "Follow one continuous path with a single active stage.",
+      "rating_basis": "Editorial implementation estimate, not measured ad performance."
+    },
+    "acceptance_criteria": [
+      "The active stage and direction of travel remain unambiguous.",
+      "Each stage label describes a real step in the intended order.",
+      "The final brand and CTA are fully settled and readable before export ends."
+    ],
+    "layout_reference_format": "9:16",
+    "layout_units": "Normalized canvas fractions; boxes are [left, top, width, height], anchors are [x, y], sizes are [width, height].",
+    "format_adaptations": {
+      "9:16": "Arrange stages along a vertical path; keep the active stage and next step visible.",
+      "4:5": "Reflow the composition into a wider canvas; increase useful media width and recheck every line break.",
+      "1:1": "Use a three-node horizontal or gently curved journey with short labels; verify direction remains clear."
+    },
+    "copy_slots": [
+      {
+        "id": "outcome_hook",
+        "required": true,
+        "purpose": "hook",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "stage_1",
+        "required": true,
+        "purpose": "stage 1",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "stage_2",
+        "required": true,
+        "purpose": "stage 2",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "stage_3",
+        "required": true,
+        "purpose": "stage 3",
+        "suggested_max_words": 7,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      },
+      {
+        "id": "outcome_and_cta",
+        "required": true,
+        "purpose": "outcome and cta",
+        "suggested_max_words": 8,
+        "guidance": "Editorial starting budget, not a hard truncation rule. Keep required qualifications; simplify wording or extend the beat if it is unreadable."
+      }
+    ],
+    "readiness": {
+      "status": "concept",
+      "timing": "proposed",
+      "motion_render_review": "not_performed",
+      "host_integration": "not_verified",
+      "illustrations": "generated_stills"
+    },
+    "duration_frames": 360,
+    "output_qa_frames": [
+      0,
+      3,
+      27,
+      53,
+      54,
+      90,
+      125,
+      126,
+      162,
+      197,
+      198,
+      234,
+      269,
+      270,
+      315,
+      359
+    ],
+    "slug": "a-capability-journey-on-connected-paths",
+    "route": "/ad-library/a-capability-journey-on-connected-paths"
+  }
+]

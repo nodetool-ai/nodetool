@@ -11,7 +11,17 @@ description: "Open-source agent-first creative workspace. Create images, video, 
     you. Let them build and revise workflows, then inspect and edit the results
     yourself. Your project keeps the brief, assets, and edits together.
   </p>
-  <img src="{{ '/assets/home.png' | relative_url }}" alt="NodeTool canvas" class="home-screenshot">
+  <figure class="hero-reel">
+    <div class="media-frame">
+      <video class="inview-video" muted loop playsinline preload="metadata"
+        poster="https://nodetool.ai/hero-sizzle-poster.webp"
+        aria-label="One brief becomes a project across the agent chat, storyboard, graph canvas, sketch, script, and timeline">
+        <source src="https://nodetool.ai/hero-sizzle.webm" type="video/webm">
+        <source src="https://nodetool.ai/hero-sizzle.mp4" type="video/mp4">
+      </video>
+    </div>
+    <figcaption>Direct, board, render, compare, paint, voice, and cut in one workspace. Recorded in the app.</figcaption>
+  </figure>
   <div class="cta-row">
     <a href="{{ '/getting-started' | relative_url }}" class="cta-button primary">Get started</a>
     <a href="{{ '/workflows/' | relative_url }}" class="cta-button">Examples</a>
@@ -19,79 +29,197 @@ description: "Open-source agent-first creative workspace. Create images, video, 
   </div>
 </section>
 
-## Start by asking
-
-One agent works across the whole app. It looks at your open document and edits it just like you would. This means everything it creates acts like a normal workflow, drawing, or timeline. Nothing is locked, and nothing is hidden from you.
-
-<div class="pattern-grid">
-  <article class="pattern-card">
-    <h5>Say what you want</h5>
-    <p>"Turn this story idea into a storyboard and a short video trailer." The agent picks the right parts, connects them, chooses the best tools, and runs it all.</p>
+<section class="home-block">
+  <p class="section-kicker">Agents</p>
+  <h2 id="start-by-asking">Describe it. The agent builds the project.</h2>
+  <p class="section-lead">
+    Give the agent a brief. It drafts the script, boards the shots, renders the
+    takes, and cuts them on a timeline. What comes back is a project you can
+    open, not a finished file.
+  </p>
+  <figure class="media-frame agent-media">
+    <video class="inview-video" muted loop playsinline preload="none"
+      poster="https://nodetool.ai/agent-redo-poster.webp"
+      aria-label="The agent renders a six-shot storyboard. A one-line note sends shot 3 back for night, only that shot renders again, and the timeline cut picks up the new take.">
+      <source src="https://nodetool.ai/agent-redo.webm" type="video/webm">
+      <source src="https://nodetool.ai/agent-redo.mp4" type="video/mp4">
+    </video>
+  </figure>
+  <ol class="agent-steps">
+    <li>
+      <strong>Write the brief</strong>
+      <span>"Turn this story idea into a storyboard and a short trailer."</span>
+    </li>
+    <li>
+      <strong>Watch it work</strong>
+      <span>The plan, every tool call, and every render appear as they run. A permission mode decides what needs your approval.</span>
+    </li>
+    <li>
+      <strong>Take over, or send a note</strong>
+      <span>Change any part yourself, or ask the agent to redo the one shot you want different.</span>
+    </li>
+  </ol>
+  <p class="agent-links">
     <a href="{{ '/global-chat-agents' | relative_url }}">Chat &amp; Agents →</a>
-  </article>
-  <article class="pattern-card">
-    <h5>Watch it work</h5>
-    <p>You can see everything happen in real-time: the plan, every tool it uses, and every part as it works. A simple setting lets you choose if it needs your permission before doing anything.</p>
     <a href="{{ '/global-chat' | relative_url }}#agent-mode">The agent loop →</a>
-  </article>
-  <article class="pattern-card">
-    <h5>Take over any time</h5>
-    <p>Click a node, change a value, rewire an edge, re-run. The graph is the source of truth for both of you.</p>
-    <a href="{{ '/workflow-editor' | relative_url }}">Workflow editor →</a>
-  </article>
-</div>
+  </p>
+</section>
 
-The same agent works everywhere: the node view, the [Sketch Editor]({{ '/sketch-editor' | relative_url }}), the [Video Editor]({{ '/video-editor' | relative_url }}), scripts, storyboards, and the [App Builder]({{ '/app-builder' | relative_url }}). Just ask it to add a new music track, draw a layer, change a video clip, or connect a form, and watch it happen.
+<section class="home-block">
+  <p class="section-kicker">Editors</p>
+  <h2 id="five-editors">Five editors. One project.</h2>
+  <p class="section-lead">
+    Everything the agent makes opens in an editor. The agent works each editor
+    with the same tools you click.
+  </p>
+  <div class="surface-grid">
+    <article class="surface-card wide">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/surface-storyboard-poster.webp" aria-label="Storyboard editor">
+          <source src="https://nodetool.ai/surface-storyboard.webm" type="video/webm">
+          <source src="https://nodetool.ai/surface-storyboard.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="surface-body">
+        <h3>Storyboard</h3>
+        <p>Board the film shot by shot. Generate cheap stills to lock the look, then animate only the shots you approved.</p>
+        <a href="{{ '/ai-video-production' | relative_url }}#storyboard-direct-each-shot-before-animation">Storyboards →</a>
+      </div>
+    </article>
+    <article class="surface-card wide">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/surface-timeline-poster.webp" aria-label="Timeline editor">
+          <source src="https://nodetool.ai/surface-timeline.webm" type="video/webm">
+          <source src="https://nodetool.ai/surface-timeline.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="surface-body">
+        <h3>Timeline</h3>
+        <p>Arrange, trim, and layer generated video and audio across tracks. The agent edits the same document when you ask it to tighten the opening.</p>
+        <a href="{{ '/video-editor' | relative_url }}">Video Editor →</a>
+      </div>
+    </article>
+    <article class="surface-card">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/surface-script-poster.webp" aria-label="Script editor">
+          <source src="https://nodetool.ai/surface-script.webm" type="video/webm">
+          <source src="https://nodetool.ai/surface-script.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="surface-body">
+        <h3>Script &amp; voice</h3>
+        <p>Draft the dialogue and cast a voice per character. Change the words and the take flags itself stale.</p>
+        <a href="{{ '/ai-video-production' | relative_url }}#script-write-and-cast-the-words-first">Scripts →</a>
+      </div>
+    </article>
+    <article class="surface-card">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/surface-sketch-poster.webp" aria-label="Sketch editor">
+          <source src="https://nodetool.ai/surface-sketch.webm" type="video/webm">
+          <source src="https://nodetool.ai/surface-sketch.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="surface-body">
+        <h3>Sketch</h3>
+        <p>Paint and blend hand-drawn elements with generated layers. Bind a layer to a prompt and regenerate that layer alone.</p>
+        <a href="{{ '/sketch-editor' | relative_url }}">Sketch Editor →</a>
+      </div>
+    </article>
+    <article class="surface-card">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/surface-3d-poster.webp" aria-label="3D editor">
+          <source src="https://nodetool.ai/surface-3d.webm" type="video/webm">
+          <source src="https://nodetool.ai/surface-3d.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="surface-body">
+        <h3>3D</h3>
+        <p>Block out a set with simple shapes and lights, by hand or by asking the agent. Render it from any angle as a shot reference.</p>
+      </div>
+    </article>
+  </div>
+  <p class="section-note">
+    The <a href="{{ '/workflow-editor' | relative_url }}">node canvas</a> sits
+    under all five. Open it when you want to change how a step runs.
+  </p>
+</section>
 
-## Featured use cases
-
-Three flagship workflows, end to end. Each starts from a few inputs and builds a
-finished result on one canvas you can re-run, restyle, and re-point at your own
-story. [See all use cases →]({{ '/use-cases' | relative_url }})
-
-<div class="usecase-grid">
-  <article class="usecase-card">
-    <a href="{{ '/use-cases/movie-trailer' | relative_url }}" class="usecase-media">
-      <img src="{{ '/assets/use-cases/trailer-shot-1.png' | relative_url }}" alt="Movie Trailer Generator key art">
+<section class="home-block">
+  <p class="section-kicker">Recipes</p>
+  <h2 id="featured-use-cases">Start from a recipe</h2>
+  <p class="section-lead">
+    Each recipe is a chain of editable steps with a real sample run. Open one,
+    swap in your own product or story, and re-run it.
+  </p>
+  <div class="recipe-grid">
+    <a class="recipe-card" href="https://nodetool.ai/recipes/storyboard-to-trailer">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/recipes/samples/storyboard-to-trailer-poster.webp" aria-label="Storyboard to trailer sample run">
+          <source src="https://nodetool.ai/recipes/samples/storyboard-to-trailer.webm" type="video/webm">
+          <source src="https://nodetool.ai/recipes/samples/storyboard-to-trailer.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="recipe-body">
+        <span class="usecase-tag">Film</span>
+        <h3>Storyboard to trailer</h3>
+        <p>A story idea becomes a six-shot storyboard, then voice, motion, and an edit.</p>
+      </div>
     </a>
-    <div class="usecase-body">
-      <span class="usecase-tag">Film</span>
-      <h3><a href="{{ '/use-cases/movie-trailer' | relative_url }}">Movie Trailer Generator</a></h3>
-      <p>One logline becomes a storyboard, key art, and a cut teaser.</p>
-    </div>
-  </article>
-  <article class="usecase-card">
-    <a href="{{ '/use-cases/documentary-teaser' | relative_url }}" class="usecase-media">
-      <img src="{{ '/assets/use-cases/deep-shot-6.jpg' | relative_url }}" alt="Documentary Teaser Generator still">
+    <a class="recipe-card" href="https://nodetool.ai/recipes/viral-video-ad-engine">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/recipes/samples/viral-video-ad-engine-poster.webp" aria-label="Product commercial sample run">
+          <source src="https://nodetool.ai/recipes/samples/viral-video-ad-engine.webm" type="video/webm">
+          <source src="https://nodetool.ai/recipes/samples/viral-video-ad-engine.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="recipe-body">
+        <span class="usecase-tag">Advertising</span>
+        <h3>Product commercials</h3>
+        <p>Direct the shots, shape the sound, and finish the ad on the timeline.</p>
+      </div>
     </a>
-    <div class="usecase-body">
-      <span class="usecase-tag">Documentary</span>
-      <h3><a href="{{ '/use-cases/documentary-teaser' | relative_url }}">Documentary Teaser Generator</a></h3>
-      <p>One sentence becomes a board, stills, clips, and a cut teaser.</p>
-    </div>
-  </article>
-
- <article class="usecase-card">
-    <a href="{{ '/use-cases/product-video' | relative_url }}" class="usecase-media">
-      <img src="{{ '/assets/use-cases/smartwatch.png' | relative_url }}" alt="Product Video Generator hero photo">
+    <a class="recipe-card" href="https://nodetool.ai/recipes/ecommerce-sku-visual-factory">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/recipes/samples/ecommerce-sku-visual-factory-poster.webp" aria-label="Product catalogue sample run">
+          <source src="https://nodetool.ai/recipes/samples/ecommerce-sku-visual-factory.webm" type="video/webm">
+          <source src="https://nodetool.ai/recipes/samples/ecommerce-sku-visual-factory.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="recipe-body">
+        <span class="usecase-tag">E-commerce</span>
+        <h3>Product catalogue assets</h3>
+        <p>One product photo becomes studio images, seasonal scenes, and a motion clip.</p>
+      </div>
     </a>
-    <div class="usecase-body">
-      <span class="usecase-tag">Marketing</span>
-      <h3><a href="{{ '/use-cases/product-video' | relative_url }}">Product Video Generator</a></h3>
-      <p>A brief and one product photo become a cinematic 16:9 clip.</p>
-    </div>
-  </article>
-  <article class="usecase-card">
-    <a href="{{ '/use-cases/movie-poster' | relative_url }}" class="usecase-media">
-      <img src="{{ '/assets/use-cases/poster-singularity-1.png' | relative_url }}" alt="Movie Poster Generator concept">
+    <a class="recipe-card" href="https://nodetool.ai/recipes/multilingual-video-dubber">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/recipes/samples/multilingual-video-dubber-poster.webp" aria-label="Multilingual video sample run">
+          <source src="https://nodetool.ai/recipes/samples/multilingual-video-dubber.webm" type="video/webm">
+          <source src="https://nodetool.ai/recipes/samples/multilingual-video-dubber.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="recipe-body">
+        <span class="usecase-tag">Localization</span>
+        <h3>Multilingual video</h3>
+        <p>Review a translation, choose a voice, and edit the delivery line by line.</p>
+      </div>
     </a>
-    <div class="usecase-body">
-      <span class="usecase-tag">Design</span>
-      <h3><a href="{{ '/use-cases/movie-poster' | relative_url }}">Movie Poster Generator</a></h3>
-      <p>Title, genre, and audience become a batch of theatrical poster concepts.</p>
-    </div>
-  </article>
-</div>
+  </div>
+  <p class="section-note">
+    <a href="https://nodetool.ai/recipes">All recipes →</a> ·
+    <a href="{{ '/use-cases' | relative_url }}">Use-case walkthroughs →</a> ·
+    <a href="{{ '/cookbook' | relative_url }}">Cookbook →</a>
+  </p>
+</section>
 
 ## What you can do
 
@@ -158,8 +286,8 @@ More creative patterns — directed films, entity-consistent batches, script-dri
 
 <ol class="step-sequence">
   <li><a href="{{ '/installation' | relative_url }}">Download NodeTool</a> for macOS, Windows, or Linux.</li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-1--install-and-connect-your-models">Connect a language, image, and video model.</a></li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-2--ask-the-agent-for-a-storyboard">Ask the agent for a storyboard, render it, and export the film.</a></li>
+  <li><a href="{{ '/getting-started' | relative_url }}#1-install-and-connect">Connect a language, image, and video model.</a></li>
+  <li><a href="{{ '/getting-started' | relative_url }}#2-say-what-you-want">Ask the agent for a storyboard, render it, and export the film.</a></li>
 </ol>
 
 ## Explore

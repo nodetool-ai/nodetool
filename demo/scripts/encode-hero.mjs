@@ -1,5 +1,6 @@
 // Turns the rendered landing-page masters into what the page serves: the
-// hero reel and the agents section's redo reel.
+// hero reel, the agents section's redo reel, and the developers page's
+// Vibe Race cut.
 //
 //   node scripts/encode-hero.mjs [--only <slug>] [--frame <n>]
 //
@@ -47,29 +48,35 @@ const TO_LIMITED_RANGE = [
   "-color_range", "tv"
 ];
 
-/** mp4 + webm at the master's own size, no audio — the reel is silent. */
-function encode(master, slug) {
+/**
+ * mp4 + webm at the master's own size. Muted reels drop the audio track;
+ * a reel with `audio` keeps its soundtrack for a player with controls.
+ */
+function encode(master, slug, audio) {
   const base = path.join(PUBLIC, slug);
   ffmpeg([
     "-i", master, ...TO_LIMITED_RANGE,
     "-c:v", "libx264", "-crf", "29", "-preset", "slow",
-    "-pix_fmt", "yuv420p", "-an", "-movflags", "+faststart",
+    "-pix_fmt", "yuv420p",
+    ...(audio ? ["-c:a", "aac", "-b:a", "160k"] : ["-an"]),
+    "-movflags", "+faststart",
     `${base}.mp4`
   ]);
   ffmpeg([
     "-i", master, ...TO_LIMITED_RANGE,
     "-c:v", "libvpx-vp9", "-crf", "46", "-b:v", "0",
     "-pix_fmt", "yuv420p",
-    "-row-mt", "1", "-deadline", "good", "-cpu-used", "2", "-an",
+    "-row-mt", "1", "-deadline", "good", "-cpu-used", "2",
+    ...(audio ? ["-c:a", "libopus", "-b:a", "128k"] : ["-an"]),
     `${base}.webm`
   ]);
 }
 
 /** The poster the hero paints before the video is anywhere near loaded. */
-async function poster(master, slug, widths, frame) {
+async function poster(master, slug, widths, frame, fps) {
   const still = path.join(OUT, `${slug}-poster.png`);
   ffmpeg([
-    "-ss", String(frame / FPS),
+    "-ss", String(frame / fps),
     "-i", master, "-frames:v", "1", still
   ]);
   for (const [width, suffix] of widths) {
@@ -92,7 +99,10 @@ const REELS = [
   { master: "sizzle", slug: "hero-sizzle", frame: 612, widths: [[1920, ""], [960, "-960"]] },
   // The agents section: the wide shot of the board after the redo, with the
   // night card among five unchanged ones.
-  { master: "redo", slug: "agent-redo", frame: 395, widths: [[1920, ""], [960, "-960"]] }
+  { master: "redo", slug: "agent-redo", frame: 395, widths: [[1920, ""], [960, "-960"]] },
+  // The developers page: an agent session making the Kindle game's assets.
+  // It plays with controls and sound. The poster is the hero mid-run.
+  { master: "vibe-race", slug: "vibe-race", frame: 1515, fps: 60, audio: true, widths: [[1920, ""], [960, "-960"]] }
 ];
 
 /** Encodes one reel, so publishing it leaves the others' files alone. */
@@ -103,14 +113,14 @@ if (selected.length === 0) {
   throw new Error(`No reel named ${ONLY}`);
 }
 
-for (const { master: name, slug, frame, widths } of selected) {
+for (const { master: name, slug, frame, widths, fps = FPS, audio = false } of selected) {
   const master = path.join(OUT, `${name}.mp4`);
   if (!fs.existsSync(master)) {
     console.log(`skip ${slug}: no master at out/${name}.mp4`);
     continue;
   }
-  encode(master, slug);
-  await poster(master, slug, widths, frame);
+  encode(master, slug, audio);
+  await poster(master, slug, widths, frame, fps);
   console.log(
     `${slug}: ${size(path.join(PUBLIC, `${slug}.mp4`))} mp4, ` +
       `${size(path.join(PUBLIC, `${slug}.webm`))} webm, ` +

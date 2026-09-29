@@ -375,6 +375,24 @@ Two things the reel needed that the harness did not have:
   read as nothing happening. `DocDemoPlayer`'s `mediaTimeMs`
   (`web/src/demo/videoPlayhead.ts`) seeks them per frame.
 
+## Vibe Race (`demo/src/vibe/`)
+
+A 36-second, 60 fps motion-graphics cut: an agent session generates the
+sprites, backdrops, music, and sound effects of the Kindle platformer, then
+builds the level. The art, music, sound effects, and the gameplay capture are
+the game's real files, copied into `public/vibe/`.
+
+```bash
+cd demo
+npm run vibe:track     # synthesize public/vibe/track.wav and the music spectrum
+npm run studio:vibe    # preview
+npm run render:vibe    # → out/vibe-race.mp4
+```
+
+`src/vibe/theme.ts` sets one grid for picture and sound: 180 BPM at 60 fps is
+20 frames per beat. Change a section start there, then run `vibe:track` again
+so the soundtrack follows.
+
 ## Adding a demo
 
 1. **Author the cast.** Write a module in `web/src/demo/` exporting a

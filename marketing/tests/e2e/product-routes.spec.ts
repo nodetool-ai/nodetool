@@ -13,7 +13,7 @@ const routes = [
   },
   {
     path: "/agents",
-    heading: "Agents that work in real editors.",
+    heading: "Your agent builds the workflow. You keep it.",
     primary: /Download Studio/,
   },
 ];
