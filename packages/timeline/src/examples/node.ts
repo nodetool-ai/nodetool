@@ -100,7 +100,7 @@ export function getExampleTimelineBundle(
  * packaged app and the Docker image, so there is nothing extra to stage.
  * `build.mjs` writes it there by baking each script and merging the result
  * into the document, exactly like `set_timeline_code` does for a live
- * timeline. An example with no script (serein, t-minus-30) has no
+ * timeline. An example built without going through the pack has no
  * `document.source` and this answers `null`.
  */
 export function getExampleTimelineSource(
