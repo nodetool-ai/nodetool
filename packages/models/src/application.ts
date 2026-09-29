@@ -314,7 +314,7 @@ export class Application extends DBModel {
       });
     } else {
       await db.transaction(async (tx: DbTransaction): Promise<void> => {
-        await Promise.all(statements(tx));
+        for (const statement of statements(tx)) await statement;
       });
     }
 

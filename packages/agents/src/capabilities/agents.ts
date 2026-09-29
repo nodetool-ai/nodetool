@@ -405,8 +405,13 @@ const executePlan: CapabilityExport = {
       return { id: task.id, title: task.title, status: "completed" };
     });
 
-    const completedCount = tasks.filter((t) => t.status === "completed").length;
-    const failedCount = tasks.filter((t) => t.status === "failed").length;
+    let completedCount = 0;
+    let failedCount = 0;
+    for (const t of tasks) {
+      if (t.status === "completed") completedCount++;
+      else if (t.status === "failed") failedCount++;
+    }
+
     const report = {
       title: plan.title,
       executed: true,
