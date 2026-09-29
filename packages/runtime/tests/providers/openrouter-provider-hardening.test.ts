@@ -29,7 +29,7 @@ describe("OpenRouterProvider hardening", () => {
     );
   });
 
-  it("exposes the SDXL image model with its text_to_image task", async () => {
+  it("exposes the SDXL and Gemini image models with their tasks", async () => {
     const models = await make({ client: {} }).getAvailableImageModels();
     expect(models).toEqual([
       {
@@ -37,6 +37,12 @@ describe("OpenRouterProvider hardening", () => {
         name: "Stable Diffusion XL",
         provider: "openrouter",
         supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "google/gemini-2.5-flash-image",
+        name: "Gemini 2.5 Flash Image",
+        provider: "openrouter",
+        supportedTasks: ["text_to_image", "image_to_image"]
       }
     ]);
   });

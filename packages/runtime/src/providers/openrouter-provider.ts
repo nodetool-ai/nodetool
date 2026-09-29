@@ -4,8 +4,10 @@ import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
+import { bytesToImageDataUri } from "./image-mime.js";
 import type {
   ImageModel,
+  ImageToImageParams,
   LanguageModel,
   Message,
   ProviderStreamItem,
@@ -24,6 +26,12 @@ const OPENROUTER_IMAGE_MODELS: ImageModel[] = [
     name: "Stable Diffusion XL",
     provider: "openrouter",
     supportedTasks: ["text_to_image"]
+  },
+  {
+    id: "google/gemini-2.5-flash-image",
+    name: "Gemini 2.5 Flash Image",
+    provider: "openrouter",
+    supportedTasks: ["text_to_image", "image_to_image"]
   }
 ];
 
@@ -132,6 +140,34 @@ export class OpenRouterProvider extends OpenAICompatProvider {
   }
 
   override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
+    const size = this.resolveImageSize(
+      params.width ?? undefined,
+      params.height ?? undefined
+    );
+    return this.generateImage(params, [], size);
+  }
+
+  /**
+   * Edit or compose from source images. OpenRouter's image API takes them as
+   * `input_references`; entity reference images arrive here already appended
+   * to `images` by the base provider.
+   */
+  override async imageToImage(
+    images: Uint8Array[],
+    params: ImageToImageParams
+  ): Promise<Uint8Array> {
+    const size = this.resolveImageSize(
+      params.targetWidth ?? undefined,
+      params.targetHeight ?? undefined
+    );
+    return this.generateImage(params, images, size);
+  }
+
+  private async generateImage(
+    params: TextToImageParams | ImageToImageParams,
+    inputs: readonly Uint8Array[],
+    size: string | null
+  ): Promise<Uint8Array> {
     if (!params.prompt) {
       throw new Error("The input prompt cannot be empty.");
     }
@@ -145,15 +181,23 @@ export class OpenRouterProvider extends OpenAICompatProvider {
       prompt
     };
 
-    const size = this.resolveImageSize(
-      params.width ?? undefined,
-      params.height ?? undefined
-    );
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
+    // Gemini image models ignore `size`; OpenRouter reads the shape from here.
+    if (params.aspectRatio) request.aspect_ratio = params.aspectRatio;
+    if (params.resolution) request.resolution = params.resolution;
+    if (inputs.length > 0) {
+      request.input_references = inputs.map((bytes) => ({
+        type: "image_url",
+        image_url: { url: bytesToImageDataUri(bytes) }
+      }));
+    }
 
     // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
-    log.debug("OpenRouter textToImage", { model: params.model.id });
+    log.debug("OpenRouter image generation", {
+      model: params.model.id,
+      inputs: inputs.length
+    });
 
     // SAFETY: a dictionary request against the OpenAI SDK's closed image
     // params; OpenRouter is driven through the same client.
