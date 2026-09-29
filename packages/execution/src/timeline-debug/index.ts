@@ -20,3 +20,17 @@ export {
 } from "./validate.js";
 export { buildTimelineDebugReport } from "./report.js";
 export { renderTimelineReportMarkdown } from "./markdown.js";
+export {
+  scoreTimelineCraft,
+  computeTimelineCraftMetrics,
+  summarizeTimelineCraftReferenceBand,
+  loadTimelineCraftReferenceEntries,
+  TIMELINE_CRAFT_METRIC_KEYS,
+  type TimelineCraftMetricKey,
+  type TimelineCraftMetrics,
+  type TimelineCraftMetricScore,
+  type TimelineCraftReferenceEntry,
+  type TimelineCraftReferenceBand,
+  type TimelineCraftScoreResult,
+  type ScoreTimelineCraftOptions
+} from "./score.js";

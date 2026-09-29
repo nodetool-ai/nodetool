@@ -369,6 +369,11 @@ export function registerTimelineRenderCommand(
           if (result.skippedClips.length > 0) {
             console.log(`Skipped clips: ${result.skippedClips.join(", ")}`);
           }
+          if (result.fontsUnavailable.length > 0) {
+            console.log(
+              `Fonts unavailable: ${result.fontsUnavailable.join(", ")}`
+            );
+          }
         }
         process.exit(0);
       } catch (e) {
@@ -389,6 +394,8 @@ interface TimelineRenderResult {
   fps: number;
   elapsedMs: number;
   skippedClips: string[];
+  /** Font families a text or caption layer names that could not be resolved. */
+  fontsUnavailable: string[];
   /** Coverage rows `--frames coverage:<file>` could not read a frame from. */
   coverageSkipped?: SkippedCoverageRow[];
 }
@@ -549,7 +556,7 @@ export async function runTimelineRender(
       `Rendering ${selected} frame(s) at ${width}x${height}. The first frame compiles the GPU pipelines and can take a while.`
     );
     const render = renderComposited ?? renderTimelineComposited;
-    const { skippedClips } = await render({
+    const { skippedClips, fontsUnavailable } = await render({
       sequence,
       width,
       height,
@@ -612,6 +619,7 @@ export async function runTimelineRender(
       fps,
       elapsedMs: Date.now() - started,
       skippedClips,
+      fontsUnavailable,
       ...(coverageSkipped && { coverageSkipped })
     };
   } finally {

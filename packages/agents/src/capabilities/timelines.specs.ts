@@ -1502,6 +1502,49 @@ export const deleteTimelineSpec: CapabilitySpec = {
   userMessage: (params) => `Deleting timeline sequence ${params["timeline_id"]}`
 };
 
+export const resolveScriptTimelineSpec: CapabilitySpec = {
+  name: "resolve_script_timeline",
+  description:
+    "Read-only. Answers {js_script_id, timeline_id} for the JS script " +
+    "currently running this call, and the timeline it is linked to (from " +
+    "the script's own `linkedTimelineId`). Both come back null outside a " +
+    "saved script run (a raw execute_code action, or a script that has never " +
+    "been linked). `v.save()` in @nodetool-ai/sandbox-timeline calls this so " +
+    "a revise-and-rerun updates the same timeline without threading its id.",
+  inputSchema: { type: "object", properties: {} },
+  category: "read",
+  userMessage: () => "Resolving the running script's linked timeline"
+};
+
+export const LINK_TIMELINE_SCRIPT_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "The timeline to link. You must own it."
+    },
+    js_script_id: {
+      type: "string",
+      description: "The JS script to link. You must own it."
+    }
+  },
+  required: ["timeline_id", "js_script_id"]
+};
+
+export const linkTimelineScriptSpec: CapabilitySpec = {
+  name: "link_timeline_script",
+  description:
+    "Record that a JS script built a timeline: stamps the timeline's " +
+    "document with `builtByScriptId` and the script's document with " +
+    "`linkedTimelineId`, both CAS writes. Call this once after the first " +
+    "v.save() that created the timeline, so later runs of the same script " +
+    "update it in place instead of making another.",
+  inputSchema: LINK_TIMELINE_SCRIPT_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Linking timeline ${String(params["timeline_id"])} to script ${String(params["js_script_id"])}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const timelinesSpecs: readonly CapabilitySpec[] = [
   listTimelinesSpec,
@@ -1526,5 +1569,7 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   videoToAudioSpec,
   recordedVoiceReplacementSpec,
   lipSyncSpec,
+  resolveScriptTimelineSpec,
+  linkTimelineScriptSpec,
   deleteTimelineSpec
 ];

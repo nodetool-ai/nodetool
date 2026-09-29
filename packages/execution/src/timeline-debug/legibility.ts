@@ -13,10 +13,13 @@
  * warning nobody can act on is worse than none.
  */
 import type {
+  ClipTransform,
   TimelineClip,
   TimelineDocument
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
+import { resolveClipLayoutsWithDiagnostics } from "@nodetool-ai/timeline/scene";
 
+import { containsBox, frameBoxFor } from "./frame-geometry.js";
 import type { TimelineDebugIssue } from "./types.js";
 
 /**
@@ -135,15 +138,38 @@ function textColor(clip: TimelineClip): string | undefined {
  * on screen, and provably covers it.
  *
  * "Provably" is doing the work. Track z is `1000 - index` (I9), so a higher
- * index draws underneath; the shape must cover the whole frame, because the
- * text's own block box needs a font measurement this check does not have; it
- * must be opaque and solid-filled; and its window must contain the text's. A
- * shape that only mostly qualifies is not reported — the check would then be
- * naming a plate the title may not actually sit on.
+ * index draws underneath; the shape must be opaque and solid-filled; its
+ * window must contain the text's; and its *resolved* frame-space box — the
+ * layout-managed position a `row`/`stack`/`relative` container placed it at,
+ * composed through every ancestor transform, the same geometry
+ * `showcase.ts`'s collision check reads — must contain the text's box. A
+ * literal full-frame rect always qualifies this way (its box contains
+ * anything), so this subsumes the old "must be exactly x=0,y=0,w=1,h=1"
+ * rule; it additionally recognizes the small pill or plate a flex container
+ * places directly behind a title (an `inset: 0` child of the text's own
+ * container), which the old rule missed and measured contrast against
+ * whatever unrelated full-frame shape happened to sit elsewhere in the
+ * scene instead. A shape that only mostly contains the text is not reported
+ * — the check would then be naming a plate the title does not actually sit
+ * fully on.
  */
+// Wider than `containsBox`'s own 0.5px default: a text box is a *character-
+// count* estimate (`text.length * fontSizePx * 0.6`, this package has no
+// canvas dependency to measure real glyph widths), not a rendered one, and a
+// tight pill sized to the real glyph width can end up a couple of px
+// narrower than the estimate — see prism's "4 COLOURWAYS" plate, sized to
+// 300px against an estimated 302.4px title. A few px of slack absorbs that
+// estimation error without accepting a shape that is actually a different
+// size from the text's.
+const BACKDROP_CONTAINMENT_SLACK_PX = 4;
+
 function backdropShapeColor(
   doc: TimelineDocument,
-  text: TimelineClip
+  text: TimelineClip,
+  canvas: { width: number; height: number },
+  byId: ReadonlyMap<string, TimelineClip>,
+  resolved: ReadonlyMap<string, ClipTransform>,
+  sizes: ReadonlyMap<string, { width: number; height: number }>
 ): string | undefined {
   const trackIndex = new Map(
     doc.tracks
@@ -153,6 +179,8 @@ function backdropShapeColor(
   const textIndex = trackIndex.get(text.trackId);
   if (textIndex === undefined) return undefined;
   const textEndMs = text.startMs + text.durationMs;
+  const textBox = frameBoxFor(text, canvas, byId, resolved, undefined, false, sizes);
+  if (!textBox) return undefined;
 
   let bestIndex = Number.POSITIVE_INFINITY;
   let bestColor: string | undefined;
@@ -168,10 +196,6 @@ function backdropShapeColor(
 
     const style = clip.shapeStyle;
     if (!style || style.kind !== "rect") continue;
-    // `shapeBox` defaults: a rect with no geometry covers the middle half of
-    // the frame, so an absent field is not "full frame".
-    if ((style.x ?? 0.25) > 0 || (style.y ?? 0.25) > 0) continue;
-    if ((style.width ?? 0.5) < 1 || (style.height ?? 0.5) < 1) continue;
     const authoredFill = style.fillStyle ?? style.fill;
     const fill =
       typeof authoredFill === "string"
@@ -180,6 +204,9 @@ function backdropShapeColor(
           ? authoredFill.color
           : undefined;
     if (fill === undefined) continue;
+
+    const shapeBox = frameBoxFor(clip, canvas, byId, resolved, undefined, false, sizes);
+    if (!shapeBox || !containsBox(shapeBox, textBox, BACKDROP_CONTAINMENT_SLACK_PX)) continue;
 
     bestIndex = index;
     bestColor = fill;
@@ -214,15 +241,24 @@ function pictureUnder(doc: TimelineDocument, text: TimelineClip): boolean {
 }
 
 /**
- * Legibility findings for every text clip in the document. `frameHeight` is the
- * sequence's pixel height — a font size is authored in sequence pixels, so the
- * floor is a fraction of that and not of anything on the author's screen.
+ * Legibility findings for every text clip in the document. `canvas` is the
+ * sequence's pixel size — a font size is authored in sequence pixels, so the
+ * floor is a fraction of the height and not of anything on the author's
+ * screen, and the backdrop check below resolves every clip's box against it.
  */
 export function checkLegibility(
   doc: TimelineDocument,
-  frameHeight: number
+  canvas: { width: number; height: number }
 ): TimelineDebugIssue[] {
   const issues: TimelineDebugIssue[] = [];
+  const byId = new Map(doc.clips.map((clip) => [clip.id, clip]));
+  // No `measureText`: this package has no canvas dependency, so text boxes
+  // fall back to the same `text.length * fontSizePx * 0.6` estimate
+  // `frame-geometry.ts` and the render layout resolver itself use headless.
+  const layoutResolved = resolveClipLayoutsWithDiagnostics(doc.clips, canvas);
+  const resolved = layoutResolved.transforms;
+  const sizes = layoutResolved.sizes;
+  const frameHeight = canvas.height;
   for (const clip of doc.clips) {
     const style = clip.textStyle;
     if (clip.mediaType !== "text" || !style || clip.hidden === true) continue;
@@ -248,7 +284,7 @@ export function checkLegibility(
     const backed =
       style.background !== undefined ||
       style.stroke !== undefined ||
-      backdropShapeColor(doc, clip) !== undefined;
+      backdropShapeColor(doc, clip, canvas, byId, resolved, sizes) !== undefined;
     if (!backed && pictureUnder(doc, clip)) {
       issues.push({
         severity: "warning",
@@ -262,7 +298,7 @@ export function checkLegibility(
     const foreground = parseOpaqueColor(textColor(clip));
     if (!foreground) continue;
     const plate = style.background?.color;
-    const behind = plate ?? backdropShapeColor(doc, clip);
+    const behind = plate ?? backdropShapeColor(doc, clip, canvas, byId, resolved, sizes);
     const background = parseOpaqueColor(behind);
     if (!background) continue;
     const ratio = contrastRatio(foreground, background);

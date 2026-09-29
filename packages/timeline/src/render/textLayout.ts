@@ -78,6 +78,30 @@ export function textFontSpec(style: FontSpecStyle): string {
   return `${slant}${style.fontWeight ?? 400} ${fontSize}px ${family}`;
 }
 
+/**
+ * The `wght` axis value a variable face should be drawn at, as a CSS
+ * `font-variation-settings` value.
+ *
+ * A single registered variable font (the bundled catalog's `*-Variable.ttf`,
+ * or a Google-resolved family's single file spanning a weight range) is not
+ * enough on `@napi-rs/canvas`: measured empirically, Skia's `font` shorthand
+ * snaps an arbitrary weight number to the nearest of a small set of *named*
+ * instances rather than truly interpolating the axis — registering
+ * `Inter-Variable.ttf` and drawing at weight 100, 300, 400 and 500 produced
+ * byte-identical ink, and 600–900 a second, different but likewise identical
+ * ink (see `tests/fonts.variableWeight.test.ts`). Setting this alongside
+ * `ctx.font` on the same context fixes it: the same probe with
+ * `fontVariationSettings` set drew monotonically increasing ink from weight
+ * 100 through 900. A browser's own `ctx.font` weight matching against an
+ * `@font-face` weight range does not have this bug, and a static
+ * (non-variable) face simply has no `wght` axis to move, so setting this is
+ * harmless there — it is applied unconditionally rather than only for a
+ * known-variable face.
+ */
+export function textFontVariationSettings(style: FontSpecStyle): string {
+  return `"wght" ${style.fontWeight ?? 400}`;
+}
+
 /** Line advance in px: the `lineHeight` multiple of the font size, default 1.2. */
 export function textLineHeightPx(style: ClipTextStyle): number {
   const fontSize = Math.max(1, style.fontSizePx);
@@ -121,6 +145,21 @@ export interface WrappedLine {
  * Greedy word-wrap by measured candidate width — the one wrap rule for every
  * draw and count path, so a staggered title breaks lines exactly like its
  * un-staggered self.
+ *
+ * The candidate width accumulates as `layoutTextBlock`'s own `lineWidth`
+ * does — summed per-word widths plus one `spaceWidth` per gap — rather than
+ * re-measuring the whole growing line as a single string. The two are not
+ * the same number (kerning between words vs. a flat assumed space width),
+ * and the flex layout resolver (`render/layout.ts`) measures a text leaf
+ * unconstrained, then feeds that exact measured width back in as `maxWidth`
+ * to size the drawn clip. With the old whole-string re-measurement, that
+ * round trip could come out a hair over `maxWidth` and wrap a line that had
+ * just been measured as exactly one line wide — changing the block's height
+ * and, inside a flex stack, throwing off every sibling positioned against
+ * it. Summing the same way `layoutTextBlock` sums makes the round trip
+ * exact: a `maxWidth` set to a prior one-line `box.width` measurement can
+ * never wrap again, because the cumulative sum equals it exactly at the
+ * last word and the check is strict `>`.
  */
 export function wrapTextLines(
   text: string,
@@ -128,19 +167,24 @@ export function wrapTextLines(
   measure: (text: string) => number
 ): WrappedLine[] {
   const lines: WrappedLine[] = [];
+  const spaceWidth = measure(" ");
   for (const paragraph of text.split(/\r?\n/)) {
     const words = paragraph.split(/\s+/).filter(Boolean);
     let line = "";
     let lineWords: string[] = [];
+    let lineWidth = 0;
     for (const word of words) {
-      const candidate = line ? `${line} ${word}` : word;
-      if (line && measure(candidate) > maxWidth) {
+      const wordWidth = measure(word);
+      const candidateWidth = lineWords.length === 0 ? wordWidth : lineWidth + spaceWidth + wordWidth;
+      if (lineWords.length > 0 && candidateWidth > maxWidth) {
         lines.push({ text: line, words: lineWords });
         line = word;
         lineWords = [word];
+        lineWidth = wordWidth;
       } else {
-        line = candidate;
+        line = lineWords.length === 0 ? word : `${line} ${word}`;
         lineWords.push(word);
+        lineWidth = candidateWidth;
       }
     }
     lines.push({ text: line, words: lineWords });

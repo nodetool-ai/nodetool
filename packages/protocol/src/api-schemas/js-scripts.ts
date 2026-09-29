@@ -85,7 +85,14 @@ export const jsScriptDocument = z.object({
     .default(JS_SCRIPT_DEFAULT_TIMEOUT_SECONDS),
   tests: z.array(jsScriptTestCase).default([]),
   /** Set to expose the script in the node menu as a custom node. */
-  palette: jsScriptPalette.optional()
+  palette: jsScriptPalette.optional(),
+  /**
+   * The timeline this script builds, when it was saved (or last ran) with a
+   * link. `v.save()` in `@nodetool-ai/sandbox-timeline` reads this so a
+   * revise-and-rerun updates the same timeline instead of making another; the
+   * timeline side of the link is its document's `builtByScriptId`.
+   */
+  linkedTimelineId: z.string().optional()
 });
 export type JsScriptDocument = z.infer<typeof jsScriptDocument>;
 
@@ -331,6 +338,7 @@ export const jsScriptListItem = z.object({
   description: z.string(),
   inputs: z.array(jsScriptPort),
   outputs: z.array(jsScriptPort),
+  linkedTimelineId: z.string().optional(),
   updatedAt: z.string()
 });
 export type JsScriptListItem = z.infer<typeof jsScriptListItem>;

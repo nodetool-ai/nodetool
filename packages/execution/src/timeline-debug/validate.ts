@@ -574,10 +574,16 @@ function checkClip(
   }
 
   issues.push(...maskIssues(clip));
-  issues.push(...unknownEffectIssues(clip), ...animateIgnoredIssues(clip));
+  issues.push(
+    ...unknownEffectIssues(clip),
+    ...animateIgnoredIssues(clip),
+    ...effectWashesOutIssues(clip)
+  );
   issues.push(...cropIssues(clip));
   const shapeKind = unknownShapeKindIssue(clip);
   if (shapeKind) issues.push(shapeKind);
+  const shapePath = shapePathInvalidIssue(clip);
+  if (shapePath) issues.push(shapePath);
   issues.push(...model3dIssues(clip, { fps, ...canvas }));
   issues.push(...fontPortabilityIssues(clip));
 
@@ -722,6 +728,46 @@ function animateIgnoredIssues(clip: TimelineClip): TimelineDebugIssue[] {
   return issues;
 }
 
+/**
+ * A `color` effect set to values that drive the picture to a flat white or
+ * black, or strip its contrast to nothing.
+ *
+ * `brightness` is an offset (-1..1, 0 unchanged) while `contrast` and
+ * `saturation` are multipliers (1 unchanged) — the unit mismatch is the trap:
+ * a caller reaching for "a little brighter" and reusing the 1-is-neutral
+ * convention sends `brightness: 1`, which is not a nudge but the offset that
+ * turns every pixel white. Nothing else in validation catches this, because
+ * the values are individually in range; only their effect on the picture is
+ * wrong. The message states both conventions so the fix is obvious, not just
+ * the symptom.
+ */
+function effectWashesOutIssues(clip: TimelineClip): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  for (const [index, effect] of (clip.effects ?? []).entries()) {
+    if (effect.type !== "color" || effect.enabled === false) continue;
+    const brightness =
+      typeof effect.brightness === "number" ? effect.brightness : undefined;
+    const contrast =
+      typeof effect.contrast === "number" ? effect.contrast : undefined;
+    const blownOut = brightness !== undefined && Math.abs(brightness) >= 0.5;
+    const flattened = contrast !== undefined && contrast <= 0.1;
+    if (!blownOut && !flattened) continue;
+    const culprit = blownOut ? `brightness ${brightness}` : `contrast ${contrast}`;
+    const consequence = blownOut
+      ? `drives the picture to ${(brightness as number) > 0 ? "white" : "black"}`
+      : "removes nearly all contrast";
+    issues.push({
+      severity: "warning",
+      code: "effect_washes_out",
+      message: `Clip "${clipLabel(clip)}" color effect sets ${culprit}, which ${consequence}. brightness is an offset from -1 to 1 where 0 is unchanged; contrast and saturation use 1 as unchanged.`,
+      path: `effects[${index}]`,
+      clipId: clip.id,
+      trackId: clip.trackId
+    });
+  }
+  return issues;
+}
+
 /** What a shape's `kind` accepts, for the `unknown_shape_kind` message. */
 const SHAPE_KIND_GRAMMAR = CLIP_SHAPE_KINDS.join(", ");
 
@@ -798,6 +844,29 @@ function model3dIssues(
   }
 
   return issues;
+}
+
+/**
+ * A `path`-kind shape whose own `d` this build cannot parse — an error, not a
+ * warning: unlike a mask, which leaves the layer drawing unmasked, a shape
+ * with unparseable path data draws nothing at all (`buildShapeSegments`
+ * returns `null` for it, silently). Named after the command that stopped the
+ * parser, the same way `mask_path_invalid` is, so a shape a newer build wrote
+ * with a command this one doesn't read never just vanishes.
+ */
+function shapePathInvalidIssue(clip: TimelineClip): TimelineDebugIssue | null {
+  const style = clip.shapeStyle;
+  if (!style || style.kind !== "path") return null;
+  const parsed = parseSvgPath(style.d ?? "");
+  if (parsed.ok) return null;
+  return {
+    severity: "error",
+    code: "shape_path_invalid",
+    message: `Clip "${clipLabel(clip)}" has a path shape this build cannot draw — it draws nothing. ${parsed.error}.`,
+    path: "shapeStyle.d",
+    clipId: clip.id,
+    trackId: clip.trackId
+  };
 }
 
 /** What a mask's `kind` accepts, for the `mask_path_invalid` message. */
@@ -1153,6 +1222,58 @@ function checkParents(doc: TimelineDocument): TimelineDebugIssue[] {
     }
   }
 
+  return issues;
+}
+
+/**
+ * A `layout`/`flexItem` malformed against the flex model
+ * (`packages/timeline/src/render/layout.ts`): a container on a non-`group`
+ * clip, a `layout` whose `display` is not `"flex"` (a legacy document that
+ * still carries the pre-flex row/stack/relative shape, or hand-authored JSON
+ * that skipped the schema), or a `flexItem` on a clip whose parent is not
+ * itself a flex container — `resolveClipLayoutsWithDiagnostics` silently
+ * ignores all three (an unrecognized container is never a flex root; an
+ * orphaned `flexItem` never enters a Yoga tree), so nothing else in the
+ * render pipeline reports them. A `parentId` cycle through a flex container
+ * is already reported generically by {@link checkParents}'s `parent_cycle`.
+ */
+function checkFlexLayout(doc: TimelineDocument): TimelineDebugIssue[] {
+  const issues: TimelineDebugIssue[] = [];
+  const byId = new Map(doc.clips.map((clip) => [clip.id, clip]));
+  for (const clip of doc.clips) {
+    const at = { clipId: clip.id, trackId: clip.trackId };
+    if (clip.layout) {
+      if (clip.mediaType !== "group") {
+        issues.push({
+          severity: "warning",
+          code: "layout_on_non_group",
+          message: `Clip "${clipLabel(clip)}" has mediaType "${clip.mediaType}" and a \`layout\` — only a "group" clip can be a flex container, so this is ignored.`,
+          path: "layout",
+          ...at
+        });
+      } else if (clip.layout.display !== "flex") {
+        issues.push({
+          severity: "warning",
+          code: "unknown_layout_display",
+          message: `Clip "${clipLabel(clip)}"'s \`layout.display\` is "${String((clip.layout as { display?: unknown }).display)}", not "flex" — this build only lays out a flex container, so its children keep their authored transforms.`,
+          path: "layout.display",
+          ...at
+        });
+      }
+    }
+    if (clip.flexItem) {
+      const parent = clip.parentId ? byId.get(clip.parentId) : undefined;
+      if (!parent || parent.mediaType !== "group" || parent.layout?.display !== "flex") {
+        issues.push({
+          severity: "warning",
+          code: "flex_item_without_flex_parent",
+          message: `Clip "${clipLabel(clip)}" has a \`flexItem\`, but its parent is not a flex container (\`layout.display: "flex"\`) — \`flexItem\` is ignored outside one.`,
+          path: "flexItem",
+          ...at
+        });
+      }
+    }
+  }
   return issues;
 }
 
@@ -1579,8 +1700,9 @@ export function validateTimelineSequence(
     ...checkDuplicateIds(doc),
     ...doc.clips.flatMap((clip) => checkClip(clip, trackIds, fps, canvas)),
     ...doc.clips.flatMap((clip) => checkClipMotion(clip, canvas)),
-    ...checkLegibility(doc, canvas.height),
+    ...checkLegibility(doc, canvas),
     ...checkParents(doc),
+    ...checkFlexLayout(doc),
     ...checkMattes(doc),
     ...checkGeneratedMattes(doc),
     ...checkReframes(doc),

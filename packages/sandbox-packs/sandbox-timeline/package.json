@@ -3,6 +3,7 @@
   "version": "0.8.1",
   "description": "Author a motion-graphics timeline as code: scenes of shapes, text and images, keyframed in frames, saved in one call",
   "license": "MIT",
+  "types": "sandbox/index.d.ts",
   "nodetool": {
     "apiVersion": 1,
     "recommended": true,
@@ -12,7 +13,8 @@
         "kind": "js",
         "file": "sandbox/index.js"
       }
-    ]
+    ],
+    "internal": ["sandbox/charts.js", "sandbox/components.js"]
   },
   "repository": {
     "type": "git",

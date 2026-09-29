@@ -160,7 +160,11 @@ beforeEach(() => {
   execFileCalls = [];
   posted = [];
   renderComposited.mockReset();
-  renderComposited.mockResolvedValue({ totalFrames: 120, skippedClips: [] });
+  renderComposited.mockResolvedValue({
+    totalFrames: 120,
+    skippedClips: [],
+    fontsUnavailable: []
+  });
 });
 
 describe("RenderTimeline — composited path", () => {

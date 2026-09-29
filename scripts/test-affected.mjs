@@ -110,7 +110,25 @@ export const PATH_CHECKS = [
       }
     ]
   },
-  { path: /^marketing\//, steps: [] }
+  { path: /^marketing\//, steps: [] },
+  {
+    // Drives `nodetool agent run` + `timeline score` against a real model —
+    // too expensive to run here. Only its event-parsing unit is covered.
+    path: /^scripts\/motion-craft-eval\.mjs$/,
+    steps: [
+      {
+        label: "motion-craft-eval: parseTimelineRunEvents",
+        command: "node",
+        args: [
+          "scripts/run-vitest.mjs",
+          "run",
+          "--config",
+          "vitest.config.ts",
+          "scripts/__tests__/motion-craft-eval.test.mjs"
+        ]
+      }
+    ]
+  }
 ];
 
 function abbreviate(names, limit) {

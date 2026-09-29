@@ -132,18 +132,20 @@ function composeWithParent(own: Float32Array, parent: Float32Array): void {
  * (see `sceneModel`'s `resolveGroups`), already carrying its own ancestors. A
  * group's matrix is built against the identity base, so it is a pure clip-space
  * transform and composes with any child regardless of the child's source size.
+ *
+ * Uncached and exported: this is the single reference implementation
+ * `buildTransformMatrix` wraps in a cache lookup below, and the same
+ * reference `render.transform.test.ts` uses to independently check the
+ * cache-key logic — two implementations of this math would let the cache
+ * key and the math drift without a test catching it.
  */
-export function buildTransformMatrix(
+export function computeTransformMatrix(
   transform: ClipTransform,
   base: { x: number; y: number },
   width: number,
   height: number,
   parentMatrix?: Float32Array
 ): Float32Array {
-  const cacheKey = matrixCacheKey(transform, base, width, height, parentMatrix);
-  const cached = matrixCache.get(cacheKey);
-  if (cached) return cached;
-
   const sx = base.x * transform.scale.x;
   const sy = base.y * transform.scale.y;
   const cos = Math.cos(transform.rotation);
@@ -212,8 +214,22 @@ export function buildTransformMatrix(
     m[13] = ty + ay - (m[1] * ax + m[5] * ay);
     m[15] = 1 - m[3] * ax - m[7] * ay;
   }
-
   if (parentMatrix) composeWithParent(m, parentMatrix);
+  return m;
+}
+
+export function buildTransformMatrix(
+  transform: ClipTransform,
+  base: { x: number; y: number },
+  width: number,
+  height: number,
+  parentMatrix?: Float32Array
+): Float32Array {
+  const cacheKey = matrixCacheKey(transform, base, width, height, parentMatrix);
+  const cached = matrixCache.get(cacheKey);
+  if (cached) return cached;
+
+  const m = computeTransformMatrix(transform, base, width, height, parentMatrix);
 
   // Bound the cache: evict the oldest entry (insertion order) when full. The
   // returned matrix is treated as read-only by all callers, so sharing it is

@@ -21,9 +21,9 @@ The craft is in `motion-direction`, `motion-principles`, `motion-curves`,
 | `get(id)` | Reads the stored document: fps, size, duration, tracks, clips, markers. | The document with its metadata |
 | `edit(id, ops)` | Applies up to 60 ops in order and saves. | `{applied, failed, ops, tracks, clips}`. Each entry of `ops` has its own `ok`. |
 | `setDocument(id, document, {fps, width, height, expected_updated_at, snapshot_name})` | Writes a whole document. It is validated first and snapshotted before the write. | The validation of what landed |
-| `validate(idOrDocument, {tier, normalize, fps, width, height})` | Checks the structure without a render. | `{ok, issues}` |
+| `validate(idOrDocument, {tier, normalize, fps, width, height})` | Checks the structure without a render. | `{ok, errors, warnings, summary}` |
 | `preview(idOrDocument, opts)` | Composites real frames. | Frames with image handles and layer reports, or one contact sheet |
-| `compare(a, b, {times_ms, range, width})` | Differences the pixels of two sides. | A difference from 0 to 1 per frame, and a side-by-side sheet |
+| `compare(a, b, {times_ms, range, width})` | Differences the pixels of two sides — each an id, `{timeline_id, version}` or a document; never a shipped-example slug. | A difference from 0 to 1 per frame, and a side-by-side sheet |
 | `render(id, opts)` | Renders the cut to a video file as a job. | `{job_id}`, or the asset with `wait: true` |
 | `versions(id, {save_type, limit})`, `getVersion(id, n)` | Lists and reads snapshots. | Version rows, newest first |
 | `snapshot(id, {name})` (also `createVersion`) | Saves a manual version. Manual versions are never pruned. | The version number |
@@ -31,9 +31,12 @@ The craft is in `motion-direction`, `motion-principles`, `motion-curves`,
 | `deleteVersion(id, n)` | Deletes one snapshot. This cannot be undone. | — |
 | `examples.list({query})` | Lists the shipped example timelines. | Slugs, stats, poster and video locators |
 | `examples.get(slug, {scene_id, clip_offset, clip_limit})` | Reads one example scene. | Metadata, a scene catalog and a bounded excerpt |
+| `examples.source(slug)` | Reads the builder script that made an example. | Full JavaScript, imports included |
 | `compositions.list({source, query, limit})`, `compositions.get(id)` | Lists and reads templates: title card, lower third, caption bar, callout, CTA end card, logo sting, and the user's own. | Rows with their parameters |
 | `compositions.save(timelineId, groupTarget, name, params, {description})` | Saves a group as a template. | The composition id |
 | `compositions.remove(id)` | Deletes a saved template. | — |
+| `currentScript()` | Read-only. `{js_script_id, timeline_id}` for the JS script currently running this call and the timeline it is linked to, both null outside a saved script run. `v.save()` in `@nodetool-ai/sandbox-timeline` calls this so a revise-and-rerun updates the same timeline. | The link, or nulls |
+| `linkScript(timelineId, scriptId)` | Records that `scriptId` built `timelineId`: stamps the timeline's `builtByScriptId` and the script's `linkedTimelineId`. `v.save()` calls this itself after it creates a timeline for a linked script; call it by hand only to link a script and timeline that already exist separately. | `{timeline_id, js_script_id, linked}` |
 
 ## Coordinates and units
 

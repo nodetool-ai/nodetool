@@ -153,11 +153,20 @@ export function layoutDependsOnAnimatedText(clips: readonly TimelineClip[]): boo
       .map((clip) => clip.id)
   );
   if (animatedTextIds.size === 0) return false;
-  return clips.some((clip) => {
-    const layout = clip.layout;
-    return (layout?.targetClipId !== undefined && animatedTextIds.has(layout.targetClipId)) ||
-      layout?.children?.some((id) => animatedTextIds.has(id)) === true;
-  });
+  const byId = new Map(clips.map((clip) => [clip.id, clip]));
+  // Flex layout is a tree: an animated text clip's resolved position depends
+  // on layout when ANY ancestor (its own parent, or that parent's parent, …)
+  // is a flex container — that container's Yoga tree resolves this clip's
+  // box, so a size change from its animation can move it and its siblings.
+  const isInFlexTree = (clip: TimelineClip): boolean => {
+    let cursor: TimelineClip | undefined = clip.parentId ? byId.get(clip.parentId) : undefined;
+    while (cursor) {
+      if (cursor.mediaType === "group" && cursor.layout?.display === "flex") return true;
+      cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
+    }
+    return false;
+  };
+  return clips.some((clip) => animatedTextIds.has(clip.id) && isInFlexTree(clip));
 }
 
 const compositorStyles = (theme: Theme) =>

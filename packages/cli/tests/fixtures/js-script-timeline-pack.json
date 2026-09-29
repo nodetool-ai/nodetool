@@ -3,7 +3,7 @@
   "document": {
     "schemaVersion": 1,
     "description": "Imports the shipped @nodetool-ai/sandbox-timeline pack and builds a one-scene document without saving it.",
-    "code": "import { createBuilder, cv } from \"@nodetool-ai/sandbox-timeline\";\n\nconst { scenes, scene, box, text, on, sceneTracks } = createBuilder({ W: 1920, H: 1080, FPS: 30 });\nscene(\"title\", 0, 29);\nbox(1920, 1080, \"#000000\");\non(text(\"Hi\", 96, 600, \"#ffffff\"), 0, 10, [cv(\"opacity\", 0, 1)]);\nconst layers = sceneTracks(1);\nawait output(\"tracks\", layers.tracks.length);\nawait output(\"clips\", layers.clips.length + scenes.length);",
+    "code": "import { video } from \"@nodetool-ai/sandbox-timeline\";\n\nconst v = video({ width: 1920, height: 1080, fps: 30 });\nconst scene = v.scene(\"title\", 1, (s) => {\n  s.rect(1920, 1080, \"#000000\");\n  const t = s.text(\"Hi\", { size: 96, weight: 600, color: \"#ffffff\" });\n  t.enter({ from: { opacity: 0 }, at: 0, dur: 0.333 });\n});\nv.series([scene]);\nawait output(\"tracks\", v._document.tracks.length);\nawait output(\"clips\", v._document.clips.length);",
     "inputs": [],
     "outputs": [
       {
@@ -23,7 +23,7 @@
         "name": "builds a scene from the pack",
         "inputs": {},
         "expect": {
-          "tracks": 2,
+          "tracks": 3,
           "clips": 3
         }
       }

@@ -135,6 +135,8 @@ describe("timelines capability module", () => {
       "video_to_audio",
       "recorded_voice_replacement",
       "lip_sync",
+      "resolve_script_timeline",
+      "link_timeline_script",
       "delete_timeline"
     ]);
   });
@@ -838,6 +840,62 @@ describe("timelines capability behaviour", () => {
     expect(await run().invoke("validate_timeline", { document: JSON.parse(document()), tier: "cinematic" })).toMatchObject({ error: expect.any(String) });
   });
 
+  it("resolves a stack layout's children before measuring showcase collision boxes", async () => {
+    const stackDocument = (gapPx: number) =>
+      JSON.stringify({
+        tracks: [
+          { id: "t-stack", name: "Stack", type: "video", index: 0, visible: true, locked: false },
+          { id: "t-line1", name: "Line1", type: "video", index: 1, visible: true, locked: false },
+          { id: "t-line2", name: "Line2", type: "video", index: 2, visible: true, locked: false }
+        ],
+        clips: [
+          {
+            id: "stack", trackId: "t-stack", name: "Stack", startMs: 0, durationMs: 2000,
+            mediaType: "group", sourceType: "imported", status: "generated", locked: false, versions: [],
+            layout: { display: "flex", flexDirection: "column" }
+          },
+          {
+            id: "line1", trackId: "t-line1", name: "Line1", startMs: 0, durationMs: 2000,
+            mediaType: "text", sourceType: "imported", status: "generated", locked: false, versions: [],
+            parentId: "stack", textStyle: { text: "Title line", fontSizePx: 40, color: "#ffffff" }
+          },
+          {
+            id: "line2", trackId: "t-line2", name: "Line2", startMs: 0, durationMs: 2000,
+            mediaType: "text", sourceType: "imported", status: "generated", locked: false, versions: [],
+            parentId: "stack", textStyle: { text: "Subtitle line", fontSizePx: 40, color: "#ffffff" },
+            // Flex `gap` cannot go negative; a negative separation (the case
+            // that must still collide) is a negative top margin instead.
+            flexItem: { margin: { top: gapPx } }
+          }
+        ],
+        markers: []
+      });
+
+    const clear = (await run().invoke("validate_timeline", {
+      document: JSON.parse(stackDocument(100)),
+      tier: "showcase"
+    })) as { warnings: Array<{ code: string }> };
+    expect(clear.warnings.map((w) => w.code)).not.toContain("showcase_text_collision");
+
+    const overlap = (await run().invoke("validate_timeline", {
+      document: JSON.parse(stackDocument(-60)),
+      tier: "showcase"
+    })) as { warnings: Array<{ code: string }> };
+    expect(overlap.warnings.map((w) => w.code)).toContain("showcase_text_collision");
+
+    // The DB-backed path (a saved sequence, not an inline document) must
+    // resolve the same layout the same way — this is the path r1's
+    // build.mjs hit with "Cannot read properties of undefined (reading
+    // 'get')" against an earlier version of the layout-resolution change.
+    const row = await makeTimeline({ document: stackDocument(-60) });
+    const saved = (await run().invoke("validate_timeline", {
+      timeline_id: row.id,
+      tier: "showcase"
+    })) as { warnings: Array<{ code: string }>; error?: string };
+    expect(saved.error).toBeUndefined();
+    expect(saved.warnings.map((w) => w.code)).toContain("showcase_text_collision");
+  });
+
   it("reads a saved sequence through the run's loader", async () => {
     const loaded = createCapabilityRun({
       context: ctx(),
@@ -1145,5 +1203,110 @@ describe("set_timeline_document", () => {
       document: replacement()
     })) as { error: string };
     expect(theirs.error).toContain("was not found");
+  });
+});
+
+describe("resolve_script_timeline and link_timeline_script", () => {
+  it("resolve_script_timeline answers nulls outside a script's call chain", async () => {
+    const context = { userId: "u1", get: () => undefined } as unknown as ProcessingContext;
+    const scoped = createCapabilityRun({ context, gate: UNGATED });
+    const result = (await scoped.invoke("resolve_script_timeline", {})) as {
+      js_script_id: string | null;
+      timeline_id: string | null;
+    };
+    expect(result).toEqual({ js_script_id: null, timeline_id: null });
+  });
+
+  it("resolve_script_timeline reads the running script's own link off its context", async () => {
+    const { JsScript } = await import("@nodetool-ai/models");
+    const { JS_SCRIPT_CHAIN_KEY } = await import(
+      "../src/capabilities/js-scripts.js"
+    );
+    const row = await makeTimeline();
+    const script = new JsScript({
+      user_id: "u1",
+      name: "Builder",
+      document: JSON.stringify({
+        schemaVersion: 1,
+        description: "",
+        code: "",
+        inputs: [],
+        outputs: [],
+        secrets: [],
+        timeoutSeconds: 30,
+        tests: [],
+        linkedTimelineId: row.id
+      })
+    });
+    await script.save();
+
+    const context = ctx("u1");
+    (context as { get: <T>(key: string) => T | undefined }).get = ((
+      key: string
+    ) => (key === JS_SCRIPT_CHAIN_KEY ? [script.id] : undefined)) as never;
+    const scoped = createCapabilityRun({ context, gate: UNGATED });
+
+    const result = (await scoped.invoke("resolve_script_timeline", {})) as {
+      js_script_id: string | null;
+      timeline_id: string | null;
+    };
+    expect(result).toEqual({ js_script_id: script.id, timeline_id: row.id });
+  });
+
+  it("link_timeline_script stamps both rows and is idempotent", async () => {
+    const { JsScript } = await import("@nodetool-ai/models");
+    const row = await makeTimeline();
+    const script = new JsScript({
+      user_id: "u1",
+      name: "Builder",
+      document: JSON.stringify({
+        schemaVersion: 1,
+        description: "",
+        code: "",
+        inputs: [],
+        outputs: [],
+        secrets: [],
+        timeoutSeconds: 30,
+        tests: []
+      })
+    });
+    await script.save();
+
+    const linked = (await run().invoke("link_timeline_script", {
+      timeline_id: row.id,
+      js_script_id: script.id
+    })) as { linked: boolean; timeline_id: string; js_script_id: string };
+    expect(linked.linked).toBe(true);
+
+    const timeline = await TimelineSequence.findById(row.id);
+    expect(timeline!.toTimelineSequence().builtByScriptId).toBe(script.id);
+    const updatedScript = await JsScript.findById(script.id);
+    expect(updatedScript!.toDocument().linkedTimelineId).toBe(row.id);
+
+    // Calling it again with the same pair is a no-op write, not a conflict.
+    const again = (await run().invoke("link_timeline_script", {
+      timeline_id: row.id,
+      js_script_id: script.id
+    })) as { linked: boolean };
+    expect(again.linked).toBe(true);
+  });
+
+  it("link_timeline_script refuses a timeline or script that is not the caller's", async () => {
+    const { JsScript } = await import("@nodetool-ai/models");
+    const row = await makeTimeline();
+    const script = new JsScript({ user_id: "u1", name: "Builder" });
+    await script.save();
+
+    const wrongUser = (await run("other").invoke("link_timeline_script", {
+      timeline_id: row.id,
+      js_script_id: script.id
+    })) as { error: string };
+    expect(wrongUser.error).toContain("was not found");
+
+    const missingScript = (await run().invoke("link_timeline_script", {
+      timeline_id: row.id,
+      js_script_id: "missing"
+    })) as { error: string };
+    expect(missingScript.error).toContain("was not found");
   });
 });

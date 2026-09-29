@@ -601,6 +601,12 @@ export {
   createJsScriptToolBridge,
   JS_SCRIPT_TOOL_LOOP_CASES
 } from "./evals/surfaces/js-script.js";
+/**
+ * The context key `run_js_script` pushes the running script's id onto — a
+ * host driving the sandbox outside that capability (the CLI harness) sets it
+ * the same way, so `resolve_script_timeline` sees one call chain either way.
+ */
+export { JS_SCRIPT_CHAIN_KEY } from "./capabilities/js-scripts.js";
 export type {
   JsScriptBridgeFinalState,
   JsScriptBridgeInitialState,

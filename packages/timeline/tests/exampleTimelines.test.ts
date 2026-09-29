@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getExampleTimelineBundle,
+  getExampleTimelineSource,
   listExampleTimelines,
   resolveExampleTimelinesDir
 } from "../src/examples/node.js";
@@ -73,5 +74,22 @@ describe("shared example timeline reader", () => {
     vi.stubEnv("NODETOOL_EXAMPLE_TIMELINES_DIR", nodePath.join(dir, "missing"));
     expect(resolveExampleTimelinesDir()).toBeNull();
     expect(listExampleTimelines()).toEqual([]);
+  });
+
+  it("reads a builder script staged beside its bundle, with its imports listed", () => {
+    const dir = stagedDirectory();
+    writeFileSync(
+      nodePath.join(dir, "staged.source.js"),
+      'import { createBuilder, saveTimeline } from "@nodetool-ai/sandbox-timeline";\n' +
+        'import { helper } from "./helper.mjs";\n' +
+        "createBuilder({ W: 1920, H: 1080, FPS: 30 });\n"
+    );
+    vi.stubEnv("NODETOOL_EXAMPLE_TIMELINES_DIR", dir);
+    expect(getExampleTimelineSource({}, "staged")).toMatchObject({
+      slug: "staged",
+      source: expect.stringContaining("createBuilder"),
+      imports: ["@nodetool-ai/sandbox-timeline", "./helper.mjs"]
+    });
+    expect(getExampleTimelineSource({}, "no-such-slug")).toBeNull();
   });
 });

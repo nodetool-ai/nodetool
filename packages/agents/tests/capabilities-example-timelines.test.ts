@@ -13,7 +13,11 @@ const run = () =>
 
 describe("shipped example timeline agent access", () => {
   it("exposes read-only example tools on the agent belt", () => {
-    for (const name of ["list_example_timelines", "get_example_timeline"]) {
+    for (const name of [
+      "list_example_timelines",
+      "get_example_timeline",
+      "get_example_timeline_source"
+    ]) {
       expect(capabilitySpec(name)?.category).toBe("read");
       expect(BUILTIN_TOOL_NAMES).toContain(name);
     }
@@ -46,6 +50,28 @@ describe("shipped example timeline agent access", () => {
         next_clip_offset: 2
       }
     });
+  });
+});
+
+describe("shipped example timeline source access", () => {
+  it("returns the builder script and its imports for a known slug", async () => {
+    const result = await run().invoke("get_example_timeline_source", {
+      slug: "kite"
+    });
+    expect(result).toMatchObject({
+      slug: "kite",
+      source: expect.stringContaining("@nodetool-ai/sandbox-timeline"),
+      imports: expect.arrayContaining(["@nodetool-ai/sandbox-timeline"])
+    });
+  });
+
+  it("reports a clear error for an unknown slug", async () => {
+    expect(
+      await run().invoke("get_example_timeline_source", { slug: "no-such-example" })
+    ).toMatchObject({ error: expect.any(String) });
+    expect(
+      await run().invoke("get_example_timeline_source", { slug: "" })
+    ).toMatchObject({ error: expect.any(String) });
   });
 });
 

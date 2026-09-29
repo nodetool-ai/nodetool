@@ -176,6 +176,7 @@ describe("runJsScriptOnce", () => {
     expect(execute).toHaveBeenCalledWith(
       expect.objectContaining({ code: document.code }),
       { n: 1 },
+      undefined,
       undefined
     );
   });

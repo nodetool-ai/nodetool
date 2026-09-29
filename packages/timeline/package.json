@@ -16,10 +16,13 @@
   },
   "dependencies": {
     "@nodetool-ai/gpu": "*",
-    "@nodetool-ai/protocol": "*"
+    "@nodetool-ai/protocol": "*",
+    "yoga-layout": "~3.2.1"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^0.1.65",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/runtime": "*",
     "@types/node": "^22.0.0",
     "@webgpu/types": "^0.1.70",
     "typescript": "npm:@typescript/typescript6@6.0.2",
@@ -62,6 +65,18 @@
       "import": "./dist/fonts/register-node.js",
       "default": "./dist/fonts/register-node.js"
     },
+    "./fonts/google-node": {
+      "nodetool-dev": "./src/fonts/google-fonts-node.ts",
+      "types": "./dist/fonts/google-fonts-node.d.ts",
+      "import": "./dist/fonts/google-fonts-node.js",
+      "default": "./dist/fonts/google-fonts-node.js"
+    },
+    "./fonts/google-fetch": {
+      "nodetool-dev": "./src/fonts/google-fonts-fetch.ts",
+      "types": "./dist/fonts/google-fonts-fetch.d.ts",
+      "import": "./dist/fonts/google-fonts-fetch.js",
+      "default": "./dist/fonts/google-fonts-fetch.js"
+    },
     "./examples/node": {
       "nodetool-dev": "./src/examples/node.ts",
       "types": "./dist/examples/node.d.ts",
@@ -98,10 +113,18 @@
     "types"
   ],
   "peerDependencies": {
-    "@napi-rs/canvas": ">=0.1.65"
+    "@napi-rs/canvas": ">=0.1.65",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/runtime": "*"
   },
   "peerDependenciesMeta": {
     "@napi-rs/canvas": {
+      "optional": true
+    },
+    "@nodetool-ai/config": {
+      "optional": true
+    },
+    "@nodetool-ai/runtime": {
       "optional": true
     }
   }

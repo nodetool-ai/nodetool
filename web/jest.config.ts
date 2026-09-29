@@ -33,6 +33,15 @@ export default {
     // it at module load.
     "^typegpu$": "<rootDir>/src/__mocks__/typegpu.ts",
     "^typegpu/data$": "<rootDir>/src/__mocks__/typegpuData.ts",
+    // `yoga-layout` (the timeline flex layout resolver) is ESM-only with a
+    // top-level `await` — not just untransformed like the ESM deps above,
+    // but impossible to `require()` at all (a module with top-level await
+    // cannot be represented in CommonJS; Node's own `require(esm)` support
+    // explicitly refuses one). Unlike `typegpu` above, this is NOT a stub —
+    // it computes real layouts via the same WASM binary, synchronously
+    // instantiated through Emscripten's own `instantiateWasm` hook. See its
+    // header comment for the full explanation.
+    "^yoga-layout$": "<rootDir>/src/__mocks__/yogaLayoutSync.cjs",
     "^@nodetool-ai/app-runtime$":
       "<rootDir>/../packages/app-runtime/src/index.ts",
     "^@nodetool-ai/game-runtime$":

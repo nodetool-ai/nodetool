@@ -58,10 +58,28 @@ first scene excerpt. Use `scene_id` to choose another scene and `clip_offset` /
 or repository filesystem is needed. Kite, Prism, Voltra and Tidewater show
 different ways to group scenes and combine keyframed layers.
 
-Load the `@nodetool-ai/sandbox-timeline` package documentation for builder code
-and reusable `slam`, `rise` and `grow` helpers. Build repeated layers in
-JavaScript, then save the whole document. Budget for a generated still or music
-bed in a showcase unless the user sets a cost limit.
+Build with the craft methods, not hand-keyframed fades. `video({palette,
+fonts, ...})` from `@nodetool-ai/sandbox-timeline` gives every scene
+`s.backdrop()`, `s.glow()`, `s.flash()`, `s.kicker()`, `s.pill()`,
+`s.streaks()` and `s.finish()` — the vocabulary the shipped examples build
+scenes from. A slam, a rise or a grow is `el.enter()`/`el.animate()` with the
+right `from`/props (`title.enter({from: {scale: 1.35, blur: 26, opacity: 0}})`
+is a slam), a count-up is `el.count()`, a draw-on is `el.draw()`. The depth
+plan below maps directly onto the API — reach for one of these before a bare
+`animate()` custom curve:
+
+| Plane | Built with |
+|---|---|
+| Background bed | `s.backdrop()`, `s.streaks()`, a low-amplitude `el.loop()` |
+| Midground | supporting elements, laid out in a container (`frame-composition`'s `s.stack`/`s.row`) |
+| Hero | the one element with the boldest `el.enter()`/`el.animate()`, on the beat |
+| Finish | `s.finish()` inside each scene, or `v.adjust()` for a whole-video grade after `v.series()` |
+
+Plan every showcase scene across all four before writing the hero's
+animation. Read the pack documentation
+(`nodetool.packs.docs("@nodetool-ai/sandbox-timeline")`) for every method's
+signature. Budget for a generated still or music bed in a showcase unless the
+user sets a cost limit.
 
 After saving a showcase, call
 `validate_timeline` with `{"timeline_id":"<id>","tier":"showcase"}`, or
@@ -91,7 +109,7 @@ For an existing text clip, `edit_timeline` can set the type as a
 {"timeline_id":"<id>","ops":[{"op":"set_clip_params","target":"Hero title","textStyle":{"fontFamily":"Inter","fontWeight":800,"letterSpacingPx":-1,"fontSizePx":128}}]}
 ```
 
-`motion-graphics` owns the full tool contract. `frame-composition` handles
+`timeline-edit-ops` owns the full op contract. `frame-composition` handles
 placement and safe areas for each aspect ratio.
 
 ## Tone and energy
@@ -141,9 +159,11 @@ picture it darkens and the text it carries. For a camera move, set clip
 can keyframe position and depth while `focusDepthPx` and `aperturePx` decide
 which plane softens. Keep one plane legible while the others move.
 
-Use `layout` relations for elements whose spacing should survive a text or
-shape change: a `row` or `stack` holds ordered child IDs, a `relative` clip
-follows a target box, and `fitText` sizes a plate from live text. Use
+Use `layout` (a flex container on a group clip, its real children via
+`parentId`) for elements whose spacing should survive a text or shape
+change: `flexDirection: "row" | "column"` with `gap` keeps siblings apart,
+and a plate sized from live text is a `flexItem: {position: "absolute",
+inset: 0}` sibling in a padded container. Use
 `animationLinks` when one clip should follow another's authored position,
 scale, rotation, or opacity. Linked followers share one motion decision;
 they do not chain through a second link.
@@ -220,24 +240,9 @@ picture.
 
 ## Required example comparison
 
-For a showcase, validate with `tier: "showcase"` before rendering. Every
-`showcase_*` warning is a hard stop. Resolve each warning or justify the
-specific exclusion to the user before rendering. Use the example medians as
-the design target, even when the document clears the warning floor.
-
-The measured showcase medians, excluding the countdown utility, are 22
-scene groups, 4.48 custom animations per visible second, 7 distinct effect
-types and 9.33 clips per visible second. Measure your piece against these
-targets as well as the warning floor.
-
-Before declaring the direction complete:
-
-1. Choose the closest shipped example with `get_example_timeline`.
-   Render a `preview_timeline_frame` sheet of that example and your own
-   piece at matching entrance, hero hold, transition and exit beats.
-2. Call `view_image` on both sheets and ask explicitly: "Compared with the
-   example, what is missing in layer count, secondary motion, texture and
-   light, and camera depth? Identify each gap by beat."
-3. List what the example has that the piece lacks. Close each gap, then
-   inspect the same beats again. If the direction excludes a technique,
-   state the reason. Reviewing only defects does not satisfy this step.
+Run the review pass `motion-graphics` owns (its `## Review pass`) once, not
+twice per piece — contact sheet, per-scene checklist, example comparison,
+`tier: "showcase"` validation, and a real revision. Judge what comes back
+against this page's spec too: does the busiest scene still respect Motion
+hierarchy, does Restraint survive under the example's density, is the chosen
+Motion personality still legible once the gaps are closed.

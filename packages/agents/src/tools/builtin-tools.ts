@@ -120,6 +120,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "list_timelines",
   "list_example_timelines",
   "get_example_timeline",
+  "get_example_timeline_source",
   "create_timeline",
   "get_timeline",
   "list_timeline_versions",
@@ -144,6 +145,11 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "preview_timeline_frame",
   "compare_timeline_frames",
 
+  // The script <-> timeline link `v.save()` (sandbox-timeline) reads and
+  // writes, so a revise-and-rerun of a linked script updates one timeline.
+  "resolve_script_timeline",
+  "link_timeline_script",
+
   // Code-node authoring harness (validate → run → test a Code body)
   "validate_code",
   "run_code",
@@ -153,6 +159,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "list_js_scripts",
   "get_js_script",
   "save_js_script",
+  "edit_js_script",
   "validate_js_script",
   "run_js_script",
   "test_js_script",

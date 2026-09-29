@@ -16,10 +16,23 @@
  * the preset names.
  */
 
+import {
+  buildEffect,
+  type EffectParams
+} from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
+import { KNOWN_CLIP_EFFECT_TYPE_LIST } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import { typewriterTiming } from "./animation/typewriter.js";
 import { findInstrumentPreset } from "./midi/presets.js";
 import type { AnimationStagger, StaggerFrom } from "./animation/types.js";
 import type { TimelineClip } from "./types.js";
+
+const KNOWN_CLIP_EFFECT_TYPES: ReadonlySet<string> = new Set(
+  KNOWN_CLIP_EFFECT_TYPE_LIST
+);
+
+function isKnownClipEffectType(type: unknown): type is EffectParams["type"] {
+  return typeof type === "string" && KNOWN_CLIP_EFFECT_TYPES.has(type);
+}
 
 /** Render settings that belong on the sequence row, not in the document. */
 export interface AuthoredRenderSettings {
@@ -77,7 +90,7 @@ function normalizeTrack(
   index: number,
   nextEffectId: () => string
 ): Record<string, unknown> {
-  const next = normalizeEffects(track, nextEffectId);
+  const next = normalizeEffects(track, nextEffectId, false);
   if (next["index"] === undefined) next["index"] = index;
   if (next["visible"] === undefined) next["visible"] = true;
   if (next["locked"] === undefined) next["locked"] = false;
@@ -142,7 +155,7 @@ function normalizeClip(
   nextAnimationId: () => string,
   nextEffectId: () => string
 ): Record<string, unknown> {
-  const next = normalizeEffects(clip, nextEffectId);
+  const next = normalizeEffects(clip, nextEffectId, true);
   if (next["sourceType"] === undefined) {
     next["sourceType"] = sourceTypeForClip(next as Partial<TimelineClip>);
   }
@@ -165,9 +178,42 @@ function normalizeClip(
   return next;
 }
 
+/**
+ * The neutral defaults `buildEffect` computes for a clip effect's type, for
+ * every field the authored effect left absent. Protocol's `set_effects` edit
+ * op fills these through `buildEffect` already; a whole-document write skips
+ * that op, so a bare `{type: "dropShadow"}` reached the document schema with
+ * no `offsetX`/`offsetY`/etc and was refused. Only fields absent here are
+ * filled — a value the caller sent is never replaced. A type `buildEffect`
+ * cannot default without more input (stylize/generator with no mode, lut with
+ * no cube) is left as authored, for validation to report.
+ */
+function fillClipEffectDefaults(
+  effect: Record<string, unknown>
+): Record<string, unknown> {
+  const type = effect.type;
+  if (!isKnownClipEffectType(type)) {
+    return effect;
+  }
+  let defaults: object;
+  try {
+    defaults = buildEffect({ type }, 0);
+  } catch {
+    return effect;
+  }
+  const filled = { ...effect };
+  for (const [key, value] of Object.entries(defaults)) {
+    if (key === "id" || key === "enabled" || key === "type") continue;
+    if (value === undefined) continue;
+    if (filled[key] === undefined) filled[key] = value;
+  }
+  return filled;
+}
+
 function normalizeEffects(
   owner: Record<string, unknown>,
-  nextId: () => string
+  nextId: () => string,
+  isClip: boolean
 ): Record<string, unknown> {
   const next = { ...owner };
   if (Array.isArray(owner.effects)) {
@@ -175,10 +221,11 @@ function normalizeEffects(
       if (!isRecord(effect)) {
         return effect;
       }
+      const filled = isClip ? fillClipEffectDefaults(effect) : effect;
       return {
-        ...effect,
-        id: effect.id === undefined ? nextId() : effect.id,
-        enabled: effect.enabled === undefined ? true : effect.enabled
+        ...filled,
+        id: filled.id === undefined ? nextId() : filled.id,
+        enabled: filled.enabled === undefined ? true : filled.enabled
       };
     });
   }

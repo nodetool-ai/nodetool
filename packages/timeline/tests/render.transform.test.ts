@@ -3,6 +3,7 @@ import {
   containBaseScale,
   buildTransformMatrix,
   clipMatrixToCanvasAffine,
+  computeTransformMatrix,
   IDENTITY_TRANSFORM
 } from "../src/render/transform.js";
 import { projectSourcePoint } from "../src/render/canvas2d.js";
@@ -414,5 +415,54 @@ describe("buildTransformMatrix — parent composition", () => {
       parentOf({ ...identity(), position: { x: 500, y: 0 } })
     );
     expect(b[12]).toBeCloseTo(a[12] + 1);
+  });
+
+  it("caches per parent when two parents differ only by rotationX", () => {
+    // Two otherwise-identical parent groups, one tilted. A child under each,
+    // same child transform. If the cache key under-samples what a 3D tilt
+    // varies in the parent's own matrix, the second child's cached lookup
+    // could return the first child's (wrong) matrix.
+    const flatParent = parentOf(identity());
+    const tiltedParent = parentOf({ ...identity(), rotationX: 20 });
+    const childTransform = { ...identity(), position: { x: 30, y: 10 } };
+
+    const childUnderFlat = buildTransformMatrix(childTransform, { x: 1, y: 1 }, W, H, flatParent);
+    const childUnderTilted = buildTransformMatrix(childTransform, { x: 1, y: 1 }, W, H, tiltedParent);
+    // Freeze the cache's copy before the next call could mutate it in place.
+    const cachedUnderTilted = Array.from(childUnderTilted);
+
+    // A fresh cache-bypassing computation of the same inputs, done by hand:
+    // rebuild the tilted parent from scratch (a new Float32Array, not the
+    // cached one) and recompute the child against it.
+    const freshTiltedParent = computeTransformMatrix({ ...identity(), rotationX: 20 }, { x: 1, y: 1 }, W, H);
+    const freshChildUnderTilted = computeTransformMatrix(childTransform, { x: 1, y: 1 }, W, H, freshTiltedParent);
+
+    expect(cachedUnderTilted).not.toEqual(Array.from(childUnderFlat));
+    for (let i = 0; i < 16; i += 1) {
+      expect(cachedUnderTilted[i]).toBeCloseTo(freshChildUnderTilted[i]!, 5);
+    }
+  });
+
+  it("caches per parent when two parents differ only by perspective", () => {
+    const flatParent = parentOf(identity());
+    const tiltedParent = parentOf({ ...identity(), rotationX: 20, perspective: 1500 });
+    const childTransform = { ...identity(), position: { x: 30, y: 10 } };
+
+    const childUnderFlat = buildTransformMatrix(childTransform, { x: 1, y: 1 }, W, H, flatParent);
+    const childUnderTilted = buildTransformMatrix(childTransform, { x: 1, y: 1 }, W, H, tiltedParent);
+    const cachedUnderTilted = Array.from(childUnderTilted);
+
+    const freshTiltedParent = computeTransformMatrix(
+      { ...identity(), rotationX: 20, perspective: 1500 },
+      { x: 1, y: 1 },
+      W,
+      H
+    );
+    const freshChildUnderTilted = computeTransformMatrix(childTransform, { x: 1, y: 1 }, W, H, freshTiltedParent);
+
+    expect(cachedUnderTilted).not.toEqual(Array.from(childUnderFlat));
+    for (let i = 0; i < 16; i += 1) {
+      expect(cachedUnderTilted[i]).toBeCloseTo(freshChildUnderTilted[i]!, 5);
+    }
   });
 });

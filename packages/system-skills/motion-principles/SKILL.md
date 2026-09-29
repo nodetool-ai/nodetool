@@ -1,14 +1,31 @@
 ---
 name: motion-principles
-description: Choose timing, easing, stagger, anticipation, and follow-through for a NodeTool timeline. Use when motion feels stiff, floaty, busy, or late, or when an entrance, transition, or beat-bound animation needs a duration and curve. The tool contract lives in motion-graphics.
+description: Choose timing, easing, stagger, anticipation, and follow-through for a NodeTool timeline. Use when motion feels stiff, floaty, busy, or late, or when an entrance, transition, or beat-bound animation needs a duration and curve. The op contract lives in timeline-edit-ops; the build loop is motion-graphics.
 featured: true
 ---
 
 # Motion Principles → the numbers before the call
 
-`motion-graphics` is how to write an animation onto a clip. This is how to
-decide what to write. Every number here is in the units `animate_clip` takes:
-milliseconds, a normalized 0..1 distance, an easing string.
+`timeline-edit-ops` is how to write an animation onto a clip with
+`edit_timeline`. This is how to decide what to write. Every number here is in
+the units `animate_clip` takes: milliseconds, a normalized 0..1 distance, an
+easing string.
+
+## The same numbers, written as code
+
+Building with `@nodetool-ai/sandbox-timeline` instead (`motion-graphics`
+picks the surface)? Every number below still applies — only the unit
+changes. `durationMs` becomes `dur` in seconds (divide by 1000: 400ms is
+`dur: 0.4`). A normalized 0..1 distance becomes actual px, against the
+frame's own `width`/`height` (0.3 on a 1920-wide frame is `offsetX: 576` in
+`from`). Easing strings are identical — `ease: "outExpo"` or a raw curve —
+and every role still means the same thing: `el.enter()` is `in`, `el.exit()`
+is `out`, `el.animate()` covers `emphasis` and general keyframing,
+`el.loop()` is `loop`. `el.count()`, `el.draw()`, `el.scramble()`,
+`el.typewriter()`, `el.expr()` and `el.morph()` have no ops equivalent
+below; they are shortcuts for a ticker, a `trimEnd` draw-on, a scramble
+reveal, a whole-clip typewriter entrance, a hand-written keyframe function,
+and a path outline morph.
 
 ## Settle three things before picking a number
 
@@ -141,6 +158,7 @@ reads `role`, `durationMs`, `clipDurationMs`, `canvasWidth`, `canvasHeight`,
 `params`, `staggerCount` and `sampleCount` off `inputs`:
 
 ```js
+// fragment
 const n = inputs.sampleCount;
 const h = 0.06 * inputs.canvasHeight;
 const samples = [];

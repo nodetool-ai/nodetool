@@ -291,9 +291,16 @@ describe("drawMask", () => {
 
   it("refuses path data it cannot parse", () => {
     const ctx = new RecordingMaskContext();
-    expect(drawMask(ctx, { kind: "path", d: "M 0 0 A 1 1 0 0 1 1 1" }, 10, 10)).toBe(
+    expect(drawMask(ctx, { kind: "path", d: "M 0 0 B 1 1" }, 10, 10)).toBe(
       false
     );
+  });
+
+  it("draws an arc-authored path mask", () => {
+    const ctx = new RecordingMaskContext();
+    expect(
+      drawMask(ctx, { kind: "path", d: "M 0 0 A 1 1 0 0 1 1 1" }, 10, 10)
+    ).toBe(true);
   });
 });
 

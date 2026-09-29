@@ -11,6 +11,7 @@
  */
 
 import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
+import { ensureGoogleFonts } from "@nodetool-ai/timeline/fonts/google-node";
 import type {
   FrameAdjustment,
   FrameLayer,
@@ -94,6 +95,12 @@ interface CompositeRenderResult {
   totalFrames: number;
   /** Clips whose media could not be decoded, by name — reported, not fatal. */
   skippedClips: string[];
+  /**
+   * Families a text or caption layer names that are neither bundled nor
+   * resolvable from Google Fonts (offline, not on Google Fonts, a network
+   * error) — drawn in the fallback face, reported rather than silent (D8).
+   */
+  fontsUnavailable: string[];
 }
 
 /** Let the API service pending requests during a frame with many raster layers. */
@@ -196,6 +203,7 @@ export async function renderTimelineComposited(
   if (signal?.aborted) throw abortError();
   const compositor = new HeadlessFrameCompositor(device, width, height);
   compositor.setReferenceSize(referenceWidth, referenceHeight);
+  const { unavailable: fontsUnavailable } = await ensureGoogleFonts(sequence);
   const rasterizer = new NodeRasterizer(referenceWidth, referenceHeight);
   const frameIndices = opts.frames
     ? [...new Set(opts.frames)]
@@ -640,7 +648,11 @@ export async function renderTimelineComposited(
 
     if (signal?.aborted) throw abortError();
     if (encoder) await awaitWithAbort(encoder.finish(), signal);
-    return { totalFrames: frameIndices.length, skippedClips: [...skippedClips] };
+    return {
+      totalFrames: frameIndices.length,
+      skippedClips: [...skippedClips],
+      fontsUnavailable
+    };
   } catch (error) {
     encoder?.abort();
     throw error;

@@ -26,6 +26,7 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 import type { JsScriptDebugIssue, JsScriptValidation } from "./types.js";
+import { typeCheckAgainstPackDts, type PackDtsSources } from "./type-check.js";
 
 export interface JsScriptValidationOptions {
   /**
@@ -36,6 +37,13 @@ export interface JsScriptValidationOptions {
   knownSecrets?: readonly string[];
   /** The installed sandbox catalog, when the caller has one. */
   sandboxModuleCatalog?: SandboxModuleCatalog | null;
+  /**
+   * `specifier -> absolute path to an installed pack's shipped .d.ts`, when
+   * the caller has resolved them. Given any, the body is type-checked as an
+   * ES module against those declarations — see `type-check.ts`. Omit to skip
+   * it entirely; an empty map is the same as omitting it.
+   */
+  packDtsSources?: PackDtsSources;
 }
 
 function split(issues: readonly JsScriptDebugIssue[]): JsScriptValidation {
@@ -152,6 +160,10 @@ export async function validateJsScriptDoc(
   }));
 
   const issues = [...shapeIssues, ...bodyIssues];
+
+  if (options.packDtsSources !== undefined && options.packDtsSources.size > 0) {
+    issues.push(...(await typeCheckAgainstPackDts(doc.code, options.packDtsSources)));
+  }
 
   const streaming = usesStreamInputContract(doc.code);
   // A streaming body on the return contract is already an error from the body

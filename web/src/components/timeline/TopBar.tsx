@@ -29,6 +29,8 @@ interface TopBarProps {
   onOpenSettings?: () => void;
   onAdaptFormat?: () => void;
   activitySlot?: React.ReactNode;
+  /** The "Built from script <name>" chip, or nothing on an unscripted cut. */
+  scriptLinkSlot?: React.ReactNode;
 }
 
 export const TopBar: React.FC<TopBarProps> = memo(
@@ -42,7 +44,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
     onSaveToAssets,
     onOpenSettings,
     onAdaptFormat,
-    activitySlot
+    activitySlot,
+    scriptLinkSlot
   }) => {
     const overflowButtonRef = useRef<HTMLButtonElement>(null);
     const [overflowAnchor, setOverflowAnchor] = useState<HTMLElement | null>(
@@ -65,6 +68,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
     return (
       <FlexRow align="center" gap={SPACING.micro}>
         {activitySlot}
+        {scriptLinkSlot}
         {onSave && (
           <ToolbarIconButton
             onClick={onSave}

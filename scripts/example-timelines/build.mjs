@@ -92,6 +92,11 @@ try {
     const bundle = { ...meta, document: (await TimelineSequence.findById(id)).toDocument() };
     const out = join(OUT_DIR, `${slug}.timeline.json`);
     writeFileSync(out, `${JSON.stringify(bundle)}\n`);
+    // The builder script itself, shipped next to its bundle so
+    // `nodetool.timelines.examples.source(slug)` reaches it in the packaged
+    // app and the Docker image the same way it reaches the JSON.
+    const sourceOut = join(OUT_DIR, `${slug}.source.js`);
+    writeFileSync(sourceOut, readFileSync(join(HERE, `${slug}.mjs`), "utf8"));
     const { tracks, clips, markers } = bundle.document;
     console.log(`${slug}: ${clips.length} clips, ${tracks.length} tracks, ${markers.length} markers -> ${out}`);
   }

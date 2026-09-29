@@ -75,6 +75,8 @@ import {
   MAX_VERSION_LIMIT,
   trackObjectSpec,
   TRACK_OBJECT_DIRECTIONS,
+  resolveScriptTimelineSpec,
+  linkTimelineScriptSpec,
   deleteTimelineSpec
 } from "./timelines.specs.js";
 import {
@@ -1623,6 +1625,7 @@ const previewTimelineFrame: CapabilityExport = {
       frames,
       sheet,
       effects_not_applied: result.effectsNotApplied,
+      fonts_unavailable: result.fontsUnavailable,
       hint: wantSheet
         ? "Call view_image with the sheet's asset_id to see every frame at " +
           "once; the cells run left to right, labelled with their timecode. " +
@@ -1835,6 +1838,9 @@ const compareTimelineFrames: CapabilityExport = {
       },
       effects_not_applied: [
         ...new Set([...left.effectsNotApplied, ...right.effectsNotApplied])
+      ].sort(),
+      fonts_unavailable: [
+        ...new Set([...left.fontsUnavailable, ...right.fontsUnavailable])
       ].sort(),
       hint:
         "difference is the mean absolute RGB difference, 0 (identical) to 1. " +
@@ -2720,6 +2726,79 @@ const trackObject: CapabilityExport = {
   }
 };
 
+/**
+ * Read-only: which JS script (if any) is running this call, and the timeline
+ * it is linked to. `run.context` carries `JS_SCRIPT_CHAIN_KEY` — the call
+ * chain `run_js_script`/the CLI harness push the running script's id onto —
+ * so a call made from inside a saved script's body can tell.
+ */
+const resolveScriptTimeline: CapabilityExport = {
+  spec: resolveScriptTimelineSpec,
+  impl: async (run) => {
+    const { JS_SCRIPT_CHAIN_KEY } = await import("./js-scripts.js");
+    const chain = run.context.get<string[]>(JS_SCRIPT_CHAIN_KEY) ?? [];
+    const scriptId = chain[chain.length - 1];
+    if (!scriptId) {
+      return { js_script_id: null, timeline_id: null };
+    }
+    const { JsScript } = await import("@nodetool-ai/models");
+    const script = await JsScript.findById(scriptId);
+    if (!script || script.user_id !== run.context.userId) {
+      return { js_script_id: scriptId, timeline_id: null };
+    }
+    const doc = script.toDocument();
+    return {
+      js_script_id: scriptId,
+      timeline_id: doc.linkedTimelineId ?? null
+    };
+  }
+};
+
+const linkTimelineScript: CapabilityExport = {
+  spec: linkTimelineScriptSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+    const timelineId = params["timeline_id"];
+    const scriptId = params["js_script_id"];
+    if (!isString(timelineId) || !timelineId) {
+      return { error: "timeline_id is required." };
+    }
+    if (!isString(scriptId) || !scriptId) {
+      return { error: "js_script_id is required." };
+    }
+
+    const { TimelineSequence, JsScript } = await import("@nodetool-ai/models");
+    const script = await JsScript.findById(scriptId);
+    if (!script || script.user_id !== userId) {
+      return { error: `JS script ${scriptId} was not found.` };
+    }
+    const timeline = await loadTimeline(run, timelineId);
+    if (isError(timeline)) return timeline;
+
+    // Write against each row's own full id, resolved above — a short-prefix
+    // caller id would never match mutateDocument's own CAS write, which
+    // compares the exact `id` column, and every retry would lose the race
+    // against a row it can never actually reach.
+    const mutation = await TimelineSequence.mutateDocument(
+      timeline.id,
+      (doc) => {
+        doc.builtByScriptId = script.id;
+      }
+    );
+    if (!mutation) {
+      return { error: `Timeline ${timeline.id} was modified concurrently; nothing was linked. Try again.` };
+    }
+
+    const scriptDoc = script.toDocument();
+    scriptDoc.linkedTimelineId = timeline.id;
+    script.document = JSON.stringify(scriptDoc);
+    await script.save();
+
+    return { timeline_id: timeline.id, js_script_id: script.id, linked: true };
+  }
+};
+
 const deleteTimeline: CapabilityExport = {
   spec: deleteTimelineSpec,
   impl: async (run, params) => {
@@ -2752,6 +2831,8 @@ export const TIMELINE_CAPABILITIES: readonly CapabilityExport[] = [
   isolateSubject,
   trackObject,
   ...TIMELINE_NATIVE_MEDIA_CAPABILITIES,
+  resolveScriptTimeline,
+  linkTimelineScript,
   deleteTimeline
 ];
 
@@ -2778,5 +2859,7 @@ export {
   bakeAudioAnimation,
   isolateSubject,
   trackObject,
+  resolveScriptTimeline,
+  linkTimelineScript,
   deleteTimeline
 };

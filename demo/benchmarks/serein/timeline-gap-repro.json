@@ -50,7 +50,7 @@
         "id": "chip-out-pill", "trackId": "detail", "name": "Outgoing fitted pill", "startMs": 2500, "durationMs": 700,
         "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
         "shapeStyle": { "kind": "rect", "fill": "#27364e", "x": 0.4, "y": 0.45, "width": 0.2, "height": 0.1, "cornerRadius": 0.05 },
-        "layout": { "kind": "relative", "targetClipId": "chip-out-text", "side": "center", "fitText": { "paddingXPx": 28, "paddingYPx": 12 } },
+        "transform": { "position": { "x": 0, "y": 0 }, "scale": { "x": 0.8020833333, "y": 0.6888888889 }, "rotation": 0, "anchor": { "x": 0.5, "y": 0.5 } },
         "fadeOutMs": 300
       },
       {
@@ -63,7 +63,7 @@
         "id": "chip-in-pill", "trackId": "detail", "name": "Incoming fitted pill", "startMs": 2900, "durationMs": 700,
         "mediaType": "shape", "sourceType": "generated", "status": "generated", "locked": false, "versions": [],
         "shapeStyle": { "kind": "rect", "fill": "#27364e", "x": 0.4, "y": 0.45, "width": 0.2, "height": 0.1, "cornerRadius": 0.05 },
-        "layout": { "kind": "relative", "targetClipId": "chip-in-text", "side": "center", "fitText": { "paddingXPx": 28, "paddingYPx": 12 } },
+        "transform": { "position": { "x": 0, "y": 0 }, "scale": { "x": 0.8677083333, "y": 0.6888888889 }, "rotation": 0, "anchor": { "x": 0.5, "y": 0.5 } },
         "transitionIn": { "type": "crossfade", "durationMs": 300 }
       },
       {

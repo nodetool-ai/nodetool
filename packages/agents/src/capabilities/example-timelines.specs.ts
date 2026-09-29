@@ -56,7 +56,29 @@ export const getExampleTimelineSpec: CapabilitySpec = {
   userMessage: (params) => `Reading example timeline ${String(params["slug"])}`
 };
 
+export const getExampleTimelineSourceSpec: CapabilitySpec = {
+  name: "get_example_timeline_source",
+  description:
+    "Read the builder script that made a shipped example: its full JavaScript source, as authored, plus the module specifiers it imports. Use this to see how a scene, an effect chain or a repeater was actually built — get_example_timeline only shows the compiled document. Exact slug from list_example_timelines.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      slug: {
+        type: "string",
+        description:
+          "Exact slug from list_example_timelines, such as kite or prism."
+      }
+    },
+    required: ["slug"],
+    additionalProperties: false
+  },
+  category: "read",
+  userMessage: (params) =>
+    `Reading example timeline source ${String(params["slug"])}`
+};
+
 export const exampleTimelinesSpecs: readonly CapabilitySpec[] = [
   listExampleTimelinesSpec,
-  getExampleTimelineSpec
+  getExampleTimelineSpec,
+  getExampleTimelineSourceSpec
 ];

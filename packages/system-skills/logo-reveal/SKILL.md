@@ -9,9 +9,40 @@ featured: true
 One idea per logo. Draw it, build it, or wipe it — never all three. The whole
 reveal runs 800–2500ms and ends on the clean mark, held.
 
-`motion-graphics` carries the op contract. `motion-direction` decides which
-personality the sting belongs to; a logo is usually the one place a piece is
-allowed its overshoot.
+`motion-graphics` is the build loop; `timeline-edit-ops` carries the op
+contract. `motion-direction` decides which personality the sting belongs to;
+a logo is usually the one place a piece is allowed its overshoot.
+
+## The same three patterns, in code
+
+**Draw-on** — a path element and `el.draw()`, which is `enter({from: {trimEnd: 0}})`:
+
+```js
+// fragment
+const mark = s.path([["M", -40, 30], ["L", 0, -30], ["L", 40, 30]], { stroke: "#111111" });
+mark.draw({ dur: 1.1, ease: "cubic-bezier(0.65,0,0.35,1)" });
+```
+
+**Wordmark stagger** — `by` and `staggerMs` on `el.enter()`, per character for
+a short mark:
+
+```js
+// fragment
+const wordmark = s.text("Northwind", { size: 64, weight: 700 });
+wordmark.enter({ from: { scale: 0.9, opacity: 0 }, dur: 0.38, by: "character", staggerMs: 45 });
+```
+
+**Lockup row** — mark beside wordmark, one flex container (`frame-composition`
+covers the container vocabulary in full):
+
+```js
+// fragment
+s.row([mark, wordmark], { gap: 16, align: "center" });
+```
+
+Reveal the container first if the mark and wordmark should feel like one
+build, or stagger the row's own children through `s.stagger()` for a build-on
+that still keeps its lockup spacing.
 
 ## Pick one technique
 
@@ -93,11 +124,13 @@ repeater for a pattern, and separate clips for parts that need distinct art.
 
 Keep a follower aligned by storing `animationLinks` on its clip when it should
 read the mark's position, scale, rotation, or opacity. A link follows the
-source's authored animation and does not chain through other links. Use
-`layout: {kind: "relative", targetClipId: "<mark-id>", side: "right"}` for a
-wordmark whose position should follow the mark's changing box; `fitText` can
-size a backing plate against the wordmark. These are document fields, so read
-and write the full document with `get_timeline` and `set_timeline_document`.
+source's authored animation and does not chain through other links. Put the mark and the wordmark in a flex row (`layout: {display: "flex",
+flexDirection: "row", gap, alignItems: "center"}` on a group clip, both as
+its real children via `parentId`) so the wordmark's position follows the
+mark's changing box; a backing plate is a third child with `flexItem:
+{position: "absolute", inset: 0}` behind the wordmark. These are document
+fields, so read and write the full document with `get_timeline` and
+`set_timeline_document`.
 `set_clip_params` refuses `repeater`, `animationLinks`, and `layout`.
 
 ## Wordmark

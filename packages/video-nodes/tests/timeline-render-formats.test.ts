@@ -172,7 +172,11 @@ beforeEach(() => {
   posted = [];
   availableEncoders = ["libx264", "libvpx-vp9", "prores_ks", "aac", "libopus"];
   renderComposited.mockReset();
-  renderComposited.mockResolvedValue({ totalFrames: 120, skippedClips: [] });
+  renderComposited.mockResolvedValue({
+    totalFrames: 120,
+    skippedClips: [],
+    fontsUnavailable: []
+  });
 });
 
 describe("RenderTimeline — refusals", () => {

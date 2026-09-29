@@ -91,6 +91,15 @@ export const trpc = {
   // rather than standing in for a board they never set up.
   storyboards: {
     get: { useQuery: jest.fn(() => ({ data: undefined })) }
+  },
+  // `TimelineScriptLinkChip` reads the script a timeline was built from
+  // through these hooks. No data leaves the chip rendering nothing, which is
+  // the fallback every test that doesn't set one up wants.
+  timeline: {
+    get: { useQuery: jest.fn(() => ({ data: undefined })) }
+  },
+  jsScripts: {
+    get: { useQuery: jest.fn(() => ({ data: undefined })) }
   }
 };
 

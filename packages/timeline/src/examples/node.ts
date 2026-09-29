@@ -9,6 +9,16 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 
 const SUFFIX = ".timeline.json";
+const SOURCE_SUFFIX = ".source.js";
+const IMPORT_LINE = /^import\s+(?:[^;]+?)\s+from\s+["']([^"']+)["'];?\s*$/gm;
+
+export interface ExampleTimelineSource {
+  readonly slug: string;
+  /** The builder script's text, as shipped next to its compiled bundle. */
+  readonly source: string;
+  /** Every module specifier the script imports, static-import order. */
+  readonly imports: readonly string[];
+}
 
 export interface ExampleTimelineOptions {
   readonly examplesDir?: string;
@@ -82,6 +92,40 @@ export function getExampleTimelineBundle(
     (entry) => entry.slice(0, -SUFFIX.length) === slug
   );
   return file ? readBundle(dir, file) : null;
+}
+
+/**
+ * The builder script that produced a shipped example, read from beside its
+ * compiled bundle so it ships in the packaged app and the Docker image the
+ * same way the bundle itself does (`build.mjs` writes both). Exact filenames
+ * only, same as {@link getExampleTimelineBundle}.
+ */
+export function getExampleTimelineSource(
+  options: ExampleTimelineOptions,
+  slug: string
+): ExampleTimelineSource | null {
+  const dir = resolveExampleTimelinesDir(options);
+  if (!dir) {
+    return null;
+  }
+  const file = nodePath.join(dir, `${slug}${SOURCE_SUFFIX}`);
+  if (!existsSync(file)) {
+    return null;
+  }
+  let source: string;
+  try {
+    source = readFileSync(file, "utf8");
+  } catch {
+    return null;
+  }
+  const imports: string[] = [];
+  for (const match of source.matchAll(IMPORT_LINE)) {
+    const specifier = match[1];
+    if (specifier) {
+      imports.push(specifier);
+    }
+  }
+  return { slug, source, imports };
 }
 
 export function listExampleTimelines(

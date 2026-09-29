@@ -86,6 +86,11 @@ export interface TimelineDocument {
   setup?: TimelineSetup;
   /** Sequence this one was retargeted from. Unset on a sequence built directly. */
   templateId?: string | null;
+  /**
+   * The JS script that built this timeline, when `v.save()` last wrote it
+   * with a link. Unset on a sequence nothing scripted wrote.
+   */
+  builtByScriptId?: string | null;
   /** Subject/object tracks (P0 AI Video, Phase 2). Unset on a document with none. */
   mediaTracks?: MediaTrack[];
 }
@@ -167,6 +172,7 @@ export class TimelineSequence extends DBModel {
       camera2d: doc.camera2d,
       setup: doc.setup,
       templateId: doc.templateId,
+      builtByScriptId: doc.builtByScriptId,
       mediaTracks: doc.mediaTracks,
       createdAt: this.created_at,
       updatedAt: this.updated_at
@@ -188,6 +194,7 @@ export class TimelineSequence extends DBModel {
       camera2d: seq.camera2d,
       setup: seq.setup,
       templateId: seq.templateId,
+      builtByScriptId: seq.builtByScriptId,
       mediaTracks: seq.mediaTracks
     };
     return new TimelineSequence({

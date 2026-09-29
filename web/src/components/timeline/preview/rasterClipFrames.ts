@@ -11,7 +11,7 @@ import { ShapeRasterizer } from "./shapeRender";
 import { BitmapFrameScope } from "./BitmapFrameScope";
 import { textMeasurer } from "./textMeasure";
 import { TextRasterizer } from "./textRender";
-import { ensureBundledFontsLoaded } from "./fontLoading";
+import { ensureBundledFontsLoaded, ensureGoogleFontsLoaded } from "./fontLoading";
 import {
   drawModel3DClipFrames,
   model3dSourceTimeSec
@@ -46,6 +46,9 @@ export async function renderRasterClipFrames(
   // These stills are handed to an agent as evidence, so they must show the
   // face the render will use rather than whatever loaded first.
   await ensureBundledFontsLoaded();
+  await ensureGoogleFontsLoaded(
+    context ? [clip, ...context.clips] : [clip]
+  );
 
   const canvas = document.createElement("canvas");
   canvas.width = outputWidth;

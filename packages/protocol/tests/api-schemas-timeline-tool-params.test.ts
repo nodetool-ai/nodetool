@@ -189,6 +189,23 @@ describe("build helpers keep only the fields the named type reads", () => {
       type: "dropShadow", blur: 12
     });
   });
+
+  it("names the allowed fields for a key no effect reads", () => {
+    const result = effectParams.safeParse({ type: "grain", foo: 1 });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe(
+      'grain does not accept parameter "foo". Allowed parameters: amount, size, colorAmount, animate.'
+    );
+  });
+
+  it("names the valid modes for a missing or unknown stylize/generator mode", () => {
+    expect(() => buildEffect({ type: "stylize" }, 0)).toThrow(
+      /Unknown stylize mode: "undefined"\. Valid modes: rgbSplit, radialBlur/
+    );
+    expect(() => buildEffect({ type: "generator", mode: "nope" }, 0)).toThrow(
+      /Unknown generator mode: "nope"\. Valid modes: noise, fractal/
+    );
+  });
 });
 
 describe("structural op inputs", () => {

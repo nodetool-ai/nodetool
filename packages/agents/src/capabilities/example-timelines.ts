@@ -1,5 +1,6 @@
 import {
   getExampleTimelineBundle,
+  getExampleTimelineSource,
   listExampleTimelines,
   type ExampleTimelineBundle
 } from "@nodetool-ai/timeline/examples/node";
@@ -10,6 +11,7 @@ import type {
 import type { CapabilityExport, CapabilityModule } from "./types.js";
 import {
   getExampleTimelineSpec,
+  getExampleTimelineSourceSpec,
   listExampleTimelinesSpec
 } from "./example-timelines.specs.js";
 
@@ -233,7 +235,28 @@ const getExample: CapabilityExport = {
   }
 };
 
+const getExampleSource: CapabilityExport = {
+  spec: getExampleTimelineSourceSpec,
+  impl: async (_run, params) => {
+    const slug = params["slug"];
+    if (typeof slug !== "string" || !slug) {
+      return { error: "slug is required. Use list_example_timelines." };
+    }
+    const source = getExampleTimelineSource({}, slug);
+    if (!source) {
+      return {
+        error: `No shipped source for "${slug}". Use an exact slug from list_example_timelines.`
+      };
+    }
+    return {
+      slug: source.slug,
+      source: source.source,
+      imports: source.imports
+    };
+  }
+};
+
 export const module: CapabilityModule = {
   module: "example-timelines",
-  exports: [listExamples, getExample]
+  exports: [listExamples, getExample, getExampleSource]
 };

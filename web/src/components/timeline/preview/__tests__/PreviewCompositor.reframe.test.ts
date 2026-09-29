@@ -67,10 +67,11 @@ describe("group transition preview scheduling", () => {
 describe("animated text layout preview scheduling", () => {
   it("re-resolves a fitted plate when its text target changes size", () => {
     const track = makeTrack({ id: "track", type: "video", visible: true });
-    const target = makeClip({ id: "title", trackId: track.id, mediaType: "text", status: "generated", startMs: 0, durationMs: 1000, textStyle: { text: "Title", fontSizePx: 20, color: "#fff" }, animations: [{ id: "grow", role: "emphasis", preset: "custom", durationMs: 1000, styleTracks: [{ target: "text.fontSizePx", keyframes: [{ t: 0, value: 20 }, { t: 1, value: 100 }] }] }] });
-    const plate = makeClip({ id: "plate", trackId: track.id, mediaType: "shape", status: "generated", startMs: 0, durationMs: 1000, shapeStyle: { kind: "rect", x: 0, y: 0, width: 0.2, height: 0.2 }, layout: { kind: "relative", targetClipId: "title", fitText: { paddingXPx: 10, paddingYPx: 10 } } });
-    expect(sceneRequiresPerFrameResolution([{ ...layer(false), clip: plate, clipId: "plate" }], layoutDependsOnAnimatedText([target, plate]))).toBe(true);
-    const at = (timeMs: number) => computeActiveLayers([track], [target, plate], timeMs, { canvas: { width: 1000, height: 500 } }).find((candidate) => candidate.clipId === "plate")?.transform?.scale.x;
+    const container = makeClip({ id: "card", trackId: track.id, mediaType: "group", status: "generated", startMs: 0, durationMs: 1000, layout: { display: "flex", padding: 10 } });
+    const target = makeClip({ id: "title", trackId: track.id, parentId: "card", mediaType: "text", status: "generated", startMs: 0, durationMs: 1000, textStyle: { text: "Title", fontSizePx: 20, color: "#fff" }, animations: [{ id: "grow", role: "emphasis", preset: "custom", durationMs: 1000, styleTracks: [{ target: "text.fontSizePx", keyframes: [{ t: 0, value: 20 }, { t: 1, value: 100 }] }] }] });
+    const plate = makeClip({ id: "plate", trackId: track.id, parentId: "card", mediaType: "shape", status: "generated", startMs: 0, durationMs: 1000, shapeStyle: { kind: "rect" }, flexItem: { position: "absolute", inset: 0 } });
+    expect(sceneRequiresPerFrameResolution([{ ...layer(false), clip: plate, clipId: "plate" }], layoutDependsOnAnimatedText([container, target, plate]))).toBe(true);
+    const at = (timeMs: number) => computeActiveLayers([track], [container, target, plate], timeMs, { canvas: { width: 1000, height: 500 } }).find((candidate) => candidate.clipId === "plate")?.clip.shapeStyle?.width;
     expect(at(500)).toBeGreaterThan(at(0) ?? 0);
   });
 });

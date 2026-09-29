@@ -572,13 +572,55 @@ export const timelineCamera2d = z.object({
   })).optional()
 });
 
+const flexJustifyEnum = z.enum([
+  "flex-start",
+  "flex-end",
+  "center",
+  "space-between",
+  "space-around",
+  "space-evenly"
+]);
+const flexAlignEnum = z.enum(["flex-start", "flex-end", "center", "stretch", "baseline"]);
+const clipLayoutEdges = z.object({
+  top: z.number().optional(),
+  right: z.number().optional(),
+  bottom: z.number().optional(),
+  left: z.number().optional()
+});
+/** A px number or a percentage string, as `types.ts`'s `ClipLayoutDimension` names it. */
+const clipLayoutDimension = z.union([z.number(), z.string()]);
+
+/** A flex container (Yoga). See `types.ts`'s `ClipLayout` for the field-by-field contract. */
 export const clipLayout = z.object({
-  kind: z.enum(["row", "stack", "relative"]),
-  children: z.array(z.string()).optional(),
-  gapPx: z.number().optional(),
-  targetClipId: z.string().optional(),
-  side: z.enum(["left", "right", "above", "below", "center"]).optional(),
-  fitText: z.object({ paddingXPx: z.number(), paddingYPx: z.number() }).optional()
+  display: z.literal("flex"),
+  flexDirection: z.enum(["row", "column"]).optional(),
+  justifyContent: flexJustifyEnum.optional(),
+  alignItems: flexAlignEnum.optional(),
+  alignContent: flexJustifyEnum.optional(),
+  flexWrap: z.enum(["nowrap", "wrap", "wrap-reverse"]).optional(),
+  gap: z.number().optional(),
+  rowGap: z.number().optional(),
+  columnGap: z.number().optional(),
+  padding: z.union([z.number(), clipLayoutEdges]).optional(),
+  width: clipLayoutDimension.optional(),
+  height: clipLayoutDimension.optional(),
+  minWidth: clipLayoutDimension.optional(),
+  maxWidth: clipLayoutDimension.optional(),
+  minHeight: clipLayoutDimension.optional(),
+  maxHeight: clipLayoutDimension.optional()
+});
+
+/** A flex child's own sizing/placement. See `types.ts`'s `ClipFlexItem`. */
+export const clipFlexItem = z.object({
+  grow: z.number().optional(),
+  shrink: z.number().optional(),
+  basis: clipLayoutDimension.optional(),
+  alignSelf: flexAlignEnum.optional(),
+  width: clipLayoutDimension.optional(),
+  height: clipLayoutDimension.optional(),
+  margin: z.union([z.number(), clipLayoutEdges]).optional(),
+  position: z.enum(["relative", "absolute"]).optional(),
+  inset: z.union([z.number(), clipLayoutEdges]).optional()
 });
 
 export const clipRepeater = z.object({
@@ -1626,6 +1668,7 @@ export const timelineClip = z.object({
   fadeOutShape: clipFadeShapeEnum.optional(),
   transform: clipTransform.optional(),
   layout: clipLayout.optional(),
+  flexItem: clipFlexItem.optional(),
   repeater: clipRepeater.optional(),
   motionBlur: z.object({ samplesPerFrame: z.number().int().min(1).max(32), shutterAngle: z.number().min(0).max(360) }).optional(),
   steppedTime: z.object({ fps: z.number().positive() }).optional(),
@@ -1839,6 +1882,11 @@ export const timelineDocument = z.object({
   /** Sequence this one was retargeted from. Without this field Zod strips it
    * on every PATCH and the lineage is lost on the first save. */
   templateId: z.string().nullable().optional(),
+  /** The JS script that built this timeline, when `v.save()` last wrote it
+   * with a link. Without this field Zod strips it on every PATCH and the
+   * next revise-and-rerun would make a duplicate timeline instead of
+   * updating this one. */
+  builtByScriptId: z.string().nullable().optional(),
   /** Subject/object tracks (P0 AI Video, Phase 2). Without this field Zod
    * strips it on every PATCH, so a track and every clip following it are
    * lost on the next save. */
@@ -1903,6 +1951,8 @@ export const timelineSequenceResponse = z.object({
   setup: timelineSetup.optional(),
   /** Sequence this one was retargeted from, mirroring the document's. */
   templateId: z.string().nullable().optional(),
+  /** The JS script that built this timeline, mirroring the document's. */
+  builtByScriptId: z.string().nullable().optional(),
   /** Subject/object tracks, mirroring the document's. */
   mediaTracks: z.array(mediaTrack).optional(),
   camera2d: timelineCamera2d.nullable().optional(),

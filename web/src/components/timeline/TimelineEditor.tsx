@@ -82,6 +82,7 @@ import {
 import { usePanelStore } from "../../stores/PanelStore";
 import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { VideoLandingStrip } from "../setup/video/VideoLandingStrip";
+import { TimelineScriptLinkChip } from "./TimelineScriptLinkChip";
 import { useReattachSequenceJobs } from "../../hooks/timeline/useReattachSequenceJobs";
 import { PreviewArea } from "./preview/PreviewArea";
 import { SelectFieldDensityContext } from "../ui_primitives";
@@ -867,6 +868,11 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         onOpenSettings={sequenceUnavailable ? undefined : handleOpenSettings}
         onAdaptFormat={sequenceUnavailable ? undefined : handleOpenAdaptFormat}
         activitySlot={activitySlot}
+        scriptLinkSlot={
+          sequenceUnavailable || !sequenceId ? undefined : (
+            <TimelineScriptLinkChip sequenceId={sequenceId} />
+          )
+        }
       />
     ),
     [
@@ -880,6 +886,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       isExporting,
       isExportingBundle,
       isSaving,
+      sequenceId,
       sequenceUnavailable
     ]
   );
