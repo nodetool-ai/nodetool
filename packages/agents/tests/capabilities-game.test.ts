@@ -48,7 +48,8 @@ describe("native game capabilities", () => {
       "create_native_game", "get_native_game", "publish_native_game",
       "install_native_game_asset", "playtest_native_game", "build_native_game",
       "edit_native_game", "capture_native_game_frame", "generate_game_asset",
-      "list_example_games", "get_example_game", "install_example_game", "autoplay_native_game"
+      "list_example_games", "get_example_game", "install_example_game", "autoplay_native_game",
+      "preview_native_game_authoring", "apply_native_game_authoring"
     ]);
   });
 

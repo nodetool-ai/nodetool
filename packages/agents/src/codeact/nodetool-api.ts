@@ -132,7 +132,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "create_native_game", "get_native_game", "edit_native_game", "publish_native_game",
     "install_native_game_asset", "playtest_native_game", "capture_native_game_frame",
     "generate_game_asset", "build_native_game", "list_example_games", "get_example_game",
-    "install_example_game", "autoplay_native_game"
+    "install_example_game", "autoplay_native_game", "preview_native_game_authoring", "apply_native_game_authoring"
   ],
   timelines: [
     "list_timelines",
@@ -1224,6 +1224,8 @@ const nodetool = (() => {
       edit: (id, ops, opts) => __need("edit_native_game")(__merge(opts, { game_id: id, ops })),
       setDocument: (id, document, opts) =>
         __need("edit_native_game")(__merge(opts, { game_id: id, ops: [{ op: "set_document", document }] })),
+      previewAuthoring: (id, opts) => __need("preview_native_game_authoring")(__merge(opts, { game_id: id })),
+      applyAuthoring: (id, candidate) => __need("apply_native_game_authoring")({ game_id: id, candidate }),
       publish: (id, opts) => __need("publish_native_game")(__merge(opts, { game_id: id })),
       installAsset: (id, slot, binding, opts) =>
         __need("install_native_game_asset")(__merge(opts, { game_id: id, slot, binding })),
@@ -1765,6 +1767,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     skill: "api-games",
     doc: `- \`nodetool.games\` — built-in games: \`create(name, {project_id})\`,
   \`get(id)\`, \`edit(id, ops)\`, \`setDocument(id, document)\`,
+  \`previewAuthoring(id, {program})\`, \`applyAuthoring(id, candidate)\`,
   \`generateAsset(id, slot, kind, prompt)\`, \`installAsset\`, \`playtest(id)\`,
   \`autoplay(id, {win})\`, \`capture(id)\`, \`publish(id)\`, \`build(id)\`,
   \`listExamples()\`, \`getExample(slug)\`, \`installExample(slug)\`.`

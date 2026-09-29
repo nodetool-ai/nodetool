@@ -5,8 +5,11 @@ import sharp from "sharp";
 import { getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
 import { AmbiguousGameIdError, Asset, Game, Project, Workspace } from "@nodetool-ai/models";
 import { exampleGameSummary, anyGameAssetBinding, gameAssetBinding, gameAssetBinding3D, gamePreparedCollider3D, gameModelImportSettings3D, parseGameDocument, anyGameDocument as gameDocument, installExampleGameInput, type AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
-import { createTopDownRoomGame, createNative3DGame, anyGameDocumentOp as gameDocumentOp, GameOpError, decodePreparedGameCollider3D, validateAnyGame } from "@nodetool-ai/game-runtime";
+import { createTopDownRoomGame, createNative3DGame, anyGameDocumentOp as gameDocumentOp, GameOpError, decodePreparedGameCollider3D, trackGameAuthoringEdits, validateAnyGame } from "@nodetool-ai/game-runtime";
 import { normalizeGameModel3D, prepareGameModelBinding3D } from "@nodetool-ai/game-renderer/preparation3d";
+import { createCapabilityRun, gateFromContext } from "@nodetool-ai/agents";
+import { gameAuthoringCandidate, gameAuthoringProgram, gameAuthoringConflict } from "@nodetool-ai/protocol";
+import { PERMISSION_GATE_CONTEXT_KEY, ProcessingContext, headlessGate } from "@nodetool-ai/runtime";
 import type { Workspace as RunWorkspace } from "@nodetool-ai/runtime";
 import { getAssetAdapter } from "../../lib/storage.js";
 import { getAssetStorageKey, retrieveAssetBytes } from "../../lib/asset-paths.js";
@@ -30,6 +33,14 @@ const gameInfo = z.object({
   updatedAt: z.string()
 });
 const gameWithDocument = z.object({ game: gameInfo, document: gameDocument });
+const authoringPreview = z.object({
+  candidate: gameAuthoringCandidate,
+  document: gameDocument,
+  conflicts: z.array(gameAuthoringConflict),
+  affected_entities: z.array(z.string()),
+  changed_dependencies: z.array(z.string()),
+  restart_required: z.boolean()
+});
 const gameRevisionInfo = z.object({ revision: z.string(), modifiedAt: z.number(), current: z.boolean(), message: z.string().nullable() });
 
 function info(game: Game): z.infer<typeof gameInfo> {
@@ -48,6 +59,20 @@ function info(game: Game): z.infer<typeof gameInfo> {
 
 function newRevision(): string {
   return randomUUID().replace(/-/g, "");
+}
+
+function authoringRun(userId: string) {
+  const context = new ProcessingContext({ jobId: `game-authoring-${randomUUID()}`, userId });
+  context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("game.authoring"));
+  return createCapabilityRun({ context, gate: gateFromContext(context, "game.authoring") });
+}
+
+function checkAuthoringResult(result: unknown): void {
+  if (result !== null && typeof result === "object" && "error" in result && typeof result.error === "string") {
+    const code = /stale|concurrent|changed since/i.test(result.error)
+      ? ApiErrorCode.ALREADY_EXISTS : ApiErrorCode.INVALID_INPUT;
+    throwApiError(code, result.error);
+  }
 }
 
 function sourcePath(game: Game, revision: string): string {
@@ -170,7 +195,8 @@ async function writeRevision(workspace: RunWorkspace, game: Game, document: Game
   await workspace.write(sourcePath(game, document.revision), JSON.stringify(document), "application/json");
 }
 
-async function publishDocument(userId: string, game: Game, baseRevision: string, value?: unknown, message?: string): Promise<{ game: z.infer<typeof gameInfo>; document: GameDocument }> {
+async function publishDocument(userId: string, game: Game, baseRevision: string, value?: unknown, message?: string,
+  restoreAuthoring = false): Promise<{ game: z.infer<typeof gameInfo>; document: GameDocument }> {
   if (baseRevision !== game.current_revision) {
     throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game was modified concurrently");
   }
@@ -180,7 +206,13 @@ async function publishDocument(userId: string, game: Game, baseRevision: string,
     throwApiError(ApiErrorCode.NOT_FOUND, "Game draft not found");
   }
   const revision = newRevision();
-  const document = validatedDocument(value ?? draft.document, game.id, revision);
+  let document = validatedDocument(value ?? draft.document, game.id, revision);
+  if (!restoreAuthoring && value !== undefined && JSON.stringify(document.authoring) !== JSON.stringify(draft.document.authoring)) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Retained construction must be changed through preview and apply");
+  }
+  if (!restoreAuthoring && draft.document.authoring) {
+    document = trackGameAuthoringEdits(draft.document, document);
+  }
   if ((document.schemaVersion === 3) !== (draft.document.schemaVersion === 3)) {
     throwApiError(ApiErrorCode.INVALID_INPUT, "A game cannot change dimension");
   }
@@ -215,6 +247,9 @@ async function createGame(
   const id = randomUUID().replace(/-/g, "");
   const revision = newRevision();
   const document = validatedDocument(source ?? (dimension === "3d" ? createNative3DGame(id) : createTopDownRoomGame(id)), id, revision);
+  if (document.authoring) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Attach retained construction through preview and apply after creating the game");
+  }
   const candidate = new Game({
     id,
     user_id: userId,
@@ -319,6 +354,32 @@ export const gamesRouter = router({
       }
     }),
 
+  previewAuthoring: protectedProcedure
+    .input(idInput.extend({ program: gameAuthoringProgram.optional() }).strict())
+    .output(authoringPreview)
+    .mutation(async ({ ctx, input }) => {
+      const game = await ownedGame(ctx.userId, input.id);
+      const args: { game_id: string; program?: z.infer<typeof gameAuthoringProgram> } = { game_id: game.id };
+      if (input.program) { args.program = input.program; }
+      const result = await authoringRun(ctx.userId).invoke("preview_native_game_authoring", args);
+      checkAuthoringResult(result);
+      return authoringPreview.parse(result);
+    }),
+
+  applyAuthoring: protectedProcedure
+    .input(idInput.extend({ candidate: gameAuthoringCandidate }).strict())
+    .output(gameWithDocument)
+    .mutation(async ({ ctx, input }) => {
+      const game = await ownedGame(ctx.userId, input.id);
+      const result = await authoringRun(ctx.userId).invoke("apply_native_game_authoring", {
+        game_id: game.id, candidate: input.candidate
+      });
+      checkAuthoringResult(result);
+      const draft = await Game.readDraft(ctx.userId, game.id, await gameWorkspace(ctx.userId, game));
+      if (!draft) { throwApiError(ApiErrorCode.NOT_FOUND, "Game draft not found"); }
+      return { game: info(draft.game), document: draft.document };
+    }),
+
   draftChanges: protectedProcedure
     .input(idInput)
     .output(z.array(z.object({
@@ -374,7 +435,7 @@ export const gamesRouter = router({
       const game = await ownedGame(ctx.userId, input.id);
       const workspace = await gameWorkspace(ctx.userId, game);
       const oldDocument = await readRevision(workspace, game, input.revision);
-      return publishDocument(ctx.userId, game, input.baseRevision, oldDocument);
+      return publishDocument(ctx.userId, game, input.baseRevision, oldDocument, undefined, true);
     }),
 
   restoreDraft: protectedProcedure

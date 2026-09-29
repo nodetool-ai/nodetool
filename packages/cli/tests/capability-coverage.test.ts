@@ -68,6 +68,13 @@ describe("capability coverage table", () => {
     }
   });
 
+  it("maps retained authoring capabilities to their lifecycle suite", () => {
+    for (const name of ["preview_native_game_authoring", "apply_native_game_authoring"]) {
+      const entry = CAPABILITY_COVERAGE.find((candidate) => candidate.name === name);
+      expect(entry?.suites, name).toContain("packages/agents/tests/capabilities-game-authoring.test.ts");
+    }
+  });
+
   it("names each capability once", () => {
     const result = auditCapabilityCoverage(
       declared,

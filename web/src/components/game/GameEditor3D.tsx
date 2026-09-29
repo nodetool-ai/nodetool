@@ -13,6 +13,7 @@ import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, Edit
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./GameAgentPanel";
 import GameChanges from "./GameChanges";
+import GameAuthoringPreview from "./GameAuthoringPreview";
 import GameInspector3D from "./GameInspector3D";
 import GameScriptPane from "./GameScriptPane";
 import GameToolbar from "./GameToolbar";
@@ -150,6 +151,7 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
       <ReportBugButton context={{ source: "panel-crash", summary: "3D game editor failed", errorText: host.error ?? draftError ?? operationError ?? "",
         nodeDetail: `Game: ${refId}\nScene: ${activeSceneId}\nEntity: ${selected?.id ?? "none"}\nTick: ${host.inspection?.tick ?? 0}` }} /></FlexRow>}
     {restart && <Caption role="status">The draft changed. Stop and play again to apply it.</Caption>}
+    <GameAuthoringPreview key={refId} gameId={refId} document={document} flush={flush} onHighlight={(ids) => getGameDraftStore(refId).getState().selectMany(ids)} />
     {conflicts.items.length > 0 && <ConflictBanner conflicts={conflicts.items} onAccept={conflicts.accept} onDiscard={conflicts.discard} />}
     <GameChanges gameId={refId} document={document} onOps={onOps} onHover={() => undefined}
       onFocusMessage={(threadId, messageId) => { setAssistantOpen(true); setFocusMessage({ threadId, messageId, requestId: Date.now() }); }} />

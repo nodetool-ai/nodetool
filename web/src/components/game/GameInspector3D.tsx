@@ -5,6 +5,7 @@ import { gameScene3D, gameEntity3D, type GameDocument3D } from "@nodetool-ai/pro
 import { Caption, CollapsibleSection, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorValueInput, SPACING, Text } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import SchemaFields from "./inspector/SchemaFields";
+import GameOverrideFields from "./GameOverrideFields";
 import { gameSchemaFields } from "./inspector/schemaForm";
 
 interface GameInspector3DProps {
@@ -60,6 +61,7 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
   const { id: _id, transform3d: _transform, behaviors: _behaviors, ...components } = entity;
   return <FlexColumn gap={SPACING.sm} sx={{ overflowY: "auto", minHeight: 0 }}>
     <Text>{entity.name || entity.id}</Text>
+    <GameOverrideFields document={document} sceneId={sceneId} entityId={entity.id} onOps={onOps} />
     {transformField("position", position)}
     {transformField("rotation", rotation)}
     {transformField("scale", scale)}

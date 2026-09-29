@@ -1,3 +1,4 @@
+import { applyGameAuthoringOperation, trackGameAuthoringEdits } from "./authoring-reconcile.js";
 import { z } from "zod";
 import {
   gameAssetBinding3D, gameBehavior3D, gameBody3D, gameCamera3D, gameCollider3D, gameDocument3D,
@@ -32,6 +33,8 @@ const entitySet = preservingPatch(gameEntity3D.partial().extend({
   audioSource: gameEntity3D.shape.audioSource.unwrap().partial().nullable().optional()
 }));
 export const gameDocumentOp3D = z.discriminatedUnion("op", [
+  z.strictObject({ op: z.literal("reset_override"), ...target, path: z.array(z.string().min(1)).min(1).optional() }),
+  z.strictObject({ op: z.literal("detach_entity"), ...target }),
   z.strictObject({ op: z.literal("set_document"), document: gameDocument3D }),
   z.strictObject({ op: z.literal("add_entity"), scene_id: id, entity: gameEntity3D.partial().extend({ id }), index: index.optional() }),
   z.strictObject({ op: z.literal("update_entity"), ...target, set: entitySet }),
@@ -147,6 +150,8 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
     }
     const op = parsed.data;
     switch (op.op) {
+      case "reset_override":
+      case "detach_entity": { draft = gameDocument3D.parse(applyGameAuthoringOperation(draft, op)); break; }
       case "set_document": draft = { ...op.document, id: document.id, revision: document.revision }; break;
       case "add_entity": {
         const scene = findScene(op.scene_id, opIndex);
@@ -259,6 +264,7 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
       }
     }
   }
+  draft = gameDocument3D.parse(trackGameAuthoringEdits(document, draft));
   const result = validateGame3D(draft);
   if (!result.valid || !result.document) {
     const issue = result.diagnostics[0];

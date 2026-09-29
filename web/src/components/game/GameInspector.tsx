@@ -4,6 +4,7 @@ import { validateGame, type GameDocumentOp, type GameValidationIssue } from "@no
 
 import { Caption, CollapsibleSection, Divider, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorSelect, Label, SPACING, TabGroup, Text, TextInput, TYPOGRAPHY } from "../ui_primitives";
 import SchemaFields from "./inspector/SchemaFields";
+import GameOverrideFields from "./GameOverrideFields";
 import { gameSchemaFields, schemaVariant } from "./inspector/schemaForm";
 
 interface GameInspectorProps {
@@ -197,6 +198,7 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
         }}>Add binding</EditorButton>
       </InspectorSection>
     </> : entity && target ? <>
+      <GameOverrideFields document={document} sceneId={scene.id} entityId={entity.id} onOps={onOps} />
       <SchemaFields schema={ENTITY_SCHEMA.properties?.name ?? { type: "string" }} value={entity.name} path="Name"
         issuePath={[...entityPath, "name"]} issues={issues} onChange={(value) => update({ name: String(value) })} />
       <InspectorFieldRow label="Parent"><InspectorSelect grow label="Parent" value={entity.parentId ?? ""}

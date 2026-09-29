@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { gameAuthoring } from "./game-authoring.js";
 
 const finite = z.number().finite();
 const positive = finite.positive();
@@ -161,6 +162,7 @@ export const gameRenderEffect = z.discriminatedUnion("kind", [
 export type GameRenderEffect = z.infer<typeof gameRenderEffect>;
 
 export const gameDocument = z.strictObject({
+  authoring: gameAuthoring.optional(),
   schemaVersion: z.union([z.literal(1), z.literal(2)]),
   engineVersion: z.literal("1"),
   id: z.string().min(1),

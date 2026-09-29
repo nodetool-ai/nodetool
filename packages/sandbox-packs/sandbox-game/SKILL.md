@@ -67,8 +67,50 @@ and craft requirements.
 | `plank(tiles, x, y, cols, options = {})` | Appends one horizontal row using `fill`. |
 | `arc(x, y, radiusX, radiusY, points, from = 0, to = Math.PI)` | Returns evenly spaced elliptical arc positions including both endpoints. Angles use radians. One point uses `from`. |
 | `saveGame({name, document}, options)` | Pass `{games: nodetool.games, project_id}` to create a game and save its draft. Pass `{games, game_id, base_updated_at}` to replace an existing draft. Returns game_id, revision and draft_updated_at. Refused writes and conflicts throw. |
+| `constructGame({inputs, seed}, build)` | Runs an explicit callback with `inputs` and `builder`, returning `{document, program}` plus retained parameters, prefabs and instance relationships. Preparation results must be literal JSON inputs. Use stable scene and entity IDs. |
 
 For an existing draft, read its `draft_updated_at` and pass it as
 `base_updated_at`. Save all scene references and bindings together. Invalid
 asset references, duplicate entities or script budget violations reject the
 whole edit. A failed replacement leaves the previous draft intact.
+
+## Retained construction
+
+Use an explicit callback for construction that can run again without preparation.
+The callback receives `inputs` and `builder` and returns a native document. It
+cannot close over variables in the authoring session. Keep runtime script
+behavior source separate from this construction body.
+
+```js
+import { constructGame, saveGame } from "@nodetool-ai/sandbox-game";
+const bundle = constructGame({ seed: 17, inputs: { speed: 4 } }, (inputs, builder) => {
+  const speed = builder.parameter("speed", {type: "number", default: 4, min: 1, max: 10});
+  const document = builder.game();
+  builder.prefab("marker", builder.entity("definition", 0, 0));
+  builder.instance(document.scenes[0], "north-marker", "marker", {
+    transform2d: {x: speed, y: 0, rotation: 0, scaleX: 1, scaleY: 1}
+  });
+  return document;
+});
+await saveGame({ name: "Retained study", ...bundle }, {
+  games: nodetool.games, project_id: "<owned-project-id>"
+});
+```
+
+`builder` includes the ordinary document helpers plus `parameter`, `prefab`,
+`instance`, and seeded `random`. Parameter types are number, string and
+boolean, enum, vector2 and vector3. Numeric parameters accept min and max.
+Enum parameters declare `values`. Vector parameters use arrays of two or
+three finite numbers. Prefabs are retained in the
+construction source and emit native entities through stable instance keys.
+Instance component overrides merge individual object fields with the prefab.
+Arrays replace the complete inherited array. Preparation inputs are copied
+before the callback runs, so mutating a template does not alter retained inputs.
+Duplicate scene, entity and prefab keys reject the build.
+
+Saving a bundle with `program` first previews a hermetic rebuild and checks
+that it reproduces `document`. Applying the candidate checks the draft has
+not changed since preview. Rebuilds cannot fetch, install assets, generate
+resources, access secrets or read the workspace. Pass accepted asset
+bindings through `inputs`. Use `builder.random()` for authoring randomness.
+The construction seed is independent of the play session seed.

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { gameAssetBinding3D, gameDocument3D, gameEntity3D, gamePrefab3D, gameScene3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import type { DocumentMergeAdapter } from "../documentMerge";
+import { authoringMergeScalars } from "./authoringMerge";
 
 const sceneUnit = gameScene3D.omit({ entities: true });
 const entityUnit = gameEntity3D.extend({ sceneId: z.string() });
@@ -47,9 +48,9 @@ export const gameMergeAdapter3D: DocumentMergeAdapter<GameDocument3D> = {
       unitLabel: (value) => `prefab ${prefabUnit.parse(value).id}`
     }
   ],
-  scalars: (["entrySceneId", "inputActions", "inputAxes", "collisionLayers", "presentation"] as const).map((name) => ({
+  scalars: [...authoringMergeScalars<GameDocument3D>(), ...(["entrySceneId", "inputActions", "inputAxes", "collisionLayers", "presentation"] as const).map((name) => ({
     name,
-    read: (doc) => doc[name],
-    write: (doc, value) => gameDocument3D.parse({ ...doc, [name]: value })
-  }))
+    read: (doc: GameDocument3D) => doc[name],
+    write: (doc: GameDocument3D, value: unknown) => gameDocument3D.parse({ ...doc, [name]: value })
+  }))]
 };

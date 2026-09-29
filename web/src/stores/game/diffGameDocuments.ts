@@ -39,6 +39,7 @@ function entitySet(from: GameEntity, to: GameEntity): Extract<GameDocumentOp, { 
 
 /** Express an undo or redo snapshot as the same ops used by the editor and agent. */
 export function diffGameDocuments(from: GameDocument, to: GameDocument): GameDocumentOp[] {
+  if (changed(from.authoring, to.authoring)) { return [{ op: "set_document", document: to }]; }
   const ops: GameDocumentOp[] = [];
   for (const [slot, binding] of Object.entries(to.assets)) {
     if (changed(from.assets[slot], binding)) ops.push({ op: "bind_asset", slot, binding });

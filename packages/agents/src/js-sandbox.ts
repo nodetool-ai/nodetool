@@ -2737,6 +2737,8 @@ export interface RunSandboxOptions {
    * lookup leaves the process.
    */
   resolveHost?: HostResolver;
+  /** Pure guest construction only. Host bridges and host-backed module mounts are refused. */
+  hermetic?: boolean;
 }
 
 export interface RunSandboxResult {
@@ -2888,6 +2890,10 @@ export async function runInSandbox(
     promoteMedia,
     resolveHost
   } = options;
+  if (options.hermetic && (capabilities || (globals && Object.keys(globals).length) ||
+    modules?.modules.some((module) => module.kind !== "js"))) {
+    return { success: false, error: "Hermetic execution accepts only guest JavaScript modules and literal program inputs", logs: [] };
+  }
   const resolvedLimits = resolveSandboxLimits(limits);
   // A streaming run needs a clock whether or not the caller brought one: the
   // time it spends parked on upstream is not its own execution.
@@ -2913,10 +2919,10 @@ export async function runInSandbox(
   const hostOptions: Parameters<typeof createSandboxHostDispatcher>[1] = {};
   if (signal !== undefined) hostOptions.signal = signal;
   try {
-    wasm = modules
+    wasm = modules && !options.hermetic
       ? createSandboxWasmDispatcher(modules.modules, wasmOptions)
       : undefined;
-    hostModules = modules
+    hostModules = modules && !options.hermetic
       ? createSandboxHostDispatcher(modules.modules, hostOptions)
       : undefined;
   } catch (error) {
@@ -2937,17 +2943,37 @@ export async function runInSandbox(
   if (activeClock !== undefined) streams.clock = activeClock;
 
   const { sandbox, getLogs, getOutputs, getEmitted } = buildSandbox(
-    context,
+    options.hermetic ? undefined : context,
     signal,
     resolvedLimits,
-    onProgress,
-    onLog,
-    onEmit,
-    streams,
-    resolveMediaRef,
-    promoteMedia,
-    resolveHost
+    options.hermetic ? undefined : onProgress,
+    options.hermetic ? undefined : onLog,
+    options.hermetic ? undefined : onEmit,
+    options.hermetic ? {} : streams,
+    options.hermetic ? undefined : resolveMediaRef,
+    options.hermetic ? undefined : promoteMedia,
+    options.hermetic ? undefined : resolveHost
   );
+  if (options.hermetic) {
+    // Deny host bridge functions before either interpreter receives them.
+    // Only console collection survives. Native guest arithmetic is not a bridge.
+    const refuse = (path: string): unknown => async () => {
+      throw new Error(`${path} is unavailable during hermetic construction`);
+    };
+    const restrict = (value: unknown, path: string): unknown => {
+      if (typeof value === "function") { return refuse(path); }
+      if (value && typeof value === "object") {
+        return Object.fromEntries(Object.entries(value).map(([key, member]) => [key, restrict(member, `${path}.${key}`)]));
+      }
+      return value;
+    };
+    const hostBindings: Record<string, unknown> = sandbox;
+    for (const name of EXPOSED_BRIDGE_NAMES) {
+      if (name !== "console") { hostBindings[name] = restrict(hostBindings[name], name); }
+    }
+    hostBindings[SANDBOX_INPUT_TAKE_BINDING] = refuse("stream");
+    hostBindings[SANDBOX_STREAM_OPEN_BINDING] = () => false;
+  }
 
   // User-supplied globals (dynamic inputs from CodeNode etc.) layer on top of
   // the core surface, but must not clobber the bridge functions themselves.

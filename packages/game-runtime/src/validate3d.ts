@@ -1,3 +1,4 @@
+import { gameAuthoringBaseline } from "./authoring-reconcile.js";
 import {
   gameDocument3D, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
   type GameDocument3D, type GameEntity3D, type GamePrefab3D
@@ -25,6 +26,13 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
     }
   } else {
     const document = parsed.data;
+    if (document.authoring) {
+      try {
+        const baseline = gameAuthoringBaseline(document);
+        const validatedBaseline = validateGame3D(baseline);
+        if (!validatedBaseline.valid) { add("invalid_authoring", ["authoring", "baseline"], validatedBaseline.errors.join(", ")); }
+      } catch (error) { add("invalid_authoring", ["authoring"], error instanceof Error ? error.message : "Invalid authoring metadata"); }
+    }
     const scenes = new Set<string>();
     for (const [index, scene] of document.scenes.entries()) {
       if (scenes.has(scene.id)) { add("duplicate_scene", ["scenes", index, "id"], `Duplicate scene ${scene.id}`); }

@@ -4,6 +4,19 @@ import type { CapabilitySpec } from "./types.js";
 const id: JsonSchema = { type: "string", description: "Full game id or exact 12-character prefix." };
 const revision: JsonSchema = { type: "string", description: "Full immutable game revision." };
 
+export const previewGameAuthoringSpec: CapabilitySpec = {
+  name: "preview_native_game_authoring",
+  description: "Hermetically rebuild retained game construction into a read-only candidate. Preparation cannot run. Returns conflicts, changed entities and dependencies, and restart policy.",
+  inputSchema: { type: "object", properties: { game_id: id, program: { type: "object" }, expected_document: { type: "object" }, base_updated_at: { type: "string" }, replace_existing: { type: "boolean", description: "Explicitly authorize replacing a legacy draft when initially attaching construction." } }, required: ["game_id"] },
+  category: "read", userMessage: () => "Previewing game construction"
+};
+export const applyGameAuthoringSpec: CapabilitySpec = {
+  name: "apply_native_game_authoring",
+  description: "Rebuild and apply a reviewed construction candidate only if its base draft is unchanged and its content matches preview. Rejects conflicts and does not publish or migrate a running session.",
+  inputSchema: { type: "object", properties: { game_id: id, candidate: { type: "object" } }, required: ["game_id", "candidate"] },
+  category: "write", userMessage: () => "Applying game construction"
+};
+
 export const gameSpecs: readonly CapabilitySpec[] = [
   {
     name: "create_native_game",
@@ -95,5 +108,7 @@ export const gameSpecs: readonly CapabilitySpec[] = [
     inputSchema: { type: "object", properties: { game_id: id, source: { type: "string", enum: ["draft", "revision"] }, revision, target_prefix: { type: "string" }, win: { type: "boolean" }, seed: { type: "integer" }, player_id: { type: "string" }, max_ticks: { type: "integer", minimum: 1, maximum: 18000 } }, required: ["game_id"] },
     category: "execute",
     userMessage: () => "Finding a game route"
-  }
+  },
+  previewGameAuthoringSpec,
+  applyGameAuthoringSpec
 ];

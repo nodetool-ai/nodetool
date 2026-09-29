@@ -91,7 +91,9 @@ function summarizeOps(ops: readonly GameDocumentOp[]): string {
     unbind_asset: ["Unbound asset", "Unbound assets"],
     set_prefab: ["Changed prefab", "Changed prefabs"],
     remove_prefab: ["Removed prefab", "Removed prefabs"],
-    instantiate_prefab: ["Instantiated prefab", "Instantiated prefabs"]
+    instantiate_prefab: ["Instantiated prefab", "Instantiated prefabs"],
+    reset_override: ["Reset override", "Reset overrides"],
+    detach_entity: ["Detached entity", "Detached entities"]
   };
   return [...counts].map(([type, count]) => {
     const [singular, plural] = labels[type];
@@ -282,9 +284,40 @@ export class Game extends DBModel {
     document: GameDocument,
     workspace: GameDraftWorkspace
   ): Promise<{ game: Game; document: GameDocument } | null> {
+    return Game.replaceDraftChecked(userId, id, expectedUpdatedAt, document, workspace,
+      { actor: "user" }, "Restored a revision");
+  }
+
+  /** Persist a validated rebuild only against the exact draft used for preview. */
+  static async applyAuthoringCandidate(
+    userId: string,
+    id: string,
+    expectedUpdatedAt: string,
+    expectedDigest: string,
+    document: GameDocument,
+    workspace: GameDraftWorkspace,
+    context: GameDraftWriteContext = { actor: "agent" }
+  ): Promise<{ game: Game; document: GameDocument } | null> {
+    return Game.replaceDraftChecked(userId, id, expectedUpdatedAt, document, workspace,
+      context, "Rebuilt retained game", expectedDigest);
+  }
+
+  private static async replaceDraftChecked(
+    userId: string,
+    id: string,
+    expectedUpdatedAt: string,
+    document: GameDocument,
+    workspace: GameDraftWorkspace,
+    context: GameDraftWriteContext,
+    summary: string,
+    expectedDigest?: string
+  ): Promise<{ game: Game; document: GameDocument } | null> {
     const current = await Game.readDraft(userId, id, workspace);
     if (!current || current.game.draft_updated_at !== expectedUpdatedAt) return null;
     const { game, document: before } = current;
+    const beforeSource = JSON.stringify(before);
+    const beforeDigest = createHash("sha256").update(beforeSource).digest("hex");
+    if (expectedDigest !== undefined && beforeDigest !== expectedDigest) return null;
     const checked = validateAnyGame({ ...document, id: game.id, revision: game.current_revision });
     if (!checked.valid) { throw new InvalidGameDocumentError(checked.diagnostics); }
     const replacement = checked.document;
@@ -292,14 +325,12 @@ export class Game extends DBModel {
       throw new InvalidGameDocumentError([{ code: "dimension_mismatch", path: ["dimension"], message: "A game cannot change dimension" }]);
     }
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
-    const beforeSource = JSON.stringify(before);
-    const beforeDigest = createHash("sha256").update(beforeSource).digest("hex");
     await workspace.write(`${game.source_root}/drafts/${beforeDigest}.json`, beforeSource, "application/json");
     const nextSource = JSON.stringify(replacement);
     const versionId = createHash("sha256").update(nextSource).digest("hex");
     const newPath = draftVersionPath(game, versionId);
     await workspace.write(newPath, nextSource, "application/json");
-    const updated = await Game.commitDraft(game, userId, expectedUpdatedAt, now, versionId, [], beforeDigest, { actor: "user" }, "Restored a revision");
+    const updated = await Game.commitDraft(game, userId, expectedUpdatedAt, now, versionId, [], beforeDigest, context, summary);
     if (!updated) {
       return null;
     }

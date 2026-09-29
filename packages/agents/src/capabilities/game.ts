@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
 import { AmbiguousGameIdError, Asset, Game, Prediction, Project, Workspace } from "@nodetool-ai/models";
 import { anyGameAssetBinding as gameAssetBinding, gameAssetBinding as legacyAssetBinding, gameAssetBinding3D, anyGameDocument as gameDocument, gameInputFrame, shortResourceId, type AnyGameDocument as GameDocument, type GameDocument as LegacyGameDocument, type GameDocument3D, type GameInputFrame, type GameRenderFrame } from "@nodetool-ai/protocol";
-import { autoplayNativeGame, MAX_GAME_ROUTE_TICKS, createScriptedGameSession, createTopDownRoomGame, createNative3DGame, decodePreparedGameCollider3D, validateAnyGame, anyGameDocumentOp as gameDocumentOp, GameOpError, type GameAutoplayOptions } from "@nodetool-ai/game-runtime";
+import { autoplayNativeGame, MAX_GAME_ROUTE_TICKS, createScriptedGameSession, createTopDownRoomGame, createNative3DGame, decodePreparedGameCollider3D, validateAnyGame, trackGameAuthoringEdits, anyGameDocumentOp as gameDocumentOp, GameOpError, type GameAutoplayOptions } from "@nodetool-ai/game-runtime";
 import { workspaceFromRow } from "@nodetool-ai/execution/service";
 import { assetKeyCandidates, assetObjectKey } from "@nodetool-ai/storage";
 import type { Workspace as RunWorkspace } from "@nodetool-ai/runtime";
@@ -13,6 +13,9 @@ import { gameOutline3D, inputFrames3D, playtestGame3D, captureFrames3D, collider
 import { gameSpecs } from "./game.specs.js";
 import { persistOutput } from "../tools/asset-persist.js";
 import { getExampleGameBundle, installExampleGameAssets, listExampleGames } from "../game-examples.js";
+import { previewGameAuthoring, applyGameAuthoring } from "../game-authoring.js";
+import { gameDocumentDigest } from "../game-code-bake.js";
+import { previewGameAuthoringSpec, applyGameAuthoringSpec } from "./game.specs.js";
 
 const MAX_PLAYTEST_TICKS = MAX_GAME_ROUTE_TICKS;
 const MAX_CAPTURE_FRAMES = 8;
@@ -325,13 +328,19 @@ function summary(game: Game): Record<string, string> {
 async function publish(user: string, game: Game, baseRevision: string, source: unknown, message?: string): Promise<unknown> {
   if (game.current_revision !== baseRevision) return { error: "Game was modified concurrently", current_revision: game.current_revision };
   const revision = randomUUID().replace(/-/g, "");
-  const document = validateSource(source, game.id, revision);
+  let document = validateSource(source, game.id, revision);
   if ("error" in document) return document;
   const workspace = await workspaceOf(user, game);
   if (!workspace) return { error: "Game workspace is unavailable" };
   const draft = await Game.readDraft(user, game.id, workspace);
   if (!draft) return { error: "Game draft not found" };
   if ((document.schemaVersion === 3) !== (draft.document.schemaVersion === 3)) { return { error: "A game cannot change dimension" }; }
+  if (gameDocumentDigest(document.authoring) !== gameDocumentDigest(draft.document.authoring)) {
+    return { error: "Retained authoring metadata must be updated through construction preview and apply" };
+  }
+  document = trackGameAuthoringEdits(draft.document, document);
+  const checked = validateAnyGame(document);
+  if (!checked.valid) { return { error: "Game publication rejected", diagnostics: checked.diagnostics }; }
   await workspace.write(revisionPath(game, revision), JSON.stringify(document), "application/json");
   const updated = await Game.publish(user, game.id, baseRevision, revision, draft.game.draft_updated_at, workspace, message);
   if (!updated) return { error: "Game was modified concurrently" };
@@ -365,6 +374,7 @@ export function createNativeGame(user: string, projectId: string, name: string, 
 export function createNativeGame(user: string, projectId: string, name: string, source: GameDocument3D | undefined, dimension: "3d"): Promise<{ game: Game; document: GameDocument3D } | { error: string }>;
 export function createNativeGame(user: string, projectId: string, name: string, source: GameDocument | undefined, dimension: "2d" | "3d"): Promise<{ game: Game; document: GameDocument } | { error: string }>;
 export async function createNativeGame(user: string, projectId: string, name: string, source?: GameDocument, dimension: "2d" | "3d" = "2d"): Promise<{ game: Game; document: GameDocument } | { error: string }> {
+    if (source?.authoring) { return { error: "Attach retained construction through preview and apply after creating the game" }; }
     const project = await Project.findOwned(user, projectId);
     if (!project) return { error: "Project not found" };
     const workspaceRow = await projectWorkspace(user, project.id);
@@ -1140,5 +1150,7 @@ const autoplay: CapabilityExport = {
 
 export const module: CapabilityModule = {
   module: "game",
-  exports: [create, get, save, install, playtest, buildGame, edit, capture, generateAsset, listExamples, getExample, installExample, autoplay]
+  exports: [create, get, save, install, playtest, buildGame, edit, capture, generateAsset, listExamples, getExample, installExample, autoplay,
+    { spec: previewGameAuthoringSpec, impl: previewGameAuthoring },
+    { spec: applyGameAuthoringSpec, impl: applyGameAuthoring }]
 };

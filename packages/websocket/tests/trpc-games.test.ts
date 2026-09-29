@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 import { Asset, Game, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
@@ -13,6 +14,8 @@ import { getAssetAdapter } from "../src/lib/storage.js";
 import { getAssetStorageKey, retrieveAssetBytes } from "../src/lib/asset-paths.js";
 import { prepareGameModelBinding3D } from "@nodetool-ai/game-renderer/preparation3d";
 import { getManagedWorkspaceDir } from "@nodetool-ai/config";
+import { createSandboxModuleCatalog, discoverSandboxPack } from "@nodetool-ai/node-sdk";
+import { getProcessSandboxModuleCatalog, setProcessSandboxModuleCatalog } from "@nodetool-ai/runtime";
 
 const USER_ID = "game-owner";
 const PROJECT_ID = "game-project";
@@ -72,6 +75,56 @@ describe("native game revisions", () => {
   afterEach(async () => {
     ModelObserver.clear();
     await rm(workspaceDir, { recursive: true, force: true });
+  });
+
+  it("previews retained construction without writes and rejects stale or tampered applies", async () => {
+    const previousCatalog = getProcessSandboxModuleCatalog();
+    const pack = discoverSandboxPack(fileURLToPath(new URL("../../sandbox-packs/sandbox-game", import.meta.url)));
+    if (!pack) { throw new Error("Missing retained game construction pack"); }
+    setProcessSandboxModuleCatalog(createSandboxModuleCatalog([pack]));
+    try {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Retained room" });
+    const program = { source: "return inputs.document;", inputs: { document: created.document }, seed: 7 };
+    const preview = await caller.games.previewAuthoring({ id: created.game.id.slice(0, 12), program });
+    expect(preview.conflicts).toEqual([]);
+    expect(preview.document.authoring?.program).toEqual(program);
+    expect(await caller.games.getDraft({ id: created.game.id })).toEqual(created);
+    expect(await caller.games.draftChanges({ id: created.game.id })).toEqual([]);
+    await expect(createCaller(makeCtx("another-user")).games.previewAuthoring({ id: created.game.id, program }))
+      .rejects.toThrow("Game not found");
+    await expect(caller.games.applyAuthoring({ id: created.game.id,
+      candidate: { ...preview.candidate, digest: "0".repeat(64) } })).rejects.toThrow();
+    expect(await caller.games.getDraft({ id: created.game.id })).toEqual(created);
+    const applied = await caller.games.applyAuthoring({ id: created.game.id, candidate: preview.candidate });
+    expect(applied.document.authoring?.program).toEqual(program);
+    expect(applied.game.draftUpdatedAt).not.toBe(created.game.draftUpdatedAt);
+    expect((await caller.games.get({ id: created.game.id })).document.authoring).toBeUndefined();
+    await expect(caller.games.applyAuthoring({ id: created.game.id, candidate: preview.candidate })).rejects.toThrow();
+    const secondPreview = await caller.games.previewAuthoring({ id: created.game.id });
+    await caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: applied.game.draftUpdatedAt,
+      ops: [{ op: "update_scene", scene_id: applied.document.entrySceneId, set: { name: "Manual edit" } }] });
+    await expect(caller.games.applyAuthoring({ id: created.game.id, candidate: secondPreview.candidate })).rejects.toThrow();
+    expect((await caller.games.getDraft({ id: created.game.id })).document.scenes[0].name).toBe("Manual edit");
+    const current = await caller.games.getDraft({ id: created.game.id });
+    const moved = await caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: current.game.draftUpdatedAt,
+      ops: [{ op: "update_entity", scene_id: "room", entity_id: "gem", set: { transform2d: { x: 3 } } }] });
+    const removingProgram = { ...program, source: `const document = inputs.document;
+      document.scenes[0].entities = document.scenes[0].entities.filter((entity) => entity.id !== "gem");
+      return document;` };
+    const removal = await caller.games.previewAuthoring({ id: created.game.id, program: removingProgram });
+    expect(removal.conflicts).toContainEqual(expect.objectContaining({ entityId: "gem", code: "removed_overridden_entity" }));
+    await expect(caller.games.applyAuthoring({ id: created.game.id, candidate: removal.candidate })).rejects.toThrow("Resolve authoring conflicts");
+    const detached = await caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: moved.game.draftUpdatedAt,
+      ops: [{ op: "detach_entity", scene_id: "room", entity_id: "gem" }] });
+    const resolved = await caller.games.previewAuthoring({ id: created.game.id, program: removingProgram });
+    expect(resolved.conflicts).toEqual([]);
+    const resolvedDraft = await caller.games.applyAuthoring({ id: created.game.id, candidate: resolved.candidate });
+    expect(resolvedDraft.game.draftUpdatedAt).not.toBe(detached.game.draftUpdatedAt);
+    if (resolvedDraft.document.schemaVersion === 3) { throw new Error("Expected 2D retained room"); }
+    expect(resolvedDraft.document.scenes[0].entities.find((entity) => entity.id === "gem")?.transform2d.x).toBe(3);
+    expect(resolvedDraft.document.scenes[0].name).toBe("Manual edit");
+    } finally { setProcessSandboxModuleCatalog(previousCatalog); }
   });
 
   it("installs a staged TrueType font into a version two game", async () => {

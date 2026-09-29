@@ -9,6 +9,17 @@ const light = { x: 1, y: 2, color: "#ffffff", intensity: 1, radius: 3, falloff: 
 const background = { id: "bg", assetId: "player", width: 16, height: 9 };
 
 describe("applyGameOps", () => {
+  it("keeps omitted behaviors and component settings when moving a collectible", () => {
+    const original = game();
+    const collectible = original.scenes[0].entities.find((entity) => entity.id === "gem");
+    if (!collectible) { throw new Error("Expected gem fixture"); }
+    collectible.name = "Golden gem";
+    const result = applyGameOps(original, [{ op: "update_entity", entity_id: "gem", set: { transform2d: { x: 3 } } }]);
+    const moved = result.scenes[0].entities.find((entity) => entity.id === "gem");
+    expect(moved?.behaviors).toEqual(collectible.behaviors);
+    expect(moved?.name).toBe("Golden gem");
+    expect(moved?.transform2d).toEqual({ ...collectible.transform2d, x: 3 });
+  });
   it("replaces a whole level and applies following edits atomically", () => {
     const original = game();
     const replacement = { ...game(), id: "builder-id", revision: "builder-revision", entrySceneId: "level", scenes: [{

@@ -1,3 +1,4 @@
+import { applyGameAuthoringOperation, trackGameAuthoringEdits } from "./authoring-reconcile.js";
 import {
   gameAssetBinding,
   gameBackgroundLayer,
@@ -15,7 +16,14 @@ import { validateGame, type GameValidationIssue } from "./validate.js";
 const id = z.string().min(1);
 const index = z.number().int().nonnegative();
 const target = { entity_id: id, scene_id: id.optional() };
-const entitySet = gameEntity.partial().extend({
+function preservingPatch<Schema extends z.ZodType>(schema: Schema) {
+  return z.custom<z.input<Schema>>().superRefine((value, context) => {
+    const parsed = schema.safeParse(value);
+    if (!parsed.success) { for (const issue of parsed.error.issues) { context.addIssue({ code: "custom", path: issue.path, message: issue.message }); } }
+  });
+}
+const entitySet = preservingPatch(gameEntity.partial().extend({
+  id: z.never().optional(),
   transform2d: gameEntity.shape.transform2d.partial().optional(),
   sprite: gameEntity.shape.sprite.unwrap().partial().nullable().optional(),
   tilemap: gameEntity.shape.tilemap.unwrap().partial().nullable().optional(),
@@ -27,15 +35,17 @@ const entitySet = gameEntity.partial().extend({
   audioSource: gameEntity.shape.audioSource.unwrap().partial().nullable().optional(),
   light2d: gameEntity.shape.light2d.unwrap().partial().nullable().optional(),
   parentId: id.nullable().optional()
-});
-const sceneSet = z.strictObject({ name: gameScene.shape.name.optional(), music: gameScene.shape.music.nullable().optional(),
-  gravity: gameScene.shape.gravity.nullable().optional() });
+}));
+const sceneSet = preservingPatch(z.strictObject({ name: gameScene.shape.name.optional(), music: gameScene.shape.music.nullable().optional(),
+  gravity: gameScene.shape.gravity.nullable().optional() }));
 const light = gameScene.shape.lighting.unwrap().shape.points.element;
-const lightSet = light.partial();
-const backgroundSet = gameBackgroundLayer.partial();
+const lightSet = preservingPatch(light.partial());
+const backgroundSet = preservingPatch(gameBackgroundLayer.partial());
 const behaviorSet = z.record(z.string(), z.unknown());
 
 export const gameDocumentOp = z.discriminatedUnion("op", [
+  z.strictObject({ op: z.literal("reset_override"), ...target, path: z.array(z.string().min(1)).min(1).optional() }),
+  z.strictObject({ op: z.literal("detach_entity"), ...target }),
   z.strictObject({ op: z.literal("set_document"), document: gameDocument }),
   z.strictObject({ op: z.literal("add_entity"), scene_id: id, entity: gameEntity.partial().extend({ id }), index: index.optional() }),
   z.strictObject({ op: z.literal("update_entity"), ...target, set: entitySet }),
@@ -173,6 +183,8 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
     }
     const op = parsed.data;
     switch (op.op) {
+      case "reset_override":
+      case "detach_entity": { draft = gameDocument.parse(applyGameAuthoringOperation(draft, op)); break; }
       case "set_document": {
         draft = { ...op.document, id: document.id, revision: document.revision };
         entityIndexesByScene.clear();
@@ -393,6 +405,7 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
       }
     }
   }
+  draft = gameDocument.parse(trackGameAuthoringEdits(document, draft));
   const result = validateGame(draft);
   if (!result.valid || !result.document) {
     const issues = result.issues.map((issue) => ({ opIndex: responsibleOpIndex(draft, ops, issue), path: issue.path, message: issue.message }));

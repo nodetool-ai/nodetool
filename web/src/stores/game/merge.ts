@@ -1,6 +1,7 @@
 import type { GameBehavior, GameDocument, GameEntity, GameScene } from "@nodetool-ai/protocol/game.js";
 
 import type { DocumentMergeAdapter } from "../documentMerge";
+import { authoringMergeScalars } from "./authoringMerge";
 
 interface SceneUnit { id: string; name: string; music?: GameScene["music"] }
 type EntityUnit = Omit<GameEntity, "behaviors"> & { sceneId: string };
@@ -82,6 +83,7 @@ export const gameMergeAdapter: DocumentMergeAdapter<GameDocument> = {
     }
   ],
   scalars: [
+    ...authoringMergeScalars<GameDocument>(),
     { name: "entrySceneId", read: (doc) => doc.entrySceneId, write: (doc, value) => ({ ...doc, entrySceneId: value as string }) },
     { name: "pixelsPerUnit", read: (doc) => doc.pixelsPerUnit, write: (doc, value) => ({ ...doc, pixelsPerUnit: value as number }) },
     { name: "inputActions", read: (doc) => doc.inputActions, write: (doc, value) => ({ ...doc, inputActions: value as string[] }) },

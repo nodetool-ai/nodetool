@@ -64,7 +64,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const sessionDocument = playDocument ?? editorDocument;
   const playbackActiveRef = useRef(false);
   playbackActiveRef.current = active && playing;
-  assetBindingsRef.current = document?.assets ?? null;
+  assetBindingsRef.current = playDocument?.authoring ? playDocument.assets : document?.assets ?? null;
 
   useEffect(() => {
     if (!document || playDocument) return;
@@ -235,7 +235,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   }, [name, disposeSession, sessionDocument, refId, setTitle, showCurrentFrame]);
 
   useEffect(() => {
-    if (!playDocument || !document) return;
+    if (!playDocument || !document || playDocument.authoring) return;
     const renderer = rendererRef.current;
     if (!renderer) return;
     for (const slot of new Set([...Object.keys(playDocument.assets), ...Object.keys(document.assets)])) {

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { deserialize, serialize } from "node:v8";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { gameDocument3D, type GameDocument3D } from "@nodetool-ai/protocol";
+import { gameAuthoring, gameDocument3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import { useGamePlaySession3D } from "../useGamePlaySession3D";
 import { asResolvedMediaUrl, resolveMediaUri } from "../../../utils/resolveMediaUri";
 
@@ -41,6 +41,7 @@ function Harness({ document, sceneId = "level" }: { document: GameDocument3D; sc
   return <>
     <canvas ref={session.canvasRef} tabIndex={0} />
     <button onClick={session.beginPlay}>{session.playing ? "Pause" : "Play"}</button>
+    <button onClick={session.stop}>Stop</button>
     <button onClick={() => session.step()}>Step</button>
     <button onClick={session.save}>Save</button>
     <button onClick={() => void session.load()}>Restore</button>
@@ -81,6 +82,33 @@ it("loads installed collider bytes after the runtime parses and clones document 
   await waitFor(() => expect(mockRenderers).toHaveLength(2));
   expect(screen.getByTestId("error")).toBeEmptyDOMElement();
   expect(fetch).toHaveBeenCalledTimes(2);
+  view.unmount();
+});
+
+it("pins a retained definition and its collider binding until play restarts", async () => {
+  const baseline = fixture();
+  const document: GameDocument3D = { ...baseline, authoring: gameAuthoring.parse({ version: 1,
+    program: { source: "return inputs.document", inputs: {}, seed: 1 }, baseline,
+    overrides: [], detached: [], suppressions: [] }) };
+  const view = render(<Harness document={document} />);
+  const user = userEvent.setup();
+  await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("WebGL2"));
+  await user.click(screen.getByRole("button", { name: "Play" }));
+  await waitFor(() => expect(mockRenderers).toHaveLength(2));
+  await user.click(screen.getByRole("button", { name: "Pause" }));
+  const calls = jest.mocked(resolveMediaUri).mock.calls.length;
+  const replacementId = "c".repeat(32);
+  const changed = { ...document, assets: { ...document.assets, ground: { ...document.assets.ground, assetId: replacementId } } };
+  view.rerender(<Harness document={changed} />);
+  await user.click(screen.getByRole("button", { name: "Step" }));
+  expect(mockRenderers).toHaveLength(2);
+  expect(jest.mocked(resolveMediaUri).mock.calls).toHaveLength(calls);
+  expect(resolveMediaUri).not.toHaveBeenCalledWith(`asset://${replacementId}`);
+  await user.click(screen.getByRole("button", { name: "Stop" }));
+  await waitFor(() => expect(mockRenderers).toHaveLength(3));
+  await user.click(screen.getByRole("button", { name: "Play" }));
+  await waitFor(() => expect(mockRenderers).toHaveLength(4));
+  expect(resolveMediaUri).toHaveBeenCalledWith(`asset://${replacementId}`);
   view.unmount();
 });
 

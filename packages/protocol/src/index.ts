@@ -73,3 +73,5 @@ export * from "./game-design.js";
 export * from "./game-flow-prompt.js";
 export * from "./game-graph.js";
 export * from "./mcp-server-config.js";
+
+export * from "./game-authoring.js";
