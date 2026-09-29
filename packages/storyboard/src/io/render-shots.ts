@@ -28,6 +28,7 @@ export interface RenderGenerationRequest {
   provider: string;
   capability:
     | "text_to_image"
+    | "image_to_image"
     | "image_to_video"
     | "reference_to_video"
     | "text_to_video";
@@ -90,6 +91,12 @@ export interface RenderShotsOptions {
   resolution?: string;
   /** Ids for the generation rows. Defaults to `crypto.randomUUID`. */
   newId?: () => string;
+  /**
+   * The still model supports `image_to_image`. A still whose entities carry
+   * reference images then renders through it, and the provider layer passes
+   * those images as inputs. Otherwise stills render from text alone.
+   */
+  stillModelTakesImages?: boolean;
 }
 
 /** One shot's outcome, in plan order. */
@@ -180,12 +187,18 @@ const isError = (value: unknown): value is { error: string } =>
   typeof value === "object" &&
   typeof (value as { error?: unknown }).error === "string";
 
+const hasReferenceImages = (plan: ShotRenderPlan): boolean =>
+  plan.entities.some((entity) => entity.reference_images.length > 0);
+
 /** The provider capability a plan calls. */
 const capabilityFor = (
-  plan: ShotRenderPlan
+  plan: ShotRenderPlan,
+  stillModelTakesImages: boolean
 ): RenderGenerationRequest["capability"] =>
   plan.kind === "keyframe"
-    ? "text_to_image"
+    ? stillModelTakesImages && hasReferenceImages(plan)
+      ? "image_to_image"
+      : "text_to_image"
     : plan.mode === "reference"
       ? "reference_to_video"
       : plan.mode === "direct"
@@ -214,7 +227,10 @@ export async function renderShots(
       ok: false
     };
     if (plan.slug !== undefined) base.slug = plan.slug;
-    const capability = capabilityFor(plan);
+    const capability = capabilityFor(
+      plan,
+      options.stillModelTakesImages === true
+    );
     if (capability === "image_to_video" && !plan.sourceKeyframe) {
       return {
         ...base,

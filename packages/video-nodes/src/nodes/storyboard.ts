@@ -24,6 +24,7 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { isObjectLike, isString } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
+  imageModelSupportsTask,
   loadMediaRefBytes,
   probeVideoDurationSeconds,
   resolveEntities
@@ -921,11 +922,20 @@ export class RenderStillsNode extends BaseNode {
       skipShotIds: direct,
       maxShots: this.max_shots
     });
+    const stillModelTakesImages = await imageModelSupportsTask(
+      ctx,
+      model,
+      "image_to_image",
+      model.supportedTasks
+    );
     const outcomes = await renderShots(
       renderHost(ctx),
       { id: row.id },
       selection.plans,
-      { concurrency: clampConcurrency(this.concurrency) }
+      {
+        concurrency: clampConcurrency(this.concurrency),
+        stillModelTakesImages
+      }
     );
 
     return {
