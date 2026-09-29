@@ -20,6 +20,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Maximize2, Pause, Play } from "lucide-react";
 import { usePrefersReducedMotion } from "../lib/useGridParallax";
+import { track } from "../lib/analytics";
 
 interface HeroDemoPlayerProps {
   alt: string;
@@ -89,7 +90,9 @@ export default function HeroDemoPlayer({
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
-      void video.play().catch(() => {});
+      void video.play().then(() => track("View Demo", { action: "play", placement: "demo" })).catch(() => {
+        // The play control remains available when the browser refuses playback.
+      });
     } else {
       video.pause();
     }
@@ -104,11 +107,16 @@ export default function HeroDemoPlayer({
       | (HTMLVideoElement & { webkitEnterFullscreen?: () => void })
       | null;
     if (frame?.requestFullscreen) {
-      void frame.requestFullscreen().catch(() => {});
+      void frame.requestFullscreen().then(() => track("View Demo", { action: "fullscreen", placement: "demo" })).catch(() => {
+        // Fullscreen is optional. The inline demo remains available.
+      });
       void video?.play().catch(() => {});
       return;
     }
-    video?.webkitEnterFullscreen?.();
+    if (video?.webkitEnterFullscreen) {
+      video.webkitEnterFullscreen();
+      track("View Demo", { action: "fullscreen", placement: "demo" });
+    }
   }, []);
 
   return (

@@ -17,6 +17,7 @@ import { dirname, resolve } from "node:path";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import { staticEntries } from "../src/data/staticEntries.ts";
+import { competitorEntries } from "../src/data/competitorEntries.ts";
 import { faqByCategory, faqEntries } from "../src/data/faqEntries.ts";
 import { ideaCategories } from "../src/data/ideasEntries.ts";
 import { recipeEntries } from "../src/data/recipes.ts";
@@ -179,8 +180,8 @@ function writeMarkdownPages(check) {
 }
 
 function comparisonsSection() {
-  const lines = staticEntries
-    .filter((e) => e.route.startsWith("/vs/") && e.indexable)
+  const lines = competitorEntries
+    .filter((e) => e.indexable)
     .map((e) => link(e.title, e.route));
   return `## Comparisons\n\n${lines.join("\n")}`;
 }

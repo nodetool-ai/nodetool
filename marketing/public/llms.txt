@@ -30,7 +30,41 @@
 
 ## Comparisons
 
-
+- [Higgsfield alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/higgsfield)
+- [OpenArt alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/openart)
+- [LTX Studio alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/ltx-studio)
+- [Google Flow alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/google-flow)
+- [Artlist Studio alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/artlist)
+- [Invideo alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/invideo)
+- [Katalist alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/katalist)
+- [Storyboarder.ai alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/storyboarder-ai)
+- [Story.com alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/story-com)
+- [Mootion alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/mootion)
+- [Moonvalley Marey alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/moonvalley)
+- [Kling AI alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/kling-ai)
+- [Pika alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/pika)
+- [Luma Dream Machine alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/luma-dream-machine)
+- [PixVerse alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/pixverse)
+- [Leonardo AI alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/leonardo-ai)
+- [Midjourney alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/midjourney)
+- [Adobe Firefly alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/adobe-firefly)
+- [Ideogram alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/ideogram)
+- [Recraft alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/recraft)
+- [Dreamina alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/dreamina)
+- [ComfyUI alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/comfyui)
+- [Weavy alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/weavy)
+- [Figma Weave alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/figma-weave)
+- [Runway alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/runway)
+- [Langflow alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/langflow)
+- [n8n alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/n8n)
+- [Flowise alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/flowise)
+- [Dify alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/dify)
+- [Flora alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/flora)
+- [Krea alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/krea)
+- [LM Studio alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/lm-studio)
+- [Jan alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/jan)
+- [Lindy alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/lindy)
+- [Gumloop alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/gumloop)
 
 ## Use cases
 

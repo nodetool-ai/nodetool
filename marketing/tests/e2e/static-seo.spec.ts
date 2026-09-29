@@ -7,6 +7,24 @@ const ROUTES = registryModules.flatMap((module) => {
   return entries.map((entry) => entry.route);
 });
 
+test("comparison discovery indexes list every indexable alternative", async ({ request }) => {
+  const alternatives = ROUTES.filter((route) => route.startsWith("/alternatives/"));
+  expect(alternatives.length).toBeGreaterThan(0);
+  const [sitemap, discovery] = await Promise.all([
+    request.get("/sitemap.xml"),
+    request.get("/llms.txt"),
+  ]);
+  expect(sitemap.ok()).toBe(true);
+  expect(discovery.ok()).toBe(true);
+  const sitemapText = await sitemap.text();
+  const discoveryText = await discovery.text();
+  for (const route of alternatives) {
+    expect(sitemapText).toContain(`<loc>https://nodetool.ai${route}</loc>`);
+    expect(discoveryText).toContain(`](https://nodetool.ai${route})`);
+  }
+  expect(discoveryText).not.toContain("](https://nodetool.ai/vs/");
+});
+
 const MEDIA_MAGIC: Record<string, string> = {
   jpg: "\xff\xd8\xff",
   jpeg: "\xff\xd8\xff",

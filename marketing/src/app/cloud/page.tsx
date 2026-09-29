@@ -10,6 +10,7 @@ import MarketingFacts, {
 import MarketingHero from "../../components/MarketingHero";
 import MarketingPageShell from "../../components/MarketingPageShell";
 import ProductImage from "../../components/ProductImage";
+import TrackedLink from "../../components/TrackedLink";
 import { EDITIONS } from "../../data/editions";
 
 const hostedFacts: MarketingFact[] = [
@@ -43,16 +44,18 @@ const hostedFacts: MarketingFact[] = [
 const primaryButtonClass =
   "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition-colors hover:bg-blue-500 focus-ring";
 
-function CloudPrimaryAction() {
+function CloudPrimaryAction({ placement }: { placement: "hero" | "closing" }) {
   return (
-    <a
+    <TrackedLink
       href={EDITIONS.cloud.appUrl}
       className={primaryButtonClass}
       aria-label={EDITIONS.cloud.primaryAction}
+      event="Try Cloud"
+      eventProps={{ placement }}
     >
       {EDITIONS.cloud.primaryAction}
       <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-    </a>
+    </TrackedLink>
   );
 }
 
@@ -63,7 +66,7 @@ export default function CloudPage() {
         eyebrow={EDITIONS.cloud.eyebrow}
         title="The NodeTool workspace. In your browser."
         body="Try NodeTool without installing it. Work with agents and editors in the same creative workspace, with hosted storage and your own provider accounts. Cloud is an alpha preview for evaluation and lightweight access."
-        primaryAction={<CloudPrimaryAction />}
+        primaryAction={<CloudPrimaryAction placement="hero" />}
         secondaryAction={{ href: "/studio", label: "Download Studio" }}
         trustLine="Alpha preview · Internet connection required · Remote providers only"
         recommendation="For paid production work, use Studio."
@@ -180,7 +183,7 @@ export default function CloudPage() {
         headingId="cloud-closing-title"
         title="Try the workspace without installing it."
         body="Use Cloud for evaluation and lightweight access while it is in alpha. Download Studio for production work."
-        primaryAction={<CloudPrimaryAction />}
+        primaryAction={<CloudPrimaryAction placement="closing" />}
         secondaryAction={{ href: "/studio", label: "Download Studio" }}
       />
     </MarketingPageShell>

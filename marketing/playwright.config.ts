@@ -25,6 +25,10 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    // Use /dev/shm when Chromium's temporary-file compositor crashes locally.
+    ...(process.env.MARKETING_USE_SHARED_MEMORY === "true"
+      ? { launchOptions: { ignoreDefaultArgs: ["--disable-dev-shm-usage"] } }
+      : {}),
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },

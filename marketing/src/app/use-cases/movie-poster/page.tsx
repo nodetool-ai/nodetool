@@ -23,6 +23,7 @@ import FaqSection from "../../../components/FaqSection";
 import { moviePosterUseCase } from "../../../data/useCaseEntries";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 import MoviePosterGraph from "../../../components/MoviePosterGraph";
+import SearchStarter from "../../../components/SearchStarter";
 
 const posters = [
   { src: "/poster-singularity-1.png", caption: "“The end of time isn't the end.”" },
@@ -77,7 +78,7 @@ const models = [
 
 export default function MoviePosterUseCase() {
   return (
-    <main className="relative min-h-screen overflow-hidden text-white bg-[#040408]">
+    <main className="relative min-h-screen overflow-hidden text-white bg-slate-950">
       {/* Background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <motion.div
@@ -126,7 +127,7 @@ export default function MoviePosterUseCase() {
                 <span className="text-sky-500/60">·</span>
                 Design
               </div>
-              <h1 className="mt-6 text-4xl md:text-6xl font-bold tracking-tight leading-[1.05]">
+              <h1 className="mt-6 text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
                 Movie Poster Generator
               </h1>
               <p className="mt-6 text-lg md:text-xl text-slate-400 leading-relaxed">
@@ -173,12 +174,15 @@ export default function MoviePosterUseCase() {
 
             <div className="mt-10 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
               <SmartDownloadButton
+                source="movie-poster"
+                starter="movie-posters"
+                placement="hero"
                 icon={<Download className="h-5 w-5" />}
                 classNameOverride="inline-flex items-center justify-center gap-2 rounded-full bg-sky-500 px-8 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgba(56,189,248,0.6)] transition-all hover:bg-sky-400"
               />
               <a
                 href="#how-it-works"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:border-white/25 hover:bg-white/5"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-slate-950/70 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:border-white/25 hover:bg-white/5"
               >
                 <Play className="h-4 w-4" />
                 See how it works
@@ -187,11 +191,17 @@ export default function MoviePosterUseCase() {
           </div>
         </section>
 
+        <SearchStarter
+          starter="movie-posters"
+          source="movie-poster"
+          heading="Start with the Movie Posters workflow"
+        />
+
         {/* How it works */}
         <section id="how-it-works" className="relative scroll-mt-28 py-20">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="mb-12 max-w-2xl">
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
                 How it works
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
@@ -259,7 +269,7 @@ export default function MoviePosterUseCase() {
         <section className="relative py-20">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="mb-12 max-w-2xl">
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
                 One title. Five concepts.
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
@@ -299,7 +309,7 @@ export default function MoviePosterUseCase() {
         <section className="relative py-20">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="mb-12 max-w-2xl">
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
                 Direct it yourself
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
@@ -339,7 +349,7 @@ export default function MoviePosterUseCase() {
             <div className="rounded-3xl border border-white/10 bg-slate-900/40 p-8 backdrop-blur-sm md:p-12">
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                  <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
                     Models in this workflow
                   </h2>
                   <p className="mt-4 text-slate-400 leading-relaxed">
@@ -386,7 +396,7 @@ export default function MoviePosterUseCase() {
         {/* Closing CTA */}
         <section className="relative py-24">
           <div className="mx-auto max-w-3xl px-6 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
               Design your poster set
             </h2>
             <p className="mt-4 text-lg text-slate-400 leading-relaxed">
@@ -395,6 +405,9 @@ export default function MoviePosterUseCase() {
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton
+                source="movie-poster"
+                starter="movie-posters"
+                placement="closing"
                 icon={<Download className="h-5 w-5" />}
                 classNameOverride="inline-flex items-center justify-center gap-2 rounded-full bg-sky-500 px-8 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgba(56,189,248,0.6)] transition-all hover:bg-sky-400"
               />
@@ -407,7 +420,7 @@ export default function MoviePosterUseCase() {
               </a>
               <a
                 href="/#use-cases"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:border-white/25 hover:bg-white/5"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-slate-950/70 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:border-white/25 hover:bg-white/5"
               >
                 More use cases
                 <ArrowLeft className="h-4 w-4 rotate-180" />

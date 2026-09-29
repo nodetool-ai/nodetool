@@ -340,7 +340,7 @@ export default function Home() {
                 href="https://app.nodetool.ai"
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => track("Try Cloud")}
+                onClick={() => track("Try Cloud", { placement: "closing" })}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/10 px-6 py-3.5 text-sm font-semibold text-blue-200 transition-all hover:border-blue-400 hover:bg-blue-500/20 focus-ring"
               >
                 Try Cloud in your browser (alpha)
