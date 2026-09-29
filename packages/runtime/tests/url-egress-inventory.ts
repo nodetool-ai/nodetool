@@ -396,6 +396,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Reads a video content part's URI so ffmpeg can sample stills from it."
   ),
   guardedSafeFetch(
+    "packages/timeline/src/fonts/google-fonts-fetch.ts",
+    "Google Fonts family resolution (timeline)",
+    "workflow",
+    "Resolves a document- or browser-authored fontFamily not in the bundled catalog against the google/fonts GitHub repo; assertGoogleFontsUrlAllowed narrows every URL to raw.githubusercontent.com before safeFetch runs its own check."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/anthropic-provider.ts",
     "Anthropic media input",
     "workflow",

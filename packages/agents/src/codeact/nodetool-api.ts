@@ -138,6 +138,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "list_timelines",
     "list_example_timelines",
     "get_example_timeline",
+    "get_example_timeline_source",
     "create_timeline",
     "get_timeline",
     "list_timeline_versions",
@@ -150,11 +151,17 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "compare_timeline_frames",
     "edit_timeline",
     "set_timeline_document",
+    "bake_audio_animation",
     "render_timeline",
     "list_compositions",
     "get_composition",
     "save_composition",
-    "delete_composition"
+    "delete_composition",
+    "get_timeline_code",
+    "set_timeline_code",
+    "edit_timeline_code",
+    "rebake_timeline_code",
+    "detach_timeline_code"
   ],
   sketches: [
     "list_sketches",
@@ -1236,7 +1243,9 @@ const nodetool = (() => {
       examples: {
         list: (opts) => __need("list_example_timelines")(__merge(opts)),
         get: (slug, opts) =>
-          __need("get_example_timeline")(__merge(opts, { slug: slug }))
+          __need("get_example_timeline")(__merge(opts, { slug: slug })),
+        source: (slug) =>
+          __need("get_example_timeline_source")({ slug: slug })
       },
       create: (name, opts) =>
         __need("create_timeline")(__named(name, opts, "timelines.create")),
@@ -1311,6 +1320,23 @@ const nodetool = (() => {
           __merge(opts, { timeline_id: id, document: document })
         ),
       /**
+       * Drive a clip's motion from a piece of audio: measure the audio clip
+       * (id, name, or "selected") and write the result as keyframes onto
+       * targetClipId's own property, additive with anything hand-keyframed
+       * there. Options: {mode: "envelope"|"beats", output_range: [quiet,
+       * loud], sensitivity, attack_ms, release_ms, offset_ms, tolerance,
+       * max_points, frame_ms, max_seconds, replace}. property and
+       * output_range are required.
+       */
+      bakeAudioAnimation: (id, audioClipId, targetClipId, opts) =>
+        __need("bake_audio_animation")(
+          __merge(opts, {
+            timeline_id: id,
+            audio_clip_id: audioClipId,
+            target_clip_id: targetClipId
+          })
+        ),
+      /**
        * Render the finished cut as a job. Returns {job_id} immediately;
        * {wait: true} blocks and returns the rendered asset. Options:
        * {format, alpha, video_codec, bitrate, motion_blur_samples,
@@ -1342,6 +1368,35 @@ const nodetool = (() => {
             })
           ),
         remove: (id) => __need("delete_composition")({ composition_id: id })
+      },
+      /**
+       * A timeline's authoring code — edit the script, not the JSON. \`set\`
+       * bakes \`code\` and merges the result into the document scene by
+       * scene: an untouched scene is replaced, a hand-edited one is kept and
+       * reported in \`conflicts\` unless \`opts.force\` overwrites it (\`true\`
+       * for every scene, or an array of scene names). \`edit\` applies
+       * exact-match string replacements to the stored code first (each
+       * \`old\` must match exactly once), then bakes and merges the same way.
+       * \`rebake\` reruns the stored code unchanged. \`detach(id, names |
+       * "all")\` stops tracking scenes — a later rebake never touches them
+       * again.
+       */
+      code: {
+        /** \`{code, baked_at, scenes: [{name, group_id, edited}]}\`. \`code\`
+         * is null when the timeline carries none. */
+        get: (id) => __need("get_timeline_code")({ timeline_id: id }),
+        set: (id, code, opts) =>
+          __need("set_timeline_code")(
+            __merge(opts, { timeline_id: id, code: code })
+          ),
+        edit: (id, edits, opts) =>
+          __need("edit_timeline_code")(
+            __merge(opts, { timeline_id: id, edits: edits })
+          ),
+        rebake: (id, opts) =>
+          __need("rebake_timeline_code")(__merge(opts, { timeline_id: id })),
+        detach: (id, scenes) =>
+          __need("detach_timeline_code")({ timeline_id: id, scenes: scenes })
       }
     },
 
@@ -1720,8 +1775,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.timelines\` — \`list()\` (→ \`{timelines}\`), \`create(name, {fps,
   width, height})\`, \`get(id)\`, \`edit(id, ops)\`, \`setDocument(id, document)\`,
   \`validate(idOrDocument, {tier: "showcase"})\`, \`preview(idOrDocument,
-  {times_ms, range, sheet})\`, \`compare(a, b)\`, \`render(id)\`, versions,
-  \`examples.list/get\`, \`compositions.*\`. Build a motion-graphics piece in
+  {times_ms, range, sheet})\`, \`compare(a, b)\`, \`render(id)\`,
+  \`bakeAudioAnimation(id, audioClipId, targetClipId, opts)\` (drive a
+  property from measured audio), versions, \`examples.list/get/source\`,
+  \`compositions.*\`. Build a motion-graphics piece in
   code with \`@nodetool-ai/sandbox-timeline\`, and look at previewed frames
   before you call it done.`
   },

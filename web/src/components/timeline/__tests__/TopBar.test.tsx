@@ -65,3 +65,22 @@ describe("TopBar project archive action", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("TopBar Code button", () => {
+  it("omits the Code button for a timeline with no code", () => {
+    renderTopBar({ onOpenCode: jest.fn(), hasCode: false });
+    expect(
+      screen.queryByRole("button", { name: "Open the timeline's code" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens the code panel when clicked", async () => {
+    const onOpenCode = jest.fn();
+    renderTopBar({ onOpenCode, hasCode: true });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open the timeline's code" })
+    );
+    expect(onOpenCode).toHaveBeenCalledTimes(1);
+  });
+});

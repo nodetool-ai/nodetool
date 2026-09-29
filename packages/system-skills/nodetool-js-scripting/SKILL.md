@@ -12,7 +12,7 @@ imports and the same limits.
 | Where | What it is | Reach it with |
 |---|---|---|
 | **Code node** | A body inside a workflow graph | `validate_code`, `run_code`, `test_code` |
-| **JS script document** | A named, versioned script with declared ports, secrets, a timeout and saved tests | `list_js_scripts`, `get_js_script`, `save_js_script`, `validate_js_script`, `run_js_script`, `test_js_script` |
+| **JS script document** | A named, versioned script with declared ports, secrets, a timeout and saved tests | `list_js_scripts`, `get_js_script`, `save_js_script`, `edit_js_script`, `validate_js_script`, `run_js_script`, `test_js_script` |
 | **Native flow** | Guest code calling nodes as async functions, no graph | `import "@nodetool-ai/sandbox-nodetool/flow"` |
 
 Pick a Code node when the logic belongs to one graph. Pick a script document
@@ -107,25 +107,30 @@ for that.
 ## Building a timeline from code
 
 ```js
-import { createBuilder, cv, saveTimeline } from "@nodetool-ai/sandbox-timeline";
+import { video } from "@nodetool-ai/sandbox-timeline";
 
-const { ms, scenes, scene, text, on, sceneTracks } = createBuilder({ W: 1920, H: 1080, FPS: 30 });
-scene("title", 0, 89);
-on(text("Hello", 120, 600, "#ffffff"), 0, 15, [cv("opacity", 0, 1)]);
-const layers = sceneTracks(1);
-const tracks = [{ id: "t_scenes", name: "scenes", type: "video" }, ...layers.tracks];
-const clips = [...layers.clips, ...scenes.map((s) => s.group)];
-const saved = await saveTimeline(
-  { name: "Hello", fps: 30, width: 1920, height: 1080, durationMs: ms(90), document: { tracks, clips } },
-  { timelines: nodetool.timelines }
-);
+const v = video({ width: 1920, height: 1080, fps: 30 });
+const title = v.scene("title", 3, (s) => {
+  const t = s.text("Hello", { size: 120, weight: 600, color: "#ffffff" });
+  t.enter({ from: { opacity: 0 }, at: 0, dur: 0.5 });
+});
+v.series([title]);
+const saved = await v.save(nodetool.timelines, { name: "Hello" });
 await output("timeline_id", saved.timeline_id);
 ```
 
-The pack authors a whole motion-graphics cut in frames and saves it with one
-`set_timeline_document`, instead of one `edit_timeline` op per clip. Pass the
-body's `nodetool.timelines` to `saveTimeline`: a module cannot see the belt.
-`get_sandbox_package_docs` on the specifier returns the full builder API.
+The pack authors a whole motion-graphics cut in seconds, local to each scene,
+and saves it with one `set_timeline_document`, instead of one `edit_timeline`
+op per clip. Pass the body's `nodetool.timelines` to `v.save`: a module cannot
+see the belt. `get_sandbox_package_docs` on the specifier returns the full
+authoring API.
+
+Save the build script itself as a JS script document and it links to the
+timeline it makes automatically: `v.save(nodetool.timelines, {name})` with no
+`timeline_id` the first time creates the timeline and links this script to
+it; every later run of the same script updates that timeline in place
+instead of making another. Revise with `edit_js_script`'s string-replacement
+ops (below) rather than resending the whole body.
 
 ## The loop
 
@@ -143,7 +148,11 @@ body's `nodetool.timelines` to `saveTimeline`: a module cannot see the belt.
    handle, compared structurally, with unnamed outputs ignored, and
    `expected_streamed`, the full ordered emit list. A case with neither passes
    when the body runs without error.
-5. **Save.** `save_js_script` validates first and is CAS on update.
+5. **Save.** `save_js_script` validates first and is CAS on update. For a
+   small revision, `edit_js_script(js_script_id, ops)` is cheaper: each op is
+   `{old, new}`, and `old` must match exactly once in the current code — like
+   a code editor's find/replace, refused by name on zero or on an ambiguous
+   match. It validates the result the same way `save_js_script` does.
 
 Script documents get the same version family as the other documents:
 `list_js_script_versions`, `get_js_script_version`, `create_js_script_version`,

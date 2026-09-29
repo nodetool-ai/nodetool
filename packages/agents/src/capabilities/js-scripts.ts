@@ -47,6 +47,7 @@ import {
   listJsScriptsSpec,
   getJsScriptSpec,
   saveJsScriptSpec,
+  editJsScriptSpec,
   validateJsScriptSpec,
   runJsScriptSpec,
   testJsScriptSpec,
@@ -529,6 +530,134 @@ const saveJsScript: CapabilityExport = {
   }
 };
 
+export interface JsScriptEditOp {
+  old: string;
+  new: string;
+}
+
+/** Parse `ops` into `{old, new}` pairs, or an error naming the bad index. */
+export function parseJsScriptEditOps(value: unknown): JsScriptEditOp[] | ToolError {
+  if (!Array.isArray(value) || value.length === 0) {
+    return { error: "ops must be a non-empty array of {old, new}." };
+  }
+  const ops: JsScriptEditOp[] = [];
+  for (let i = 0; i < value.length; i++) {
+    const entry = value[i];
+    if (
+      !isRecord(entry) ||
+      typeof entry["old"] !== "string" ||
+      typeof entry["new"] !== "string"
+    ) {
+      return { error: `ops[${i}] must be {old: string, new: string}.` };
+    }
+    if (entry["old"] === "") {
+      return { error: `ops[${i}].old is empty — nothing to match.` };
+    }
+    ops.push({ old: entry["old"], new: entry["new"] });
+  }
+  return ops;
+}
+
+/** How many non-overlapping times `needle` occurs in `haystack`. */
+function countOccurrences(haystack: string, needle: string): number {
+  let count = 0;
+  let from = 0;
+  for (;;) {
+    const at = haystack.indexOf(needle, from);
+    if (at === -1) break;
+    count++;
+    from = at + needle.length;
+  }
+  return count;
+}
+
+/**
+ * Apply `ops` in order against `code`, each requiring an exact, unambiguous
+ * match against the result of the ops before it — the same contract a code
+ * editor's find/replace makes.
+ */
+export function applyJsScriptEditOps(
+  code: string,
+  ops: readonly JsScriptEditOp[]
+): { code: string } | ToolError {
+  let next = code;
+  for (let i = 0; i < ops.length; i++) {
+    const { old, new: replacement } = ops[i];
+    const count = countOccurrences(next, old);
+    if (count === 0) {
+      return {
+        error:
+          `ops[${i}]: "old" does not match the current code (after the ` +
+          "previous ops in this call). Read the script again with " +
+          "get_js_script and re-derive the exact text, including whitespace."
+      };
+    }
+    if (count > 1) {
+      return {
+        error:
+          `ops[${i}]: "old" matches ${count} places in the code — ` +
+          "ambiguous. Include more surrounding context so it matches " +
+          "exactly once."
+      };
+    }
+    const at = next.indexOf(old);
+    next = next.slice(0, at) + replacement + next.slice(at + old.length);
+  }
+  return { code: next };
+}
+
+const editJsScript: CapabilityExport = {
+  spec: editJsScriptSpec,
+  impl: async (run, params) => {
+    const script = await loadScript(run, params);
+    if (isError(script)) return script;
+
+    const ops = parseJsScriptEditOps(params["ops"]);
+    if (isError(ops)) return ops;
+
+    const document = script.toDocument();
+    const applied = applyJsScriptEditOps(document.code, ops);
+    if (isError(applied)) return applied;
+
+    const nextDocument = { ...document, code: applied.code };
+    const validation = await validateDocument(run, nextDocument);
+    if (!validation.ok) {
+      return {
+        ok: false,
+        saved: false,
+        error:
+          "The revised code has validation errors, so nothing was saved: " +
+          validation.errors.map((issue) => issue.message).join("; "),
+        validation
+      };
+    }
+
+    const expected = stringParam(params["base_updated_at"]);
+    const { JsScript } = await import("@nodetool-ai/models");
+    const updated = await JsScript.updateFieldsIfUnchanged(
+      script.id,
+      expected ?? script.updated_at,
+      { document: JSON.stringify(nextDocument) }
+    );
+    if (!updated) {
+      return {
+        error:
+          `JS script ${script.id} was modified since it was read ` +
+          "(optimistic concurrency conflict); nothing was saved. Re-read it " +
+          "with get_js_script and retry."
+      };
+    }
+    return {
+      ok: true,
+      saved: true,
+      id: updated.id,
+      applied: ops.length,
+      updated_at: updated.updated_at,
+      validation
+    };
+  }
+};
+
 const validateJsScript: CapabilityExport = {
   spec: validateJsScriptSpec,
   impl: async (run, params) => {
@@ -858,6 +987,7 @@ export const JS_SCRIPT_CAPABILITIES: readonly CapabilityExport[] = [
   listJsScripts,
   getJsScript,
   saveJsScript,
+  editJsScript,
   validateJsScript,
   runJsScript,
   testJsScript,
@@ -878,6 +1008,7 @@ export {
   listJsScripts,
   getJsScript,
   saveJsScript,
+  editJsScript,
   validateJsScript,
   runJsScript,
   testJsScript,

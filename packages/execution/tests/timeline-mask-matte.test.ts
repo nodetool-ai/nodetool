@@ -75,7 +75,7 @@ describe("validateTimelineSequence — masks", () => {
   it("reports mask_path_invalid for path data it cannot parse", () => {
     const result = validateTimelineSequence(
       doc([
-        clip({ id: "a", name: "Title", mask: { kind: "path", d: "M 0 0 A 1 1 0 0 1 1 1" } })
+        clip({ id: "a", name: "Title", mask: { kind: "path", d: "M 0 0 B 1 1" } })
       ])
     );
     const issue = result.warnings.find((w) => w.code === "mask_path_invalid");

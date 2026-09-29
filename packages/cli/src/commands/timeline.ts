@@ -21,6 +21,7 @@ import type { TimelineSequenceRecord } from "../timeline-debug/target.js";
 import { printCommandError } from "../command-errors.js";
 import { renderTimelineValidation } from "./timeline-validation-output.js";
 import { registerTimelineRenderCommand } from "./timeline-render.js";
+import { registerTimelineScoreCommand } from "./timeline-score.js";
 import { registerTimelineVersionsCommands } from "./timeline-versions.js";
 
 export { renderTimelineValidation };
@@ -152,6 +153,7 @@ export function registerTimelineCommands(program: Command): void {
     });
 
   registerTimelineRenderCommand(timeline, sequenceLoader);
+  registerTimelineScoreCommand(timeline, sequenceLoader);
   registerTimelineVersionsCommands(timeline);
 }
 

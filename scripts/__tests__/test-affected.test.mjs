@@ -163,6 +163,21 @@ describe("buildPlan", () => {
     expect(globalFiles).toEqual([]);
     expect(steps).toEqual([]);
   });
+
+  it("runs only the event-parsing unit for the motion-craft eval script, not a live model", () => {
+    const { steps, globalFiles } = plan(["scripts/motion-craft-eval.mjs"]);
+    expect(globalFiles).toEqual([]);
+    expect(steps.map((s) => [s.command, ...s.args])).toEqual([
+      [
+        "node",
+        "scripts/run-vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "scripts/__tests__/motion-craft-eval.test.mjs"
+      ]
+    ]);
+  });
 });
 
 describe("buildGateArgv", () => {

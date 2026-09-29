@@ -13,6 +13,9 @@ import {
 } from "../src/composition.js";
 import { makeClip } from "../src/defaults.js";
 import type { TimelineClip } from "../src/types.js";
+import { clipLayoutBox, resolveClipLayoutsWithDiagnostics } from "../src/render/layout.js";
+
+const canvas = { width: 1000, height: 500, measureText: (text: string) => text.length * 10 };
 
 function lowerThird(): TimelineComposition {
   return {
@@ -115,8 +118,12 @@ describe("instantiateComposition + extractComposition", () => {
 
   it("remaps references between copied clips while preserving external references", () => {
     const template = lowerThird();
-    template.group.layout = { kind: "row", children: ["bar", "name"] };
-    template.children[1].layout = { kind: "relative", targetClipId: "bar", side: "right" };
+    // A flex container/item carries no clip-id references (children come
+    // from `parentId`, which the instantiation loop below already remaps),
+    // so `layout`/`flexItem` need no remap step of their own — they should
+    // just pass through unchanged onto the fresh clips.
+    template.group.layout = { display: "flex", flexDirection: "row" };
+    template.children[1].flexItem = { grow: 1 };
     template.children[1].animationLinks = [
       { target: "positionX", sourceClipId: "bar", source: "positionX" },
       { target: "positionY", sourceClipId: "external", source: "positionY" }
@@ -131,13 +138,14 @@ describe("instantiateComposition + extractComposition", () => {
     const [group, bar, name] = instantiateComposition(extracted, {
       startMs: 5000, newId: () => `fresh-${++sequence}`
     });
-    expect(group.layout?.children).toEqual([bar.id, name.id]);
-    expect(name.layout?.targetClipId).toBe(bar.id);
+    expect(group.layout).toEqual({ display: "flex", flexDirection: "row" });
+    expect(name.flexItem).toEqual({ grow: 1 });
+    expect(name.parentId).toBe(group.id);
+    expect(bar.parentId).toBe(group.id);
     expect(name.animationLinks?.[0]).toMatchObject({ sourceClipId: bar.id });
     expect(name.animationLinks?.[1]).toMatchObject({ sourceClipId: "external" });
     expect(name.matte?.sourceClipId).toBe(bar.id);
     expect(name.sourceClipId).toBe(bar.id);
-    expect(extracted.group.layout?.children).toEqual(["bar", "name"]);
   });
 
   it("refuses a parameter path that addresses no child field", () => {
@@ -191,3 +199,144 @@ describe("instantiateComposition + extractComposition", () => {
     expect(() => extractComposition({ clips }, "nope")).toThrow(/no clip/i);
   });
 });
+
+/**
+ * A flex container is a group whose real children carry `parentId` (AS6 in
+ * `packages/timeline/AGENTS.md`), so a component with a nested container —
+ * a card holding a row of two icons — has grandchildren under the group a
+ * composition extracts. Before this fix, `extractComposition` only kept
+ * direct children, silently dropping the row's own contents; the fixture
+ * below is the exact nested shape `render.spatialTiming.test.ts` already
+ * proves Yoga resolves correctly, so the round trip is checked against that
+ * same resolver rather than against a hand-computed geometry.
+ */
+function nestedFlexDocument(): TimelineClip[] {
+  const kicker = makeClip({
+    id: "kicker", trackId: "t", parentId: "outer", mediaType: "shape",
+    startMs: 0, durationMs: 1000, status: "generated",
+    shapeStyle: { kind: "rect", width: 0.06, height: 0.02 }
+  });
+  const a = makeClip({
+    id: "nested-a", trackId: "t", parentId: "innerRow", mediaType: "shape",
+    startMs: 0, durationMs: 1000, status: "generated",
+    shapeStyle: { kind: "rect", width: 0.06, height: 0.02 }
+  });
+  const b = makeClip({
+    id: "nested-b", trackId: "t", parentId: "innerRow", mediaType: "shape",
+    startMs: 0, durationMs: 1000, status: "generated",
+    shapeStyle: { kind: "rect", width: 0.06, height: 0.02 }
+  });
+  const innerRow = makeClip({
+    id: "innerRow", trackId: "t", parentId: "outer", mediaType: "group",
+    startMs: 0, durationMs: 1000, status: "generated",
+    layout: { display: "flex", flexDirection: "row", gap: 10 }
+  });
+  const title = makeClip({
+    id: "title", trackId: "t", parentId: "outer", mediaType: "text",
+    startMs: 100, durationMs: 900, status: "generated",
+    textStyle: { text: "Title", fontSizePx: 20, color: "#fff" }
+  });
+  const outer = makeClip({
+    id: "outer", trackId: "t", mediaType: "group",
+    startMs: 5000, durationMs: 1000, status: "generated",
+    layout: { display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-start" }
+  });
+  return [outer, kicker, innerRow, a, b, title];
+}
+
+describe("nested flex containers round-trip through a composition", () => {
+  it("extracts the whole subtree, not just direct children", () => {
+    const composition = extractComposition({ clips: nestedFlexDocument() }, "outer");
+    expect(composition.children.map((c) => c.id).sort()).toEqual(
+      ["innerRow", "kicker", "nested-a", "nested-b", "title"].sort()
+    );
+    const inner = composition.children.find((c) => c.id === "innerRow")!;
+    const nestedA = composition.children.find((c) => c.id === "nested-a")!;
+    const kicker = composition.children.find((c) => c.id === "kicker")!;
+    // Direct children of the group: the group is implicit, so no parentId.
+    expect(inner.parentId).toBeUndefined();
+    expect(kicker.parentId).toBeUndefined();
+    // A grandchild keeps its real (still-original) parent.
+    expect(nestedA.parentId).toBe("innerRow");
+  });
+
+  it("remaps the nested parentId onto the fresh instance, not the top group", () => {
+    const composition = extractComposition({ clips: nestedFlexDocument() }, "outer");
+    const originalOrder = ["outer", ...composition.children.map((c) => c.id)];
+    let index = 0;
+    const idMap = new Map<string, string>();
+    const minted = instantiateComposition(composition, {
+      startMs: 0,
+      newId: () => {
+        const fresh = `fresh-${index}`;
+        idMap.set(originalOrder[index]!, fresh);
+        index += 1;
+        return fresh;
+      }
+    });
+    const byOriginal = (originalId: string) =>
+      minted.find((c) => c.id === idMap.get(originalId))!;
+    // Every child minted from a direct-child template parents onto the fresh
+    // group; the row's own children parent onto the fresh row, never the
+    // group directly — the nesting depth survives the copy.
+    expect(byOriginal("innerRow").parentId).toBe(idMap.get("outer"));
+    expect(byOriginal("kicker").parentId).toBe(idMap.get("outer"));
+    expect(byOriginal("nested-a").parentId).toBe(idMap.get("innerRow"));
+    expect(byOriginal("nested-b").parentId).toBe(idMap.get("innerRow"));
+  });
+
+  it("resolves to the same layout geometry after a full extract/instantiate round trip", () => {
+    const original = nestedFlexDocument();
+    const before = resolveClipLayoutsWithDiagnostics(original, canvas).transforms;
+    const kickerBoxBefore = clipLayoutBox({ ...find(original, "kicker"), transform: before.get("kicker") }, canvas);
+    const aBoxBefore = clipLayoutBox({ ...find(original, "nested-a"), transform: before.get("nested-a") }, canvas);
+    const bBoxBefore = clipLayoutBox({ ...find(original, "nested-b"), transform: before.get("nested-b") }, canvas);
+    const titleBoxBefore = clipLayoutBox({ ...find(original, "title"), transform: before.get("title") }, canvas);
+
+    const composition = extractComposition({ clips: original }, "outer");
+    // Track which original id each minted clip corresponds to: the group
+    // first, then one per `composition.children`, in that exact order —
+    // the same order `instantiateComposition` mints ids in.
+    const originalOrder = ["outer", ...composition.children.map((c) => c.id)];
+    let index = 0;
+    const idMap = new Map<string, string>();
+    const minted = instantiateComposition(composition, {
+      startMs: 5000,
+      newId: () => {
+        const fresh = `fresh-${index}`;
+        idMap.set(originalOrder[index]!, fresh);
+        index += 1;
+        return fresh;
+      }
+    });
+
+    const after = resolveClipLayoutsWithDiagnostics(minted, canvas).transforms;
+    const byFreshId = (originalId: string) => minted.find((c) => c.id === idMap.get(originalId))!;
+    const kickerBoxAfter = clipLayoutBox({ ...byFreshId("kicker"), transform: after.get(idMap.get("kicker")) }, canvas);
+    const aBoxAfter = clipLayoutBox({ ...byFreshId("nested-a"), transform: after.get(idMap.get("nested-a")) }, canvas);
+    const bBoxAfter = clipLayoutBox({ ...byFreshId("nested-b"), transform: after.get(idMap.get("nested-b")) }, canvas);
+    const titleBoxAfter = clipLayoutBox({ ...byFreshId("title"), transform: after.get(idMap.get("title")) }, canvas);
+
+    for (const [beforeBox, afterBox] of [
+      [kickerBoxBefore, kickerBoxAfter],
+      [aBoxBefore, aBoxAfter],
+      [bBoxBefore, bBoxAfter],
+      [titleBoxBefore, titleBoxAfter]
+    ] as const) {
+      expect(afterBox.x).toBeCloseTo(beforeBox.x);
+      expect(afterBox.y).toBeCloseTo(beforeBox.y);
+      expect(afterBox.width).toBeCloseTo(beforeBox.width);
+      expect(afterBox.height).toBeCloseTo(beforeBox.height);
+    }
+    // The row's own two children are still strictly side by side, exactly as
+    // `render.spatialTiming.test.ts` proves for the un-round-tripped fixture —
+    // the nested container's internal layout survived the copy too.
+    expect(bBoxAfter.x).toBeCloseTo(aBoxAfter.x + aBoxAfter.width + 10);
+  });
+});
+
+function find(clips: readonly TimelineClip[], id: string): TimelineClip {
+  const clip = clips.find((c) => c.id === id);
+  if (!clip) throw new Error(`fixture is missing clip "${id}"`);
+  return clip;
+}

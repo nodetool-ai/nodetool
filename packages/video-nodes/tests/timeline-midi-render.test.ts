@@ -78,7 +78,7 @@ vi.mock("../src/nodes/timeline/compositeRender.js", async (importOriginal) => {
     ...original,
     renderTimelineComposited: async (opts: { outPath: string }) => {
       fsSync.writeFileSync(opts.outPath, Buffer.from("fake:composited"));
-      return { totalFrames: 1, skippedClips: [] };
+      return { totalFrames: 1, skippedClips: [], fontsUnavailable: [] };
     }
   };
 });

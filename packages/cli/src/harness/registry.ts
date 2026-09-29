@@ -389,6 +389,23 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "timeline-score",
+    title: "Timeline craft scorecard (agent output vs. shipped showcase examples)",
+    command:
+      "nodetool timeline score <id|file.json> [--json] [--min-score <n>] [--sheet <out.png>]",
+    kind: "static",
+    capabilities: ["json", "no-db"],
+    docs: "docs/harnesses.md § nodetool timeline score",
+    selfcheck: {
+      // Deterministic: the metrics/formula core, plus the reference band
+      // computed from the shipped examples at test time — no model, no key.
+      command:
+        "npm run test --workspace=packages/execution -- timeline-score && " +
+        "npm run test --workspace=packages/cli -- timeline-score",
+      cost: "cheap"
+    }
+  },
+  {
     id: "serein-timeline-repro",
     title: "Serein timeline motion frame reproduction",
     command: "npm run test --workspace=packages/agents -- timeline-serein-gaps-frames",
@@ -1175,6 +1192,7 @@ export const SURFACES: SurfaceEntry[] = [
       "timeline-validate",
       "timeline-debug",
       "timeline-render",
+      "timeline-score",
       "timeline-versions",
       "eval"
     ],
@@ -1185,10 +1203,12 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli/src/timeline-debug/",
       "packages/cli/src/commands/timeline-versions.ts",
       "packages/cli/src/commands/timeline-render.ts",
+      "packages/cli/src/commands/timeline-score.ts",
       "packages/video-nodes/src/nodes/timeline/compositeRender.ts",
       "packages/agents/src/tools/timeline-version-tools.ts",
       "packages/models/src/timeline-sequence-version.ts",
-      "packages/websocket/src/trpc/routers/timeline.ts"
+      "packages/websocket/src/trpc/routers/timeline.ts",
+      "scripts/motion-craft-eval.mjs"
     ]
   },
   {

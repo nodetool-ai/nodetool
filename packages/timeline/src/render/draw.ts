@@ -43,6 +43,7 @@ import {
   layoutTextBlock,
   segmentGraphemes,
   textFontSpec,
+  textFontVariationSettings,
   textLetterSpacingPx,
   type TextBlockBox,
   type TextBlockLayout,
@@ -153,6 +154,14 @@ export interface RasterContext2D extends MaskContext2D {
    * a text draw places the glyphs itself when it is missing.
    */
   letterSpacing?: string;
+  /**
+   * CSS `font-variation-settings`, e.g. `"wght" 800`. Optional for the same
+   * reason `letterSpacing` is: universal on `@napi-rs/canvas` and modern
+   * browsers, but not on every context this interface is satisfied by. Set
+   * alongside `font` wherever text is drawn or measured — see
+   * {@link textFontVariationSettings}.
+   */
+  fontVariationSettings?: string;
   measureText(text: string): { width: number };
   fillText(text: string, x: number, y: number): void;
   strokeText(text: string, x: number, y: number): void;
@@ -256,6 +265,7 @@ interface MeasuredWord {
 /** A caption's look with every default filled in, in surface pixels. */
 interface ResolvedCaptionStyle {
   font: string;
+  fontVariationSettings: string;
   fontSizePx: number;
   lineHeightPx: number;
   color: string;
@@ -315,6 +325,11 @@ function resolveCaptionStyle(
       fontWeight: CAPTION_FONT_WEIGHT,
       fontFamily: style?.fontFamily
     }),
+    fontVariationSettings: textFontVariationSettings({
+      fontSizePx,
+      fontWeight: CAPTION_FONT_WEIGHT,
+      fontFamily: style?.fontFamily
+    }),
     fontSizePx,
     lineHeightPx: fontSizePx * CAPTION_LINE_HEIGHT,
     color: style?.color ?? CAPTION_INACTIVE_COLOR,
@@ -366,6 +381,7 @@ export function drawCaption(
 ): void {
   const style = resolveCaptionStyle(caption.style, height);
   ctx.font = style.font;
+  ctx.fontVariationSettings = style.fontVariationSettings;
   ctx.textBaseline = "alphabetic";
   ctx.lineJoin = "round";
 
@@ -432,15 +448,39 @@ export function drawCaption(
   });
 }
 
+/** The weight token `textFontSpec` writes right before the `Npx` size token. */
+const FONT_WEIGHT_TOKEN = /(\d+)\s+[\d.]+px/;
+
 /**
  * A {@link MeasureTextWidth} backed by a 2D context. A host hands one to the
  * scene model so a `"line"` stagger is counted against the same wrap the
- * rasterizer draws through; the context is measured, never drawn to, so a
- * 1×1 scratch canvas is enough.
+ * rasterizer draws through, and so the flex layout resolver
+ * (`render/layout.ts`) measures a text leaf's intrinsic size and wrap width
+ * against the same metrics `drawText` will actually paint with; the context
+ * is measured, never drawn to, so a 1×1 scratch canvas is enough.
+ *
+ * Sets `fontVariationSettings` from the weight in `font` before measuring —
+ * `prepareText` (the actual draw path) does the same, for the reason
+ * {@link textFontVariationSettings} explains: a variable face's `ctx.font`
+ * weight number alone does not reliably select the matching instance in
+ * every 2D canvas implementation, so an un-set context can measure at the
+ * face's *default* instance while the font ultimately draws at the
+ * *requested* weight — systematically narrower or wider than what gets
+ * painted. For a bold display face at a large size that gap is easily tens
+ * of pixels: wide enough that the flex resolver's "measure once, feed that
+ * exact width back in as the wrap width" round trip (`layout.ts`) wraps a
+ * line the draw pass never intended to wrap, changing its height and
+ * throwing off every sibling stacked against it. Without this, this was the
+ * actual mechanism behind the S3/S4 stacked-headline bug: layout measured a
+ * narrower (regular-instance) width than `prepareText` drew at (bold), so
+ * the "single line" box `layoutTextBlock` reported here never matched the
+ * two-line block `drawText` actually painted.
  */
 export function measureTextWith(ctx: RasterContext2D): MeasureTextWidth {
   return (text, font) => {
     ctx.font = font;
+    const weight = font.match(FONT_WEIGHT_TOKEN)?.[1] ?? "400";
+    ctx.fontVariationSettings = `"wght" ${weight}`;
     return ctx.measureText(text).width;
   };
 }
@@ -551,6 +591,7 @@ function prepareText(
   staggerUnit?: StaggerUnit
 ): { layout: TextBlockLayout; units: TextStaggerUnit[]; paint: TextPaint } {
   ctx.font = textFontSpec(style);
+  ctx.fontVariationSettings = textFontVariationSettings(style);
   clearShadow(ctx);
   setLetterSpacing(ctx, 0);
   const measure = (text: string): number => ctx.measureText(text).width;

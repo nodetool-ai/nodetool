@@ -67,7 +67,7 @@ import {
 } from "../preview/bakeDecoding";
 import { CaptionRasterizer } from "../preview/captionRender";
 import { TextRasterizer } from "../preview/textRender";
-import { ensureBundledFontsLoaded } from "../preview/fontLoading";
+import { ensureBundledFontsLoaded, ensureGoogleFontsLoaded } from "../preview/fontLoading";
 import { textMeasurer } from "../preview/textMeasure";
 import { ShapeRasterizer } from "../preview/shapeRender";
 import { BitmapFrameScope } from "../preview/BitmapFrameScope";
@@ -315,6 +315,7 @@ export async function renderTimeline(
   // not enough here. Waiting costs one fetch of files the editor has usually
   // loaded already.
   await ensureBundledFontsLoaded();
+  await ensureGoogleFontsLoaded(clips);
 
   const canvas = document.createElement("canvas");
   canvas.width = width;

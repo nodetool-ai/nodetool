@@ -51,7 +51,6 @@
  * the never-reject/abort-guard conventions every bridge follows.
  */
 
-import { loadQuickJs } from "@sebastianwessel/quickjs";
 import {
   SANDBOX_CAPABILITY_DISPATCH_GLOBAL,
   SANDBOX_WASM_DISPATCH_GLOBAL,
@@ -147,10 +146,11 @@ import * as quickJsVariantModule from "@jitl/quickjs-ng-wasmfile-release-sync";
 // `QuickJSSyncVariant` this reads.
 const quickJsVariant = (
   quickJsVariantModule as unknown as {
-    default: Parameters<typeof loadQuickJs>[0];
+    default: Parameters<typeof loadSandboxEngine>[0];
   }
 ).default;
 import { importNodeBuiltin } from "@nodetool-ai/config";
+import { loadSandboxEngine } from "./js-sandbox-worker/engine.js";
 import type { AssetRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext, Workspace } from "@nodetool-ai/runtime";
 
@@ -459,12 +459,12 @@ export function resolveSandboxLimits(
 // Engine bootstrap — one WASM module shared by every invocation.
 // ---------------------------------------------------------------------------
 
-let enginePromise: ReturnType<typeof loadQuickJs> | null = null;
+let enginePromise: ReturnType<typeof loadSandboxEngine> | null = null;
 
-function getEngine(): ReturnType<typeof loadQuickJs> {
+function getEngine(): ReturnType<typeof loadSandboxEngine> {
   registerTypedArraySerializers();
   if (!enginePromise) {
-    enginePromise = loadQuickJs(quickJsVariant);
+    enginePromise = loadSandboxEngine(quickJsVariant);
   }
   return enginePromise;
 }
@@ -505,10 +505,9 @@ export function describeEngineFailure(error: unknown): string {
   if (/gc_obj_list|Assertion failed|\bAborted\(/.test(message)) {
     return (
       "The JavaScript sandbox runtime aborted while cleaning up, so this " +
-      "action produced no result. It is usually triggered by moving a large " +
-      "amount of binary data across the sandbox boundary in one run. Retry " +
-      "with smaller pieces — process one image at a time, or hand large " +
-      "payloads between steps as assets instead of as bytes."
+      "action has no usable result. Host operations may already have completed. " +
+      "This is an internal sandbox cleanup failure. Inspect the execution " +
+      "before retrying any operation that writes data."
     );
   }
   if (/out of memory/i.test(message)) {
@@ -2961,9 +2960,29 @@ export async function runInSandbox(
     }
   }
   // Identify object-typed globals whose contents should be synced back to the
-  // host after the guest runs. Primitives are passed by value and need no sync.
+  // host after the guest runs. Primitives are passed by value and need no
+  // sync. A global holding a function anywhere inside it — a hermetic bake's
+  // `{ nodetool: { timelines: { edit() {...} } } }` stub — is excluded even
+  // though it is object-typed: nothing reads a synced-back copy of a stub
+  // (CodeNode's `state` object is the only real consumer, and it never holds
+  // functions), and extracting the guest's current value asks the engine to
+  // marshal a live function back out on every successful run, on top of the
+  // one it already crossed in as. That is reach the sync-back exists to
+  // avoid, not a capability it needs.
+  const objectGlobalHasFunction = (
+    value: unknown,
+    seen = new Set<unknown>()
+  ): boolean => {
+    if (typeof value === "function") return true;
+    if (value === null || typeof value !== "object") return false;
+    if (seen.has(value)) return false;
+    seen.add(value);
+    return Object.values(value as Record<string, unknown>).some((entry) =>
+      objectGlobalHasFunction(entry, seen)
+    );
+  };
   const syncTargetNames = Object.entries(userGlobals)
-    .filter(([, v]) => isObjectLike(v))
+    .filter(([, v]) => isObjectLike(v) && !objectGlobalHasFunction(v))
     .map(([k]) => k);
 
   // Write the extracted object-global snapshots back into the caller's own

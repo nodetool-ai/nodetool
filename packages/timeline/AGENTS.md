@@ -152,6 +152,98 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
 
 ## Rendering (`src/render`, `@nodetool-ai/timeline/render`)
 
+- **Layout is flexbox (Yoga).** A `group` clip with `layout.display: "flex"`
+  is a flex container for its REAL children (`parentId`), laid out with
+  ordinary CSS flexbox — `flexDirection`, `justifyContent`, `alignItems`,
+  `gap`, `padding`, `width`/`height` (px or `"N%"`) on the container;
+  `grow`/`shrink`/`basis`/`width`/`height`/`margin`/`position:absolute`+`inset`
+  on a child via `flexItem`. Nesting is ordinary Yoga nesting. One resolver,
+  `resolveClipLayoutsWithDiagnostics` (`render/layout.ts`), runs wherever
+  `resolveClipLayouts` already did — `sceneModel.ts`'s `computeActiveLayers`,
+  so every host shares it. There is no back-compat with the deleted
+  row/stack/relative model (I1); a legacy `layout.kind` fails the zod schema
+  outright, and the validator's `checkFlexLayout` reports a container on a
+  non-`group` clip, a non-`"flex"` `display`, or a `flexItem` whose parent
+  is not itself a flex container.
+  - **Placement is a diff, not a rewrite.** A clip's content already renders
+    centered on `transform.position` up to a fixed delta regardless of scale,
+    rotation or anchor (see `buildTransformMatrix`'s `tx`/`ty` terms), so
+    resolving a clip's box is "measure its current rendered box
+    (`measuredClipBox`), diff it against the box Yoga computed, shift
+    `position` by that diff." Nothing about `buildTransformMatrix` changed.
+  - **Every resolved position and box — `transforms`, `resolvedBoxes`,
+    `sizes` — is PARENT-LOCAL, not canvas-absolute.** A descendant's
+    resolved `transform.position` is relative to the flex root's own
+    untranslated frame (as if the root sat at identity: centered anchor, zero
+    position); a nested (non-root) flex container's own translation is
+    folded into *its* descendants' positions the same way — never baked in
+    twice. The root's own `transform.position` + `transform.anchor` place
+    the root's *computed* box in the frame (`anchor` names the point of that
+    box that lands at `position`, same canvas-center-relative space every
+    transform already uses), but that placement is left entirely to the
+    renderer's ordinary `parentMatrix` composition (`resolveGroups`, from the
+    root's own untouched `transform` — the root is a group like any other).
+    `originX`/`originY` (`layout.ts`) therefore resolve `anchor` (which point
+    of the root's Yoga-computed box is the local origin) but never
+    `position` — baking `position` in too would double it, once there and
+    once again in `parentMatrix`; a root sitting at (0, 0) hid this for a
+    long time, since doubling zero is still zero. `sceneModel.ts`'s
+    `groupPatchedClips` extends the same rule to a nested flex container's
+    own group matrix: `resolveGroups` sees that container's resolved
+    transform with `position` zeroed (its translation already lives in every
+    descendant) but its authored rotation/scale intact (flex never touches
+    those — `moved()` only overwrites `position`). A caller that wants a
+    resolved box in actual frame space has to project it through the same
+    composed ancestor matrix the renderer builds — reading `resolvedBoxes`
+    as if it were canvas-absolute is exactly the bug this fixed twice, once
+    for the root and once for nested containers. A root's `width`/`height`
+    default to hugging their content (Yoga's `undefined`
+    availableWidth/Height). A non-root flex container is sized by its own
+    parent's flex algebra like any other child.
+  - **Only a text clip actually reflows.** Its Yoga measure func wraps
+    `layoutTextBlock` at the width Yoga offers — it ignores its own authored
+    `maxWidthFrac` inside a flex tree (ignoring it is the tell that a text
+    clip is flex-managed). A rect/ellipse shape's box is resized to match
+    flex's computed box (written into a per-layer cloned `shapeStyle` in
+    `sceneModel.ts`'s `emitMedia`, from `resolveClipLayoutsWithDiagnostics`'s
+    `sizes` map); a shape's *unset* width/height defaults to 0 intrinsic size
+    inside flex (not the "fills the frame" default it has outside one), so an
+    undecorated plate does not force every sibling with `grow` into a shrink
+    negotiation it was never meant to be in. Media/model3d keep their
+    frame-filling default and are not resized by flex today.
+  - **`position: "absolute"` + `inset` is how a plate sits behind text**: an
+    inset of `0` on all four edges fills the container's box exactly. An
+    absolute child with no `inset` keeps its authored `transform.position`
+    unchanged (relative to the container's origin) — it never enters the
+    diff step.
+  - **A resized shape's `x`/`y` are pinned to `0`, not left as authored.**
+    `shapeBox` (`render/shapeGeometry.ts`) defaults an *unset* `x`/`y` to
+    `0.25` — centered at half size — but the box flex just computed is
+    measured from the frame's top-left (the same `x ?? 0` convention
+    `measuredClipBox`'s own shape branch uses to place it). Overriding only
+    `width`/`height` and leaving `x`/`y` alone draws the shape centered
+    *inside* its own resized box instead of filling it —
+    `render.flexPixels.test.ts` pixel-checks this. This is a real,
+    pre-existing divergence between `measuredClipBox`'s defaults and
+    `shapeBox`'s: worth reconciling outside a shape a flex container resizes
+    too, but out of this change's scope.
+  - **Layout is cached by `clips` array identity**, not recomputed per frame
+    for an unchanged document (`layoutCache`, a `WeakMap<clips, entry>` also
+    keyed by canvas width/height and the `measureText` reference). A
+    document's `clips` array is only ever replaced wholesale by an edit, never
+    mutated in place, so this is a correct — and, on a synthetic ~620-clip
+    flex-heavy document, roughly 8000× — cache: rebuilding the Yoga tree
+    every call cost ~2.8ms; a cache hit costs a `WeakMap` lookup. A canvas
+    resize or a new `clips` array (any edit) misses it, by design.
+    `render.spatialTiming.test.ts` asserts this by spying on `Yoga.Node.create`.
+  - **`yoga-layout`'s WASM init is a top-level await inside an ESM module.**
+    Every host that imports `./render`/`./scene` builds/runs as ESM (`tsc`
+    for the backend packages, Vite for `web/`, `esbuild --format esm` for
+    `scripts/bundle-backend.mjs`, Vitest) — Node's and every modern bundler's
+    ESM loader blocks a module's own evaluation until its imports' top-level
+    awaits settle, so by the time any function in `layout.ts` actually runs,
+    Yoga is already initialized. No `yoga-layout/load` dance needed. If a
+    future host bundles to CJS, it needs one.
 - **One scene model, one compositor, four hosts.** The live preview, the
   browser export, the server-side `RenderTimeline` node and the agent-facing
   `preview_timeline_frame` all resolve layers with `computeActiveLayers` +
@@ -273,6 +365,38 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   they draw. The catalog and the `@font-face` generator carry no imports at
   all, which is what lets the browser, the validator and the fonts endpoint
   read the same table.
+- **A family the bundled catalog does not carry can still resolve — from
+  Google Fonts, not `font_not_portable` forever.** `google-fonts.ts` (root
+  export: URL building, `METADATA.pb` text-format parsing, weight/style
+  picking, `@font-face` CSS building — no fetch, no fs) and
+  `google-fonts-fetch.ts` (`@nodetool-ai/timeline/fonts/google-fetch`: the
+  network+disk-cache half, `safeFetch`-guarded) resolve a family from the
+  `google/fonts` GitHub repository's `ofl`/`apache` licence directories —
+  raw.githubusercontent.com only, checked twice, once by
+  `assertGoogleFontsUrlAllowed` and once by `safeFetch` itself — and cache the
+  files under `getNodetoolCacheDir()/timeline-google-fonts/<slug>/` (see the
+  "Google Fonts family resolution (timeline)" row in
+  `docs/url-egress-inventory.md`). `google-fonts-node.ts`
+  (`@nodetool-ai/timeline/fonts/google-node`) adds `@napi-rs/canvas`
+  registration on top — `ensureGoogleFonts(sequence)` is what
+  `RenderTimeline`, `nodetool timeline render` and the agent's frame preview
+  call before constructing their rasterizer, returning `{resolved,
+  unavailable}` rather than throwing so one bad family reports
+  `fontsUnavailable` instead of failing the render. The fetch half is split
+  from the canvas half so the API server's fonts route
+  (`packages/websocket/src/routes/timeline-fonts.ts`) can resolve a family for
+  the browser to load with `@font-face` CSS, with no `@napi-rs/canvas`
+  dependency of its own. The browser side is `web/src/components/timeline/
+  preview/fontLoading.ts`'s `ensureGoogleFontsLoaded`/`ensureGoogleFontLoaded`,
+  which fetch that route, inject the CSS, and await `document.fonts.load` the
+  same way `ensureBundledFontsLoaded` does — `googleFontFamilyReady` is the
+  per-family gate `TextRasterizer` checks before caching a bitmap. Only `ofl`
+  and `apache` are resolved (both OFL/Apache-equivalent terms, matching the
+  bundled corpus); `ufl` (Ubuntu Font License) is not, so a family shipped only
+  there reports unavailable. A family downloads only the faces its requests
+  need. A later request for a weight or style the cache does not cover adds
+  that face to the cached family, and the manifest records every request it
+  already answered, so a cached request never fetches again.
 - **A browser draws with a bundled face only after `document.fonts.load`
   resolves.** `fillText` never waits, so a title rasterized before its file
   arrives is set in the fallback — and `TextRasterizer` caches by style, not by

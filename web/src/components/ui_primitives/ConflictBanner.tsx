@@ -36,6 +36,10 @@ export interface ConflictBannerProps {
   conflicts: ConflictBannerConflict[];
   onAccept: (unitId: string) => void;
   onDiscard: (unitId: string) => void;
+  /** Label for the accept action. Defaults to "Accept". */
+  acceptLabel?: string;
+  /** Label for the discard action. Defaults to "Discard". */
+  discardLabel?: string;
   sx?: object;
 }
 
@@ -58,11 +62,15 @@ const valuePaneSx = {
 function ConflictRow({
   conflict,
   onAccept,
-  onDiscard
+  onDiscard,
+  acceptLabel,
+  discardLabel
 }: {
   conflict: ConflictBannerConflict;
   onAccept: (unitId: string) => void;
   onDiscard: (unitId: string) => void;
+  acceptLabel: string;
+  discardLabel: string;
 }): ReactElement {
   const [showDetail, setShowDetail] = useState(false);
   const hasDraft = conflict.draftDetail != null;
@@ -88,10 +96,10 @@ function ConflictRow({
             </EditorButton>
           )}
           <EditorButton size="small" onClick={() => onAccept(conflict.unitId)}>
-            Accept
+            {acceptLabel}
           </EditorButton>
           <EditorButton size="small" onClick={() => onDiscard(conflict.unitId)}>
-            Discard
+            {discardLabel}
           </EditorButton>
         </FlexRow>
       </FlexRow>
@@ -128,7 +136,10 @@ function ConflictRow({
  * />
  */
 export const ConflictBanner = forwardRef<HTMLDivElement, ConflictBannerProps>(
-  ({ conflicts, onAccept, onDiscard, sx }, ref) => {
+  (
+    { conflicts, onAccept, onDiscard, acceptLabel = "Accept", discardLabel = "Discard", sx },
+    ref
+  ) => {
     const summary = `${conflicts.length} change${conflicts.length === 1 ? "" : "s"} made outside the editor conflict${conflicts.length === 1 ? "s" : ""} with your edits.`;
 
     return (
@@ -141,6 +152,8 @@ export const ConflictBanner = forwardRef<HTMLDivElement, ConflictBannerProps>(
               conflict={conflict}
               onAccept={onAccept}
               onDiscard={onDiscard}
+              acceptLabel={acceptLabel}
+              discardLabel={discardLabel}
             />
           ))}
         </FlexColumn>

@@ -6,6 +6,7 @@ import type {
   TimelineMarker,
   TimelineTempo,
   TimelineSetup,
+  TimelineSource,
   TranscriptLine,
   MediaTrack
 } from "@nodetool-ai/timeline";
@@ -86,6 +87,11 @@ export interface TimelineDocument {
   setup?: TimelineSetup;
   /** Sequence this one was retargeted from. Unset on a sequence built directly. */
   templateId?: string | null;
+  /**
+   * The authoring code this timeline was baked from, and the scene hashes the
+   * last bake recorded. Unset on a sequence nobody authored with code.
+   */
+  source?: TimelineSource | null;
   /** Subject/object tracks (P0 AI Video, Phase 2). Unset on a document with none. */
   mediaTracks?: MediaTrack[];
 }
@@ -167,6 +173,7 @@ export class TimelineSequence extends DBModel {
       camera2d: doc.camera2d,
       setup: doc.setup,
       templateId: doc.templateId,
+      source: doc.source,
       mediaTracks: doc.mediaTracks,
       createdAt: this.created_at,
       updatedAt: this.updated_at
@@ -188,6 +195,7 @@ export class TimelineSequence extends DBModel {
       camera2d: seq.camera2d,
       setup: seq.setup,
       templateId: seq.templateId,
+      source: seq.source,
       mediaTracks: seq.mediaTracks
     };
     return new TimelineSequence({

@@ -2020,7 +2020,17 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_example_timeline",
     module: "example-timelines",
     impl: "packages/agents/src/capabilities/example-timelines.ts",
-    contract: "cc73934a536d",
+    contract: "2bc26c013376",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-example-timelines.test.ts",
+    ],
+  },
+  {
+    name: "get_example_timeline_source",
+    module: "example-timelines",
+    impl: "packages/agents/src/capabilities/example-timelines.ts",
+    contract: "917b30f6d822",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-example-timelines.test.ts",
@@ -2277,6 +2287,56 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-native-media-editing.test.ts",
+    ],
+  },
+  {
+    name: "get_timeline_code",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "26c7d5c6df9d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "set_timeline_code",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "b0f14f67b887",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "edit_timeline_code",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "2ab04933428e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "rebake_timeline_code",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "b5fa750b9243",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "detach_timeline_code",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "d95c45f350d1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
     ],
   },
   {
@@ -3089,6 +3149,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "js-scripts",
     impl: "packages/agents/src/capabilities/js-scripts.ts",
     contract: "b6323e3dc559",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "edit_js_script",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "64e1071655a2",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/js-scripts-capabilities.test.ts",

@@ -476,7 +476,31 @@ around every tool- and plan-approval round trip.
   `neverReject` adapter that returns a tagged error object, which a guest
   prelude rewraps into a real `throw`. Working around a known handle leak in
   `@sebastianwessel/quickjs@3.0.1` (tracked as `list_empty(&rt->gc_obj_list)`
-  assertion on runtime dispose).
+  assertion on runtime dispose). This convention only covered a *top-level*
+  function global; one nested inside an object global (`{ nodetool: {
+  timelines: { edit() {...} } } }`, the shape a hermetic bake's stub injects)
+  reached the guest through the wrapper's own generic object marshaling
+  instead, skipping the tagging. `wrapNestedFunctionsDeep`
+  (`js-sandbox-worker/interpreter.ts`) now applies the same wrap at any
+  nesting depth; pinned by "a function nested inside a data global" in
+  `tests/js-sandbox.test.ts`.
+- The wrapper's `handleToNative.setProperties` skips disposal of `getProp`
+  handles for missing descriptor fields and boolean flags. Those primitive
+  allocations survive runtime disposal in a shared WASM engine. Repeated
+  closure-bearing objects reproduce the cleanup assertion without NodeTool
+  packs or serializer registration. The shared loader in
+  `src/js-sandbox-worker/engine.ts` releases these allocations and returns
+  equivalent static handles before any wrapper bootstrap runs. It also owns
+  the string handles the wrapper forgets when reading symbol descriptions.
+  Both in-process
+  and worker execution keep their cached engines. Do not add caller-specific
+  fresh-engine options. Regressions are `tests/js-sandbox-engine.test.ts` and
+  `tests/js-sandbox-worker-engine.test.ts`.
+  See [the reproduction and upstream issue draft](docs/quickjs-descriptor-leak.md).
+- A worker that reports an interpreter failure is discarded. Guest exceptions
+  are ordinary results and keep the worker reusable. The pool creates a
+  replacement on the next acquisition, as tested in
+  `tests/js-sandbox-worker-protocol.test.ts`.
 - Every `Lifetime` taken from the engine must be disposed, including the one
   `ctx.getArrayBuffer()` returns. The typed-array serializer dropped it, so
   each `Uint8Array` crossing guest → host leaked a handle and a run moving

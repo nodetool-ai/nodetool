@@ -7,8 +7,8 @@ featured: true
 # Frame Composition → staging on the timeline
 
 Where things sit, how deep the frame is, and how the camera moves through it.
-`motion-graphics` carries the tool contract; this decides the coordinates you
-pass it.
+`motion-graphics` is the build loop; `timeline-edit-ops` carries the op
+contract. This decides the coordinates you pass either.
 
 ## Four coordinate spaces, and mixing them is the usual bug
 
@@ -22,11 +22,76 @@ pass it.
 | `anchorX` / `anchorY` | 0..1 | The point a scale or a rotation pivots on |
 | `textStyle.fontSizePx` | sequence px | Against `height` from `get_timeline`, not the preview width |
 | `transform.depthPx`, `camera2d.position/depthPx/focalLengthPx` | sequence px | Perspective; clip depth also orders clips within one track |
-| `layout.gapPx`, `fitText.paddingXPx/paddingYPx` | sequence px | Measured against the rendered text or shape box |
+| `layout.gap`, `layout.padding` | sequence px | Flex container spacing, measured against its children's rendered boxes |
 
 Read `width`, `height` and `fps` off `get_timeline` before you compute anything.
 A layout authored against 1920×1080 and saved onto a 1080×1920 sequence is off
 by more than a crop.
+
+## Text is placed by containers
+
+Building with `@nodetool-ai/sandbox-timeline` (see `motion-graphics` for when
+code is the right surface)? **A container decides where its children sit —
+you almost never write `x`/`y` for text.** `s.stack(children, o)` and
+`s.row(children, o)` build a real Yoga flex container and reparent
+`children` onto it as its real children — nest freely, a `row` of `stack`s
+or a `stack` holding a nested `row` both resolve correctly. A text child
+reflows to whatever width Yoga offers it, not a guessed line length.
+
+The container's own placement in the frame is `o.at` (`{x, y}`, default the
+frame centre) plus `o.anchor` (default `"center"`): `anchor` names the point
+of the container's own *computed* box that lands at `at` — the name
+`"left"` puts that box's left edge at `at.x`, no measuring a sibling's width
+required. Named anchors: `"top-left"`, `"top"`, `"top-right"`, `"left"`,
+`"center"`, `"right"`, `"bottom-left"`, `"bottom"`, `"bottom-right"`, or pass
+`{x, y}` fractions directly. `o.align` (cross axis, default `"start"`) and
+`o.justify` (main axis, unset) are the Yoga `alignItems`/`justifyContent`.
+A child's own flex sizing is `o.flexItem` on that child's own call (`grow`,
+`width`, `alignSelf`, …); `absolute: true` on a `rect`/`ellipse` (or any
+clip) takes it out of flow and resizes it to fill its flex parent's box
+exactly — how a plate sits behind a card's text with no pixel math.
+
+Reach for explicit `x`/`y` only for decoration (a stray mark, a background
+shape) or a deliberate free placement that has nothing to do with reading
+order. Anything a viewer reads — a title, a kicker, a caption, a row of
+stats — goes in a container.
+
+**Title block** — kicker, title, sub, stacked with a shared rhythm:
+
+```js
+// fragment
+const kicker = s.kicker("LAUNCHING TODAY");
+const title = s.text("Round-ups", { size: 120, weight: 700 });
+const sub = s.text("on every card", { size: 40 });
+s.stack([kicker, title, sub], { gap: 20 });
+```
+
+**Lockup** — a mark beside its wordmark, one row:
+
+```js
+// fragment
+const mark = s.image(logoAssetId);
+const wordmark = s.text("Northwind", { size: 64, weight: 700 });
+s.row([mark, wordmark], { gap: 16, align: "center" });
+```
+
+**Card** — a padded column over an absolute plate:
+
+```js
+// fragment
+const plate = s.rect(1, 1, "#0c2a21", { r: 24, absolute: true });
+const heading = s.text("Plan Pro", { size: 48, weight: 700 });
+const price = s.text("$12/mo", { size: 32 });
+s.stack([plate, heading, price], { gap: 8, padding: 24 });
+```
+
+**List / grid** — a row that wraps into a grid when it runs out of width:
+
+```js
+// fragment
+const chips = ["Round-ups", "Instant transfers", "No fees"].map((t) => s.pill(t));
+s.row(chips, { gap: 12, wrap: true });
+```
 
 ## Grid
 
@@ -136,8 +201,8 @@ but refuses `camera2d`, `layout`, `repeater`, `motionBlur`, and other new docume
 fields. Read the full document with `get_timeline`, change the relevant fields,
 then write the full document with `set_timeline_document`. Keep its tracks,
 clips, markers, tempo, setup, media tracks, template identity, and other fields
-in the write. `motion-graphics` carries the
-tool contract.
+in the write. `timeline-edit-ops` carries the
+op contract.
 
 `kenBurns` is `fullClip`: it ignores `durationMs` and `delayMs` and runs across
 the whole clip. To time a push to something shorter, write it as a `custom`
@@ -186,11 +251,17 @@ up out of the bottom UI zone, and raise `fontSizePx` by about 20%. Cropping a
 16:9 layout to 9:16 clips whatever sat in the outer columns, which is usually the
 logo and the call to action.
 
-Use `layout: {kind: "row" | "stack", children: [clip ids], gapPx}` to keep a
-group's spacing tied to its members. Use a clip's `layout: {kind: "relative",
-targetClipId, side, gapPx}` for a label or plate that follows another clip.
-For a shape behind text, `fitText: {paddingXPx, paddingYPx}` sizes the shape
-against the text's current box, including animated font size. These relations
+Building in code, restacking is usually one option change on the container
+above — flip `s.row` to `s.stack` (or its `align`/`justify`), or move it to a
+new `at`/`anchor` — not a rebuild of every child's `x`/`y`.
+
+On the ops path, `layout: {display: "flex", flexDirection: "row" | "column",
+gap}` on a group clip keeps its real children (their `parentId` names the
+group) laid out with ordinary CSS flexbox — `justifyContent`/`alignItems`
+position them, `padding` insets the container. For a shape behind text, give
+the shape `flexItem: {position: "absolute", inset: 0}` inside a padded flex
+column holding the text: the shape's box resizes to the text's padded box,
+including an animated font size, with no manual pixel math. These relations
 avoid redoing pixel math for each text change. A 16:9 document still needs a
 separate placement pass for 9:16, with safe areas checked at that size.
 

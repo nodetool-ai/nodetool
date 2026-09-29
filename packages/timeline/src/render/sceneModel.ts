@@ -49,7 +49,7 @@ import { resolveBeatAnimations } from "../animation/beat.js";
 import type { ResolvedCaption, TextRenderStagger } from "./draw.js";
 import { countTextStaggerUnits, type RenderCanvas } from "./textLayout.js";
 import { buildTransformMatrix } from "./transform.js";
-import { resolveClipLayouts } from "./layout.js";
+import { resolveClipLayoutsWithDiagnostics } from "./layout.js";
 import { resolveCamera2D, sampleCamera2D } from "./spatial.js";
 import { expandTemporalClips, clipSteppedTime } from "./temporal.js";
 import { resolveTransition, type ResolvedTransition } from "./transition.js";
@@ -880,20 +880,6 @@ function computeActiveLayersWithHorizonBase(
   const maxVideoLayers = options.maxVideoLayers ?? MAX_VIDEO_LAYERS;
   const transitions = resolveDocumentTransitions(clips, currentTimeMs);
 
-  // Parents before children: a child's opacity, matrix and window all come
-  // from a group that may sit on any track, so every group is resolved before
-  // the track walk starts.
-  const groups = resolveGroups(
-    clips,
-    currentTimeMs,
-    options.canvas,
-    options.animationCache,
-    options.tempo,
-    transitions,
-    options.camera2d
-  );
-
-  const sortedTracks = [...tracks].sort((a, b) => a.index - b.index);
   const layoutCanvas = options.canvas;
   const layoutClips = layoutCanvas
     ? clips.map((clip) => {
@@ -908,7 +894,53 @@ function computeActiveLayersWithHorizonBase(
         return animated.textStyle ? { ...clip, textStyle: animated.textStyle } : clip;
       })
     : clips;
-  const layouts = layoutCanvas ? resolveClipLayouts(layoutClips, layoutCanvas) : new Map<string, ClipTransform>();
+  const layoutResolved = layoutCanvas ? resolveClipLayoutsWithDiagnostics(layoutClips, layoutCanvas) : undefined;
+  const layouts = layoutResolved?.transforms ?? new Map<string, ClipTransform>();
+  // Every entry in `layouts` — leaf or nested (non-root) flex container — is
+  // a delta already relative to the flex root's own untranslated frame
+  // (`layout.ts`'s `originX`/`originY` leave the root's own `position` out on
+  // purpose, so `resolveGroups`'s ordinary parent-matrix composition can add
+  // it exactly once when it places the root). A nested flex container's own
+  // *translation* is therefore already folded into every one of its
+  // descendants' resolved positions — composing it a second time, by handing
+  // `resolveGroups` this container's resolved (translated) transform as if it
+  // were freshly authored, would double it, the same bug the root itself had.
+  // What a nested container's own group matrix still has to contribute is any
+  // rotation/scale the author put on *it* — flex never touches those (`moved`
+  // only overwrites `position`) — so `resolveGroups` sees every flex-managed
+  // group's transform with `position` zeroed but everything else exactly as
+  // `layouts` left it. The flex root itself is untouched either way: it has
+  // no entry in `layouts` (excluded on purpose), so it keeps its own fully
+  // authored transform, position included — that position is the one and
+  // only real translation this composition is meant to add. A plain group
+  // inside a flex container is a leaf: flex moves the group and never lays
+  // out its children, so it keeps its resolved transform, position included.
+  const groupPatchedClips = layouts.size > 0
+    ? clips.map((clip) => {
+        if (clip.mediaType !== "group") return clip;
+        const resolved = layouts.get(clip.id);
+        if (!resolved) return clip;
+        if (clip.layout?.display !== "flex") return { ...clip, transform: resolved };
+        return { ...clip, transform: { ...resolved, position: { x: 0, y: 0 } } };
+      })
+    : clips;
+
+  // Parents before children: a child's opacity, matrix and window all come
+  // from a group that may sit on any track, so every group is resolved before
+  // the track walk starts.
+  const groups = resolveGroups(
+    groupPatchedClips,
+    currentTimeMs,
+    options.canvas,
+    options.animationCache,
+    options.tempo,
+    transitions,
+    options.camera2d
+  );
+
+  const sortedTracks = [...tracks].sort((a, b) => a.index - b.index);
+  const layoutSizes = layoutResolved?.sizes ?? new Map<string, { width: number; height: number }>();
+  const canvasForLayout = layoutCanvas;
   const clipsByTrackId = new Map<string, TimelineClip[]>();
   for (const c of clips) {
     const arr = clipsByTrackId.get(c.trackId);
@@ -942,6 +974,21 @@ function computeActiveLayersWithHorizonBase(
   const matteLayers = new Map<string, ActiveLayer>();
   const emitMedia = (layer: ActiveLayer): void => {
     layer.transform = layouts.get(layer.clipId) ?? layer.transform;
+    // A flex container resized this leaf (rect/ellipse's box, or a text
+    // clip's wrap width): apply it to the drawn clip, not just the measured
+    // one `resolveClipLayoutsWithDiagnostics` used internally, or the raster
+    // would still draw the authored size at the resolved position.
+    const flexSize = layoutSizes.get(layer.clipId);
+    if (flexSize && canvasForLayout) {
+      if (layer.clip.mediaType === "shape" && layer.clip.shapeStyle) {
+        // x/y pinned to 0 for the same reason layout.ts's own size override
+        // does: the resized box is measured from the top-left, not from
+        // `shapeBox`'s centered (0.25/0.25) default for an unset origin.
+        layer.clip = { ...layer.clip, shapeStyle: { ...layer.clip.shapeStyle, x: 0, y: 0, width: flexSize.width / canvasForLayout.width, height: flexSize.height / canvasForLayout.height } };
+      } else if (layer.clip.mediaType === "text" && layer.clip.textStyle) {
+        layer.clip = { ...layer.clip, textStyle: { ...layer.clip.textStyle, maxWidthFrac: Math.min(1, Math.max(0.05, flexSize.width / canvasForLayout.width)) } };
+      }
+    }
     layer.camera2d = layer.parentMatrix && layer.clip.parentId && groups.get(layer.clip.parentId)?.cameraApplied
       ? null
       : options.camera2d;

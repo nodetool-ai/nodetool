@@ -1502,6 +1502,172 @@ export const deleteTimelineSpec: CapabilitySpec = {
   userMessage: (params) => `Deleting timeline sequence ${params["timeline_id"]}`
 };
 
+export const getTimelineCodeSpec: CapabilitySpec = {
+  name: "get_timeline_code",
+  description:
+    "The authoring code a timeline was baked from, and per-scene bake status. " +
+    "Returns {code, baked_at, scenes: [{name, group_id, edited}]} — `code` is " +
+    "null when the timeline carries none. `edited` is true when a scene's " +
+    "subtree has changed since the last bake (a hand edit, or an " +
+    "`edit_timeline` op) and a rebake would keep it and report a conflict.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      timeline_id: {
+        type: "string",
+        description: "The timeline to read. You must own it."
+      }
+    },
+    required: ["timeline_id"]
+  },
+  category: "read",
+  userMessage: (params) =>
+    `Reading the authoring code for timeline ${String(params["timeline_id"])}`
+};
+
+export const SET_TIMELINE_CODE_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "The timeline to write code onto. You must own it."
+    },
+    code: {
+      type: "string",
+      description:
+        "An @nodetool-ai/sandbox-timeline script: import the pack, build " +
+        "scenes with video()/scene()/series(), call v.save()."
+    },
+    force: {
+      description:
+        "true to overwrite every scene regardless of hand edits, or an " +
+        "array of scene names to force just those.",
+      oneOf: [{ type: "boolean" }, { type: "array", items: { type: "string" } }]
+    },
+    require_match: {
+      type: "boolean",
+      description:
+        "Attach the code only if it bakes to exactly the document saved " +
+        "now; otherwise write nothing and return a warning. v.save() uses " +
+        "this to attach the program it printed."
+    }
+  },
+  required: ["timeline_id", "code"]
+};
+
+export const setTimelineCodeSpec: CapabilitySpec = {
+  name: "set_timeline_code",
+  description:
+    "Attach or replace a timeline's authoring code, bake it, and merge the " +
+    "result into the document scene by scene: an untouched scene is replaced " +
+    "by the new build, a hand-edited one is kept and reported in `conflicts` " +
+    "(pass `force` to overwrite it anyway). Returns " +
+    "{timeline_id, errors, warnings, conflicts, scenes}.",
+  inputSchema: SET_TIMELINE_CODE_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Setting authoring code on timeline ${String(params["timeline_id"])}`
+};
+
+export const EDIT_TIMELINE_CODE_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "The timeline whose code to edit. You must own it."
+    },
+    edits: {
+      type: "array",
+      description:
+        "Exact-match string replacements applied to the stored code, in " +
+        "order. Each `old` must match exactly once.",
+      items: {
+        type: "object",
+        properties: {
+          old: { type: "string" },
+          new: { type: "string" }
+        },
+        required: ["old", "new"]
+      },
+      minItems: 1
+    },
+    force: {
+      oneOf: [{ type: "boolean" }, { type: "array", items: { type: "string" } }]
+    }
+  },
+  required: ["timeline_id", "edits"]
+};
+
+export const editTimelineCodeSpec: CapabilitySpec = {
+  name: "edit_timeline_code",
+  description:
+    "Edit a timeline's stored authoring code by exact-match string " +
+    "replacement, then bake and merge the result the way set_timeline_code " +
+    "does. Each edit's `old` must match exactly once in the current code — " +
+    "zero or more than one match is refused, naming the count.",
+  inputSchema: EDIT_TIMELINE_CODE_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Editing authoring code on timeline ${String(params["timeline_id"])}`
+};
+
+export const rebakeTimelineCodeSpec: CapabilitySpec = {
+  name: "rebake_timeline_code",
+  description:
+    "Re-run a timeline's stored authoring code and merge the result into the " +
+    "document, without changing the code itself. Same merge rule as " +
+    "set_timeline_code: an untouched scene is replaced, a hand-edited one is " +
+    "kept and reported in `conflicts` unless `force` names it.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      timeline_id: {
+        type: "string",
+        description: "The timeline to rebake. You must own it."
+      },
+      force: {
+        oneOf: [{ type: "boolean" }, { type: "array", items: { type: "string" } }]
+      }
+    },
+    required: ["timeline_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Rebaking timeline ${String(params["timeline_id"])}`
+};
+
+export const DETACH_TIMELINE_CODE_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "The timeline to detach scenes on. You must own it."
+    },
+    scenes: {
+      description:
+        "Scene names to stop tracking, or \"all\" to detach every scene and " +
+        "drop the code entirely.",
+      oneOf: [
+        { const: "all" },
+        { type: "array", items: { type: "string" }, minItems: 1 }
+      ]
+    }
+  },
+  required: ["timeline_id", "scenes"]
+};
+
+export const detachTimelineCodeSpec: CapabilitySpec = {
+  name: "detach_timeline_code",
+  description:
+    "Stop tracking the named scenes (or every scene, with \"all\") against the " +
+    "timeline's authoring code. A detached scene becomes plain hand-edited " +
+    "content: a later rebake never touches it again. \"all\" also drops the " +
+    "stored code itself.",
+  inputSchema: DETACH_TIMELINE_CODE_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Detaching code tracking on timeline ${String(params["timeline_id"])}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const timelinesSpecs: readonly CapabilitySpec[] = [
   listTimelinesSpec,
@@ -1526,5 +1692,10 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   videoToAudioSpec,
   recordedVoiceReplacementSpec,
   lipSyncSpec,
+  getTimelineCodeSpec,
+  setTimelineCodeSpec,
+  editTimelineCodeSpec,
+  rebakeTimelineCodeSpec,
+  detachTimelineCodeSpec,
   deleteTimelineSpec
 ];

@@ -82,6 +82,12 @@ export interface TimelineSequence {
    */
   templateId?: string | null;
   /**
+   * The authoring code this timeline was baked from, and which scene groups
+   * it produced last. Absent on a sequence nobody authored with code. See
+   * {@link TimelineSource}.
+   */
+  source?: TimelineSource | null;
+  /**
    * Subject/object tracks (P0 AI Video, Phase 2). Document-level rather than
    * per-clip because a track is the reusable primitive `TrackBinding`
    * attaches to; each track still owns exactly one `clipId`.
@@ -91,6 +97,28 @@ export interface TimelineSequence {
   camera2d?: TimelineCamera2D | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * A timeline's authoring code, embedded in the document it built — the
+ * source-of-truth for the "edit the code, not the JSON" surface
+ * (`nodetool.timelines.code.*`). `code` is an ordinary
+ * `@nodetool-ai/sandbox-timeline` script: it imports the pack, builds scenes
+ * with `video()`/`scene()`/`series()`, and calls `v.save()`.
+ *
+ * `scenes` names, per scene, the group clip id and a hash of that scene's
+ * whole subtree (the group plus every descendant) as the code last baked it.
+ * A rebake compares the *current* subtree hash against this recorded one: a
+ * match means nothing touched the scene since the last bake, so the new build
+ * replaces it; a mismatch means it was hand-edited (in the editor, or via
+ * `edit_timeline`) and is kept, reported as a conflict.
+ */
+export interface TimelineSource {
+  lang: "js";
+  code: string;
+  /** When this document was last written by a bake. */
+  bakedAt: string;
+  scenes: Record<string, { groupId: string; hash: string }>;
 }
 
 /** Immutable inputs needed to replay one direct text-to-video generation. */
@@ -945,8 +973,10 @@ export interface TimelineClip {
    * its own: it treats the composite beneath it, already placed.
    */
   transform?: ClipTransform;
-  /** Position derived from other clips' measured boxes at render time. */
+  /** Turns this `group` clip into a flex container for its real children. */
   layout?: ClipLayout;
+  /** This clip's own sizing/placement inside its parent's flex container. */
+  flexItem?: ClipFlexItem;
   /** Repeated copies of this visual clip, each offset in space, time, and tint. */
   repeater?: ClipRepeater;
   /** Clip-specific shutter, independent of the render-wide setting. */
@@ -991,6 +1021,13 @@ export interface TimelineClip {
    * error and renders unparented.
    */
   parentId?: string;
+  /**
+   * On a `group` clip built by `@nodetool-ai/sandbox-timeline`'s `v.scene()`:
+   * the scene name this group is the root of. Names the scene a code-backed
+   * timeline's rebake merge (`source.scenes`) tracks and hashes; absent on a
+   * group nothing authored with code created, and on every non-group clip.
+   */
+  sourceScene?: string;
   /**
    * Shape mask applied to this layer before it is blended. On an `adjustment`
    * clip it is in frame space (the surface being treated) rather than the
@@ -1462,16 +1499,94 @@ export interface TimelineCamera2D {
   }[];
 }
 
+/** `justify-content` / `align-content` values (CSS names). */
+export type FlexJustify =
+  | "flex-start"
+  | "flex-end"
+  | "center"
+  | "space-between"
+  | "space-around"
+  | "space-evenly";
+
+/** `align-items` / `align-self` values (CSS names). */
+export type FlexAlign = "flex-start" | "flex-end" | "center" | "stretch" | "baseline";
+
+/** Per-edge px value for padding/margin/inset. An absent edge is 0. */
+export interface ClipLayoutEdges {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}
+
+/** A px number or a percentage string (`"N%"`, of the containing box). */
+export type ClipLayoutDimension = number | `${number}%` | string;
+
+/**
+ * A flex container (Yoga). Only a `group` clip carries this; its REAL
+ * children — clips with `parentId` set to this clip's id — lay out inside it
+ * as ordinary CSS flexbox, in document order. Nesting works exactly as in
+ * CSS: a child that is itself a `group` with its own `layout` is both sized
+ * by this container's flex algebra and a container for its own children.
+ *
+ * `display` is the only literal today (no back-compat with the old
+ * row/stack/relative resolver, I1) so the field stays open for a future
+ * `"grid"` or `"none"` without a breaking shape change.
+ *
+ * A container with no parent (or whose parent is not itself a flex
+ * container) is a layout root: its `width`/`height` default to hugging its
+ * content (Yoga's "auto"), and {@link TimelineClip.transform}'s `position` +
+ * `anchor` place the *computed* box in the frame — `anchor` names the point
+ * of that box that lands at `position`, exactly as it already does for a
+ * layer's own quad. See `packages/timeline/AGENTS.md`'s "Layout is flexbox"
+ * note.
+ */
 export interface ClipLayout {
-  /** A row or vertical stack containing the named clips in this order. */
-  kind: "row" | "stack" | "relative";
-  children?: string[];
-  gapPx?: number;
-  /** Relative mode places this clip against another clip's resolved box. */
-  targetClipId?: string;
-  side?: "left" | "right" | "above" | "below" | "center";
-  /** Fit this clip's visual box to its text plus padding. */
-  fitText?: { paddingXPx: number; paddingYPx: number };
+  display: "flex";
+  /** Default `"row"` (the CSS default). */
+  flexDirection?: "row" | "column";
+  justifyContent?: FlexJustify;
+  alignItems?: FlexAlign;
+  /** Cross-axis distribution across wrapped lines. Ignored without wrap. */
+  alignContent?: FlexJustify;
+  flexWrap?: "nowrap" | "wrap" | "wrap-reverse";
+  /** Px. Sets both axes; `rowGap`/`columnGap` override per axis. */
+  gap?: number;
+  rowGap?: number;
+  columnGap?: number;
+  padding?: number | ClipLayoutEdges;
+  width?: ClipLayoutDimension;
+  height?: ClipLayoutDimension;
+  minWidth?: ClipLayoutDimension;
+  maxWidth?: ClipLayoutDimension;
+  minHeight?: ClipLayoutDimension;
+  maxHeight?: ClipLayoutDimension;
+}
+
+/**
+ * A flex child's own sizing and placement, read only when the clip's
+ * `parentId` names a `group` whose own `layout.display === "flex"`. Ignored
+ * (and reported by the validator as `flex_item_without_flex_parent`)
+ * otherwise.
+ */
+export interface ClipFlexItem {
+  grow?: number;
+  shrink?: number;
+  basis?: ClipLayoutDimension;
+  alignSelf?: FlexAlign;
+  width?: ClipLayoutDimension;
+  height?: ClipLayoutDimension;
+  margin?: number | ClipLayoutEdges;
+  /**
+   * `"absolute"` takes the child out of flow. With `inset` covering all four
+   * edges (`0`, or `{top:0,right:0,bottom:0,left:0}`) it fills the
+   * container's computed box — how a card/pill/plate background sits behind
+   * a title. Without `inset` the child keeps its authored
+   * `transform.position`, read relative to the container's box origin
+   * instead of the frame center.
+   */
+  position?: "relative" | "absolute";
+  inset?: number | ClipLayoutEdges;
 }
 
 export interface ClipRepeater {

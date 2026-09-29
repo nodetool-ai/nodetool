@@ -9,6 +9,15 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 
 const SUFFIX = ".timeline.json";
+const IMPORT_LINE = /^import\s+(?:[^;]+?)\s+from\s+["']([^"']+)["'];?\s*$/gm;
+
+export interface ExampleTimelineSource {
+  readonly slug: string;
+  /** The builder script's text, as shipped next to its compiled bundle. */
+  readonly source: string;
+  /** Every module specifier the script imports, static-import order. */
+  readonly imports: readonly string[];
+}
 
 export interface ExampleTimelineOptions {
   readonly examplesDir?: string;
@@ -82,6 +91,35 @@ export function getExampleTimelineBundle(
     (entry) => entry.slice(0, -SUFFIX.length) === slug
   );
   return file ? readBundle(dir, file) : null;
+}
+
+/**
+ * The builder script that produced a shipped example, read from the bundle's
+ * own `document.source.code` — the same field a code-backed timeline of the
+ * user's own carries, and the same `.timeline.json` that ships in the
+ * packaged app and the Docker image, so there is nothing extra to stage.
+ * `build.mjs` writes it there by baking each script and merging the result
+ * into the document, exactly like `set_timeline_code` does for a live
+ * timeline. An example built without going through the pack has no
+ * `document.source` and this answers `null`.
+ */
+export function getExampleTimelineSource(
+  options: ExampleTimelineOptions,
+  slug: string
+): ExampleTimelineSource | null {
+  const bundle = getExampleTimelineBundle(options, slug);
+  const source = bundle?.document.source?.code;
+  if (!source) {
+    return null;
+  }
+  const imports: string[] = [];
+  for (const match of source.matchAll(IMPORT_LINE)) {
+    const specifier = match[1];
+    if (specifier) {
+      imports.push(specifier);
+    }
+  }
+  return { slug, source, imports };
 }
 
 export function listExampleTimelines(

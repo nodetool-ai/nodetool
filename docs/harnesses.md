@@ -657,6 +657,80 @@ their timeline offsets. Stills, contact sheets, PNG sequences, and video frame
 selections carry no audio. Flags are in
 [CLI Reference](cli.md#nodetool-timeline-render-timeline_id_or_file).
 
+### nodetool timeline score (Timeline Craft Scorecard)
+
+Deterministic, no-LLM craft scorecard for a timeline document, from the same
+targets as `validate`. It exists to make "does an agent-authored timeline
+approach the density and polish of the shipped showcase examples" a
+repeatable measurement instead of a by-hand `agent run` + `timeline render
+--sheet` + eyeballing session, so an agent-harness change can be scored
+against a fixed baseline.
+
+The core (`packages/execution/src/timeline-debug/score.ts`,
+`scoreTimelineCraft`) computes nine metrics — animations and keyframes per
+visible second, distinct animated properties, distinct effect types,
+showcase-only feature flags used (`repeater`, `motionBlur`, `layout`,
+`blendMode`, `mask`, `animationLinks`, `temporalEcho`), style tracks, text
+animators, authored transitions, and scene count (distinct clip start-time
+boundaries) — against the **reference band**: the same metrics computed at
+runtime for the shipped examples (`kite`, `prism`, `serein`, `tidewater`,
+`voltra`; `t-minus-30` is footage-based and excluded) via
+`@nodetool-ai/timeline/examples/node`, the loader the product installs and
+previews them from, so the band never drifts from a second copy of the set.
+
+Each metric earns 0.4 credit outright, plus up to 0.6 more for reaching the
+reference median (capped at 1.0 — exceeding the median earns nothing
+further). The score is the mean credit across metrics, as a percentage,
+minus 5 points per **distinct** showcase-tier warning code the document
+carries (`validateTimelineSequence(doc, { tier: "showcase" })`'s
+`showcase_*` codes — new codes land here automatically, since the check
+runs, not a copy of it). Distinct, not per instance: four
+`showcase_text_collision` findings on four clip pairs are one craft gap, not
+four — penalizing by instance count would let one noisy, high-cardinality
+check dominate the score. `showcaseWarnings` still lists every instance;
+`showcaseWarningCodeCounts` breaks that list down by code (e.g.
+`showcase_text_collision ×4`), so volume stays visible even though the
+penalty is per code. The floor keeps one missing technique from cratering an
+otherwise dense, polished document; the median cap keeps a bloated document
+from buying an unbounded score by piling on one metric.
+
+```bash
+npm run dev:nodetool -- timeline score <timeline_id>
+npm run dev:nodetool -- timeline score sequence.json --json
+npm run dev:nodetool -- timeline score <timeline_id> --min-score 70
+npm run dev:nodetool -- timeline score <timeline_id> --sheet review-sheet.png
+```
+
+`--min-score <n>` is the only way this command fails: without it, the score
+is information and the exit code is always 0. `--sheet <out.png>` renders a
+GPU contact sheet of 12 evenly spaced frames through `runTimelineRender` —
+the same code path `timeline render --sheet` uses, never a second renderer.
+Flags are in
+[CLI Reference](cli.md#nodetool-timeline-score-timeline_id_or_file).
+
+**`scripts/motion-craft-eval.mjs`** is the eval loop built on top: it runs
+`nodetool agent run` against a motion-graphics brief (default: a 20-second
+launch spot for a fictional app, dense kinetic type/shapes/data/transitions),
+captures the NDJSON event stream to
+`nodetool-debug/motion-craft/<timestamp>/events.jsonl`, extracts the timeline
+the run settled on (the last `set_timeline_document` that resolved
+successfully — direct tool call or nested inside an `execute_code` sandbox
+action — falling back to the last one at all, then the last
+`create_timeline`), scores it, and writes `report.md` (brief, tool-call
+counts, errors, the scorecard, the contact-sheet path, the agent's final
+answer). `--runs N` repeats the loop and reports mean/min/max score. Running
+it end to end costs a real model call and up to 30 minutes, so it is not part
+of any automated check; only its event-parsing unit
+(`parseTimelineRunEvents`) is covered, against a trimmed extract of a real
+recorded run
+(`scripts/__tests__/fixtures/motion-craft-eval-events.sample.jsonl`).
+
+```bash
+node scripts/motion-craft-eval.mjs
+node scripts/motion-craft-eval.mjs --runs 3 -p claude_agent_sdk -m opus
+node scripts/motion-craft-eval.mjs --brief-file brief.txt --max-iterations 40 --timeout 900
+```
+
 ### 3D clips in preview_timeline_frame
 
 `preview_timeline_frame` composites a sequence at one or more timecodes on

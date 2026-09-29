@@ -1298,18 +1298,23 @@ export const effectParams = z.object({
   gammaRgb: rgbTriple
     .optional()
     .describe("liftGammaGain: midtone gamma per channel.")
-}).strict().superRefine((input, context) => {
-  const allowed = EFFECT_PARAMETER_FIELDS[input.type];
-  for (const [field, value] of Object.entries(input)) {
-    if (field !== "type" && value !== undefined && !allowed.includes(field)) {
-      context.addIssue({
-        code: "custom",
-        path: [field],
-        message: `${input.type} does not accept parameter "${field}". Allowed parameters: ${allowed.join(", ")}.`
-      });
+})
+  // `.passthrough()` (not `.strict()`) so a key the schema has never heard of
+  // reaches this refinement instead of failing on a bare `unrecognized_keys`
+  // issue, which would never name the type's actual allowed fields.
+  .passthrough()
+  .superRefine((input, context) => {
+    const allowed = EFFECT_PARAMETER_FIELDS[input.type];
+    for (const [field, value] of Object.entries(input)) {
+      if (field !== "type" && value !== undefined && !allowed.includes(field)) {
+        context.addIssue({
+          code: "custom",
+          path: [field],
+          message: `${input.type} does not accept parameter "${field}". Allowed parameters: ${allowed.join(", ")}.`
+        });
+      }
     }
-  }
-});
+  });
 
 export type EffectParams = z.infer<typeof effectParams>;
 
@@ -1351,13 +1356,13 @@ export function buildEffect(
     case "stylize": {
       const modes = ["rgbSplit", "radialBlur", "zoomBlur", "turbulence", "glitch", "halftone", "dither", "lightRays", "lensFlare", "innerShadow", "innerGlow", "edgeHighlight", "displacement", "gradientWipe", "lightLeakOverlay"] as const;
       const mode = modes.find((candidate) => candidate === input.mode);
-      if (!mode) throw new Error(`Unknown stylize mode: ${input.mode}`);
+      if (!mode) throw new Error(`Unknown stylize mode: "${input.mode}". Valid modes: ${modes.join(", ")}.`);
       return { ...base, type: "stylize", mode, amount: input.amount ?? 0.5, scale: input.scale, angle: input.angle, time: input.time, seed: input.seed, animate: input.animate, color: input.color, softness: input.softness };
     }
     case "generator": {
       const modes = ["noise", "fractal", "conicGradient", "meshGradient", "gradientField", "particles", "lightLeak", "gridPattern"] as const;
       const mode = modes.find((candidate) => candidate === input.mode);
-      if (!mode) throw new Error(`Unknown generator mode: ${input.mode}`);
+      if (!mode) throw new Error(`Unknown generator mode: "${input.mode}". Valid modes: ${modes.join(", ")}.`);
       return { ...base, type: "generator", mode, amount: input.amount, scale: input.scale, angle: input.angle, time: input.time, seed: input.seed, animate: input.animate, colorA: input.colorA, colorB: input.colorB };
     }
     case "lut":

@@ -247,6 +247,61 @@ export const testJsScriptSpec: CapabilitySpec = {
     `Testing JS script ${String(params["js_script_id"] ?? params["name"] ?? "")}`
 };
 
+export const EDIT_JS_SCRIPT_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    js_script_id: {
+      type: "string",
+      description: "The script to edit (from list_js_scripts)."
+    },
+    ops: {
+      type: "array",
+      description:
+        "String-replacement edits against the script's own `code`, applied " +
+        "in order. Each `old` must match exactly once in the code as it " +
+        "reads after the previous ops in this call — zero matches or more " +
+        "than one is refused by name, the way a code editor's find/replace " +
+        "would be. Prefer this over save_js_script for a small revision: it " +
+        "costs one short diff instead of resending the whole body.",
+      items: {
+        type: "object",
+        properties: {
+          old: {
+            type: "string",
+            description: "The exact text to find, including whitespace."
+          },
+          new: { type: "string", description: "The text to put in its place." }
+        },
+        required: ["old", "new"]
+      }
+    },
+    base_updated_at: {
+      type: "string",
+      description:
+        "The `updated_at` the script was read at. When it no longer " +
+        "matches, the edit is refused instead of clobbering a concurrent " +
+        "write. Omit to compare-and-swap against the row as just read."
+    }
+  },
+  required: ["js_script_id", "ops"]
+};
+
+export const editJsScriptSpec: CapabilitySpec = {
+  name: "edit_js_script",
+  description:
+    "Revise a saved script's `code` with exact string-replacement edits, " +
+    "instead of resending the whole document through save_js_script. Each " +
+    "op's `old` text must appear exactly once in the current code; an " +
+    "absent or ambiguous match is refused and nothing is written. The " +
+    "resulting document is validated the same way save_js_script's is — a " +
+    "revision that fails validation is refused and the code stays as it " +
+    "was.",
+  inputSchema: EDIT_JS_SCRIPT_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Editing JS script ${String(params["js_script_id"] ?? "")}`
+};
+
 export const deleteJsScriptSpec: CapabilitySpec = {
   name: "delete_js_script",
   description:
@@ -398,6 +453,7 @@ export const jsScriptsSpecs: readonly CapabilitySpec[] = [
   listJsScriptsSpec,
   getJsScriptSpec,
   saveJsScriptSpec,
+  editJsScriptSpec,
   validateJsScriptSpec,
   runJsScriptSpec,
   testJsScriptSpec,

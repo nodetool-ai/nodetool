@@ -135,6 +135,11 @@ describe("timelines capability module", () => {
       "video_to_audio",
       "recorded_voice_replacement",
       "lip_sync",
+      "get_timeline_code",
+      "set_timeline_code",
+      "edit_timeline_code",
+      "rebake_timeline_code",
+      "detach_timeline_code",
       "delete_timeline"
     ]);
   });
@@ -838,6 +843,62 @@ describe("timelines capability behaviour", () => {
     expect(await run().invoke("validate_timeline", { document: JSON.parse(document()), tier: "cinematic" })).toMatchObject({ error: expect.any(String) });
   });
 
+  it("resolves a stack layout's children before measuring showcase collision boxes", async () => {
+    const stackDocument = (gapPx: number) =>
+      JSON.stringify({
+        tracks: [
+          { id: "t-stack", name: "Stack", type: "video", index: 0, visible: true, locked: false },
+          { id: "t-line1", name: "Line1", type: "video", index: 1, visible: true, locked: false },
+          { id: "t-line2", name: "Line2", type: "video", index: 2, visible: true, locked: false }
+        ],
+        clips: [
+          {
+            id: "stack", trackId: "t-stack", name: "Stack", startMs: 0, durationMs: 2000,
+            mediaType: "group", sourceType: "imported", status: "generated", locked: false, versions: [],
+            layout: { display: "flex", flexDirection: "column" }
+          },
+          {
+            id: "line1", trackId: "t-line1", name: "Line1", startMs: 0, durationMs: 2000,
+            mediaType: "text", sourceType: "imported", status: "generated", locked: false, versions: [],
+            parentId: "stack", textStyle: { text: "Title line", fontSizePx: 40, color: "#ffffff" }
+          },
+          {
+            id: "line2", trackId: "t-line2", name: "Line2", startMs: 0, durationMs: 2000,
+            mediaType: "text", sourceType: "imported", status: "generated", locked: false, versions: [],
+            parentId: "stack", textStyle: { text: "Subtitle line", fontSizePx: 40, color: "#ffffff" },
+            // Flex `gap` cannot go negative; a negative separation (the case
+            // that must still collide) is a negative top margin instead.
+            flexItem: { margin: { top: gapPx } }
+          }
+        ],
+        markers: []
+      });
+
+    const clear = (await run().invoke("validate_timeline", {
+      document: JSON.parse(stackDocument(100)),
+      tier: "showcase"
+    })) as { warnings: Array<{ code: string }> };
+    expect(clear.warnings.map((w) => w.code)).not.toContain("showcase_text_collision");
+
+    const overlap = (await run().invoke("validate_timeline", {
+      document: JSON.parse(stackDocument(-60)),
+      tier: "showcase"
+    })) as { warnings: Array<{ code: string }> };
+    expect(overlap.warnings.map((w) => w.code)).toContain("showcase_text_collision");
+
+    // The DB-backed path (a saved sequence, not an inline document) must
+    // resolve the same layout the same way — this is the path r1's
+    // build.mjs hit with "Cannot read properties of undefined (reading
+    // 'get')" against an earlier version of the layout-resolution change.
+    const row = await makeTimeline({ document: stackDocument(-60) });
+    const saved = (await run().invoke("validate_timeline", {
+      timeline_id: row.id,
+      tier: "showcase"
+    })) as { warnings: Array<{ code: string }>; error?: string };
+    expect(saved.error).toBeUndefined();
+    expect(saved.warnings.map((w) => w.code)).toContain("showcase_text_collision");
+  });
+
   it("reads a saved sequence through the run's loader", async () => {
     const loaded = createCapabilityRun({
       context: ctx(),
@@ -1145,5 +1206,104 @@ describe("set_timeline_document", () => {
       document: replacement()
     })) as { error: string };
     expect(theirs.error).toContain("was not found");
+  });
+});
+
+// The full bake→merge round trip (real sandbox, real DB) lives in
+// `codeact-timeline-package.test.ts`, which has a real `sandboxModuleCatalog`
+// wired in. `ctx()` here has none, so these tests cover the guard rails —
+// ownership, "no source to act on", a bake that fails cleanly — rather than
+// re-running the happy path.
+describe("get_timeline_code, set_timeline_code, edit_timeline_code, rebake_timeline_code, detach_timeline_code", () => {
+  it("get_timeline_code answers nulls for a timeline with no authoring code", async () => {
+    const row = await makeTimeline();
+    const result = (await run().invoke("get_timeline_code", {
+      timeline_id: row.id
+    })) as { code: string | null; baked_at: string | null; scenes: unknown[] };
+    expect(result).toEqual({ code: null, baked_at: null, scenes: [] });
+  });
+
+  it("get_timeline_code refuses a timeline that is not the caller's", async () => {
+    const row = await makeTimeline();
+    const result = (await run("other").invoke("get_timeline_code", {
+      timeline_id: row.id
+    })) as { error: string };
+    expect(result.error).toContain("was not found");
+  });
+
+  it("set_timeline_code refuses empty code", async () => {
+    const row = await makeTimeline();
+    const result = (await run().invoke("set_timeline_code", {
+      timeline_id: row.id,
+      code: "   "
+    })) as { error: string };
+    expect(result.error).toContain("code is required");
+  });
+
+  it("set_timeline_code reports a bake failure rather than throwing, when sandbox packages cannot be resolved here", async () => {
+    const row = await makeTimeline();
+    const result = (await run().invoke("set_timeline_code", {
+      timeline_id: row.id,
+      code: `
+import { video } from "@nodetool-ai/sandbox-timeline";
+const v = video({ width: 1080, height: 1920, fps: 30 });
+v.series([v.scene("one", 1, (s) => { s.text("hi", {}); })]);
+await v.save(nodetool.timelines, { name: "x" });
+`
+    })) as { timeline_id: string; errors: string[] };
+    expect(result.timeline_id).toBe(row.id);
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.errors[0]).toContain("sandbox packages cannot be resolved");
+
+    // Nothing was written — the timeline still carries no authoring code.
+    const after = await TimelineSequence.findById(row.id);
+    expect(after!.toDocument().source).toBeUndefined();
+  });
+
+  it("edit_timeline_code refuses when the timeline has no authoring code yet", async () => {
+    const row = await makeTimeline();
+    const result = (await run().invoke("edit_timeline_code", {
+      timeline_id: row.id,
+      edits: [{ old: "x", new: "y" }]
+    })) as { error: string };
+    expect(result.error).toContain("no authoring code to edit");
+  });
+
+  it("rebake_timeline_code refuses when the timeline has no authoring code yet", async () => {
+    const row = await makeTimeline();
+    const result = (await run().invoke("rebake_timeline_code", {
+      timeline_id: row.id
+    })) as { error: string };
+    expect(result.error).toContain("no authoring code to rebake");
+  });
+
+  it("detach_timeline_code answers an empty list for a timeline with no authoring code", async () => {
+    const row = await makeTimeline();
+    const result = (await run().invoke("detach_timeline_code", {
+      timeline_id: row.id,
+      scenes: "all"
+    })) as { scenes: string[] };
+    expect(result.scenes).toEqual([]);
+  });
+
+  it("detach_timeline_code refuses a bad scenes argument", async () => {
+    const row = await makeTimeline();
+    const seq = await TimelineSequence.findById(row.id);
+    await TimelineSequence.updateFieldsIfUnchanged(seq!.id, seq!.updated_at, {
+      document: JSON.stringify({
+        ...JSON.parse(document()),
+        source: {
+          lang: "js",
+          code: "x",
+          bakedAt: new Date().toISOString(),
+          scenes: { one: { groupId: "g1", hash: "h1" } }
+        }
+      })
+    });
+    const result = (await run().invoke("detach_timeline_code", {
+      timeline_id: row.id,
+      scenes: 123
+    })) as { error: string };
+    expect(result.error).toContain('scenes must be "all"');
   });
 });

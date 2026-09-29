@@ -28,6 +28,7 @@ import {
   type TimelineClip,
   type TimelineSequence
 } from "@nodetool-ai/timeline";
+import { ensureGoogleFonts } from "@nodetool-ai/timeline/fonts/google-node";
 import type {
   ActiveLayer,
   AnimatedLayerProps,
@@ -220,6 +221,11 @@ export interface RenderTimelineFramesResult {
   frames: PreviewFrame[];
   /** Effect types present on the timeline that Canvas 2D cannot draw. */
   effectsNotApplied: string[];
+  /**
+   * Families a text or caption layer names that are neither bundled nor
+   * resolvable from Google Fonts — drawn in the fallback face (D8).
+   */
+  fontsUnavailable: string[];
 }
 
 /** Frame geometry: the output size, and the sequence size the layout is in. */
@@ -319,6 +325,7 @@ export async function renderTimelineFrames(
     refHeight: animationCanvas.height
   };
 
+  const { unavailable: fontsUnavailable } = await ensureGoogleFonts(sequence);
   const rasterizer = new PreviewRasterizer(width, height);
   // Text size, tracking, and wrapping are authored in sequence pixels.
   const referenceRasterizer = new PreviewRasterizer(
@@ -983,5 +990,9 @@ export async function renderTimelineFrames(
     });
   }
 
-  return { frames, effectsNotApplied: [...effectsNotApplied].sort() };
+  return {
+    frames,
+    effectsNotApplied: [...effectsNotApplied].sort(),
+    fontsUnavailable
+  };
 }

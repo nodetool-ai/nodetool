@@ -971,6 +971,10 @@ export const SANDBOX_API_COVERAGE: Readonly<
     elsewhere:
       "edit_timeline applies clip operations to the document."
   },
+  "timeline.code.detach": { capability: "detach_timeline_code" },
+  "timeline.code.get": { capability: "get_timeline_code" },
+  "timeline.code.rebake": { capability: "rebake_timeline_code" },
+  "timeline.code.set": { capability: "set_timeline_code" },
   "timeline.create": { capability: "assemble_script_timeline" },
   "timeline.delete": { capability: "delete_timeline" },
   "timeline.examples": { capability: "list_example_timelines" },

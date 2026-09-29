@@ -2405,6 +2405,80 @@ describe("guest→host binary volume", () => {
   }, 180_000);
 });
 
+describe("a function nested inside a data global", () => {
+  // Only a *top-level* global follows the never-reject convention the named
+  // bridges use (`fetch`, `workspace`, …). A function nested inside an
+  // object global — `{ nodetool: { timelines: { edit() { throw … } } } }`,
+  // the shape `timeline-code-bake.ts`'s hermetic stub injects — used to
+  // reach the guest through the wrapper's own generic object marshaling
+  // instead, where a host throw (or a rejected promise) crosses the FFI
+  // boundary as a genuine QuickJS exception rather than the tagged, always-
+  // resolved value `SANDBOX_ERROR_MARKER` exists to produce.
+  //
+  // A single isolated call like this one never trips the engine's
+  // `list_empty(&rt->gc_obj_list)` assertion — the leak is real but small,
+  // and only accumulates into an abort across many sequential in-process
+  // runs sharing this module's cached WASM engine (reproduced reliably by
+  // `example-timelines-rebake.test.ts` baking several shipped timeline
+  // scripts in sequence before one whose bake calls a throwing nested
+  // function). What this test pins is the functional half of the fix,
+  // reproducible on its own: a synchronous throw from a function nested at
+  // any depth inside a caller-supplied global must reach the guest as an
+  // ordinary, catchable `Error` — not as an unhandled rejection, and not as
+  // `undefined`.
+  it("crosses to the guest as a normal catchable Error, not an engine failure", async () => {
+    const result = await runInSandbox({
+      code: `
+        try {
+          await nodetool.timelines.edit("id", [{ op: "x" }]);
+          return "no throw";
+        } catch (e) {
+          return "caught: " + e.name + " / " + e.message;
+        }
+      `,
+      context: {} as never,
+      globals: {
+        nodetool: {
+          timelines: {
+            edit: (_id: string, _ops: unknown[]) => {
+              throw new Error("edit not allowed here");
+            }
+          }
+        }
+      }
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("caught: Error / edit not allowed here");
+  });
+
+  it("also normalizes a nested function whose promise rejects", async () => {
+    const result = await runInSandbox({
+      code: `
+        try {
+          await nodetool.timelines.edit("id", [{ op: "x" }]);
+          return "no throw";
+        } catch (e) {
+          return "caught: " + e.name + " / " + e.message;
+        }
+      `,
+      context: {} as never,
+      globals: {
+        nodetool: {
+          timelines: {
+            edit: async (_id: string, _ops: unknown[]) => {
+              throw new Error("edit rejected");
+            }
+          }
+        }
+      }
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("caught: Error / edit rejected");
+  });
+});
+
 describe("engine failure never takes the host process down", () => {
   it("fails the run, with an actionable message, when marshaling blows up", async () => {
     // A host global returning a raw Uint8Array breaks the byte-tagging

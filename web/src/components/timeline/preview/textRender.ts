@@ -27,7 +27,9 @@ import {
 } from "@nodetool-ai/timeline/render";
 import {
   bundledFontsReady,
-  ensureBundledFontsLoaded
+  ensureBundledFontsLoaded,
+  ensureGoogleFontLoaded,
+  googleFontFamilyReady
 } from "./fontLoading";
 import { BitmapFrameScope, bitmapByteSize } from "./BitmapFrameScope";
 
@@ -137,8 +139,12 @@ export class TextRasterizer {
     // never opens the timeline should not fetch three megabytes of fonts.
     const fontsReady = bundledFontsReady();
     if (!fontsReady) void ensureBundledFontsLoaded();
+    const familyReady = googleFontFamilyReady(style.fontFamily);
+    if (!familyReady) {
+      ensureGoogleFontLoaded(style.fontFamily, style.fontWeight, style.fontStyle);
+    }
     const phase = stagger ? staggerPhase(stagger) : undefined;
-    const cacheable = phase !== "active" && fontsReady;
+    const cacheable = phase !== "active" && fontsReady && familyReady;
     const baseKey = textStyleSignature(style, width, height);
     let key = baseKey;
     if (stagger && cacheable) {

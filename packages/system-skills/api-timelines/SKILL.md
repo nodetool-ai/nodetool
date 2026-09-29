@@ -21,9 +21,9 @@ The craft is in `motion-direction`, `motion-principles`, `motion-curves`,
 | `get(id)` | Reads the stored document: fps, size, duration, tracks, clips, markers. | The document with its metadata |
 | `edit(id, ops)` | Applies up to 60 ops in order and saves. | `{applied, failed, ops, tracks, clips}`. Each entry of `ops` has its own `ok`. |
 | `setDocument(id, document, {fps, width, height, expected_updated_at, snapshot_name})` | Writes a whole document. It is validated first and snapshotted before the write. | The validation of what landed |
-| `validate(idOrDocument, {tier, normalize, fps, width, height})` | Checks the structure without a render. | `{ok, issues}` |
+| `validate(idOrDocument, {tier, normalize, fps, width, height})` | Checks the structure without a render. | `{ok, errors, warnings, summary}` |
 | `preview(idOrDocument, opts)` | Composites real frames. | Frames with image handles and layer reports, or one contact sheet |
-| `compare(a, b, {times_ms, range, width})` | Differences the pixels of two sides. | A difference from 0 to 1 per frame, and a side-by-side sheet |
+| `compare(a, b, {times_ms, range, width})` | Differences the pixels of two sides — each an id, `{timeline_id, version}` or a document; never a shipped-example slug. | A difference from 0 to 1 per frame, and a side-by-side sheet |
 | `render(id, opts)` | Renders the cut to a video file as a job. | `{job_id}`, or the asset with `wait: true` |
 | `versions(id, {save_type, limit})`, `getVersion(id, n)` | Lists and reads snapshots. | Version rows, newest first |
 | `snapshot(id, {name})` (also `createVersion`) | Saves a manual version. Manual versions are never pruned. | The version number |
@@ -31,9 +31,32 @@ The craft is in `motion-direction`, `motion-principles`, `motion-curves`,
 | `deleteVersion(id, n)` | Deletes one snapshot. This cannot be undone. | — |
 | `examples.list({query})` | Lists the shipped example timelines. | Slugs, stats, poster and video locators |
 | `examples.get(slug, {scene_id, clip_offset, clip_limit})` | Reads one example scene. | Metadata, a scene catalog and a bounded excerpt |
+| `examples.source(slug)` | Reads the builder script that made an example. | Full JavaScript, imports included |
 | `compositions.list({source, query, limit})`, `compositions.get(id)` | Lists and reads templates: title card, lower third, caption bar, callout, CTA end card, logo sting, and the user's own. | Rows with their parameters |
 | `compositions.save(timelineId, groupTarget, name, params, {description})` | Saves a group as a template. | The composition id |
 | `compositions.remove(id)` | Deletes a saved template. | — |
+| `code.get(id)` | Reads the timeline's authoring code, when it has any. | `{code, baked_at, scenes: [{name, group_id, edited}]}` — `code` is `null` for a timeline with none |
+| `code.set(id, code, {force, require_match})` | Bakes `code` and merges it into the document, scene by scene: an untouched scene is replaced, a hand-edited one is kept and reported in `conflicts` unless `force` overwrites it (`true` for every scene, or an array of names). The bake runs no capability, so `code` must build the timeline from values alone. `require_match: true` attaches the code only if it bakes to exactly the saved document, which is what `v.save()` does. | `{timeline_id, errors, warnings, conflicts, scenes}`, plus `embedded` with `require_match` |
+| `code.edit(id, edits, {force})` | Exact-match string replacements against the stored code (each `old` must match exactly once), then bakes and merges the same way as `set`. The small-diff path for one change. | Same as `set` |
+| `code.rebake(id, {force})` | Reruns the stored code unchanged and merges again — for picking up a shipped example's own current script, or re-applying `force` to a scene left conflicted. | Same as `set` |
+| `code.detach(id, scenes)` | Stops tracking scenes (`scenes` is `"all"` or an array of names) — a later rebake never touches them again. | `{timeline_id, scenes}` |
+
+### Changing a code-backed timeline
+
+For any timeline that already has `code` (`code.get(id).code` is not null),
+the path is: `code.get(id)` → `code.edit(id, edits)` with a few small exact
+replacements → read the `conflicts`/`warnings` it answers → `preview(id,
+{sheet: true})` and look. `edit_timeline` ops still apply, for a timeline with
+no code and for a fine hand tweak on a code-backed one — but a hand edit
+inside a scene the code tracks makes that scene "edited": the next
+`code.set`/`code.edit`/`code.rebake` reports it in `conflicts` and keeps the
+hand-edited version rather than silently overwriting it. Pass `force` (`true`,
+or the scene's name in an array) to overwrite it with the code's own version
+instead of keeping the edit. A new timeline: build it and call `save()` — it
+attaches the retained program, the scene code with every research or
+generation result as a literal, so the timeline is already code-backed and a
+rebake repeats no call. Read `saved.code.warnings` when `embedded` is false.
+Otherwise, or to attach code after the fact, `create`, then `code.set`.
 
 ## Coordinates and units
 

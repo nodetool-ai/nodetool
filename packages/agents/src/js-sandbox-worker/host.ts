@@ -520,7 +520,7 @@ export async function runInWorker(
           options.onProgress(message.percent, message.message);
           return;
         case "result":
-          settle(message, false);
+          settle(message, message.failure === "worker");
           return;
         case "rpc": {
           const { id, path, args } = message;

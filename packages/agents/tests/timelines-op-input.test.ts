@@ -596,7 +596,7 @@ describe("set_mask and set_matte", () => {
     await expect(
       byName["ui_timeline_set_mask"].execute({
         target: "shot a",
-        mask: { kind: "path", d: "M 0 0 A 1 1 0 0 1 1 1" }
+        mask: { kind: "path", d: "M 0 0 B 1 1" }
       })
     ).rejects.toThrow(/path data/);
   });

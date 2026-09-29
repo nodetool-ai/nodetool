@@ -260,6 +260,41 @@ afterEach(() => {
 });
 
 describe("runInWorker", () => {
+  it("replaces a worker that reports an interpreter failure", async () => {
+    const first = new FakeWorker();
+    const replacement = new FakeWorker();
+    let created = 0;
+    const pool = new SandboxWorkerPool(async () => {
+      created++;
+      return created === 1 ? first : replacement;
+    }, 1);
+    try {
+      const settled = runInWorker({
+        run: baseRun,
+        dispatch: {},
+        onLog: () => {},
+        onProgress: () => {},
+        pool
+      });
+      await first.started;
+      first.send({
+        type: "result",
+        runId: baseRun.runId,
+        evalOk: false,
+        failure: "worker",
+        errorName: "RuntimeError",
+        errorMessage: "Aborted(Assertion failed: list_empty(&rt->gc_obj_list))"
+      });
+      expect(await settled).toMatchObject({ evalOk: false, failure: "worker" });
+      expect(first.terminated).toBe(1);
+      const lease = await pool.acquire();
+      expect(lease?.handle).toBe(replacement);
+      lease?.release(false);
+    } finally {
+      pool.destroy();
+    }
+  });
+
   it("serves an RPC by path and replies with the value", async () => {
     const worker = new FakeWorker();
     const read = vi.fn(async (path: string) => `contents of ${path}`);

@@ -120,6 +120,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "list_timelines",
   "list_example_timelines",
   "get_example_timeline",
+  "get_example_timeline_source",
   "create_timeline",
   "get_timeline",
   "list_timeline_versions",
@@ -144,6 +145,16 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "preview_timeline_frame",
   "compare_timeline_frames",
 
+  // A timeline's authoring code — edit the script, not the JSON. `set`/
+  // `edit`/`rebake` all bake the code and merge the result into the
+  // document scene by scene, keeping a hand-edited scene as a conflict
+  // unless `force` overwrites it.
+  "get_timeline_code",
+  "set_timeline_code",
+  "edit_timeline_code",
+  "rebake_timeline_code",
+  "detach_timeline_code",
+
   // Code-node authoring harness (validate → run → test a Code body)
   "validate_code",
   "run_code",
@@ -153,6 +164,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "list_js_scripts",
   "get_js_script",
   "save_js_script",
+  "edit_js_script",
   "validate_js_script",
   "run_js_script",
   "test_js_script",

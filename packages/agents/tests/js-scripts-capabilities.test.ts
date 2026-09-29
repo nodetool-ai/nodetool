@@ -747,6 +747,94 @@ describe("save_js_script", () => {
   });
 });
 
+describe("edit_js_script", () => {
+  it("replaces an exact, unambiguous match", async () => {
+    const script = await makeScript({
+      code: 'await output("v", 1);',
+      outputs: [{ name: "v", type: "int" }]
+    });
+    const result = (await toolForCapabilityName("edit_js_script").execute(
+      context(),
+      { js_script_id: script.id, ops: [{ old: '"v", 1', new: '"v", 2' }] }
+    )) as { ok: boolean; saved: boolean; applied: number };
+
+    expect(result.ok).toBe(true);
+    expect(result.saved).toBe(true);
+    expect(result.applied).toBe(1);
+    const updated = await JsScript.findById(script.id);
+    expect(updated?.toDocument().code).toBe('await output("v", 2);');
+  });
+
+  it("applies several ops in order, each against the prior op's result", async () => {
+    const script = await makeScript({
+      code: 'await output("v", 1);',
+      outputs: [{ name: "v", type: "int" }]
+    });
+    const result = (await toolForCapabilityName("edit_js_script").execute(
+      context(),
+      {
+        js_script_id: script.id,
+        ops: [
+          { old: '"v", 1', new: '"v", 2' },
+          { old: '"v", 2', new: '"v", 3' }
+        ]
+      }
+    )) as { ok: boolean };
+
+    expect(result.ok).toBe(true);
+    const updated = await JsScript.findById(script.id);
+    expect(updated?.toDocument().code).toBe('await output("v", 3);');
+  });
+
+  it("refuses a match that does not occur", async () => {
+    const script = await makeScript({
+      code: 'await output("v", 1);',
+      outputs: [{ name: "v", type: "int" }]
+    });
+    const result = (await toolForCapabilityName("edit_js_script").execute(
+      context(),
+      { js_script_id: script.id, ops: [{ old: "does not appear", new: "x" }] }
+    )) as { error: string };
+
+    expect(result.error).toContain("does not match");
+    const untouched = await JsScript.findById(script.id);
+    expect(untouched?.toDocument().code).toBe('await output("v", 1);');
+  });
+
+  it("refuses an ambiguous match", async () => {
+    const script = await makeScript({
+      code: 'await output("a", 1); await output("b", 1);',
+      outputs: [
+        { name: "a", type: "int" },
+        { name: "b", type: "int" }
+      ]
+    });
+    const result = (await toolForCapabilityName("edit_js_script").execute(
+      context(),
+      { js_script_id: script.id, ops: [{ old: ", 1)", new: ", 2)" }] }
+    )) as { error: string };
+
+    expect(result.error).toContain("ambiguous");
+    const untouched = await JsScript.findById(script.id);
+    expect(untouched?.toDocument().code).toContain('output("a", 1)');
+  });
+
+  it("refuses a revision that fails validation, leaving the code as it was", async () => {
+    const script = await makeScript({
+      code: 'await output("v", 1);',
+      outputs: [{ name: "v", type: "int" }]
+    });
+    const result = (await toolForCapabilityName("edit_js_script").execute(
+      context(),
+      { js_script_id: script.id, ops: [{ old: "1);", new: "1" }] }
+    )) as { ok: boolean; error: string };
+
+    expect(result.ok).toBe(false);
+    const untouched = await JsScript.findById(script.id);
+    expect(untouched?.toDocument().code).toBe('await output("v", 1);');
+  });
+});
+
 describe("list_js_scripts and get_js_script", () => {
   it("lists id, name, description and ports, filtered by query", async () => {
     await makeScript(

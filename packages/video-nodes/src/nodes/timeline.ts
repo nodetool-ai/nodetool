@@ -1039,7 +1039,7 @@ export class RenderTimelineNode extends BaseNode {
 
       try {
         basePath = path.join(workDir, `composited.${output.extension}`);
-        const { skippedClips } = await renderTimelineComposited({
+        const { skippedClips, fontsUnavailable } = await renderTimelineComposited({
           sequence: seq,
           width,
           height,
@@ -1055,6 +1055,13 @@ export class RenderTimelineNode extends BaseNode {
           this.log(
             ctx,
             `Clip "${name}" was skipped — its media could not be decoded`,
+            "warning"
+          );
+        }
+        for (const family of fontsUnavailable) {
+          this.log(
+            ctx,
+            `Font "${family}" could not be resolved from Google Fonts — drawn in the fallback face`,
             "warning"
           );
         }

@@ -13,7 +13,11 @@ const run = () =>
 
 describe("shipped example timeline agent access", () => {
   it("exposes read-only example tools on the agent belt", () => {
-    for (const name of ["list_example_timelines", "get_example_timeline"]) {
+    for (const name of [
+      "list_example_timelines",
+      "get_example_timeline",
+      "get_example_timeline_source"
+    ]) {
       expect(capabilitySpec(name)?.category).toBe("read");
       expect(BUILTIN_TOOL_NAMES).toContain(name);
     }
@@ -46,6 +50,28 @@ describe("shipped example timeline agent access", () => {
         next_clip_offset: 2
       }
     });
+  });
+});
+
+describe("shipped example timeline source access", () => {
+  it("returns the builder script and its imports for a known slug", async () => {
+    const result = await run().invoke("get_example_timeline_source", {
+      slug: "kite"
+    });
+    expect(result).toMatchObject({
+      slug: "kite",
+      source: expect.stringContaining("@nodetool-ai/sandbox-timeline"),
+      imports: expect.arrayContaining(["@nodetool-ai/sandbox-timeline"])
+    });
+  });
+
+  it("reports a clear error for an unknown slug", async () => {
+    expect(
+      await run().invoke("get_example_timeline_source", { slug: "no-such-example" })
+    ).toMatchObject({ error: expect.any(String) });
+    expect(
+      await run().invoke("get_example_timeline_source", { slug: "" })
+    ).toMatchObject({ error: expect.any(String) });
   });
 });
 
@@ -125,6 +151,22 @@ describe("example scene boundaries", () => {
         await run().invoke("get_example_timeline", { slug: "kite", ...opts })
       ).toMatchObject({ error: expect.any(String) });
     }
+  });
+
+  it("lists a repeater's same-name siblings once, and each of them stays selectable", async () => {
+    const result = record(
+      await run().invoke("get_example_timeline", { slug: "serein", clip_limit: 1 })
+    );
+    const scenes = records(result["scenes"]);
+    const keys = scenes.map((scene) => `${String(scene["parent_id"])}/${String(scene["name"])}`);
+    expect(new Set(keys).size).toBe(keys.length);
+    const repeated = scenes.find((scene) => Array.isArray(scene["same_name_ids"]));
+    expect(repeated).toBeDefined();
+    const sibling = (repeated!["same_name_ids"] as string[])[0]!;
+    const excerpt = record(
+      await run().invoke("get_example_timeline", { slug: "serein", scene_id: sibling, clip_limit: 1 })
+    );
+    expect(record(excerpt["excerpt"])["scene_id"]).toBe(sibling);
   });
 
   it("returns structural data for every shipped reference within the tool result budget", async () => {

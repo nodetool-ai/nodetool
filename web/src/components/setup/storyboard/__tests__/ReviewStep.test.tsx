@@ -271,10 +271,12 @@ describe("ReviewStep", () => {
     const user = userEvent.setup();
     renderStep();
 
+    // Paste the values in one input event. Typing them key by key renders
+    // the step once per character and exceeds the timeout on a loaded runner.
     await user.clear(screen.getByLabelText("Slugline"));
-    await user.type(screen.getByLabelText("Slugline"), "EXT. JETTY — NIGHT");
+    await user.paste("EXT. JETTY — NIGHT");
     await user.clear(screen.getByLabelText("Lighting"));
-    await user.type(screen.getByLabelText("Lighting"), "Moon only");
+    await user.paste("Moon only");
 
     const scene = board()?.screenplay?.scenes?.[0];
     expect(scene?.slugline).toBe("EXT. JETTY — NIGHT");

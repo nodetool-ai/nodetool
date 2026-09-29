@@ -3,6 +3,7 @@
  * what is filled in, what is left alone, and what is lifted out.
  */
 import { describe, expect, it } from "vitest";
+import { timelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import { typewriterTiming } from "../src/animation/typewriter.js";
 import {
   normalizeAuthoredDocument,
@@ -33,6 +34,35 @@ describe("normalizeAuthoredDocument", () => {
     expect(document.clips).toMatchObject([{ effects: [{ id: "effect_3" }] }]);
     expect(normalizeAuthoredDocument(document).document).toEqual(document);
     expect(raw.clips[0].effects[0]).not.toHaveProperty("id");
+  });
+
+  it("fills a clip effect's absent fields with its neutral defaults, never overwriting a sent value", () => {
+    const raw = {
+      tracks: [{ id: "video", name: "Video", type: "video" }],
+      clips: [
+        {
+          id: "clip_1",
+          trackId: "video",
+          name: "Finish",
+          startMs: 0,
+          durationMs: 1000,
+          mediaType: "adjustment",
+          effects: [{ type: "dropShadow" }, { type: "grain", amount: 0.2 }]
+        }
+      ]
+    };
+    const { document } = normalizeAuthoredDocument(raw);
+    const clip = (document.clips as Array<Record<string, unknown>>)[0]!;
+    const [dropShadow, grain] = clip.effects as Array<Record<string, unknown>>;
+    expect(dropShadow).toMatchObject({
+      offsetX: 0,
+      offsetY: 0,
+      blur: 8,
+      color: "#000000"
+    });
+    expect(grain).toMatchObject({ amount: 0.2 });
+    const parsed = timelineDocument.safeParse(document);
+    expect(parsed.success).toBe(true);
   });
 
   it("declares omitted scene, audio and midi tracks from clip media types", () => {

@@ -28,3 +28,7 @@ export {
   type JsScriptDebugReportInput
 } from "./report.js";
 export { renderJsScriptReportMarkdown } from "./markdown.js";
+export {
+  typeCheckAgainstPackDts,
+  type PackDtsSources
+} from "./type-check.js";

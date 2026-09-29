@@ -98,6 +98,13 @@ jest.mock("../../assets/SaveToFolderMenu", () => ({
   default: () => null
 }));
 
+// `TopBar`'s Code button and the inspector tab list both read whether the
+// timeline has embedded code via TanStack Query. Same no-QueryClientProvider
+// reason as above — these editor shell tests don't render one.
+jest.mock("../../../serverState/useTimelineCode", () => ({
+  useTimelineHasCode: jest.fn(() => false)
+}));
+
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   useTimeline,

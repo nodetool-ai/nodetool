@@ -175,6 +175,14 @@ export function validateCompositionParams(
  * children, each with a new id, the group's start applied, and the template's
  * parameters written in.
  *
+ * `children` is the group's whole descendant subtree, not just its direct
+ * children (AS6 continued: a nested flex container's own children, whose
+ * `parentId` names that inner group rather than the top one, are still
+ * `TimelineComposition` children — see {@link extractComposition}). A child
+ * whose `parentId` is absent parents onto the fresh group; a child whose
+ * `parentId` names another child parents onto that child's own fresh id, so
+ * the nesting survives the copy exactly.
+ *
  * Throws when a parameter is unknown to the template, is of the wrong type, or
  * addresses a child field that is not there. All three are authoring mistakes
  * whose only symptom otherwise is a title that never says what it was asked to.
@@ -231,10 +239,9 @@ export function instantiateComposition(
   }
   const remapId = (id: string): string => idMap.get(id) ?? id;
   const remapReferences = (clip: TimelineClip): void => {
-    if (clip.layout) {
-      if (clip.layout.children) clip.layout.children = clip.layout.children.map(remapId);
-      if (clip.layout.targetClipId) clip.layout.targetClipId = remapId(clip.layout.targetClipId);
-    }
+    // A flex container's children are its real children (`parentId`), which
+    // the instantiation loop below already remaps — `layout`/`flexItem`
+    // carry no clip-id references of their own.
     if (clip.animationLinks) {
       clip.animationLinks = clip.animationLinks.map((link) =>
         "sourceClipId" in link ? { ...link, sourceClipId: remapId(link.sourceClipId) } : link
@@ -261,7 +268,13 @@ export function instantiateComposition(
       id: remapId(child.id),
       startMs: options.startMs + child.startMs,
       trackId: options.trackId ?? child.trackId,
-      parentId: groupId,
+      // Absent `parentId` means "direct child of the group" (the common
+      // case, and what every pre-nesting template still has); a child
+      // carries an explicit one only when its real parent is another child
+      // — a nested flex container's own children — and that id is in the
+      // same `idMap` as every other extracted clip, so one `remapId` call
+      // covers both cases.
+      parentId: child.parentId !== undefined ? remapId(child.parentId) : groupId,
       compositionId: composition.id,
       compositionParams: applied
     };
@@ -276,8 +289,39 @@ export interface ExtractCompositionSource {
 }
 
 /**
+ * Every clip transitively parented under `rootId`, walking `parentId` chains
+ * rather than stopping at direct children — a flex container nested inside
+ * the extracted group (its own children name it as `parentId`, not `rootId`)
+ * is still part of the subtree. Breadth-first so a document with several
+ * unrelated groups sharing a `parentId` chain elsewhere never gets walked
+ * more than its own depth.
+ */
+function descendantIds(clips: readonly TimelineClip[], rootId: string): Set<string> {
+  const found = new Set<string>();
+  let frontier = new Set<string>([rootId]);
+  while (frontier.size > 0) {
+    const next = new Set<string>();
+    for (const clip of clips) {
+      if (
+        clip.id !== rootId &&
+        clip.parentId !== undefined &&
+        frontier.has(clip.parentId) &&
+        !found.has(clip.id)
+      ) {
+        found.add(clip.id);
+        next.add(clip.id);
+      }
+    }
+    frontier = next;
+  }
+  return found;
+}
+
+/**
  * Turn a group already on the timeline into a reusable composition: the group
- * clip plus every clip parented to it, child times rebased to the group start.
+ * clip plus its whole descendant subtree (AS6 — a nested flex container's own
+ * children are part of the composition too, not just the group's direct
+ * children), child times rebased to the group start.
  *
  * The parameters are the caller's — a template is a statement about which
  * values are meant to vary, which nothing in a document records — and each one
@@ -298,16 +342,23 @@ export function extractComposition(
       `"${group.name}" is a ${group.mediaType} clip, not a group — only a group can become a composition.`
     );
   }
+  const descendants = descendantIds(doc.clips, groupId);
   const children = doc.clips
-    .filter((clip) => clip.parentId === groupId)
+    .filter((clip) => descendants.has(clip.id))
     .map((clip) => {
       const copy = structuredClone(clip);
       copy.startMs = clip.startMs - group.startMs;
-      // The group is implicit in a template, so a child does not name it.
-      // Instantiating parents every child to the group it mints.
-      delete copy.parentId;
       delete copy.compositionId;
       delete copy.compositionParams;
+      // A direct child's parent is the group, which is implicit in a
+      // template (instantiating parents it onto the group they mint), so
+      // that case drops `parentId` same as ever. A nested descendant's
+      // parent is another extracted child, so its `parentId` is kept —
+      // still the *original* id, exactly like every other id here, and
+      // `instantiateComposition` remaps it through the same map as the rest.
+      if (copy.parentId === groupId) {
+        delete copy.parentId;
+      }
       return copy;
     });
 

@@ -98,7 +98,8 @@ real product images as stills and its motion is built on the timeline.
 
 | Skill | Answers |
 | :--- | :--- |
-| `motion-graphics` | The timeline tool contract: roles, presets, transitions, groups, masks, mattes, effects, validate and preview |
+| `motion-graphics` | The build loop, choosing between the code pack and edit ops, and the review pass |
+| `timeline-edit-ops` | The `edit_timeline` op contract: roles, presets, transitions, groups, masks, mattes, effects, validate and preview |
 | `motion-curves` | Custom animations — curves by hand, or a JS body baked in the sandbox |
 | `motion-principles` | Durations, easing, stagger, weight, anticipation — the numbers before the call |
 | `motion-direction` | The motion language a whole piece obeys, and the audit against it |

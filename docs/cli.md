@@ -784,6 +784,7 @@ authored motion did not fit the clip.
 | `animation_exceeds_clip` | warning | The window does not fit the clip after its delay, so the motion is clamped — or never runs |
 | `stagger_compressed` | warning | The stagger span did not fit, so the per-unit offset was shrunk and the units overlap more than authored. At 0ms every unit moves in sync |
 | `effect_animate_ignored` | warning | `animate` on a generator or stylize mode whose shader never reads the clock, so it stays still, or on a stylize `gradientWipe`, whose map it switches |
+| `effect_washes_out` | warning | A `color` effect's `brightness` (an offset, not a multiplier) drives the picture to white or black, or its `contrast` removes nearly all of it |
 | `animation_link_overrides` | warning | A link sets its channel outright and discards the clip's own animation there, or a wiggle discards the clip's placement |
 | `typewriter_not_staggered` | warning | A `typewriter` is stored with a plain `durationMs` and no `stagger`, so the whole text appears at once after that time, with no caret |
 | `animation_holds_rest_before_window` | warning | A custom `out` curve starts away from the channel's rest value after clip start, so the frames before its window show the rest value and then jump |
@@ -862,6 +863,40 @@ The command needs ffmpeg for video output and a WebGPU adapter. On a headless
 machine, install a Vulkan ICD such as lavapipe
 ([headless WebGPU setup](dev-environment.md#webgpu-on-a-headless-machine)).
 The first frame compiles the GPU pipelines, so progress starts after a delay.
+
+#### `nodetool timeline score <timeline_id_or_file>`
+
+Score a timeline document's craft against the shipped showcase examples
+(`kite`, `prism`, `serein`, `tidewater`, `voltra` —
+`packages/base-nodes/nodetool/examples/timelines/*.timeline.json`,
+excluding the footage-based `t-minus-30`) — a deterministic, no-LLM
+scorecard, not a judge call. It measures motion density (animations and
+keyframes per visible second), breadth (distinct animated properties, effect
+types, showcase-only feature flags), and structural craft (style tracks, text
+animators, authored transitions, scene count), each against the reference
+examples' median, plus a fixed penalty per *distinct* showcase-tier warning
+code present (`validate`'s `--tier showcase` codes) — four findings of the
+same code cost as much as one, so no single noisy check can dominate the
+score; instance counts stay visible in `showcaseWarnings` and
+`showcaseWarningCodeCounts`. The target is a timeline JSON file or
+a `timeline_sequences` row id, same resolution as `timeline validate`.
+
+**Options:**
+
+- `--json` — print the full score result (every metric, its reference median and credit, the reference band, and the underlying validation) as JSON.
+- `--min-score <n>` — exit non-zero when the score is below this threshold. Without it the command always exits 0 — the score is information, not a gate.
+- `--sheet <out.png>` — also render a GPU contact sheet of 12 evenly spaced frames, through the same renderer `timeline render --sheet` uses.
+
+```bash
+nodetool timeline score <timeline_id>
+nodetool timeline score sequence.json --json
+nodetool timeline score <timeline_id> --min-score 70
+nodetool timeline score <timeline_id> --sheet review-sheet.png
+```
+
+See [Harness Reference](harnesses.md#nodetool-timeline-score-timeline-craft-scorecard)
+for the score formula and `scripts/motion-craft-eval.mjs`, the eval loop that
+runs an agent brief and scores what it produced.
 
 #### `nodetool timeline versions`
 

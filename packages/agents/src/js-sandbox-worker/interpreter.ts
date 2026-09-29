@@ -28,6 +28,7 @@ import {
   modulePathNormalizer as defaultModulePathNormalizer
 } from "@sebastianwessel/quickjs";
 import * as acorn from "acorn";
+import { captureTimelineScenes } from "../timeline-capture.js";
 import { Scope } from "quickjs-emscripten-core";
 import {
   SANDBOX_CAPABILITY_BRIDGE_SOURCE,
@@ -209,6 +210,50 @@ function guardAbort<Args extends unknown[], R>(
   };
 }
 
+/**
+ * Replace every function reachable inside a caller-supplied data global with
+ * `wrap(fn)`, shallow-cloning the plain objects/arrays that hold them.
+ *
+ * A caller-supplied global is often a stub object nested a level or two deep
+ * — `{ nodetool: { timelines: { edit(id, ops) { ... } } } }` is exactly the
+ * shape `bakeTimelineCode`'s hermetic stub uses. Only the top-level `globals`
+ * entries were ever routed through the never-reject convention; a function
+ * found deeper than that reached the guest through the wrapper's own generic
+ * marshaling (see the call site), where a host throw or promise rejection is
+ * the exact shape `SANDBOX_ERROR_MARKER` exists to avoid. Running every
+ * nested function through the same `wrap` the top-level ones get — before the
+ * value is even classified as JSON-representable or not — means no host
+ * function this run exposes, at any depth, can ever throw or reject across
+ * the boundary; the guest-side deep-unwrap at the call site turns the
+ * resulting tagged value back into an ordinary guest `throw`.
+ */
+function wrapNestedFunctionsDeep(
+  value: unknown,
+  wrap: (
+    fn: (...a: unknown[]) => Promise<unknown>
+  ) => (...a: unknown[]) => Promise<unknown>,
+  seen: Set<unknown> = new Set()
+): unknown {
+  if (isFunction(value)) {
+    return wrap(value as (...a: unknown[]) => Promise<unknown>);
+  }
+  if (value === null || typeof value !== "object") return value;
+  if (seen.has(value)) return value;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    return value.map((entry) => wrapNestedFunctionsDeep(entry, wrap, seen));
+  }
+  // Only plain records can hold a bridge function. Rebuilding anything else
+  // (Uint8Array, Date, Map) as a record strips the type the guest relies on.
+  const proto: unknown = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null) return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    out[key] = wrapNestedFunctionsDeep(entry, wrap, seen);
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Guest surface tables
 // ---------------------------------------------------------------------------
@@ -363,10 +408,14 @@ function dropTimersStatement(): string {
  * here would only move a runtime denial into a confusing compile-time one.
  */
 export function buildEntryModule(
-  code: string,
+  source: string,
   prelude = "",
   encodeResult = false
 ): string {
+  // Timeline code gets its scene capture records here, the one step every
+  // guest run passes (docs/timeline-code-capture.md). The records add no
+  // line breaks, so line offsets below stay correct.
+  const code = captureTimelineScenes(source);
   let program: acorn.Program;
   try {
     program = acorn.parse(code, {
@@ -966,9 +1015,26 @@ export async function runInterpreter(
           // JSON would escape the text only to parse it back again.
           bridges[name] = value;
         } else {
-          dataGlobals[name] = value;
+          // A function reachable at any depth inside this object (a stub
+          // like `{ nodetool: { timelines: { edit() {...} } } }`) makes the
+          // whole tree UNREPRESENTABLE below and falls through to the
+          // wrapper's own generic marshaling (`encoded.skipped`). That path
+          // calls a *nested* host function the way the wrapper calls any
+          // host function — no never-reject convention applied — so a host
+          // implementation that throws (or whose returned promise rejects)
+          // crosses the FFI boundary as a genuine QuickJS exception/rejection
+          // rather than the tagged, always-resolved value the top-level
+          // bridges above are wrapped to produce. That is exactly the
+          // handle-leak shape documented on `SANDBOX_ERROR_MARKER`: replacing
+          // every nested function with `wrap(fn)` here, before the tree is
+          // even classified, means every host function this run exposes —
+          // top-level or nested — follows the same never-reject contract, and
+          // the guest-side deep-unwrap below turns the tagged value back into
+          // a plain guest `throw`.
+          dataGlobals[name] = wrapNestedFunctionsDeep(value, wrap);
         }
       }
+      const skippedGlobalNames: string[] = [];
       if (Object.keys(dataGlobals).length > 0) {
         const encoded = encodeHostRecord(dataGlobals);
         if (encoded.cyclic.length > 0) {
@@ -987,6 +1053,7 @@ export async function runInterpreter(
         }
         for (const name of encoded.skipped) {
           bridges[name] = dataGlobals[name];
+          skippedGlobalNames.push(name);
         }
       }
 
@@ -1377,6 +1444,34 @@ globalThis.crypto = {
   hmac: __wrap(__crypto.hmac)
 };
 ${GUEST_JSON_TRANSPORT_SOURCE}
+${
+  skippedGlobalNames.length === 0
+    ? ""
+    : `// A global whose JSON tree held a function anywhere (\`encoded.skipped\`
+// on the host side) crossed via the wrapper's own generic marshaling, with
+// every nested function already replaced host-side by \`wrap(fn)\` — see
+// \`wrapNestedFunctionsDeep\`. Each one now resolves instead of throwing or
+// rejecting; this walks the same tree guest-side and turns every one of
+// those resolved, possibly-tagged values back into a normal guest function
+// that throws a real Error on failure, the same contract every named bridge
+// above already has.
+const __wrapGlobalFnsDeep = (v, seen) => {
+  if (typeof v === "function") return __wrap(v);
+  if (v && typeof v === "object") {
+    if (seen.has(v)) return v;
+    seen.add(v);
+    if (Array.isArray(v)) {
+      for (let i = 0; i < v.length; i++) v[i] = __wrapGlobalFnsDeep(v[i], seen);
+    } else {
+      for (const k of Object.keys(v)) v[k] = __wrapGlobalFnsDeep(v[k], seen);
+    }
+  }
+  return v;
+};
+${skippedGlobalNames
+  .map((n) => `globalThis.${n} = __wrapGlobalFnsDeep(globalThis.${n}, new Set());`)
+  .join("\n")}`
+}
 ${DELETED_GUEST_GLOBALS.map((n) => `delete globalThis.${n};`).join("\n")}
 ${
   wasmCall === undefined

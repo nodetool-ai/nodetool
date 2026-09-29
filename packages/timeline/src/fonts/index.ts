@@ -8,3 +8,4 @@
 
 export * from "./catalog.js";
 export * from "./css.js";
+export * from "./google-fonts.js";

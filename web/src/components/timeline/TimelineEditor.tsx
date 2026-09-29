@@ -95,6 +95,9 @@ import TimelineVersionHistoryPanel from "./TimelineVersionHistoryPanel";
 import { useTimelineAgentBridge } from "../../hooks/timeline/useTimelineAgentBridge";
 import { TranscriptPanel } from "./TranscriptPanel";
 import { useHasScript } from "../../hooks/timeline/useHasScript";
+import { CodePanel } from "./CodePanel";
+import { useTimelineHasCode } from "../../serverState/useTimelineCode";
+import CodeIcon from "@mui/icons-material/Code";
 import { ActivityIndicator } from "./ActivityIndicator";
 import {
   useGeneratingCount,
@@ -109,6 +112,7 @@ import { useTimelineExternalSync } from "../../hooks/timeline/useTimelineExterna
 import { useTimelineSave } from "../../hooks/timeline/useTimelineSave";
 import { useTimelineExport } from "../../hooks/timeline/useTimelineExport";
 import { useTimelineIsMobile } from "../../hooks/timeline/useTimelineIsMobile";
+import { useGuardedPanelTab } from "../../hooks/timeline/useGuardedPanelTab";
 import { ensureBundledFontsLoaded } from "./preview/fontLoading";
 import { useWorkspaceHeaderActions } from "../workspace/WorkspaceHeaderActionsContext";
 
@@ -317,7 +321,7 @@ const PreviewRegion: React.FC<{
 });
 PreviewRegion.displayName = "PreviewRegion";
 
-type InspectorTab = "inspector" | "source" | "instrument" | "agent" | "history" | "script";
+type InspectorTab = "inspector" | "source" | "instrument" | "agent" | "history" | "script" | "code";
 
 const INSPECTOR_TABS = [
   { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon fontSize="small" /> },
@@ -333,9 +337,16 @@ const SCRIPT_TAB = {
   icon: <SubtitlesOutlinedIcon fontSize="small" />
 };
 
+const CODE_TAB = {
+  value: "code",
+  label: "Code",
+  icon: <CodeIcon fontSize="small" />
+};
+
 const useAvailableInspectorTabs = (
   tab: InspectorTab,
-  hasScript = false
+  hasScript = false,
+  hasCode = false
 ): { tabs: TabItem[]; activeTab: InspectorTab } => {
   const hasMidiTrack = useTimelineStore((s) => s.tracks.some((track) => track.type === "midi"));
   const activeExplorer = usePanelStore((s) => s.panel.activeView);
@@ -349,17 +360,21 @@ const useAvailableInspectorTabs = (
     (item.value !== "source" || hasSourceAsset)
   );
   if (hasScript) tabs.push(SCRIPT_TAB);
+  if (hasCode) tabs.push(CODE_TAB);
   const activeTab = tabs.some((item) => item.value === tab) ? tab : "inspector";
   return { tabs, activeTab };
 };
 
-const InspectorRegion: React.FC<{ sequenceId: string | undefined }> = memo(
-  ({ sequenceId }) => {
+const InspectorRegion: React.FC<{
+  sequenceId: string | undefined;
+  panelTab: InspectorTab;
+  setPanelTab: (tab: InspectorTab) => void;
+}> = memo(
+  ({ sequenceId, panelTab: tab, setPanelTab: setTab }) => {
   const theme = useTheme();
-  const tab = useTimelineUIStore(s => s.panelTab);
-  const setTab = useTimelineUIStore(s => s.setPanelTab);
+  const hasCode = useTimelineHasCode(sequenceId);
 
-  const { tabs, activeTab } = useAvailableInspectorTabs(tab);
+  const { tabs, activeTab } = useAvailableInspectorTabs(tab, false, hasCode);
   useEffect(() => {
     if (activeTab !== tab) setTab(activeTab);
   }, [activeTab, tab, setTab]);
@@ -390,6 +405,8 @@ const InspectorRegion: React.FC<{ sequenceId: string | undefined }> = memo(
             <SourceViewerPanel />
           ) : activeTab === "agent" ? (
             <TimelineAgentPanel />
+          ) : activeTab === "code" ? (
+            <CodePanel />
           ) : (
             <TimelineVersionHistoryPanel sequenceId={sequenceId} />
           )}
@@ -436,7 +453,8 @@ const MobilePanelSheet: React.FC<{
   onTabChange: (tab: InspectorTab) => void;
 }> = memo(({ open, onClose, sequenceId, tab, onTabChange }) => {
   const hasScript = useHasScript();
-  const { tabs, activeTab } = useAvailableInspectorTabs(tab, hasScript);
+  const hasCode = useTimelineHasCode(sequenceId);
+  const { tabs, activeTab } = useAvailableInspectorTabs(tab, hasScript, hasCode);
   useEffect(() => {
     if (activeTab !== tab) onTabChange(activeTab);
   }, [activeTab, tab, onTabChange]);
@@ -473,6 +491,8 @@ const MobilePanelSheet: React.FC<{
           <TimelineAgentPanel />
         ) : activeTab === "script" ? (
           <TranscriptPanel />
+        ) : activeTab === "code" ? (
+          <CodePanel />
         ) : (
           <TimelineVersionHistoryPanel sequenceId={sequenceId} />
         )}
@@ -565,14 +585,24 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
 
   // Phone panel sheet (Inspector / Assistant / History / Script).
   const [panelSheetOpen, setPanelSheetOpen] = useState(false);
-  const panelTab = useTimelineUIStore(s => s.panelTab);
-  const setPanelTab = useTimelineUIStore(s => s.setPanelTab);
+  // Backs every tab switcher in this editor (desktop InspectorRegion + the
+  // phone MobilePanelSheet) so a dirty-Code leave confirms exactly once.
+  const { panelTab, setPanelTab, confirmDialog: codeTabConfirmDialog } =
+    useGuardedPanelTab();
   useEffect(() => { if (isMobile && panelTab === "instrument") setPanelSheetOpen(true); }, [isMobile, panelTab]);
   const openPanelSheet = useCallback(() => setPanelSheetOpen(true), []);
   const closePanelSheet = useCallback(() => setPanelSheetOpen(false), []);
   const hasSelection = useTimelineUIStore((s) => s.selectedClipIds.size > 0);
   const pianoRollOpen = useTimelineUIStore((s) => s.pianoRollClipId !== null);
   const pianoRollFullScreen = isMobile && pianoRollOpen;
+
+  // TopBar's Code button — shown only when this timeline embeds authoring
+  // code, opens the Code tab (side panel on desktop, sheet on phone).
+  const hasCode = useTimelineHasCode(sequenceId);
+  const handleOpenCode = useCallback(() => {
+    setPanelTab("code");
+    if (isMobile) setPanelSheetOpen(true);
+  }, [isMobile, setPanelTab]);
 
   // Register the ui_timeline_* agent tools against this instance, addressable
   // by sequence id whether or not this editor is the focused surface.
@@ -867,16 +897,20 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         onOpenSettings={sequenceUnavailable ? undefined : handleOpenSettings}
         onAdaptFormat={sequenceUnavailable ? undefined : handleOpenAdaptFormat}
         activitySlot={activitySlot}
+        hasCode={!sequenceUnavailable && hasCode}
+        onOpenCode={handleOpenCode}
       />
     ),
     [
       activitySlot,
       handleExportBundle,
       handleExportVideo,
+      handleOpenCode,
       handleOpenSettings,
       handleOpenAdaptFormat,
       handleSave,
       handleSaveToAssets,
+      hasCode,
       isExporting,
       isExportingBundle,
       isSaving,
@@ -1016,7 +1050,13 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       {/* ── Clip editor (piano roll) ──────────────────────────────── */}
       <PianoRollPanel fullHeight={pianoRollFullScreen} />
       </FlexColumn>
-      {!isMobile && <InspectorRegion sequenceId={sequenceId} />}
+      {!isMobile && (
+        <InspectorRegion
+          sequenceId={sequenceId}
+          panelTab={panelTab}
+          setPanelTab={setPanelTab}
+        />
+      )}
       </FlexRow>
 
       {/* ── Bottom status bar ─────────────────────────────────────── */}
@@ -1048,6 +1088,9 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           onTabChange={setPanelTab}
         />
       )}
+
+      {/* ── Unsaved Code tab confirm ──────────────────────────────── */}
+      {codeTabConfirmDialog}
 
       {/* ── Project settings dialog (canvas size + fps) ───────────── */}
       <ProjectSettingsDialog
