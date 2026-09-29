@@ -42,7 +42,7 @@
 // | Text animators `el.scramble()`, `el.count()` | `intro`, `weight`, `energy`, `label-b` | S3, S4 |
 // | `iris`, `gradientWipe` (noise map), `push`, `slide`, `zoomBlur`, `dipToColor` transitions | S2→S6, card cuts in S4 | — |
 // | Tempo + beat markers via `v.beats`, every cut in S2 built directly on a beat | `word-*` | S2 |
-import { video, hash, rad } from "@nodetool-ai/sandbox-timeline";
+import { video, hash } from "@nodetool-ai/sandbox-timeline";
 
 const W = 1920, H = 1080, FPS = 30, BPM = 120;
 const f = (frames) => frames / FPS; // a frame count from the reference cut, as seconds
@@ -207,7 +207,7 @@ const s3 = v.scene("S3", 4.5, (s) => {
     { name: "floor-glow", at: f(20), tx: { scale: { x: 1.2, y: 0.22 } }, animationLinks: [{ target: "positionY", sourceClipId: "shoe", source: "positionY", offset: 360 }] });
   glowUnder.enter({ from: { opacity: 0 }, at: 0, dur: f(14), ease: "out" });
   const rig = s.group({ name: "shoe-rig", tx: { perspective: 1600 } });
-  rig.enter({ from: { offsetX: 1500, rotationY: -70, rotation: rad(-14) }, at: f(4), dur: f(24), ease: "outExpo" });
+  rig.enter({ from: { offsetX: 1500, rotationY: -70, rotation: -14 }, at: f(4), dur: f(24), ease: "outExpo" });
   const shoe = image(s, "shoe", {
     name: "shoe", id: "shoe", parent: rig.id, y: -30, s: 0.95, mask: ABOVE_FLOOR(0.79),
     motionBlur: { samplesPerFrame: 8, shutterAngle: 270 },
@@ -271,7 +271,7 @@ const s4 = v.scene("S4", beat(9), (s) => {
   hex.enter({ from: { scale: 0 }, at: 0, dur: f(10), ease: "spring(260,14,1)" });
   const sole = image(s, "sole", { ...bo, name: "sole", x: 360, s: 0.85, tx: { perspective: 1400 }, effects: [KEY("sole-key"), glow(CYAN, 30, 0.35)] });
   sole.enter({ from: { rotationX: 55, offsetY: 220, opacity: 0 }, at: 0, dur: f(16), ease: "outExpo" });
-  sole.loop({ rotation: [rad(-6), rad(3)] }, beat(3), { ease: "linear" });
+  sole.loop({ rotation: [-6, 3] }, beat(3), { ease: "linear" });
   const labelB = specLabel(s, "ENERGY RETURN", { ...bo, name: "label-b", color: LIME });
   labelB.scramble({ at: f(4), dur: f(12), seed: 8 });
   const energy = s.text("87%", {

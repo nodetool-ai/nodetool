@@ -89,7 +89,7 @@ function stamp(clip, atSec, opts = {}) {
 
 /** Drop into place from above with a slight turn, the way a card lands on a table. */
 function drop(clip, atSec, turn = 4) {
-  return clip.animate({ offsetY: [-260, 0, "easeOutBack"], rotation: [rad(turn * 3), 0, "easeOutBack"], opacity: [0, 1, "hold"] }, { at: atSec, dur: f(8) });
+  return clip.animate({ offsetY: [-260, 0, "easeOutBack"], rotation: [turn * 3, 0, "easeOutBack"], opacity: [0, 1, "hold"] }, { at: atSec, dur: f(8) });
 }
 
 /**
@@ -190,7 +190,7 @@ const s2 = v.scene("S2", f(101), (s) => {
   });
   sun.animate({ offsetY: [-260, 120, "linear"] }, { at: 0, dur: f(2 * BAR) });
   const halo = s.ellipse(620, null, { name: "sun halo", y: -60, stroke: PINK, sw: 4, blendMode: MUL, shape: { dash: [18, 16] } });
-  halo.animate({ offsetY: [-260, 120, "linear"], rotation: [0, rad(40), "linear"] }, { at: 0, dur: f(2 * BAR) });
+  halo.animate({ offsetY: [-260, 120, "linear"], rotation: [0, 40, "linear"] }, { at: 0, dur: f(2 * BAR) });
 
   // The pier: posts and a deck, printed in blue over the sea.
   const pier = s.group({ name: "pier", x: -140, y: 250 });
@@ -267,7 +267,7 @@ const s3 = v.scene("S3", f(101), (s) => {
   s.path([["M", 0, 0], ["L", 0, -150], ["A", 150, 150, 0, 0, 1, 106, -106], ["Z"]], { name: "sheen", parent: disc.id, fill: "rgba(255,255,255,0.35)" });
   s.ellipse(100, PINK, { name: "label", parent: disc.id, blendMode: MUL });
   s.ellipse(12, PAPER, { name: "spindle", parent: disc.id });
-  disc.loop({ rotation: [[0, 0], [1, rad(360), "linear"]] }, f(BAR), { ease: "linear" });
+  disc.loop({ rotation: [[0, 0], [1, 360, "linear"]] }, f(BAR), { ease: "linear" });
 
   registration(s);
   slug(s, "TIDEWATER / PROOF 3 OF 4 / LINEUP");

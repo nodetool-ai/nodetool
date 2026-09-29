@@ -11,7 +11,7 @@
 // `v.series()` is the only place a scene's position in the whole video is
 // decided. Positions are px from the frame centre. `f(frames)` converts a
 // frame count from the original 30fps cut brief into seconds.
-import { video, rad, hash } from "@nodetool-ai/sandbox-timeline";
+import { video, hash } from "@nodetool-ai/sandbox-timeline";
 
 const W = 1920, H = 1080, FPS = 30;
 const f = (frames) => frames / FPS;
@@ -292,7 +292,7 @@ const s3 = v.scene("S3", f(53), (s) => {
   chip.animate({ opacity: [0, 1], offsetY: [14, 0] }, { at: f(8), dur: f(12) });
   plateRow(s, { fillColor: CARD, padX: 28, padY: 12, gap: 10, x: 449, atTime: 0, dur: f(43), name: "reading-chip" }, () => {
     const spin = s.ellipse(20, null, { stroke: VIOLET, sw: 2.5, shape: { trimStart: 0.1, trimEnd: 0.35, lineCap: "round" } });
-    spin.loop({ rotation: [0, rad(-360)] }, f(20), { ease: "linear" });
+    spin.loop({ rotation: [0, -360] }, f(20), { ease: "linear" });
     spin.exit({ to: { opacity: 0 }, at: f(36), dur: f(8), ease: "linear" });
     const reading = s.text("Serein is reading…", { size: 22, weight: 600, color: DIM, mw: 0.3 });
     // A colour pulse between DIM and violet, 16-frame period, approximated as
@@ -342,12 +342,11 @@ const s4a = v.scene("S4a", f(105) + WHIP_MS / 1000, (s) => {
   const landed = { Now: [], Later: [], Never: [] };
   order.forEach((o, k) => {
     const start = 6 + k * 1.2;
-    // `rot` is degrees; the "rotation" curve property is radians (the same
-    // unit `rotation`/`rad()` use everywhere else in this API), so it needs
-    // converting before it goes into a raw `animate()` curve — unlike the
-    // friendly `rotation` option on element creation, `animate()` does not
-    // convert degrees for you.
-    const sx = (hash(k * 5 + 1) * 2 - 1) * 900, sy = (hash(k * 5 + 2) * 2 - 1) * 600, rot = rad((hash(k * 5 + 3) * 2 - 1) * 25);
+    // `rot` is degrees, the same unit as everywhere else in this API — a
+    // `rotation` curve in `animate()`/`enter()`/`exit()`/`loop()` converts
+    // degrees to radians itself, the same as the friendly `rotation` option
+    // on element creation.
+    const sx = (hash(k * 5 + 1) * 2 - 1) * 900, sy = (hash(k * 5 + 2) * 2 - 1) * 600, rot = (hash(k * 5 + 3) * 2 - 1) * 25;
     const x = colX[o.cat], y = -240 + o.slot * 104;
     const g = s.group({ name: `fly-${k}`, parent: board.id, x, y });
     const f0 = Math.floor(start);

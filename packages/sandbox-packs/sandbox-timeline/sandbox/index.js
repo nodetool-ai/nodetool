@@ -183,6 +183,21 @@ const FIELDS = ["shapeStyle", "textStyle", "effects", "animations", "opacity", "
   "temporalEcho", "mask", "matte", "crop", "borderRadius", "currentAssetId", "caption", "transitionIn", "animationLinks", "steppedTime",
   "inPointMs", "outPointMs", "volumeDb", "fadeInMs", "fadeOutMs", "fadeInShape", "fadeOutShape", "speedMultiplier", "speedBaked", "timeRemap", "muted"];
 
+/**
+ * `s.text()`'s own top-level options besides `fill` fall into two groups:
+ * the ones it destructures itself (size, weight, color, font, tracking,
+ * italic, anchor, mw, x, style, path — handled above) and every other
+ * general clip option (id/name/parent/at/dur/y/rotation/tx/transform/
+ * absolute/inset, plus every `FIELDS` entry) that `makeClip` understands
+ * regardless of element type. Anything else is a mistake — most often a
+ * textStyle-only field (`fill`'s own bug before this set existed, or
+ * `stroke`/`shadow`/`lineHeight`/...) written top-level instead of under
+ * `style`, which `text()` used to drop with no error.
+ */
+const TEXT_PASSTHROUGH_KEYS = new Set([
+  "id", "name", "parent", "at", "dur", "y", "s", "rotation", "tx", "transform", "absolute", "inset", ...FIELDS
+]);
+
 function hexToRgba(hex, alpha) {
   const h = hex.replace("#", "");
   const n = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
@@ -521,7 +536,7 @@ export function video(options = {}) {
   function attachMotion(clip) {
     clip.enter = (o = {}) => {
       const { from, at = clip._staggerAt ?? 0, dur = 0.3, ease: e = "outExpo", by, staggerMs, mask } = o;
-      const curves = Object.entries(from).map(([prop, val]) => ({ property: prop, ...curvePair(val, restOf(prop), e) }));
+      const curves = Object.entries(from).map(([prop, val]) => ({ property: prop, ...curvePair(rotDeg(prop, val), restOf(prop), e) }));
       const stagger = staggerOpt(by, staggerMs);
       // Remembered so a `tween()` authored alongside this `enter()` — the
       // common case for a glyph.* style track riding the same reveal — picks
@@ -533,7 +548,7 @@ export function video(options = {}) {
     clip.exit = (o = {}) => {
       const { to, dur = 0.3, ease: e = "inExpo" } = o;
       const at = o.at ?? Math.max(0, clip.durationMs / 1000 - dur);
-      const curves = Object.entries(to).map(([prop, val]) => ({ property: prop, ...curvePair(restOf(prop), val, e) }));
+      const curves = Object.entries(to).map(([prop, val]) => ({ property: prop, ...curvePair(restOf(prop), rotDeg(prop, val), e) }));
       // The compiler places an "out" role's window by counting `delayMs` back
       // from the clip's own end (windowEndMs = clipDurationMs - delayMs), not
       // forward from the start like every other role. `at`/`dur` here are
@@ -547,19 +562,27 @@ export function video(options = {}) {
     };
     clip.animate = (props, o = {}) => {
       const { at = clip._staggerAt ?? 0, dur = 0.3, ease: e = "outExpo", by, staggerMs, mask } = o;
-      const curves = Object.entries(props).map(([prop, spec]) => ({ property: prop, keyframes: keyframesFor(withEase(spec, e)) }));
+      const curves = Object.entries(props).map(([prop, spec]) => ({ property: prop, keyframes: keyframesFor(rotDegSpec(prop, withEase(spec, e))) }));
       // "in" unless the caller named a role: an unnamed role that looks like
       // an exit (see isExitShapedCurves) gets "out" instead, so its window
       // anchors to the clip's end the way exit() already does.
       const role = o.role ?? (isExitShapedCurves(curves) ? "out" : "in");
       const stagger = staggerOpt(by, staggerMs);
       if (stagger.stagger) clip._lastStagger = stagger.stagger;
-      pushAnim(clip, { role, delayMs: msFor(at), durationMs: msFor(dur), preset: "custom", custom: { curves, ...maskOpt(mask) }, ...stagger });
+      // `at`/`dur` are always authored the same way as every other role: seconds
+      // from the clip's own start. The compiler places an "out" role's window
+      // by counting `delayMs` back from the clip's own end, not forward from
+      // the start (see exit(), above) — so a role of "out" here, whether named
+      // explicitly or picked by isExitShapedCurves, needs the same forward-to
+      // backward conversion exit() already does, once, rather than asking the
+      // caller to do that arithmetic or reason about which role they got.
+      const delayMs = role === "out" ? Math.max(0, clip.durationMs - msFor(at + dur)) : msFor(at);
+      pushAnim(clip, { role, delayMs, durationMs: msFor(dur), preset: "custom", custom: { curves, ...maskOpt(mask) }, ...stagger });
       return clip;
     };
     clip.loop = (props, period, o = {}) => {
       const { ease: e = "linear" } = o;
-      const curves = Object.entries(props).map(([prop, spec]) => ({ property: prop, keyframes: keyframesFor(withEase(spec, e)) }));
+      const curves = Object.entries(props).map(([prop, spec]) => ({ property: prop, keyframes: keyframesFor(rotDegSpec(prop, withEase(spec, e))) }));
       pushAnim(clip, { role: "loop", delayMs: 0, durationMs: msFor(period), preset: "custom", custom: { curves } });
       return clip;
     };
@@ -766,6 +789,22 @@ export function video(options = {}) {
   }
 
   function curvePair(from, to, easing) { return { keyframes: [{ t: 0, value: from }, { t: 1, value: to, easing: ease(easing) }] }; }
+  /**
+   * `rotation` is the one curve property authored in degrees, like the
+   * friendly `rotation` option at element creation (`rad()`, near
+   * `makeClip`) — every other curve property, including `rotationX`/
+   * `rotationY` (already degrees in the document) and `tx`'s raw escape
+   * hatch, takes its document unit as-is. `enter()`/`exit()` pass one scalar
+   * per property; `rotDegSpec` does the same for `animate()`/`loop()`'s
+   * `[from, to]`/waypoint spec shape.
+   */
+  function rotDeg(prop, value) { return prop === "rotation" && typeof value === "number" ? rad(value) : value; }
+  function rotDegSpec(prop, spec) {
+    if (prop !== "rotation") return spec;
+    if (Array.isArray(spec[0])) return spec.map((tuple) => [tuple[0], rotDeg(prop, tuple[1]), ...tuple.slice(2)]);
+    const [a, b, e] = spec;
+    return e !== undefined ? [rotDeg(prop, a), rotDeg(prop, b), e] : [rotDeg(prop, a), rotDeg(prop, b)];
+  }
   function withEase(spec, defaultEase) {
     if (Array.isArray(spec[0])) return spec.map((tuple) => (tuple.length === 3 ? tuple : [...tuple]));
     const [a, b, e] = spec;
@@ -861,7 +900,7 @@ export function video(options = {}) {
 
   function makeSceneApi(ctx) {
     const text = (str, o = {}) => {
-      const { size = 48, weight = 500, color = "#ffffff", font, tracking, italic, anchor = "center", mw = 0.9, x = 0, style: styleOverride, path: onPath, ...rest } = o;
+      const { size = 48, weight = 500, color = "#ffffff", font, tracking, italic, anchor = "center", mw = 0.9, x = 0, style: styleOverride, path: onPath, fill, ...rest } = o;
       const family = fonts[font] ?? font ?? fonts.body ?? "Inter";
       const style = { text: str, fontFamily: family, fontSizePx: size, fontWeight: weight, color, align: anchor, maxWidthFrac: mw };
       if (tracking !== undefined) {
@@ -873,11 +912,21 @@ export function video(options = {}) {
       // frame centre — converted through the one `pathData` formatter so
       // both draw from the same normalized `d` string.
       if (onPath) style.path = pathData(onPath);
+      // `fill` (a colour or a gradient) is a recognized top-level option,
+      // same as `style.fill` — the friendly spelling for the one textStyle
+      // field callers reach for as often as `color`. `style` is checked
+      // after, so an explicit `style: {fill: ...}` still wins over it.
+      if (fill !== undefined) style.fill = fill;
       // Passthrough for every other textStyle field the document supports —
-      // lineHeight, verticalAlign, stroke, shadow, background, fill — so
-      // nothing needs mutating the clip after creation.
+      // lineHeight, verticalAlign, stroke, shadow, background — so nothing
+      // needs mutating the clip after creation.
       Object.assign(style, styleOverride ?? {});
       const x0 = anchor === "left" ? x + (mw * W) / 2 : anchor === "right" ? x - (mw * W) / 2 : x;
+      for (const key of Object.keys(rest)) {
+        if (!TEXT_PASSTHROUGH_KEYS.has(key)) {
+          throw new Error(`text "${str}": unknown option "${key}" — a textStyle field (lineHeight, verticalAlign, stroke, shadow, background, ...) goes under style: {${key}: ...}, not top-level.`);
+        }
+      }
       return makeClip("text", ctx, { ...rest, x: x0, textStyle: style });
     };
     const rect = (w, h, fill, o = {}) => {

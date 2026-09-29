@@ -277,6 +277,8 @@ export interface TextOptions extends Omit<ClipFieldOptions, "anchor"> {
   mw?: number;
   /** Text-on-path: the same point commands `s.path()` takes. */
   path?: PathPoints;
+  /** A colour or a gradient fill, same as `style.fill` — the one most callers reach for. `style.fill` wins when both are set. */
+  fill?: Fill;
   style?: TextStyleOverride;
 }
 

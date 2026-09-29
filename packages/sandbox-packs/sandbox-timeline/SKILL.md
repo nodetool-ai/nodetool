@@ -124,7 +124,7 @@ where in that scope the clip lives; everything else is the clip's own fields.
 
 | Call | Makes |
 |---|---|
-| `s.text(str, o)` | a text clip. `o.size`, `o.weight`, `o.color`, `o.font` (a `fonts` key or a literal family), `o.tracking` (em, a fraction of size: `-0.04` tight, `0.2` wide caps), `o.italic`, `o.anchor` `"left"`/`"right"`/`"center"`, `o.mw` max width as a frame fraction, `o.path` (text-on-path: the same point commands `s.path()` takes), `o.style` — passthrough for any other `textStyle` field (`lineHeight`, `verticalAlign`, `stroke`, `shadow`, `background`, `fill`) |
+| `s.text(str, o)` | a text clip. `o.size`, `o.weight`, `o.color`, `o.font` (a `fonts` key or a literal family), `o.tracking` (em, a fraction of size: `-0.04` tight, `0.2` wide caps), `o.italic`, `o.anchor` `"left"`/`"right"`/`"center"`, `o.mw` max width as a frame fraction, `o.path` (text-on-path: the same point commands `s.path()` takes), `o.fill` a colour or a gradient (same as `style.fill`, below), `o.style` — passthrough for any other `textStyle` field (`lineHeight`, `verticalAlign`, `stroke`, `shadow`, `background`) — an unrecognized top-level option throws, naming it and pointing at `style` |
 | `s.rect(w, h, fill, o)`, `s.ellipse(d, fill, o)` | shape clips; `fill` a colour or a gradient `{type, angle\|stops, ...}`; `o.r` corner radius, `o.stroke`, `o.sw` |
 | `s.path(points, o)` | an SVG path from `[["M", x, y], ["L", x, y], …]` in px from the frame centre. `H x`/`V y` take one coordinate on their own axis; `A rx ry xRotDeg largeArc sweep x y` scales the two radii as sizes and passes the angle and the two flags through unscaled |
 | `s.image(assetId, o)` | a placed still |
@@ -293,6 +293,12 @@ call does not override.
 | `s.pill(label, o?)` | `{size, weight, color, fillColor, stroke, dot, shadow, padX, padY, x, y, anchor, at, dur, font}` | a flex row (optional leading dot + label) over an absolute inset-0 background plate, optional leading dot |
 | `s.streaks(o?)` | `{count, colors, rotationDeg, opacity}` | phase-shifted repeater bars racing off frame |
 | `s.finish(o?)` | `{vignette, softness, grain, seed, saturation, contrast}` | scene-scoped grain + vignette adjustment |
+
+**`s.backdrop({colors: [a, b]})` uses `a` twice** — as the solid base rect
+underneath, and as the first stop of the animated `gradientField` wash on top
+of it. There is no separate base colour: pass `colors: [a, b]` to mean "base
+and wash both start at `a`, wash drifts toward `b`", not "a solid `a` behind a
+`b`-to-something wash".
 
 A slam, a rise, or a grow are `el.enter()`/`el.animate()` calls with the right
 `from`/props — there is no separate name for them:
@@ -612,6 +618,21 @@ before the script ever runs.
 - **`enter` and `exit` are always "in"/"out"; there is no flip to reason
   about.** `enter`'s target is always the property's rest pose, `exit`'s start
   is always rest — declare the one you mean.
+- **`animate()`'s `at`/`dur` are always clip-local seconds from the clip's own
+  start, whatever role it ends up with.** A curve shaped like an exit
+  (trailing away from every property's rest pose) auto-picks `role: "out"`,
+  the same as passing it explicitly; either way, `at`/`dur` still mean "starts
+  `at` seconds in, plays for `dur`" — the pack converts that to the
+  backward-from-the-clip's-end delay the document format wants, the same
+  conversion `exit()` already does. Author it exactly like `enter()`; don't
+  count backward by hand.
+- **A `rotation` curve is degrees, the same unit as the friendly `rotation`
+  option on element creation.** `enter({from: {rotation: 90}})`,
+  `exit({to: {rotation: -20}})`, `animate({rotation: [0, 180]})` and
+  `loop({rotation: [0, 360]}, period)` all take degrees; the pack converts to
+  the document's radians internally. `rotationX`/`rotationY` curves are
+  already degrees and need no conversion. `tx: {rotation: ...}` — the raw
+  escape hatch — stays radians, since it writes the document field directly.
 - **`stack`/`row` take `align`/`justify`** (Yoga `alignItems`/`justifyContent`;
   default `align: "start"`, `justify` unset) and place their own box in the
   frame via `at`/`anchor`, not a sibling's measured size; an unknown
