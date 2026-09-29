@@ -37,6 +37,7 @@ export type FaqSurface =
   | "agents"
   | "cloud"
   | "comparison"
+  | "developers"
   | "models"
   | "pricing"
   | "studio";
@@ -99,7 +100,7 @@ const seeds: FaqSeed[] = [
       "Yes. The whole project is **AGPL-3.0** on [GitHub](https://github.com/nodetool-ai/nodetool). Studio and Cloud are built from the same source, and nothing is held back for a paid tier. You can host it yourself at any time.",
     category: "general",
     relatedRoute: "/studio",
-    surfaces: ["landing", "comparison"],
+    surfaces: ["comparison", "developers", "landing"],
   },
   {
     slug: "what-is-byok",
@@ -108,7 +109,7 @@ const seeds: FaqSeed[] = [
       "It means you connect your own provider accounts and pay each provider directly at its published price. NodeTool does not add a credit system or a provider-price markup. The provider still receives the requests you send to its models. You will sometimes see this written as **BYOK**.",
     category: "byok",
     relatedRoute: "/pricing",
-    surfaces: ["agents", "cloud", "comparison", "models", "pricing", "studio"],
+    surfaces: ["agents", "cloud", "comparison", "developers", "models", "pricing", "studio"],
   },
   {
     slug: "how-much-does-nodetool-cost",
@@ -245,7 +246,7 @@ const seeds: FaqSeed[] = [
       "Yes. NodeTool runs as an MCP server. Run `npx -y --package=@nodetool-ai/cli nodetool mcp install` and restart the agent. The command registers NodeTool with Claude Code, Codex, and OpenCode, and `nodetool mcp config` prints a config block for Cursor, Claude Desktop, and other clients. The agent gets workflows, image, video, and audio generation, and your asset library as tools. Studio is optional. When Studio runs, the agent's changes appear in the open editor.",
     category: "general",
     relatedRoute: "/agents",
-    surfaces: ["agents"],
+    surfaces: ["agents", "developers"],
   },
   {
     slug: "what-is-a-planning-agent",
@@ -263,7 +264,7 @@ const seeds: FaqSeed[] = [
       "No. Studio can use hosted providers, where the model runs on the provider's hardware. A GPU matters only when you choose to run supported open-weight models on your computer. The requirement then depends on the model and runtime; smaller models may run on CPU at lower speed.",
     category: "models",
     relatedRoute: "/solutions/local-first",
-    surfaces: ["landing", "models", "studio"],
+    surfaces: ["developers", "landing", "models", "studio"],
   },
   {
     slug: "what-should-i-expect-from-cloud-alpha",

@@ -55,7 +55,7 @@ const KEY_PAGE_BLURBS = {
   "/cloud": "the hosted browser edition for evaluation while in alpha.",
   "/pricing": "edition comparison and how BYOK pricing works.",
   "/agents": "build and inspect automation that produces editable workflows and projects.",
-  "/developers": "The QuickJS sandbox, the node DSL inside it, and how agents drive NodeTool from sandboxed code.",
+  "/developers": "connect NodeTool to your coding agent over MCP for images, video, speech, and workflows.",
   "/marketing": "hand a brief to an agent; campaign assets at volume.",
 };
 
@@ -129,16 +129,22 @@ See the [installation guide](https://docs.nodetool.ai/installation.md) for suppo
 Cloud uses hosted project storage and supported remote providers connected through your own accounts. Current alpha access is free; future pricing has not been announced. See [pricing](${BASE_URL}/pricing.md) and [technical documentation](https://docs.nodetool.ai/llms.txt) for current details.`,
   },
   "developers.md": {
-    title: "NodeTool Developer Platform",
+    title: "NodeTool for Developers",
     description:
-      "One QuickJS sandbox runs every Code node body, saved script, and agent action \u2014 with the node catalog and the platform reachable by import.",
-    body: `Every piece of JavaScript NodeTool did not write itself runs in one QuickJS WebAssembly isolate: a Code node body, a saved JS script, and every action an agent takes. Same engine, same limits, same imports.
+      "Connect NodeTool to Claude Code, Codex, OpenCode, or Cursor so your coding agent can make images, video, speech, and repeatable media workflows.",
+    body: `NodeTool runs as a local MCP server. One command registers it with Claude Code, Codex, and OpenCode:
 
-Inside the guest, capabilities are globals the host granted for that run (\`fetch\` behind an SSRF guard, a contained \`workspace\`, scoped secrets, media and canvas bridges), and libraries are imports from 38 shipped packs. Two of those packs are NodeTool's own node catalog: \`@nodetool-ai/sandbox-flow\` calls 424 node types as async functions, and \`@nodetool-ai/sandbox-dsl\` builds a workflow graph you can validate, save, and open in the editor.
+\`\`\`bash
+npx -y --package=@nodetool-ai/cli nodetool mcp install
+\`\`\`
 
-Agents drive NodeTool through the same surface. An agent step acts by writing a program, not by emitting a JSON tool call: the model sees one provider tool, \`execute_code({code})\`, and reaches 208 platform tools across 33 namespaces as imports from \`@nodetool-ai/sandbox-nodetool/*\`.
+For Cursor, Claude Desktop, or another MCP client, run \`nodetool mcp config\` and paste the printed block into the client config. The desktop app is optional.
 
-Read the [sandbox reference](https://docs.nodetool.ai/javascript-sandbox), the [CLI](https://docs.nodetool.ai/cli.md) for the validate/run/test loop, the [node catalog](https://docs.nodetool.ai/nodes/catalog.json) for node schemas, and the [developer guide](https://docs.nodetool.ai/developer/index.md) to write custom nodes.`,
+After the install, ask the agent for images, video, speech, transcripts, or a whole workflow in plain words. It saves files into the project and keeps a copy in the NodeTool asset library. Generation calls your own provider accounts at their list price.
+
+Ask the agent to save the steps as a workflow. You can open the graph in Studio, change it, and run it again from the canvas, the CLI (\`nodetool run\`), or \`POST /api/workflows/<id>/run\`.
+
+Read the [MCP setup guide](https://docs.nodetool.ai/mcp-server), the [workflow API](https://docs.nodetool.ai/workflow-api), the [JavaScript sandbox reference](https://docs.nodetool.ai/javascript-sandbox), and the [developer guide](https://docs.nodetool.ai/developer/) to write custom nodes.`,
   },
   "agents.md": {
     title: "NodeTool Agents",

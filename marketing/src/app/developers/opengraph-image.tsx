@@ -6,8 +6,8 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return ogImage(
-    "Extend the workspace",
-    "TypeScript SDK, REST API, custom nodes in TS or Python. Open source.",
-    { image: "screen_nodemenu.png", accent: "blue", eyebrow: "For developers" }
+    "Your agent makes the media too",
+    "Images, video, speech, and workflows for Claude Code, Codex, and Cursor.",
+    { image: "screen_workflow.png", accent: "blue", eyebrow: "For developers" }
   );
 }
