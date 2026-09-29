@@ -7,7 +7,7 @@
  * and the body's imports are therefore the declaration.
  */
 import { parseCodeBody, staticImportSpecifiers } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProcessingContext, SandboxModuleCatalog } from "@nodetool-ai/runtime";
 import {
   SANDBOX_CAPABILITY_PACK,
   type SandboxModuleResolution
@@ -33,7 +33,12 @@ export type PackResolution =
 export function resolveImportedPacks(
   code: string,
   context: ProcessingContext,
-  options: { mounted?: ReadonlySet<string>; subject?: string } = {}
+  options: {
+    mounted?: ReadonlySet<string>;
+    subject?: string;
+    /** Resolve against this catalog instead of the context's. */
+    catalog?: SandboxModuleCatalog | null;
+  } = {}
 ): PackResolution {
   const subject = options.subject ?? "The script";
   const parsed = parseCodeBody(code);
@@ -50,7 +55,7 @@ export function resolveImportedPacks(
   );
   if (packs.length === 0) return { ok: true };
 
-  const catalog = context.sandboxModuleCatalog;
+  const catalog = options.catalog ?? context.sandboxModuleCatalog;
   if (!catalog) {
     return {
       ok: false,

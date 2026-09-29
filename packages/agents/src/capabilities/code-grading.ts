@@ -27,13 +27,6 @@ export interface HarnessRunResult {
   logs: string[];
   error?: string;
   duration_ms: number;
-  /**
-   * Set only by `run_js_script` (via `runCodeBody`'s `embedTimelineCode`):
-   * names why a timeline this run saved did not get its code embedded as
-   * its source. Absent when there was nothing to embed or embedding
-   * succeeded.
-   */
-  warning?: string;
 }
 
 /** One case as the grader reads it, whatever wire shape it arrived in. */

@@ -18,7 +18,6 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
-import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   TimelineDocument,
   TimelineSequence,
@@ -96,7 +95,6 @@ import {
 import {
   bakeTimelineCode,
   bakedDocumentMatchesSaved,
-  finalizeTimelineCallRecords,
   type BakeTimelineCodeResult
 } from "../timeline-code-bake.js";
 import {
@@ -109,12 +107,6 @@ import { TIMELINE_NATIVE_MEDIA_CAPABILITIES } from "./timeline-native-media.js";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
 
 import { resolveProjectId } from "./project-scope.js";
-import {
-  TIMELINE_DOCUMENT_WRITES_KEY,
-  MAX_TIMELINE_CALL_BYTES,
-  randomTimelineSeed,
-  type RawTimelineCallRecord
-} from "../timeline-code-embed-keys.js";
 
 type ToolError = { error: string };
 
@@ -1354,39 +1346,6 @@ const setTimelineDocument: CapabilityExport = {
       saved.toDocument(),
       { fps: saved.fps, width: saved.width, height: saved.height }
     );
-    // Bookkeeping for the host's own code-embedding decision, never a wire
-    // field: a host that is tracking a run (CodeAct, `run_js_script`)
-    // initializes `TIMELINE_DOCUMENT_WRITES_KEY` to `[]` on the run's own
-    // `ProcessingContext` before it starts and reads the array back once the
-    // run ends, to decide whether it saved exactly one timeline. Context, not
-    // a field on this call's own `CapabilityRun`, because a run_js_script
-    // call reaches this implementation through the ordinary belt-`Tool`
-    // path, which builds its own `CapabilityRun` per call — the
-    // `ProcessingContext` is the one object every layer of that dispatch
-    // shares unchanged.
-    //
-    // A run no host is tracking this way carries no array — either
-    // `run.context.get` is missing, or the key holds nothing (never
-    // initialized). That used to be silent: a host wiring gap meant a saved
-    // timeline simply never got its code attached, with nothing in the
-    // result to say why. It is reported here instead, once, at the one call
-    // that can actually tell tracking is off — the host-side embed attempt
-    // that would normally follow never runs at all when this is the cause,
-    // so nothing downstream could report it otherwise.
-    let codeEmbedWarning: string | undefined;
-    if (typeof run.context.get === "function") {
-      const writes = run.context.get<string[] | undefined>(
-        TIMELINE_DOCUMENT_WRITES_KEY
-      );
-      if (writes) {
-        writes.push(saved.id);
-      } else {
-        codeEmbedWarning =
-          "code not embedded: this run does not record calls";
-      }
-    } else {
-      codeEmbedWarning = "code not embedded: this run does not record calls";
-    }
     return {
       ok: true,
       written: true,
@@ -1404,8 +1363,7 @@ const setTimelineDocument: CapabilityExport = {
         ? document["clips"].length
         : 0,
       validation: after,
-      summary: validationSummary(after),
-      warning: codeEmbedWarning
+      summary: validationSummary(after)
     };
   }
 };
@@ -2886,38 +2844,17 @@ async function bakeAndMergeTimelineCode(
   run: CapabilityRun,
   sequence: TimelineSequence,
   code: string,
-  force: true | string[] | undefined,
-  allowLive: boolean
+  force: true | string[] | undefined
 ) {
   const current = sequence.toDocument();
-  // A timeline this call is attaching code to for the first time (no prior
-  // `source`) has no recorded calls or seed to replay — a fresh seed/epoch
-  // starts its own lineage, and an empty `calls` means every non-timeline
-  // call the code makes is "missing" until `allowLive` records one for real.
-  const seed = current.source?.seed ?? randomTimelineSeed();
-  const epochMs = current.source?.epochMs ?? Date.now();
   const baked: BakeTimelineCodeResult = await bakeTimelineCode(
     run.context,
-    code,
-    {
-      calls: current.source?.calls ?? [],
-      seed,
-      epochMs,
-      allowLive,
-      liveRun: run
-    }
+    code
   );
   if (!baked.ok || !baked.document) {
-    const missing =
-      baked.missingCalls && baked.missingCalls.length > 0
-        ? [
-            `Missing recorded call(s): ${baked.missingCalls.join(", ")}. ` +
-              "Pass allow_live: true to run them for real and record fresh results."
-          ]
-        : [];
     return {
       timeline_id: sequence.id,
-      errors: [baked.error ?? "The code failed to build a document.", ...missing],
+      errors: [baked.error ?? "The code failed to build a document."],
       warnings: [],
       conflicts: [],
       scenes: []
@@ -2938,10 +2875,7 @@ async function bakeAndMergeTimelineCode(
       lang: "js" as const,
       code,
       bakedAt: new Date().toISOString(),
-      scenes: merged.scenes,
-      calls: baked.calls ?? [],
-      seed,
-      epochMs
+      scenes: merged.scenes
     }
   };
 
@@ -2971,135 +2905,84 @@ async function bakeAndMergeTimelineCode(
   };
 }
 
-export { TIMELINE_DOCUMENT_WRITES_KEY } from "../timeline-code-embed-keys.js";
-
-export interface TimelineCodeEmbedAttempt {
-  embedded: boolean;
-  /** Present only when embedding was skipped and there is something to tell the caller. */
-  warning?: string;
-}
-
 /**
- * Try to attach `code` as `timelineId`'s authoring source, right after a
- * plain `v.save(nodetool.timelines, {...})` (or an equivalent direct
- * `set_timeline_document` call) wrote its document with no source.
+ * Attach `code` as `sequence`'s authoring source only when a hermetic bake
+ * of it gives exactly the document that is saved now. This is
+ * `set_timeline_code` with `require_match: true`, which `v.save()` calls
+ * with the retained program it printed (docs/timeline-code-capture.md).
  *
- * Called by a host — the CodeAct action runner, `run_js_script` — once it
- * knows its own run saved exactly one timeline (see
- * `CapabilityRun.timelineDocumentWrites`); never called from inside a
- * capability implementation itself; that would let the bake this calls
- * trigger another round of the same bookkeeping it depends on (see
- * `timeline-code-bake.ts`'s own note on avoiding that recursion).
- *
- * The gate is `bakeTimelineCode` plus `bakedDocumentMatchesSaved`: run `code`
- * hermetically, and embed only if the result is exactly the document that
- * was saved. A mismatch — the bake failing, or baking to something else —
- * means `code` is not a faithful, replayable record of what got saved, so
- * storing it as the source would make a later rebake silently diverge from
- * what the timeline actually shows.
+ * A mismatch writes nothing and returns a warning. The document stays as it
+ * was saved, only without code, because code that does not rebuild it would
+ * make a later rebake diverge from what the timeline shows.
  */
-export interface TryEmbedTimelineCodeOptions {
-  /** The run's own raw call log — see `timeline-code-embed-keys.ts`. */
-  calls: readonly RawTimelineCallRecord[];
-  /** The seed/epoch the run itself used, so the replay reproduces it. */
-  seed: number;
-  epochMs: number;
-}
-
-export async function tryEmbedTimelineCode(
-  context: ProcessingContext,
-  timelineId: string,
-  code: string,
-  options: TryEmbedTimelineCodeOptions
-): Promise<TimelineCodeEmbedAttempt> {
-  const { TimelineSequence } = await import("@nodetool-ai/models");
-  const sequence = await TimelineSequence.findById(timelineId);
-  if (!sequence) return { embedded: false };
+async function attachMatchingTimelineCode(
+  run: CapabilityRun,
+  sequence: TimelineSequence,
+  code: string
+) {
   const current = sequence.toDocument();
-  // Already code-backed — a rebake/merge is a deliberate call
-  // (`code.set`/`code.edit`/`code.rebake`), not something this silently
-  // redoes underneath a plain document write.
-  if (current.source) return { embedded: false };
-
-  const { calls, droppedForSize } = finalizeTimelineCallRecords(options.calls);
-  const sizeWarning =
-    droppedForSize > 0
-      ? `${droppedForSize} call result${droppedForSize === 1 ? "" : "s"} ` +
-        `were not recorded — they would have pushed this timeline's stored ` +
-        `calls past the ${Math.round(MAX_TIMELINE_CALL_BYTES / 1024)} KB ` +
-        "cap. A rebake needing one of them will fail; call set_timeline_code " +
-        "again with allow_live: true if that happens."
-      : undefined;
-
-  const baked = await bakeTimelineCode(context, code, {
-    calls,
-    seed: options.seed,
-    epochMs: options.epochMs
+  const notEmbedded = (warning: string) => ({
+    timeline_id: sequence.id,
+    embedded: false,
+    errors: [],
+    warnings: [warning],
+    conflicts: [],
+    scenes: []
   });
-  if (!baked.ok || !baked.document) {
-    const missing =
-      baked.missingCalls && baked.missingCalls.length > 0
-        ? ` (missing: ${baked.missingCalls.join(", ")})`
-        : "";
-    return {
-      embedded: false,
-      warning:
-        `Code not embedded: rebaking it hermetically failed (${
-          baked.error ?? "unknown error"
-        })${missing}. Build the timeline in its own action so v.save embeds ` +
-        "it automatically, or attach this code as-is with set_timeline_code."
-    };
-  }
 
+  const baked = await bakeTimelineCode(run.context, code);
+  if (!baked.ok || !baked.document) {
+    return notEmbedded(
+      `Code not embedded: the retained program failed to rebake (${
+        baked.error ?? "unknown error"
+      }).`
+    );
+  }
   if (
     !bakedDocumentMatchesSaved(
       current as unknown as TimelineDocumentLike,
       baked.document
     )
   ) {
-    return {
-      embedded: false,
-      warning:
-        "Code not embedded: rebaking it hermetically produced a different " +
-        "timeline than the one saved. Either the code is not deterministic " +
-        "in a way seeding Math.random()/Date.now() does not cover, or it " +
-        "depends on something a replay cannot see. Fix the code, or attach " +
-        "it as-is with set_timeline_code."
-    };
+    return notEmbedded(
+      "Code not embedded: the retained program rebakes to a different " +
+        "timeline than the one saved. A scene clip probably changed after " +
+        "v.series(), or a value came from Math.random() or Date.now()."
+    );
   }
 
-  // `current` was just checked to carry no `source`, so there is no prior
-  // bake to compare scene hashes against — every scene here is new.
+  // Every scene is new here: the saved document was just written from this
+  // same run, so there are no hand edits to keep.
   const merged = mergeTimelineSource(
     current as unknown as TimelineDocumentLike,
     baked.document,
     {},
     { force: true }
   );
-  const mergedWithSource: Record<string, unknown> = {
-    ...merged.document,
-    source: {
-      lang: "js" as const,
-      code,
-      bakedAt: new Date().toISOString(),
-      scenes: merged.scenes,
-      calls: baked.calls ?? [],
-      seed: options.seed,
-      epochMs: options.epochMs
-    }
-  };
   const write = await writeTimelineCodeDocument(
     sequence,
-    mergedWithSource,
+    {
+      ...merged.document,
+      source: {
+        lang: "js" as const,
+        code,
+        bakedAt: new Date().toISOString(),
+        scenes: merged.scenes
+      }
+    },
     "Attach authoring code"
   );
   if (!write.written) {
-    return {
-      embedded: false,
-      warning: `Code not embedded: ${write.error}`
-    };
+    return notEmbedded(`Code not embedded: ${write.error}`);
   }
-  return { embedded: true, warning: sizeWarning };
+  return {
+    timeline_id: write.timeline_id,
+    embedded: true,
+    errors: write.errors,
+    warnings: write.warnings,
+    conflicts: [],
+    scenes: sceneReport(merged.scenes, new Set())
+  };
 }
 
 const getTimelineCode: CapabilityExport = {
@@ -3142,15 +3025,12 @@ const setTimelineCode: CapabilityExport = {
     if (!isString(code) || !code.trim()) {
       return { error: "code is required and must be a non-empty script." };
     }
+    if (params["require_match"] === true) {
+      return attachMatchingTimelineCode(run, sequence, code);
+    }
     const force = normalizeForceOption(params["force"]);
     if (isError(force)) return force;
-    return bakeAndMergeTimelineCode(
-      run,
-      sequence,
-      code,
-      force,
-      params["allow_live"] === true
-    );
+    return bakeAndMergeTimelineCode(run, sequence, code, force);
   }
 };
 
@@ -3175,8 +3055,7 @@ const editTimelineCode: CapabilityExport = {
       run,
       sequence,
       applied.code,
-      force,
-      params["allow_live"] === true
+      force
     );
   }
 };
@@ -3196,8 +3075,7 @@ const rebakeTimelineCode: CapabilityExport = {
       run,
       sequence,
       source.code,
-      force,
-      params["allow_live"] === true
+      force
     );
   }
 };

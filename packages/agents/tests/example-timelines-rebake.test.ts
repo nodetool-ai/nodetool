@@ -22,7 +22,10 @@ import {
   listExampleTimelines
 } from "@nodetool-ai/timeline/examples/node";
 import { mergeTimelineSource, type TimelineDocumentLike } from "@nodetool-ai/timeline";
-import { bakeTimelineCode } from "../src/timeline-code-bake.js";
+import {
+  bakeTimelineCode,
+  bakedDocumentMatchesSaved
+} from "../src/timeline-code-bake.js";
 
 const discovery = discoverSandboxPack(
   join(
@@ -73,6 +76,21 @@ describe("shipped example timelines rebake clean", () => {
       for (const [name, recorded] of Object.entries(source.scenes)) {
         expect(merged.scenes[name]).toEqual(recorded);
       }
+    });
+
+    it(`${slug}: the retained program v.save() prints rebuilds the same document`, async () => {
+      const code = getExampleTimelineBundle({}, slug)!.document.source!.code;
+      const first = await bakeTimelineCode(context(), code);
+      expect(first.ok, first.error).toBe(true);
+      expect(first.retainedProgram).toBeDefined();
+
+      const second = await bakeTimelineCode(context(), first.retainedProgram!);
+      expect(second.ok, second.error).toBe(true);
+      expect(
+        bakedDocumentMatchesSaved(first.document!, second.document!)
+      ).toBe(true);
+      // Printing is a fixed point: the program prints itself again.
+      expect(second.retainedProgram).toBe(first.retainedProgram);
     });
   }
 });

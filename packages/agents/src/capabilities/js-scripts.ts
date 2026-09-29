@@ -269,8 +269,7 @@ async function runDocument(
   context: ProcessingContext,
   document: JsScriptDocument,
   inputs: Record<string, unknown>,
-  inputStreams?: Record<string, unknown[]>,
-  embedTimelineCode = false
+  inputStreams?: Record<string, unknown[]>
 ) {
   const params: Parameters<typeof runCodeBody>[1] = {
     code: document.code,
@@ -283,7 +282,6 @@ async function runDocument(
     withToolbelt: true
   };
   if (inputStreams) params.inputStreams = inputStreams;
-  if (embedTimelineCode) params.embedTimelineCode = true;
   return runCodeBody(context, params);
 }
 
@@ -730,8 +728,7 @@ const runJsScript: CapabilityExport = {
       gate.childContext,
       document,
       inputBag(params["inputs"]),
-      staged,
-      /* embedTimelineCode */ true
+      staged
     );
     return { js_script_id: script.id, name: script.name, ...result };
   }

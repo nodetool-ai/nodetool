@@ -25,16 +25,11 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { JsonSchema } from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
 import { validateCapabilityArgs, withSnakeCaseAliases } from "./args.js";
-import {
-  capabilitySpec,
-  capabilityModuleOf,
-  loadCapabilityImpl
-} from "./registry.js";
+import { capabilitySpec, loadCapabilityImpl } from "./registry.js";
 import { ungatedCapabilityRun } from "./invoke.js";
 import type { CapabilityRunSource } from "./adapters.js";
 import type { CapabilityImpl, CapabilitySpec } from "./types.js";
 import { isFunction } from "../utils/type-guards.js";
-import { recordTimelineCall } from "../timeline-code-embed-keys.js";
 
 class LazyCapabilityTool extends Tool {
   readonly name: string;
@@ -75,15 +70,7 @@ class LazyCapabilityTool extends Tool {
     const run = isFunction(this.runSource)
       ? this.runSource(context)
       : this.runSource;
-    const result = await impl(run, checked.args);
-    // Same bookkeeping `invoke.ts`'s `gatedCall` does for a call that
-    // arrives through `run.invoke` — this is the belt-`Tool` path's own
-    // single choke point, so it needs the same hook rather than a second,
-    // separate one. See `timeline-code-embed-keys.ts`.
-    if (capabilityModuleOf(this.spec.name) !== "timelines") {
-      recordTimelineCall(context, this.spec.name, checked.args, result);
-    }
-    return result;
+    return impl(run, checked.args);
   }
 }
 

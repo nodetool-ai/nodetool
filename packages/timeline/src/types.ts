@@ -113,25 +113,12 @@ export interface TimelineSequence {
  * replaces it; a mismatch means it was hand-edited (in the editor, or via
  * `edit_timeline`) and is kept, reported as a conflict.
  */
-/** One non-timeline capability/tool call the authoring code made — see `@nodetool-ai/protocol`'s `timelineCallRecord` schema, mirrored here. */
-export interface TimelineCallRecord {
-  method: string;
-  argsHash: string;
-  result?: unknown;
-}
-
 export interface TimelineSource {
   lang: "js";
   code: string;
   /** When this document was last written by a bake. */
   bakedAt: string;
   scenes: Record<string, { groupId: string; hash: string }>;
-  /** Non-timeline calls the code made, replayed on every rebake. */
-  calls?: TimelineCallRecord[];
-  /** Seeds `Math.random()` for both the recorded run and every replay. */
-  seed?: number;
-  /** Fixes `Date.now()`/`new Date()` for both the recorded run and every replay. */
-  epochMs?: number;
 }
 
 /** Immutable inputs needed to replay one direct text-to-video generation. */

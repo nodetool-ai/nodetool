@@ -59,13 +59,6 @@ import { GRAPH_DSL_PACKAGE, withGraphDslPackage } from "./graph-dsl-package.js";
 import { FLOW_PACKAGE, withFlowPackage } from "./flow-package.js";
 import { withTimelinePackage } from "./timeline-package.js";
 import {
-  TIMELINE_DOCUMENT_WRITES_KEY,
-  TIMELINE_CALL_LOG_KEY,
-  randomTimelineSeed,
-  timelineDeterminismShim,
-  type RawTimelineCallRecord
-} from "../timeline-code-embed-keys.js";
-import {
   FABRIC_PACKAGE,
   FABRIC_PROMPT_SECTION,
   withFabricPackage
@@ -200,13 +193,6 @@ interface ActionObservation {
   stack?: string;
   logs?: string[];
   toolCalls: number;
-  /**
-   * Set when this action saved a timeline whose code did not get embedded as
-   * its source — either it saved more than one, or a hermetic rerun of this
-   * action's code could not reproduce what was saved. Absent when the action
-   * saved no timeline, or embedding succeeded.
-   */
-  timelineCodeWarning?: string;
 }
 
 /**
@@ -574,37 +560,6 @@ export function createChatCodeActSession(
     }
     actionCalls = 0;
 
-    // Every action's calls are logged in memory, cheaply (a plain array
-    // push, no hashing or copying), because the host cannot know in advance
-    // that this action will end up saving a timeline. On the run's
-    // `ProcessingContext`, which is the one object every dispatch path this
-    // function offers (`executeTool`, an in-session tool) shares unchanged,
-    // rather than on `capabilityRun` itself, which a belt-`Tool` call may
-    // wrap in a `CapabilityRun` of its own per call.
-    //
-    // The context comes from `capabilityRun` when one was supplied, else from
-    // `options.context` directly — this session has three callers
-    // (`chat-turn.ts` passes both, over the same object; the CLI's
-    // `createCliCodeActTurn` passes only `context`; the MCP mount passes only
-    // `capabilityRun`), and gating tracking on `capabilityRun` alone left the
-    // CLI path untracked even though every belt call it dispatches
-    // (`Tool.executeTool(tool, options.context, ...)`) runs against exactly
-    // this same `context`. Falling back to `options.context` is what makes
-    // this the one choke point rather than a fix per caller.
-    const trackingContext = options.capabilityRun?.context ?? options.context;
-    const timelineSeed = randomTimelineSeed();
-    const timelineEpochMs = Date.now();
-    // A test double's context may carry no `.set`/`.get` at all, and a caller
-    // that supplied neither `capabilityRun` nor `context` has no context to
-    // track on; tracking is simply off for that run.
-    const timelineTracking =
-      typeof trackingContext?.set === "function" &&
-      typeof trackingContext?.get === "function";
-    if (timelineTracking) {
-      trackingContext!.set(TIMELINE_DOCUMENT_WRITES_KEY, []);
-      trackingContext!.set(TIMELINE_CALL_LOG_KEY, []);
-    }
-
     const context = options.context;
     const resolveMediaRef = context
       ? (where: string, ref: unknown) =>
@@ -650,12 +605,8 @@ export function createChatCodeActSession(
         }
       : undefined;
 
-    // Combined so `annotateFailure` below counts the same lines that were
-    // actually prepended to `code` — its own offset math assumes "prelude"
-    // names everything ahead of the action's own source.
-    const preludeWithDeterminism = `${timelineDeterminismShim(timelineSeed, timelineEpochMs)}\n${prelude}`;
     const sandboxOptions: RunSandboxOptions = {
-      code: `${preludeWithDeterminism}\n${code}`,
+      code: `${prelude}\n${code}`,
       timeoutMs: options.actionTimeoutMs ?? DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
       signal: options.signal,
       clock: options.clock,
@@ -678,42 +629,6 @@ export function createChatCodeActSession(
 
     const outcome = await runInSandbox(sandboxOptions);
 
-    // Read the bookkeeping back before anything else touches the run, and
-    // clear it — this action's own record, not left lying around for the
-    // next one, and never persisted for an action that saved no timeline.
-    let timelineWrites: string[] = [];
-    let timelineCallLog: RawTimelineCallRecord[] = [];
-    if (timelineTracking) {
-      timelineWrites =
-        trackingContext!.get<string[]>(TIMELINE_DOCUMENT_WRITES_KEY) ?? [];
-      timelineCallLog =
-        trackingContext!.get<RawTimelineCallRecord[]>(TIMELINE_CALL_LOG_KEY) ??
-        [];
-      trackingContext!.set(TIMELINE_DOCUMENT_WRITES_KEY, undefined);
-      trackingContext!.set(TIMELINE_CALL_LOG_KEY, undefined);
-    }
-    let timelineCodeWarning: string | undefined;
-    if (timelineWrites.length === 1 && timelineTracking) {
-      const { tryEmbedTimelineCode } = await import(
-        "../capabilities/timelines.js"
-      );
-      const attempt = await tryEmbedTimelineCode(
-        trackingContext!,
-        timelineWrites[0],
-        code,
-        { calls: timelineCallLog, seed: timelineSeed, epochMs: timelineEpochMs }
-      );
-      if (attempt.warning) {
-        timelineCodeWarning = attempt.warning;
-      }
-    } else if (timelineWrites.length > 1) {
-      timelineCodeWarning =
-        `Code not embedded: this action saved ${timelineWrites.length} ` +
-        "timelines. Save one timeline per action for the code to attach " +
-        "automatically, or call set_timeline_code on the one to keep " +
-        "code-backed.";
-    }
-
     const observation: ActionObservation = {
       ok: outcome.success,
       toolCalls: actionCalls
@@ -723,14 +638,11 @@ export function createChatCodeActSession(
     } else {
       Object.assign(
         observation,
-        annotateFailure(outcome.error, outcome.stack, preludeWithDeterminism, code)
+        annotateFailure(outcome.error, outcome.stack, prelude, code)
       );
     }
     if (outcome.logs && outcome.logs.length > 0) {
       observation.logs = outcome.logs;
-    }
-    if (timelineCodeWarning !== undefined) {
-      observation.timelineCodeWarning = timelineCodeWarning;
     }
     return truncateToolResult(JSON.stringify(observation));
   };

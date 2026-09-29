@@ -235,10 +235,7 @@ const MAY_BE_UNGATED: Record<string, string> = {
   "agents/src/timeline-code-bake.ts":
     "applies v.save()'s ops to an in-memory TimelineSequence the bake " +
     "never saves, purely to compute the scene hashes a real save would " +
-    "have produced — this one construction has no side effect to gate. " +
-    "The file's other live reach (allowLive re-running a missing capability " +
-    "call for real) goes through the caller's own already-gated `liveRun`, " +
-    "never through this ungated run"
+    "have produced — this one construction has no side effect to gate"
 };
 
 /**

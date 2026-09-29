@@ -1872,22 +1872,6 @@ export const timelineSetup = z
 export type TimelineSetup = z.infer<typeof timelineSetup>;
 
 /**
- * One non-timeline capability/tool call the authoring code made, recorded
- * during the run that embedded it — `method` is the capability's wire name,
- * `argsHash` a stable hash of its canonical arguments, `result` the value it
- * returned. A bake replays these instead of calling the real capability
- * again, so a rebake never repeats a side effect (a generation, a memory
- * write, an outbound fetch). A `nodetool.timelines.*` call is never recorded
- * here — the bake's own document-capturing stub always handles those.
- */
-export const timelineCallRecord = z.object({
-  method: z.string(),
-  argsHash: z.string(),
-  result: z.unknown().optional()
-});
-export type TimelineCallRecord = z.infer<typeof timelineCallRecord>;
-
-/**
  * A timeline's authoring code and the scene hashes its last bake recorded.
  * See `TimelineSource` in `@nodetool-ai/timeline`.
  */
@@ -1898,13 +1882,7 @@ export const timelineSource = z.object({
   scenes: z.record(
     z.string(),
     z.object({ groupId: z.string(), hash: z.string() })
-  ),
-  /** Non-timeline calls the code made, replayed on every rebake. */
-  calls: z.array(timelineCallRecord).optional(),
-  /** Seeds `Math.random()` for both the recorded run and every replay. */
-  seed: z.number().optional(),
-  /** Fixes `Date.now()`/`new Date()` for both the recorded run and every replay. */
-  epochMs: z.number().optional()
+  )
 });
 export type TimelineSource = z.infer<typeof timelineSource>;
 

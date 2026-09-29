@@ -56,8 +56,8 @@ route it covers; `load_skill` it before writing that prompt.
 Build a piece in four moves: **direct** (fix the motion language and the
 scene list before writing anything — `motion-direction` and, when there is a
 title or end card, `frame-composition`/`logo-reveal`), **build** (write the
-scenes in code, one `v.scene` per beat), **save** (`timelines.create` +
-`code.set` bakes and embeds the script, read its `warnings`), **review** (the
+scenes in code, one `v.scene` per beat), **save** (`v.save()` attaches the code; read
+`saved.code` and `saved.warnings`), **review** (the
 pass below). Revise by editing that script — see below — and repeat the
 last two steps. A piece that renders clean on the first save has not been
 looked at yet.
@@ -136,22 +136,18 @@ if (saved.warnings.length) {
 
 ## Author and revise with code
 
-`v.save(nodetool.timelines, {...})` embeds the action's own code as the
-timeline's source automatically — no separate `code.set` call needed. Every
-other capability call that action made (a generation, a fetch, a memory
-write) is recorded alongside it, so a later rebake replays those calls
-instead of running them again: an edit that only touches unrelated text costs
-nothing but the bake, and a generation is never re-billed just because the
-timeline needed to rebuild. An edit that changes what a call was given —
-a different prompt, a different asset id — has no matching record, so the
-bake refuses and names the call; add `allow_live: true` to `code.edit`/
-`code.set`/`code.rebake` to run that one call for real and record its fresh
-result. Code that reads `Date.now()`/`new Date()` cannot be replayed (the
-clock is not frozen — see the pack's own skill for why) and reports "not
-embedded" instead; `Math.random()` is seeded and reproduces normally. When
-embedding is skipped, or for a timeline you are attaching code to after the
-fact, `nodetool.timelines.code.set(timeline_id, code)` bakes the same way
-and stores the code as the timeline's source directly.
+`v.save(nodetool.timelines, {...})` attaches the code that rebuilds the
+timeline as its source — no separate `code.set` call. The stored code is the
+retained program: the scene callbacks and the helpers they use, with every
+research result, generated asset id and loop value written in as a literal.
+The calls that produced those values ran once, in your action, and a rebake
+never repeats them. `saved.code.embedded` is false, with the reason in
+`saved.code.warnings`, when a scene callback calls `nodetool.*`, uses
+`Math.random()`/`Date.now()`, or reads a value that is not plain data. Do the
+research and generation at the top level, then build the scenes from the
+results. To attach code after the fact,
+`nodetool.timelines.code.set(timeline_id, code)` bakes the code, which must
+build the timeline without a capability call.
 
 Revising a code-backed timeline is: `code.get(id)` → `code.edit(id, edits)`
 with a few small exact string replacements (each `old` matches exactly once)

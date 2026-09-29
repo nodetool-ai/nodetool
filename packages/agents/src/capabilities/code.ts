@@ -29,13 +29,6 @@ import type {
   CapabilityModule
 } from "./types.js";
 import {
-  TIMELINE_DOCUMENT_WRITES_KEY,
-  TIMELINE_CALL_LOG_KEY,
-  randomTimelineSeed,
-  timelineDeterminismShim,
-  type RawTimelineCallRecord
-} from "../timeline-code-embed-keys.js";
-import {
   gradeCodeCases,
   type GradedCase,
   type HarnessRunResult
@@ -85,13 +78,6 @@ export async function runCodeBody(
      * script run.
      */
     withToolbelt?: boolean;
-    /**
-     * Consider embedding `code` as the source of a timeline this run saves,
-     * the way a CodeAct action does — on only for `run_js_script` (not
-     * `test_js_script`, which reruns the same body many times over different
-     * cases and would try this on every one). Requires `withToolbelt`.
-     */
-    embedTimelineCode?: boolean;
   }
 ): Promise<HarnessRunResult> {
   const {
@@ -176,21 +162,6 @@ return __yielded;`
     ? stagedInputStreams(params.inputStreams)
     : undefined;
 
-  // The run's calls are logged in memory, cheaply (a plain array push, no
-  // hashing or copying), because the host cannot know in advance that this
-  // run will end up saving a timeline. On `context`, not on any one
-  // `CapabilityRun`: a call through this toolbelt dispatches through the
-  // belt's own `Tool` objects, each of which may build its own per-call
-  // `CapabilityRun`, and `context` is the one object every one of them
-  // shares unchanged.
-  const timelineSeed = randomTimelineSeed();
-  const timelineEpochMs = Date.now();
-  if (params.embedTimelineCode) {
-    context.set(TIMELINE_DOCUMENT_WRITES_KEY, []);
-    context.set(TIMELINE_CALL_LOG_KEY, []);
-    source = `${timelineDeterminismShim(timelineSeed, timelineEpochMs)}\n${source}`;
-  }
-
   const sandboxOptions: RunSandboxOptions = {
     code: source,
     context,
@@ -204,24 +175,10 @@ return __yielded;`
 
   const result = await runInSandbox(sandboxOptions);
 
-  let warning: string | undefined;
-  if (params.embedTimelineCode) {
-    const writes = context.get<string[]>(TIMELINE_DOCUMENT_WRITES_KEY) ?? [];
-    const callLog =
-      context.get<RawTimelineCallRecord[]>(TIMELINE_CALL_LOG_KEY) ?? [];
-    context.set(TIMELINE_DOCUMENT_WRITES_KEY, undefined);
-    context.set(TIMELINE_CALL_LOG_KEY, undefined);
-    warning = await timelineCodeEmbedWarning(context, code, writes, callLog, {
-      seed: timelineSeed,
-      epochMs: timelineEpochMs
-    });
-  }
-
   const logs = result.logs ?? [];
   if (!result.success) {
     return fail(result.error ?? "Code execution failed", logs);
   }
-
   if (emitContract) {
     // No `onEmit` sink is passed, so the host accumulates the emits and hands
     // them back in call order; the return value carries no output semantics.
@@ -230,8 +187,7 @@ return __yielded;`
       outputs: result.outputs ?? {},
       streamed: result.emitted ?? [],
       logs,
-      duration_ms: Date.now() - started,
-      warning
+      duration_ms: Date.now() - started
     };
   }
   if (streaming) {
@@ -240,48 +196,15 @@ return __yielded;`
       ok: true,
       streamed: items.map(normalizeCodeOutput),
       logs,
-      duration_ms: Date.now() - started,
-      warning
+      duration_ms: Date.now() - started
     };
   }
   return {
     ok: true,
     outputs: normalizeCodeOutput(result.result),
     logs,
-    duration_ms: Date.now() - started,
-    warning
+    duration_ms: Date.now() - started
   };
-}
-
-/**
- * Whether `writes` — the timelines `set_timeline_document` wrote while this
- * run executed `code` — leaves exactly one timeline to embed `code` into as
- * its source, and if so, whether embedding it succeeded. Returns a message
- * to surface to the caller only when embedding was skipped for a reason
- * worth knowing; `undefined` when there was nothing to embed (no save) or
- * embedding succeeded.
- */
-async function timelineCodeEmbedWarning(
-  context: ProcessingContext,
-  code: string,
-  writes: readonly string[],
-  calls: readonly RawTimelineCallRecord[],
-  seedOptions: { seed: number; epochMs: number }
-): Promise<string | undefined> {
-  if (writes.length === 0) return undefined;
-  if (writes.length > 1) {
-    return (
-      `Code not embedded: this run saved ${writes.length} timelines. Save ` +
-      "one timeline per run for the code to attach automatically, or call " +
-      "set_timeline_code on the one to keep code-backed."
-    );
-  }
-  const { tryEmbedTimelineCode } = await import("./timelines.js");
-  const attempt = await tryEmbedTimelineCode(context, writes[0], code, {
-    calls,
-    ...seedOptions
-  });
-  return attempt.warning;
 }
 
 /**

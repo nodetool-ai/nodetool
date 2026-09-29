@@ -1544,14 +1544,12 @@ export const SET_TIMELINE_CODE_SCHEMA: JsonSchema = {
         "array of scene names to force just those.",
       oneOf: [{ type: "boolean" }, { type: "array", items: { type: "string" } }]
     },
-    allow_live: {
+    require_match: {
       type: "boolean",
       description:
-        "When the code calls something (a generation, a fetch, another " +
-        "tool) that has no matching recorded result from a prior run — " +
-        "because the code changed what it calls — run that one call for " +
-        "real and record its result, instead of refusing the bake. Off by " +
-        "default: a rebake never repeats a side effect unless asked to."
+        "Attach the code only if it bakes to exactly the document saved " +
+        "now; otherwise write nothing and return a warning. v.save() uses " +
+        "this to attach the program it printed."
     }
   },
   required: ["timeline_id", "code"]
@@ -1595,12 +1593,6 @@ export const EDIT_TIMELINE_CODE_SCHEMA: JsonSchema = {
     },
     force: {
       oneOf: [{ type: "boolean" }, { type: "array", items: { type: "string" } }]
-    },
-    allow_live: {
-      type: "boolean",
-      description:
-        "Run a call with no matching recorded result for real and record " +
-        "it, instead of refusing the bake. Off by default."
     }
   },
   required: ["timeline_id", "edits"]
@@ -1635,12 +1627,6 @@ export const rebakeTimelineCodeSpec: CapabilitySpec = {
       },
       force: {
         oneOf: [{ type: "boolean" }, { type: "array", items: { type: "string" } }]
-      },
-      allow_live: {
-        type: "boolean",
-        description:
-          "Run a call with no matching recorded result for real and " +
-          "record it, instead of refusing the bake. Off by default."
       }
     },
     required: ["timeline_id"]

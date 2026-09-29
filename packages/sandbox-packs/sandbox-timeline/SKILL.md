@@ -537,32 +537,38 @@ making another — the way to revise a cut without duplicating it.
 
 ## Revise by editing the script
 
-`v.save()` gets its own script embedded automatically, whatever else the
-action called: right after the save, the host reruns the script and replays
-every other capability call it made (a generation, a fetch, a memory write)
-from what it recorded live, rather than running them again — the rerun never
-re-bills a generation and never fetches the network twice. When that replay
-reproduces exactly what was saved, the script text and its recorded calls
-land on the timeline's `document.source`. The timeline is code-backed from
-then on, and a later `code.get` on it returns the script back.
+`v.save()` stores the code that rebuilds the timeline on its
+`document.source`, whatever else the action called. It is not the script as
+written: it is the **retained program** — the scene callbacks and the
+declarations they use, as source, and every value they read from anything
+else (a research result, a generated asset id, a loop variable) as a literal.
+A fetch, a generation or a memory write ran once, in your action; the stored
+program holds only its result, so a rebake never repeats it. `v.save()`
+attaches the program only when baking it gives exactly the saved document,
+and answers `saved.code: {embedded, warnings}`.
 
-Embedding is skipped, with the reason in `saved.warnings`, when the replay
-fails outright, or when the script is not deterministic in a way replay
-cannot cover — `Math.random()` is seeded and reproduces; `Date.now()`/
-`new Date()` do not, because freezing the clock for the whole action would
-break anything in it that measures real elapsed time, so a script that reads
-the clock stays outside what a replay reproduces. When embedding is skipped,
-or to attach a script to a timeline after the fact, call
-`nodetool.timelines.code.set(timeline_id, code)` with the script's text
-directly — it bakes the same way.
+The program is not attached, and `saved.code.warnings` says why, when a scene
+callback:
+
+- calls a capability (`nodetool.*`). Call it at the top level, before the
+  scene, and use its result.
+- uses `Math.random()` or `Date.now()`. Use `hash(n)` or `noise(seed)`, or
+  compute the value at the top level.
+- reads a value that cannot be written as data (a class instance, a
+  function declared inside another function).
+
+Keep helpers at the top level as `function` or `const` declarations; a
+helper can read and change a `let` counter, and each scene gets the value the
+counter had when it was built. When the program is not attached, or to attach
+code after the fact, call `nodetool.timelines.code.set(timeline_id, code)`;
+that code must build the timeline without calling a capability.
 
 Revise it by editing that stored code, not by resending the whole body:
 `code.get(id)` reads it back, `code.edit(id, edits)` applies a few small exact
-string replacements (each `old` must match exactly once) and re-merges,
-replaying every recorded call whose arguments the edit did not touch. An edit
-that changes what a call was given has no matching record, so the rebake
-refuses and names the call — pass `allow_live: true` to run that one call for
-real and record its fresh result instead. Read the `conflicts` and
+string replacements (each `old` must match exactly once) and re-merges.
+A rebake runs no capability: to use a new research result or a new asset,
+make the call in an action and edit the value into the code. Read the
+`conflicts` and
 `warnings` a rebake answers, then look at frames. `api-timelines` owns the
 full call contract; `code.rebake` reruns the stored code unchanged, and
 `code.detach` stops tracking scenes.

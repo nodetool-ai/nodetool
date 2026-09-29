@@ -1,15 +1,9 @@
 /**
- * A plain `v.save(nodetool.timelines, {...})`, called alone or alongside
- * other capability calls in one action, gets that action's code embedded as
- * the timeline's source — the host reruns the action's code hermetically
- * right after the save and attaches it only when the replay reproduces
- * exactly what was saved. Every capability/tool call the action made is
- * recorded (`{method, argsHash, result}`, `document.source.calls`) and
- * replayed on every later bake instead of running again, so a rebake never
- * repeats a side effect. See `tryEmbedTimelineCode` and `bakeTimelineCode`
- * (`src/capabilities/timelines.ts`, `src/timeline-code-bake.ts`) and the host
- * wiring in `src/codeact/chat-codeact.ts` / `src/codeact/codeact-executor.ts`
- * / `src/capabilities/code.ts`.
+ * `v.save()` prints the retained program of the run that built a timeline
+ * and attaches it through `set_timeline_code` with `require_match`
+ * (docs/timeline-code-capture.md). Research and other capability calls run
+ * once, in that run; their results are literals in the stored code, so a
+ * rebake runs no capability.
  *
  * Real QuickJS sandbox, real in-memory database, no network.
  */
@@ -31,7 +25,6 @@ import { emptyJsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scri
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { createChatCodeActSession } from "../src/codeact/chat-codeact.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { finalizeTimelineCallRecords } from "../src/timeline-code-bake.js";
 
 const discovery = discoverSandboxPack(
   join(
@@ -51,9 +44,7 @@ const USER = "u1";
 
 /**
  * Named so `mountCapabilityModules` grafts the `timelines` and `shared`
- * platform modules onto this session — a tool named here plus a real
- * `capabilityRun` is what lets `nodetool.timelines.*`/`nodetool.shared.*`
- * dispatch straight through `run.invoke`, never through `executeTool`.
+ * platform modules onto this session.
  */
 const TOOL_NAMES = [
   "create_timeline",
@@ -65,7 +56,8 @@ const TOOL_NAMES = [
   "set_timeline_code",
   "edit_timeline_code",
   "rebake_timeline_code",
-  "share_result"
+  "share_result",
+  "read_shared"
 ].map((name) => ({
   name,
   description: name,
@@ -82,125 +74,128 @@ function makeContext(): ProcessingContext {
   return ctx;
 }
 
-/** A run whose `invoke` counts calls to `share_result` — the "side effect" this suite watches for repeats. */
+/** A run whose `invoke` counts calls to `share_result` and `read_shared`, the capabilities a rebake must not repeat. */
 function countingRun(ctx: ProcessingContext) {
   const run = createCapabilityRun({ context: ctx, gate: UNGATED });
-  let shareCalls = 0;
+  let sideEffects = 0;
   const rawInvoke = run.invoke.bind(run);
   run.invoke = (name, args) => {
-    if (name === "share_result") shareCalls += 1;
+    if (name === "share_result" || name === "read_shared") sideEffects += 1;
     return rawInvoke(name, args);
   };
-  return { run, shareCalls: () => shareCalls };
+  return { run, sideEffects: () => sideEffects };
 }
 
-/** One scene, saved under `name`, plus a `share_result` call on `note` — the code's one side effect. */
-function buildAndSave(name: string, note: string): string {
-  return `
+function session(run: ReturnType<typeof countingRun>["run"]) {
+  return createChatCodeActSession({
+    tools: TOOL_NAMES,
+    sandboxModuleCatalog: catalog,
+    capabilityRun: run,
+    executeTool: (call) => run.invoke(call.name, call.args)
+  });
+}
+
+interface SaveResult {
+  timeline_id: string;
+  code?: { embedded: boolean; warnings: string[] };
+}
+
+async function act(
+  run: ReturnType<typeof countingRun>["run"],
+  code: string
+): Promise<SaveResult> {
+  const observation = JSON.parse(await session(run).executeAction({ code })) as {
+    ok: boolean;
+    result?: SaveResult;
+    error?: string;
+  };
+  expect(observation.ok, observation.error).toBe(true);
+  return observation.result!;
+}
+
+/**
+ * Research, as an agent does it: publish a value, read it back, and build
+ * the scene from one field of the answer.
+ */
+const RESEARCH_BUILD = `
 import { video } from "@nodetool-ai/sandbox-timeline";
-await nodetool.shared.publish("${note}", "from the timeline action");
+await nodetool.shared.publish("brief", { headline: "Rain returns", notes: "long text nobody shows" });
+const research = await nodetool.shared.read(["brief"]);
+const headline = research.entries.brief.value.headline;
+const SIZE = 48;
 const v = video({ width: 640, height: 360, fps: 30 });
 const scene = v.scene("intro", 1, (s) => {
-  s.text("Hello", { size: 48, color: "#fff" });
+  s.text(headline, { size: SIZE, color: "#fff" });
 });
 v.series([scene]);
-return await v.save(nodetool.timelines, { name: "${name}" });
+return await v.save(nodetool.timelines, { name: "Research" });
 `;
-}
 
-describe("v.save() embeds the run's own code and its recorded calls", () => {
+describe("v.save() attaches the retained program", () => {
   beforeEach(async () => {
     await initTestDb();
   });
 
-  it("embeds the action's code with its recorded calls when it saves one timeline", async () => {
-    const ctx = makeContext();
-    const { run, shareCalls } = countingRun(ctx);
-    const session = createChatCodeActSession({
-      tools: TOOL_NAMES,
-      sandboxModuleCatalog: catalog,
-      capabilityRun: run,
-      executeTool: (call) => run.invoke(call.name, call.args)
-    });
-    const code = buildAndSave("Embed me", "note-a");
-    const observation = JSON.parse(await session.executeAction({ code })) as {
-      ok: boolean;
-      result?: { timeline_id: string };
-      timelineCodeWarning?: string;
-    };
-    expect(observation.ok).toBe(true);
-    expect(observation.timelineCodeWarning).toBeUndefined();
-    expect(shareCalls()).toBe(1);
+  it("stores the research result as a value, not the calls that found it", async () => {
+    const { run, sideEffects } = countingRun(makeContext());
+    const saved = await act(run, RESEARCH_BUILD);
+    expect(saved.code).toEqual({ embedded: true, warnings: [] });
+    expect(sideEffects()).toBe(2);
 
-    const timelineId = observation.result!.timeline_id;
-    const row = await TimelineSequence.findById(timelineId);
-    const doc = row!.toDocument();
-    expect(doc.source?.code).toBe(code);
-    expect(Object.keys(doc.source?.scenes ?? {})).toEqual(["intro"]);
-    expect(doc.source?.calls).toHaveLength(1);
-    expect(doc.source?.calls?.[0]?.method).toBe("share_result");
-
-    // Revising through code.get/code.edit works, with no conflicts — the
-    // scene the embedded code tracks was never hand-edited.
-    const edited = (await run.invoke("edit_timeline_code", {
-      timeline_id: timelineId,
-      edits: [{ old: "Hello", new: "Hello again" }]
-    })) as { conflicts: unknown[]; errors: string[] };
-    expect(edited.errors).toEqual([]);
-    expect(edited.conflicts).toEqual([]);
-    // The rebake this edit triggered replayed the recorded call rather than
-    // making it again.
-    expect(shareCalls()).toBe(1);
+    const doc = (await TimelineSequence.findById(saved.timeline_id))!.toDocument();
+    const code = doc.source!.code;
+    expect(code).toContain('let headline = "Rain returns";');
+    expect(code).toContain("const SIZE = 48;");
+    expect(code).not.toContain("nodetool.shared");
+    expect(code).not.toContain("long text nobody shows");
+    expect(Object.keys(doc.source!.scenes)).toEqual(["intro"]);
   });
 
-  it("does not embed, and warns, when the action saves two timelines", async () => {
-    const ctx = makeContext();
-    const { run } = countingRun(ctx);
-    const session = createChatCodeActSession({
-      tools: TOOL_NAMES,
-      sandboxModuleCatalog: catalog,
-      capabilityRun: run,
-      executeTool: (call) => run.invoke(call.name, call.args)
-    });
-    const code = `
+  it("rebakes the stored program without running a capability again", async () => {
+    const { run, sideEffects } = countingRun(makeContext());
+    const saved = await act(run, RESEARCH_BUILD);
+
+    const rebaked = (await run.invoke("edit_timeline_code", {
+      timeline_id: saved.timeline_id,
+      edits: [{ old: "const SIZE = 48;", new: "const SIZE = 64;" }]
+    })) as { errors: string[]; conflicts: unknown[] };
+    expect(rebaked.errors).toEqual([]);
+    expect(rebaked.conflicts).toEqual([]);
+    expect(sideEffects()).toBe(2);
+
+    const doc = (await TimelineSequence.findById(saved.timeline_id))!.toDocument();
+    const text = doc.clips.find((clip) => clip.mediaType === "text");
+    expect(text?.textStyle?.fontSizePx).toBe(64);
+    expect(text?.textStyle?.text).toBe("Rain returns");
+  });
+
+  it("does not attach code when a scene calls a capability, and says why", async () => {
+    const { run } = countingRun(makeContext());
+    const saved = await act(
+      run,
+      `
 import { video } from "@nodetool-ai/sandbox-timeline";
-async function buildAndSave(name) {
-  const v = video({ width: 640, height: 360, fps: 30 });
-  const scene = v.scene("intro", 1, (s) => { s.text("Hello", { size: 48, color: "#fff" }); });
-  v.series([scene]);
-  return await v.save(nodetool.timelines, { name });
-}
-const a = await buildAndSave("First");
-const b = await buildAndSave("Second");
-return { a, b };
-`;
-    const observation = JSON.parse(await session.executeAction({ code })) as {
-      ok: boolean;
-      result?: { a: { timeline_id: string }; b: { timeline_id: string } };
-      timelineCodeWarning?: string;
-    };
-    expect(observation.ok).toBe(true);
-    expect(observation.timelineCodeWarning).toContain("2 timelines");
-
-    for (const id of [
-      observation.result!.a.timeline_id,
-      observation.result!.b.timeline_id
-    ]) {
-      const row = await TimelineSequence.findById(id);
-      expect(row!.toDocument().source).toBeUndefined();
-    }
+const v = video({ width: 640, height: 360, fps: 30 });
+const scene = v.scene("intro", 1, (s) => {
+  if (typeof nodetool === "undefined") throw new Error("unreachable");
+  s.text("Hello", { size: 48, color: "#fff" });
+});
+v.series([scene]);
+return await v.save(nodetool.timelines, { name: "Capability in a scene" });
+`
+    );
+    expect(saved.code?.embedded).toBe(false);
+    expect(saved.code?.warnings.join(" ")).toContain("`nodetool`");
+    const doc = (await TimelineSequence.findById(saved.timeline_id))!.toDocument();
+    expect(doc.source).toBeUndefined();
+    expect(doc.clips.length).toBeGreaterThan(0);
   });
 
-  it("embeds code using Math.random() — the seed reproduces it on replay", async () => {
-    const ctx = makeContext();
-    const { run } = countingRun(ctx);
-    const session = createChatCodeActSession({
-      tools: TOOL_NAMES,
-      sandboxModuleCatalog: catalog,
-      capabilityRun: run,
-      executeTool: (call) => run.invoke(call.name, call.args)
-    });
-    const code = `
+  it("does not attach code that uses Math.random() in a scene", async () => {
+    const { run } = countingRun(makeContext());
+    const saved = await act(
+      run,
+      `
 import { video } from "@nodetool-ai/sandbox-timeline";
 const v = video({ width: 640, height: 360, fps: 30 });
 const scene = v.scene("intro", 1, (s) => {
@@ -208,169 +203,89 @@ const scene = v.scene("intro", 1, (s) => {
 });
 v.series([scene]);
 return await v.save(nodetool.timelines, { name: "Random" });
-`;
-    const observation = JSON.parse(await session.executeAction({ code })) as {
-      ok: boolean;
-      result?: { timeline_id: string };
-      timelineCodeWarning?: string;
-    };
-    expect(observation.ok).toBe(true);
-    expect(observation.timelineCodeWarning).toBeUndefined();
-
-    const row = await TimelineSequence.findById(observation.result!.timeline_id);
-    const doc = row!.toDocument();
-    expect(doc.source?.code).toBe(code);
-    expect(typeof doc.source?.seed).toBe("number");
+`
+    );
+    expect(saved.code?.embedded).toBe(false);
+    expect(saved.code?.warnings.join(" ")).toContain("Math.random");
   });
 
-  it("fails a rebake that changes a recorded call's arguments, naming the call, unless allow_live is set", async () => {
+  it("keeps a loop variable per scene and a helper that reads it", async () => {
+    const { run } = countingRun(makeContext());
+    const saved = await act(
+      run,
+      `
+import { video } from "@nodetool-ai/sandbox-timeline";
+const v = video({ width: 640, height: 360, fps: 30 });
+let next = 0;
+const tag = (label) => label + "-" + (++next);
+const scenes = ["a", "b"].map((name, i) =>
+  v.scene(name, 1, (s) => {
+    s.text(tag(name) + " of " + i, { size: 40, color: "#fff" });
+  })
+);
+v.series(scenes);
+return await v.save(nodetool.timelines, { name: "Loop" });
+`
+    );
+    expect(saved.code).toEqual({ embedded: true, warnings: [] });
+    const doc = (await TimelineSequence.findById(saved.timeline_id))!.toDocument();
+    const texts = doc.clips
+      .filter((clip) => clip.mediaType === "text")
+      .map((clip) => clip.textStyle?.text)
+      .sort();
+    expect(texts).toEqual(["a-1 of 0", "b-2 of 1"]);
+    expect(doc.source!.code).toContain("let next = 1;");
+  });
+
+  it("attaches through a belt Tool call, the path the CLI runner takes", async () => {
     const ctx = makeContext();
-    const { run, shareCalls } = countingRun(ctx);
-    const session = createChatCodeActSession({
+    const run = createCapabilityRun({ context: ctx, gate: UNGATED });
+    const cliSession = createChatCodeActSession({
       tools: TOOL_NAMES,
       sandboxModuleCatalog: catalog,
-      capabilityRun: run,
-      executeTool: (call) => run.invoke(call.name, call.args)
+      context: ctx,
+      executeTool: (call) => toolForCapabilityName(call.name, run).execute(ctx, call.args)
     });
-    const code = buildAndSave("Changeable", "note-a");
-    const observation = JSON.parse(await session.executeAction({ code })) as {
-      ok: boolean;
-      result?: { timeline_id: string };
-    };
-    expect(observation.ok).toBe(true);
-    expect(shareCalls()).toBe(1);
-    const timelineId = observation.result!.timeline_id;
-
-    // Change what the recorded call's arguments were — the note's key —
-    // so the stored record no longer matches.
-    const refused = (await run.invoke("edit_timeline_code", {
-      timeline_id: timelineId,
-      edits: [{ old: "note-a", new: "note-b" }]
-    })) as { errors: string[] };
-    expect(refused.errors.join(" ")).toContain("share_result");
-    expect(shareCalls()).toBe(1); // refused before making the call live
-
-    const allowed = (await run.invoke("edit_timeline_code", {
-      timeline_id: timelineId,
-      edits: [{ old: "note-a", new: "note-b" }],
-      allow_live: true
-    })) as { errors: string[] };
-    expect(allowed.errors).toEqual([]);
-    expect(shareCalls()).toBe(2); // one fresh live call, recorded
-
-    const row = await TimelineSequence.findById(timelineId);
-    const calls = row!.toDocument().source?.calls ?? [];
-    expect(calls).toHaveLength(1);
+    const observation = JSON.parse(
+      await cliSession.executeAction({ code: RESEARCH_BUILD })
+    ) as { ok: boolean; result?: SaveResult; error?: string };
+    expect(observation.ok, observation.error).toBe(true);
+    expect(observation.result!.code).toEqual({ embedded: true, warnings: [] });
   });
 });
 
-describe("run_js_script embeds the run's own code", () => {
+describe("run_js_script", () => {
   beforeEach(async () => {
     await initTestDb();
   });
 
-  async function makeScript(code: string): Promise<JsScript> {
+  it("attaches the retained program of a saved script", async () => {
     const script = new JsScript({
       user_id: USER,
       name: "Timeline builder",
-      document: JSON.stringify({ ...emptyJsScriptDocument(), code })
-    });
-    await script.save();
-    return script;
-  }
-
-  function context(): ProcessingContext {
-    return makeContext();
-  }
-
-  // `run_js_script`'s live toolbelt (`assembleJsScriptToolbelt`) is
-  // `getBuiltinTools()` plus Apify/SerpAPI/MCP — it does not carry
-  // `share_result`, so this suite's "side effect" is `nodetool.memory.save`.
-  function buildAndSaveWithMemory(name: string, note: string): string {
-    return `
+      document: JSON.stringify({
+        ...emptyJsScriptDocument(),
+        code: `
 import { video } from "@nodetool-ai/sandbox-timeline";
-await nodetool.memory.save("${note}");
+await nodetool.memory.save("built a timeline");
 const v = video({ width: 640, height: 360, fps: 30 });
 const scene = v.scene("intro", 1, (s) => {
   s.text("Hello", { size: 48, color: "#fff" });
 });
 v.series([scene]);
-return await v.save(nodetool.timelines, { name: "${name}" });
-`;
-  }
-
-  it("embeds a saved script's own code and its recorded calls", async () => {
-    const script = await makeScript(
-      buildAndSaveWithMemory("From a script", "note-s")
-    );
+return await v.save(nodetool.timelines, { name: "From a script" });
+`
+      })
+    });
+    await script.save();
     const result = (await toolForCapabilityName("run_js_script").execute(
-      context(),
+      makeContext(),
       { js_script_id: script.id }
-    )) as {
-      outputs?: { timeline_id: string };
-      warning?: string;
-    };
-    expect(result.warning).toBeUndefined();
+    )) as { outputs?: unknown };
+    const saved = result.outputs as unknown as SaveResult;
+    expect(saved.code).toEqual({ embedded: true, warnings: [] });
 
-    // The Code-node run contract returns a script's `return` as `outputs`
-    // only when the body neither emits nor yields — this body does neither.
-    const timelineId = (result.outputs as unknown as { timeline_id: string })
-      .timeline_id;
-    const row = await TimelineSequence.findById(timelineId);
-    const doc = row!.toDocument();
-    expect(doc.source?.code).toBe(script.toDocument().code);
-    expect(doc.source?.calls).toHaveLength(1);
-  });
-
-  // `Date.now()`/`new Date()` are deliberately not seeded — see
-  // `timelineDeterminismShim`'s own docstring for why freezing the clock for
-  // a whole action is unsafe (it broke `nodetool.jobs.wait`'s timeout).
-  // Code that reads the clock stays outside what a replay reproduces, so it
-  // still reports the ordinary "not embedded, not deterministic" warning.
-  it("does not embed, and warns, when the script reads Date.now()", async () => {
-    const script = await makeScript(`
-import { video } from "@nodetool-ai/sandbox-timeline";
-const v = video({ width: 640, height: 360, fps: 30 });
-const scene = v.scene("intro", 1, (s) => {
-  s.text("Stamp " + Date.now(), { size: 48, color: "#fff" });
-});
-v.series([scene]);
-return await v.save(nodetool.timelines, { name: "Stamped script" });
-`);
-    const result = (await toolForCapabilityName("run_js_script").execute(
-      context(),
-      { js_script_id: script.id }
-    )) as { outputs?: { timeline_id: string }; warning?: string };
-    expect(result.warning).toContain("not embedded");
-
-    const row = await TimelineSequence.findById(
-      (result.outputs as unknown as { timeline_id: string }).timeline_id
-    );
-    expect(row!.toDocument().source).toBeUndefined();
-  });
-});
-
-describe("finalizeTimelineCallRecords — the size cap", () => {
-  it("keeps calls under the cap and reports how many were dropped past it", () => {
-    // ~200KB and ~100KB results: the first fits inside the 256KB cap on its
-    // own, the second would push the total past it.
-    const big = "x".repeat(200 * 1024);
-    const alsoBig = "y".repeat(100 * 1024);
-    const { calls, droppedForSize } = finalizeTimelineCallRecords([
-      { method: "generate_image", args: { prompt: "a" }, result: { data: big } },
-      { method: "generate_image", args: { prompt: "b" }, result: { data: alsoBig } }
-    ]);
-    expect(calls).toHaveLength(1);
-    expect(calls[0]?.method).toBe("generate_image");
-    expect(droppedForSize).toBe(1);
-  });
-
-  it("keeps every call when the total is comfortably under the cap", () => {
-    const { calls, droppedForSize } = finalizeTimelineCallRecords([
-      { method: "share_result", args: { key: "a" }, result: { ok: true } },
-      { method: "share_result", args: { key: "b" }, result: { ok: true } }
-    ]);
-    expect(calls).toHaveLength(2);
-    expect(droppedForSize).toBe(0);
+    const doc = (await TimelineSequence.findById(saved.timeline_id))!.toDocument();
+    expect(doc.source!.code).not.toContain("nodetool.memory");
   });
 });

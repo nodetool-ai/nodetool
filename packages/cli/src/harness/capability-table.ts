@@ -2303,7 +2303,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "set_timeline_code",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "b58ff582a1fb",
+    contract: "b0f14f67b887",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
@@ -2313,7 +2313,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_timeline_code",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "d39a3279b662",
+    contract: "2ab04933428e",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
@@ -2323,7 +2323,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "rebake_timeline_code",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "5f7a5a145a8a",
+    contract: "b5fa750b9243",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",

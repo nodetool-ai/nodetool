@@ -311,7 +311,80 @@ async function saveComponentAsComposition(Comp, timelines, o = {}) {
  * `fonts` maps short keys (`display`, `body`) to real font family names; a
  * text element's `font` option takes either a key or a literal family.
  */
-export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
+/**
+ * Write `value` as a JS expression for the retained program `v.save()`
+ * prints (docs/timeline-code-capture.md). Plain data only: a function, a
+ * class instance or a cycle throws, and the caller reports why the code
+ * could not be kept.
+ */
+function printValue(value, seen = []) {
+  if (value === undefined) return "undefined";
+  if (value === null) return "null";
+  const type = typeof value;
+  if (type === "string" || type === "boolean") return JSON.stringify(value);
+  if (type === "number") {
+    if (Object.is(value, -0)) return "-0";
+    if (Number.isNaN(value)) return "NaN";
+    if (value === Infinity) return "Infinity";
+    if (value === -Infinity) return "-Infinity";
+    return String(value);
+  }
+  if (type === "bigint") return `${value}n`;
+  if (type === "function") throw new Error("is a function. Declare it at the top level with `function` or `const` so its source is kept");
+  if (type !== "object") throw new Error(`is a ${type}, which cannot be written as a value`);
+  if (seen.includes(value)) throw new Error("contains a cycle");
+  if (value instanceof Date) return `new Date(${value.getTime()})`;
+  seen.push(value);
+  try {
+    if (Array.isArray(value)) {
+      const items = [];
+      for (let i = 0; i < value.length; i++) items.push(printValue(value[i], seen));
+      return `[${items.join(", ")}]`;
+    }
+    const proto = Object.getPrototypeOf(value);
+    if (proto !== Object.prototype && proto !== null) throw new Error("is a class instance, which cannot be written as a value");
+    const entries = Object.keys(value).map((key) => {
+      // A literal `"__proto__": x` sets the prototype; a computed key does not.
+      const printedKey = key === "__proto__" ? `["__proto__"]` : JSON.stringify(key);
+      return `${printedKey}: ${printValue(value[key], seen)}`;
+    });
+    return `{${entries.join(", ")}}`;
+  } finally {
+    seen.pop();
+  }
+}
+
+const TIMELINE_PACK = "@nodetool-ai/sandbox-timeline";
+
+/**
+ * The top-level fields of `clip` whose JSON differs from `beforeJson`, with
+ * their current values. A removed field maps to `undefined`.
+ */
+function clipChanges(beforeJson, clip) {
+  const was = JSON.parse(beforeJson);
+  const is = JSON.parse(JSON.stringify(clip));
+  const changes = {};
+  for (const key of new Set([...Object.keys(was), ...Object.keys(is)])) {
+    if (JSON.stringify(was[key]) !== JSON.stringify(is[key])) changes[key] = is[key];
+  }
+  return changes;
+}
+
+/** Changes per clip id between the JSON in `before` and `clips` now, or null when a clip was added or removed. */
+function clipPatch(before, clips) {
+  if (before.size !== clips.length) return null;
+  const patch = {};
+  for (const clip of clips) {
+    const beforeJson = before.get(clip.id);
+    if (beforeJson === undefined) return null;
+    if (beforeJson === JSON.stringify(clip)) continue;
+    patch[clip.id] = clipChanges(beforeJson, clip);
+  }
+  return patch;
+}
+
+export function video(options = {}) {
+  const { width, height, fps, palette = {}, fonts = {} } = options;
   const W = width, H = height, FPS = fps;
   // Clip/effect/animation ids are deterministic and scoped, not one global
   // counter: a counter shared by the whole script means editing scene B (or
@@ -337,6 +410,17 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
   const v = { width: W, height: H, fps: FPS };
   /** `el.react()` calls waiting for `v.save()` to bake them onto the saved document. */
   v._pendingReacts = [];
+  /**
+   * What `v.save()` needs to print the retained program: the options this
+   * video was made with, each captured scene, the series, and the document
+   * as `v.series()` left it. See docs/timeline-code-capture.md.
+   */
+  const capture = { options: undefined, optionsError: undefined, scenes: [], series: null, afterSeries: null };
+  try {
+    capture.options = printValue(options);
+  } catch (error) {
+    capture.optionsError = `video() options ${error.message}.`;
+  }
 
   // -------------------------------------------------------------------------
   // Elements: plain clip objects with motion methods attached.
@@ -1002,9 +1086,47 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
   // -------------------------------------------------------------------------
   // Scenes and series.
 
+  /** Read a scene's snapshots and print its call arguments, collecting what cannot be kept. */
+  function captureScene(scene, record) {
+    const errors = [...record.errors];
+    const snaps = [];
+    for (const [key, read] of record.snap) {
+      let value;
+      try {
+        value = read();
+      } catch {
+        errors.push(`\`${key}\` is not set yet where scene "${scene.name}" is built.`);
+        continue;
+      }
+      if (value === v) {
+        snaps.push([key, null]);
+        continue;
+      }
+      try {
+        snaps.push([key, printValue(value)]);
+      } catch (error) {
+        errors.push(`scene "${scene.name}": \`${key}\` ${error.message}.`);
+      }
+    }
+    let args;
+    try {
+      args = `${printValue(scene.name)}, ${printValue(scene.durationSec)}, ${record.src}, ${printValue(scene.extra)}`;
+    } catch (error) {
+      errors.push(`scene "${scene.name}": its arguments ${error.message}.`);
+    }
+    return { record, snaps, args, errors };
+  }
+
   /** One scene: its own local clock from 0. `fn(s)` builds its content. */
-  v.scene = (name, durationSec, fn, extra = {}) => {
+  v.scene = (name, durationSec, fn, extra = {}, captureRecord) => {
     const scene = { name, id: name, layers: [], durationMs: msFor(durationSec), durationSec, extra };
+    // `captureRecord` is added by the sandbox's capture step, never by an
+    // author. The snapshots are read before `fn` runs: the values the scene
+    // is built from, not what `fn` leaves behind.
+    if (captureRecord && captureRecord.__ntCapture === 1) {
+      scene._capture = captureScene(scene, captureRecord);
+      capture.scenes.push(scene);
+    }
     const ctx = { scene, startMs: 0, durationMs: scene.durationMs, durationSec };
     fn(makeSceneApi(ctx));
     scene.group = {
@@ -1012,11 +1134,36 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
       mediaType: "group", sourceType: "imported", status: "generated", locked: false, versions: [],
       transform: tf(), sourceScene: name, ...extra
     };
+    if (scene._capture) {
+      scene._capture.built = new Map([...scene.layers, scene.group].map((clip) => [clip.id, JSON.stringify(clip)]));
+    }
+    return scene;
+  };
+
+  /** Apply `patch` (field changes per clip id) to a scene's clips. Written by `v.save()`'s printer. */
+  v.__patchScene = (scene, patch) => {
+    const clips = [...scene.layers, scene.group];
+    for (const [id, changes] of Object.entries(patch)) {
+      const clip = clips.find((c) => c.id === id);
+      if (!clip) throw new Error(`v.__patchScene(): scene "${scene.name}" has no clip "${id}"`);
+      for (const [key, value] of Object.entries(changes)) {
+        if (value === undefined) delete clip[key];
+        else clip[key] = value;
+      }
+    }
     return scene;
   };
 
   /** A transition item for `series()`: goes between the two scenes it joins. */
-  v.transition = (type, durationSec, opts = {}) => ({ __transition: true, type, durationMs: msFor(durationSec), opts });
+  v.transition = (type, durationSec, opts = {}) => {
+    const item = { __transition: true, type, durationMs: msFor(durationSec), opts };
+    try {
+      item._args = `${printValue(type)}, ${printValue(durationSec)}, ${printValue(opts)}`;
+    } catch (error) {
+      item._argsError = `v.transition() ${error.message}.`;
+    }
+    return item;
+  };
 
   /**
    * Lay scenes end to end. A transition item between two scenes overlaps them
@@ -1025,6 +1172,15 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
    * alternating track sets so an overlapping pair never shares a track.
    */
   v.series = (items) => {
+    capture.series = [...items];
+    // Changes the top level made to a scene's clips between `v.scene()` and
+    // here. They are printed as a `v.__patchScene()` call.
+    for (const item of items) {
+      if (!item || item.__transition || !item._capture || !item._capture.built) continue;
+      const patch = clipPatch(item._capture.built, [...item.layers, item.group]);
+      if (patch === null) item._capture.errors.push(`scene "${item.name}": a clip was added or removed after the scene was built.`);
+      else if (Object.keys(patch).length) item._capture.prePatch = patch;
+    }
     const scenes = [];
     let cursorMs = 0;
     let pending = null;
@@ -1083,8 +1239,175 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
       clips,
       markers: []
     };
+    capture.afterSeries = {
+      tracks: JSON.stringify(v._document.tracks),
+      clipCount: clips.length,
+      clips: new Map(clips.map((clip) => [clip.id, JSON.stringify(clip)]))
+    };
     return v;
   };
+
+  /**
+   * Put back what the top level added after `v.series()` — tracks, clips,
+   * markers and document fields — as the retained program stores it: as
+   * data. Written by `v.save()`'s printer, not by an author.
+   */
+  v.__restore = ({ tracks, patch, clips, markers, fields } = {}) => {
+    if (!v._document) throw new Error("v.__restore() runs after v.series()");
+    if (tracks) v._document.tracks = tracks;
+    for (const [id, changes] of Object.entries(patch ?? {})) {
+      const clip = v._document.clips.find((c) => c.id === id);
+      if (!clip) throw new Error(`v.__restore(): no clip "${id}" to patch`);
+      for (const [key, value] of Object.entries(changes)) {
+        if (value === undefined) delete clip[key];
+        else clip[key] = value;
+      }
+    }
+    if (clips) v._document.clips.push(...clips);
+    if (markers) v._document.markers = markers;
+    if (fields) Object.assign(v._document, fields);
+    return v;
+  };
+
+  /**
+   * Print the retained program for this video, or return null when no scene
+   * was captured (code that did not pass through the sandbox's capture step).
+   */
+  function printProgram({ name, showcase, ops }) {
+    const inSeries = capture.series.filter((item) => item && !item.__transition);
+    const captured = inSeries.filter((scene) => scene._capture);
+    if (captured.length === 0) return null;
+    const errors = [];
+    if (capture.optionsError) errors.push(capture.optionsError);
+    for (const scene of inSeries) {
+      if (!scene._capture) errors.push(`scene "${scene.name}" was built without capture.`);
+      else errors.push(...scene._capture.errors);
+    }
+    for (const item of capture.series) {
+      if (item && item.__transition && item._argsError) errors.push(item._argsError);
+    }
+    if (v._pendingReacts.length > 0) {
+      errors.push("el.react() needs an audio decode that a rebake cannot do.");
+    }
+
+    const V = captured[0]._capture.record.video ?? "__ntV";
+    const imports = new Map();
+    const topDecls = new Map();
+    for (const scene of captured) {
+      for (const imp of scene._capture.record.imports) {
+        if (!imports.has(imp.m)) imports.set(imp.m, new Map());
+        imports.get(imp.m).set(imp.l, imp.i);
+      }
+      for (const decl of scene._capture.record.decls) {
+        if (decl.top) topDecls.set(decl.at, decl.src);
+      }
+    }
+
+    if (!imports.has(TIMELINE_PACK)) imports.set(TIMELINE_PACK, new Map());
+    const lines = [];
+    for (const [module, locals] of imports) {
+      const named = module === TIMELINE_PACK ? ["video as __ntVideo"] : [];
+      for (const [local, imported] of locals) {
+        if (imported === "*") lines.push(`import * as ${local} from ${JSON.stringify(module)};`);
+        else if (imported === "default") lines.push(`import ${local} from ${JSON.stringify(module)};`);
+        else named.push(imported === local ? local : `${imported} as ${local}`);
+      }
+      if (named.length) lines.push(`import { ${named.join(", ")} } from ${JSON.stringify(module)};`);
+    }
+    lines.push("", `const ${V} = __ntVideo(${capture.options});`);
+    const sortedTop = [...topDecls.entries()].sort(([a], [b]) => a - b);
+    if (sortedTop.length) lines.push("", ...sortedTop.map(([, src]) => src));
+
+    const sceneVar = new Map();
+    const usedVars = new Set();
+    for (const scene of capture.scenes) {
+      if (!inSeries.includes(scene) || sceneVar.has(scene)) continue;
+      const base = `__scene_${String(scene.name).replace(/[^A-Za-z0-9_$]/g, "_")}`;
+      let variable = base;
+      for (let n = 2; usedVars.has(variable); n++) variable = `${base}_${n}`;
+      usedVars.add(variable);
+      sceneVar.set(scene, variable);
+      const { record, snaps, args } = scene._capture;
+      const block = [];
+      for (const [key, value] of snaps) {
+        if (value === null) {
+          if (key !== V) block.push(`  let ${key} = ${V};`);
+        } else {
+          block.push(`  let ${key} = ${value};`);
+        }
+      }
+      for (const decl of record.decls) {
+        if (!decl.top) block.push(`  ${decl.src}`);
+      }
+      // A scene that needs no snapshot is a plain call. One that does gets
+      // its own block, so two scenes can hold different values of one name.
+      if (block.length === 0) {
+        lines.push("", `const ${variable} = ${V}.scene(${args});`);
+      } else {
+        lines.push("", `const ${variable} = (() => {`, ...block, `  return ${V}.scene(${args});`, "})();");
+      }
+    }
+
+    for (const [scene, variable] of sceneVar) {
+      if (scene._capture.prePatch) lines.push(`${V}.__patchScene(${variable}, ${printValue(scene._capture.prePatch)});`);
+    }
+
+    const seriesItems = capture.series.map((item) =>
+      item && item.__transition ? `${V}.transition(${item._args})` : sceneVar.get(item)
+    );
+    lines.push("", `${V}.series([${seriesItems.join(", ")}]);`);
+
+    const doc = v._document;
+    const extras = {};
+    const tracksJson = JSON.stringify(doc.tracks);
+    if (tracksJson !== capture.afterSeries.tracks) extras.tracks = JSON.parse(tracksJson);
+    // Fields the top level changed on a scene clip after `v.series()`.
+    const patch = clipPatch(capture.afterSeries.clips, doc.clips.slice(0, capture.afterSeries.clipCount));
+    if (patch === null) errors.push("a clip from v.series() was removed or replaced before v.save().");
+    else if (Object.keys(patch).length) extras.patch = patch;
+    const added = doc.clips.slice(capture.afterSeries.clipCount);
+    if (added.length) extras.clips = JSON.parse(JSON.stringify(added));
+    if (doc.markers.length) extras.markers = JSON.parse(JSON.stringify(doc.markers));
+    const fields = {};
+    for (const key of Object.keys(doc)) {
+      if (key === "tracks" || key === "clips" || key === "markers" || doc[key] === undefined) continue;
+      fields[key] = JSON.parse(JSON.stringify(doc[key]));
+    }
+    if (Object.keys(fields).length) extras.fields = fields;
+    if (Object.keys(extras).length) lines.push(`${V}.__restore(${printValue(extras)});`);
+
+    let saveOptions;
+    try {
+      saveOptions = printValue({ name, showcase, ops });
+    } catch (error) {
+      errors.push(`v.save() options ${error.message}.`);
+    }
+    lines.push(`return await ${V}.save(nodetool.timelines, ${saveOptions});`);
+    return { program: `${lines.join("\n")}\n`, errors };
+  }
+
+  /**
+   * Print the retained program and attach it through `code.set` with
+   * `require_match`. The document is already saved, so a failure here is a
+   * warning, never a failed save.
+   */
+  async function attachCode(timelines, id, saveOptions) {
+    if (!capture.series) return undefined;
+    try {
+      const printed = printProgram(saveOptions);
+      if (!printed) return undefined;
+      if (printed.errors.length > 0) {
+        return { embedded: false, warnings: printed.errors.map((e) => `Code not embedded: ${e}`) };
+      }
+      const attached = await timelines.code.set(id, printed.program, { require_match: true });
+      return {
+        embedded: attached.embedded === true,
+        warnings: [...(attached.errors ?? []), ...(attached.warnings ?? [])]
+      };
+    } catch (error) {
+      return { embedded: false, warnings: [`Code not embedded: ${error && error.message ? error.message : error}`] };
+    }
+  }
 
   /**
    * A top-level timed adjustment layer, in absolute video seconds — for a
@@ -1253,7 +1576,10 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
       }
       const validation = await timelines.validate(id, showcase ? { tier: "showcase" } : undefined);
       if (!validation.ok) throw new Error(`validate_timeline: ${JSON.stringify(validation.errors, null, 2)}`);
-      return { timeline_id: id, fps: FPS, width: W, height: H, durationMs: v.durationMs, errors: validation.errors ?? [], warnings: validation.warnings ?? [] };
+      const result = { timeline_id: id, fps: FPS, width: W, height: H, durationMs: v.durationMs, errors: validation.errors ?? [], warnings: validation.warnings ?? [] };
+      const code = await attachCode(timelines, id, { name, showcase, ops });
+      if (code) result.code = code;
+      return result;
     } catch (error) {
       throw new Error(`${name} (timeline ${id}): ${error && error.message ? error.message : error}`);
     }

@@ -28,6 +28,7 @@ import {
   modulePathNormalizer as defaultModulePathNormalizer
 } from "@sebastianwessel/quickjs";
 import * as acorn from "acorn";
+import { captureTimelineScenes } from "../timeline-capture.js";
 import { Scope } from "quickjs-emscripten-core";
 import {
   SANDBOX_CAPABILITY_BRIDGE_SOURCE,
@@ -407,10 +408,14 @@ function dropTimersStatement(): string {
  * here would only move a runtime denial into a confusing compile-time one.
  */
 export function buildEntryModule(
-  code: string,
+  source: string,
   prelude = "",
   encodeResult = false
 ): string {
+  // Timeline code gets its scene capture records here, the one step every
+  // guest run passes (docs/timeline-code-capture.md). The records add no
+  // line breaks, so line offsets below stay correct.
+  const code = captureTimelineScenes(source);
   let program: acorn.Program;
   try {
     program = acorn.parse(code, {

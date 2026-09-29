@@ -36,9 +36,9 @@ The craft is in `motion-direction`, `motion-principles`, `motion-curves`,
 | `compositions.save(timelineId, groupTarget, name, params, {description})` | Saves a group as a template. | The composition id |
 | `compositions.remove(id)` | Deletes a saved template. | — |
 | `code.get(id)` | Reads the timeline's authoring code, when it has any. | `{code, baked_at, scenes: [{name, group_id, edited}]}` — `code` is `null` for a timeline with none |
-| `code.set(id, code, {force, allow_live})` | Bakes `code` and merges it into the document, scene by scene: an untouched scene is replaced, a hand-edited one is kept and reported in `conflicts` unless `force` overwrites it (`true` for every scene, or an array of names). Every non-timeline call the code makes is replayed from its stored record; a call whose arguments changed refuses the bake and names it unless `allow_live: true` runs it for real and records the fresh result. | `{timeline_id, errors, warnings, conflicts, scenes}` |
-| `code.edit(id, edits, {force, allow_live})` | Exact-match string replacements against the stored code (each `old` must match exactly once), then bakes and merges the same way as `set`. The small-diff path for one change. | Same as `set` |
-| `code.rebake(id, {force, allow_live})` | Reruns the stored code unchanged and merges again — for picking up a shipped example's own current script, or re-applying `force` to a scene left conflicted. | Same as `set` |
+| `code.set(id, code, {force, require_match})` | Bakes `code` and merges it into the document, scene by scene: an untouched scene is replaced, a hand-edited one is kept and reported in `conflicts` unless `force` overwrites it (`true` for every scene, or an array of names). The bake runs no capability, so `code` must build the timeline from values alone. `require_match: true` attaches the code only if it bakes to exactly the saved document, which is what `v.save()` does. | `{timeline_id, errors, warnings, conflicts, scenes}`, plus `embedded` with `require_match` |
+| `code.edit(id, edits, {force})` | Exact-match string replacements against the stored code (each `old` must match exactly once), then bakes and merges the same way as `set`. The small-diff path for one change. | Same as `set` |
+| `code.rebake(id, {force})` | Reruns the stored code unchanged and merges again — for picking up a shipped example's own current script, or re-applying `force` to a scene left conflicted. | Same as `set` |
 | `code.detach(id, scenes)` | Stops tracking scenes (`scenes` is `"all"` or an array of names) — a later rebake never touches them again. | `{timeline_id, scenes}` |
 
 ### Changing a code-backed timeline
@@ -52,11 +52,11 @@ inside a scene the code tracks makes that scene "edited": the next
 `code.set`/`code.edit`/`code.rebake` reports it in `conflicts` and keeps the
 hand-edited version rather than silently overwriting it. Pass `force` (`true`,
 or the scene's name in an array) to overwrite it with the code's own version
-instead of keeping the edit. A new timeline: build it and call `save()` — the
-host embeds that action's code, and every other capability call the action
-made, automatically, so it is already code-backed; a later rebake replays
-those calls rather than repeating them. Otherwise, or to attach code after
-the fact, `create`, then `code.set`.
+instead of keeping the edit. A new timeline: build it and call `save()` — it
+attaches the retained program, the scene code with every research or
+generation result as a literal, so the timeline is already code-backed and a
+rebake repeats no call. Read `saved.code.warnings` when `embedded` is false.
+Otherwise, or to attach code after the fact, `create`, then `code.set`.
 
 ## Coordinates and units
 
