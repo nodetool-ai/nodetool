@@ -1,3 +1,4 @@
+import React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Check, Minus, Download, ArrowRight } from "lucide-react";
@@ -6,6 +7,7 @@ import SiteFooter from "../../../components/SiteFooter";
 import JsonLd from "../../../components/JsonLd";
 import ComparisonMesh from "../../../components/ComparisonMesh";
 import FaqSection from "../../../components/FaqSection";
+import SearchStarter from "../../../components/SearchStarter";
 import { breadcrumbSchema, itemListSchema } from "../../../lib/jsonld";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 import {
@@ -113,21 +115,26 @@ export default async function AlternativesPage({
           </span>
           <h1
             id="alt-title"
-            className="mt-6 text-4xl font-bold tracking-tight text-white md:text-5xl"
+            className="mt-6 text-4xl font-semibold tracking-tight text-white md:text-5xl"
           >
-            Looking for a {c.name} alternative?
+            Looking for an alternative to {c.name}?
           </h1>
           {/* Direct answer first — the paragraph an answer engine can lift. */}
           <p className="mt-5 text-lg leading-relaxed text-white">
             {shortAnswer(c)}
           </p>
           <p className="mt-4 leading-relaxed text-slate-400">
-            {c.limitation} If that is what brought you here, these are the
-            alternatives worth weighing, and why teams pick NodeTool: an
-            open-source canvas for image, video, audio, and text that runs on
-            your own keys.
+            {c.limitation}
           </p>
         </section>
+
+        {c.starter && (
+          <SearchStarter
+            starter={c.starter.id}
+            source={c.starter.source}
+            heading={c.starter.heading}
+          />
+        )}
 
         {/* Tool list */}
         <section
@@ -255,6 +262,16 @@ export default async function AlternativesPage({
               </tbody>
             </table>
           </div>
+          {c.sources && (
+            <p className="mt-6 text-center text-sm leading-relaxed text-slate-400">
+              Check current capabilities and plan terms: {c.sources.map((source, index) => (
+                <React.Fragment key={source.href}>
+                  {index > 0 ? " · " : ""}
+                  <a href={source.href} className="text-blue-300 underline underline-offset-2 hover:text-blue-200 focus-ring">{source.title}</a>
+                </React.Fragment>
+              ))}
+            </p>
+          )}
         </section>
 
         {/* Explainer — also ported from the retired /vs page. */}
@@ -280,12 +297,14 @@ export default async function AlternativesPage({
 
         {/* Closing CTA */}
         <section className="mx-auto my-24 max-w-2xl px-6 text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
+          <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
             {c.ctaHeading}
           </h2>
           <p className="mt-4 text-lg text-slate-300">{c.ctaParagraph}</p>
           <div className="mt-8 flex justify-center">
             <SmartDownloadButton
+              placement="closing"
+              {...(c.starter ? { source: c.starter.source, starter: c.starter.id } : {})}
               icon={<Download className="h-5 w-5" />}
               classNameOverride={`inline-flex items-center justify-center gap-2 rounded-xl ${theme.button} px-6 py-3.5 text-sm font-semibold text-white shadow-lg transition-all focus-ring`}
             />

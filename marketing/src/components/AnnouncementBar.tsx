@@ -62,7 +62,7 @@ export default function AnnouncementBar() {
           <span className="sm:hidden">{ANNOUNCEMENT.short}</span>{" "}
           <a
             href={ANNOUNCEMENT.href}
-            onClick={() => track("Try Cloud", { placement: "announcement" })}
+            onClick={() => track("Cloud CTA", { placement: "announcement" })}
             className="font-semibold text-blue-300 underline underline-offset-2 hover:text-blue-200 focus-ring"
           >
             {ANNOUNCEMENT.cta} →

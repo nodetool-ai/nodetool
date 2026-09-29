@@ -1,10 +1,11 @@
-import React from "react";
+import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import { ArrowRight, HardDrive, KeyRound, ShieldCheck } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
 import DownloadPanel from "@/components/DownloadPanel";
+import DownloadStarter from "@/components/DownloadStarter";
 import { breadcrumbSchema } from "@/lib/jsonld";
 
 const BASE_URL = "https://nodetool.ai";
@@ -67,14 +68,14 @@ const install = [
 
 export default function DownloadPage() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#040408] text-white">
+    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
       <SiteHeader />
       <JsonLd data={breadcrumbSchema([{ name: "Download", url: "/download" }])} />
 
       <div className="relative pt-28">
         <section className="relative pt-10 pb-8">
           <div className="mx-auto max-w-5xl px-6 lg:px-8">
-            <h1 className="max-w-3xl text-4xl font-bold leading-[1.05] tracking-tight md:text-5xl">
+            <h1 className="max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight md:text-5xl">
               Download NodeTool Studio
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
@@ -83,6 +84,9 @@ export default function DownloadPage() {
             </p>
             <div className="mt-8 max-w-3xl">
               <DownloadPanel />
+              <Suspense fallback={null}>
+                <DownloadStarter />
+              </Suspense>
             </div>
             <p className="mt-6 max-w-3xl text-sm text-slate-400">
               Rather not install anything?{" "}
@@ -102,7 +106,7 @@ export default function DownloadPage() {
           <div className="mx-auto max-w-5xl px-6 lg:px-8">
             <h2
               id="requirements-title"
-              className="text-2xl font-bold tracking-tight md:text-3xl"
+              className="text-2xl font-semibold tracking-tight md:text-3xl"
             >
               What it needs
             </h2>
@@ -129,7 +133,7 @@ export default function DownloadPage() {
           <div className="mx-auto max-w-5xl px-6 lg:px-8">
             <h2
               id="install-title"
-              className="text-2xl font-bold tracking-tight md:text-3xl"
+              className="text-2xl font-semibold tracking-tight md:text-3xl"
             >
               Opening it the first time
             </h2>

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Apple, Download, Monitor, Terminal } from "lucide-react";
 import { track } from "../lib/analytics";
+import { detectBrowserPlatform } from "../lib/browserPlatform";
 
 /**
  * The installer picker on /download.
@@ -93,27 +94,42 @@ function isAppleSilicon(): boolean {
   }
 }
 
-function detectPlatform(): PlatformId | null {
-  if (typeof navigator === "undefined") return null;
-  const ua = `${navigator.userAgent} ${navigator.platform || ""}`;
-  if (/win/i.test(ua)) return "windows";
-  if (/mac/i.test(ua)) return isAppleSilicon() ? "mac-arm" : "mac-intel";
-  if (/linux|x11/i.test(ua)) return "linux";
+function detectPlatform(): PlatformId | "mobile" | null {
+  if (typeof navigator === "undefined") {
+    return null;
+  }
+  const platform = detectBrowserPlatform(navigator);
+  if (platform === "mobile") {
+    return "mobile";
+  }
+  if (platform === "Windows") {
+    return "windows";
+  }
+  if (platform === "macOS") {
+    return isAppleSilicon() ? "mac-arm" : "mac-intel";
+  }
+  if (platform === "Linux") {
+    return "linux";
+  }
   return null;
 }
 
 export default function DownloadPanel() {
   const [release, setRelease] = useState<Release | null>(null);
-  const [current, setCurrent] = useState<PlatformId | null>(null);
+  const [current, setCurrent] = useState<PlatformId | "mobile" | null>(null);
 
   useEffect(() => {
     setCurrent(detectPlatform());
-    fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
+    const controller = new AbortController();
+    fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
+      signal: controller.signal,
+    })
       .then((r) => r.json())
       .then(setRelease)
       .catch(() => {
         // Unreachable or rate-limited: every card links to the releases page.
       });
+    return () => controller.abort();
   }, []);
 
   const version = release?.tag_name?.replace(/^v/, "") ?? null;
@@ -131,7 +147,7 @@ export default function DownloadPanel() {
       <a
         key={platform.id}
         href={href}
-        onClick={() => track("Download", { os: platform.id })}
+        onClick={() => track(asset ? "Download" : "Browse Releases", { os: platform.id, placement: "installer" })}
         className={
           primary
             ? "flex items-center gap-4 rounded-2xl border border-blue-500/40 bg-blue-500/10 px-6 py-5 transition-colors hover:border-blue-400 hover:bg-blue-500/15 focus-ring"
@@ -166,7 +182,9 @@ export default function DownloadPanel() {
         card(recommended, true)
       ) : (
         <p className="rounded-2xl border border-white/10 bg-slate-900/40 px-6 py-5 text-sm text-slate-300">
-          Pick the build for your machine.
+          {current === "mobile"
+            ? "Open this page on your desktop to install NodeTool Studio. Choose a build for macOS, Windows, or Linux below."
+            : "Pick the build for your machine."}
         </p>
       )}
 
@@ -180,6 +198,7 @@ export default function DownloadPanel() {
           href={RELEASES_URL}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => track("Browse Releases", { placement: "release-notes" })}
           className="text-slate-400 underline underline-offset-2 hover:text-slate-200"
         >
           the GitHub releases page

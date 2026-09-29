@@ -1,6 +1,8 @@
 import type { PageEntry } from "./types";
 import { yearToken } from "./types";
 import type { OgAccent } from "../lib/og";
+import type { SearchStarter } from "./searchStarters";
+import type { LandingPage } from "../lib/analytics";
 
 /**
  * Comparison page-data contract, consumed by the `/alternatives/*` route. One
@@ -134,11 +136,1298 @@ export type Competitor = {
 
   /** Optional search snippet for pages with a distinct, high-volume query intent. */
   seo?: { title: string; description: string };
+  starter?: { id: SearchStarter; source: LandingPage; heading: string };
+  sources?: { title: string; href: string }[];
 };
 
 export const competitors: Competitor[] = [
   {
+    slug: "higgsfield",
+    name: "Higgsfield",
+    theme: "violet",
+    category: "AI filmmaking",
+    isNew: true,
+    seo: {
+      title: "Higgsfield Alternative for Editable AI Video Workflows | NodeTool",
+      description: "Compare Higgsfield with NodeTool for AI video production. Cinema Studio and hosted credits, or editable workflows with your own provider accounts.",
+    },
+    og: { image: "screen_storyboard.png", accent: "violet", subtitle: "Hosted shot direction or a workflow you can run yourself." },
+    starter: { id: "movie-trailer-generator", source: "higgsfield", heading: "Try a trailer workflow you can inspect" },
+    sources: [
+      { title: "Higgsfield production and integrations", href: "https://higgsfield.ai/blog/how-studios-scale-ai-video-production" },
+      { title: "Higgsfield plans", href: "https://higgsfield.ai/pricing" },
+    ],
+    heroParagraph: "Higgsfield combines Cinema Studio camera controls with character tools and hosted generation. It also offers API, MCP, CLI, and editor integrations. NodeTool puts shot planning, generation graphs, and timeline editing in a workspace you can run on your own machine. Choose between a managed creative suite and control over the workflow and provider accounts.",
+    competitorTagline: "Hosted creative suite for AI video and image production",
+    competitorBullets: ["Cinema Studio shot and camera controls", "Soul ID character tools", "Editor integrations, API, MCP, and CLI", "Hosted plans and generation credits"],
+    nodetoolTagline: "Editable workflows on your own infrastructure",
+    nodetoolBullets: ["Storyboard and timeline beside the workflow canvas", "Agents edit the same project surfaces you use", "Connect your own provider accounts", "Open-source Studio or self-hosting"],
+    rows: [
+      { label: "Shot direction", competitor: "Cinema Studio camera and lens controls", nodetool: "Storyboard direction and model-specific settings" },
+      { label: "Automation", competitor: "API, MCP, CLI, and editor integrations", nodetool: "API, MCP, CLI, and workflow execution" },
+      { label: "Model billing", competitor: "Plan credits, with model-specific offers", nodetool: "Providers bill your connected accounts" },
+      { label: "Workspace deployment", competitor: "Higgsfield hosted workspace", nodetool: "Free Studio, self-hosting, or Cloud alpha" },
+    ],
+    explainerHeading: "Choose how the production pipeline runs",
+    explainerParagraph: "Higgsfield is a practical choice when its camera controls and managed team workspace fit the job. NodeTool fits when you want to inspect each step, change provider accounts, or run the workspace yourself. Provider availability and model capabilities still determine what a NodeTool workflow can produce.",
+    ctaHeading: "Inspect the workflow before you run it.",
+    ctaParagraph: "Open a trailer starter in Studio and review its models and shot count before generating.",
+    faq: [
+      { question: "Is NodeTool a Higgsfield alternative?", answer: "Yes, for assembling AI media workflows and editing the resulting project. Higgsfield's Cinema Studio has dedicated shot controls. NodeTool adds open-source deployment and your own provider accounts." },
+      { question: "Does Higgsfield support automation?", answer: "Yes. Higgsfield documents API, MCP, CLI, and editor integrations. Compare their model coverage and billing terms with the workflow you need." },
+      { question: "Is NodeTool cheaper than Higgsfield?", answer: "Studio is free. Hosted model calls are billed by your providers. Total cost depends on the models, clip lengths, and takes, so compare the actual workflow with the current Higgsfield plan." },
+    ],
+    limitation: "Higgsfield manages the hosted creative workspace and its plan allowances. NodeTool is an alternative when you want to run the workspace yourself and connect your own providers.",
+  },
+  {
+    slug: "openart",
+    name: "OpenArt",
+    theme: "rose",
+    category: "Video studio",
+    isNew: true,
+    seo: { title: "OpenArt Alternative for AI Images and Video Workflows | NodeTool", description: "Compare OpenArt Director and character tools with NodeTool's editable workflows, local models, and your own provider accounts." },
+    og: { image: "screen_canvas.png", accent: "rose", subtitle: "A hosted creative suite or editable workflows on your own machine." },
+    starter: { id: "write-the-prompt-then-make-the-image", source: "openart", heading: "Try an image workflow with inspectable outputs" },
+    sources: [
+      { title: "OpenArt creative tools", href: "https://openart.ai/" },
+      { title: "OpenArt plans", href: "https://openart.ai/pricing" },
+    ],
+    heroParagraph: "OpenArt combines image editing, character creation, and video generation with Director for conversational shot planning. Its plans include generation credits and MCP access. NodeTool keeps agents, media workflows, and editing surfaces in an open-source workspace, with models called through accounts you connect.",
+    competitorTagline: "Hosted image, video, and audio creation studio",
+    competitorBullets: ["Director for conversational video creation", "Reusable characters and image editing", "Image, video, and audio models", "Credit-based plans with MCP access"],
+    nodetoolTagline: "A saved workflow you can inspect and rerun",
+    nodetoolBullets: ["Agents, canvas, storyboard, and timeline", "Separate prompts and generated outputs", "Your provider accounts and local models", "Free open-source Studio or self-hosting"],
+    rows: [
+      { label: "Video direction", competitor: "OpenArt Director", nodetool: "Agents and editable storyboards" },
+      { label: "Media", competitor: "Image, video, voice, and audio tools", nodetool: "Image, video, audio, and text workflows" },
+      { label: "Agent access", competitor: "OpenArt MCP", nodetool: "MCP tools across project editors" },
+      { label: "Model billing", competitor: "Subscription allowances and credits", nodetool: "Your connected provider accounts" },
+      { label: "Workspace deployment", competitor: "OpenArt hosted studio", nodetool: "Studio, self-hosting, or Cloud alpha" },
+    ],
+    explainerHeading: "Managed creation or control of the graph",
+    explainerParagraph: "OpenArt fits creators who want its character library, editing tools, and Director in a managed service. NodeTool fits projects that need inspectable steps, local execution, or provider accounts controlled by the creator. Both offer agent integrations. The distinction is how the project and generation costs are managed.",
+    ctaHeading: "Keep the prompt beside the image.",
+    ctaParagraph: "Try a starter that exposes the written prompt and generated image as separate outputs.",
+    faq: [
+      { question: "Does OpenArt only generate still images?", answer: "No. OpenArt offers video, voice, audio, character tools, and Director. This comparison concerns project control and deployment, not a lack of video support." },
+      { question: "Can I use agents with OpenArt?", answer: "Yes. OpenArt lists MCP access in its plans. NodeTool exposes its workflow and editing surfaces through MCP too." },
+      { question: "Do I need provider keys for NodeTool?", answer: "The image starter uses OpenAI and FAL keys. Other workflows can use local models supported by Studio. OpenArt instead provides its hosted model access through its plans." },
+    ],
+    limitation: "OpenArt bundles hosted creation tools and model access into its plans. NodeTool is an alternative when you want editable graphs, local models, and direct provider accounts.",
+  },
+  {
+    slug: "ltx-studio",
+    name: "LTX Studio",
+    theme: "cyan",
+    category: "AI filmmaking",
+    isNew: true,
+    seo: { title: "LTX Studio Alternative for Editable AI Video Projects | NodeTool", description: "Compare LTX Studio storyboards, timeline editing, and Flows with NodeTool's open-source creative workspace and your own provider accounts." },
+    og: { image: "screen_storyboard.png", accent: "cyan", subtitle: "Compare the storyboard, the workflow, and where they run." },
+    starter: { id: "movie-trailer-generator", source: "ltx-studio", heading: "Build a trailer from a visible workflow" },
+    sources: [
+      { title: "LTX Studio production tools", href: "https://ltx.io/studio" },
+      { title: "LTX Studio plans and Flows", href: "https://ltx.io/studio/pricing" },
+    ],
+    heroParagraph: "LTX Studio combines storyboards, reusable Elements, timeline editing, and sound design. Its plans also list Flows for node-based automation. NodeTool brings a workflow canvas, storyboard, script, and timeline into an open-source workspace. The choice is between LTX's managed production tools and a workspace you run with your own provider accounts.",
+    competitorTagline: "Hosted AI video production workspace",
+    competitorBullets: ["Dynamic storyboards and timeline editing", "Reusable characters, objects, and locations", "Sound design and node-based Flows", "Credit-based generation plans"],
+    nodetoolTagline: "An open-source workspace for the production graph",
+    nodetoolBullets: ["Workflow canvas with storyboard and timeline", "Agent-authored plans remain editable", "Connect your own generation providers", "Studio and self-hosted deployment"],
+    rows: [
+      { label: "Production planning", competitor: "Dynamic Storyboard and Elements", nodetool: "Scripts, entities, and storyboards" },
+      { label: "Editing", competitor: "Timeline Editor and Sound Design", nodetool: "Timeline, audio, and sketch editors" },
+      { label: "Node-based workflows", competitor: "Flows, subject to plan", nodetool: "Workflow canvas in Studio" },
+      { label: "Model billing", competitor: "Generation credits", nodetool: "Your connected provider accounts" },
+      { label: "Workspace deployment", competitor: "Hosted LTX Studio", nodetool: "Studio, self-hosting, or Cloud alpha" },
+    ],
+    explainerHeading: "Compare the whole project, including the workflow",
+    explainerParagraph: "LTX Studio already offers planning, editing, and node-based automation. Choose it when that managed production environment suits the team. NodeTool fits when deployment, direct provider accounts, or mixing media and data in the same workflow matters. Model settings and generation quality remain specific to the provider you select.",
+    ctaHeading: "Follow the brief through every step.",
+    ctaParagraph: "Inspect a trailer graph and begin with one shot before increasing generation spend.",
+    faq: [
+      { question: "Does LTX Studio have node-based workflows?", answer: "Yes. Its plan comparison lists Flows for node-based automation. Check the current plan for access and limits." },
+      { question: "How is LTX Studio different from the LTX video model?", answer: "This page compares the hosted Studio product and its production tools. Choosing a video model is a separate decision from choosing the workspace that runs it." },
+      { question: "Does NodeTool include free video generation?", answer: "Studio is free, but hosted video models charge your provider account. The trailer starter uses Gemini and KIE. Local inference depends on compatible models and your hardware." },
+    ],
+    limitation: "LTX Studio packages production tools and generation allowances in a hosted workspace. NodeTool is an alternative for running the workspace yourself and controlling provider accounts.",
+  },
+  {
+    slug: "google-flow",
+    name: "Google Flow",
+    theme: "blue",
+    category: "AI filmmaking",
+    isNew: true,
+    seo: {
+      title: "Google Flow Alternative for AI Filmmaking Workflows | NodeTool",
+      description: "Compare Google Flow's scene tools and creative agent with NodeTool's scripts, storyboards, editable workflows, and your own provider accounts.",
+    },
+    og: { image: "screen_storyboard.png", accent: "blue", subtitle: "Plan the scenes and choose how the production runs." },
+    starter: { id: "movie-trailer-generator", source: "google-flow", heading: "Plan a trailer with providers you choose" },
+    sources: [
+      { title: "Google Flow creative tools", href: "https://labs.google/fx/tools/flow" },
+      { title: "Google Flow models and supported features", href: "https://support.google.com/flow/answer/16352836?hl=en" },
+      { title: "Google Flow credits", href: "https://support.google.com/flow/answer/16526234?hl=en" },
+    ],
+    heroParagraph: "Google Flow brings Google's image and video models into a creative workspace with an agent, reference-driven generation, and scene tools. NodeTool combines scripts, entities, storyboards, and a timeline with an editable workflow canvas. Compare the production controls you need and whether you want a Google-managed workspace or a workspace running on your own infrastructure.",
+    competitorTagline: "Creative studio for connected film scenes",
+    competitorBullets: ["Google image and video models", "Creative agent and custom tools", "Reference frames, ingredients, and clip extension", "Hosted generation using Google Flow credits"],
+    nodetoolTagline: "A production workspace with an inspectable graph",
+    nodetoolBullets: ["Scripts, entities, storyboards, and timeline", "Agents operate editable project surfaces", "Mix supported generation providers", "Free Studio or self-hosted deployment"],
+    rows: [
+      { label: "Film planning", competitor: "Creative agent and scene-building tools", nodetool: "Scripts, entities, and editable storyboards" },
+      { label: "Shot references", competitor: "Frames and ingredients, depending on model", nodetool: "Reference inputs supported by the selected node" },
+      { label: "Workflow customization", competitor: "Google Flow Tools and conversational edits", nodetool: "Editable node graphs and project tools" },
+      { label: "Generation billing", competitor: "Google Flow or AI credits", nodetool: "Your connected provider accounts" },
+      { label: "Workspace deployment", competitor: "Google-hosted service", nodetool: "Studio, self-hosting, or Cloud alpha" },
+    ],
+    explainerHeading: "Choose the workspace as well as the model",
+    explainerParagraph: "Google Flow fits filmmakers who want Google's generation and scene controls together. NodeTool fits productions that need a saved graph, direct provider accounts, or self-hosting. A model accessed through NodeTool does not bring the Google Flow interface with it. Review reference support, audio, and extension controls for each model before committing to a sequence.",
+    ctaHeading: "Make the first shot a visible workflow.",
+    ctaParagraph: "Inspect the trailer starter's direction, keyframe, and video stages before running a one-shot test.",
+    faq: [
+      { question: "Is NodeTool a Google Flow alternative for filmmaking?", answer: "Yes, for planning and generating AI media in an editable project. Google Flow has its own scene tools. NodeTool adds an open-source workspace, a workflow canvas, and direct provider accounts." },
+      { question: "Does Google Flow have an AI agent?", answer: "Yes. Google Flow includes an agent and tools for conversational creation and editing. NodeTool agents also work on editable project surfaces." },
+      { question: "Can I use Google Flow credits in NodeTool?", answer: "No. The NodeTool trailer starter calls Gemini and KIE through your connected accounts. Google Flow credits belong to Google's service." },
+    ],
+    limitation: "Google Flow packages its models and production tools in Google's hosted service. NodeTool is an alternative when you want to inspect the graph, mix providers, or run the workspace yourself.",
+  },
+  {
+    slug: "artlist",
+    name: "Artlist Studio",
+    theme: "amber",
+    category: "AI filmmaking",
+    isNew: true,
+    seo: {
+      title: "Artlist Alternative for AI Film Production | NodeTool",
+      description: "Compare Artlist Studio's casting and shot controls with NodeTool's editable production workflows, storyboards, and direct provider accounts.",
+    },
+    og: { image: "screen_storyboard.png", accent: "amber", subtitle: "Compare casting, shot direction, and the production workflow." },
+    starter: { id: "movie-trailer-generator", source: "artlist", heading: "Inspect a trailer production graph" },
+    sources: [
+      { title: "Artlist Studio production features", href: "https://artlist.io/studio" },
+      { title: "Artlist AI Toolkit agent", href: "https://help.artlist.io/hc/en-us/articles/35805602922269-AI-Toolkit-AI-Agent" },
+    ],
+    heroParagraph: "Artlist Studio organizes AI production around casting, locations, composition, and shot direction. Its prompt tags reuse characters and locations across scenes, while the AI Toolkit adds conversational generation. NodeTool brings reusable entities, storyboards, and a timeline beside the workflow graph, with generation billed through the provider accounts you connect.",
+    competitorTagline: "Hosted production studio with casting and shot direction",
+    competitorBullets: ["Character and location capture", "Reusable prompt tags across scenes", "Composition, lensing, and shot controls", "AI Toolkit with conversational generation"],
+    nodetoolTagline: "Production steps you can edit and run yourself",
+    nodetoolBullets: ["Reusable entities and shot storyboards", "Workflow canvas and timeline editing", "Inspect prompts and intermediate outputs", "Own provider accounts and self-hosting"],
+    rows: [
+      { label: "Cast and locations", competitor: "Capture elements and reuse prompt tags", nodetool: "Entity library and storyboard casting" },
+      { label: "Shot direction", competitor: "Dedicated composition and cinematic controls", nodetool: "Storyboard direction and model-specific node inputs" },
+      { label: "Agent assistance", competitor: "AI Toolkit conversational generation", nodetool: "Agents across workflow and project editors" },
+      { label: "Model billing", competitor: "Artlist AI plan credits", nodetool: "Your connected provider accounts" },
+      { label: "Workspace deployment", competitor: "Hosted Artlist Studio", nodetool: "Free Studio, self-hosting, or Cloud alpha" },
+    ],
+    explainerHeading: "Compare the shot controls with the pipeline controls",
+    explainerParagraph: "Artlist Studio is a focused option when its casting and framing controls suit your film. NodeTool fits when you want to change the production graph or run the workspace yourself. The tools can also serve different stages of a project. Review outputs and licensing for the actual models and assets you use.",
+    ctaHeading: "Keep the production graph beside the footage.",
+    ctaParagraph: "Open the trailer starter and inspect each generation stage before increasing the shot count.",
+    faq: [
+      { question: "What does this Artlist comparison cover?", answer: "It compares Artlist Studio's AI production tools and the connected AI Toolkit. It does not treat NodeTool as a replacement for Artlist's licensed music or stock catalog." },
+      { question: "Does Artlist offer an AI agent?", answer: "Yes. Its AI Toolkit agent generates and refines images and videos conversationally. NodeTool also offers agents, with editable workflows and self-hosted deployment." },
+      { question: "Can NodeTool reproduce Artlist's shot controls?", answer: "Model-specific controls vary. NodeTool exposes supported inputs through nodes and storyboards, but its interface does not duplicate Artlist Studio's casting and framing tools." },
+    ],
+    limitation: "Artlist Studio provides dedicated film controls within its hosted AI plans. NodeTool is an alternative for owning the production graph and connecting your own provider accounts.",
+  },
+  {
+    slug: "invideo",
+    name: "Invideo",
+    theme: "violet",
+    category: "AI filmmaking",
+    isNew: true,
+    seo: {
+      title: "Invideo Alternative for Editable AI Filmmaking | NodeTool",
+      description: "Compare Invideo's filmmaking agents and timeline editor with NodeTool's open-source creative workspace, editable graphs, and direct provider accounts.",
+    },
+    og: { image: "screen_storyboard.png", accent: "violet", subtitle: "Compare filmmaking agents and where the project runs." },
+    starter: { id: "movie-trailer-generator", source: "invideo", heading: "Follow a film brief through a saved graph" },
+    sources: [
+      { title: "Invideo filmmaking agents", href: "https://invideo.io/make/ai-filmmaking/" },
+      { title: "Invideo agentic timeline editor and exports", href: "https://invideo.io/make/agentic-video-editor/" },
+    ],
+    heroParagraph: "Invideo's filmmaking agents break down scripts, develop characters and locations, and generate shots using shared project context. Its browser editor keeps agent edits on an editable timeline and supports handoff to other editing tools. NodeTool also combines agents and editing, with an open-source workspace and a workflow canvas you can run on your own infrastructure.",
+    competitorTagline: "Browser filmmaking platform with production agents",
+    competitorBullets: ["Script breakdown, casting, and storyboards", "Shared production context and specialist agents", "Editable timeline with color and audio tools", "Editable project exports to other editors"],
+    nodetoolTagline: "Agents and production graphs in an open-source workspace",
+    nodetoolBullets: ["Scripts, entities, storyboards, and timeline", "Inspect and change the generation graph", "Use supported local or remote models", "Studio and self-hosted deployment"],
+    rows: [
+      { label: "Film planning", competitor: "Production agents with persistent project context", nodetool: "Agents, scripts, entities, and storyboards" },
+      { label: "Manual editing", competitor: "Browser timeline with color and audio tools", nodetool: "Timeline, audio, and sketch editors" },
+      { label: "Editing handoff", competitor: "Documents exports to Premiere, Final Cut, and Resolve", nodetool: "Review and export through NodeTool's project tools" },
+      { label: "Workflow visibility", competitor: "Agent tasks and editable timeline", nodetool: "Agent tools, editable node graphs, and project editors" },
+      { label: "Workspace deployment", competitor: "Invideo-hosted browser workspace", nodetool: "Studio, self-hosting, or Cloud alpha" },
+    ],
+    explainerHeading: "Both platforms let you direct and revise",
+    explainerParagraph: "Invideo is a strong fit when you want its managed production agents and browser editing environment. NodeTool fits when the saved workflow graph, direct provider accounts, or deployment control matters. Invideo's documented editor handoff is a separate consideration from NodeTool's workflow export. Check the deliverables your finishing process needs.",
+    ctaHeading: "Make the brief and generation stages inspectable.",
+    ctaParagraph: "Try a short trailer graph and review its outputs before expanding the production.",
+    faq: [
+      { question: "Is Invideo only a social-video generator?", answer: "No. Its current filmmaking tools include script breakdown, casting, storyboards, production agents, and timeline editing. This comparison covers those film-production capabilities." },
+      { question: "Can I edit Invideo's agent output manually?", answer: "Yes. Invideo documents an editable timeline and project export to other editors. NodeTool also keeps agent work editable, with an additional workflow canvas and open-source deployment." },
+      { question: "Is the NodeTool trailer starter a complete feature-film pipeline?", answer: "No. It demonstrates a short trailer workflow using Gemini and KIE. A larger film needs shot review, continuity work, editing, and sound decisions." },
+    ],
+    limitation: "Invideo runs its production agents and editor in a managed browser workspace. NodeTool is an alternative when you want a visible generation graph and control over workspace deployment.",
+  },
+  {
+    slug: "katalist",
+    name: "Katalist",
+    theme: "rose",
+    category: "AI filmmaking",
+    isNew: true,
+    seo: {
+      title: "Katalist Alternative for AI Storyboards and Film Workflows | NodeTool",
+      description: "Compare Katalist's script-to-storyboard and product-swap tools with NodeTool's entities, storyboards, editable workflows, and self-hosting.",
+    },
+    og: { image: "screen_storyboard.png", accent: "rose", subtitle: "From a script and cast to a production workflow." },
+    starter: { id: "movie-trailer-generator", source: "katalist", heading: "Build a short trailer from an editable logline" },
+    sources: [
+      { title: "Katalist script, storyboard, and production tools", href: "https://www.katalist.ai/" },
+      { title: "Katalist short-film storyboarding guide", href: "https://www.katalist.ai/how-to-storyboard/short-film" },
+    ],
+    heroParagraph: "Katalist turns a script into shots and storyboards, with character references and framing controls before video generation. Its current focus also includes product swaps, voice changes, and advertising variations. NodeTool fits filmmakers who want scripts, reusable entities, storyboards, and generation steps in a workspace they can inspect and run themselves.",
+    competitorTagline: "Script-to-video creative studio for storyboards and ads",
+    competitorBullets: ["Script breakdown into shots and storyboards", "Character references and shot refinement", "Product swaps and localized ad variations", "Hosted canvas for creation and export"],
+    nodetoolTagline: "A film project with editable generation steps",
+    nodetoolBullets: ["Script editor and reusable entity library", "Storyboard, workflow canvas, and timeline", "Choose supported models per stage", "Own provider accounts and open-source deployment"],
+    rows: [
+      { label: "Script planning", competitor: "Script-to-shot and storyboard workflow", nodetool: "Scripts and agent-authored storyboards" },
+      { label: "Cast continuity", competitor: "Character references across shots", nodetool: "Reusable entities and reference assets" },
+      { label: "Advertising variations", competitor: "Dedicated product-swap and localization tools", nodetool: "Custom workflows using supported models" },
+      { label: "Generation control", competitor: "Refine shots in Katalist's hosted canvas", nodetool: "Inspect prompts, nodes, and intermediate outputs" },
+      { label: "Workspace deployment", competitor: "Katalist-hosted studio", nodetool: "Studio, self-hosting, or Cloud alpha" },
+    ],
+    explainerHeading: "Choose for the production you actually make",
+    explainerParagraph: "Katalist's dedicated product-swap tools can suit agencies producing many ad variations. Its storyboarding also serves film planning. NodeTool fits when you need to build a broader media pipeline or retain control of the graph and provider accounts. Reference assets help guide both workflows, but review generated shots for continuity.",
+    ctaHeading: "Take a logline through the generation graph.",
+    ctaParagraph: "Inspect the trailer starter's prompts and models, then start with one shot.",
+    faq: [
+      { question: "Can Katalist make storyboards for films?", answer: "Yes. It breaks scripts into shots and storyboards, with character references and shot refinement. Its current studio also emphasizes performance advertising and product swaps." },
+      { question: "Does NodeTool have Katalist's product-swap interface?", answer: "No. NodeTool uses editable workflows and supported model inputs for asset changes. Katalist offers a dedicated product-swap workflow." },
+      { question: "Can I keep a cast in NodeTool?", answer: "Yes. The entity library holds reusable characters, objects, locations, and reference assets. Consistency in generated footage still depends on the selected model and shot review." },
+    ],
+    limitation: "Katalist combines storyboarding with dedicated ad-production tools in a hosted studio. NodeTool is an alternative for a customizable film pipeline and self-hosted workspace.",
+  },
+  {
+    slug: "storyboarder-ai",
+    name: "Storyboarder.ai",
+    theme: "cyan",
+    category: "AI filmmaking",
+    isNew: true,
+    seo: {
+      title: "Storyboarder.ai Alternative for AI Film Pre-production | NodeTool",
+      description: "Compare Storyboarder.ai's shot lists, animatics, and pitch decks with NodeTool's editable storyboards, generation graphs, and timeline.",
+    },
+    og: { image: "screen_storyboard.png", accent: "cyan", subtitle: "Compare pre-production deliverables and the generation pipeline." },
+    starter: { id: "movie-trailer-generator", source: "storyboarder-ai", heading: "Inspect the steps from shot plan to trailer" },
+    sources: [
+      { title: "Storyboarder.ai features, exports, and plan details", href: "https://www.storyboarder.ai/" },
+    ],
+    heroParagraph: "Storyboarder.ai focuses on pre-production: screenplay breakdown, shot lists, visual boards, animatics, and pitch decks. Its camera-angle and character tools help communicate a scene before production. NodeTool connects storyboard planning to editable generation graphs and a timeline, with agents and provider accounts inside an open-source workspace.",
+    competitorTagline: "Film pre-production platform for boards and animatics",
+    competitorBullets: ["Script-to-shot-list and storyboard generation", "Character, location, and style references", "Camera-angle tools and video animatics", "PDF, MP4, and pitch-deck exports"],
+    nodetoolTagline: "Storyboard planning connected to editable workflows",
+    nodetoolBullets: ["Scripts, reusable entities, and storyboards", "Generation graphs and intermediate outputs", "Timeline and audio editing", "Studio or self-hosting with your own keys"],
+    rows: [
+      { label: "Pre-production", competitor: "Shot lists, storyboards, and animatics", nodetool: "Scripts, entities, and editable storyboards" },
+      { label: "Camera tools", competitor: "Dedicated 3D camera-angle tool", nodetool: "Shot direction and model-specific controls" },
+      { label: "Pitch deliverables", competitor: "PDF boards and designed pitch-deck exports", nodetool: "Project assets and workflow outputs" },
+      { label: "Generation billing", competitor: "Unlimited images on paid plans, separate video limits", nodetool: "Selected providers bill your accounts" },
+      { label: "Workspace deployment", competitor: "Hosted Storyboarder.ai platform", nodetool: "Studio, self-hosting, or Cloud alpha" },
+    ],
+    explainerHeading: "Pre-production package or a configurable production graph",
+    explainerParagraph: "Storyboarder.ai is a focused choice for pitch decks, PDF boards, and animatic deliverables. NodeTool fits when you want storyboard decisions connected to a generation pipeline that you can inspect and rerun. Its trailer starter demonstrates that pipeline, rather than duplicating Storyboarder.ai's pitch-deck or camera-angle interface.",
+    ctaHeading: "Inspect the steps after the shot plan.",
+    ctaParagraph: "Review how the trailer starter turns a logline into direction, keyframes, and video.",
+    faq: [
+      { question: "Does Storyboarder.ai generate video?", answer: "Yes. It offers image-to-video animatics, including camera motion and audio. This comparison does not treat it as a still-image-only tool." },
+      { question: "Does NodeTool replace Storyboarder.ai's pitch-deck exports?", answer: "NodeTool is useful for editable storyboards and generation workflows. If formatted pitch decks or PDF shot lists are the main deliverable, Storyboarder.ai's dedicated exports may fit better." },
+      { question: "Are Storyboarder.ai images and videos billed the same way?", answer: "Its paid plans advertise unlimited image generation, while video has separate allowances and add-ons. NodeTool's hosted image and video calls are billed by your selected providers." },
+    ],
+    limitation: "Storyboarder.ai specializes in pre-production deliverables within a hosted service. NodeTool is an alternative when you want planning connected to a customizable generation workflow.",
+  },
+  {
+    slug: "story-com",
+    name: "Story.com",
+    theme: "emerald",
+    category: "AI filmmaking",
+    isNew: true,
+    seo: {
+      title: "Story.com Alternative for AI Movie Workflows | NodeTool",
+      description: "Compare Story.com's script-to-movie tools and AI timeline editor with NodeTool's scripts, storyboards, editable graphs, and self-hosting.",
+    },
+    og: { image: "screen_storyboard.png", accent: "emerald", subtitle: "Keep the story, shots, and workflow open to revision." },
+    starter: { id: "movie-trailer-generator", source: "story-com", heading: "Try a trailer with visible intermediate outputs" },
+    sources: [
+      { title: "Story.com movie, storyboard, and editing products", href: "https://www.story.com/" },
+      { title: "Story.com script-to-movie workflow", href: "https://www.story.com/explain/ai-movie-maker" },
+    ],
+    heroParagraph: "Story.com brings script-to-movie generation, storyboarding, and an AI timeline editor into a hosted storytelling platform. Its Movie Agent helps with scenes and pacing, alongside voice and audio controls. NodeTool puts script, storyboard, entities, and timeline in an open-source workspace with an editable graph for the generation pipeline.",
+    competitorTagline: "Hosted storytelling platform with an AI movie editor",
+    competitorBullets: ["Script-to-scene movie generation", "Visual storyboarding tools", "Timeline editor and AI Movie Agent", "Narration, dialogue, and voice generation"],
+    nodetoolTagline: "A story project with a workflow you can inspect",
+    nodetoolBullets: ["Script editor, storyboard, and entity library", "Agents work on editable project documents", "Inspect prompts and generation outputs", "Provider accounts and workspace deployment you control"],
+    rows: [
+      { label: "Story planning", competitor: "Script-to-movie and storyboarding products", nodetool: "Scripts, entities, and storyboards" },
+      { label: "Film editing", competitor: "Timeline-based AI Studio", nodetool: "Timeline and audio editors" },
+      { label: "Agent assistance", competitor: "AI Movie Agent for scenes and pacing", nodetool: "Agents across project editors and workflow tools" },
+      { label: "Generation pipeline", competitor: "Hosted movie and editing tools", nodetool: "Saved node graphs with intermediate outputs" },
+      { label: "Workspace deployment", competitor: "Story.com-hosted platform", nodetool: "Studio, self-hosting, or Cloud alpha" },
+    ],
+    explainerHeading: "Compare how revisions reach the final cut",
+    explainerParagraph: "Story.com fits creators who want its movie generation and AI timeline editor together. NodeTool fits when you also want to inspect how a shot was generated, replace a stage in the workflow, or run the workspace yourself. Both support story planning and editing. Test a short sequence before trusting either workflow with a larger narrative.",
+    ctaHeading: "Keep the intermediate outputs with the story.",
+    ctaParagraph: "Try a trailer graph with visible direction and keyframe stages before video generation.",
+    faq: [
+      { question: "Is Story.com only for short clips?", answer: "No. It offers script-to-movie tools, storyboards, and a timeline editor designed for longer projects. The NodeTool starter on this page is deliberately a short trailer." },
+      { question: "Does Story.com include an AI editing agent?", answer: "Yes. Its AI Movie Agent supports scene development and editing. NodeTool's agents operate its project editors and workflow tools too." },
+      { question: "Can I change individual stages in NodeTool?", answer: "Yes. Saved workflows expose prompts, model nodes, and connections. You can revise a generation stage and review its outputs before assembling the film." },
+    ],
+    limitation: "Story.com packages movie generation and editing in a hosted storytelling platform. NodeTool is an alternative for an inspectable generation graph and open-source deployment.",
+  },
+  {
+    slug: "mootion",
+    name: "Mootion",
+    theme: "rose",
+    category: "AI filmmaking",
+    isNew: true,
+    seo: {
+      title: "Mootion Alternative for AI Storytelling and Film Workflows | NodeTool",
+      description: "Compare Mootion's connected story scenes and Director Mode with NodeTool's scripts, entities, storyboards, and editable production graphs.",
+    },
+    og: { image: "screen_storyboard.png", accent: "rose", subtitle: "Plan the characters and review how every scene is made." },
+    starter: { id: "movie-trailer-generator", source: "mootion", heading: "Start a trailer with one generated shot" },
+    sources: [
+      { title: "Mootion video and audio creation", href: "https://www.mootion.com/" },
+      { title: "Mootion Director Mode and story workflow", href: "https://mootion.com/ugc/en/use-case/ai-storytelling-video-generator" },
+    ],
+    heroParagraph: "Mootion turns ideas, scripts, and references into connected story videos with motion and sound. Director Mode organizes characters, scenes, clips, and final assembly, while Instant Mode handles shorter ideas. NodeTool fits when you want to keep scripts and storyboards connected to an editable generation graph and use provider accounts you control.",
+    competitorTagline: "Visual storytelling studio with directed multi-scene creation",
+    competitorBullets: ["Script and multimodal reference inputs", "Director Mode for characters and scenes", "Instant Mode for shorter videos", "Voice, music, and sound in the creation workflow"],
+    nodetoolTagline: "A configurable workflow for the story and its assets",
+    nodetoolBullets: ["Scripts, reusable entities, and storyboards", "Inspect prompts, keyframes, and generated clips", "Timeline and audio editing", "Free Studio with direct provider billing"],
+    rows: [
+      { label: "Story planning", competitor: "Director Mode character and scene stages", nodetool: "Scripts, entities, and editable storyboards" },
+      { label: "References", competitor: "Image, video, and audio Smart Reference inputs", nodetool: "Asset references supported by selected nodes" },
+      { label: "Sound", competitor: "Voice, music, and effects in story creation", nodetool: "Audio generation workflows and timeline editing" },
+      { label: "Generation control", competitor: "Guided Director and Instant modes", nodetool: "Editable graphs with model-specific inputs" },
+      { label: "Workspace deployment", competitor: "Mootion-hosted creation platform", nodetool: "Studio, self-hosting, or Cloud alpha" },
+    ],
+    explainerHeading: "Guided story creation or control of the generation stages",
+    explainerParagraph: "Mootion is a useful option when its guided character and scene workflow suits your story. NodeTool fits when you want to inspect intermediate assets, combine models with other processing, or run the workspace yourself. Character references guide generation, but continuity and performance still need review across the finished sequence.",
+    ctaHeading: "Review one shot before expanding the story.",
+    ctaParagraph: "Use the trailer starter to inspect the brief, keyframe, and video steps before generating more clips.",
+    faq: [
+      { question: "Does Mootion support multi-scene stories?", answer: "Yes. Director Mode organizes characters, scenes, generated clips, and assembly. Instant Mode provides a shorter creation path." },
+      { question: "Can Mootion create audio as well as video?", answer: "Yes. Its creation tools include voice, music, and effects. NodeTool can also combine audio and video workflows with timeline editing." },
+      { question: "Does the NodeTool starter duplicate Mootion Director Mode?", answer: "No. It demonstrates an editable trailer graph using Gemini and KIE. NodeTool's script, entity, storyboard, and timeline editors support broader production work." },
+    ],
+    limitation: "Mootion offers guided storytelling in its hosted production modes. NodeTool is an alternative when you want a saved, editable graph and direct control of provider accounts.",
+  },
+  {
+    slug: "moonvalley",
+    name: "Moonvalley Marey",
+    theme: "amber",
+    category: "AI filmmaking",
+    isNew: true,
+    seo: {
+      title: "Moonvalley Marey Alternative for AI Film Workflows | NodeTool",
+      description: "Compare Marey's camera, motion, and reference controls with NodeTool's film-production workspace. Learn where a video model fits in an editable workflow.",
+    },
+    og: { image: "screen_storyboard.png", accent: "amber", subtitle: "Choose shot controls and the workspace that connects them." },
+    starter: { id: "movie-trailer-generator", source: "moonvalley", heading: "Inspect a film workflow before selecting models" },
+    sources: [
+      { title: "Moonvalley Marey shot controls", href: "https://www.moonvalley.com/marey" },
+      { title: "Marey API access through FAL", href: "https://www.moonvalley.com/beyondtheframe/marey-launches-on-fal-ai" },
+    ],
+    heroParagraph: "Moonvalley's Marey focuses on filmmaking controls: camera direction, motion and pose transfer, trajectories, keyframes, and reference inputs. NodeTool is the workspace around generation, with scripts, entities, storyboards, a workflow canvas, and timeline editing. Compare both the shot model and how you plan, review, and assemble its outputs.",
+    competitorTagline: "Filmmaking video model with dedicated shot controls",
+    competitorBullets: ["Camera, trajectory, and keyframe controls", "Motion, pose, and subject references", "Shot extension tools", "API access, including selected FAL endpoints"],
+    nodetoolTagline: "A production workspace around your selected models",
+    nodetoolBullets: ["Scripts, entities, storyboards, and timeline", "Connect generation with other media processing", "Inspect the graph and intermediate assets", "Your provider accounts and open-source deployment"],
+    rows: [
+      { label: "Primary role", competitor: "Video model and shot-generation controls", nodetool: "Creative workspace and workflow execution" },
+      { label: "Camera and motion", competitor: "Dedicated camera, trajectory, and transfer tools", nodetool: "Controls exposed by the selected provider node" },
+      { label: "Production planning", competitor: "Visual references and shot inputs", nodetool: "Scripts, reusable entities, and storyboards" },
+      { label: "Automation", competitor: "API and selected FAL endpoints", nodetool: "Node graphs, agents, API, MCP, and CLI" },
+      { label: "Workspace deployment", competitor: "Moonvalley or provider-hosted model access", nodetool: "Studio, self-hosting, or Cloud alpha" },
+    ],
+    explainerHeading: "The model and the production workspace are separate choices",
+    explainerParagraph: "Marey can suit shots that need its specific camera and motion tools. NodeTool organizes generation within a broader production project. API access means a model can also be part of a pipeline rather than a competing workspace. Check which Marey endpoints and controls your provider exposes before selecting the model for a shot.",
+    ctaHeading: "Inspect the pipeline before choosing a shot model.",
+    ctaParagraph: "The trailer starter uses Gemini and KIE, so you can review the workflow without assuming Marey feature parity.",
+    faq: [
+      { question: "Is NodeTool a replacement for the Marey model?", answer: "NodeTool is a workspace, not a video model. It helps plan and connect model calls, review assets, and edit a project. Marey's specific shot controls remain a model choice." },
+      { question: "Does Marey have an API?", answer: "Yes. Moonvalley documents API access and selected text-to-video, image-to-video, motion-transfer, and pose-transfer endpoints on FAL." },
+      { question: "Does this trailer starter use Marey?", answer: "No. It uses Gemini and KIE. Inspect its graph before adapting a stage to another supported provider or model." },
+    ],
+    limitation: "Marey provides specialized shot-generation controls. NodeTool is an alternative for the surrounding production workflow, and can complement model services rather than replace their capabilities.",
+  },
+  {
+    slug: "kling-ai",
+    name: "Kling AI",
+    theme: "amber",
+    category: "Video studio",
+    isNew: true,
+    seo: {
+      title: "Kling AI Alternative for Editable Video Workflows | NodeTool",
+      description: "Compare Kling AI's motion and shot controls with NodeTool's editable video workflows, storyboards, and direct provider accounts."
+    },
+    og: {
+      image: "screen_storyboard.png",
+      accent: "amber",
+      subtitle: "Direct a shot, then keep the production workflow editable."
+    },
+    starter: {
+      id: "movie-trailer-generator",
+      source: "kling-ai",
+      heading: "Try a trailer with visible shot-planning steps"
+    },
+    sources: [
+      {
+        title: "Kling video and reference controls",
+        href: "https://app.klingai.com/cn/quickstart/klingai-video-3-model-user-guide"
+      },
+      {
+        title: "Kuaishou on Kling motion control",
+        href: "https://ir.kuaishou.com/news-releases/news-release-details/kuaishou-technology-announces-fourth-quarter-and-full-year-2025"
+      }
+    ],
+    heroParagraph: "Kling AI combines video generation with native audio, reference elements, and shot controls. Motion Control can guide a character using a reference performance. NodeTool fits when the shot belongs to a larger production pipeline: plan the brief, generate assets, and edit the result while retaining the workflow.",
+    competitorTagline: "Creative video platform with motion and reference controls",
+    competitorBullets: [
+      "Text-to-video and image-to-video generation",
+      "Native audio on supported models",
+      "Reference elements and shot controls",
+      "Motion guided by a reference performance"
+    ],
+    nodetoolTagline: "Keep the shot inside an editable production project",
+    nodetoolBullets: [
+      "Script, storyboard, and workflow canvas",
+      "Agents revise the same project you inspect",
+      "Generation through your connected providers",
+      "Timeline editing in open-source Studio"
+    ],
+    rows: [
+      {
+        label: "Motion direction",
+        competitor: "Kling Motion Control",
+        nodetool: "Settings exposed by the selected provider node"
+      },
+      {
+        label: "Shot planning",
+        competitor: "Storyboard and reference controls",
+        nodetool: "Editable storyboard and generation graph"
+      },
+      {
+        label: "Audio",
+        competitor: "Native audio on supported models",
+        nodetool: "Audio generation and timeline assembly"
+      },
+      {
+        label: "Execution",
+        competitor: "Kling creative platform",
+        nodetool: "Desktop or self-hosted workflows"
+      }
+    ],
+    explainerHeading: "Compare a video model with the pipeline around it",
+    explainerParagraph: "Choose Kling when its movement and reference controls are the main requirement. Choose NodeTool when you need the brief, model calls, and editing steps saved as a workflow. Model-specific controls still depend on the provider integration you select.",
+    ctaHeading: "Keep the brief connected to the finished clip.",
+    ctaParagraph: "Inspect the trailer starter and its selected models before running a one-shot test.",
+    faq: [
+      {
+        question: "Does this starter use Kling?",
+        answer: "The shipped trailer starter uses Gemini and KIE, including Veo video. It demonstrates an editable production graph. It does not reproduce Kling Motion Control."
+      },
+      {
+        question: "Does NodeTool replace Kling's motion controls?",
+        answer: "Provider nodes expose their own supported settings. A workflow canvas does not make different models' motion controls interchangeable."
+      },
+      {
+        question: "Can I run the workspace myself?",
+        answer: "Yes. Studio runs on your desktop, and NodeTool supports self-hosting. Hosted generation still runs through the providers you connect."
+      }
+    ],
+    limitation: "Kling's shot controls may solve the generation task. NodeTool is an alternative when you also need an editable workflow for planning, asset generation, and assembly."
+  },
+  {
+    slug: "pika",
+    name: "Pika",
+    theme: "rose",
+    category: "Video studio",
+    isNew: true,
+    seo: {
+      title: "Pika Alternative for Repeatable AI Media Workflows | NodeTool",
+      description: "Compare Pika's creative apps and model access with NodeTool's saved workflows, storyboard and timeline editors, and your own provider accounts."
+    },
+    og: {
+      image: "screen_storyboard.png",
+      accent: "rose",
+      subtitle: "Creative apps or a production workflow you can rerun."
+    },
+    starter: {
+      id: "movie-trailer-generator",
+      source: "pika",
+      heading: "Build a short trailer as a saved workflow"
+    },
+    sources: [
+      {
+        title: "Pika apps, models, and plans",
+        href: "https://pika.art/pricing"
+      },
+      {
+        title: "Pika developer platform",
+        href: "https://dev.pika.art/"
+      }
+    ],
+    heroParagraph: "Pika offers creative apps for video, images, and audio, including motion transfer and video extension. It also provides developer access. NodeTool offers an alternative for turning a brief into a saved graph that includes planning, generation, and editing, with provider accounts you control.",
+    competitorTagline: "Hosted creative platform for video, images, and audio",
+    competitorBullets: [
+      "Video creation, extension, and motion-transfer apps",
+      "Image and audio generation",
+      "Pika and third-party model access",
+      "Developer platform alongside the creative app"
+    ],
+    nodetoolTagline: "Save the production steps alongside the media",
+    nodetoolBullets: [
+      "Repeatable generation graphs",
+      "Editable storyboard and timeline",
+      "Direct provider accounts",
+      "Free Studio and self-hosted deployment"
+    ],
+    rows: [
+      {
+        label: "Creative interface",
+        competitor: "Task-specific apps",
+        nodetool: "Agents and editable project surfaces"
+      },
+      {
+        label: "Media types",
+        competitor: "Video, image, and audio",
+        nodetool: "Video, image, audio, text, and data"
+      },
+      {
+        label: "Automation",
+        competitor: "Developer platform",
+        nodetool: "CLI, API, MCP, and workflow execution"
+      },
+      {
+        label: "Billing",
+        competitor: "App plans and credit packs with separate developer terms",
+        nodetool: "Provider charges on connected accounts"
+      }
+    ],
+    explainerHeading: "Choose between a creative app and a reusable production graph",
+    explainerParagraph: "Pika is useful when a dedicated app gets the effect or clip you need. NodeTool fits repeated production where the brief and intermediate outputs should stay inspectable. A NodeTool workflow does not promise an equivalent for every Pika effect.",
+    ctaHeading: "Save the workflow for the next brief.",
+    ctaParagraph: "Start with one trailer shot, inspect the output, and retain the graph for another run.",
+    faq: [
+      {
+        question: "Is Pika only a video generator?",
+        answer: "No. Pika currently lists video, image, and audio apps and several model families."
+      },
+      {
+        question: "Does Pika support developers?",
+        answer: "Yes. Pika links a developer platform. Its app credit packs have separate usage terms from API and MCP access."
+      },
+      {
+        question: "Will the starter recreate a Pika effect?",
+        answer: "The trailer starter demonstrates planning and video assembly with Gemini and KIE. A particular effect depends on the model and integration you choose."
+      }
+    ],
+    limitation: "Pika packages creation into hosted apps and their usage plans. NodeTool fits when you want to save and rerun the full production workflow on your own workspace."
+  },
+  {
+    slug: "luma-dream-machine",
+    name: "Luma Dream Machine",
+    theme: "cyan",
+    category: "Video studio",
+    isNew: true,
+    seo: {
+      title: "Luma Dream Machine Alternative for AI Video Projects | NodeTool",
+      description: "Compare Dream Machine boards, reference controls, and video tools with NodeTool's editable production graphs and your own provider accounts."
+    },
+    og: {
+      image: "screen_storyboard.png",
+      accent: "cyan",
+      subtitle: "Organize ideas and keep the generation steps visible."
+    },
+    starter: {
+      id: "movie-trailer-generator",
+      source: "luma-dream-machine",
+      heading: "Follow a logline through a trailer workflow"
+    },
+    sources: [
+      {
+        title: "Dream Machine boards and creation tools",
+        href: "https://lumalabs.ai/changelog/welcome-to-the-all-new-dream-machine"
+      },
+      {
+        title: "Dream Machine credits and API billing",
+        href: "https://lumalabs.ai/learning-hub/dream-machine-credit-system"
+      }
+    ],
+    heroParagraph: "Dream Machine organizes ideas into boards and offers image generation, image-to-video, reference controls, and video modification. Its subscription and API balances are separate. NodeTool connects planning, generation, and timeline editing in an open-source workspace, with model calls billed through your provider accounts.",
+    competitorTagline: "Creative workspace for image and video ideas",
+    competitorBullets: [
+      "Boards and ideas for organizing concepts",
+      "Image-to-video and keyframe extension",
+      "Style and character references",
+      "Modify tools and separate API access"
+    ],
+    nodetoolTagline: "A visible graph from brief to assembled video",
+    nodetoolBullets: [
+      "Editable scripts and storyboards",
+      "Inspect prompts, keyframes, and clips",
+      "Timeline editing beside the graph",
+      "Desktop and self-hosted execution"
+    ],
+    rows: [
+      {
+        label: "Project organization",
+        competitor: "Boards and Ideas",
+        nodetool: "Scripts, entities, storyboards, and workflows"
+      },
+      {
+        label: "Reference controls",
+        competitor: "Style, character, and keyframe tools",
+        nodetool: "Controls supported by the selected model nodes"
+      },
+      {
+        label: "Billing",
+        competitor: "Subscription credits and separate API balance",
+        nodetool: "Your connected providers"
+      },
+      {
+        label: "Workspace",
+        competitor: "Hosted Dream Machine",
+        nodetool: "Studio or self-hosted deployment"
+      }
+    ],
+    explainerHeading: "Start with the project you need to keep",
+    explainerParagraph: "Dream Machine suits visual exploration within its boards and generation tools. NodeTool suits work where you need to inspect the pipeline and revise individual steps. This comparison concerns the Dream Machine product, rather than every tool in Luma's broader platform.",
+    ctaHeading: "Inspect each shot before expanding the trailer.",
+    ctaParagraph: "Review the trailer starter's keyframes and model calls, then begin with one shot.",
+    faq: [
+      {
+        question: "Does Dream Machine have project organization?",
+        answer: "Yes. It provides Boards and Ideas, alongside generation and reference tools."
+      },
+      {
+        question: "Can Dream Machine app credits pay for API calls?",
+        answer: "Luma documents separate subscription and API balances. Credits do not transfer between them."
+      },
+      {
+        question: "Does the NodeTool starter use Luma?",
+        answer: "The shipped trailer graph uses Gemini and KIE. It provides an inspectable production example, not a claim of identical Luma output."
+      }
+    ],
+    limitation: "Dream Machine combines visual organization with hosted generation. NodeTool is an alternative when you need the generation and editing pipeline saved as a workflow you can run yourself."
+  },
+  {
+    slug: "pixverse",
+    name: "PixVerse",
+    theme: "violet",
+    category: "Video studio",
+    isNew: true,
+    seo: {
+      title: "PixVerse Alternative for Editable AI Video Pipelines | NodeTool",
+      description: "Compare PixVerse video generation and API workflows with NodeTool's storyboard, timeline, and reusable generation graphs."
+    },
+    og: {
+      image: "screen_storyboard.png",
+      accent: "violet",
+      subtitle: "Generation endpoints or a project around every shot."
+    },
+    starter: {
+      id: "movie-trailer-generator",
+      source: "pixverse",
+      heading: "Inspect the graph behind a short trailer"
+    },
+    sources: [
+      {
+        title: "PixVerse generation and developer tools",
+        href: "https://pixverse.ai/en/developers"
+      },
+      {
+        title: "PixVerse API subscription terms",
+        href: "https://docs.platform.pixverse.ai/subscribe-api-plans-882969m0"
+      }
+    ],
+    heroParagraph: "PixVerse provides video and image generation, creative effects, and APIs for building creation into other products. Its API memberships are separate from its web memberships. NodeTool offers the project around those generation steps: agents, editable storyboards, a workflow canvas, and a timeline.",
+    competitorTagline: "Generative media platform with production APIs",
+    competitorBullets: [
+      "Text-to-video and image-to-video",
+      "Image generation and creative effects",
+      "API task status and webhook integration",
+      "Separate web and API memberships"
+    ],
+    nodetoolTagline: "Plan, inspect, and assemble the generated media",
+    nodetoolBullets: [
+      "Storyboard and generation graph",
+      "Intermediate outputs stay inspectable",
+      "Timeline assembly in the same workspace",
+      "CLI, API, and MCP access"
+    ],
+    rows: [
+      {
+        label: "Generation",
+        competitor: "Video, image, and effect endpoints",
+        nodetool: "Selected provider nodes in a workflow"
+      },
+      {
+        label: "Developer access",
+        competitor: "API, task status, and webhooks",
+        nodetool: "API, CLI, MCP, and workflow execution"
+      },
+      {
+        label: "Billing",
+        competitor: "Web and API memberships are separate",
+        nodetool: "Your connected provider accounts"
+      },
+      {
+        label: "Production project",
+        competitor: "PixVerse creative and integration tools",
+        nodetool: "Script, storyboard, workflow, and timeline"
+      }
+    ],
+    explainerHeading: "Compare the generation service and the production workspace",
+    explainerParagraph: "PixVerse is a direct choice for integrating its generation capabilities into a product. NodeTool fits when creators need to inspect and revise the pipeline themselves. The model service and the workspace have different roles, so compare both against the task.",
+    ctaHeading: "Keep the generated shots connected to the brief.",
+    ctaParagraph: "Open the trailer graph, inspect its providers, and review each output.",
+    faq: [
+      {
+        question: "Does PixVerse have an API?",
+        answer: "Yes. Its developer site documents generation requests, asynchronous task status, and webhook integration."
+      },
+      {
+        question: "Are PixVerse web and API subscriptions interchangeable?",
+        answer: "PixVerse states that API memberships are separate from web memberships. Check the subscription for the surface you intend to use."
+      },
+      {
+        question: "Does this starter reproduce PixVerse effects?",
+        answer: "No specific effect is promised. The starter uses Gemini and KIE to demonstrate an editable trailer pipeline."
+      }
+    ],
+    limitation: "PixVerse supports generation and developer integrations. NodeTool is an alternative when the priority is an editable production workspace and control of the workflow around model calls."
+  },
+  {
+    slug: "leonardo-ai",
+    name: "Leonardo AI",
+    theme: "emerald",
+    category: "Creative canvas",
+    isNew: true,
+    seo: {
+      title: "Leonardo AI Alternative for Editable Creative Workflows | NodeTool",
+      description: "Compare Leonardo's image, video, Realtime Canvas, and API tools with NodeTool's open-source creative workspace and direct provider accounts."
+    },
+    og: {
+      image: "screen_canvas.png",
+      accent: "emerald",
+      subtitle: "Explore visuals, then retain the production graph."
+    },
+    starter: {
+      id: "generate-then-upscale-a-poster",
+      source: "leonardo-ai",
+      heading: "Generate and upscale an image in a visible graph"
+    },
+    sources: [
+      {
+        title: "Leonardo creation and editing tools",
+        href: "https://leonardo.ai/"
+      },
+      {
+        title: "Leonardo individual, team, and API plans",
+        href: "https://leonardo.ai/pricing"
+      }
+    ],
+    heroParagraph: "Leonardo combines image and video generation with editing, upscaling, Realtime Canvas, and model customization. It also offers team and API plans. NodeTool is an alternative for connecting those stages in a workflow you can inspect, with agents operating the same project and providers billed directly.",
+    competitorTagline: "Hosted creation platform for images, video, and design",
+    competitorBullets: [
+      "Image and video generation and editing",
+      "Upscaling and Realtime Canvas",
+      "Custom-model training tools",
+      "Individual, team, and API plans"
+    ],
+    nodetoolTagline: "Keep every production step in the project",
+    nodetoolBullets: [
+      "Connect generation and upscaling nodes",
+      "Agents revise editable workflows",
+      "Local models and direct provider accounts",
+      "Open-source desktop and self-hosting"
+    ],
+    rows: [
+      {
+        label: "Image iteration",
+        competitor: "Image editing and Realtime Canvas",
+        nodetool: "Workflow canvas and sketch editing"
+      },
+      {
+        label: "Video",
+        competitor: "Generation and editing tools",
+        nodetool: "Storyboard, generation nodes, and timeline"
+      },
+      {
+        label: "Automation",
+        competitor: "API plans and hosted creation tools",
+        nodetool: "CLI, API, MCP, and saved workflows"
+      },
+      {
+        label: "Billing",
+        competitor: "Plan allowances and separate API offerings",
+        nodetool: "Connected providers bill model calls"
+      }
+    ],
+    explainerHeading: "A managed creation service or a graph you run yourself",
+    explainerParagraph: "Leonardo fits creators who want its hosted canvas, model tools, and team offering. NodeTool fits when generation is one stage of a repeatable process with inspectable inputs and outputs. Custom-model features depend on the selected provider rather than the graph alone.",
+    ctaHeading: "Inspect the draft and the upscaled poster.",
+    ctaParagraph: "Try a two-stage image workflow with the model and output of each stage visible.",
+    faq: [
+      {
+        question: "Does Leonardo support video and APIs?",
+        answer: "Yes. Leonardo lists video generation and editing, plus individual, team, and API offerings."
+      },
+      {
+        question: "Is NodeTool's canvas the same as Realtime Canvas?",
+        answer: "No. NodeTool's workflow canvas connects operations. Its sketch editor handles image layers. These serve different tasks from Leonardo's Realtime Canvas."
+      },
+      {
+        question: "What does the poster starter require?",
+        answer: "It uses a FAL API key for FLUX.1 Schnell and Clarity Upscaler. Review the models and their costs before running it."
+      }
+    ],
+    limitation: "Leonardo provides a managed creative service and its own plan structure. NodeTool fits when you want the production graph, deployment, and provider accounts under your control."
+  },
+  {
+    slug: "midjourney",
+    name: "Midjourney",
+    theme: "blue",
+    category: "Creative canvas",
+    isNew: true,
+    seo: {
+      title: "Midjourney Alternative for AI Image Workflows | NodeTool",
+      description: "Compare Midjourney's image editor, video generation, and subscription model with NodeTool's saved workflows and your own generation providers."
+    },
+    og: {
+      image: "screen_canvas.png",
+      accent: "blue",
+      subtitle: "An image service or a workflow around the whole project."
+    },
+    starter: {
+      id: "write-the-prompt-then-make-the-image",
+      source: "midjourney",
+      heading: "Keep the written prompt beside the generated image"
+    },
+    sources: [
+      {
+        title: "Midjourney editor capabilities",
+        href: "https://docs.midjourney.com/hc/en-us/articles/32764383466893-Editor"
+      },
+      {
+        title: "Midjourney plans, video, and privacy",
+        href: "https://docs.midjourney.com/hc/en-us/articles/27870484040333-Comparing-Midjourney-Plans"
+      }
+    ],
+    heroParagraph: "Midjourney offers image creation, a web editor with layers and retexturing, and video generation. Its plans allocate GPU time and vary in privacy and generation modes. NodeTool is an alternative when you want image creation inside an editable workflow with text, video, audio, and providers you select.",
+    competitorTagline: "Image and video creation service with a web editor",
+    competitorBullets: [
+      "Web image creation and organization",
+      "Layered editing, inpainting, and retexturing",
+      "Video generation",
+      "Subscription GPU time and plan-specific privacy"
+    ],
+    nodetoolTagline: "Keep the prompt, model call, and output separate",
+    nodetoolBullets: [
+      "Inspect generated prompts and images",
+      "Connect creation to other media steps",
+      "Use your own provider accounts",
+      "Run open-source Studio or self-host"
+    ],
+    rows: [
+      {
+        label: "Image editing",
+        competitor: "Web Editor with layers and Retexture",
+        nodetool: "Sketch layers and model-specific editing nodes"
+      },
+      {
+        label: "Video",
+        competitor: "Video generation within plan limits",
+        nodetool: "Provider generation, storyboard, and timeline"
+      },
+      {
+        label: "Usage model",
+        competitor: "Subscription GPU time and generation modes",
+        nodetool: "Provider billing or compatible local inference"
+      },
+      {
+        label: "Workspace deployment",
+        competitor: "Midjourney service",
+        nodetool: "Desktop or self-hosted workspace"
+      }
+    ],
+    explainerHeading: "Choose the image experience or the production workflow",
+    explainerParagraph: "Midjourney fits creators who prefer its generation and editing experience. NodeTool fits projects where the prompt and output need to become reusable steps in a wider graph. Choosing NodeTool does not imply access to Midjourney's models or identical results.",
+    ctaHeading: "See the prompt that made the image.",
+    ctaParagraph: "Try a starter with separate prompt and image outputs, then save it for the next idea.",
+    faq: [
+      {
+        question: "Does Midjourney have editing and video tools?",
+        answer: "Yes. Its Editor includes image adjustments and layers, and its plans list video generation."
+      },
+      {
+        question: "Does this NodeTool starter call Midjourney?",
+        answer: "No. It uses OpenAI and FAL. Compare the workflow and providers you intend to use rather than assuming model equivalence."
+      },
+      {
+        question: "Are Midjourney generations always private?",
+        answer: "Midjourney documents Stealth Mode on selected plans and different editor visibility rules. Review its current documentation for your workflow."
+      }
+    ],
+    limitation: "Midjourney centers on its hosted generation and editing experience. NodeTool is an alternative for keeping generation in a saved workflow with direct provider accounts and other media stages."
+  },
+  {
+    slug: "adobe-firefly",
+    name: "Adobe Firefly",
+    theme: "amber",
+    category: "Creative canvas",
+    isNew: true,
+    seo: {
+      title: "Adobe Firefly Alternative for Editable AI Projects | NodeTool",
+      description: "Compare Firefly's models, Boards, and Adobe editing tools with NodeTool's open-source workspace, workflow canvas, and direct provider accounts."
+    },
+    og: {
+      image: "screen_canvas.png",
+      accent: "amber",
+      subtitle: "Compare the creative workspace, model access, and deployment."
+    },
+    starter: {
+      id: "write-the-prompt-then-make-the-image",
+      source: "adobe-firefly",
+      heading: "Try an editable image workflow outside a hosted suite"
+    },
+    sources: [
+      {
+        title: "Adobe Firefly features and plans",
+        href: "https://www.adobe.com/products/firefly.html"
+      }
+    ],
+    heroParagraph: "Firefly combines image, video, and audio creation with Adobe and partner models, Boards, and an AI Assistant. Adobe editing products are part of its broader creative offering. NodeTool offers an open-source workspace for connecting media steps, with agents, project editors, and your own provider accounts.",
+    competitorTagline: "Creative AI suite with Adobe and partner models",
+    competitorBullets: [
+      "Image, video, and audio generation and editing",
+      "Firefly Boards for collaborative ideation",
+      "AI Assistant and partner-model access",
+      "Connections to Adobe editing products"
+    ],
+    nodetoolTagline: "An editable production workspace you can host",
+    nodetoolBullets: [
+      "Agents operate the same project editors",
+      "Generation graphs with inspectable outputs",
+      "Storyboard, sketch, and timeline surfaces",
+      "Your provider accounts and deployment"
+    ],
+    rows: [
+      {
+        label: "Ideation",
+        competitor: "Firefly Boards",
+        nodetool: "Agents, scripts, entities, and storyboards"
+      },
+      {
+        label: "Models",
+        competitor: "Adobe and partner models",
+        nodetool: "Connected providers and compatible local models"
+      },
+      {
+        label: "Editing",
+        competitor: "Firefly tools and Adobe products",
+        nodetool: "Sketch and timeline beside the workflow graph"
+      },
+      {
+        label: "Usage",
+        competitor: "Plan features and generative allowances",
+        nodetool: "Studio plus provider model charges"
+      }
+    ],
+    explainerHeading: "Compare deployment alongside the creative tools",
+    explainerParagraph: "Firefly fits teams working within Adobe's creative environment. NodeTool fits teams that want to run the workspace themselves and connect provider accounts directly. Different model licenses and commercial-use terms still apply to the assets each workflow produces.",
+    ctaHeading: "Keep the idea, prompt, and image in one graph.",
+    ctaParagraph: "Inspect a starter's separate outputs before adding more production steps.",
+    faq: [
+      {
+        question: "Does Firefly only use Adobe models?",
+        answer: "No. Adobe lists partner models alongside its own models."
+      },
+      {
+        question: "Does Firefly support agents and video?",
+        answer: "Yes. Adobe lists an AI Assistant, video tools, and audio tools."
+      },
+      {
+        question: "Does NodeTool replace Photoshop or Illustrator?",
+        answer: "NodeTool focuses on editable AI workflows and project surfaces. It does not promise the same toolset as Adobe's specialist editors."
+      }
+    ],
+    limitation: "Firefly offers a managed creative suite with Adobe and partner models. NodeTool is an alternative when workspace deployment and direct provider accounts are requirements."
+  },
+  {
+    slug: "ideogram",
+    name: "Ideogram",
+    theme: "rose",
+    category: "Creative canvas",
+    isNew: true,
+    seo: {
+      title: "Ideogram Alternative for Editable Image Workflows | NodeTool",
+      description: "Compare Ideogram's typography, creative apps, API, and MCP tools with NodeTool's production workflows and provider accounts."
+    },
+    og: {
+      image: "screen_canvas.png",
+      accent: "rose",
+      subtitle: "Compare image tools with the workflow around them."
+    },
+    starter: {
+      id: "movie-posters",
+      source: "ideogram",
+      heading: "Try a poster workflow with editable art direction"
+    },
+    sources: [
+      {
+        title: "Ideogram models, apps, and agent access",
+        href: "https://ideogram.ai/"
+      },
+      {
+        title: "Ideogram plans and API billing",
+        href: "https://docs.ideogram.ai/plans-and-pricing/available-plans"
+      }
+    ],
+    heroParagraph: "Ideogram emphasizes readable type, image editing, and creative apps such as ad resizing and background removal. It also offers a unified media API, MCP access, and open-model licensing. NodeTool connects creative operations across project editors, with an open-source workspace you can run yourself.",
+    competitorTagline: "Generative media platform with typography and creative apps",
+    competitorBullets: [
+      "Readable typography and image editing",
+      "Purpose-built creative apps",
+      "Media API and MCP agent access",
+      "Open-model weights under applicable licensing"
+    ],
+    nodetoolTagline: "Connect the brief to a repeatable production workflow",
+    nodetoolBullets: [
+      "Inspect the art direction and generated concepts",
+      "Mix text, image, video, and audio steps",
+      "Agents edit saved project documents",
+      "Direct provider accounts and self-hosting"
+    ],
+    rows: [
+      {
+        label: "Typography",
+        competitor: "Dedicated text-rendering and editing features",
+        nodetool: "Depends on the chosen model and editing workflow"
+      },
+      {
+        label: "Creative tasks",
+        competitor: "Ad resizing, background removal, and other apps",
+        nodetool: "Operations connected in a saved graph"
+      },
+      {
+        label: "Agent access",
+        competitor: "MCP and media API",
+        nodetool: "MCP across project editors, API, and CLI"
+      },
+      {
+        label: "Local control",
+        competitor: "Open-model licensing and hosted services",
+        nodetool: "Open-source workspace and compatible local models"
+      }
+    ],
+    explainerHeading: "Separate model openness from workspace control",
+    explainerParagraph: "Ideogram fits work that needs its typography and focused creative apps. Its open-model offering means local use is a licensing and hardware question, not a blanket limitation. NodeTool fits when the whole production process needs editable steps across media.",
+    ctaHeading: "Keep the art direction beside the poster.",
+    ctaParagraph: "Open the poster starter, review the selected models, and revise the brief.",
+    faq: [
+      {
+        question: "Does Ideogram support video and agents?",
+        answer: "Its current platform lists image and video models through a unified API, plus MCP for agent workflows."
+      },
+      {
+        question: "Is Ideogram entirely closed?",
+        answer: "Ideogram lists open-model weights under an applicable license. Compare that model license separately from the hosted product and your workspace."
+      },
+      {
+        question: "Will the poster starter reproduce Ideogram typography?",
+        answer: "The starter uses OpenAI and FAL. Typography quality depends on the selected model. Review generated lettering and refine it before delivery."
+      }
+    ],
+    limitation: "Ideogram provides typography-focused models and creative apps. NodeTool is an alternative for managing the production graph and combining those kinds of tasks with other media and data."
+  },
+  {
+    slug: "recraft",
+    name: "Recraft",
+    theme: "violet",
+    category: "Creative canvas",
+    isNew: true,
+    seo: {
+      title: "Recraft Alternative for Repeatable AI Design Workflows | NodeTool",
+      description: "Compare Recraft's image and vector design tools with NodeTool's editable media workflows, sketch editor, and direct provider accounts."
+    },
+    og: {
+      image: "screen_canvas.png",
+      accent: "violet",
+      subtitle: "Specialist design tools or a workflow across media."
+    },
+    starter: {
+      id: "generate-then-upscale-a-poster",
+      source: "recraft",
+      heading: "Try a repeatable image generation and upscale workflow"
+    },
+    sources: [
+      {
+        title: "Recraft image, vector, and API tools",
+        href: "https://www.recraft.ai/"
+      },
+      {
+        title: "Recraft plans",
+        href: "https://www.recraft.ai/pricing"
+      }
+    ],
+    heroParagraph: "Recraft focuses on design assets, including generated images and editable vector graphics with consistent styles. It also offers API access. NodeTool offers an alternative for the process around asset creation: inspect generation steps, work with image layers, and connect assets to video, audio, or data workflows.",
+    competitorTagline: "AI design platform for images and vector graphics",
+    competitorBullets: [
+      "Image generation for design assets",
+      "Editable vector graphics",
+      "Consistent visual styles",
+      "API access for integrations"
+    ],
+    nodetoolTagline: "Save the asset-production workflow",
+    nodetoolBullets: [
+      "Generation and upscaling as separate steps",
+      "Sketch editing with image layers",
+      "Connect assets to other media operations",
+      "Open-source Studio and direct provider accounts"
+    ],
+    rows: [
+      {
+        label: "Vector design",
+        competitor: "Dedicated editable vector generation",
+        nodetool: "Provider-dependent generation, not a vector-editor replacement"
+      },
+      {
+        label: "Image workflow",
+        competitor: "Design-focused generation and styles",
+        nodetool: "Inspect and connect individual operations"
+      },
+      {
+        label: "Automation",
+        competitor: "API access",
+        nodetool: "API, CLI, MCP, and workflow execution"
+      },
+      {
+        label: "Workspace",
+        competitor: "Recraft hosted design service",
+        nodetool: "Desktop or self-hosted project workspace"
+      }
+    ],
+    explainerHeading: "Keep specialist vector work separate from orchestration",
+    explainerParagraph: "Recraft is a focused choice when editable vectors and visual consistency are the deliverable. NodeTool fits when an image is one output of a larger repeatable workflow. A NodeTool sketch editor is not a substitute for every vector design operation.",
+    ctaHeading: "Keep the draft and the final asset connected.",
+    ctaParagraph: "Try the image-and-upscale starter and inspect both outputs.",
+    faq: [
+      {
+        question: "Does NodeTool replace Recraft's vector editor?",
+        answer: "No equivalent vector toolset is promised. NodeTool's sketch surface works with image layers, while Recraft offers dedicated vector generation."
+      },
+      {
+        question: "Can Recraft be automated?",
+        answer: "Yes. Recraft provides API access alongside its Studio."
+      },
+      {
+        question: "What does the starter produce?",
+        answer: "A generated image and an upscaled poster through FAL. It demonstrates a saved production graph rather than editable SVG output."
+      }
+    ],
+    limitation: "Recraft specializes in image and vector design. NodeTool is an alternative when you need a reusable workflow connecting asset creation to other production stages."
+  },
+  {
+    slug: "dreamina",
+    name: "Dreamina",
+    theme: "emerald",
+    category: "Video studio",
+    isNew: true,
+    seo: {
+      title: "Dreamina Alternative for Editable AI Media Projects | NodeTool",
+      description: "Compare Dreamina's image, video, avatar, and marketing tools with NodeTool's open-source production workspace and saved workflows."
+    },
+    og: {
+      image: "screen_storyboard.png",
+      accent: "emerald",
+      subtitle: "Hosted creative templates or an editable production graph."
+    },
+    starter: {
+      id: "movie-trailer-generator",
+      source: "dreamina",
+      heading: "Build a trailer from an editable brief"
+    },
+    sources: [
+      {
+        title: "Dreamina image, video, and marketing tools",
+        href: "https://dreamina.capcut.com/"
+      }
+    ],
+    heroParagraph: "Dreamina combines image generation and editing with video, avatars, marketing studios, and creative templates. Its catalog includes Seedream and Seedance alongside other models. NodeTool is an alternative for retaining the brief, intermediate outputs, and editing steps in a workspace you can run with your own provider accounts.",
+    competitorTagline: "Hosted creative platform for images, video, and avatars",
+    competitorBullets: [
+      "Image generation, restyling, and editing",
+      "Text-, image-, and reference-led video tools",
+      "Talking avatars and marketing studios",
+      "Creative templates and multiple model families"
+    ],
+    nodetoolTagline: "Make the project steps visible and reusable",
+    nodetoolBullets: [
+      "Editable brief, storyboard, and workflow",
+      "Inspect intermediate image and video outputs",
+      "Timeline assembly in the same workspace",
+      "Desktop and self-hosted deployment"
+    ],
+    rows: [
+      {
+        label: "Starting point",
+        competitor: "Creative templates and task-specific studios",
+        nodetool: "Agents, saved graphs, and shipped workflows"
+      },
+      {
+        label: "Video direction",
+        competitor: "Image, sketch, and reference-led tools",
+        nodetool: "Storyboard plus model-specific provider settings"
+      },
+      {
+        label: "Avatars",
+        competitor: "Dedicated avatar creation tools",
+        nodetool: "Capabilities of selected provider nodes"
+      },
+      {
+        label: "Workspace control",
+        competitor: "Hosted Dreamina experience",
+        nodetool: "Open-source workspace and direct provider accounts"
+      }
+    ],
+    explainerHeading: "Choose how much of the production process to retain",
+    explainerParagraph: "Dreamina suits creators who want its templates and dedicated marketing or avatar tools. NodeTool suits repeated work where you need to revise the brief, switch a generation step, and inspect the result. Template convenience and workflow control address different production needs.",
+    ctaHeading: "Revise the brief without losing the graph.",
+    ctaParagraph: "Inspect a trailer starter and begin with one paid shot.",
+    faq: [
+      {
+        question: "Is Dreamina only an image generator?",
+        answer: "No. Dreamina lists video, avatars, and marketing studios alongside image generation and editing."
+      },
+      {
+        question: "Does the starter use Seedance?",
+        answer: "The shipped trailer starter uses Gemini and KIE, including Veo video. Other models require a compatible provider node and account."
+      },
+      {
+        question: "Can NodeTool run the workspace locally?",
+        answer: "Yes. Studio runs on your desktop. Hosted model calls still run through their providers and incur their charges."
+      }
+    ],
+    limitation: "Dreamina combines hosted models, templates, and dedicated creative tools. NodeTool fits when you want to retain and run the production workflow with your own providers."
+  },
+  {
     slug: "comfyui",
+    starter: { id: "generate-then-upscale-a-poster", source: "comfyui", heading: "Try a generation graph in NodeTool" },
     name: "ComfyUI",
     seo: {
       title: "ComfyUI Alternatives for Creative Workflows | NodeTool",
@@ -297,6 +1586,7 @@ export const competitors: Competitor[] = [
   },
   {
     slug: "figma-weave",
+    starter: { id: "write-the-prompt-then-make-the-image", source: "figma-weave", heading: "Try an editable image project on your own keys" },
     name: "Figma Weave",
     seo: {
       title: "Figma Weave Alternative: Open-Source, Self-Hosted | NodeTool",
@@ -1124,12 +2414,12 @@ export function shortAnswer(c: Competitor): string {
   const article = /^[aeiou]/i.test(c.competitorTagline) ? "an" : "a";
   const tagline =
     c.competitorTagline.charAt(0).toLowerCase() + c.competitorTagline.slice(1);
-  return `${c.name} is ${article} ${tagline}. NodeTool is the open-source, agent-first creative workspace: image, video, audio, and text on one canvas, every major model called with your own keys at provider prices, as a desktop app or self-hosted.`;
+  return `${c.name} is ${article} ${tagline}. NodeTool is an open-source creative workspace for image, video, audio, and text workflows, with agents, desktop or self-hosted deployment, and your own provider accounts.`;
 }
 
 /**
  * Sibling comparison links for the in-content ComparisonMesh — every competitor
- * except the current one, so each page links 11 siblings (≥ 8 required). Same
+ * except the current one. Same
  * category first, so the most relevant comparisons lead.
  */
 export function siblings(slug: string): Competitor[] {
