@@ -153,6 +153,22 @@ describe("example scene boundaries", () => {
     }
   });
 
+  it("lists a repeater's same-name siblings once, and each of them stays selectable", async () => {
+    const result = record(
+      await run().invoke("get_example_timeline", { slug: "serein", clip_limit: 1 })
+    );
+    const scenes = records(result["scenes"]);
+    const keys = scenes.map((scene) => `${String(scene["parent_id"])}/${String(scene["name"])}`);
+    expect(new Set(keys).size).toBe(keys.length);
+    const repeated = scenes.find((scene) => Array.isArray(scene["same_name_ids"]));
+    expect(repeated).toBeDefined();
+    const sibling = (repeated!["same_name_ids"] as string[])[0]!;
+    const excerpt = record(
+      await run().invoke("get_example_timeline", { slug: "serein", scene_id: sibling, clip_limit: 1 })
+    );
+    expect(record(excerpt["excerpt"])["scene_id"]).toBe(sibling);
+  });
+
   it("returns structural data for every shipped reference within the tool result budget", async () => {
     const catalog = record(await run().invoke("list_example_timelines", {}));
     const examples = records(catalog["examples"]);

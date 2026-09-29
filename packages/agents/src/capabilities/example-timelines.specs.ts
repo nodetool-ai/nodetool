@@ -21,7 +21,7 @@ export const listExampleTimelinesSpec: CapabilitySpec = {
 export const getExampleTimelineSpec: CapabilitySpec = {
   name: "get_example_timeline",
   description:
-    "Study a shipped example by exact slug: metadata, structural stats, scene group catalog and a bounded scene excerpt with authored clip styles, keyframes and effects. Defaults to the first scene. The excerpt includes descendants and overlapping global layers. Page clips with next_clip_offset until truncated is false. Times remain in the original timeline clock. These references are read-only and have no saved timeline id.",
+    "Study a shipped example by exact slug: metadata, structural stats, scene group catalog (siblings with the same name share one entry, with the other ids in same_name_ids) and a bounded scene excerpt with authored clip styles, keyframes and effects. Defaults to the first scene. The excerpt includes descendants and overlapping global layers. Page clips with next_clip_offset until truncated is false. Times remain in the original timeline clock. These references are read-only and have no saved timeline id.",
   inputSchema: {
     type: "object",
     properties: {
@@ -33,7 +33,7 @@ export const getExampleTimelineSpec: CapabilitySpec = {
       scene_id: {
         type: "string",
         description:
-          "Exact group clip id from this example's scenes catalog. Omit for its first scene."
+          "Exact group clip id from this example's scenes catalog, including an id from same_name_ids. Omit for its first scene."
       },
       clip_offset: {
         type: "integer",

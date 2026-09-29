@@ -137,6 +137,42 @@ function sceneClips(
   );
 }
 
+/**
+ * One entry per distinct group. Siblings with the same name and parent
+ * (a repeater's items, such as one card per email) share the first
+ * sibling's entry, and `same_name_ids` lists the others, so a wide
+ * repeater does not fill the tool result.
+ */
+function sceneCatalog(groups: readonly TimelineClip[]) {
+  const entries: {
+    id: string;
+    name: string | undefined;
+    parent_id: string | undefined;
+    start_ms: number;
+    end_ms: number;
+    same_name_ids?: string[];
+  }[] = [];
+  const firstByKey = new Map<string, (typeof entries)[number]>();
+  for (const group of groups) {
+    const key = `${group.parentId ?? ""}\u0000${group.name ?? group.id}`;
+    const first = firstByKey.get(key);
+    if (first && group.name) {
+      (first.same_name_ids ??= []).push(group.id);
+      continue;
+    }
+    const entry = {
+      id: group.id,
+      name: group.name,
+      parent_id: group.parentId,
+      start_ms: group.startMs,
+      end_ms: group.startMs + group.durationMs
+    };
+    firstByKey.set(key, entry);
+    entries.push(entry);
+  }
+  return entries;
+}
+
 const getExample: CapabilityExport = {
   spec: getExampleTimelineSpec,
   impl: async (_run, params) => {
@@ -206,13 +242,7 @@ const getExample: CapabilityExport = {
     const trackIds = new Set(clips.map((clip) => clip.trackId));
     return {
       ...summary(slug, bundle),
-      scenes: groups.map((group) => ({
-        id: group.id,
-        name: group.name,
-        parent_id: group.parentId,
-        start_ms: group.startMs,
-        end_ms: group.startMs + group.durationMs
-      })),
+      scenes: sceneCatalog(groups),
       excerpt: {
         scene_id: scene?.id ?? null,
         start_ms: scene?.startMs ?? 0,
