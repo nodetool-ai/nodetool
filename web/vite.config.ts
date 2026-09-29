@@ -323,6 +323,11 @@ export default defineConfig(async ({ mode }) => {
         "monaco-editor",
         "@monaco-editor/react",
         "@monaco-editor/loader",
+        // yoga-layout has a top-level await. In the same pre-bundle batch it
+        // changes the chunk split so that the Prism grammars in
+        // `@lexical/code` run before Prism core, and every page fails with
+        // "Prism is not defined". The browser loads it as plain ESM.
+        "yoga-layout",
       ],
       rolldownOptions: {
         plugins: [stubNodeBuiltinsEsbuildPlugin()]

@@ -291,7 +291,7 @@ QuickJS's equivalent static handles. It also releases forgotten symbol
 description handles with their context. This applies before bootstrap on both
 execution paths, so engines remain reusable. A worker reporting an interpreter
 failure is discarded. Guest exceptions leave the worker reusable. See the
-[reproduction and upstream issue draft](../packages/agents/docs/quickjs-descriptor-leak.md).
+[reproduction and upstream issue draft](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/docs/quickjs-descriptor-leak.md).
 
 ## Security model
 
