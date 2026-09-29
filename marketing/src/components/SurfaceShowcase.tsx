@@ -16,6 +16,11 @@
  * is revealed only while it is actually painting frames. Playback starts when
  * the section reaches the viewport, not at mount, and a control appears
  * whenever the loop is not running.
+ *
+ * The tabs advance on their own: each loop plays once, then the next tab
+ * opens. A click, a key press, or the pause button hands control to the
+ * reader and stops the rotation for good. A browser that refuses playback
+ * still rotates, on a timer over the posters.
  */
 import React, {
   useCallback,
@@ -83,8 +88,8 @@ const SURFACES: Surface[] = [
     id: "3d",
     label: "3D",
     icon: BoxIcon,
-    headline: "Spatial composition you can reproduce",
-    body: "Place primitives and lights in a glTF scene by hand or by tool call. The same operations run headlessly, so a scene is reproducible.",
+    headline: "3D set blocking",
+    body: "Block out a set with simple shapes and lights, by hand or by asking the agent. Render it from any angle as a reference for the shot.",
     asset: "surface-3d",
   },
 ];
@@ -97,9 +102,9 @@ interface SurfaceShowcaseProps {
 
 export default function SurfaceShowcase({
   surfaceIds,
-  heading = "Five editors. One project file.",
+  heading = "Five editors. One project.",
   intro =
-    "Everything the agent made stays open. Re-roll a shot, audition another take, retime the cut, change a line, swap a reference, or adjust the workflow behind it. Storyboard, script, timeline, sketch, and 3D scene all sit on the canvas you generate on, and the agent works every one of them through the same tools you click.",
+    "Everything the agent made opens in an editor, and the agent works each one with the same tools you click.",
 }: SurfaceShowcaseProps) {
   const surfaces = useMemo(
     () =>
@@ -115,6 +120,10 @@ export default function SurfaceShowcase({
   // misses the pause of the tab being left, so returning to it revealed a
   // stopped video on its black first frame.
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  // Cleared by the first interaction and never set again.
+  const [rotating, setRotating] = useState(true);
+  const autoAdvance = rotating && !reducedMotion && surfaces.length > 1;
+  const progressRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const sectionRef = useRef<HTMLElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -124,7 +133,10 @@ export default function SurfaceShowcase({
     const fromHash = () => {
       const id = window.location.hash.replace("#surface-", "");
       const at = surfaces.findIndex((s) => s.id === id);
-      if (at !== -1) setActive(at);
+      if (at !== -1) {
+        setActive(at);
+        setRotating(false);
+      }
     };
     fromHash();
     window.addEventListener("hashchange", fromHash);
@@ -172,8 +184,45 @@ export default function SurfaceShowcase({
     });
   }, [active, inView, reducedMotion]);
 
+  const advance = useCallback(() => {
+    setActive((at) => (at + 1) % surfaces.length);
+  }, [surfaces.length]);
+
+  // Fallback for a refused play(): without frames there is no `ended`, so
+  // the posters rotate on the loop's length instead.
+  useEffect(() => {
+    if (!autoAdvance || !inView || playingIndex === active) return;
+    const timer = window.setTimeout(advance, 6000);
+    return () => window.clearTimeout(timer);
+  }, [active, advance, autoAdvance, inView, playingIndex]);
+
+  // The active tab's underline tracks the loop. Written to the DOM directly
+  // so a frame of progress is not a React render.
+  useEffect(() => {
+    const bar = progressRefs.current[active];
+    if (!bar) return;
+    if (!autoAdvance) {
+      bar.style.transform = "scaleX(0)";
+      return;
+    }
+    let frame = 0;
+    const tick = () => {
+      const video = videoRefs.current[active];
+      const ratio =
+        video && video.duration > 0 ? video.currentTime / video.duration : 0;
+      bar.style.transform = `scaleX(${ratio})`;
+      frame = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => {
+      cancelAnimationFrame(frame);
+      bar.style.transform = "scaleX(0)";
+    };
+  }, [active, autoAdvance]);
+
   const select = useCallback(
     (index: number) => {
+      setRotating(false);
       if (index === active) return;
       setActive(index);
       if (typeof window !== "undefined") {
@@ -210,6 +259,7 @@ export default function SurfaceShowcase({
   const togglePlayback = useCallback(() => {
     const video = videoRefs.current[active];
     if (!video) return;
+    setRotating(false);
     if (video.paused) {
       void video.play().catch(() => {});
     } else {
@@ -256,7 +306,7 @@ export default function SurfaceShowcase({
                 aria-controls={`surface-panel-${surface.id}`}
                 tabIndex={selected ? 0 : -1}
                 onClick={() => select(i)}
-                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm focus-ring motion-safe:transition-colors ${
+                className={`relative inline-flex items-center gap-2 overflow-hidden rounded-full border px-4 py-2 text-sm focus-ring motion-safe:transition-colors ${
                   selected
                     ? "border-slate-300 bg-slate-100 text-slate-900"
                     : "border-slate-700 text-slate-300 hover:border-slate-500 hover:text-white"
@@ -264,6 +314,14 @@ export default function SurfaceShowcase({
               >
                 <Icon className="w-4 h-4" aria-hidden />
                 {surface.label}
+                <span
+                  ref={(element) => {
+                    progressRefs.current[i] = element;
+                  }}
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left bg-blue-500"
+                  style={{ transform: "scaleX(0)" }}
+                />
               </button>
             );
           })}
@@ -294,7 +352,7 @@ export default function SurfaceShowcase({
                     videoRefs.current[i] = el;
                   }}
                   muted
-                  loop
+                  loop={!autoAdvance}
                   playsInline
                   preload={i === active ? "metadata" : "none"}
                   onPlaying={(event) => {
@@ -305,6 +363,9 @@ export default function SurfaceShowcase({
                   onPause={() =>
                     setPlayingIndex((at) => (at === i ? null : at))
                   }
+                  onEnded={() => {
+                    if (autoAdvance && i === active) advance();
+                  }}
                   aria-label={`${surface.label} editor, six second loop`}
                   className={`absolute inset-0 block h-full w-full object-cover motion-safe:transition-opacity motion-safe:duration-500 ${
                     playingIndex === i ? "opacity-100" : "opacity-0"

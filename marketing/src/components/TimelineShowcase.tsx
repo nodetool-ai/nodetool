@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { Download, Play, ArrowUpRight } from "lucide-react";
 import { timelineExamples } from "../data/timelineExamples";
+import { useAutoplayInView } from "../lib/useAutoplayInView";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 
 export default function TimelineShowcase() {
@@ -11,6 +12,7 @@ export default function TimelineShowcase() {
   const [started, setStarted] = useState(false);
   const [playbackError, setPlaybackError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  useAutoplayInView(videoRef, selectedSlug);
   const selected = timelineExamples.find((example) => example.slug === selectedSlug);
   if (!selected) {
     return null;
@@ -86,6 +88,8 @@ export default function TimelineShowcase() {
               src={`${mediaRoot}/film.mp4`}
               poster={`${mediaRoot}/poster.webp`}
               controls
+              muted
+              loop
               playsInline
               preload="none"
               aria-label={`${selected.name} finished film`}

@@ -20,6 +20,7 @@ import MarketingPageShell from "../../components/MarketingPageShell";
 import ProductImage from "../../components/ProductImage";
 import McpInstallCommand from "../../components/agents/McpInstallCommand";
 import AgentSessionMock from "../../components/developers/AgentSessionMock";
+import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import CodeBlock from "../../components/developers/CodeBlock";
 
 const container = "mx-auto max-w-7xl px-6 lg:px-8";
@@ -257,28 +258,15 @@ export default function DevelopersPage() {
               can play in the browser.
             </p>
           </header>
-          <figure className="m-0">
-            <div className="overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-900/80 shadow-2xl shadow-black/40 ring-1 ring-white/5">
-              <video
-                controls
-                playsInline
-                preload="none"
-                poster="/vibe-race-poster.webp"
-                width={1920}
-                height={1080}
-                aria-label="Motion-graphics cut of an agent session that generates the art, music, and sound effects for the Kindle platformer"
-                className="no-desaturate block h-auto w-full"
-              >
-                <source src="/vibe-race.webm" type="video/webm" />
-                <source src="/vibe-race.mp4" type="video/mp4" />
-              </video>
-            </div>
-            <figcaption className="px-2 pb-1 pt-3 text-sm leading-relaxed text-slate-400">
-              A 36-second motion-graphics cut with sound. The sprites,
-              backdrops, music, sound effects, and gameplay capture are the
-              files from Kindle&apos;s build. The session is sped up.
-            </figcaption>
-          </figure>
+          <div className="overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/40 ring-1 ring-white/5">
+            <HeroDemoPlayer
+              mediaBase="/vibe-race"
+              priority={false}
+              hasSound
+              alt="Motion-graphics cut of an agent session that generates the art, music, and sound effects for the Kindle platformer"
+              caption="A 36-second motion-graphics cut. Turn the sound on to hear the music and effects. The sprites, backdrops, music, sound effects, and gameplay capture are the files from Kindle's build. The session is sped up."
+            />
+          </div>
         </div>
       </section>
 

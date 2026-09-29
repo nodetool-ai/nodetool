@@ -139,3 +139,31 @@ test.describe("reduced motion", () => {
     ).toBeVisible();
   });
 });
+
+test("the tabs rotate when a loop ends and stop on the first click", async ({
+  page,
+}) => {
+  await page.goto("/", { waitUntil: "load" });
+  await page
+    .getByRole("tablist", { name: "Editing surfaces" })
+    .evaluate((element) => element.scrollIntoView({ block: "center" }));
+
+  // One six-second loop, then the next tab opens on its own.
+  await expect(page.locator("#surface-tab-script")).toHaveAttribute(
+    "aria-selected",
+    "true",
+    { timeout: 15_000 }
+  );
+
+  // A click hands control to the reader, and the loop repeats in place.
+  await page.locator("#surface-tab-sketch").dispatchEvent("click");
+  await expect(page.locator("#surface-panel-sketch video")).toHaveAttribute(
+    "loop",
+    ""
+  );
+  await page.waitForTimeout(8_000);
+  await expect(page.locator("#surface-tab-sketch")).toHaveAttribute(
+    "aria-selected",
+    "true"
+  );
+});

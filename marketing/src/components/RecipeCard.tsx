@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import type { RecipeEntry } from "@/data/recipes";
+import AutoplayVideo from "./AutoplayVideo";
 
 interface RecipeCardProps {
   readonly recipe: RecipeEntry;
@@ -92,9 +93,8 @@ export default function RecipeCard({
       <article className="overflow-hidden rounded-3xl border border-white/10 bg-slate-950/70 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
         <div className="bg-slate-950">
           {video ? (
-            <video
+            <AutoplayVideo
               controls
-              playsInline
               preload="none"
               poster={video.poster}
               aria-label={`${recipe.name} finished cut`}
@@ -102,7 +102,7 @@ export default function RecipeCard({
             >
               {video.webm && <source src={video.webm} type="video/webm" />}
               <source src={video.mp4} type="video/mp4" />
-            </video>
+            </AutoplayVideo>
           ) : (
             <Image
               src={run.card.src}
