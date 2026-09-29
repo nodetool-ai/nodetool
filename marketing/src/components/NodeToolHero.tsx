@@ -21,7 +21,7 @@ export default function NodeToolHero() {
         >
           <span className="whitespace-nowrap">Open-source</span>{" "}
           <span className="whitespace-nowrap">agent-first</span>{" "}
-          <span className="bg-gradient-to-r from-blue-300 via-sky-200 to-teal-200 bg-clip-text text-transparent">
+          <span className="text-sky-200">
             creative workspace
           </span>
         </h1>

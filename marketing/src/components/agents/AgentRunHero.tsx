@@ -114,7 +114,7 @@ function SessionLine({
         <span className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4">
           <span className="text-slate-100">
             {line.tool}
-            {line.arg && <span className="text-slate-500">({line.arg})</span>}
+            {line.arg && <span className="text-slate-400">({line.arg})</span>}
           </span>
           <span
             className={`transition-opacity duration-200 ${
@@ -150,7 +150,7 @@ function SessionLine({
         />
         <span className="min-w-0">
           <span className="block truncate text-slate-100">aurora-launch.mp4</span>
-          <span className="block text-slate-500">saved to assets/</span>
+          <span className="block text-slate-400">saved to assets/</span>
         </span>
       </li>
     );
@@ -202,7 +202,7 @@ export default function AgentRunHero() {
           <span aria-hidden className="h-3 w-3 rounded-full bg-slate-700" />
           <span aria-hidden className="h-3 w-3 rounded-full bg-slate-700" />
           <span aria-hidden className="h-3 w-3 rounded-full bg-slate-700" />
-          <span className="ml-3 font-jetbrains text-xs text-slate-500">
+          <span className="ml-3 font-jetbrains text-xs text-slate-400">
             ~/aurora-launch
           </span>
           <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-jetbrains text-[11px] text-emerald-300">

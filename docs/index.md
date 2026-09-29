@@ -286,8 +286,8 @@ More creative patterns — directed films, entity-consistent batches, script-dri
 
 <ol class="step-sequence">
   <li><a href="{{ '/installation' | relative_url }}">Download NodeTool</a> for macOS, Windows, or Linux.</li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-1--install-and-connect-your-models">Connect a language, image, and video model.</a></li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-2--ask-the-agent-for-a-storyboard">Ask the agent for a storyboard, render it, and export the film.</a></li>
+  <li><a href="{{ '/getting-started' | relative_url }}#1-install-and-connect">Connect a language, image, and video model.</a></li>
+  <li><a href="{{ '/getting-started' | relative_url }}#2-say-what-you-want">Ask the agent for a storyboard, render it, and export the film.</a></li>
 </ol>
 
 ## Explore
