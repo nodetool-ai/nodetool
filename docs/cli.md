@@ -1704,26 +1704,49 @@ nodetool generate fal-ai flux-dev "restyle this" --image in.png --strength 0.6
 
 ### `nodetool mcp`
 
-Install, remove, or inspect the NodeTool MCP server configuration for AI coding assistants (Claude Code, Codex,
-OpenCode).
+Register NodeTool as an MCP server in Claude Code, Codex, and OpenCode, check
+the result, or run the server. See [NodeTool as an MCP Server](mcp-server.md)
+for the setup guide.
 
-**Subcommands:** `install`, `uninstall`, `status`, `serve`
+**Subcommands:** `install`, `uninstall`, `status`, `config`, `serve`
 
 **Examples:**
 
 ```bash
-# Install for all detected assistants (default URL http://127.0.0.1:7777/mcp)
-nodetool mcp install
+# Register the stdio server with every client found on this machine.
+# Without a global install:
+npx -y --package=@nodetool-ai/cli nodetool mcp install
 
-# Install for Claude Code only, with a custom URL
-nodetool mcp install --claude --url http://127.0.0.1:7777/mcp
+# Register for Claude Code only
+nodetool mcp install --claude
 
-# Show installation status
+# Connect to a running server over HTTP instead of stdio
+nodetool mcp install --http
+nodetool mcp install --url http://127.0.0.1:8000/mcp
+
+# Show the registered entries, then start each one and list its tools
 nodetool mcp status
+nodetool mcp status --check
 
-# Remove from all assistants
+# Print an mcpServers JSON block for Cursor, Claude Desktop, or another client
+nodetool mcp config
+
+# Remove from all clients
 nodetool mcp uninstall
 ```
+
+| Option | Applies to | Effect |
+|---|---|---|
+| `--claude`, `--codex`, `--opencode` | `install`, `uninstall` | Select clients. `install` without one selects every client found. |
+| `--npx` | `install`, `config` | Launch through `npx` even when `nodetool` is on `PATH`. |
+| `--http`, `--url <url>` | `install`, `config` | Write an HTTP entry. The default URL is `http://127.0.0.1:7777/mcp`. |
+| `--no-verify` | `install` | Write the config without a test start of the server. |
+| `--check` | `status` | Start each registered server and list its tools. |
+
+`install` starts the server once before it writes a config, so a broken
+command never reaches a client config. The stdio entry runs `nodetool mcp serve`
+when the Node CLI is first on `PATH`, else
+`npx -y --package=@nodetool-ai/cli nodetool mcp serve`.
 
 HTTP MCP (`/mcp`) needs the API server (`nodetool serve`). `nodetool mcp serve`
 uses stdio for the client and forwards to the local API server when its MCP

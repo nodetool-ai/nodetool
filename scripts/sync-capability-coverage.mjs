@@ -221,7 +221,8 @@ function suitesFor(name, moduleName, pool, sources, aliases) {
       };
       return rank(a) - rank(b) || (a < b ? -1 : 1);
     })
-    .slice(0, 2)
+    // Games cover legacy authoring, 2D route search and the explicit 3D contract.
+    .slice(0, moduleName === "game" ? 3 : 2)
     .map(rel);
 }
 

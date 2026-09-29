@@ -1124,6 +1124,7 @@ export const PROVIDER_IDS = {
   XAI: "xai",
   COHERE: "cohere",
   OPENROUTER: "openrouter",
+  REQUESTY: "requesty",
   TOGETHER: "together",
   ALIBABA: "alibaba",
   CEREBRAS: "cerebras",

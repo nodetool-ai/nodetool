@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { AmbiguousGameIdError, Game, initTestDb } from "../src/index.js";
+import { gameDocument3D } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 
 const USER = "game-owner";
@@ -50,12 +51,44 @@ describe("game revision pointer", () => {
     const replacement = { ...original, pixelsPerUnit: 48 };
     const updated = await Game.updateDraft(USER, PREFIX, game.draft_updated_at,
       [{ op: "set_document", document: replacement }], workspace, { actor: "agent" });
-    expect(updated?.document.pixelsPerUnit).toBe(48);
-    expect((await Game.readDraft(USER, PREFIX, workspace))?.document.pixelsPerUnit).toBe(48);
+    expect(updated?.document.schemaVersion === 3 ? undefined : updated?.document.pixelsPerUnit).toBe(48);
+    const reopened = await Game.readDraft(USER, PREFIX, workspace);
+    expect(reopened?.document.schemaVersion === 3 ? undefined : reopened?.document.pixelsPerUnit).toBe(48);
     const changes = await Game.listDraftChanges(USER, PREFIX);
     expect(changes).toHaveLength(1);
     expect(changes[0].summary).toBe("Replaced game document (1)");
     expect(changes[0].affectedEntityIds).toEqual(original.scenes[0].entities.map((entity) => entity.id));
     expect(await Game.readDraftBeforeChange(USER, PREFIX, changes[0].id, workspace)).toEqual(original);
   });
+  it("round-trips 3D drafts, operations, full IDs and undo without changing revisions", async () => {
+    const game = await insert(`${PREFIX}${"1".repeat(20)}`);
+    const original = gameDocument3D.parse({ schemaVersion: 3, engineVersion: "2", dimension: "3d", id: game.id,
+      revision: game.current_revision, entrySceneId: "scene", tickRate: 60, presentation: { aspectRatio: 16 / 9, hudWidth: 1280, hudHeight: 720 },
+      inputActions: [], assets: {}, scenes: [{ id: "scene", name: "Scene", activeCameraId: "camera", entities: [{
+        id: "camera", transform3d: {}, camera3d: { projection: { kind: "perspective" } }
+      }] }] });
+    const files = new Map([[`${game.source_root}/revisions/${game.current_revision}/game.json`, JSON.stringify(original)]]);
+    const workspace = {
+      readText: async (path: string) => files.get(path) ?? null,
+      write: async (path: string, data: string) => { files.set(path, data); },
+      delete: async (path: string) => files.delete(path)
+    };
+    expect((await Game.readDraft(USER, PREFIX, workspace))?.document).toEqual(original);
+    const updated = await Game.updateDraft(USER, PREFIX, game.draft_updated_at, [{ op: "update_entity", entity_id: "camera",
+      set: { transform3d: { position: { z: 5 } } } }], workspace, { actor: "agent" });
+    if (!updated || updated.document.schemaVersion !== 3) { throw new Error("3D update was not saved"); }
+    expect(updated.document.id).toBe(game.id);
+    expect(updated.document.revision).toBe(original.revision);
+    expect(updated.document.scenes[0].entities[0].transform3d.position.z).toBe(5);
+    const changes = await Game.listDraftChanges(USER, PREFIX);
+    expect(changes[0].affectedEntityIds).toEqual(["camera"]);
+    expect(await Game.readDraftBeforeChange(USER, PREFIX, changes[0].id, workspace)).toEqual(original);
+    expect(await Game.updateDraft(USER, PREFIX, game.draft_updated_at, [{ op: "update_scene", scene_id: "scene", set: { name: "Stale" } }], workspace)).toBeNull();
+    expect(await Game.readDraft("another-user", PREFIX, workspace)).toBeNull();
+    const legacy = { ...createTopDownRoomGame(game.id), revision: original.revision };
+    await expect(Game.replaceDraft(USER, PREFIX, updated.game.draft_updated_at, legacy, workspace)).rejects.toMatchObject({
+      diagnostics: [{ code: "dimension_mismatch" }]
+    });
+  });
+
 });

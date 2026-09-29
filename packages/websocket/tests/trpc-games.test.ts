@@ -3,11 +3,15 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Asset, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
+import sharp from "sharp";
+import { Asset, Game, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 import { workspaceFromRow } from "../src/lib/workflow-workspace.js";
+import { getAssetAdapter } from "../src/lib/storage.js";
+import { getAssetStorageKey, retrieveAssetBytes } from "../src/lib/asset-paths.js";
+import { prepareGameModelBinding3D } from "@nodetool-ai/game-renderer/preparation3d";
 import { getManagedWorkspaceDir } from "@nodetool-ai/config";
 
 const USER_ID = "game-owner";
@@ -17,6 +21,26 @@ vi.mock("../src/lib/storage.js", async () => {
   const { FileStorageAdapter } = await import("@nodetool-ai/storage");
   return { getAssetAdapter: () => new FileStorageAdapter(assetRoot.current) };
 });
+function modelGlb(names: string[]): Uint8Array {
+  const raw = new TextEncoder().encode(JSON.stringify({ asset: { version: "2.0" }, scene: 0,
+    scenes: [{ nodes: names.map((_, index) => index) }], nodes: names.map((name) => ({ name })) }));
+  const padded = Math.ceil(raw.length / 4) * 4;
+  const bytes = new Uint8Array(20 + padded);
+  bytes.fill(32, 20);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(0, 0x46546c67, true); view.setUint32(4, 2, true); view.setUint32(8, bytes.length, true);
+  view.setUint32(12, padded, true); view.setUint32(16, 0x4e4f534a, true); bytes.set(raw, 20);
+  return bytes;
+}
+
+async function ownedAsset(bytes: Uint8Array, userId = USER_ID, contentType = "model/gltf-binary"): Promise<Asset> {
+  const asset = await Asset.create({ user_id: userId, project_id: PROJECT_ID, parent_id: userId,
+    name: "Source model", content_type: contentType, size: bytes.byteLength });
+  if (!(asset instanceof Asset)) { throw new Error("Expected a source asset"); }
+  await getAssetAdapter().store(getAssetStorageKey(userId, asset.id, contentType), bytes, contentType);
+  return asset;
+}
+
 const createCaller = createCallerFactory(appRouter);
 let workspaceDir: string;
 
@@ -304,4 +328,166 @@ describe("native game revisions", () => {
     }
     expect(await caller.games.revisions({ id: created.game.id })).toHaveLength(1);
   });
+  it("creates, edits, publishes and restores 3D revisions through short game IDs", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Exploration", dimension: "3d" });
+    expect(created.document).toMatchObject({ schemaVersion: 3, engineVersion: "2", dimension: "3d", id: created.game.id });
+    expect((await caller.games.get({ id: created.game.id.slice(0, 12) })).document).toEqual(created.document);
+    const saved = await caller.games.saveDraft({ id: created.game.id.slice(0, 12), baseUpdatedAt: created.game.draftUpdatedAt,
+      ops: [{ op: "update_entity", entity_id: "player", set: { transform3d: { position: { x: 2 } } } }] });
+    if (saved.document.schemaVersion !== 3) { throw new Error("Expected a 3D draft"); }
+    expect(saved.document.id).toBe(created.game.id);
+    expect(saved.document.scenes[0].entities.find((entity) => entity.id === "player")?.transform3d.position.x).toBe(2);
+    await expect(caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: created.game.draftUpdatedAt,
+      ops: [{ op: "update_entity", entity_id: "player", set: { name: "Stale" } }] })).rejects.toMatchObject({ code: "CONFLICT" });
+    const published = await caller.games.publish({ id: created.game.id, baseRevision: created.game.revision });
+    expect(published.document.schemaVersion).toBe(3);
+    const restored = await caller.games.restore({ id: created.game.id, baseRevision: published.game.revision, revision: created.game.revision });
+    if (restored.document.schemaVersion !== 3) { throw new Error("Expected a 3D revision"); }
+    expect(restored.document.scenes[0].entities.find((entity) => entity.id === "player")?.transform3d.position.x).toBe(0);
+    await expect(createCaller(makeCtx("other-user")).games.get({ id: created.game.id.slice(0, 12) })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(caller.games.create({ projectId: PROJECT_ID, name: "Mismatch", dimension: "2d", document: created.document })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("prepares owned models through the editor install endpoint without mutating source bytes", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Owned model scene", dimension: "3d" });
+    const original = modelGlb(["Visual"]);
+    const source = await ownedAsset(original);
+    const sourceDigest = createHash("sha256").update(original).digest("hex");
+    const installed = await caller.games.installAsset({ id: created.game.id.slice(0, 12),
+      assetId: source.id.slice(0, 12), slot: "character", baseUpdatedAt: created.game.draftUpdatedAt,
+      expectedDigest: sourceDigest });
+    if (installed.document.schemaVersion !== 3) { throw new Error("Expected a 3D draft"); }
+    const binding = installed.document.assets.character;
+    expect(binding).toMatchObject({ mediaKind: "model", sourceAssetId: source.id, sourceDigest, nodeIds: ["node:0", "node:1"] });
+    expect(binding.assetId).toHaveLength(32);
+    expect(binding.assetId).not.toBe(source.id);
+    const bytes = await retrieveAssetBytes(getAssetAdapter(), USER_ID, binding.assetId, "model/gltf-binary");
+    if (!bytes) { throw new Error("Installed model bytes missing"); }
+    expect(createHash("sha256").update(bytes).digest("hex")).toBe(binding.digest);
+    expect(binding.digest).not.toBe(sourceDigest);
+    expect(await retrieveAssetBytes(getAssetAdapter(), USER_ID, source.id, source.content_type)).toEqual(Buffer.from(original));
+    const [row] = await Workspace.listByProject(USER_ID, PROJECT_ID);
+    const workspace = row && workspaceFromRow(row);
+    expect(await workspace?.read(`games/${created.game.id}/assets/${binding.digest}.glb`)).toEqual(new Uint8Array(bytes));
+
+    const edited = modelGlb(["Visual", "Edited"]);
+    await getAssetAdapter().store(getAssetStorageKey(USER_ID, source.id, source.content_type), edited, source.content_type);
+    await expect(caller.games.installAsset({ id: created.game.id, assetId: source.id, slot: "character",
+      baseUpdatedAt: created.game.draftUpdatedAt })).rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(caller.games.installAsset({ id: created.game.id, assetId: source.id, slot: "character",
+      baseUpdatedAt: installed.game.draftUpdatedAt, expectedDigest: sourceDigest })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    const reinstalled = await caller.games.installAsset({ id: created.game.id, assetId: source.id, slot: "character",
+      baseUpdatedAt: installed.game.draftUpdatedAt });
+    expect(reinstalled.document.assets.character).toMatchObject({ sourceAssetId: source.id, nodeIds: ["node:0", "node:1", "node:2"] });
+    expect(reinstalled.document.assets.character.digest).not.toBe(binding.digest);
+    expect(await retrieveAssetBytes(getAssetAdapter(), USER_ID, binding.assetId, "model/gltf-binary")).toEqual(bytes);
+    expect(await retrieveAssetBytes(getAssetAdapter(), USER_ID, source.id, source.content_type)).toEqual(Buffer.from(edited));
+    await expect(createCaller(makeCtx("other-user")).games.installAsset({ id: created.game.id,
+      assetId: source.id, slot: "character" })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    const foreign = await ownedAsset(original, "other-user");
+    await expect(caller.games.installAsset({ id: created.game.id, assetId: foreign.id, slot: "character" })).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("resolves glTF dependencies only through explicitly mapped owned assets", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "glTF scene", dimension: "3d" });
+    const source = await ownedAsset(new TextEncoder().encode(JSON.stringify({ asset: { version: "2.0" },
+      buffers: [{ byteLength: 12, uri: "geometry.bin" }], scenes: [{ nodes: [0] }], nodes: [{ name: "Visual" }] })), USER_ID, "model/gltf+json");
+    await expect(caller.games.installAsset({ id: created.game.id, assetId: source.id, slot: "model" }))
+      .rejects.toThrow("Unresolved authorized model dependency: geometry.bin");
+    const foreign = await ownedAsset(new Uint8Array(12), "other-user", "application/octet-stream");
+    await expect(caller.games.installAsset({ id: created.game.id, assetId: source.id, slot: "model",
+      dependencyAssetIds: { "geometry.bin": foreign.id } })).rejects.toThrow("Model dependency asset not found");
+    const geometry = await ownedAsset(new Uint8Array(12), USER_ID, "application/octet-stream");
+    const installed = await caller.games.installAsset({ id: created.game.id, assetId: source.id, slot: "model",
+      baseUpdatedAt: created.game.draftUpdatedAt, dependencyAssetIds: { "geometry.bin": geometry.id.slice(0, 12) },
+      importSettings: { scale: 2, forward: "+x", origin: "ground" } });
+    expect(installed.document.assets.model).toMatchObject({ mediaKind: "model", sourceAssetId: source.id,
+      importSettings: { scale: 2, forward: "+x", origin: "ground" } });
+    const bytes = await retrieveAssetBytes(getAssetAdapter(), USER_ID, installed.document.assets.model.assetId, "model/gltf-binary");
+    if (!bytes) { throw new Error("Installed GLB missing"); }
+    expect((await prepareGameModelBinding3D(bytes, { assetId: "verify" })).ok).toBe(true);
+  });
+
+  it("cleans up a prepared model asset when the draft changes during installation", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Racing model", dimension: "3d" });
+    const source = await ownedAsset(modelGlb(["Visual"]));
+    const createSpy = vi.spyOn(Asset, "create");
+    const updateSpy = vi.spyOn(Game, "updateDraft").mockResolvedValueOnce(null);
+    try {
+      await expect(caller.games.installAsset({ id: created.game.id, assetId: source.id, slot: "model",
+        baseUpdatedAt: created.game.draftUpdatedAt })).rejects.toMatchObject({ code: "CONFLICT" });
+      expect(createSpy).toHaveBeenCalledTimes(1);
+      const installed = await createSpy.mock.results[0].value;
+      if (!(installed instanceof Asset)) { throw new Error("Expected allocated model asset"); }
+      expect(await Asset.find(USER_ID, installed.id)).toBeNull();
+      expect(await retrieveAssetBytes(getAssetAdapter(), USER_ID, installed.id, installed.content_type)).toBeNull();
+      expect((await caller.games.get({ id: created.game.id })).document.assets.model).toBeUndefined();
+    } finally {
+      createSpy.mockRestore(); updateSpy.mockRestore();
+    }
+  });
+
+  it("preserves the existing owned image install contract for 2D games", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Image scene" });
+    const bytes = await sharp({ create: { width: 2, height: 3, channels: 4, background: "#ffffff" } }).png().toBuffer();
+    const source = await ownedAsset(bytes, USER_ID, "image/png");
+    const installed = await caller.games.installAsset({ id: created.game.id, assetId: source.id.slice(0, 12), slot: "player",
+      baseUpdatedAt: created.game.draftUpdatedAt });
+    expect(installed.document.assets.player).toMatchObject({ assetId: source.id, width: 2, height: 3,
+      digest: createHash("sha256").update(bytes).digest("hex"), sampling: "nearest" });
+    expect(installed.document.assets.player.mediaKind).not.toBe("model");
+  });
+
+  it("verifies staged GLB bytes and derives canonical 3D model metadata before installation", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Model scene", dimension: "3d" });
+    const [row] = await Workspace.listByProject(USER_ID, PROJECT_ID);
+    const workspace = row && workspaceFromRow(row);
+    if (!workspace) { throw new Error("Workspace missing"); }
+    const raw = new TextEncoder().encode(JSON.stringify({ asset: { version: "2.0" }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ name: "Visual" }] }));
+    const padded = Math.ceil(raw.length / 4) * 4;
+    const bytes = new Uint8Array(20 + padded);
+    bytes.fill(32, 20);
+    const view = new DataView(bytes.buffer);
+    view.setUint32(0, 0x46546c67, true); view.setUint32(4, 2, true); view.setUint32(8, bytes.length, true);
+    view.setUint32(12, padded, true); view.setUint32(16, 0x4e4f534a, true); bytes.set(raw, 20);
+    const prepared = await prepareGameModelBinding3D(bytes, { assetId: "candidate-model" });
+    if (!prepared.ok) { throw new Error("Fixture GLB did not prepare"); }
+    await workspace.write(`games/${created.game.id}/assets/${prepared.binding.digest}.glb`, bytes, "model/gltf-binary");
+    const installed = await caller.games.installCandidate({ id: created.game.id, baseUpdatedAt: created.game.draftUpdatedAt, slot: "character-model",
+      binding: { ...prepared.binding, nodeIds: ["untrusted-node"], triangles: 200_000 } });
+    expect(installed.document.assets["character-model"]).toMatchObject({ nodeIds: ["node:0"], triangles: 0, mediaKind: "model" });
+    const asset = await Asset.find(USER_ID, installed.document.assets["character-model"].assetId);
+    expect(asset?.content_type).toBe("model/gltf-binary");
+    expect(installed.document.assets["character-model"].assetId).toHaveLength(32);
+    const invalid = new TextEncoder().encode("invalid GLB");
+    const digest = createHash("sha256").update(invalid).digest("hex");
+    await workspace.write(`games/${created.game.id}/assets/${digest}.glb`, invalid, "model/gltf-binary");
+    await expect(caller.games.installCandidate({ id: created.game.id, slot: "invalid", binding: { ...prepared.binding, digest } })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("derives collider bounds and rejects malformed triangle artifacts", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Collider scene", dimension: "3d" });
+    const [row] = await Workspace.listByProject(USER_ID, PROJECT_ID);
+    const workspace = row && workspaceFromRow(row);
+    if (!workspace) { throw new Error("Workspace missing"); }
+    const bytes = new TextEncoder().encode(JSON.stringify({ vertices: [0, 0, 0, 2, 0, 0, 0, 3, 0], indices: [0, 1, 2] }));
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    await workspace.write(`games/${created.game.id}/assets/${digest}.json`, bytes, "application/json");
+    const binding = { mediaKind: "collider" as const, assetId: "candidate-collider", digest, preparationVersion: "1", shape: "triangleMesh" as const,
+      bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } }, vertices: 1, triangles: 0 };
+    const installed = await caller.games.installCandidate({ id: created.game.id, slot: "terrain", binding });
+    expect(installed.document.assets.terrain).toMatchObject({ vertices: 3, triangles: 1, bounds: { max: { x: 2, y: 3, z: 0 } } });
+    const malformed = new TextEncoder().encode(JSON.stringify({ vertices: [0, 0, 0, 2, 0, 0, 0, 3, 0], indices: [0, 1, 3] }));
+    const badDigest = createHash("sha256").update(malformed).digest("hex");
+    await workspace.write(`games/${created.game.id}/assets/${badDigest}.json`, malformed, "application/json");
+    await expect(caller.games.installCandidate({ id: created.game.id, slot: "invalid", binding: { ...binding, digest: badDigest } })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
 });

@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
-import type { GameDocument } from "@nodetool-ai/protocol/game.js";
-import { applyGameOps, type GameDocumentOp } from "@nodetool-ai/game-runtime";
+import type { AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
+import { applyAnyGameOps as applyGameOps, type AnyGameDocumentOp as GameDocumentOp } from "@nodetool-ai/game-runtime";
 
 import { trpc, trpcClient } from "../../trpc/client";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { useConflictStore } from "../../stores/ConflictStore";
-import { diffGameDocuments } from "../../stores/game/diffGameDocuments";
+import { diffAnyGameDocuments as diffGameDocuments } from "../../stores/game/diffAnyGameDocuments";
 import { getGameDraftStore } from "../../stores/game/GameDraftStore";
-import { acceptServerGameUnit, gameMergeAdapter } from "../../stores/game/merge";
+import { acceptServerAnyGameUnit as acceptServerGameUnit, anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
 import { Caption, EditorButton, FlexColumn, FlexRow, SPACING, Text } from "../ui_primitives";
 
 interface GameChangesProps {
@@ -46,7 +46,7 @@ export default function GameChanges({ gameId, document, onOps, onHover, onFocusM
       const before = await trpcClient.games.draftBeforeChange.query({ id: gameId, changeId: group.id });
       const after = applyGameOps(before, group.ops);
       const current = getGameDraftStore(gameId).getState().document ?? document;
-      const result = mergeByUnits(after, current, before, gameMergeAdapter, { mergeWithoutOps: true });
+      const result = mergeByUnits(after, current, before, gameMergeAdapter(document), { mergeWithoutOps: true });
       onOps(diffGameDocuments(current, result.doc));
       useConflictStore.getState().addConflicts(`game:${gameId}`, result.conflicts, {
         onAccept: (unitId) => {

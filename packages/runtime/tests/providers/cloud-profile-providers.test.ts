@@ -10,6 +10,7 @@ const CLOUD = [
   "mistral",
   "xai",
   "openrouter",
+  "requesty",
   "fal_ai",
   "kie",
   "replicate",

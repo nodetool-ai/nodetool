@@ -1,16 +1,18 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import type { Command } from "commander";
 import { z } from "zod";
 import { gameEvent, gameInputFrame, type GameEvent, type GameInputFrame, type GameSnapshot } from "@nodetool-ai/protocol/game.js";
-import { createScriptedGameSession, validateGame } from "@nodetool-ai/game-runtime";
+import { gameEvent3D, gameInputFrame3D, type GameDocument3D, type GameEvent3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
+import { createScriptedGameSession, createGameSession3D, decodePreparedGameCollider3D, hashGameSnapshot3D, validateGame, validateAnyGame } from "@nodetool-ai/game-runtime";
 import { printCommandError } from "../command-errors.js";
 
 interface SimulateOptions {
   ticks: string;
   seed: string;
   inputs?: string;
+  assetsDir?: string;
   expectScore?: string;
   expectWin?: boolean;
   assertions?: string;
@@ -72,7 +74,9 @@ const MEDIA_TYPES: Readonly<Record<string, string>> = {
   ogg: "audio/ogg",
   mp3: "audio/mpeg",
   ttf: "font/ttf",
-  otf: "font/otf"
+  otf: "font/otf",
+  glb: "model/gltf-binary",
+  json: "application/json"
 };
 
 async function readBuildAsset(directory: string | undefined, sourceAssetId: string): Promise<{ bytes: Uint8Array; mimeType: string } | null> {
@@ -103,14 +107,14 @@ async function readDocument(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, "utf8")) as unknown;
 }
 
-async function readInputs(path: string | undefined): Promise<GameInputFrame[]> {
+async function readInputs<Schema extends z.ZodType>(path: string | undefined, schema: Schema): Promise<z.output<Schema>[]> {
   if (!path) return [];
   const raw = await readDocument(path);
   if (!Array.isArray(raw)) {
     throw new Error("Input recording must be an array of tick input frames");
   }
   return raw.map((input, index) => {
-    const parsed = gameInputFrame.safeParse(input);
+    const parsed = schema.safeParse(input);
     if (!parsed.success) {
       throw new Error(`Invalid input at tick ${index}: ${parsed.error.message}`);
     }
@@ -207,6 +211,14 @@ function checkTick(assertion: TickAssertion | undefined, snapshot: GameSnapshot,
   return failures;
 }
 
+function validateCliDocument(value: unknown) {
+  const legacyVersion = z.object({ schemaVersion: z.union([z.literal(1), z.literal(2)]) }).safeParse(value);
+  if (legacyVersion.success) { return validateGame(value); }
+  const result = validateAnyGame(value);
+  return { valid: result.valid, document: result.valid ? result.document : undefined, issues: result.diagnostics,
+    diagnostics: result.diagnostics, errors: result.diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`) };
+}
+
 /** Register native game validation and deterministic simulation commands. */
 export function registerGameCommands(program: Command): void {
   const game = program.command("game").description("Validate and playtest native games");
@@ -217,7 +229,7 @@ export function registerGameCommands(program: Command): void {
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: { json?: boolean }) => {
       try {
-        const report = validateGame(await readDocument(path));
+        const report = validateCliDocument(await readDocument(path));
         if (options.json) {
           process.stdout.write(`${JSON.stringify(report)}\n`);
         } else {
@@ -240,6 +252,7 @@ export function registerGameCommands(program: Command): void {
     .requiredOption("--ticks <count>", "Number of ticks to run")
     .option("--seed <integer>", "Random seed", "1")
     .option("--inputs <file>", "JSON array of tick-indexed input frames")
+    .option("--assets-dir <directory>", "Prepared 3D collider files named <full-asset-id>.json")
     .option("--expect-score <score>", "Fail if the final score differs")
     .option("--expect-win", "Fail unless the win condition is reached")
     .option("--assertions <file>", "JSON assertions for scene, entities, and ordered events at selected ticks")
@@ -247,17 +260,18 @@ export function registerGameCommands(program: Command): void {
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: SimulateOptions) => {
       try {
-        const validated = validateGame(await readDocument(path));
+        const validated = validateCliDocument(await readDocument(path));
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
         }
         const document = validated.document;
+        if (document.schemaVersion === 3) { await simulateGame3D(document, options); return; }
         const ticks = nonnegativeInteger(options.ticks, "ticks");
         const seed = nonnegativeInteger(options.seed, "seed");
         const expectedScore = options.expectScore === undefined
           ? undefined
           : nonnegativeInteger(options.expectScore, "expect-score");
-        const inputs = await readInputs(options.inputs);
+        const inputs = await readInputs(options.inputs, gameInputFrame);
         const contract = await readAssertions(options.assertions, ticks);
         const session = await createScriptedGameSession(document, seed);
         let resumed: Awaited<ReturnType<typeof createScriptedGameSession>> | undefined;
@@ -352,14 +366,18 @@ export function registerGameCommands(program: Command): void {
     .option("--seed <integer>", "Random seed", "1")
     .option("--inputs <file>", "JSON array of tick-indexed input frames")
     .option("--scale <factor>", "Output scale", "1")
-    .option("--backend <canvas2d|webgpu>", "Capture backend", "canvas2d")
+    .option("--backend <canvas2d|webgpu|webgl2>", "Capture backend. Defaults to WebGL2 for 3D", "canvas2d")
     .option("--assets-dir <directory>", "Local media files named <full-asset-id>.<extension>")
     .option("--json", "Print a machine-readable report")
-    .action(async (path: string, options: CaptureOptions) => {
+    .action(async (path: string, options: CaptureOptions, command: Command) => {
       try {
-        const validated = validateGame(await readDocument(path));
+        const validated = validateCliDocument(await readDocument(path));
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
+        }
+        if (validated.document.schemaVersion === 3) {
+          const backend = command.getOptionValueSource("backend") === "default" ? "webgl2" : options.backend;
+          await captureGame3D(validated.document, { ...options, backend }); return;
         }
         const ticks = nonnegativeInteger(options.ticks, "ticks");
         if (ticks === 0) throw new Error("ticks must be at least 1 for capture");
@@ -371,7 +389,7 @@ export function registerGameCommands(program: Command): void {
         if (options.backend !== "canvas2d" && options.backend !== "webgpu") {
           throw new Error("backend must be canvas2d or webgpu");
         }
-        const inputs = await readInputs(options.inputs);
+        const inputs = await readInputs(options.inputs, gameInputFrame);
         const session = await createScriptedGameSession(validated.document, seed);
         try {
           let frame;
@@ -413,15 +431,14 @@ export function registerGameCommands(program: Command): void {
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: BuildOptions) => {
       try {
-        const validated = validateGame(await readDocument(path));
+        const validated = validateCliDocument(await readDocument(path));
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
         }
-        const { buildStandaloneGame } = await import("@nodetool-ai/game-renderer/build");
-        const result = await buildStandaloneGame({
-          document: validated.document,
-          outputDir: options.out,
-          resolveAsset: (assetId) => readBuildAsset(options.assetsDir, assetId)
+        const result = validated.document.schemaVersion === 3 ? await (await import("@nodetool-ai/game-renderer/build3d")).buildStandaloneGame3D({
+          document: validated.document, outputDir: resolve(options.out), resolveAsset: (assetId) => readBuildAsset(options.assetsDir, assetId)
+        }) : await (await import("@nodetool-ai/game-renderer/build")).buildStandaloneGame({
+          document: validated.document, outputDir: options.out, resolveAsset: (assetId) => readBuildAsset(options.assetsDir, assetId)
         });
         process.stdout.write(options.json ? `${JSON.stringify(result)}\n` : `Built game in ${result.outputDir}\n`);
       } catch (error) {
@@ -432,3 +449,137 @@ export function registerGameCommands(program: Command): void {
 }
 
 const EMPTY_INPUT: GameInputFrame = { pressed: [], justPressed: [] };
+
+const tickAssertion3D = z.strictObject({
+  tick: z.number().int().nonnegative(), sceneId: z.string().min(1).optional(),
+  entities: z.array(z.strictObject({ id: z.string().min(1), x: z.number().finite().optional(), y: z.number().finite().optional(),
+    z: z.number().finite().optional(), active: z.boolean().optional(), grounded: z.boolean().optional() })).optional(),
+  events: z.array(z.union(gameEvent3D.options.map((variant) => variant.strict()))).optional()
+});
+type TickAssertion3D = z.infer<typeof tickAssertion3D>;
+
+async function readAssertions3D(path: string | undefined, ticks: number) {
+  if (!path) { return undefined; }
+  const parsed = gameAssertions.extend({ ticks: z.array(tickAssertion3D) }).safeParse(await readDocument(path));
+  if (!parsed.success) { throw new Error(`Invalid 3D game assertions: ${parsed.error.message}`); }
+  const byTick = new Map<number, TickAssertion3D>();
+  for (const assertion of parsed.data.ticks) {
+    if (assertion.tick > ticks) { throw new Error(`Assertion tick ${assertion.tick} exceeds requested ${ticks} ticks`); }
+    if (byTick.has(assertion.tick)) { throw new Error(`Duplicate assertion for tick ${assertion.tick}`); }
+    byTick.set(assertion.tick, assertion);
+  }
+  return { byTick, tolerance: parsed.data.tolerance };
+}
+
+function checkTick3D(assertion: TickAssertion3D, snapshot: GameSnapshot3D, events: readonly GameEvent3D[], tolerance: number): AssertionFailure[] {
+  const failures: AssertionFailure[] = [];
+  const check = (path: string, expected: unknown, actual: unknown) => {
+    if (!isDeepStrictEqual(expected, actual)) { failures.push({ tick: assertion.tick, path, expected, actual: actual ?? null }); }
+  };
+  if (assertion.sceneId !== undefined) { check("sceneId", assertion.sceneId, snapshot.sceneId); }
+  for (const expected of assertion.entities ?? []) {
+    const entity = snapshot.entities.find((candidate) => candidate.id === expected.id);
+    if (!entity) { check(`entities.${expected.id}`, "present", "missing"); continue; }
+    for (const axis of ["x", "y", "z"] as const) {
+      if (expected[axis] !== undefined && Math.abs(entity.transform.position[axis] - expected[axis]) > tolerance) {
+        check(`entities.${entity.id}.${axis}`, expected[axis], entity.transform.position[axis]);
+      }
+    }
+    if (expected.active !== undefined) { check(`entities.${entity.id}.active`, expected.active, entity.active); }
+    if (expected.grounded !== undefined) { check(`entities.${entity.id}.grounded`, expected.grounded, entity.grounded); }
+  }
+  if (assertion.events !== undefined) {
+    const difference = firstDifference(assertion.events, events, "events");
+    if (difference) { failures.push({ tick: assertion.tick, ...difference }); }
+  }
+  return failures;
+}
+
+function sessionAssetOptions3D(directory?: string) {
+  return { resolveCollider: async (binding: Parameters<typeof decodePreparedGameCollider3D>[1]) => {
+    const asset = await readBuildAsset(directory, binding.assetId);
+    if (!asset) { throw new Error(`Prepared collider ${binding.assetId} is unavailable. Pass --assets-dir.`); }
+    return decodePreparedGameCollider3D(asset.bytes, binding);
+  } };
+}
+
+async function simulateGame3D(document: GameDocument3D, options: SimulateOptions): Promise<void> {
+  const ticks = nonnegativeInteger(options.ticks, "ticks");
+  const seed = nonnegativeInteger(options.seed, "seed");
+  const expectedScore = options.expectScore === undefined ? undefined : nonnegativeInteger(options.expectScore, "expect-score");
+  const inputs = await readInputs(options.inputs, gameInputFrame3D);
+  const contract = await readAssertions3D(options.assertions, ticks);
+  const sessionOptions = sessionAssetOptions3D(options.assetsDir);
+  const session = await createGameSession3D(document, seed, undefined, sessionOptions);
+  let resumed: Awaited<ReturnType<typeof createGameSession3D>> | undefined;
+  try {
+    const events: GameEvent3D[] = [];
+    const initialAssertion = contract?.byTick.get(0);
+    const failures = initialAssertion ? checkTick3D(initialAssertion, session.snapshot(), [], contract?.tolerance ?? 1e-9) : [];
+    const resumeTick = Math.floor(ticks / 2);
+    let replayDivergence: AssertionFailure | undefined;
+    const startReplay = async (snapshot: GameSnapshot3D) => {
+      resumed = await createGameSession3D(document, seed, snapshot, sessionOptions);
+      const difference = firstDifference(snapshot, resumed.snapshot(), "snapshot");
+      if (difference) { replayDivergence = { tick: snapshot.tick, ...difference }; }
+    };
+    if (options.verifyReplay && resumeTick === 0) { await startReplay(session.snapshot()); }
+    for (let tick = 0; tick < ticks; tick++) {
+      if (tick % 240 === 0) { await new Promise<void>((resolveTick) => setTimeout(resolveTick, 0)); }
+      const input = inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] });
+      const result = session.step(input);
+      events.push(...result.events);
+      const assertion = contract?.byTick.get(result.tick);
+      const snapshot = assertion || options.verifyReplay && result.tick >= resumeTick ? session.snapshot() : undefined;
+      if (assertion && snapshot) { failures.push(...checkTick3D(assertion, snapshot, result.events, contract?.tolerance ?? 1e-9)); }
+      if (snapshot && options.verifyReplay && result.tick === resumeTick) { await startReplay(snapshot); }
+      if (snapshot && resumed && !replayDivergence && result.tick > resumeTick) {
+        const replayStep = resumed.step(input);
+        const difference = firstDifference(result.events, replayStep.events, "events") ?? firstDifference(snapshot, resumed.snapshot(), "snapshot");
+        if (difference) { replayDivergence = { tick: result.tick, ...difference }; }
+      }
+    }
+    const snapshot = session.snapshot();
+    const assertions = { score: expectedScore === undefined || snapshot.score === expectedScore, win: options.expectWin !== true || snapshot.won,
+      ticks: failures.length === 0, replay: !replayDivergence };
+    const report = { dimension: "3d", ticks, seed, snapshot, state_hash: await hashGameSnapshot3D(snapshot), events, assertions, failures,
+      replay: options.verifyReplay ? { resumeTick, verified: !replayDivergence, divergence: replayDivergence } : undefined,
+      ok: Object.values(assertions).every(Boolean) };
+    if (options.json) { process.stdout.write(`${JSON.stringify(report)}\n`); }
+    else {
+      process.stdout.write(`Tick ${snapshot.tick}: score ${snapshot.score}, won ${snapshot.won}\n`);
+      for (const failure of failures) { process.stdout.write(`Tick ${failure.tick} ${failure.path}: expected ${JSON.stringify(failure.expected)}, got ${JSON.stringify(failure.actual)}\n`); }
+      if (replayDivergence) { process.stdout.write(`Replay diverged at tick ${replayDivergence.tick} ${replayDivergence.path}\n`); }
+    }
+    if (!report.ok) { process.exitCode = 1; }
+  } finally { resumed?.dispose(); session.dispose(); }
+}
+
+async function captureGame3D(document: GameDocument3D, options: CaptureOptions): Promise<void> {
+  const ticks = nonnegativeInteger(options.ticks, "ticks");
+  if (ticks === 0) { throw new Error("ticks must be at least 1 for capture"); }
+  const seed = nonnegativeInteger(options.seed, "seed");
+  const scale = Number(options.scale);
+  if (!Number.isFinite(scale) || scale <= 0 || scale > 4) { throw new Error("3D capture scale must be greater than 0 and at most 4"); }
+  if (options.backend !== "webgl2") { throw new Error("3D capture backend must be webgl2"); }
+  const inputs = await readInputs(options.inputs, gameInputFrame3D);
+  const session = await createGameSession3D(document, seed, undefined, sessionAssetOptions3D(options.assetsDir));
+  try {
+    for (let tick = 0; tick < ticks; tick++) { session.step(inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] })); }
+    const frame = session.frame();
+    const stateHash = await hashGameSnapshot3D(session.snapshot());
+    const { captureGameFrame3D } = await import("@nodetool-ai/game-renderer/node3d");
+    const captured = await captureGameFrame3D(frame, { stateHash, interpolation: 1,
+      width: Math.round(document.presentation.hudWidth * scale), height: Math.round(document.presentation.hudHeight * scale),
+      resolveAsset: async (slot) => {
+        const binding = document.assets[slot];
+        const asset = binding ? await readBuildAsset(options.assetsDir, binding.assetId) : null;
+        return asset ? { bytes: asset.bytes, digest: binding.digest } : null;
+      } });
+    const path = resolve(options.out);
+    await writeFile(path, captured.png);
+    const report = { dimension: "3d", path, tick: frame.tick, bytes: captured.png.byteLength, state_hash: stateHash,
+      capabilities: captured.capabilities, stats: captured.stats, projected_bounds: captured.projectedBounds, diagnostics: [] };
+    process.stdout.write(options.json ? `${JSON.stringify(report)}\n` : `Captured tick ${report.tick} to ${report.path}\n`);
+  } finally { session.dispose(); }
+}

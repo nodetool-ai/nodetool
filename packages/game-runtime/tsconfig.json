@@ -1,6 +1,17 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "outDir": "dist", "rootDir": "src" },
-  "include": ["src"],
-  "references": [{ "path": "../protocol" }]
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../protocol"
+    }
+  ]
 }

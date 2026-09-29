@@ -18,7 +18,7 @@ export const gameModelResult = z.object({ ref: z.object({ provider: z.string().o
 
 export async function readGameAssetInput(run: CapabilityRun, gameWorkspace: Workspace, input: string): Promise<Uint8Array | null> {
   if (input.startsWith("asset://")) {
-    const id = input.slice("asset://".length).replace(/\.(png|jpe?g|webp|wav|ogg|mp3|ttf|otf)$/i, "");
+    const id = input.slice("asset://".length).replace(/\.(png|jpe?g|webp|wav|ogg|mp3|ttf|otf|glb|gltf|json)$/i, "");
     const owner = run.context.userId;
     const asset = owner ? await Asset.find(owner, id) : null;
     return asset ? (await run.context.resolveAssetBytes(`asset://${asset.id}`)).bytes : null;

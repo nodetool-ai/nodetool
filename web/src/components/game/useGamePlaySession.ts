@@ -4,7 +4,7 @@ import { gameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, type GameSession } from "@nodetool-ai/game-runtime";
 import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { GameAudioPlayer } from "@nodetool-ai/game-renderer/audio";
-import type { GameRenderer } from "@nodetool-ai/game-renderer";
+import { FixedTickClock, type GameRenderer } from "@nodetool-ai/game-renderer";
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
@@ -252,21 +252,12 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   useEffect(() => {
     if (!active || !playing || !sessionDocument) return;
     let request = 0;
-    let previous = 0;
-    let accumulator = 0;
-    const tickDuration = 1000 / sessionDocument.tickRate;
+    const clock = new FixedTickClock(sessionDocument.tickRate);
     const animate = (now: number) => {
-      if (!previous) previous = now;
-      accumulator += Math.min(now - previous, 250);
-      previous = now;
-      let steps = 0;
-      while (accumulator >= tickDuration && steps < 5) {
+      clock.advance(now, () => {
         step(gameInputFrame(keysRef.current, newlyPressedRef.current, sessionDocument));
         newlyPressedRef.current.clear();
-        accumulator -= tickDuration;
-        steps += 1;
-      }
-      if (steps === 5) accumulator = 0;
+      });
       request = requestAnimationFrame(animate);
     };
     request = requestAnimationFrame(animate);

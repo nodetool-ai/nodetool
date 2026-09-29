@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { GameEntity } from "@nodetool-ai/protocol/game.js";
-import { createScriptedGameSession, validateGame, type GameDocumentOp, type GameSession } from "@nodetool-ai/game-runtime";
+import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as GameDocumentOp, type GameSession } from "@nodetool-ai/game-runtime";
 
 import { trpc, trpcClient } from "../../trpc/client";
 import { useChatDraftStore } from "../../stores/ChatDraftStore";
@@ -10,8 +10,8 @@ import { useConflictStore } from "../../stores/ConflictStore";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
-import { diffGameDocuments } from "../../stores/game/diffGameDocuments";
-import { acceptServerGameUnit, gameMergeAdapter } from "../../stores/game/merge";
+import { diffAnyGameDocuments as diffGameDocuments } from "../../stores/game/diffAnyGameDocuments";
+import { acceptServerAnyGameUnit as acceptServerGameUnit, anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, EditorUiProvider, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, LoadingSpinner, MobileBottomSheet, ResizableDock, SPACING, Text, TextInput } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
@@ -31,12 +31,12 @@ interface GameEditorProps {
   active: boolean;
 }
 
-const GameEditor = ({ refId, active }: GameEditorProps) => {
+const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const { data, isPending, error: loadError } = trpc.games.getDraft.useQuery({ id: refId }, { staleTime: 15_000 });
   const { data: revisions } = trpc.games.revisions.useQuery({ id: refId }, { staleTime: 15_000 });
   const { data: changeEntries } = trpc.games.draftChanges.useQuery({ id: refId }, { staleTime: 5_000 });
   const queries = trpc.useUtils();
-  const document = useGameDraft(refId, (state) => state.document);
+  const document = useGameDraft(refId, (state) => state.document?.schemaVersion === 3 ? null : state.document);
   const selectedIds = useGameDraft(refId, (state) => state.selectedIds);
   const saveStatus = useGameDraft(refId, (state) => state.saveStatus);
   const draftError = useGameDraft(refId, (state) => state.error);
@@ -107,7 +107,7 @@ const GameEditor = ({ refId, active }: GameEditorProps) => {
       if (!state.document || !state.savedDocument || state.pendingOps.length === 0) {
         state.load(server.document, server.game.draftUpdatedAt);
       } else {
-        const merged = mergeByUnits(state.savedDocument, state.document, server.document, gameMergeAdapter,
+        const merged = mergeByUnits(state.savedDocument, state.document, server.document, gameMergeAdapter(server.document),
           { mergeWithoutOps: true });
         state.applyMerged(merged.doc, server.document, server.game.draftUpdatedAt);
         useConflictStore.getState().addConflicts(`game:${refId}`, merged.conflicts, {
@@ -156,7 +156,7 @@ const GameEditor = ({ refId, active }: GameEditorProps) => {
             const server = await trpcClient.games.getDraft.query({ id: refId });
             const latest = store.getState();
             if (server.game.draftUpdatedAt !== latest.baseUpdatedAt && latest.document && latest.savedDocument) {
-              const merged = mergeByUnits(latest.savedDocument, latest.document, server.document, gameMergeAdapter,
+              const merged = mergeByUnits(latest.savedDocument, latest.document, server.document, gameMergeAdapter(server.document),
                 { mergeWithoutOps: true });
               latest.applyMerged(merged.doc, server.document, server.game.draftUpdatedAt);
               loadedTokenRef.current = server.game.draftUpdatedAt;
@@ -475,4 +475,11 @@ const GameEditor = ({ refId, active }: GameEditorProps) => {
   );
 };
 
-export default GameEditor;
+const Editor3D = lazy(() => import("./GameEditor3D"));
+
+export default function GameEditor(props: GameEditorProps) {
+  const { data } = trpc.games.getDraft.useQuery({ id: props.refId }, { staleTime: 15_000 });
+  return data?.document.schemaVersion === 3
+    ? <Suspense fallback={<LoadingSpinner text="Loading 3D editor" />}><Editor3D {...props} /></Suspense>
+    : <LegacyGameEditor {...props} />;
+}

@@ -50,8 +50,11 @@ nodetool secrets get OPENAI_API_KEY
 # Settings and MCP
 nodetool settings show
 nodetool mcp install                # Register the MCP server for Claude Code, Codex, OpenCode
-nodetool mcp status
+nodetool mcp status --check         # Start each registered server and list its tools
+nodetool mcp config                 # Print an mcpServers block for any other client
 ```
+
+See [NodeTool as an MCP Server](https://docs.nodetool.ai/mcp-server).
 
 The `workflows`, `jobs`, `assets`, and `models` read commands hit the local database, providers, and caches by default. Pass `--api-url <url>` (env `NODETOOL_API_URL`) to query a remote server instead, and `--json` for machine-readable output.
 

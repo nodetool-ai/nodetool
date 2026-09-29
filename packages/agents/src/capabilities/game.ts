@@ -3,12 +3,13 @@ import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
 import { AmbiguousGameIdError, Asset, Game, Prediction, Project, Workspace } from "@nodetool-ai/models";
-import { gameAssetBinding, gameDocument, gameInputFrame, shortResourceId, type GameDocument, type GameInputFrame, type GameRenderFrame } from "@nodetool-ai/protocol";
-import { autoplayNativeGame, MAX_GAME_ROUTE_TICKS, createScriptedGameSession, createTopDownRoomGame, validateGame, gameDocumentOp, GameOpError, type GameAutoplayOptions } from "@nodetool-ai/game-runtime";
+import { anyGameAssetBinding as gameAssetBinding, gameAssetBinding as legacyAssetBinding, gameAssetBinding3D, anyGameDocument as gameDocument, gameInputFrame, shortResourceId, type AnyGameDocument as GameDocument, type GameDocument as LegacyGameDocument, type GameDocument3D, type GameInputFrame, type GameRenderFrame } from "@nodetool-ai/protocol";
+import { autoplayNativeGame, MAX_GAME_ROUTE_TICKS, createScriptedGameSession, createTopDownRoomGame, createNative3DGame, decodePreparedGameCollider3D, validateAnyGame, anyGameDocumentOp as gameDocumentOp, GameOpError, type GameAutoplayOptions } from "@nodetool-ai/game-runtime";
 import { workspaceFromRow } from "@nodetool-ai/execution/service";
 import { assetKeyCandidates, assetObjectKey } from "@nodetool-ai/storage";
 import type { Workspace as RunWorkspace } from "@nodetool-ai/runtime";
 import type { CapabilityExport, CapabilityModule, CapabilityRun } from "./types.js";
+import { gameOutline3D, inputFrames3D, playtestGame3D, captureFrames3D, colliderBinding3D, stageModelGameAsset3D } from "./game3d.js";
 import { gameSpecs } from "./game.specs.js";
 import { persistOutput } from "../tools/asset-persist.js";
 import { getExampleGameBundle, installExampleGameAssets, listExampleGames } from "../game-examples.js";
@@ -28,7 +29,9 @@ const MEDIA_EXTENSIONS: Readonly<Record<string, string>> = {
   "audio/ogg": "ogg",
   "audio/mpeg": "mp3",
   "font/ttf": "ttf",
-  "font/otf": "otf"
+  "font/otf": "otf",
+  "model/gltf-binary": "glb",
+  "application/json": "json"
 };
 
 function userId(run: CapabilityRun): string | null {
@@ -108,6 +111,7 @@ async function readSource(workspace: RunWorkspace, game: Game, source: unknown, 
 }
 
 function outline(document: GameDocument): Record<string, unknown> {
+  if (document.schemaVersion === 3) { return gameOutline3D(document); }
   return {
     settings: {
       schemaVersion: document.schemaVersion,
@@ -166,7 +170,7 @@ function captureTicks(value: unknown, fallback: number[]): number[] | { error: s
   return [...new Set(ticks)].sort((a, b) => a - b);
 }
 
-async function captureFrames(run: CapabilityRun, user: string, document: GameDocument, ticks: readonly number[], inputs: readonly GameInputFrame[], seed: number, options: { camera?: unknown; scale?: unknown; sheet?: unknown; overlays?: unknown; deadlineAt?: number }): Promise<unknown> {
+async function captureFrames(run: CapabilityRun, user: string, document: LegacyGameDocument, ticks: readonly number[], inputs: readonly GameInputFrame[], seed: number, options: { camera?: unknown; scale?: unknown; sheet?: unknown; overlays?: unknown; deadlineAt?: number }): Promise<unknown> {
   const started = Date.now();
   const deadlineAt = options.deadlineAt ?? started + 15_000;
   let cancelled = false;
@@ -305,8 +309,8 @@ async function captureFrames(run: CapabilityRun, user: string, document: GameDoc
 function validateSource(source: unknown, gameId: string, revision: string): GameDocument | { error: string } {
   const parsed = gameDocument.safeParse(source);
   if (!parsed.success) return { error: parsed.error.message };
-  const result = validateGame({ ...parsed.data, id: gameId, revision });
-  return result.document ?? { error: result.errors.join("; ") };
+  const result = validateAnyGame({ ...parsed.data, id: gameId, revision });
+  return result.valid ? result.document : { error: result.diagnostics.map((issue) => `${issue.code} ${issue.path.join(".")}: ${issue.message}`).join("; ") };
 }
 
 function summary(game: Game): Record<string, string> {
@@ -327,6 +331,7 @@ async function publish(user: string, game: Game, baseRevision: string, source: u
   if (!workspace) return { error: "Game workspace is unavailable" };
   const draft = await Game.readDraft(user, game.id, workspace);
   if (!draft) return { error: "Game draft not found" };
+  if ((document.schemaVersion === 3) !== (draft.document.schemaVersion === 3)) { return { error: "A game cannot change dimension" }; }
   await workspace.write(revisionPath(game, revision), JSON.stringify(document), "application/json");
   const updated = await Game.publish(user, game.id, baseRevision, revision, draft.game.draft_updated_at, workspace, message);
   if (!updated) return { error: "Game was modified concurrently" };
@@ -344,7 +349,11 @@ const create: CapabilityExport = {
     if (!user || typeof projectId !== "string" || typeof name !== "string" || !name.trim()) {
       return { error: "project_id and name are required in a user session" };
     }
-    const created = await createNativeGame(user, projectId, name.trim());
+    const dimension = args["dimension"];
+    if (dimension !== undefined && dimension !== "2d" && dimension !== "3d") { return { error: "dimension must be 2d or 3d" }; }
+    if (args["template"] !== undefined && args["template"] !== "exploration" && args["template"] !== "topdown") { return { error: "Unknown native game template" }; }
+    if (args["template"] !== undefined && args["template"] !== (dimension === "3d" ? "exploration" : "topdown")) { return { error: "Template does not match the requested dimension" }; }
+    const created = await createNativeGame(user, projectId, name.trim(), undefined, dimension ?? "2d");
     return "error" in created
       ? created
       : { game: summary(created.game), document: created.document };
@@ -352,7 +361,10 @@ const create: CapabilityExport = {
 };
 
 /** Shared by explicit game creation and the guided asset workflow builder. */
-export async function createNativeGame(user: string, projectId: string, name: string, source?: GameDocument): Promise<{ game: Game; document: GameDocument } | { error: string }> {
+export function createNativeGame(user: string, projectId: string, name: string, source?: LegacyGameDocument): Promise<{ game: Game; document: LegacyGameDocument } | { error: string }>;
+export function createNativeGame(user: string, projectId: string, name: string, source: GameDocument3D | undefined, dimension: "3d"): Promise<{ game: Game; document: GameDocument3D } | { error: string }>;
+export function createNativeGame(user: string, projectId: string, name: string, source: GameDocument | undefined, dimension: "2d" | "3d"): Promise<{ game: Game; document: GameDocument } | { error: string }>;
+export async function createNativeGame(user: string, projectId: string, name: string, source?: GameDocument, dimension: "2d" | "3d" = "2d"): Promise<{ game: Game; document: GameDocument } | { error: string }> {
     const project = await Project.findOwned(user, projectId);
     if (!project) return { error: "Project not found" };
     const workspaceRow = await projectWorkspace(user, project.id);
@@ -360,8 +372,9 @@ export async function createNativeGame(user: string, projectId: string, name: st
     if (!workspace || !workspaceRow) return { error: "Project workspace is unavailable" };
     const id = randomUUID().replace(/-/g, "");
     const revision = randomUUID().replace(/-/g, "");
-    const document = validateSource(source ?? { ...createTopDownRoomGame(id), schemaVersion: 2 }, id, revision);
+    const document = validateSource(source ?? (dimension === "3d" ? createNative3DGame(id) : { ...createTopDownRoomGame(id), schemaVersion: 2 }), id, revision);
     if ("error" in document) return document;
+    if (source && ((document.schemaVersion === 3) !== (dimension === "3d"))) { return { error: "Supplied document does not match the requested dimension" }; }
     const game = new Game({
       id,
       user_id: user,
@@ -483,7 +496,9 @@ const install: CapabilityExport = {
       if (!resolved) return { error: "Candidate workspace is unavailable" };
       candidateWorkspace = resolved;
     }
-    const formats = parsed.data.mediaKind === "audio"
+    const formats = parsed.data.mediaKind === "model" ? [["glb", "model/gltf-binary"]]
+      : parsed.data.mediaKind === "collider" ? [["json", "application/json"]]
+      : parsed.data.mediaKind === "audio"
       ? [["wav", "audio/wav"], ["mp3", "audio/mpeg"], ["ogg", "audio/ogg"]]
       : parsed.data.mediaKind === "font"
         ? [[parsed.data.fontFormat, `font/${parsed.data.fontFormat}`]]
@@ -503,6 +518,27 @@ const install: CapabilityExport = {
     const draft = await Game.readDraft(user, game.id, workspace);
     if (!draft) return { error: "Game draft is missing" };
     const expectedUpdatedAt = typeof args["base_updated_at"] === "string" ? args["base_updated_at"] : draft.game.draft_updated_at;
+    let binding = parsed.data;
+    try {
+      if (binding.mediaKind === "model") {
+        const { prepareGameModelBinding3D } = await import("@nodetool-ai/game-renderer/preparation3d");
+        const prepared = await prepareGameModelBinding3D(bytes, { assetId: binding.assetId, expectedDigest: binding.digest, signal: run.context.signal });
+        if (!prepared.ok) { return { error: "Model preparation failed", diagnostics: prepared.diagnostics }; }
+        const sourceAsset = binding.sourceAssetId ? await Asset.find(user, binding.sourceAssetId) : null;
+        if (binding.sourceAssetId && !sourceAsset) { return { error: "Model source asset is not owned" }; }
+        const canonical = { ...prepared.binding, required: binding.required };
+        if (binding.provenance) { canonical.provenance = binding.provenance; }
+        if (binding.importSettings) { canonical.importSettings = binding.importSettings; }
+        if (binding.sourceDigest) { canonical.sourceDigest = binding.sourceDigest; }
+        if (sourceAsset) { canonical.sourceAssetId = sourceAsset.id; }
+        binding = canonical;
+      } else if (binding.mediaKind === "collider") {
+        binding = colliderBinding3D(bytes, binding);
+        await decodePreparedGameCollider3D(bytes, gameAssetBinding3D.options[1].parse(binding));
+      }
+    } catch (error) { return { error: error instanceof Error ? error.message : String(error) }; }
+    const targetBinding = draft.document.schemaVersion === 3 ? gameAssetBinding3D.safeParse(binding) : legacyAssetBinding.safeParse(binding);
+    if (!targetBinding.success) { return { error: "Asset binding does not match the game dimension" }; }
     const storage = run.context.assetStorage;
     if (!storage) return { error: "Asset storage is unavailable" };
     if (candidateWorkspace !== workspace) await workspace.write(path, bytes, contentType);
@@ -522,7 +558,8 @@ const install: CapabilityExport = {
       uri = await storage.store(key, bytes, contentType);
       let result: unknown;
       try {
-        const updated = await Game.updateDraft(user, game.id, expectedUpdatedAt, [{ op: "bind_asset", slot, binding: { ...parsed.data, assetId: installed.id } }], workspace, { actor: "agent", threadId: run.context.threadId ?? undefined, messageId: run.context.get?.<string>("chat_message_id") ?? undefined });
+        const op = gameDocumentOp.parse({ op: "bind_asset", slot, binding: { ...targetBinding.data, assetId: installed.id } });
+        const updated = await Game.updateDraft(user, game.id, expectedUpdatedAt, [op], workspace, { actor: "agent", threadId: run.context.threadId ?? undefined, messageId: run.context.get?.<string>("chat_message_id") ?? undefined });
         result = updated ? { game: summary(updated.game), draft_updated_at: updated.game.draft_updated_at, document: updated.document } : { error: "Game draft was modified concurrently" };
       } catch (error) {
         if (error instanceof GameOpError) result = { error: error.message, op_index: error.opIndex, path: error.path };
@@ -553,6 +590,10 @@ const playtest: CapabilityExport = {
     if (!workspace) return { error: "Game workspace is unavailable" };
     const document = await readSource(workspace, game, args["source"], args["revision"]);
     if (!document) return { error: "Game source not found" };
+    if (document.schemaVersion === 3) {
+      try { return await playtestGame3D(run, user, document, args); }
+      catch (error) { run.context.signal?.throwIfAborted(); return { error: error instanceof Error ? error.message : String(error), code: "game3d_preparation_failed" }; }
+    }
     const captures = captureTicks(args["capture_ticks"], []);
     if ("error" in captures) return captures;
     const assertions = Array.isArray(args["assertions"]) ? args["assertions"] : [];
@@ -665,6 +706,13 @@ const capture: CapabilityExport = {
     if (!document) return { error: "Game source not found" };
     const ticks = captureTicks(args["ticks"], [0]);
     if ("error" in ticks) return ticks;
+    if (document.schemaVersion === 3) {
+      const inputs = inputFrames3D(args["inputs"], Math.max(0, ...ticks));
+      if ("error" in inputs) { return inputs; }
+      const seed = typeof args["seed"] === "number" && Number.isSafeInteger(args["seed"]) ? args["seed"] : 1;
+      try { return await captureFrames3D(run, user, document, ticks, inputs, seed, args); }
+      catch (error) { run.context.signal?.throwIfAborted(); return { error: error instanceof Error ? error.message : String(error), code: "game3d_capture_failed" }; }
+    }
     const inputs = inputFrames(args["inputs"], Math.max(0, ...ticks));
     if ("error" in inputs) return inputs;
     const seed = typeof args["seed"] === "number" && Number.isSafeInteger(args["seed"]) ? args["seed"] : 1;
@@ -687,7 +735,7 @@ const generateAsset: CapabilityExport = {
     const kind = args["kind"];
     const prompt = args["prompt"];
     const inputFile = args["input_file"];
-    if (!user || typeof id !== "string" || typeof slot !== "string" || !slot || !["image", "audio", "music", "sfx", "font"].includes(String(kind))) {
+    if (!user || typeof id !== "string" || typeof slot !== "string" || !slot || !["image", "audio", "music", "sfx", "font", "model", "collider"].includes(String(kind))) {
       return { error: "game_id, slot, and kind are required" };
     }
     if (inputFile !== undefined && (typeof inputFile !== "string" || !inputFile.trim())) { return { error: "input_file must be a nonempty string" }; }
@@ -697,6 +745,12 @@ const generateAsset: CapabilityExport = {
     if (!workspace) { return { error: "Game workspace is unavailable" }; }
     const draft = await Game.readDraft(user, game.id, workspace);
     if (!draft) { return { error: "Game draft not found" }; }
+    if (kind === "model" || kind === "collider") {
+      if (draft.document.schemaVersion !== 3) { return { error: "Model and collider assets require a 3D game" }; }
+      try { return await stageModelGameAsset3D(run, game, workspace, draft.document, args); }
+      catch (error) { run.context.signal?.throwIfAborted(); return { error: error instanceof Error ? error.message : String(error) }; }
+    }
+    if (draft.document.schemaVersion === 3 && kind === "image") { return { error: "3D games use model assets with embedded textures" }; }
     const reference = typeof args["reference_slot"] === "string" ? draft.document.assets[args["reference_slot"]] : undefined;
     if (args["reference_slot"] !== undefined && !reference) { return { error: "reference_slot is not bound" }; }
     if (reference && kind !== "image") { return { error: "reference_slot requires kind image" }; }
@@ -708,7 +762,7 @@ const generateAsset: CapabilityExport = {
     let provider = args["provider"];
     let model = args["model"];
     let generated: { error?: string; asset_uri?: string; path?: string; generation_id?: string; mime_type?: string; background?: boolean } = {};
-    let sourceBytes: Uint8Array | null = null;
+    let sourceBytes: Uint8Array | null;
     const makeLut = settings?.success && settings.data.lut !== undefined;
     if (makeLut && (inputFile !== undefined || reference || args["generation_id"] !== undefined)) {
       return { error: "LUT preparation creates a color cube directly and cannot use input_file, reference_slot or generation_id" };
@@ -783,7 +837,7 @@ const generateAsset: CapabilityExport = {
     let height = 1;
     const previous = draft.document.assets[slot];
     const binding: Record<string, unknown> = {
-      width, height, pivot: previous?.pivot ?? { x: 0.5, y: 0.5 }, sampling: previous?.sampling ?? "nearest"
+      width, height, pivot: previous && "pivot" in previous ? previous.pivot : { x: 0.5, y: 0.5 }, sampling: previous && "sampling" in previous ? previous.sampling : "nearest"
     };
     let frames: readonly { readonly x: number; readonly y: number; readonly width: number; readonly height: number }[] | undefined;
     let tiles: readonly { readonly mask: number; readonly frame: { readonly x: number; readonly y: number; readonly width: number; readonly height: number } }[] | undefined;
@@ -840,6 +894,13 @@ const generateAsset: CapabilityExport = {
     binding.height = height;
     if (draft.document.schemaVersion === 2) { binding.provenance = typeof inputFile === "string" ? `import:${inputFile}`
       : makeLut ? "generated:color-cube" : kind === "sfx" ? `node:${args["node_type"]}` : `${provider}:${model}:${generated.generation_id ?? ""}`; }
+    if (draft.document.schemaVersion === 3) {
+      delete binding.width; delete binding.height; delete binding.pivot; delete binding.sampling;
+      const parsedBinding = gameAssetBinding3D.safeParse(binding);
+      if (!parsedBinding.success) { return { error: "Invalid 3D asset binding", diagnostics: parsedBinding.error.issues }; }
+      return { game_id: shortResourceId(game.id), slot, binding: parsedBinding.data, candidate_workspace_id: game.workspace_id,
+        draft_updated_at: draft.game.draft_updated_at, installed: false, next: "Call install_native_game_asset with this binding to install the candidate." };
+    }
     const installed = await install.impl(run, { game_id: game.id, slot, binding, base_updated_at: draft.game.draft_updated_at });
     if (typeof installed !== "object" || installed === null) { return { generation_id: generated.generation_id, result: installed }; }
     const extras: Record<string, unknown> = {};
@@ -923,8 +984,13 @@ const buildGame: CapabilityExport = {
     const scratch = await workspace.scratchDir();
     const staging = await mkdtemp(join(scratch, ".native-game-build-"));
     try {
-      const { buildStandaloneGame } = await import("@nodetool-ai/game-renderer/build");
-      await buildStandaloneGame({ document, outputDir: join(staging, "player"), resolveAsset });
+      if (document.schemaVersion === 3) {
+        const { buildStandaloneGame3D } = await import("@nodetool-ai/game-renderer/build3d");
+        await buildStandaloneGame3D({ document, outputDir: join(staging, "player"), resolveAsset, signal: run.context.signal });
+      } else {
+        const { buildStandaloneGame } = await import("@nodetool-ai/game-renderer/build");
+        await buildStandaloneGame({ document, outputDir: join(staging, "player"), resolveAsset });
+      }
       const files: Array<{ path: string; bytes: Uint8Array }> = [];
       const pending = [""];
       let totalBytes = 0;
@@ -959,6 +1025,8 @@ const buildGame: CapabilityExport = {
           : file.path.endsWith(".mp3") ? "audio/mpeg"
           : file.path.endsWith(".ttf") ? "font/ttf"
           : file.path.endsWith(".otf") ? "font/otf"
+          : file.path.endsWith(".glb") ? "model/gltf-binary"
+          : file.path.endsWith(".wasm") ? "application/wasm"
           : "application/octet-stream";
         await workspace.write(`${buildPath}/${file.path}`, file.bytes, contentType);
       }
@@ -1046,6 +1114,7 @@ const autoplay: CapabilityExport = {
     if (!workspace) return { error: "Game workspace is unavailable" };
     const document = await readSource(workspace, game, args["source"], args["revision"]);
     if (!document) return { error: "Game source not found" };
+    if (document.schemaVersion === 3) { return { status: "unsupported", dimension: "3d", code: "autoplay_3d_unsupported", message: "Use playtest_native_game with a recorded 3D route" }; }
     const targetPrefix = args["target_prefix"];
     const playerId = args["player_id"];
     const win = args["win"];

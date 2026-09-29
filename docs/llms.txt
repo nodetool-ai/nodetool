@@ -94,6 +94,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [CLI Overview]({{ site.url }}/cli): `nodetool` command reference.
 - [Chat CLI]({{ site.url }}/chat-cli): Interactive chat with agent mode.
 - [Agent CLI]({{ site.url }}/agent-cli): Run agent configs from the terminal.
+- [MCP Server]({{ site.url }}/mcp-server): Use NodeTool from Claude Code, Codex, OpenCode, or any MCP client.
 - [Chat Server]({{ site.url }}/chat-server): Serve the OpenAI-compatible chat API via `nodetool serve`.
 - [API Server]({{ site.url }}/api-server): REST + WebSocket API server.
 

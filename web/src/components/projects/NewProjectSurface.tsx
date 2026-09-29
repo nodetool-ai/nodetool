@@ -26,7 +26,7 @@ import {
   type Entity,
   type ProductionReferenceBinding
 } from "@nodetool-ai/protocol";
-import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
+import { createTopDownRoomGame, createNative3DGame } from "@nodetool-ai/game-runtime";
 
 import {
   BORDER_RADIUS,
@@ -39,6 +39,7 @@ import {
   FlexColumn,
   FlexRow,
   Label,
+  InspectorSelect,
   MenuItemPrimitive,
   Popover,
   ResponsiveImage,
@@ -374,6 +375,7 @@ const NewProjectSurface = ({
   initialSetupTarget
 }: NewProjectSurfaceProps) => {
   const [prompt, setPrompt] = useState("");
+  const [gameDimension, setGameDimension] = useState<"2d" | "3d">("2d");
   // The starter row folds past `VISIBLE_STARTERS` until asked to show the rest.
   const [showAllStarters, setShowAllStarters] = useState(false);
   const [entityIds, setEntityIds] = useState<string[]>([]);
@@ -1107,7 +1109,8 @@ const NewProjectSurface = ({
         const created = await trpcClient.games.create.mutate({
           projectId,
           name,
-          document: createTopDownRoomGame(newDocumentId())
+          dimension: gameDimension,
+          document: gameDimension === "3d" ? createNative3DGame(newDocumentId()) : createTopDownRoomGame(newDocumentId())
         });
         noteUncarriedContext("game", {
           entities: false,
@@ -1131,6 +1134,7 @@ const NewProjectSurface = ({
     [
       closeTab,
       flowRef,
+      gameDimension,
       noteUncarriedContext,
       openTab,
       prompt,
@@ -1624,7 +1628,11 @@ const NewProjectSurface = ({
               "& img": { opacity: 0.6 }
             }}
           >
-            <Caption color="muted">Start with a guided flow</Caption>
+            <FlexRow gap={SPACING.sm} align="center">
+              <Caption color="muted">Start with a guided flow</Caption>
+              <InspectorSelect label="Game dimension" value={gameDimension} options={[{ value: "2d", label: "2D game" }, { value: "3d", label: "3D exploration" }]}
+                onChange={(value) => { if (value === "2d" || value === "3d") { setGameDimension(value); } }} />
+            </FlexRow>
             <OptionCardGrid
               label="Guided creation flows"
               options={entryOptions}

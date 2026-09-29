@@ -34,6 +34,7 @@ describe("cli settings and provider helpers", () => {
       "DASHSCOPE_API_KEY",
       "TOGETHER_API_KEY",
       "OPENROUTER_API_KEY",
+      "REQUESTY_API_KEY",
       "HF_TOKEN",
       "REPLICATE_API_TOKEN",
       "KIE_API_KEY",

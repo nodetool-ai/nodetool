@@ -120,7 +120,10 @@ const GAME_FLOW_SUITES =
   "npm run test --workspace=packages/game-nodes && " +
   "npm run test --workspace=packages/game-runtime && " +
   "npm run test --workspace=packages/game-renderer && " +
-  "npm run test --workspace=packages/websocket -- trpc-games";
+  "npm run test --workspace=packages/websocket -- trpc-games && " +
+  "npm run test --workspace=packages/agents -- game && " +
+  "npm run test --workspace=packages/cli -- game-command && " +
+  "npm run test --workspace=web -- src/stores/game src/components/game";
 
 /**
  * Durable generation recovery without a provider call. These suites exercise
@@ -1140,6 +1143,9 @@ export const SURFACES: SurfaceEntry[] = [
     title: "Native game creation and editing",
     harnesses: ["game-flow", "capability-suites", "validate"],
     paths: [
+      "packages/cli/src/commands/game.ts",
+      "packages/protocol/src/game.ts",
+      "packages/protocol/src/game3d.ts",
       "packages/protocol/src/game-design.ts",
       "packages/protocol/src/game-graph.ts",
       "packages/protocol/src/game-flow-prompt.ts",
@@ -1152,6 +1158,9 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/base-nodes/tests/game-graph-chips.test.ts",
       "packages/websocket/src/trpc/routers/games.ts",
       "packages/websocket/src/lib/style-presets.ts",
+      "web/src/components/game/",
+      "web/src/stores/game/",
+      "web/tests/journeys/native-game3d-editor.spec.ts",
       "web/src/components/workspace/GameSurface.tsx",
       "web/src/components/projects/NewProjectSurface.tsx"
     ]
@@ -1427,7 +1436,9 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/audio-nodes/src/nodes/game.ts",
       "packages/game-nodes/src/nodes/game.ts",
       "packages/agents/src/capabilities/game.ts",
-      "packages/agents/src/capabilities/game.specs.ts"
+      "packages/agents/src/capabilities/game.specs.ts",
+      "packages/agents/src/capabilities/game3d.ts",
+      "packages/agents/src/capabilities/game-asset-source.ts"
     ]
   },
   {

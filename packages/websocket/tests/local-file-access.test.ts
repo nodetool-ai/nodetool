@@ -179,7 +179,7 @@ describe("resolveLocalPath", () => {
  */
 describe("resolveLocalPath with unrestricted roots", () => {
   it("refuses a file outside home under the default roots", async () => {
-    const outside = path.join(tmpDir, "projects", "playingTag.png");
+    const outside = path.join(path.parse(os.homedir()).root, path.basename(tmpDir), "projects", "playingTag.png");
     expect(await resolveLocalPath(outside, [os.homedir()])).toEqual({
       ok: false,
       reason: "outside_roots"

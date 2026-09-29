@@ -552,6 +552,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "The exported player fetches its fixed relative game.json and only asset paths under ./assets/ from its own static origin."
   },
   {
+    file: "packages/game-renderer/src/standalone-player3d.ts",
+    owner: "standalone 3D game player assets",
+    inputSource: "fixed",
+    schemes: ["relative"],
+    authScope: "the page's own cookies",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "browser",
+    guardedBy: [],
+    note: "The browser fetches fixed relative game.json and manifest.json plus digest-named ./assets/ paths validated against the closed manifest. Its connect-src self CSP constrains browser redirects to the static origin, and no server socket opens."
+  },
+  {
     file: "packages/game-renderer/src/audio.ts",
     owner: "browser game audio assets",
     inputSource: "workflow",

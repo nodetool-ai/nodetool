@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/game-renderer",
   "version": "0.8.1",
-  "description": "Native 2D renderer for NodeTool games",
+  "description": "Native 2D and 3D rendering, capture and web export",
   "type": "module",
   "engines": {
     "node": ">=22.22.1 <23"
@@ -9,23 +9,29 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "build": "node ../../scripts/build-typescript-workspace.mjs && node scripts/bundle-game3d.mjs",
     "test": "node ../../scripts/run-vitest.mjs run",
     "test:watch": "node ../../scripts/run-vitest.mjs",
     "benchmark:effects": "node --conditions=nodetool-dev --import=tsx scripts/benchmark-effects.ts",
-    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit",
+    "verify:electron3d": "node --conditions=nodetool-dev --import=tsx scripts/verify-game3d-electron.ts"
   },
   "dependencies": {
     "@jitl/quickjs-ng-wasmfile-release-sync": "0.31.0",
     "@napi-rs/canvas": "^0.1.65",
-    "@nodetool-ai/gpu": "*",
     "@nodetool-ai/game-runtime": "*",
+    "@nodetool-ai/gpu": "*",
     "@nodetool-ai/protocol": "*",
     "esbuild": "^0.28.1",
-    "typegpu": "^0.11.6"
+    "three": "0.185.1",
+    "typegpu": "^0.11.6",
+    "zod": "^4.6.5",
+    "@nodetool-ai/config": "*",
+    "playwright": "1.60.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "@types/three": "0.185.0",
     "@webgpu/types": "^0.1.70",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^5.0.1"
@@ -55,8 +61,30 @@
       "nodetool-dev": "./src/build.ts",
       "types": "./dist/build.d.ts",
       "import": "./dist/build.js"
+    },
+    "./browser3d": {
+      "nodetool-dev": "./src/browser3d.ts",
+      "types": "./dist/browser3d.d.ts",
+      "import": "./dist/browser3d.js"
+    },
+    "./node3d": {
+      "nodetool-dev": "./src/node3d.ts",
+      "types": "./dist/node3d.d.ts",
+      "import": "./dist/node3d.js"
+    },
+    "./build3d": {
+      "nodetool-dev": "./src/build3d.ts",
+      "types": "./dist/build3d.d.ts",
+      "import": "./dist/build3d.js"
+    },
+    "./preparation3d": {
+      "nodetool-dev": "./src/preparation3d.ts",
+      "types": "./dist/preparation3d.d.ts",
+      "import": "./dist/preparation3d.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "license": "MIT"
 }

@@ -42,8 +42,9 @@ Chat flags:
 ```
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
                          moonshot, minimax, cerebras, meta, alibaba, together,
-                         openrouter, huggingface, replicate, kie, aki, ollama,
-                         lmstudio, claude_agent_sdk, codex, gmi, mlx, node_llama_cpp
+                         openrouter, requesty, huggingface, replicate, kie, aki,
+                         ollama, lmstudio, claude_agent_sdk, codex, gmi, mlx,
+                         node_llama_cpp
                          (any registry provider id also works, e.g. vllm, llama_cpp)
 -m, --model <id>         Model ID (e.g. claude-sonnet-5, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
@@ -1231,9 +1232,28 @@ path when the model is open in a browser.
 
 A built-in game has one mutable draft and immutable published revisions in a project workspace. The
 `@nodetool-ai/game-runtime` package validates and simulates it at a fixed tick
-rate. `@nodetool-ai/game-renderer` renders it through batched WebGPU quads or a
-Canvas 2D fallback, captures a headless PNG, and builds a standalone web player.
-The starter top-down room can run without generated media.
+rate. Legacy 2D uses WebGPU quads or Canvas 2D. Explicit schema version 3 games
+use Rapier WASM physics and Three.js WebGL2. Both starter templates run with
+placeholder geometry before media generation. Captures use the selected
+renderer and standalone builds include the runtime and verified media.
+
+`create_native_game {project_id, name, dimension: "3d"}` starts an exploration
+blockout. The editor provides orbit and fly cameras, picking, transform gizmos,
+snapping, diagnostic overlays, script editing and draft undo. Play pins a cloned
+draft. Later edits require restarting play. `playtest_native_game` accepts
+recorded analog `axes` and `look`, spatial and grounded assertions, and snapshot
+replay checks. `autoplay_native_game` returns an unsupported diagnostic for 3D.
+Use a recorded route to verify its completion.
+
+`generate_game_asset` imports owned GLB or glTF models and stages normalized GLB
+candidates. Dependencies must come from the owned workspace. Models and prepared
+colliders require explicit installation with the draft timestamp. Captures return
+committed simulation hashes and projected bounds. The renderer package's tests
+exercise skinning, shadows, context recovery, disposal and a closed-network
+standalone completion route. Desktop capture uses packaged Playwright. A server
+build without browser automation reports unavailable capture capability.
+See the [3D design](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/native-game-3d-upgrade.md) and
+[runtime contract](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/README.md).
 
 The `nodetool.game.*` nodes retain asset checks. `LoadGameTemplate` lists native
 asset slots. `SlotPrompt` prepares a request for one slot. `SpriteSheet`,

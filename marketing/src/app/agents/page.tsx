@@ -11,6 +11,7 @@ import MarketingFacts, {
 import MarketingHero from "../../components/MarketingHero";
 import MarketingPageShell from "../../components/MarketingPageShell";
 import ProductImage from "../../components/ProductImage";
+import McpInstallCommand from "../../components/agents/McpInstallCommand";
 
 const runFacts: MarketingFact[] = [
   {
@@ -54,6 +55,21 @@ const runStages = [
   },
 ];
 
+const mcpSteps = [
+  {
+    title: "Install",
+    body: "The command finds your agent harnesses, starts NodeTool once to check it, and writes each config. It needs Node.js 22.",
+  },
+  {
+    title: "Restart your agent",
+    body: "Ask it to use NodeTool, for example: \"List my NodeTool workflows.\"",
+  },
+  {
+    title: "Add provider keys",
+    body: "Generation calls your provider accounts. Store each key once with nodetool secrets store, for example FAL_API_KEY.",
+  },
+];
+
 const primaryButtonClass =
   "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition-colors hover:bg-blue-500 focus-ring";
 
@@ -76,9 +92,8 @@ export default function AgentsPage() {
         body="Build creative automation that produces editable workflows, apps, and projects. Inspect the execution, revise the work, and reuse the workflow for the next job. Agents work through NodeTool's tools, alongside the editors you use yourself."
         primaryAction={<AgentsPrimaryAction />}
         secondaryAction={{
-          href: "https://docs.nodetool.ai",
-          label: "Read agent docs",
-          external: true,
+          href: "#connect-agent",
+          label: "Use from Claude Code",
         }}
         trustLine="Open source · Local or remote models · MCP, CLI, and API entry points"
         headingId="agents-hero-title"
@@ -179,43 +194,71 @@ export default function AgentsPage() {
       <section
         id="connect-agent"
         aria-labelledby="connect-agent-title"
-        className="rhythm-section"
+        className="rhythm-section scroll-mt-28"
       >
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <header className="mb-10 max-w-3xl">
+        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-12 lg:gap-16 lg:px-8">
+          <header className="lg:col-span-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
-              MCP, CLI, and API
+              MCP server
             </p>
             <h2
               id="connect-agent-title"
               className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-5xl"
             >
-              Connect your own agent.
+              Use NodeTool from Claude Code.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-300">
-              External agents can enter through NodeTool&apos;s documented
-              interfaces and operate the same editor and workflow tools. The
-              transport does not create a second implementation.
+              One command registers NodeTool with Claude Code, Codex, and
+              OpenCode. Your agent gets workflows, image, video, and audio
+              generation, and your asset library as tools. Studio is optional.
             </p>
           </header>
+          <div className="min-w-0 lg:col-span-7">
+            <McpInstallCommand />
+            <ol className="mt-4 border-y border-slate-800">
+              {mcpSteps.map((step, index) => (
+                <li
+                  key={step.title}
+                  className="grid grid-cols-[2rem_1fr] gap-4 border-b border-slate-800 py-5 last:border-b-0"
+                >
+                  <span className="font-jetbrains text-sm text-blue-300">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <h3 className="font-semibold text-white">{step.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-300">
+                      {step.body}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-6 text-sm text-slate-300">
+              Cursor, Claude Desktop, or another MCP client: run{" "}
+              <code className="font-jetbrains text-slate-100">
+                nodetool mcp config
+              </code>{" "}
+              and paste the block it prints.{" "}
+              <a
+                href="https://docs.nodetool.ai/mcp-server"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-300 underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200 focus-ring"
+              >
+                Read the MCP setup guide
+              </a>
+            </p>
+          </div>
+        </div>
+        <div className="mx-auto mt-12 max-w-7xl px-6 lg:px-8">
           <ProductImage
             src="/diagrams/mcp-architecture.svg"
             alt="Architecture diagram showing MCP clients connecting to NodeTool tools and editors"
             width={1600}
             height={900}
-            caption="MCP clients connect through NodeTool's MCP server to the editor and workflow toolbelt. See the agent documentation for current setup and permission details."
+            caption="The MCP server exposes the same editor and workflow tools that the in-app agent uses. The transport does not create a second implementation."
             contain
           />
-          <p className="mt-6 text-sm text-slate-300">
-            <a
-              href="https://docs.nodetool.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-300 underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200 focus-ring"
-            >
-              Read the agent and MCP documentation
-            </a>
-          </p>
         </div>
       </section>
 

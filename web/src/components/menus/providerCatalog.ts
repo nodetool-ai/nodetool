@@ -465,6 +465,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://kie.ai/"
   },
   {
+    key: "REQUESTY_API_KEY",
+    providerId: PROVIDER_IDS.REQUESTY,
+    name: "Requesty",
+    description: "Access multiple AI models through one OpenAI-compatible router.",
+    section: "gateways",
+    docsUrl: "https://docs.requesty.ai"
+  },
+  {
     key: "SERPAPI_API_KEY",
     name: "SerpAPI",
     description: "Web search via SerpAPI.",

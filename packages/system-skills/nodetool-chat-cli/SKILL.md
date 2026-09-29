@@ -53,8 +53,8 @@ nodetool chat -u ws://localhost:7777/ws
 
 Providers: `anthropic`, `claude_agent_sdk`, `openai`, `codex`, `gemini`, `xai`,
 `groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `cerebras`, `alibaba`, `gmi`,
-`together`, `openrouter`, `huggingface`, `replicate`, `kie`, `aki`, `ollama`,
-`lmstudio`, `mlx`. Any other registered provider id (e.g. `vllm`) also works when
+`together`, `openrouter`, `requesty`, `huggingface`, `replicate`, `kie`, `aki`,
+`ollama`, `lmstudio`, `mlx`. Any other registered provider id (e.g. `vllm`) also works when
 passed explicitly.
 
 ## Slash Commands (prefix with `/`)

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { GameDocument } from "@nodetool-ai/protocol/game.js";
+import type { AnyGameDocument } from "@nodetool-ai/protocol";
 import type { GameValidationIssue } from "@nodetool-ai/game-runtime";
 
 import { Caption, Checkbox, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorSelect, InspectorToggleRow, InspectorValueInput, Label, SPACING, TextInput, TYPOGRAPHY } from "../../ui_primitives";
@@ -13,7 +13,7 @@ interface SchemaFieldsProps {
   path?: string;
   issuePath?: readonly (string | number)[];
   issues?: readonly GameValidationIssue[];
-  assets?: GameDocument["assets"];
+  assets?: AnyGameDocument["assets"];
   collisionLayers?: readonly string[];
 }
 
@@ -27,10 +27,12 @@ function fieldError(issues: readonly GameValidationIssue[], path: readonly (stri
   return issues.find((issue) => issue.path.length === path.length && issue.path.every((part, index) => part === path[index]))?.message;
 }
 
-function assetKind(path: string): "image" | "audio" | "font" | undefined {
+function assetKind(path: string): "image" | "audio" | "font" | "model" | "collider" | undefined {
   if (!path.endsWith("assetId") || path.startsWith("assets.")) return undefined;
   if (path.includes("music") || path.includes("audioSource")) return "audio";
   if (path.includes("font")) return "font";
+  if (path.includes("collider3d")) return "collider";
+  if (path.includes("model")) return "model";
   return "image";
 }
 
@@ -145,7 +147,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
           ? <CollapsibleSection key={key} title={fieldLabel(key)} compact sx={{ width: "100%", pt: SPACING.xs }}><FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>{field}{optional && <EditorButton onClick={() => {
             const copy = { ...record }; delete copy[key]; onChange(copy);
           }}>Remove {fieldLabel(key)}</EditorButton>}</FlexColumn></CollapsibleSection>
-          : <FlexColumn key={key} gap={SPACING.xs} sx={FIELD_WIDTH}>{field}{optional && <EditorButton sx={{ alignSelf: "flex-end" }} onClick={() => {
+          : <FlexColumn key={key} gap={SPACING.xs} sx={FIELD_WIDTH}>{field}{optional && <EditorButton aria-label={`Remove ${fieldLabel(key)}`} sx={{ alignSelf: "flex-end" }} onClick={() => {
             const copy = { ...record }; delete copy[key]; onChange(copy);
           }}>Remove</EditorButton>}</FlexColumn>;
       })}
@@ -181,11 +183,11 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
     </FlexColumn>;
   }
   const error = fieldError(issues, issuePath);
-  if ((path.endsWith("collider2d.category") || path.endsWith("collider2d.mask")) && typeof value === "number") {
+  if ((path.endsWith("collider2d.category") || path.endsWith("collider2d.mask") || path.endsWith("collider3d.category") || path.endsWith("collider3d.mask")) && typeof value === "number") {
     return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>
       <Label component="span" sx={{ mb: 0 }}>{path.endsWith("category") ? "Category" : "Mask"}</Label>
       <FlexRow gap={SPACING.xs} sx={{ flexWrap: "wrap" }}>
-        {Array.from({ length: 32 }, (_, bit) => <Checkbox key={bit} compact size="small" label={collisionLayers?.[bit] ?? String(bit + 1)}
+        {Array.from({ length: path.includes("collider3d") ? 16 : 32 }, (_, bit) => <Checkbox key={bit} compact size="small" label={collisionLayers?.[bit] ?? String(bit + 1)}
           checked={((value >>> bit) & 1) === 1} onChange={() => onChange(((value ^ (1 << bit)) >>> 0))}
           title={`Bit ${bit + 1}`} />)}
       </FlexRow>

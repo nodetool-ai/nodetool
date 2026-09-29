@@ -45,6 +45,7 @@
     "@nodetool-ai/execution": "*",
     "@nodetool-ai/fal-nodes": "*",
     "@nodetool-ai/game-runtime": "*",
+    "@nodetool-ai/game-renderer": "*",
     "@nodetool-ai/huggingface": "*",
     "@nodetool-ai/huggingface-nodes": "*",
     "@nodetool-ai/higgsfield-nodes": "*",
@@ -104,6 +105,12 @@
       "types": "./dist/lib/document-model-interfaces.d.ts",
       "import": "./dist/lib/document-model-interfaces.js",
       "default": "./dist/lib/document-model-interfaces.js"
+    },
+    "./mcp-client-config": {
+      "nodetool-dev": "./src/mcp-client-config.ts",
+      "types": "./dist/mcp-client-config.d.ts",
+      "import": "./dist/mcp-client-config.js",
+      "default": "./dist/mcp-client-config.js"
     }
   },
   "license": "MIT",
