@@ -637,7 +637,8 @@ await v.save(nodetool.timelines, { name: "Detach test" });
     // build. With no recorded hash to compare against it reads as an
     // unrelated hand-edited scene — kept, and reported as a conflict —
     // rather than silently overwritten, which is the whole point of
-    // detaching it.
+    // detaching it. The conflict records no hash, so the scene stays
+    // untracked after the rebake too.
     const rebaked = (await run.invoke("rebake_timeline_code", {
       timeline_id: set.timeline_id
     })) as {
@@ -645,7 +646,7 @@ await v.save(nodetool.timelines, { name: "Detach test" });
       scenes: Array<{ name: string; edited: boolean }>;
     };
     expect(rebaked.conflicts).toEqual([{ scene: "one", reason: "edited since the last bake" }]);
-    expect(rebaked.scenes).toEqual([{ name: "one", group_id: expect.any(String), edited: true }]);
+    expect(rebaked.scenes).toEqual([]);
 
     const untouched = await TimelineSequence.findById(set.timeline_id);
     const untouchedText = untouched!
