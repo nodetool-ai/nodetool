@@ -19,7 +19,10 @@
  *   a bake does not start a second bake.
  * - `bakeAudioAnimation` (`el.react()`) needs a real decode and is refused.
  *
- * Any other capability call fails the bake and names the call.
+ * Any other capability call fails the bake and names the call. The bake runs
+ * on a copy of the context with no workspace, and `applyOps` runs without
+ * the hooks that write (a 3D render, a retargeted sequence). A bake reads
+ * assets and runs custom animation bodies. It writes nothing.
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -61,14 +64,32 @@ const TIMELINE_STUB_METHODS = new Set([
 ]);
 
 /**
+ * `context` with every path to the run's workspace removed. The sandbox then
+ * gives the guest a `workspace` that refuses every call, and so does the
+ * sandbox a custom animation body runs in.
+ */
+export function hermeticBakeContext(context: ProcessingContext): ProcessingContext {
+  const refuse = (name: string) => () => {
+    throw new Error(`${name} is not available during a timeline code bake.`);
+  };
+  return Object.create(context, {
+    workspace: { value: null },
+    resolveWorkspacePath: { value: refuse("resolveWorkspacePath") },
+    assetToSandbox: { value: refuse("assetToSandbox") },
+    sandboxToAsset: { value: refuse("sandboxToAsset") }
+  }) as ProcessingContext;
+}
+
+/**
  * Run one timeline authoring script and return the document its `v.save()`
  * call wrote. Returns rather than throws: a script that fails is a result to
  * report to the caller (and, through it, the agent that wrote the code).
  */
 export async function bakeTimelineCode(
-  context: ProcessingContext,
+  hostContext: ProcessingContext,
   code: string
 ): Promise<BakeTimelineCodeResult> {
+  const context = hermeticBakeContext(hostContext);
   const started = Date.now();
   const fail = (error: string, logs: string[] = []): BakeTimelineCodeResult => ({
     ok: false,
@@ -252,7 +273,8 @@ export async function bakeTimelineCode(
       run,
       sequence,
       captured as unknown as TimelineDocument,
-      parsed
+      parsed,
+      { hermetic: true }
     );
     const failedOps = records.filter((record) => !record.ok);
     if (failedOps.length > 0) {

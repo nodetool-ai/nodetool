@@ -912,12 +912,15 @@ function computeActiveLayersWithHorizonBase(
   // `layouts` left it. The flex root itself is untouched either way: it has
   // no entry in `layouts` (excluded on purpose), so it keeps its own fully
   // authored transform, position included — that position is the one and
-  // only real translation this composition is meant to add.
+  // only real translation this composition is meant to add. A plain group
+  // inside a flex container is a leaf: flex moves the group and never lays
+  // out its children, so it keeps its resolved transform, position included.
   const groupPatchedClips = layouts.size > 0
     ? clips.map((clip) => {
         if (clip.mediaType !== "group") return clip;
         const resolved = layouts.get(clip.id);
         if (!resolved) return clip;
+        if (clip.layout?.display !== "flex") return { ...clip, transform: resolved };
         return { ...clip, transform: { ...resolved, position: { x: 0, y: 0 } } };
       })
     : clips;

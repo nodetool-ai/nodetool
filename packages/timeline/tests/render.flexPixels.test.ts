@@ -132,6 +132,76 @@ describe("nested flex layout draws where it resolved to (Canvas 2D)", () => {
     expect(alphaAt(expectedLeft + 20, expectedBottom + 10)).toBe(0);
   });
 
+  it("keeps the flex position of a plain group that is a flex leaf", () => {
+    // A row root at (40, 30) holding two plain groups. Each group is a leaf:
+    // flex moves the group, and its child draws inside the group's matrix.
+    const row = clip({
+      id: "row",
+      mediaType: "group",
+      shapeStyle: undefined,
+      transform: {
+        position: { x: -WIDTH / 2 + 40, y: -HEIGHT / 2 + 30 },
+        scale: { x: 1, y: 1 },
+        rotation: 0,
+        anchor: { x: 0, y: 0 }
+      },
+      layout: { display: "flex", flexDirection: "row", gap: 20 }
+    });
+    const group = (id: string) =>
+      clip({ id, mediaType: "group", parentId: "row", shapeStyle: undefined });
+    // A 40x30 rect at the frame centre, the same in both groups.
+    const box = (id: string, parentId: string, fill: string) =>
+      clip({
+        id,
+        parentId,
+        shapeStyle: { kind: "rect", x: 0.45, y: 0.45, width: 0.1, height: 0.1, fill }
+      });
+    const clips = [
+      row,
+      group("left"),
+      box("left-box", "left", "#ff0000"),
+      group("right"),
+      box("right-box", "right", "#00ff00")
+    ];
+
+    const { layers } = computeActiveLayersWithHorizon([track], clips, 500, {
+      canvas: { width: WIDTH, height: HEIGHT }
+    });
+    const output = createCanvas(WIDTH, HEIGHT);
+    const canvasLayers = ["left-box", "right-box"].map((id, zIndex) => {
+      const layer = layers.find((l) => l.clipId === id)!;
+      const raster = createCanvas(WIDTH, HEIGHT);
+      drawShape(raster.getContext("2d"), layer.clip.shapeStyle!, WIDTH, HEIGHT);
+      const canvasLayer: Canvas2DLayer<typeof raster> = {
+        clipId: id,
+        source: raster,
+        sourceWidth: WIDTH,
+        sourceHeight: HEIGHT,
+        opacity: 1,
+        blendMode: "normal",
+        zIndex,
+        transform: layer.transform,
+        parentMatrix: layer.parentMatrix
+      };
+      return canvasLayer;
+    });
+    drawTimelineFrame(
+      output.getContext("2d") as any,
+      canvasLayers,
+      { canvasWidth: WIDTH, canvasHeight: HEIGHT },
+      { alpha: true }
+    );
+
+    const ctx = output.getContext("2d");
+    const pixel = (x: number, y: number) => ctx.getImageData(x, y, 1, 1).data;
+    // The left group's box is (40, 30)-(80, 60), the right one (100, 30)-(140, 60).
+    expect(pixel(60, 45)[0]).toBeGreaterThan(200);
+    expect(pixel(60, 45)[3]).toBeGreaterThan(200);
+    expect(pixel(120, 45)[1]).toBeGreaterThan(200);
+    expect(pixel(120, 45)[3]).toBeGreaterThan(200);
+    expect(pixel(90, 45)[3]).toBe(0);
+  });
+
   it("stacks 3 single-line headlines 24px apart with no overlap (regression: the wrap-width round trip)", () => {
     // Reproduces the S3 bug: the flex resolver measures each headline
     // unconstrained to get its natural (single-line) width, then feeds that

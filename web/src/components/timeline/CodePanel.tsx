@@ -19,7 +19,14 @@
  * timeline's first script.
  */
 
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -137,12 +144,26 @@ export const CodePanel: React.FC = memo(() => {
   const [draftCode, setDraftCode] = useState(baselineCode);
   const [dirty, setDirty] = useState(false);
   const [bakeResult, setBakeResult] = useState<TimelineCodeBakeResult>(emptyBakeResult);
+  // The latest draft, read after a bake resolves, so edits made while the
+  // request was pending are not lost.
+  const draftRef = useRef(draftCode);
+  // The code a bake wrote. The draft stays dirty until the refetch returns it.
+  const [writtenCode, setWrittenCode] = useState<string | null>(null);
 
   // A fresh fetch (first load, or a bake made elsewhere) replaces the draft —
   // but never while mid-edit, or a background refetch would clobber typing.
   useEffect(() => {
-    if (!dirty) setDraftCode(baselineCode);
-  }, [baselineCode, dirty]);
+    if (writtenCode !== null) {
+      if (baselineCode !== writtenCode) return;
+      setWrittenCode(null);
+      setDirty(draftRef.current !== baselineCode);
+      return;
+    }
+    if (!dirty) {
+      draftRef.current = baselineCode;
+      setDraftCode(baselineCode);
+    }
+  }, [baselineCode, dirty, writtenCode]);
 
   // `setPanelTab` guards a switch away from a dirty Code tab (window.confirm);
   // this is the flag it reads. Cleared on unmount too, so leaving by any
@@ -161,6 +182,7 @@ export const CodePanel: React.FC = memo(() => {
   const handleChange = useCallback(
     (next?: string) => {
       const value = next ?? "";
+      draftRef.current = value;
       setDraftCode(value);
       setDirty(value !== baselineCode);
     },
@@ -171,10 +193,12 @@ export const CodePanel: React.FC = memo(() => {
 
   const handleRebake = useCallback(async () => {
     if (!sequenceId) return;
+    const sent = draftCode;
     try {
-      const result = await setCode({ code: draftCode });
+      const result = await setCode({ code: sent });
       setBakeResult(result);
-      setDirty(false);
+      // A bake that returns errors wrote nothing. Keep the draft to fix it.
+      if (result.errors.length === 0) setWrittenCode(sent);
     } catch (err) {
       notifyMutationError("rebake the timeline from its code", err);
     }

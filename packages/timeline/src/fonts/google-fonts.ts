@@ -118,10 +118,17 @@ export interface GoogleFontMetadata {
 export function parseGoogleFontsMetadata(text: string): GoogleFontMetadata {
   const name = /^name:\s*"([^"]*)"/m.exec(text)?.[1] ?? "";
   const faces: GoogleFontMetadataFace[] = [];
-  const blockPattern = /fonts\s*\{([^}]*)\}/g;
-  let block: RegExpExecArray | null;
-  while ((block = blockPattern.exec(text)) !== null) {
-    const body = block[1] ?? "";
+  // A scan with indexOf, not one regex over the whole file: a regex that
+  // looks for the closing brace after each `fonts {` rescans the rest of the
+  // text for every unclosed block, which is quadratic.
+  const opener = /fonts\s*\{/g;
+  let open: RegExpExecArray | null;
+  while ((open = opener.exec(text)) !== null) {
+    const start = open.index + open[0].length;
+    const end = text.indexOf("}", start);
+    if (end === -1) break;
+    opener.lastIndex = end + 1;
+    const body = text.slice(start, end);
     const filename = /filename:\s*"([^"]*)"/.exec(body)?.[1];
     const weightText = /weight:\s*(\d+)/.exec(body)?.[1];
     if (filename === undefined || weightText === undefined) continue;

@@ -91,6 +91,13 @@ subsets: "latin"
 `;
 
 describe("parseGoogleFontsMetadata", () => {
+  it("reads a long run of unclosed blocks in linear time", () => {
+    const hostile = "fonts{" + "fonts{|".repeat(50000);
+    const started = performance.now();
+    expect(parseGoogleFontsMetadata(hostile).faces).toEqual([]);
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+
   it("reads the family name and every fonts{} block", () => {
     const metadata = parseGoogleFontsMetadata(SPACE_GROTESK_METADATA);
     expect(metadata.name).toBe("Space Grotesk");

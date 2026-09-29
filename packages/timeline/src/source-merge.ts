@@ -17,7 +17,10 @@
  * value has not been touched since the last bake, so the new build replaces
  * it outright. A scene whose hash has moved was hand-edited — in the editor,
  * or through `edit_timeline` — since the last bake, so it is kept as-is and
- * reported as a conflict, unless the caller forces it. Everything outside
+ * reported as a conflict, unless the caller forces it. A conflict keeps the
+ * hash of the last accepted bake, so the scene stays in conflict on every
+ * later bake until the caller forces it or the code is detached from it. A
+ * scene with no recorded hash (a detached scene) stays untracked. Everything outside
  * every scene's subtree (markers, tempo, camera2d, media tracks, any clip
  * the code placed outside a scene) always comes from the new build — the
  * code is what authors that state, and there is no hand-editable counterpart
@@ -187,6 +190,8 @@ export function mergeTimelineSource(
   const conflicts: SourceMergeConflict[] = [];
   const scenes: SourceMergeScenes = {};
   const chosen: ChosenScene[] = [];
+  /** Scenes the build supplied. Their hashes are recorded after the reflow. */
+  const accepted: string[] = [];
 
   const sceneNames = new Set([...builtGroups.keys(), ...currentGroups.keys()]);
   for (const name of sceneNames) {
@@ -214,7 +219,9 @@ export function mergeTimelineSource(
         subtree: sceneSubtreeClips(current.clips, currentGroup.id),
         orderMs: currentGroup.startMs
       });
-      scenes[name] = { groupId: currentGroup.id, hash: currentHash };
+      if (previous !== undefined) {
+        scenes[name] = { groupId: currentGroup.id, hash: previous.hash };
+      }
       continue;
     }
 
@@ -225,10 +232,7 @@ export function mergeTimelineSource(
         subtree: sceneSubtreeClips(built.clips, builtGroup.id),
         orderMs: builtGroup.startMs
       });
-      scenes[name] = {
-        groupId: builtGroup.id,
-        hash: hashSceneSubtree(built.clips, builtGroup.id)
-      };
+      accepted.push(name);
       continue;
     }
 
@@ -241,10 +245,7 @@ export function mergeTimelineSource(
         subtree: sceneSubtreeClips(built.clips, builtGroup.id),
         orderMs: builtGroup.startMs
       });
-      scenes[name] = {
-        groupId: builtGroup.id,
-        hash: hashSceneSubtree(built.clips, builtGroup.id)
-      };
+      accepted.push(name);
     } else {
       conflicts.push({ scene: name, reason: "edited since the last bake" });
       chosen.push({
@@ -252,7 +253,9 @@ export function mergeTimelineSource(
         subtree: sceneSubtreeClips(current.clips, currentGroup.id),
         orderMs: currentGroup.startMs
       });
-      scenes[name] = { groupId: currentGroup.id, hash: currentHash };
+      if (previous !== undefined) {
+        scenes[name] = { groupId: currentGroup.id, hash: previous.hash };
+      }
     }
   }
 
@@ -277,6 +280,13 @@ export function mergeTimelineSource(
       resultClips.push(delta === 0 ? clip : { ...clip, startMs: clip.startMs + delta });
     }
     cursorMs = absStart + scene.group.durationMs;
+  }
+
+  // The reflow can move a scene, and its hash includes clip times, so the
+  // baseline must describe the placement that is persisted.
+  for (const name of accepted) {
+    const groupId = builtGroups.get(name)!.id;
+    scenes[name] = { groupId, hash: hashSceneSubtree(resultClips, groupId) };
   }
 
   const document: TimelineDocumentLike = { ...built, clips: resultClips };

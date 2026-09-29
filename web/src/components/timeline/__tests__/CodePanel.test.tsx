@@ -179,6 +179,37 @@ describe("CodePanel", () => {
     expect(await screen.findByText("Intro")).toBeInTheDocument();
   });
 
+  it("keeps the draft when the bake returns errors", async () => {
+    mockTimelineCodeGet.mockResolvedValue({
+      code: "old code",
+      bakedAt: "2026-01-01T00:00:00.000Z",
+      scenes: []
+    });
+    mockTimelineCodeSet.mockResolvedValue({
+      timeline_id: SEQUENCE_ID,
+      errors: ["SyntaxError: unexpected token"],
+      warnings: [],
+      conflicts: [],
+      scenes: []
+    });
+
+    renderPanel();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("monaco")).toHaveValue("old code")
+    );
+    fireEvent.change(screen.getByTestId("monaco"), {
+      target: { value: "new code with a typo" }
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Rebake" }));
+
+    expect(
+      await screen.findByText("SyntaxError: unexpected token")
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("monaco")).toHaveValue("new code with a typo");
+    expect(screen.getByRole("button", { name: "Rebake" })).toBeEnabled();
+  });
+
   async function rebakeIntoConflict() {
     mockTimelineCodeGet.mockResolvedValue({
       code: "scene('group-1')",

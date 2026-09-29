@@ -393,10 +393,10 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   per-family gate `TextRasterizer` checks before caching a bitmap. Only `ofl`
   and `apache` are resolved (both OFL/Apache-equivalent terms, matching the
   bundled corpus); `ufl` (Ubuntu Font License) is not, so a family shipped only
-  there reports unavailable. A resolved family always downloads the standard
-  regular/bold/italic/bold-italic set rather than tracing exactly which
-  weights a document's clips use — bounded and simple, at the cost of
-  occasionally caching a weight nothing draws with.
+  there reports unavailable. A family downloads only the faces its requests
+  need. A later request for a weight or style the cache does not cover adds
+  that face to the cached family, and the manifest records every request it
+  already answered, so a cached request never fetches again.
 - **A browser draws with a bundled face only after `document.fonts.load`
   resolves.** `fillText` never waits, so a title rasterized before its file
   arrives is set in the fallback — and `TextRasterizer` caches by style, not by

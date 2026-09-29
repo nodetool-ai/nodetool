@@ -147,6 +147,32 @@ describe("timeline.code", () => {
     expect(forced.conflicts).toEqual([]);
   });
 
+  it("keeps the code through an ordinary editor save", async () => {
+    initTestDb();
+    const seq = new TimelineSequence({ user_id: "user-1", project_id: "p-1", name: "x" });
+    await seq.save();
+    const caller = createCaller(makeCtx());
+    await caller.timeline.code.set({ id: seq.id, code: CODE });
+
+    // The editor autosave sends the document it holds, which has no source.
+    const loaded = await caller.timeline.get({ id: seq.id });
+    const clips = loaded.clips.map((c) =>
+      c.mediaType === "text"
+        ? { ...c, textStyle: { ...c.textStyle, text: "hand edited" } }
+        : c
+    );
+    await caller.timeline.update({
+      id: seq.id,
+      document: { tracks: loaded.tracks, clips, markers: loaded.markers }
+    });
+
+    const get = await caller.timeline.code.get({ id: seq.id });
+    expect(get.code).toBe(CODE);
+    expect(get.scenes).toEqual([
+      { name: "one", groupId: expect.any(String), edited: true }
+    ]);
+  });
+
   it("detach stops tracking a scene and answers its name", async () => {
     initTestDb();
     const seq = new TimelineSequence({ user_id: "user-1", project_id: "p-1", name: "x" });

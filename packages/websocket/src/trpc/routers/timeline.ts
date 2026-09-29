@@ -529,7 +529,10 @@ export const timelineRouter = router({
           tempo: input.document.tempo ?? current.tempo,
           camera2d: input.document.camera2d === undefined ? current.camera2d : input.document.camera2d,
           setup: input.document.setup ?? current.setup,
-          mediaTracks: input.document.mediaTracks ?? current.mediaTracks
+          mediaTracks: input.document.mediaTracks ?? current.mediaTracks,
+          // The authoring code and its scene hashes belong to the server. An
+          // editor save never carries them, and must not remove them.
+          source: current.source
         };
         fields.document = JSON.stringify(merged);
 

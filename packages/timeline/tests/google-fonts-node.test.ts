@@ -136,6 +136,54 @@ describe("resolveGoogleFontFamily / ensureGoogleFonts", () => {
     expect(safeFetch).not.toHaveBeenCalled();
   });
 
+  it("downloads a face a later request needs, and fetches nothing once it is cached", async () => {
+    const staticMetadata = `
+name: "Lora"
+fonts { name: "Lora" style: "normal" weight: 400 filename: "Lora-Regular.ttf" }
+fonts { name: "Lora" style: "normal" weight: 700 filename: "Lora-Bold.ttf" }
+fonts { name: "Lora" style: "italic" weight: 400 filename: "Lora-Italic.ttf" }
+`;
+    safeFetch.mockImplementation(async (url: string) => {
+      if (url.endsWith("/ofl/lora/METADATA.pb")) return textResponse(200, staticMetadata);
+      if (url.endsWith("OFL.txt")) return textResponse(200, "OFL license text");
+      if (url.endsWith(".ttf")) return bytesResponse(200);
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    const { resolveGoogleFontFamily } = await import("../src/fonts/google-fonts-node.js");
+    const faceNames = (resolution: Awaited<ReturnType<typeof resolveGoogleFontFamily>>) =>
+      (resolution?.faces ?? []).map((face) => face.file.split(/[\\/]/).pop()).sort();
+
+    await resolveGoogleFontFamily("Lora", [{ weight: 400, style: "normal" }]);
+    const bold = await resolveGoogleFontFamily("Lora", [{ weight: 800, style: "normal" }]);
+    expect(faceNames(bold)).toEqual(["Lora-Bold.ttf", "Lora-Regular.ttf"]);
+    const italic = await resolveGoogleFontFamily("Lora", [{ weight: 400, style: "italic" }]);
+    expect(faceNames(italic)).toEqual(["Lora-Bold.ttf", "Lora-Italic.ttf", "Lora-Regular.ttf"]);
+
+    safeFetch.mockClear();
+    await resolveGoogleFontFamily("Lora", [
+      { weight: 800, style: "normal" },
+      { weight: 400, style: "italic" }
+    ]);
+    expect(safeFetch).not.toHaveBeenCalled();
+  });
+
+  it("refuses a face file name that leaves the cache directory", async () => {
+    safeFetch.mockImplementation(async (url: string) => {
+      if (url.endsWith("/ofl/evil/METADATA.pb")) {
+        return textResponse(
+          200,
+          'name: "Evil"\nfonts { style: "normal" weight: 400 filename: "../../escape.ttf" }'
+        );
+      }
+      if (url.endsWith("OFL.txt")) return textResponse(200, "OFL license text");
+      return bytesResponse(200);
+    });
+    const { resolveGoogleFontFamily } = await import("../src/fonts/google-fonts-node.js");
+    await expect(
+      resolveGoogleFontFamily("Evil", [{ weight: 400, style: "normal" }])
+    ).rejects.toThrow(/outside/);
+  });
+
   it("ensureGoogleFonts reports an offline/failed family as unavailable, never throwing", async () => {
     safeFetch.mockImplementation(async () => {
       throw new Error("network down");

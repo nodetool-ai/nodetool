@@ -12,12 +12,15 @@
 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, it, expect } from "vitest";
+import { existsSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { describe, it, expect, vi } from "vitest";
 import {
   createSandboxModuleCatalog,
   discoverSandboxPack
 } from "@nodetool-ai/node-sdk";
 import { ProcessingContext as ProcessingContextClass } from "@nodetool-ai/runtime";
+import { TimelineSequence } from "@nodetool-ai/models";
 import { bakeTimelineCode } from "../src/timeline-code-bake.js";
 
 const discovery = discoverSandboxPack(
@@ -223,5 +226,49 @@ await v.save(nodetool.timelines, { name: "From code" });
     expect(result.ok).toBe(true);
     const text = result.document.clips.find((c) => c.mediaType === "text");
     expect(text.animations[0].role).toBe("emphasis");
+  });
+  it("gives the code no workspace, even when the host context has one", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "timeline-code-bake-"));
+    const withWorkspace = new ProcessingContextClass({
+      jobId: "job-timeline-code-bake",
+      userId: "u-timeline-code-bake",
+      workspaceDir: dir,
+      sandboxModuleCatalog: catalog
+    });
+    const result = await bakeTimelineCode(
+      withWorkspace,
+      `
+import { video } from "@nodetool-ai/sandbox-timeline";
+await workspace.write("leak.txt", "written by a bake");
+const v = video({ width: 1080, height: 1920, fps: 30 });
+v.series([v.scene("one", 1, (s) => { s.text("hi", {}); })]);
+await v.save(nodetool.timelines, { name: "From code" });
+`
+    );
+    expect(result.ok).toBe(false);
+    expect(existsSync(join(dir, "leak.txt"))).toBe(false);
+  });
+
+  it("applies a retarget op without creating a sequence", async () => {
+    const create = vi.spyOn(TimelineSequence, "create");
+    try {
+      const result = await bakeTimelineCode(
+        context(),
+        `
+import { video } from "@nodetool-ai/sandbox-timeline";
+const v = video({ width: 1080, height: 1920, fps: 30 });
+v.series([v.scene("one", 1, (s) => { s.text("hi", {}); })]);
+await v.save(nodetool.timelines, {
+  name: "From code",
+  ops: [{ op: "retarget_format", aspect_ratio: "1:1", strategy: "center" }]
+});
+`
+      );
+      expect(result.error).toBeUndefined();
+      expect(result.ok).toBe(true);
+      expect(create).not.toHaveBeenCalled();
+    } finally {
+      create.mockRestore();
+    }
   });
 });

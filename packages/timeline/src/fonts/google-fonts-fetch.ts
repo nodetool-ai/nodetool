@@ -30,7 +30,7 @@
 
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 
 import { getNodetoolCacheDir } from "@nodetool-ai/config";
 import { safeFetch } from "@nodetool-ai/runtime";
@@ -68,6 +68,44 @@ interface GoogleFontManifest {
   license: "OFL-1.1" | "Apache-2.0";
   licenseDir: GoogleFontsLicenseDir;
   faces: { style: "normal" | "italic"; weights: [number, number]; file: string }[];
+  /**
+   * Every `style:weight` request already resolved against the metadata. A
+   * request can resolve to a face whose weight range does not contain it
+   * (the nearest static weight), so the face list alone cannot say whether
+   * the request was already tried.
+   */
+  requested?: string[];
+}
+
+function requestKey(request: Pick<FontFaceRequest, "weight" | "style">): string {
+  return `${request.style}:${request.weight}`;
+}
+
+/** Whether `manifest` already answers `request`, with no new download. */
+function manifestCovers(
+  manifest: GoogleFontManifest,
+  request: Pick<FontFaceRequest, "weight" | "style">
+): boolean {
+  if (manifest.requested?.includes(requestKey(request))) return true;
+  return manifest.faces.some(
+    (face) =>
+      face.style === request.style &&
+      request.weight >= face.weights[0] &&
+      request.weight <= face.weights[1]
+  );
+}
+
+/**
+ * `name` resolved inside `root`, or an error. The slug and the face file
+ * names come from a document and from the fetched metadata, so every cache
+ * path is checked to stay inside the cache.
+ */
+function pathInside(root: string, name: string): string {
+  const full = resolve(root, name);
+  if (!full.startsWith(root + sep)) {
+    throw new Error(`Refusing a Google Fonts cache path outside ${root}: ${name}`);
+  }
+  return full;
 }
 
 /** Where resolved families are cached, one directory per family slug. */
@@ -76,7 +114,7 @@ export function googleFontsCacheDir(): string {
 }
 
 function familyDir(slug: string): string {
-  return join(googleFontsCacheDir(), slug);
+  return pathInside(resolve(googleFontsCacheDir()), slug);
 }
 
 function manifestPath(slug: string): string {
@@ -154,13 +192,8 @@ export async function resolveGoogleFontFamily(
   const wanted = requests.length > 0 ? requests : [{ weight: 400, style: "normal" as const }];
 
   const cached = await readManifest(slug);
-  if (cached !== null) {
-    const haveFile = new Set(cached.faces.map((f) => f.file));
-    return {
-      family: cached.family,
-      license: cached.license,
-      faces: cached.faces.filter((f) => haveFile.has(f.file))
-    };
+  if (cached !== null && wanted.every((request) => manifestCovers(cached, request))) {
+    return { family: cached.family, license: cached.license, faces: cached.faces };
   }
 
   const metadata = await fetchMetadata(slug);
@@ -178,32 +211,35 @@ export async function resolveGoogleFontFamily(
   await mkdir(dir, { recursive: true });
 
   const license = googleFontsLicenseName(metadata.dir);
-  const licenseText = await fetchText(googleFontsLicenseUrl(metadata.dir, slug));
-  if (licenseText !== null) {
-    await writeFile(join(dir, "LICENSE.txt"), licenseText, "utf8");
+  if (cached === null) {
+    const licenseText = await fetchText(googleFontsLicenseUrl(metadata.dir, slug));
+    if (licenseText !== null) {
+      await writeFile(join(dir, "LICENSE.txt"), licenseText, "utf8");
+    }
   }
 
-  const picked = new Map<string, { style: "normal" | "italic"; weights: [number, number] }>();
+  // A cached family gains the faces a new request needs. Faces it already
+  // has stay as they are.
+  const faces: GoogleFontManifest["faces"] = [...(cached?.faces ?? [])];
+  const requested = new Set(cached?.requested ?? []);
   for (const request of wanted) {
+    requested.add(requestKey(request));
     const file = pickGoogleFontFile(parsed, request);
     if (file === null) continue;
-    picked.set(file.filename, { style: file.style, weights: file.weights });
-  }
-  if (picked.size === 0) return null;
-
-  const faces: GoogleFontManifest["faces"] = [];
-  for (const [filename, info] of picked) {
-    const bytes = await fetchBytes(googleFontsFaceUrl(metadata.dir, slug, filename));
-    const localPath = join(dir, filename);
+    const localPath = pathInside(dir, file.filename);
+    if (faces.some((face) => face.file === localPath)) continue;
+    const bytes = await fetchBytes(googleFontsFaceUrl(metadata.dir, slug, file.filename));
     await writeFile(localPath, bytes);
-    faces.push({ style: info.style, weights: info.weights, file: localPath });
+    faces.push({ style: file.style, weights: file.weights, file: localPath });
   }
+  if (faces.length === 0) return null;
 
   const manifest: GoogleFontManifest = {
-    family: parsed.name || family,
+    family: cached?.family ?? (parsed.name || family),
     license,
     licenseDir: metadata.dir,
-    faces
+    faces,
+    requested: [...requested].sort()
   };
   await writeFile(manifestPath(slug), JSON.stringify(manifest, null, 2), "utf8");
   return { family: manifest.family, license: manifest.license, faces: manifest.faces };

@@ -28,7 +28,9 @@ import type {
   TimelineAnimationBakeRequest,
   TimelineAnimationBakeResult,
   TimelineBridgeAsset,
-  TimelineBridgeFinalState
+  TimelineBridgeFinalState,
+  TimelineFormatRetargeter,
+  TimelineModel3DBaker
 } from "../evals/surfaces/timeline.js";
 import type { BakeCustomAnimationParams } from "../custom-animation-bake.js";
 import type { IsolateSubjectInput } from "./timeline-isolate-subject.js";
@@ -654,40 +656,17 @@ async function bakeTimelineAnimation(
 }
 
 /**
- * Run `ops` against a bridge seeded from `document`.
- *
- * A failing op is recorded and the script continues: stopping at the first
- * error hides every problem behind it, and the caller wants the whole picture.
+ * The bridge hooks that write outside the document: a Blender render of a 3D
+ * clip, and the new sequence `retarget_format` creates.
  */
-export async function applyOps(
+function writingHooks(
   run: CapabilityRun,
-  sequence: TimelineSequence,
-  document: TimelineDocument,
-  ops: ParsedOp[]
-): Promise<ApplyOutcome> {
-  const { createTimelineToolBridge } =
-    await import("../evals/surfaces/timeline.js");
-  const bridge = createTimelineToolBridge({
-    sequenceId: sequence.id,
-    sequenceName: sequence.name,
-    projectId: sequence.project_id,
-    sequence: {
-      fps: sequence.fps,
-      width: sequence.width,
-      height: sequence.height,
-      tracks: document.tracks,
-      clips: document.clips,
-      markers: document.markers,
-      transcript: document.transcript,
-      scriptEnabled: document.scriptEnabled,
-      templateId: document.templateId,
-      tempo: document.tempo,
-      camera2d: document.camera2d,
-      setup: document.setup,
-      mediaTracks: document.mediaTracks
-    },
-    resolveAsset: (ref) => resolveTimelineAsset(run, ref),
-    bakeAnimation: (request) => bakeTimelineAnimation(run, request),
+  sequence: TimelineSequence
+): {
+  bakeModel3DClip: TimelineModel3DBaker;
+  retargetFormat: TimelineFormatRetargeter;
+} {
+  return {
     bakeModel3DClip: async (request) => {
       const { bakeModel3DClipOnServer } = await import("./timeline-bake.js");
       return bakeModel3DClipOnServer(run.context, request);
@@ -727,7 +706,50 @@ export async function applyOps(
         document: JSON.stringify(derivedDocument)
       });
       return { sequenceId: created.id, name };
+    }
+  };
+}
+
+/**
+ * Run `ops` against a bridge seeded from `document`.
+ *
+ * A failing op is recorded and the script continues: stopping at the first
+ * error hides every problem behind it, and the caller wants the whole picture.
+ *
+ * `hermetic` leaves out the hooks that write outside the document: the 3D
+ * render and the new sequence a retarget creates. A code bake sets it. The
+ * bridge then uses its in-memory fallbacks for those ops.
+ */
+export async function applyOps(
+  run: CapabilityRun,
+  sequence: TimelineSequence,
+  document: TimelineDocument,
+  ops: ParsedOp[],
+  options: { hermetic?: boolean } = {}
+): Promise<ApplyOutcome> {
+  const { createTimelineToolBridge } =
+    await import("../evals/surfaces/timeline.js");
+  const init: Parameters<typeof createTimelineToolBridge>[0] = {
+    sequenceId: sequence.id,
+    sequenceName: sequence.name,
+    projectId: sequence.project_id,
+    sequence: {
+      fps: sequence.fps,
+      width: sequence.width,
+      height: sequence.height,
+      tracks: document.tracks,
+      clips: document.clips,
+      markers: document.markers,
+      transcript: document.transcript,
+      scriptEnabled: document.scriptEnabled,
+      templateId: document.templateId,
+      tempo: document.tempo,
+      camera2d: document.camera2d,
+      setup: document.setup,
+      mediaTracks: document.mediaTracks
     },
+    resolveAsset: (ref) => resolveTimelineAsset(run, ref),
+    bakeAnimation: (request) => bakeTimelineAnimation(run, request),
     loadComposition: {
       get: async (id) => {
         const { loadComposition } = await import("./compositions.js");
@@ -744,7 +766,9 @@ export async function applyOps(
         ];
       }
     }
-  });
+  };
+  if (!options.hermetic) Object.assign(init, writingHooks(run, sequence));
+  const bridge = createTimelineToolBridge(init);
   const byName = new Map(
     bridge.tools
       .filter((tool) => !EXCLUDED_OPS.has(tool.name))

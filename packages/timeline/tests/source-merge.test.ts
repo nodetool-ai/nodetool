@@ -147,4 +147,59 @@ describe("mergeTimelineSource", () => {
     expect(aGroup.startMs).toBe(0);
     expect(bGroup.startMs).toBe(1000);
   });
+  it("keeps an unresolved edit on every later bake until it is forced", () => {
+    const original = doc([...scene("a", 0, 1000)]);
+    const baked = scenesOf(original);
+    const edited = doc([...scene("a", 0, 1000, "hand-edited")]);
+    const built = doc([...scene("a", 0, 1000, "rebuilt")]);
+
+    const first = mergeTimelineSource(edited, built, baked);
+    const second = mergeTimelineSource(first.document, built, first.scenes);
+    expect(second.conflicts.map((c) => c.scene)).toEqual(["a"]);
+    const text = second.document.clips.find((c) => c.mediaType === "text")!;
+    expect((text.textStyle as { text: string }).text).toBe("hand-edited");
+
+    const forced = mergeTimelineSource(second.document, built, second.scenes, {
+      force: ["a"]
+    });
+    expect(forced.conflicts).toEqual([]);
+    const forcedText = forced.document.clips.find((c) => c.mediaType === "text")!;
+    expect((forcedText.textStyle as { text: string }).text).toBe("rebuilt");
+  });
+
+  it("keeps a conflicted scene the build removed on every later bake", () => {
+    const original = doc([...scene("a", 0, 1000), ...scene("b", 1000, 1000)]);
+    const baked = scenesOf(original);
+    const edited = doc([...scene("a", 0, 1000), ...scene("b", 1000, 1000, "hand-edited")]);
+    const built = doc([...scene("a", 0, 1000)]);
+
+    const first = mergeTimelineSource(edited, built, baked);
+    const second = mergeTimelineSource(first.document, built, first.scenes);
+    expect(second.conflicts.map((c) => c.scene)).toEqual(["b"]);
+    expect(second.document.clips.some((c) => c.id === "b")).toBe(true);
+  });
+
+  it("does not start to track a detached scene again", () => {
+    const edited = doc([...scene("a", 0, 1000, "hand-edited")]);
+    const built = doc([...scene("a", 0, 1000, "rebuilt")]);
+
+    const first = mergeTimelineSource(edited, built, {});
+    expect(first.scenes["a"]).toBeUndefined();
+    const second = mergeTimelineSource(first.document, built, first.scenes);
+    expect(second.conflicts.map((c) => c.scene)).toEqual(["a"]);
+  });
+
+  it("records the hash of an accepted scene at the place the reflow moved it to", () => {
+    const current = doc([...scene("a", 0, 1000), ...scene("b", 1000, 1000)]);
+    const baked = scenesOf(current);
+    const edited = doc([...scene("a", 0, 2000), ...scene("b", 1000, 1000)]);
+    const built = doc([...scene("a", 0, 1000), ...scene("b", 1000, 1000)]);
+
+    const result = mergeTimelineSource(edited, built, baked);
+    expect(result.document.clips.find((c) => c.id === "b")!.startMs).toBe(2000);
+    expect(result.scenes["b"]!.hash).toBe(hashSceneSubtree(result.document.clips, "b"));
+
+    const again = mergeTimelineSource(result.document, built, result.scenes);
+    expect(again.conflicts.map((c) => c.scene)).toEqual(["a"]);
+  });
 });
