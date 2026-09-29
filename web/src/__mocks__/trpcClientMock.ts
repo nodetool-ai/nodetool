@@ -35,6 +35,57 @@ export const mockWorkflowsGet = jest.fn();
 export const mockWorkflowsCreate = jest.fn();
 export const mockTimelineClipsCreate = jest.fn();
 export const mockTimelineGet = jest.fn();
+interface MockTimelineCodeScene {
+  name: string;
+  groupId: string;
+  edited: boolean;
+}
+interface MockTimelineCodeGetResult {
+  code: string;
+  bakedAt: string | null;
+  scenes: MockTimelineCodeScene[];
+}
+interface MockTimelineCodeBakeResult {
+  timeline_id: string;
+  errors: string[];
+  warnings: string[];
+  conflicts: { scene: string; reason: string }[];
+  scenes: MockTimelineCodeScene[];
+}
+interface MockTimelineCodeDetachResult {
+  scenes: string[];
+}
+
+export const mockTimelineCodeGet = jest.fn<Promise<MockTimelineCodeGetResult>, unknown[]>(
+  async () => ({
+    code: "",
+    bakedAt: null,
+    scenes: []
+  })
+);
+export const mockTimelineCodeSet = jest.fn<Promise<MockTimelineCodeBakeResult>, unknown[]>(
+  async () => ({
+    timeline_id: "mock-seq",
+    errors: [],
+    warnings: [],
+    conflicts: [],
+    scenes: []
+  })
+);
+export const mockTimelineCodeRebake = jest.fn<Promise<MockTimelineCodeBakeResult>, unknown[]>(
+  async () => ({
+    timeline_id: "mock-seq",
+    errors: [],
+    warnings: [],
+    conflicts: [],
+    scenes: []
+  })
+);
+export const mockTimelineCodeDetach = jest.fn<Promise<MockTimelineCodeDetachResult>, unknown[]>(
+  async () => ({
+    scenes: []
+  })
+);
 export const mockSketchVersionsAppend = jest.fn();
 
 // Minimal `useUtils` shim so hooks that touch the query cache after a
@@ -92,12 +143,12 @@ export const trpc = {
   storyboards: {
     get: { useQuery: jest.fn(() => ({ data: undefined })) }
   },
-  // `TimelineScriptLinkChip` reads the script a timeline was built from
-  // through these hooks. No data leaves the chip rendering nothing, which is
-  // the fallback every test that doesn't set one up wants.
   timeline: {
     get: { useQuery: jest.fn(() => ({ data: undefined })) }
   },
+  // `useCodeNodeScriptLink` reads a Code node's linked script through this
+  // hook. No data leaves it on its unlinked fallback, which is what every
+  // test that doesn't set one up wants.
   jsScripts: {
     get: { useQuery: jest.fn(() => ({ data: undefined })) }
   }
@@ -249,6 +300,14 @@ export const trpcClient = {
     get: { query: mockTimelineGet },
     clips: {
       create: { mutate: mockTimelineClipsCreate }
+    },
+    // Mocked here so the Code panel's tests can configure per-test responses
+    // the same way every other procedure does.
+    code: {
+      get: { query: mockTimelineCodeGet },
+      set: { mutate: mockTimelineCodeSet },
+      rebake: { mutate: mockTimelineCodeRebake },
+      detach: { mutate: mockTimelineCodeDetach }
     }
   },
   // Sketch (Image Editor) namespace

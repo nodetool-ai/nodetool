@@ -142,6 +142,30 @@ export const ease = (name) => EASE[name] ?? name;
 const REST_ONE = new Set(["opacity", "scale", "scaleX", "scaleY", "trimEnd", "wipeProgress"]);
 const restOf = (property) => (REST_ONE.has(property) ? 1 : 0);
 
+/**
+ * `animate()`'s default role when the caller names none: "in" is right for
+ * most calls (a slide, a scale bump), but a call whose curves end farther
+ * from every property's own rest pose than they started — opacity trailing
+ * off toward 0, an offset drifting away from center — is shaped like an
+ * exit, not an entrance, and defaulting it "in" anchors the window to the
+ * clip's start the way `enter()` does instead of hugging the end the way a
+ * fade-out needs. Unanimous across every curve, numeric values only —
+ * anything else (a glyph.* style-track curve, a curve with fewer than two
+ * keyframes) falls through to the safe "in" default.
+ */
+function isExitShapedCurves(curves) {
+  if (curves.length === 0) return false;
+  return curves.every((curve) => {
+    const kfs = curve.keyframes;
+    if (!kfs || kfs.length < 2) return false;
+    const first = kfs[0].value;
+    const last = kfs[kfs.length - 1].value;
+    if (typeof first !== "number" || typeof last !== "number") return false;
+    const rest = restOf(curve.property);
+    return Math.abs(last - rest) > Math.abs(first - rest);
+  });
+}
+
 /** `el.react()`'s default `[quiet, loud]` when the caller gives no `range`. */
 const REACT_DEFAULT_RANGE = { scale: [1, 1.15], opacity: [0.55, 1], offsetX: [0, 24], offsetY: [0, 24] };
 
@@ -289,8 +313,24 @@ async function saveComponentAsComposition(Comp, timelines, o = {}) {
  */
 export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
   const W = width, H = height, FPS = fps;
-  let idc = 0;
-  const nid = (p) => `${p}${++idc}`;
+  // Clip/effect/animation ids are deterministic and scoped, not one global
+  // counter: a counter shared by the whole script means editing scene B (or
+  // even a helper called before scene A in the script) shifts every id after
+  // the edit point, including scene A's — which breaks the editor's selection
+  // across a rebake and defeats `mergeTimelineSource`'s hash-of-subtree
+  // untouched check (a scene whose *content* did not change still hashes
+  // differently because its ids moved). Each scope — a scene's own name, or
+  // a stable key for a non-scene element — gets its own counter, so an id is
+  // `${scope}_${prefix}${n}`: identical for two bakes of the same code, and
+  // unaffected by anything outside its own scope.
+  const idCounters = new Map();
+  const nid = (prefix, scope = "root") => {
+    const n = (idCounters.get(scope) ?? 0) + 1;
+    idCounters.set(scope, n);
+    return `${scope}_${prefix}${n}`;
+  };
+  /** The id scope for an element built inside a scene: that scene's own name. */
+  const sceneScope = (ctx) => (ctx && ctx.scene && ctx.scene.name ? String(ctx.scene.name) : "root");
   /** Snap a second value to the frame grid and convert to ms. */
   const msFor = (sec) => Math.round(Math.round((sec ?? 0) * FPS) * 1000 / FPS);
 
@@ -307,8 +347,8 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
    * A value already present (an explicit `id`, `enabled: false` to author a
    * disabled effect) is kept as authored.
    */
-  function fillEffects(effects) {
-    return effects?.map((fx) => ({ ...fx, id: fx.id ?? nid("fx"), enabled: fx.enabled ?? true }));
+  function fillEffects(effects, scope) {
+    return effects?.map((fx) => ({ ...fx, id: fx.id ?? nid("fx", scope), enabled: fx.enabled ?? true }));
   }
 
   function makeClip(mediaType, ctx, o) {
@@ -316,10 +356,17 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
     const dur = o.dur ?? (ctx.durationSec - at);
     const startMs = ctx.startMs + msFor(at);
     const durationMs = Math.max(1, msFor(dur));
+    const scope = sceneScope(ctx);
     const clip = {
-      id: o.id ?? nid(mediaType[0]), name: o.name ?? mediaType, startMs, durationMs,
+      id: o.id ?? nid(mediaType[0], scope), name: o.name ?? mediaType, startMs, durationMs,
       mediaType, sourceType: "imported", status: "generated", locked: false, versions: [],
-      parentId: o.parent ?? ctx.scene.id
+      parentId: o.parent ?? ctx.scene.id,
+      // Private authoring-time bookkeeping (stripped in v.series(), same as
+      // _pathPoints/_staggerAt/_lastStagger): the scope this clip's own id,
+      // effect ids and animation ids were minted under, so a motion method
+      // attached below (which only ever sees `clip`, not `ctx`) can keep
+      // minting into the same scope.
+      _scope: scope
     };
     if (mediaType !== "adjustment") {
       // `rotation` (degrees, the author-facing unit everywhere else in this
@@ -333,7 +380,7 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
       clip.transform = o.transform ?? tf(o.x ?? 0, o.y ?? 0, o.s ?? 1, extra);
     }
     for (const k of FIELDS) if (o[k] !== undefined) clip[k] = o[k];
-    if (clip.effects) clip.effects = fillEffects(clip.effects);
+    if (clip.effects) clip.effects = fillEffects(clip.effects, scope);
     // `absolute: true` is sugar for the flex item shape a background plate
     // (a pill's fill, a card's backdrop) needs: taken out of flow, sized to
     // its flex-parent's own computed box. `inset` (default 0, fully covering)
@@ -378,7 +425,7 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
   }
 
   function pushAnim(clip, partial) {
-    clip.animations = [...(clip.animations ?? []), { id: nid("a"), ...partial }];
+    clip.animations = [...(clip.animations ?? []), { id: nid("a", clip._scope), ...partial }];
     return clip;
   }
 
@@ -415,8 +462,12 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
       return clip;
     };
     clip.animate = (props, o = {}) => {
-      const { at = clip._staggerAt ?? 0, dur = 0.3, ease: e = "outExpo", by, staggerMs, role = "in", mask } = o;
+      const { at = clip._staggerAt ?? 0, dur = 0.3, ease: e = "outExpo", by, staggerMs, mask } = o;
       const curves = Object.entries(props).map(([prop, spec]) => ({ property: prop, keyframes: keyframesFor(withEase(spec, e)) }));
+      // "in" unless the caller named a role: an unnamed role that looks like
+      // an exit (see isExitShapedCurves) gets "out" instead, so its window
+      // anchors to the clip's end the way exit() already does.
+      const role = o.role ?? (isExitShapedCurves(curves) ? "out" : "in");
       const stagger = staggerOpt(by, staggerMs);
       if (stagger.stagger) clip._lastStagger = stagger.stagger;
       pushAnim(clip, { role, delayMs: msFor(at), durationMs: msFor(dur), preset: "custom", custom: { curves, ...maskOpt(mask) }, ...stagger });
@@ -430,7 +481,13 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
     };
     clip.count = (o = {}) => {
       const { from, to, at = clip._staggerAt ?? 0, dur = 1, prefix, suffix, decimals, padTo, groupSeparator, ease: e = "outExpo" } = o;
-      pushAnim(clip, { role: "in", delayMs: msFor(at), durationMs: msFor(dur), preset: "custom", custom: { curves: [NOOP] }, textAnimator: { kind: "ticker", from, to, prefix, suffix, decimals, padTo, groupSeparator }, easing: ease(e) });
+      // No property curve drives this reveal — it is `textAnimator` alone —
+      // so `custom.curves` is empty rather than the `NOOP` 1→1 opacity curve
+      // this used to carry. `styleOnly` in `animation/compile.ts` already
+      // treats an empty-curves custom animation with a `textAnimator` as
+      // valid; a curve that never changes just added dead weight to the
+      // document for the compiler to skip.
+      pushAnim(clip, { role: "in", delayMs: msFor(at), durationMs: msFor(dur), preset: "custom", custom: { curves: [] }, textAnimator: { kind: "ticker", from, to, prefix, suffix, decimals, padTo, groupSeparator }, easing: ease(e) });
       return clip;
     };
     /** A scramble-in reveal: the ticker sibling, `kind: "scramble"`. */
@@ -486,7 +543,7 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
      */
     clip.typewriter = (o = {}) => {
       const { at = 0, dur = 1, caret } = o;
-      clip.animations = [{ id: nid("a"), role: "in", preset: "typewriter", delayMs: msFor(at), durationMs: msFor(dur), ...(caret ? { caret } : {}) }];
+      clip.animations = [{ id: nid("a", clip._scope), role: "in", preset: "typewriter", delayMs: msFor(at), durationMs: msFor(dur), ...(caret ? { caret } : {}) }];
       return clip;
     };
     /**
@@ -821,7 +878,7 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
       rect(W, H, colorA, { name: "ink" });
       return rect(W, H, colorA, {
         name: "field", opacity,
-        effects: [{ id: nid("gf"), type: "generator", enabled: true, mode: "gradientField", colorA, colorB, scale: 3, animate: true, seed }]
+        effects: [{ id: nid("gf", sceneScope(ctx)), type: "generator", enabled: true, mode: "gradientField", colorA, colorB, scale: 3, animate: true, seed }]
       });
     };
 
@@ -834,7 +891,13 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
     const flash = (o = {}) => {
       const { at = 0, dur = 0.27, peak = 0.7, color = "#ffffff" } = o;
       const c = rect(W, H, color, { name: "flash", at, dur, blendMode: "screen" });
-      return c.animate({ opacity: [peak, 0] }, { at: 0, dur, ease: "linear" });
+      // Opacity ramps from `peak` to 0 — a fade-out — so it is tagged
+      // `role: "out"`. Untagged it defaulted to "in", which happened to
+      // render identically only because this window spans the clip's whole
+      // duration; a caller widening the flash clip without widening this
+      // animation would have kept an "in"-anchored ramp pinned to the start
+      // instead of the end it is meant to hug.
+      return c.animate({ opacity: [peak, 0] }, { at: 0, dur, ease: "linear", role: "out" });
     };
 
     const kicker = (str, o = {}) => {
@@ -852,7 +915,7 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
       } = o;
       const plate = rect(10, 10, fillColor, {
         name: `${name}-bg`, stroke, r: size * 1.1, at, dur, absolute: true,
-        effects: shadow ? [{ id: nid("sh"), type: "dropShadow", enabled: true, offsetX: 0, offsetY: 12, blur: 30, color: "rgba(0,0,0,0.4)" }] : undefined
+        effects: shadow ? [{ id: nid("sh", sceneScope(ctx)), type: "dropShadow", enabled: true, offsetX: 0, offsetY: 12, blur: 30, color: "rgba(0,0,0,0.4)" }] : undefined
       });
       const kids = [];
       if (dot) kids.push(ellipse(size * 0.5, dot, { name: `${name}-dot`, at, dur }));
@@ -887,10 +950,10 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
     const finish = (o = {}) => {
       const { vignette = 0.25, softness = 0.7, grain: grainAmt = 0.04, seed = 1, saturation = 1, contrast = 1, ...rest } = o;
       const effects = [
-        { id: nid("vig"), type: "vignette", enabled: true, amount: vignette, softness },
-        { id: nid("grain"), type: "grain", enabled: true, amount: grainAmt, animate: true, seed }
+        { id: nid("vig", sceneScope(ctx)), type: "vignette", enabled: true, amount: vignette, softness },
+        { id: nid("grain", sceneScope(ctx)), type: "grain", enabled: true, amount: grainAmt, animate: true, seed }
       ];
-      if (saturation !== 1 || contrast !== 1) effects.push({ id: nid("color"), type: "color", enabled: true, saturation, contrast });
+      if (saturation !== 1 || contrast !== 1) effects.push({ id: nid("color", sceneScope(ctx)), type: "color", enabled: true, saturation, contrast });
       return adjust(effects, { name: "finish", ...rest });
     };
 
@@ -947,7 +1010,7 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
     scene.group = {
       id: name, name, trackId: "t_scenes", startMs: 0, durationMs: scene.durationMs,
       mediaType: "group", sourceType: "imported", status: "generated", locked: false, versions: [],
-      transform: tf(), ...extra
+      transform: tf(), sourceScene: name, ...extra
     };
     return scene;
   };
@@ -995,13 +1058,16 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
           delete clip._z;
           // Private authoring-time bookkeeping, not a document field: morph()
           // reads `_pathPoints` back off its own clip, stagger() sets
-          // `_staggerAt` as a default `at` for later motion calls, and
+          // `_staggerAt` as a default `at` for later motion calls,
           // enter()/animate() remember `_lastStagger` so a co-authored
-          // tween() can inherit it. Left on, any of these shows up as a
-          // `field_stripped` warning on the next schema round trip.
+          // tween() can inherit it, and `_scope` is the id scope a motion
+          // method mints new effect/animation ids into. Left on, any of
+          // these shows up as a `field_stripped` warning on the next schema
+          // round trip.
           delete clip._pathPoints;
           delete clip._staggerAt;
           delete clip._lastStagger;
+          delete clip._scope;
           clips.push(clip);
         });
       }
@@ -1030,10 +1096,10 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
     if (!v._document) throw new Error("v.adjust() runs after v.series()");
     const at = o.at ?? 0, dur = o.dur ?? (v._durationMs / 1000 - at);
     const clip = {
-      id: o.id ?? nid("adj"), name: o.name ?? "adjust", trackId: o.trackId ?? "t_top",
+      id: o.id ?? nid("adj", `adjust:${o.trackId ?? "t_top"}`), name: o.name ?? "adjust", trackId: o.trackId ?? "t_top",
       startMs: msFor(at), durationMs: Math.max(1, msFor(dur)),
       mediaType: "adjustment", sourceType: "imported", status: "generated", locked: false, versions: [],
-      effects: fillEffects(effects)
+      effects: fillEffects(effects, `adjust:${o.trackId ?? "t_top"}`)
     };
     if (o.animations) clip.animations = o.animations;
     attachMotion(clip);
@@ -1058,7 +1124,7 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
     if (!v._document) throw new Error("v.audio()/v.music() run after v.series()");
     const { at = 0, dur, trackId = "t_audio", trackName, volume, fadeIn, fadeOut, mute, ...rest } = o;
     const clip = {
-      id: o.id ?? nid("aud"), name: o.name ?? "audio", trackId,
+      id: o.id ?? nid("aud", `audio:${trackId}`), name: o.name ?? "audio", trackId,
       startMs: msFor(at), durationMs: Math.max(1, msFor(dur ?? v._durationMs / 1000 - at)),
       mediaType: "audio", sourceType: "imported", status: "generated", locked: false, versions: [],
       currentAssetId: assetId
@@ -1096,10 +1162,10 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
       });
     }
     const clip = {
-      id: o.id ?? nid("midi"), name: o.name ?? trackId, trackId,
+      id: o.id ?? nid("midi", `midi:${trackId}`), name: o.name ?? trackId, trackId,
       startMs: msFor(at), durationMs: Math.max(1, msFor(dur ?? v.durationMs / 1000 - at)),
       mediaType: "midi", sourceType: "imported", status: "generated", locked: false, versions: [],
-      notes: midiNotes(notes, nid)
+      notes: midiNotes(notes, (p) => nid(p, `midi:${trackId}:notes`))
     };
     v._document.clips.push(clip);
     return clip;
@@ -1116,11 +1182,29 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
     if (!v._document) throw new Error("v.beats() runs after v.series()");
     v._document.tempo = { bpm, offsetMs: msFor(offset), timeSignature: timeSignature ?? { beatsPerBar: 4, beatUnit: 4 } };
     const beatCount = count ?? Math.floor(((v.durationMs / 1000) - offset) * (bpm / 60));
-    const ops = [{ op: "set_markers_from_beats", bpm, offset_ms: msFor(offset), count: beatCount, label: "Beat" }];
+    // Markers are a plain document field (`v._document.markers` already
+    // exists), so they are written directly here — the same grid math
+    // `buildBeatGrid`/`set_markers_from_beats` use (`offset + i * interval`,
+    // not an accumulated sum, so a fractional interval like 140 BPM's
+    // 428.571…ms does not drift) — rather than through an edit op. A code
+    // bake is hermetic (no `ops`, see `timeline-code-bake.ts`), so a script
+    // that only marks beats — the common case — now bakes clean; only
+    // `snap` (which moves existing clips, an edit only `edit_timeline` can
+    // do) still needs one.
+    const offsetMs = msFor(offset);
+    const intervalMs = 60000 / bpm;
+    const taken = new Set(v._document.markers.map((m) => m.timeMs));
+    for (let i = 0; i < beatCount; i++) {
+      const timeMs = Math.round(offsetMs + i * intervalMs);
+      if (taken.has(timeMs)) continue;
+      taken.add(timeMs);
+      v._document.markers.push({ id: nid("marker", "beats"), timeMs, label: `Beat ${i + 1}` });
+    }
     // An empty/absent `snap` must only add markers: `snap_to_beats` treats an
     // empty `targets` as "every clip", which would move clips nobody asked to.
+    const ops = [];
     if (Array.isArray(snap) && snap.length > 0) {
-      ops.push({ op: "snap_to_beats", targets: snap, bpm, offset_ms: msFor(offset), mode: "start", action: "move", tolerance_ms: 40 });
+      ops.push({ op: "snap_to_beats", targets: snap, bpm, offset_ms: offsetMs, mode: "start", action: "move", tolerance_ms: 40 });
     }
     return ops;
   };
@@ -1140,21 +1224,12 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
     const preflight = await timelines.validate(document, { normalize: true, fps: FPS, width: W, height: H });
     if (!preflight.ok) throw new Error(`validate_timeline: ${JSON.stringify(preflight.errors, null, 2)}`);
 
-    // Resolve where to write: an explicit timeline_id, else the timeline the
-    // currently running script is already linked to — so a revise-and-rerun
-    // needs no id threading. Neither applies outside a saved script run (a
-    // raw execute_code action has no currentScript()).
+    // Resolve where to write: an explicit timeline_id, else a new timeline.
+    // A code-backed timeline's own rebake goes through
+    // `nodetool.timelines.code.rebake()`, not through re-running this script
+    // by hand — that call bakes the code itself and merges the result, so
+    // `v.save()` here needs no id threading of its own.
     let id = timeline_id;
-    let scriptId;
-    if (!id && typeof timelines.currentScript === "function") {
-      try {
-        const link = await timelines.currentScript();
-        scriptId = link && link.js_script_id ? link.js_script_id : undefined;
-        id = link && link.timeline_id ? link.timeline_id : undefined;
-      } catch {
-        // Not running as a saved script, or the tool is unavailable here.
-      }
-    }
     const created = !id;
     if (created) {
       ({ timeline_id: id } = await timelines.create(name, { fps: FPS, width: W, height: H }));
@@ -1175,11 +1250,6 @@ export function video({ width, height, fps, palette = {}, fonts = {} } = {}) {
         if (!bake || bake.error) {
           throw new Error(`bake_audio_animation (${react.targetClipId} <- ${react.audioClipId}): ${JSON.stringify((bake && bake.error) ?? bake, null, 2)}`);
         }
-      }
-      if (created && scriptId && typeof timelines.linkScript === "function") {
-        // Best-effort: link the new timeline back to the script that made
-        // it, so the next run() updates this one instead of making another.
-        await timelines.linkScript(id, scriptId);
       }
       const validation = await timelines.validate(id, showcase ? { tier: "showcase" } : undefined);
       if (!validation.ok) throw new Error(`validate_timeline: ${JSON.stringify(validation.errors, null, 2)}`);

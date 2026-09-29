@@ -537,22 +537,56 @@ making another — the way to revise a cut without duplicating it.
 
 ## Revise by editing the script
 
-The build script is the source of truth of the timeline it makes, the way a
-Remotion composition is the source of truth of its render: to change the cut,
-change the script and run it again, rather than hand-editing the document.
+`v.save()` gets its own script embedded automatically, whatever else the
+action called: right after the save, the host reruns the script and replays
+every other capability call it made (a generation, a fetch, a memory write)
+from what it recorded live, rather than running them again — the rerun never
+re-bills a generation and never fetches the network twice. When that replay
+reproduces exactly what was saved, the script text and its recorded calls
+land on the timeline's `document.source`. The timeline is code-backed from
+then on, and a later `code.get` on it returns the script back.
 
-Save the script as a JS script document (`api-scripts`/`nodetool-js-scripting`)
-and it links to the timeline it builds automatically — call `v.save(timelines,
-{name})` with no `timeline_id` the first time (it creates a timeline and links
-this script to it), then again after every edit (it writes into that same
-timeline, snapshotting the prior state). Revise with `edit_js_script`'s
-string-replacement ops instead of resending the whole body: each op's `old`
-text must match exactly once in the current code. This is what makes the
-review → revise → rerun loop cheap — a two-line diff instead of a 500-line
-resend.
+Embedding is skipped, with the reason in `saved.warnings`, when the replay
+fails outright, or when the script is not deterministic in a way replay
+cannot cover — `Math.random()` is seeded and reproduces; `Date.now()`/
+`new Date()` do not, because freezing the clock for the whole action would
+break anything in it that measures real elapsed time, so a script that reads
+the clock stays outside what a replay reproduces. When embedding is skipped,
+or to attach a script to a timeline after the fact, call
+`nodetool.timelines.code.set(timeline_id, code)` with the script's text
+directly — it bakes the same way.
+
+Revise it by editing that stored code, not by resending the whole body:
+`code.get(id)` reads it back, `code.edit(id, edits)` applies a few small exact
+string replacements (each `old` must match exactly once) and re-merges,
+replaying every recorded call whose arguments the edit did not touch. An edit
+that changes what a call was given has no matching record, so the rebake
+refuses and names the call — pass `allow_live: true` to run that one call for
+real and record its fresh result instead. Read the `conflicts` and
+`warnings` a rebake answers, then look at frames. `api-timelines` owns the
+full call contract; `code.rebake` reruns the stored code unchanged, and
+`code.detach` stops tracking scenes.
+
+**Scene names are the identity the merge keys on.** A rebake matches this
+build's scenes against the timeline's current ones by `v.scene()`'s own
+`name`, not by position or content — renaming a scene is a remove of the old
+name plus an add of the new one, so anything hand-edited under the old name is
+gone and the new one reflows in as an ordinary addition. Every clip's id is
+deterministic from its scene's name plus its order of creation in the script
+(`${sceneName}_${prefix}${n}`, `nid()` in this pack's own source) — never from
+its screen position — so two bakes of unchanged code mint identical ids and a
+change confined to one scene never shifts another's. That is what lets a
+rebake survive without breaking the editor's selection.
+
+A hand edit — in the editor, or through `edit_timeline` — inside a scene the
+code tracks marks that scene "edited": the next `code.set`/`code.edit`/
+`code.rebake` keeps it and reports it in `conflicts` rather than silently
+overwriting it, unless `force` (`true`, or that scene's name in an array)
+says otherwise.
 
 Showcase warnings ride the successful return, not an exception — check
-`saved.warnings` and render frames to judge what they flag.
+`saved.warnings`, or a `code.*` call's own `warnings`, and render frames to
+judge what they flag.
 
 ## Types
 
@@ -580,7 +614,7 @@ before the script ever runs.
   didn't name.** Render settings such as motion blur are the exception —
   those belong on `render(id, {…})`, not in the document.
 - **`save()` creates a new timeline only the first time.** Pass `timeline_id`
-  to write into one that already exists, or save the build script as a JS
-  script document and rerun it — a linked script's save updates its own
-  timeline automatically. Without either, every call still makes a new row;
-  it never overwrites a cut the user has open uninvited.
+  to write into one that already exists — or, for a code-backed timeline, run
+  the change through `code.edit`/`code.rebake` instead of calling `save()`
+  again (below). Without either, every call still makes a new row; it never
+  overwrites a cut the user has open uninvited.

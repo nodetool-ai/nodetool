@@ -12,12 +12,19 @@
 // one block each, sharing one import of the pack. The document is read back
 // from the database as stored, since a sandbox output is capped below a
 // bundle's size, and the bundle is written to
-// packages/base-nodes/nodetool/examples/timelines/<slug>.timeline.json.
+// packages/base-nodes/nodetool/examples/timelines/<slug>.timeline.json —
+// with its own builder script embedded as `document.source.code`, the same
+// `{lang, code, bakedAt, scenes}` shape a live timeline carries after
+// `set_timeline_code`, and the scene hashes computed with the same
+// `hashSceneSubtree` a rebake merge checks against — so rebaking a shipped
+// example reports zero conflicts.
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { hashSceneSubtree } from "@nodetool-ai/timeline";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "../..");
@@ -89,14 +96,29 @@ try {
     // The runner hands an `any` output back as its JSON text.
     const raw = result.outputs[slug];
     const { timeline_id: id, ...meta } = typeof raw === "string" ? JSON.parse(raw) : raw;
-    const bundle = { ...meta, document: (await TimelineSequence.findById(id)).toDocument() };
+    const document = (await TimelineSequence.findById(id)).toDocument();
+
+    // Embed the builder script as `document.source`, the same shape
+    // `set_timeline_code` writes for a live timeline: the code, when it was
+    // baked, and each scene's group id + subtree hash — so
+    // `nodetool.timelines.code.rebake()` against a copy of this example
+    // reports every scene untouched (zero conflicts) rather than treating
+    // the shipped document as hand-edited.
+    const code = readFileSync(join(HERE, `${slug}.mjs`), "utf8");
+    const scenes = {};
+    for (const clip of document.clips) {
+      if (typeof clip.sourceScene === "string" && clip.sourceScene) {
+        scenes[clip.sourceScene] = {
+          groupId: clip.id,
+          hash: hashSceneSubtree(document.clips, clip.id)
+        };
+      }
+    }
+    document.source = { lang: "js", code, bakedAt: new Date().toISOString(), scenes };
+
+    const bundle = { ...meta, document };
     const out = join(OUT_DIR, `${slug}.timeline.json`);
     writeFileSync(out, `${JSON.stringify(bundle)}\n`);
-    // The builder script itself, shipped next to its bundle so
-    // `nodetool.timelines.examples.source(slug)` reaches it in the packaged
-    // app and the Docker image the same way it reaches the JSON.
-    const sourceOut = join(OUT_DIR, `${slug}.source.js`);
-    writeFileSync(sourceOut, readFileSync(join(HERE, `${slug}.mjs`), "utf8"));
     const { tracks, clips, markers } = bundle.document;
     console.log(`${slug}: ${clips.length} clips, ${tracks.length} tracks, ${markers.length} markers -> ${out}`);
   }

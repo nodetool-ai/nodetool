@@ -17,9 +17,9 @@
  * only as a worker entry.
  */
 
-import { loadQuickJs } from "@sebastianwessel/quickjs";
 import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
 
+import { loadSandboxEngine } from "./engine.js";
 import { toGuestBytes } from "../sandbox-bytes.js";
 import { MAX_RANDOM_BYTES } from "../sandbox-constants.js";
 import {
@@ -51,7 +51,7 @@ import { isFiniteNumber, isObjectLike } from "../utils/type-guards.js";
 // `QuickJSSyncVariant` this reads.
 const quickJsVariant = (
   quickJsVariantModule as unknown as {
-    default: Parameters<typeof loadQuickJs>[0];
+    default: Parameters<typeof loadSandboxEngine>[0];
   }
 ).default;
 
@@ -62,7 +62,7 @@ const SLOW_SANDBOX_RUN_MS = 1_000;
 // Engine
 // ---------------------------------------------------------------------------
 
-let enginePromise: ReturnType<typeof loadQuickJs> | null = null;
+let enginePromise: ReturnType<typeof loadSandboxEngine> | null = null;
 
 /**
  * One engine per worker.
@@ -71,9 +71,9 @@ let enginePromise: ReturnType<typeof loadQuickJs> | null = null;
  * serializer table, and a worker holds its own module instance, so it registers
  * its own before the first run.
  */
-function getEngine(): ReturnType<typeof loadQuickJs> {
+function getEngine(): ReturnType<typeof loadSandboxEngine> {
   registerTypedArraySerializers();
-  if (!enginePromise) enginePromise = loadQuickJs(quickJsVariant);
+  if (!enginePromise) enginePromise = loadSandboxEngine(quickJsVariant);
   return enginePromise;
 }
 
@@ -283,6 +283,7 @@ type RunFailureMessage = {
   type: "result";
   runId: string;
   evalOk: false;
+  failure: "worker";
   errorName: string;
   errorMessage: string;
   errorStack?: string;
@@ -361,6 +362,7 @@ export async function startWorker(port: Port): Promise<void> {
             type: "result",
             runId: raw.runId,
             evalOk: false,
+            failure: "worker",
             errorName: error instanceof Error ? error.name : "Error",
             errorMessage: error instanceof Error ? error.message : String(error)
           };

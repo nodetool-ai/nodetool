@@ -56,10 +56,11 @@ route it covers; `load_skill` it before writing that prompt.
 Build a piece in four moves: **direct** (fix the motion language and the
 scene list before writing anything — `motion-direction` and, when there is a
 title or end card, `frame-composition`/`logo-reveal`), **build** (write the
-scenes in code, one `v.scene` per beat), **save** (one `v.save()` call, read
-its `warnings`), **review** (the pass below). Revise and repeat the last two
-steps — a piece that renders clean on the first save has not been looked at
-yet.
+scenes in code, one `v.scene` per beat), **save** (`timelines.create` +
+`code.set` bakes and embeds the script, read its `warnings`), **review** (the
+pass below). Revise by editing that script — see below — and repeat the
+last two steps. A piece that renders clean on the first save has not been
+looked at yet.
 
 ## Choose the authoring surface
 
@@ -133,20 +134,35 @@ if (saved.warnings.length) {
 }
 ```
 
-## Revise by editing the script
+## Author and revise with code
 
-The build script is the source of truth of the timeline it makes, the way a
-Remotion composition is the source of truth of its render: to change the cut,
-change the script and run it again, rather than hand-editing the document.
+`v.save(nodetool.timelines, {...})` embeds the action's own code as the
+timeline's source automatically — no separate `code.set` call needed. Every
+other capability call that action made (a generation, a fetch, a memory
+write) is recorded alongside it, so a later rebake replays those calls
+instead of running them again: an edit that only touches unrelated text costs
+nothing but the bake, and a generation is never re-billed just because the
+timeline needed to rebuild. An edit that changes what a call was given —
+a different prompt, a different asset id — has no matching record, so the
+bake refuses and names the call; add `allow_live: true` to `code.edit`/
+`code.set`/`code.rebake` to run that one call for real and record its fresh
+result. Code that reads `Date.now()`/`new Date()` cannot be replayed (the
+clock is not frozen — see the pack's own skill for why) and reports "not
+embedded" instead; `Math.random()` is seeded and reproduces normally. When
+embedding is skipped, or for a timeline you are attaching code to after the
+fact, `nodetool.timelines.code.set(timeline_id, code)` bakes the same way
+and stores the code as the timeline's source directly.
 
-Save the script as a JS script document and it links to the timeline it
-builds automatically — call `v.save(timelines, {name})` with no `timeline_id`
-the first time (it creates a timeline and links this script to it), then
-again after every edit (it writes into that same timeline, snapshotting the
-prior state). Revise with `edit_js_script`'s string-replacement ops instead
-of resending the whole body: each op's `old` text must match exactly once in
-the current code. This is the review → revise → rerun loop from the build
-loop above, made cheap — a two-line diff instead of a 500-line resend.
+Revising a code-backed timeline is: `code.get(id)` → `code.edit(id, edits)`
+with a few small exact string replacements (each `old` matches exactly once)
+→ read the `conflicts` and `warnings` it answers → look at frames. This is
+the review → revise → rerun loop from the build loop above, made cheap — a
+two-line diff instead of a 500-line resend. `edit_timeline` ops still apply
+for a timeline with no code, or a deliberate hand tweak — `timeline-edit-ops`
+owns that contract and what it costs a code-backed scene. The pack's own
+skill (`@nodetool-ai/sandbox-timeline`) covers what code-backed identity
+means for scene names and clip ids; `api-timelines` owns the full `code.*`
+call contract.
 
 ## Review pass
 

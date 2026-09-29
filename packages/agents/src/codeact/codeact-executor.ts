@@ -114,6 +114,13 @@ import { GRAPH_DSL_PACKAGE, withGraphDslPackage } from "./graph-dsl-package.js";
 import { FLOW_PACKAGE, withFlowPackage } from "./flow-package.js";
 import { withTimelinePackage } from "./timeline-package.js";
 import {
+  TIMELINE_DOCUMENT_WRITES_KEY,
+  TIMELINE_CALL_LOG_KEY,
+  randomTimelineSeed,
+  timelineDeterminismShim,
+  type RawTimelineCallRecord
+} from "../timeline-code-embed-keys.js";
+import {
   FABRIC_PACKAGE,
   FABRIC_PROMPT_SECTION,
   withFabricPackage
@@ -379,6 +386,13 @@ interface ActionObservation {
   repeated?: boolean;
   /** How many images past {@link MAX_ACTION_IMAGES} were not forwarded. */
   imagesDropped?: string;
+  /**
+   * Set when this action saved a timeline whose code did not get embedded as
+   * its source — either it saved more than one, or a hermetic rerun of this
+   * action's code could not reproduce what was saved. Absent when the action
+   * saved no timeline, or embedding succeeded.
+   */
+  timelineCodeWarning?: string;
   toolCalls: number;
   result?: unknown;
   logs?: string[];
@@ -981,6 +995,18 @@ export class CodeActExecutor {
       this.actionCount++;
       bridge.resetActionBudget();
 
+      // Every action's calls are logged in memory, cheaply (a plain array
+      // push, no hashing or copying — see `recordTimelineCall`), because the
+      // host cannot know in advance that this action will end up saving a
+      // timeline. `TIMELINE_DOCUMENT_WRITES_KEY`'s presence is what
+      // `set_timeline_document` and the call log both key off; a run this
+      // action's own code observes as deterministic is what lets a later
+      // bake replay it — see `timelineDeterminismShim`.
+      const timelineSeed = randomTimelineSeed();
+      const timelineEpochMs = Date.now();
+      this.context.set(TIMELINE_DOCUMENT_WRITES_KEY, []);
+      this.context.set(TIMELINE_CALL_LOG_KEY, []);
+
       // One span per action; bridged calls inside it are not spanned.
       return withSpan(
         "agent.action",
@@ -991,8 +1017,12 @@ export class CodeActExecutor {
         },
         async (span) => {
           const startedAt = Date.now();
+          // Combined so `annotateFailure` below counts the same lines that
+          // were actually prepended to `code` — its own offset math assumes
+          // "prelude" names everything ahead of the action's own source.
+          const preludeWithDeterminism = `${timelineDeterminismShim(timelineSeed, timelineEpochMs)}\n${this.prelude}`;
           const outcome = await runInSandbox({
-            code: `${this.prelude}\n${code}`,
+            code: `${preludeWithDeterminism}\n${code}`,
             context: this.context,
             timeoutMs:
               this.actionTimeoutMs ?? DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
@@ -1013,12 +1043,44 @@ export class CodeActExecutor {
             }
           });
 
+          // Read the bookkeeping back before anything else touches the run,
+          // and clear it — this action's own record, not left lying around
+          // for the next one, and never persisted for an action that saved
+          // no timeline.
+          const timelineWrites =
+            this.context.get<string[]>(TIMELINE_DOCUMENT_WRITES_KEY) ?? [];
+          const timelineCallLog =
+            this.context.get<RawTimelineCallRecord[]>(TIMELINE_CALL_LOG_KEY) ??
+            [];
+          this.context.set(TIMELINE_DOCUMENT_WRITES_KEY, undefined);
+          this.context.set(TIMELINE_CALL_LOG_KEY, undefined);
+          let timelineCodeWarning: string | undefined;
+          if (timelineWrites.length === 1) {
+            const { tryEmbedTimelineCode } = await import(
+              "../capabilities/timelines.js"
+            );
+            const attempt = await tryEmbedTimelineCode(this.context, timelineWrites[0], code, {
+              calls: timelineCallLog,
+              seed: timelineSeed,
+              epochMs: timelineEpochMs
+            });
+            if (attempt.warning) {
+              timelineCodeWarning = attempt.warning;
+            }
+          } else if (timelineWrites.length > 1) {
+            timelineCodeWarning =
+              `Code not embedded: this action saved ${timelineWrites.length} ` +
+              "timelines. Save one timeline per action for the code to " +
+              "attach automatically, or call set_timeline_code on the one " +
+              "to keep code-backed.";
+          }
+
           const failure = outcome.success
             ? null
             : annotateFailure(
                 outcome.error,
                 outcome.stack,
-                this.prelude,
+                preludeWithDeterminism,
                 code
               );
 
@@ -1112,6 +1174,9 @@ export class CodeActExecutor {
             observation.imagesDropped =
               `${dropped} image(s) beyond the ${MAX_ACTION_IMAGES}-per-action ` +
               `cap were not forwarded. View fewer images per action.`;
+          }
+          if (timelineCodeWarning !== undefined) {
+            observation.timelineCodeWarning = timelineCodeWarning;
           }
           // `toolCalls` was created first to hold the key slot ahead of
           // `result` and `logs`; the count is known only now.

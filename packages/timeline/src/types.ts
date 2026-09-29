@@ -82,12 +82,11 @@ export interface TimelineSequence {
    */
   templateId?: string | null;
   /**
-   * The JS script (`js_scripts` row) that built this timeline, when it was
-   * last written by `v.save()` in `@nodetool-ai/sandbox-timeline`. Absent on
-   * a sequence nothing scripted wrote. The script side of the link is its
-   * document's `linkedTimelineId`.
+   * The authoring code this timeline was baked from, and which scene groups
+   * it produced last. Absent on a sequence nobody authored with code. See
+   * {@link TimelineSource}.
    */
-  builtByScriptId?: string | null;
+  source?: TimelineSource | null;
   /**
    * Subject/object tracks (P0 AI Video, Phase 2). Document-level rather than
    * per-clip because a track is the reusable primitive `TrackBinding`
@@ -98,6 +97,41 @@ export interface TimelineSequence {
   camera2d?: TimelineCamera2D | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * A timeline's authoring code, embedded in the document it built — the
+ * source-of-truth for the "edit the code, not the JSON" surface
+ * (`nodetool.timelines.code.*`). `code` is an ordinary
+ * `@nodetool-ai/sandbox-timeline` script: it imports the pack, builds scenes
+ * with `video()`/`scene()`/`series()`, and calls `v.save()`.
+ *
+ * `scenes` names, per scene, the group clip id and a hash of that scene's
+ * whole subtree (the group plus every descendant) as the code last baked it.
+ * A rebake compares the *current* subtree hash against this recorded one: a
+ * match means nothing touched the scene since the last bake, so the new build
+ * replaces it; a mismatch means it was hand-edited (in the editor, or via
+ * `edit_timeline`) and is kept, reported as a conflict.
+ */
+/** One non-timeline capability/tool call the authoring code made — see `@nodetool-ai/protocol`'s `timelineCallRecord` schema, mirrored here. */
+export interface TimelineCallRecord {
+  method: string;
+  argsHash: string;
+  result?: unknown;
+}
+
+export interface TimelineSource {
+  lang: "js";
+  code: string;
+  /** When this document was last written by a bake. */
+  bakedAt: string;
+  scenes: Record<string, { groupId: string; hash: string }>;
+  /** Non-timeline calls the code made, replayed on every rebake. */
+  calls?: TimelineCallRecord[];
+  /** Seeds `Math.random()` for both the recorded run and every replay. */
+  seed?: number;
+  /** Fixes `Date.now()`/`new Date()` for both the recorded run and every replay. */
+  epochMs?: number;
 }
 
 /** Immutable inputs needed to replay one direct text-to-video generation. */
@@ -1000,6 +1034,13 @@ export interface TimelineClip {
    * error and renders unparented.
    */
   parentId?: string;
+  /**
+   * On a `group` clip built by `@nodetool-ai/sandbox-timeline`'s `v.scene()`:
+   * the scene name this group is the root of. Names the scene a code-backed
+   * timeline's rebake merge (`source.scenes`) tracks and hashes; absent on a
+   * group nothing authored with code created, and on every non-group clip.
+   */
+  sourceScene?: string;
   /**
    * Shape mask applied to this layer before it is blended. On an `adjustment`
    * clip it is in frame space (the surface being treated) rather than the

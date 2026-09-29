@@ -1719,6 +1719,11 @@ export const timelineClip = z.object({
   /** Group this clip is parented to. Without this field Zod strips it on every
    * PATCH, so autosave unparents every child of a group. */
   parentId: z.string().optional(),
+  /** The scene name this group is the root of, on a scene group `v.scene()`
+   * built. Without this field Zod strips it on every PATCH, so a code-backed
+   * timeline's next rebake could no longer tell this scene apart from a hand
+   * edit. */
+  sourceScene: z.string().optional(),
   /** Shape mask. Without this field Zod strips it on every PATCH, so a masked
    * layer reverts to its full rectangle on the next save. */
   mask: clipMask.optional(),
@@ -1866,6 +1871,43 @@ export const timelineSetup = z
   .passthrough();
 export type TimelineSetup = z.infer<typeof timelineSetup>;
 
+/**
+ * One non-timeline capability/tool call the authoring code made, recorded
+ * during the run that embedded it — `method` is the capability's wire name,
+ * `argsHash` a stable hash of its canonical arguments, `result` the value it
+ * returned. A bake replays these instead of calling the real capability
+ * again, so a rebake never repeats a side effect (a generation, a memory
+ * write, an outbound fetch). A `nodetool.timelines.*` call is never recorded
+ * here — the bake's own document-capturing stub always handles those.
+ */
+export const timelineCallRecord = z.object({
+  method: z.string(),
+  argsHash: z.string(),
+  result: z.unknown().optional()
+});
+export type TimelineCallRecord = z.infer<typeof timelineCallRecord>;
+
+/**
+ * A timeline's authoring code and the scene hashes its last bake recorded.
+ * See `TimelineSource` in `@nodetool-ai/timeline`.
+ */
+export const timelineSource = z.object({
+  lang: z.literal("js"),
+  code: z.string(),
+  bakedAt: z.string(),
+  scenes: z.record(
+    z.string(),
+    z.object({ groupId: z.string(), hash: z.string() })
+  ),
+  /** Non-timeline calls the code made, replayed on every rebake. */
+  calls: z.array(timelineCallRecord).optional(),
+  /** Seeds `Math.random()` for both the recorded run and every replay. */
+  seed: z.number().optional(),
+  /** Fixes `Date.now()`/`new Date()` for both the recorded run and every replay. */
+  epochMs: z.number().optional()
+});
+export type TimelineSource = z.infer<typeof timelineSource>;
+
 export const timelineDocument = z.object({
   tracks: z.array(timelineTrack),
   trackFolders: z.array(timelineTrackFolder).optional(),
@@ -1882,11 +1924,10 @@ export const timelineDocument = z.object({
   /** Sequence this one was retargeted from. Without this field Zod strips it
    * on every PATCH and the lineage is lost on the first save. */
   templateId: z.string().nullable().optional(),
-  /** The JS script that built this timeline, when `v.save()` last wrote it
-   * with a link. Without this field Zod strips it on every PATCH and the
-   * next revise-and-rerun would make a duplicate timeline instead of
-   * updating this one. */
-  builtByScriptId: z.string().nullable().optional(),
+  /** The authoring code this timeline was baked from, and the scene hashes
+   * the last bake recorded. Without this field Zod strips it on every PATCH,
+   * so an editor save between bakes would silently detach the code. */
+  source: timelineSource.nullable().optional(),
   /** Subject/object tracks (P0 AI Video, Phase 2). Without this field Zod
    * strips it on every PATCH, so a track and every clip following it are
    * lost on the next save. */
@@ -1951,8 +1992,8 @@ export const timelineSequenceResponse = z.object({
   setup: timelineSetup.optional(),
   /** Sequence this one was retargeted from, mirroring the document's. */
   templateId: z.string().nullable().optional(),
-  /** The JS script that built this timeline, mirroring the document's. */
-  builtByScriptId: z.string().nullable().optional(),
+  /** The authoring code this timeline was baked from, mirroring the document's. */
+  source: timelineSource.nullable().optional(),
   /** Subject/object tracks, mirroring the document's. */
   mediaTracks: z.array(mediaTrack).optional(),
   camera2d: timelineCamera2d.nullable().optional(),

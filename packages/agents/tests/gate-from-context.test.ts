@@ -231,7 +231,14 @@ const MAY_BE_UNGATED: Record<string, string> = {
   "agents/src/capabilities/packs.ts": "reads a SKILL.md, a read-class call",
   "agents/src/tools/serp-tool-factory.ts":
     "builds the one Tool a belt cannot assemble from the registry; " +
-    "gated from outside like lazy-tool"
+    "gated from outside like lazy-tool",
+  "agents/src/timeline-code-bake.ts":
+    "applies v.save()'s ops to an in-memory TimelineSequence the bake " +
+    "never saves, purely to compute the scene hashes a real save would " +
+    "have produced — this one construction has no side effect to gate. " +
+    "The file's other live reach (allowLive re-running a missing capability " +
+    "call for real) goes through the caller's own already-gated `liveRun`, " +
+    "never through this ungated run"
 };
 
 /**

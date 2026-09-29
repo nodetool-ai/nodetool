@@ -84,11 +84,11 @@ export type JsScriptExecutor = (
   inputStreams?: Record<string, unknown[]>,
   /**
    * The script's own row id, for a target loaded from the database. Seeds
-   * the run's context with the same call-chain key `run_js_script` sets, so
-   * a body calling `resolve_script_timeline` (e.g. `v.save()` in
-   * `@nodetool-ai/sandbox-timeline`) sees this run as "the script currently
-   * running" the way it would through the capability path. Absent for a
-   * file target, which has no row to link.
+   * the run's context with the same call-chain key `run_js_script` sets
+   * (`JS_SCRIPT_CHAIN_KEY`, via `enterJsScript`), so a body that runs
+   * another JS script sees this run in the chain the same way it would
+   * through the capability path — a cycle or the depth cap is refused the
+   * same way. Absent for a file target, which has no row to chain from.
    */
   scriptId?: string
 ) => Promise<JsScriptRunResult>;
@@ -198,8 +198,8 @@ async function loadExecutor(): Promise<JsScriptExecutor> {
     context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("JS script debug"));
     if (scriptId) {
       // Mirrors `enterJsScript` in the `run_js_script` capability: the same
-      // chain key, so `resolve_script_timeline` sees this CLI run as the
-      // script currently running, the way the capability path would.
+      // chain key, so a script this run invokes sees this CLI run as part
+      // of the call chain the way it would through the capability path.
       const { JS_SCRIPT_CHAIN_KEY } = await import("@nodetool-ai/agents");
       context.set(JS_SCRIPT_CHAIN_KEY, [scriptId]);
     }

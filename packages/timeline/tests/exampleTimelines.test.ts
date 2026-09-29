@@ -76,13 +76,21 @@ describe("shared example timeline reader", () => {
     expect(listExampleTimelines()).toEqual([]);
   });
 
-  it("reads a builder script staged beside its bundle, with its imports listed", () => {
+  it("reads the builder script out of the bundle's own document.source, with its imports listed", () => {
     const dir = stagedDirectory();
-    writeFileSync(
-      nodePath.join(dir, "staged.source.js"),
+    const code =
       'import { createBuilder, saveTimeline } from "@nodetool-ai/sandbox-timeline";\n' +
-        'import { helper } from "./helper.mjs";\n' +
-        "createBuilder({ W: 1920, H: 1080, FPS: 30 });\n"
+      'import { helper } from "./helper.mjs";\n' +
+      "createBuilder({ W: 1920, H: 1080, FPS: 30 });\n";
+    writeFileSync(
+      nodePath.join(dir, "staged.timeline.json"),
+      JSON.stringify({
+        ...bundle,
+        document: {
+          ...bundle.document,
+          source: { lang: "js", code, bakedAt: "2026-01-01T00:00:00.000Z", scenes: {} }
+        }
+      })
     );
     vi.stubEnv("NODETOOL_EXAMPLE_TIMELINES_DIR", dir);
     expect(getExampleTimelineSource({}, "staged")).toMatchObject({
@@ -91,5 +99,12 @@ describe("shared example timeline reader", () => {
       imports: ["@nodetool-ai/sandbox-timeline", "./helper.mjs"]
     });
     expect(getExampleTimelineSource({}, "no-such-slug")).toBeNull();
+  });
+
+  it("answers null for an example with no document.source", () => {
+    const dir = stagedDirectory();
+    writeFileSync(nodePath.join(dir, "no-source.timeline.json"), JSON.stringify(bundle));
+    vi.stubEnv("NODETOOL_EXAMPLE_TIMELINES_DIR", dir);
+    expect(getExampleTimelineSource({}, "no-source")).toBeNull();
   });
 });

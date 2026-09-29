@@ -602,9 +602,10 @@ export {
   JS_SCRIPT_TOOL_LOOP_CASES
 } from "./evals/surfaces/js-script.js";
 /**
- * The context key `run_js_script` pushes the running script's id onto — a
- * host driving the sandbox outside that capability (the CLI harness) sets it
- * the same way, so `resolve_script_timeline` sees one call chain either way.
+ * The context key `run_js_script` pushes the running script's id onto, so a
+ * script that runs another script (directly or through a sub-agent) can be
+ * refused as a cycle. A host driving the sandbox outside that capability
+ * (the CLI harness) sets it the same way, so both paths build one call chain.
  */
 export { JS_SCRIPT_CHAIN_KEY } from "./capabilities/js-scripts.js";
 export type {
@@ -927,6 +928,11 @@ export type {
 } from "./custom-animation-bake.js";
 export { createJsScriptAppRunner } from "./js-script-app-runner.js";
 export type { HarnessRunResult } from "./capabilities/code.js";
+export {
+  bakeTimelineCode,
+  TIMELINE_CODE_BAKE_TIMEOUT_SECONDS
+} from "./timeline-code-bake.js";
+export type { BakeTimelineCodeResult } from "./timeline-code-bake.js";
 
 // Jobs to be done — the agent-intent layer. Each job is one objective taken end
 // to end across whatever surfaces it needs, recorded in full (transcript, tool

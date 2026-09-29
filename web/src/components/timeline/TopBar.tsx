@@ -10,6 +10,7 @@ import {
   SPACING,
   ToolbarIconButton
 } from "../ui_primitives";
+import CodeIcon from "@mui/icons-material/Code";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import FolderZipOutlinedIcon from "@mui/icons-material/FolderZipOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -29,8 +30,10 @@ interface TopBarProps {
   onOpenSettings?: () => void;
   onAdaptFormat?: () => void;
   activitySlot?: React.ReactNode;
-  /** The "Built from script <name>" chip, or nothing on an unscripted cut. */
-  scriptLinkSlot?: React.ReactNode;
+  /** Opens the timeline's Code panel. Omit (or leave `hasCode` false) when
+   *  the timeline has no embedded authoring code. */
+  onOpenCode?: () => void;
+  hasCode?: boolean;
 }
 
 export const TopBar: React.FC<TopBarProps> = memo(
@@ -45,7 +48,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
     onOpenSettings,
     onAdaptFormat,
     activitySlot,
-    scriptLinkSlot
+    onOpenCode,
+    hasCode = false
   }) => {
     const overflowButtonRef = useRef<HTMLButtonElement>(null);
     const [overflowAnchor, setOverflowAnchor] = useState<HTMLElement | null>(
@@ -68,7 +72,15 @@ export const TopBar: React.FC<TopBarProps> = memo(
     return (
       <FlexRow align="center" gap={SPACING.micro}>
         {activitySlot}
-        {scriptLinkSlot}
+        {hasCode && onOpenCode && (
+          <ToolbarIconButton
+            onClick={onOpenCode}
+            tooltip="Code"
+            aria-label="Open the timeline's code"
+          >
+            <CodeIcon fontSize="small" />
+          </ToolbarIconButton>
+        )}
         {onSave && (
           <ToolbarIconButton
             onClick={onSave}

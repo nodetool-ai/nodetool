@@ -22,13 +22,20 @@ describe("example timelines", () => {
   it("finds the shipped timelines and their playable media", () => {
     expect(resolveExampleTimelinesDir(options)).toBe(nodePath.join(baseNodes, "examples", "timelines"));
     const examples = listExampleTimelines(options);
+    // Frame-aligned, not round numbers: each example is now authored as a
+    // `@nodetool-ai/sandbox-timeline` script (scripts/example-timelines/
+    // build.mjs), and every scene's length is snapped to its own frame grid
+    // (`msFor` in the pack) rather than hand-set to a tidy millisecond count.
+    // prism/tidewater/voltra's durations moved from their pre-port
+    // placeholders (18000/16000/23000) to the sum of their scripts' actual
+    // per-scene frame-aligned lengths.
     expect(examples.map((example) => [example.slug, example.durationMs, example.fps])).toEqual([
       ["kite", 15000, 30],
-      ["prism", 18000, 30],
+      ["prism", 18467, 30],
       ["serein", 26000, 30],
       ["t-minus-30", 30000, 30],
-      ["tidewater", 16000, 24],
-      ["voltra", 23000, 30]
+      ["tidewater", 15958, 24],
+      ["voltra", 22734, 30]
     ]);
     for (const example of examples) {
       expect(example.clipCount).toBeGreaterThan(0);

@@ -12,6 +12,13 @@ cut goes through the `@nodetool-ai/sandbox-timeline` pack, which handles
 tracks, groups, layout and most of what follows here for you. Reach for this
 skill once that document exists and needs a few changes.
 
+Ops are the right tool when the timeline has no authoring code (`code.get`
+answers `code: null`), or for a deliberate hand tweak on one that does. On a
+code-backed timeline, an op inside a scene the code tracks marks that scene
+"edited": the next `code.set`/`code.edit`/`code.rebake` (`api-timelines`)
+keeps your edit and reports it in `conflicts` rather than overwriting it,
+unless `force` says otherwise.
+
 ## Read before you edit
 
 Call `get_timeline` first. You need the sequence's `fps`, `width`, `height`,

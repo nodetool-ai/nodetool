@@ -1502,47 +1502,184 @@ export const deleteTimelineSpec: CapabilitySpec = {
   userMessage: (params) => `Deleting timeline sequence ${params["timeline_id"]}`
 };
 
-export const resolveScriptTimelineSpec: CapabilitySpec = {
-  name: "resolve_script_timeline",
+export const getTimelineCodeSpec: CapabilitySpec = {
+  name: "get_timeline_code",
   description:
-    "Read-only. Answers {js_script_id, timeline_id} for the JS script " +
-    "currently running this call, and the timeline it is linked to (from " +
-    "the script's own `linkedTimelineId`). Both come back null outside a " +
-    "saved script run (a raw execute_code action, or a script that has never " +
-    "been linked). `v.save()` in @nodetool-ai/sandbox-timeline calls this so " +
-    "a revise-and-rerun updates the same timeline without threading its id.",
-  inputSchema: { type: "object", properties: {} },
+    "The authoring code a timeline was baked from, and per-scene bake status. " +
+    "Returns {code, baked_at, scenes: [{name, group_id, edited}]} — `code` is " +
+    "null when the timeline carries none. `edited` is true when a scene's " +
+    "subtree has changed since the last bake (a hand edit, or an " +
+    "`edit_timeline` op) and a rebake would keep it and report a conflict.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      timeline_id: {
+        type: "string",
+        description: "The timeline to read. You must own it."
+      }
+    },
+    required: ["timeline_id"]
+  },
   category: "read",
-  userMessage: () => "Resolving the running script's linked timeline"
+  userMessage: (params) =>
+    `Reading the authoring code for timeline ${String(params["timeline_id"])}`
 };
 
-export const LINK_TIMELINE_SCRIPT_SCHEMA: JsonSchema = {
+export const SET_TIMELINE_CODE_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
     timeline_id: {
       type: "string",
-      description: "The timeline to link. You must own it."
+      description: "The timeline to write code onto. You must own it."
     },
-    js_script_id: {
+    code: {
       type: "string",
-      description: "The JS script to link. You must own it."
+      description:
+        "An @nodetool-ai/sandbox-timeline script: import the pack, build " +
+        "scenes with video()/scene()/series(), call v.save()."
+    },
+    force: {
+      description:
+        "true to overwrite every scene regardless of hand edits, or an " +
+        "array of scene names to force just those.",
+      oneOf: [{ type: "boolean" }, { type: "array", items: { type: "string" } }]
+    },
+    allow_live: {
+      type: "boolean",
+      description:
+        "When the code calls something (a generation, a fetch, another " +
+        "tool) that has no matching recorded result from a prior run — " +
+        "because the code changed what it calls — run that one call for " +
+        "real and record its result, instead of refusing the bake. Off by " +
+        "default: a rebake never repeats a side effect unless asked to."
     }
   },
-  required: ["timeline_id", "js_script_id"]
+  required: ["timeline_id", "code"]
 };
 
-export const linkTimelineScriptSpec: CapabilitySpec = {
-  name: "link_timeline_script",
+export const setTimelineCodeSpec: CapabilitySpec = {
+  name: "set_timeline_code",
   description:
-    "Record that a JS script built a timeline: stamps the timeline's " +
-    "document with `builtByScriptId` and the script's document with " +
-    "`linkedTimelineId`, both CAS writes. Call this once after the first " +
-    "v.save() that created the timeline, so later runs of the same script " +
-    "update it in place instead of making another.",
-  inputSchema: LINK_TIMELINE_SCRIPT_SCHEMA,
+    "Attach or replace a timeline's authoring code, bake it, and merge the " +
+    "result into the document scene by scene: an untouched scene is replaced " +
+    "by the new build, a hand-edited one is kept and reported in `conflicts` " +
+    "(pass `force` to overwrite it anyway). Returns " +
+    "{timeline_id, errors, warnings, conflicts, scenes}.",
+  inputSchema: SET_TIMELINE_CODE_SCHEMA,
   category: "write",
   userMessage: (params) =>
-    `Linking timeline ${String(params["timeline_id"])} to script ${String(params["js_script_id"])}`
+    `Setting authoring code on timeline ${String(params["timeline_id"])}`
+};
+
+export const EDIT_TIMELINE_CODE_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "The timeline whose code to edit. You must own it."
+    },
+    edits: {
+      type: "array",
+      description:
+        "Exact-match string replacements applied to the stored code, in " +
+        "order. Each `old` must match exactly once.",
+      items: {
+        type: "object",
+        properties: {
+          old: { type: "string" },
+          new: { type: "string" }
+        },
+        required: ["old", "new"]
+      },
+      minItems: 1
+    },
+    force: {
+      oneOf: [{ type: "boolean" }, { type: "array", items: { type: "string" } }]
+    },
+    allow_live: {
+      type: "boolean",
+      description:
+        "Run a call with no matching recorded result for real and record " +
+        "it, instead of refusing the bake. Off by default."
+    }
+  },
+  required: ["timeline_id", "edits"]
+};
+
+export const editTimelineCodeSpec: CapabilitySpec = {
+  name: "edit_timeline_code",
+  description:
+    "Edit a timeline's stored authoring code by exact-match string " +
+    "replacement, then bake and merge the result the way set_timeline_code " +
+    "does. Each edit's `old` must match exactly once in the current code — " +
+    "zero or more than one match is refused, naming the count.",
+  inputSchema: EDIT_TIMELINE_CODE_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Editing authoring code on timeline ${String(params["timeline_id"])}`
+};
+
+export const rebakeTimelineCodeSpec: CapabilitySpec = {
+  name: "rebake_timeline_code",
+  description:
+    "Re-run a timeline's stored authoring code and merge the result into the " +
+    "document, without changing the code itself. Same merge rule as " +
+    "set_timeline_code: an untouched scene is replaced, a hand-edited one is " +
+    "kept and reported in `conflicts` unless `force` names it.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      timeline_id: {
+        type: "string",
+        description: "The timeline to rebake. You must own it."
+      },
+      force: {
+        oneOf: [{ type: "boolean" }, { type: "array", items: { type: "string" } }]
+      },
+      allow_live: {
+        type: "boolean",
+        description:
+          "Run a call with no matching recorded result for real and " +
+          "record it, instead of refusing the bake. Off by default."
+      }
+    },
+    required: ["timeline_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Rebaking timeline ${String(params["timeline_id"])}`
+};
+
+export const DETACH_TIMELINE_CODE_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: {
+      type: "string",
+      description: "The timeline to detach scenes on. You must own it."
+    },
+    scenes: {
+      description:
+        "Scene names to stop tracking, or \"all\" to detach every scene and " +
+        "drop the code entirely.",
+      oneOf: [
+        { const: "all" },
+        { type: "array", items: { type: "string" }, minItems: 1 }
+      ]
+    }
+  },
+  required: ["timeline_id", "scenes"]
+};
+
+export const detachTimelineCodeSpec: CapabilitySpec = {
+  name: "detach_timeline_code",
+  description:
+    "Stop tracking the named scenes (or every scene, with \"all\") against the " +
+    "timeline's authoring code. A detached scene becomes plain hand-edited " +
+    "content: a later rebake never touches it again. \"all\" also drops the " +
+    "stored code itself.",
+  inputSchema: DETACH_TIMELINE_CODE_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Detaching code tracking on timeline ${String(params["timeline_id"])}`
 };
 
 /** Every spec this module declares, in declaration order. */
@@ -1569,7 +1706,10 @@ export const timelinesSpecs: readonly CapabilitySpec[] = [
   videoToAudioSpec,
   recordedVoiceReplacementSpec,
   lipSyncSpec,
-  resolveScriptTimelineSpec,
-  linkTimelineScriptSpec,
+  getTimelineCodeSpec,
+  setTimelineCodeSpec,
+  editTimelineCodeSpec,
+  rebakeTimelineCodeSpec,
+  detachTimelineCodeSpec,
   deleteTimelineSpec
 ];

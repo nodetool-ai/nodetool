@@ -35,8 +35,28 @@ The craft is in `motion-direction`, `motion-principles`, `motion-curves`,
 | `compositions.list({source, query, limit})`, `compositions.get(id)` | Lists and reads templates: title card, lower third, caption bar, callout, CTA end card, logo sting, and the user's own. | Rows with their parameters |
 | `compositions.save(timelineId, groupTarget, name, params, {description})` | Saves a group as a template. | The composition id |
 | `compositions.remove(id)` | Deletes a saved template. | — |
-| `currentScript()` | Read-only. `{js_script_id, timeline_id}` for the JS script currently running this call and the timeline it is linked to, both null outside a saved script run. `v.save()` in `@nodetool-ai/sandbox-timeline` calls this so a revise-and-rerun updates the same timeline. | The link, or nulls |
-| `linkScript(timelineId, scriptId)` | Records that `scriptId` built `timelineId`: stamps the timeline's `builtByScriptId` and the script's `linkedTimelineId`. `v.save()` calls this itself after it creates a timeline for a linked script; call it by hand only to link a script and timeline that already exist separately. | `{timeline_id, js_script_id, linked}` |
+| `code.get(id)` | Reads the timeline's authoring code, when it has any. | `{code, baked_at, scenes: [{name, group_id, edited}]}` — `code` is `null` for a timeline with none |
+| `code.set(id, code, {force, allow_live})` | Bakes `code` and merges it into the document, scene by scene: an untouched scene is replaced, a hand-edited one is kept and reported in `conflicts` unless `force` overwrites it (`true` for every scene, or an array of names). Every non-timeline call the code makes is replayed from its stored record; a call whose arguments changed refuses the bake and names it unless `allow_live: true` runs it for real and records the fresh result. | `{timeline_id, errors, warnings, conflicts, scenes}` |
+| `code.edit(id, edits, {force, allow_live})` | Exact-match string replacements against the stored code (each `old` must match exactly once), then bakes and merges the same way as `set`. The small-diff path for one change. | Same as `set` |
+| `code.rebake(id, {force, allow_live})` | Reruns the stored code unchanged and merges again — for picking up a shipped example's own current script, or re-applying `force` to a scene left conflicted. | Same as `set` |
+| `code.detach(id, scenes)` | Stops tracking scenes (`scenes` is `"all"` or an array of names) — a later rebake never touches them again. | `{timeline_id, scenes}` |
+
+### Changing a code-backed timeline
+
+For any timeline that already has `code` (`code.get(id).code` is not null),
+the path is: `code.get(id)` → `code.edit(id, edits)` with a few small exact
+replacements → read the `conflicts`/`warnings` it answers → `preview(id,
+{sheet: true})` and look. `edit_timeline` ops still apply, for a timeline with
+no code and for a fine hand tweak on a code-backed one — but a hand edit
+inside a scene the code tracks makes that scene "edited": the next
+`code.set`/`code.edit`/`code.rebake` reports it in `conflicts` and keeps the
+hand-edited version rather than silently overwriting it. Pass `force` (`true`,
+or the scene's name in an array) to overwrite it with the code's own version
+instead of keeping the edit. A new timeline: build it and call `save()` — the
+host embeds that action's code, and every other capability call the action
+made, automatically, so it is already code-backed; a later rebake replays
+those calls rather than repeating them. Otherwise, or to attach code after
+the fact, `create`, then `code.set`.
 
 ## Coordinates and units
 

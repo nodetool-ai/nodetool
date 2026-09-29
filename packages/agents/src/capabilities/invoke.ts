@@ -26,7 +26,8 @@ import {
   type PermissionCategory
 } from "../tools/tool-permissions.js";
 import { validateCapabilityArgs, withSnakeCaseAliases } from "./args.js";
-import { findCapability } from "./registry.js";
+import { findCapability, capabilityModuleOf } from "./registry.js";
+import { recordTimelineCall } from "../timeline-code-embed-keys.js";
 import type {
   AvailableSecretsResolver,
   CapabilityExport,
@@ -212,6 +213,25 @@ async function gatedCall(
   const category = spec.category;
   const decision = decidePermission(run.gate.mode, category);
 
+  const result = await gatedCallResult(run, entry, args, category, decision);
+  recordTimelineCallIfTracking(run, spec.name, args, result);
+  return result;
+}
+
+/**
+ * The result half of {@link gatedCall} — everything it was before this call
+ * gained code-embedding's own bookkeeping, split out so recording has one
+ * place to wrap regardless of which branch below produced the result.
+ */
+async function gatedCallResult(
+  run: CapabilityRun,
+  entry: CapabilityExport,
+  args: Record<string, unknown>,
+  category: PermissionCategory,
+  decision: ReturnType<typeof decidePermission>
+): Promise<unknown> {
+  const { spec, impl } = entry;
+
   // Read-class capabilities go straight to the implementation, so the "never
   // consulted by the monitor" invariant holds by construction.
   if (category === "read") {
@@ -260,6 +280,23 @@ async function gatedCall(
   }
 
   return runImpl(run, entry, args, category);
+}
+
+/**
+ * Appends `{name, args, result}` to the run's in-memory call log (see
+ * `timeline-code-embed-keys.ts`) — a no-op unless a host is tracking this
+ * run's calls, and skipped for a `timelines` capability, since
+ * `bakeTimelineCode`'s own document-capturing stub always handles those
+ * rather than replaying a stored result.
+ */
+function recordTimelineCallIfTracking(
+  run: CapabilityRun,
+  name: string,
+  args: Record<string, unknown>,
+  result: unknown
+): void {
+  if (capabilityModuleOf(name) === "timelines") return;
+  recordTimelineCall(run.context, name, args, result);
 }
 
 /**

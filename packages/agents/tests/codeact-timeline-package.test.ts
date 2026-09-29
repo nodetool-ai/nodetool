@@ -18,7 +18,6 @@ import type {
 } from "@nodetool-ai/runtime";
 import {
   initTestDb,
-  JsScript,
   TimelineSequence,
   TimelineSequenceVersion
 } from "@nodetool-ai/models";
@@ -463,77 +462,53 @@ describe("revising a timeline in place", () => {
     expect(before!.updated_at).not.toBe(after!.updated_at);
   });
 
-  it("running a linked script twice updates the same timeline instead of making another", async () => {
+  it("set_timeline_code then edit_timeline_code updates the same timeline in place", async () => {
     initTestDb();
-    const userId = "u-script-timeline";
+    const userId = "u-timeline-code";
     const processingContext = new ProcessingContextClass({
-      jobId: "job-script-timeline",
+      jobId: "job-timeline-code",
       userId,
       sandboxModuleCatalog: catalog
     });
     processingContext.set(
       PERMISSION_GATE_CONTEXT_KEY,
-      headlessGate("timeline script test")
+      headlessGate("timeline code test")
     );
     const run = createCapabilityRun({ context: processingContext, gate: UNGATED });
 
-    const script = new JsScript({
-      user_id: userId,
-      name: "Builds a cut",
-      document: JSON.stringify({
-        schemaVersion: 1,
-        description: "",
-        code: `
+    const created = (await run.invoke("create_timeline", {
+      name: "From code"
+    })) as { timeline_id: string };
+    const timelineId = created.timeline_id;
+    expect(timelineId).toBeTruthy();
+
+    const CODE = `
 import { video } from "@nodetool-ai/sandbox-timeline";
 const v = video({ width: 1080, height: 1920, fps: 30 });
 v.series([v.scene("one", 1, (s) => { s.text("run 1", {}); })]);
-const saved = await v.save(nodetool.timelines, { name: "From script" });
-await output("timeline_id", saved.timeline_id);
-`,
-        inputs: [],
-        outputs: [{ name: "timeline_id", type: "str" }],
-        secrets: [],
-        timeoutSeconds: 30,
-        tests: []
-      })
-    });
-    await script.save();
+await v.save(nodetool.timelines, { name: "From code" });
+`;
+    const set = (await run.invoke("set_timeline_code", {
+      timeline_id: timelineId,
+      code: CODE
+    })) as { timeline_id: string; errors: string[]; conflicts: unknown[] };
+    expect(set.errors).toEqual([]);
+    expect(set.conflicts).toEqual([]);
 
-    const firstRun = (await run.invoke("run_js_script", {
-      js_script_id: script.id
-    })) as { ok: boolean; outputs?: { timeline_id?: string } };
-    expect(firstRun.ok).toBe(true);
-    // create_timeline shortens its agent-facing id to a 12-char prefix;
-    // resolve it back to the full row the way every boundary must.
-    const timelineId = firstRun.outputs?.timeline_id;
-    expect(timelineId).toBeTruthy();
-    const timelineRow = await TimelineSequence.findById(timelineId!);
+    const timelineRow = await TimelineSequence.findById(set.timeline_id);
     expect(timelineRow).not.toBeNull();
+    expect(timelineRow!.toDocument().source?.code).toBe(CODE);
 
-    // The link is now on both sides.
-    const linkedScript = await JsScript.findById(script.id);
-    expect(linkedScript!.toDocument().linkedTimelineId).toBe(timelineRow!.id);
-    expect(timelineRow!.toTimelineSequence().builtByScriptId).toBe(script.id);
-
-    // Editing the script's body (a str-replace, the revise loop) then
-    // rerunning it must update the same timeline, not create another.
-    const edited = (await run.invoke("edit_js_script", {
-      js_script_id: script.id,
-      ops: [{ old: '"run 1"', new: '"run 2"' }]
-    })) as { ok: boolean };
-    expect(edited.ok).toBe(true);
-
-    const secondRun = (await run.invoke("run_js_script", {
-      js_script_id: script.id
-    })) as { ok: boolean; outputs?: { timeline_id?: string } };
-    expect(secondRun.ok).toBe(true);
-    // v.save() echoes the id it resolved and wrote to (the linked timeline's
-    // own, possibly the full form), not necessarily the short form
-    // create_timeline returned the first time — both name the same row.
-    const secondTimelineId = secondRun.outputs?.timeline_id;
-    expect(secondTimelineId).toBeTruthy();
-    const secondTimelineRow = await TimelineSequence.findById(secondTimelineId!);
-    expect(secondTimelineRow!.id).toBe(timelineRow!.id);
+    // Editing the stored code (a str-replace, the revise loop) then rebaking
+    // it (implicit in edit_timeline_code) must update the same timeline, not
+    // create another.
+    const edited = (await run.invoke("edit_timeline_code", {
+      timeline_id: set.timeline_id,
+      edits: [{ old: '"run 1"', new: '"run 2"' }]
+    })) as { timeline_id: string; errors: string[]; conflicts: unknown[] };
+    expect(edited.errors).toEqual([]);
+    expect(edited.conflicts).toEqual([]);
+    expect(edited.timeline_id).toBe(timelineRow!.id);
 
     const rows = await TimelineSequence.listByUser(userId);
     expect(rows.length).toBe(1);
@@ -541,6 +516,142 @@ await output("timeline_id", saved.timeline_id);
       .toDocument()
       .clips.find((c: { mediaType: string }) => c.mediaType === "text");
     expect(finalText?.textStyle?.text).toBe("run 2");
+  });
+
+  it("rebake_timeline_code keeps a hand-edited scene as a conflict, and force overwrites it", async () => {
+    initTestDb();
+    const userId = "u-timeline-code-conflict";
+    const processingContext = new ProcessingContextClass({
+      jobId: "job-timeline-code-conflict",
+      userId,
+      sandboxModuleCatalog: catalog
+    });
+    processingContext.set(
+      PERMISSION_GATE_CONTEXT_KEY,
+      headlessGate("timeline code conflict test")
+    );
+    const run = createCapabilityRun({ context: processingContext, gate: UNGATED });
+
+    const created = (await run.invoke("create_timeline", {
+      name: "Conflict test"
+    })) as { timeline_id: string };
+    const CODE = `
+import { video } from "@nodetool-ai/sandbox-timeline";
+const v = video({ width: 1080, height: 1920, fps: 30 });
+v.series([v.scene("one", 1, (s) => { s.text("built", {}); })]);
+await v.save(nodetool.timelines, { name: "Conflict test" });
+`;
+    const set = (await run.invoke("set_timeline_code", {
+      timeline_id: created.timeline_id,
+      code: CODE
+    })) as { timeline_id: string; conflicts: unknown[] };
+    expect(set.conflicts).toEqual([]);
+
+    // Hand-edit the scene's text outside the code (an editor-style edit).
+    const before = await TimelineSequence.findById(set.timeline_id);
+    const textClip = before!
+      .toDocument()
+      .clips.find((c: { mediaType: string }) => c.mediaType === "text")!;
+    const handEdited = (await run.invoke("edit_timeline", {
+      timeline_id: set.timeline_id,
+      ops: [
+        {
+          op: "set_clip_params",
+          target: textClip.id,
+          patch: { textStyle: { ...textClip.textStyle, text: "hand edited" } }
+        }
+      ]
+    })) as { failed: number };
+    expect(handEdited.failed).toBe(0);
+
+    // A plain rebake must keep the hand edit and report the conflict.
+    const rebaked = (await run.invoke("rebake_timeline_code", {
+      timeline_id: set.timeline_id
+    })) as {
+      conflicts: Array<{ scene: string; reason: string }>;
+      scenes: Array<{ name: string; edited: boolean }>;
+    };
+    expect(rebaked.conflicts).toEqual([{ scene: "one", reason: "edited since the last bake" }]);
+    expect(rebaked.scenes).toEqual([{ name: "one", group_id: expect.any(String), edited: true }]);
+
+    const kept = await TimelineSequence.findById(set.timeline_id);
+    const keptText = kept!
+      .toDocument()
+      .clips.find((c: { mediaType: string }) => c.mediaType === "text");
+    expect(keptText?.textStyle?.text).toBe("hand edited");
+
+    // force: true overwrites the hand edit with the code's own build.
+    const forced = (await run.invoke("rebake_timeline_code", {
+      timeline_id: set.timeline_id,
+      force: true
+    })) as { conflicts: unknown[] };
+    expect(forced.conflicts).toEqual([]);
+
+    const overwritten = await TimelineSequence.findById(set.timeline_id);
+    const overwrittenText = overwritten!
+      .toDocument()
+      .clips.find((c: { mediaType: string }) => c.mediaType === "text");
+    expect(overwrittenText?.textStyle?.text).toBe("built");
+  });
+
+  it("detach_timeline_code stops tracking a scene, so a later rebake never touches it", async () => {
+    initTestDb();
+    const userId = "u-timeline-code-detach";
+    const processingContext = new ProcessingContextClass({
+      jobId: "job-timeline-code-detach",
+      userId,
+      sandboxModuleCatalog: catalog
+    });
+    processingContext.set(
+      PERMISSION_GATE_CONTEXT_KEY,
+      headlessGate("timeline code detach test")
+    );
+    const run = createCapabilityRun({ context: processingContext, gate: UNGATED });
+
+    const created = (await run.invoke("create_timeline", {
+      name: "Detach test"
+    })) as { timeline_id: string };
+    const CODE = `
+import { video } from "@nodetool-ai/sandbox-timeline";
+const v = video({ width: 1080, height: 1920, fps: 30 });
+v.series([v.scene("one", 1, (s) => { s.text("built", {}); })]);
+await v.save(nodetool.timelines, { name: "Detach test" });
+`;
+    const set = (await run.invoke("set_timeline_code", {
+      timeline_id: created.timeline_id,
+      code: CODE
+    })) as { timeline_id: string };
+
+    const detached = (await run.invoke("detach_timeline_code", {
+      timeline_id: set.timeline_id,
+      scenes: ["one"]
+    })) as { scenes: string[] };
+    expect(detached.scenes).toEqual(["one"]);
+
+    const afterDetach = await TimelineSequence.findById(set.timeline_id);
+    expect(afterDetach!.toDocument().source?.scenes["one"]).toBeUndefined();
+
+    // A detached scene is no longer tracked (`source.scenes` has no entry
+    // for it), but its clips are still on the timeline with `sourceScene:
+    // "one"`, so a later rebake still finds a same-named scene in the fresh
+    // build. With no recorded hash to compare against it reads as an
+    // unrelated hand-edited scene — kept, and reported as a conflict —
+    // rather than silently overwritten, which is the whole point of
+    // detaching it.
+    const rebaked = (await run.invoke("rebake_timeline_code", {
+      timeline_id: set.timeline_id
+    })) as {
+      conflicts: Array<{ scene: string; reason: string }>;
+      scenes: Array<{ name: string; edited: boolean }>;
+    };
+    expect(rebaked.conflicts).toEqual([{ scene: "one", reason: "edited since the last bake" }]);
+    expect(rebaked.scenes).toEqual([{ name: "one", group_id: expect.any(String), edited: true }]);
+
+    const untouched = await TimelineSequence.findById(set.timeline_id);
+    const untouchedText = untouched!
+      .toDocument()
+      .clips.find((c: { mediaType: string }) => c.mediaType === "text");
+    expect(untouchedText?.textStyle?.text).toBe("built");
   });
 });
 
@@ -1175,6 +1286,48 @@ return { count: countClip.animations[0].textAnimator, scramble: scrambleClip.ani
         scramble: { kind: "scramble", charset: "ABC", seed: 7 }
       }
     });
+    // el.count() drives its reveal entirely through `textAnimator`; it must
+    // not also carry a curve that never changes (the old NOOP 1→1 opacity
+    // curve this animation used to be built with).
+    expect(observation.result.count).not.toHaveProperty("curves");
+  });
+
+  it("el.count() emits no property curve — custom.curves is empty, not a NOOP 1→1 opacity curve", async () => {
+    const observation = JSON.parse(
+      await chatSession(catalog).executeAction({
+        code: `
+import { video } from "@nodetool-ai/sandbox-timeline";
+const v = video({ width: 1920, height: 1080, fps: 30 });
+let countClip;
+v.scene("s", 1, (s) => {
+  countClip = s.text("0", {});
+  countClip.count({ from: 0, to: 9, at: 0, dur: 1 });
+});
+return { custom: countClip.animations[0].custom };
+`
+      })
+    );
+    expect(observation).toMatchObject({ ok: true, result: { custom: { curves: [] } } });
+  });
+
+  it("s.flash() tags its opacity ramp role: \"out\", not the default \"in\"", async () => {
+    const observation = JSON.parse(
+      await chatSession(catalog).executeAction({
+        code: `
+import { video } from "@nodetool-ai/sandbox-timeline";
+const v = video({ width: 1920, height: 1080, fps: 30 });
+let flashClip;
+v.scene("s", 1, (s) => {
+  flashClip = s.flash({ dur: 0.27, peak: 0.7 });
+});
+return { role: flashClip.animations[0].role, curve: flashClip.animations[0].custom.curves[0] };
+`
+      })
+    );
+    expect(observation).toMatchObject({
+      ok: true,
+      result: { role: "out", curve: { property: "opacity" } }
+    });
   });
 
   it("v.midi() creates its own track with the instrument shorthand, notes in beats converted to ticks", async () => {
@@ -1203,7 +1356,11 @@ return { mediaType: clip.mediaType, notes: clip.notes.map((n) => ({ pitch: n.pit
     });
   });
 
-  it("v.beats() sets document tempo and returns marker/snap ops for v.save's ops", async () => {
+  it("v.beats() sets document tempo, writes markers directly, and returns only a snap op for v.save's ops", async () => {
+    // Markers are a plain document field, written directly (not through an
+    // edit op), so a script that only marks beats bakes hermetically — see
+    // timeline-code-bake.ts's "no ops" rule. Only `snap` (which moves
+    // existing clips) still needs one.
     const observation = JSON.parse(
       await chatSession(catalog).executeAction({
         code: `
@@ -1211,7 +1368,7 @@ import { video } from "@nodetool-ai/sandbox-timeline";
 const v = video({ width: 1920, height: 1080, fps: 30 });
 v.series([v.scene("s", 3, (s) => { s.text("x", {}); })]);
 const ops = v.beats({ bpm: 120, snap: ["t_drums"] });
-return { tempo: v._document.tempo, ops };
+return { tempo: v._document.tempo, markers: v._document.markers, ops };
 `
       })
     );
@@ -1219,12 +1376,11 @@ return { tempo: v._document.tempo, ops };
       ok: true,
       result: {
         tempo: { bpm: 120, offsetMs: 0 },
-        ops: [
-          { op: "set_markers_from_beats", bpm: 120 },
-          { op: "snap_to_beats", targets: ["t_drums"], bpm: 120 }
-        ]
+        ops: [{ op: "snap_to_beats", targets: ["t_drums"], bpm: 120 }]
       }
     });
+    expect(observation.result.markers.length).toBeGreaterThan(0);
+    expect(observation.result.markers[0]).toMatchObject({ timeMs: 0, label: "Beat 1" });
   });
 
   it("s.text()'s path option builds text-on-path from the same pathData formatter as s.path()", async () => {

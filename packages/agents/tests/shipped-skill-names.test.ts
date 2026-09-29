@@ -226,18 +226,35 @@ describe("shipped motion skills", () => {
   }
 
   /**
-   * The preset catalog drifts the way the tool names do, and one direction is
-   * invisible from the skill: a preset ships and the summary never learns
-   * about it. `squash` and `hueShift` sat in the engine while
-   * `motion-graphics` listed fifteen of seventeen, so a model reading the
-   * skill had no idea they existed.
+   * The op/preset/stagger-unit vocabulary used to live entirely in
+   * `motion-graphics`; it is now split across `motion-graphics` (the
+   * code-authoring pack — scenes, `v.series`, the craft helpers) and
+   * `timeline-edit-ops` (the `edit_timeline` reference — every op, every
+   * preset's param list, the stagger grammar), so a name only one of them
+   * owns is still found. The three checks below read the union rather than
+   * one file, and — per `AGENTS.md`'s "one fact once" — motion-graphics does
+   * not re-teach what timeline-edit-ops already owns.
    */
-  it("lists every shipped animation preset in motion-graphics", () => {
-    const markdown = readFileSync(skillPath("motion-graphics"), "utf8");
+  const OP_PRESET_STAGGER_SKILLS = ["motion-graphics", "timeline-edit-ops"] as const;
+  function combinedMarkdown(): string {
+    return OP_PRESET_STAGGER_SKILLS.map((name) => readFileSync(skillPath(name), "utf8")).join(
+      "\n"
+    );
+  }
+
+  /**
+   * The preset catalog drifts the way the tool names do, and one direction is
+   * invisible from the skill set: a preset ships and no skill's summary
+   * learns about it. `squash` and `hueShift` once sat in the engine while
+   * the skill that then listed presets named fifteen of seventeen, so a
+   * model reading it had no idea they existed.
+   */
+  it("lists every shipped animation preset across motion-graphics and timeline-edit-ops", () => {
+    const markdown = combinedMarkdown();
     const missing = ANIMATION_PRESETS.map((preset) => preset.id).filter(
       (id) => !markdown.includes(`\`${id}\``)
     );
-    expect(missing, "shipped but unlisted in the skill").toEqual([]);
+    expect(missing, "shipped but unlisted in either skill").toEqual([]);
   });
 
   /** The other direction: a preset quoted in an example that does not exist. */
@@ -264,8 +281,8 @@ describe("shipped motion skills", () => {
    * elements it then animates, and an op folded into another leaves the
    * instructions naming a call the model cannot make.
    */
-  it("teaches the ops that build and order what it animates", () => {
-    const markdown = readFileSync(skillPath("motion-graphics"), "utf8");
+  it("teaches, across motion-graphics and timeline-edit-ops, the ops that build and order what it animates", () => {
+    const markdown = combinedMarkdown();
     const ops = editTimelineOps();
     for (const op of [
       "add_text_clip",
@@ -276,19 +293,20 @@ describe("shipped motion skills", () => {
       "list_animation_presets"
     ]) {
       expect(ops.has(op), `${op} is no longer an edit_timeline op`).toBe(true);
-      expect(markdown, `${op} is unmentioned in motion-graphics`).toContain(
-        `\`${op}\``
-      );
+      expect(
+        markdown,
+        `${op} is unmentioned in motion-graphics and timeline-edit-ops`
+      ).toContain(`\`${op}\``);
     }
   });
 
-  /** A stagger unit the skill never names is one no model will reach for. */
-  it("names every stagger unit the engine splits on", () => {
-    const markdown = readFileSync(skillPath("motion-graphics"), "utf8");
+  /** A stagger unit no skill names is one no model will reach for. */
+  it("names, across motion-graphics and timeline-edit-ops, every stagger unit the engine splits on", () => {
+    const markdown = combinedMarkdown();
     const missing = STAGGER_UNITS.filter(
       (unit) => !markdown.includes(`\`${unit}\``)
     );
-    expect(missing, "shipped but unnamed in the skill").toEqual([]);
+    expect(missing, "shipped but unnamed in either skill").toEqual([]);
   });
 
   it("reads calls out of the skills at all", () => {

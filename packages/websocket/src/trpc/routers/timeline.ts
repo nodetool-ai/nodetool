@@ -25,10 +25,21 @@ import {
   TimelineSequenceConflictError,
   TimelineSequenceVersion,
   Workflow,
-  createTimeOrderedUuid
+  createTimeOrderedUuid,
+  getSecret
 } from "@nodetool-ai/models";
 import type { TimelineDocument } from "@nodetool-ai/models";
 import { makeClip } from "@nodetool-ai/timeline";
+import {
+  contextSecretAvailability,
+  createCapabilityRun,
+  gateFromContext
+} from "@nodetool-ai/agents";
+import {
+  PERMISSION_GATE_CONTEXT_KEY,
+  ProcessingContext,
+  headlessGate
+} from "@nodetool-ai/runtime";
 import { collectStrippedPaths } from "@nodetool-ai/execution/timeline-debug";
 import { createLogger } from "@nodetool-ai/config";
 import { computeDependencyHash } from "@nodetool-ai/timeline/dependencyHash.js";
@@ -72,6 +83,143 @@ type JsonValue =
 const listInput = z.object({
   projectId: z.string().optional()
 });
+
+// ── timeline.code — authoring code, baked and merged onto the document ─────
+//
+// This sub-router is a thin translation over the `get_timeline_code` /
+// `set_timeline_code` / `edit_timeline_code` / `rebake_timeline_code` /
+// `detach_timeline_code` capabilities in `@nodetool-ai/agents` — the same
+// implementation an agent reaches through the sandbox object model
+// (`nodetool.timelines.code.*`), so the editor and an agent write the exact
+// same bytes. The wire shape here is the fixed contract this surface was
+// designed against: `code.get` answers camelCase (`bakedAt`, `groupId`),
+// `code.set`/`code.rebake` answer `timeline_id` (snake_case, matching the
+// capability's own field) alongside camelCase `scenes`/`conflicts` entries.
+
+const timelineCodeForceInput = z
+  .union([z.boolean(), z.array(z.string())])
+  .optional();
+
+const timelineCodeSetInput = z.object({
+  id: z.string(),
+  code: z.string(),
+  force: timelineCodeForceInput
+});
+
+const timelineCodeRebakeInput = z.object({
+  id: z.string(),
+  force: timelineCodeForceInput
+});
+
+const timelineCodeDetachInput = z.object({
+  id: z.string(),
+  scenes: z.union([z.literal("all"), z.array(z.string()).min(1)])
+});
+
+const timelineCodeSceneReport = z.object({
+  name: z.string(),
+  groupId: z.string(),
+  edited: z.boolean()
+});
+
+const timelineCodeGetOutput = z.object({
+  code: z.string().nullable(),
+  bakedAt: z.string().nullable(),
+  scenes: z.array(timelineCodeSceneReport)
+});
+
+const timelineCodeConflict = z.object({
+  scene: z.string(),
+  reason: z.string()
+});
+
+const timelineCodeWriteOutput = z.object({
+  timeline_id: z.string(),
+  errors: z.array(z.string()),
+  warnings: z.array(z.string()),
+  conflicts: z.array(timelineCodeConflict),
+  scenes: z.array(timelineCodeSceneReport)
+});
+
+const timelineCodeDetachOutput = z.object({
+  scenes: z.array(z.string())
+});
+
+const TIMELINE_CODE_HOST = "timeline.code";
+
+/**
+ * A run over the timeline-code capabilities. There is nobody to ask (a route
+ * handler, not a chat turn), so it runs the same headless `auto` gate every
+ * other server-side capability call does.
+ */
+function timelineCodeRun(userId: string) {
+  const context = new ProcessingContext({
+    jobId: `timeline-code-${Date.now()}`,
+    userId,
+    secretResolver: getSecret
+  });
+  context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate(TIMELINE_CODE_HOST));
+  return createCapabilityRun({
+    context,
+    gate: gateFromContext(context, TIMELINE_CODE_HOST),
+    availableSecrets: contextSecretAvailability(context)
+  });
+}
+
+type TimelineCodeSceneRow = { name: string; group_id: string; edited: boolean };
+
+function mapTimelineCodeScenes(
+  scenes: readonly TimelineCodeSceneRow[] | undefined
+) {
+  return (scenes ?? []).map((scene) => ({
+    name: scene.name,
+    groupId: scene.group_id,
+    edited: scene.edited
+  }));
+}
+
+/**
+ * A capability-level `{error}` with no `timeline_id` is a refusal before any
+ * bake ran — bad ownership, an empty `code`, no authoring code to edit or
+ * rebake. Thrown as a tRPC error rather than folded into the write-result
+ * shape, which is reserved for a call that found the timeline and tried.
+ */
+function throwTimelineCodeError(error: string): never {
+  const code = /was not found/i.test(error)
+    ? ApiErrorCode.NOT_FOUND
+    : ApiErrorCode.INVALID_INPUT;
+  throwApiError(code, error);
+}
+
+function timelineCodeCapabilityError(result: unknown): string | null {
+  if (
+    result !== null &&
+    typeof result === "object" &&
+    typeof (result as { error?: unknown }).error === "string" &&
+    !("timeline_id" in (result as Record<string, unknown>))
+  ) {
+    return (result as { error: string }).error;
+  }
+  return null;
+}
+
+function mapTimelineCodeWriteResult(result: Record<string, unknown>) {
+  return {
+    timeline_id: String(result["timeline_id"]),
+    errors: Array.isArray(result["errors"])
+      ? (result["errors"] as string[])
+      : [],
+    warnings: Array.isArray(result["warnings"])
+      ? (result["warnings"] as string[])
+      : [],
+    conflicts: Array.isArray(result["conflicts"])
+      ? (result["conflicts"] as Array<{ scene: string; reason: string }>)
+      : [],
+    scenes: mapTimelineCodeScenes(
+      result["scenes"] as TimelineCodeSceneRow[] | undefined
+    )
+  };
+}
 
 const idInput = z.object({ id: z.string() });
 
@@ -551,6 +699,78 @@ export const timelineRouter = router({
         }
         await version.delete();
         return { ok: true as const };
+      })
+  }),
+
+  code: router({
+    get: protectedProcedure
+      .input(idInput)
+      .output(timelineCodeGetOutput)
+      .query(async ({ ctx, input }) => {
+        const result = (await timelineCodeRun(ctx.userId!).invoke(
+          "get_timeline_code",
+          { timeline_id: input.id }
+        )) as {
+          error?: string;
+          code?: string | null;
+          baked_at?: string | null;
+          scenes?: TimelineCodeSceneRow[];
+        };
+        if (result.error !== undefined) {
+          throwTimelineCodeError(result.error);
+        }
+        return {
+          code: result.code ?? null,
+          bakedAt: result.baked_at ?? null,
+          scenes: mapTimelineCodeScenes(result.scenes)
+        };
+      }),
+
+    set: protectedProcedure
+      .input(timelineCodeSetInput)
+      .output(timelineCodeWriteOutput)
+      .mutation(async ({ ctx, input }) => {
+        const params: Record<string, unknown> = {
+          timeline_id: input.id,
+          code: input.code
+        };
+        if (input.force !== undefined) params.force = input.force;
+        const result = (await timelineCodeRun(ctx.userId!).invoke(
+          "set_timeline_code",
+          params
+        )) as Record<string, unknown>;
+        const error = timelineCodeCapabilityError(result);
+        if (error !== null) throwTimelineCodeError(error);
+        return mapTimelineCodeWriteResult(result);
+      }),
+
+    rebake: protectedProcedure
+      .input(timelineCodeRebakeInput)
+      .output(timelineCodeWriteOutput)
+      .mutation(async ({ ctx, input }) => {
+        const params: Record<string, unknown> = { timeline_id: input.id };
+        if (input.force !== undefined) params.force = input.force;
+        const result = (await timelineCodeRun(ctx.userId!).invoke(
+          "rebake_timeline_code",
+          params
+        )) as Record<string, unknown>;
+        const error = timelineCodeCapabilityError(result);
+        if (error !== null) throwTimelineCodeError(error);
+        return mapTimelineCodeWriteResult(result);
+      }),
+
+    detach: protectedProcedure
+      .input(timelineCodeDetachInput)
+      .output(timelineCodeDetachOutput)
+      .mutation(async ({ ctx, input }) => {
+        const result = (await timelineCodeRun(ctx.userId!).invoke(
+          "detach_timeline_code",
+          { timeline_id: input.id, scenes: input.scenes }
+        )) as { error?: string; scenes?: string[] };
+        if (result.error !== undefined) {
+          throwTimelineCodeError(result.error);
+        }
+        return { scenes: result.scenes ?? [] };
       })
   }),
 

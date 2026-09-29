@@ -157,8 +157,11 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "get_composition",
     "save_composition",
     "delete_composition",
-    "resolve_script_timeline",
-    "link_timeline_script"
+    "get_timeline_code",
+    "set_timeline_code",
+    "edit_timeline_code",
+    "rebake_timeline_code",
+    "detach_timeline_code"
   ],
   sketches: [
     "list_sketches",
@@ -1367,19 +1370,34 @@ const nodetool = (() => {
         remove: (id) => __need("delete_composition")({ composition_id: id })
       },
       /**
-       * \`{js_script_id, timeline_id}\` for the JS script currently running
-       * this call, and the timeline it is linked to (null outside a saved
-       * script run, or one never linked). \`save()\` in
-       * \`@nodetool-ai/sandbox-timeline\` calls this so a revise-and-rerun
-       * updates the same timeline without threading its id.
+       * A timeline's authoring code — edit the script, not the JSON. \`set\`
+       * bakes \`code\` and merges the result into the document scene by
+       * scene: an untouched scene is replaced, a hand-edited one is kept and
+       * reported in \`conflicts\` unless \`opts.force\` overwrites it (\`true\`
+       * for every scene, or an array of scene names). \`edit\` applies
+       * exact-match string replacements to the stored code first (each
+       * \`old\` must match exactly once), then bakes and merges the same way.
+       * \`rebake\` reruns the stored code unchanged. \`detach(id, names |
+       * "all")\` stops tracking scenes — a later rebake never touches them
+       * again.
        */
-      currentScript: () => __need("resolve_script_timeline")({}),
-      /** Record that \`scriptId\` built \`timelineId\`, both ways. */
-      linkScript: (timelineId, scriptId) =>
-        __need("link_timeline_script")({
-          timeline_id: timelineId,
-          js_script_id: scriptId
-        })
+      code: {
+        /** \`{code, baked_at, scenes: [{name, group_id, edited}]}\`. \`code\`
+         * is null when the timeline carries none. */
+        get: (id) => __need("get_timeline_code")({ timeline_id: id }),
+        set: (id, code, opts) =>
+          __need("set_timeline_code")(
+            __merge(opts, { timeline_id: id, code: code })
+          ),
+        edit: (id, edits, opts) =>
+          __need("edit_timeline_code")(
+            __merge(opts, { timeline_id: id, edits: edits })
+          ),
+        rebake: (id, opts) =>
+          __need("rebake_timeline_code")(__merge(opts, { timeline_id: id })),
+        detach: (id, scenes) =>
+          __need("detach_timeline_code")({ timeline_id: id, scenes: scenes })
+      }
     },
 
     sketches: {

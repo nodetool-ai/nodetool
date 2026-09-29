@@ -269,7 +269,8 @@ async function runDocument(
   context: ProcessingContext,
   document: JsScriptDocument,
   inputs: Record<string, unknown>,
-  inputStreams?: Record<string, unknown[]>
+  inputStreams?: Record<string, unknown[]>,
+  embedTimelineCode = false
 ) {
   const params: Parameters<typeof runCodeBody>[1] = {
     code: document.code,
@@ -282,6 +283,7 @@ async function runDocument(
     withToolbelt: true
   };
   if (inputStreams) params.inputStreams = inputStreams;
+  if (embedTimelineCode) params.embedTimelineCode = true;
   return runCodeBody(context, params);
 }
 
@@ -323,7 +325,6 @@ const listJsScripts: CapabilityExport = {
         inputs: doc.inputs,
         outputs: doc.outputs,
         palette: doc.palette ?? null,
-        linked_timeline_id: doc.linkedTimelineId ?? null,
         updated_at: row.updated_at
       };
     });
@@ -531,13 +532,13 @@ const saveJsScript: CapabilityExport = {
   }
 };
 
-interface JsScriptEditOp {
+export interface JsScriptEditOp {
   old: string;
   new: string;
 }
 
 /** Parse `ops` into `{old, new}` pairs, or an error naming the bad index. */
-function parseJsScriptEditOps(value: unknown): JsScriptEditOp[] | ToolError {
+export function parseJsScriptEditOps(value: unknown): JsScriptEditOp[] | ToolError {
   if (!Array.isArray(value) || value.length === 0) {
     return { error: "ops must be a non-empty array of {old, new}." };
   }
@@ -577,7 +578,7 @@ function countOccurrences(haystack: string, needle: string): number {
  * match against the result of the ops before it — the same contract a code
  * editor's find/replace makes.
  */
-function applyJsScriptEditOps(
+export function applyJsScriptEditOps(
   code: string,
   ops: readonly JsScriptEditOp[]
 ): { code: string } | ToolError {
@@ -729,7 +730,8 @@ const runJsScript: CapabilityExport = {
       gate.childContext,
       document,
       inputBag(params["inputs"]),
-      staged
+      staged,
+      /* embedTimelineCode */ true
     );
     return { js_script_id: script.id, name: script.name, ...result };
   }

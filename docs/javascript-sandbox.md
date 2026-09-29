@@ -285,6 +285,14 @@ symptom is silent data corruption, not an error.
   outright: the wrapper follows it until the runtime aborts, so a cyclic global
   fails the run by name and a cyclic result comes back as `String(value)`.
 
+The shared engine loader releases the primitive property handles that
+`@sebastianwessel/quickjs@3.0.1` forgets while reading descriptors, then returns
+QuickJS's equivalent static handles. It also releases forgotten symbol
+description handles with their context. This applies before bootstrap on both
+execution paths, so engines remain reusable. A worker reporting an interpreter
+failure is discarded. Guest exceptions leave the worker reusable. See the
+[reproduction and upstream issue draft](../packages/agents/docs/quickjs-descriptor-leak.md).
+
 ## Security model
 
 The guest starts with less than plain QuickJS, and every capability past that is
