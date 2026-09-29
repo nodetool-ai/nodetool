@@ -384,6 +384,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "URL out of a task-result body."
   ),
   guardedSafeFetch(
+    "packages/runtime/src/providers/openrouter-provider.ts",
+    "OpenRouter edited-image download",
+    "provider-response",
+    "Hosted image URL in a chat-completions image part; video status and content URLs are built from the job id on the fixed host."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/gemini-provider.ts",
     "Gemini file / media URIs",
     "provider-response",

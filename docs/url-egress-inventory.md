@@ -106,12 +106,12 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | MiniMax audio / file downloads | `packages/minimax-nodes/src/minimax-base.ts` | provider response |
 | MiniMax image download | `packages/minimax-nodes/src/nodes/text-to-image.ts` | provider response |
 | Gemini node video download | `packages/llm-nodes/src/nodes/gemini.ts` | provider response |
-| provider result downloads | `packages/runtime/src/providers/{fal,replicate,kie,topaz,meshy,rodin,minimax,evolink,gemini,anthropic}-provider.ts` | provider response |
+| provider result downloads | `packages/runtime/src/providers/{fal,replicate,kie,topaz,meshy,rodin,minimax,evolink,gemini,anthropic,openrouter}-provider.ts` | provider response |
 | durable FAL output recovery | `packages/websocket/src/generation-recovery.ts` | provider response |
 | MCP OAuth Client ID Metadata Document fetch | `packages/websocket/src/oauth/cimd.ts` | model/client (an MCP client's self-hosted `client_id` URL) |
 | external MCP server (HTTP transport) | `packages/websocket/src/external-mcp.ts` | operator (a user's own MCP server URL; guarded under the cloud profile, loopback allowed on a local install) |
 
-The provider row is eleven files, each downloading a URL a provider's response
+The provider row is twelve files, each downloading a URL a provider's response
 named — plus one reading a URL the caller's own message named
 (`video-frame-fallback.ts`, which fetches a video content part so ffmpeg can
 sample stills from it for a model that cannot read video):
@@ -126,6 +126,7 @@ sample stills from it for a model that cannot read video):
 - `packages/runtime/src/providers/evolink-provider.ts`
 - `packages/runtime/src/providers/gemini-provider.ts`
 - `packages/runtime/src/providers/anthropic-provider.ts`
+- `packages/runtime/src/providers/openrouter-provider.ts`
 - `packages/runtime/src/providers/video-frame-fallback.ts`
 
 Screening code itself: `packages/runtime/src/providers/safe-url.ts`,

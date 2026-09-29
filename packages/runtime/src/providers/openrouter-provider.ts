@@ -4,18 +4,35 @@ import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
+import { fetchWithRetry, pollUntilTerminal } from "./http-transport.js";
+import { sniffImageMime } from "./image-mime.js";
+import { safeFetch } from "./safe-url.js";
 import type {
   ImageModel,
+  ImageToImageParams,
+  ImageToVideoParams,
   LanguageModel,
   Message,
   ProviderStreamItem,
   ProviderTool,
-  TextToImageParams
+  TextToImageParams,
+  TextToVideoParams,
+  VideoModel
 } from "./types.js";
 import { isString } from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.openrouter");
+
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+
+/** Attribution headers sent with every OpenRouter request. */
+const OPENROUTER_HEADERS: Record<string, string> = {
+  // Stryker disable next-line StringLiteral
+  "HTTP-Referer": "https://github.com/nodetool-ai/nodetool-core",
+  // Stryker disable next-line StringLiteral
+  "X-Title": "NodeTool"
+};
 
 /** Known image-capable models on OpenRouter. */
 const OPENROUTER_IMAGE_MODELS: ImageModel[] = [
@@ -24,8 +41,75 @@ const OPENROUTER_IMAGE_MODELS: ImageModel[] = [
     name: "Stable Diffusion XL",
     provider: "openrouter",
     supportedTasks: ["text_to_image"]
+  },
+  // Gemini image models edit through chat completions (see imageToImage).
+  {
+    id: "google/gemini-2.5-flash-image",
+    name: "Nano Banana (Gemini 2.5 Flash Image)",
+    provider: "openrouter",
+    supportedTasks: ["image_to_image"]
+  },
+  {
+    id: "google/gemini-3.1-flash-image",
+    name: "Nano Banana 2 (Gemini 3.1 Flash Image)",
+    provider: "openrouter",
+    supportedTasks: ["image_to_image"]
+  },
+  {
+    id: "google/gemini-3-pro-image",
+    name: "Nano Banana Pro (Gemini 3 Pro Image)",
+    provider: "openrouter",
+    supportedTasks: ["image_to_image"]
   }
 ];
+
+const VIDEO_POLL_INTERVAL_MS = 5000;
+/** Default polling window when the caller sets no timeout. */
+const VIDEO_DEFAULT_TIMEOUT_SECONDS = 20 * 60;
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((v): v is string => typeof v === "string")
+    : [];
+}
+
+function numberList(value: unknown): number[] {
+  return Array.isArray(value)
+    ? value.filter((v): v is number => typeof v === "number")
+    : [];
+}
+
+function dataUri(bytes: Uint8Array): string {
+  const mime = sniffImageMime(bytes) ?? "image/png";
+  return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
+}
+
+function withNegativePrompt(
+  prompt: string,
+  negativePrompt: string | null | undefined
+): string {
+  return negativePrompt
+    ? `${prompt.trim()}\n\nDo not include: ${negativePrompt.trim()}`
+    : prompt;
+}
+
+/** The message OpenRouter puts in `error` (a string or `{ message }`). */
+function errorText(body: Record<string, unknown>): string {
+  const error = body.error;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object") {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string") return message;
+  }
+  return JSON.stringify(body).slice(0, 500);
+}
+
+function reportedCost(body: Record<string, unknown>): number | undefined {
+  const usage = body.usage;
+  if (!usage || typeof usage !== "object") return undefined;
+  const cost = (usage as { cost?: unknown }).cost;
+  return typeof cost === "number" ? cost : undefined;
+}
 
 export class OpenRouterProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
@@ -45,16 +129,10 @@ export class OpenRouterProvider extends OpenAICompatProvider {
       {
         providerId: "openrouter",
         apiKey,
-        baseURL: "https://openrouter.ai/api/v1",
+        baseURL: OPENROUTER_BASE_URL,
         // Attribution headers ride every chat request (and the SDK fallback);
         // the same header values are asserted on the /models fetch below.
-        // Stryker disable next-line ObjectLiteral
-        defaultHeaders: {
-          // Stryker disable next-line StringLiteral
-          "HTTP-Referer": "https://github.com/nodetool-ai/nodetool-core",
-          // Stryker disable next-line StringLiteral
-          "X-Title": "NodeTool"
-        }
+        defaultHeaders: OPENROUTER_HEADERS
       },
       options
     );
@@ -181,11 +259,286 @@ export class OpenRouterProvider extends OpenAICompatProvider {
     throw new Error("OpenRouter image generation returned no image data.");
   }
 
+  /**
+   * Edit images through chat completions: the sources ride as `image_url`
+   * parts and `modalities` asks for an image back. This is how OpenRouter
+   * exposes Gemini image editing.
+   */
+  override async imageToImage(
+    images: Uint8Array[],
+    params: ImageToImageParams
+  ): Promise<Uint8Array> {
+    if (!params.prompt) {
+      throw new Error("The input prompt cannot be empty.");
+    }
+    const sources = images.filter((b) => b.length > 0);
+    if (sources.length === 0) {
+      throw new Error("imageToImage requires at least one source image");
+    }
+
+    const request: Record<string, unknown> = {
+      model: params.model.id,
+      modalities: ["image", "text"],
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: withNegativePrompt(params.prompt, params.negativePrompt)
+            },
+            ...sources.map((bytes) => ({
+              type: "image_url",
+              image_url: { url: dataUri(bytes) }
+            }))
+          ]
+        }
+      ]
+    };
+    if (params.aspectRatio) {
+      request.image_config = { aspect_ratio: params.aspectRatio };
+    }
+
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
+    log.debug("OpenRouter imageToImage", { model: params.model.id });
+
+    const init: RequestInit = {
+      method: "POST",
+      headers: this.openRouterHeaders(),
+      body: JSON.stringify(request)
+    };
+    if (params.signal) init.signal = params.signal;
+    const response = await this.compatFetch(
+      `${OPENROUTER_BASE_URL}/chat/completions`,
+      init
+    );
+    if (!response.ok) {
+      throw new Error(
+        `OpenRouter image edit failed: ${response.status} ${(await response.text()).slice(0, 500)}`
+      );
+    }
+    const body = (await response.json()) as Record<string, unknown>;
+    this.logReportedCost("imageToImage", params.model.id, body);
+
+    const choices = Array.isArray(body.choices) ? body.choices : [];
+    const message = (choices[0] as { message?: Record<string, unknown> })
+      ?.message;
+    const parts = Array.isArray(message?.images) ? message.images : [];
+    const url = (parts[0] as { image_url?: { url?: unknown } } | undefined)
+      ?.image_url?.url;
+    if (typeof url !== "string") {
+      const text = typeof message?.content === "string" ? message.content : "";
+      throw new Error(
+        `OpenRouter image edit returned no image${text ? `: ${text.slice(0, 500)}` : ""}`
+      );
+    }
+    if (url.startsWith("data:")) {
+      const comma = url.indexOf(",");
+      return Uint8Array.from(Buffer.from(url.slice(comma + 1), "base64"));
+    }
+    // A hosted URL is provider-returned, so it goes through the SSRF guard.
+    const download = await safeFetch(
+      url,
+      params.signal ? { signal: params.signal } : {},
+      5,
+      this.compatFetch
+    );
+    if (!download.ok) {
+      throw new Error(`Image fetch failed: ${download.status}`);
+    }
+    return new Uint8Array(await download.arrayBuffer());
+  }
+
+  /**
+   * Video models are listed under `/videos/models`, not `/models`. A model
+   * without durations (an editor) or with an upscale factor (an upscaler)
+   * cannot render from a prompt, so it is left out.
+   */
+  override async getAvailableVideoModels(): Promise<VideoModel[]> {
+    const rows = await this.fetchCompatModelRows(
+      `${OPENROUTER_BASE_URL}/videos/models`
+    );
+    const models: VideoModel[] = [];
+    for (const row of rows) {
+      const durations = numberList(row.supported_durations);
+      if (durations.length === 0 || row.upscale_factor != null) continue;
+      const supportedTasks = ["text_to_video"];
+      if (stringList(row.supported_frame_images).includes("first_frame")) {
+        supportedTasks.push("image_to_video");
+      }
+      const model: VideoModel = {
+        id: row.id,
+        name: typeof row.name === "string" ? row.name : row.id,
+        provider: "openrouter",
+        supportedTasks,
+        durations
+      };
+      const resolutions = stringList(row.supported_resolutions);
+      if (resolutions.length > 0) model.resolutions = resolutions;
+      const aspectRatios = stringList(row.supported_aspect_ratios);
+      if (aspectRatios.length > 0) model.aspectRatios = aspectRatios;
+      models.push(model);
+    }
+    return models;
+  }
+
+  override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
+    if (!params.prompt) {
+      throw new Error("The input prompt cannot be empty.");
+    }
+    return this.generateVideo(params, {});
+  }
+
+  /**
+   * Animate a start frame. OpenRouter takes it as a data URI in
+   * `frame_images`, plus an optional `last_frame` for interpolation.
+   */
+  override async imageToVideo(
+    image: Uint8Array,
+    params: ImageToVideoParams
+  ): Promise<Uint8Array> {
+    if (image.length === 0) {
+      throw new Error("imageToVideo requires a start frame");
+    }
+    const frames: Record<string, unknown>[] = [
+      {
+        type: "image_url",
+        image_url: { url: dataUri(image) },
+        frame_type: "first_frame"
+      }
+    ];
+    if (params.endImage && params.endImage.length > 0) {
+      frames.push({
+        type: "image_url",
+        image_url: { url: dataUri(params.endImage) },
+        frame_type: "last_frame"
+      });
+    }
+    return this.generateVideo(params, { frame_images: frames });
+  }
+
   override async getAvailableImageModels(): Promise<ImageModel[]> {
     return OPENROUTER_IMAGE_MODELS;
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     return this.listCompatModels();
+  }
+
+  private openRouterHeaders(): Record<string, string> {
+    return {
+      Authorization: `Bearer ${this.apiKey}`,
+      "Content-Type": "application/json",
+      ...OPENROUTER_HEADERS
+    };
+  }
+
+  private logReportedCost(
+    operation: string,
+    model: string,
+    body: Record<string, unknown>
+  ): void {
+    const cost = reportedCost(body);
+    if (cost === undefined) return;
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
+    log.info("OpenRouter generation cost", { operation, model, cost });
+  }
+
+  /**
+   * Submit to `POST /videos`, poll the job, and download its first output.
+   * The status and content URLs are built from the job id rather than taken
+   * from the response, so the API key is only ever sent to OpenRouter.
+   */
+  private async generateVideo(
+    params: TextToVideoParams | ImageToVideoParams,
+    extra: Record<string, unknown>
+  ): Promise<Uint8Array> {
+    const request: Record<string, unknown> = {
+      model: params.model.id,
+      prompt: withNegativePrompt(params.prompt ?? "", params.negativePrompt),
+      ...extra
+    };
+    if (params.durationSeconds) {
+      request.duration = Math.round(params.durationSeconds);
+    }
+    if (params.resolution) request.resolution = params.resolution;
+    if (params.aspectRatio) request.aspect_ratio = params.aspectRatio;
+    if (params.seed != null && params.seed >= 0) request.seed = params.seed;
+
+    const timeoutSeconds =
+      params.timeoutSeconds && params.timeoutSeconds > 0
+        ? params.timeoutSeconds
+        : VIDEO_DEFAULT_TIMEOUT_SECONDS;
+    const timeout = AbortSignal.timeout(timeoutSeconds * 1000);
+    const signal = params.signal
+      ? AbortSignal.any([params.signal, timeout])
+      : timeout;
+
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
+    log.debug("OpenRouter video submit", { model: params.model.id });
+
+    const submit = await this.compatFetch(`${OPENROUTER_BASE_URL}/videos`, {
+      method: "POST",
+      headers: this.openRouterHeaders(),
+      body: JSON.stringify(request),
+      signal
+    });
+    if (!submit.ok) {
+      throw new Error(
+        `OpenRouter video submit failed: ${submit.status} ${(await submit.text()).slice(0, 500)}`
+      );
+    }
+    const submitted = (await submit.json()) as Record<string, unknown>;
+    const jobId = submitted.id;
+    if (typeof jobId !== "string" || jobId.length === 0) {
+      throw new Error(
+        `OpenRouter video submit returned no job id: ${JSON.stringify(submitted).slice(0, 500)}`
+      );
+    }
+    const jobUrl = `${OPENROUTER_BASE_URL}/videos/${encodeURIComponent(jobId)}`;
+
+    const done = await pollUntilTerminal<Record<string, unknown>>(
+      async () => {
+        // The job is already submitted and billed: a 429 or a gateway 5xx on
+        // the status GET must back off, not throw the job away.
+        const res = await fetchWithRetry(
+          jobUrl,
+          { headers: this.openRouterHeaders(), signal },
+          { fetchImpl: this.compatFetch }
+        );
+        if (!res.ok) {
+          throw new Error(
+            `OpenRouter video status failed: ${res.status} ${(await res.text()).slice(0, 500)}`
+          );
+        }
+        return (await res.json()) as Record<string, unknown>;
+      },
+      {
+        intervalMs: VIDEO_POLL_INTERVAL_MS,
+        maxAttempts: Math.max(
+          1,
+          Math.ceil((timeoutSeconds * 1000) / VIDEO_POLL_INTERVAL_MS)
+        ),
+        signal,
+        onFailure: (body) =>
+          new Error(`OpenRouter video job ${jobId} failed: ${errorText(body)}`),
+        onTimeout: () =>
+          new Error(
+            `OpenRouter video job ${jobId} did not finish within ${timeoutSeconds}s`
+          )
+      }
+    );
+    this.logReportedCost("video", params.model.id, done);
+
+    const content = await this.compatFetch(`${jobUrl}/content?index=0`, {
+      headers: this.openRouterHeaders(),
+      signal
+    });
+    if (!content.ok) {
+      throw new Error(
+        `OpenRouter video download failed: ${content.status} ${(await content.text()).slice(0, 500)}`
+      );
+    }
+    return new Uint8Array(await content.arrayBuffer());
   }
 }
