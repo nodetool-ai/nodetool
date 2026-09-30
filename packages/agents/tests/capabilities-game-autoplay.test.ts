@@ -134,15 +134,15 @@ describe("agent game routes", () => {
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Partial captures" }) as GameReply;
     const controller = new AbortController();
     const cancelled = createCapabilityRun({ context: { userId: USER, signal: controller.signal } as ProcessingContext, gate: UNGATED });
-    const pending = cancelled.invoke("capture_native_game_frame", { game_id: created.game.id, ticks: [0, 18_000] });
-    const timer = setTimeout(() => controller.abort(), 20);
-    try {
-      const result = await pending;
-      expect(result).toMatchObject({ frames: [{ tick: 0 }], cancelled: true, route_complete: false });
-      expect(captureGameFrame).toHaveBeenCalledTimes(1);
-    } finally {
-      clearTimeout(timer);
-    }
+    // Cancel on the first timer turn after the first frame, which is the
+    // replay's first yield toward tick 18000, however slow the runner is.
+    captureGameFrame.mockImplementationOnce(async () => {
+      setTimeout(() => controller.abort(), 0);
+      return new Uint8Array([1, 2, 3]);
+    });
+    const result = await cancelled.invoke("capture_native_game_frame", { game_id: created.game.id, ticks: [0, 18_000] });
+    expect(result).toMatchObject({ frames: [{ tick: 0 }], cancelled: true, route_complete: false });
+    expect(captureGameFrame).toHaveBeenCalledTimes(1);
   });
 
 });
