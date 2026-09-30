@@ -297,6 +297,9 @@ export function getNodeMetadata(
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,
     auto_save_asset: nodeClass.autoSaveAsset || undefined,
     retry_safe: nodeClass.retrySafe || undefined,
+    append_static_inputs: nodeClass.appendStaticInputs?.length
+      ? [...nodeClass.appendStaticInputs]
+      : undefined,
     cache_ttl: nodeClass.cacheTtl,
     // `cacheTtl: "forever"` means the output depends only on the inputs, which
     // is the definition of a pure node — no need to declare both.

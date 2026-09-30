@@ -1258,6 +1258,33 @@ export class NodeActor {
   }
 
   /**
+   * Put the node's static list items after the connected items on the handles
+   * the executor names in `appendStaticInputs`. Every other edge input still
+   * replaces the node's own property value.
+   */
+  private _appendStaticItems(
+    edgeInputs: Record<string, unknown>
+  ): Record<string, unknown> {
+    const handles = this._executor.appendStaticInputs;
+    if (!handles || handles.length === 0) return edgeInputs;
+    let result = edgeInputs;
+    for (const handle of handles) {
+      if (!Object.prototype.hasOwnProperty.call(edgeInputs, handle)) continue;
+      const staticItems = this.node.properties?.[handle];
+      if (!Array.isArray(staticItems) || staticItems.length === 0) continue;
+      const incoming = edgeInputs[handle];
+      const incomingItems =
+        incoming === null || incoming === undefined
+          ? []
+          : Array.isArray(incoming)
+            ? incoming
+            : [incoming];
+      result = { ...result, [handle]: [...incomingItems, ...staticItems] };
+    }
+    return result;
+  }
+
+  /**
    * Execute process or genProcess with the given inputs.
    */
   /**
@@ -1535,7 +1562,7 @@ export class NodeActor {
       inputs = {
         ...(this.node.properties ?? {}),
         ...(this.node.dynamic_properties ?? {}),
-        ...inputs
+        ...this._appendStaticItems(inputs)
       };
     }
     inputs = this._applyDynamicSlots(inputs);
@@ -1989,7 +2016,7 @@ export class NodeActor {
         const merged = this._applyDynamicSlots({
           ...baseProps,
           ...dynProps,
-          ...inputs,
+          ...this._appendStaticItems(inputs),
           ...this._currentControlProperties
         });
         const outputs = await this._invokeWithRecovery(merged, () =>

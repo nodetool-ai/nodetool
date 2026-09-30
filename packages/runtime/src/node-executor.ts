@@ -191,6 +191,13 @@ export interface NodeExecutor {
    */
   applyProperties?(properties: Record<string, unknown>): void;
 
+  /**
+   * List properties whose static items follow the connected items instead of
+   * being replaced by them. The actor builds the combined list when it merges
+   * edge inputs over the node's properties.
+   */
+  appendStaticInputs?: readonly string[];
+
   /** Called before process/genProcess. */
   preProcess?(): Promise<void>;
 

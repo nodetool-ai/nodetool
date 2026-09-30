@@ -119,6 +119,8 @@ export interface NodeMetadata {
    * unsafe, so the supervisor withholds `retry`. See `BaseNode.retrySafe`.
    */
   retry_safe?: boolean;
+  /** See `BaseNode.appendStaticInputs`. */
+  append_static_inputs?: string[];
   /**
    * Per-type cache lifetime for partial runs (seconds, or the `"forever"`
    * sentinel — never `Infinity`, which is not JSON-safe). Only consulted for

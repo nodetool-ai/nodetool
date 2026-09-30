@@ -3,6 +3,8 @@ import { screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import ImageListProperty from "../ImageListProperty";
+import useMetadataStore from "../../../stores/MetadataStore";
+import { NodeMetadata } from "../../../stores/ApiTypes";
 
 // Mock NodeContext — useUpstreamValue (added to ImageListProperty) calls useNodes
 // which requires a NodeProvider. Provide a minimal stub so tests that render
@@ -95,6 +97,65 @@ describe("ImageListProperty", () => {
       "src",
       "https://cdn.example.com/x.png"
     );
+  });
+
+  it("shows connected images ahead of editable static images when the node appends them", () => {
+    mockUpstreamValue = [
+      { type: "image", uri: "http://example.com/in1.jpg" },
+      { type: "image", uri: "http://example.com/in2.jpg" }
+    ];
+    useMetadataStore.setState({
+      metadata: {
+        "test.node": { append_static_inputs: ["images"] } as NodeMetadata
+      }
+    });
+    const { render: renderConnected } = nodeStoreRenderers(
+      makeNodeStore({
+        nodes: [],
+        edges: [
+          {
+            id: "e1",
+            source: "up",
+            sourceHandle: "output",
+            target: "node1",
+            targetHandle: "images"
+          }
+        ],
+        findNode: () => undefined
+      })
+    );
+
+    try {
+      // The canvas passes isConnected={false}; the inspector passes true.
+      // Both must show the combined list and keep the static images editable.
+      for (const isConnected of [false, true]) {
+        const { unmount } = renderConnected(
+          <ThemeProvider theme={mockTheme}>
+            <ImageListProperty
+              {...defaultProps}
+              isConnected={isConnected}
+              workflowId="wf1"
+              value={[{ type: "image", uri: "http://example.com/own.jpg" }]}
+            />
+          </ThemeProvider>
+        );
+
+        expect(
+          screen.getAllByRole("img").map((img) => img.getAttribute("src"))
+        ).toEqual([
+          "http://example.com/in1.jpg",
+          "http://example.com/in2.jpg",
+          "http://example.com/own.jpg"
+        ]);
+        expect(
+          screen.getAllByRole("button", { name: "Remove image" })
+        ).toHaveLength(1);
+        expect(screen.getByText("Click or drop images here")).toBeInTheDocument();
+        unmount();
+      }
+    } finally {
+      useMetadataStore.setState({ metadata: {} });
+    }
   });
 
   it("renders property label and empty dropzone", () => {
