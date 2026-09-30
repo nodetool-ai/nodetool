@@ -236,13 +236,6 @@ export function entityModelInterfaces(): Pick<
       return asset ? entityFromAsset(asset) : null;
     },
     upsertEntity: async (args) => {
-      const existing = await findUpsertTarget(args);
-      if (existing) {
-        return {
-          entity: await writeEntityMarker(existing, args),
-          created: false
-        };
-      }
       const asset = await Asset.find(args.userId, args.imageAssetId);
       if (!asset) {
         throw new Error(`Asset ${args.imageAssetId} was not found`);
@@ -252,7 +245,15 @@ export function entityModelInterfaces(): Pick<
           `${asset.name || asset.id} is a ${asset.content_type} asset; entities are image assets`
         );
       }
-      return { entity: await writeEntityMarker(asset, args), created: true };
+      const validatedArgs = { ...args, imageAssetId: asset.id };
+      const existing = await findUpsertTarget(validatedArgs);
+      if (existing) {
+        return {
+          entity: await writeEntityMarker(existing, validatedArgs),
+          created: false
+        };
+      }
+      return { entity: await writeEntityMarker(asset, validatedArgs), created: true };
     }
   };
 }

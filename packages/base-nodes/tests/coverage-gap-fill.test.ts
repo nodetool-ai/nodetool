@@ -1215,7 +1215,9 @@ describe("lib-audio-dsp round 2", () => {
   it("Gain with invalid audio data throws", async () => {
     const __n209 = new GainNode_();
     __n209.assign({ audio: { uri: "", data: 12345 }, gain_db: 0 });
-    await expect(__n209.process()).rejects.toThrow("Invalid audio data");
+    await expect(__n209.process()).rejects.toThrow(
+      "Could not load audio: the connected reference is empty (0 bytes)."
+    );
   });
 
   it("Gain with invalid WAV (not RIFF) throws", async () => {
@@ -1488,7 +1490,9 @@ describe("lib-pedalboard-extra round 2", () => {
       audio: { uri: "", data: 12345 },
       drive: 0.5
     });
-    await expect(__n227.process()).rejects.toThrow("Invalid audio data");
+    await expect(__n227.process()).rejects.toThrow(
+      "Could not load audio: the connected reference is empty (0 bytes)."
+    );
   });
 });
 

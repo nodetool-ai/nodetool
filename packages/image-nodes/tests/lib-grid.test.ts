@@ -109,7 +109,9 @@ describe("lib-grid slicing", () => {
     );
 
     expect(result.output).toHaveLength(4);
-    expect(resolveAssetBytes).toHaveBeenCalledWith("asset://source-image");
+    expect(resolveAssetBytes).toHaveBeenCalledWith("asset://source-image", {
+      requireOwnedAsset: true
+    });
     expect(retrieve).not.toHaveBeenCalled();
   });
 

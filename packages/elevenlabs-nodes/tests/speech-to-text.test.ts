@@ -157,7 +157,9 @@ describe("SpeechToTextNode", () => {
     const node = makeNode({ audio: { type: "audio", uri: "asset://asset-123" } });
     const result = await node.process(context);
 
-    expect(resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    expect(resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123", {
+      requireOwnedAsset: true
+    });
     // fetch is used ONLY for the ElevenLabs API, never for the asset:// ref.
     expect(mockFetch).toHaveBeenCalledOnce();
     expect(mockFetch.mock.calls[0][0]).toBe(

@@ -14,13 +14,8 @@
  * folder-scoped listing in the UI.
  */
 
-import { TimelineSequence } from "@nodetool-ai/models";
 import type { ProcessingContextModelInterfaces } from "@nodetool-ai/runtime";
 import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
-
-type TimelineDocument = Parameters<
-  typeof TimelineSequence.fromTimelineSequence
->[1];
 
 export async function localModelInterfaces(): Promise<ProcessingContextModelInterfaces> {
   // The `/assets` subpath, not the package root: the root entry pulls in the
@@ -36,33 +31,7 @@ export async function localModelInterfaces(): Promise<ProcessingContextModelInte
   return {
     createAsset: createAssetModelInterface,
     updateAssetBytes: updateAssetBytesModelInterface,
-    ...documentModelInterfaces(),
-    // Timeline nodes persist their sequence rather than passing it down the
-    // graph, so `AddClips` and everything after it needs these to run at all.
-    getTimelineSequence: async ({ userId, id }) => {
-      const seq = await TimelineSequence.findById(id);
-      if (!seq || seq.user_id !== userId) return null;
-      return seq.toTimelineSequence();
-    },
-    createTimelineSequence: async ({ userId, sequence }) => {
-      const seq = TimelineSequence.fromTimelineSequence(
-        userId,
-        sequence as TimelineDocument
-      );
-      await seq.save();
-      return seq.toTimelineSequence();
-    },
-    updateTimelineSequence: async ({ userId, id, sequence }) => {
-      const existing = await TimelineSequence.findById(id);
-      if (!existing || existing.user_id !== userId) return null;
-      const next = TimelineSequence.fromTimelineSequence(
-        userId,
-        sequence as TimelineDocument
-      );
-      next.id = id;
-      await next.save();
-      return next.toTimelineSequence();
-    }
+    ...documentModelInterfaces()
   };
 }
 

@@ -760,7 +760,7 @@ describe("generate_speech when both TTS paths fail", () => {
     // textToSpeech". Discarding the encoded error reported the one thing that
     // was not wrong, and a live session went hunting for another TTS model
     // with the real reason sitting in the error it never saw.
-    const context = {
+    const context = withGenerationSeam({
       userId: "user-1",
       textToSpeechEncoded: async () => {
         throw new Error("model fal-ai/gemini-3.1-flash-tts is not enabled");
@@ -768,7 +768,7 @@ describe("generate_speech when both TTS paths fail", () => {
       streamProviderPrediction: async function* () {
         throw new Error("fal_ai does not support textToSpeech");
       }
-    } as unknown as ProcessingContext;
+    }) as unknown as ProcessingContext;
 
     const result = (await asTool(generateSpeech).process(context, {
       provider: "fal_ai",
@@ -784,13 +784,13 @@ describe("generate_speech when both TTS paths fail", () => {
 describe("generate_speech streaming PCM content", () => {
   function streamingContext(pieces: readonly { samples?: Int16Array; sampleRate?: number }[]) {
     const createAsset = vi.fn(async (_args: { content: Uint8Array; contentType: string }) => ({ id: "speech-asset" }));
-    const context = {
+    const context = withGenerationSeam({
       userId: "user-1",
       textToSpeechEncoded: async () => null,
       streamProviderPrediction: async function* () { yield* pieces; },
       hasModelInterface: (name: string) => name === "createAsset",
       createAsset
-    };
+    });
     return { context: context as unknown as ProcessingContext, createAsset };
   }
 
@@ -841,7 +841,7 @@ describe("generate_music through the adapter", () => {
       data: new Uint8Array([1, 2, 3]),
       mimeType: "audio/mpeg"
     }));
-    const context = {
+    const context = withGenerationSeam({
       userId: "user-1",
       textToMusic,
       workspace: {
@@ -850,7 +850,7 @@ describe("generate_music through the adapter", () => {
         read: async () => null,
         key: (p: string) => p
       }
-    } as unknown as ProcessingContext;
+    }) as unknown as ProcessingContext;
 
     const result = (await asTool(generateMusic).process(context, {
       provider: "fal_ai",
@@ -869,12 +869,12 @@ describe("generate_music through the adapter", () => {
   });
 
   it("names the model when the provider refuses", async () => {
-    const context = {
+    const context = withGenerationSeam({
       userId: "user-1",
       textToMusic: async () => {
         throw new Error("model is not enabled for this key");
       }
-    } as unknown as ProcessingContext;
+    }) as unknown as ProcessingContext;
 
     const result = (await asTool(generateMusic).process(context, {
       provider: "fal_ai",

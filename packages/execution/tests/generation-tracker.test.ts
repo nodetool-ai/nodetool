@@ -70,6 +70,44 @@ describe("generation tracker", () => {
   });
   afterEach(() => resetGenerationTrackerState());
 
+  it.each(["completed", "failed"])(
+    "retains %s workspace delivery separately from generated assets",
+    async (status) => {
+      const state = createTrackerState();
+      const delivery = {
+        status,
+        path: "audio/bed.wav",
+        ...(status === "failed" ? { error: "workspace unavailable" } : {})
+      };
+      await recordFromMessage(
+        prediction({
+          id: "audio-delivery",
+          status: "running",
+          capability: "text_to_music"
+        }),
+        OPTIONS,
+        state
+      );
+      await recordFromMessage(
+        prediction({
+          id: "audio-delivery",
+          status: "completed",
+          capability: "text_to_music",
+          asset_ids: ["audio-asset"],
+          data: { delivery }
+        }),
+        OPTIONS,
+        state
+      );
+      expect(await Prediction.find("audio-delivery")).toMatchObject({
+        status: "completed",
+        asset_ids: ["audio-asset"],
+        error: null,
+        metadata: { delivery }
+      });
+    }
+  );
+
   it("tracks video-to-audio assets and the provider charge through completion", async () => {
     const state = createTrackerState();
     const running = prediction({

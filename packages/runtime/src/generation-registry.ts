@@ -12,10 +12,43 @@
  * Design: docs/media-generation-tracking-design.md § 5.4.
  */
 
-import type { GenerationReceipt, GenerationStatus } from "@nodetool-ai/protocol";
+import type {
+  GenerationReceipt,
+  GenerationStatus
+} from "@nodetool-ai/protocol";
+
+export interface GenerationDelivery {
+  status: "completed" | "failed";
+  path?: string;
+  error?: string;
+}
+
+/** Read a workspace delivery outcome from stored metadata or a prediction. */
+export function generationDeliveryOf(
+  value: unknown
+): GenerationDelivery | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+  if (
+    !("status" in value) ||
+    (value.status !== "completed" && value.status !== "failed")
+  ) {
+    return null;
+  }
+  const delivery: GenerationDelivery = { status: value.status };
+  if ("path" in value && typeof value.path === "string") {
+    delivery.path = value.path;
+  }
+  if ("error" in value && typeof value.error === "string") {
+    delivery.error = value.error;
+  }
+  return delivery;
+}
 
 export interface GenerationOutcome {
   status: GenerationStatus;
+  delivery?: GenerationDelivery;
   error?: string | null;
   asset_ids: string[];
   receipt: GenerationReceipt | null;

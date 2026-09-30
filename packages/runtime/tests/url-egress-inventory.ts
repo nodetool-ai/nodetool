@@ -195,11 +195,14 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "media ref → bytes (Python bridge + TS nodes)",
     "The http(s) fallback every media resolution ends in; #5101 left it unguarded on purpose and this is the decision."
   ),
-  guardedMedia(
-    "packages/audio-nodes/src/lib/audio-wav.ts",
-    "AudioRef → bytes",
-    "Same fallback for audio refs."
-  ),
+  {
+    ...guardedMedia(
+      "packages/audio-nodes/src/lib/audio-wav.ts",
+      "AudioRef → shared media resolver",
+      "Delegates to loadMediaRefBytes, whose HTTP fallback calls fetchExternalMedia."
+    ),
+    guardedBy: ["loadMediaRefBytes"]
+  },
   guardedMedia(
     "packages/video-nodes/src/nodes/model3d/utils.ts",
     "Model3DRef / ImageRef → bytes",

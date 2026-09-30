@@ -100,7 +100,9 @@ describe("loadMediaRefBytes", () => {
     );
 
     expect(bytes).toEqual(new Uint8Array([7, 8, 9]));
-    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://abc-123.png");
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://abc-123.png", {
+      requireOwnedAsset: true
+    });
   });
 
   it("resolves an asset_id-only ref (empty uri) via resolveAssetBytes", async () => {
@@ -119,10 +121,12 @@ describe("loadMediaRefBytes", () => {
     );
 
     expect(bytes).toEqual(new Uint8Array([10, 11, 12]));
-    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://abc");
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://abc", {
+      requireOwnedAsset: true
+    });
   });
 
-  it("resolves an asset_id-only ref via storage candidates", async () => {
+  it("does not bypass unavailable asset resolution through raw storage candidates", async () => {
     const ctx = {
       resolveAssetBytes: vi.fn(async () => ({ bytes: null, attempts: [] })),
       storage: {
@@ -137,7 +141,8 @@ describe("loadMediaRefBytes", () => {
       ctx
     );
 
-    expect(bytes).toEqual(new Uint8Array([13, 14, 15]));
+    expect(bytes).toBeNull();
+    expect(ctx.storage?.retrieve).not.toHaveBeenCalled();
   });
 });
 
@@ -148,9 +153,7 @@ describe("encodeBase64", () => {
 
   it("encodes bytes via Buffer on Node", () => {
     const bytes = new TextEncoder().encode("hello world");
-    expect(encodeBase64(bytes)).toBe(
-      Buffer.from(bytes).toString("base64")
-    );
+    expect(encodeBase64(bytes)).toBe(Buffer.from(bytes).toString("base64"));
   });
 
   it("falls back to btoa when Buffer is unavailable", () => {

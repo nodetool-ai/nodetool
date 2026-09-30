@@ -139,7 +139,9 @@ export type {
 } from "./providers/higgsfield-transport.js";
 export {
   generationRegistry,
+  generationDeliveryOf,
   type GenerationOutcome,
+  type GenerationDelivery,
   type CompletedGeneration
 } from "./generation-registry.js";
 export { redactGenerationParams } from "./redact-params.js";

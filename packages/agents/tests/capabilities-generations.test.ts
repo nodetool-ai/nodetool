@@ -167,6 +167,39 @@ describe("generations capabilities", () => {
     expect(foreign).toEqual({ error: "Generation theirs was not found." });
   });
 
+  it.each(["get_generation", "await_generation"])(
+    "%s reports stored workspace delivery failure beside the asset",
+    async (name) => {
+      const delivery = {
+        status: "failed",
+        path: "audio/bed.wav",
+        error: "workspace unavailable"
+      };
+      await Prediction.create({
+        id: "delivery",
+        user_id: USER,
+        provider: "fake",
+        model: "music",
+        status: "completed",
+        asset_ids: ["audio-asset"],
+        metadata: { delivery }
+      });
+      generationRegistry.reset();
+      const run = ungatedCapabilityRun(
+        new ProcessingContext({ jobId: "delivery", userId: USER })
+      );
+      expect(
+        await capability(generations, name).impl(run, {
+          generation_id: "delivery"
+        })
+      ).toMatchObject({
+        status: "completed",
+        asset_ids: ["audio-asset"],
+        delivery
+      });
+    }
+  );
+
   it("exposes durable lifecycle dimensions and only completes when output is ready", async () => {
     await Prediction.create<Prediction>({
       id: "durable",

@@ -90,6 +90,7 @@ export type DurableAttachmentStatus =
   | "retrying";
 
 export interface DurableGenerationTransition {
+  metadata?: Record<string, unknown>;
   status?: string;
   submission_status?: DurableSubmissionStatus;
   provider_status?: DurableProviderStatus;

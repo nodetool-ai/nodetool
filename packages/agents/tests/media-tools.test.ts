@@ -573,14 +573,16 @@ describe("GenerateSpeechTool", () => {
       // no yields
     }
     const tool = generateSpeechTool();
+    const context = makeContext({
+      getProvider,
+      streamProviderPrediction: vi.fn(() => stream())
+    });
     const r = (await tool.process(
-      makeContext({
-        getProvider,
-        streamProviderPrediction: vi.fn(() => stream())
-      }),
+      context,
       { provider: "openai", model: "tts", text: "hi" }
     )) as { error?: string };
-    expect(r.error).toBe("Provider returned no audio data");
+    expect(r.error).toContain("Provider returned no audio data");
+    expect(context.createAsset).not.toHaveBeenCalled();
   });
 
   it("wraps top-level failures into a text_to_speech error", async () => {

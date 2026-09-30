@@ -42,7 +42,7 @@ import {
   VIDEO_TO_AUDIO_TASK,
   VideoToAudioRequest
 } from "./providers/video-to-audio.js";
-import { encodeRawImageRef } from "./image-codec.js";
+import { encodeRawImageRef, validateImageEvidence } from "./image-codec.js";
 import { extForImageMime, sniffImageMime } from "./providers/image-mime.js";
 import {
   GenerationScopeError,
@@ -51,7 +51,7 @@ import {
   isAuthoritativeProviderTerminalError,
   runWithGenerationReceipt
 } from "./generation-receipt.js";
-import { generationRegistry } from "./generation-registry.js";
+import { generationRegistry, type GenerationDelivery } from "./generation-registry.js";
 import { redactGenerationParams } from "./redact-params.js";
 import {
   isCallable,
@@ -398,6 +398,7 @@ export interface GenerationResult<T = ProviderPredictionResult> {
   assets: AssetRef[];
   receipt: GenerationReceipt | null;
   duration_ms: number;
+  delivery?: GenerationDelivery;
 }
 
 /** Raised by a durable host when an idempotent request is already owned. */
@@ -409,6 +410,11 @@ export class GenerationAlreadyAcceptedError extends Error {
 }
 
 export interface GenerationRunOptions {
+  /** Deliver saved output before the generation becomes observable as settled. */
+  finalizeOutput?: (
+    output: unknown,
+    assets: readonly AssetRef[]
+  ) => Promise<GenerationDelivery>;
   /** A receipt known only after persistence finishes. */
   receiptAfterPersist?: () => Partial<GenerationReceipt> | null;
   /** A host-local generation, such as a Blender render, has no provider. */
@@ -433,6 +439,7 @@ export interface GenerationRunOptions {
     readonly output?: unknown;
     readonly error?: string;
     readonly receipt: GenerationReceipt | null;
+    readonly delivery?: GenerationDelivery;
     /** Positional media asset ids. Null preserves a failed save's index. */
     readonly assetIds: readonly (string | null)[];
   }) => void | Promise<void>;
@@ -2561,9 +2568,10 @@ export class ProcessingContext {
    * trail for callers that build detailed errors; `null` bytes means unresolved.
    */
   async resolveAssetBytes(
-    assetId: string
+    assetId: string,
+    options?: { requireOwnedAsset?: boolean }
   ): Promise<{ bytes: Uint8Array | null; attempts: string[] }> {
-    const idCandidates = this.parseAssetIdCandidates(assetId);
+    let idCandidates = this.parseAssetIdCandidates(assetId);
     const trimmed = assetId.trim();
     const attempts: string[] = [];
 
@@ -2662,6 +2670,28 @@ export class ProcessingContext {
           );
         }
       }
+    }
+
+    if (options?.requireOwnedAsset && this.hasModelInterface("getAssetInfo")) {
+      let ownedAsset: AssetInfoEntry | null = null;
+      const ownerPrefix = `${this.userId}/`;
+      const ownedIdCandidates = new Set(idCandidates);
+      for (const candidate of idCandidates) {
+        if (candidate.startsWith(ownerPrefix)) {
+          ownedIdCandidates.add(candidate.slice(ownerPrefix.length));
+        }
+      }
+      for (const candidate of ownedIdCandidates) {
+        ownedAsset = await this.getAssetInfo(candidate);
+        if (ownedAsset) {
+          break;
+        }
+      }
+      if (!ownedAsset) {
+        attempts.push(`asset unavailable or not owned: ${trimmed}`);
+        return { bytes: null, attempts };
+      }
+      idCandidates = [ownedAsset.id];
     }
 
     for (const adapter of adapters) {
@@ -3135,6 +3165,82 @@ export class ProcessingContext {
     return resolved;
   }
 
+  private async resolveRequiredImageEvidence(
+    messages: Message[],
+    required: readonly string[] = []
+  ): Promise<Message[]> {
+    const evidence = new Map<string, MessageContent>();
+    const resolve = async (ref: MediaRefValue): Promise<MessageContent> => {
+      const identity = ref.uri?.startsWith("data:")
+        ? "inline image"
+        : ref.uri ?? ref.asset_id ?? "inline image";
+      const cached = ref.uri ? evidence.get(ref.uri) : undefined;
+      if (cached) {
+        return cached;
+      }
+      try {
+        const bytes = await loadMediaRefBytes(ref, this);
+        if (!bytes?.length) {
+          throw new Error("no image bytes");
+        }
+        const mimeType = sniffImageMime(bytes);
+        if (
+          !mimeType ||
+          !["image/png", "image/jpeg", "image/webp", "image/gif"].includes(
+            mimeType
+          )
+        ) {
+          throw new Error("unsupported image format");
+        }
+        await validateImageEvidence(bytes);
+        const block: MessageContent = {
+          type: "image_url",
+          image: {
+            uri: `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`,
+            mimeType
+          }
+        };
+        if (ref.uri) {
+          evidence.set(ref.uri, block);
+        }
+        return block;
+      } catch (error) {
+        throw new Error(
+          `Required image evidence unavailable: ${identity} (${error instanceof Error ? error.message : String(error)})`
+        );
+      }
+    };
+    for (const uri of required) {
+      await resolve({ type: "image", uri });
+    }
+    const result: Message[] = [];
+    for (const message of messages) {
+      if (!Array.isArray(message.content)) {
+        result.push(message);
+        continue;
+      }
+      const content: MessageContent[] = [];
+      let imageIndex = 0;
+      for (const part of message.content) {
+        if (part.type === "image_url") {
+          imageIndex++;
+          content.push(await resolve(part.image), {
+            type: "text",
+            text: `[required image ${
+              part.image.uri && !part.image.uri.startsWith("data:")
+                ? part.image.uri
+                : `inline image ${imageIndex}`
+            }]`
+          });
+        } else {
+          content.push(part);
+        }
+      }
+      result.push({ ...message, content });
+    }
+    return result;
+  }
+
   private async dispatchCapability(
     provider: BaseProvider,
     req: ProviderPredictionRequest
@@ -3143,9 +3249,17 @@ export class ProcessingContext {
     switch (req.capability) {
       case "generate_message":
         return provider.generateMessageTraced({
-          messages: await this.resolveMessageMediaUris(
-            (params.messages as Message[]) ?? []
-          ),
+          messages:
+            params.strict_image_evidence === true
+              ? await this.resolveRequiredImageEvidence(
+                  (params.messages as Message[]) ?? [],
+                  Array.isArray(params.required_images)
+                    ? params.required_images.filter(isString)
+                    : []
+                )
+              : await this.resolveMessageMediaUris(
+                  (params.messages as Message[]) ?? []
+                ),
           model: req.model,
           tools: params.tools as Parameters<
             BaseProvider["generateMessage"]
@@ -3313,21 +3427,33 @@ export class ProcessingContext {
       case "track_object": {
         const request = objectTrackingRequestSchema.parse(params);
         if (!provider.getCapabilities().includes("track_object")) {
-          throw new Error("The selected provider does not support object tracking.");
+          throw new Error(
+            "The selected provider does not support object tracking."
+          );
         }
-        const signal = params.signal instanceof AbortSignal ? params.signal : this.signal;
+        const signal =
+          params.signal instanceof AbortSignal ? params.signal : this.signal;
         signal.throwIfAborted();
-        const video = await loadMediaRefBytes({ type: "video", asset_id: request.sourceAssetId }, this);
+        const video = await loadMediaRefBytes(
+          { type: "video", asset_id: request.sourceAssetId },
+          this
+        );
         if (!video?.byteLength) {
           throw new Error("The tracking source video could not be loaded.");
         }
         signal.throwIfAborted();
-        const output = await provider.trackObject(video, { ...request, model: req.model, signal });
+        const output = await provider.trackObject(video, {
+          ...request,
+          model: req.model,
+          signal
+        });
         signal.throwIfAborted();
         return parseObjectTrackingResult(output, request);
       }
       case "video_to_video": {
-        const signal = isAbortSignal(params.signal) ? params.signal : this.signal;
+        const signal = isAbortSignal(params.signal)
+          ? params.signal
+          : this.signal;
         const referenceImages = coerceByteList(
           params.reference_images ?? params.referenceImages
         );
@@ -3338,7 +3464,8 @@ export class ProcessingContext {
         return provider.videoToVideo(params.video as Uint8Array, {
           model: { id: req.model, name: req.model, provider: req.provider },
           prompt: params.prompt as string | undefined,
-          referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
+          referenceImages:
+            referenceImages.length > 0 ? referenceImages : undefined,
           referenceAssetIds:
             referenceAssetIds.length > 0 ? referenceAssetIds : undefined,
           signal,
@@ -3358,8 +3485,7 @@ export class ProcessingContext {
                 params.source.durationSeconds ?? params.source.duration_seconds,
               startSeconds:
                 params.source.startSeconds ?? params.source.start_seconds,
-              endSeconds:
-                params.source.endSeconds ?? params.source.end_seconds
+              endSeconds: params.source.endSeconds ?? params.source.end_seconds
             }
           : params.source;
         const request = VideoToAudioRequest.parse({
@@ -3380,7 +3506,9 @@ export class ProcessingContext {
                 this
               );
         if (!video?.byteLength) {
-          throw new Error("video_to_audio requires nonempty source video bytes");
+          throw new Error(
+            "video_to_audio requires nonempty source video bytes"
+          );
         }
         return requestVideoToAudio(provider, video, request, {
           signal: params.signal as AbortSignal | undefined
@@ -3617,6 +3745,21 @@ export class ProcessingContext {
       const assets = persistedAssets.filter(
         (asset): asset is AssetRef => asset !== null
       );
+      let delivery: GenerationDelivery | undefined;
+      if (opts?.finalizeOutput) {
+        try {
+          delivery = await opts.finalizeOutput(output, assets);
+        } catch (error) {
+          delivery = {
+            status: "failed",
+            error: error instanceof Error ? error.message : String(error)
+          };
+        }
+      }
+      const deliveryFields: { delivery?: GenerationDelivery } = {};
+      if (delivery) {
+        deliveryFields.delivery = delivery;
+      }
       const late = opts?.receiptAfterPersist?.() ?? null;
       const receipt: GenerationReceipt | null =
         late || recorded ? { ...(recorded ?? {}), ...(late ?? {}) } : null;
@@ -3634,7 +3777,8 @@ export class ProcessingContext {
           status: "completed",
           output: providerResult ?? output,
           receipt,
-          assetIds: durableAssetIds
+          assetIds: durableAssetIds,
+          ...deliveryFields
         });
       } catch (terminalError) {
         this.emit({
@@ -3650,7 +3794,7 @@ export class ProcessingContext {
         "completed",
         req,
         id,
-        generationResultData(req.capability, output),
+        delivery ? { delivery } : generationResultData(req.capability, output),
         undefined,
         startedAt,
         { origin, asset_ids: assetIds, receipt }
@@ -3658,14 +3802,16 @@ export class ProcessingContext {
       generationRegistry.settle(id, {
         status: "completed",
         asset_ids: assetIds,
-        receipt
+        receipt,
+        ...deliveryFields
       });
       return {
         id,
         output,
         assets,
         receipt,
-        duration_ms: Date.now() - startedAt
+        duration_ms: Date.now() - startedAt,
+        ...deliveryFields
       };
     } catch (error) {
       const cause = error instanceof GenerationScopeError ? error.cause : error;
@@ -4083,8 +4229,7 @@ export class ProcessingContext {
               params.source.durationSeconds ?? params.source.duration_seconds,
             startSeconds:
               params.source.startSeconds ?? params.source.start_seconds,
-            endSeconds:
-              params.source.endSeconds ?? params.source.end_seconds
+            endSeconds: params.source.endSeconds ?? params.source.end_seconds
           }
         : params.source;
       const request = VideoToAudioRequest.parse({

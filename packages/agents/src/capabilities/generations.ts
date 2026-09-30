@@ -21,6 +21,8 @@
 import { deriveGenerationStatus, type Prediction } from "@nodetool-ai/models";
 import {
   generationRegistry,
+  generationDeliveryOf,
+  type GenerationDelivery,
   isProviderGenerationsUnsupported,
   type BaseProvider,
   type ProviderGenerationQuery,
@@ -50,6 +52,7 @@ const AWAIT_POLL_MS = 5_000;
 
 /** The shape every capability here returns for one generation. */
 export interface GenerationRecord {
+  delivery?: GenerationDelivery;
   generation_id: string;
   status: string;
   submission_status: string | null;
@@ -129,10 +132,11 @@ function metaString(
 }
 
 export function generationRecord(row: Prediction): GenerationRecord {
+  const delivery = generationDeliveryOf(row.metadata?.delivery);
   const assetIds = Array.isArray(row.asset_ids)
     ? row.asset_ids.filter(isString)
     : [];
-  return {
+  const record: GenerationRecord = {
     generation_id: row.id,
     status: publicGenerationStatus(row),
     submission_status: row.submission_status ?? null,
@@ -174,6 +178,10 @@ export function generationRecord(row: Prediction): GenerationRecord {
       next_at: metaString(row.metadata, "reconcile_next_at")
     }
   };
+  if (delivery) {
+    record.delivery = delivery;
+  }
+  return record;
 }
 
 function optionalString(value: unknown): string | undefined {

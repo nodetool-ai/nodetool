@@ -323,3 +323,14 @@ export async function extractImageRegion(
     height: info.height
   };
 }
+
+/** Decode every pixel before accepting an image as required visual evidence. */
+export async function validateImageEvidence(bytes: Uint8Array): Promise<void> {
+  const sharp = await loadSharp();
+  if (!sharp) {
+    throw new Error(SHARP_UNAVAILABLE_MESSAGE);
+  }
+  await sharp(bytes, { failOn: "warning" })
+    .raw()
+    .toBuffer();
+}
