@@ -4,6 +4,7 @@
  * follow-up is best-effort and asserted only for its asset linkage.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import type { ScriptPace } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
 const handlers = new Map<string, (msg: unknown) => void>();
 const sendFrames: Array<Record<string, unknown>> = [];
@@ -87,6 +88,32 @@ beforeEach(() => {
 });
 
 describe("voiceLine generate_media payloads", () => {
+  it.each([
+    { pace: "slow", speed: 0.85 },
+    { pace: "fast", speed: 1.15 },
+    { pace: "normal", speed: undefined },
+    { pace: undefined, speed: undefined }
+  ] satisfies Array<{ pace?: ScriptPace; speed?: number }>)(
+    "sends saved pace $pace as speed $speed",
+    async ({ pace, speed }) => {
+      if (pace !== undefined) {
+        useScriptStore.getState().setSetup("sc-1", { pace });
+      }
+      const done = voiceLine("sc-1", "ln-1");
+      await flush();
+      expect(sendFrames[0]).toMatchObject({
+        command: "generate_media",
+        data: { speed }
+      });
+      const requestId = sendFrames[0].request_id;
+      if (typeof requestId !== "string") {
+        throw new Error("TTS request has no request ID");
+      }
+      respond(requestId, { error: { message: "stop after observing request" } });
+      await expect(done).rejects.toThrow("stop after observing request");
+    }
+  );
+
   it("sends mode audio with the speaker's voice binding and the line text", async () => {
     const done = voiceLine("sc-1", "ln-1");
     await flush();

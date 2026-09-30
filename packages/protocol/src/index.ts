@@ -34,6 +34,7 @@ export * from "./screenplay-authoring.js";
 export * from "./script-authoring.js";
 export * from "./script-link.js";
 export * from "./script-fill.js";
+export * from "./script-pace.js";
 export * from "./sha256.js";
 export * from "./builtin-packs.js";
 export * from "./triggers.js";

@@ -221,6 +221,53 @@ describe("renderTimelineFrames — shape masks", () => {
 describe("renderTimelineFrames — track mattes", () => {
   const loadGradient = async (): Promise<Uint8Array> => gradientPng();
 
+  it.each([
+    { failure: "missing", loadAsset: async (): Promise<Uint8Array | null> => null, reason: "no bytes were available" },
+    { failure: "rejected", loadAsset: async (): Promise<Uint8Array | null> => { throw new Error("matte storage unavailable"); }, reason: "matte storage unavailable" },
+    { failure: "corrupt", loadAsset: async (): Promise<Uint8Array | null> => new Uint8Array([1, 2, 3]), reason: "not a decodable image" }
+  ])("reports and suppresses a layer whose matte asset is $failure", async ({ loadAsset, reason }) => {
+    const result = await renderTimelineFrames({
+      sequence: sequence([
+        fullFrameShape("white", "#ffffff", {
+          matte: { sourceClipId: "key", mode: "luma" }
+        }),
+        gradientClip()
+      ]),
+      timesMs: [500],
+      width: WIDTH,
+      loadAsset
+    });
+
+    expect(result.complete).toBe(false);
+    const frame = result.frames[0]!;
+    expect(frame.layers[0]).toMatchObject({
+      clip_id: "white",
+      skipped: expect.stringContaining("key")
+    });
+    expect(frame.layers[0]!.skipped).toContain("asset-gradient");
+    expect(frame.layers[0]!.skipped).toContain(reason);
+    expect(frame.layers[0]!.matte).toBeUndefined();
+    expect(await pixelAt(frame.png, WIDTH / 2, HEIGHT / 2)).toEqual([0, 0, 0, 255]);
+  });
+
+  it("suppresses a layer whose ready generated matte asset cannot load", async () => {
+    const result = await renderTimelineFrames({
+      sequence: sequence([fullFrameShape("white", "#ffffff", {
+        generatedMatte: {
+          status: "ready",
+          assetId: "asset-generated-mask",
+          sourceAssetId: "source-picture",
+          settings: { model: "Matting" }
+        }
+      })]),
+      timesMs: [500], width: WIDTH, loadAsset: async () => null
+    });
+    expect(result.complete).toBe(false);
+    expect(result.frames[0]!.layers[0]!.skipped).toContain("matte source clip white (asset asset-generated-mask)");
+    expect(result.frames[0]!.layers[0]!.matte).toBeUndefined();
+    expect(await pixelAt(result.frames[0]!.png, WIDTH / 2, HEIGHT / 2)).toEqual([0, 0, 0, 255]);
+  });
+
   it("a luma matte from a gradient produces a ramp", async () => {
     const png = await frameOf(
       [

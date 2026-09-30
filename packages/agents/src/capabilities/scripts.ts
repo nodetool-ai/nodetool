@@ -38,6 +38,7 @@ import type {
   ShotScaffold
 } from "@nodetool-ai/protocol";
 import type { CaptionWord } from "@nodetool-ai/timeline";
+import { paceSpeed } from "@nodetool-ai/protocol";
 import {
   isFunction,
   isNonBlankString,
@@ -669,7 +670,9 @@ const voiceScriptLines: CapabilityExport = {
     const { generateSpeech } = await import("./media.js");
     const speechRun = createCapabilityRun({ context, gate: UNGATED });
 
-    const speed = isNumber(params["speed"]) ? params["speed"] : undefined;
+    const speed = isNumber(params["speed"])
+      ? params["speed"]
+      : paceSpeed(doc.setup?.pace);
     const transcribe = params["transcribe"] !== false;
     const asrProvider = isString(params["asr_provider"])
       ? params["asr_provider"]
@@ -700,13 +703,16 @@ const voiceScriptLines: CapabilityExport = {
         }
 
         try {
-          const synthesized = (await generateSpeech.impl(speechRun, {
+          const speechParams: Record<string, unknown> = {
             provider: voice.provider,
             model: voice.model,
             text,
-            voice: voice.voice,
-            speed
-          })) as {
+            voice: voice.voice
+          };
+          if (speed !== undefined) {
+            speechParams["speed"] = speed;
+          }
+          const synthesized = (await generateSpeech.impl(speechRun, speechParams)) as {
             asset_id?: string;
             asset_uri?: string;
             error?: string;

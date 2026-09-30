@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { TextToSpeechNode } from "@nodetool-ai/audio-nodes";
+import { TextToSpeechNode } from "../src/nodes/audio.js";
+import { parseWavBytes, readWavHeader } from "@nodetool-ai/audio-nodes";
 
 function ttsModel(provider: string, id: string, capabilities: string[] = []) {
   return {
@@ -20,6 +21,73 @@ const audioData = (out: Record<string, unknown>): Buffer => {
 };
 
 describe("TextToSpeechNode", () => {
+  it.each([0, -1, NaN, Infinity, 24000.5])(
+    "rejects supplied invalid PCM sample rate %s",
+    async (sampleRate) => {
+      const context = {
+        runProviderPrediction: async () => null,
+        streamProviderPrediction: async function* () {
+          yield { samples: new Int16Array([0]), sampleRate };
+        },
+        providerSupportsStreamingTTS: async () => true,
+        textToSpeechEncoded: async () => null
+      };
+      const node = new TextToSpeechNode({
+        text: "hi",
+        model: ttsModel("openai", "tts-1")
+      });
+      await expect(node.process(context as never)).rejects.toThrow(
+        /invalid.*sample rate/i
+      );
+    }
+  );
+
+  it.each([
+    ["empty stream", []],
+    ["metadata-only stream", [{ sampleRate: 24000 }]],
+    [
+      "zero-length PCM chunk",
+      [{ samples: new Int16Array(), sampleRate: 24000 }]
+    ]
+  ])(
+    "rejects an empty TTS stream before WAV wrapping: %s",
+    async (_name, pieces) => {
+      const context = {
+        runProviderPrediction: async () => null,
+        streamProviderPrediction: async function* () {
+          yield* pieces;
+        },
+        providerSupportsStreamingTTS: async () => true,
+        textToSpeechEncoded: async () => null
+      };
+      const node = new TextToSpeechNode({
+        text: "hi",
+        model: ttsModel("openai", "tts-1")
+      });
+      await expect(node.process(context as never)).rejects.toThrow(
+        /no audio samples/i
+      );
+    }
+  );
+
+  it("preserves nonempty silent PCM sample frames", async () => {
+    const context = {
+      runProviderPrediction: async () => null,
+      streamProviderPrediction: async function* () {
+        yield { samples: new Int16Array(240), sampleRate: 24000 };
+      },
+      providerSupportsStreamingTTS: async () => true,
+      textToSpeechEncoded: async () => null
+    };
+    const node = new TextToSpeechNode({
+      text: "hi",
+      model: ttsModel("openai", "tts-1")
+    });
+    const wav = audioData(await node.process(context as never));
+    expect(readWavHeader(wav)?.dataSize).toBe(480);
+    expect(parseWavBytes(wav)?.samples).toEqual(new Float32Array(240));
+  });
+
   it("emits an AudioRef from encoded bytes for file-returning providers", async () => {
     const mp3 = new Uint8Array([0xff, 0xfb, 0x10, 0x20]);
     let encodedReq: Record<string, unknown> | undefined;
@@ -59,7 +127,11 @@ describe("TextToSpeechNode", () => {
       speed: 1
     });
     const out = await node.process(ctx as never);
-    expect(audioData(out).subarray(0, 4).toString("ascii")).toBe("RIFF");
+    const wav = audioData(out);
+    expect(wav.subarray(0, 4).toString("ascii")).toBe("RIFF");
+    expect(readWavHeader(wav)?.dataSize).toBe(8);
+    expect(parseWavBytes(wav)?.samples.length).toBe(4);
+    expect(parseWavBytes(wav)?.samples[0]).toBeCloseTo(100 / 32767, 6);
   });
 
   it("forwards supported voice-cloning inputs", async () => {

@@ -60,10 +60,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { ffprobeDuration } from "./ffmpeg-helpers.js";
 import { stringValues } from "./placeholder-values.js";
-import {
-  isPositiveNumber,
-  isString
-} from "@nodetool-ai/node-sdk";
+import { isString } from "@nodetool-ai/node-sdk";
 
 const scriptRefDefault = { type: "script", id: null, data: null } as const;
 
@@ -243,24 +240,11 @@ export class VoiceScriptNode extends BaseNode {
           voiceSnapshot: voice,
           createdAt: new Date().toISOString()
         };
-        line.takes = [...line.takes, take];
-        line.currentTakeId = take.id;
+        await attachTake(context, script.id, line.id, take);
         voiced += 1;
       }
     } finally {
       await fs.rm(workDir, { recursive: true, force: true });
-    }
-
-    if (voiced > 0) {
-      const saved = (await context.updateScript(script.id, {
-        document: doc,
-        baseUpdatedAt: script.updatedAt
-      })) as { id: string } | null;
-      if (!saved) {
-        throw new Error(
-          "VoiceScript: failed to save the script (it was modified concurrently)"
-        );
-      }
     }
 
     return {
@@ -803,6 +787,44 @@ export class FillScriptNode extends BaseNode {
 
 // ── TTS helpers (mirror audio TextToSpeechNode's provider routing) ──
 
+async function attachTake(
+  context: ProcessingContext,
+  scriptId: string,
+  lineId: string,
+  take: ScriptTakeLike
+): Promise<void> {
+  try {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const current = await loadScript({ id: scriptId }, context);
+      const line = allLines(current.document).find(
+        (candidate) => candidate.id === lineId
+      );
+      if (!line) {
+        throw new Error(`Line ${lineId} is no longer in the script`);
+      }
+      if (line.takes.some((candidate) => candidate.id === take.id)) {
+        return;
+      }
+      line.takes = [...line.takes, take];
+      line.currentTakeId = take.id;
+      const saved = await context.updateScript(scriptId, {
+        document: current.document,
+        baseUpdatedAt: current.updatedAt
+      });
+      if (saved) {
+        return;
+      }
+    }
+    throw new Error("The script is being modified concurrently");
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `VoiceScript: could not attach take ${take.id} (asset ${take.assetId}) to line ${lineId} in script ${scriptId}: ${reason}`,
+      { cause: error }
+    );
+  }
+}
+
 interface SynthResult {
   bytes: Uint8Array;
   contentType: string;
@@ -832,7 +854,16 @@ async function synthesizeLine(
       params
     })) {
       const piece = item as { samples?: Int16Array; sampleRate?: number };
-      if (isPositiveNumber(piece.sampleRate)) {
+      if (piece.sampleRate !== undefined) {
+        if (
+          !Number.isInteger(piece.sampleRate) ||
+          piece.sampleRate <= 0 ||
+          piece.sampleRate > 0xffffffff / 2
+        ) {
+          throw new Error(
+            "VoiceScript: TTS returned an invalid PCM sample rate"
+          );
+        }
         sampleRate = piece.sampleRate;
       }
       if (piece.samples instanceof Int16Array) {
@@ -846,8 +877,13 @@ async function synthesizeLine(
         );
       }
     }
-    const wav = encodePcm16Wav(concatBytes(chunks), sampleRate, 1);
-    if (wav.length === 0) return null;
+    const pcm = concatBytes(chunks);
+    if (pcm.length < 2) {
+      throw new Error(
+        `VoiceScript: TTS produced no audio samples for ${provider} / ${model}`
+      );
+    }
+    const wav = encodePcm16Wav(pcm, sampleRate, 1);
     return { bytes: wav, contentType: "audio/wav" };
   }
 

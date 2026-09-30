@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { ScriptPace } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 import {
   Asset,
   ModelObserver,
@@ -56,7 +57,8 @@ interface CtxOptions {
 function ctx(options: CtxOptions = {}) {
   const stored = new Map<string, Uint8Array>();
   const textToSpeechEncoded = vi.fn(
-    options.tts ?? (async () => ({ data: wav(), mimeType: "audio/wav" }))
+    async (_request: { model: string; voice?: string; speed?: number }) =>
+      options.tts ? options.tts() : { data: wav(), mimeType: "audio/wav" }
   );
   const automaticSpeechRecognition = vi.fn(async () => ({
     text: "hello",
@@ -119,7 +121,8 @@ const take = (overrides: Partial<ScriptTake> & { id: string }): ScriptTake => ({
 
 async function makeScript(
   lines: ScriptLine[],
-  cast = [{ id: "sp1", name: "Narrator", voice: VOICE }]
+  cast = [{ id: "sp1", name: "Narrator", voice: VOICE }],
+  pace?: ScriptPace
 ): Promise<Script> {
   return Script.create<Script>({
     user_id: "u1",
@@ -127,6 +130,7 @@ async function makeScript(
     name: "Script",
     document: JSON.stringify({
       cast,
+      ...(pace === undefined ? {} : { setup: { stage: "done", brief: "", pace } }),
       sections: [{ id: "sec1", title: "Main", lines }]
     })
   });
@@ -233,6 +237,39 @@ describe("script voice tools", () => {
     expect(result.voiced).toBe(0);
     expect(result.results[0].error).toContain("no voice");
   });
+
+  it.each([
+    { pace: "slow", expected: 0.85 },
+    { pace: "fast", expected: 1.15 },
+    { pace: "normal", expected: undefined },
+    { pace: undefined, expected: undefined },
+    { pace: "slow", speed: 1.25, expected: 1.25 },
+    { pace: "fast", speed: 1, expected: 1 }
+  ] satisfies Array<{ pace?: ScriptPace; speed?: number; expected?: number }>)(
+    "voice_script_lines inherits saved pace $pace unless speed $speed is explicitly overridden",
+    async ({ pace, expected, ...override }) => {
+      const row = await makeScript(
+        [line({ id: "line-1", speakerId: "sp1" })],
+        undefined,
+        pace
+      );
+      const { context, textToSpeechEncoded } = ctx();
+
+      await toolForCapabilityName("voice_script_lines").process(context, {
+        script_id: row.id,
+        targets: ["line-1"],
+        transcribe: false,
+        ...override
+      });
+
+      expect(textToSpeechEncoded).toHaveBeenCalledOnce();
+      expect(textToSpeechEncoded.mock.calls[0][0]).toMatchObject({
+        model: "tts-1",
+        voice: "alloy",
+        speed: expected
+      });
+    }
+  );
 
   it("applies a call-level voice override to the named lines", async () => {
     const row = await makeScript([line({ id: "l1", speakerId: "sp1", text: "Line" })]);
