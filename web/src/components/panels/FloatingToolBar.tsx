@@ -124,24 +124,39 @@ const dockStyles = (theme: Theme) =>
     ".media-compose-card textarea.media-compose-input": {
       padding: `${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.md)}`
     },
-    "@container canvas-dock (max-width: 640px)": {
-      ".media-chip-row.has-trailing": {
-        flexWrap: "wrap",
-        rowGap: theme.spacing(SPACING.xs)
+    // Two rows under the prompt: the generation chips with their Generate
+    // button, then the workflow toolbar. The chips scroll sideways rather
+    // than wrap or overlap when the dock is narrow, so Generate keeps its
+    // place at the end of the first row.
+    ".media-chip-row.has-trailing": {
+      flexWrap: "wrap",
+      rowGap: theme.spacing(SPACING.xs),
+      padding: 0
+    },
+    ".media-chip-row.has-trailing .media-chip-main": {
+      flex: "1 1 0",
+      minWidth: 0,
+      flexWrap: "nowrap",
+      overflowX: "auto",
+      overflowY: "hidden",
+      scrollbarWidth: "none",
+      "&::-webkit-scrollbar": { display: "none" },
+      "> *": { flexShrink: 0 },
+      // The model chip is the one chip that gives up width, down to a
+      // readable name, before the row starts to scroll. Important because
+      // the phone touch-target rule in styles/mobile.css sets its own
+      // important minimum.
+      "> .media-control-chip-grow": {
+        flexShrink: 1,
+        minWidth: "112px !important"
+      }
+    },
+    "@container canvas-dock (max-width: 560px)": {
+      ".composer-run-label": {
+        display: "none"
       },
-      ".media-chip-row.has-trailing .media-chip-main": {
-        flexBasis: "100%",
-        overflowX: "auto"
-      },
-      ".composer-drag-handle, .media-primary-action": {
-        order: 1
-      },
-      ".composer-workflow-actions": {
-        order: 1,
-        marginLeft: "auto",
-        paddingLeft: 0,
-        borderLeft: "none",
-        flexWrap: "wrap"
+      ".media-cost-estimate": {
+        display: "none"
       }
     },
 
@@ -167,26 +182,24 @@ const dockStyles = (theme: Theme) =>
     }
   });
 
-// Workflow controls embedded in the composer footer: an always-visible Run
-// button (+ contextual Stop while running) and a ⋮ button opening a normal
-// dropdown menu for everything else. Kept compact so the composer doesn't grow.
+// The workflow toolbar row at the foot of the composer: canvas tools on the
+// left, then Stop (while running), Run, and the ⋮ menu on the right.
 const actionStyles = (theme: Theme) =>
   css({
-    display: "inline-flex",
+    flex: "1 0 100%",
+    display: "flex",
     alignItems: "center",
-    gap: getSpacingPx(SPACING.xs),
-    marginLeft: getSpacingPx(SPACING.sm),
-    paddingLeft: getSpacingPx(SPACING.md),
-    borderLeft: `1px solid ${theme.vars.palette.divider}`,
+    justifyContent: "space-between",
+    gap: getSpacingPx(SPACING.sm),
+    marginTop: getSpacingPx(SPACING.xs),
+    paddingTop: getSpacingPx(SPACING.sm),
+    borderTop: `1px solid ${theme.vars.palette.divider}`,
 
-    // Mobile: the chip row wraps, so the cluster becomes its own right-aligned
-    // line instead of a bordered appendix pinned to the first one.
-    [theme.breakpoints.down("sm")]: {
-      marginLeft: 0,
-      paddingLeft: 0,
-      borderLeft: "none",
-      flex: 1,
-      justifyContent: "flex-end"
+    ".composer-tools, .composer-run-group": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: getSpacingPx(SPACING.xs),
+      minWidth: 0
     },
 
     "& button": {
@@ -586,137 +599,149 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         ? `${runControlLabel}. Queue another entire workflow run`
         : runControlLabel;
 
+  // The workflow toolbar: the composer's second row. Canvas tools sit on the
+  // left after the drag handle, and the run controls on the right.
   const workflowActions = (
-    <span css={actionStyles(theme)} className="composer-workflow-actions">
-      {editorViewMode === "graph" && (
+    <div css={actionStyles(theme)} className="composer-workflow-actions">
+      <span className="composer-tools">
+        {!isMobile && dragHandle}
+        {editorViewMode === "graph" && (
+          <Tooltip
+            title={getShortcutTooltip("openNodeMenu")}
+            placement="top"
+            delay={TOOLTIP_ENTER_DELAY}
+          >
+            <button
+              type="button"
+              className="composer-action"
+              onClick={handleToggleNodeMenu}
+              aria-label="Add node"
+            >
+              <AddCircleIcon />
+            </button>
+          </Tooltip>
+        )}
+
         <Tooltip
-          title={getShortcutTooltip("openNodeMenu")}
+          title={conversationOpen ? "Hide conversation" : "Show conversation"}
           placement="top"
           delay={TOOLTIP_ENTER_DELAY}
         >
           <button
             type="button"
-            className="composer-action"
-            onClick={handleToggleNodeMenu}
-            aria-label="Add node"
+            className={cn("composer-convo", conversationOpen && "active")}
+            onClick={() => setConversationCollapsed(!conversationCollapsed)}
+            aria-label="Toggle conversation"
+            aria-pressed={conversationOpen}
           >
-            <AddCircleIcon />
+            <ForumOutlinedIcon />
+            {conversationCount > 0 && (
+              <span className="convo-badge" aria-hidden>
+                {conversationCount}
+              </span>
+            )}
           </button>
         </Tooltip>
-      )}
 
-      <Tooltip
-        title={conversationOpen ? "Hide conversation" : "Show conversation"}
-        placement="top"
-        delay={TOOLTIP_ENTER_DELAY}
-      >
-        <button
-          type="button"
-          className={cn("composer-convo", conversationOpen && "active")}
-          onClick={() => setConversationCollapsed(!conversationCollapsed)}
-          aria-label="Toggle conversation"
-          aria-pressed={conversationOpen}
-        >
-          <ForumOutlinedIcon />
-          {conversationCount > 0 && (
-            <span className="convo-badge" aria-hidden>
-              {conversationCount}
-            </span>
-          )}
-        </button>
-      </Tooltip>
+        {/* On mobile Auto Layout and Save move into the ⋮ menu to keep the
+            toolbar within a phone-width row. */}
+        {editorViewMode === "graph" && !isMobile && (
+          <Tooltip
+            title="Auto Layout"
+            placement="top"
+            delay={TOOLTIP_ENTER_DELAY}
+          >
+            <button
+              type="button"
+              className="composer-action"
+              onClick={handleAutoLayout}
+              aria-label="Auto layout"
+            >
+              <LayoutIcon />
+            </button>
+          </Tooltip>
+        )}
 
-      {isRunningish && (
-        <Tooltip
-          title={getShortcutTooltip("stopWorkflow")}
-          placement="top"
-          delay={TOOLTIP_ENTER_DELAY}
-        >
+        {!isMobile && (
+          <Tooltip title="Save" placement="top" delay={TOOLTIP_ENTER_DELAY}>
+            <button
+              type="button"
+              className="composer-action"
+              onClick={handleSave}
+              aria-label="Save workflow"
+            >
+              <SaveIcon />
+            </button>
+          </Tooltip>
+        )}
+
+        {/* Shown at every width: arming and disarming a trigger is the whole
+            point of the feature, and a phone browser needs it too. */}
+        <TriggerActivationButton />
+      </span>
+
+      <span className="composer-run-group">
+        {isRunningish && (
+          <Tooltip
+            title={getShortcutTooltip("stopWorkflow")}
+            placement="top"
+            delay={TOOLTIP_ENTER_DELAY}
+          >
+            <button
+              type="button"
+              className="composer-stop"
+              onClick={handleStop}
+              aria-label={isStopping ? "Stopping workflow" : "Stop workflow"}
+              disabled={isStopping}
+            >
+              <StopIcon />
+            </button>
+          </Tooltip>
+        )}
+
+        <Tooltip title={runTooltip} placement="top" delay={TOOLTIP_ENTER_DELAY}>
           <button
             type="button"
-            className="composer-stop"
-            onClick={handleStop}
-            aria-label={isStopping ? "Stopping workflow" : "Stop workflow"}
+            className={cn("composer-run", isWorkflowActive && "running")}
+            onClick={handleRun}
+            aria-label={runAriaLabel}
             disabled={isStopping}
           >
-            <StopIcon />
+            {/* Instant-update mode runs on every keystroke, so its ticking
+                timer would be noise. The visible state label remains stable
+                instead. */}
+            {isWorkflowRunning && !instantUpdate ? (
+              <RunningTime isRunning timerKey={workflow?.id} />
+            ) : !isWorkflowActive || runControlLabel.startsWith("Error") ? (
+              <PlayArrow />
+            ) : null}
+            <span className="composer-run-label">{runControlLabel}</span>
+            {pendingRunCount > 0 && (
+              <span className="run-queue-badge" aria-hidden>
+                {pendingRunCount}
+              </span>
+            )}
           </button>
         </Tooltip>
-      )}
 
-      <Tooltip title={runTooltip} placement="top" delay={TOOLTIP_ENTER_DELAY}>
-        <button
-          type="button"
-          className={cn("composer-run", isWorkflowActive && "running")}
-          onClick={handleRun}
-          aria-label={runAriaLabel}
-          disabled={isStopping}
+        <Tooltip
+          title="Workflow actions"
+          placement="top"
+          delay={TOOLTIP_ENTER_DELAY}
         >
-          {/* Instant-update mode runs on every keystroke, so its ticking timer
-              would be noise. The visible state label remains stable instead. */}
-          {isWorkflowRunning && !instantUpdate ? (
-            <RunningTime isRunning timerKey={workflow?.id} />
-          ) : !isWorkflowActive || runControlLabel.startsWith("Error") ? (
-            <PlayArrow />
-          ) : null}
-          <span>{runControlLabel}</span>
-          {pendingRunCount > 0 && (
-            <span className="run-queue-badge" aria-hidden>
-              {pendingRunCount}
-            </span>
-          )}
-        </button>
-      </Tooltip>
-
-      {/* On mobile Auto Layout and Save move into the ⋮ menu to keep the
-          action cluster within a phone-width composer row. */}
-      {editorViewMode === "graph" && !isMobile && (
-        <Tooltip title="Auto Layout" placement="top" delay={TOOLTIP_ENTER_DELAY}>
           <button
             type="button"
-            className="composer-action"
-            onClick={handleAutoLayout}
-            aria-label="Auto layout"
+            className={cn("composer-menu", actionsMenuAnchor && "active")}
+            onClick={handleOpenActionsMenu}
+            aria-label="Workflow actions"
+            aria-haspopup="menu"
+            aria-expanded={Boolean(actionsMenuAnchor)}
           >
-            <LayoutIcon />
+            <MoreVertIcon />
           </button>
         </Tooltip>
-      )}
-
-      {!isMobile && (
-        <Tooltip title="Save" placement="top" delay={TOOLTIP_ENTER_DELAY}>
-          <button
-            type="button"
-            className="composer-action"
-            onClick={handleSave}
-            aria-label="Save workflow"
-          >
-            <SaveIcon />
-          </button>
-        </Tooltip>
-      )}
-
-      {/* Shown at every width: arming and disarming a trigger is the whole
-          point of the feature, and a phone browser needs it too. */}
-      <TriggerActivationButton />
-
-      <Tooltip
-        title="Workflow actions"
-        placement="top"
-        delay={TOOLTIP_ENTER_DELAY}
-      >
-        <button
-          type="button"
-          className={cn("composer-menu", actionsMenuAnchor && "active")}
-          onClick={handleOpenActionsMenu}
-          aria-label="Workflow actions"
-          aria-haspopup="menu"
-          aria-expanded={Boolean(actionsMenuAnchor)}
-        >
-          <MoreVertIcon />
-        </button>
-      </Tooltip>
-    </span>
+      </span>
+    </div>
   );
 
   return (
@@ -753,10 +778,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
               </FlexRow>
             </AlertBanner>
           )}
-          <CanvasMediaComposer
-            leadingActions={isMobile ? undefined : dragHandle}
-            trailingActions={workflowActions}
-          />
+          <CanvasMediaComposer trailingActions={workflowActions} />
         </div>
       </div>
 

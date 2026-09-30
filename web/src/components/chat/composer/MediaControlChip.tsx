@@ -145,7 +145,7 @@ const MediaControlChip = memo(function MediaControlChip({
       type="button"
       title={title}
       aria-label={!hasLabel ? title : undefined}
-      className={`media-control-chip${className ? ` ${className}` : ""}${active ? " active" : ""}`}
+      className={`media-control-chip${className ? ` ${className}` : ""}${grow ? " media-control-chip-grow" : ""}${active ? " active" : ""}`}
       css={createStyles(
         theme,
         size,
