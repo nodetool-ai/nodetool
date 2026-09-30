@@ -35,8 +35,7 @@ import {
   createMediaEditRequest
 } from "@nodetool-ai/timeline";
 
-vi.mock("@nodetool-ai/runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@nodetool-ai/runtime")>()),
+vi.mock("@nodetool-ai/runtime/trim-video-window", () => ({
   trimVideoWindow: async () => new Uint8Array([4, 5, 6])
 }));
 

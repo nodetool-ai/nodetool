@@ -5,7 +5,7 @@
  */
 import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
-import { trimVideoWindow as trimSharedVideoWindow } from "@nodetool-ai/runtime";
+import { trimVideoWindow as trimSharedVideoWindow } from "@nodetool-ai/runtime/trim-video-window";
 import { isObjectLike } from "./wire-values.js";
 
 const execFile = promisify(execFileCb);
