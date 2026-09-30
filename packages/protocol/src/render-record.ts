@@ -20,6 +20,7 @@
 
 import type {
   ClipVersion,
+  Entity,
   KeyframeVersion,
   RenderInputs,
   Scene,
@@ -27,6 +28,7 @@ import type {
 } from "./creative.js";
 import { shotRenderMode } from "./creative.js";
 import { sha256Hex } from "./sha256.js";
+import { isString } from "./predicates.js";
 import { clipPromptFor, keyframePrompt, sceneForShot } from "./shot-prompt.js";
 
 /**
@@ -38,9 +40,9 @@ import { clipPromptFor, keyframePrompt, sceneForShot } from "./shot-prompt.js";
  */
 export interface BoardRenderContext {
   aspect_ratio: string;
-  /** Model id every still on this board renders with. */
+  /** Default still model id, used when a shot has no saved model. */
   image_model: string;
-  /** Model id every clip on this board renders with. */
+  /** Default clip model id, used when a shot has no saved model. */
   video_model: string;
   /** The board's one style entity, or null when no preset is applied. */
   style_entity_id: string | null;
@@ -48,8 +50,45 @@ export interface BoardRenderContext {
   style: string;
   /** The screenplay's scenes, so a shot's lighting can be found. */
   scenes?: readonly Scene[] | null;
-  /** Ordered entity reference image asset ids for reference-mode clips. */
+  /** Ordered entity reference image asset ids for stills or reference clips. */
   reference_asset_ids?: readonly string[];
+  /** Fingerprint of the still's effective entity descriptors and images. */
+  entity_conditioning_hash?: string;
+  /** Resolved creative-context binding ids consumed by clip production. */
+  production_reference_asset_ids?: readonly string[];
+}
+
+/** Hash the entity fields sent to still generation, in their request order. */
+export function entityConditioningHash(
+  entities: readonly Pick<Entity, "name" | "descriptor" | "reference_images">[]
+): string | undefined {
+  if (entities.length === 0) {
+    return undefined;
+  }
+  return sha256Hex(
+    JSON.stringify(
+      entities.map((entity) => {
+        const image = entity.reference_images?.[0];
+        const data = image?.data;
+        const contentHash =
+          isString(data) && data.length > 0
+            ? sha256Hex(data)
+            : data instanceof Uint8Array && data.length > 0
+              ? sha256Hex(JSON.stringify(Array.from(data)))
+              : null;
+        return {
+          name: entity.name,
+          descriptor: entity.descriptor,
+          reference: image
+            ? {
+                identity: image.asset_id || image.uri || image.temp_id || null,
+                content_hash: contentHash
+              }
+            : null
+        };
+      })
+    )
+  );
 }
 
 /** A {@link RenderInputs} before it is stamped — what the comparison reads. */
@@ -85,7 +124,13 @@ function promptHashFor(
   if (kind === "keyframe") {
     return sha256Hex(keyframePrompt(shot, context));
   }
-  return sha256Hex(clipPromptFor(shot, context));
+  const prompt = [
+    clipPromptFor(shot, context),
+    shot.production?.local_direction
+  ]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join("\n\n");
+  return sha256Hex(prompt);
 }
 
 /**
@@ -99,22 +144,45 @@ export function currentRenderInputs(
   board: BoardRenderContext,
   kind: RenderInputs["kind"]
 ): RenderInputsDraft {
+  const productionReferenceIds = [
+    ...(board.production_reference_asset_ids ?? []),
+    ...(shot.production?.reference_bindings ?? []).map(
+      (binding) => binding.asset_id
+    )
+  ].filter((id) => id.trim().length > 0);
+  const mode =
+    productionReferenceIds.length > 0 ? "reference" : shotRenderMode(shot);
   const draft: RenderInputsDraft = {
     kind,
     prompt_hash: promptHashFor(shot, board, kind),
-    model: kind === "keyframe" ? board.image_model : board.video_model,
+    model:
+      kind === "keyframe"
+        ? (shot.still_model?.id ?? board.image_model)
+        : (shot.clip_model?.id ?? board.video_model),
     aspect_ratio: board.aspect_ratio,
     style_entity_id: board.style_entity_id
   };
-  if (kind === "clip") draft.render_mode = shotRenderMode(shot);
+  if (kind === "clip") draft.render_mode = mode;
   // A keyframe-mode clip animates the selected still, so which still that was
   // is one of its inputs: re-picking a take makes the clip stale. A direct clip
   // has no source.
-  if (kind === "clip" && shotRenderMode(shot) === "keyframe") {
+  if (kind === "clip" && mode === "keyframe") {
     draft.source_version_id = versionId(shot.keyframe);
   }
-  if (kind === "clip" && shotRenderMode(shot) === "reference") {
+  if (kind === "keyframe") {
     draft.reference_asset_ids = [...(board.reference_asset_ids ?? [])];
+  } else if (mode === "reference") {
+    draft.reference_asset_ids = [
+      ...new Set([
+        ...(shotRenderMode(shot) === "reference"
+          ? (board.reference_asset_ids ?? [])
+          : []),
+        ...productionReferenceIds
+      ])
+    ];
+  }
+  if (kind === "keyframe" && board.entity_conditioning_hash !== undefined) {
+    draft.entity_conditioning_hash = board.entity_conditioning_hash;
   }
   return draft;
 }
@@ -169,6 +237,7 @@ function renderInputsMatchDraft(
     recorded.model === current.model &&
     recorded.aspect_ratio === current.aspect_ratio &&
     recorded.style_entity_id === current.style_entity_id &&
+    recorded.entity_conditioning_hash === current.entity_conditioning_hash &&
     recordedRenderMode === current.render_mode &&
     JSON.stringify(recorded.reference_asset_ids ?? []) ===
       JSON.stringify(current.reference_asset_ids ?? []) &&

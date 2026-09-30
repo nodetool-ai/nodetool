@@ -11,7 +11,12 @@
  * generation origin and conflict handling.
  */
 
-import { stampRenderInputs } from "@nodetool-ai/protocol";
+import {
+  CLIP_RESOLUTION,
+  STILL_RESOLUTION,
+  stampRenderInputs
+} from "@nodetool-ai/protocol";
+import { productionCandidateIdentityForDestination } from "@nodetool-ai/timeline";
 import type {
   ClipVersion,
   ImageRef,
@@ -87,7 +92,7 @@ export interface StoryboardRenderHost {
 export interface RenderShotsOptions {
   /** Renders in flight at once. Defaults to 1. */
   concurrency?: number;
-  /** Named resolution tier for clips, when the caller overrides one. */
+  /** Named resolution tier, overriding the shared still or clip default. */
   resolution?: string;
   /** Ids for the generation rows. Defaults to `crypto.randomUUID`. */
   newId?: () => string;
@@ -227,9 +232,12 @@ export async function renderShots(
       ok: false
     };
     if (plan.slug !== undefined) base.slug = plan.slug;
+    if (plan.preflightError !== undefined) {
+      return { ...base, error: plan.preflightError };
+    }
     const capability = capabilityFor(
       plan,
-      options.stillModelTakesImages === true
+      plan.stillModelTakesImages ?? options.stillModelTakesImages === true
     );
     if (capability === "image_to_video" && !plan.sourceKeyframe) {
       return {
@@ -242,10 +250,12 @@ export async function renderShots(
       const params: Record<string, unknown> = {
         prompt: plan.prompt,
         entities: plan.entities,
-        aspect_ratio: plan.aspectRatio
+        aspect_ratio: plan.aspectRatio,
+        resolution:
+          options.resolution ??
+          (plan.kind === "keyframe" ? STILL_RESOLUTION : CLIP_RESOLUTION)
       };
-      if (plan.kind === "clip") {
-        params["resolution"] = options.resolution;
+      if (plan.kind === "clip" && plan.durationSeconds !== undefined) {
         params["duration_seconds"] = plan.durationSeconds;
       }
       if (capability === "image_to_video" && plan.sourceKeyframe) {
@@ -286,86 +296,119 @@ export async function renderShots(
         }
         params["reference_images"] = references;
       }
-      const generationId = newId();
-      const persist: RenderGenerationRequest["persist"] =
-        plan.kind === "keyframe"
-          ? { name: `shot-${plan.index + 1}-still` }
-          : { name: `shot-${plan.index + 1}-clip`, mime: "video/mp4" };
-      const result = await host.runGeneration({
-        id: generationId,
-        provider: plan.model.provider,
-        capability,
-        model: plan.model.model,
-        params,
-        persist,
-        destination: {
-          document_id: ref.id,
-          target_type:
-            plan.kind === "keyframe"
-              ? "storyboard_keyframe"
-              : "storyboard_clip",
-          target_id: plan.shotId,
-          selected: true
+      const candidates = plan.productionCandidates ?? [undefined];
+      const batchId =
+        plan.productionCandidates !== undefined ? newId() : undefined;
+      let outcome: ShotRenderOutcome = base;
+      for (const candidate of candidates) {
+        const generationId = newId();
+        const identity =
+          candidate !== undefined && batchId !== undefined
+            ? productionCandidateIdentityForDestination(
+                batchId,
+                "storyboard_shot",
+                plan.shotId,
+                candidate.identity.variationIndex
+              )
+            : undefined;
+        const productionSnapshot =
+          candidate !== undefined && identity !== undefined
+            ? { ...candidate.snapshot, ...identity }
+            : undefined;
+        const persist: RenderGenerationRequest["persist"] =
+          plan.kind === "keyframe"
+            ? { name: `shot-${plan.index + 1}-still` }
+            : { name: `shot-${plan.index + 1}-clip`, mime: "video/mp4" };
+        const result = await host.runGeneration({
+          id: generationId,
+          provider: plan.model.provider,
+          capability,
+          model: plan.model.model,
+          params,
+          persist,
+          destination: {
+            document_id: ref.id,
+            target_type:
+              plan.kind === "keyframe"
+                ? "storyboard_keyframe"
+                : "storyboard_clip",
+            target_id: plan.shotId,
+            selected: true
+          }
+        });
+        const asset = result.assets[0];
+        if (!asset?.asset_id) {
+          return {
+            ...base,
+            error:
+              "The render succeeded but could not be saved as an asset, so it cannot be attached to the shot. This host has no asset storage wired."
+          };
         }
-      });
-      const asset = result.assets[0];
-      if (!asset?.asset_id) {
-        return {
+        const assetId = asset.asset_id;
+        const assetUri = asset.uri ?? "";
+        const render_inputs = stampRenderInputs(plan.renderInputs);
+        const updated = await patchShot(
+          host,
+          ref.id,
+          plan.shotId,
+          (current) => {
+            if (plan.kind === "keyframe") {
+              const keyframe: KeyframeVersion = {
+                type: "image",
+                asset_id: assetId,
+                uri: assetUri,
+                render_inputs
+              };
+              const versions =
+                current.keyframe_versions ??
+                (current.keyframe ? [current.keyframe] : []);
+              return {
+                ...current,
+                keyframe,
+                keyframe_versions: [...versions, keyframe],
+                status: "keyframe_ready"
+              };
+            }
+            const clip: ClipVersion = {
+              type: "video",
+              asset_id: assetId,
+              uri: assetUri,
+              render_inputs,
+              ...(identity !== undefined && {
+                candidateId: identity.candidateId,
+                batchId: identity.batchId,
+                requestId: identity.requestId,
+                variationId: identity.variationId,
+                variationIndex: identity.variationIndex,
+                productionSnapshot
+              })
+            };
+            const bytes = result.output;
+            if (bytes instanceof Uint8Array && host.videoDurationSeconds) {
+              const seconds = host.videoDurationSeconds(bytes);
+              if (seconds !== null) clip.duration = seconds;
+            }
+            const versions =
+              current.clip_versions ?? (current.clip ? [current.clip] : []);
+            return {
+              ...current,
+              clip,
+              clip_versions: [...versions, clip],
+              status: "rendered"
+            };
+          }
+        );
+        if (isError(updated)) return { ...base, error: updated.error };
+        outcome = {
           ...base,
-          error:
-            "The render succeeded but could not be saved as an asset, so it cannot be attached to the shot. This host has no asset storage wired."
+          ok: true,
+          assetId,
+          assetUri,
+          generationId,
+          status: updated.status
         };
       }
-      const assetId = asset.asset_id;
-      const assetUri = asset.uri ?? "";
-      const render_inputs = stampRenderInputs(plan.renderInputs);
-      const updated = await patchShot(host, ref.id, plan.shotId, (current) => {
-        if (plan.kind === "keyframe") {
-          const keyframe: KeyframeVersion = {
-            type: "image",
-            asset_id: assetId,
-            uri: assetUri,
-            render_inputs
-          };
-          const versions =
-            current.keyframe_versions ??
-            (current.keyframe ? [current.keyframe] : []);
-          return {
-            ...current,
-            keyframe,
-            keyframe_versions: [...versions, keyframe],
-            status: "keyframe_ready"
-          };
-        }
-        const clip: ClipVersion = {
-          type: "video",
-          asset_id: assetId,
-          uri: assetUri,
-          render_inputs
-        };
-        const bytes = result.output;
-        if (bytes instanceof Uint8Array && host.videoDurationSeconds) {
-          const seconds = host.videoDurationSeconds(bytes);
-          if (seconds !== null) clip.duration = seconds;
-        }
-        const versions =
-          current.clip_versions ?? (current.clip ? [current.clip] : []);
-        return {
-          ...current,
-          clip,
-          clip_versions: [...versions, clip],
-          status: "rendered"
-        };
-      });
-      if (isError(updated)) return { ...base, error: updated.error };
-      return {
-        ...base,
-        ok: true,
-        assetId,
-        assetUri,
-        generationId,
-        status: updated.status
-      };
+      return outcome;
     } catch (e) {
       await patchShot(host, ref.id, plan.shotId, (current) => ({
         ...current,

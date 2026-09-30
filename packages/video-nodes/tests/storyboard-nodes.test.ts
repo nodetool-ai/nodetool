@@ -73,7 +73,10 @@ const entity = (
   descriptor: string
 ): Entity => ({ type: "entity", id, kind, name, descriptor });
 
-const HERO = entity("ent-hero", "character", "Nova", "a courier in a red coat");
+const HERO: Entity = {
+  ...entity("ent-hero", "character", "Nova", "a courier in a red coat"),
+  reference_images: [{ type: "image", data: new Uint8Array([1, 2, 3]) }]
+};
 const RIVAL = entity("ent-rival", "character", "Kai", "a courier in a blue coat");
 
 const shot = (id: string, index: number, over: Partial<Shot> = {}): Shot => ({
@@ -476,6 +479,32 @@ describe("RecastStoryboardNode", () => {
 // ── Render gates ────────────────────────────────────────────────────────────
 
 describe("RenderStillsNode", () => {
+  it("forwards the storyboard destination for durable still recovery", async () => {
+    seedBoard(h, "tpl", boardDocument({ shots: [shot("shot-1", 0)] }));
+    const node = new RenderStillsNode();
+    node.assign({ storyboard: writable("tpl") });
+    await node.process(h.context);
+    expect(vi.mocked(h.context.runGeneration).mock.calls[0][0].destination).toEqual({
+      document_id: "tpl", target_type: "storyboard_keyframe", target_id: "shot-1", selected: true
+    });
+    expect(h.generationRequests[0].params.resolution).toBe("1K");
+  });
+
+  it("renders each shot's still model and detects image support per model", async () => {
+    seedBoard(h, "tpl", boardDocument({ imageModel: null, shots: [
+      shot("shot-1", 0, { still_model: { provider: "fal_ai", id: "image-edit" }, entity_ids: [HERO.id] }),
+      shot("shot-2", 1, { still_model: { provider: "fal_ai", id: "image-text" }, entity_ids: [HERO.id] })
+    ] }));
+    h.entities.set(HERO.id, { ...HERO, reference_images: [{ type: "image", asset_id: "hero", uri: "asset://hero" }] });
+    vi.mocked(h.context.getProvider).mockResolvedValue({ getAvailableImageModels: async () => [
+      { id: "image-edit", provider: "fal_ai", name: "Image Edit", supportedTasks: ["text_to_image", "image_to_image"] },
+      { id: "image-text", provider: "fal_ai", name: "Image Text", supportedTasks: ["text_to_image"] }
+    ] } as unknown as BaseProvider);
+    const node = new RenderStillsNode();
+    node.assign({ storyboard: writable("tpl") });
+    expect((await node.process(h.context)).rendered).toEqual(["shot-1", "shot-2"]);
+    expect(h.generations).toEqual([{ capability: "image_to_image", model: "image-edit" }, { capability: "text_to_image", model: "image-text" }]);
+  });
   it("skips a shot whose still the board would render the same way", async () => {
     const doc = boardDocument();
     doc.shots[0].keyframe = freshKeyframe(doc, doc.shots[0], [HERO], "still-1");
@@ -535,6 +564,38 @@ describe("RenderStillsNode", () => {
 });
 
 describe("RenderClipsNode", () => {
+  it.each([{ targets: ["shot-1"] }, { max_shots: 1 }])("validates only the gated batch on a mixed board: %j", async (selection) => {
+    seedBoard(h, "tpl", boardDocument({
+      videoModel: { type: "video_model", provider: "fal_ai", id: "text-only", supported_tasks: ["text_to_video"] },
+      shots: [shot("shot-1", 0, { render_mode: "direct" }), shot("shot-2", 1, { render_mode: "reference" })]
+    }));
+    const node = new RenderClipsNode();
+    node.assign({ storyboard: writable("tpl"), ...selection });
+    expect((await node.process(h.context)).rendered).toEqual(["shot-1"]);
+    expect(h.generations).toEqual([{ capability: "text_to_video", model: "text-only" }]);
+  });
+
+  it("forwards the storyboard destination for durable clip recovery", async () => {
+    seedBoard(h, "tpl", boardDocument({ shots: [shot("shot-1", 0, { render_mode: "direct" })] }));
+    const node = new RenderClipsNode();
+    node.assign({ storyboard: writable("tpl") });
+    await node.process(h.context);
+    expect(vi.mocked(h.context.runGeneration).mock.calls[0][0].destination).toEqual({
+      document_id: "tpl", target_type: "storyboard_clip", target_id: "shot-1", selected: true
+    });
+    expect(h.generationRequests[0].params.resolution).toBe("1080p");
+  });
+
+  it("renders shot models without requiring a board default", async () => {
+    seedBoard(h, "tpl", boardDocument({ videoModel: null, shots: [
+      shot("shot-1", 0, { render_mode: "direct", clip_model: { provider: "fal_ai", id: "text-only" } }),
+      shot("shot-2", 1, { render_mode: "reference", clip_model: { provider: "fal_ai", id: "kling" } })
+    ] }));
+    const node = new RenderClipsNode();
+    node.assign({ storyboard: writable("tpl") });
+    expect((await node.process(h.context)).rendered).toEqual(["shot-1", "shot-2"]);
+    expect(h.generations).toEqual([{ capability: "text_to_video", model: "text-only" }, { capability: "reference_to_video", model: "kling" }]);
+  });
   it("dispatches all three mixed modes through their matching capabilities", async () => {
     h.entities.set("ent-hero", {
       ...HERO,

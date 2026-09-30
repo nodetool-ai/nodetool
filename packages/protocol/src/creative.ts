@@ -354,6 +354,8 @@ export interface RenderInputs {
   /** The still a keyframe-mode clip animated. */
   source_version_id?: string;
   reference_asset_ids?: string[];
+  /** Fingerprint of the still's effective entity descriptors and images. */
+  entity_conditioning_hash?: string;
   render_mode?: ShotRenderMode;
   recorded_at: string;
 }
@@ -416,6 +418,7 @@ export function renderInputsMatch(a: RenderInputs, b: RenderInputs): boolean {
     a.model === b.model &&
     a.aspect_ratio === b.aspect_ratio &&
     a.style_entity_id === b.style_entity_id &&
+    a.entity_conditioning_hash === b.entity_conditioning_hash &&
     JSON.stringify(a.reference_asset_ids ?? []) ===
       JSON.stringify(b.reference_asset_ids ?? []) &&
     a.render_mode === b.render_mode &&

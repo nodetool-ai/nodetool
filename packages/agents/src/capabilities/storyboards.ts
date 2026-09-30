@@ -42,6 +42,7 @@ import type { ScriptAssemblyInput } from "@nodetool-ai/timeline";
 import type {
   RenderShotsOptions,
   ShotRenderOutcome,
+  ShotRenderPlan,
   ShotRenderPlanOptions,
   StoryboardRenderHost
 } from "@nodetool-ai/storyboard";
@@ -696,6 +697,77 @@ async function filterStale(
   };
 }
 
+function modelOverrides(params: Record<string, unknown>): ShotRenderPlanOptions {
+  const options: ShotRenderPlanOptions = {};
+  if (isNonBlankString(params["provider"])) {
+    options.provider = params["provider"];
+  }
+  if (isNonBlankString(params["model"])) {
+    options.model = params["model"];
+  }
+  return options;
+}
+
+function missingPlanModel(plan: ShotRenderPlan): ToolError | undefined {
+  if (plan.model.provider && plan.model.model) {
+    return undefined;
+  }
+  return {
+    error: `No ${plan.kind === "keyframe" ? "still" : "clip"} model is set for shot ${plan.shotId}. Pass provider + model (use find_model), or set one on the shot or board.`
+  };
+}
+
+async function clipModelError(
+  context: ProcessingContext,
+  plans: ShotRenderPlan[]
+): Promise<ToolError | undefined> {
+  const groups = new Map<string, ShotRenderPlan[]>();
+  for (const plan of plans) {
+    const error = missingPlanModel(plan);
+    if (error) {
+      return error;
+    }
+    if (plan.preflightError) {
+      continue;
+    }
+    const key = JSON.stringify([plan.model.provider, plan.model.model]);
+    const group = groups.get(key) ?? [];
+    group.push(plan);
+    groups.set(key, group);
+  }
+  for (const group of groups.values()) {
+    const model = group[0].model;
+    let supportedTasks = model.supportedTasks;
+    try {
+      const provider = await context.getProvider(model.provider);
+      const models = await provider.getAvailableVideoModels();
+      supportedTasks =
+        models.find((entry) => entry.id === model.model)?.supportedTasks ??
+        supportedTasks;
+    } catch {
+      // Legacy providers can lack discovery, so their persisted task declarations apply.
+    }
+    const unsupported = group.find((plan) => {
+      const task = plan.mode === "direct" ? "text_to_video" : plan.mode === "reference" ? "reference_to_video" : "image_to_video";
+      return supportedTasks?.length && !supportedTasks.includes(task);
+    });
+    if (unsupported) {
+      const task = unsupported.mode === "direct" ? "text_to_video" : unsupported.mode === "reference" ? "reference_to_video" : "image_to_video";
+      return {
+        error: `The selected clip model ${model.provider}/${model.model} does not support ${task}; choose a model that supports the selected shot mode.`
+      };
+    }
+  }
+  return undefined;
+}
+
+function uniformModel(plans: ShotRenderPlan[]): Partial<ModelChoice> {
+  const model = plans[0]?.model;
+  return model && plans.every((plan) => plan.model.provider === model.provider && plan.model.model === model.model)
+    ? { provider: model.provider, model: model.model }
+    : {};
+}
+
 const renderStoryboardStills: CapabilityExport = {
   spec: renderStoryboardStillsSpec,
   impl: async (run, params) => {
@@ -703,14 +775,6 @@ const renderStoryboardStills: CapabilityExport = {
     const board = await loadBoard(run, params["storyboard_id"]);
     if (isError(board)) return board;
     const { row, doc } = board;
-
-    const model = resolveModel(
-      params,
-      doc.imageModel,
-      "still",
-      "text_to_image"
-    );
-    if (isError(model)) return model;
 
     const { shotRenderMode } = await import("@nodetool-ai/protocol");
     // A direct shot renders its clip from the prompt, so it needs no still.
@@ -720,7 +784,7 @@ const renderStoryboardStills: CapabilityExport = {
       doc.shots,
       params["targets"],
       (s) =>
-        !s.keyframe &&
+        (params["stale_only"] === true ? !!s.keyframe : !s.keyframe) &&
         shotRenderMode(s) !== "direct" &&
         !shotHasPicture(s, doc.shots)
     );
@@ -758,10 +822,7 @@ const renderStoryboardStills: CapabilityExport = {
     // says: `style` and `model` can be overridden per call. Recording the
     // override is the point — a version rendered against something other than
     // the board's settings reads stale against the board, correctly.
-    const planOptions: ShotRenderPlanOptions = {
-      provider: model.provider,
-      model: model.model
-    };
+    const planOptions = modelOverrides(params);
     if (isString(params["style"])) {
       planOptions.style = params["style"];
     }
@@ -773,32 +834,31 @@ const renderStoryboardStills: CapabilityExport = {
       planOptions
     );
     const { imageModelSupportsTask } = await import("@nodetool-ai/runtime");
-    const boardTasks = doc.imageModel?.supported_tasks;
-    const stillModelTakesImages = await imageModelSupportsTask(
-      context,
-      model,
-      "image_to_image",
-      model.model === doc.imageModel?.id &&
-        model.provider === doc.imageModel?.provider &&
-        Array.isArray(boardTasks)
-        ? boardTasks.filter(isString)
-        : undefined
-    );
+    for (const plan of plans) {
+      const modelError = missingPlanModel(plan);
+      if (modelError) {
+        return modelError;
+      }
+      plan.stillModelTakesImages = await imageModelSupportsTask(
+        context,
+        plan.model,
+        "image_to_image",
+        plan.model.supportedTasks
+      );
+    }
     const outcomes = await renderShots(
       renderHost(context),
       { id: row.id },
       plans,
       {
-        concurrency: clampConcurrency(params["concurrency"]),
-        stillModelTakesImages
+        concurrency: clampConcurrency(params["concurrency"])
       }
     );
     const results = outcomes.map((outcome) => outcomeRow(outcome, false));
 
     return {
       storyboard_id: row.id,
-      provider: model.provider,
-      model: model.model,
+      ...uniformModel(plans),
       rendered: results.filter((r) => r.ok).length,
       failed: results.filter((r) => !r.ok).length,
       skipped,
@@ -824,56 +884,37 @@ const renderStoryboardClips: CapabilityExport = {
     ) {
       return { error: 'mode must be "keyframe", "direct", or "reference".' };
     }
-    // The call's override wins over the shot's own setting, for this call only.
-    const { shotRenderMode } = await import("@nodetool-ai/protocol");
-    const modeOf = (shot: Shot): "keyframe" | "direct" | "reference" =>
-      override === "keyframe" ||
-      override === "direct" ||
-      override === "reference"
-        ? override
-        : shotRenderMode(shot);
-
-    const selected = selectShots(
+    const candidates = selectShots(
       doc.shots,
       params["targets"],
-      (s) =>
-        !shotHasPicture(s, doc.shots) &&
-        (modeOf(s) === "direct" || modeOf(s) === "reference" || !!s.keyframe)
+      (shot) =>
+        (params["stale_only"] === true ? !!shot.clip : !shotHasPicture(shot, doc.shots)) &&
+        !shot.covered_by?.shot_id
     );
-    if (isError(selected)) return selected;
-    const requiredCapabilities = new Set(
-      selected.map((shot) =>
-        modeOf(shot) === "direct"
-          ? "text_to_video"
-          : modeOf(shot) === "reference"
-            ? "reference_to_video"
-            : "image_to_video"
-      )
-    );
-    const capability = requiredCapabilities.has("reference_to_video")
-      ? "reference_to_video"
-      : requiredCapabilities.has("image_to_video")
-        ? "image_to_video"
-        : "text_to_video";
-    const model = resolveModel(params, doc.videoModel, "clip", capability);
-    if (isError(model)) return model;
-    const declaredTasks = doc.videoModel?.supported_tasks;
-    if (
-      Array.isArray(declaredTasks) &&
-      declaredTasks.length > 0 &&
-      model.model === doc.videoModel?.id &&
-      model.provider === doc.videoModel?.provider
-    ) {
-      const unsupported = [...requiredCapabilities].find(
-        (task) => !declaredTasks.includes(task)
-      );
-      if (unsupported) {
-        return {
-          error: `The selected clip model does not support ${unsupported}; choose a model that supports every selected shot mode.`
-        };
-      }
+    if (isError(candidates)) {
+      return candidates;
     }
     const entities = await loadBoardEntities(context, doc);
+    const { planShotRenders, renderShots } =
+      await import("@nodetool-ai/storyboard");
+    const readinessOptions = modelOverrides(params);
+    if (override !== undefined) {
+      readinessOptions.mode = override;
+    }
+    const ready = new Set(
+      planShotRenders(
+        doc,
+        entities,
+        "clip",
+        candidates.map((shot) => shot.id),
+        readinessOptions
+      )
+        .filter((plan) => plan.mode !== "keyframe" || !!plan.sourceKeyframe)
+        .map((plan) => plan.shotId)
+    );
+    const selected = params["targets"] === undefined || params["targets"] === null
+      ? candidates.filter((shot) => ready.has(shot.id))
+      : candidates;
     const fresh = await filterStale(selected, params, doc, entities, "clip");
     const skipped = fresh.skipped;
     const chosen = fresh.shots;
@@ -895,8 +936,6 @@ const renderStoryboardClips: CapabilityExport = {
     }
 
     const { scriptLinesById } = await import("@nodetool-ai/timeline");
-    const { planShotRenders, renderShots } =
-      await import("@nodetool-ai/storyboard");
     // A linked board times its shots from the words they cover, so a clip is
     // rendered long enough to hold its voiceover (design §2.3). A shot pinned
     // to `manual`, an unvoiced line, or an unlinked board keeps
@@ -908,8 +947,7 @@ const renderStoryboardClips: CapabilityExport = {
     // As in the stills path: the record says what this call rendered with, so
     // a per-call model or style override reads stale against the board.
     const planOptions: ShotRenderPlanOptions = {
-      provider: model.provider,
-      model: model.model,
+      ...modelOverrides(params),
       style: isString(params["style"]) ? params["style"] : doc.style || "",
       scriptLines: scriptLinesById(scriptDoc?.sections ?? [])
     };
@@ -923,6 +961,10 @@ const renderStoryboardClips: CapabilityExport = {
       chosen.map((shot) => shot.id),
       planOptions
     );
+    const modelError = await clipModelError(context, plans);
+    if (modelError) {
+      return modelError;
+    }
     const renderOptions: RenderShotsOptions = {
       concurrency: clampConcurrency(params["concurrency"])
     };
@@ -939,8 +981,7 @@ const renderStoryboardClips: CapabilityExport = {
 
     return {
       storyboard_id: row.id,
-      provider: model.provider,
-      model: model.model,
+      ...uniformModel(plans),
       rendered: results.filter((r) => r.ok).length,
       failed: results.filter((r) => !r.ok).length,
       skipped,

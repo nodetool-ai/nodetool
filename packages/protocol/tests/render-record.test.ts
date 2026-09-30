@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import type { Scene, Shot } from "../src/creative.js";
+import type { Entity, Scene, Shot } from "../src/creative.js";
+import { productionRequirement } from "../src/production-authoring.js";
 import {
   currentRenderInputs,
+  entityConditioningHash,
   isVersionStale,
   shotStaleness,
   stampRenderInputs,
@@ -26,6 +28,15 @@ const BOARD: BoardRenderContext = {
   style_entity_id: "ent-style-noir",
   style: "grainy 16mm, muted palette",
   scenes: [SCENE]
+};
+
+const ENTITY: Entity = {
+  type: "entity",
+  id: "character",
+  kind: "character",
+  name: "Mara",
+  descriptor: "a lighthouse keeper in a wool coat",
+  reference_images: [{ type: "image", asset_id: "reference-a" }]
 };
 
 function makeShot(overrides: Partial<Shot> = {}): Shot {
@@ -102,11 +113,8 @@ describe("currentRenderInputs", () => {
     // to staleness, and `stale_only` skipped the re-render.
     const shot = makeShot({ render_mode: "reference" });
     expect(currentRenderInputs(shot, BOARD, "clip").prompt_hash).toBe(
-      currentRenderInputs(
-        { ...shot, render_mode: "direct" },
-        BOARD,
-        "clip"
-      ).prompt_hash
+      currentRenderInputs({ ...shot, render_mode: "direct" }, BOARD, "clip")
+        .prompt_hash
     );
   });
 
@@ -119,9 +127,135 @@ describe("currentRenderInputs", () => {
       BOARD.video_model
     );
   });
+
+  it("uses the shot's saved model before the board default", () => {
+    const shot = makeShot({
+      still_model: { id: "still-model", provider: "fal" },
+      clip_model: { id: "clip-model", provider: "fal" }
+    });
+    expect(currentRenderInputs(shot, BOARD, "keyframe").model).toBe(
+      "still-model"
+    );
+    expect(currentRenderInputs(shot, BOARD, "clip").model).toBe("clip-model");
+  });
 });
 
 describe("isVersionStale", () => {
+  it("keeps a promoted production clip fresh and detects changed board bindings", () => {
+    const shot = makeShot({ render_mode: "direct" });
+    const board = { ...BOARD, production_reference_asset_ids: ["product-a"] };
+    const clip = {
+      type: "video" as const,
+      asset_id: "production-clip",
+      render_inputs: stampRenderInputs({
+        ...currentRenderInputs(shot, board, "clip"),
+        render_mode: "reference",
+        reference_asset_ids: ["product-a"]
+      })
+    };
+    expect(isVersionStale(clip, shot, board)).toBe(false);
+    expect(
+      isVersionStale(clip, shot, {
+        ...board,
+        production_reference_asset_ids: ["product-b"]
+      })
+    ).toBe(true);
+  });
+
+  it("detects changed shot production bindings and local direction", () => {
+    const shot = makeShot({
+      render_mode: "direct",
+      production: productionRequirement.parse({
+        local_direction: "rotate the product slowly",
+        reference_bindings: [{ kind: "product", asset_id: "product-a" }]
+      })
+    });
+    const clip = {
+      type: "video" as const,
+      asset_id: "production-clip",
+      render_inputs: stampRenderInputs(currentRenderInputs(shot, BOARD, "clip"))
+    };
+    expect(isVersionStale(clip, shot, BOARD)).toBe(false);
+    expect(
+      isVersionStale(
+        clip,
+        {
+          ...shot,
+          production: {
+            ...shot.production!,
+            local_direction: "hold the product still"
+          }
+        },
+        BOARD
+      )
+    ).toBe(true);
+    expect(
+      isVersionStale(
+        clip,
+        {
+          ...shot,
+          production: {
+            ...shot.production!,
+            reference_bindings: [{ kind: "product", asset_id: "product-b" }]
+          }
+        },
+        BOARD
+      )
+    ).toBe(true);
+  });
+
+  it.each([
+    {
+      name: "descriptor",
+      change: { descriptor: "a lighthouse keeper in a raincoat" }
+    },
+    {
+      name: "reference identity",
+      change: {
+        reference_images: [{ type: "image" as const, asset_id: "reference-b" }]
+      }
+    },
+    {
+      name: "inline reference content",
+      change: {
+        reference_images: [
+          {
+            type: "image" as const,
+            asset_id: "reference-a",
+            data: new Uint8Array([1, 2, 3])
+          }
+        ]
+      }
+    }
+  ])("marks a still stale when only entity $name changes", ({ change }) => {
+    const board = {
+      ...BOARD,
+      entity_conditioning_hash: entityConditioningHash([ENTITY])
+    };
+    const shot = makeRenderedShot(board);
+    expect(isVersionStale(shot.keyframe, shot, board)).toBe(false);
+    expect(
+      isVersionStale(shot.keyframe, shot, {
+        ...board,
+        entity_conditioning_hash: entityConditioningHash([
+          { ...ENTITY, ...change }
+        ])
+      })
+    ).toBe(true);
+  });
+
+  it("marks a rendered still stale when only its reference image changes", () => {
+    const board = { ...BOARD, reference_asset_ids: ["reference-a"] };
+    const shot = makeRenderedShot(board);
+    expect(isVersionStale(shot.keyframe, shot, board)).toBe(false);
+    expect(
+      isVersionStale(shot.keyframe, shot, {
+        ...board,
+        reference_asset_ids: ["reference-b"]
+      })
+    ).toBe(true);
+  });
+
   const referencePromptChanges: Array<{
     name: string;
     board?: Partial<BoardRenderContext>;
@@ -219,13 +353,41 @@ describe("isVersionStale", () => {
     shot?: Partial<Shot>;
     kind: "keyframe" | "clip";
   }> = [
-    { name: "the prompt", shot: { action: "a different lighthouse" }, kind: "keyframe" },
-    { name: "the image model", board: { image_model: "other/model" }, kind: "keyframe" },
-    { name: "the video model", board: { video_model: "other/model" }, kind: "clip" },
-    { name: "the aspect ratio", board: { aspect_ratio: "9:16" }, kind: "keyframe" },
-    { name: "the style entity", board: { style_entity_id: "ent-style-warm" }, kind: "keyframe" },
-    { name: "the style descriptor", board: { style: "clean digital, high key" }, kind: "keyframe" },
-    { name: "the scene's lighting", board: { scenes: [{ ...SCENE, lighting: "hard noon sun" }] }, kind: "keyframe" }
+    {
+      name: "the prompt",
+      shot: { action: "a different lighthouse" },
+      kind: "keyframe"
+    },
+    {
+      name: "the image model",
+      board: { image_model: "other/model" },
+      kind: "keyframe"
+    },
+    {
+      name: "the video model",
+      board: { video_model: "other/model" },
+      kind: "clip"
+    },
+    {
+      name: "the aspect ratio",
+      board: { aspect_ratio: "9:16" },
+      kind: "keyframe"
+    },
+    {
+      name: "the style entity",
+      board: { style_entity_id: "ent-style-warm" },
+      kind: "keyframe"
+    },
+    {
+      name: "the style descriptor",
+      board: { style: "clean digital, high key" },
+      kind: "keyframe"
+    },
+    {
+      name: "the scene's lighting",
+      board: { scenes: [{ ...SCENE, lighting: "hard noon sun" }] },
+      kind: "keyframe"
+    }
   ];
 
   for (const change of changes) {
@@ -278,6 +440,48 @@ describe("isVersionStale", () => {
   });
 });
 
+describe("entityConditioningHash", () => {
+  it("ignores entity notes and secondary images absent from the still request", () => {
+    expect(entityConditioningHash([ENTITY])).toBe(
+      entityConditioningHash([
+        {
+          ...ENTITY,
+          description: "notes for the crew",
+          updated_at: "2027-01-01",
+          reference_images: [
+            ENTITY.reference_images![0],
+            { type: "image", asset_id: "secondary" }
+          ]
+        }
+      ])
+    );
+  });
+
+  it("tracks URI and inline content changes for images without stored asset ids", () => {
+    const withImage = (uri: string, data: Uint8Array): Entity => ({
+      ...ENTITY,
+      reference_images: [{ type: "image", uri, data }]
+    });
+    const before = entityConditioningHash([
+      withImage("file://reference.png", new Uint8Array([1]))
+    ]);
+    expect(
+      entityConditioningHash([
+        withImage("file://other.png", new Uint8Array([1]))
+      ])
+    ).not.toBe(before);
+    expect(
+      entityConditioningHash([
+        withImage("file://reference.png", new Uint8Array([2]))
+      ])
+    ).not.toBe(before);
+  });
+
+  it("leaves unconditioned stills compatible with legacy records", () => {
+    expect(entityConditioningHash([])).toBeUndefined();
+  });
+});
+
 describe("stale selections across a board", () => {
   it("returns only the shots whose selection is out of date", () => {
     const current = makeRenderedShot();
@@ -287,7 +491,12 @@ describe("stale selections across a board", () => {
       index: 1,
       action: "the keeper climbs the stair"
     };
-    const untouched = makeShot({ id: "s3", index: 2, keyframe: null, clip: null });
+    const untouched = makeShot({
+      id: "s3",
+      index: 2,
+      keyframe: null,
+      clip: null
+    });
     const shots = [current, outdated, untouched];
 
     expect(staleKeyframeShots(shots, BOARD).map((s) => s.id)).toEqual(["s2"]);

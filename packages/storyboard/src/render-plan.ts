@@ -13,6 +13,7 @@
 import {
   currentRenderInputs,
   entitiesForShot,
+  entityConditioningHash,
   isVersionStale,
   keyframePrompt,
   clipPromptFor,
@@ -28,7 +29,11 @@ import type {
   RenderInputsDraft,
   Shot
 } from "@nodetool-ai/protocol";
-import { effectiveShotDuration } from "@nodetool-ai/timeline";
+import {
+  compileProductionCandidates,
+  effectiveShotDuration
+} from "@nodetool-ai/timeline";
+import type { CompiledProductionCandidate } from "@nodetool-ai/timeline";
 import type { ScriptLine } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 import type { StoryboardDocument } from "./document.js";
 
@@ -50,7 +55,12 @@ export interface ShotRenderPlan {
   /** The entities seasoning this shot, in the shape the provider layer reads. */
   entities: WireEntity[];
   referenceAssetIds: string[];
-  model: { provider: string; model: string };
+  model: { provider: string; model: string; supportedTasks?: string[] };
+  /** Capability support resolved by the host for this effective still model. */
+  stillModelTakesImages?: boolean;
+  /** Production requests compiled before spending, one for each requested take. */
+  productionCandidates?: CompiledProductionCandidate[];
+  preflightError?: string;
   aspectRatio: string;
   /** How a clip is produced. Always `"keyframe"` on a stills plan. */
   mode: "keyframe" | "direct" | "reference";
@@ -83,6 +93,9 @@ function imageAssetId(image: ImageRef): string | undefined {
 export interface ShotRenderPlanOptions {
   provider?: string;
   model?: string;
+  supportedTasks?: string[];
+  /** Planning identity. The renderer assigns a fresh batch before dispatch. */
+  batchId?: string;
   style?: string;
   aspectRatio?: string;
   /** Forces every shot's clip mode for this call only. */
@@ -115,6 +128,10 @@ export function boardRenderContext(
       null,
     style: doc.style,
     scenes: doc.screenplay?.scenes ?? null,
+    production_reference_asset_ids: doc.creative_context?.reference_bindings?.map((binding) => binding.asset_id) ?? [],
+    entity_conditioning_hash: entityConditioningHash(
+      entities.filter((entity) => (doc.entityIds ?? []).includes(entity.id))
+    ),
     reference_asset_ids: entities
       .filter((entity) => (doc.entityIds ?? []).includes(entity.id))
       .flatMap((entity) => (entity.reference_images ?? []).map(imageAssetId))
@@ -129,9 +146,12 @@ const wireEntity = (entity: Entity): WireEntity => ({
 });
 
 const stringField = (
-  selection: Record<string, unknown> | null,
-  key: string
-): string => (typeof selection?.[key] === "string" ? (selection[key] as string) : "");
+  selection: { id?: unknown; provider?: unknown } | null,
+  key: "id" | "provider"
+): string => {
+  const value = selection?.[key];
+  return typeof value === "string" ? value : "";
+};
 
 /** Resolve a target: shot id, 0-based index, or slug. */
 function findShot(shots: readonly Shot[], target: string): Shot | undefined {
@@ -177,40 +197,132 @@ export function planShotRenders(
   const board = boardRenderContext(doc, entities);
   const style = options.style ?? doc.style;
   const aspectRatio = options.aspectRatio ?? (doc.aspectRatio || "16:9");
-  const selection = kind === "keyframe" ? doc.imageModel : doc.videoModel;
-  const model = {
-    provider: options.provider || stringField(selection, "provider"),
-    model: options.model || stringField(selection, "id")
-  };
-  // What this call renders with, which is not always what the board says.
-  const rendered: BoardRenderContext = {
-    ...board,
-    ...(kind === "keyframe"
-      ? { image_model: model.model }
-      : { video_model: model.model }),
-    aspect_ratio: aspectRatio,
-    style
-  };
   const lines = options.scriptLines ?? new Map<string, ScriptLine>();
 
   return selectShots(doc, targets).map((shot) => {
-    const mode = options.mode ?? shotRenderMode(shot);
+    const requestedMode = options.mode ?? shotRenderMode(shot);
+    let mode = requestedMode;
+    const selection =
+      kind === "keyframe"
+        ? (shot.still_model ?? doc.imageModel)
+        : (shot.clip_model ?? doc.videoModel);
+    const model: ShotRenderPlan["model"] = {
+      provider: options.provider || stringField(selection, "provider"),
+      model: options.model || stringField(selection, "id")
+    };
+    const declaredTasks =
+      selection !== null && "supported_tasks" in selection
+        ? selection.supported_tasks
+        : undefined;
+    const usesStoredSelection =
+      model.provider === stringField(selection, "provider") &&
+      model.model === stringField(selection, "id");
+    const supportedTasks =
+      options.supportedTasks ??
+      (usesStoredSelection && Array.isArray(declaredTasks)
+        ? declaredTasks.filter(
+            (task): task is string => typeof task === "string"
+          )
+        : undefined);
+    if (supportedTasks !== undefined) {
+      model.supportedTasks = supportedTasks;
+    }
+    const rendered: BoardRenderContext = {
+      ...board,
+      ...(kind === "keyframe"
+        ? { image_model: model.model }
+        : { video_model: model.model }),
+      aspect_ratio: aspectRatio,
+      style
+    };
     const context = {
       scene: sceneForShot(shot, doc.screenplay?.scenes),
       style
     };
-    const prompt =
+    let prompt =
       kind === "keyframe"
         ? keyframePrompt(shot, context)
         : clipPromptFor(shot, context, mode);
     const applied = entitiesForShot(shot, [...entities]);
-    const shotReferenceAssetIds = applied.flatMap((entity) =>
-      (entity.reference_images ?? [])
+    let shotReferenceAssetIds = applied.flatMap((entity) =>
+      (kind === "keyframe"
+        ? (entity.reference_images?.slice(0, 1) ?? [])
+        : (entity.reference_images ?? [])
+      )
         .map(imageAssetId)
         .filter((id): id is string => typeof id === "string" && id.length > 0)
     );
-    const shotBoard = { ...board, reference_asset_ids: shotReferenceAssetIds };
-    const shotRendered = { ...rendered, reference_asset_ids: shotReferenceAssetIds };
+    const originalReferenceAssetIds = shotReferenceAssetIds;
+    let referenceImages =
+      mode === "reference"
+        ? applied.flatMap((entity) => entity.reference_images ?? [])
+        : [];
+    let productionCandidates: CompiledProductionCandidate[] | undefined;
+    let preflightError: string | undefined;
+    let durationSeconds =
+      kind === "clip" ? effectiveShotDuration(shot, lines).seconds : undefined;
+    if (kind === "clip") {
+      try {
+        productionCandidates = compileProductionCandidates({
+          batchId: options.batchId ?? "storyboard-render-plan",
+          destinationId: shot.id,
+          destinationKind: "storyboard_shot",
+          operation: "initial_generation",
+          prompt,
+          ...(shot.production !== undefined && { requirement: shot.production }),
+          entityIds: applied.map((entity) => entity.id),
+          referenceAssetIds: mode === "reference" ? shotReferenceAssetIds : [],
+          ...(doc.creative_context?.reference_bindings !== undefined && { referenceBindings: doc.creative_context.reference_bindings }),
+          provider: model.provider,
+          model: model.model,
+          ...(durationSeconds !== undefined && {
+            requestedDurationMs: Math.round(durationSeconds * 1000)
+          }),
+          routeSupport: {
+            referenceToVideo: true,
+            audioDrivenPerformance: false
+          }
+        });
+        const first = productionCandidates[0];
+        if (first !== undefined) {
+          prompt = first.snapshot.prompt ?? prompt;
+          if (first.snapshot.requestedDurationMs !== undefined) {
+            durationSeconds = first.snapshot.requestedDurationMs / 1000;
+          }
+          if (first.executionRoute === "reference_to_video") {
+            mode = "reference";
+            const existingIds = new Set(referenceImages.map(imageAssetId));
+            const boundIds = first.referenceAssetIds.filter(
+              (id) => !existingIds.has(id)
+            );
+            referenceImages = [
+              ...referenceImages,
+              ...boundIds.map(
+                (asset_id): ImageRef => ({ type: "image", asset_id })
+              )
+            ];
+            shotReferenceAssetIds = [...first.referenceAssetIds];
+          }
+        }
+        if (mode === "reference" && referenceImages.length === 0) {
+          preflightError =
+            "Reference mode requires at least one resolved reference image.";
+        }
+      } catch (error) {
+        preflightError = error instanceof Error ? error.message : String(error);
+      }
+    }
+    const conditioningHash = entityConditioningHash(applied);
+    const shotBoard = {
+      ...board,
+      reference_asset_ids: originalReferenceAssetIds,
+      entity_conditioning_hash: conditioningHash
+    };
+    const shotRendered = {
+      ...rendered,
+      reference_asset_ids: shotReferenceAssetIds,
+      entity_conditioning_hash: conditioningHash
+    };
     const version: KeyframeVersion | ClipVersion | null | undefined =
       kind === "keyframe" ? shot.keyframe : shot.clip;
     const plan: ShotRenderPlan = {
@@ -219,34 +331,38 @@ export function planShotRenders(
       kind,
       prompt,
       entities: applied.map(wireEntity),
-      referenceAssetIds: applied.flatMap((e) =>
-        (e.reference_images ?? [])
-          .map(imageAssetId)
-          .filter((id): id is string => typeof id === "string" && id.length > 0)
-      ),
+      referenceAssetIds: shotReferenceAssetIds,
       model,
       aspectRatio,
       mode: kind === "keyframe" ? "keyframe" : mode,
-      referenceImages:
-        mode === "reference"
-          ? applied.flatMap((entity) => entity.reference_images ?? [])
-          : [],
+      referenceImages,
       sourceKeyframe: shot.keyframe ?? null,
       renderInputs:
         kind === "clip"
           ? currentRenderInputs(
-              { ...shot, render_mode: mode },
+              {
+                ...shot,
+                render_mode: requestedMode,
+                clip_model: { id: model.model, provider: model.provider }
+              },
               shotRendered,
               kind
             )
-          : currentRenderInputs(shot, shotRendered, kind),
+          : currentRenderInputs(
+              {
+                ...shot,
+                still_model: { id: model.model, provider: model.provider }
+              },
+              shotRendered,
+              kind
+            ),
       fresh: !isVersionStale(version, shot, shotBoard)
     };
     if (shot.slug !== undefined) plan.slug = shot.slug;
-    if (kind === "clip") {
-      const duration = effectiveShotDuration(shot, lines).seconds;
-      if (duration !== undefined) plan.durationSeconds = duration;
-    }
+    if (durationSeconds !== undefined) plan.durationSeconds = durationSeconds;
+    if (productionCandidates !== undefined)
+      plan.productionCandidates = productionCandidates;
+    if (preflightError !== undefined) plan.preflightError = preflightError;
     return plan;
   });
 }
