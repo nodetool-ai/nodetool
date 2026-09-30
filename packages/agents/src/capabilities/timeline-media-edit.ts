@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { loadMediaRefBytes, trimVideoWindow } from "@nodetool-ai/runtime";
+import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import { trimVideoWindow } from "@nodetool-ai/runtime/trim-video-window";
 import type { MediaEditRequest } from "@nodetool-ai/timeline";
 import { isNonBlankString } from "../utils/type-guards.js";
 import type { CapabilityRun } from "./types.js";
