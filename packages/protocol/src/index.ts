@@ -76,3 +76,5 @@ export * from "./game-graph.js";
 export * from "./mcp-server-config.js";
 
 export * from "./game-authoring.js";
+
+export * from "./workflow-document-revision.js";

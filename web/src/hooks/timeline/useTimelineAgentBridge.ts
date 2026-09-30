@@ -151,9 +151,11 @@ function timelineTimeForFrameRequest(
 ): number {
   const clipStart = clip.startMs;
   const clipEnd = clip.startMs + clip.durationMs;
-  if (requestedMs >= clipStart && requestedMs <= clipEnd) return requestedMs;
+  if (requestedMs >= clipStart && requestedMs <= clipEnd) {
+    return Math.min(requestedMs, Math.max(clipStart, clipEnd - 1));
+  }
   if (requestedMs >= 0 && requestedMs <= clip.durationMs) {
-    return clipStart + requestedMs;
+    return Math.min(clipStart + requestedMs, Math.max(clipStart, clipEnd - 1));
   }
   throw new Error(
     `Frame time ${requestedMs}ms is outside clip "${clip.name}": pass a timeline time in ${clipStart}–${clipEnd}ms, or a clip-relative time in 0–${clip.durationMs}ms.`

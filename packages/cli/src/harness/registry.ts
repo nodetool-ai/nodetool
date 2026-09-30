@@ -168,8 +168,9 @@ const TIMELINE_NATIVE_MEDIA_EDITING_SUITES =
   "npm run test --workspace=packages/timeline -- extension && " +
   "npm run test --workspace=packages/runtime -- video-extension && " +
   "npm run test --workspace=packages/websocket -- video-extension-inference && " +
-  "npm run test --workspace=packages/agents -- timeline-generative-edit timeline-tool-loop && " +
-  "npm run test --workspace=web -- useTimelineAgentBridge timelineTools nativeMediaEditingAcceptance nativeMediaEditingPreview timelineExtension useTimelineExtension ExtendClipPanel";
+  "npm run test --workspace=packages/agents -- timeline-headless-media-parity timeline-tool-contracts timeline-generative-edit timeline-tool-loop && " +
+  "npm run test --workspace=web -- useTimelineAgentBridge timelineTools nativeMediaEditingAcceptance nativeMediaEditingPreview timelineExtension useTimelineExtension ExtendClipPanel" +
+  " && npm run test --workspace=packages/websocket -- generation-recovery-media";
 
 /**
  * The audio-driven-motion suites: `bake_audio_animation`'s own arithmetic
@@ -1241,6 +1242,14 @@ export const SURFACES: SurfaceEntry[] = [
     harnesses: ["timeline-native-media-editing"],
     paths: [
       "packages/timeline/src/generative.ts",
+      "packages/agents/src/capabilities/timelines.ts",
+      "packages/agents/src/capabilities/timeline-media-edit.ts",
+      "packages/agents/src/capabilities/timeline-clip-frames.ts",
+      "packages/agents/tests/timeline-headless-media-parity.test.ts",
+      "packages/runtime/src/trim-video-window.ts",
+      "packages/websocket/src/timeline-generation-recovery.ts",
+      "packages/websocket/src/lib/media.ts",
+      "packages/websocket/tests/generation-recovery-media.test.ts",
       "packages/timeline/src/extension.ts",
       "packages/timeline/src/extensionRequest.ts",
       "packages/timeline/src/takes.ts",
@@ -1259,18 +1268,6 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/components/timeline/preview/__tests__/nativeMediaEditingPreview.test.tsx",
       "web/src/lib/tools/builtin/timeline.ts"
     ]
-  },
-  {
-    id: "timeline-native-media-editing-server-generation-gap",
-    title: "Server edit_timeline generative-edit submission",
-    harnesses: [],
-    paths: ["packages/agents/src/capabilities/timelines.ts"],
-    gap:
-      "edit_timeline deliberately excludes ui_timeline_generatively_edit_clip: " +
-      "it can persist a timeline document but cannot submit or reconcile a " +
-      "durable media-generation job. A future harness should drive that " +
-      "server-side job through candidate creation, explicit apply_take, and " +
-      "a restored undo snapshot without inventing an asset id."
   },
   {
     id: "timeline-audio-drive",

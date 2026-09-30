@@ -92,7 +92,8 @@ import {
   type AuthoredRenderSettings,
   type MediaTrack,
   type SourceMergeScenes,
-  type TimelineDocumentLike
+  type TimelineDocumentLike,
+  type MediaEditRequest
 } from "@nodetool-ai/timeline";
 import {
   bakeTimelineCode,
@@ -497,20 +498,9 @@ const MAX_OPS = 60;
 
 const TOOL_PREFIX = "ui_timeline_";
 
-/**
- * Tools the browser bridge exposes that this capability cannot run safely.
- *
- * `edit_timeline` persists document mutations but has no durable media-edit
- * generation adapter or callback path. Exposing generative editing here would
- * require it to invent an asset id, so it remains browser-only until a server
- * generation runner can create and attach the candidate take. `apply_take`
- * stays available because it only promotes an existing candidate.
- */
-const EXCLUDED_OPS = new Set([
-  `${TOOL_PREFIX}get_clip_frames`,
-  `${TOOL_PREFIX}generate_clip`,
-  `${TOOL_PREFIX}generatively_edit_clip`
-]);
+/** Browser generation without a real provider adapter remains excluded. */
+const EXCLUDED_OPS = new Set([`${TOOL_PREFIX}generate_clip`]);
+const READ_ONLY_OPS = new Set([`${TOOL_PREFIX}get_clip_frames`]);
 
 /** `add_track`, `ui_add_track`, and `ui_timeline_add_track` all name one tool. */
 function normalizeOpName(name: string): string {
@@ -725,10 +715,11 @@ export async function applyOps(
   sequence: TimelineSequence,
   document: TimelineDocument,
   ops: ParsedOp[],
-  options: { hermetic?: boolean } = {}
+  options: { hermetic?: boolean; generateMediaEdit?: (request: MediaEditRequest, operationIndex: number) => Promise<{ generationId: string; assetId: string }> } = {}
 ): Promise<ApplyOutcome> {
   const { createTimelineToolBridge } =
     await import("../evals/surfaces/timeline.js");
+  let operationIndex = 0;
   const init: Parameters<typeof createTimelineToolBridge>[0] = {
     sequenceId: sequence.id,
     sequenceName: sequence.name,
@@ -767,16 +758,33 @@ export async function applyOps(
       }
     }
   };
-  if (!options.hermetic) Object.assign(init, writingHooks(run, sequence));
+  if (!options.hermetic) {
+    Object.assign(init, writingHooks(run, sequence));
+    const { timelineMediaEditGenerator } = await import("./timeline-media-edit.js");
+    const generate = options.generateMediaEdit ?? timelineMediaEditGenerator(run);
+    init.generateMediaEdit = (request) => generate(request, operationIndex);
+    init.getClipFrames = async (clip, frameOptions) => {
+      const current = bridge.finalState();
+      const { inspectTimelineClipFrames } = await import("./timeline-clip-frames.js");
+      return inspectTimelineClipFrames(run.context, { ...sequence.toDocument(),
+        tracks: current.documentTracks, clips: current.documentClips, markers: current.markers,
+        mediaTracks: current.mediaTracks, tempo: current.tempo, camera2d: current.camera2d,
+        id: sequence.id, projectId: sequence.project_id ?? "default", name: sequence.name,
+        fps: sequence.fps, width: sequence.width, height: sequence.height,
+        durationMs: sequence.duration_ms, createdAt: sequence.created_at, updatedAt: sequence.updated_at
+      }, clip, frameOptions);
+    };
+  }
   const bridge = createTimelineToolBridge(init);
   const byName = new Map(
     bridge.tools
-      .filter((tool) => !EXCLUDED_OPS.has(tool.name))
+      .filter((tool) => !EXCLUDED_OPS.has(tool.name) && !(options.hermetic && (tool.name === `${TOOL_PREFIX}generatively_edit_clip` || READ_ONLY_OPS.has(tool.name))))
       .map((tool) => [tool.name, tool])
   );
 
   const records: OpRecord[] = [];
-  for (const { op, input } of ops) {
+  for (const [index, { op, input }] of ops.entries()) {
+    operationIndex = index;
     const tool = byName.get(op);
     if (!tool) {
       const known = [...byName.keys()]
@@ -933,7 +941,9 @@ const editTimeline: CapabilityExport = {
       };
     }
 
-    const { TimelineSequence } = await import("@nodetool-ai/models");
+    const { TimelineSequence, TimelineSequenceVersion } = await import("@nodetool-ai/models");
+    const { timelineMediaEditGenerator } = await import("./timeline-media-edit.js");
+    const generateMediaEdit = timelineMediaEditGenerator(run);
     for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
       const sequence = await TimelineSequence.findById(timelineId);
       // A sequence owned by someone else reads as missing — the rule the tRPC
@@ -942,7 +952,7 @@ const editTimeline: CapabilityExport = {
         return { error: `Timeline ${timelineId} was not found.` };
       }
       const document: TimelineDocument = sequence.toDocument();
-      const { records, state } = await applyOps(run, sequence, document, ops);
+      const { records, state } = await applyOps(run, sequence, document, ops, { generateMediaEdit });
 
       // The transcript rides along untouched — no timeline operation edits it,
       // so the stored copy stays authoritative. Markers come back from the
@@ -976,12 +986,12 @@ const editTimeline: CapabilityExport = {
       // hand an open editor a merge with nothing in it.
       const appliedOps = ops
         .map((parsed, index) => ({ parsed, index }))
-        .filter(({ index }) => records[index]?.ok);
+        .filter(({ parsed, index }) => records[index]?.ok && !READ_ONLY_OPS.has(parsed.op));
       if (appliedOps.length === 0) {
         return {
           timeline_id: timelineId,
           updated_at: sequence.updated_at,
-          applied: 0,
+          applied: records.filter((record) => record.ok).length,
           failed: failed.length,
           ops: records,
           tracks: state.tracks,
@@ -1020,6 +1030,9 @@ const editTimeline: CapabilityExport = {
         };
       }
 
+      const undo = appliedOps.some(({ parsed }) => parsed.op === `${TOOL_PREFIX}apply_take`)
+        ? await TimelineSequenceVersion.snapshot(sequence, { saveType: "manual", name: "Before applying AI edit take" })
+        : undefined;
       const saved = await TimelineSequence.updateDocumentIfUnchanged(
         sequence.id,
         sequence.updated_at,
@@ -1035,10 +1048,16 @@ const editTimeline: CapabilityExport = {
             )
           }))
         }
-      );
-      if (!saved) continue;
+      ).catch(async (error: unknown) => {
+        await undo?.delete();
+        throw error;
+      });
+      if (!saved) {
+        await undo?.delete();
+        continue;
+      }
 
-      return {
+      const response = {
         timeline_id: timelineId,
         updated_at: saved.updated_at,
         applied: records.length - failed.length,
@@ -1055,6 +1074,10 @@ const editTimeline: CapabilityExport = {
           animations: clip.animations
         }))
       };
+      if (undo) {
+        Object.assign(response, { undo_version: undo.version });
+      }
+      return response;
     }
 
     return {
@@ -1624,6 +1647,7 @@ const previewTimelineFrame: CapabilityExport = {
         mime: "image/png"
       });
       sheet = {
+        complete: result.complete,
         columns: tiled.columns,
         rows: tiled.rows,
         cells: tiled.cells,
@@ -1638,12 +1662,14 @@ const previewTimelineFrame: CapabilityExport = {
     const frames = [];
     for (const frame of result.frames) {
       const entry: Record<string, unknown> = {
+        complete: frame.complete,
         time_ms: frame.time_ms,
         width: frame.width,
         height: frame.height,
         layers: frame.layers,
         dropped: frame.dropped,
-        degraded: frame.degraded
+        degraded: frame.degraded,
+        degradations: frame.degraded
       };
       if (!wantSheet) {
         const saved = await persistOutput(run.context, frame.png, {
@@ -1656,6 +1682,8 @@ const previewTimelineFrame: CapabilityExport = {
     }
 
     return {
+      complete: result.complete,
+      visual_output_verified: false,
       timeline_id: isString(timelineId) ? timelineId : undefined,
       name,
       fps: meta.fps,
@@ -1666,12 +1694,14 @@ const previewTimelineFrame: CapabilityExport = {
       sheet,
       effects_not_applied: result.effectsNotApplied,
       fonts_unavailable: result.fontsUnavailable,
-      hint: wantSheet
+      hint: (!result.complete
+        ? "Incomplete preview: requested content was skipped or approximated. Inspect dropped, degradations, skipped layers, effects_not_applied and fonts_unavailable. This image cannot verify the complete composition. "
+        : "") + (wantSheet
         ? "Call view_image with the sheet's asset_id to see every frame at " +
           "once; the cells run left to right, labelled with their timecode. " +
           "Each frame's layers are listed top of the stack first."
         : "Call view_image with a frame's asset_id to see it. The layers are " +
-          "listed top of the stack first — the first one covers the rest."
+          "listed top of the stack first — the first one covers the rest.")
     };
   }
 };
@@ -1837,14 +1867,17 @@ const compareTimelineFrames: CapabilityExport = {
     const frames = [];
     const cells = [];
     for (let i = 0; i < times.length; i++) {
-      const difference = Number(
-        (await frameDifference(left.frames[i].png, right.frames[i].png)).toFixed(
-          4
-        )
-      );
-      frames.push({ time_ms: times[i], difference });
+      const complete = left.frames[i].complete && right.frames[i].complete;
+      const difference = complete ? Number(
+        (await frameDifference(left.frames[i].png, right.frames[i].png)).toFixed(4)
+      ) : null;
+      frames.push({
+        time_ms: times[i], complete, difference,
+        a: { dropped: left.frames[i].dropped, degradations: left.frames[i].degraded, skipped: left.frames[i].layers.filter((layer) => layer.skipped) },
+        b: { dropped: right.frames[i].dropped, degradations: right.frames[i].degraded, skipped: right.frames[i].layers.filter((layer) => layer.skipped) }
+      });
       cells.push({
-        label: `${times[i]}ms  ${difference.toFixed(3)}`,
+        label: `${times[i]}ms  ${difference === null ? "incomplete" : difference.toFixed(3)}`,
         png: await sideBySide(left.frames[i].png, right.frames[i].png)
       });
     }
@@ -1855,20 +1888,24 @@ const compareTimelineFrames: CapabilityExport = {
       mime: "image/png"
     });
 
-    const differences = frames.map((frame) => frame.difference);
-    const changed = frames.filter((frame) => frame.difference > 0);
+    const complete = left.complete && right.complete;
+    const differences = frames.flatMap((frame) => frame.difference === null ? [] : [frame.difference]);
+    const changed = frames.filter((frame) => frame.difference !== null && frame.difference > 0);
     return {
+      complete,
+      visual_output_verified: false,
       a: a.source,
       b: b.source,
       frames,
-      changed_times_ms: changed.map((frame) => frame.time_ms),
-      max_difference: Math.max(...differences),
-      mean_difference: Number(
+      changed_times_ms: complete ? changed.map((frame) => frame.time_ms) : null,
+      max_difference: complete ? Math.max(...differences) : null,
+      mean_difference: complete ? Number(
         (differences.reduce((sum, d) => sum + d, 0) / differences.length).toFixed(
           4
         )
-      ),
+      ) : null,
       sheet: {
+        complete,
         columns: tiled.columns,
         rows: tiled.rows,
         cells: tiled.cells,
@@ -1883,6 +1920,7 @@ const compareTimelineFrames: CapabilityExport = {
         ...new Set([...left.fontsUnavailable, ...right.fontsUnavailable])
       ].sort(),
       hint:
+        (!complete ? "Incomplete previews cannot establish visual equivalence. Difference scores are null for incomplete pairs and aggregate metrics are unavailable. " : "") +
         "difference is the mean absolute RGB difference, 0 (identical) to 1. " +
         "Each cell of the sheet is a pair: `a` on the left, `b` on the right, " +
         "labelled with its timecode and score."

@@ -1787,6 +1787,7 @@ export type ClearReframeParams = z.infer<typeof clearReframeParams>;
  */
 export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_get_state",
+  "ui_timeline_get_clip_frames",
   "ui_timeline_add_track",
   "ui_timeline_move_track",
   "ui_timeline_delete_track",

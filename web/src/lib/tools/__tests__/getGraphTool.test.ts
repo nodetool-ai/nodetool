@@ -8,7 +8,9 @@ jest.mock("../../../serverState/useWorkflow", () => ({
 import { FrontendToolRegistry } from "../frontendTools";
 import { makeFrontendToolState } from "../../../test-utils/frontendToolState";
 import { fetchWorkflowById } from "../../../serverState/useWorkflow";
+import { shortResourceId, workflowDocumentRevision } from "@nodetool-ai/protocol";
 import "../builtin/getGraph";
+import "../builtin/setNodeTitle";
 
 const fetchWorkflowByIdMock = fetchWorkflowById as jest.MockedFunction<
   typeof fetchWorkflowById
@@ -32,6 +34,67 @@ function createMockNodeStore(
 }
 
 describe("ui_get_graph tool", () => {
+  const fullId = "abcdef01234500000000000000000000";
+  const prefix = shortResourceId(fullId);
+
+  it("uses the loaded full identity when a saved graph is read by resource prefix", async () => {
+    fetchWorkflowByIdMock.mockResolvedValue({ id: fullId, graph: { nodes: [], edges: [] } } as never);
+    const state = makeFrontendToolState({ currentWorkflowId: null });
+    const result = await FrontendToolRegistry.call("ui_get_graph", { workflow_id: prefix }, "prefix-read", { getState: () => state });
+    expect(fetchWorkflowByIdMock).toHaveBeenCalledWith(prefix);
+    expect(result).toMatchObject({
+      workflow_id: fullId, source: "server",
+      document_revision: workflowDocumentRevision(fullId, [], [])
+    });
+  });
+
+  it("resolves a prefix for editor reads and guards mutations against that same full identity", async () => {
+    const nodes = [{ id: "n1", type: "nodetool.text.Value", position: { x: 0, y: 0 }, data: { properties: {}, title: "Original" } }];
+    const updateNodeData = jest.fn((id, patch) => {
+      const node = nodes.find((entry) => entry.id === id);
+      if (node) node.data = { ...node.data, ...patch };
+    });
+    const store = { getState: () => ({ nodes, edges: [], findNode: (id: string) => nodes.find((entry) => entry.id === id), updateNodeData }) };
+    const state = makeFrontendToolState({
+      currentWorkflowId: "other-workflow",
+      getOpenWorkflowIds: () => [fullId],
+      getNodeStore: jest.fn().mockImplementation((id: string) => id === fullId ? store : undefined)
+    });
+    const call = (name: string, args: unknown) => FrontendToolRegistry.call(name, args, "prefix-mutation", { getState: () => state });
+    const read = await call("ui_get_graph", { workflow_id: prefix }) as { document_revision: string };
+    const fullRead = await call("ui_get_graph", { workflow_id: fullId }) as { document_revision: string };
+    expect(read).toMatchObject({ source: "editor", workflow_id: fullId });
+    expect(read.document_revision).toBe(fullRead.document_revision);
+    const edit = await call("ui_set_node_title", { workflow_id: prefix, node_id: "n1", title: "First", based_on_revision: read.document_revision }) as { document_revision: string };
+    expect(edit.document_revision).toBe(workflowDocumentRevision(fullId, nodes, []));
+    await expect(call("ui_set_node_title", { workflow_id: prefix, node_id: "n1", title: "Stale", based_on_revision: read.document_revision })).rejects.toThrow("document_revision_conflict");
+    expect(nodes[0].data.title).toBe("First");
+    expect(updateNodeData).toHaveBeenCalledTimes(1);
+    expect(state.setCurrentWorkflowId).not.toHaveBeenCalled();
+  });
+
+  it("returns a live draft revision and refuses edits from an earlier snapshot", async () => {
+    const nodes = [{ id: "n1", type: "nodetool.text.Value", position: { x: 0, y: 0 }, data: { properties: {}, title: "Original" } }];
+    const updateNodeData = jest.fn((id, patch) => {
+      const node = nodes.find((entry) => entry.id === id);
+      if (node) node.data = { ...node.data, ...patch };
+    });
+    const store = { getState: () => ({ nodes, edges: [], findNode: (id: string) => nodes.find((entry) => entry.id === id), updateNodeData }) };
+    const state = makeFrontendToolState({ getNodeStore: jest.fn().mockReturnValue(store) });
+    const call = (name: string, args: unknown) => FrontendToolRegistry.call(name, args, "revision-test", { getState: () => state });
+    const read = await call("ui_get_graph", {}) as { document_revision: string; source: string };
+    expect(read.source).toBe("editor");
+    expect(read.document_revision).toMatch(/^graph:[a-f0-9]{64}$/);
+    const first = await call("ui_set_node_title", { node_id: "n1", title: "First", based_on_revision: read.document_revision }) as { document_revision: string; source: string };
+    expect(first.source).toBe("editor");
+    expect(first.document_revision).not.toBe(read.document_revision);
+    const after = await call("ui_get_graph", {}) as { document_revision: string };
+    expect(after.document_revision).toBe(first.document_revision);
+    await expect(call("ui_set_node_title", { node_id: "n1", title: "Stale", based_on_revision: read.document_revision })).rejects.toThrow("document_revision_conflict");
+    expect(nodes[0].data.title).toBe("First");
+    expect(updateNodeData).toHaveBeenCalledTimes(1);
+  });
+
   it("returns nodes and edges from the current workflow", async () => {
     const nodes = [
       { id: "n1", type: "nodetool.constant.String", position: { x: 0, y: 0 }, data: { value: "hello" } },

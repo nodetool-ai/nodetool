@@ -14,6 +14,7 @@ function createMockNodeStore() {
   return {
     getState: () => ({
       nodes,
+      edges: [],
       addNode: jest.fn((node: unknown) => nodes.push(node)),
     }),
   };

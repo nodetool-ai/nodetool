@@ -86,6 +86,7 @@ export function renderSketchReportMarkdown(report: SketchDebugReport): string {
   lines.push(`# Sketch debug: ${title}`);
   lines.push("");
   lines.push(`${report.verdict.ok ? "✅" : "❌"} ${report.verdict.headline}`);
+  lines.push("", "Visual output verified: false. This verdict covers document structure and replayed edits only.");
   lines.push("");
   lines.push(`Target: \`${report.target.ref}\` (${report.target.kind})`);
   lines.push(

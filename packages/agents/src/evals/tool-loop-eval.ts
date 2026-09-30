@@ -31,6 +31,7 @@
  */
 
 import type { BaseProvider } from "@nodetool-ai/runtime";
+import { isRecord } from "../utils/type-guards.js";
 import {
   runToolLoop,
   type ToolLoopCallRecord
@@ -164,6 +165,8 @@ export interface ToolLoopObservation<TFinal = unknown> {
 }
 
 export interface ToolLoopCaseResult {
+  /** Present when the surface explicitly reports that visual media was not verified. */
+  visual_output_verified?: false;
   caseId: string;
   description: string;
   skipped: boolean;
@@ -487,7 +490,7 @@ async function runCase<TFinal>(
   const score = accepted ? scoreToolLoopChecks(checks) : 0;
   const criticalFailures = countCriticalFailures(checks);
 
-  return {
+  const result: ToolLoopCaseResult = {
     caseId: evalCase.id,
     description: evalCase.description,
     skipped: false,
@@ -503,6 +506,10 @@ async function runCase<TFinal>(
     costUsd: run.costUsd,
     error: run.error
   };
+  if (isRecord(observation.finalState) && observation.finalState.visual_output_verified === false) {
+    result.visual_output_verified = false;
+  }
+  return result;
 }
 
 export async function runToolLoopEval<TFinal = ToolLoopFinalState>(

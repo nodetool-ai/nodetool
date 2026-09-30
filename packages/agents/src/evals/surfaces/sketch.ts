@@ -226,6 +226,8 @@ export interface SketchBridgeInitialState {
 }
 
 export interface SketchBridgeFinalState {
+  /** Recorded generation and asset references have not produced or loaded pixels. */
+  visual_output_verified: false;
   name: string;
   width: number;
   height: number;
@@ -872,14 +874,17 @@ export function createSketchToolBridge(
           ok: true;
           layer: LayerView;
           generationStarted: boolean;
+          visual_output_verified: false;
           note?: string;
         } = {
           ok: true,
           layer: serialize(layer),
-          generationStarted
+          generationStarted,
+          visual_output_verified: false,
+          note: "Headless replay records the generation request only. No provider ran and no generated pixels were verified."
         };
         if (!generationStarted) {
-          result.note = "Generation not started (autoGenerate=false).";
+          result.note = "Generation not started (autoGenerate=false). No generated pixels were verified.";
         }
         return result;
       }
@@ -978,7 +983,12 @@ export function createSketchToolBridge(
           height: num(args["height"], height)
         };
         activeLayerId = layer.id;
-        return { ok: true, layer: serialize(layer) };
+        return {
+          ok: true,
+          layer: serialize(layer),
+          visual_output_verified: false,
+          note: "Headless replay records the image locator only. Asset bytes were not loaded or verified."
+        };
       }
     ),
 
@@ -1551,6 +1561,7 @@ export function createSketchToolBridge(
         compositeOf(layers.filter((l) => l.strokeCount > 0))
       );
       return {
+        visual_output_verified: false,
         name,
         width,
         height,

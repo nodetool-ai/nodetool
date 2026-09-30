@@ -14,6 +14,7 @@ import {
   Storyboard
 } from "@nodetool-ai/models";
 import type { GenerationAttachmentTransition } from "@nodetool-ai/models";
+import { recoverTimelineMediaEdit } from "./timeline-generation-recovery.js";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 
 /** One attachment result, so the write path and the already-written path
@@ -63,6 +64,9 @@ export function createGenerationRecoveryWorker(
           status: "retrying",
           error: "Saved output has no asset to attach"
         };
+      }
+      if (attachment.target_type === "timeline_clip") {
+        return recoverTimelineMediaEdit(generation, attachment.target_id, output.asset_id);
       }
       if (
         attachment.target_type !== "storyboard_keyframe" &&

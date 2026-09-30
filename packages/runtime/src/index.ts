@@ -363,3 +363,5 @@ export type {
   PermissionMode,
   RequestApproval
 } from "./permission-gate.js";
+
+export { trimVideoWindow } from "./trim-video-window.js";

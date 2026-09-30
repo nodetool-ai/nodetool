@@ -60,8 +60,9 @@ Every tool in both families takes an explicit `storyboard_id`. There is no
 "act on whatever is open" fallback.
 
 Prefer headless. Reach for `ui_storyboard_*` when the user is watching the board fill
-in, or when you need `set_screenplay` — board-level `title`, `logline`, `style_bible`,
-`narration` and `music_prompt` live on the screenplay and nothing headless writes them.
+in, or when you need `set_screenplay` for `title`, `logline` or `style_bible`.
+Headless `edit_storyboard` → `set_board` writes screenplay-level `narration` and
+`music_prompt` while preserving the other screenplay fields.
 Bridge the two with `ui_open_document {type: "storyboard", id}`.
 
 ## The loop
@@ -276,19 +277,19 @@ Shot fields (add and update both): `action`, `slug`, `camera`, `motion`, `dialog
 window into another shot's clip. See § Fusing shots below. `null` undoes it.
 
 Board fields (`set_board` only): `brief`, `style`, `aspect_ratio`, `entity_ids`,
-`image_model`, `video_model`. The two model fields take a model **object** from
-`find_model`, or null.
+`image_model`, `video_model`, `narration`, `music_prompt`. The two model fields
+take a model **object** from `find_model`, or null. `narration` and `music_prompt`
+take strings and update the screenplay. An empty string clears that direction.
 
 **An edit cannot set `keyframe`, `clip` or `status`.** Those belong to the render
 tools; passing them raises an error naming the right tool. `covered_by` is the one
 exception: coverage is a picture that arrived without a render, so setting it marks
 the shot `rendered` and clearing it puts the shot back to `keyframe_ready`/`planned`.
 
-**An edit cannot set `title`, `logline`, `style_bible`, `narration` or `music_prompt`
-at the board level.** Those live on the screenplay, which only
-`ui_storyboard_set_screenplay` writes. Per-*shot* `narration` is an ordinary shot
-field and works fine headlessly. Board narration and music matter because
-`assemble_storyboard_timeline` turns them into draft audio clips.
+**An edit cannot set `title`, `logline` or `style_bible` at the board level.**
+Use `ui_storyboard_set_screenplay` for those fields. Per-shot `narration` remains
+a shot field. Board narration and music are separate screenplay fields:
+`assemble_storyboard_timeline` turns them into draft audio clips on unlinked boards.
 
 #### Fusing shots
 
@@ -579,7 +580,7 @@ LOOP
    {asset_id, kind, name, descriptor}. There is no create-from-text.
    Each entity: one name, one kind, one canonical descriptor sentence.
 3. edit_storyboard set_board {entity_ids, image_model, video_model,
-   brief, style, aspect_ratio}. Models come from find_model — there is no
+   brief, style, aspect_ratio, narration, music_prompt}. Models come from find_model — there is no
    default and an unset model fails the render.
 4. Direct with edit_storyboard add_shot, one op per shot. Give every shot a
    slug (1a, 2a, ...). Fields: action, slug, camera {framing, lens, angle,

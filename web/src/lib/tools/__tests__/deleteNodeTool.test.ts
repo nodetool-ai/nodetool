@@ -10,8 +10,13 @@ function createMockNodeStore(nodes: Array<{ id: string }> = []) {
   return {
     getState: () => ({
       nodes,
+      edges: [],
       findNode: jest.fn((id: string) => nodes.find((n) => n.id === id)),
-      deleteNode: jest.fn((id: string) => deletedIds.push(id)),
+      deleteNode: jest.fn((id: string) => {
+        deletedIds.push(id);
+        const index = nodes.findIndex((node) => node.id === id);
+        if (index >= 0) nodes.splice(index, 1);
+      }),
     }),
     deletedIds,
   };

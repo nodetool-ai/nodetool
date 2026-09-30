@@ -99,6 +99,7 @@ function fakeCore(): SketchDebugCore & {
         validation: cleanValidation,
         interactions: input.interactions ?? [],
         ...(input.finalState ? { finalState: input.finalState } : {}),
+        visual_output_verified: false,
         notSimulated: ["pixels"],
         verdict: { ok: true, headline: "sketch ok", issues: [] }
       };

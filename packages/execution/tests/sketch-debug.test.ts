@@ -306,6 +306,21 @@ const interaction = (
 });
 
 describe("buildSketchDebugReport", () => {
+  it("reports structural success without claiming visual verification after media edits", () => {
+    const report = buildSketchDebugReport({
+      target: { kind: "file", ref: "sketch.json" },
+      document: doc(),
+      interactions: [interaction({
+        tool: "ui_sketch_place_image",
+        input: { image: "asset://missing" }
+      })]
+    });
+    expect(report.verdict.ok).toBe(true);
+    expect(report.visual_output_verified).toBe(false);
+    expect(report.verdict.headline).toContain("structure");
+    expect(renderSketchReportMarkdown(report)).toContain("Visual output verified: false");
+  });
+
   it("describes a clean document and lists what is not simulated", () => {
     const report = buildSketchDebugReport({
       target: { kind: "file", ref: "sketch.json" },

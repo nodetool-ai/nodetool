@@ -395,9 +395,20 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
       }
     },
 
+    ui_timeline_get_clip_frames: {
+      description:
+        "Inspect visual frames from ONE rendered clip. `target` names the clip. Video samples source pixels, while text, shape and 3D clips use the shared renderer. To inspect the layered timeline, call preview_timeline_frame. Optional timesMs accepts absolute timeline times or clip-relative times outside the timeline span. Returns image data URLs with timeline/source timestamps.",
+      shape: {
+        target: targetParam,
+        timesMs: z.array(z.number().finite()).max(8).optional(),
+        count: z.number().min(1).max(8).optional(),
+        width: z.number().min(1).max(1024).optional()
+      }
+    },
+
     ui_timeline_generatively_edit_clip: {
       description:
-        "Start a nondestructive video edit for an existing clip. `clip_id` is explicit and `instruction` describes the change. The request uses the clip's submitted playable source window and returns a candidate take when generation completes; it never applies the candidate. Provide `provider` and `model` together for a known video-to-video model, or omit both to use the last-used video-edit model. The clip's generic model is never used as an edit model.",
+        "Start a nondestructive video edit for an existing clip. `clip_id` is explicit and `instruction` describes the change. The request uses the clip's submitted playable source window and returns a candidate take when generation completes; it never applies the candidate. Provide `provider` and `model` together for a known video-to-video model, or omit both in the browser to use the last-used video-edit model. Headless callers must provide the pair. The clip's generic model is never used as an edit model.",
       shape: generativelyEditClipParams.shape,
       finalize: strictGenerativelyEditClipParams
     },
@@ -911,18 +922,8 @@ export function buildTimelineToolContracts(
   return contracts;
 }
 
-/**
- * Tools only the browser registers.
- *
- * `ui_timeline_get_clip_frames` samples pixels out of a rendered video clip,
- * which the headless surface has no rasterizer for. `ui_timeline_edit` batches
- * calls to the other tools through the browser registry, and the headless
- * bridge's `edit_timeline` already does that job by walking its own tool list.
- */
-export const BROWSER_ONLY_TIMELINE_TOOL_NAMES = [
-  "ui_timeline_get_clip_frames",
-  "ui_timeline_edit"
-] as const;
+/** Browser tool batching delegates through the browser registry. */
+export const BROWSER_ONLY_TIMELINE_TOOL_NAMES = ["ui_timeline_edit"] as const;
 
 /**
  * Tools only the headless bridge registers. `ui_timeline_insert_composition`
