@@ -9,6 +9,7 @@
  * the delegation to the `generate_speech` capability the port had to keep.
  */
 
+import { withGenerationSeam } from "./_helpers/generation-seam.js";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Asset, ModelObserver, Script, initTestDb } from "@nodetool-ai/models";
@@ -66,7 +67,7 @@ function ctx(userId = "u1") {
       timestamp: [number, number];
     }>
   }));
-  const context = {
+  const context = withGenerationSeam({
     userId,
     getProvider: vi.fn(async () => ({
       textToSpeechEncoded,
@@ -96,7 +97,7 @@ function ctx(userId = "u1") {
     resolveAssetBytes: vi.fn(async (uri: string) => ({
       bytes: stored.get(uri.replace("asset://", "").split(".")[0]) ?? null
     }))
-  };
+  });
   return {
     context: context as unknown as ProcessingContext,
     textToSpeechEncoded

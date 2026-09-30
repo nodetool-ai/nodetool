@@ -75,6 +75,7 @@ export interface TTSModel {
 }
 
 export interface TextToSpeechParams {
+  signal?: AbortSignal;
   text: string;
   model: string;
   voice?: string;
@@ -604,6 +605,7 @@ export interface VectorizeImageParams {
  * {@link EncodedAudioResult} rather than raw PCM samples.
  */
 export interface TextToMusicParams {
+  signal?: AbortSignal;
   model: MusicModel;
   /** Free-text description of the desired music (style, mood, instruments). */
   prompt: string;

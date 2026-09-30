@@ -17,6 +17,42 @@ import {
 describe("DurableGenerationLifecycle", () => {
   beforeEach(() => initTestDb({ strictProjects: true }));
 
+  it("retains workspace delivery failure on a successful durable generation", async () => {
+    const hooks = createFalGenerationLifecycleHooks({
+      userId: "u1",
+      callbacks: false
+    });
+    const request = {
+      provider: "fal_ai",
+      capability: "text_to_music" as const,
+      model: "fal-ai/music",
+      params: { prompt: "bed" }
+    };
+    await hooks.onGenerationAccepted?.({
+      generationId: "workspace-delivery",
+      request
+    });
+    const delivery = {
+      status: "failed" as const,
+      path: "audio/bed.wav",
+      error: "workspace unavailable"
+    };
+    await hooks.onGenerationTerminal?.({
+      generationId: "workspace-delivery",
+      request,
+      status: "completed",
+      output: { audio: { url: "https://fal.media/bed.wav" } },
+      receipt: null,
+      assetIds: ["audio-asset"],
+      delivery
+    });
+    expect(await Prediction.find("workspace-delivery")).toMatchObject({
+      status: "completed",
+      asset_ids: ["audio-asset"],
+      metadata: { delivery, origin: expect.any(Object) }
+    });
+  });
+
   it("returns one accepted generation and fences competing workers", async () => {
     const lifecycle = createDurableGenerationLifecycle();
     const input = {

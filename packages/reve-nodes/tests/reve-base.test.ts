@@ -47,7 +47,20 @@ describe("refToBytes / refToBase64", () => {
     expect(await refToBase64({ uri })).toBe(Buffer.from("png").toString("base64"));
   });
 
-  it("retrieves bytes from storage when the asset resolver has none", async () => {
+  it("reads a concrete temporary storage URI without an asset lookup", async () => {
+    const retrieve = vi.fn().mockResolvedValue(Uint8Array.from([7, 8, 9]));
+    const resolveAssetBytes = vi.fn();
+    const uri = "memory://temporary/image.png";
+    const bytes = await refToBytes(
+      { uri },
+      { storage: { retrieve }, resolveAssetBytes } as never
+    );
+    expect([...bytes]).toEqual([7, 8, 9]);
+    expect(retrieve).toHaveBeenCalledWith(uri);
+    expect(resolveAssetBytes).not.toHaveBeenCalled();
+  });
+
+  it("refuses raw storage fallback when asset resolution has no bytes", async () => {
     const storage = {
       retrieve: vi.fn().mockResolvedValue(Uint8Array.from([7, 8, 9]))
     };
@@ -55,9 +68,10 @@ describe("refToBytes / refToBase64", () => {
       storage,
       resolveAssetBytes: vi.fn().mockResolvedValue({ bytes: null })
     };
-    const bytes = await refToBytes({ uri: "asset://x" }, ctx as never);
-    expect([...bytes]).toEqual([7, 8, 9]);
-    expect(storage.retrieve).toHaveBeenCalledWith("asset://x");
+    await expect(refToBytes({ uri: "asset://x" }, ctx as never)).rejects.toThrow(
+      "Image has no data or URI"
+    );
+    expect(storage.retrieve).not.toHaveBeenCalled();
   });
 
   it("falls through a zero-length data buffer to the uri", async () => {
@@ -80,7 +94,9 @@ describe("refToBytes / refToBase64", () => {
       ctx
     );
     expect([...bytes]).toEqual([137, 80, 78, 71]);
-    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123", {
+      requireOwnedAsset: true
+    });
   });
 
   it("throws without data or uri", async () => {

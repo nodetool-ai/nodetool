@@ -150,9 +150,11 @@ export async function runBlenderJob(
     signal: options.signal,
     timeoutMs: options.timeoutMs
   });
-  const binary = await resolveBlenderBinary({ configuredPath: blenderPath }).catch(
-    () => null
-  );
+  const binary = testRunner
+    ? null
+    : await resolveBlenderBinary({ configuredPath: blenderPath }).catch(
+        () => null
+      );
   const engine = engineOf(op);
   // The local runner needs a real directory, which only the workspace can
   // give it (`scratchDir()` is the seam a cloud workspace implements). A

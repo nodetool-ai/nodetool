@@ -344,7 +344,8 @@ export function createFalGenerationLifecycleHooks(
     error,
     receipt,
     assetIds,
-    output
+    output,
+    delivery
   }) => {
     if (!generationId) return;
     const state = states.get(generationId);
@@ -424,22 +425,29 @@ export function createFalGenerationLifecycleHooks(
           needsRecovery || needsAttachment
             ? new Date(Date.now() + RECOVERY_RETRY_MS).toISOString()
             : null;
+        const completed: DurableGenerationTransition = {
+          status: needsRecovery ? "recovering" : "completed",
+          submission_status: "submitted",
+          provider_status: "succeeded",
+          output_status: needsRecovery ? "retrying" : "ready",
+          attachment_status: "pending",
+          asset_ids: savedAssetIds,
+          error: null,
+          next_check_at: nextCheckAt,
+          completed_at: needsRecovery ? null : new Date().toISOString()
+        };
+        if (delivery) {
+          completed.metadata = {
+            ...(await Prediction.find(state.generationId))?.metadata,
+            delivery
+          };
+        }
         if (
           !(await lifecycle.transition(
             state.generationId,
             state.workerId,
             state.generationLeaseVersion,
-            {
-              status: needsRecovery ? "recovering" : "completed",
-              submission_status: "submitted",
-              provider_status: "succeeded",
-              output_status: needsRecovery ? "retrying" : "ready",
-              attachment_status: "pending",
-              asset_ids: savedAssetIds,
-              error: null,
-              next_check_at: nextCheckAt,
-              completed_at: needsRecovery ? null : new Date().toISOString()
-            }
+            completed
           ))
         ) {
           throw new Error(

@@ -88,7 +88,9 @@ describe("refToBytes", () => {
       { type: "image", uri: "asset://asset-123" },
       ctx as never
     );
-    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123", {
+      requireOwnedAsset: true
+    });
     expect([...bytes]).toEqual([137, 80, 78, 71]);
   });
 

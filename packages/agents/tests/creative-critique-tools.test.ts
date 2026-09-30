@@ -228,9 +228,9 @@ describe("score_image_adherence", () => {
       .mockResolvedValueOnce(
         reply({
           answers: [
-            { question: "Is there a fox?", answer: "yes", note: "" },
-            { question: "Is it snowing?", answer: "no", note: "clear sky" },
-            { question: "Is the fox red?", answer: "yes", note: "" }
+            { id: "q1", question: "Is there a fox?", answer: "yes", note: "" },
+            { id: "q2", question: "Is it snowing?", answer: "no", note: "clear sky" },
+            { id: "q3", question: "Is the fox red?", answer: "yes", note: "" }
           ]
         })
       );
@@ -250,13 +250,13 @@ describe("score_image_adherence", () => {
     expect(r.passed).toBe(2);
     expect(r.total).toBe(3);
     expect(r.failed).toEqual([
-      { question: "Is it snowing?", answer: "no", note: "clear sky" }
+      { id: "q2", question: "Is it snowing?", answer: "no", note: "clear sky" }
     ]);
   });
 
   it("skips decomposition when questions are supplied", async () => {
     const rpp = vi.fn().mockResolvedValue(
-      reply({ answers: [{ question: "Is it a logo?", answer: "yes", note: "" }] })
+      reply({ answers: [{ id: "q1", question: "Is it a logo?", answer: "yes", note: "" }] })
     );
     const tool = scoreImageAdherenceTool();
     const r = (await tool.process(makeContext(rpp), {

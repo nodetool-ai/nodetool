@@ -26,7 +26,10 @@ host that answers `302 Location: http://127.0.0.1:6379/` walks past one.
 
 **Media refs** go through `fetchExternalMedia`
 (`packages/runtime/src/external-media-fetch.ts`), which is `safeFetch` plus one
-documented opt-out (below).
+documented opt-out (below). Audio loading in
+`packages/audio-nodes/src/lib/audio-wav.ts` delegates to `loadMediaRefBytes` in
+`packages/runtime/src/media-ref-bytes.ts`, whose HTTP fallback calls
+`fetchExternalMedia` and checks every redirect hop.
 
 **The sandbox fetch bridge** runs its own policy on purpose: plain http is
 allowed, and a host — never guest code — may waive the address check for a node
@@ -80,7 +83,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | Surface | File | URL comes from |
 |---|---|---|
 | media ref → bytes (Python bridge + TS nodes) | `packages/runtime/src/media-ref-bytes.ts` | workflow |
-| AudioRef → bytes | `packages/audio-nodes/src/lib/audio-wav.ts` | workflow |
+| AudioRef → shared media resolver | `packages/audio-nodes/src/lib/audio-wav.ts` | workflow |
 | Model3DRef / ImageRef → bytes | `packages/video-nodes/src/nodes/model3d/utils.ts` | workflow |
 | Model bytes → bytes (shared resolution) | `packages/nodes-utils/src/model-bytes.ts` | workflow |
 | chat source images | `packages/websocket/src/websocket-client-session.ts` | chat client |

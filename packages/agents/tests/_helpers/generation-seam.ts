@@ -33,6 +33,7 @@ const EXT: Record<string, string> = {
   "image/webp": "webp",
   "video/mp4": "mp4",
   "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
   "audio/wav": "wav"
 };
 
@@ -62,15 +63,32 @@ async function persist(
     (typeof fake.hasModelInterface !== "function" ||
       fake.hasModelInterface("createAsset"));
   if (!hasCreate) return [];
-  const buffers =
-    output instanceof Uint8Array
+  const encoded =
+    output !== null &&
+    typeof output === "object" &&
+    "data" in output &&
+    output.data instanceof Uint8Array
+      ? output
+      : null;
+  const buffers = encoded
+    ? [encoded.data]
+    : output instanceof Uint8Array
       ? [output]
       : Array.isArray(output) && output.every((b) => b instanceof Uint8Array)
         ? (output as Uint8Array[])
         : [];
   const assets: AssetRef[] = [];
   for (const bytes of buffers) {
-    const mime = sniff(bytes, req.capability, req.persist.mime);
+    const mime = sniff(
+      bytes,
+      req.capability,
+      req.persist.mime ??
+        (encoded &&
+        "mimeType" in encoded &&
+        typeof encoded.mimeType === "string"
+          ? encoded.mimeType
+          : undefined)
+    );
     const ext = EXT[mime] ?? "bin";
     try {
       const created = (await fake.createAsset!({
@@ -79,7 +97,8 @@ async function persist(
         content: bytes,
         metadata: { generation_id: id }
       })) as { id?: unknown } | null;
-      const assetId = created && typeof created.id === "string" ? created.id : null;
+      const assetId =
+        created && typeof created.id === "string" ? created.id : null;
       if (!assetId) continue;
       assets.push({
         type: mime.startsWith("video/")
@@ -120,7 +139,13 @@ export function withGenerationSeam<T extends object>(
       const startedAt = Date.now();
       const output = await f.runProviderPrediction(req);
       const assets = await persist(f, id, req, output);
-      return { id, output, assets, receipt: null, duration_ms: Date.now() - startedAt };
+      return {
+        id,
+        output,
+        assets,
+        receipt: null,
+        duration_ms: Date.now() - startedAt
+      };
     };
   }
   if (typeof f.runGenerationWith !== "function") {
@@ -130,13 +155,27 @@ export function withGenerationSeam<T extends object>(
         capability: string;
         persist?: { name?: string; mime?: string };
       },
-      call: (provider: unknown, signal: AbortSignal) => Promise<unknown>
+      call: (provider: unknown, signal: AbortSignal) => Promise<unknown>,
+      opts?: {
+        finalizeOutput?: (
+          output: unknown,
+          assets: readonly AssetRef[]
+        ) => Promise<unknown>;
+      }
     ) => {
       const id = req.id ?? randomUUID();
       const startedAt = Date.now();
       const output = await call(null, new AbortController().signal);
       const assets = await persist(f, id, req, output);
-      return { id, output, assets, receipt: null, duration_ms: Date.now() - startedAt };
+      const delivery = await opts?.finalizeOutput?.(output, assets);
+      return {
+        id,
+        output,
+        assets,
+        receipt: null,
+        duration_ms: Date.now() - startedAt,
+        ...(delivery ? { delivery } : {})
+      };
     };
   }
   return f as T & ProcessingContext;

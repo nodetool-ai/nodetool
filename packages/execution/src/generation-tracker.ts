@@ -20,7 +20,11 @@ import type {
   GenerationReceipt,
   Prediction as PredictionMessage
 } from "@nodetool-ai/protocol";
-import { getCostReconciler } from "@nodetool-ai/runtime";
+import {
+  getCostReconciler,
+  generationDeliveryOf,
+  type GenerationDelivery
+} from "@nodetool-ai/runtime";
 import {
   isUnitBilledCapability,
   priceGeneration,
@@ -32,6 +36,7 @@ const log = createLogger("nodetool.execution.generation-tracker");
 
 /** What a generation row records about how it was priced and reconciled. */
 interface GenerationRowMetadata {
+  delivery?: GenerationDelivery;
   capability?: string | null;
   price_source?: "provider" | "model-catalog" | "provider-billing";
   price_breakdown?: string;
@@ -215,6 +220,16 @@ async function finishRow(
   const now = new Date().toISOString();
   const metadata = rowMetadata(row);
   metadata.capability = msg.capability ?? null;
+  if (
+    typeof msg.data === "object" &&
+    msg.data !== null &&
+    "delivery" in msg.data
+  ) {
+    const delivery = generationDeliveryOf(msg.data.delivery);
+    if (delivery) {
+      metadata.delivery = delivery;
+    }
+  }
   const update: GenerationRowUpdate = {
     status: msg.status,
     completed_at: now,

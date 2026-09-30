@@ -157,7 +157,9 @@ describe("uploadImageInput", () => {
       { storage, resolveAssetBytes } as any
     );
 
-    expect(resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    expect(resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123", {
+      requireOwnedAsset: true
+    });
     expect(result).toBe("https://kie.example/uploaded.png");
   });
 

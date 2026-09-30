@@ -192,7 +192,9 @@ describe("context-backed resolution", () => {
       ctx
     );
     expect(bytes).toEqual(new Uint8Array([7, 8, 9]));
-    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://abc.png");
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://abc.png", {
+      requireOwnedAsset: true
+    });
   });
 
   it("tries the raw uri before asset_id extension candidates", async () => {
@@ -267,7 +269,7 @@ describe("context-backed resolution", () => {
     expect(tried).toEqual(["only://this"]);
   });
 
-  it("falls through when resolveAssetBytes yields no bytes", async () => {
+  it("does not bypass rejected asset resolution through raw storage", async () => {
     const ctx = {
       resolveAssetBytes: vi.fn(async () => ({ bytes: null, attempts: [] })),
       storage: {
@@ -280,8 +282,8 @@ describe("context-backed resolution", () => {
       { type: "image", uri: "asset://x.png" },
       ctx
     );
-    // resolveAssetBytes returned nothing, so the storage candidate wins.
-    expect(bytes).toEqual(new Uint8Array([55]));
+    expect(bytes).toBeNull();
+    expect(ctx.storage?.retrieve).not.toHaveBeenCalled();
   });
 
   it("falls back to a .bin candidate for an unknown ref type", async () => {

@@ -1,3 +1,4 @@
+import { withGenerationSeam } from "./_helpers/generation-seam.js";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ScriptPace } from "@nodetool-ai/protocol/api-schemas/scripts.js";
@@ -69,7 +70,7 @@ function ctx(options: CtxOptions = {}) {
         timestamp: [number, number];
       }>)
   }));
-  const context = {
+  const context = withGenerationSeam({
     userId: options.userId ?? "u1",
     getProvider: vi.fn(async () => ({
       textToSpeechEncoded,
@@ -95,7 +96,7 @@ function ctx(options: CtxOptions = {}) {
     resolveAssetBytes: vi.fn(async (uri: string) => ({
       bytes: stored.get(uri.replace("asset://", "").split(".")[0]) ?? null
     }))
-  };
+  });
   return {
     context: context as unknown as ProcessingContext,
     textToSpeechEncoded,

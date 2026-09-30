@@ -20,7 +20,7 @@ import {
 import { IS_NODE, importNodeBuiltin } from "@nodetool-ai/config";
 import type { AudioRef } from "@nodetool-ai/node-sdk";
 import {
-  fetchExternalMedia,
+  loadMediaRefBytes,
   type ProcessingContext
 } from "@nodetool-ai/runtime";
 import {
@@ -28,7 +28,6 @@ import {
   type OfflineAudioContextCtor
 } from "./audio-context.js";
 import {
-  isNonEmptyString,
   isObjectLike,
   isString
 } from "@nodetool-ai/node-sdk";
@@ -59,39 +58,13 @@ export function audioBytes(audio: unknown): Uint8Array {
   return toBytes((audio as AudioRefLike).data);
 }
 
-/**
- * Extract raw bytes from an AudioRef, falling back to URI-based retrieval
- * (storage, `file://`, `http(s)://`) when no inline data is present.
- */
+/** Resolve audio bytes through the shared media-reference boundary. */
 export async function audioBytesAsync(
   audio: unknown,
   context?: ProcessingContext
 ): Promise<Uint8Array> {
   if (!isObjectLike(audio)) return new Uint8Array();
-  const ref = audio as AudioRefLike;
-  if (ref.data) return toBytes(ref.data);
-  if (isNonEmptyString(ref.uri)) {
-    try {
-      if (context?.storage) {
-        const stored = await context.storage.retrieve(ref.uri);
-        if (stored !== null) return new Uint8Array(stored);
-      }
-      if (ref.uri.startsWith("file://")) {
-        const fs = await loadNodeFsPromises();
-        return new Uint8Array(await fs.readFile(uriToPath(ref.uri)));
-      }
-      if (ref.uri.startsWith("http://") || ref.uri.startsWith("https://")) {
-        // Caller-supplied uri: the media-ref egress policy decides, not this
-        // helper. A refusal throws into the catch below and reads as no bytes.
-        const response = await fetchExternalMedia(ref.uri);
-        if (!response.ok) return new Uint8Array();
-        return new Uint8Array(await response.arrayBuffer());
-      }
-    } catch {
-      return new Uint8Array();
-    }
-  }
-  return new Uint8Array();
+  return (await loadMediaRefBytes(audio, context)) ?? new Uint8Array();
 }
 
 /**

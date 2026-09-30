@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import { BLENDER_JOB_VERSION } from "../src/job.js";
+import * as blenderBinary from "../src/blender-binary.js";
 import { BlenderJobError } from "../src/runner.js";
 import { __setBlenderRunnerForTesting } from "../src/run-job.js";
 import { ExportModelNode } from "../src/nodes/export-model.js";
@@ -65,6 +66,11 @@ afterEach(() => {
 
 describe("ExportModel against FakeBlenderRunner", () => {
   it("builds the expected BlenderJob from its props", async () => {
+    const binaryProbe = vi
+      .spyOn(blenderBinary, "resolveBlenderBinary")
+      .mockRejectedValue(
+        new Error("Fake runner must not probe a host executable")
+      );
     const fake = cannedRunner();
     __setBlenderRunnerForTesting(fake);
     const seen: {
@@ -75,6 +81,7 @@ describe("ExportModel against FakeBlenderRunner", () => {
     node.timeout = 60;
 
     await node.process(stubContext(seen));
+    expect(binaryProbe).not.toHaveBeenCalled();
     expect(fake.calls).toHaveLength(1);
     const call = fake.calls[0]!;
     expect(call.job.version).toBe(BLENDER_JOB_VERSION);

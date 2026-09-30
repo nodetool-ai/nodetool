@@ -26,13 +26,17 @@ import path from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import type {
   GenerationRequest,
+  BaseProvider,
   ImageBox,
   ImageSegmentationMask,
   ProcessingContext,
   SegmentPoint,
   Workspace
 } from "@nodetool-ai/runtime";
-import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import {
+  currentGenerationReceipt,
+  loadMediaRefBytes
+} from "@nodetool-ai/runtime";
 import { getMaxLocalUploadBytes } from "@nodetool-ai/storage";
 import {
   backgroundGenerationLimitError,
@@ -67,7 +71,8 @@ import {
 import {
   MIME_TO_EXT,
   inferImageMime,
-  persistOutput
+  persistOutput,
+  timestampedName
 } from "../tools/asset-persist.js";
 import type { SavedOutput } from "../tools/asset-persist.js";
 import { persistBinaryOutput } from "../tools/binary-output.js";
@@ -395,17 +400,6 @@ async function finishOutput(
     }
   }
   return result;
-}
-
-/**
- * The asset the seam saved for a generation, read off the registry's settled
- * outcome. The encoded-audio paths return the provider's result rather than
- * the seam's, so this is how a capability learns what was persisted.
- */
-async function seamAssetFor(id: string): Promise<string | null> {
-  const { generationRegistry } = await import("@nodetool-ai/runtime");
-  const outcome = generationRegistry.outcome(id);
-  return outcome?.asset_ids[0] ?? null;
 }
 
 /** What a `background: true` call answers with. */
@@ -926,13 +920,6 @@ const videoFromReferences: CapabilityExport = {
 // generate_speech
 // ---------------------------------------------------------------------------
 
-interface TTSChunkLike {
-  data?: Uint8Array | string;
-  samples?: Int16Array;
-  sampleRate?: number;
-  mimeType?: string;
-}
-
 function int16ToUint8(samples: Int16Array): Uint8Array {
   const bytes = new Uint8Array(samples.byteLength);
   const view = new DataView(bytes.buffer);
@@ -1052,264 +1039,296 @@ async function encodedSpeech(
     return await provider.textToSpeechEncoded({
       text: params.text,
       model: m.model,
-      voice: params.voice as string | undefined,
-      speed: params.speed as number | undefined,
+      voice: isString(params.voice) ? params.voice : undefined,
+      speed: typeof params.speed === "number" ? params.speed : undefined,
       audioFormat: params.audioFormat
     });
   }
   throw new Error("this runtime's context has no encoded text_to_speech path");
 }
 
+interface GeneratedAudio {
+  data: Uint8Array;
+  mimeType: string;
+  outputFile?: string;
+}
+
+async function speechAudio(
+  context: ProcessingContext,
+  provider: BaseProvider | null,
+  m: MediaModelArgs,
+  params: EncodedSpeechParams,
+  signal: AbortSignal,
+  outputFile?: string
+): Promise<GeneratedAudio> {
+  signal.throwIfAborted();
+  const providerParams = {
+    text: params.text,
+    model: m.model,
+    voice: isString(params.voice) ? params.voice : undefined,
+    speed: typeof params.speed === "number" ? params.speed : undefined,
+    audioFormat: params.audioFormat,
+    signal
+  };
+  let encodedError: unknown;
+  try {
+    const encoded = provider
+      ? await provider.textToSpeechEncoded(providerParams)
+      : await encodedSpeech(context, m, params);
+    signal.throwIfAborted();
+    if (encoded?.data && encoded.data.length > 0) {
+      return {
+        data: encoded.data,
+        mimeType: encoded.mimeType ?? "audio/mpeg",
+        outputFile
+      };
+    }
+  } catch (error) {
+    if (signal.aborted || currentGenerationReceipt()?.provider_request_id) {
+      throw error;
+    }
+    encodedError = error;
+  }
+  if (currentGenerationReceipt()?.provider_request_id) {
+    throw new Error(
+      "The accepted speech request returned no audio; recover that request before submitting another."
+    );
+  }
+
+  const parts: Uint8Array[] = [];
+  let pcmOnly = true;
+  let mimeType: string | undefined;
+  let sampleRate: number | undefined;
+  try {
+    const stream = provider
+      ? provider.textToSpeech(providerParams)
+      : context.streamProviderPrediction({
+          provider: m.provider,
+          capability: "text_to_speech",
+          model: m.model,
+          params: { ...providerParams, signal }
+        });
+    for await (const item of stream) {
+      signal.throwIfAborted();
+      if (!isRecord(item)) {
+        continue;
+      }
+      const chunk = item;
+      if (chunk.data instanceof Uint8Array || isString(chunk.data)) {
+        const data =
+          chunk.data instanceof Uint8Array
+            ? chunk.data
+            : Buffer.from(chunk.data, "base64");
+        if (data.length > 0) {
+          parts.push(data);
+        }
+        if (isString(chunk.mimeType)) {
+          mimeType = chunk.mimeType;
+        }
+        pcmOnly = false;
+      } else {
+        if (chunk.sampleRate !== undefined) {
+          if (
+            typeof chunk.sampleRate !== "number" ||
+            !Number.isInteger(chunk.sampleRate) ||
+            chunk.sampleRate <= 0 ||
+            chunk.sampleRate > 0xffffffff / 2
+          ) {
+            throw new Error("TTS returned an invalid PCM sample rate");
+          }
+          if (sampleRate !== undefined && sampleRate !== chunk.sampleRate) {
+            throw new Error("TTS changed PCM sample rate during the stream");
+          }
+          sampleRate = chunk.sampleRate;
+        }
+        if (chunk.samples instanceof Int16Array && chunk.samples.length > 0) {
+          parts.push(int16ToUint8(chunk.samples));
+        }
+      }
+    }
+  } catch (error) {
+    if (encodedError) {
+      throw new Error(
+        `${encodedError instanceof Error ? encodedError.message : String(encodedError)} (the streaming fallback then failed too: ${error instanceof Error ? error.message : String(error)})`
+      );
+    }
+    throw error;
+  }
+  signal.throwIfAborted();
+  const merged = concatUint8(parts);
+  if (merged.length === 0) {
+    throw new Error("Provider returned no audio data");
+  }
+  if (pcmOnly && !mimeType) {
+    if (merged.length < 2 || merged.length % 2 !== 0) {
+      throw new Error("TTS produced no complete audio samples");
+    }
+    const finalPath = outputFile
+      ? path.join(
+          path.dirname(outputFile),
+          `${path.basename(outputFile, path.extname(outputFile))}.wav`
+        )
+      : undefined;
+    return {
+      data: wrapPcmAsWav(merged, sampleRate ?? 24000),
+      mimeType: "audio/wav",
+      outputFile: finalPath
+    };
+  }
+  return { data: merged, mimeType: mimeType ?? "audio/mpeg", outputFile };
+}
+
+function runAudioGeneration(
+  context: ProcessingContext,
+  req: GenerationRequest,
+  spec: MediaGeneration,
+  params: Record<string, unknown>,
+  call: (
+    provider: BaseProvider | null,
+    signal: AbortSignal
+  ) => Promise<GeneratedAudio>
+): Promise<Record<string, unknown>> | Record<string, unknown> {
+  const work = async (): Promise<Record<string, unknown>> => {
+    let saved: SavedOutput | undefined;
+    const result = await context.runGenerationWith(
+      req,
+      async (provider, signal) => {
+        const audio = await call(provider, signal);
+        if (audio.outputFile && req.persist) {
+          req.persist.name = path.basename(audio.outputFile);
+        }
+        return audio;
+      },
+      {
+        finalizeOutput: async (output, assets) => {
+          if (
+            !isRecord(output) ||
+            !(output.data instanceof Uint8Array) ||
+            !isString(output.mimeType)
+          ) {
+            throw new Error("Provider returned invalid audio output");
+          }
+          const mime = output.mimeType;
+          const first = assets[0];
+          saved = { bytes: output.data.length, mime_type: mime };
+          if (first?.asset_id) {
+            saved.asset_id = first.asset_id;
+            saved.asset_uri = first.uri;
+            saved.url = first.uri;
+          }
+          const outputFile = isString(output.outputFile)
+            ? output.outputFile
+            : undefined;
+          if (outputFile || !saved.asset_id) {
+            const destination =
+              outputFile ??
+              timestampedName(spec.namePrefix, MIME_TO_EXT[mime] ?? "bin");
+            if (!context.workspace) {
+              return {
+                status: "failed",
+                path: destination,
+                error: `Could not deliver audio to "${destination}": no workspace is available.`
+              };
+            }
+            try {
+              await context.workspace.write(destination, output.data, mime);
+            } catch (error) {
+              return {
+                status: "failed",
+                path: destination,
+                error: error instanceof Error ? error.message : String(error)
+              };
+            }
+            saved.path = destination;
+            return { status: "completed", path: destination };
+          }
+          return { status: "completed" };
+        }
+      }
+    );
+    const response: Record<string, unknown> = {
+      type: "audio",
+      provider: spec.m.provider,
+      model: spec.m.model,
+      generation_id: result.id,
+      ...saved
+    };
+    if (result.delivery) {
+      response.delivery = result.delivery;
+    }
+    return response;
+  };
+  if (params.background === true) {
+    if (!startBackgroundGeneration(context, work)) {
+      return backgroundGenerationLimitError();
+    }
+    return backgroundReceipt(req.id ?? "", spec);
+  }
+  return work().catch((error) => ({
+    ...predictionError(spec.capability, spec.m, error),
+    generation_id: req.id
+  }));
+}
+
 const generateSpeech: CapabilityExport = {
   spec: generateSpeechSpec,
   impl: async (run, params) => {
-    const context = run.context;
     const m = parseModelArgs(params);
-    if ("error" in m) return m;
-    const text = params["text"];
-    if (!isNonEmptyString(text)) return { error: "text is required" };
-
-    const outputFile = isString(params["output_file"])
-      ? params["output_file"]
-      : undefined;
-    const desiredFormat = audioFormatFromOutputFile(outputFile) ?? "mp3";
-    const generationId = randomUUID();
-    const generation: Pick<GenerationRequest, "id" | "origin" | "persist"> = {
-      id: generationId,
-      origin: { surface: "capability", tool_call_id: toolCallIdOf(params) },
-      persist: outputFile ? { name: path.basename(outputFile) } : {}
-    };
-    const speechParams = {
+    if ("error" in m) {
+      return m;
+    }
+    const text = params.text;
+    if (!isNonEmptyString(text)) {
+      return { error: "text is required" };
+    }
+    const outputFile = outputFileOf(params);
+    const speechParams: EncodedSpeechParams = {
       text,
-      voice: params["voice"],
-      speed: params["speed"],
-      audioFormat: desiredFormat
+      voice: params.voice,
+      speed: params.speed,
+      audioFormat: audioFormatFromOutputFile(outputFile) ?? "mp3"
     };
-
-    if (params["background"] === true) {
-      const spec: MediaGeneration = {
-        capability: "text_to_speech",
-        m,
-        type: "audio",
-        namePrefix: "generated-speech",
-        params: speechParams
-      };
-      const started = startBackgroundGeneration(context, () =>
-        encodedSpeech(context, m, speechParams, generation)
-      );
-      if (!started) {
-        return backgroundGenerationLimitError();
-      }
-      return backgroundReceipt(generationId, spec);
-    }
-
-    try {
-      // Preferred path: ask the provider for fully-encoded audio in the
-      // desired container (mp3/wav/flac/...). Returns null when the provider
-      // doesn't support encoded TTS — we then fall through to streaming PCM.
-      let audio: Uint8Array | null = null;
-      let mimeType: string | undefined;
-      let outputFileFinal = outputFile;
-      // The asset the seam saved on the encoded path, when it could.
-      let seamAssetId: string | null = null;
-      // Why the encoded path gave up, kept for the failure message. A provider
-      // that only does encoded TTS (FAL, KIE) leaves the streaming method as
-      // the base class's, which throws "<provider> does not support
-      // textToSpeech" — so discarding this error reported the one thing that
-      // was not wrong, and a session spent three rounds hunting for a TTS
-      // model when the real answer was in the sentence thrown here.
-      let encodedError: string | undefined;
-
-      try {
-        const encoded = await encodedSpeech(
-          context,
-          m,
-          speechParams,
-          generation
-        );
-        if (encoded && encoded.data) {
-          audio = encoded.data;
-          mimeType = encoded.mimeType;
-          seamAssetId = await seamAssetFor(generationId);
-        }
-      } catch (e) {
-        encodedError = e instanceof Error ? e.message : String(e);
-      }
-
-      if (!audio) {
-        // Streaming path — provider returns either pre-encoded chunks
-        // (carrying mimeType) or raw int16 PCM samples that we must wrap in
-        // a WAV container before writing to disk so the file is playable.
-        const parts: Uint8Array[] = [];
-        let pcmOnly = true;
-        // Capture the PCM sample rate from the stream — providers emit non-24k
-        // PCM (MiniMax 32000, Together varies). Hardcoding 24000 in the WAV
-        // header makes those play back at the wrong speed/pitch.
-        let pcmSampleRate: number | undefined;
-        try {
-          for await (const item of context.streamProviderPrediction({
-            id: generationId,
-            origin: generation.origin,
-            provider: m.provider,
-            capability: "text_to_speech",
-            model: m.model,
-            params: {
-              text,
-              voice: params["voice"],
-              speed: params["speed"]
-            }
-          })) {
-            const chunk = item as TTSChunkLike;
-            if (chunk.data instanceof Uint8Array) {
-              parts.push(chunk.data);
-              if (chunk.mimeType) mimeType = chunk.mimeType;
-              pcmOnly = false;
-            } else if (isString(chunk.data)) {
-              parts.push(Buffer.from(chunk.data, "base64"));
-              if (chunk.mimeType) mimeType = chunk.mimeType;
-              pcmOnly = false;
-            } else {
-              if (chunk.sampleRate !== undefined) {
-                if (
-                  !Number.isInteger(chunk.sampleRate) ||
-                  chunk.sampleRate <= 0 ||
-                  chunk.sampleRate > 0xffffffff / 2
-                ) {
-                  throw new Error("TTS returned an invalid PCM sample rate");
-                }
-                pcmSampleRate ??= chunk.sampleRate;
-              }
-              if (chunk.samples) {
-                parts.push(int16ToUint8(chunk.samples));
-              }
-            }
-          }
-        } catch (e) {
-          // Both paths failed. Report the encoded one first: on a provider
-          // that only does encoded TTS the streaming error is the base class's
-          // "does not support textToSpeech", which is true of the method and
-          // false of the provider.
-          if (encodedError) {
-            throw new Error(
-              `${encodedError} (the streaming fallback then failed too: ${
-                e instanceof Error ? e.message : String(e)
-              })`
-            );
-          }
-          throw e;
-        }
-        if (parts.length === 0) {
-          return {
-            error: encodedError
-              ? `Provider returned no audio data: ${encodedError}`
-              : "Provider returned no audio data"
-          };
-        }
-        const merged = concatUint8(parts);
-        if (pcmOnly && !mimeType) {
-          if (merged.length < 2) {
-            throw new Error("TTS produced no audio samples");
-          }
-          // Wrap raw PCM in WAV so the bytes are playable. Rename .mp3 →
-          // .wav since the actual data is now WAV, not MP3. Honor the provider's
-          // actual sample rate (defaulting to 24k only when unknown).
-          audio = wrapPcmAsWav(merged, pcmSampleRate ?? 24000);
-          mimeType = "audio/wav";
-          if (outputFileFinal) {
-            const dir = path.dirname(outputFileFinal);
-            const base = path.basename(
-              outputFileFinal,
-              path.extname(outputFileFinal)
-            );
-            outputFileFinal = path.join(dir === "." ? "" : dir, `${base}.wav`);
-          }
-        } else {
-          audio = merged;
-        }
-      }
-
-      const mime = mimeType ?? "audio/mpeg";
-      const persisted = await finishOutput(
-        context,
-        audio,
-        seamAssetId
-          ? [
-              {
-                asset_id: seamAssetId,
-                uri: `asset://${seamAssetId}.${MIME_TO_EXT[mime] ?? "bin"}`
-              }
-            ]
-          : [],
-        {
-          namePrefix: "generated-speech",
-          mime,
-          outputFile: outputFileFinal
-        }
-      );
-      return {
-        type: "audio",
-        provider: m.provider,
-        model: m.model,
-        generation_id: generationId,
-        ...persisted
-      };
-    } catch (e) {
-      return {
-        ...predictionError("text_to_speech", m, e),
-        generation_id: generationId
-      };
-    }
+    const spec: MediaGeneration = {
+      capability: "text_to_speech",
+      m,
+      type: "audio",
+      namePrefix: "generated-speech",
+      params: { ...speechParams }
+    };
+    const req = generationRequest(randomUUID(), params, spec);
+    return runAudioGeneration(
+      run.context,
+      req,
+      spec,
+      params,
+      (provider, signal) =>
+        speechAudio(run.context, provider, m, speechParams, signal, outputFile)
+    );
   }
 };
 
-/**
- * Music from a prompt — the counterpart to {@link generateSpeech}, and the
- * hole every other generation capability made conspicuous.
- *
- * Without it, scoring a cut meant running `nodetool.audio.TextToMusic` through
- * `run_node`: a one-node graph, and therefore the graph validator, a typed
- * `music_model` property and a model ref to satisfy before a single second of
- * audio existed. A live session spent five rounds there and shipped silent.
- */
 const generateMusic: CapabilityExport = {
   spec: generateMusicSpec,
   impl: async (run, params) => {
-    const context = run.context;
     const m = parseModelArgs(params);
-    if ("error" in m) return m;
-    const prompt = params["prompt"];
-    if (!isNonEmptyString(prompt)) return { error: "prompt is required" };
-
-    if (!isFunction(context.textToMusic)) {
-      return {
-        error: "this runtime's context has no text_to_music path"
-      };
+    if ("error" in m) {
+      return m;
     }
-
-    const outputFile = isString(params["output_file"])
-      ? params["output_file"]
-      : undefined;
-    const desiredFormat = audioFormatFromOutputFile(outputFile) ?? "mp3";
-    const generationId = randomUUID();
+    const prompt = params.prompt;
+    if (!isNonEmptyString(prompt)) {
+      return { error: "prompt is required" };
+    }
+    const outputFile = outputFileOf(params);
     const musicParams = {
       prompt,
-      lyrics: params["lyrics"],
+      lyrics: params.lyrics,
       duration_seconds: aliased(
         params,
         "duration_seconds",
         "durationSeconds",
         "duration"
       ),
-      audioFormat: desiredFormat
-    };
-    const req: GenerationRequest = {
-      id: generationId,
-      provider: m.provider,
-      capability: "text_to_music",
-      model: m.model,
-      params: musicParams,
-      origin: { surface: "capability", tool_call_id: toolCallIdOf(params) },
-      persist: outputFile ? { name: path.basename(outputFile) } : {}
+      audioFormat: audioFormatFromOutputFile(outputFile) ?? "mp3"
     };
     const spec: MediaGeneration = {
       capability: "text_to_music",
@@ -1318,53 +1337,38 @@ const generateMusic: CapabilityExport = {
       namePrefix: "generated-music",
       params: musicParams
     };
-
-    if (params["background"] === true) {
-      const started = startBackgroundGeneration(context, () =>
-        context.textToMusic(req)
-      );
-      if (!started) {
-        return backgroundGenerationLimitError();
-      }
-      return backgroundReceipt(generationId, spec);
-    }
-
-    try {
-      const encoded = await context.textToMusic(req);
-      if (!encoded?.data || encoded.data.length === 0) {
+    const req = generationRequest(randomUUID(), params, spec);
+    return runAudioGeneration(
+      run.context,
+      req,
+      spec,
+      params,
+      async (provider, signal) => {
+        signal.throwIfAborted();
+        const encoded = provider
+          ? await provider.textToMusic({
+              prompt,
+              model: { id: m.model, name: m.model, provider: m.provider },
+              lyrics: isString(params.lyrics) ? params.lyrics : undefined,
+              durationSeconds:
+                typeof musicParams.duration_seconds === "number"
+                  ? musicParams.duration_seconds
+                  : undefined,
+              audioFormat: musicParams.audioFormat,
+              signal
+            })
+          : await run.context.textToMusic(req);
+        signal.throwIfAborted();
+        if (!encoded?.data || encoded.data.length === 0) {
+          throw new Error("Provider returned no audio data");
+        }
         return {
-          error: "Provider returned no audio data",
-          generation_id: generationId
+          data: encoded.data,
+          mimeType: encoded.mimeType ?? "audio/mpeg",
+          outputFile
         };
       }
-      const mime = encoded.mimeType ?? "audio/mpeg";
-      const seamAssetId = await seamAssetFor(generationId);
-      const persisted = await finishOutput(
-        context,
-        encoded.data,
-        seamAssetId
-          ? [
-              {
-                asset_id: seamAssetId,
-                uri: `asset://${seamAssetId}.${MIME_TO_EXT[mime] ?? "bin"}`
-              }
-            ]
-          : [],
-        { namePrefix: "generated-music", mime, outputFile }
-      );
-      return {
-        type: "audio",
-        provider: m.provider,
-        model: m.model,
-        generation_id: generationId,
-        ...persisted
-      };
-    } catch (e) {
-      return {
-        ...predictionError("text_to_music", m, e),
-        generation_id: generationId
-      };
-    }
+    );
   }
 };
 
@@ -1526,7 +1530,8 @@ async function judgeCall(
   context: ProcessingContext,
   m: JudgeModelArgs,
   content: MessageContent[],
-  maxTokens: number = JUDGE_MAX_TOKENS
+  maxTokens: number = JUDGE_MAX_TOKENS,
+  requiredImages?: readonly string[]
 ): Promise<string> {
   const result = (await context.runProviderPrediction({
     provider: m.provider,
@@ -1535,7 +1540,11 @@ async function judgeCall(
     params: {
       messages: [{ role: "user", content }] satisfies Message[],
       max_tokens: maxTokens,
-      temperature: 0
+      temperature: 0,
+      strict_image_evidence:
+        content.some((part) => part.type === "image_url") ||
+        Boolean(requiredImages?.length),
+      required_images: requiredImages?.map(normalizeMediaSource)
     }
   })) as Message;
   return messageText(result);
@@ -1723,11 +1732,13 @@ const compareImages: CapabilityExport = {
       b: string
     ): Promise<{ winner: string; reason: string } | { error: string }> => {
       const call = async (first: string, second: string) => {
-        const text = await judgeCall(context, m, [
-          textPart(prompt),
-          imagePart(first),
-          imagePart(second)
-        ]);
+        const text = await judgeCall(
+          context,
+          m,
+          [textPart(prompt), imagePart(first), imagePart(second)],
+          JUDGE_MAX_TOKENS,
+          images.map(String)
+        );
         const verdict = parsePairVerdict(text);
         if (!verdict) {
           throw new Error(
@@ -1805,6 +1816,7 @@ const compareImages: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 interface AdherenceAnswer {
+  id: string;
   question: string;
   answer: "yes" | "no";
   note: string;
@@ -1827,17 +1839,23 @@ const scoreImageAdherence: CapabilityExport = {
         : [];
 
       if (questions.length === 0) {
-        const decomposeText = await judgeCall(context, m, [
-          textPart(
-            `Decompose this creative brief into at most ${MAX_ADHERENCE_QUESTIONS} atomic` +
-              ` yes/no questions, each verifiable by looking at a single image. Cover every` +
-              ` explicit requirement (subjects, counts, colors, text, style, composition,` +
-              ` mood). Phrase each so "yes" means the requirement is met. Skip anything not` +
-              ` visually checkable.` +
-              `\n\nBrief:\n${brief}` +
-              `\n\nRespond with JSON only: {"questions": ["..."]}`
-          )
-        ]);
+        const decomposeText = await judgeCall(
+          context,
+          m,
+          [
+            textPart(
+              `Decompose this creative brief into at most ${MAX_ADHERENCE_QUESTIONS} atomic` +
+                ` yes/no questions, each verifiable by looking at a single image. Cover every` +
+                ` explicit requirement (subjects, counts, colors, text, style, composition,` +
+                ` mood). Phrase each so "yes" means the requirement is met. Skip anything not` +
+                ` visually checkable.` +
+                `\n\nBrief:\n${brief}` +
+                `\n\nRespond with JSON only: {"questions": ["..."]}`
+            )
+          ],
+          JUDGE_MAX_TOKENS,
+          [image]
+        );
         const parsed = extractJSON(decomposeText);
         const list = isRecord(parsed) ? parsed["questions"] : parsed;
         questions = Array.isArray(list) ? list.map(String).filter(Boolean) : [];
@@ -1849,13 +1867,17 @@ const scoreImageAdherence: CapabilityExport = {
       }
       questions = questions.slice(0, MAX_ADHERENCE_QUESTIONS);
 
+      const checks = questions.map((question, i) => ({
+        id: `q${i + 1}`,
+        question
+      }));
       const answerText = await judgeCall(context, m, [
         textPart(
           `Answer each question about the image with a strict yes or no. "yes" only if` +
             ` the image clearly satisfies it; when unsure, answer "no" and say why in the note.` +
-            `\n\nQuestions:\n${questions.map((q, i) => `${i + 1}. ${q}`).join("\n")}` +
+            `\n\nQuestions:\n${checks.map((q) => `${q.id}: ${q.question}`).join("\n")}` +
             `\n\nRespond with JSON only:` +
-            `\n{"answers": [{"question": "...", "answer": "yes" | "no", "note": "..."}]}`
+            `\n{"answers": [{"id": "q1", "question": "...", "answer": "yes" | "no", "note": "..."}]}`
         ),
         imagePart(image)
       ]);
@@ -1863,24 +1885,66 @@ const scoreImageAdherence: CapabilityExport = {
       const rawAnswers: unknown = isRecord(parsed) ? parsed["answers"] : null;
       if (!Array.isArray(rawAnswers) || rawAnswers.length === 0) {
         return {
-          error: `Judge did not return parseable answers: ${answerText.slice(0, 300)}`
+          error: `Judge did not return parseable answers: ${answerText.slice(0, 300)}`,
+          evidence_status: "invalid",
+          total: checks.length,
+          missing_ids: checks.map((check) => check.id)
         };
       }
-      const answers: AdherenceAnswer[] = rawAnswers
-        .filter(isObjectLike)
-        .map((a) => ({
-          question: String(a["question"] ?? ""),
-          answer: a["answer"] === "yes" ? "yes" : "no",
-          note: String(a["note"] ?? "")
-        }));
+      const byId = new Map<string, AdherenceAnswer>();
+      const invalid: string[] = [];
+      for (const raw of rawAnswers) {
+        if (!isRecord(raw)) {
+          invalid.push("answer must be an object");
+          continue;
+        }
+        const id = String(raw["id"] ?? "");
+        const check = checks.find((c) => c.id === id);
+        if (!check || raw["question"] !== check.question) {
+          invalid.push(`unrequested or substituted check: ${id}`);
+          continue;
+        }
+        if (byId.has(id)) {
+          invalid.push(`duplicate check: ${id}`);
+          continue;
+        }
+        if (raw["answer"] !== "yes" && raw["answer"] !== "no") {
+          invalid.push(`invalid answer: ${id}`);
+          continue;
+        }
+        byId.set(id, {
+          id,
+          question: check.question,
+          answer: raw["answer"],
+          note: String(raw["note"] ?? "")
+        });
+      }
+      const missingIds = checks.filter((c) => !byId.has(c.id)).map((c) => c.id);
+      if (invalid.length || missingIds.length) {
+        return {
+          error: "Judge returned invalid or incomplete adherence evidence",
+          evidence_status: "invalid",
+          total: checks.length,
+          missing_ids: missingIds,
+          invalid
+        };
+      }
+      const answers: AdherenceAnswer[] = [];
+      for (const check of checks) {
+        const answer = byId.get(check.id);
+        if (answer) {
+          answers.push(answer);
+        }
+      }
       const passed = answers.filter((a) => a.answer === "yes").length;
       return {
         type: "adherence",
+        evidence_status: "complete",
         provider: m.provider,
         model: m.model,
-        score: answers.length ? passed / answers.length : 0,
+        score: passed / checks.length,
         passed,
-        total: answers.length,
+        total: checks.length,
         failed: answers.filter((a) => a.answer === "no"),
         answers
       };
@@ -2173,9 +2237,11 @@ async function stageInputs(
   const localAssetLimit = workspace.localDir
     ? getMaxLocalUploadBytes()
     : undefined;
-  const hasLocalAsset = localAssetLimit !== undefined && entries.some(
-    ([, ref]) => isNonBlankString(ref) && ref.trim().startsWith("asset://")
-  );
+  const hasLocalAsset =
+    localAssetLimit !== undefined &&
+    entries.some(
+      ([, ref]) => isNonBlankString(ref) && ref.trim().startsWith("asset://")
+    );
   const totalLimit = hasLocalAsset
     ? Math.max(MAX_STAGED_TOTAL_BYTES, localAssetLimit ?? 0)
     : MAX_STAGED_TOTAL_BYTES;
