@@ -24,7 +24,7 @@ export const staticEntries: PageEntry[] = [
   // pages it feeds.
   { route: "/node-based-ai", title: "Node-based AI", description: "Build AI workflows with nodes, not prompts.", priority: 0.9, changeFrequency: "monthly", indexable: true },
   { route: "/agents", title: "AI Agents", description: "Build planning agents on a visual canvas.", priority: 0.8, changeFrequency: "monthly", indexable: true },
-  { route: "/developers", title: "For Developers", description: "One QuickJS sandbox for your code and your agent's.", priority: 0.8, changeFrequency: "monthly", indexable: true },
+  { route: "/developers", title: "For Developers", description: "Give your coding agent images, video, speech, and workflows over MCP.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/marketing", title: "For Marketing", description: "Produce campaign assets with AI workflows.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/gamedev", title: "Game Development", description: "Play and edit example games made in NodeTool Studio.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   // /alternatives/* comes from the competitorEntries engine module.

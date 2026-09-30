@@ -109,7 +109,9 @@ describe("harness registry", () => {
     expect(surface?.paths).toEqual([
       "demo/src/",
       "demo/scripts/render-tutorials.ts",
-      "demo/scripts/render-marketing.ts"
+      "demo/scripts/render-marketing.ts",
+      "demo/scripts/encode-hero.mjs",
+      "demo/scripts/vibe-track.ts"
     ]);
 
     const plan = planGate([

@@ -261,6 +261,7 @@ export {
   resolvePythonNodeExecutor
 } from "./python-graph-resolver.js";
 export { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
+export { imageModelSupportsTask } from "./image-model-tasks.js";
 export {
   fetchExternalMedia,
   privateMediaFetchAllowed

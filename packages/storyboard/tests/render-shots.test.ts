@@ -163,6 +163,35 @@ describe("renderShots", () => {
     expect(requests[0].params["image"]).toBeUndefined();
   });
 
+  describe("a still with entity reference images", () => {
+    const entity: Entity = {
+      type: "entity", id: "e1", kind: "character", name: "Mara", descriptor: "runner",
+      reference_images: [{ type: "image", asset_id: "r1", uri: "asset://r1" }]
+    };
+    const doc = { ...board([shot({ id: "s1", index: 0, entity_ids: ["e1"] })]), aspectRatio: "9:16" };
+
+    it("renders through image_to_image when the still model takes images", async () => {
+      const { host, requests } = fakeHost(doc);
+      const plans = planShotRenders(doc, [entity], "keyframe");
+      const outcomes = await renderShots(host, { id: "b1" }, plans, {
+        newId: ids(),
+        stillModelTakesImages: true
+      });
+      expect(outcomes[0].ok).toBe(true);
+      expect(requests[0].capability).toBe("image_to_image");
+      expect(requests[0].params).toMatchObject({
+        aspect_ratio: "9:16",
+        entities: [{ name: "Mara", reference_images: [{ asset_id: "r1" }] }]
+      });
+    });
+
+    it("stays on text_to_image when the still model takes no images", async () => {
+      const { host, requests } = fakeHost(doc);
+      await renderShots(host, { id: "b1" }, planShotRenders(doc, [entity], "keyframe"));
+      expect(requests[0].capability).toBe("text_to_image");
+    });
+  });
+
   it("rejects an unreadable reference before spending", async () => {
     const entity: Entity = {
       type: "entity", id: "e1", kind: "character", name: "Mara", descriptor: "runner",

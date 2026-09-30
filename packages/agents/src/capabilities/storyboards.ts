@@ -772,12 +772,25 @@ const renderStoryboardStills: CapabilityExport = {
       chosen.map((shot) => shot.id),
       planOptions
     );
+    const { imageModelSupportsTask } = await import("@nodetool-ai/runtime");
+    const boardTasks = doc.imageModel?.supported_tasks;
+    const stillModelTakesImages = await imageModelSupportsTask(
+      context,
+      model,
+      "image_to_image",
+      model.model === doc.imageModel?.id &&
+        model.provider === doc.imageModel?.provider &&
+        Array.isArray(boardTasks)
+        ? boardTasks.filter(isString)
+        : undefined
+    );
     const outcomes = await renderShots(
       renderHost(context),
       { id: row.id },
       plans,
       {
-        concurrency: clampConcurrency(params["concurrency"])
+        concurrency: clampConcurrency(params["concurrency"]),
+        stillModelTakesImages
       }
     );
     const results = outcomes.map((outcome) => outcomeRow(outcome, false));

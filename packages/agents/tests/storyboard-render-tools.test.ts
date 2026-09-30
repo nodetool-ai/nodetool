@@ -189,6 +189,45 @@ describe("storyboard render tools", () => {
     expect(saved.shots[1].keyframe?.asset_id).toBe("a1");
   });
 
+  it("renders a still with entity references through image_to_image when the model edits", async () => {
+    await Asset.create<Asset>({
+      id: "dog-1",
+      user_id: "u1",
+      name: "Rex",
+      content_type: "image/png",
+      metadata: { nodetool_entity: { kind: "character", name: "Rex", descriptor: "a corgi" } }
+    });
+    const board = await makeBoard([shot({ id: "s1", index: 0, entity_ids: ["dog-1"] })], {
+      entityIds: ["dog-1"],
+      aspectRatio: "9:16",
+      imageModel: {
+        type: "image_model",
+        id: "google/gemini-2.5-flash-image",
+        provider: "openrouter",
+        supported_tasks: ["text_to_image", "image_to_image"]
+      }
+    });
+    const context = ctx();
+
+    const result = (await toolForCapabilityName("render_storyboard_stills").process(context, {
+      storyboard_id: board.id
+    })) as { rendered: number };
+
+    expect(result.rendered).toBe(1);
+    const request = context.runProviderPrediction.mock.calls[0][0] as {
+      capability: string;
+      params: { aspect_ratio: string; entities: Array<{ name: string; reference_images: unknown[] }> };
+    };
+    expect(request.capability).toBe("image_to_image");
+    expect(request.params.aspect_ratio).toBe("9:16");
+    expect(request.params.entities).toEqual([
+      expect.objectContaining({
+        name: "Rex",
+        reference_images: [expect.objectContaining({ asset_id: "dog-1" })]
+      })
+    ]);
+  });
+
   it("reports a failed render per shot and marks the shot failed", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })]);
     const context = ctx({

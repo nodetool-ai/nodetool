@@ -442,6 +442,59 @@ describe("OpenRouterProvider", () => {
       expect(call.prompt).toContain("A landscape");
       expect(call.prompt).toContain("Do not include: blurry");
     });
+
+    const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const gemini = {
+      id: "google/gemini-2.5-flash-image",
+      name: "Gemini 2.5 Flash Image",
+      provider: "openrouter"
+    };
+    const providerWith = (imageGenerate: ReturnType<typeof vi.fn>) =>
+      new OpenRouterProvider(
+        { OPENROUTER_API_KEY: "k" },
+        { client: { images: { generate: imageGenerate } } as any }
+      );
+    const generated = () =>
+      vi.fn().mockResolvedValue({
+        data: [{ b64_json: Buffer.from("out").toString("base64") }]
+      });
+
+    it("forwards the aspect ratio and resolution on textToImage", async () => {
+      const imageGenerate = generated();
+      await providerWith(imageGenerate).textToImage({
+        model: gemini,
+        prompt: "a dog",
+        aspectRatio: "9:16",
+        resolution: "1K"
+      });
+      expect(imageGenerate.mock.calls[0][0]).toMatchObject({
+        aspect_ratio: "9:16",
+        resolution: "1K"
+      });
+      expect(imageGenerate.mock.calls[0][0].input_references).toBeUndefined();
+    });
+
+    it("sends source and entity images as input_references on imageToImage", async () => {
+      const imageGenerate = generated();
+      const out = await providerWith(imageGenerate).imageToImage([], {
+        model: gemini,
+        prompt: "a dog on a beach",
+        aspectRatio: "9:16",
+        entities: [{ name: "Rex", descriptor: "a corgi", image: PNG }]
+      });
+      expect(out).toEqual(new Uint8Array(Buffer.from("out")));
+      const call = imageGenerate.mock.calls[0][0];
+      expect(call.aspect_ratio).toBe("9:16");
+      expect(call.input_references).toEqual([
+        {
+          type: "image_url",
+          image_url: {
+            url: `data:image/png;base64,${Buffer.from(PNG).toString("base64")}`
+          }
+        }
+      ]);
+      expect(call.prompt).toContain("- Image 1 (Rex): a corgi");
+    });
   });
 
   describe("image models", () => {

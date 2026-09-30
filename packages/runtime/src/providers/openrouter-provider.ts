@@ -5,8 +5,7 @@ import {
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
 import { fetchWithRetry, pollUntilTerminal } from "./http-transport.js";
-import { sniffImageMime } from "./image-mime.js";
-import { safeFetch } from "./safe-url.js";
+import { bytesToImageDataUri } from "./image-mime.js";
 import type {
   ImageModel,
   ImageToImageParams,
@@ -42,24 +41,11 @@ const OPENROUTER_IMAGE_MODELS: ImageModel[] = [
     provider: "openrouter",
     supportedTasks: ["text_to_image"]
   },
-  // Gemini image models edit through chat completions (see imageToImage).
   {
     id: "google/gemini-2.5-flash-image",
-    name: "Nano Banana (Gemini 2.5 Flash Image)",
+    name: "Gemini 2.5 Flash Image",
     provider: "openrouter",
-    supportedTasks: ["image_to_image"]
-  },
-  {
-    id: "google/gemini-3.1-flash-image",
-    name: "Nano Banana 2 (Gemini 3.1 Flash Image)",
-    provider: "openrouter",
-    supportedTasks: ["image_to_image"]
-  },
-  {
-    id: "google/gemini-3-pro-image",
-    name: "Nano Banana Pro (Gemini 3 Pro Image)",
-    provider: "openrouter",
-    supportedTasks: ["image_to_image"]
+    supportedTasks: ["text_to_image", "image_to_image"]
   }
 ];
 
@@ -77,11 +63,6 @@ function numberList(value: unknown): number[] {
   return Array.isArray(value)
     ? value.filter((v): v is number => typeof v === "number")
     : [];
-}
-
-function dataUri(bytes: Uint8Array): string {
-  const mime = sniffImageMime(bytes) ?? "image/png";
-  return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
 }
 
 function withNegativePrompt(
@@ -210,6 +191,34 @@ export class OpenRouterProvider extends OpenAICompatProvider {
   }
 
   override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
+    const size = this.resolveImageSize(
+      params.width ?? undefined,
+      params.height ?? undefined
+    );
+    return this.generateImage(params, [], size);
+  }
+
+  /**
+   * Edit or compose from source images. OpenRouter's image API takes them as
+   * `input_references`; entity reference images arrive here already appended
+   * to `images` by the base provider.
+   */
+  override async imageToImage(
+    images: Uint8Array[],
+    params: ImageToImageParams
+  ): Promise<Uint8Array> {
+    const size = this.resolveImageSize(
+      params.targetWidth ?? undefined,
+      params.targetHeight ?? undefined
+    );
+    return this.generateImage(params, images, size);
+  }
+
+  private async generateImage(
+    params: TextToImageParams | ImageToImageParams,
+    inputs: readonly Uint8Array[],
+    size: string | null
+  ): Promise<Uint8Array> {
     if (!params.prompt) {
       throw new Error("The input prompt cannot be empty.");
     }
@@ -223,15 +232,23 @@ export class OpenRouterProvider extends OpenAICompatProvider {
       prompt
     };
 
-    const size = this.resolveImageSize(
-      params.width ?? undefined,
-      params.height ?? undefined
-    );
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
+    // Gemini image models ignore `size`; OpenRouter reads the shape from here.
+    if (params.aspectRatio) request.aspect_ratio = params.aspectRatio;
+    if (params.resolution) request.resolution = params.resolution;
+    if (inputs.length > 0) {
+      request.input_references = inputs.map((bytes) => ({
+        type: "image_url",
+        image_url: { url: bytesToImageDataUri(bytes) }
+      }));
+    }
 
     // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
-    log.debug("OpenRouter textToImage", { model: params.model.id });
+    log.debug("OpenRouter image generation", {
+      model: params.model.id,
+      inputs: inputs.length
+    });
 
     // SAFETY: a dictionary request against the OpenAI SDK's closed image
     // params; OpenRouter is driven through the same client.
@@ -257,96 +274,6 @@ export class OpenRouterProvider extends OpenAICompatProvider {
     }
 
     throw new Error("OpenRouter image generation returned no image data.");
-  }
-
-  /**
-   * Edit images through chat completions: the sources ride as `image_url`
-   * parts and `modalities` asks for an image back. This is how OpenRouter
-   * exposes Gemini image editing.
-   */
-  override async imageToImage(
-    images: Uint8Array[],
-    params: ImageToImageParams
-  ): Promise<Uint8Array> {
-    if (!params.prompt) {
-      throw new Error("The input prompt cannot be empty.");
-    }
-    const sources = images.filter((b) => b.length > 0);
-    if (sources.length === 0) {
-      throw new Error("imageToImage requires at least one source image");
-    }
-
-    const request: Record<string, unknown> = {
-      model: params.model.id,
-      modalities: ["image", "text"],
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: withNegativePrompt(params.prompt, params.negativePrompt)
-            },
-            ...sources.map((bytes) => ({
-              type: "image_url",
-              image_url: { url: dataUri(bytes) }
-            }))
-          ]
-        }
-      ]
-    };
-    if (params.aspectRatio) {
-      request.image_config = { aspect_ratio: params.aspectRatio };
-    }
-
-    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
-    log.debug("OpenRouter imageToImage", { model: params.model.id });
-
-    const init: RequestInit = {
-      method: "POST",
-      headers: this.openRouterHeaders(),
-      body: JSON.stringify(request)
-    };
-    if (params.signal) init.signal = params.signal;
-    const response = await this.compatFetch(
-      `${OPENROUTER_BASE_URL}/chat/completions`,
-      init
-    );
-    if (!response.ok) {
-      throw new Error(
-        `OpenRouter image edit failed: ${response.status} ${(await response.text()).slice(0, 500)}`
-      );
-    }
-    const body = (await response.json()) as Record<string, unknown>;
-    this.logReportedCost("imageToImage", params.model.id, body);
-
-    const choices = Array.isArray(body.choices) ? body.choices : [];
-    const message = (choices[0] as { message?: Record<string, unknown> })
-      ?.message;
-    const parts = Array.isArray(message?.images) ? message.images : [];
-    const url = (parts[0] as { image_url?: { url?: unknown } } | undefined)
-      ?.image_url?.url;
-    if (typeof url !== "string") {
-      const text = typeof message?.content === "string" ? message.content : "";
-      throw new Error(
-        `OpenRouter image edit returned no image${text ? `: ${text.slice(0, 500)}` : ""}`
-      );
-    }
-    if (url.startsWith("data:")) {
-      const comma = url.indexOf(",");
-      return Uint8Array.from(Buffer.from(url.slice(comma + 1), "base64"));
-    }
-    // A hosted URL is provider-returned, so it goes through the SSRF guard.
-    const download = await safeFetch(
-      url,
-      params.signal ? { signal: params.signal } : {},
-      5,
-      this.compatFetch
-    );
-    if (!download.ok) {
-      throw new Error(`Image fetch failed: ${download.status}`);
-    }
-    return new Uint8Array(await download.arrayBuffer());
   }
 
   /**
@@ -403,14 +330,14 @@ export class OpenRouterProvider extends OpenAICompatProvider {
     const frames: Record<string, unknown>[] = [
       {
         type: "image_url",
-        image_url: { url: dataUri(image) },
+        image_url: { url: bytesToImageDataUri(image) },
         frame_type: "first_frame"
       }
     ];
     if (params.endImage && params.endImage.length > 0) {
       frames.push({
         type: "image_url",
-        image_url: { url: dataUri(params.endImage) },
+        image_url: { url: bytesToImageDataUri(params.endImage) },
         frame_type: "last_frame"
       });
     }
@@ -431,17 +358,6 @@ export class OpenRouterProvider extends OpenAICompatProvider {
       "Content-Type": "application/json",
       ...OPENROUTER_HEADERS
     };
-  }
-
-  private logReportedCost(
-    operation: string,
-    model: string,
-    body: Record<string, unknown>
-  ): void {
-    const cost = reportedCost(body);
-    if (cost === undefined) return;
-    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
-    log.info("OpenRouter generation cost", { operation, model, cost });
   }
 
   /**
@@ -528,7 +444,11 @@ export class OpenRouterProvider extends OpenAICompatProvider {
           )
       }
     );
-    this.logReportedCost("video", params.model.id, done);
+    const cost = reportedCost(done);
+    if (cost !== undefined) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
+      log.info("OpenRouter video cost", { model: params.model.id, cost });
+    }
 
     const content = await this.compatFetch(`${jobUrl}/content?index=0`, {
       headers: this.openRouterHeaders(),

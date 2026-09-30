@@ -1525,7 +1525,9 @@ export const SURFACES: SurfaceEntry[] = [
     paths: [
       "demo/src/",
       "demo/scripts/render-tutorials.ts",
-      "demo/scripts/render-marketing.ts"
+      "demo/scripts/render-marketing.ts",
+      "demo/scripts/encode-hero.mjs",
+      "demo/scripts/vibe-track.ts"
     ]
   },
   {

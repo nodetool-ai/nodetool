@@ -1,9 +1,9 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
-const TITLE = "NodeTool Agents | Agents that work in real editors";
+const TITLE = "NodeTool Agents | Your agent builds the workflow. You keep it.";
 const DESCRIPTION =
-  "Build creative automation that produces editable workflows, apps, and projects. Inspect tool calls, results, errors, and interventions, then revise and reuse the workflow.";
+  "Hand a brief to the built-in agent or your own coding agent. It builds a NodeTool workflow, runs it on your keys, and fixes the step that fails. Open the saved graph, change a node, and run it again.";
 
 export const metadata: Metadata = {
   title: TITLE,

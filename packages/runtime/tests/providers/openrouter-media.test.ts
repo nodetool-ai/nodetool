@@ -4,10 +4,7 @@ import {
   BaseProvider,
   providerCapabilities
 } from "../../src/providers/base-provider.js";
-import type {
-  ImageModel,
-  VideoModel
-} from "../../src/providers/types.js";
+import type { VideoModel } from "../../src/providers/types.js";
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
 const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 9]);
@@ -16,11 +13,6 @@ const MP4 = new Uint8Array([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70]);
 const VIDEO_MODEL: VideoModel = {
   id: "google/veo-3.1",
   name: "Veo 3.1",
-  provider: "openrouter"
-};
-const IMAGE_MODEL: ImageModel = {
-  id: "google/gemini-2.5-flash-image",
-  name: "Nano Banana",
   provider: "openrouter"
 };
 
@@ -215,78 +207,5 @@ describe("OpenRouterProvider video", () => {
     expect(caps).toContain("text_to_video");
     expect(caps).toContain("image_to_video");
     expect(caps).not.toContain("reference_to_video");
-  });
-});
-
-describe("OpenRouterProvider imageToImage", () => {
-  it("edits through chat completions with image parts and image modality", async () => {
-    const out = Buffer.from("edited").toString("base64");
-    const fetchFn = routedFetch({
-      [`${BASE}/chat/completions`]: () =>
-        json({
-          choices: [
-            {
-              message: {
-                content: "",
-                images: [
-                  {
-                    type: "image_url",
-                    image_url: { url: `data:image/png;base64,${out}` }
-                  }
-                ]
-              }
-            }
-          ],
-          usage: { cost: 0.04 }
-        })
-    });
-    const provider = makeProvider(fetchFn);
-
-    const result = await provider.imageToImage([PNG, JPEG], {
-      model: IMAGE_MODEL,
-      prompt: "make it night",
-      aspectRatio: "1:1"
-    });
-
-    expect(Buffer.from(result).toString()).toBe("edited");
-    const body = bodyOf(fetchFn, `${BASE}/chat/completions`);
-    expect(body.model).toBe("google/gemini-2.5-flash-image");
-    expect(body.modalities).toEqual(["image", "text"]);
-    expect(body.image_config).toEqual({ aspect_ratio: "1:1" });
-    expect(body.messages[0].content).toEqual([
-      { type: "text", text: "make it night" },
-      {
-        type: "image_url",
-        image_url: {
-          url: `data:image/png;base64,${Buffer.from(PNG).toString("base64")}`
-        }
-      },
-      {
-        type: "image_url",
-        image_url: {
-          url: `data:image/jpeg;base64,${Buffer.from(JPEG).toString("base64")}`
-        }
-      }
-    ]);
-  });
-
-  it("surfaces the model's text when no image comes back", async () => {
-    const fetchFn = routedFetch({
-      [`${BASE}/chat/completions`]: () =>
-        json({ choices: [{ message: { content: "I can't edit that." } }] })
-    });
-    const provider = makeProvider(fetchFn);
-
-    await expect(
-      provider.imageToImage([PNG], { model: IMAGE_MODEL, prompt: "x" })
-    ).rejects.toThrow("OpenRouter image edit returned no image: I can't edit that.");
-  });
-
-  it("lists the Gemini image models for image_to_image", async () => {
-    const provider = makeProvider(routedFetch({}));
-    const edit = (await provider.getAvailableImageModels()).filter((m) =>
-      m.supportedTasks?.includes("image_to_image")
-    );
-    expect(edit.map((m) => m.id)).toContain("google/gemini-2.5-flash-image");
   });
 });

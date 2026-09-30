@@ -2,40 +2,37 @@ import type { Metadata, Viewport } from "next";
 import JsonLd from "../../components/JsonLd";
 
 export const metadata: Metadata = {
-  title: "NodeTool for Developers | The QuickJS Sandbox, the DSL, and Agent Code Execution",
+  title: "NodeTool for Developers | Images, Video, and Workflows for Your Coding Agent",
   description:
-    "One QuickJS WebAssembly isolate runs every Code node body, saved script, and agent action in NodeTool. Capabilities are globals granted per run, libraries are imports from 38 shipped packs, and 424 AI nodes are async functions you can await. 208 platform tools reachable from sandboxed code. Open source under AGPL-3.0.",
+    "Connect NodeTool to Claude Code, Codex, OpenCode, or Cursor with one command. Your coding agent makes images, video, speech, and repeatable media workflows on your own provider keys. Open source under AGPL-3.0.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/developers",
   },
   keywords: [
-    "QuickJS sandbox",
-    "WebAssembly JavaScript sandbox",
-    "sandboxed code execution",
-    "CodeAct agent",
-    "agent code execution",
-    "LLM code interpreter",
-    "AI workflow DSL",
-    "TypeScript AI framework",
     "MCP server",
-    "agent tools API",
-    "custom AI nodes",
+    "Claude Code MCP",
+    "Cursor MCP",
+    "Codex MCP",
+    "AI image generation for developers",
+    "AI video generation API",
+    "vibe coding",
+    "coding agent tools",
+    "AI workflow API",
     "open-source AI",
     "self-hosted AI platform",
-    "capability-based security",
-    "model-agnostic SDK",
+    "bring your own keys",
   ],
   openGraph: {
-    title: "NodeTool for Developers | The QuickJS Sandbox and the DSL Inside It",
+    title: "NodeTool for Developers | Your Coding Agent Makes the Media Too",
     description:
-      "Write sandboxed JavaScript that calls 424 AI nodes as async functions, builds workflow graphs, and reaches 208 platform tools by import — the same isolate your agent acts in.",
+      "One command connects NodeTool to your coding agent. Ask for images, video, speech, or a whole workflow in plain words.",
     url: "https://nodetool.ai/developers",
     siteName: "NodeTool",
     images: [
       {
         url: "/preview.png",
-        alt: "NodeTool Developer Platform",
+        alt: "NodeTool for developers",
       },
     ],
     locale: "en_US",
@@ -45,7 +42,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NodeTool for Developers",
     description:
-      "A QuickJS sandbox where your code and your agent's code run on the same engine, with the same limits and the same imports. Open source under AGPL-3.0.",
+      "Give Claude Code, Codex, or Cursor images, video, speech, and repeatable workflows over MCP. Open source under AGPL-3.0.",
     images: ["/preview.png"],
   },
 };
@@ -68,7 +65,7 @@ export default function DevelopersLayout({
           "@type": "SoftwareSourceCode",
           name: "NodeTool",
           description:
-            "Open-source creative workspace built on a QuickJS WebAssembly sandbox. Code node bodies, saved scripts, and agent actions run on one isolate with capability-scoped host bridges, 38 library packs, 424 nodes callable as async functions, and 208 platform tools reachable by import.",
+            "Open-source creative workspace that runs as an MCP server for coding agents such as Claude Code, Codex, OpenCode, and Cursor, with image, video, speech, and workflow tools.",
           codeRepository: "https://github.com/nodetool-ai/nodetool",
           programmingLanguage: ["TypeScript", "Python"],
           license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE",

@@ -1,270 +1,127 @@
 ---
 layout: page
 title: "Quick Start"
-description: "Install NodeTool, connect a language, image, and video model, ask the agent for a storyboard, render stills and clips, assemble the cut on the timeline, and export the film."
+description: "Install NodeTool, connect your models, and turn one sentence into a finished video with the Video flow."
 ---
 
-Turn one sentence into a short film: the AI agent writes the script, you choose
-the images you like, and the final video is ready for you to edit and export.
-It takes about 30 minutes, mostly just waiting for the video to generate.
-No account is required — you just need your own API keys.
+One sentence in, a finished video out. About 30 minutes, mostly render time.
+No account. You bring your own API keys.
 
-This page assumes you have never used a tool like this. Every term is explained
-the first time it appears, and the [Glossary](glossary.md) covers the rest.
-
-![Storyboard surface: a grid of six shot cards, each with its still and status, over the inspector for the selected shot](assets/creative-agent/storyboard-surface.png)
-
-The five steps below show the entire process. Each step costs a bit more than the last,
-which is why we do it in this order: an image costs cents, a short video costs dollars,
-and you always approve the image before spending money on the video.
+The plan is text and costs cents. The clips cost dollars. You check the plan
+before you pay for clips.
 
 ---
 
-## Step 1 — Install and connect your models
+## 1. Install and connect
 
-### Will it run on my computer?
+**Download** NodeTool from [nodetool.ai](https://nodetool.ai), install it, and
+open it. You need 8 GB of RAM and 10 GB of disk. You do not need a graphics card,
+because the models run in the cloud. OS details:
+[Installation](installation.md).
 
-| | Minimum | Better |
-|-----------|---------|-------------|
-| **Memory (RAM)** | 8 GB | 16 GB or more |
-| **Free disk space** | 10 GB | 50 GB if you download AI models |
-| **Operating system** | macOS 13+, Windows 10+, Ubuntu 22+ | The latest version |
+**Connect your models.** NodeTool uses AI from other companies. An **API key**
+is the password that lets NodeTool use your account with them. They bill you
+for what you use. Open **Settings → Models & Providers**, then sign in or paste
+a key.
 
-No graphics card needed. Everything in this guide runs on cloud models billed
-to your own key, so the work happens on the provider's machines. A graphics card
-only matters if you later run models locally — see the
-[hardware notes](installation.md#what-different-tasks-need).
-
-### Install it
-
-1. Download NodeTool from [nodetool.ai](https://nodetool.ai).
-2. Run the installer.
-3. Open the app. It lands on the workspace, whose empty state asks what you
-   want to make and carries a short setup checklist. Per-OS instructions are on
-   the [Installation](installation.md) page.
-
-### Connect three kinds of model
-
-NodeTool does not have its own AI models. Instead, you connect it to AI providers using an **API key**.
-An API key is like a long password you copy from an AI company's website. It allows NodeTool
-to use their AI on your behalf, and the company bills you for what you use.
-Some providers also let you sign in with one click instead of using a key.
-
-A film needs three roles filled, and one provider can fill more than one:
-
-| Role | What it does | Connect one of |
+| You need | For | Get it from |
 |---|---|---|
-| **Language model** | Writes the screenplay and drives the assistants | OpenAI, Anthropic, Google Gemini, Groq, Mistral — or a Claude subscription |
-| **Image model** | Renders each shot's still | FAL, Google Gemini, OpenAI, Replicate, Hugging Face |
-| **Video model** | Animates a still into a clip | FAL, Replicate, Google Gemini |
+| Language model | Plans the video | OpenAI, Anthropic, Gemini, Groq, Mistral, or a Claude subscription |
+| Video model | Renders the clips | FAL, Replicate, Gemini |
+| Voice model (optional) | Reads the voiceover | OpenAI, ElevenLabs |
 
-FAL plus one language provider is the shortest path: FAL covers both the stills
-and the clips.
-
-Open **Settings → Models & Providers**, or let the app open the same dialog the
-first time something needs a key it doesn't have. Sign in where the provider
-supports it, otherwise paste the key.
+Fastest setup: FAL and one language provider.
 
 ![Connect an AI provider](assets/screenshots/provider-onboarding-dialog.png)
 
-Each card shows what the provider is good for, what it charges, and whether it
-has a free tier. Model dropdowns are built from the providers you have
-connected, so a key you skip is a model you won't see later.
+---
 
-Prefer models on your own machine, with no account and no bill? That works for
-the language and image steps and needs a download of several gigabytes per
-model. See [Models & Providers](models-and-providers.md).
+## 2. Say what you want
+
+On the **Home** tab, pick **Video**. You can also use **+ New → Timeline**.
+
+Type one sentence:
+
+> A 15-second ad for a desk lamp: a quiet desk at night, the lamp switches on.
+
+Other ways to start:
+
+- **Drop your media** — use your own clips, audio, or images.
+- **Start from a script** — write the words first.
+- **Start with a blank timeline** — skip the plan.
+
+Press **Continue**. If you close the tab, NodeTool keeps your progress.
 
 ---
 
-## Step 2 — Ask the agent for a storyboard
+## 3. Plan the beats
 
-A **storyboard** is a board of cards, one per shot. Each card holds the shot's
-action text, its still, and its clip. It is where the film is planned before any
-money is spent.
+A **beat** is one clip in your video.
 
-Press **+** on the workspace tab bar and pick **New storyboard… → Blank
-storyboard**. The same menu lists example boards that ship with the install;
-those arrive finished — action text, still, and clip on every shot — if you want
-to see the end state before making your own.
+**Pick a template:**
 
-The board has two halves. On the left you write the film:
+| Template | Length | Shape |
+|---|---|---|
+| 15s ad | 15 s | 16:9 |
+| 30s spot | 30 s | 16:9 |
+| 60s explainer | 60 s | 16:9 |
+| 9:16 social clip | 20 s | 9:16 |
+| Trailer | 45 s | 16:9 |
+| Music video | 60 s | 16:9 |
+| Slideshow | 40 s | 16:9 |
 
-- **Title** — what it's called.
-- **Brief** — your film in one or two sentences.
-- **Style** — palette, light, lens, texture. This is what holds the look
-  together across shots.
-- **Entities** — optional named characters, locations, styles, and props reused
-  across shots. See [Creative Agent → Entities](creative-agent.md).
+Pick a **Model** at the bottom, then press **Plan the beats**. This step costs
+one language model call.
 
-On the right you pick the machinery: **Screenplay model** (language),
-**Still model** (image), **Clip model** (image-to-video), **Aspect ratio**, and
-how many **Shots** you want. Six is a good first number.
+**Edit the plan.** Each beat has a description, a length, a transition, and a
+voiceover line. The total length turns to a warning color when the plan is too
+long. **Re-plan** writes the beats again and follows your edits.
 
-Press **Direct**. The `nodetool.creative.Director` node returns a typed
-screenplay — title, logline, style bible, narration, music direction — and one
-card per shot carrying its action, camera (framing, lens, angle, movement),
-motion, and duration. Nothing has rendered yet, so this step costs one language
-model call.
-
-![Storyboard board with Board settings open: the Entities field carrying four entity chips, over the shot grid](assets/screenshots/storyboard-board.png)
-
-### Or just ask for it
-
-Everything the board's buttons do is also a tool the agent can call. The
-**Storyboard Assistant** is docked to the right of the board — ask it in plain
-language and watch the cards change:
-
-> Break this brief into six shots, opening on a wide establishing shot and
-> ending on a close-up.
-
-> Add a reaction shot after shot 3 and make shot 5 a slow push-in.
-
-From the **Chats** panel — with no board open — the agent can create the board
-from scratch: *"Create a storyboard for a 40-second noir short about a courier
-who loses the package, six shots."* It creates the board, writes the shots, and
-tells you the id; open it from the **Storyboards** section of the left panel.
-
-Two things worth knowing on the first try:
-
-- **The permission chip decides how far it goes on its own.** *Plan* proposes
-  without touching anything, *Default* asks before actions, *Auto* runs
-  everything. It is set per thread, and it is what stands between a chat message
-  and a render bill.
-- **Re-directing replaces every shot.** The app asks first. Stills and clips
-  already generated stay in your asset library, but the cards are rebuilt.
+Press **Continue to look**.
 
 ---
 
-## Step 3 — Render stills, then clips
+## 4. Pick the look and generate
 
-This is the step that spends money, so it runs in two passes.
+- **Aspect ratio** — comes from the template. You can change it.
+- **Video model** — each tile plays a sample clip.
+- **Voiceover** — on or off. Pick a voice when it is on.
+- **Music** — adds one music track under the whole video.
 
-**Stills first.** Press **Render stills**. The button counts the shots still
-waiting and the confirmation names the number of requests. Each result is saved
-as a still take. Previewing or paging through takes does not change the current
-still. Choose **Set as current still** when you want later clip generation to
-use it.
-
-**Clips second, from the still you chose.** **Render clips** animates each
-eligible shot's current still with the selected video model. A shot without a
-current still is reported and skipped. Finished clips land as takes to review.
-Preview them, then choose **Set as current clip** for the take the board and
-timeline should use.
-
-**Iterate** takes a text instruction such as "make it darker, add rain" and
-runs video-to-video on the current clip. The revision is another take. The
-current clip stays in place until you accept the revision.
-
-Cards distinguish missing media, generation in progress, takes ready to review,
-and current media. **Preview board** plays each current clip in order and holds
-the current still when a shot has no accepted clip.
-
-The assistant drives all of it:
-
-> Render stills for every planned shot.
-
-> Animate shots 1 through 4, then show me what's left.
+The cost is next to the button. Press **Generate your video**. The timeline
+opens and the clips fill in as they finish.
 
 ---
 
-## Step 4 — Assemble the cut on the timeline
+## 5. Edit and export
 
-Press **Create timeline**. NodeTool creates a saved timeline sequence and
-opens it in a tab.
-
-![The assembled cut in the timeline editor](assets/creative-agent/assembled-timeline.png)
-
-What lands there:
-
-- Every rendered shot as a clip on a video track, in board order.
-- Each clip's own sound on a linked **Shot Audio** track beside it. Mute one when
-  a shot should play silent under narration.
-- The screenplay's narration and music as draft text-to-audio clips on their own
-  tracks — generate them from the clip inspector when you want them.
-- The screenplay text in the script panel.
-
-From here it's an ordinary edit. Drag to move, drag an edge to trim, `S` splits
-at the playhead, `Delete` removes, and clips snap to the playhead and to each
-other. The **Animate** section of the inspector adds entrance, exit, emphasis,
-and loop motion without keyframes. Full reference:
-[Video Editor](video-editor.md).
-
-The **Editor Assistant** is docked here too: *"split the selected clip at the
-playhead"*, *"fade out the last clip"*, *"generate a 5-second clip of a city at
-night"*.
-
-Every assembled clip stays linked to the shot it came from. Accepting a new
-current clip can update that linked clip. After adding or removing shots, use
-**Rebuild linked timeline…**. The confirmation lists which storyboard-owned
-clips will be rebuilt and which unrelated timeline content will be preserved.
-
----
-
-## Step 5 — Export the video
-
-Set the output first. The **Settings** button in the timeline's top bar opens
-**Project settings**: canvas width and height (or a preset) and the frame rate.
-The sequence renders at exactly those numbers.
-
-Then **Export video**. NodeTool processes the timeline frame by frame,
-combines the audio and video, and saves it as an MP4 file.
-A progress dialog shows the current step — preparing, audio, video,
-finalizing — and you can cancel at any time.
+- **Retry N failed** runs failed clips again.
+- You can close the tab during generation. The clips are there when you come
+  back.
+- Drag to move, drag an edge to trim, `S` to split, `Delete` to remove.
+- Ask the **Editor Assistant**: *"fade out the last clip"*.
+- **Export video** saves an MP4 file. **Save as Asset** keeps it in your
+  library.
 
 ![The timeline editor](assets/screenshots/timeline-editor.png)
 
-**Save as Asset** writes the same render into your asset library instead of
-downloading it, which is what you want if the film is an ingredient in something
-else rather than the delivery.
+Every step is also an agent tool. You can click, chat, or do both. Coding
+agents get the same tools over MCP: [NodeTool as an MCP Server](mcp-server.md).
 
 ---
 
-## What you just learned
+## Next
 
-The loop is: direct, render cheap, render expensive, cut, export. Cheap stages
-gate the expensive ones, nothing renders twice unless you ask, and a revision
-made after assembly flows forward into the cut.
-
-Every one of those steps has a button and a tool behind it. You can click the
-whole pipeline, ask for the whole pipeline in chat, or mix the two — press
-**Direct** yourself and let the assistant render the shots you point at.
-External agents reach the same tools over MCP (`nodetool mcp serve`), so Claude
-Code can direct a board you then open and finish by hand. See
-[NodeTool as an MCP Server](mcp-server.md).
-
----
-
-## Beyond the film
-
-The same models and the same asset library back the rest of NodeTool:
-
-- **[Workflows](key-concepts.md)** — nodes and connections on a canvas, for
-  pipelines that run on a schedule or over a batch. The agent builds these too:
-  *"take a product photo and a brief and write three ad captions."*
-- **[Mini Apps](mini-apps.md)** — a workflow with the canvas hidden, so someone
-  else fills in a form and presses a button.
-- **[Sketch Editor](sketch-editor.md)** — layered still images, the way
-  Photoshop works. Useful for fixing a keyframe before animating it.
-
-[Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together)
-has the full picture with a diagram.
-
----
-
-## Where to go next
-
-| If you want to | Read |
-|------|------|
-| Go deeper on the film pipeline | [Creative Agent](creative-agent.md) |
-| Learn the timeline editor | [Video Editor](video-editor.md) |
-| Keep a character consistent across shots | [Creative Agent → Entities](creative-agent.md) |
-| Get more out of the agent | [Chat](global-chat.md), [Chat & Agents](global-chat-agents.md) |
-| Choose AI models | [Models & Providers](models-and-providers.md) |
-| Build workflows by hand | [Key Concepts](key-concepts.md), [Workflow Editor](workflow-editor.md) |
-| See more examples | [Gallery](workflows/), [Cookbook](cookbook.md) |
+| Want to | Go to |
+|---|---|
+| Control each shot, stills first | [Creative Agent](creative-agent.md) (the **Storyboard** card) |
+| Get good at the timeline | [Video Editor](video-editor.md) |
+| Keep a character the same across shots | [Creative Agent → Entities](creative-agent.md) |
+| Build pipelines on a canvas | [Key Concepts](key-concepts.md) |
+| Turn a workflow into an app | [Mini Apps](mini-apps.md) |
+| Choose models or run them locally | [Models & Providers](models-and-providers.md) |
+| Fix something | [Troubleshooting](troubleshooting.md) |
 | Look up a word | [Glossary](glossary.md) |
-| Fix something that broke | [Troubleshooting](troubleshooting.md), [Debugging](workflow-debugging.md) |
 
 Questions: [Discord](https://discord.gg/WmQTWZRcYE) ·
 [GitHub](https://github.com/nodetool-ai/nodetool/issues)

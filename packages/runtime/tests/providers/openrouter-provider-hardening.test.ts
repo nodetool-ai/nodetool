@@ -29,15 +29,22 @@ describe("OpenRouterProvider hardening", () => {
     );
   });
 
-  it("exposes SDXL for text_to_image and the Gemini editors for image_to_image", async () => {
+  it("exposes the SDXL and Gemini image models with their tasks", async () => {
     const models = await make({ client: {} }).getAvailableImageModels();
-    expect(models.map((m) => [m.id, m.supportedTasks])).toEqual([
-      ["stabilityai/stable-diffusion-xl", ["text_to_image"]],
-      ["google/gemini-2.5-flash-image", ["image_to_image"]],
-      ["google/gemini-3.1-flash-image", ["image_to_image"]],
-      ["google/gemini-3-pro-image", ["image_to_image"]]
+    expect(models).toEqual([
+      {
+        id: "stabilityai/stable-diffusion-xl",
+        name: "Stable Diffusion XL",
+        provider: "openrouter",
+        supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "google/gemini-2.5-flash-image",
+        name: "Gemini 2.5 Flash Image",
+        provider: "openrouter",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      }
     ]);
-    expect(models.every((m) => m.provider === "openrouter")).toBe(true);
   });
 
   describe("reasoning-model system→user conversion (parent does not cover non-'o' prefixes)", () => {

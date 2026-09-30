@@ -24,7 +24,7 @@
 - [Cloud](https://nodetool.ai/cloud.md): the hosted browser edition for evaluation while in alpha.
 - [Pricing](https://nodetool.ai/pricing.md): edition comparison and how BYOK pricing works.
 - [Agents](https://nodetool.ai/agents.md): build and inspect automation that produces editable workflows and projects.
-- [For developers](https://nodetool.ai/developers.md): The QuickJS sandbox, the node DSL inside it, and how agents drive NodeTool from sandboxed code.
+- [For developers](https://nodetool.ai/developers.md): connect NodeTool to your coding agent over MCP for images, video, speech, and workflows.
 - [For marketing teams](https://nodetool.ai/marketing.md): hand a brief to an agent; campaign assets at volume.
 - [Documentation](https://docs.nodetool.ai/llms.txt): install guides, key concepts, node reference, API reference, CLI.
 

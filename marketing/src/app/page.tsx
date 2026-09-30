@@ -7,7 +7,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import NodeToolHero from "../components/NodeToolHero";
-import BuildRunDeploy from "../components/BuildRunDeploy";
 import OwnershipSection from "../components/OwnershipSection";
 import ModelSupportSection from "../components/ModelSupportSection";
 import SurfaceShowcase from "../components/SurfaceShowcase";
@@ -215,13 +214,6 @@ export default function Home() {
             is still open, and the next note goes back to the agent
             (NARRATIVE.md § Order of the page) */}
         <ProjectSection />
-
-        {/* The same loop in three steps (Pitch / Automate / Direct) */}
-        <section aria-labelledby="how-title" className="rhythm-section pt-4">
-          <div className={`${sectionContainer}`}>
-            <BuildRunDeploy />
-          </div>
-        </section>
 
         {/* What the reader controls once the agent has built something: the
             five editors, each over a loop of the real thing (#surface-<id>) */}

@@ -4,6 +4,9 @@ const examples = ["Serein", "Kite", "Tidewater", "Prism", "Voltra"];
 
 for (const route of ["/", "/marketing"]) {
   test(`${route} plays the editable examples in the requested order`, async ({ page }) => {
+    // Without reduced motion the film autoplays in view; this covers the
+    // manual Play button that reduced-motion readers get instead.
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.route(/\.webm$/, (request) => request.abort());
     await page.goto(route);
     const showcase = page.getByRole("region", { name: "Watch the film. Make it yours." });
@@ -29,7 +32,7 @@ for (const route of ["/", "/marketing"]) {
   });
 }
 
-test("selection works by keyboard and stops the previous film", async ({ page }) => {
+test("selection works by keyboard, stops the previous film, and autoplays the next", async ({ page }) => {
   await page.goto("/marketing");
   const showcase = page.locator("#example-timelines");
   await showcase.getByRole("button", { name: "Play Serein", exact: true }).click();
@@ -39,7 +42,9 @@ test("selection works by keyboard and stops the previous film", async ({ page })
   await page.keyboard.press("Enter");
   await expect(kite).toHaveAttribute("aria-pressed", "true");
   expect(await oldFilm?.evaluate((element: HTMLVideoElement) => element.paused)).toBe(true);
-  await expect(showcase.getByRole("button", { name: "Play Kite", exact: true })).toBeVisible();
+  const newFilm = showcase.locator("video");
+  await expect(newFilm).toHaveAttribute("aria-label", "Kite finished film");
+  await expect.poll(() => newFilm.evaluate((element: HTMLVideoElement) => element.currentTime)).toBeGreaterThan(0);
 });
 
 test("portrait playback fits a mobile viewport without cropping", async ({ page }) => {
