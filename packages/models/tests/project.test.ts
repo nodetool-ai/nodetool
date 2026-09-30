@@ -169,6 +169,20 @@ describe("Project model", () => {
     expect(updated!.updated_at > "2020-01-01T00:00:00.000Z").toBe(true);
   });
 
+  it("creates the caller's own Personal project when requireOwned asks for it", async () => {
+    expect(await Project.findById("personal:u1")).toBeNull();
+    const personal = await Project.requireOwned("u1", "personal:u1");
+    expect(personal.id).toBe("personal:u1");
+    expect(personal.kind).toBe(PERSONAL_PROJECT_KIND);
+  });
+
+  it("does not create or expose another user's Personal project", async () => {
+    await expect(Project.requireOwned("u1", "personal:u2")).rejects.toThrow(
+      "Project not found"
+    );
+    expect(await Project.findById("personal:u2")).toBeNull();
+  });
+
   it("keeps Personal permanently personal", async () => {
     const personal = await Project.ensurePersonal("u1");
     expect(
