@@ -16,6 +16,7 @@ import { join, resolve } from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { createLocalWorkspace } from "@nodetool-ai/runtime";
+import { parseWavBytes, readWavHeader } from "@nodetool-ai/audio-nodes";
 import { toolFromCapability } from "../src/capabilities/adapters.js";
 import { DEFAULT_UNDERSTAND_VIDEO_TOKENS } from "../src/capabilities/media.specs.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
@@ -777,6 +778,55 @@ describe("generate_speech when both TTS paths fail", () => {
 
     expect(String(result["error"])).toContain("is not enabled");
     expect(String(result["error"])).toContain("streaming fallback then failed");
+  });
+});
+
+describe("generate_speech streaming PCM content", () => {
+  function streamingContext(pieces: readonly { samples?: Int16Array; sampleRate?: number }[]) {
+    const createAsset = vi.fn(async (_args: { content: Uint8Array; contentType: string }) => ({ id: "speech-asset" }));
+    const context = {
+      userId: "user-1",
+      textToSpeechEncoded: async () => null,
+      streamProviderPrediction: async function* () { yield* pieces; },
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset
+    };
+    return { context: context as unknown as ProcessingContext, createAsset };
+  }
+
+  it.each([
+    { name: "empty stream", pieces: [] },
+    { name: "metadata-only stream", pieces: [{ sampleRate: 24000 }] },
+    { name: "zero-length PCM chunk", pieces: [{ samples: new Int16Array(), sampleRate: 24000 }] }
+  ])("rejects $name before WAV wrapping or asset creation", async ({ pieces }) => {
+    const { context, createAsset } = streamingContext(pieces);
+    const result = await asTool(generateSpeech).process(context, {
+      provider: "openai", model: "tts-1", text: "hello"
+    });
+    expect(result).toMatchObject({ error: expect.stringMatching(/no audio (data|samples)/i) });
+    expect(createAsset).not.toHaveBeenCalled();
+  });
+
+  it.each([0, -1, NaN, Infinity, 24000.5])("rejects invalid supplied PCM sample rate %s", async (sampleRate) => {
+    const { context, createAsset } = streamingContext([{ samples: new Int16Array([0]), sampleRate }]);
+    const result = await asTool(generateSpeech).process(context, {
+      provider: "openai", model: "tts-1", text: "hello"
+    });
+    expect(result).toMatchObject({ error: expect.stringMatching(/invalid.*sample rate/i) });
+    expect(createAsset).not.toHaveBeenCalled();
+  });
+
+  it("preserves nonempty silent PCM and its sample rate", async () => {
+    const { context, createAsset } = streamingContext([{ samples: new Int16Array(240), sampleRate: 32000 }]);
+    const result = await asTool(generateSpeech).process(context, {
+      provider: "openai", model: "tts-1", text: "hello"
+    });
+    expect(result).toMatchObject({ type: "audio", asset_id: "speech-asset" });
+    expect(createAsset).toHaveBeenCalledOnce();
+    const saved = createAsset.mock.calls[0][0];
+    expect(saved.contentType).toBe("audio/wav");
+    expect(readWavHeader(saved.content)).toMatchObject({ sampleRate: 32000, dataSize: 480 });
+    expect(parseWavBytes(saved.content)?.samples).toEqual(new Float32Array(240));
   });
 });
 

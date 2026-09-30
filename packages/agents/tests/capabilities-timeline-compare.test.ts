@@ -115,6 +115,10 @@ describe("compare_timeline_frames", () => {
     expect(result.complete).toBe(false);
     expect(result.visual_output_verified).toBe(false);
     expect(result.frames[0].difference).toBeNull();
+    expect(result.frames[0]).toMatchObject({
+      a: { failures: [{ kind: "skipped", clip_id: "red", samples: [{ index: 0, time_ms: 500 }] }] },
+      b: { failures: [{ kind: "skipped", clip_id: "red", samples: [{ index: 0, time_ms: 500 }] }] }
+    });
     expect(result.max_difference).toBeNull();
     expect(result.changed_times_ms).toBeNull();
   });

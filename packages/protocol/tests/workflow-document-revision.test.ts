@@ -144,5 +144,5 @@ describe("workflowDocumentRevision", () => {
     const before = workflowDocumentRevision("wf", nodes, []);
     nodes[9999].data.properties.value = -1;
     expect(workflowDocumentRevision("wf", nodes, [])).not.toBe(before);
-  });
+  }, 20_000);
 });

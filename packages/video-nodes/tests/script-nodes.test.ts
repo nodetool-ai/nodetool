@@ -5,6 +5,8 @@
  * stores and a fake streaming-TTS provider.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { parseWavBytes, readWavHeader } from "@nodetool-ai/audio-nodes";
+import type { ScriptDocumentSchema } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
 function mockResponse(cmd: string): { stdout: string; stderr: string } {
   if (cmd === "ffprobe") {
@@ -48,11 +50,19 @@ const {
 
 const VOICE = { provider: "openai", model: "tts-1", voice: "alloy" };
 
-function baseScript() {
+function baseScript(): {
+  id: string;
+  projectId: string;
+  name: string;
+  updatedAt: string;
+  timelineId?: string;
+  document: ScriptDocumentSchema;
+} {
   return {
     id: "script-1",
     projectId: "default",
     name: "My script",
+    updatedAt: "revision-0",
     timelineId: undefined as string | undefined,
     document: {
       cast: [{ id: "spk-1", name: "Narrator", voice: VOICE }],
@@ -64,14 +74,14 @@ function baseScript() {
               id: "line-1",
               speakerId: "spk-1",
               text: "Hello there.",
-              takes: [] as any[],
+              takes: [],
               currentTakeId: null as string | null
             },
             {
               id: "line-2",
               speakerId: "spk-1",
               text: "Welcome.",
-              takes: [] as any[],
+              takes: [],
               currentTakeId: null as string | null
             }
           ]
@@ -83,18 +93,40 @@ function baseScript() {
 
 function stubContext(script: ReturnType<typeof baseScript> | null) {
   const timelines: Record<string, any> = {};
+  let revision = 0;
   return {
     _timelines: timelines,
-    getScript: vi.fn(async () => script),
-    updateScript: vi.fn(async (_id: string, patch: any) => {
-      if (script && patch.document) script.document = patch.document;
-      if (script && patch.timelineId !== undefined)
-        script.timelineId = patch.timelineId;
-      return script;
-    }),
-    createAsset: vi.fn(async () => ({ id: `asset-${Math.random()}` })),
+    getScript: vi.fn(async () => structuredClone(script)),
+    updateScript: vi.fn(
+      async (
+        _id: string,
+        patch: {
+          document?: ScriptDocumentSchema;
+          timelineId?: string;
+          baseUpdatedAt?: string;
+        }
+      ) => {
+        if (
+          script &&
+          patch.baseUpdatedAt &&
+          patch.baseUpdatedAt !== script.updatedAt
+        )
+          return null;
+        if (script && patch.document)
+          script.document = structuredClone(patch.document);
+        if (script && patch.timelineId !== undefined)
+          script.timelineId = patch.timelineId;
+        if (script) script.updatedAt = `revision-${++revision}`;
+        return structuredClone(script);
+      }
+    ),
+    createAsset: vi.fn(async (_args: { content: Uint8Array }) => ({
+      id: `asset-${Math.random()}`
+    })),
     providerSupportsStreamingTTS: vi.fn(async () => true),
-    streamProviderPrediction: vi.fn(async function* () {
+    streamProviderPrediction: vi.fn(async function* (_request: {
+      params: { text: string };
+    }): AsyncGenerator<{ samples?: Int16Array; sampleRate?: number }> {
       yield { samples: new Int16Array([1, 2, 3, 4]), sampleRate: 24000 };
     }),
     textToSpeechEncoded: vi.fn(async () => null),
@@ -134,13 +166,258 @@ describe("LoadScriptNode", () => {
   it("throws when the script input is empty", async () => {
     const node = new LoadScriptNode();
     node.assign({ script: { type: "script", id: null } });
-    await expect(
-      node.process(stubContext(null) as never)
-    ).rejects.toThrow(/Script input is empty/);
+    await expect(node.process(stubContext(null) as never)).rejects.toThrow(
+      /Script input is empty/
+    );
   });
 });
 
 describe("VoiceScriptNode", () => {
+  it("retries a take attachment after a revision conflict while preserving concurrent text edits", async () => {
+    const script = baseScript();
+    script.document.sections[0].lines.splice(1);
+    const context = stubContext(script);
+    const save = context.updateScript.getMockImplementation()!;
+    context.updateScript.mockImplementationOnce(async () => {
+      script.name = "Renamed concurrently";
+      script.document.sections[0].lines[0].text = "Edited concurrently.";
+      script.updatedAt = "concurrent-revision";
+      return null;
+    });
+    context.updateScript.mockImplementation(save);
+    const node = new VoiceScriptNode({
+      script: { type: "script", id: "script-1" }
+    });
+
+    expect((await node.process(context as never)).voiced_count).toBe(1);
+    const persisted = (await context.getScript())!;
+    const line = persisted.document.sections[0].lines[0];
+    expect(persisted.name).toBe("Renamed concurrently");
+    expect(line.text).toBe("Edited concurrently.");
+    expect(line.takes).toHaveLength(1);
+    expect(line.takes[0].textSnapshot).toBe("Hello there.");
+    expect(line.currentTakeId).toBe(line.takes[0].id);
+    expect(context.streamProviderPrediction).toHaveBeenCalledTimes(1);
+    expect(context.createAsset).toHaveBeenCalledTimes(1);
+    expect(context.updateScript).toHaveBeenCalledTimes(2);
+    expect(context.updateScript.mock.calls[1][1].baseUpdatedAt).toBe(
+      "concurrent-revision"
+    );
+    expect(
+      context.updateScript.mock.calls[0][1].document!.sections[0].lines[0]
+        .takes[0]
+    ).toEqual(
+      context.updateScript.mock.calls[1][1].document!.sections[0].lines[0]
+        .takes[0]
+    );
+  });
+
+  it("preserves an unrelated line edit made during synthesis", async () => {
+    const script = baseScript();
+    const context = stubContext(script);
+    context.streamProviderPrediction.mockImplementationOnce(async function* () {
+      script.document.sections[0].lines[1].text =
+        "An unrelated concurrent edit.";
+      script.document.sections[0].lines[1].direction = "Whisper softly";
+      script.updatedAt = "concurrent-edit";
+      yield { samples: new Int16Array([1, 2]), sampleRate: 24000 };
+    });
+    const node = new VoiceScriptNode({
+      script: { type: "script", id: "script-1" }
+    });
+    expect((await node.process(context as never)).voiced_count).toBe(2);
+    const persisted = (await context.getScript())!;
+    expect(persisted.document.sections[0].lines[1].text).toBe(
+      "An unrelated concurrent edit."
+    );
+    expect(persisted.document.sections[0].lines[1].direction).toBe(
+      "Whisper softly"
+    );
+    expect(
+      persisted.document.sections[0].lines.map((line) => line.takes.length)
+    ).toEqual([1, 1]);
+    expect(context.streamProviderPrediction).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not duplicate a take when a successful write is followed by a conflict result", async () => {
+    const script = baseScript();
+    script.document.sections[0].lines.splice(1);
+    const context = stubContext(script);
+    const save = context.updateScript.getMockImplementation()!;
+    context.updateScript.mockImplementationOnce(async (id, patch) => {
+      await save(id, patch);
+      return null;
+    });
+    const node = new VoiceScriptNode({
+      script: { type: "script", id: "script-1" }
+    });
+    expect((await node.process(context as never)).voiced_count).toBe(1);
+    expect(
+      (await context.getScript())!.document.sections[0].lines[0].takes
+    ).toHaveLength(1);
+    expect(context.streamProviderPrediction).toHaveBeenCalledTimes(1);
+    expect(context.createAsset).toHaveBeenCalledTimes(1);
+    expect(context.updateScript).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports the generated take and asset when its target line was deleted", async () => {
+    const script = baseScript();
+    const context = stubContext(script);
+    context.createAsset.mockResolvedValue({ id: "recoverable-asset" });
+    context.streamProviderPrediction.mockImplementationOnce(async function* () {
+      script.document.sections[0].lines.shift();
+      script.updatedAt = "deleted-line";
+      yield { samples: new Int16Array([1, 2]), sampleRate: 24000 };
+    });
+    const node = new VoiceScriptNode({
+      script: { type: "script", id: "script-1" }
+    });
+    await expect(node.process(context as never)).rejects.toThrow(
+      /could not attach take take_[a-f0-9-]+ \(asset recoverable-asset\) to line line-1 in script script-1: Line line-1 is no longer/
+    );
+    expect((await context.getScript())!.document.sections[0].lines[0].id).toBe(
+      "line-2"
+    );
+    expect(
+      (await context.getScript())!.document.sections[0].lines[0].takes
+    ).toEqual([]);
+    expect(context.updateScript).not.toHaveBeenCalled();
+    expect(context.streamProviderPrediction).toHaveBeenCalledTimes(1);
+  });
+
+  it("bounds persistence retries and reports asset recovery information on repeated conflicts", async () => {
+    const script = baseScript();
+    const context = stubContext(script);
+    context.createAsset.mockResolvedValue({ id: "recoverable-asset" });
+    context.updateScript.mockResolvedValue(null);
+    const node = new VoiceScriptNode({
+      script: { type: "script", id: "script-1" }
+    });
+    await expect(node.process(context as never)).rejects.toThrow(
+      /could not attach take take_[a-f0-9-]+ \(asset recoverable-asset\).*modified concurrently/
+    );
+    expect(context.updateScript).toHaveBeenCalledTimes(2);
+    expect(context.createAsset).toHaveBeenCalledTimes(1);
+    expect(context.streamProviderPrediction).toHaveBeenCalledTimes(1);
+    expect(
+      (await context.getScript())!.document.sections[0].lines[0].takes
+    ).toEqual([]);
+  });
+
+  it("retains earlier takes when a later line fails and skips them on retry", async () => {
+    const script = baseScript();
+    const context = stubContext(script);
+    const providerTexts: string[] = [];
+    context.streamProviderPrediction.mockImplementation(
+      async function* (request: { params: { text: string } }) {
+        providerTexts.push(request.params.text);
+        if (request.params.text === "Welcome.")
+          throw new Error("Injected second-line provider failure");
+        yield { samples: new Int16Array([1, 2]), sampleRate: 24000 };
+      }
+    );
+    const node = new VoiceScriptNode({
+      script: { type: "script", id: "script-1" }
+    });
+    await expect(node.process(context as never)).rejects.toThrow(
+      "Injected second-line provider failure"
+    );
+    const persisted = await context.getScript();
+    const first = persisted!.document.sections[0].lines[0];
+    expect(first.takes).toHaveLength(1);
+    expect(first.takes[0].assetId).toMatch(/^asset-/);
+    expect(first.currentTakeId).toBe(first.takes[0].id);
+
+    context.streamProviderPrediction.mockImplementation(
+      async function* (request: { params: { text: string } }) {
+        providerTexts.push(request.params.text);
+        yield { samples: new Int16Array([3, 4]), sampleRate: 24000 };
+      }
+    );
+    expect((await node.process(context as never)).voiced_count).toBe(1);
+    expect(providerTexts).toEqual(["Hello there.", "Welcome.", "Welcome."]);
+    expect(
+      (await context.getScript())!.document.sections[0].lines[0].takes
+    ).toEqual(first.takes);
+    expect(context.createAsset).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([0, -1, NaN, Infinity, 24000.5])(
+    "rejects supplied invalid PCM sample rate %s",
+    async (sampleRate) => {
+      const context = stubContext(baseScript());
+      context.streamProviderPrediction.mockImplementation(async function* () {
+        yield { samples: new Int16Array([0]), sampleRate };
+      });
+      const node = new VoiceScriptNode({
+        script: { type: "script", id: "script-1" }
+      });
+      await expect(node.process(context as never)).rejects.toThrow(
+        /invalid.*sample rate/i
+      );
+      expect(context.createAsset).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    ["empty stream", []],
+    ["metadata-only stream", [{ sampleRate: 24000 }]],
+    [
+      "zero-length PCM chunk",
+      [{ samples: new Int16Array(), sampleRate: 24000 }]
+    ]
+  ])(
+    "rejects an empty TTS stream before WAV wrapping: %s",
+    async (_name, pieces) => {
+      const script = baseScript();
+      script.document.sections[0].lines.splice(1);
+      const context = stubContext(script);
+      context.streamProviderPrediction.mockImplementation(async function* () {
+        yield* pieces;
+      });
+      const node = new VoiceScriptNode({
+        script: { type: "script", id: "script-1" }
+      });
+
+      await expect(node.process(context as never)).rejects.toThrow(
+        /no audio samples/i
+      );
+      expect(context.createAsset).not.toHaveBeenCalled();
+      expect(context.updateScript).not.toHaveBeenCalled();
+      expect(script.document.sections[0].lines[0].takes).toEqual([]);
+      expect(script.document.sections[0].lines[0].currentTakeId).toBeNull();
+
+      context.streamProviderPrediction.mockImplementation(async function* () {
+        yield { samples: new Int16Array([0, 0]), sampleRate: 24000 };
+      });
+      expect((await node.process(context as never)).voiced_count).toBe(1);
+    }
+  );
+
+  it("keeps nonempty silent PCM as playable samples", async () => {
+    const script = baseScript();
+    script.document.sections[0].lines.splice(1);
+    const context = stubContext(script);
+    context.streamProviderPrediction.mockImplementation(async function* () {
+      yield { samples: new Int16Array(240), sampleRate: 24000 };
+    });
+    const savedAudio: Uint8Array[] = [];
+    context.createAsset.mockImplementation(
+      async (args: { content: Uint8Array }) => {
+        savedAudio.push(args.content);
+        return { id: "silent-asset" };
+      }
+    );
+    const node = new VoiceScriptNode({
+      script: { type: "script", id: "script-1" }
+    });
+    expect((await node.process(context as never)).voiced_count).toBe(1);
+    expect(readWavHeader(savedAudio[0])?.dataSize).toBe(480);
+    expect(parseWavBytes(savedAudio[0])?.samples).toEqual(
+      new Float32Array(240)
+    );
+  });
+
   it("voices every draft line and saves takes back to the script", async () => {
     const script = baseScript();
     const context = stubContext(script);
@@ -155,10 +432,16 @@ describe("VoiceScriptNode", () => {
     expect(result.voiced_count).toBe(2);
     expect(result.output).toMatchObject({ type: "script", id: "script-1" });
     expect(context.createAsset).toHaveBeenCalledTimes(2);
-    expect(context.updateScript).toHaveBeenCalledTimes(1);
-    expect(context.updateScript).toHaveBeenCalledWith(
+    expect(context.updateScript).toHaveBeenCalledTimes(2);
+    expect(context.updateScript).toHaveBeenNthCalledWith(
+      1,
       "script-1",
-      expect.objectContaining({ baseUpdatedAt: script.updatedAt })
+      expect.objectContaining({ baseUpdatedAt: "revision-0" })
+    );
+    expect(context.updateScript).toHaveBeenNthCalledWith(
+      2,
+      "script-1",
+      expect.objectContaining({ baseUpdatedAt: "revision-1" })
     );
     const lines = script.document.sections[0].lines;
     expect(lines[0].takes).toHaveLength(1);

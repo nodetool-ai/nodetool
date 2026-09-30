@@ -89,6 +89,17 @@ function describeError(error: unknown): string {
 /** Anything `drawImage` accepts here: a rasterized surface or a decoded image. */
 type PreviewSource = Canvas | Awaited<ReturnType<typeof loadImage>>;
 
+interface ResolvedPreviewLayerSample {
+  timeMs: number;
+  anim: AnimatedLayerProps;
+  camera?: ClipModel3DCamera;
+  sourceTimeSec?: number;
+}
+
+type ResolvedPreviewSample = ReturnType<typeof computeActiveLayersWithHorizon> & {
+  sampleLayer: (layer: ActiveLayer) => ResolvedPreviewLayerSample;
+};
+
 export interface RenderTimelineFramesOptions {
   sequence: TimelineSequence;
   /** Absolute timeline positions to composite, in milliseconds. */
@@ -198,6 +209,16 @@ export interface PreviewDroppedLayer {
   reason: DroppedLayerReason;
 }
 
+/** A failure across the shutter window, separate from representative geometry. */
+export interface PreviewSampleFailure {
+  kind: "skipped" | "dropped" | "degraded";
+  clip_id?: string;
+  clip_name?: string;
+  reason: string;
+  /** Every contributing sample affected by this failure. Index is zero-based. */
+  samples: { index: number; time_ms: number }[];
+}
+
 export interface PreviewFrame {
   /** False when any requested visual content was skipped or approximated. */
   complete: boolean;
@@ -206,6 +227,7 @@ export interface PreviewFrame {
   png: Uint8Array;
   width: number;
   height: number;
+  /** Geometry from the first contributing sample. See failures for the full window. */
   layers: PreviewLayerReport[];
   /**
    * Clips the scene model left out of this frame. Empty on almost every
@@ -219,6 +241,8 @@ export interface PreviewFrame {
    * degraded version of the one an export would produce.
    */
   degraded: PreviewDegradation[];
+  /** Failures from every contributing sample, deduplicated with affected taps. */
+  failures: PreviewSampleFailure[];
 }
 
 export interface RenderTimelineFramesResult {
@@ -501,6 +525,45 @@ export async function renderTimelineFrames(
       ) as unknown as CompositeContext2D<PreviewSource>)
     : null;
 
+  /** The same resolved scene and per-layer clock drive collection and drawing. */
+  const resolveSample = (
+    timeMs: number,
+    frameTimeMs: number,
+    sampleIndex: number,
+    sampleCount: number
+  ): ResolvedPreviewSample => {
+    const layerTime = (clip: TimelineClip): number => layerShutterTime(
+      clip, frameTimeMs, sampleIndex, sampleCount, frameMs, options.motionBlur
+    );
+    const scene = computeActiveLayersWithHorizon(
+      sequence.tracks, sequence.clips, timeMs,
+      { ...sceneOptions, layerTimeMs: layerTime }
+    );
+    const layers = onlyClipIds
+      ? scene.layers.filter((layer) => onlyClipIds.has(layer.clipId))
+      : scene.layers;
+    const sampledLayers = new Map<ActiveLayer, ResolvedPreviewLayerSample>();
+    const sampleLayer = (layer: ActiveLayer): ResolvedPreviewLayerSample => {
+      const previous = sampledLayers.get(layer);
+      if (previous) return previous;
+      const timeMs = layerTime(layer.clip);
+      const anim = resolveAnimatedLayerProps(
+        layer, timeMs, animationCanvas, animCache,
+        { mediaTracks: sequence.mediaTracks ?? [], clips: sequence.clips, tempo: sequence.tempo }
+      );
+      const sampled: ResolvedPreviewLayerSample = { timeMs, anim };
+      if (layer.kind === "model3d" && layer.model3dStyle) {
+        sampled.camera = resolveModel3DCamera(layer.model3dStyle, anim);
+        // The scene's sourceTimeSec uses its global clock. Its layerTimeMs
+        // callback only gates activity, so seek this clip on its own shutter clock.
+        sampled.sourceTimeSec = clipSourceTimeSec(layer.clip, timeMs) * layer.model3dStyle.animation.speed;
+      }
+      sampledLayers.set(layer, sampled);
+      return sampled;
+    };
+    return { ...scene, layers, sampleLayer };
+  };
+
   /**
    * Draw one instant onto the main canvas and say what each layer contributed.
    *
@@ -509,34 +572,18 @@ export async function renderTimelineFrames(
    * keeps a blurred preview from drifting from an unblurred one.
    */
   const composeAt = async (
-    timeMs: number,
-    frameTimeMs = timeMs,
-    sampleIndex = 0,
-    sampleCount = 1
+    sample: ReturnType<typeof resolveSample>
   ): Promise<{
     reports: PreviewLayerReport[];
     dropped: PreviewDroppedLayer[];
     degraded: PreviewDegradation[];
   }> => {
     const {
-      layers: resolvedActive,
+      layers: active,
       adjustments,
       precomposites,
       droppedLayers
-    } = computeActiveLayersWithHorizon(
-      sequence.tracks,
-      sequence.clips,
-      timeMs,
-      // Group transforms are authored against the sequence resolution, the
-      // same space the animations are sampled in.
-      {
-        ...sceneOptions,
-        layerTimeMs: (clip) => layerShutterTime(clip, frameTimeMs, sampleIndex, sampleCount, frameMs, options.motionBlur)
-      }
-    );
-    const active = onlyClipIds
-      ? resolvedActive.filter((layer) => onlyClipIds.has(layer.clipId))
-      : resolvedActive;
+    } = sample;
     const ancestorGroups = new Set(active.flatMap((layer) => layer.precomposeGroupId ? [layer.precomposeGroupId] : []));
     const precomposeById = new Map(precomposites.map((group) => [group.clipId, group]));
     for (const groupId of ancestorGroups) {
@@ -609,9 +656,9 @@ export async function renderTimelineFrames(
 
     const sourceForLayer = async (
       layer: ActiveLayer,
-      anim: AnimatedLayerProps,
-      layerTimeMs: number
+      sampled: ReturnType<typeof sample.sampleLayer>
     ): Promise<LayerSource> => {
+      const { anim, timeMs: layerTimeMs } = sampled;
       if (layer.kind === "caption" && layer.caption) {
         const raster = rasterizer.caption(layer.caption);
         if (!raster) return { skipped: "nothing to draw" };
@@ -672,8 +719,8 @@ export async function renderTimelineFrames(
         const pixels = model3d.get(
           assetId,
           sessionOptionsFor(style),
-          resolveModel3DCamera(style, anim),
-          layer.sourceTimeSec ?? 0
+          sampled.camera ?? resolveModel3DCamera(style, anim),
+          sampled.sourceTimeSec ?? 0
         );
         if (!pixels) {
           return { skipped: "the 3D layer was not rendered at this instant" };
@@ -737,22 +784,15 @@ export async function renderTimelineFrames(
 
     /**
      * An active layer as something the Canvas 2D rules can draw, or the reason
-     * it draws nothing. `resolved` is the caller's own animation sample, since
-     * the report already needed it; a matte source has none and takes its own.
+     * it draws nothing. Visible layers and matte dependencies share the same
+     * cached animation samples the 3D pre-pass and layer report read.
      */
     const toDrawLayer = async (
-      layer: ActiveLayer,
-      sampled?: AnimatedLayerProps
+      layer: ActiveLayer
     ): Promise<Canvas2DLayer<PreviewSource> | string> => {
-      const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, frameMs, options.motionBlur);
-      const anim =
-        sampled ??
-        resolveAnimatedLayerProps(layer, layerTimeMs, animationCanvas, animCache, {
-          mediaTracks: sequence.mediaTracks ?? [],
-          clips: sequence.clips,
-          tempo: sequence.tempo
-        });
-      const resolved = await sourceForLayer(layer, anim, layerTimeMs);
+      const sampled = sample.sampleLayer(layer);
+      const { anim } = sampled;
+      const resolved = await sourceForLayer(layer, sampled);
       if ("skipped" in resolved) return resolved.skipped;
       const drawn: Canvas2DLayer<PreviewSource> = {
         clipId: layer.clipId,
@@ -786,28 +826,24 @@ export async function renderTimelineFrames(
         // A matte source is not in `active` — the scene model held it back —
         // so it is decoded and placed here and nowhere else.
         const matteLayer = await toDrawLayer(layer.matte.layer);
-        if (typeof matteLayer !== "string") {
-          drawn.matte = {
-            mode: layer.matte.mode,
-            invert: layer.matte.invert,
-            layer: matteLayer,
-            strength: layer.matte.strength,
-            featherPx: layer.matte.featherPx
-          };
+        if (typeof matteLayer === "string") {
+          const source = layer.matte.layer;
+          return `matte source clip ${source.clipId}${source.assetId ? ` (asset ${source.assetId})` : ""} failed: ${matteLayer}`;
         }
+        drawn.matte = {
+          mode: layer.matte.mode,
+          invert: layer.matte.invert,
+          layer: matteLayer,
+          strength: layer.matte.strength,
+          featherPx: layer.matte.featherPx
+        };
       }
       return drawn;
     };
 
     for (const layer of active) {
-      const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, sampleIndex, sampleCount, frameMs, options.motionBlur);
-      const anim = resolveAnimatedLayerProps(
-        layer,
-        layerTimeMs,
-        animationCanvas,
-        animCache,
-        { mediaTracks: sequence.mediaTracks ?? [], clips: sequence.clips, tempo: sequence.tempo }
-      );
+      const sampled = sample.sampleLayer(layer);
+      const { anim } = sampled;
       const zIndex = trackZ(layer.trackIndex);
       const report: PreviewLayerReport = {
         clip_id: layer.clipId,
@@ -835,26 +871,26 @@ export async function renderTimelineFrames(
       }
       if (layer.kind === "model3d" && layer.model3dStyle) {
         report.camera = cameraReport(
-          resolveModel3DCamera(layer.model3dStyle, anim)
+          sampled.camera ?? resolveModel3DCamera(layer.model3dStyle, anim)
         );
         report.animation_time_sec = Number(
-          (layer.sourceTimeSec ?? 0).toFixed(3)
+          (sampled.sourceTimeSec ?? 0).toFixed(3)
         );
       }
       if (layer.shapeMask) report.mask = { kind: layer.shapeMask.kind };
+      reports.push(report);
+
+      const drawn = await toDrawLayer(layer);
+      if (typeof drawn === "string") {
+        report.skipped = drawn;
+        continue;
+      }
       if (layer.matte) {
         report.matte = {
           source_clip_id: layer.matte.layer.clipId,
           mode: layer.matte.mode,
           invert: layer.matte.invert
         };
-      }
-      reports.push(report);
-
-      const drawn = await toDrawLayer(layer, anim);
-      if (typeof drawn === "string") {
-        report.skipped = drawn;
-        continue;
       }
       drawLayers.push(drawn);
       reportFor.set(drawn, report);
@@ -902,34 +938,18 @@ export async function renderTimelineFrames(
    * Ask the 3D pre-pass for every `model3d` layer at one instant, matte
    * sources included.
    *
-   * The layer set is resolved a second time here rather than shared with
-   * `composeAt`, because the whole point of the pass is to hold the pixels
-   * before the first frame is composed. It is a pure resolve — nothing is read
-   * or decoded — and it runs only on a document that has a 3D clip.
+   * The scene, camera and source clock are the same samples composition uses.
    */
-  const requestModel3DAt = (timeMs: number): void => {
-    const { layers } = computeActiveLayersWithHorizon(
-      sequence.tracks,
-      sequence.clips,
-      timeMs,
-      sceneOptions
-    );
-    const selected = onlyClipIds ? layers.filter((layer) => onlyClipIds.has(layer.clipId)) : layers;
-    for (const layer of collectModel3DLayers(selected)) {
+  const requestModel3DAt = (sample: ReturnType<typeof resolveSample>): void => {
+    for (const layer of collectModel3DLayers(sample.layers)) {
       const style = layer.model3dStyle;
       if (!layer.assetId || !style) continue;
-      const anim = resolveAnimatedLayerProps(
-        layer,
-        timeMs,
-        animationCanvas,
-        animCache,
-        { mediaTracks: sequence.mediaTracks ?? [], clips: sequence.clips }
-      );
+      const sampled = sample.sampleLayer(layer);
       model3d.request(
         layer.assetId,
         sessionOptionsFor(style),
-        resolveModel3DCamera(style, anim),
-        layer.sourceTimeSec ?? 0
+        sampled.camera ?? resolveModel3DCamera(style, sampled.anim),
+        sampled.sourceTimeSec ?? 0
       );
     }
   };
@@ -965,55 +985,91 @@ export async function renderTimelineFrames(
    * shutter window's samples with it on. Resolved up front because the 3D
    * pre-pass below has to know every instant before it renders any of them.
    */
-  const frameInstants = options.timesMs.map((timeMs, index) => ({
-    timeMs,
-    blur: frameBlurs[index],
-    sampleTimes: shutterIsStatic(timeMs, frameBlurs[index])
+  const frameInstants = options.timesMs.map((timeMs, index) => {
+    const sampleTimes = shutterIsStatic(timeMs, frameBlurs[index])
       ? [timeMs]
-      : motionBlurSampleTimes(timeMs, frameMs, frameBlurs[index])
-  }));
+      : motionBlurSampleTimes(timeMs, frameMs, frameBlurs[index]);
+    return {
+      timeMs, blur: frameBlurs[index], sampleTimes,
+      samples: sampleTimes.map((sampleMs, sampleIndex) => resolveSample(sampleMs, timeMs, sampleIndex, sampleTimes.length))
+    };
+  });
 
-  // Only a document that has a 3D clip pays for the extra layer resolve: a
-  // timeline of video and titles never touches this.
+  // A document without 3D clips never loads the headless renderer.
   if (sequence.clips.some((clip) => clip.mediaType === "model3d")) {
-    for (const { sampleTimes } of frameInstants) {
-      for (const instantMs of sampleTimes) requestModel3DAt(instantMs);
+    for (const { samples } of frameInstants) {
+      for (const sample of samples) requestModel3DAt(sample);
     }
     await model3d.run();
   }
 
-  for (const { timeMs, sampleTimes, blur } of frameInstants) {
+  for (const { timeMs, sampleTimes, samples, blur } of frameInstants) {
     let composed: Awaited<ReturnType<typeof composeAt>>;
-    let samplesComplete = true;
+    const failures = new Map<string, PreviewSampleFailure>();
+    const dropped = new Map<string, PreviewDroppedLayer>();
+    const degraded = new Map<string, PreviewDegradation>();
+    const recordSample = (
+      sample: Awaited<ReturnType<typeof composeAt>>,
+      index: number,
+      sampleMs: number
+    ): void => {
+      const record = (
+        kind: PreviewSampleFailure["kind"],
+        entry: { clip_id?: string; clip_name?: string; reason: string }
+      ): void => {
+        const key = JSON.stringify([kind, entry.clip_id, entry.clip_name, entry.reason]);
+        const existing = failures.get(key);
+        const affected = { index, time_ms: sampleMs };
+        if (existing) {
+          if (existing.samples.at(-1)?.index !== index) {
+            existing.samples.push(affected);
+          }
+        } else {
+          failures.set(key, { kind, ...entry, samples: [affected] });
+        }
+      };
+      for (const layer of sample.reports) {
+        if (layer.skipped) record("skipped", {
+          clip_id: layer.clip_id, clip_name: layer.clip_name, reason: layer.skipped
+        });
+      }
+      for (const entry of sample.dropped) {
+        record("dropped", entry);
+        dropped.set(JSON.stringify(entry), entry);
+      }
+      for (const entry of sample.degraded) {
+        record("degraded", entry);
+        degraded.set(JSON.stringify(entry), entry);
+      }
+    };
     if (!blurCtx || !blurAccumulator || sampleTimes.length === 1) {
-      composed = await composeAt(timeMs);
+      composed = await composeAt(samples[0]);
+      recordSample(composed, 0, timeMs);
     } else {
       seedBlurAccumulation(blurCtx, geometry);
       // The report describes the first instant of the shutter window, since no
       // single set of numbers describes a picture that is N instants averaged.
-      composed = await composeAt(sampleTimes[0], timeMs, 0, sampleTimes.length);
+      composed = await composeAt(samples[0]);
+      recordSample(composed, 0, sampleTimes[0]);
       accumulateBlurSample(blurCtx, canvas, blur.weight, geometry);
       for (const [index, sampleMs] of sampleTimes.slice(1).entries()) {
-        const sample = await composeAt(sampleMs, timeMs, index + 1, sampleTimes.length);
-        samplesComplete &&= sample.reports.every((layer) => !layer.skipped);
-        composed.dropped.push(...sample.dropped);
-        composed.degraded.push(...sample.degraded);
+        const sample = await composeAt(samples[index + 1]);
+        recordSample(sample, index + 1, sampleMs);
         accumulateBlurSample(blurCtx, canvas, blur.weight, geometry);
       }
     }
 
     frames.push({
-      complete: samplesComplete &&
-        composed.reports.every((layer) => !layer.skipped) &&
-        composed.dropped.length === 0 && composed.degraded.length === 0 &&
+      complete: failures.size === 0 &&
         effectsNotApplied.size === 0 && fontsUnavailable.length === 0,
       time_ms: timeMs,
       png: new Uint8Array((sampleTimes.length > 1 && blurAccumulator ? blurAccumulator : canvas).toBuffer("image/png")),
       width,
       height,
       layers: composed.reports,
-      dropped: composed.dropped,
-      degraded: composed.degraded
+      dropped: [...dropped.values()],
+      degraded: [...degraded.values()],
+      failures: [...failures.values()]
     });
   }
 

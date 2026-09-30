@@ -1747,7 +1747,16 @@ export class TextToSpeechNode extends BaseNode {
           params
         })) {
           const piece = item as { samples?: Int16Array; sampleRate?: number };
-          if (isPositiveNumber(piece.sampleRate)) {
+          if (piece.sampleRate !== undefined) {
+            if (
+              !Number.isInteger(piece.sampleRate) ||
+              piece.sampleRate <= 0 ||
+              piece.sampleRate > 0xffffffff / 2
+            ) {
+              throw new Error(
+                "Text To Speech returned an invalid PCM sample rate."
+              );
+            }
             sampleRate = piece.sampleRate;
           }
           if (piece.samples instanceof Int16Array) {
@@ -1761,7 +1770,13 @@ export class TextToSpeechNode extends BaseNode {
             );
           }
         }
-        const wav = encodePcm16Wav(concatBytes(chunks), sampleRate, 1);
+        const pcm = concatBytes(chunks);
+        if (pcm.length < 2) {
+          throw new Error(
+            `Text To Speech produced no audio samples for ${providerId} / ${modelId}.`
+          );
+        }
+        const wav = encodePcm16Wav(pcm, sampleRate, 1);
         return { audio: audioRefFromWav(wav) };
       }
 

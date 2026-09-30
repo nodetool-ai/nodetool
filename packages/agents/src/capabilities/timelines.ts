@@ -1667,6 +1667,7 @@ const previewTimelineFrame: CapabilityExport = {
         width: frame.width,
         height: frame.height,
         layers: frame.layers,
+        failures: frame.failures,
         dropped: frame.dropped,
         degraded: frame.degraded,
         degradations: frame.degraded
@@ -1695,7 +1696,7 @@ const previewTimelineFrame: CapabilityExport = {
       effects_not_applied: result.effectsNotApplied,
       fonts_unavailable: result.fontsUnavailable,
       hint: (!result.complete
-        ? "Incomplete preview: requested content was skipped or approximated. Inspect dropped, degradations, skipped layers, effects_not_applied and fonts_unavailable. This image cannot verify the complete composition. "
+        ? "Incomplete preview: requested content was skipped or approximated. Inspect failures, dropped, degradations, skipped layers, effects_not_applied and fonts_unavailable. This image cannot verify the complete composition. "
         : "") + (wantSheet
         ? "Call view_image with the sheet's asset_id to see every frame at " +
           "once; the cells run left to right, labelled with their timecode. " +
@@ -1873,8 +1874,8 @@ const compareTimelineFrames: CapabilityExport = {
       ) : null;
       frames.push({
         time_ms: times[i], complete, difference,
-        a: { dropped: left.frames[i].dropped, degradations: left.frames[i].degraded, skipped: left.frames[i].layers.filter((layer) => layer.skipped) },
-        b: { dropped: right.frames[i].dropped, degradations: right.frames[i].degraded, skipped: right.frames[i].layers.filter((layer) => layer.skipped) }
+        a: { failures: left.frames[i].failures, dropped: left.frames[i].dropped, degradations: left.frames[i].degraded, skipped: left.frames[i].layers.filter((layer) => layer.skipped) },
+        b: { failures: right.frames[i].failures, dropped: right.frames[i].dropped, degradations: right.frames[i].degraded, skipped: right.frames[i].layers.filter((layer) => layer.skipped) }
       });
       cells.push({
         label: `${times[i]}ms  ${difference === null ? "incomplete" : difference.toFixed(3)}`,

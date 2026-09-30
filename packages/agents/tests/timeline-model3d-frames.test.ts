@@ -223,6 +223,97 @@ describe("model3d layers on the agent frame path", () => {
     expect(layer!.animation_time_sec).toBe(2);
   });
 
+  it.each([
+    { label: "disabled", blur: { samplesPerFrame: 1 }, times: [1], angles: [45] },
+    { label: "narrower", blur: { samplesPerFrame: 4, shutterAngle: 90 }, times: [1.0010416666666666, 1.003125, 1.0052083333333333, 1.0072916666666667], angles: [45.046875, 45.140625, 45.234375, 45.328125] },
+    { label: "matching", blur: { samplesPerFrame: 4, shutterAngle: 180 }, times: [1.0020833333333334, 1.00625, 1.0104166666666667, 1.0145833333333334], angles: [45.09375, 45.28125, 45.46875, 45.65625] }
+  ])("uses the same per-clip shutter clock for pre-render and composition when $label", async ({ blur, times, angles }) => {
+    const cube = model3dClip({ id: "cube", style: {
+      camera: { mode: "orbit", azimuthDeg: 0, elevationDeg: 0, fovDeg: 35, zoom: 1 }
+    } });
+    cube.motionBlur = blur;
+    cube.animations = [{
+      id: "camera", role: "in", preset: "custom", durationMs: 2000, easing: "linear",
+      custom: { curves: [{ property: "cameraAzimuth", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 90 }] }] }
+    }];
+    const result = await renderTimelineFrames({
+      sequence: sequenceOf([cube]), timesMs: [1000], width: W,
+      motionBlur: { samplesPerFrame: 4, shutterAngle: 180 },
+      loadAsset: async () => new Uint8Array([0x67, 0x6c, 0x54, 0x46])
+    });
+    expect(result.complete).toBe(true);
+    expect(result.frames[0]!.failures).toEqual([]);
+    expect(result.frames[0]!.layers[0]!.skipped).toBeUndefined();
+    expect(await pixelAt(result.frames[0]!.png, W / 2, H / 2)).toEqual([255, 0, 0, 255]);
+    const requested = renderFrames.mock.calls.flatMap(([, , frames]) => frames);
+    expect(requested).toHaveLength(times.length);
+    requested.forEach((frame, index) => {
+      expect(frame.timeSec).toBeCloseTo(times[index]!, 10);
+      expect(frame.camera?.azimuthDeg).toBeCloseTo(angles[index]!, 10);
+    });
+  });
+
+  it("samples retimed source motion and beat-anchored camera motion with sequence tempo", async () => {
+    const cube = model3dClip({ id: "cube", style: {
+      camera: { mode: "orbit", azimuthDeg: 0, elevationDeg: 0, fovDeg: 35, zoom: 1 },
+      animation: { loop: true, speed: 2 }
+    } });
+    cube.inPointMs = 500;
+    cube.speedMultiplier = 2;
+    cube.motionBlur = { samplesPerFrame: 1 };
+    cube.animations = [{
+      id: "camera", role: "in", preset: "custom", durationMs: 2000,
+      beat: { index: 3, scope: "clip" }, easing: "linear",
+      custom: { curves: [{ property: "cameraAzimuth", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 90 }] }] }
+    }];
+    const sequence = sequenceOf([cube]);
+    sequence.tempo = { bpm: 240, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } };
+    const result = await renderTimelineFrames({
+      sequence, timesMs: [1000], width: W,
+      motionBlur: { samplesPerFrame: 4, shutterAngle: 180 },
+      loadAsset: async () => new Uint8Array([0x67, 0x6c, 0x54, 0x46])
+    });
+    expect(result.complete).toBe(true);
+    const requested = renderFrames.mock.calls.flatMap(([, , frames]) => frames);
+    expect(requested).toHaveLength(1);
+    // Beat 3 at 240 BPM starts at 500ms. At 1000ms the 90-degree ramp is 25% through.
+    expect(requested[0]!.camera?.azimuthDeg).toBe(22.5);
+    expect(requested[0]!.timeSec).toBe(5);
+    expect(result.frames[0]!.layers[0]).toMatchObject({
+      camera: { azimuth_deg: 22.5 }, animation_time_sec: 5
+    });
+    expect(await pixelAt(result.frames[0]!.png, W / 2, H / 2)).toEqual([255, 0, 0, 255]);
+  });
+
+  it("uses the per-clip shutter clock for a 3D matte source", async () => {
+    const key = model3dClip({ id: "key", trackId: "track-1", style: {
+      camera: { mode: "orbit", azimuthDeg: 0, elevationDeg: 0, fovDeg: 35, zoom: 1 }
+    } });
+    key.motionBlur = { samplesPerFrame: 1 };
+    key.animations = [{
+      id: "camera", role: "in", preset: "custom", durationMs: 2000, easing: "linear",
+      custom: { curves: [{ property: "cameraAzimuth", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 90 }] }] }
+    }];
+    const picture: TimelineClip = {
+      id: "picture", name: "Picture", trackId: "track-0",
+      startMs: 0, durationMs: 4000, mediaType: "shape", status: "generated", sourceType: "generated",
+      shapeStyle: { kind: "rect", fill: "#ffffff", x: 0, y: 0, width: 1, height: 1 },
+      matte: { sourceClipId: "key", mode: "alpha" }
+    };
+    const result = await renderTimelineFrames({
+      sequence: sequenceOf([picture, key]), timesMs: [1000], width: W,
+      motionBlur: { samplesPerFrame: 4, shutterAngle: 180 },
+      loadAsset: async () => new Uint8Array([0x67, 0x6c, 0x54, 0x46])
+    });
+    expect(result.complete).toBe(true);
+    expect(result.frames[0]!.layers).toMatchObject([{ clip_id: "picture", matte: { source_clip_id: "key" } }]);
+    const requested = renderFrames.mock.calls.flatMap(([, , frames]) => frames);
+    expect(requested).toHaveLength(1);
+    expect(requested[0]!.camera?.azimuthDeg).toBe(45);
+    expect(requested[0]!.timeSec).toBe(1);
+    expect(await pixelAt(result.frames[0]!.png, W / 2, H / 2)).toEqual([255, 255, 255, 255]);
+  });
+
   it("returns an explicitly incomplete capability result when Chrome cannot launch", async () => {
     const root = await mkdtemp(join(tmpdir(), "preview-model3d-"));
     try {
@@ -267,6 +358,26 @@ describe("model3d layers on the agent frame path", () => {
     // — black, not the renderer's red — so the report's degradation is the
     // only place the missing layer shows up.
     expect(await pixelAt(frames[0]!.png, W / 2, H / 2)).toEqual([0, 0, 0, 255]);
+  });
+
+  it("deduplicates a renderer degradation while retaining every affected shutter tap", async () => {
+    renderFrames.mockRejectedValue(new Error("Chrome launch failed"));
+    const cube = model3dClip({ id: "cube" });
+    cube.animations = [{ id: "orbit", preset: "orbit", role: "loop", durationMs: 2000 }];
+    const result = await renderTimelineFrames({
+      sequence: sequenceOf([cube]), timesMs: [1000], width: W,
+      motionBlur: { samplesPerFrame: 4, shutterAngle: 180 },
+      loadAsset: async () => new Uint8Array([0x67, 0x6c, 0x54, 0x46])
+    });
+    const frame = result.frames[0]!;
+    expect(frame.complete).toBe(false);
+    expect(frame.degraded).toEqual([{ clip_id: "cube", clip_name: "Clip cube", reason: "model3d_unavailable" }]);
+    expect(frame.failures.find((failure) => failure.kind === "degraded")).toMatchObject({
+      clip_id: "cube", reason: "model3d_unavailable",
+      samples: [{ index: 0 }, { index: 1 }, { index: 2 }, { index: 3 }]
+    });
+    expect(renderFrames.mock.calls[0]![2]).toHaveLength(4);
+    expect(await pixelAt(frame.png, W / 2, H / 2)).toEqual([0, 0, 0, 255]);
   });
 });
 

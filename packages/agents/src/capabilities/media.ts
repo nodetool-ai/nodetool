@@ -1168,9 +1168,20 @@ const generateSpeech: CapabilityExport = {
               parts.push(Buffer.from(chunk.data, "base64"));
               if (chunk.mimeType) mimeType = chunk.mimeType;
               pcmOnly = false;
-            } else if (chunk.samples) {
-              pcmSampleRate ??= chunk.sampleRate;
-              parts.push(int16ToUint8(chunk.samples));
+            } else {
+              if (chunk.sampleRate !== undefined) {
+                if (
+                  !Number.isInteger(chunk.sampleRate) ||
+                  chunk.sampleRate <= 0 ||
+                  chunk.sampleRate > 0xffffffff / 2
+                ) {
+                  throw new Error("TTS returned an invalid PCM sample rate");
+                }
+                pcmSampleRate ??= chunk.sampleRate;
+              }
+              if (chunk.samples) {
+                parts.push(int16ToUint8(chunk.samples));
+              }
             }
           }
         } catch (e) {
@@ -1196,6 +1207,9 @@ const generateSpeech: CapabilityExport = {
         }
         const merged = concatUint8(parts);
         if (pcmOnly && !mimeType) {
+          if (merged.length < 2) {
+            throw new Error("TTS produced no audio samples");
+          }
           // Wrap raw PCM in WAV so the bytes are playable. Rename .mp3 →
           // .wav since the actual data is now WAV, not MP3. Honor the provider's
           // actual sample rate (defaulting to 24k only when unknown).
