@@ -245,6 +245,9 @@ export class Project extends DBModel {
 
   /** Resolve a caller-supplied project without permitting cross-user writes. */
   static async requireOwned(userId: string, id: string): Promise<Project> {
+    // Personal is created lazily, so a client that targets its own id before
+    // anything has listed or saved to it (the Examples page) must not fail.
+    if (id === `personal:${userId}`) return Project.ensurePersonal(userId);
     const project = await Project.findOwned(userId, id);
     if (!project) throw new Error("Project not found");
     return project;
