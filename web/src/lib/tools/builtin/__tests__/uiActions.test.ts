@@ -2,10 +2,9 @@ import { FrontendToolRegistry } from "../../frontendTools";
 import type { FrontendToolState } from "../../frontendTools";
 import type { Workflow, WorkflowList } from "../../../../stores/ApiTypes";
 
-// Mock protocol param exports — they are plain z.object shape records;
-// the real ones are resolved via moduleNameMapper but we still need
-// the module to exist so `uiActions.ts` can import it.
+// Keep protocol helpers real while supplying the parameter shapes under test.
 jest.mock("@nodetool-ai/protocol", () => ({
+  ...jest.requireActual("@nodetool-ai/protocol"),
   uiOpenWorkflowParams: {
     workflow_id: jest.requireActual("zod").z.string()
   },
