@@ -151,6 +151,18 @@ async function brightColumns(
 }
 
 describe("renderTimelineFrames", () => {
+  it("renders only the inspected clip while preserving full scene context", async () => {
+    const { frames } = await renderTimelineFrames({
+      sequence: sequence([track(0), track(1)], [
+        shapeClip("selected", "track-0", "#ff0000"),
+        shapeClip("sibling", "track-1", "#0000ff")
+      ]),
+      timesMs: [1000], width: 160, loadAsset: noAssets, onlyClipIds: ["selected"]
+    });
+    expect(frames[0].layers.map((layer) => layer.clip_id)).toEqual(["selected"]);
+    expect(await pixelAt(frames[0].png, 80, 45)).toEqual([255, 0, 0, 255]);
+  });
+
   it("keeps text bounds proportional across preview widths", async () => {
     const doc = sequence(
       [track(0)],
@@ -606,6 +618,12 @@ describe("renderTimelineFrames", () => {
 
     const before = await brightColumns(unparented.frames[0].png, 60);
     const after = await brightColumns(parented.frames[0].png, 60);
+    const inspected = await renderTimelineFrames({
+      sequence: sequence([track(0)], [group, { ...bar, parentId: "group" }]),
+      timesMs: [1000], width: 160, loadAsset: noAssets, onlyClipIds: ["bar"]
+    });
+    expect(await brightColumns(inspected.frames[0].png, 60)).toEqual(after);
+
 
     // 160px wide: the bar starts in columns 0–39 and lands in 40–79.
     expect(before.first).toBeLessThanOrEqual(1);

@@ -3,6 +3,7 @@ import type { FrontendToolState } from "../../frontendTools";
 import type { Workflow, WorkflowList, NodeMetadata } from "../../../../stores/ApiTypes";
 
 jest.mock("@nodetool-ai/protocol", () => ({
+  ...jest.requireActual("@nodetool-ai/protocol"),
   uiSearchNodesParams: {
     query: jest.requireActual("zod").z.string(),
     input_type: jest.requireActual("zod").z.string().optional(),

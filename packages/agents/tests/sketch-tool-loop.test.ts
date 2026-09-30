@@ -59,6 +59,16 @@ function createScriptedProvider(script: ScriptedCall[]): BaseProvider {
 
 // --- createSketchToolBridge --------------------------------------------------
 
+describe("media verification evidence", () => {
+  it("does not verify bytes for a placed missing asset", async () => {
+    const bridge = createSketchToolBridge();
+    const place = bridge.tools.find((tool) => tool.name === "ui_sketch_place_image");
+    const result = await place!.execute({ image: "asset://missing" });
+    expect(result).toMatchObject({ ok: true, visual_output_verified: false });
+    expect(bridge.finalState().visual_output_verified).toBe(false);
+  });
+});
+
 describe("createSketchToolBridge", () => {
   it("starts with a single 'Background' layer, active", async () => {
     const bridge = createSketchToolBridge();
@@ -122,6 +132,7 @@ describe("createSketchToolBridge", () => {
     };
 
     expect(result.generationStarted).toBe(true);
+    expect(result).toMatchObject({ visual_output_verified: false });
     expect(result.layer.hasBinding).toBe(true);
 
     const state = bridge.finalState();
@@ -776,6 +787,7 @@ describe("SKETCH_TOOL_LOOP_CASES", () => {
     });
     expect(report.cases[0].accepted).toBe(true);
     expect(report.cases[0].score).toBe(1);
+    expect(report.cases[0].visual_output_verified).toBe(false);
   });
 
   it("resize-and-select: a valid scripted solution is accepted with a perfect score", async () => {

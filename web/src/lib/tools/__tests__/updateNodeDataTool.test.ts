@@ -10,9 +10,16 @@ function createMockNodeStore(
 ) {
   const storeState = {
     nodes,
+    edges: [],
     findNode: (id: string) => nodes.find((n) => n.id === id),
-    updateNodeData: jest.fn(),
-    updateNodeProperties: jest.fn(),
+    updateNodeData: jest.fn((id: string, data: Record<string, unknown>) => {
+      const node = nodes.find((entry) => entry.id === id);
+      if (node) node.data = { ...node.data, ...data };
+    }),
+    updateNodeProperties: jest.fn((id: string, properties: Record<string, unknown>) => {
+      const node = nodes.find((entry) => entry.id === id);
+      if (node) node.data.properties = { ...(node.data.properties as Record<string, unknown>), ...properties };
+    }),
   };
   return {
     getState: () => storeState,

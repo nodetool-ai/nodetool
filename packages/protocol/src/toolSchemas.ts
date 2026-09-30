@@ -21,6 +21,9 @@ export const optionalWorkflowIdSchema = z
     "Optional workflow id; when omitted/null, the current workflow is used."
   );
 
+export const basedOnWorkflowRevisionSchema = z.string().regex(/^graph:[a-f0-9]{64}$/).optional()
+  .describe("Revision returned by ui_get_graph or the previous mutation. Refuse this edit if the graph has changed. Covers the graph fields exposed by ui_get_graph.");
+
 // --- Tool parameter shapes (ZodRawShape for SDK tool()) ---
 
 export const uiSearchNodesParams = {
@@ -52,7 +55,8 @@ export const uiAddNodeParams = {
     .describe(
       "Optional initial property values keyed by property name. Required properties left unset will be reported as warnings."
     ),
-  workflow_id: optionalWorkflowIdSchema
+  workflow_id: optionalWorkflowIdSchema,
+  based_on_revision: basedOnWorkflowRevisionSchema
 };
 
 export const uiConnectNodesParams = {
@@ -68,7 +72,8 @@ export const uiConnectNodesParams = {
     .describe(
       "Input port name on the target node (the property name from `properties[].name` in ui_search_nodes)."
     ),
-  workflow_id: optionalWorkflowIdSchema
+  workflow_id: optionalWorkflowIdSchema,
+  based_on_revision: basedOnWorkflowRevisionSchema
 };
 
 export const uiGetGraphParams = {
@@ -82,17 +87,20 @@ export const uiUpdateNodeDataParams = {
     .describe(
       "Partial node-data overlay merged into `data` (e.g. `{ properties: { x: 1 }, title: 'New' }`). Unspecified keys are preserved."
     ),
-  workflow_id: optionalWorkflowIdSchema
+  workflow_id: optionalWorkflowIdSchema,
+  based_on_revision: basedOnWorkflowRevisionSchema
 };
 
 export const uiDeleteNodeParams = {
   node_id: z.string().describe("Id of the node to delete."),
-  workflow_id: optionalWorkflowIdSchema
+  workflow_id: optionalWorkflowIdSchema,
+  based_on_revision: basedOnWorkflowRevisionSchema
 };
 
 export const uiDeleteEdgeParams = {
   edge_id: z.string().describe("Id of the edge to delete."),
-  workflow_id: optionalWorkflowIdSchema
+  workflow_id: optionalWorkflowIdSchema,
+  based_on_revision: basedOnWorkflowRevisionSchema
 };
 
 export const uiMoveNodeParams = {
@@ -100,13 +108,15 @@ export const uiMoveNodeParams = {
   position: xyPositionSchema.describe(
     "Absolute canvas coordinates `{x, y}` (numbers, not a string)."
   ),
-  workflow_id: optionalWorkflowIdSchema
+  workflow_id: optionalWorkflowIdSchema,
+  based_on_revision: basedOnWorkflowRevisionSchema
 };
 
 export const uiSetNodeTitleParams = {
   node_id: z.string().describe("Id of the node whose title to set."),
   title: z.string().describe("New display title for the node."),
-  workflow_id: optionalWorkflowIdSchema
+  workflow_id: optionalWorkflowIdSchema,
+  based_on_revision: basedOnWorkflowRevisionSchema
 };
 
 export const uiOpenWorkflowParams = {
@@ -201,7 +211,7 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
   },
   ui_get_graph: {
     description:
-      "Get the current workflow graph (nodes and edges). No required arguments.",
+      "Get the workflow graph, source (editor or server), and document_revision. Pass this revision as based_on_revision on the next graph mutation to reject stale edits. No required arguments.",
     parameters: uiGetGraphParams
   },
   ui_update_node_data: {

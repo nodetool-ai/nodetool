@@ -17,8 +17,10 @@ import {
   GenerationAttempt,
   Prediction,
   Storyboard,
+  TimelineSequence,
   initTestDb
 } from "@nodetool-ai/models";
+import { captureMediaEditSourceContext, createMediaEditRequest, ensureBaselineTake, makeClip, makeTrack } from "@nodetool-ai/timeline";
 import { createFalGenerationLifecycleHooks } from "@nodetool-ai/execution";
 
 const fetchExternalMedia = vi.fn();
@@ -184,4 +186,45 @@ describe("durable recovery of fal media responses", () => {
     expect((await Prediction.find(generationId))?.attachment_status).toBe("attached");
     expect(queueFor).not.toHaveBeenCalled();
   });
+  it.each([false, true])("recovers an interrupted timeline edit without another provider call after source changed=%s", async (sourceChanged) => {
+    const clip = makeClip({ id: "clip-1", trackId: "track-1", name: "source", startMs: 1200,
+      durationMs: 2000, inPointMs: 500, outPointMs: 2500, currentAssetId: "original-asset",
+      mediaType: "video", sourceType: "imported", status: "generated" });
+    const sequence = await TimelineSequence.create({ user_id: "u1", project_id: "default", name: "recover",
+      fps: 30, width: 160, height: 90, duration_ms: 3200,
+      document: JSON.stringify({ tracks: [makeTrack({ id: "track-1", type: "video" })], clips: [clip], markers: [] }) });
+    const asset = await Asset.create<Asset>({ user_id: "u1", name: "candidate", content_type: "video/mp4" });
+    const submittedClip = ensureBaselineTake(clip);
+    submittedClip.versions![0].id = "submitted-source-take";
+    const source = captureMediaEditSourceContext(sequence.id, submittedClip);
+    if (!source.ok) throw new Error(source.error);
+    const edit = createMediaEditRequest({ sourceContext: source.context, instruction: "night", provider: "fal_ai", model: "fal-ai/edit" });
+    const request = { provider: "fal_ai", model: "fal-ai/edit", capability: "video_to_video", params: { media_edit: edit },
+      destination: { document_id: sequence.id, target_type: "timeline_clip", target_id: clip.id, selected: false } };
+    const generationId = "timeline-edit-recover";
+    const hooks = createFalGenerationLifecycleHooks({ userId: "u1", callbacks: false });
+    await hooks.onGenerationAccepted?.({ generationId, request });
+    await hooks.onGenerationTerminal?.({ generationId, request, status: "completed", output: { url: "https://fal.media/recovered" }, receipt: null, assetIds: [asset.id] });
+    if (sourceChanged) {
+      await TimelineSequence.updateDocumentIfUnchanged(sequence.id, sequence.updated_at, {
+        ...sequence.toDocument(), clips: [{ ...clip, currentAssetId: "replacement-asset", inPointMs: 0, outPointMs: 4000, durationMs: 4000 }]
+      });
+    }
+    const queueFor = vi.fn(() => { throw new Error("Recovery must not submit a paid request"); });
+    const worker = createGenerationRecoveryWorker({ provider: { queueFor }, now: () => new Date(Date.now() + 5 * 60_000) });
+    await worker.runOnce();
+    await worker.runOnce();
+    const recovered = (await TimelineSequence.findById(sequence.id))!.toDocument().clips[0];
+    expect(recovered).toMatchObject({ currentAssetId: sourceChanged ? "replacement-asset" : "original-asset", startMs: 1200,
+      inPointMs: sourceChanged ? 0 : 500, outPointMs: sourceChanged ? 4000 : 2500,
+      versions: expect.arrayContaining([expect.objectContaining({ id: generationId, assetId: asset.id, source: "video_to_video", parentTakeId: "submitted-source-take",
+        mediaEdit: expect.objectContaining({ instruction: "night", sourceContext: source.context }) })]) });
+    expect(recovered.versions?.filter((take) => take.id === generationId)).toHaveLength(1);
+    expect(recovered.versions?.find((take) => take.assetId === "original-asset")).toMatchObject({
+      id: "submitted-source-take", durationMs: 2000, sourceMapping: { inPointMs: 500, outPointMs: 2500, speedMultiplier: 1 }
+    });
+    expect((await Prediction.find(generationId))?.attachment_status).toBe("attached");
+    expect(queueFor).not.toHaveBeenCalled();
+  });
+
 });

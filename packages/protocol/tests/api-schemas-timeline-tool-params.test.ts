@@ -242,9 +242,8 @@ describe("the shared tool name list", () => {
     }
   });
 
-  it("leaves out the browser-only frame sampler", () => {
-    // It needs real rendered video, so there is no headless twin to demand.
-    expect(SHARED_TIMELINE_TOOL_NAMES).not.toContain(
+  it("includes the frame inspection contract implemented by each media host", () => {
+    expect(SHARED_TIMELINE_TOOL_NAMES).toContain(
       "ui_timeline_get_clip_frames"
     );
   });

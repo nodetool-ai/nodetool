@@ -331,6 +331,112 @@ describe("storyboards capability behaviour", () => {
     expect(read.entity_ids).toEqual(["style-1", "char-1"]);
   });
 
+  it("set_board persists narration and music direction for timeline assembly", async () => {
+    const board = await makeBoard([renderedShot("s1", 0)]);
+    const context = ctx();
+    const edited = await run(context).invoke("edit_storyboard", {
+      storyboard_id: board.id,
+      ops: [
+        {
+          op: "set_board",
+          narration: "A quiet town at dusk.",
+          music_prompt: "Soft piano."
+        }
+      ]
+    });
+    expect(edited).toMatchObject({ applied: 1, failed: 0 });
+    expect(
+      await run(context).invoke("get_storyboard", {
+        storyboard_id: board.id
+      })
+    ).toMatchObject({
+      narration: "A quiet town at dusk.",
+      music_prompt: "Soft piano."
+    });
+
+    const saved = await Storyboard.findById(board.id);
+    expect(saved?.toDocument().screenplay).toMatchObject({
+      type: "screenplay",
+      narration: "A quiet town at dusk.",
+      music_prompt: "Soft piano."
+    });
+    const assembled = (await run(context).invoke(
+      "assemble_storyboard_timeline",
+      {
+        storyboard_id: board.id
+      }
+    )) as { timeline_id: string };
+    const timeline = (await sequenceOf(assembled.timeline_id)).toDocument();
+    expect(timeline.clips.map((clip) => clip.prompt)).toEqual(
+      expect.arrayContaining(["A quiet town at dusk.", "Soft piano."])
+    );
+  });
+
+  it("set_board changes only supplied screenplay direction and accepts empty text to clear it", async () => {
+    const screenplay = {
+      type: "screenplay",
+      id: "sp_existing",
+      title: "Evening",
+      logline: "A return home.",
+      style_bible: "Amber light.",
+      script_id: "linked-script",
+      shots: [],
+      scenes: [],
+      narration: "Old narration.",
+      music_prompt: "Old score."
+    };
+    const board = await makeBoard([shot({ id: "s1", index: 0 })], {
+      screenplay
+    });
+    const context = ctx();
+    expect(
+      await run(context).invoke("edit_storyboard", {
+        storyboard_id: board.id,
+        ops: [{ op: "set_board", narration: "New narration." }]
+      })
+    ).toMatchObject({ applied: 1, failed: 0 });
+    expect(
+      (await Storyboard.findById(board.id))?.toDocument().screenplay
+    ).toEqual({
+      ...screenplay,
+      narration: "New narration."
+    });
+    expect(
+      await run(context).invoke("edit_storyboard", {
+        storyboard_id: board.id,
+        ops: [{ op: "set_board", narration: "", music_prompt: "" }]
+      })
+    ).toMatchObject({ applied: 1, failed: 0 });
+    expect(
+      (await Storyboard.findById(board.id))?.toDocument().screenplay
+    ).toEqual({
+      ...screenplay,
+      narration: "",
+      music_prompt: ""
+    });
+  });
+
+  it.each([
+    { narration: 42 },
+    { music_prompt: false },
+    { narration: null },
+    { narration: "Valid", music_prompt: {} }
+  ])(
+    "set_board refuses malformed screenplay direction without applying the op: %j",
+    async (direction) => {
+      const board = await makeBoard([]);
+      const before = board.toDocument();
+      const result = await run(ctx()).invoke("edit_storyboard", {
+        storyboard_id: board.id,
+        ops: [{ op: "set_board", brief: "Must not be saved", ...direction }]
+      });
+      expect(result).toMatchObject({ applied: 0, failed: 1 });
+      expect((await Storyboard.findById(board.id))?.toDocument()).toEqual(
+        before
+      );
+    }
+  );
+
   it("still refuses an op name that means nothing", async () => {
     const context = ctx();
     const created = (await run(context).invoke("create_storyboard", {

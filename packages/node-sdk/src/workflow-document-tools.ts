@@ -1,5 +1,5 @@
 import type { Graph } from "@nodetool-ai/protocol/api-schemas/workflows.js";
-import { wouldCreateLoopUnsafeCycle } from "@nodetool-ai/protocol";
+import { wouldCreateLoopUnsafeCycle, WORKFLOW_REVISION_TOOL_NAMES } from "@nodetool-ai/protocol";
 import {
   inferredCodeInputNames,
   inferredCodeOutputNames
@@ -12,16 +12,7 @@ import {
   valueIncompatibleWithType
 } from "./type-compat.js";
 
-export const WORKFLOW_DOCUMENT_TOOL_NAMES = [
-  "ui_get_graph",
-  "ui_add_node",
-  "ui_connect_nodes",
-  "ui_update_node_data",
-  "ui_delete_node",
-  "ui_delete_edge",
-  "ui_move_node",
-  "ui_set_node_title"
-] as const;
+export const WORKFLOW_DOCUMENT_TOOL_NAMES = WORKFLOW_REVISION_TOOL_NAMES;
 
 export type WorkflowDocumentToolName =
   (typeof WORKFLOW_DOCUMENT_TOOL_NAMES)[number];
@@ -208,26 +199,29 @@ function projectGraph(
     workflow_id: workflowId,
     nodes: graph.nodes.map((node) => {
       const ui = nodeUi(node);
-      type DataFields = {
-        properties: ReturnType<typeof nodeData>;
-        dynamic_properties: unknown;
-        dynamic_inputs: unknown;
-        dynamic_outputs: unknown;
-        title?: string;
-      };
-      const data: DataFields = {
+      const data: Record<string, unknown> = {
         properties: nodeData(node),
         dynamic_properties: node.dynamic_properties ?? {},
         dynamic_inputs: node.dynamic_inputs ?? {},
-        dynamic_outputs: node.dynamic_outputs ?? {}
+        dynamic_outputs: node.dynamic_outputs ?? {},
+        collapsed: ui.collapsed === true,
+        bypassed: ui.bypassed === true
       };
-      if (isString(ui.title)) {
-        data.title = ui.title;
+      for (const field of UI_NODE_DATA_FIELDS) {
+        if (ui[field] !== undefined) {
+          data[field] = ui[field];
+        }
       }
+      if (ui.setup_step_id !== undefined) {
+        data.setupStepId = ui.setup_step_id;
+      }
+      const position = isRecord(ui.position) && isNumber(ui.position.x) && isNumber(ui.position.y)
+        ? { x: ui.position.x, y: ui.position.y } : { x: 0, y: 0 };
       return {
         id: node.id,
         type: node.type,
-        position: normalizePosition(ui.position, 0),
+        parentId: node.parent_id || undefined,
+        position,
         data
       };
     }),

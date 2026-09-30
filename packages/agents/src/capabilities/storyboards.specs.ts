@@ -193,7 +193,8 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
         "update_shot {target, ...same fields}, remove_shot {target}, " +
         "reorder_shot {target, index}, move_shot {target, scene_id?, " +
         "position}, duplicate_shot {target}, set_board {brief?, style?, " +
-        "aspect_ratio?, entity_ids?, image_model?, video_model?}, " +
+        "aspect_ratio?, entity_ids?, image_model?, video_model?, narration?, " +
+        "music_prompt?}, " +
         "set_setup {brief?, genre?, stage?}, update_scene {scene_id, " +
         "slugline?, lighting?}, create_scene {after_scene_id?}, " +
         "merge_scene {scene_id}, set_style {entity_id? | style?}, " +
@@ -213,7 +214,9 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
         "and assembles as that window. Pass null to undo it. " +
         "image_model/video_model take a model object from find_model and " +
         "become the board's defaults for render_storyboard_stills and " +
-        "render_storyboard_clips.",
+        "render_storyboard_clips. set_board narration/music_prompt are " +
+        "screenplay-level strings for voiceover and score direction; an " +
+        "empty string clears one. Other screenplay fields are preserved.",
       items: { type: "object" }
     }
   },
@@ -393,7 +396,8 @@ export const editStoryboardSpec: CapabilitySpec = {
   description:
     "Edit a saved storyboard's shot list headlessly: add, rewrite, remove and " +
     "reorder shots, and set the board's brief, style, aspect ratio and " +
-    "entities. Operations run in order against the stored document and the " +
+    "entities, narration and music direction. Operations run in order against " +
+    "the stored document and the " +
     "result is saved; an open board picks the change up live. Rendering stays " +
     "with render_storyboard_stills / render_storyboard_clips — this tool " +
     "directs, it does not spend. Call get_storyboard first for shot ids.",

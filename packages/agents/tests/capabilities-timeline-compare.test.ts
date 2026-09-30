@@ -62,11 +62,13 @@ function document(cutMs: number) {
 }
 
 interface CompareResult {
+  complete: boolean;
+  visual_output_verified: boolean;
   error?: string;
-  frames: Array<{ time_ms: number; difference: number }>;
-  changed_times_ms: number[];
-  max_difference: number;
-  mean_difference: number;
+  frames: Array<{ time_ms: number; difference: number | null }>;
+  changed_times_ms: number[] | null;
+  max_difference: number | null;
+  mean_difference: number | null;
   sheet: {
     columns: number;
     rows: number;
@@ -99,6 +101,24 @@ function harness() {
 }
 
 describe("compare_timeline_frames", () => {
+  it("refuses an identical verdict when both previews omit unavailable media", async () => {
+    const { call } = harness();
+    const doc = document(2000);
+    doc.clips[0] = {
+      ...doc.clips[0], mediaType: "image", currentAssetId: "missing-asset",
+      shapeStyle: undefined
+    };
+    const result = await call({
+      a: { document: doc }, b: { document: doc }, times_ms: [500], width: 96
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.complete).toBe(false);
+    expect(result.visual_output_verified).toBe(false);
+    expect(result.frames[0].difference).toBeNull();
+    expect(result.max_difference).toBeNull();
+    expect(result.changed_times_ms).toBeNull();
+  });
+
   it("scores a document against itself as zero at every timecode", async () => {
     const { call } = harness();
     const doc = document(2000);

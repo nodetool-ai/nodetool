@@ -69,6 +69,12 @@
       "import": "./dist/providers/oauth/index.js",
       "default": "./dist/providers/oauth/index.js"
     },
+    "./trim-video-window": {
+      "nodetool-dev": "./src/trim-video-window.ts",
+      "types": "./dist/trim-video-window.d.ts",
+      "import": "./dist/trim-video-window.js",
+      "default": "./dist/trim-video-window.js"
+    },
     "./context": {
       "nodetool-dev": "./src/context.ts",
       "types": "./dist/context.d.ts",

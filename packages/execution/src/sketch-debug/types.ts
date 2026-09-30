@@ -52,6 +52,8 @@ export interface SketchDocumentMeta {
 }
 
 export interface SketchDebugReport {
+  /** This harness checks structure, not the visual output of the saved document. */
+  visual_output_verified: false;
   target: SketchDebugTarget;
   meta: SketchDocumentMeta;
   /** Static validation of the input document. */

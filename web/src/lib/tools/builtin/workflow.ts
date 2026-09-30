@@ -1,4 +1,5 @@
 import type { FrontendToolState } from "../frontendTools";
+import { isFullResourceId, isShortResourceId, shortResourceId } from "@nodetool-ai/protocol";
 
 export function resolveWorkflowId(
   state: FrontendToolState,
@@ -9,7 +10,30 @@ export function resolveWorkflowId(
   // leaving the user's current tab untouched. Tab switching is the job of the
   // dedicated `ui_open_workflow` / `ui_switch_tab` tools.
   const workflowId = workflow_id ?? state.currentWorkflowId;
-  if (!workflowId) {throw new Error("No current workflow selected");}
+  if (!workflowId) {
+    throw new Error("No current workflow selected");
+  }
+  if (!isShortResourceId(workflowId)) {
+    return workflowId;
+  }
+  const knownIds = new Set(state.getOpenWorkflowIds?.() ?? []);
+  if (state.currentWorkflowId) {
+    knownIds.add(state.currentWorkflowId);
+  }
+  if (knownIds.has(workflowId)) {
+    return workflowId;
+  }
+  const matches = [...knownIds].filter(
+    (id) => isFullResourceId(id) && shortResourceId(id) === workflowId
+  );
+  if (matches.length > 1) {
+    throw new Error(`Workflow prefix ${workflowId} is ambiguous. Pass a full workflow id from ui_get_graph.`);
+  }
+  const [match] = matches;
+  if (match) {
+    return match;
+  }
+  // An unopened workflow is resolved in the authorized server scope.
   return workflowId;
 }
 

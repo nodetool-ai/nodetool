@@ -13,9 +13,7 @@
  * What it does NOT fork is the tool *contract*: names, descriptions, and Zod
  * parameter shapes are copied verbatim from the builtin file (minus the
  * `timeline_id` parameter — this bridge holds a single implicit sequence, so
- * there is nothing to disambiguate). `ui_timeline_get_clip_frames` is
- * intentionally excluded: it requires real rendered video frames and has no
- * meaningful headless equivalent.
+ * there is nothing to disambiguate). `ui_timeline_get_clip_frames` delegates real pixels to a host adapter.
  *
  * Real cut/preset logic is reused from the pure `@nodetool-ai/timeline`
  * package (`splitClip`, `ANIMATION_PRESETS`, `makeClip`/`makeTrack`) rather
@@ -124,7 +122,8 @@ import {
   type MidiNote,
   type QuantizeDivision,
   type QuantizeTarget,
-  type TimelineTempo
+  type TimelineTempo,
+  type MediaEditRequest
 } from "@nodetool-ai/timeline";
 import type {
   TimelineOpBakeModel3DRequest,
@@ -425,6 +424,15 @@ export interface TimelineBridgeInitialState {
    * claiming that an in-memory placeholder is generated media.
    */
   generateTransition?: TimelineTransitionGenerator;
+  /** Persist real output through the host generation lifecycle. */
+  generateMediaEdit?: (request: MediaEditRequest) => Promise<{
+    generationId: string;
+    assetId: string;
+  }>;
+  /** Render or decode one clip through the host's media adapter. */
+  getClipFrames?: (clip: TimelineClip, options: {
+    timesMs?: number[]; count?: number; width?: number;
+  }) => Promise<unknown>;
   /**
    * Offer `preview_timeline_frame` — a look at the layer stack at a timecode.
    * Off by default: `edit_timeline` builds this bridge too and reads its ops
@@ -2096,6 +2104,19 @@ export function createTimelineToolBridge(
       }
     ),
 
+    sharedTool("ui_timeline_get_clip_frames", async ({ target, timesMs, count, width }) => {
+      if (!initial.getClipFrames) {
+        throw new Error("This timeline host has no clip-frame renderer. Use a media-backed host.");
+      }
+      const clip = resolveClip(target as string);
+      const frames = await initial.getClipFrames(clip, {
+        timesMs: timesMs as number[] | undefined,
+        count: count as number | undefined,
+        width: width as number | undefined
+      });
+      return { ok: true, clip: serializeClip(clip), frames };
+    }),
+
     sharedTool(
       "ui_timeline_generatively_edit_clip",
       async ({ clip_id, instruction, provider, model }) => {
@@ -2129,10 +2150,13 @@ export function createTimelineToolBridge(
           provider: resolvedProvider,
           model: resolvedModel
         });
-        const generationId = nextVersionId();
+        const generated = initial.generateMediaEdit
+          ? await initial.generateMediaEdit(request)
+          : { generationId: nextVersionId(), assetId: "" };
+        const generationId = generated.generationId;
         const now = new Date().toISOString();
         const next = composeGenerativeTakePatch(baseline, "restyle", {
-          assetId: `generative://${baseline.id}/${generationId}`,
+          assetId: generated.assetId || `generative://${baseline.id}/${generationId}`,
           jobId: generationId,
           createdAt: now,
           workflowUpdatedAt: now,

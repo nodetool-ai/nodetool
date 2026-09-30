@@ -216,6 +216,32 @@ describe("headless workflow document tools", () => {
     edges: []
   };
 
+  it("returns a saved graph revision and rejects an edit based on an older read", async () => {
+    const workflow = await Workflow.create<Workflow>({
+      user_id: USER, name: "Revisions", graph
+    });
+    const readTool = capTool("ui_get_graph");
+    const writeTool = capTool("ui_set_node_title");
+    const read = await readTool.process(ctx, { workflow_id: workflow.id }) as Record<string, unknown>;
+    expect(read.source).toBe("server");
+    expect(read.document_revision).toMatch(/^graph:[a-f0-9]{64}$/);
+    const first = await writeTool.process(ctx, {
+      workflow_id: workflow.id.slice(0, 12), node_id: "n1", title: "First",
+      based_on_revision: read.document_revision
+    }) as Record<string, unknown>;
+    expect(first.ok).toBe(true);
+    expect(first.document_revision).not.toBe(read.document_revision);
+    const after = await readTool.process(ctx, { workflow_id: workflow.id }) as Record<string, unknown>;
+    expect(after.document_revision).toBe(first.document_revision);
+    const stale = await writeTool.process(ctx, {
+      workflow_id: workflow.id, node_id: "n1", title: "Stale",
+      based_on_revision: read.document_revision
+    }) as Record<string, unknown>;
+    expect(stale.error).toBe("document_revision_conflict");
+    expect(stale.document_revision).toBe(first.document_revision);
+    expect((await Workflow.get<Workflow>(workflow.id))?.graph.nodes[0].ui_properties).toMatchObject({ title: "First" });
+  });
+
   it("allows a public viewer to read but not mutate the graph", async () => {
     const workflow = (await Workflow.create<Workflow>({
       user_id: "owner",

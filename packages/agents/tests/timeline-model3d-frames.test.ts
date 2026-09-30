@@ -11,6 +11,11 @@
  */
 
 import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { ProcessingContext } from "@nodetool-ai/runtime";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -148,6 +153,7 @@ describe("model3d layers on the agent frame path", () => {
     const [, , requested] = renderFrames.mock.calls[0]!;
     expect(requested.map((frame) => frame.timeSec)).toEqual([0, 2]);
     expect(frames).toHaveLength(2);
+    expect(frames.every((frame) => frame.complete)).toBe(true);
     // The decoded PNG actually reached the composite, not just the report.
     expect(await pixelAt(frames[0]!.png, W / 2, H / 2)).toEqual([
       255, 0, 0, 255
@@ -217,6 +223,29 @@ describe("model3d layers on the agent frame path", () => {
     expect(layer!.animation_time_sec).toBe(2);
   });
 
+  it("returns an explicitly incomplete capability result when Chrome cannot launch", async () => {
+    const root = await mkdtemp(join(tmpdir(), "preview-model3d-"));
+    try {
+      await mkdir(join(root, "nodetool-base", "models"), { recursive: true });
+      await writeFile(join(root, "nodetool-base", "models", "cube.glb"), new Uint8Array([0x67, 0x6c, 0x54, 0x46]));
+      renderFrames.mockRejectedValue(new Error("could not find a Chrome installation"));
+      const context = new ProcessingContext({
+        jobId: "incomplete-preview", userId: "u1",
+        environment: { NODETOOL_PACKAGE_ASSETS_DIR: root }
+      });
+      const result = await toolForCapabilityName("preview_timeline_frame").process(context, {
+        document: sequenceOf([model3dClip({ id: "cube", assetId: "package://nodetool-base/models/cube.glb" })]),
+        times_ms: [1000], width: W
+      });
+      expect(result).toMatchObject({
+        complete: false, visual_output_verified: false,
+        frames: [{ complete: false, degradations: [{ clip_id: "cube", reason: "model3d_unavailable" }] }]
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("degrades to model3d_unavailable when the renderer will not launch", async () => {
     renderFrames.mockRejectedValue(
       new Error("could not find a Chrome installation")
@@ -224,6 +253,7 @@ describe("model3d layers on the agent frame path", () => {
 
     const { frames } = await framesOf([model3dClip({ id: "cube" })], [1000]);
 
+    expect(frames[0]!.complete).toBe(false);
     expect(frames[0]!.degraded).toEqual([
       {
         clip_id: "cube",

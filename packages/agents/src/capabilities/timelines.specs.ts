@@ -703,9 +703,12 @@ export const previewTimelineFrameSpec: CapabilitySpec = {
     "applied as a multiply instead of the export's addition — each with the " +
     "clip it happened to; " +
     "`effects_not_applied` names the effect types it cannot draw at all. " +
-    "Unlike get_clip_frames, which samples one clip's " +
-    "source media, this is the finished picture. Needs no browser, GPU or " +
-    "open editor. Sample the middle of an animation, not its endpoints — " +
+    "`complete` is false when a layer is skipped, the preview is degraded, " +
+    "an effect is omitted or a font falls back. A missing 3D renderer is " +
+    "reported as model3d_unavailable. Never verify the complete composition " +
+    "from an incomplete frame. Unlike get_clip_frames, which samples one clip's " +
+    "source media, this composites the sequence. The 2D path needs no browser, " +
+    "GPU or open editor; 3D layers need headless Chromium. Sample the middle of an animation, not its endpoints — " +
     "the endpoints are the states you already know. `range` sweeps a window " +
     "densely and `sheet` returns the sweep as one labelled contact sheet, " +
     "which is how you watch a move play out rather than checking one instant.",
@@ -792,8 +795,10 @@ export const compareTimelineFramesSpec: CapabilitySpec = {
     "it after a change nobody asked for — a restructure, a composition " +
     "insert, a snap pass — so you can say which frames it touched instead " +
     "of hoping it touched none. A difference of 0 everywhere is the proof " +
-    "an edit was cosmetic; a difference at times you did not expect is the " +
-    "regression.",
+    "an edit was cosmetic when complete is true; a difference at times you " +
+    "did not expect is the regression. Incomplete previews return null " +
+    "difference scores and aggregate metrics, with skipped layers and " +
+    "degradations for each side. They cannot establish visual equivalence.",
   inputSchema: COMPARE_TIMELINE_FRAMES_SCHEMA,
   category: "read",
   userMessage: () => "Comparing timeline frames"

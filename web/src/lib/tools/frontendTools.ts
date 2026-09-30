@@ -1,3 +1,4 @@
+import { WORKFLOW_REVISION_TOOL_NAMES, workflowDocumentRevision } from "@nodetool-ai/protocol";
 import type { ZodType, output as ZodOutput } from "zod";
 import {
   isZodSchema,
@@ -8,6 +9,8 @@ import {
 } from "@nodetool-ai/protocol/zod-schema";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { NodeStore } from "../../stores/NodeStore";
+import { isRecord, isString } from "../../utils/typePredicates";
+import { resolveWorkflowId } from "./builtin/workflow";
 
 /** A tool's parsed args, or `unknown` when it declares a raw JSON schema. */
 type InferToolArgs<Schema extends ZodOrJsonSchema> =
@@ -130,11 +133,29 @@ export const FrontendToolRegistry = {
         ? parseWithTypeCoercion(tool.parameters, args)
         : args;
 
+      const isGraphWrite = WORKFLOW_REVISION_TOOL_NAMES.some((toolName) => toolName === name) && name !== "ui_get_graph";
+      const state = isGraphWrite ? ctx.getState() : undefined;
+      const workflowId = state
+        ? resolveWorkflowId(state, isRecord(validatedArgs) && isString(validatedArgs.workflow_id)
+          ? validatedArgs.workflow_id : undefined)
+        : undefined;
+      const before = isGraphWrite && workflowId ? state?.getNodeStore(workflowId)?.getState() : undefined;
+      if (before && isRecord(validatedArgs) && validatedArgs.based_on_revision !== undefined &&
+          validatedArgs.based_on_revision !== workflowDocumentRevision(workflowId ?? "", before.nodes, before.edges)) {
+        throw new Error("document_revision_conflict: The editor graph changed since your read. Read ui_get_graph again and retry.");
+      }
+
       const result = await tool.execute(validatedArgs as never, {
         abortSignal: controller.signal,
         getState: ctx.getState
       });
 
+      if (isGraphWrite && workflowId && isRecord(result)) {
+        const after = ctx.getState().getNodeStore(workflowId)?.getState();
+        if (after) {
+          return { ...result, source: "editor", document_revision: workflowDocumentRevision(workflowId, after.nodes, after.edges) };
+        }
+      }
       return result;
     } finally {
       ctx.signal?.removeEventListener("abort", abort);

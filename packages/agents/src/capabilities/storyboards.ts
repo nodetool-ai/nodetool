@@ -16,6 +16,7 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
+import { z } from "zod";
 import {
   mp4DurationSeconds,
   type GenerationRequest,
@@ -1679,8 +1680,15 @@ const BOARD_EDIT_FIELDS = new Set([
   "aspect_ratio",
   "entity_ids",
   "image_model",
-  "video_model"
+  "video_model",
+  "narration",
+  "music_prompt"
 ]);
+
+const screenplayDirection = z.object({
+  narration: z.string().optional(),
+  music_prompt: z.string().optional()
+});
 
 /**
  * The board-level twin of {@link assertKnownShotFields}.
@@ -2247,6 +2255,12 @@ function applyBoardOp(
 
     case "set_board": {
       assertKnownBoardFields(args);
+      const direction = screenplayDirection.safeParse(args);
+      if (!direction.success) {
+        throw new Error(
+          `set_board: ${direction.error.issues.map((issue) => issue.path.join(".")).join(", ")} must be a string. Use an empty string to clear direction.`
+        );
+      }
       if (args["brief"] !== undefined) doc.brief = String(args["brief"]);
       if (args["style"] !== undefined) doc.style = String(args["style"]);
       if (args["aspect_ratio"] !== undefined) {
@@ -2282,13 +2296,32 @@ function applyBoardOp(
         }
         doc.videoModel = videoModel;
       }
+      if (
+        args["narration"] !== undefined ||
+        args["music_prompt"] !== undefined
+      ) {
+        doc.screenplay = doc.screenplay ?? {
+          type: "screenplay",
+          id: newDocId("sp"),
+          title: "",
+          shots: []
+        };
+        if (direction.data.narration !== undefined) {
+          doc.screenplay.narration = direction.data.narration;
+        }
+        if (direction.data.music_prompt !== undefined) {
+          doc.screenplay.music_prompt = direction.data.music_prompt;
+        }
+      }
       return {
         brief: doc.brief,
         style: doc.style,
         aspect_ratio: doc.aspectRatio,
         entity_ids: doc.entityIds,
         image_model: doc.imageModel,
-        video_model: doc.videoModel
+        video_model: doc.videoModel,
+        narration: doc.screenplay?.narration,
+        music_prompt: doc.screenplay?.music_prompt
       };
     }
   }

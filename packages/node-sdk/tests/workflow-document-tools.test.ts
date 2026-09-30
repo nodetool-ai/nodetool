@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Graph } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import type { NodeMetadata } from "../src/metadata.js";
 import { applyWorkflowDocumentTool } from "../src/workflow-document-tools.js";
+import { workflowDocumentRevision } from "@nodetool-ai/protocol";
 
 function metadata(
   nodeType: string,
@@ -46,6 +47,30 @@ const options = {
 const emptyGraph = (): Graph => ({ nodes: [], edges: [] });
 
 describe("applyWorkflowDocumentTool", () => {
+  it("projects saved persistent fields with the same revision as an unchanged editor", () => {
+    const graph: Graph = { nodes: [{
+      id: "n", type: "Value", parent_id: "group", data: { value: "hello" },
+      dynamic_inputs: { picture: { type: "image" } },
+      ui_properties: { title: "Title", color: "blue", bypassed: true,
+        model_id: "model", endpoint_id: "endpoint", selected_generation: "take",
+        selected_generations: ["take"], setup_step_id: "step" }
+    }], edges: [] };
+    const saved = applyWorkflowDocumentTool(graph, "ui_get_graph", {}, options).result;
+    const live = [{ id: "n", type: "Value", parentId: "group", position: { x: 0, y: 0 },
+      selected: true, measured: { width: 280, height: 200 },
+      data: { properties: { value: "hello" }, title: "Title", color: "blue", collapsed: false,
+        bypassed: true, model_id: "model", endpoint_id: "endpoint", selected_generation: "take",
+        selected_generations: ["take"], setupStepId: "step", dynamic_inputs: {
+          picture: { type: { type: "image", optional: false, values: null, type_args: [], type_name: null } }
+        } }
+    }];
+    expect(saved.nodes).toMatchObject([{ parentId: "group", position: { x: 0, y: 0 },
+      data: { bypassed: true, model_id: "model", selected_generation: "take" } }]);
+    expect(workflowDocumentRevision(options.workflowId,
+      Array.isArray(saved.nodes) ? saved.nodes : [], []))
+      .toBe(workflowDocumentRevision(options.workflowId, live, []));
+  });
+
   it("stores nodes in the persisted workflow shape", () => {
     const applied = applyWorkflowDocumentTool(
       emptyGraph(),

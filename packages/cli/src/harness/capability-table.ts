@@ -2176,7 +2176,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "preview_timeline_frame",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "5e5c78d209ed",
+    contract: "de9bcce846ee",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timeline-preview.test.ts",
@@ -2192,7 +2192,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "compare_timeline_frames",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "6f1e9b2a38fc",
+    contract: "804a34575912",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timeline-compare.test.ts",
@@ -2932,7 +2932,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "8a5eece9137a",
+    contract: "937f678a73b3",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
@@ -3301,9 +3301,10 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "ui_get_graph",
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
-    contract: "c758c2ba012f",
+    contract: "d3925ec6efe2",
     selfcheck: "capability-suites",
     suites: [
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
       "packages/agents/tests/mcp-tools.test.ts",
     ],
     evals: [
@@ -3317,7 +3318,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "ui_add_node",
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
-    contract: "6e7762c2d21d",
+    contract: "10dcb798878f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
     evals: [
       {
         file: "packages/agents/src/evals/escalation-cases.ts",
@@ -3333,7 +3338,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "ui_connect_nodes",
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
-    contract: "2b693a52d557",
+    contract: "22bb33c5033b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
     evals: [
       {
         file: "packages/agents/src/evals/escalation-cases.ts",
@@ -3349,7 +3358,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "ui_update_node_data",
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
-    contract: "53ad5b26a7d1",
+    contract: "c3b4be67dd31",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
     evals: [
       {
         file: "packages/agents/src/evals/tool-loop-cases.ts",
@@ -3361,7 +3374,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "ui_delete_node",
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
-    contract: "a93cf9eecae0",
+    contract: "a0e4902a612c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
     evals: [
       {
         file: "packages/agents/src/evals/escalation-cases.ts",
@@ -3373,7 +3390,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "ui_delete_edge",
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
-    contract: "43bb0e75e132",
+    contract: "80b1b37021fb",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
     evals: [
       {
         file: "packages/agents/src/evals/tool-loop-cases.ts",
@@ -3385,7 +3406,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "ui_move_node",
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
-    contract: "35780f769033",
+    contract: "d01594539e6b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
     evals: [
       {
         file: "packages/agents/src/evals/tool-loop-cases.ts",
@@ -3397,9 +3422,10 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "ui_set_node_title",
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
-    contract: "b8500a8d6207",
+    contract: "4c88d672167f",
     selfcheck: "capability-suites",
     suites: [
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
       "packages/agents/tests/mcp-tools.test.ts",
     ],
     evals: [

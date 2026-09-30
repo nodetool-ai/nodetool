@@ -623,6 +623,20 @@ continues, so one bad target does not hide everything after it. Rendering,
 playback, decode, and generation are not simulated; the report lists that under
 `notSimulated`.
 
+Database-backed `edit_timeline` also runs media adapters. `get_clip_frames`
+uses the same contract as `ui_timeline_get_clip_frames`: it decodes source video
+frames or renders one text, shape or 3D clip. Frame inspection leaves the saved
+document unchanged. Check each returned frame's `complete` flag before treating
+it as visual evidence.
+
+`generatively_edit_clip` requires a video-to-video provider/model pair headlessly.
+It submits through the generation lifecycle, stores its captured source and
+unselected timeline destination, and appends the persisted result as an inactive
+take. A document retry reuses the submission. Durable recovery attaches completed
+output with the same take id. `apply_take` accepts the candidate explicitly and
+returns `undo_version`; restore that version with `restore_timeline_version` to
+undo the acceptance.
+
 The same static check is exposed to agents through the **`validate_timeline`**
 tool: pass an inline `document` to check a timeline being built, or a
 `timeline_id` to validate a saved sequence (scoped to the requesting user). The
@@ -746,8 +760,15 @@ launches.
 
 No Chrome on the host — or a launch that fails — is not an error the call
 throws. The group's layers are left out and reported as a `model3d_unavailable`
-degradation naming the clip, so an agent cannot read a missing renderer as an
-empty clip.
+degradation naming the clip. The result, frame and contact sheet report
+`complete: false` when content is skipped or approximated. Frames expose
+`degradations` alongside the existing `degraded` field. Inspect these fields
+before judging the image. An incomplete preview cannot verify the composition.
+`visual_output_verified` stays false because rendering or comparing pixels
+does not judge whether the visual result meets the brief.
+`compare_timeline_frames` returns null scores for incomplete pairs and null
+aggregate metrics if either preview is incomplete, so two frames missing the
+same layer cannot establish visual equivalence.
 
 Two fields on a 3D layer's report say what the pixels do not:
 
@@ -891,9 +912,12 @@ blend mode no compositor ships, a binding with no workflow or prompt behind it,
 and fields a schema round trip would strip. `debug` runs the same check, then
 executes each `--interact` step against the headless `ui_sketch_*` bridge — the
 one the `sketch-tools` eval drives — and validates the document the session
-left behind. A failing step is recorded and the script continues. Pixels,
-painting, rendering, generation, and asset I/O are not simulated; the report
-lists that under `notSimulated`. Layer bitmaps stay opaque throughout.
+left behind. A failing step is recorded and the script continues. The replay
+bridge paints new strokes on Skia canvases, but does not load the saved layer
+bitmaps, run generation providers or resolve placed image bytes. The report
+validates structure and always returns `visual_output_verified: false`.
+Its `notSimulated` list records these limits. Media tool results and eval final
+state also return this flag. A successful replay does not verify media output.
 
 The same static check is exposed to agents through the **`validate_sketch`**
 tool: pass an inline `document` to check a sketch being built, or an
@@ -1035,6 +1059,12 @@ those keyframes into clips, **`revise_storyboard_clip`** revises one take, and
 **`assemble_storyboard_timeline`** lays the rendered clips into a saved timeline
 sequence — which `validate_timeline` then checks. **`list_storyboards`** and
 **`get_storyboard`** find the board and its shot ids.
+
+`edit_storyboard`'s `set_board` operation accepts screenplay-level `narration`
+and `music_prompt` strings. It preserves the screenplay's other fields and
+creates a screenplay when needed. An empty string clears the supplied direction.
+On an unlinked board, assembly turns these fields into draft narration and music
+clips. Linked boards use their script's voiced takes for audio.
 
 Both render tools default to every eligible shot missing that output. With
 `stale_only`, they select existing versions whose render inputs changed.
@@ -1993,6 +2023,16 @@ npm run dev:nodetool -- package workflow-docs [-o docs/workflows] [-e <dir>]
 ```
 
 ### nodetool workflows
+
+The workflow document tools (`ui_get_graph`, `ui_add_node`,
+`ui_connect_nodes`, `ui_update_node_data`, `ui_delete_node`, `ui_delete_edge`,
+`ui_move_node`, and `ui_set_node_title`) report `source: "editor"` for a live
+editor graph and `source: "server"` for saved state. Reads and successful
+mutations return `document_revision`, a content hash of the exposed persistent
+graph fields. Pass it as `based_on_revision` on the next mutation. A changed
+graph returns a revision conflict before applying the edit. Unsaved editor
+changes produce a different revision from the saved graph. The revision does
+not cover workflow metadata or transient editor selection and execution state.
 
 Reads and writes the local database directly — no running server needed. Pass
 `--api-url <url>` (or set `NODETOOL_API_URL`) to target a remote server instead.

@@ -1,5 +1,6 @@
 import { noNodeStoreError, resolveWorkflowId } from "../workflow";
 import type { FrontendToolState } from "../../frontendTools";
+import { shortResourceId } from "@nodetool-ai/protocol";
 
 function createMockState(
   overrides: Partial<FrontendToolState> = {}
@@ -25,6 +26,33 @@ function createMockState(
 }
 
 describe("resolveWorkflowId", () => {
+  const fullId = "abcdef01234500000000000000000000";
+  const prefix = shortResourceId(fullId);
+
+  it("resolves an exact resource prefix uniquely across current and open workflows", () => {
+    const state = createMockState({
+      currentWorkflowId: fullId,
+      getOpenWorkflowIds: () => [fullId, "other-workflow"]
+    });
+    expect(resolveWorkflowId(state, prefix)).toBe(fullId);
+    expect(state.setCurrentWorkflowId).not.toHaveBeenCalled();
+  });
+
+  it("refuses an ambiguous prefix instead of choosing the active workflow", () => {
+    const state = createMockState({
+      currentWorkflowId: fullId,
+      getOpenWorkflowIds: () => ["abcdef01234511111111111111111111"]
+    });
+    expect(() => resolveWorkflowId(state, prefix)).toThrow(/ambiguous/i);
+  });
+
+  it("preserves unknown prefixes for server resolution and preserves legacy names", () => {
+    const state = createMockState({ currentWorkflowId: fullId });
+    for (const id of ["111111111111", "personal:creator", prefix.slice(0, 11), fullId.slice(0, 13), "ABCDEF012345"]) {
+      expect(resolveWorkflowId(state, id)).toBe(id);
+    }
+  });
+
   it("returns the explicit workflow_id when provided", () => {
     const state = createMockState({ currentWorkflowId: "current-wf" });
     const result = resolveWorkflowId(state, "explicit-wf");

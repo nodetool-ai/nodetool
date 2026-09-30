@@ -714,34 +714,7 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
-  name: "ui_timeline_get_clip_frames",
-  description:
-    "Inspect visual frames from ONE rendered video clip. `target` is required and names that clip — this tool never composites the timeline, so to see the finished frame (every track layered, titles and scrims drawn) call preview_timeline_frame instead. Give optional absolute timeline `timesMs`; otherwise the tool samples evenly across the clip. Returns JPEG data URLs plus timeline/source timestamps so you can see the clip content before splitting, trimming, or editing it.",
-  parameters: z.object({
-    timeline_id: timelineIdParam,
-    target: targetParam,
-    timesMs: z
-      .array(z.number())
-      .max(8)
-      .optional()
-      .describe(
-        "At most 8 absolute timeline timestamps in milliseconds per call. Split larger samples across calls. Omit to sample evenly across the clip."
-      ),
-    count: z
-      .number()
-      .min(1)
-      .max(8)
-      .optional()
-      .describe(
-        "Number of evenly spaced frames to sample when timesMs is omitted. Default 3, max 8."
-      ),
-    width: z
-      .number()
-      .min(1)
-      .max(1024)
-      .optional()
-      .describe("Output JPEG width in pixels. Default 512, max 1024.")
-  }),
+  ...shared("ui_timeline_get_clip_frames"),
   async execute({ timeline_id, target, timesMs, count, width }) {
     const result = await getTimelineAgentHandler(timeline_id).getClipFrames(
       target,

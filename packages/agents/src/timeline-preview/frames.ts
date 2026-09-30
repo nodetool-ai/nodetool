@@ -97,6 +97,8 @@ export interface RenderTimelineFramesOptions {
   width?: number;
   /** Resolve a clip's asset id to its encoded bytes, or null when unavailable. */
   loadAsset: (assetId: string) => Promise<Uint8Array | null>;
+  /** Draw these clips only, while resolving their layout and animations against the full sequence. */
+  onlyClipIds?: readonly string[];
   /**
    * Average N sub-frame instants into every frame instead of sampling one (D10).
    * Absent or one sample is blur off, which is what every caller that does not
@@ -197,6 +199,8 @@ export interface PreviewDroppedLayer {
 }
 
 export interface PreviewFrame {
+  /** False when any requested visual content was skipped or approximated. */
+  complete: boolean;
   time_ms: number;
   /** PNG bytes of the composited frame. */
   png: Uint8Array;
@@ -218,6 +222,8 @@ export interface PreviewFrame {
 }
 
 export interface RenderTimelineFramesResult {
+  /** True only when every requested frame rendered without missing content. */
+  complete: boolean;
   frames: PreviewFrame[];
   /** Effect types present on the timeline that Canvas 2D cannot draw. */
   effectsNotApplied: string[];
@@ -303,6 +309,7 @@ export async function renderTimelineFrames(
   options: RenderTimelineFramesOptions
 ): Promise<RenderTimelineFramesResult> {
   const { sequence, loadAsset } = options;
+  const onlyClipIds = options.onlyClipIds ? new Set(options.onlyClipIds) : undefined;
   const { width, height } = frameSize(sequence, options.width);
   // Animation offsets and text sizes are authored against the sequence's own
   // resolution, so that is the space they are sampled in; the frame is drawn
@@ -512,7 +519,7 @@ export async function renderTimelineFrames(
     degraded: PreviewDegradation[];
   }> => {
     const {
-      layers: active,
+      layers: resolvedActive,
       adjustments,
       precomposites,
       droppedLayers
@@ -527,7 +534,18 @@ export async function renderTimelineFrames(
         layerTimeMs: (clip) => layerShutterTime(clip, frameTimeMs, sampleIndex, sampleCount, frameMs, options.motionBlur)
       }
     );
-    const drawPrecomposites: Canvas2DPrecomposite[] = precomposites.map(
+    const active = onlyClipIds
+      ? resolvedActive.filter((layer) => onlyClipIds.has(layer.clipId))
+      : resolvedActive;
+    const ancestorGroups = new Set(active.flatMap((layer) => layer.precomposeGroupId ? [layer.precomposeGroupId] : []));
+    const precomposeById = new Map(precomposites.map((group) => [group.clipId, group]));
+    for (const groupId of ancestorGroups) {
+      const parentId = precomposeById.get(groupId)?.precomposeGroupId;
+      if (parentId) {
+        ancestorGroups.add(parentId);
+      }
+    }
+    const drawPrecomposites: Canvas2DPrecomposite[] = precomposites.filter((group) => !onlyClipIds || ancestorGroups.has(group.clipId)).map(
       (group) => ({
         id: group.clipId,
         zIndex: trackZ(group.trackIndex),
@@ -539,7 +557,7 @@ export async function renderTimelineFrames(
         precomposeGroupId: group.precomposeGroupId
       })
     );
-    const drawAdjustments: Canvas2DAdjustment[] = adjustments.map(
+    const drawAdjustments: Canvas2DAdjustment[] = adjustments.filter((adjustment) => !onlyClipIds || onlyClipIds.has(adjustment.clipId)).map(
       (adjustment) => ({
         clipId: adjustment.clipId,
         zIndex: trackZ(adjustment.trackIndex),
@@ -862,7 +880,7 @@ export async function renderTimelineFrames(
     return {
       // Top of the stack first: the reader's question is what is on top.
       reports: reports.sort((a, b) => b.z_index - a.z_index),
-      dropped: droppedLayers.map((dropped) => ({
+      dropped: droppedLayers.filter((dropped) => !onlyClipIds || onlyClipIds.has(dropped.clipId)).map((dropped) => ({
         clip_id: dropped.clipId,
         clip_name: clipName(sequence, dropped.clipId),
         reason: dropped.reason
@@ -896,7 +914,8 @@ export async function renderTimelineFrames(
       timeMs,
       sceneOptions
     );
-    for (const layer of collectModel3DLayers(layers)) {
+    const selected = onlyClipIds ? layers.filter((layer) => onlyClipIds.has(layer.clipId)) : layers;
+    for (const layer of collectModel3DLayers(selected)) {
       const style = layer.model3dStyle;
       if (!layer.assetId || !style) continue;
       const anim = resolveAnimatedLayerProps(
@@ -965,6 +984,7 @@ export async function renderTimelineFrames(
 
   for (const { timeMs, sampleTimes, blur } of frameInstants) {
     let composed: Awaited<ReturnType<typeof composeAt>>;
+    let samplesComplete = true;
     if (!blurCtx || !blurAccumulator || sampleTimes.length === 1) {
       composed = await composeAt(timeMs);
     } else {
@@ -974,12 +994,19 @@ export async function renderTimelineFrames(
       composed = await composeAt(sampleTimes[0], timeMs, 0, sampleTimes.length);
       accumulateBlurSample(blurCtx, canvas, blur.weight, geometry);
       for (const [index, sampleMs] of sampleTimes.slice(1).entries()) {
-        await composeAt(sampleMs, timeMs, index + 1, sampleTimes.length);
+        const sample = await composeAt(sampleMs, timeMs, index + 1, sampleTimes.length);
+        samplesComplete &&= sample.reports.every((layer) => !layer.skipped);
+        composed.dropped.push(...sample.dropped);
+        composed.degraded.push(...sample.degraded);
         accumulateBlurSample(blurCtx, canvas, blur.weight, geometry);
       }
     }
 
     frames.push({
+      complete: samplesComplete &&
+        composed.reports.every((layer) => !layer.skipped) &&
+        composed.dropped.length === 0 && composed.degraded.length === 0 &&
+        effectsNotApplied.size === 0 && fontsUnavailable.length === 0,
       time_ms: timeMs,
       png: new Uint8Array((sampleTimes.length > 1 && blurAccumulator ? blurAccumulator : canvas).toBuffer("image/png")),
       width,
@@ -991,6 +1018,7 @@ export async function renderTimelineFrames(
   }
 
   return {
+    complete: frames.every((frame) => frame.complete),
     frames,
     effectsNotApplied: [...effectsNotApplied].sort(),
     fontsUnavailable

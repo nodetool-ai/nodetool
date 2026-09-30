@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { uiGetGraphParams } from "@nodetool-ai/protocol";
+import { uiGetGraphParams, workflowDocumentRevision } from "@nodetool-ai/protocol";
 import type { Node as GraphNode, Edge as GraphEdge } from "../../../stores/ApiTypes";
 import { fetchWorkflowById } from "../../../serverState/useWorkflow";
 import { FrontendToolRegistry } from "../frontendTools";
@@ -151,6 +151,7 @@ interface ReadNode {
   id: string;
   type: string | undefined;
   position: { x: number; y: number };
+  parentId?: string | null;
   data: Record<string, unknown>;
 }
 
@@ -160,6 +161,7 @@ interface ReadEdge {
   target: string;
   sourceHandle: string | null | undefined;
   targetHandle: string | null | undefined;
+  edge_type?: string;
 }
 
 /**
@@ -183,7 +185,16 @@ function storedNodeToReadNode(node: GraphNode): ReadNode {
     id: node.id,
     type: node.type,
     position,
+    parentId: node.parent_id,
     data: {
+      color: ui.color,
+      collapsed: ui.collapsed === true,
+      bypassed: ui.bypassed === true,
+      model_id: ui.model_id,
+      endpoint_id: ui.endpoint_id,
+      selected_generation: ui.selected_generation,
+      selected_generations: ui.selected_generations,
+      setupStepId: ui.setup_step_id,
       properties: asRecord(node.data),
       dynamic_properties: node.dynamic_properties ?? {},
       dynamic_inputs: node.dynamic_inputs ?? {},
@@ -199,7 +210,8 @@ function storedEdgeToReadEdge(edge: GraphEdge): ReadEdge {
     source: edge.source,
     target: edge.target,
     sourceHandle: edge.sourceHandle,
-    targetHandle: edge.targetHandle
+    targetHandle: edge.targetHandle,
+    edge_type: edge.edge_type ?? "data"
   };
 }
 
@@ -213,7 +225,7 @@ FrontendToolRegistry.register({
   parameters: z.object(uiGetGraphParams),
   async execute({ workflow_id }, ctx) {
     const state = ctx.getState();
-    const workflowId = resolveWorkflowId(state, workflow_id);
+    let workflowId = resolveWorkflowId(state, workflow_id);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
 
     let nodes: ReadNode[];
@@ -226,6 +238,7 @@ FrontendToolRegistry.register({
         id: node.id,
         type: node.type,
         position: node.position,
+        parentId: node.parentId,
         data: node.data as Record<string, unknown>
       }));
       edges = nodeStore.edges.map((edge) => ({
@@ -233,7 +246,8 @@ FrontendToolRegistry.register({
         source: edge.source,
         target: edge.target,
         sourceHandle: edge.sourceHandle,
-        targetHandle: edge.targetHandle
+        targetHandle: edge.targetHandle,
+        edge_type: edge.type === "control" || asRecord(edge.data).edge_type === "control" ? "control" : "data"
       }));
     } else {
       // A workflow the agent just created over the API has no editor. Failing
@@ -253,6 +267,7 @@ FrontendToolRegistry.register({
           );
         }
       }
+      workflowId = workflow.id;
       nodes = (workflow.graph?.nodes ?? []).map(storedNodeToReadNode);
       edges = (workflow.graph?.edges ?? []).map(storedEdgeToReadEdge);
     }
@@ -273,6 +288,7 @@ FrontendToolRegistry.register({
       ok: true,
       workflow_id: workflowId,
       source,
+      document_revision: workflowDocumentRevision(workflowId, nodes, edges),
       nodes,
       edges,
       validation
