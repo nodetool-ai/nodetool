@@ -5,7 +5,7 @@ description: "Call nodetool.games from a code action: create or install a built-
 
 # nodetool.games
 
-A built-in game runs in NodeTool's own 2D engine. It has a mutable **draft**
+A built-in game runs in NodeTool's native 2D or 3D engine. It has a mutable **draft**
 and immutable **revisions**. Play is deterministic, so a playtest with the same
 seed and inputs gives the same result. How to build one is `native-game`, and
 feel, pacing and art direction are `game-direction`. This is the call
@@ -19,6 +19,8 @@ Every `id` is the full game id or its exact 12-character prefix.
 | `get(id, {source, revision, view, entity_id})` | Reads the draft (default) or a revision. `view` is `outline` (default), `entity` or `full`. |
 | `edit(id, ops, {base_updated_at})` | Applies ordered edits to the draft atomically. Issues come back with the op index and path. It does not publish. |
 | `setDocument(id, document, {base_updated_at})` | Writes a whole document as one `set_document` edit, validated atomically. |
+| `previewAuthoring(id, {program, base_updated_at, expected_document})` | Rebakes retained construction without writing. Returns a candidate, entity/dependency changes, conflicts and restart policy. Omit `program` to rebuild the saved construction. |
+| `applyAuthoring(id, candidate)` | Recomputes and applies the preview against its exact draft. Rejects stale or changed candidates and unresolved conflicts. |
 | `generateAsset(id, slot, kind, prompt, opts)` | Makes or imports an asset and binds it to the draft. |
 | `installAsset(id, slot, binding, {base_revision, base_updated_at, candidate_workspace_id})` | Installs one staged asset. The staged bytes must match `binding.digest`. |
 | `playtest(id, {source, revision, seed, inputs, assertions, capture_ticks})` | Runs up to 18,000 ticks with run-length inputs and assertions, and captures up to 8 frames. |
@@ -47,6 +49,18 @@ Every `id` is the full game id or its exact 12-character prefix.
 Author the whole document with `@nodetool-ai/sandbox-game` and save it with
 `saveGame({name, document}, {games: nodetool.games, project_id})`. Read
 `nodetool.packs.docs("@nodetool-ai/sandbox-game")` first.
+
+For retained construction, use `constructGame({inputs, seed}, (inputs, builder)
+=> { return document; })` and save the returned bundle with `saveGame`. Put
+accepted preparation results and pinned asset bindings in `inputs`. The callback
+cannot depend on outer variables. Rebuilds run without external capabilities.
+Ordinary `setDocument` cannot attach or replace retained source or its baseline.
+
+Manual property edits become overrides. Removing a generated entity suppresses
+its key on later rebuilds. `edit` supports `reset_override` with `entity_id`,
+optional `scene_id` and optional field `path`, and `detach_entity` with the same
+entity target. Resetting a suppressed target restores it from the baseline.
+Active retained-game sessions adopt the rebuilt definition and assets on restart.
 
 ## The loop
 

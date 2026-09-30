@@ -1,3 +1,4 @@
+import { gameAuthoringBaseline } from "./authoring-reconcile.js";
 import { gameDocument, type GameDocument } from "@nodetool-ai/protocol";
 
 export interface GameValidationResult {
@@ -45,6 +46,13 @@ export function validateGame(value: unknown): GameValidationResult {
   }
   const document = parsed.data;
   const errors: string[] = [];
+  if (document.authoring) {
+    try {
+      const baseline = gameAuthoringBaseline(document);
+      const validatedBaseline = validateGame(baseline);
+      if (!validatedBaseline.valid) { errors.push(`authoring.baseline: ${validatedBaseline.errors.join(", ")}`); }
+    } catch (error) { errors.push(`authoring: ${error instanceof Error ? error.message : "Invalid authoring metadata"}`); }
+  }
   const issueOverrides = new Map<number, GameValidationIssue>();
   if (document.schemaVersion === 1 && document.collisionLayers) {
     errors.push("collisionLayers: requires schema version 2");

@@ -17,6 +17,7 @@ import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, Edit
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./GameAgentPanel";
 import GameChanges from "./GameChanges";
+import GameAuthoringPreview from "./GameAuthoringPreview";
 import GameInspector from "./GameInspector";
 import GameSceneTree from "./GameSceneTree";
 import GameRuntimeInspector from "./GameRuntimeInspector";
@@ -69,7 +70,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const clipboardRef = useRef<GameEntity[]>([]);
   const savingPromiseRef = useRef<Promise<void> | null>(null);
   const playDraftOps = playDocument && document ? diffGameDocuments(playDocument, document) : [];
-  const needsPlayRestart = playDraftOps.some((op) => op.op !== "bind_asset" && op.op !== "unbind_asset");
+  const needsPlayRestart = playDraftOps.some((op) => Boolean(playDocument?.authoring) || op.op !== "bind_asset" && op.op !== "unbind_asset");
 
   const selectScene = (sceneId: string) => {
     setEditorSceneId(sceneId);
@@ -380,6 +381,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       </FlexRow>}
       {conflicts.items.length > 0 && <ConflictBanner conflicts={conflicts.items} onAccept={conflicts.accept} onDiscard={conflicts.discard} />}
       {needsPlayRestart && <Caption role="status">The draft changed. Stop and play again to apply it.</Caption>}
+      <GameAuthoringPreview key={refId} gameId={refId} document={document} flush={flushDraft} onHighlight={setHighlightedIds} />
       <GameChanges gameId={refId} document={document} onOps={onOps} onHover={setHighlightedIds}
         onFocusMessage={(threadId, messageId) => {
           setFocusMessage({ threadId, messageId, requestId: ++focusRequestRef.current });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { gameAuthoring } from "./game-authoring.js";
 import { gameAssetBinding, gameBehavior, gameDocument, gameEntity, gameEvent, gameHudLabel, gameScene, gameSnapshot } from "./game.js";
 
 const finite = z.number().finite();
@@ -168,6 +169,7 @@ export const gamePrefab3D = z.strictObject({
 export type GamePrefab3D = z.infer<typeof gamePrefab3D>;
 export const gamePresentation3D = z.strictObject({ aspectRatio: positive, hudWidth: positive, hudHeight: positive });
 export const gameDocument3D = z.strictObject({
+  authoring: gameAuthoring.optional(),
   schemaVersion: z.literal(3), engineVersion: z.literal("2"), dimension: z.literal("3d"),
   id, revision: id, entrySceneId: id, tickRate: z.literal(60), presentation: gamePresentation3D,
   inputActions: z.array(id).max(64), inputAxes: z.array(id).max(16).default(["moveX", "moveZ"]),

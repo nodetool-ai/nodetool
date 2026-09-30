@@ -89,6 +89,10 @@ const OMITS_SECRET_RESOLVER: Record<string, { reason: string; sites: number }> =
       reason: "workspace file capabilities only",
       sites: 1
     },
+    "packages/websocket/src/trpc/routers/games.ts": {
+      reason: "retained game construction only, with hermetic baking and no graph validation",
+      sites: 1
+    },
     "packages/agents/src/capabilities/google.ts": {
       reason: "Google Workspace capabilities only",
       sites: 1

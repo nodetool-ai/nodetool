@@ -38,6 +38,33 @@ function fixture() {
 }
 
 describe("the shipped game builder", () => {
+  it("captures explicit construction callbacks and saves through preview and apply with the read timestamp", async () => {
+    const calls: ChatCodeActToolCall[] = [];
+    const session = createChatCodeActSession({
+      tools: ["create_native_game", "edit_native_game", "preview_native_game_authoring", "apply_native_game_authoring"].map((name) => ({ name, description: name, inputSchema: { type: "object", properties: {} } })),
+      sandboxModuleCatalog: catalog, context: createMockContext(),
+      executeTool: async (call) => {
+        calls.push(call);
+        return JSON.stringify(call.name === "preview_native_game_authoring" ? { candidate: { digest: "reviewed" } } :
+          { game: { id, revision: "draft" }, draft_updated_at: "applied" });
+      }
+    });
+    const observation = JSON.parse(await session.executeAction({ code: `
+      import { constructGame, saveGame } from "${pack}";
+      const bundle = constructGame({inputs:{count:2}, seed:7}, (inputs, builder) => {
+        const document = builder.game();
+        builder.prefab("marker", builder.entity("definition",0,0));
+        for (let i = 0; i < inputs.count; i++) builder.instance(document.scenes[0], "marker-"+i,"marker");
+        return document;
+      });
+      return saveGame(bundle, {games:nodetool.games,game_id:"${id}",base_updated_at:"read-version"});
+    ` }));
+    expect(observation.ok, JSON.stringify(observation)).toBe(true);
+    expect(calls.map((call) => call.name)).toEqual(["preview_native_game_authoring", "apply_native_game_authoring"]);
+    expect(calls[0].args).toMatchObject({ game_id: id, base_updated_at: "read-version", program: {inputs:{count:2}, seed:7} });
+    expect(calls[1].args).toEqual({ game_id: id, candidate: {digest:"reviewed"} });
+  });
+
   it("admits the installed pack only when the session can author games", () => {
     expect(withGamePackage([], ["create_native_game", "edit_native_game"], catalog)).toEqual([pack]);
     expect(withGamePackage([], ["get_native_game"], catalog)).toEqual([]);

@@ -10,3 +10,6 @@ export * from "./open-session.js";
 export * from "./sample3d.js";
 export * from "./script-types3d.js";
 export * from "./prepared-collider3d.js";
+
+export * from "./authoring-identity.js";
+export * from "./authoring-reconcile.js";

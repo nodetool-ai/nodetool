@@ -1266,6 +1266,9 @@ with a draft timestamp check. Existing scene and behavior edits remain in place.
 Agents can build a complete document with `@nodetool-ai/sandbox-game` and save
 it through `edit_native_game`'s atomic `set_document` op. The builder supplies
 entities, scripts, asset registration, and tile and arc helpers.
+Retained construction adds hermetic preview/apply, typed parameters, prefab
+relationships, property overrides and deleted-instance suppression. See
+[Retained game construction](game-retained-authoring.md).
 `list_example_games`, `get_example_game`, and `install_example_game` expose
 the shipped benchmarks and copy their verified assets into an owned project.
 `generate_game_asset` prepares aligned sprite sheets, terrain edge variants,

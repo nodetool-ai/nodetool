@@ -2552,6 +2552,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
+      "packages/agents/tests/capabilities-game-authoring.test.ts",
       "packages/agents/tests/capabilities-game-autoplay.test.ts",
       "packages/agents/tests/capabilities-game3d.test.ts",
     ],
@@ -2570,6 +2571,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
+      "packages/agents/tests/capabilities-game-authoring.test.ts",
       "packages/agents/tests/capabilities-game-examples.test.ts",
       "packages/agents/tests/capabilities-game3d.test.ts",
     ],
@@ -2588,6 +2590,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
+      "packages/agents/tests/capabilities-game-authoring.test.ts",
     ],
   },
   {
@@ -2704,6 +2707,26 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     suites: [
       "packages/agents/tests/capabilities-game-autoplay.test.ts",
       "packages/agents/tests/capabilities-game3d.test.ts",
+    ],
+  },
+  {
+    name: "preview_native_game_authoring",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "72fdc680682c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-authoring.test.ts",
+    ],
+  },
+  {
+    name: "apply_native_game_authoring",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "879763afefcb",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-authoring.test.ts",
     ],
   },
   {

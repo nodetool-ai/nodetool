@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { beforeAll, describe, it, expect } from "vitest";
 import { CodeNode, EMIT_CHANNEL_CAPACITY } from "@nodetool-ai/code-nodes";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
@@ -164,6 +164,13 @@ describe("CodeNode — process() on the new contract", () => {
 // ---------------------------------------------------------------------------
 
 describe("CodeNode — legacy bodies still run, and warn", () => {
+  // The first run with a context imports the whole agents package for the
+  // toolbelt. On a loaded CI runner that one import outlasts the 60s test
+  // timeout, so pay it here under its own budget.
+  beforeAll(async () => {
+    await collect("return {}", {}, stubContext().context);
+  }, 180_000);
+
   it("runs a return-bag body exactly as before", async () => {
     const bags = await collect("return { a: 1 }");
     expect(bags).toEqual([{ a: 1 }]);
