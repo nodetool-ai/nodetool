@@ -7,6 +7,9 @@ jest.mock("react-router-dom", () => {
   };
 });
 
+jest.mock("../../../components/workspace/openPageTab", () => ({
+  openPageTab: jest.fn()
+}));
 jest.mock("../../../stores/ContextMenuStore");
 jest.mock("../../../contexts/NodeContext");
 jest.mock("../../../stores/NotificationStore");
@@ -54,6 +57,7 @@ jest.mock("@xyflow/react", () => ({
 import { renderHook, act } from "@testing-library/react";
 import { asMock, asMockStore } from "../../../test-utils/doubles";
 import { useNodeContextMenu } from "../useNodeContextMenu";
+import { openPageTab } from "../../../components/workspace/openPageTab";
 import useContextMenuStore from "../../../stores/ContextMenuStore";
 import { useNodeStoreRef, useNodes } from "../../../contexts/NodeContext";
 import { useNotificationStore } from "../../../stores/NotificationStore";
@@ -373,14 +377,15 @@ describe("useNodeContextMenu", () => {
   });
 
   describe("handleFindTemplates", () => {
-    it("navigates to examples", () => {
+    it("opens the examples page tab", () => {
       const { result } = renderHook(() => useNodeContextMenu());
 
       act(() => {
         result.current.handlers.handleFindTemplates();
       });
 
-      expect(mockNavigate).toHaveBeenCalledWith("/examples");
+      expect(openPageTab).toHaveBeenCalledWith("examples");
+      expect(mockNavigate).not.toHaveBeenCalled();
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });
   });

@@ -464,7 +464,7 @@ const TutorialsPage: React.FC = () => {
                   Start building
                 </EditorButton>
               )}
-              <EditorButton variant="outlined" onClick={() => navigate("/examples")}>
+              <EditorButton variant="outlined" onClick={() => openPageTab("examples")}>
                 Browse examples
               </EditorButton>
             </div>

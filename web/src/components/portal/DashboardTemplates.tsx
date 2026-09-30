@@ -38,7 +38,7 @@ import {
   getWorkflowCompatibility
 } from "./entryCompatibility";
 
-/** Rows shown on the dashboard before the user searches or opens /examples. */
+/** Rows shown on the dashboard before the user searches or opens the Examples tab. */
 const MAX_VISIBLE = 18;
 
 /** Anchor the dashboard checklist scrolls to for its "open a template" step. */
@@ -179,7 +179,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-// In full-page (/examples) mode this section gets extra breathing room below
+// In full-page (Examples tab) mode this section gets extra breathing room below
 // the example apps. The manager content owns scrolling for the full page.
 const fullPageStyles = css({
   paddingTop: getSpacingPx(SPACING.xxl),
@@ -302,7 +302,7 @@ const TemplateRow = memo(function TemplateRow({
 
 interface DashboardTemplatesProps {
   /**
-   * Render as the standalone /examples page: show every example (no cap),
+   * Render as the Examples page tab: show every example (no cap),
    * and drop the dashboard-only "Browse all"/"More…" links.
    */
   fullPage?: boolean;
