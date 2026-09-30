@@ -8,7 +8,6 @@ import { useShallow } from "zustand/react/shallow";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { openPageTab, openSettingsTab } from "../workspace/openPageTab";
-import Help from "../content/Help/Help";
 import { useMenuHandler } from "../../hooks/useIpcRenderer";
 import type { MenuEventData } from "../../window";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -78,11 +77,9 @@ const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
   const anchorRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
 
-  const { helpOpen, handleCloseHelp, handleOpenHelp, setHelpIndex } =
+  const { handleOpenHelp, setHelpIndex } =
     useAppHeaderStore(
       useShallow((state) => ({
-        helpOpen: state.helpOpen,
-        handleCloseHelp: state.handleCloseHelp,
         handleOpenHelp: state.handleOpenHelp,
         setHelpIndex: state.setHelpIndex
       }))
@@ -188,7 +185,6 @@ const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
         </div>
       </Popover>
 
-      <Help open={helpOpen} handleClose={handleCloseHelp} />
     </>
   );
 };

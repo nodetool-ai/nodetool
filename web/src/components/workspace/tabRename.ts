@@ -1,27 +1,31 @@
 import type { WorkspaceTabType } from "../../stores/WorkspaceTabsStore";
 
-/**
- * Tab types whose title can be renamed in place. Image tabs host the
- * sketch editor in edit mode, so they share the same rename path.
- * Text tabs cover markdown and other text assets. A project's overview tab
- * uses the project name, so renaming it renames the project.
- */
-const RENAMEABLE_TYPES = new Set<WorkspaceTabType>([
-  "workflow",
-  "sketch",
-  "image",
-  "svg",
-  "timeline",
-  "storyboard",
-  "script",
-  "jsscript",
-  "skill",
-  "model3d",
-  "chat",
-  "application",
-  "text",
-  "project"
-]);
+/** Every advertised rename action names its persistence implementation. */
+const RENAME_STRATEGIES = {
+  workflow: "workflow",
+  sketch: "sketch",
+  image: "image",
+  svg: "asset",
+  timeline: "timeline",
+  storyboard: "storyboard",
+  script: "script",
+  jsscript: "jsscript",
+  skill: "skill",
+  model3d: "asset",
+  chat: "chat",
+  application: "application",
+  text: "asset",
+  project: "project",
+  audio: null,
+  "workspace-file": null,
+  game: null,
+  page: null,
+  "project-list": null,
+  "guided-flow": null,
+  "project-new": null
+} as const satisfies Record<WorkspaceTabType, string | null>;
 
+export const renameStrategy = (type: WorkspaceTabType) =>
+  RENAME_STRATEGIES[type];
 export const tabCanRename = (type: WorkspaceTabType): boolean =>
-  RENAMEABLE_TYPES.has(type);
+  renameStrategy(type) !== null;

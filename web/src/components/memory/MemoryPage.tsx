@@ -9,8 +9,11 @@
  */
 import React, { memo, useCallback, useMemo, useState } from "react";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
+import ReportBugButton from "../support/ReportBugButton";
 import ManagerPageLayout from "../panels/ManagerPageLayout";
 import {
+  AlertBanner,
+  EditorButton,
   Chip,
   ConfirmDialog,
   EmptyState,
@@ -23,8 +26,7 @@ import {
 } from "../ui_primitives";
 import { trpc } from "../../trpc/client";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { openChatThread } from "../workspace/openChatThread";
 import MemoryCard, { type Memory } from "./MemoryCard";
 
 /** Every kind present, so the filter offers what the data actually holds. */
@@ -37,7 +39,6 @@ const MemoryPage: React.FC = () => {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const [memoryToDelete, setMemoryToDelete] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<string | null>(null);
@@ -57,6 +58,7 @@ const MemoryPage: React.FC = () => {
     [activeQuery.data]
   );
   const kinds = useMemo(() => kindsOf(memories), [memories]);
+  const filterKinds = kind && !kinds.includes(kind) ? [...kinds, kind] : kinds;
   const visible = useMemo(
     () => (kind ? memories.filter((memory) => memory.kind === kind) : memories),
     [memories, kind]
@@ -78,22 +80,34 @@ const MemoryPage: React.FC = () => {
 
   const handleOpenThread = useCallback(
     (threadId: string) => {
-      openTab({
-        type: "chat",
-        ref: threadId,
-        mode: "view",
-        projectId: useGlobalChatStore.getState().threads[threadId]?.project_id
+      void openChatThread(threadId).catch((error: unknown) => {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Could not open chat: ${error instanceof Error ? error.message : String(error)}`
+        });
       });
     },
-    [openTab]
+    [addNotification]
   );
 
   const content = (() => {
     if (activeQuery.isLoading) {
       return (
-        <FlexRow align="center" justify="center" sx={{ p: 4 }}>
+        <FlexRow align="center" justify="center" sx={{ p: SPACING.xl }}>
           <LoadingSpinner />
         </FlexRow>
+      );
+    }
+    if (activeQuery.isError && !activeQuery.data) {
+      return (
+        <EmptyState
+          variant="error"
+          title="Could not load memories"
+          description="Check your connection and try again."
+          actionText="Retry"
+          onAction={() => { void activeQuery.refetch(); }}
+        />
       );
     }
     if (visible.length === 0) {
@@ -105,7 +119,9 @@ const MemoryPage: React.FC = () => {
           }
           description={
             searching || kind
-              ? "No memory contains all of those words."
+              ? kind
+                ? `No memories match the ${kind} filter${searching ? " and search" : ""}. Select All to reset the filter.`
+                : "No memory contains all of those words."
               : "The agent records project notes and the assets it creates as it works. They show up here."
           }
         />
@@ -147,7 +163,7 @@ const MemoryPage: React.FC = () => {
             {visible.length === 1 ? "1 memory" : `${visible.length} memories`}
           </Text>
         </FlexRow>
-        {kinds.length > 1 && (
+        {(kinds.length > 1 || kind !== null) && (
           <FlexRow gap={SPACING.sm} sx={{ flexWrap: "wrap" }}>
             <Chip
               label="All"
@@ -156,7 +172,7 @@ const MemoryPage: React.FC = () => {
               active={kind === null}
               onClick={() => setKind(null)}
             />
-            {kinds.map((value) => (
+            {filterKinds.map((value) => (
               <Chip
                 key={value}
                 label={value}
@@ -168,6 +184,15 @@ const MemoryPage: React.FC = () => {
             ))}
           </FlexRow>
         )}
+        {activeQuery.isError && activeQuery.data && (
+          <AlertBanner
+            severity="error"
+            action={<EditorButton onClick={() => { void activeQuery.refetch(); }}>Retry</EditorButton>}
+          >
+            Could not refresh memories. Showing the last loaded results.
+          </AlertBanner>
+        )}
+        {activeQuery.isError && <ReportBugButton context={{ source: "panel-crash", summary: "Could not load memories", errorText: activeQuery.error?.message }} />}
         {content}
       </FlexColumn>
       <ConfirmDialog

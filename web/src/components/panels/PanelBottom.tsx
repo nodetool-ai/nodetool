@@ -4,6 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
+  EmptyState,
+  TYPOGRAPHY,
   Tooltip,
   FlexColumn,
   MOTION,
@@ -198,7 +200,7 @@ const styles = (theme: Theme) =>
       padding: 0,
       backgroundColor: theme.vars.palette.background.default,
       borderTop: `1px solid ${theme.vars.palette.divider}`,
-      fontSize: "var(--fontSizeSmall)",
+      ...TYPOGRAPHY.sans.label,
       lineHeight: 1,
       color: theme.vars.palette.text.secondary,
       userSelect: "none",
@@ -247,9 +249,8 @@ const styles = (theme: Theme) =>
         height: "100%",
         padding: `0 ${getSpacingPx(SPACING.lg)}`,
         color: theme.vars.palette.text.secondary,
-        fontSize: "var(--fontSizeSmall)",
+        ...TYPOGRAPHY.sans.label,
         lineHeight: 1,
-        fontWeight: 400,
         textTransform: "none",
         minWidth: "auto",
         display: "inline-flex",
@@ -359,16 +360,17 @@ const TabButton = memo(function TabButton({
   );
 });
 
-const PanelBodyContent = memo(function PanelBodyContent({
+export const PanelBodyContent = memo(function PanelBodyContent({
   activeView
 }: {
   activeView: BottomPanelView;
 }) {
-  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
+  const currentWorkflowId = useWorkspaceTabsStore((state) => {
+    const tab = state.tabs.find((item) => item.id === state.activeTabId);
+    return tab?.type === "workflow" ? tab.ref : null;
+  });
   const activeNodeStore = useWorkflowManager((state) =>
-    state.currentWorkflowId
-      ? state.nodeStores[state.currentWorkflowId]
-      : undefined
+    currentWorkflowId ? state.nodeStores[currentWorkflowId] : undefined
   );
 
   const handleRestoreVersion = useCallback(
@@ -429,7 +431,12 @@ const PanelBodyContent = memo(function PanelBodyContent({
           onRestore={handleRestoreVersion}
           onClose={closeView}
         />
-      ) : null;
+      ) : (
+        <EmptyState
+          title="Select a workflow to view its versions"
+          description="Versions follows the selected workflow tab. Open a workflow or select one of your workflow tabs."
+        />
+      );
     case "trace":
       return <TracePanel />;
     default:

@@ -3,10 +3,7 @@ import { css } from "@emotion/react";
 import React, { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useShallow } from "zustand/react/shallow";
 
-import { useAppHeaderStore } from "../../stores/AppHeaderStore";
-import Help from "../content/Help/Help";
 import { useAppMenuActions } from "./useAppMenuActions";
 import {
   Caption,
@@ -79,14 +76,6 @@ const AppPagesList: React.FC<AppPagesListProps> = ({
         .includes(normalizedQuery)
   );
 
-  // RailAppMenu owns the Help dialog on desktop and is not mounted here.
-  const { helpOpen, handleCloseHelp } = useAppHeaderStore(
-    useShallow((state) => ({
-      helpOpen: state.helpOpen,
-      handleCloseHelp: state.handleCloseHelp
-    }))
-  );
-
   return (
     <div css={listStyles}>
       {showSectionTitle && filteredActions.length > 0 && (
@@ -119,7 +108,6 @@ const AppPagesList: React.FC<AppPagesListProps> = ({
         />
       )}
 
-      <Help open={helpOpen} handleClose={handleCloseHelp} />
     </div>
   );
 };

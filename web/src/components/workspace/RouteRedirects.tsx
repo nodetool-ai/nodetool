@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
 
 import { trpcClient } from "../../trpc/client";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { openChatThread } from "./openChatThread";
 import { LOOSE_PROJECT_ID, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -90,8 +90,6 @@ export const SettingsRedirect = () => {
  */
 export const ChatThreadRedirect = () => {
   const { thread_id: threadId } = useParams<{ thread_id?: string }>();
-  const openTab = useWorkspaceTabsStore((state) => state.openTab);
-  const setActiveProjectId = useWorkspaceTabsStore((state) => state.setActiveProjectId);
   const addNotification = useNotificationStore((state) => state.addNotification);
   const handleViewChange = usePanelStore((state) => state.handleViewChange);
   const [resolved, setResolved] = useState(false);
@@ -102,28 +100,8 @@ export const ChatThreadRedirect = () => {
       setResolved(true);
       return;
     }
-    const localThread = useGlobalChatStore.getState().threads[threadId];
-    if (localThread) {
-      setActiveProjectId(localThread.project_id ?? null);
-      openTab({
-        type: "chat", ref: localThread.id, mode: "view",
-        projectId: localThread.project_id ?? LOOSE_PROJECT_ID
-      });
-      setResolved(true);
-      return;
-    }
     const controller = new AbortController();
-    void trpcClient.threads.get.query({ id: threadId }, { signal: controller.signal })
-      .then((thread) => {
-        if (controller.signal.aborted) return;
-        setActiveProjectId(thread.project_id ?? null);
-        openTab({
-          type: "chat",
-          ref: thread.id,
-          mode: "view",
-          projectId: thread.project_id ?? LOOSE_PROJECT_ID
-        });
-      })
+    void openChatThread(threadId, controller.signal)
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
           addNotification({
@@ -136,7 +114,7 @@ export const ChatThreadRedirect = () => {
         if (!controller.signal.aborted) setResolved(true);
       });
     return () => controller.abort();
-  }, [threadId, openTab, handleViewChange, setActiveProjectId, addNotification]);
+  }, [threadId, handleViewChange, addNotification]);
 
   return resolved ? <Navigate to="/workspace" replace /> : null;
 };

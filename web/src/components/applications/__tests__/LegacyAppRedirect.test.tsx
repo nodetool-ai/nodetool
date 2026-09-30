@@ -1,6 +1,7 @@
 /**
  * @jest-environment jsdom
  */
+import userEvent from "@testing-library/user-event";
 import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -18,8 +19,8 @@ jest.mock("../../../trpc/client", () => ({
 
 const openTab = jest.fn();
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
-  useWorkspaceTabsStore: <T,>(selector: (state: { openTab: jest.Mock }) => T) =>
-    selector({ openTab })
+  useWorkspaceTabsStore: <T,>(selector: (state: { openForegroundTab: jest.Mock }) => T) =>
+    selector({ openForegroundTab: openTab })
 }));
 
 import { trpcClient } from "../../../trpc/client";
@@ -52,6 +53,7 @@ const renderAt = (path: string) => {
 const appWithWorkflow = (id: string, workflowId: string) => ({
   id,
   name: `App ${id}`,
+  projectId: "project-b",
   document: { operations: [{ id: "main", workflowId }] }
 });
 
@@ -75,7 +77,8 @@ describe("LegacyAppRedirect", () => {
         type: "application",
         ref: "app-2",
         mode: "edit",
-        title: "App app-2"
+        title: "App app-2",
+        projectId: "project-b"
       })
     );
     expect(await screen.findByText("workspace")).toBeInTheDocument();
@@ -89,5 +92,7 @@ describe("LegacyAppRedirect", () => {
 
     expect(await screen.findByText("App not found")).toBeInTheDocument();
     expect(openTab).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Back to workspace" }));
+    expect(await screen.findByText("workspace")).toBeInTheDocument();
   });
 });

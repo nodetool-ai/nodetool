@@ -7,13 +7,20 @@
  * force/detach procedures.
  */
 
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../__mocks__/themeMock";
+import { useDocumentDraftStore } from "../../../stores/DocumentDraftStore";
 import { CodePanel } from "../CodePanel";
 import { TimelineProvider } from "../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -53,14 +60,18 @@ const SEQUENCE_ID = "tl-1";
 /** Exposes the current clip selection so a test can assert on it without
  *  calling the instance-scoped store hook outside of a render. */
 function SelectionProbe() {
-  const selected = useTimelineUIStore((s) => Array.from(s.selectedClipIds).join(","));
+  const selected = useTimelineUIStore((s) =>
+    Array.from(s.selectedClipIds).join(",")
+  );
   return <div data-testid="selection">{selected}</div>;
 }
 
 function renderPanel() {
   const utils = render(
     <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
     >
       <ThemeProvider theme={mockTheme}>
         <TimelineProvider>
@@ -84,6 +95,7 @@ function renderPanel() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  useDocumentDraftStore.setState({ dirtyTabs: {}, codeDrafts: {} });
   mockTimelineCodeGet.mockResolvedValue({
     code: "",
     bakedAt: null,
@@ -109,6 +121,27 @@ beforeEach(() => {
 });
 
 describe("CodePanel", () => {
+  it("restores unsaved code after its panel is dismissed and recreated", async () => {
+    mockTimelineCodeGet.mockResolvedValue({
+      code: "baseline",
+      bakedAt: null,
+      scenes: []
+    });
+    const first = renderPanel();
+    await waitFor(() =>
+      expect(screen.getByTestId("monaco")).toHaveValue("baseline")
+    );
+    fireEvent.change(screen.getByTestId("monaco"), {
+      target: { value: "unsaved exact text" }
+    });
+    first.unmount();
+    renderPanel();
+    await waitFor(() =>
+      expect(screen.getByTestId("monaco")).toHaveValue("unsaved exact text")
+    );
+    expect(screen.getByRole("button", { name: "Rebake" })).toBeEnabled();
+  });
+
   it("shows the empty state for a timeline with no code", async () => {
     renderPanel();
 

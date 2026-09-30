@@ -86,11 +86,12 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     ensureBoard(refId);
   }, [ensureBoard, refId]);
 
-  const loadState = useStoryboardServerSync(refId);
+  const [retryToken, setRetryToken] = useState(0);
+  const loadState = useStoryboardServerSync(refId, retryToken);
 
   useDocumentUndoShortcuts({
     active,
-    enabled: mode !== "view",
+    enabled: mode !== "view" && loadState === "ready",
     onUndo: useCallback(() => undo(refId), [undo, refId]),
     onRedo: useCallback(() => redo(refId), [redo, refId])
   });
@@ -180,7 +181,13 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   // The store seeds an empty board on mount, so rendering before the server
   // copy lands looks like a board with no shots.
   if (loadState !== "ready") {
-    return <DocumentLoadStatus state={loadState} label="storyboard" />;
+    return (
+      <DocumentLoadStatus
+        state={loadState}
+        label="storyboard"
+        onRetry={() => setRetryToken((value) => value + 1)}
+      />
+    );
   }
 
   if (setupStage !== "done") {

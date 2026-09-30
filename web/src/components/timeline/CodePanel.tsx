@@ -19,14 +19,7 @@
  * timeline's first script.
  */
 
-import React, {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -59,6 +52,7 @@ import {
   type TimelineCodeBakeResult,
   type TimelineCodeScene
 } from "../../serverState/useTimelineCode";
+import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
 import { notifyMutationError } from "../../utils/notifyMutationError";
 
 const editorBoxStyles = (theme: Theme) =>
@@ -85,7 +79,10 @@ const SceneRow: React.FC<{
   onSelect: (groupId: string) => void;
 }> = memo(({ scene, onSelect }) => {
   const theme = useTheme();
-  const handleClick = useCallback(() => onSelect(scene.groupId), [onSelect, scene.groupId]);
+  const handleClick = useCallback(
+    () => onSelect(scene.groupId),
+    [onSelect, scene.groupId]
+  );
   return (
     <FlexRow
       css={sceneRowStyles(theme)}
@@ -106,7 +103,9 @@ const SceneRow: React.FC<{
       <Text size="small" noWrap>
         {scene.name}
       </Text>
-      {scene.edited && <Chip label="Edited" compact color="warning" size="small" />}
+      {scene.edited && (
+        <Chip label="Edited" compact color="warning" size="small" />
+      )}
     </FlexRow>
   );
 });
@@ -141,36 +140,36 @@ export const CodePanel: React.FC = memo(() => {
   const baselineCode = data?.code ?? "";
   const hasCode = baselineCode.length > 0;
 
-  const [draftCode, setDraftCode] = useState(baselineCode);
-  const [dirty, setDirty] = useState(false);
-  const [bakeResult, setBakeResult] = useState<TimelineCodeBakeResult>(emptyBakeResult);
-  // The latest draft, read after a bake resolves, so edits made while the
-  // request was pending are not lost.
-  const draftRef = useRef(draftCode);
-  // The code a bake wrote. The draft stays dirty until the refetch returns it.
-  const [writtenCode, setWrittenCode] = useState<string | null>(null);
+  const draft = useDocumentDraftStore((state) =>
+    sequenceId ? state.codeDrafts[sequenceId] : undefined
+  );
+  const setCodeDraft = useDocumentDraftStore((state) => state.setCodeDraft);
+  const draftCode = draft?.code ?? baselineCode;
+  const dirty = draft?.dirty ?? false;
+  const writtenCode = draft?.writtenCode ?? null;
+  const [bakeResult, setBakeResult] =
+    useState<TimelineCodeBakeResult>(emptyBakeResult);
 
-  // A fresh fetch (first load, or a bake made elsewhere) replaces the draft —
-  // but never while mid-edit, or a background refetch would clobber typing.
   useEffect(() => {
+    if (!sequenceId) return;
     if (writtenCode !== null) {
       if (baselineCode !== writtenCode) return;
-      setWrittenCode(null);
-      setDirty(draftRef.current !== baselineCode);
-      return;
+      setCodeDraft(sequenceId, {
+        code: draftCode,
+        dirty: draftCode !== baselineCode,
+        writtenCode: null
+      });
+    } else if (!dirty && draftCode !== baselineCode) {
+      setCodeDraft(sequenceId, {
+        code: baselineCode,
+        dirty: false,
+        writtenCode: null
+      });
     }
-    if (!dirty) {
-      draftRef.current = baselineCode;
-      setDraftCode(baselineCode);
-    }
-  }, [baselineCode, dirty, writtenCode]);
+  }, [sequenceId, baselineCode, dirty, draftCode, writtenCode, setCodeDraft]);
 
-  // `setPanelTab` guards a switch away from a dirty Code tab (window.confirm);
-  // this is the flag it reads. Cleared on unmount too, so leaving by any
-  // other route (closing the workspace tab) doesn't leave it stuck.
   useEffect(() => {
     setCodePanelDirty(dirty);
-    return () => setCodePanelDirty(false);
   }, [dirty, setCodePanelDirty]);
 
   const { MonacoEditor, monacoLoadError, isMonacoLoading, loadMonacoIfNeeded } =
@@ -182,11 +181,14 @@ export const CodePanel: React.FC = memo(() => {
   const handleChange = useCallback(
     (next?: string) => {
       const value = next ?? "";
-      draftRef.current = value;
-      setDraftCode(value);
-      setDirty(value !== baselineCode);
+      if (sequenceId)
+        setCodeDraft(sequenceId, {
+          code: value,
+          dirty: value !== baselineCode,
+          writtenCode
+        });
     },
-    [baselineCode]
+    [baselineCode, sequenceId, setCodeDraft, writtenCode]
   );
 
   const scenes = data?.scenes ?? bakeResult.scenes;
@@ -198,11 +200,21 @@ export const CodePanel: React.FC = memo(() => {
       const result = await setCode({ code: sent });
       setBakeResult(result);
       // A bake that returns errors wrote nothing. Keep the draft to fix it.
-      if (result.errors.length === 0) setWrittenCode(sent);
+      if (result.errors.length === 0) {
+        const latest = useDocumentDraftStore.getState().codeDrafts[sequenceId];
+        if (!latest) {
+          return;
+        }
+        setCodeDraft(sequenceId, {
+          code: latest.code,
+          dirty: true,
+          writtenCode: sent
+        });
+      }
     } catch (err) {
       notifyMutationError("rebake the timeline from its code", err);
     }
-  }, [sequenceId, draftCode, setCode]);
+  }, [sequenceId, draftCode, setCode, setCodeDraft]);
 
   const handleOverwriteScene = useCallback(
     async (scene: string) => {
@@ -286,7 +298,12 @@ export const CodePanel: React.FC = memo(() => {
 
   if (!hasCode) {
     return (
-      <FlexColumn align="center" justify="center" fullHeight sx={{ flex: 1, px: 2 }}>
+      <FlexColumn
+        align="center"
+        justify="center"
+        fullHeight
+        sx={{ flex: 1, px: 2 }}
+      >
         <EmptyState
           title="No code"
           description="This timeline wasn't built from code, so there is nothing to edit here."
@@ -326,7 +343,11 @@ export const CodePanel: React.FC = memo(() => {
         {scenes.length > 0 && (
           <FlexColumn fullWidth>
             {scenes.map((scene) => (
-              <SceneRow key={scene.groupId} scene={scene} onSelect={handleSelectScene} />
+              <SceneRow
+                key={scene.groupId}
+                scene={scene}
+                onSelect={handleSelectScene}
+              />
             ))}
           </FlexColumn>
         )}

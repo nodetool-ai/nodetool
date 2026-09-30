@@ -1000,3 +1000,25 @@ describe("useStoryboardServerSync — notices that arrive during an in-flight sa
     rendered.unmount();
   });
 });
+
+it("retries an initial load after a transient failure", async () => {
+  const response = await getQuery();
+  getQuery.mockClear();
+  getQuery.mockRejectedValueOnce(new Error("Offline")).mockResolvedValue(response);
+  const rendered = renderHook(({ retry }) => useStoryboardServerSync("board-1", retry), { initialProps: { retry: 0 } });
+  await waitFor(() => expect(rendered.result.current).toBe("error"));
+  rendered.rerender({ retry: 1 });
+  await waitFor(() => expect(rendered.result.current).toBe("ready"));
+  expect(getQuery).toHaveBeenCalledTimes(2);
+  expect(useStoryboardStore.getState().boards["board-1"].title).toBe("Saved board");
+});
+
+it("does not mark a failed initial load ready because a previous revision is cached", async () => {
+  useStoryboardStore.getState().ensureBoard("board-1");
+  useStoryboardStore.getState().setServerRevision("board-1", "old-revision");
+  getQuery.mockRejectedValue(new Error("Offline"));
+  const rendered = renderHook(() => useStoryboardServerSync("board-1"));
+  await waitFor(() => expect(rendered.result.current).toBe("error"));
+  rendered.unmount();
+  expect(updateMutate).not.toHaveBeenCalled();
+});

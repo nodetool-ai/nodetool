@@ -1,10 +1,14 @@
+import ReportBugButton from "../support/ReportBugButton";
 import type { DocumentLoadState } from "../../stores/documentSync";
-import { EmptyState, FlexColumn, LoadingSpinner } from "../ui_primitives";
+import { EditorButton, EmptyState, FlexColumn, LoadingSpinner } from "../ui_primitives";
 
 interface DocumentLoadStatusProps {
   state: Exclude<DocumentLoadState, "ready">;
   /** The document type, lowercase, as it reads mid-sentence: "storyboard". */
   label: string;
+  onRetry?: () => void;
+  onClose?: () => void;
+  closeLabel?: string;
 }
 
 /**
@@ -16,7 +20,7 @@ interface DocumentLoadStatusProps {
  * straight away shows an empty document — indistinguishable from a document
  * that really is empty. This shows the load instead.
  */
-const DocumentLoadStatus = ({ state, label }: DocumentLoadStatusProps) => (
+const DocumentLoadStatus = ({ state, label, onRetry, onClose, closeLabel = "Close tab" }: DocumentLoadStatusProps) => (
   <FlexColumn
     fullWidth
     fullHeight
@@ -30,8 +34,14 @@ const DocumentLoadStatus = ({ state, label }: DocumentLoadStatusProps) => (
       <EmptyState
         variant="error"
         title={`Could not load this ${label}`}
-        description="The server did not answer. Close the tab and open it again to retry."
+        description={onRetry ? "The document could not be loaded. It may be unavailable or you may need to reconnect." : "The document could not be loaded. Close the tab and open it again to retry."}
+        actionText={onRetry ? "Retry" : undefined}
+        onAction={onRetry}
       />
+    )}
+    {state === "error" && <ReportBugButton context={{ source: "panel-crash", summary: `Could not load this ${label}` }} />}
+    {state === "error" && onClose && (
+      <EditorButton onClick={onClose}>{closeLabel}</EditorButton>
     )}
   </FlexColumn>
 );

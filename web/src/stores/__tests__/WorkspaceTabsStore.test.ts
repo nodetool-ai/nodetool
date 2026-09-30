@@ -335,16 +335,40 @@ describe("openProject", () => {
       name: "Second board",
       ownsProject: false
     };
-    store.openTab({ type: "guided-flow", ref: "flow-1", title: first.name, projectId: "p1", setupTarget: first });
-    store.openTab({ type: "guided-flow", ref: "flow-2", title: second.name, projectId: "p1", setupTarget: second });
+    store.openTab({
+      type: "guided-flow",
+      ref: "flow-1",
+      title: first.name,
+      projectId: "p1",
+      setupTarget: first
+    });
+    store.openTab({
+      type: "guided-flow",
+      ref: "flow-2",
+      title: second.name,
+      projectId: "p1",
+      setupTarget: second
+    });
     store.setGuidedFlowTarget("flow-1", { ...first, name: "Revised board" });
 
     store.openProject({ id: "p2", name: "Two", documents: [] });
     store.openProject({ id: "p1", name: "One", documents: [] });
 
-    expect(useWorkspaceTabsStore.getState().tabs.filter((tab) => tab.type === "guided-flow")).toEqual([
-      expect.objectContaining({ ref: "flow-1", title: "Revised board", setupTarget: expect.objectContaining({ id: "board-1" }) }),
-      expect.objectContaining({ ref: "flow-2", title: "Second board", setupTarget: second })
+    expect(
+      useWorkspaceTabsStore
+        .getState()
+        .tabs.filter((tab) => tab.type === "guided-flow")
+    ).toEqual([
+      expect.objectContaining({
+        ref: "flow-1",
+        title: "Revised board",
+        setupTarget: expect.objectContaining({ id: "board-1" })
+      }),
+      expect.objectContaining({
+        ref: "flow-2",
+        title: "Second board",
+        setupTarget: second
+      })
     ]);
   });
 
@@ -393,9 +417,7 @@ describe("openProject", () => {
       "script:a-script",
       "image:a-output"
     ]);
-    expect(state.projectSessions.b.tabIds).toEqual([
-      "image:b-upload"
-    ]);
+    expect(state.projectSessions.b.tabIds).toEqual(["image:b-upload"]);
     expect(
       state.tabs.find((tab) => tab.id === "image:a-output")?.projectId
     ).toBe("a");
@@ -862,4 +884,76 @@ describe("isTabInScope", () => {
     expect(isTabInScope(loose, null)).toBe(true);
     expect(isTabInScope(loose, "p1")).toBe(false);
   });
+});
+
+describe("visible close successor", () => {
+  it("skips loose documents when closing a global page in a project", () => {
+    const workflow = { ...tab("workflow", "a"), projectId: "project-a" };
+    reset(
+      [workflow, tab("text", "loose"), tab("page", "settings")],
+      "page:settings"
+    );
+    useWorkspaceTabsStore.setState({ activeProjectId: "project-a" });
+    useWorkspaceTabsStore.getState().closeTab("page:settings");
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.activeTabId).toBe(workflow.id);
+    expect(
+      isTabInScope(
+        state.tabs.find((t) => t.id === state.activeTabId)!,
+        state.activeProjectId
+      )
+    ).toBe(true);
+  });
+});
+
+describe("foreground opening", () => {
+  it("atomically switches ownership and activates an uncached cross-project document", () => {
+    useWorkspaceTabsStore.setState({ activeProjectId: "a" });
+    const updates: boolean[] = [];
+    const unsubscribe = useWorkspaceTabsStore.subscribe((state) => {
+      const active = state.tabs.find((tab) => tab.id === state.activeTabId);
+      updates.push(
+        Boolean(active && isTabInScope(active, state.activeProjectId))
+      );
+    });
+    useWorkspaceTabsStore
+      .getState()
+      .openForegroundTab({
+        type: "chat",
+        ref: "cold",
+        projectId: "b",
+        title: "Conversation"
+      });
+    unsubscribe();
+    expect(useWorkspaceTabsStore.getState()).toMatchObject({
+      activeProjectId: "b",
+      activeTabId: "chat:cold"
+    });
+    expect(updates).toEqual([true]);
+  });
+  it("opens an explicitly loose document in visible scope", () => {
+    useWorkspaceTabsStore.setState({ activeProjectId: "a" });
+    useWorkspaceTabsStore
+      .getState()
+      .openForegroundTab({
+        type: "workflow",
+        ref: "unsaved",
+        projectId: LOOSE_PROJECT_ID
+      });
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.activeProjectId).toBeNull();
+    expect(state.tabs[0].projectId).toBeUndefined();
+    expect(isTabInScope(state.tabs[0], state.activeProjectId)).toBe(true);
+  });
+});
+
+it("foreground opening an existing tab switches to its resolved owner", () => {
+  const store = useWorkspaceTabsStore.getState();
+  store.openTab({ type: "chat", ref: "existing", projectId: "b" });
+  store.setActiveProjectId("a");
+  store.openForegroundTab({ type: "chat", ref: "existing", projectId: "b" });
+  const state = useWorkspaceTabsStore.getState();
+  expect(state.activeProjectId).toBe("b");
+  expect(state.activeTabId).toBe("chat:existing");
+  expect(state.tabs).toHaveLength(1);
 });

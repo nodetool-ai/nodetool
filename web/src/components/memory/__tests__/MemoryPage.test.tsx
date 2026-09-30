@@ -38,9 +38,8 @@ jest.mock("../../../stores/NotificationStore", () => ({
     selector({ addNotification: jest.fn() })
 }));
 
-jest.mock("../../../stores/WorkspaceTabsStore", () => ({
-  useWorkspaceTabsStore: (selector: (state: unknown) => unknown) =>
-    selector({ openTab: mockOpenTab })
+jest.mock("../../workspace/openChatThread", () => ({
+  openChatThread: (...args: unknown[]) => mockOpenTab(...args)
 }));
 
 import MemoryPage from "../MemoryPage";
@@ -67,6 +66,7 @@ const renderPage = () =>
 describe("MemoryPage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOpenTab.mockResolvedValue(undefined);
     mockList.mockReturnValue({
       data: { memories: [memory()] },
       isLoading: false
@@ -108,6 +108,49 @@ describe("MemoryPage", () => {
     expect(screen.queryByText("Brand palette")).not.toBeInTheDocument();
   });
 
+  it("keeps the selected kind and reset available after results change", async () => {
+    mockList.mockReturnValue({ data: { memories: [memory(), memory({ id: "mem-2", kind: "decision" })] }, isLoading: false });
+    renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "decision" }));
+    mockSearch.mockReturnValue({ data: { memories: [memory()] }, isLoading: false });
+    await userEvent.type(screen.getByRole("textbox"), "palette");
+    await screen.findByText("No memory matches");
+    expect(screen.getByRole("button", { name: "decision" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "All" }));
+    expect(screen.getByText("Brand palette")).toBeInTheDocument();
+  });
+
+  it("shows list failures and retries the active query", async () => {
+    const refetch = jest.fn();
+    mockList.mockReturnValue({ data: undefined, isLoading: false, isError: true, refetch });
+    renderPage();
+    expect(screen.queryByText("Nothing remembered yet")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries search failures without dropping the search or filter", async () => {
+    const refetch = jest.fn();
+    mockList.mockReturnValue({ data: { memories: [memory(), memory({ id: "mem-2", kind: "decision" })] }, isLoading: false });
+    mockSearch.mockReturnValue({ data: undefined, isLoading: false, isError: true, refetch });
+    renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "decision" }));
+    await userEvent.type(screen.getByRole("textbox"), "palette");
+    await screen.findByText("Could not load memories");
+    expect(screen.queryByText("No memory matches")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("textbox")).toHaveValue("palette");
+    expect(screen.getByRole("button", { name: "decision" })).toBeInTheDocument();
+  });
+
+  it("retains cached memories with a refresh failure notice", () => {
+    mockList.mockReturnValue({ data: { memories: [memory()] }, isLoading: false, isError: true });
+    renderPage();
+    expect(screen.getByText("Brand palette")).toBeInTheDocument();
+    expect(screen.getByText(/Could not refresh memories/)).toBeInTheDocument();
+  });
+
   it("deletes a memory only after the confirmation is accepted", async () => {
     renderPage();
     await userEvent.click(screen.getByRole("button", { name: /delete/i }));
@@ -124,10 +167,6 @@ describe("MemoryPage", () => {
     await userEvent.click(
       screen.getByRole("button", { name: /open the conversation/i })
     );
-    expect(mockOpenTab).toHaveBeenCalledWith({
-      type: "chat",
-      ref: "thread-1",
-      mode: "view"
-    });
+    expect(mockOpenTab).toHaveBeenCalledWith("thread-1");
   });
 });
