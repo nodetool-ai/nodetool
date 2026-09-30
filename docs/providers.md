@@ -26,7 +26,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Cerebras | ✅ | | | | | | |
 | Alibaba Cloud | ✅ | | | | | | |
 | GMI Cloud | ✅ | | | | | | |
-| OpenRouter | ✅ | ✅ | | | | | |
+| OpenRouter | ✅ | ✅ | ✅ | | | | |
 | Requesty | ✅ | | | | | | |
 | Together AI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Moonshot (Kimi) | ✅ | | | | | | |
@@ -106,7 +106,7 @@ GMI Cloud is an OpenAI-compatible chat endpoint for open-weight models — Llama
 
 ## OpenRouter
 
-OpenRouter proxies 300+ chat models plus image generation through a single key. Cloud only, keyed by `OPENROUTER_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+OpenRouter proxies 300+ chat models, image generation, Gemini image editing, and text-to-video and image-to-video models (Veo, Seedance, Kling, Wan) through a single key. Reference-to-video is not supported because OpenRouter accepts reference media only as public HTTPS URLs. Cloud only, keyed by `OPENROUTER_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
 ## Requesty
 
