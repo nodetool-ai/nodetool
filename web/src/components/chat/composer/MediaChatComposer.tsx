@@ -77,13 +77,9 @@ interface MediaChatComposerProps {
   requireToolSupport?: boolean;
   /** Focus the prompt textarea on mount. Defaults to true (chat panel). */
   autoFocus?: boolean;
-  /** Extra actions rendered at the end of the footer chip row (e.g. the
-   *  canvas Run button + workflow menu). Empty in the chat panel. */
+  /** Extra content after the footer chip row (the canvas workflow toolbar).
+   *  Empty in the chat panel. */
   trailingActions?: React.ReactNode;
-  /** Extra actions rendered at the start of the footer chip row (e.g. the
-   *  canvas dock drag handle). Empty in the chat panel. Stays visible even
-   *  while the composer is minimized. */
-  leadingActions?: React.ReactNode;
   /** Override the auto-generated, mode-aware textarea placeholder. */
   placeholder?: string;
   /** Pure chat panel: hide the mode picker and force "chat" mode. Used by the
@@ -129,7 +125,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   requireToolSupport,
   autoFocus = true,
   trailingActions,
-  leadingActions,
   placeholder: placeholderOverride,
   hideModePicker = false,
   hideModelPicker = false,
@@ -823,8 +818,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             isCompact ? " narrow" : ""
           }`}
         >
-          {/* Leading actions (e.g. the canvas dock drag handle). */}
-          {leadingActions}
           {/* Chip cluster: mode/model chips. */}
           <div className="media-chip-main">
             {/* Attach: uploads to the asset library and attaches the asset. */}
@@ -879,10 +872,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           </div>
 
           {/* The Generate button for media modes, or Stop while a run is in
-              flight. Chat mode has no button of its own — Enter sends. Sits
-              between the chip cluster and the host actions rather than inside
-              the chips, so it joins the workflow action buttons on one line
-              when the row wraps. */}
+              flight. Chat mode has no button of its own — Enter sends. */}
           <div className="media-primary-action">
             {/* What the next Generate would cost, next to the button that
                 spends it. Silent in chat mode and whenever no price can be
@@ -908,8 +898,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             ) : null}
           </div>
 
-          {/* Host-supplied actions at the end of the footer (e.g. the canvas
-              Run button + workflow menu). Empty in the chat panel. */}
+          {/* Host-supplied actions after the chips (the canvas workflow
+              toolbar). Empty in the chat panel. */}
           {trailingActions}
         </div>
       </div>

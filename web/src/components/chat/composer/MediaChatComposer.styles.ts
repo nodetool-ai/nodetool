@@ -85,8 +85,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       // remainder of the shared text column inset.
       padding: `0 ${theme.spacing(1)}`,
       boxSizing: "border-box",
-      // Trailing run actions stay pinned to the right, so the row itself does
-      // not wrap. The chip cluster wraps internally instead.
+      // The chip cluster wraps internally instead of the row.
       flexWrap: "nowrap"
     },
 
@@ -105,14 +104,6 @@ export const createMediaComposerStyles = (theme: Theme) =>
     // A narrow card keeps every chip on one line: the model chip shrinks and
     // truncates instead of pushing the workspace chip onto a second row.
     ".media-chip-row.narrow .media-chip-main": {
-      flexWrap: "nowrap"
-    },
-
-    // The canvas dock (host actions after the chips) keeps the cluster on one
-    // line at every width: a wrapping cluster drops the workspace chip under
-    // the model chip while the model chip still sits at its max width, since
-    // flex wraps before it shrinks. Single-line, the model chip truncates.
-    ".media-chip-row.has-trailing .media-chip-main": {
       flexWrap: "nowrap"
     },
 
@@ -152,8 +143,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       }
     },
 
-    // The primary send/generate action. A row sibling of the chip cluster so
-    // it can wrap onto the action-button line on mobile.
+    // The primary send/generate action, a row sibling of the chip cluster.
     ".media-primary-action": {
       display: "inline-flex",
       alignItems: "center",
@@ -278,21 +268,6 @@ export const createMediaComposerStyles = (theme: Theme) =>
       ".media-generate-btn": {
         height: 40,
         padding: `0 ${theme.spacing(2)}`
-      },
-      // With host workflow actions (the canvas dock), give the chips their own
-      // full line so every button — send plus the workflow actions — lands
-      // together on the next line instead of the send button stranding on the
-      // chip line. The send button follows the actions and is right-aligned.
-      ".media-chip-row.has-trailing .media-chip-main": {
-        minWidth: "100%"
-      },
-      ".media-chip-row.has-trailing .composer-workflow-actions": {
-        flex: "0 0 auto",
-        order: 1,
-        marginLeft: "auto"
-      },
-      ".media-chip-row.has-trailing .media-primary-action": {
-        order: 2
       }
     }
   });

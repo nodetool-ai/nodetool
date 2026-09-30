@@ -21,18 +21,14 @@ import type {
  * Generation routes through the normal chat pipeline.
  */
 interface CanvasMediaComposerProps {
-  /** Workflow controls (Run button + menu) rendered inside the composer
-   *  footer. Supplied by FloatingToolBar; kept here so the canvas composer
+  /** The workflow toolbar (Run button + menu) rendered as the composer's
+   *  last row. Supplied by FloatingToolBar; kept here so the canvas composer
    *  stays a thin wrapper over MediaChatComposer. */
   trailingActions?: React.ReactNode;
-  /** Leading footer content (the dock drag handle), supplied by
-   *  FloatingToolBar. */
-  leadingActions?: React.ReactNode;
 }
 
 const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
-  trailingActions,
-  leadingActions
+  trailingActions
 }) => {
   const {
     status,
@@ -124,7 +120,6 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
       selectedModel={selectedModel}
       onModelChange={setSelectedModel}
       autoFocus={false}
-      leadingActions={leadingActions}
       trailingActions={trailingActions}
     />
   );
