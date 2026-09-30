@@ -3,7 +3,7 @@
   "version": "0.8.1",
   "type": "module",
   "engines": {
-    "node": ">=22.22.1 <23"
+    "node": "24.18.0"
   },
   "description": "Curated Higgsfield image and video generation nodes for NodeTool",
   "main": "dist/index.js",

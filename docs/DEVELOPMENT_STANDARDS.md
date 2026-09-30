@@ -71,7 +71,7 @@ native executable.
 
 ## 2. ES Modules & Node Runtime
 
-All packages use `"type": "module"`. The required runtime is **Node.js 22.22.1** (see `.nvmrc`) to match Electron 39's embedded Node.
+All packages use `"type": "module"`. The required runtime is **Node.js 24.18.0** (see [`.nvmrc`](../.nvmrc)) to match Electron 41.10.6's embedded Node, pinned in [`electron/package.json`](../electron/package.json).
 
 ### Rules
 
@@ -82,7 +82,7 @@ All packages use `"type": "module"`. The required runtime is **Node.js 22.22.1**
 - **`AbortController` / `AbortSignal`** is mandatory for any cancellable async operation — long-running fetches, streams, subprocesses, LLM calls. Plumb the signal through; do not invent custom cancellation flags.
 - **Native fetch (Node 22)** — no `node-fetch`, no `axios` in new code unless there is a specific reason (e.g. interceptor needs) documented in the PR.
 - **No CommonJS interop hacks.** If a dep is CJS-only, import its default export and document the constraint.
-- **Pin Node version** in CI and package `engines`. **target**: every workspace `package.json` declares `"engines": { "node": ">=22.22.1 <23" }`.
+- **Pin Node version** in CI and package `engines`. **target**: every workspace `package.json` declares `"engines": { "node": "24.18.0" }`.
 
 ---
 

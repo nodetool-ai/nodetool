@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1-labs
 
-FROM node:22-slim AS deps
+FROM node:24.18.0-bookworm-slim AS deps
 
 # Native build dependencies are only needed while installing/building packages.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -76,7 +76,7 @@ ENV GIT_COMMIT_HASH=$GIT_COMMIT_HASH \
 RUN cd web && NODE_OPTIONS="$WEB_BUILD_NODE_OPTIONS" npm run build \
     && find dist -name '*.map' -delete
 
-FROM node:22-slim AS runtime
+FROM node:24.18.0-bookworm-slim AS runtime
 
 ENV NODE_ENV=production \
     NODETOOL_ENV=production \

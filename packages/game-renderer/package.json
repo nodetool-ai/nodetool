@@ -4,7 +4,7 @@
   "description": "Native 2D and 3D rendering, capture and web export",
   "type": "module",
   "engines": {
-    "node": ">=22.22.1 <23"
+    "node": "24.18.0"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
