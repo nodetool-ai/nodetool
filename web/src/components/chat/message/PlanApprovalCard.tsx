@@ -11,7 +11,8 @@ import {
   TextInput,
   Tooltip,
   BORDER_RADIUS,
-  SPACING
+  SPACING,
+  TYPOGRAPHY
 } from "../../ui_primitives";
 import type {
   PendingPlanApproval,
@@ -47,6 +48,7 @@ const styles = (theme: Theme) =>
     },
     ".plan-approval-actions": {
       button: {
+        ...TYPOGRAPHY.sans.label,
         borderRadius: BORDER_RADIUS.pill,
         textTransform: "none",
         letterSpacing: 0
