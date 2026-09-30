@@ -3,6 +3,7 @@ import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import TrackedLink from "@/components/TrackedLink";
 import FaqBlock from "@/components/FaqBlock";
 import { breadcrumbSchema, faqPageSchema } from "@/lib/jsonld";
 import { faqByCategory, faqEntries } from "@/data/faqEntries";
@@ -133,12 +134,14 @@ export default function FaqHubPage() {
               workflow ideas
             </Link>{" "}
             or read the{" "}
-            <a
+            <TrackedLink
               href="https://docs.nodetool.ai"
+              event="Open Docs"
+              eventProps={{ placement: "faq" }}
               className="text-blue-300 hover:text-blue-200"
             >
               documentation
-            </a>
+            </TrackedLink>
             .
           </p>
         </section>

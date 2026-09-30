@@ -36,6 +36,11 @@ const LANDING_PAGES = {
   "/studio": "studio",
   "/cloud": "cloud",
   "/download": "download",
+  "/pricing": "pricing",
+  "/agents": "agents",
+  "/developers": "developers",
+  "/templates": "templates",
+  "/recipes": "recipes",
 } as const;
 
 export type LandingPage = typeof LANDING_PAGES[keyof typeof LANDING_PAGES];
@@ -44,9 +49,15 @@ export function getLandingPage(value: string | null): LandingPage | undefined {
   return Object.values(LANDING_PAGES).find((page) => page === value);
 }
 
-function pageLabel(pathname: string): LandingPage | "template" | "other" {
+function pageLabel(pathname: string): LandingPage | "template" | "recipe" | "other" {
   const entry = Object.entries(LANDING_PAGES).find(([path]) => path === pathname);
-  return entry?.[1] ?? (pathname.startsWith("/templates/") ? "template" : "other");
+  if (entry) {
+    return entry[1];
+  }
+  if (pathname.startsWith("/templates/")) {
+    return "template";
+  }
+  return pathname.startsWith("/recipes/") ? "recipe" : "other";
 }
 
 type PlausibleFn = (
@@ -75,7 +86,13 @@ export type TrackEvent =
   | "Open Docs"
   | "Join Discord"
   | "Contact"
-  | "Calculator Interaction";
+  | "Calculator Interaction"
+  | "Open Template"
+  | "Open Recipe"
+  | "Recipe Step"
+  | "Copy Brief"
+  | "Copy Install Command"
+  | "404";
 
 export function track(event: TrackEvent, props?: PlausibleProps): void {
   if (typeof window === "undefined") {

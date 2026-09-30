@@ -16,14 +16,23 @@ details, cookies, or browser storage are used for this context.
 | `Download` | [Installer picker](src/components/DownloadPanel.tsx) | Opens a release asset found in the GitHub release response. Includes OS and installer placement. |
 | `Browse Releases` | Missing-asset fallback or release-notes link | Opens the GitHub releases page. It is separate from an installer click. |
 | `Cloud CTA` | [Announcement](src/components/AnnouncementBar.tsx) | Opens the Cloud information page. |
-| `Try Cloud` | [Cloud primary actions](src/app/cloud/page.tsx) or homepage closing action | Enters the hosted app. Includes placement. |
+| `Try Cloud` | [Cloud primary actions](src/app/cloud/page.tsx), the homepage closing action, the pricing Cloud plan, or the recipes page | Enters the hosted app. Includes placement. |
 | `Open Starter` | Starter inspection link on a landing page or download page | Opens a specific workflow's template page. |
 | `View Demo` | [Demo player](src/components/HeroDemoPlayer.tsx) after an explicit play or fullscreen request succeeds | Manual engagement. Autoplay, visibility, and pause do not emit this event. |
+| `Open Template` | Template cards on the catalog and related-template lists, and the model page's template link | Opens a template page. Includes the `template` slug and placement. |
+| `Open Recipe` | [Recipe cards](src/components/RecipeCard.tsx) and recipe links on template pages | Opens a recipe page. Includes the `recipe` slug and placement. |
+| `Recipe Step` | A step selected in the [recipe guide](src/components/RecipeGuide.tsx) | Manual engagement with a guided step. Includes the recipe and 1-based `step`. Autoplay does not emit this event. |
+| `Copy Brief` | Successful copy of a recipe's example brief or script | The visitor took the example text to try. Includes the recipe. |
+| `Copy Install Command` | Successful copy of the [MCP install command](src/components/agents/McpInstallCommand.tsx) | Agent-integration intent. Includes placement. |
+| `Star GitHub`, `Open Docs`, `Join Discord` | Header, footer, community section, and closing actions on the agents, developers, template, and solution pages | Opens the repository, documentation, or Discord. Includes placement where the link sets one. |
+| `404` | The [not-found page](src/app/not-found.tsx) | A missing path was requested. Includes the requested `path` only, for broken-link triage in A4. |
 
 `landing_page` describes the source carried by a starter download link, or the
 current bounded page label when no source is supplied. It is not persistent
 session attribution across arbitrary navigation. Template routes use the
-`template` label and other routes use `other`.
+`template` label, recipe routes use `recipe`, and other routes use `other`.
+The pricing, agents, developers, templates, and recipes index pages have their
+own labels. Events on those pages reported `other` before that change.
 
 The [site layout](src/app/layout.tsx) also loads Plausible's automatic outbound
 link and file-download events. Do not add automatic and custom events together
@@ -87,7 +96,8 @@ sitemap, and discovery catalog derive from the same records.
 [Download regressions](tests/e2e/download.spec.ts) cover desktop and mobile
 platform labels. [Acquisition regressions](tests/e2e/search-acquisition.spec.ts)
 cover relevant starter links, installer attribution, unknown-parameter
-rejection, releases fallback, Cloud goal separation, and manual demo events.
+rejection, releases fallback, Cloud goal separation, manual demo events, and
+the template, recipe, install-command, pricing Cloud, and 404 goals.
 Browser scenarios use representative navigator values, not physical devices.
 
 Run from `marketing/`:

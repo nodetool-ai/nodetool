@@ -3,6 +3,7 @@ import { Check, Minus, Download } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import JsonLd from "../../components/JsonLd";
+import TrackedLink from "../../components/TrackedLink";
 import FaqBlock from "../../components/FaqBlock";
 import { breadcrumbSchema } from "../../lib/jsonld";
 import { SmartDownloadButton } from "../SmartDownloadButton";
@@ -171,14 +172,16 @@ export default function PricingPage() {
                 ))}
               </ul>
               <div className="mt-8">
-                <a
+                <TrackedLink
                   href="https://app.nodetool.ai"
                   target="_blank"
                   rel="noopener noreferrer"
+                  event="Try Cloud"
+                  eventProps={{ placement: "pricing" }}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60 focus-ring"
                 >
                   Try Cloud (alpha)
-                </a>
+                </TrackedLink>
               </div>
             </div>
           </div>

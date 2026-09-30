@@ -1,17 +1,19 @@
 "use client";
 import React, { useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { track } from "../../lib/analytics";
 
 export const MCP_INSTALL_COMMAND =
   "npx -y --package=@nodetool-ai/cli nodetool mcp install";
 
-export default function McpInstallCommand() {
+export default function McpInstallCommand({ placement }: { placement: string }) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
 
   async function copyCommand() {
     try {
       await navigator.clipboard.writeText(MCP_INSTALL_COMMAND);
+      track("Copy Install Command", { placement });
       setCopied(true);
       setCopyError(false);
     } catch {

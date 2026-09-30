@@ -15,6 +15,7 @@ import {
   Terminal,
   Wand2,
 } from "lucide-react";
+import { track } from "../../lib/analytics";
 
 interface AgentIntegrationsSectionProps {
   reducedMotion?: boolean;
@@ -202,6 +203,7 @@ export default function AgentIntegrationsSection({
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="https://docs.nodetool.ai/integrations"
+              onClick={() => track("Open Docs", { placement: "integrations" })}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white transition-all"
             >
               <Braces className="w-5 h-5" />
@@ -209,6 +211,7 @@ export default function AgentIntegrationsSection({
             </a>
             <a
               href="https://github.com/nodetool-ai/nodetool"
+              onClick={() => track("Star GitHub", { placement: "integrations" })}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-rose-600 text-white hover:bg-rose-500 transition-all"
             >
               <Terminal className="w-5 h-5" />

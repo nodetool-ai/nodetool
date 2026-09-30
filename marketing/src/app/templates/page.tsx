@@ -6,6 +6,7 @@ import { Boxes, Download } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import TrackedLink from "@/components/TrackedLink";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import { templateEntries, type TemplateEntry } from "@/data/templates";
 import { recipeEntries } from "@/data/recipes";
@@ -140,12 +141,14 @@ export default function TemplatesHub() {
               <ul className="mt-5 flex flex-wrap gap-2">
                 {recipeEntries.map((recipe) => (
                   <li key={recipe.slug}>
-                    <a
+                    <TrackedLink
                       href={recipe.route}
+                      event="Open Recipe"
+                      eventProps={{ recipe: recipe.slug, placement: "templates" }}
                       className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-[#0a0a14]/60 px-4 py-2 text-sm font-medium text-amber-200 transition-colors hover:border-amber-500/50 hover:text-amber-100"
                     >
                       {recipe.name}
-                    </a>
+                    </TrackedLink>
                   </li>
                 ))}
               </ul>
@@ -163,9 +166,11 @@ export default function TemplatesHub() {
                 {items.map((t) => {
                   const thumbnail = templateThumbnail(t.slug, t.thumbnail);
                   return (
-                    <a
+                    <TrackedLink
                       key={t.slug}
                       href={t.route}
+                      event="Open Template"
+                      eventProps={{ template: t.slug, placement: "catalog" }}
                       className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40 transition-colors hover:border-white/25"
                     >
                     {thumbnail ? (
@@ -194,7 +199,7 @@ export default function TemplatesHub() {
                         {t.nodeCount} nodes
                       </div>
                     </div>
-                    </a>
+                    </TrackedLink>
                   );
                 })}
               </div>

@@ -11,12 +11,14 @@ import {
   Play
 } from "lucide-react";
 import type { RecipeGuide as Guide } from "@/data/recipes";
+import { track } from "@/lib/analytics";
 
 interface RecipeGuideProps {
   guide: Guide;
+  recipe: string;
 }
 
-export default function RecipeGuide({ guide }: RecipeGuideProps) {
+export default function RecipeGuide({ guide, recipe }: RecipeGuideProps) {
   const [selected, setSelected] = useState(0);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
@@ -64,6 +66,7 @@ export default function RecipeGuide({ guide }: RecipeGuideProps) {
   function selectStep(index: number) {
     setSelected(index);
     setAutoplayEnabled(false);
+    track("Recipe Step", { recipe, step: index + 1 });
     const content = contentRef.current;
     if (!content) return;
     const top = content.getBoundingClientRect().top;
@@ -75,6 +78,7 @@ export default function RecipeGuide({ guide }: RecipeGuideProps) {
   async function copyBrief() {
     try {
       await navigator.clipboard.writeText(guide.brief);
+      track("Copy Brief", { recipe });
       setCopied(true);
       setCopyError(false);
     } catch {

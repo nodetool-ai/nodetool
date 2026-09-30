@@ -19,6 +19,7 @@ import MarketingFacts, {
 import MarketingPageShell from "../../components/MarketingPageShell";
 import ProductImage from "../../components/ProductImage";
 import McpInstallCommand from "../../components/agents/McpInstallCommand";
+import TrackedLink from "../../components/TrackedLink";
 import AgentSessionMock from "../../components/developers/AgentSessionMock";
 import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import CodeBlock from "../../components/developers/CodeBlock";
@@ -214,7 +215,7 @@ export default function DevelopersPage() {
                 run.
               </p>
               <div className="mt-8 max-w-xl">
-                <McpInstallCommand />
+                <McpInstallCommand placement="hero" />
               </div>
               <ul
                 aria-label="Supported agents"
@@ -361,7 +362,7 @@ export default function DevelopersPage() {
             </p>
           </header>
           <div className="min-w-0 lg:col-span-7">
-            <McpInstallCommand />
+            <McpInstallCommand placement="setup" />
             <div className="mt-4">
               <NumberedSteps items={setupSteps} />
             </div>
@@ -418,10 +419,12 @@ export default function DevelopersPage() {
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {deeperLinks.map((link) => (
               <li key={link.title}>
-                <a
+                <TrackedLink
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
+                  event="Open Docs"
+                  eventProps={{ placement: "developer-guides" }}
                   className="flex h-full flex-col rounded-2xl border border-slate-800 bg-slate-900/50 p-5 transition-colors hover:border-slate-600 hover:bg-slate-900 focus-ring"
                 >
                   <link.icon className="h-5 w-5 text-blue-300" aria-hidden="true" />
@@ -431,7 +434,7 @@ export default function DevelopersPage() {
                   <span className="mt-1 text-sm leading-relaxed text-slate-400">
                     {link.body}
                   </span>
-                </a>
+                </TrackedLink>
               </li>
             ))}
           </ul>
@@ -460,6 +463,8 @@ export default function DevelopersPage() {
           href: "https://github.com/nodetool-ai/nodetool",
           label: "View on GitHub",
           external: true,
+          event: "Star GitHub",
+          eventProps: { placement: "closing" },
         }}
       />
     </MarketingPageShell>

@@ -9,6 +9,7 @@ import ProductImage from "../../components/ProductImage";
 import AgentRunHero from "../../components/agents/AgentRunHero";
 import AgentSurfaceGrid from "../../components/agents/AgentSurfaceGrid";
 import McpInstallCommand from "../../components/agents/McpInstallCommand";
+import TrackedLink from "../../components/TrackedLink";
 
 const loopStages = [
   {
@@ -294,7 +295,7 @@ export default function AgentsPage() {
                 </span>
               </div>
               <div className="px-4 pt-4">
-                <McpInstallCommand />
+                <McpInstallCommand placement="terminal" />
               </div>
               <ol className="grid border-t border-slate-800 sm:grid-cols-3">
                 {mcpSteps.map((step, index) => (
@@ -321,14 +322,16 @@ export default function AgentsPage() {
                 nodetool mcp config
               </code>{" "}
               and paste the block it prints.{" "}
-              <a
+              <TrackedLink
                 href="https://docs.nodetool.ai/mcp-server"
                 target="_blank"
                 rel="noopener noreferrer"
+                event="Open Docs"
+                eventProps={{ placement: "mcp-setup" }}
                 className="text-blue-300 underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200 focus-ring"
               >
                 Read the MCP setup guide
-              </a>
+              </TrackedLink>
             </p>
           </div>
         </div>
@@ -362,6 +365,8 @@ export default function AgentsPage() {
           href: "https://docs.nodetool.ai",
           label: "Read the agent docs",
           external: true,
+          event: "Open Docs",
+          eventProps: { placement: "closing" },
         }}
       />
     </MarketingPageShell>

@@ -135,3 +135,52 @@ test("demo autoplay does not emit a manual engagement goal", async ({ page }) =>
   await expect(demo.locator("video")).toHaveClass(/opacity-100/);
   expect(events.some((e) => e.event === "View Demo")).toBe(false);
 });
+
+test("recipe engagement goals name the recipe and ignore autoplay", async ({ page, context }) => {
+  const events = await recordEvents(page);
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/recipes");
+  await page.getByRole("link", { name: "Explore the UGC product video project" }).click();
+  await expect(page).toHaveURL("/recipes/ugc-product-video");
+  await expect.poll(() => events.find((e) => e.event === "Open Recipe")?.props).toMatchObject({ page: "recipes", recipe: "ugc-product-video", placement: "card" });
+
+  const guide = page.locator("#guided-flow");
+  await guide.scrollIntoViewIfNeeded();
+  expect(events.some((e) => e.event === "Recipe Step")).toBe(false);
+  await guide.getByRole("navigation", { name: "Recipe steps" }).getByRole("button").nth(1).click();
+  await expect.poll(() => events.find((e) => e.event === "Recipe Step")?.props).toMatchObject({ page: "recipe", recipe: "ugc-product-video", step: 2 });
+  await guide.getByRole("button", { name: "Copy", exact: true }).click();
+  await expect.poll(() => events.find((e) => e.event === "Copy Brief")?.props).toMatchObject({ recipe: "ugc-product-video" });
+});
+
+test("template catalog clicks name the template", async ({ page }) => {
+  const events = await recordEvents(page);
+  await page.goto("/templates");
+  const card = page.locator('a[href="/templates/movie-posters"]').first();
+  await card.click();
+  await expect(page).toHaveURL("/templates/movie-posters");
+  await expect.poll(() => events.find((e) => e.event === "Open Template")?.props).toMatchObject({ page: "templates", template: "movie-posters", placement: "catalog" });
+});
+
+test("copying the MCP install command is a goal with its placement", async ({ page, context }) => {
+  const events = await recordEvents(page);
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/agents");
+  await page.getByRole("button", { name: "Copy the install command" }).first().click();
+  await expect.poll(() => events.find((e) => e.event === "Copy Install Command")?.props).toMatchObject({ page: "agents", placement: "terminal" });
+});
+
+test("pricing Cloud entry uses the Try Cloud goal", async ({ page }) => {
+  const events = await recordEvents(page);
+  await page.route("https://app.nodetool.ai/**", (route) => route.fulfill({ body: "Cloud fixture" }));
+  await page.goto("/pricing");
+  await page.getByRole("link", { name: "Try Cloud (alpha)", exact: true }).click();
+  await expect.poll(() => events.find((e) => e.event === "Try Cloud")?.props).toMatchObject({ page: "pricing", placement: "pricing" });
+});
+
+test("a missing page reports its path as a 404 goal", async ({ page }) => {
+  const events = await recordEvents(page);
+  const response = await page.goto("/no-such-page");
+  expect(response?.status()).toBe(404);
+  await expect.poll(() => events.find((e) => e.event === "404")?.props).toMatchObject({ path: "/no-such-page" });
+});
