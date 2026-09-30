@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { anyGameDocument, gameDocument, type AnyGameDocument } from "@nodetool-ai/protocol";
-import { applyGameOps, applyGameOps3D, createTopDownRoomGame, reconcileGameAuthoring, stableGameAuthoringId, validateGame, gameDocumentOp } from "../src/index.js";
+import { applyGameOps, applyGameOps3D, createTopDownRoomGame, gameAuthoringBaseline, reconcileGameAuthoring, stableGameAuthoringId, validateGame, gameDocumentOp } from "../src/index.js";
 import { blockout } from "./fixtures-game3d.js";
 
 function retained(document: AnyGameDocument) {
@@ -55,6 +55,16 @@ describe("retained game authoring", () => {
     expect(rebuilt.scenes[0].entities.some((entity) => entity.id === "gem-1")).toBe(false);
     expect(reconcileGameAuthoring(rebuilt, retained(simple())).document.scenes[0].entities.some((entity) => entity.id === "gem-1")).toBe(false);
     expect(rebuilt.authoring?.detached).toContainEqual({ sceneId: initial.scenes[0].id, entityId: "gem-1" });
+  });
+
+  it("rejects an override path that addresses a prototype property", () => {
+    for (const path of [["__proto__", "polluted"], ["transform2d", "constructor", "prototype", "polluted"]]) {
+      const document = retained(simple());
+      if (!document.authoring) { throw new Error("Expected retained authoring"); }
+      document.authoring.overrides = [{ sceneId: document.scenes[0].id, entityId: "gem-1", path, value: true }];
+      expect(() => gameAuthoringBaseline(document)).toThrow("Override path cannot address prototype properties");
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    }
   });
 
   it("restores a suppressed entity through an explicit reset", () => {

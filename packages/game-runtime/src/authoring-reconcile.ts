@@ -41,16 +41,19 @@ export function gameAuthoringBaseline(document: AnyGameDocument): AnyGameDocumen
   return baseline;
 }
 function patch(entity: unknown, override: GameAuthoringOverride): unknown {
-  if (override.path[0] === "id" || override.path.some((part) => ["__proto__", "constructor", "prototype"].includes(part))) { throw new Error("Override path cannot address entity identity or prototype properties"); }
+  if (override.path[0] === "id") { throw new Error("Override path cannot address entity identity"); }
   const copy = z.record(z.string(), z.json()).parse(structuredClone(entity));
   let cursor = copy;
-  for (const part of override.path.slice(0, -1)) {
+  for (const [index, part] of override.path.entries()) {
+    if (part === "__proto__" || part === "constructor" || part === "prototype") { throw new Error("Override path cannot address prototype properties"); }
+    if (index === override.path.length - 1) {
+      if (override.remove) { delete cursor[part]; } else { cursor[part] = override.value; }
+      break;
+    }
     const next = cursor[part];
     if (!record(next)) { throw new Error(`Override path ${override.path.join(".")} is not an entity property`); }
     cursor = next;
   }
-  const field = override.path[override.path.length - 1];
-  if (override.remove) { delete cursor[field]; } else { cursor[field] = override.value; }
   return copy;
 }
 function differences(base: unknown, current: unknown, target: GameAuthoringTarget, path: string[] = []): GameAuthoringOverride[] {
