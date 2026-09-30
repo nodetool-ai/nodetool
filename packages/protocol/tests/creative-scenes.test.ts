@@ -87,7 +87,8 @@ describe("renderInputsMatch", () => {
     ["model", { model: "fal-ai/flux/schnell" }],
     ["aspect_ratio", { aspect_ratio: "9:16" }],
     ["style_entity_id", { style_entity_id: null }],
-    ["source_version_id", { source_version_id: "ver_2" }]
+    ["source_version_id", { source_version_id: "ver_2" }],
+    ["entity_conditioning_hash", { entity_conditioning_hash: "c".repeat(64) }]
   ];
 
   it.each(differences)("does not match on a different %s", (_field, patch) => {

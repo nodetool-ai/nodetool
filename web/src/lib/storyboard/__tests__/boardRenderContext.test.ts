@@ -1,6 +1,7 @@
 import {
   currentRenderInputs,
   isVersionStale,
+  creativeContext,
   stampRenderInputs
 } from "@nodetool-ai/protocol";
 import type { Entity, Shot } from "@nodetool-ai/protocol";
@@ -33,7 +34,7 @@ const BOARD = {
 
 describe("boardRenderContext", () => {
   it("projects the board's models, aspect and style", () => {
-    expect(boardRenderContext(BOARD, LIBRARY)).toEqual({
+    expect(boardRenderContext(BOARD, LIBRARY)).toMatchObject({
       aspect_ratio: "9:16",
       image_model: "fal-ai/flux/dev",
       video_model: "fal-ai/kling/v1.6",
@@ -162,5 +163,68 @@ describe("boardRenderContext", () => {
       scenes: null,
       reference_asset_ids: []
     });
+  });
+
+  it("marks a still stale when only its character reference or descriptor changes", () => {
+    const shot: Shot = {
+      type: "shot",
+      id: "still-shot",
+      index: 0,
+      action: "char-1 walks",
+      status: "planned"
+    };
+    const character: Entity = {
+      ...entity("char-1", "character"),
+      reference_images: [{ type: "image", asset_id: "character-a" }]
+    };
+    const context = boardRenderContext(BOARD, [character], shot);
+    const still = {
+      type: "image" as const,
+      asset_id: "rendered-still",
+      render_inputs: stampRenderInputs(currentRenderInputs(shot, context, "keyframe"))
+    };
+    expect(isVersionStale(still, shot, context)).toBe(false);
+    expect(isVersionStale(still, shot, boardRenderContext(BOARD, [{
+      ...character,
+      reference_images: [{ type: "image", asset_id: "character-b" }]
+    }], shot))).toBe(true);
+    expect(isVersionStale(still, shot, boardRenderContext(BOARD, [{
+      ...character,
+      descriptor: "A new costume"
+    }], shot))).toBe(true);
+  });
+
+  it("keeps production clips fresh until the board's product binding changes", () => {
+    const shot: Shot = {
+      type: "shot",
+      id: "production-shot",
+      index: 0,
+      action: "Rotate the bottle",
+      render_mode: "direct",
+      status: "planned"
+    };
+    const board = {
+      ...BOARD,
+      creativeContext: creativeContext.parse({
+        reference_bindings: [{ kind: "product", asset_id: "product-a" }]
+      })
+    };
+    const context = boardRenderContext(board, [], shot);
+    const inputs = currentRenderInputs(shot, context, "clip");
+    expect(inputs.render_mode).toBe("reference");
+    expect(inputs.reference_asset_ids).toEqual(["product-a"]);
+    const clip = {
+      type: "video" as const,
+      asset_id: "rendered-clip",
+      render_inputs: stampRenderInputs(inputs)
+    };
+    expect(isVersionStale(clip, shot, context)).toBe(false);
+    const changed = {
+      ...board,
+      creativeContext: creativeContext.parse({
+        reference_bindings: [{ kind: "product", asset_id: "product-b" }]
+      })
+    };
+    expect(isVersionStale(clip, shot, boardRenderContext(changed, [], shot))).toBe(true);
   });
 });

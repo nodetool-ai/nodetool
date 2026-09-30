@@ -11,5 +11,4 @@
  * that starts one.
  */
 
-export const STILL_RESOLUTION = "1K";
-export const CLIP_RESOLUTION = "1080p";
+export { STILL_RESOLUTION, CLIP_RESOLUTION } from "@nodetool-ai/protocol";

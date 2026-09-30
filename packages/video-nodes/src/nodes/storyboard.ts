@@ -29,7 +29,7 @@ import {
   probeVideoDurationSeconds,
   resolveEntities
 } from "@nodetool-ai/runtime";
-import { shotRenderMode, requiredVideoTasksForShots } from "@nodetool-ai/protocol";
+import { shotRenderMode } from "@nodetool-ai/protocol";
 import type {
   Entity,
   ImageRef,
@@ -252,52 +252,70 @@ async function loadBoardEntities(
   return loaded.filter((entity): entity is Entity => !!entity);
 }
 
-interface ModelChoice {
-  provider: string;
-  model: string;
+function modelOverrides(model: ModelSelectionLike): ShotRenderPlanOptions {
+  const options: ShotRenderPlanOptions = {};
+  if (model.provider && model.provider !== "empty") {
+    options.provider = model.provider;
+  }
+  if (model.id) {
+    options.model = model.id;
+    if (model.supported_tasks?.length) {
+      options.supportedTasks = model.supported_tasks;
+    }
+  }
+  return options;
 }
 
-/**
- * The model a render uses: the node's override when set, else the board's.
- *
- * Unset is an error, never a default — a board rendered on a model nobody chose
- * is a bill nobody agreed to.
- */
-function resolveModel(
-  boardModel: Record<string, unknown> | null,
-  override: ModelSelectionLike | undefined,
-  kind: "still" | "clip",
-  capability: string
-): ModelChoice & { supportedTasks?: string[] } {
-  const provider =
-    override?.provider && override.provider !== "empty"
-      ? override.provider
-      : isString(boardModel?.["provider"])
-        ? (boardModel["provider"] as string)
-        : "";
-  const model =
-    override?.id && override.id !== ""
-      ? override.id
-      : isString(boardModel?.["id"])
-        ? (boardModel["id"] as string)
-        : "";
-  if (!provider || !model) {
+function requirePlanModel(plan: ShotRenderPlan): void {
+  if (!plan.model.provider || !plan.model.model) {
     throw new Error(
-      `No ${kind} model is set on this storyboard. Set one on the board, or wire this node's ${
-        kind === "still" ? "image_model" : "video_model"
-      } input (find_model with capability=${capability} lists the choices).`
+      `No ${plan.kind === "keyframe" ? "still" : "clip"} model is set for shot ${plan.shotId}. Set one on the shot or board, or wire the node's model input (find_model lists the choices).`
     );
   }
-  return {
-    provider,
-    model,
-    supportedTasks:
-      override?.id && override.id !== ""
-        ? override.supported_tasks
-        : Array.isArray(boardModel?.["supported_tasks"])
-          ? boardModel["supported_tasks"].filter(isString)
-          : undefined
-  };
+}
+
+async function validateClipModels(
+  context: ProcessingContext,
+  plans: ShotRenderPlan[]
+): Promise<void> {
+  const groups = new Map<string, ShotRenderPlan[]>();
+  for (const plan of plans) {
+    requirePlanModel(plan);
+    if (plan.preflightError) {
+      continue;
+    }
+    const key = JSON.stringify([plan.model.provider, plan.model.model]);
+    const group = groups.get(key) ?? [];
+    group.push(plan);
+    groups.set(key, group);
+  }
+  for (const group of groups.values()) {
+    const model = group[0].model;
+    const requiredTasks = [...new Set(group.map((plan) =>
+      plan.mode === "direct" ? "text_to_video" : plan.mode === "reference" ? "reference_to_video" : "image_to_video"
+    ))];
+    let supportedTasks = model.supportedTasks;
+    try {
+      const provider = await context.getProvider(model.provider);
+      const discovered = await provider.getAvailableVideoModels();
+      supportedTasks =
+        discovered.find((entry) => entry.id === model.model)?.supportedTasks ??
+        supportedTasks;
+    } catch (error) {
+      if (requiredTasks.length > 1) {
+        throw new Error(
+          `Could not verify video model ${model.provider}/${model.model} against the selected mixed shot modes before rendering.`,
+          { cause: error }
+        );
+      }
+    }
+    if (requiredTasks.length > 1 && !supportedTasks?.length) {
+      throw new Error(`Could not verify video model ${model.provider}/${model.model} against the selected mixed shot modes before rendering.`);
+    }
+    if (supportedTasks && requiredTasks.some((task) => !supportedTasks.includes(task))) {
+      throw new Error(`Video model ${model.provider}/${model.model} does not support every shot mode in the selected batch. Required capabilities: ${requiredTasks.join(", ")}.`);
+    }
+  }
 }
 
 /**
@@ -321,7 +339,8 @@ function renderHost(context: ProcessingContext): StoryboardRenderHost {
         model: request.model,
         params: request.params,
         origin: { surface: "workflow" },
-        persist: request.persist
+        persist: request.persist,
+        destination: request.destination
       });
       return { output: result.output, assets: result.assets };
     },
@@ -894,18 +913,9 @@ export class RenderStillsNode extends BaseNode {
       "RenderStills"
     );
     const doc = row.document;
-    const model = resolveModel(
-      doc.imageModel,
-      this.image_model,
-      "still",
-      "text_to_image"
-    );
     const entities = await loadBoardEntities(ctx, doc);
     const targets = asTargets(this.targets);
-    const options: ShotRenderPlanOptions = {
-      provider: model.provider,
-      model: model.model
-    };
+    const options = modelOverrides(this.image_model);
     const plans = planShotRenders(doc, entities, "keyframe", targets, options);
     // A direct-mode shot renders its clip from the prompt and needs no still —
     // unless it was named, where a board frame to look at is worth having.
@@ -922,19 +932,21 @@ export class RenderStillsNode extends BaseNode {
       skipShotIds: direct,
       maxShots: this.max_shots
     });
-    const stillModelTakesImages = await imageModelSupportsTask(
-      ctx,
-      model,
-      "image_to_image",
-      model.supportedTasks
-    );
+    for (const plan of selection.plans) {
+      requirePlanModel(plan);
+      plan.stillModelTakesImages = await imageModelSupportsTask(
+        ctx,
+        plan.model,
+        "image_to_image",
+        plan.model.supportedTasks
+      );
+    }
     const outcomes = await renderShots(
       renderHost(ctx),
       { id: row.id },
       selection.plans,
       {
-        concurrency: clampConcurrency(this.concurrency),
-        stillModelTakesImages
+        concurrency: clampConcurrency(this.concurrency)
       }
     );
 
@@ -1052,52 +1064,13 @@ export class RenderClipsNode extends BaseNode {
       "RenderClips"
     );
     const doc = row.document;
-    const model = resolveModel(
-      doc.videoModel,
-      this.video_model,
-      "clip",
-      doc.shots.some((shot) => shotRenderMode(shot) === "reference")
-        ? "reference_to_video"
-        : doc.shots.every((shot) => shotRenderMode(shot) === "direct")
-        ? "text_to_video"
-        : "image_to_video"
-    );
-    const requiredTasks = requiredVideoTasksForShots(doc.shots);
-    let supportedTasks = model.supportedTasks;
-    try {
-      const provider = await ctx.getProvider(model.provider);
-      const discovered = await provider.getAvailableVideoModels();
-      supportedTasks = discovered.find((entry) => entry.id === model.model)?.supportedTasks;
-    } catch (error) {
-      if (requiredTasks.length > 1) {
-        throw new Error(
-          `Could not verify video model ${model.provider}/${model.model} against the storyboard's mixed shot modes before rendering.`,
-          { cause: error }
-        );
-      }
-      // Single-mode legacy providers may not implement model discovery.
-    }
-    if (requiredTasks.length > 1 && !supportedTasks?.length) {
-      throw new Error(
-        `Could not verify video model ${model.provider}/${model.model} against the storyboard's mixed shot modes before rendering.`
-      );
-    }
-    if (
-      supportedTasks &&
-      requiredTasks.some((task) => !supportedTasks.includes(task))
-    ) {
-      throw new Error(
-        `Video model ${model.provider}/${model.model} does not support every shot mode on this storyboard. Required capabilities: ${requiredTasks.join(", ")}.`
-      );
-    }
     const entities = await loadBoardEntities(ctx, doc);
     const targets = asTargets(this.targets);
     // A linked board times its shots from the words they cover, so a clip is
     // rendered long enough to hold its voiceover.
     const script = await loadLinkedScript(ctx, doc);
     const options: ShotRenderPlanOptions = {
-      provider: model.provider,
-      model: model.model,
+      ...modelOverrides(this.video_model),
       scriptLines: scriptLinesById(script?.document.sections ?? [])
     };
     const plans = planShotRenders(doc, entities, "clip", targets, options);
@@ -1121,6 +1094,7 @@ export class RenderClipsNode extends BaseNode {
       skipShotIds: unrenderable,
       maxShots: this.max_shots
     });
+    await validateClipModels(ctx, selection.plans);
     const outcomes = await renderShots(
       renderHost(ctx),
       { id: row.id },

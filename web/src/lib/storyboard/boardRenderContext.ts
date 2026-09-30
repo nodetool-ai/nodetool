@@ -12,8 +12,8 @@
  * which style entity wins.
  */
 
-import { entitiesForShot } from "@nodetool-ai/protocol";
-import type { BoardRenderContext, Entity, Shot } from "@nodetool-ai/protocol";
+import { entitiesForShot, entityConditioningHash } from "@nodetool-ai/protocol";
+import type { BoardRenderContext, CreativeContext, Entity, Shot } from "@nodetool-ai/protocol";
 
 /** The parts of a board this reads. Structural, so a partial board fits. */
 export interface RenderContextSource {
@@ -23,6 +23,7 @@ export interface RenderContextSource {
   imageModel?: { id?: string } | null;
   videoModel?: { id?: string } | null;
   screenplay?: { scenes?: BoardRenderContext["scenes"] } | null;
+  creativeContext?: CreativeContext;
 }
 
 /**
@@ -79,7 +80,8 @@ export const boardRenderContext = (
     (id) => byId.get(id) ?? []
   );
   const selected = shot ? entitiesForShot(shot, boardEntities) : boardEntities;
-  return {
+  const conditioningHash = entityConditioningHash(selected);
+  const context: BoardRenderContext = {
     aspect_ratio: board?.aspectRatio ?? "16:9",
     image_model: shot?.still_model?.id ?? board?.imageModel?.id ?? "",
     video_model: shot?.clip_model?.id ?? board?.videoModel?.id ?? "",
@@ -90,4 +92,13 @@ export const boardRenderContext = (
       .flatMap((entity) => (entity.reference_images ?? []).map(imageAssetId))
       .filter((id): id is string => typeof id === "string" && id.length > 0)
   };
+  if (conditioningHash) {
+    context.entity_conditioning_hash = conditioningHash;
+  }
+  if (board?.creativeContext?.reference_bindings?.length) {
+    context.production_reference_asset_ids = board.creativeContext.reference_bindings.map(
+      (binding) => binding.asset_id
+    );
+  }
+  return context;
 };

@@ -28,6 +28,7 @@ export * from "./toolSchemas.js";
 export * from "./creative.js";
 export * from "./shot-prompt.js";
 export * from "./render-record.js";
+export * from "./storyboard-render-spec.js";
 export * from "./style-presets.js";
 export * from "./screenplay-authoring.js";
 export * from "./script-authoring.js";

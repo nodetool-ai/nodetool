@@ -293,3 +293,58 @@ describe("planShotRenders composition", () => {
     expect(plans.map((p) => p.shotId)).toEqual(["s1", "s2"]);
   });
 });
+
+describe("per-shot model selection", () => {
+  it("does not inherit another model's declared capability support on override", () => {
+    const doc = { ...board([shot({ id: "s1", index: 0 })]), imageModel: { id: "text-only", provider: "fal_ai", supported_tasks: ["text_to_image"] } };
+    const [plan] = planShotRenders(doc, [], "keyframe", undefined, { provider: "fal_ai", model: "editing-model" });
+    expect(plan.model.supportedTasks).toBeUndefined();
+  });
+
+  it.each(["keyframe", "clip"] as const)(
+    "uses selected %s models without board defaults",
+    (kind) => {
+      const doc = {
+        ...board([
+          shot({
+            id: "s1",
+            index: 0,
+            still_model: { id: "image-a", provider: "openai" },
+            clip_model: { id: "video-a", provider: "fal_ai" }
+          }),
+          shot({
+            id: "s2",
+            index: 1,
+            still_model: { id: "image-b", provider: "fal_ai" },
+            clip_model: { id: "video-b", provider: "kie" }
+          })
+        ]),
+        imageModel: null,
+        videoModel: null
+      };
+      const plans = planShotRenders(doc, [], kind);
+      expect(plans.map((plan) => plan.model)).toEqual(
+        kind === "keyframe"
+          ? [
+              { provider: "openai", model: "image-a" },
+              { provider: "fal_ai", model: "image-b" }
+            ]
+          : [
+              { provider: "fal_ai", model: "video-a" },
+              { provider: "kie", model: "video-b" }
+            ]
+      );
+      expect(plans.map((plan) => plan.renderInputs.model)).toEqual(
+        kind === "keyframe" ? ["image-a", "image-b"] : ["video-a", "video-b"]
+      );
+      const overridden = planShotRenders(doc, [], kind, undefined, {
+        provider: "other",
+        model: "override"
+      });
+      expect(overridden.map((plan) => plan.renderInputs.model)).toEqual([
+        "override",
+        "override"
+      ]);
+    }
+  );
+});

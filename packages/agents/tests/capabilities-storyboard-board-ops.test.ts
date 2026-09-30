@@ -567,7 +567,7 @@ describe("stale_only", () => {
     expect(rendered.skipped).toEqual(["s1", "s3"]);
   });
 
-  it("filters clips the same way, off the selected take's record", async () => {
+  it.each([true, false])("filters selected clip records with explicit targets: %s", async (explicitTargets) => {
     const base = await makeBoard();
     const doc = await reread(base.id);
     const clipRecord = (target: Shot, overrides: Partial<RenderInputs> = {}) => ({
@@ -608,7 +608,7 @@ describe("stale_only", () => {
 
     const rendered = (await run(ctx()).invoke("render_storyboard_clips", {
       storyboard_id: base.id,
-      targets: ["s1", "s2"],
+      ...(explicitTargets ? { targets: ["s1", "s2"] } : {}),
       stale_only: true
     })) as { skipped: string[]; results: { shot_id: string }[] };
 
@@ -632,7 +632,7 @@ describe("stale_only", () => {
   // only the render path can write. Every case above hand-writes one, so this
   // is the one that fails if the headless render stops stamping — which it did
   // when the flow first shipped, leaving `stale_only` permanently empty.
-  it("records what it rendered, so a later stale_only can read it", async () => {
+  it.each([true, false])("records renders for stale_only with explicit targets: %s", async (explicitTargets) => {
     const base = await makeBoard();
     await run(ctx()).invoke("render_storyboard_stills", {
       storyboard_id: base.id,
@@ -648,7 +648,7 @@ describe("stale_only", () => {
     // Nothing about the board moved, so the still it just rendered is current.
     const unchanged = (await run(ctx()).invoke("render_storyboard_stills", {
       storyboard_id: base.id,
-      targets: ["s1"],
+      ...(explicitTargets ? { targets: ["s1"] } : {}),
       stale_only: true
     })) as { skipped: string[] };
     expect(unchanged.skipped).toEqual(["s1"]);
@@ -660,7 +660,7 @@ describe("stale_only", () => {
 
     const afterStyle = (await run(ctx()).invoke("render_storyboard_stills", {
       storyboard_id: base.id,
-      targets: ["s1"],
+      ...(explicitTargets ? { targets: ["s1"] } : {}),
       stale_only: true
     })) as { skipped: string[]; results: { shot_id: string }[] };
     expect(afterStyle.results.map((r) => r.shot_id)).toEqual(["s1"]);

@@ -16,8 +16,10 @@ import {
   Asset,
   GenerationAttempt,
   Prediction,
+  Storyboard,
   initTestDb
 } from "@nodetool-ai/models";
+import { createFalGenerationLifecycleHooks } from "@nodetool-ai/execution";
 
 const fetchExternalMedia = vi.fn();
 const storeAssetWithThumbnail = vi.fn();
@@ -117,5 +119,69 @@ describe("durable recovery of fal media responses", () => {
     const generation = await Prediction.find("gen-envelope");
     expect(generation?.status).toBe("completed");
     expect(generation?.asset_ids).toHaveLength(1);
+  });
+
+  it.each([
+    ["storyboard_keyframe", "image/png", "keyframe"],
+    ["storyboard_clip", "video/mp4", "clip"]
+  ] as const)("attaches an interrupted %s render to its intended shot", async (targetType, mime, kind) => {
+    const board = await Storyboard.create<Storyboard>({
+      user_id: "u1",
+      name: "Interrupted render",
+      document: JSON.stringify({
+        shots: [{
+          type: "shot",
+          id: "shot-1",
+          index: 0,
+          action: "A lighthouse",
+          status: "planned"
+        }],
+        style: "",
+        aspectRatio: "16:9"
+      })
+    });
+    const asset = await Asset.create<Asset>({
+      user_id: "u1",
+      name: "recovered",
+      content_type: mime
+    });
+    const generationId = `gen-interrupted-${kind}`;
+    const request = {
+      provider: "fal_ai",
+      capability: kind === "keyframe" ? "text_to_image" : "text_to_video",
+      model: "fal-ai/test",
+      params: { prompt: "A lighthouse" },
+      destination: {
+        document_id: board.id,
+        target_type: targetType,
+        target_id: "shot-1",
+        selected: true
+      }
+    };
+    const hooks = createFalGenerationLifecycleHooks({ userId: "u1", callbacks: false });
+    await hooks.onGenerationAccepted?.({ generationId, request });
+    await hooks.onGenerationTerminal?.({
+      generationId,
+      request,
+      status: "completed",
+      output: { url: "https://fal.media/recovered" },
+      receipt: null,
+      assetIds: [asset.id]
+    });
+    expect((await Storyboard.findById(board.id))?.toDocument().shots[0][kind]).toBeUndefined();
+    const queueFor = vi.fn(() => {
+      throw new Error("Saved outputs must recover without another provider request");
+    });
+    const worker = createGenerationRecoveryWorker({
+      provider: { queueFor },
+      now: () => new Date(Date.now() + 5 * 60_000)
+    });
+    await worker.runOnce();
+    await worker.runOnce();
+    const shot = (await Storyboard.findById(board.id))?.toDocument().shots[0];
+    expect(shot?.[kind]?.asset_id).toBe(asset.id);
+    expect(kind === "keyframe" ? shot?.keyframe_versions : shot?.clip_versions).toHaveLength(1);
+    expect((await Prediction.find(generationId))?.attachment_status).toBe("attached");
+    expect(queueFor).not.toHaveBeenCalled();
   });
 });

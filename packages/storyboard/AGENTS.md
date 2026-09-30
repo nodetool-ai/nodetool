@@ -44,11 +44,13 @@
 - **`RenderInputs.prompt_hash` hashes the composed prompt, not the injected
   one.** `promptHashFor` in protocol's `render-record.ts` hashes
   `keyframePrompt`/`clipPrompt`/`directClipPrompt` before `injectEntities`
-  runs, so entity descriptors are outside it — as they are outside the board's
-  own stale pill. That bounds the reuse path: a destination entity whose
-  descriptor changed under the same id and name between two reuses is not
-  detected. `tests/recast.test.ts` pins both halves, so the day the record
-  hashes the injected prompt the pin fails and this rule gets rewritten.
+  runs. `entity_conditioning_hash` separately records effective entity names,
+  descriptors and primary reference content through protocol's
+  `entityConditioningHash`. Still records also carry reference asset ids.
+  Freshness callers must supply the same selected entities used for generation.
+  Recast reuse compares `prompt_hash`, so descriptor changes under the same id
+  and name remain outside its reuse comparison. `tests/recast.test.ts` pins
+  that boundary.
 - **Recast is order-free.** Targeting resolves explicit `replaces` first, then
   pairs a kind that has exactly one free seat with exactly one applicant.
   Feeding the same cast in a different order must produce the same `recastKey`

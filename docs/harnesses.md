@@ -1036,10 +1036,13 @@ those keyframes into clips, **`revise_storyboard_clip`** revises one take, and
 sequence — which `validate_timeline` then checks. **`list_storyboards`** and
 **`get_storyboard`** find the board and its shot ids.
 
-Both render tools default to "every shot that still needs this step", so a whole
-board is one call; provider and model come from the call or the board's own
-selection, and an unset model is an error naming `find_model` rather than spend
-on a model nobody chose.
+Both render tools default to every eligible shot missing that output. With
+`stale_only`, they select existing versions whose render inputs changed.
+Provider and model come from the call, then the shot, then the board.
+An unset model returns an error naming `find_model`.
+Stills request `1K` and clips request `1080p`. Clip calls can override resolution.
+Clip renders compile creative-context and shot production bindings, local
+direction, duration and take count before provider dispatch.
 
 **The still is optional, per shot.** A shot's `render_mode` decides where its
 clip comes from: `"keyframe"` (the default) animates the selected still with
