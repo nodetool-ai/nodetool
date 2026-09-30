@@ -105,9 +105,6 @@ const AssetExplorer = React.lazy(
 const CollectionsExplorer = React.lazy(
   () => import("./components/collections/CollectionsExplorer")
 );
-const ExamplesPage = React.lazy(
-  () => import("./components/portal/ExamplesPage")
-);
 const TutorialsPage = React.lazy(
   () => import("./components/tutorials/TutorialsPage")
 );
@@ -330,14 +327,6 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <CollectionsExplorer />
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "examples",
-      element: (
-        <ProtectedRoute>
-          <ExamplesPage />
         </ProtectedRoute>
       )
     },

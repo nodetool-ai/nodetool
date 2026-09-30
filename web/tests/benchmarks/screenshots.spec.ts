@@ -869,19 +869,6 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "packages-manager.png");
     });
 
-    // ── Examples / templates ────────────────────────────────────────────────
-    test("Examples page", async ({ page }) => {
-      test.skip(shouldSkip("examples-page.png"), "Already captured");
-      await gotoPage(page, "/examples");
-      await page
-        .getByText("Start from a template")
-        .first()
-        .waitFor({ state: "visible", timeout: 15000 });
-      await ensureNoVisibleProgress(page);
-      await waitForAnimation(page, 800);
-      await saveScreenshot(page, "examples-page.png");
-    });
-
     // ── Workspaces ──────────────────────────────────────────────────────────
     test("Workspaces page", async ({ page }) => {
       test.skip(shouldSkip("workspaces-page.png"), "Already captured");

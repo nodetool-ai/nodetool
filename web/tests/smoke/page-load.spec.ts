@@ -46,7 +46,6 @@ const ROUTES: Route[] = [
   { name: "workspace", url: "/workspace" },
   { name: "assets", url: "/assets" },
   { name: "collections", url: "/collections" },
-  { name: "examples", url: "/examples" },
   { name: "tutorials", url: "/tutorials" },
   { name: "models", url: "/models" },
   { name: "packages", url: "/packages" },

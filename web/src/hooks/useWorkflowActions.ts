@@ -7,6 +7,7 @@ import {
   examplePackageName,
   exampleSeedRef
 } from "../utils/exampleWorkflow";
+import { openPageTab } from "../components/workspace/openPageTab";
 import {
   creationProjectId,
   useWorkspaceTabsStore
@@ -86,8 +87,8 @@ export const useWorkflowActions = (): WorkflowActions => {
   );
 
   const handleViewAllTemplates = useCallback(() => {
-    navigate("/examples");
-  }, [navigate]);
+    openPageTab("examples");
+  }, []);
 
   return {
     loadingExampleId,

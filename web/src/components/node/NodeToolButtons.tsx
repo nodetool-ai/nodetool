@@ -1,5 +1,4 @@
 import React, { memo, useCallback, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useReactFlow, Node } from "@xyflow/react";
 import { shallow } from "zustand/shallow";
 
@@ -32,6 +31,7 @@ import { getShortcutTooltip } from "../../config/shortcuts";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useRunFromHere } from "../../hooks/nodes/useRunFromHere";
+import { openPageTab } from "../workspace/openPageTab";
 import { NodeData } from "../../stores/NodeData";
 
 interface NodeToolbarProps {
@@ -40,7 +40,6 @@ interface NodeToolbarProps {
 
 const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const { getNode } = useReactFlow();
-  const navigate = useNavigate();
   const { deleteNode, updateNodeData, selectNodesByType, toggleBypass } = useNodes(
     (state) => ({
       deleteNode: state.deleteNode,
@@ -103,11 +102,10 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
   // Use local node from props, not from context menu store
   const handleFindTemplates = useCallback(() => {
-    const nodeType = node?.type || "";
-    if (nodeType) {
-      navigate(`/templates?node=${encodeURIComponent(nodeType)}`);
+    if (node?.type) {
+      openPageTab("examples");
     }
-  }, [navigate, node?.type]);
+  }, [node?.type]);
 
   const handleOpenDropdown = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
