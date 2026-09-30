@@ -106,15 +106,15 @@ prefab overrides and unrestricted hot reload.
 ## Inspected foundations
 
 - [Timeline retained capture](../timeline-code-capture.md) and
-  [isolated bake](../../packages/agents/src/timeline-code-bake.ts).
-- [Game builder](../../packages/sandbox-packs/sandbox-game/sandbox/index.js).
-- [2D schema](../../packages/protocol/src/game.ts) and
-  [3D schema](../../packages/protocol/src/game3d.ts).
-- [2D edit operations](../../packages/game-runtime/src/document-ops.ts) and
-  [3D edit operations](../../packages/game-runtime/src/document-ops3d.ts).
-- [Game persistence](../../packages/models/src/game.ts).
-- [Game CLI](../../packages/cli/src/commands/game.ts) and
-  [harness registry](../../packages/cli/src/harness/registry.ts).
+  [isolated bake](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/src/timeline-code-bake.ts).
+- [Game builder](https://github.com/nodetool-ai/nodetool/blob/main/packages/sandbox-packs/sandbox-game/sandbox/index.js).
+- [2D schema](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game.ts) and
+  [3D schema](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game3d.ts).
+- [2D edit operations](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/document-ops.ts) and
+  [3D edit operations](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/document-ops3d.ts).
+- [Game persistence](https://github.com/nodetool-ai/nodetool/blob/main/packages/models/src/game.ts).
+- [Game CLI](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/commands/game.ts) and
+  [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts).
 
 The resulting interface is documented in
 [Retained game construction](../game-retained-authoring.md).

@@ -7,7 +7,7 @@ document with separate session state.
 
 ## Construct and save
 
-Read the [game builder pack](../packages/sandbox-packs/sandbox-game/SKILL.md).
+Read the [game builder pack](https://github.com/nodetool-ai/nodetool/blob/main/packages/sandbox-packs/sandbox-game/SKILL.md).
 `constructGame({inputs, seed}, (inputs, builder) => { return document; })` returns
 a bundle for `saveGame`. The callback has explicit inputs and cannot close over
 outer variables. The builder provides typed parameters, prefab definitions and
@@ -53,7 +53,7 @@ never becomes authored content.
 
 ## Verification
 
-The [delivery fixture](../packages/agents/tests/game-retained-authoring-proof.test.ts)
+The [delivery fixture](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/tests/game-retained-authoring-proof.test.ts)
 moves a collectible, suppresses another, changes player and prefab parameters,
 then rebuilds twice and verifies a fixed-input win with snapshot restoration and
 captured frames. Use the existing
