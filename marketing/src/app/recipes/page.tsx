@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import TrackedLink from "@/components/TrackedLink";
 import RecipeCard from "@/components/RecipeCard";
 import { recipeEntries } from "@/data/recipes";
 
@@ -70,13 +71,15 @@ export default function RecipesHub() {
                 pictures in a storyboard, tune the script line by line, and
                 bring everything together in the timeline.
               </p>
-              <a
+              <TrackedLink
                 href="https://app.nodetool.ai/workspace"
+                event="Try Cloud"
+                eventProps={{ placement: "recipes" }}
                 className="focus-ring mt-6 inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-amber-300"
               >
                 Open NodeTool{" "}
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </a>
+              </TrackedLink>
             </div>
           </div>
         </section>

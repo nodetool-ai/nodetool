@@ -144,7 +144,7 @@ export default async function RecipePage({ params }: RecipePageProps) {
         {entry.productionRun && (
           <RecipeProductionRun run={entry.productionRun} />
         )}
-        <RecipeGuide guide={entry.guide} />
+        <RecipeGuide guide={entry.guide} recipe={entry.slug} />
         <section className="py-16">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="flex flex-col justify-between gap-6 border-y border-white/10 py-8 md:flex-row md:items-center">

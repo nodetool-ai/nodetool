@@ -1,8 +1,10 @@
 import Link from "next/link";
+import NotFoundTracker from "../components/NotFoundTracker";
 
 export default function NotFound() {
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-6 py-24 text-slate-100">
+      <NotFoundTracker />
       <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-sky-300">
         NodeTool 404
       </p>

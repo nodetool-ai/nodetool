@@ -5,6 +5,7 @@ import { Download, ArrowRight, KeyRound } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import TrackedLink from "@/components/TrackedLink";
 import FaqSection from "@/components/FaqSection";
 import { toQaPairs } from "@/lib/jsonld";
 import ShowcaseMedia from "@/components/models/ShowcaseMedia";
@@ -283,13 +284,15 @@ function ModelPage({ model }: { model: ModelEntry }) {
                 share as a single file. Open it in NodeTool and swap in your own
                 key.
               </p>
-              <Link
+              <TrackedLink
                 href={`/templates/${model.templateSlug}`}
+                event="Open Template"
+                eventProps={{ template: model.templateSlug, placement: "model" }}
                 className="mt-6 inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800 focus-ring"
               >
                 Open the template
                 <ArrowRight className="h-4 w-4" />
-              </Link>
+              </TrackedLink>
             </div>
           </section>
         )}

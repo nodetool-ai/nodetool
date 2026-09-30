@@ -5,6 +5,7 @@ import { ArrowLeft, Download, Play, Boxes, Check, Workflow } from "lucide-react"
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import TrackedLink from "@/components/TrackedLink";
 import { faqPageSchema, toQaPairs } from "@/lib/jsonld";
 import FeaturesSection from "@/components/FeaturesSection";
 import UseCasesShowcase from "@/components/UseCasesShowcase";
@@ -217,14 +218,16 @@ export default async function SolutionPage({
                 icon={<Download className="h-5 w-5" />}
                 classNameOverride="inline-flex items-center justify-center gap-2 rounded-full bg-sky-500 px-8 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgba(56,189,248,0.6)] transition-all hover:bg-sky-400"
               />
-              <a
+              <TrackedLink
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
+                event="Star GitHub"
+                eventProps={{ placement: "closing" }}
                 className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:border-white/25 hover:bg-white/5"
               >
                 Star on GitHub
-              </a>
+              </TrackedLink>
             </div>
           </div>
         </section>
