@@ -166,6 +166,7 @@ export class ConstantListNode extends BaseNode {
     output: "list[any]"
   };
   static readonly inlineFields = ["value"];
+  static readonly appendStaticInputs = ["value"];
   static readonly inputFields = [];
 
   @prop({ type: "list[any]", default: [], title: "Value" })
@@ -191,6 +192,7 @@ export class ConstantTextListNode extends BaseNode {
     output: "list[str]"
   };
   static readonly inlineFields = ["value"];
+  static readonly appendStaticInputs = ["value"];
   static readonly inputFields = [];
 
   @prop({
@@ -598,6 +600,7 @@ export class ConstantAudioListNode extends BaseNode {
     output: "list[audio]"
   };
   static readonly inlineFields = ["value"];
+  static readonly appendStaticInputs = ["value"];
   static readonly inputFields = [];
 
   @prop({
@@ -629,6 +632,7 @@ export class ConstantImageListNode extends BaseNode {
     output: "list[image]"
   };
   static readonly inlineFields = ["value"];
+  static readonly appendStaticInputs = ["value"];
   static readonly inputFields = [];
 
   @prop({
@@ -660,6 +664,7 @@ export class ConstantVideoListNode extends BaseNode {
     output: "list[video]"
   };
   static readonly inlineFields = ["value"];
+  static readonly appendStaticInputs = ["value"];
   static readonly inputFields = [];
 
   @prop({

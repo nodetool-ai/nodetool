@@ -291,6 +291,11 @@ export interface NodeMetadata extends BaseNodeMetadata {
    */
   retry_safe?: boolean;
   /**
+   * List properties that keep their static items when an edge feeds them:
+   * the node receives the connected items followed by the static ones.
+   */
+  append_static_inputs?: string[];
+  /**
    * Per-type cache lifetime for partial runs (seconds, or the `"forever"`
    * sentinel — never `Infinity`, which is not JSON-safe). Only consulted for
    * Computed nodes; unset / `0` means never reuse.

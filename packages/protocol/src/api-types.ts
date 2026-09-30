@@ -916,6 +916,11 @@ export interface NodeMetadata {
    * must not gain `retry` by omission. See docs/workflow-supervisor-design.md §5.3.
    */
   retry_safe?: boolean;
+  /**
+   * List properties that keep their static items when an edge feeds them:
+   * the node receives the connected items followed by the static ones.
+   */
+  append_static_inputs?: string[];
   model_packs?: ModelPack[];
   fal_unit_pricing?: FalUnitPricing | null;
   /** When true, the node remains runnable but is hidden from default discovery. */

@@ -177,6 +177,8 @@ export type NodeClass = {
   autoSaveAsset: boolean;
   /** Opt-in: re-running with identical inputs is safe. See `BaseNode.retrySafe`. */
   retrySafe: boolean;
+  /** List properties that keep their static items when connected. See `BaseNode.appendStaticInputs`. */
+  appendStaticInputs?: readonly string[];
   cacheTtl?: number | "forever";
   effect?: NodeEffect;
   primaryOutput?: string;
@@ -366,6 +368,14 @@ export abstract class BaseNode {
    * for a node that declares this. See docs/workflow-supervisor-design.md §5.3.
    */
   static readonly retrySafe: boolean = false;
+  /**
+   * List properties whose static items are kept when an edge feeds the same
+   * handle. The node receives the connected items followed by its own static
+   * items, instead of the edge value replacing them. Used by the list
+   * constants, so a connected Image List adds its own images to the incoming
+   * ones.
+   */
+  static readonly appendStaticInputs: readonly string[] = [];
   /**
    * Per-type cache lifetime for partial runs ("Run Node", "Run from here", "Run
    * selected"). Only consulted for Computed nodes (Constants are always live;
@@ -774,6 +784,8 @@ export abstract class BaseNode {
       // chunk sees the new value on its next chunk.
       applyProperties: (properties: Record<string, unknown>) =>
         this.assign(properties),
+      appendStaticInputs: (this.constructor as typeof BaseNode)
+        .appendStaticInputs,
       preProcess: () => this.preProcess(),
       finalize: () => this.finalize(),
       initialize: () => this.initialize(),

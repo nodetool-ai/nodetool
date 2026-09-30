@@ -30,6 +30,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
 import { useInputNodeAutoRun } from "../../hooks/nodes/useInputNodeAutoRun";
+import { useAppendsStaticInput } from "../../hooks/nodes/useAppendsStaticInput";
 import { deriveCodeIOUpdates } from "../../utils/codeOutputInference";
 import { InspectorHeaderResetProvider } from "../../contexts/InspectorPropertyHeaderContext";
 import { getComponentForProperty } from "./PropertyInput.resolver";
@@ -513,6 +514,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     [handleUpdatePropertyType, property.name]
   );
 
+  const appendsStaticInput = useAppendsStaticInput(nodeType, property.name);
+
   const hasTopRightPropertyActions =
     componentType === StringProperty ||
     componentType === JSONProperty ||
@@ -583,7 +586,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       onDoubleClick={handleDoubleClick}
     >
       <PropertyHandleTooltipContext.Provider value={property.type}>
-        {isConnected && !isImageInputType(property) ? (
+        {isConnected && !appendsStaticInput && !isImageInputType(property) ? (
           <div
             className="property-connected-disabled"
             title="Driven by a connected input — disconnect the edge to edit"

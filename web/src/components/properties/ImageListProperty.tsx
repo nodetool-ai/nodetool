@@ -18,6 +18,9 @@ import {
 } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useUpstreamValue } from "../../hooks/nodes/useNodeIO";
+import { useAppendsStaticInput } from "../../hooks/nodes/useAppendsStaticInput";
+import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
+import { useNodes } from "../../contexts/NodeContext";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
 import { ListImageThumb } from "./PropertyListThumb";
 
@@ -60,6 +63,10 @@ const styles = (theme: Theme) =>
           opacity: 1
         }
       }
+    },
+    ".image-item.is-upstream": {
+      borderStyle: "dashed",
+      borderColor: theme.vars.palette.primary.main
     },
     ".image-content": {
       position: "absolute",
@@ -140,6 +147,8 @@ const styles = (theme: Theme) =>
     }
   });
 
+const EMPTY_IMAGES: ImageItem[] = [];
+
 // Helper to flatten potentially nested arrays of items (handles constants + lists)
 const flattenImageItems = (items: unknown): ImageItem[] => {
   if (!items) {
@@ -183,6 +192,20 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
     () => flattenImageItems(upstreamValue),
     [upstreamValue]
   );
+
+  // A node that appends its static images keeps them editable while
+  // connected, and shows the connected images ahead of them.
+  const appendsStatic = useAppendsStaticInput(
+    props.nodeType,
+    props.property.name
+  );
+  const isConnectedSelector = useIsConnectedSelector(
+    props.nodeId,
+    props.property.name
+  );
+  const hasEdge = useNodes(isConnectedSelector);
+  const leadingUpstreamImages =
+    appendsStatic && hasEdge ? upstreamImages : EMPTY_IMAGES;
 
   // Convert value to array of ImageItem, flattening nested arrays
   const images: ImageItem[] = useMemo(
@@ -452,7 +475,7 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
     }
   }, [handleNativeFilePicker, handleBrowserFilePicker]);
 
-  if (props.isConnected) {
+  if (props.isConnected && !appendsStatic) {
     return (
       <div className="image-list-property" css={cssStyles}>
         <PropertyLabel
@@ -511,8 +534,23 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
       />
 
       {/* Image Grid */}
-      {images.length > 0 && (
+      {(images.length > 0 || leadingUpstreamImages.length > 0) && (
         <div className="image-grid">
+          {leadingUpstreamImages.map((image, index) => (
+            <Tooltip
+              key={`upstream-${index}-${image.uri}`}
+              title="From the connected input"
+            >
+              <div className="image-item is-upstream">
+                <div className="image-content">
+                  <ListImageThumb
+                    item={image}
+                    alt={`Connected item ${index + 1}`}
+                  />
+                </div>
+              </div>
+            </Tooltip>
+          ))}
           {images.map((image, index) => (
             <div key={image.uri} className="image-item">
               <div className="image-content">
