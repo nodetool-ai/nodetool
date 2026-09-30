@@ -666,6 +666,10 @@ npm run dev:nodetool -- timeline render sequence.json --only title --frames cove
 npm run dev:nodetool -- timeline render <timeline_id> --out ad.mp4
 ```
 
+JSON results include `complete` and clip/time diagnostics for missing required
+content. Incomplete final exports retain the artifact and exit with status 1.
+Stills and contact sheets retain diagnostics for review and exit with status 0.
+
 Video exports mix audio-track clips, MIDI clips, and embedded video audio at
 their timeline offsets. Stills, contact sheets, PNG sequences, and video frame
 selections carry no audio. Flags are in

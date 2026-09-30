@@ -43,6 +43,18 @@ Assemble clips and render a multi-track timeline.
 
 - `nodetool.timeline.AddClips`, `nodetool.timeline.RenderTimeline`, `nodetool.timeline.Transcript`
 
+Server timeline exports use a fresh 3D bake when its dependency hash matches the
+clip and sequence. Bake playback starts at clip-local zero because the bake
+already includes source trim, speed and time remapping. Live 3D and stale bakes
+must be baked before server export. The server does not automatically render a
+new bake.
+
+Composited exports report `complete` and `diagnostics`. Each diagnostic identifies
+a clip, reason and affected nominal output-frame interval, clipped to the export
+duration. Missing assets, decode failures and dropped required layers make the
+result incomplete. Preview frames can show that degraded artifact. Final CLI
+exports return a failure status, and the RenderTimeline node refuses delivery.
+
 ### 3D models
 
 Load, generate, transform, and repair meshes.

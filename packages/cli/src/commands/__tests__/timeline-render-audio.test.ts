@@ -32,7 +32,7 @@ describe("timeline render audio export", () => {
         "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=32x32:r=10",
         "-t", String(durationMs / 1000), "-an", "-c:v", "libx264", outPath
       ]);
-      return { totalFrames: 20, skippedClips: [], fontsUnavailable: [] };
+      return { totalFrames: 20, skippedClips: [], fontsUnavailable: [], complete: true, diagnostics: [] };
     });
     const streams = JSON.parse(execFileSync("ffprobe", [
       "-v", "error", "-show_streams", "-of", "json", output

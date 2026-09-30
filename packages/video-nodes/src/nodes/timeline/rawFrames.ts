@@ -70,6 +70,25 @@ export async function probeVideoSize(filePath: string): Promise<RawSize | null> 
   return { width: Number(match[1]), height: Number(match[2]) };
 }
 
+/** Native source rate used only for verified frame-grid caching. */
+export async function probeVideoFrameRate(filePath: string): Promise<number> {
+  const { stdout } = await execFfprobe([
+    "-v",
+    "error",
+    "-select_streams",
+    "v:0",
+    "-show_entries",
+    "stream=avg_frame_rate",
+    "-of",
+    "default=noprint_wrappers=1:nokey=1",
+    filePath
+  ]);
+  const [numerator, denominator = "1"] = stdout.trim().split("/");
+  const rate = Number(numerator) / Number(denominator);
+  // An unknown grid disables caching; exact timestamp seeks still work.
+  return Number.isFinite(rate) && rate > 0 ? rate : 1;
+}
+
 function spawnFfmpeg(args: string[]): ChildProcessWithoutNullStreams {
   return spawn("ffmpeg", args, { stdio: ["pipe", "pipe", "pipe"] });
 }
@@ -160,6 +179,7 @@ interface VideoFrameStreamOptions {
   startSec: number;
   /** Playback rate: >1 consumes the source faster than the timeline. */
   speed: number;
+  nativeSampling?: boolean;
 }
 
 /**
@@ -173,7 +193,7 @@ export function openVideoFrameStream(
   const { filePath, size, fps, startSec, speed } = opts;
   const filters = [
     speed !== 1 ? `setpts=PTS/${speed}` : null,
-    `fps=${fps}`,
+    opts.nativeSampling ? null : `fps=${fps}`,
     `scale=${size.width}:${size.height}`,
     "format=rgba"
   ].filter((f): f is string => f !== null);
@@ -186,6 +206,7 @@ export function openVideoFrameStream(
     filePath,
     "-vf",
     filters.join(","),
+    ...(opts.nativeSampling ? ["-fps_mode", "passthrough"] : []),
     "-f",
     "rawvideo",
     "-pix_fmt",
@@ -313,6 +334,8 @@ export function openSourceFrameStream(opts: {
   size: RawSize;
   fps: number;
   startSec: number;
+  /** Preserve native frames instead of resampling onto the requested grid. */
+  nativeSampling?: boolean;
   /** Maximum decoded bytes retained in one reverse window. */
   maxWindowBytes?: number;
   /** Maximum source-time span retained in one reverse window. */
@@ -338,11 +361,21 @@ export function openSourceFrameStream(opts: {
   let lastSeekTarget: number | null = null;
   let lastFrame: Uint8Array | null = null;
   const probeController = new AbortController();
-  const regularGrid = hasRegularFrameGrid(filePath, fps, probeController.signal);
+  const regularGrid = hasRegularFrameGrid(
+    filePath,
+    fps,
+    probeController.signal
+  );
 
-  const openAt = (sec: number): VideoFrameStream => openVideoFrameStream({
-    filePath, size, fps, startSec: sec, speed: 1
-  });
+  const openAt = (sec: number): VideoFrameStream =>
+    openVideoFrameStream({
+      filePath,
+      size,
+      fps,
+      startSec: sec,
+      speed: 1,
+      nativeSampling: opts.nativeSampling
+    });
   const replaceStream = (sec: number): VideoFrameStream => {
     if (stream) {
       stream.close();

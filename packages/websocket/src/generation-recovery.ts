@@ -1,3 +1,8 @@
+import { z } from "zod";
+import {
+  storyboardRenderProvenance,
+  storyboardRenderVersion
+} from "@nodetool-ai/protocol";
 import {
   DurableGenerationRecoveryWorker,
   type DurableGenerationRecoveryOptions
@@ -74,6 +79,29 @@ export function createGenerationRecoveryWorker(
       ) {
         return null;
       }
+      const intents = z
+        .array(
+          z.object({
+            target_type: z.string(),
+            target_id: z.string(),
+            provenance: z.unknown().optional()
+          })
+        )
+        .safeParse(generation.metadata?.attachments);
+      const intent = intents.success
+        ? intents.data.find(
+            (item) =>
+              item.target_type === attachment.target_type &&
+              item.target_id === attachment.target_id
+          )
+        : undefined;
+      const parsed = storyboardRenderProvenance.safeParse(intent?.provenance);
+      const expectedKind =
+        attachment.target_type === "storyboard_keyframe" ? "keyframe" : "clip";
+      const provenance =
+        parsed.success && parsed.data.render_inputs.kind === expectedKind
+          ? parsed.data
+          : undefined;
       const storyboardId = generation.document_id;
       if (!storyboardId) {
         return { status: "target_deleted", error: "Storyboard id is missing" };
@@ -116,11 +144,14 @@ export function createGenerationRecoveryWorker(
           );
         }
         if (isKeyframe) {
-          const ref = {
-            type: "image" as const,
-            asset_id: output.asset_id,
-            uri: `asset://${output.asset_id}`
-          };
+          const ref = storyboardRenderVersion(
+            {
+              type: "image" as const,
+              asset_id: output.asset_id,
+              uri: `asset://${output.asset_id}`
+            },
+            provenance
+          );
           const versions =
             shot.keyframe_versions ?? (shot.keyframe ? [shot.keyframe] : []);
           document.shots[index] = {
@@ -135,11 +166,14 @@ export function createGenerationRecoveryWorker(
               shouldSelect && !shot.keyframe ? "keyframe_ready" : shot.status
           };
         } else {
-          const ref = {
-            type: "video" as const,
-            asset_id: output.asset_id,
-            uri: `asset://${output.asset_id}`
-          };
+          const ref = storyboardRenderVersion(
+            {
+              type: "video" as const,
+              asset_id: output.asset_id,
+              uri: `asset://${output.asset_id}`
+            },
+            provenance
+          );
           const versions = shot.clip_versions ?? (shot.clip ? [shot.clip] : []);
           document.shots[index] = {
             ...shot,

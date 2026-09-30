@@ -14,6 +14,7 @@
 import {
   CLIP_RESOLUTION,
   STILL_RESOLUTION,
+  storyboardRenderVersion,
   stampRenderInputs
 } from "@nodetool-ai/protocol";
 import { productionCandidateIdentityForDestination } from "@nodetool-ai/timeline";
@@ -21,7 +22,8 @@ import type {
   ClipVersion,
   ImageRef,
   KeyframeVersion,
-  Shot
+  Shot,
+  StoryboardRenderProvenance
 } from "@nodetool-ai/protocol";
 import type { StoryboardDocument } from "../document.js";
 import type { ShotRenderPlan } from "../render-plan.js";
@@ -47,6 +49,7 @@ export interface RenderGenerationRequest {
     target_type: "storyboard_keyframe" | "storyboard_clip";
     target_id: string;
     selected: boolean;
+    provenance: StoryboardRenderProvenance;
   };
 }
 
@@ -315,6 +318,17 @@ export async function renderShots(
           candidate !== undefined && identity !== undefined
             ? { ...candidate.snapshot, ...identity }
             : undefined;
+        const provenance: StoryboardRenderProvenance = {
+          render_inputs: stampRenderInputs(plan.renderInputs),
+          ...(identity !== undefined && {
+            candidateId: identity.candidateId,
+            batchId: identity.batchId,
+            requestId: identity.requestId,
+            variationId: identity.variationId,
+            variationIndex: identity.variationIndex,
+            productionSnapshot
+          })
+        };
         const persist: RenderGenerationRequest["persist"] =
           plan.kind === "keyframe"
             ? { name: `shot-${plan.index + 1}-still` }
@@ -333,7 +347,8 @@ export async function renderShots(
                 ? "storyboard_keyframe"
                 : "storyboard_clip",
             target_id: plan.shotId,
-            selected: true
+            selected: true,
+            provenance
           }
         });
         const asset = result.assets[0];
@@ -346,19 +361,20 @@ export async function renderShots(
         }
         const assetId = asset.asset_id;
         const assetUri = asset.uri ?? "";
-        const render_inputs = stampRenderInputs(plan.renderInputs);
         const updated = await patchShot(
           host,
           ref.id,
           plan.shotId,
           (current) => {
             if (plan.kind === "keyframe") {
-              const keyframe: KeyframeVersion = {
-                type: "image",
-                asset_id: assetId,
-                uri: assetUri,
-                render_inputs
-              };
+              const keyframe: KeyframeVersion = storyboardRenderVersion(
+                {
+                  type: "image",
+                  asset_id: assetId,
+                  uri: assetUri
+                },
+                provenance
+              );
               const versions =
                 current.keyframe_versions ??
                 (current.keyframe ? [current.keyframe] : []);
@@ -369,20 +385,14 @@ export async function renderShots(
                 status: "keyframe_ready"
               };
             }
-            const clip: ClipVersion = {
-              type: "video",
-              asset_id: assetId,
-              uri: assetUri,
-              render_inputs,
-              ...(identity !== undefined && {
-                candidateId: identity.candidateId,
-                batchId: identity.batchId,
-                requestId: identity.requestId,
-                variationId: identity.variationId,
-                variationIndex: identity.variationIndex,
-                productionSnapshot
-              })
-            };
+            const clip: ClipVersion = storyboardRenderVersion(
+              {
+                type: "video",
+                asset_id: assetId,
+                uri: assetUri
+              },
+              provenance
+            );
             const bytes = result.output;
             if (bytes instanceof Uint8Array && host.videoDurationSeconds) {
               const seconds = host.videoDurationSeconds(bytes);

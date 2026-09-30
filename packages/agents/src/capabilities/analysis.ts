@@ -50,9 +50,11 @@ import {
   decodeAudio,
   forEachVideoFrame,
   probeContainer,
-  sampleTimestamps,
+  videoSamplingPlan,
+  maximumVideoSamplingGap,
   type ContainerInfo,
-  type DecodedAudio
+  type DecodedAudio,
+  type VideoSamplingPlan
 } from "../analysis/media-decode.js";
 import {
   detectCuts,
@@ -346,10 +348,14 @@ export async function analyzeAudioFrames(
     Math.round((frameMs / 1000) * audio.sampleRate)
   );
   const frames: AudioFramePoint[] = energyFrames(
-    windowMono,
+    audio.samples.subarray(
+      startSample * audio.channels,
+      endSample * audio.channels
+    ),
     audio.sampleRate,
     frameSamples,
-    frameSamples
+    frameSamples,
+    audio.channels
   ).map((frame) => ({
     timeMs: analyzedFromMs + frame.time * 1000,
     rms: frame.rms,
@@ -445,13 +451,12 @@ const analyzeAudio: CapabilityExport = {
     if (isError(loaded)) return loaded;
     const { audio } = loaded;
 
-    const mono = toMono(audio.samples, audio.channels);
     const frameMs = clamp(params["frame_ms"], 50, 5, 1000);
     // The decode already happened in loadAudio; hand the decoded track
     // straight to analyzeAudioFrames instead of paying for a second decode.
     const analysis = await analyzeAudioFrames(audio, { frameMs });
     const frames = analysis.frames;
-    const summary = peakSummary(mono);
+    const summary = peakSummary(audio.samples);
     const loudness = measureLoudness(
       toPlanar(audio.samples, audio.channels),
       audio.sampleRate
@@ -486,8 +491,9 @@ const analyzeAudio: CapabilityExport = {
         rms_dbfs: round(amplitudeToDb(summary.rms), 2),
         crest_factor_db: round(summary.crestFactorDb, 2),
         clipped_samples: summary.clippedSamples,
+        channel_samples_analyzed: audio.samples.length,
         clipped_fraction: round(
-          summary.clippedSamples / Math.max(1, mono.length),
+          summary.clippedSamples / Math.max(1, audio.samples.length),
           6
         ),
         dc_offset: round(summary.dcOffset, 5)
@@ -511,6 +517,9 @@ const analyzeAudio: CapabilityExport = {
         series: envelope
       },
       notes: [
+        "Peak and clipping count individual channel samples; clipped_fraction " +
+          "uses channel_samples_analyzed. RMS and envelope energy average " +
+          "channel sample powers before downmixing.",
         "integrated_lufs is ITU-R BS.1770-4 gated loudness; null means the " +
           "audio is shorter than one 400 ms block or is silent.",
         "peak_dbfs is sample peak, not true peak — an inter-sample overshoot " +
@@ -764,9 +773,13 @@ const detectAudioEvents: CapabilityExport = {
 /** How the answer reports the container, for both video capabilities. */
 function videoSource(
   info: ContainerInfo,
-  decodedFrames: number,
-  sampleFps: number
+  frames: readonly AnalyzedFrame[],
+  plan: VideoSamplingPlan
 ): Record<string, unknown> {
+  const maximumGap = maximumVideoSamplingGap(
+    info.duration,
+    frames.map((frame) => frame.time)
+  );
   return {
     format: info.format,
     duration: round(info.duration),
@@ -795,8 +808,18 @@ function videoSource(
       : null,
     has_audio: info.audio !== null,
     sampling: {
-      fps: round(sampleFps, 3),
-      frames_analyzed: decodedFrames
+      fps: round(plan.effectiveFps, 6),
+      requested_fps: round(plan.requestedFps, 6),
+      requested_frames: plan.requestedFrames,
+      frames_requested: plan.timestamps.length,
+      max_frames: plan.maxFrames,
+      budget_limited: plan.budgetLimited,
+      frames_analyzed: frames.length,
+      decoded_fps: round(
+        info.duration > 0 ? frames.length / info.duration : 0,
+        6
+      ),
+      max_gap_seconds: maximumGap === null ? null : round(maximumGap, 6)
     }
   };
 }
@@ -817,15 +840,12 @@ async function analyzeFrames(
 ): Promise<{
   frames: AnalyzedFrame[];
   palette: { hex: string; share: number }[];
+  plan: VideoSamplingPlan;
 }> {
-  const timestamps = sampleTimestamps(
-    info.duration,
-    sampleFps,
-    MAX_VIDEO_FRAMES
-  );
+  const plan = videoSamplingPlan(info.duration, sampleFps, MAX_VIDEO_FRAMES);
   const frames: AnalyzedFrame[] = [];
   const buckets = new Map<string, number>();
-  await forEachVideoFrame(bytes, timestamps, (frame) => {
+  await forEachVideoFrame(bytes, plan.timestamps, (frame) => {
     const small = downscaleLuma(frame.rgba, frame.width, frame.height);
     frames.push({
       time: frame.time,
@@ -852,7 +872,7 @@ async function analyzeFrames(
       hex,
       share: round(total > 0 ? share / total : 0, 4)
     }));
-  return { frames, palette };
+  return { frames, palette, plan };
 }
 
 /** Read the container, reporting a file with no video track as an error. */
@@ -891,7 +911,7 @@ const analyzeVideo: CapabilityExport = {
 
     const sampleFps = clamp(params["sample_fps"], DEFAULT_SAMPLE_FPS, 0.1, 30);
     const paletteSize = clamp(params["palette_size"], 5, 0, 12);
-    const { frames, palette } = await analyzeFrames(
+    const { frames, palette, plan } = await analyzeFrames(
       bytes,
       info,
       sampleFps,
@@ -899,7 +919,7 @@ const analyzeVideo: CapabilityExport = {
     );
     if (frames.length === 0) {
       return {
-        ...videoSource(info, 0, sampleFps),
+        ...videoSource(info, frames, plan),
         error: "No frames decoded from that video track."
       };
     }
@@ -932,12 +952,13 @@ const analyzeVideo: CapabilityExport = {
     const darkest = extreme((frame) => frame.stats.brightness, (a, b) => a < b);
     const brightest = extreme((frame) => frame.stats.brightness, (a, b) => a > b);
     const busiest = transitions.reduce(
-      (best, transition) => (transition.motion > best.motion ? transition : best),
+      (best, transition) =>
+        transition.motion > best.motion ? transition : best,
       transitions[0] ?? { time: 0, motion: 0, histogramDistance: 0 }
     );
 
     return {
-      ...videoSource(info, frames.length, sampleFps),
+      ...videoSource(info, frames, plan),
       picture: {
         brightness: round(mean((frame) => frame.stats.brightness), 4),
         contrast: round(mean((frame) => frame.stats.contrast), 4),
@@ -1005,14 +1026,10 @@ const detectVideoScenes: CapabilityExport = {
     );
     const minShot = clamp(params["min_shot_seconds"], 0.4, 0, 60);
 
-    const timestamps = sampleTimestamps(
-      info.duration,
-      sampleFps,
-      MAX_VIDEO_FRAMES
-    );
+    const plan = videoSamplingPlan(info.duration, sampleFps, MAX_VIDEO_FRAMES);
     const frames: AnalyzedFrame[] = [];
     const palettePerFrame: { hex: string; share: number }[][] = [];
-    await forEachVideoFrame(bytes, timestamps, (frame) => {
+    await forEachVideoFrame(bytes, plan.timestamps, (frame) => {
       const small = downscaleLuma(frame.rgba, frame.width, frame.height);
       frames.push({
         time: frame.time,
@@ -1028,7 +1045,7 @@ const detectVideoScenes: CapabilityExport = {
     });
     if (frames.length === 0) {
       return {
-        ...videoSource(info, 0, sampleFps),
+        ...videoSource(info, frames, plan),
         error: "No frames decoded from that video track."
       };
     }
@@ -1036,9 +1053,10 @@ const detectVideoScenes: CapabilityExport = {
     const transitions = frameTransitions(frames);
     const cuts = detectCuts(transitions, threshold, minShot);
     const shots = shotsFromCuts(frames, transitions, cuts, info.duration);
-    const frameDuration = timestamps.length > 1
-      ? info.duration / timestamps.length
-      : info.duration;
+    const frameDuration =
+      plan.timestamps.length > 1
+        ? info.duration / plan.timestamps.length
+        : info.duration;
 
     const black = runsOf(
       frames,
@@ -1061,7 +1079,7 @@ const detectVideoScenes: CapabilityExport = {
     const cappedShots = capped(shots);
 
     return {
-      ...videoSource(info, frames.length, sampleFps),
+      ...videoSource(info, frames, plan),
       threshold,
       cuts: {
         count: cuts.length,
@@ -1118,7 +1136,13 @@ const detectVideoScenes: CapabilityExport = {
         }))
       },
       notes: [
-        `Cuts are placed at sampled frames, so a time is within ${round(1 / sampleFps, 3)}s of the real edit.`,
+        `Cuts are placed at decoded frames; coverage has up to a ${round(
+          maximumVideoSamplingGap(
+            info.duration,
+            frames.map((frame) => frame.time)
+          ) ?? info.duration,
+          6
+        )}s sampling gap. This limits edit timing precision.`,
         "A dissolve reads as one cut somewhere inside it, not as its start.",
         "Cuts come from the luma histogram, so a hard camera move inside one " +
           "shot does not count as an edit."

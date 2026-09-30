@@ -34,10 +34,11 @@ vi.mock("../src/nodes/timeline/rawFrames.js", async (importOriginal) => {
   return {
     ...original,
     probeVideoSize: async () => ({ width: 32, height: 16 }),
-    openVideoFrameStream: () => ({
+    probeVideoFrameRate: async () => 25,
+    openSourceFrameStream: () => ({
       width: 32,
       height: 16,
-      frameAt: () => {
+      frameAtSourceSec: () => {
         decodeStarted = true;
         return new Promise<Uint8Array | null>((resolve) => {
           settleDecode = (pixels) => {

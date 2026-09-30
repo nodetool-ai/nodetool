@@ -86,29 +86,35 @@ export interface EnergyFrame {
  * This is the "where is the energy" answer — a caller reads it as a series, or
  * derives silence, onsets and dynamics from it. Windows are laid out from the
  * start at `hop` intervals; the last partial window is kept so a short clip
- * still reports something.
+ * still reports something. Multichannel windows average channel sample powers
+ * and retain the largest channel peak, without signed downmix cancellation.
  */
 export function energyFrames(
-  mono: Float32Array,
+  samples: Float32Array,
   sampleRate: number,
   frameSamples: number,
-  hopSamples: number
+  hopSamples: number,
+  channels = 1
 ): EnergyFrame[] {
   const frames: EnergyFrame[] = [];
-  if (mono.length === 0 || frameSamples < 1 || hopSamples < 1) return frames;
-  for (let start = 0; start < mono.length; start += hopSamples) {
-    const end = Math.min(mono.length, start + frameSamples);
+  if (samples.length === 0 || frameSamples < 1 || hopSamples < 1) {
+    return frames;
+  }
+  for (let start = 0; start < samples.length; start += hopSamples * channels) {
+    const end = Math.min(samples.length, start + frameSamples * channels);
     let sumSquares = 0;
     let peak = 0;
     for (let index = start; index < end; index += 1) {
-      const value = mono[index] ?? 0;
+      const value = samples[index] ?? 0;
       sumSquares += value * value;
       const magnitude = Math.abs(value);
-      if (magnitude > peak) peak = magnitude;
+      if (magnitude > peak) {
+        peak = magnitude;
+      }
     }
     const count = end - start;
     frames.push({
-      time: start / sampleRate,
+      time: start / (sampleRate * channels),
       rms: count > 0 ? Math.sqrt(sumSquares / count) : 0,
       peak
     });

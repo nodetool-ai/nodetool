@@ -1039,7 +1039,7 @@ export class RenderTimelineNode extends BaseNode {
 
       try {
         basePath = path.join(workDir, `composited.${output.extension}`);
-        const { skippedClips, fontsUnavailable } = await renderTimelineComposited({
+        const result = await renderTimelineComposited({
           sequence: seq,
           width,
           height,
@@ -1051,6 +1051,10 @@ export class RenderTimelineNode extends BaseNode {
           onProgress: this.progressReporter(ctx),
           signal: ctx.signal
         });
+        const { skippedClips, fontsUnavailable } = result;
+        if (result.complete === false) {
+          throw new Error(`Timeline export is incomplete: ${result.diagnostics.map((item) => `${item.clipId} (${item.startMs}–${item.endMs}ms): ${item.detail}`).join("; ")}`);
+        }
         for (const name of skippedClips) {
           this.log(
             ctx,

@@ -9,6 +9,7 @@
  * Video exports mix the timeline audio after compositing the picture.
  */
 import type { Command } from "commander";
+import type { TimelineExportDiagnostic } from "@nodetool-ai/video-nodes/nodes/timeline/compositeRender";
 import { printCommandError } from "../command-errors.js";
 import type { TimelineSequenceRecord } from "../timeline-debug/target.js";
 
@@ -317,7 +318,8 @@ export function registerTimelineRenderCommand(
   timeline: Command,
   loadSequence: () => Promise<
     (id: string) => Promise<TimelineSequenceRecord | null>
-  >
+  >,
+  renderComposited?: typeof import("@nodetool-ai/video-nodes/nodes/timeline/compositeRender").renderTimelineComposited
 ): void {
   timeline
     .command("render <timeline_id_or_file>")
@@ -354,7 +356,7 @@ export function registerTimelineRenderCommand(
     .option("--json", "Print the result as JSON")
     .action(async (ref: string, opts: TimelineRenderCliOptions) => {
       try {
-        const result = await runTimelineRender(ref, opts, await loadSequence());
+        const result = await runTimelineRender(ref, opts, await loadSequence(), renderComposited);
         if (opts.json) {
           console.log(JSON.stringify(result, null, 2));
         } else {
@@ -369,13 +371,18 @@ export function registerTimelineRenderCommand(
           if (result.skippedClips.length > 0) {
             console.log(`Skipped clips: ${result.skippedClips.join(", ")}`);
           }
+          for (const diagnostic of result.diagnostics) {
+            console.log(
+              `Incomplete export: clip ${diagnostic.clipId} at ${diagnostic.startMs}-${diagnostic.endMs}ms (${diagnostic.reason}): ${diagnostic.detail}`
+            );
+          }
           if (result.fontsUnavailable.length > 0) {
             console.log(
               `Fonts unavailable: ${result.fontsUnavailable.join(", ")}`
             );
           }
         }
-        process.exit(0);
+        process.exit(result.complete || result.stills ? 0 : 1);
       } catch (e) {
         printCommandError(e, opts.json);
         process.exit(1);
@@ -394,6 +401,8 @@ interface TimelineRenderResult {
   fps: number;
   elapsedMs: number;
   skippedClips: string[];
+  complete: boolean;
+  diagnostics: TimelineExportDiagnostic[];
   /** Font families a text or caption layer names that could not be resolved. */
   fontsUnavailable: string[];
   /** Coverage rows `--frames coverage:<file>` could not read a frame from. */
@@ -556,7 +565,7 @@ export async function runTimelineRender(
       `Rendering ${selected} frame(s) at ${width}x${height}. The first frame compiles the GPU pipelines and can take a while.`
     );
     const render = renderComposited ?? renderTimelineComposited;
-    const { skippedClips, fontsUnavailable } = await render({
+    const { skippedClips, fontsUnavailable, complete, diagnostics } = await render({
       sequence,
       width,
       height,
@@ -620,6 +629,8 @@ export async function runTimelineRender(
       elapsedMs: Date.now() - started,
       skippedClips,
       fontsUnavailable,
+      complete,
+      diagnostics,
       ...(coverageSkipped && { coverageSkipped })
     };
   } finally {

@@ -19,7 +19,7 @@ import type {
   FrameSample,
   RasterContext2D
 } from "@nodetool-ai/timeline/render";
-import { hasTimeRemap } from "@nodetool-ai/timeline";
+import { computeModel3DBakeHash } from "@nodetool-ai/timeline";
 import {
   HeadlessFrameCompositor,
   clipSourceTimeSec,
@@ -43,7 +43,7 @@ import {
   fitWithin,
   openFrameEncoder,
   openSourceFrameStream,
-  openVideoFrameStream,
+  probeVideoFrameRate,
   probeVideoSize,
   type FrameEncoder,
   type RawImage
@@ -91,7 +91,23 @@ interface CompositeRenderOptions {
   signal?: AbortSignal;
 }
 
-interface CompositeRenderResult {
+export interface TimelineExportDiagnostic {
+  clipId: string;
+  /** Nominal output-frame interval affected, clipped to the export duration. */
+  startMs: number;
+  endMs: number;
+  reason:
+    | "scene_drop"
+    | "missing_asset"
+    | "unavailable_media"
+    | "decode_failure"
+    | "unsupported_layer";
+  detail: string;
+}
+
+export interface CompositeRenderResult {
+  complete: boolean;
+  diagnostics: TimelineExportDiagnostic[];
   totalFrames: number;
   /** Clips whose media could not be decoded, by name — reported, not fatal. */
   skippedClips: string[];
@@ -234,6 +250,28 @@ export async function renderTimelineComposited(
   const images = new Map<string, RawImage | null>();
   const assetPaths = new Map<string, Promise<string | null>>();
   const skippedClips = new Set<string>();
+  const diagnostics: TimelineExportDiagnostic[] = [];
+  const latestDiagnostic = new Map<string, TimelineExportDiagnostic>();
+  const clipsById = new Map(sequence.clips.map((clip) => [clip.id, clip]));
+  const diagnose = (
+    clipId: string,
+    timeMs: number,
+    reason: TimelineExportDiagnostic["reason"],
+    detail: string
+  ): void => {
+    const startMs = Math.max(0, timeMs);
+    const endMs = Math.min(durationMs, startMs + frameMs);
+    const key = JSON.stringify([clipId, reason, detail]);
+    const previous = latestDiagnostic.get(key);
+    if (previous && startMs <= previous.endMs + 0.000001) {
+      previous.endMs = Math.max(previous.endMs, endMs);
+    } else {
+      const diagnostic = { clipId, startMs, endMs, reason, detail };
+      diagnostics.push(diagnostic);
+      latestDiagnostic.set(key, diagnostic);
+    }
+    skippedClips.add(clipsById.get(clipId)?.name ?? clipId);
+  };
   const closeVideoSources = (): void => {
     for (const source of videoSources.values()) source.close();
     videoSources.clear();
@@ -287,65 +325,36 @@ export async function renderTimelineComposited(
     // shows at the cut.
     const startSec = clipSourceTimeSec(clip, clip.startMs);
     const endMs = clip.startMs + clip.durationMs;
-    let source: ClipVideoSource;
-    if (hasTimeRemap(clip)) {
-      // A curve can hold, revisit or reverse through the source, which a
-      // forward-only stream cannot serve; this one reopens ffmpeg to seek back.
-      const stream = openSourceFrameStream({
-        filePath: file,
-        size: decodeSize,
-        fps,
-        startSec
-      });
-      const frameVersions = new WeakMap<Uint8Array, string>();
-      let nextFrameVersion = 0;
-      source = {
-        width: stream.width,
-        height: stream.height,
-        endMs,
-        async frameAt(timeMs: number): Promise<ClipFrame | null> {
-          const sourceSec = clipSourceTimeSec(clip, timeMs);
-          const rgba = await stream.frameAtSourceSec(sourceSec);
-          if (!rgba) return null;
-          // A retained or held frame returns the same array. A newly decoded
-          // frame needs an upload even when a nearby source time rounds to the
-          // same timeline-frame index.
-          let version = frameVersions.get(rgba);
-          if (version === undefined) {
-            version = `${key}@${nextFrameVersion++}`;
-            frameVersions.set(rgba, version);
-          }
-          return {
-            rgba,
-            version
-          };
-        },
-        close: () => stream.close()
-      };
-    } else {
-      const stream = openVideoFrameStream({
-        filePath: file,
-        size: decodeSize,
-        fps,
-        startSec,
-        speed: clip.speedBaked ? 1 : Math.max(0.0001, clip.speedMultiplier ?? 1)
-      });
-      source = {
-        width: stream.width,
-        height: stream.height,
-        endMs,
-        async frameAt(timeMs: number): Promise<ClipFrame | null> {
-          const index = Math.max(
-            0,
-            Math.round(((timeMs - clip.startMs) * fps) / 1000)
-          );
-          const rgba = await stream.frameAt(index);
-          if (!rgba) return null;
-          return { rgba, version: `${key}#${index}` };
-        },
-        close: () => stream.close()
-      };
-    }
+    const nativeFps = await probeVideoFrameRate(file);
+    const stream = openSourceFrameStream({
+      filePath: file,
+      size: decodeSize,
+      fps: nativeFps,
+      startSec,
+      nativeSampling: true
+    });
+    const frameVersions = new WeakMap<Uint8Array, string>();
+    let nextFrameVersion = 0;
+    const source: ClipVideoSource = {
+      width: stream.width,
+      height: stream.height,
+      endMs,
+      async frameAt(timeMs: number): Promise<ClipFrame | null> {
+        const sourceSec =
+          clip.model3dStyle?.bake?.assetId === assetId
+            ? Math.max(0, (timeMs - clip.startMs) / 1000)
+            : clipSourceTimeSec(clip, timeMs);
+        const rgba = await stream.frameAtSourceSec(sourceSec);
+        if (!rgba) return null;
+        let version = frameVersions.get(rgba);
+        if (version === undefined) {
+          version = `${key}@${nextFrameVersion++}`;
+          frameVersions.set(rgba, version);
+        }
+        return { rgba, version };
+      },
+      close: () => stream.close()
+    };
     videoSources.set(key, source);
     return source;
   };
@@ -360,12 +369,18 @@ export async function renderTimelineComposited(
      */
     const sampleAt = async (timeMs: number, frameTimeMs = timeMs, sampleIndex = 0, sampleCount = 1): Promise<FrameSample> => {
       const layers: FrameLayer[] = [];
-      const { layers: active, adjustments, precomposites } = computeActiveLayersWithHorizon(
+      const {
+        layers: active,
+        adjustments,
+        precomposites,
+        droppedLayers
+      } = computeActiveLayersWithHorizon(
         sequence.tracks,
         sequence.clips,
         timeMs,
         {
           canvas,
+          model3dBakeHash: (clip) => computeModel3DBakeHash(clip, sequence),
           animationCache: animCache,
           mediaTracks: sequence.mediaTracks,
           camera2d: sequence.camera2d,
@@ -373,6 +388,9 @@ export async function renderTimelineComposited(
           layerTimeMs: (clip) => layerShutterTime(clip, frameTimeMs, sampleIndex, sampleCount, frameMs, output.motionBlur)
         }
       );
+      for (const dropped of droppedLayers) {
+        diagnose(dropped.clipId, frameTimeMs, "scene_drop", dropped.reason);
+      }
       /**
        * A resolved layer as something the compositor can upload: its pixels,
        * its own shape mask rasterized at that size, and — for a matted layer —
@@ -470,38 +488,97 @@ export async function renderTimelineComposited(
           return finish({ ...common, id: id("s"), source: raster });
         }
 
-        if (!layer.assetId) return null;
-
-        if (layer.kind === "video") {
-          const stream = await videoFor(layer.clip, layer.assetId);
-          if (!stream) {
-            skippedClips.add(layer.clip.name);
-            return null;
-          }
-          const decoded = await stream.frameAt(layerTimeMs);
-          if (!decoded) return null;
-          return finish({
-            ...common,
-            id: id("v"),
-            source: {
-              rgba: decoded.rgba,
-              width: stream.width,
-              height: stream.height,
-              version: decoded.version
-            }
-          });
-        }
-
-        const image = await imageFor(layer.assetId);
-        if (!image) {
-          skippedClips.add(layer.clip.name);
+        if (layer.kind === "model3d") {
+          diagnose(
+            layer.clipId,
+            frameTimeMs,
+            "unsupported_layer",
+            "Live or stale-bake 3D requires a fresh bake before server export"
+          );
           return null;
         }
-        return finish({
-          ...common,
-          id: id("i"),
-          source: { ...image, version: layer.assetId }
-        });
+        if (!layer.assetId) {
+          diagnose(
+            layer.clipId,
+            frameTimeMs,
+            "missing_asset",
+            "Active layer has no media asset"
+          );
+          return null;
+        }
+        if (!(await pathFor(layer.assetId))) {
+          diagnose(
+            layer.clipId,
+            frameTimeMs,
+            "unavailable_media",
+            "Media asset has no readable file"
+          );
+          return null;
+        }
+        try {
+          if (layer.kind === "video") {
+            const stream = await videoFor(layer.clip, layer.assetId);
+            if (!stream) {
+              diagnose(
+                layer.clipId,
+                frameTimeMs,
+                "decode_failure",
+                "Media has no video stream"
+              );
+              return null;
+            }
+            const decoded = await stream.frameAt(layerTimeMs);
+            if (!decoded) {
+              diagnose(
+                layer.clipId,
+                frameTimeMs,
+                "decode_failure",
+                "Video decoder returned no frame"
+              );
+              return null;
+            }
+            return finish({
+              ...common,
+              id: id("v"),
+              source: {
+                rgba: decoded.rgba,
+                width: stream.width,
+                height: stream.height,
+                version: decoded.version
+              }
+            });
+          }
+
+          const image = await imageFor(layer.assetId);
+          if (!image) {
+            diagnose(
+              layer.clipId,
+              frameTimeMs,
+              "decode_failure",
+              "Image decoder returned no frame"
+            );
+            return null;
+          }
+          return finish({
+            ...common,
+            id: id("i"),
+            source: { ...image, version: layer.assetId }
+          });
+        } catch (error) {
+          if (
+            signal?.aborted ||
+            (error instanceof Error && error.name === "MissingBinaryError")
+          ) {
+            throw error;
+          }
+          diagnose(
+            layer.clipId,
+            frameTimeMs,
+            "decode_failure",
+            error instanceof Error ? error.message : String(error)
+          );
+          return null;
+        }
       };
 
       for (let index = 0; index < active.length; index++) {
@@ -516,32 +593,45 @@ export async function renderTimelineComposited(
         if (layer.matte) {
           const source = await frameLayerFor(layer.matte.layer, "m:");
           if (signal?.aborted) throw abortError();
-          if (source) {
-            built.matte = {
-              mode: layer.matte.mode,
-              invert: layer.matte.invert,
-              layer: source,
-              strength: layer.matte.strength,
-              featherPx: layer.matte.featherPx
-            };
+          if (!source) {
+            diagnose(
+              layer.clipId,
+              frameTimeMs,
+              "decode_failure",
+              "Required matte source could not be rendered"
+            );
+            continue;
           }
+          built.matte = {
+            mode: layer.matte.mode,
+            invert: layer.matte.invert,
+            layer: source,
+            strength: layer.matte.strength,
+            featherPx: layer.matte.featherPx
+          };
         }
         layers.push(built);
       }
 
       return {
         layers,
-        adjustments: adjustments.map((adjustment): FrameAdjustment => ({
-          id: adjustment.clipId,
-          zIndex: trackZ(adjustment.trackIndex),
-          opacity: adjustment.opacity,
-          effects: adjustment.effects,
-          shapeMask: adjustment.mask
-            ? rasterizer.mask(adjustment.mask, referenceWidth, referenceHeight) ?? undefined
-            : undefined,
-          wipe: adjustment.wipe,
-          precomposeGroupId: adjustment.precomposeGroupId
-        })),
+        adjustments: adjustments.map(
+          (adjustment): FrameAdjustment => ({
+            id: adjustment.clipId,
+            zIndex: trackZ(adjustment.trackIndex),
+            opacity: adjustment.opacity,
+            effects: adjustment.effects,
+            shapeMask: adjustment.mask
+              ? (rasterizer.mask(
+                  adjustment.mask,
+                  referenceWidth,
+                  referenceHeight
+                ) ?? undefined)
+              : undefined,
+            wipe: adjustment.wipe,
+            precomposeGroupId: adjustment.precomposeGroupId
+          })
+        ),
         precomposites: precomposites.map(
           (group): FramePrecomposite => ({
             id: group.clipId,
@@ -574,6 +664,7 @@ export async function renderTimelineComposited(
         timeMs,
         {
           canvas,
+          model3dBakeHash: (clip) => computeModel3DBakeHash(clip, sequence),
           animationCache: animCache,
           mediaTracks: sequence.mediaTracks,
           camera2d: sequence.camera2d,
@@ -649,6 +740,8 @@ export async function renderTimelineComposited(
     if (signal?.aborted) throw abortError();
     if (encoder) await awaitWithAbort(encoder.finish(), signal);
     return {
+      complete: diagnostics.length === 0,
+      diagnostics,
       totalFrames: frameIndices.length,
       skippedClips: [...skippedClips],
       fontsUnavailable
