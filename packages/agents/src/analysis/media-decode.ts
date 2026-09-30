@@ -207,17 +207,65 @@ export async function decodeAudio(
   });
 }
 
+/** The bounded decode schedule, distinct from response series decimation. */
+export interface VideoSamplingPlan {
+  readonly requestedFps: number;
+  readonly effectiveFps: number;
+  readonly requestedFrames: number;
+  readonly maxFrames: number;
+  readonly budgetLimited: boolean;
+  readonly timestamps: readonly number[];
+}
+
+/** Spread a bounded frame budget across the entire duration. */
+export function videoSamplingPlan(
+  duration: number,
+  sampleFps: number,
+  maxFrames = MAX_SAMPLED_FRAMES
+): VideoSamplingPlan {
+  const requestedFrames =
+    duration > 0 && sampleFps > 0
+      ? Math.max(1, Math.floor(duration * sampleFps))
+      : 1;
+  const budget = Math.max(1, Math.floor(maxFrames));
+  const count = Math.min(requestedFrames, budget);
+  const step = duration > 0 ? duration / count : 0;
+  return {
+    requestedFps: sampleFps,
+    effectiveFps: duration > 0 ? count / duration : 0,
+    requestedFrames,
+    maxFrames: budget,
+    budgetLimited: requestedFrames > count,
+    timestamps: Array.from({ length: count }, (_unused, index) => index * step)
+  };
+}
+
 /** The timestamps a `sampleFps` walk over `duration` seconds visits. */
 export function sampleTimestamps(
   duration: number,
   sampleFps: number,
   maxFrames = MAX_SAMPLED_FRAMES
 ): number[] {
-  if (!(duration > 0) || !(sampleFps > 0)) return [0];
-  const wanted = Math.max(1, Math.floor(duration * sampleFps));
-  const count = Math.min(wanted, maxFrames);
-  const step = duration / count;
-  return Array.from({ length: count }, (_unused, index) => index * step);
+  return [...videoSamplingPlan(duration, sampleFps, maxFrames).timestamps];
+}
+
+/** Largest uncovered interval, including missing frames and clip boundaries. */
+export function maximumVideoSamplingGap(
+  duration: number,
+  decodedTimes: readonly number[]
+): number | null {
+  if (decodedTimes.length === 0) {
+    return null;
+  }
+  const times = [...decodedTimes].sort((a, b) => a - b);
+  let previous = 0;
+  let gap = 0;
+  for (const time of times) {
+    const bounded = Math.max(0, Math.min(duration, time));
+    gap = Math.max(gap, bounded - previous);
+    previous = bounded;
+  }
+  return Math.max(gap, duration - previous);
 }
 
 /**

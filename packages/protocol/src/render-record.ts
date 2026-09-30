@@ -12,12 +12,16 @@
  * the version when the asset landed, so a render that finishes after a style
  * change carries its enqueue-time inputs and reads stale on arrival. A version
  * with no record — legacy, an upload, a flip, an image-editor edit — is never
- * stale, because there is nothing to compare it against.
+ * stale, because there is nothing to compare it against. Recovered renders
+ * whose submission record is unavailable carry explicit unknown provenance
+ * and require review instead of being treated as fresh.
  *
  * Pure, and shared: the board's stale pill, the toolbar's stale count and the
  * `staleOnly` render tools all ask the same question here.
  */
 
+import { z } from "zod";
+import { productionTakeMetadata } from "./production-authoring.js";
 import type {
   ClipVersion,
   Entity,
@@ -30,6 +34,34 @@ import { shotRenderMode } from "./creative.js";
 import { sha256Hex } from "./sha256.js";
 import { isString } from "./predicates.js";
 import { clipPromptFor, keyframePrompt, sceneForShot } from "./shot-prompt.js";
+
+/** Submission-time provenance persisted with the durable attachment intent. */
+export const storyboardRenderProvenance = productionTakeMetadata.extend({
+  render_inputs: z.object({
+    kind: z.enum(["keyframe", "clip"]),
+    prompt_hash: z.string(),
+    model: z.string(),
+    aspect_ratio: z.string(),
+    style_entity_id: z.string().nullable(),
+    source_version_id: z.string().optional(),
+    reference_asset_ids: z.array(z.string()).optional(),
+    entity_conditioning_hash: z.string().optional(),
+    render_mode: z.enum(["keyframe", "direct", "reference"]).optional(),
+    recorded_at: z.string()
+  })
+});
+export type StoryboardRenderProvenance = z.infer<
+  typeof storyboardRenderProvenance
+>;
+
+/** Both live rendering and recovery attach the same submitted provenance. */
+export function storyboardRenderVersion<
+  T extends KeyframeVersion | ClipVersion
+>(media: T, provenance: StoryboardRenderProvenance | undefined): T {
+  return provenance
+    ? { ...media, ...provenance }
+    : { ...media, render_provenance: "unknown" };
+}
 
 /**
  * The board settings a shot's render inputs are drawn from.
@@ -200,7 +232,8 @@ export function stampRenderInputs(
  *
  * A version with no record is never stale: an upload, a flip or an
  * image-editor edit was never a render, so there is nothing it could be out of
- * date with respect to.
+ * date with respect to. Recovered renders with unknown provenance are
+ * conservatively included until their inputs can be established.
  */
 export function isVersionStale(
   version: KeyframeVersion | ClipVersion | null | undefined,
@@ -209,7 +242,7 @@ export function isVersionStale(
 ): boolean {
   const recorded = version?.render_inputs;
   if (!recorded) {
-    return false;
+    return version?.render_provenance === "unknown";
   }
   return !renderInputsMatchDraft(
     recorded,

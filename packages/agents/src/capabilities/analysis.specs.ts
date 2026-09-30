@@ -170,7 +170,7 @@ export const ANALYZE_VIDEO_SCHEMA: JsonSchema = {
     video: MEDIA_PROPERTY,
     sample_fps: {
       type: "number",
-      description: `Frames to decode per second of video (default ${DEFAULT_SAMPLE_FPS}, max 30). At most ${MAX_VIDEO_FRAMES} frames are decoded whatever the rate.`
+      description: `Requested frames per second (default ${DEFAULT_SAMPLE_FPS}, max 30). At most ${MAX_VIDEO_FRAMES} frames are decoded. Sampling metadata reports the effective schedule and decoded coverage.`
     },
     max_points: {
       type: "number",
@@ -209,7 +209,7 @@ export const DETECT_VIDEO_SCENES_SCHEMA: JsonSchema = {
     video: MEDIA_PROPERTY,
     sample_fps: {
       type: "number",
-      description: `Frames to decode per second (default ${DEFAULT_SCENE_SAMPLE_FPS}, max 30). A cut is placed at a sampled frame, so this bounds the accuracy.`
+      description: `Requested frames per second (default ${DEFAULT_SCENE_SAMPLE_FPS}, max 30). The frame budget can lower the effective rate. Sampling metadata reports the actual schedule and decoded coverage gaps that limit cut timing precision.`
     },
     threshold: {
       type: "number",

@@ -366,7 +366,10 @@ export interface RenderInputs {
  * than in a parallel array that a reorder or a delete could desynchronize.
  */
 export type VersionRef<T> = T &
-  ProductionTakeMetadata & { render_inputs?: RenderInputs };
+  ProductionTakeMetadata & {
+    render_inputs?: RenderInputs;
+    render_provenance?: "unknown";
+  };
 
 export type KeyframeVersion = VersionRef<ImageRef>;
 

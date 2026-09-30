@@ -346,6 +346,17 @@ describe("isVersionStale", () => {
     expect(isVersionStale(shot.keyframe, shot, BOARD)).toBe(false);
   });
 
+  it("does not treat a recovered render with unknown provenance as fresh", () => {
+    const shot = makeShot({
+      keyframe: {
+        type: "image",
+        asset_id: "recovered",
+        render_provenance: "unknown"
+      }
+    });
+    expect(isVersionStale(shot.keyframe, shot, BOARD)).toBe(true);
+  });
+
   // One case per input the record carries (PRD § 7.7.4).
   const changes: Array<{
     name: string;

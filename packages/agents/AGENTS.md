@@ -1025,6 +1025,22 @@ registered, once per process. `sandbox-av-media.ts` imports it rather than
 keeping its own copy — two bootstraps racing to register the same adapter is
 the kind of thing that works until it does not.
 
+Audio headroom uses the original interleaved channel samples. Peak and clipping
+count individual channel samples, and `channel_samples_analyzed` is the
+`clipped_fraction` denominator. RMS and energy envelopes average channel powers.
+Keep signed `toMono` averaging for spectra and spectral onsets, and planar
+channels for LUFS. The stereo WAV regressions are in
+`tests/analysis-channel-safety.test.ts`.
+
+Video capabilities use `videoSamplingPlan` for both decode timestamps and
+sampling metadata. `sampling.requested_fps` records the caller's rate, while
+`sampling.fps` records the bounded schedule's effective rate. `budget_limited`
+reports the decode cap independently of response series `decimated`.
+`decoded_fps` and `max_gap_seconds` describe decoded coverage, including missing
+frames and the clip boundaries. Scene timing notes must use that coverage,
+not the requested rate. `tests/capabilities-video-analysis-sampling.test.ts`
+checks the real scheduling and response paths with a controlled decoder.
+
 Three properties worth keeping when changing any of this:
 
 - **No ffmpeg.** Mediabunny decodes, so an install with no managed runtime

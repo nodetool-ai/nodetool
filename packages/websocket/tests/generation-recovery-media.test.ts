@@ -22,6 +22,9 @@ import {
 } from "@nodetool-ai/models";
 import { captureMediaEditSourceContext, createMediaEditRequest, ensureBaselineTake, makeClip, makeTrack } from "@nodetool-ai/timeline";
 import { createFalGenerationLifecycleHooks } from "@nodetool-ai/execution";
+import { boardRenderContext, planShotRenders, renderShots } from "@nodetool-ai/storyboard";
+import type { RenderGenerationRequest, StoryboardRenderHost } from "@nodetool-ai/storyboard";
+import { isVersionStale } from "@nodetool-ai/protocol";
 
 const fetchExternalMedia = vi.fn();
 const storeAssetWithThumbnail = vi.fn();
@@ -124,9 +127,11 @@ describe("durable recovery of fal media responses", () => {
   });
 
   it.each([
-    ["storyboard_keyframe", "image/png", "keyframe"],
-    ["storyboard_clip", "video/mp4", "clip"]
-  ] as const)("attaches an interrupted %s render to its intended shot", async (targetType, mime, kind) => {
+    ["storyboard_keyframe", "image/png", "keyframe", undefined],
+    ["storyboard_clip", "video/mp4", "clip", undefined],
+    ["storyboard_keyframe", "image/png", "keyframe", { render_inputs: { kind: "clip" } }],
+    ["storyboard_clip", "video/mp4", "clip", { render_inputs: { kind: "keyframe" } }]
+  ] as const)("attaches an interrupted %s render to its intended shot", async (targetType, mime, kind, provenance) => {
     const board = await Storyboard.create<Storyboard>({
       user_id: "u1",
       name: "Interrupted render",
@@ -157,7 +162,8 @@ describe("durable recovery of fal media responses", () => {
         document_id: board.id,
         target_type: targetType,
         target_id: "shot-1",
-        selected: true
+        selected: true,
+        provenance
       }
     };
     const hooks = createFalGenerationLifecycleHooks({ userId: "u1", callbacks: false });
@@ -182,10 +188,209 @@ describe("durable recovery of fal media responses", () => {
     await worker.runOnce();
     const shot = (await Storyboard.findById(board.id))?.toDocument().shots[0];
     expect(shot?.[kind]?.asset_id).toBe(asset.id);
+    expect(shot?.[kind]?.render_provenance).toBe("unknown");
+    expect(shot?.[kind]?.render_inputs).toBeUndefined();
     expect(kind === "keyframe" ? shot?.keyframe_versions : shot?.clip_versions).toHaveLength(1);
     expect((await Prediction.find(generationId))?.attachment_status).toBe("attached");
     expect(queueFor).not.toHaveBeenCalled();
   });
+  it.each(["keyframe", "clip"] as const)(
+    "retains submitted %s provenance after an in-flight edit and repeated recovery",
+    async (kind) => {
+      const initial = {
+        screenplay: null,
+        brief: "",
+        style: "cool light",
+        entityIds: [],
+        aspectRatio: "16:9",
+        setupStage: "done",
+        genre: "",
+        directorModel: null,
+        imageModel: {
+          type: "image_model",
+          id: "fal-ai/test-image",
+          provider: "fal_ai"
+        },
+        videoModel: {
+          type: "video_model",
+          id: "fal-ai/test-video",
+          provider: "fal_ai"
+        },
+        shots: [
+          {
+            type: "shot",
+            id: "shot-1",
+            index: 0,
+            action: "A lighthouse",
+            status: "planned",
+            render_mode: "direct",
+            ...(kind === "clip"
+              ? {
+                  production: {
+                    schema_version: 1,
+                    speech_mode: "none",
+                    requested_take_count: 1,
+                    local_direction: "Slow orbit",
+                    duration_ms: 6000,
+                    reference_bindings: []
+                  }
+                }
+              : {})
+          }
+        ]
+      };
+      const normal = await Storyboard.create<Storyboard>({
+        user_id: "u1",
+        name: "Normal",
+        document: JSON.stringify(initial)
+      });
+      const interrupted = await Storyboard.create<Storyboard>({
+        user_id: "u1",
+        name: "Interrupted",
+        document: JSON.stringify(initial)
+      });
+      const asset = await Asset.create<Asset>({
+        user_id: "u1",
+        name: "render",
+        content_type: kind === "keyframe" ? "image/png" : "video/mp4"
+      });
+      const hooks = createFalGenerationLifecycleHooks({
+        userId: "u1",
+        callbacks: false
+      });
+      let submitted: RenderGenerationRequest | undefined;
+      const makeHost = (
+        rowId: string,
+        interrupt: boolean
+      ): StoryboardRenderHost => ({
+        runGeneration: async (request) => {
+          if (interrupt) {
+            submitted = request;
+            await hooks.onGenerationAccepted?.({
+              generationId: request.id,
+              request
+            });
+            expect(
+              (await Prediction.find(request.id))?.metadata?.attachments
+            ).toEqual([request.destination]);
+            await hooks.onGenerationTerminal?.({
+              generationId: request.id,
+              request,
+              status: "completed",
+              output: { url: "https://fal.media/recovered" },
+              receipt: null,
+              assetIds: [asset.id]
+            });
+            const row = (await Storyboard.findById(rowId))!;
+            const edited = row.toDocument();
+            edited.style = "warm light";
+            edited.shots[0].action = "A forest";
+            if (edited.shots[0].production) {
+              edited.shots[0].production.local_direction = "Fast pan";
+            }
+            await Storyboard.updateFieldsIfUnchanged(rowId, row.updated_at, {
+              document: JSON.stringify(edited)
+            });
+          }
+          return {
+            output: MEDIA,
+            assets: [{ asset_id: asset.id, uri: `asset://${asset.id}` }]
+          };
+        },
+        getStoryboard: async () => {
+          if (interrupt) {
+            return null;
+          }
+          const row = (await Storyboard.findById(rowId))!;
+          return { document: row.toDocument(), updatedAt: row.updated_at };
+        },
+        updateStoryboard: async ({ document, baseUpdatedAt }) => {
+          const row = await Storyboard.updateFieldsIfUnchanged(
+            rowId,
+            baseUpdatedAt,
+            { document: JSON.stringify(document) }
+          );
+          return row
+            ? { document: row.toDocument(), updatedAt: row.updated_at }
+            : null;
+        }
+      });
+      const newId = () => `snapshot-${kind}`;
+      const normalOutcomes = await renderShots(
+        makeHost(normal.id, false),
+        { id: normal.id },
+        planShotRenders(normal.toDocument(), [], kind),
+        { newId }
+      );
+      expect(normalOutcomes, JSON.stringify(normalOutcomes)).toMatchObject([
+        { ok: true }
+      ]);
+      await renderShots(
+        makeHost(interrupted.id, true),
+        { id: interrupted.id },
+        planShotRenders(interrupted.toDocument(), [], kind),
+        { newId }
+      );
+      const queueFor = vi.fn(() => {
+        throw new Error("Recovery must use saved media");
+      });
+      const worker = createGenerationRecoveryWorker({
+        provider: { queueFor },
+        now: () => new Date(Date.now() + 5 * 60_000)
+      });
+      await worker.runOnce();
+      await worker.runOnce();
+      const normalShot = (await Storyboard.findById(normal.id))!.toDocument()
+        .shots[0];
+      const recoveredDoc = (await Storyboard.findById(
+        interrupted.id
+      ))!.toDocument();
+      const recoveredShot = recoveredDoc.shots[0];
+      const recovered = recoveredShot[kind]!;
+      expect(submitted).toBeDefined();
+      expect(await Prediction.find(submitted!.id)).toMatchObject({
+        attachment_status: "attached"
+      });
+      expect(recovered).toBeDefined();
+      expect(recovered.render_inputs).toEqual(
+        submitted!.destination.provenance.render_inputs
+      );
+      expect(recovered.render_inputs).toEqual({
+        ...normalShot[kind]!.render_inputs,
+        recorded_at: expect.any(String)
+      });
+      expect(
+        isVersionStale(
+          recovered,
+          recoveredShot,
+          boardRenderContext(recoveredDoc, [])
+        )
+      ).toBe(true);
+      expect(
+        kind === "keyframe"
+          ? recoveredShot.keyframe_versions
+          : recoveredShot.clip_versions
+      ).toHaveLength(1);
+      if (kind === "clip") {
+        expect(recovered).toMatchObject({
+          candidateId: normalShot.clip!.candidateId,
+          batchId: normalShot.clip!.batchId,
+          requestId: normalShot.clip!.requestId,
+          variationId: normalShot.clip!.variationId,
+          variationIndex: 1,
+          productionSnapshot: normalShot.clip!.productionSnapshot
+        });
+        expect(recovered.productionSnapshot?.parameters?.localDirection).toBe(
+          "Slow orbit"
+        );
+      }
+      expect((await Prediction.find(submitted!.id))?.attachment_status).toBe(
+        "attached"
+      );
+      expect(queueFor).not.toHaveBeenCalled();
+    }
+  );
+
   it.each([false, true])("recovers an interrupted timeline edit without another provider call after source changed=%s", async (sourceChanged) => {
     const clip = makeClip({ id: "clip-1", trackId: "track-1", name: "source", startMs: 1200,
       durationMs: 2000, inPointMs: 500, outPointMs: 2500, currentAssetId: "original-asset",

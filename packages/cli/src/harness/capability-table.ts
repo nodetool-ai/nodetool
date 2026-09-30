@@ -3721,20 +3721,22 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "analyze_video",
     module: "analysis",
     impl: "packages/agents/src/capabilities/analysis.ts",
-    contract: "ff8fa9e395bd",
+    contract: "8676971690ce",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-analysis.test.ts",
+      "packages/agents/tests/capabilities-video-analysis-sampling.test.ts",
     ],
   },
   {
     name: "detect_video_scenes",
     module: "analysis",
     impl: "packages/agents/src/capabilities/analysis.ts",
-    contract: "9421a263a2f3",
+    contract: "8e1a187c4d11",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-analysis.test.ts",
+      "packages/agents/tests/capabilities-video-analysis-sampling.test.ts",
     ],
   },
 ];

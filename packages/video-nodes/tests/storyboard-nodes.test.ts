@@ -484,8 +484,18 @@ describe("RenderStillsNode", () => {
     const node = new RenderStillsNode();
     node.assign({ storyboard: writable("tpl") });
     await node.process(h.context);
+    const version = h.boards.get("tpl")?.document.shots[0].keyframe;
+    expect(version?.render_inputs).toEqual(expect.objectContaining({
+      kind: "keyframe",
+      model: "flux",
+      recorded_at: expect.any(String)
+    }));
     expect(vi.mocked(h.context.runGeneration).mock.calls[0][0].destination).toEqual({
-      document_id: "tpl", target_type: "storyboard_keyframe", target_id: "shot-1", selected: true
+      document_id: "tpl",
+      target_type: "storyboard_keyframe",
+      target_id: "shot-1",
+      selected: true,
+      provenance: { render_inputs: version?.render_inputs }
     });
     expect(h.generationRequests[0].params.resolution).toBe("1K");
   });
@@ -580,8 +590,32 @@ describe("RenderClipsNode", () => {
     const node = new RenderClipsNode();
     node.assign({ storyboard: writable("tpl") });
     await node.process(h.context);
+    const version = h.boards.get("tpl")?.document.shots[0].clip;
+    expect(version?.render_inputs).toEqual(expect.objectContaining({
+      kind: "clip",
+      model: "kling",
+      recorded_at: expect.any(String)
+    }));
+    expect(version?.productionSnapshot).toEqual(expect.objectContaining({
+      candidateId: version?.candidateId,
+      destinationId: "shot-1",
+      model: "kling",
+      variationIndex: 1
+    }));
     expect(vi.mocked(h.context.runGeneration).mock.calls[0][0].destination).toEqual({
-      document_id: "tpl", target_type: "storyboard_clip", target_id: "shot-1", selected: true
+      document_id: "tpl",
+      target_type: "storyboard_clip",
+      target_id: "shot-1",
+      selected: true,
+      provenance: {
+        render_inputs: version?.render_inputs,
+        candidateId: version?.candidateId,
+        batchId: version?.batchId,
+        requestId: version?.requestId,
+        variationId: version?.variationId,
+        variationIndex: version?.variationIndex,
+        productionSnapshot: version?.productionSnapshot
+      }
     });
     expect(h.generationRequests[0].params.resolution).toBe("1080p");
   });
