@@ -57,3 +57,4 @@ export * from "./snapping/index.js";
 export * from "./animation/index.js";
 export * from "./midi/index.js";
 export * from "./fonts/index.js";
+export * from "./finish-storyboard.js";

@@ -1635,6 +1635,9 @@ export const timelineClip = z.object({
    * strips them on every PATCH, breaking shot→clip revision round-trips. */
   storyboardBoardId: z.string().optional(),
   storyboardShotId: z.string().optional(),
+  storyboardElementId: z.string().optional(),
+  storyboardElementRole: z.string().optional(),
+  storyboardMaterializationBaseline: z.string().optional(),
   /** Script provenance (script→timeline assemble bridge). Without these
    * fields Zod strips them on every PATCH, breaking line→clip re-voice
    * round-trips. */
