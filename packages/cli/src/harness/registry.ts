@@ -26,6 +26,9 @@
  * the author — selects the checks.
  */
 
+import { computeAffected, type PackageInfo } from "../affected/affected.js";
+import { isGlobalGateFile } from "./changed-files.js";
+
 export type HarnessKind = "static" | "execution" | "eval" | "meta";
 
 export type HarnessCapability =
@@ -46,6 +49,15 @@ interface HarnessSelfcheck {
    * staging, image builds) needs `--expensive`.
    */
   cost: "cheap" | "expensive";
+  /**
+   * True when the command is only workspace test-suite runs (`npm run test
+   * --workspace=...`) that `npm run test:affected` already runs in full for
+   * the same diff. Set only when that holds for every path of every covering
+   * surface: a suite in a workspace the diff does not make affected, or in
+   * `web`/`electron` (related tests only), is not redundant. The registry test
+   * derives this from the real workspace graph and fails on drift.
+   */
+  suiteOnly?: boolean;
 }
 
 export interface HarnessEntry {
@@ -308,7 +320,8 @@ export const HARNESSES: HarnessEntry[] = [
     selfcheck: {
       command:
         "npm run test --workspace=packages/dsl -- flow-core flow-streaming flow-abort",
-      cost: "cheap"
+      cost: "cheap",
+      suiteOnly: true
     }
   },
   {
@@ -472,7 +485,11 @@ export const HARNESSES: HarnessEntry[] = [
     capabilities: ["no-db"],
     agentTool: "bake_audio_animation",
     docs: "docs/harnesses.md § Audio-driven timeline motion",
-    selfcheck: { command: TIMELINE_AUDIO_DRIVE_SUITES, cost: "cheap" }
+    selfcheck: {
+      command: TIMELINE_AUDIO_DRIVE_SUITES,
+      cost: "cheap",
+      suiteOnly: true
+    }
   },
   {
     id: "timeline-generated-matte",
@@ -594,7 +611,8 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "docs/harnesses.md § nodetool chat",
     selfcheck: {
       command: "npm run test --workspace=packages/cli -- tests/chat-app.test.ts tests/chat-media.test.ts tests/terminal-keyboard.test.ts tests/terminal-input.test.ts tests/terminal-mouse.test.ts tests/terminal-screen.test.ts tests/chat-prompts.test.ts tests/chat-sessions.test.ts tests/websocket-client.test.ts",
-      cost: "cheap"
+      cost: "cheap",
+      suiteOnly: true
     }
   },
   {
@@ -861,7 +879,8 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "docs/plans/tutorial-focus-animation.md",
     selfcheck: {
       command: "npm run test --workspace=demo",
-      cost: "cheap"
+      cost: "cheap",
+      suiteOnly: true
     }
   },
   {
@@ -894,7 +913,8 @@ export const HARNESSES: HarnessEntry[] = [
       // resolution, drain/shutdown. Multi-minute (255 files), so this stays
       // an --expensive selfcheck rather than the default gate.
       command: "npm run test --workspace=packages/websocket",
-      cost: "expensive"
+      cost: "expensive",
+      suiteOnly: true
     }
   },
   {
@@ -906,7 +926,8 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "packages/models/AGENTS.md",
     selfcheck: {
       command: "npm run test --workspace=packages/models",
-      cost: "cheap"
+      cost: "cheap",
+      suiteOnly: true
     }
   },
   {
@@ -1874,18 +1895,24 @@ export function auditPathClaims(
 // The gate: diff → touched surfaces → selfchecks to run.
 // ---------------------------------------------------------------------------
 
-interface GateCheck {
+export interface GateCheck {
   harnessId: string;
   command: string;
   cost: "cheap" | "expensive";
+  /** The selfcheck's `suiteOnly`: `test:affected` already runs these suites. */
+  suiteOnly: boolean;
   /** Touched surfaces this check verifies. */
   surfaces: string[];
 }
 
 export interface GatePlan {
   changedFiles: string[];
-  /** Touched surfaces with the files that touched them. */
-  surfaces: Array<{ id: string; files: string[] }>;
+  /**
+   * Touched surfaces with the files that touched them. `viaDependency` marks
+   * a surface touched only because a workspace holding one of its paths is
+   * downstream of a changed workspace (`files` may then be empty).
+   */
+  surfaces: Array<{ id: string; files: string[]; viaDependency?: boolean }>;
   /** Deduped selfchecks for every harness covering a touched surface. */
   checks: GateCheck[];
   /**
@@ -1895,20 +1922,35 @@ export interface GatePlan {
   manual: Array<{ harnessId: string; command: string; surfaces: string[] }>;
   /** Touched surfaces with no harness at all (documented gaps). */
   uncoveredSurfaces: string[];
-  /** Changed files no surface claims. */
+  /** Changed files no surface claims and no global rule absorbs. */
   unmappedFiles: string[];
+  /**
+   * Changed files that force the whole selfcheck set (`isGlobalGateFile`).
+   * When non-empty, `checks` holds every selfcheck.
+   */
+  globalFiles: string[];
 }
 
+/**
+ * Select checks for a diff. Without `packages`, a surface is touched only by a
+ * changed path under one of its prefixes. With them, a surface is also touched
+ * when one of its paths lies inside a workspace downstream of a changed one,
+ * since its code then runs against changed code (`viaDependency`).
+ */
 export function planGate(
   changedFiles: string[],
   harnesses: HarnessEntry[] = HARNESSES,
-  surfaces: SurfaceEntry[] = SURFACES
+  surfaces: SurfaceEntry[] = SURFACES,
+  packages?: PackageInfo[]
 ): GatePlan {
   const byId = new Map(harnesses.map((h) => [h.id, h]));
   const touched = new Map<string, string[]>();
+  const viaDependency = new Set<string>();
   const unmappedFiles: string[] = [];
+  const globalFiles = changedFiles.filter(isGlobalGateFile);
 
   for (const file of changedFiles) {
+    if (isGlobalGateFile(file)) continue;
     let matched = false;
     for (const s of surfaces) {
       if (s.paths.some((p) => file === p || file.startsWith(p))) {
@@ -1919,6 +1961,23 @@ export function planGate(
       }
     }
     if (!matched) unmappedFiles.push(file);
+  }
+
+  if (packages) {
+    const dirs = computeAffected(changedFiles, packages)
+      .affected.map((name) => packages.find((p) => p.name === name)?.dir)
+      .filter((d): d is string => d !== undefined)
+      .map((d) => d.replace(/^\.\//, "").replace(/\/+$/, ""));
+    for (const s of surfaces) {
+      if (touched.has(s.id)) continue;
+      const inside = s.paths.some((p) =>
+        dirs.some((d) => p === d || p.startsWith(`${d}/`))
+      );
+      if (inside) {
+        touched.set(s.id, []);
+        viaDependency.add(s.id);
+      }
+    }
   }
 
   const checkByHarness = new Map<string, GateCheck>();
@@ -1946,6 +2005,7 @@ export function planGate(
             harnessId: id,
             command: h.selfcheck.command,
             cost: h.selfcheck.cost,
+            suiteOnly: h.selfcheck.suiteOnly ?? false,
             surfaces: [s.id]
           });
         }
@@ -1964,12 +2024,32 @@ export function planGate(
     }
   }
 
+  // A global file selects every selfcheck, as `--all` does; surfaces it
+  // would not otherwise name stay with an empty list.
+  if (globalFiles.length > 0) {
+    for (const h of harnesses) {
+      if (!h.selfcheck || checkByHarness.has(h.id)) continue;
+      checkByHarness.set(h.id, {
+        harnessId: h.id,
+        command: h.selfcheck.command,
+        cost: h.selfcheck.cost,
+        suiteOnly: h.selfcheck.suiteOnly ?? false,
+        surfaces: []
+      });
+    }
+  }
+
   return {
     changedFiles,
-    surfaces: [...touched.entries()].map(([id, files]) => ({ id, files })),
+    surfaces: [...touched.entries()].map(([id, files]) => ({
+      id,
+      files,
+      ...(viaDependency.has(id) && { viaDependency: true })
+    })),
     checks: [...checkByHarness.values()],
     manual: [...manualByHarness.values()],
     uncoveredSurfaces,
-    unmappedFiles
+    unmappedFiles,
+    globalFiles
   };
 }

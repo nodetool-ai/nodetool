@@ -13,6 +13,14 @@
  * `--timeout <seconds>` bounds each selfcheck (default 900s, fails closed on
  * timeout); a code file no surface claims fails the gate outright, and
  * `--strict` also fails on a touched surface only a gap note covers.
+ * Selfchecks that only re-run workspace test suites `npm run test:affected`
+ * already runs (`suiteOnly`) are skipped unless `--include-suites`.
+ * `--jobs <n>` runs the cheap selfchecks n at a time, each one's output
+ * buffered and printed as one block; expensive selfchecks stay serial.
+ *
+ * Every import of a built workspace package in this file is lazy, so the
+ * planning commands (`list`, `audit`, `gate --dry-run`) work on a tree whose
+ * `dist/` is not built (see ../nodetool.ts).
  */
 import type { Command } from "commander";
 import {
@@ -21,15 +29,16 @@ import {
   auditHarnessCoverage,
   isUnclaimedPath,
   planGate,
+  type GateCheck,
   type GatePlan
 } from "../harness/registry.js";
+import { readWorkspacePackages } from "../affected/affected.js";
 import {
   auditCapabilityCoverage,
   planCapabilityMappingGate,
   resolveGateBaseRef
 } from "../harness/capability-coverage.js";
 import { CAPABILITY_COVERAGE } from "../harness/capability-table.js";
-import { declaredCapabilities } from "../harness/declared-capabilities.js";
 import {
   readChangedFiles,
   isGateRelevantCodeFile
@@ -141,7 +150,11 @@ export function registerHarnessCommands(program: Command): void {
     )
     .option("--json", "Print the audit result as JSON")
     .option("--strict", "Exit non-zero while any capability gap remains")
-    .action((opts: { json?: boolean; strict?: boolean }) => {
+    .action(async (opts: { json?: boolean; strict?: boolean }) => {
+      // Lazy: declared-capabilities imports the built agents package.
+      const { declaredCapabilities } = await import(
+        "../harness/declared-capabilities.js"
+      );
       const result = auditCapabilityCoverage(
         declaredCapabilities(),
         CAPABILITY_COVERAGE,
@@ -204,6 +217,14 @@ export function registerHarnessCommands(program: Command): void {
     )
     .option("--all", "Ignore the diff and run every selfcheck")
     .option("--expensive", "Include expensive selfchecks (bundle staging etc.)")
+    .option(
+      "--include-suites",
+      "Also run selfchecks that only re-run suites `npm run test:affected` runs"
+    )
+    .option(
+      "--deps",
+      "Also touch surfaces inside workspaces that depend on a changed one"
+    )
     .option("--dry-run", "Print the plan without running anything")
     .option("--json", "Print the plan (and results, unless --dry-run) as JSON")
     .option(
@@ -215,6 +236,11 @@ export function registerHarnessCommands(program: Command): void {
       "Kill a selfcheck that runs longer than this many seconds (default 900)",
       "900"
     )
+    .option(
+      "--jobs <n>",
+      "Run up to n cheap selfchecks at once (default 1, serial)",
+      "1"
+    )
     .action(
       async (
         files: string[],
@@ -222,13 +248,15 @@ export function registerHarnessCommands(program: Command): void {
           base?: string;
           all?: boolean;
           expensive?: boolean;
+          includeSuites?: boolean;
+          deps?: boolean;
           dryRun?: boolean;
           json?: boolean;
           strict?: boolean;
           timeout?: string;
+          jobs?: string;
         }
       ) => {
-        const { spawnSync } = await import("node:child_process");
         const { fileURLToPath } = await import("node:url");
         const { dirname, resolve } = await import("node:path");
 
@@ -241,6 +269,11 @@ export function registerHarnessCommands(program: Command): void {
           Number.isFinite(timeoutSeconds) && timeoutSeconds > 0
             ? timeoutSeconds * 1000
             : 900_000;
+        const jobsRequested = Number(opts.jobs ?? "1");
+        const jobs =
+          Number.isInteger(jobsRequested) && jobsRequested > 0
+            ? jobsRequested
+            : 1;
 
         let changedFiles = files;
         if (changedFiles.length === 0 && !opts.all) {
@@ -264,24 +297,29 @@ export function registerHarnessCommands(program: Command): void {
         const plan: GatePlan = opts.all
           ? {
               changedFiles: [],
+              globalFiles: [],
               surfaces: [],
               checks: HARNESSES.filter((h) => h.selfcheck).map((h) => ({
                 harnessId: h.id,
                 command: h.selfcheck!.command,
                 cost: h.selfcheck!.cost,
+                suiteOnly: h.selfcheck!.suiteOnly ?? false,
                 surfaces: []
               })),
               manual: [],
               uncoveredSurfaces: [],
               unmappedFiles: []
             }
-          : planGate(changedFiles);
+          : planGate(
+              changedFiles,
+              undefined,
+              undefined,
+              opts.deps ? readWorkspacePackages(repoRoot) : undefined
+            );
 
-        const toRun = plan.checks.filter(
-          (c) => opts.expensive || c.cost === "cheap"
-        );
-        const skippedExpensive = plan.checks.filter(
-          (c) => !opts.expensive && c.cost === "expensive"
+        const { toRun, skippedExpensive, skippedSuites } = selectChecks(
+          plan.checks,
+          { expensive: opts.expensive, includeSuites: opts.includeSuites }
         );
         // A directory recorded in UNCLAIMED_PATHS has already been judged: no
         // harness reaches it, and the entry says why. `auditPathClaims` honors
@@ -292,7 +330,13 @@ export function registerHarnessCommands(program: Command): void {
           .filter((f) => !isUnclaimedPath(f));
 
         if (!opts.json) {
-          printGatePlan(plan, toRun.length, skippedExpensive.length, opts.all);
+          printGatePlan(
+            plan,
+            toRun.length,
+            skippedExpensive.length,
+            skippedSuites,
+            opts.all
+          );
           if (unmappedCodeFiles.length > 0) {
             console.log(
               "\nCode files no surface claims (the gate fails on these):"
@@ -301,11 +345,18 @@ export function registerHarnessCommands(program: Command): void {
           }
         }
 
+        const skippedSuiteIds = skippedSuites.map((c) => c.harnessId);
+
         if (opts.dryRun) {
           if (opts.json) {
             console.log(
               JSON.stringify(
-                { plan, mappingViolations, unmappedCodeFiles },
+                {
+                  plan,
+                  skippedSuites: skippedSuiteIds,
+                  mappingViolations,
+                  unmappedCodeFiles
+                },
                 null,
                 2
               )
@@ -321,80 +372,25 @@ export function registerHarnessCommands(program: Command): void {
           return;
         }
 
-        const results: Array<{
-          harnessId: string;
-          command: string;
-          ok: boolean;
-          exitCode: number;
-          timedOut: boolean;
-          /** Killed by a signal or a spawn error that is not the timeout. */
-          killed: boolean;
-        }> = [];
-        for (const check of toRun) {
-          if (!opts.json) {
-            console.log(`\n── ${check.harnessId}: ${check.command}\n`);
-          }
-          // Selfchecks decide their own module resolution: strip the
-          // `nodetool-dev` conditions this CLI may be running under (set by
-          // `npm run dev:nodetool`), or dist-mode scripts like
-          // reliability:ring0 resolve packages to src/ and fail.
-          const nodeOptions = (process.env["NODE_OPTIONS"] ?? "")
-            .replace(/--conditions[= ]nodetool-dev/g, "")
-            .trim();
-          const r = spawnSync(check.command, {
-            cwd: repoRoot,
-            shell: true,
-            stdio: opts.json ? "pipe" : "inherit",
-            encoding: "utf8",
-            timeout: timeoutMs,
-            maxBuffer: SELFCHECK_MAX_BUFFER,
-            killSignal: "SIGKILL",
-            env: {
-              ...process.env,
-              ...(nodeOptions
-                ? { NODE_OPTIONS: nodeOptions }
-                : { NODE_OPTIONS: "" })
-            }
-          });
-          // spawnSync fails closed on a kill: a timeout or any other signal
-          // leaves `status` null, which must count as a failure, never as
-          // the "no exit code, assume ok" case. Only ETIMEDOUT is reported as
-          // a timeout, though — every other signal used to be too, and a check
-          // killed for some other reason then claimed to have run for the full
-          // `--timeout` when it had run for three minutes.
-          const errorCode = (r.error as NodeJS.ErrnoException | undefined)
-            ?.code;
-          const timedOut = errorCode === "ETIMEDOUT";
-          const killed = r.signal != null || r.error !== undefined;
-          const exitCode = timedOut ? TIMEOUT_EXIT_CODE : (r.status ?? 1);
-          if (opts.json && (timedOut || killed || exitCode !== 0)) {
-            const output = `${r.stdout ?? ""}\n${r.stderr ?? ""}`.slice(-20_000);
-            process.stderr.write(`\n${check.harnessId} failed (exit ${exitCode}):\n${output}\n`);
-          }
-          if (!opts.json && timedOut) {
-            console.log(
-              `\nTIMEOUT ${check.harnessId} exceeded ${timeoutSeconds}s: ${check.command}`
-            );
-          } else if (!opts.json && killed) {
-            console.log(
-              `\nKILLED ${check.harnessId} (${r.signal ?? errorCode}): ${check.command}`
-            );
-          }
-          results.push({
-            harnessId: check.harnessId,
-            command: check.command,
-            ok: !timedOut && !killed && exitCode === 0,
-            exitCode,
-            timedOut,
-            killed
-          });
-        }
+        const results = await executeChecks(toRun, {
+          repoRoot,
+          json: opts.json === true,
+          timeoutMs,
+          timeoutSeconds,
+          jobs
+        });
 
         const failed = results.filter((r) => !r.ok);
         if (opts.json) {
           console.log(
             JSON.stringify(
-              { plan, results, mappingViolations, unmappedCodeFiles },
+              {
+                plan,
+                results,
+                skippedSuites: skippedSuiteIds,
+                mappingViolations,
+                unmappedCodeFiles
+              },
               null,
               2
             )
@@ -428,27 +424,324 @@ export function registerHarnessCommands(program: Command): void {
     );
 }
 
-function printGatePlan(
+/**
+ * Split a plan's checks into what runs now and what is deliberately left out.
+ * A suite-only check is skipped (and named) rather than silently dropped:
+ * `npm run test:affected` runs the same suites for the same diff, so running
+ * them here again is pure repetition unless `--include-suites` asks for it.
+ */
+export function selectChecks(
+  checks: readonly GateCheck[],
+  opts: { expensive?: boolean; includeSuites?: boolean }
+): {
+  toRun: GateCheck[];
+  skippedExpensive: GateCheck[];
+  skippedSuites: GateCheck[];
+} {
+  const skippedSuites = checks.filter((c) => c.suiteOnly && !opts.includeSuites);
+  const rest = checks.filter((c) => !skippedSuites.includes(c));
+  return {
+    toRun: rest.filter((c) => opts.expensive || c.cost === "cheap"),
+    skippedExpensive: rest.filter((c) => !opts.expensive && c.cost === "expensive"),
+    skippedSuites
+  };
+}
+
+export interface GateCheckResult {
+  harnessId: string;
+  command: string;
+  ok: boolean;
+  exitCode: number;
+  timedOut: boolean;
+  /** Killed by a signal or a spawn error that is not the timeout. */
+  killed: boolean;
+}
+
+export interface ExecuteChecksOptions {
+  repoRoot: string;
+  json: boolean;
+  timeoutMs: number;
+  timeoutSeconds: number;
+  jobs: number;
+}
+
+/** What one selfcheck did, before the gate interprets it. */
+interface RawOutcome {
+  status: number | null;
+  signal: NodeJS.Signals | null;
+  /** `ETIMEDOUT` when the gate's timer fired, else a spawn error's code. */
+  errorCode: string | undefined;
+  hasError: boolean;
+  stdout: string;
+  stderr: string;
+}
+
+/** Cap on what a failing selfcheck prints into `--json` mode's stderr. */
+const FAILURE_OUTPUT_CHARS = 20_000;
+
+/**
+ * Selfchecks decide their own module resolution: strip the `nodetool-dev`
+ * conditions this CLI may be running under (set by `npm run dev:nodetool`), or
+ * dist-mode scripts like reliability:ring0 resolve packages to src/ and fail.
+ */
+function selfcheckEnv(): NodeJS.ProcessEnv {
+  const nodeOptions = (process.env["NODE_OPTIONS"] ?? "")
+    .replace(/--conditions[= ]nodetool-dev/g, "")
+    .trim();
+  return {
+    ...process.env,
+    ...(nodeOptions ? { NODE_OPTIONS: nodeOptions } : { NODE_OPTIONS: "" })
+  };
+}
+
+/** Run one selfcheck to completion, output inherited (serial, live). */
+async function runCheckSync(
+  check: GateCheck,
+  o: ExecuteChecksOptions
+): Promise<RawOutcome> {
+  const { spawnSync } = await import("node:child_process");
+  const r = spawnSync(check.command, {
+    cwd: o.repoRoot,
+    shell: true,
+    stdio: o.json ? "pipe" : "inherit",
+    encoding: "utf8",
+    timeout: o.timeoutMs,
+    maxBuffer: SELFCHECK_MAX_BUFFER,
+    killSignal: "SIGKILL",
+    env: selfcheckEnv()
+  });
+  return {
+    status: r.status,
+    signal: r.signal,
+    errorCode: (r.error as NodeJS.ErrnoException | undefined)?.code,
+    hasError: r.error !== undefined,
+    stdout: r.stdout ?? "",
+    stderr: r.stderr ?? ""
+  };
+}
+
+/**
+ * Run one selfcheck without blocking, buffering its output. A stream keeps only
+ * its tail past the cap instead of killing the child, which is what a full
+ * pipe did to `spawnSync` (see SELFCHECK_MAX_BUFFER). The child leads its own
+ * process group so the timeout's SIGKILL reaches what the shell started, and
+ * the result settles at the kill rather than waiting on pipes a grandchild
+ * still holds.
+ */
+async function runCheckAsync(
+  check: GateCheck,
+  o: ExecuteChecksOptions
+): Promise<RawOutcome> {
+  const { spawn } = await import("node:child_process");
+  const cap = o.json ? FAILURE_OUTPUT_CHARS : SELFCHECK_MAX_BUFFER;
+  return new Promise<RawOutcome>((resolveOutcome) => {
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+    let spawnError: NodeJS.ErrnoException | undefined;
+    let settled = false;
+    const child = spawn(check.command, {
+      cwd: o.repoRoot,
+      shell: true,
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: true,
+      env: selfcheckEnv()
+    });
+    const settle = (
+      status: number | null,
+      signal: NodeJS.Signals | null
+    ): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolveOutcome({
+        status,
+        signal,
+        errorCode: timedOut ? "ETIMEDOUT" : spawnError?.code,
+        hasError: timedOut || spawnError !== undefined,
+        stdout,
+        stderr
+      });
+    };
+    const timer = setTimeout(() => {
+      timedOut = true;
+      try {
+        if (child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
+      } catch {
+        child.kill("SIGKILL");
+      }
+      settle(null, "SIGKILL");
+    }, o.timeoutMs);
+    child.stdout?.setEncoding("utf8");
+    child.stderr?.setEncoding("utf8");
+    child.stdout?.on("data", (d: string) => {
+      stdout += d;
+      if (stdout.length > cap) stdout = stdout.slice(-cap);
+    });
+    child.stderr?.on("data", (d: string) => {
+      stderr += d;
+      if (stderr.length > cap) stderr = stderr.slice(-cap);
+    });
+    child.on("error", (e) => {
+      spawnError = e;
+      settle(null, null);
+    });
+    child.on("close", (code, signal) => settle(code, signal));
+  });
+}
+
+/**
+ * Turn what a selfcheck did into a result and print its report. `emit` receives
+ * the text so a parallel run can print it as one block.
+ *
+ * Fails closed on a kill: a timeout or any other signal leaves `status` null,
+ * which counts as a failure, never as the "no exit code, assume ok" case. Only
+ * ETIMEDOUT is reported as a timeout, though — every other signal used to be
+ * too, and a check killed for some other reason then claimed to have run for
+ * the full `--timeout` when it had run for three minutes.
+ */
+function interpretOutcome(
+  check: GateCheck,
+  raw: RawOutcome,
+  o: ExecuteChecksOptions
+): { result: GateCheckResult; stdoutText: string; stderrText: string } {
+  const timedOut = raw.errorCode === "ETIMEDOUT";
+  const killed = raw.signal != null || raw.hasError;
+  const exitCode = timedOut ? TIMEOUT_EXIT_CODE : (raw.status ?? 1);
+  let stderrText = "";
+  let stdoutText = "";
+  if (o.json && (timedOut || killed || exitCode !== 0)) {
+    const output = `${raw.stdout}\n${raw.stderr}`.slice(-FAILURE_OUTPUT_CHARS);
+    stderrText = `\n${check.harnessId} failed (exit ${exitCode}):\n${output}\n`;
+  }
+  if (!o.json && timedOut) {
+    stdoutText = `\nTIMEOUT ${check.harnessId} exceeded ${o.timeoutSeconds}s: ${check.command}\n`;
+  } else if (!o.json && killed) {
+    stdoutText = `\nKILLED ${check.harnessId} (${raw.signal ?? raw.errorCode}): ${check.command}\n`;
+  }
+  return {
+    result: {
+      harnessId: check.harnessId,
+      command: check.command,
+      ok: !timedOut && !killed && exitCode === 0,
+      exitCode,
+      timedOut,
+      killed
+    },
+    stdoutText,
+    stderrText
+  };
+}
+
+/**
+ * Run the selected selfchecks and return their results in plan order.
+ *
+ * With `jobs` of 1 every check runs serially in plan order with live output.
+ * With more, the cheap checks run `jobs` at a time with buffered output
+ * printed per check as a block, then the expensive ones run serially: they
+ * stage bundles and bind ports, so they cannot share a machine with each other
+ * or with the cheap pool.
+ */
+export async function executeChecks(
+  checks: readonly GateCheck[],
+  o: ExecuteChecksOptions
+): Promise<GateCheckResult[]> {
+  const results: GateCheckResult[] = new Array(checks.length);
+
+  const runSerial = async (index: number): Promise<void> => {
+    const check = checks[index]!;
+    if (!o.json) console.log(`\n── ${check.harnessId}: ${check.command}\n`);
+    const { result, stdoutText, stderrText } = interpretOutcome(
+      check,
+      await runCheckSync(check, o),
+      o
+    );
+    if (stderrText) process.stderr.write(stderrText);
+    if (stdoutText) process.stdout.write(stdoutText);
+    results[index] = result;
+  };
+
+  if (o.jobs <= 1) {
+    for (let i = 0; i < checks.length; i++) await runSerial(i);
+    return results;
+  }
+
+  const cheap: number[] = [];
+  const expensive: number[] = [];
+  checks.forEach((c, i) => (c.cost === "cheap" ? cheap : expensive).push(i));
+
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    while (next < cheap.length) {
+      const index = cheap[next++]!;
+      const check = checks[index]!;
+      const raw = await runCheckAsync(check, o);
+      const { result, stdoutText, stderrText } = interpretOutcome(check, raw, o);
+      // One block per check, written without an await in between, so output
+      // from checks that finish together does not interleave.
+      if (!o.json) {
+        process.stdout.write(`\n── ${check.harnessId}: ${check.command}\n\n${raw.stdout}`);
+        if (raw.stderr) process.stderr.write(raw.stderr);
+      }
+      if (stderrText) process.stderr.write(stderrText);
+      if (stdoutText) process.stdout.write(stdoutText);
+      results[index] = result;
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(o.jobs, cheap.length) }, () => worker())
+  );
+  for (const index of expensive) await runSerial(index);
+  return results;
+}
+
+export function printGatePlan(
   plan: GatePlan,
   runCount: number,
   skippedExpensive: number,
+  skippedSuites: readonly GateCheck[],
   all?: boolean
 ): void {
-  if (all) {
+  const skipNote = [
+    skippedExpensive > 0
+      ? `${skippedExpensive} expensive skipped — pass --expensive`
+      : "",
+    skippedSuites.length > 0
+      ? `${skippedSuites.length} suite-only skipped — pass --include-suites`
+      : ""
+  ].filter(Boolean);
+  const suffix = skipNote.length > 0 ? ` (${skipNote.join("; ")})` : "";
+  const printSkippedSuites = (): void => {
+    if (skippedSuites.length === 0) return;
     console.log(
-      `\nRunning all ${runCount} selfcheck(s)${skippedExpensive > 0 ? ` (${skippedExpensive} expensive skipped — pass --expensive)` : ""}`
+      "\nCovered by `npm run test:affected` (selfcheck only re-runs those suites):"
     );
+    for (const c of skippedSuites) console.log(`  ${c.harnessId}`);
+  };
+  if (all) {
+    console.log(`\nRunning all ${runCount} selfcheck(s)${suffix}`);
+    printSkippedSuites();
     return;
   }
   if (plan.changedFiles.length === 0) {
     console.log("\nNo changed files — nothing to gate.");
     return;
   }
+  if (plan.globalFiles.length > 0) {
+    console.log(
+      `\n${plan.globalFiles.length} global file(s) force every selfcheck:`
+    );
+    for (const f of plan.globalFiles.slice(0, 8)) console.log(`  ${f}`);
+    if (plan.globalFiles.length > 8) {
+      console.log(`  …and ${plan.globalFiles.length - 8} more`);
+    }
+  }
   console.log(
     `\n${plan.changedFiles.length} changed file(s) touch ${plan.surfaces.length} surface(s):`
   );
   for (const s of plan.surfaces) {
-    console.log(`  ${s.id.padEnd(20)} (${s.files.length} file(s))`);
+    const via = s.viaDependency ? "  (via dependency)" : "";
+    console.log(`  ${s.id.padEnd(20)} (${s.files.length} file(s))${via}`);
   }
   if (plan.unmappedFiles.length > 0) {
     console.log(`\n${plan.unmappedFiles.length} file(s) outside any surface:`);
@@ -468,9 +761,8 @@ function printGatePlan(
       console.log(`  ${m.harnessId.padEnd(18)} ${m.command}`);
     }
   }
-  console.log(
-    `\n${runCount} selfcheck(s) to run${skippedExpensive > 0 ? ` (${skippedExpensive} expensive skipped — pass --expensive)` : ""}`
-  );
+  printSkippedSuites();
+  console.log(`\n${runCount} selfcheck(s) to run${suffix}`);
 }
 
 /**

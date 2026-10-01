@@ -1953,6 +1953,9 @@ npm run dev:nodetool -- harness gate --dry-run   # plan only
 npm run dev:nodetool -- harness gate --all       # every selfcheck (--expensive to widen)
 npm run dev:nodetool -- harness gate --strict    # also fail on a touched gap surface
 npm run dev:nodetool -- harness gate --timeout 900   # per-selfcheck timeout, in seconds
+npm run dev:nodetool -- harness gate --deps     # also route through workspace dependents
+npm run dev:nodetool -- harness gate --include-suites  # also run suite-only selfchecks
+npm run dev:nodetool -- harness gate --jobs 4   # cheap selfchecks four at a time
 npm run dev:nodetool -- harness capabilities     # capability coverage + documented gaps
 ```
 
