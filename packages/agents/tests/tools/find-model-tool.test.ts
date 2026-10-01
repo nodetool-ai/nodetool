@@ -27,6 +27,9 @@ class FakeImageProvider extends BaseProvider {
   constructor(id: ProviderId, private readonly models: ImageModel[]) {
     super(id);
   }
+  protected override declaredCapabilities() {
+    return ["text_to_image", "image_to_image"] as const;
+  }
   override async getAvailableImageModels(): Promise<ImageModel[]> {
     return this.models;
   }
@@ -44,6 +47,9 @@ class FakeLanguageProvider extends BaseProvider {
 class FakeTTSProvider extends BaseProvider {
   constructor(id: ProviderId, private readonly models: TTSModel[]) {
     super(id);
+  }
+  protected override declaredCapabilities() {
+    return ["text_to_speech"] as const;
   }
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
     return this.models;

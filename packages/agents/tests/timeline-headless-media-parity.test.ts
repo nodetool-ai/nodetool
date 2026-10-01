@@ -43,6 +43,9 @@ class EditProvider extends BaseProvider {
   constructor() {
     super("fal_ai");
   }
+  protected override declaredCapabilities() {
+    return ["text_to_video", "image_to_video", "video_to_video"] as const;
+  }
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
     return [
       {
