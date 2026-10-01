@@ -87,6 +87,24 @@ describe("widget catalog", () => {
     });
   });
 
+  it("declares the recipe UX primitives as serializable catalog widgets", () => {
+    for (const type of ["ChoiceCards", "Stepper", "Approval", "ProductBrandInput"]) {
+      expect(widgetMode(type)).toBe("write");
+      expect(WIDGET_CATALOG[type].trigger).toBe("change");
+      expect(widgetFields(type)).toHaveProperty("events", "array");
+    }
+    for (const type of ["DynamicCards", "ShotReview"]) {
+      expect(widgetMode(type)).toBe("read");
+      expect(WIDGET_CATALOG[type].trigger).toBe("change");
+      expect(widgetBindingProps(type)).toEqual([
+        { prop: "selectionBinding", mode: "write" }
+      ]);
+    }
+    expect(widgetFields("Stepper")).toHaveProperty("steps", "array");
+    expect(widgetFields("ChoiceCards")).toHaveProperty("options", "array");
+    expect(widgetFields("ProductBrandInput")).toHaveProperty("fields", "array");
+  });
+
   it("reports no extra bindings for a widget that binds once", () => {
     expect(widgetBindingProps("Text")).toEqual([]);
     expect(widgetBindingProps("Bogus")).toEqual([]);
