@@ -187,6 +187,28 @@ describe("useDirectScreenplay", () => {
     );
   });
 
+  it("preserves approved graphics, production, media and motion design on retained shots", async () => {
+    const graphics = { mode: "graphics_first" as const, elements: [{ id: "price", kind: "text" as const, text: " €29 " }] };
+    const production = { media_strategy: "still_motion_graphics" as const, protected_inputs: [{ id: "price", kind: "exact_text" as const, value: " €29 ", allowed_transformations: [] }] };
+    const store = useStoryboardStore.getState();
+    store.setScreenplay(BOARD, { type: "screenplay", id: "old", title: "Ad", motion_design: { direction: "Retain rhythm" }, shots: [{ type: "shot", id: "shot-0", index: 0, action: "Old", status: "rendered", graphics, production, keyframe: { type: "image", asset_id: "original" } }] });
+    rpcRequest.mockResolvedValue(answer(1));
+    const { result } = renderHook(() => useDirectScreenplay());
+    await act(async () => { await result.current.direct(BOARD, 1); });
+    const board = useStoryboardStore.getState().getBoard(BOARD);
+    expect(board?.shots[0].graphics).toEqual(graphics);
+    expect(board?.shots[0].production).toEqual(production);
+    expect(board?.shots[0].keyframe?.asset_id).toBe("original");
+    expect(board?.screenplay?.motion_design).toEqual({ direction: "Retain rhythm" });
+  });
+
+  it("clears stored graphics with the explicit undefined patch used by the browser bridge", () => {
+    const store = useStoryboardStore.getState();
+    store.setScreenplay(BOARD, { type: "screenplay", id: "old", title: "Ad", shots: [{ type: "shot", id: "shot-0", index: 0, action: "Price", status: "planned", graphics: { mode: "graphics_first" } }] });
+    store.updateShot(BOARD, "shot-0", { graphics: undefined });
+    expect(useStoryboardStore.getState().getBoard(BOARD)?.shots[0].graphics).toBeUndefined();
+  });
+
   it("writes the parsed screenplay onto the board", async () => {
     rpcRequest.mockResolvedValue(answer(2));
     const { result } = renderHook(() => useDirectScreenplay());

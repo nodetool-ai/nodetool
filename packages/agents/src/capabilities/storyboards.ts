@@ -2628,6 +2628,8 @@ const directStoryboard: CapabilityExport = {
           ...held,
           ...shot,
           index,
+          graphics: held.graphics,
+          production: held.production,
           keyframe: held.keyframe,
           keyframe_versions: held.keyframe_versions,
           clip: held.clip,
