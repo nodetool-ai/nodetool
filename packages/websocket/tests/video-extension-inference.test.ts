@@ -25,6 +25,13 @@ class ExtensionProvider extends BaseProvider {
   constructor() {
     super("fal_ai");
   }
+  protected override declaredCapabilities() {
+    return [
+      "text_to_video",
+      "image_to_video",
+      "extend_video"
+    ] as const;
+  }
   override async getAvailableVideoModels() {
     return [
       {

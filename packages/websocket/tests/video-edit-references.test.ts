@@ -23,6 +23,13 @@ class EditProvider extends BaseProvider {
   readonly calls: VideoToVideoParams[] = [];
   tasks = ["video_to_video", "video_to_video_reference"];
   constructor() { super("fal_ai"); }
+  protected override declaredCapabilities() {
+    return [
+      "text_to_video",
+      "image_to_video",
+      "video_to_video"
+    ] as const;
+  }
   override async getAvailableVideoModels() {
     return [{ id: "edit", name: "Edit", provider: "fal_ai", supportedTasks: this.tasks }];
   }
