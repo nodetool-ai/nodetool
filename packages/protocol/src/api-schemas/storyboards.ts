@@ -32,6 +32,63 @@ const shotModelRef = z.object({
   name: z.string().optional()
 });
 
+export const storyboardShotGraphicsElement = z
+  .object({
+    id: z.string(),
+    kind: z.enum(["text", "asset", "shape"]),
+    role: z
+      .enum([
+        "headline",
+        "subhead",
+        "price",
+        "badge",
+        "cta",
+        "logo",
+        "product",
+        "decorative"
+      ])
+      .optional(),
+    text: z.string().optional(),
+    asset_id: z.string().optional(),
+    entity_id: z.string().optional(),
+    direction: z.string().optional()
+  })
+  .passthrough();
+
+export const storyboardShotGraphics = z
+  .object({
+    mode: z
+      .enum(["none", "overlay", "graphics_first", "hybrid"])
+      .optional(),
+    direction: z.string().optional(),
+    elements: z.array(storyboardShotGraphicsElement).optional()
+  })
+  .passthrough();
+
+const storyboardTransitionIntent = z
+  .object({
+    from_shot_id: z.string(),
+    to_shot_id: z.string(),
+    direction: z.string().optional()
+  })
+  .passthrough();
+
+const storyboardContinuityIntent = z
+  .object({
+    id: z.string(),
+    shot_ids: z.array(z.string()),
+    direction: z.string()
+  })
+  .passthrough();
+
+export const storyboardMotionDesign = z
+  .object({
+    direction: z.string().optional(),
+    transitions: z.array(storyboardTransitionIntent).optional(),
+    continuities: z.array(storyboardContinuityIntent).optional()
+  })
+  .passthrough();
+
 export const storyboardShot = z
   .object({
     type: z.literal("shot"),
@@ -41,6 +98,7 @@ export const storyboardShot = z
     status: z.string(),
     slug: z.string().optional(),
     motion: z.string().optional(),
+    graphics: storyboardShotGraphics.optional(),
     duration_seconds: z.number().optional(),
     keyframe: mediaRef.nullable().optional(),
     clip: mediaRef.nullable().optional(),
@@ -124,6 +182,7 @@ const SCREENPLAY_KEY_ALIASES: Readonly<Record<string, string>> = {
   musicPrompt: "music_prompt",
   entityIds: "entity_ids",
   scriptId: "script_id",
+  motionDesign: "motion_design",
   createdAt: "created_at",
   updatedAt: "updated_at"
 };
