@@ -1,0 +1,34 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "nodetool",
+  "version": "0.1.0",
+  "description": "Build, validate, and run NodeTool AI workflows, and manage assets, collections, and jobs, from ChatGPT.",
+  "author": {
+    "name": "NodeTool",
+    "url": "https://nodetool.ai"
+  },
+  "homepage": "https://nodetool.ai",
+  "repository": "https://github.com/nodetool-ai/nodetool",
+  "license": "AGPL-3.0",
+  "keywords": ["workflows", "automation", "ai", "media", "agents"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "NodeTool",
+        "shortDescription": "Build and run visual AI workflows.",
+        "longDescription": "Connect ChatGPT to your NodeTool server. Search the node registry, build and validate workflow graphs, run them, and read back outputs, assets, and job logs.",
+        "developerName": "NodeTool",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://nodetool.ai",
+        "defaultPrompt": [
+          "Use NodeTool to build a workflow that summarizes a PDF.",
+          "Use NodeTool to validate and run my latest workflow.",
+          "Use NodeTool to find the failing node in my last job."
+        ],
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png"
+      }
+    }
+  }
+}
