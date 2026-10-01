@@ -166,7 +166,9 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
       if (!tracks.some((value) => value.id === track.id)) tracks.push({ ...track, index: previous ? track.index : Math.max(-1, ...tracks.map((value) => value.index)) + 1 });
       const protection = element.protected_input_id ? protectedInputs.get(element.protected_input_id) : undefined;
       const isBackground = element.kind === "shape" && element.id === "background";
-      const y = element.role === "product" ? 0.42 : element.role === "logo" ? 0.1 : element.role === "headline" ? 0.18 : element.role === "cta" ? 0.84 : 0.66 + (index % 2) * 0.1;
+      const priceIntent = element.role === "price" ? element.direction?.trim().toLowerCase() : undefined;
+      const priceY = priceIntent === "superseded price" ? 0.65 : priceIntent === "current price" ? 0.76 : undefined;
+      const y = priceY ?? (element.role === "product" ? 0.42 : element.role === "logo" ? 0.1 : element.role === "headline" ? 0.18 : element.role === "cta" ? 0.84 : 0.66 + (index % 2) * 0.1);
       const clip = makeClip({
         id: previous?.id ?? createTimeOrderedUuid(), trackId: track.id, name: element.id,
         startMs, durationMs, mediaType: element.id === "$source" && source?.kind === "video" ? "video" : element.kind === "asset" ? "image" : element.kind,
@@ -175,7 +177,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
         storyboardElementId: element.id, storyboardElementRole: element.role,
         currentAssetId: element.kind === "asset" ? protection?.asset_id ?? element.asset_id : undefined,
         transform: isBackground ? undefined : { position: { x: 0, y: (y - 0.5) * input.height }, scale: { x: element.role === "logo" ? 0.18 : element.kind === "asset" ? 0.65 : 1, y: element.role === "logo" ? 0.18 : element.kind === "asset" ? 0.65 : 1 }, rotation: 0, anchor: { x: 0.5, y: 0.5 } },
-        textStyle: element.kind === "text" ? { text: protection?.value ?? element.text ?? "", fontSizePx: element.role === "price" ? input.width * 0.12 : input.width * 0.065, fontWeight: 600, color: "#FFFFFF", align: "center", maxWidthFrac: 0.85 } : undefined,
+        textStyle: element.kind === "text" ? { text: protection?.value ?? element.text ?? "", fontSizePx: element.role === "price" ? input.width * (priceIntent === "superseded price" ? 0.055 : 0.12) : input.width * 0.065, fontWeight: 600, color: "#FFFFFF", align: "center", maxWidthFrac: 0.85 } : undefined,
         shapeStyle: element.kind === "shape" ? { kind: "rect", fill: protection?.kind === "brand_color" ? protection.value : "#21263A", x: isBackground ? 0 : 0.12, y: isBackground ? 0 : 0.74, width: isBackground ? 1 : 0.76, height: isBackground ? 1 : 0.008 } : undefined,
         animations: isBackground ? [] : [{ id: previous?.animations?.[0]?.id ?? createTimeOrderedUuid(), role: "in", preset: "fade", durationMs: 400, delayMs: 80 * index }]
       });

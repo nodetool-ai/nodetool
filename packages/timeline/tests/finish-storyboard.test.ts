@@ -157,4 +157,20 @@ describe("Storyboard finishing", () => {
     expect(second.document.tracks.find((track) => track.id === product.trackId)!.index).toBe(0);
   });
 
+  it("uses semantic price hierarchy while preserving exact copy and rerun placement", () => {
+    const args = input();
+    const price = args.shots[0].graphics!.elements!.find((element) => element.id === "price")!;
+    price.direction = "current price";
+    args.shots[0].graphics!.elements!.push({ id: "superseded", kind: "text", role: "price", direction: "superseded price", text: " €49 " });
+    const first = materializeStoryboard(args);
+    const current = first.document.clips.find((clip) => clip.storyboardElementId === "price")!;
+    const old = first.document.clips.find((clip) => clip.storyboardElementId === "superseded")!;
+    expect(old.textStyle!.fontSizePx).toBeLessThan(current.textStyle!.fontSizePx!);
+    expect(old.transform!.position.y).toBeLessThan(current.transform!.position.y);
+    expect(old.textStyle!.text).toBe(" €49 ");
+    const rerun = materializeStoryboard({ ...args, current: first.document });
+    expect(rerun.validation).toEqual([]);
+    expect(rerun.document.clips.map((clip) => clip.transform)).toEqual(first.document.clips.map((clip) => clip.transform));
+  });
+
 });
