@@ -43,7 +43,10 @@ import {
   storyboardShotGraphics,
   type StoryboardSetupStage
 } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
-import { productionRequirement } from "@nodetool-ai/protocol";
+import {
+  assertProductionGenerationAllowed,
+  productionRequirement
+} from "@nodetool-ai/protocol";
 import type { ScriptAssemblyInput } from "@nodetool-ai/timeline";
 import type {
   RenderShotsOptions,
@@ -1026,6 +1029,11 @@ const reviseStoryboardClip: CapabilityExport = {
     }
     if (shot.production?.media_strategy === "still_motion_graphics") {
       return { error: `Shot ${shot.id} is still_motion_graphics; video revision is forbidden.` };
+    }
+    try {
+      assertProductionGenerationAllowed(shot.production, "video_to_video");
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) };
     }
     if (!shot.clip) {
       return {

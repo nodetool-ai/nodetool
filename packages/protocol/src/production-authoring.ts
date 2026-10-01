@@ -257,6 +257,75 @@ export const productionRequirement = z
   });
 export type ProductionRequirement = z.infer<typeof productionRequirement>;
 
+/** Resolve shot overrides without allowing inherited source truth to disappear. */
+export function resolveEffectiveProductionRequirement(
+  boardPolicy: ProductionRequirement | undefined,
+  shotPolicy: ProductionRequirement | undefined
+): ProductionRequirement | undefined {
+  if (!boardPolicy && !shotPolicy) return undefined;
+  if (boardPolicy) boardPolicy = productionRequirement.parse(boardPolicy);
+  if (shotPolicy) shotPolicy = productionRequirement.parse(shotPolicy);
+  const inputs = new Map<string, ProductionProtectedInput>();
+  for (const input of [
+    ...(boardPolicy?.protected_inputs ?? []),
+    ...(shotPolicy?.protected_inputs ?? [])
+  ]) {
+    const inherited = inputs.get(input.id);
+    if (inherited) {
+      if (
+        inherited.kind !== input.kind ||
+        inherited.asset_id !== input.asset_id ||
+        inherited.entity_id !== input.entity_id ||
+        inherited.value !== input.value
+      ) {
+        throw new Error(
+          `Protected input ${input.id} conflicts with inherited production truth.`
+        );
+      }
+      inputs.set(input.id, {
+        ...input,
+        allowed_transformations: inherited.allowed_transformations.filter(
+          (operation) => input.allowed_transformations.includes(operation)
+        )
+      });
+    } else {
+      inputs.set(input.id, input);
+    }
+  }
+  return productionRequirement.parse({
+    ...boardPolicy,
+    ...shotPolicy,
+    protected_inputs: [...inputs.values()]
+  });
+}
+
+/** Current generation routes cannot mechanically preserve protected content. */
+export function assertProductionGenerationAllowed(
+  requirement: ProductionRequirement | undefined,
+  capability:
+    | "text_to_image"
+    | "image_to_image"
+    | "text_to_video"
+    | "image_to_video"
+    | "reference_to_video"
+    | "video_to_video"
+): void {
+  if (!requirement) return;
+  if (
+    requirement.media_strategy === "still_motion_graphics" &&
+    capability.endsWith("video")
+  ) {
+    throw new Error(
+      "still_motion_graphics forbids video generation. Materialize editable Timeline layers instead."
+    );
+  }
+  if (requirement.protected_inputs?.length) {
+    throw new Error(
+      "This generation route cannot prove protected source fidelity. Materialize protected assets and exact values as editable Timeline layers instead."
+    );
+  }
+}
+
 /** Operations a finished-cut plan can propose against protected content. */
 export const productionMaterializationOperation = z.enum([
   "position",
