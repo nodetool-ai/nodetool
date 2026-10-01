@@ -1,9 +1,8 @@
 import { readFileSync } from "node:fs";
-import { isKnownWidget } from "../../packages/app-runtime/dist/widgets.js";
+import { isKnownWidget, parseApplicationBundle } from "@nodetool-ai/app-runtime";
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { PRODUCT_PRICE_DROP_BUNDLE, PLAN_CODE, FINISH_CODE } from "../example-apps/product-price-drop.mjs";
-import { parseApplicationBundle } from "../../packages/app-runtime/dist/bundle.js";
 const input = {productImage: {asset_id: "a".repeat(32)}, logo: {asset_id: "b".repeat(32)}, headline: "  Better coffee  ", oldPrice: "€49", newPrice: "€29", cta: "Shop now", brandColor: "#1248AB", direction: "Bold editorial rhythm"};
 const execute = async (code, inputs, capabilities) => {
   const results = {};
