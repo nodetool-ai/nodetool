@@ -8,7 +8,11 @@ import {
   type ProcessingContext,
   type VideoModel
 } from "@nodetool-ai/runtime";
-import type { TimelineDocument, TimelineSequence } from "@nodetool-ai/models";
+import {
+  assertStoryboardClipGenerationAllowed,
+  type TimelineDocument,
+  type TimelineSequence
+} from "@nodetool-ai/models";
 import {
   captureMediaEditSourceContext,
   createLipSyncCandidateRequest,
@@ -382,11 +386,38 @@ function generationAssetId(result: GenerationResult): string | null {
   return null;
 }
 
+async function videoProductionPolicyError(
+  run: CapabilityRun,
+  sequence: TimelineSequence,
+  clip: TimelineClip
+): Promise<ToolError | null> {
+  const userId = run.context.userId;
+  if (!userId) {
+    return failure("No user is bound to this session.", "production_policy");
+  }
+  try {
+    await assertStoryboardClipGenerationAllowed(
+      userId, sequence.project_id, clip, "video_to_video"
+    );
+    return null;
+  } catch (error) {
+    return failure(errorMessage(error), "production_policy");
+  }
+}
+
 async function dispatchGeneration(
   run: CapabilityRun,
   request: GenerationRequest
 ): Promise<ValueOrError<GenerationResult>> {
   try {
+    if (["outpaint_video", "upscale_video", "lip_sync"].includes(request.capability)) {
+      const sequence = await loadOwnedTimeline(run, request.destination?.document_id);
+      if (isError(sequence)) { return sequence; }
+      const clip = findClip(sequence.toDocument(), request.destination?.target_id);
+      if (isError(clip)) { return clip; }
+      const policyError = await videoProductionPolicyError(run, sequence, clip);
+      if (policyError) { return policyError; }
+    }
     return await run.context.runGeneration(request);
   } catch (error) {
     return failure(
@@ -517,6 +548,8 @@ const expandFrame: CapabilityExport = {
     if (isError(clip)) return clip;
     const source = captureVideoSource(sequence.id, clip);
     if (isError(source)) return source;
+    const policyError = await videoProductionPolicyError(run, sequence, clip);
+    if (policyError) { return policyError; }
     const sourcePinError = checkSourcePin(params, source.sourceAssetId);
     if (sourcePinError) return sourcePinError;
 
@@ -628,6 +661,8 @@ const upscaleVideo: CapabilityExport = {
     if (isError(clip)) return clip;
     const source = captureVideoSource(sequence.id, clip);
     if (isError(source)) return source;
+    const policyError = await videoProductionPolicyError(run, sequence, clip);
+    if (policyError) { return policyError; }
     const sourcePinError = checkSourcePin(params, source.sourceAssetId);
     if (sourcePinError) return sourcePinError;
 
@@ -1135,6 +1170,8 @@ const lipSync: CapabilityExport = {
     if (isError(clip)) return clip;
     const source = captureVideoSource(sequence.id, clip);
     if (isError(source)) return source;
+    const policyError = await videoProductionPolicyError(run, sequence, clip);
+    if (policyError) { return policyError; }
     const sourcePinError = checkSourcePin(params, source.sourceAssetId);
     if (sourcePinError) return sourcePinError;
     const replacementAudio = readAcceptedReplacementAudio(

@@ -1,3 +1,4 @@
+import { productionRequirement } from "@nodetool-ai/protocol";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   BaseProvider,
@@ -8,7 +9,7 @@ import {
   type ProviderStreamItem,
   type VideoModel
 } from "@nodetool-ai/runtime";
-import { TimelineSequence, initTestDb } from "@nodetool-ai/models";
+import { Storyboard, TimelineSequence, initTestDb } from "@nodetool-ai/models";
 import { makeClip } from "@nodetool-ai/timeline";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
@@ -609,4 +610,86 @@ describe("native timeline media capabilities", () => {
     expect(result).toMatchObject({ code: "source_stale" });
     expect(dispatch).not.toHaveBeenCalled();
   });
+});
+
+
+describe("native video transformation production policy", () => {
+  beforeEach(() => initTestDb());
+  it.each([
+    "expand_frame", "upscale_video", "lip_sync"
+  ])("denies %s before provider resolution and bytes for protected/still sources", async (operation) => {
+    for (const policy of [
+      productionRequirement.parse({ media_strategy: "still_motion_graphics" }),
+      productionRequirement.parse({ protected_inputs: [{ id: "product", kind: "product", asset_id: "exact-product" }] }),
+      productionRequirement.parse({ protected_inputs: [{ id: "logo", kind: "logo", asset_id: "exact-logo" }] })
+    ]) {
+      const board = await Storyboard.create<Storyboard>({ user_id: "u1", project_id: "default", name: "Ad", document: JSON.stringify({ shots: [{ id: "shot", index: 0, action: "Ad", status: "rendered", production: policy }] }) });
+      const timeline = await makeTimeline();
+      const document = timeline.toDocument();
+      document.clips[0].storyboardBoardId = board.id;
+      document.clips[0].storyboardShotId = "shot";
+      timeline.document = JSON.stringify(document); await timeline.save();
+      const { context, dispatch } = nativeContext();
+      const provider = vi.spyOn(context, "getProvider");
+      const result = await runNativeCapability(context, operation).process(context, {
+        timeline_id: timeline.id, clip_id: "clip-video", provider: "fake",
+        model: operation === "expand_frame" ? "outpaint-model" : operation === "upscale_video" ? "upscale-model" : "lip-sync-model",
+        source_asset_id: "source-video", request_id: `protected-${operation}`,
+        target_aspect_ratio: "9:16", padding: { top: 10 }, target_resolution: "1080p", scale: 2,
+        replacement_audio: { asset_id: "replacement-audio", status: "accepted", provenance: { request_id: "voice", operation: "recorded_voice_replacement" } }
+      });
+      expect(result).toMatchObject({ code: "production_policy" });
+      expect(provider).not.toHaveBeenCalled();
+      expect(context.resolveAssetBytes).not.toHaveBeenCalled();
+      expect(dispatch).not.toHaveBeenCalled();
+    }
+  });
+  it("rechecks changed production policy before dispatch", async () => {
+    const board = await Storyboard.create<Storyboard>({
+      user_id: "u1", project_id: "default", name: "Ad",
+      document: JSON.stringify({ shots: [{ id: "shot", index: 0, action: "Ad", status: "rendered" }] })
+    });
+    const timeline = await makeTimeline();
+    const document = timeline.toDocument();
+    document.clips[0].storyboardBoardId = board.id;
+    document.clips[0].storyboardShotId = "shot";
+    timeline.document = JSON.stringify(document);
+    await timeline.save();
+    const { context, dispatch } = nativeContext();
+    vi.mocked(context.resolveAssetBytes).mockImplementation(async () => {
+      const updated = board.toDocument();
+      updated.shots[0].production = productionRequirement.parse({ media_strategy: "still_motion_graphics" });
+      board.document = JSON.stringify(updated);
+      await board.save();
+      return { bytes: new Uint8Array([1, 2, 3]), attempts: [] };
+    });
+    const result = await runNativeCapability(context, "upscale_video").process(context, {
+      timeline_id: timeline.id, clip_id: "clip-video", provider: "fake", model: "upscale-model",
+      target_resolution: "1080p", scale: 2
+    });
+    expect(result).toMatchObject({ code: "production_policy" });
+    expect(context.resolveAssetBytes).toHaveBeenCalled();
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("preserves audio-only generation for a protected still-motion shot", async () => {
+    const board = await Storyboard.create<Storyboard>({
+      user_id: "u1", project_id: "default", name: "Ad",
+      document: JSON.stringify({ shots: [{ id: "shot", index: 0, action: "Ad", status: "rendered", production: productionRequirement.parse({ media_strategy: "still_motion_graphics" }) }] })
+    });
+    const timeline = await makeTimeline();
+    const document = timeline.toDocument();
+    document.clips[0].storyboardBoardId = board.id;
+    document.clips[0].storyboardShotId = "shot";
+    timeline.document = JSON.stringify(document);
+    await timeline.save();
+    const { context, dispatch } = nativeContext();
+    const result = await runNativeCapability(context, "video_to_audio").process(context, {
+      timeline_id: timeline.id, clip_id: "clip-video", provider: "fake", model: "sound-model",
+      source_asset_id: "source-video", source_duration_ms: 60000, scene_context: "Train brakes."
+    });
+    expect(result).toMatchObject({ accepted: false, timeline_mutated: false });
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ capability: "video_to_audio" }));
+  });
+
 });
