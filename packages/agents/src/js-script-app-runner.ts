@@ -14,7 +14,7 @@
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import type { JsScriptOperationRunner } from "@nodetool-ai/execution/app-debug";
 import { JS_SCRIPT_MAX_TIMEOUT_SECONDS } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { ProcessingContext, PERMISSION_GATE_CONTEXT_KEY, headlessGate } from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { runCodeBody } from "./capabilities/code.js";
 
@@ -41,6 +41,7 @@ export function createJsScriptAppRunner(
       contextInit.secretResolver = options.secretResolver;
     }
     const context = new ProcessingContext(contextInit);
+    context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("Mini App script operation"));
     const declared = Math.min(
       input.document.timeoutSeconds,
       JS_SCRIPT_MAX_TIMEOUT_SECONDS
