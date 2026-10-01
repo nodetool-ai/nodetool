@@ -266,6 +266,9 @@ describe("the shipped artifact", () => {
     ) {
       super(id);
     }
+    protected override declaredCapabilities() {
+      return ["text_to_image", "image_to_image"] as const;
+    }
     override async getAvailableImageModels(): Promise<ImageModel[]> {
       return this.served;
     }

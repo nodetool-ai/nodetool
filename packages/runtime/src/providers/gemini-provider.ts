@@ -1,6 +1,6 @@
 import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { geminiContextExceeded } from "./context-exceeded.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { sniffVideoMime } from "./video-mime.js";
@@ -798,6 +798,22 @@ async function* decodeGeminiSse(
 }
 
 export class GeminiProvider extends BaseProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
+      "video_to_video",
+      "extend_video",
+      "text_to_speech",
+      "text_to_music",
+      "automatic_speech_recognition",
+      "generate_embedding"
+    ];
+  }
+
   static requiredSecrets(): string[] {
     return ["GEMINI_API_KEY"];
   }

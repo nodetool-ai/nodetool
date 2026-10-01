@@ -34,6 +34,7 @@ import type {
   ReferenceToVideoInputs,
   ReferenceToVideoParams
 } from "./types.js";
+import type { ProviderCapability } from "./base-provider.js";
 
 const log = createLogger("nodetool.runtime.providers.minimax");
 
@@ -168,6 +169,18 @@ function assertBaseResp(data: Record<string, unknown>, context: string): void {
 }
 
 export class MinimaxProvider extends OpenAICompatProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
+      "text_to_speech",
+      "text_to_music"
+    ];
+  }
+
   static override requiredSecrets(): string[] {
     return ["MINIMAX_API_KEY"];
   }

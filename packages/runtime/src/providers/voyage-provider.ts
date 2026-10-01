@@ -6,7 +6,7 @@
  * API docs: https://docs.voyageai.com/reference/embeddings-api
  */
 
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   EmbeddingModel,
@@ -76,6 +76,12 @@ interface VoyageProviderOptions {
 }
 
 export class VoyageProvider extends BaseProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "generate_embedding"
+    ];
+  }
+
   static override requiredSecrets(): string[] {
     return ["VOYAGE_API_KEY"];
   }

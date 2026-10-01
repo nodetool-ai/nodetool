@@ -1,6 +1,6 @@
 import type { Chunk } from "@nodetool-ai/protocol";
 import { importOptionalModule, importNodeBuiltin } from "@nodetool-ai/config";
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import type {
   EmbeddingModel,
   LanguageModel,
@@ -277,6 +277,12 @@ function asText(content: Message["content"]): string {
  * provider's `generateMessages`/`generateMessage` contract.
  */
 export class NodeLlamaCppProvider extends BaseProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "generate_embedding"
+    ];
+  }
+
   static requiredSecrets(): string[] {
     return [];
   }

@@ -15,6 +15,7 @@ import type {
   VideoModel
 } from "./types.js";
 import { isString } from "@nodetool-ai/protocol";
+import type { ProviderCapability } from "./base-provider.js";
 
 const log = createLogger("nodetool.runtime.providers.evolink");
 
@@ -117,6 +118,15 @@ const EVOLINK_VIDEO_MODELS: VideoModel[] = [
  * image and video generation.
  */
 export class EvolinkProvider extends OpenAICompatProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video"
+    ];
+  }
+
   static override requiredSecrets(): string[] {
     return ["EVOLINK_API_KEY"];
   }

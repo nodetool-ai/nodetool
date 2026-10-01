@@ -62,7 +62,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 
 ### Provider capabilities
 
-NodeTool derives this matrix by checking which optional methods a provider overrides — `getAvailableImageModels` for text-to-image/image-to-image, `getAvailableTTSModels` for text-to-speech, `getAvailableASRModels` for speech recognition, `getAvailableEmbeddingModels` for embeddings, `getAvailable3DModels` for 3D — rather than a hand-maintained flag per provider. To make a model usable outside the node graph (an agent, the `generate` CLI command, the generation API), implement the matching method on the provider; the capability then shows up automatically everywhere NodeTool lists what a provider can do.
+Each provider lists the operations it implements by overriding `BaseProvider.declaredCapabilities()` (`packages/runtime/src/providers/base-provider.ts`). Chat is always included. To make a model usable outside the node graph (an agent, the `generate` CLI command, the generation API), implement the matching method on the provider and declare its capability. The contract test `packages/runtime/tests/providers/provider-capabilities-contract.test.ts` fails when a declared capability has no implementation or a model in the provider's catalog offers an undeclared task.
 
 ## OpenAI
 

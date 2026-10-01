@@ -18,6 +18,7 @@ import type {
   TTSModel,
   VideoModel
 } from "./types.js";
+import type { ProviderCapability } from "./base-provider.js";
 
 // ─── Model catalogs ───────────────────────────────────────────────────────────
 
@@ -193,6 +194,18 @@ function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export class TogetherProvider extends OpenAICompatProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video",
+      "text_to_speech",
+      "automatic_speech_recognition",
+      "generate_embedding"
+    ];
+  }
+
   static override requiredSecrets(): string[] {
     return ["TOGETHER_API_KEY"];
   }

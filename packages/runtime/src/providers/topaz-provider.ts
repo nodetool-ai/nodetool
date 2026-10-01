@@ -16,7 +16,7 @@
  * Image API docs: https://developer.topazlabs.com/getting-started/image-api-quickstart
  */
 
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { fetchWithRetry, pollUntilTerminal } from "./http-transport.js";
 import { sniffImageMime } from "./image-mime.js";
@@ -115,6 +115,12 @@ function detectImageMime(image: Uint8Array): string {
 export class TopazProvider extends BaseProvider {
   private readonly apiKey: string;
   private variantMap: Map<string, VariantInfo> | null = null;
+
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "upscale_image"
+    ];
+  }
 
   static override requiredSecrets(): string[] {
     return ["TOPAZ_API_KEY"];

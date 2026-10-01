@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
 import { EvolinkProvider } from "../../src/providers/evolink-provider.js";
-import { providerCapabilities } from "../../src/providers/base-provider.js";
 import type { Message } from "../../src/providers/types.js";
 import {
   chatJsonResponse,
@@ -202,7 +201,7 @@ describe("EvolinkProvider", () => {
       { EVOLINK_API_KEY: "k" },
       { client: {} as any }
     );
-    const caps = providerCapabilities(provider);
+    const caps = provider.getCapabilities();
     expect(caps).toContain("text_to_image");
     expect(caps).toContain("image_to_image");
     expect(caps).toContain("text_to_video");

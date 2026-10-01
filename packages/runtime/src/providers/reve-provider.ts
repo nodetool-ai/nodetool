@@ -26,7 +26,7 @@
  *  - Accept:  `application/json` → response carries a base64 PNG in `image`.
  */
 
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   ImageModel,
@@ -68,6 +68,13 @@ interface ReveImageResponse {
 
 export class ReveProvider extends BaseProvider {
   private readonly apiKey: string;
+
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image"
+    ];
+  }
 
   static override requiredSecrets(): string[] {
     return ["REVE_API_KEY"];

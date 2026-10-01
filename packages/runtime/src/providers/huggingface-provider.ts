@@ -1,5 +1,5 @@
 import { createLogger } from "@nodetool-ai/config";
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { isCallable, isNumber, isString } from "@nodetool-ai/protocol";
 import type { Chunk } from "@nodetool-ai/protocol";
 import type {
@@ -309,6 +309,17 @@ function chatPayload(
 }
 
 export class HuggingFaceProvider extends BaseProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "text_to_speech",
+      "automatic_speech_recognition",
+      "generate_embedding"
+    ];
+  }
+
   static override requiredSecrets(): string[] {
     return ["HF_TOKEN"];
   }

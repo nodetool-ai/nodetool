@@ -42,6 +42,9 @@ class FakeImageProvider extends BaseProvider {
   ) {
     super(id);
   }
+  protected override declaredCapabilities() {
+    return ["text_to_image", "image_to_image"] as const;
+  }
   override async getAvailableImageModels(): Promise<ImageModel[]> {
     return this.models;
   }
@@ -53,6 +56,9 @@ class FakeVideoProvider extends BaseProvider {
     private readonly models: VideoModel[]
   ) {
     super(id);
+  }
+  protected override declaredCapabilities() {
+    return ["text_to_video", "image_to_video"] as const;
   }
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
     return this.models;
@@ -78,6 +84,9 @@ class FakeMusicProvider extends BaseProvider {
   ) {
     super(id);
   }
+  protected override declaredCapabilities() {
+    return ["text_to_music"] as const;
+  }
   override async getAvailableMusicModels(): Promise<MusicModel[]> {
     return this.models;
   }
@@ -89,6 +98,9 @@ class FakeAudioToAudioProvider extends BaseProvider {
     private readonly models: AudioToAudioModel[]
   ) {
     super(id);
+  }
+  protected override declaredCapabilities() {
+    return ["audio_to_audio"] as const;
   }
   override async getAvailableAudioToAudioModels(): Promise<
     AudioToAudioModel[]
@@ -103,6 +115,9 @@ class FakeTTSProvider extends BaseProvider {
     private readonly models: TTSModel[]
   ) {
     super(id);
+  }
+  protected override declaredCapabilities() {
+    return ["text_to_speech"] as const;
   }
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
     return this.models;

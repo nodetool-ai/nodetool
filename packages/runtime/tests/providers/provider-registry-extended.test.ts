@@ -244,7 +244,7 @@ describe("provider-registry — extended coverage", () => {
           }
         }
       )
-    ).rejects.toThrow("does not support referenceToVideo");
+    ).rejects.toThrow("Python worker does not support reference_to_video");
 
     const referenceToVideo = vi.fn(async () => new Uint8Array([9]));
     const models = vi.fn(async () => [

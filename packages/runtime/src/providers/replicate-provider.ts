@@ -1,7 +1,7 @@
 import Replicate from "replicate";
 import { createLogger } from "@nodetool-ai/config";
 import { isCallable, isObjectLike, isString } from "@nodetool-ai/protocol";
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { withReplicateRetry } from "./replicate-retry.js";
 import { sniffAudioMime } from "./audio-mime.js";
@@ -180,6 +180,29 @@ function describeOutputShape(output: unknown): string {
  * - Image / Video / TTS:  `replicate.run()` with file output
  */
 export class ReplicateProvider extends BaseProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
+      "inpainting",
+      "outpaint_image",
+      "upscale_image",
+      "remove_background",
+      "relight_image",
+      "vectorize_image",
+      "video_to_video",
+      "extend_video",
+      "upscale_video",
+      "lip_sync",
+      "text_to_speech",
+      "text_to_music",
+      "audio_to_audio"
+    ];
+  }
+
   static requiredSecrets(): string[] {
     return ["REPLICATE_API_TOKEN"];
   }

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
 import { JinaProvider } from "../../src/providers/jina-provider.js";
-import { providerCapabilities } from "../../src/providers/base-provider.js";
 
 const mockOk = (json: unknown) =>
   ({
@@ -35,7 +34,7 @@ describe("JinaProvider", () => {
 
   it("advertises generate_embedding capability", () => {
     const p = new JinaProvider({ JINA_API_KEY: "k" });
-    expect(providerCapabilities(p)).toContain("generate_embedding");
+    expect(p.getCapabilities()).toContain("generate_embedding");
   });
 
   it("returns the curated embedding model list", async () => {

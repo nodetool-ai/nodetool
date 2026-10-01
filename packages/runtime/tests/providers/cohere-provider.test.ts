@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
 import { CohereProvider } from "../../src/providers/cohere-provider.js";
-import { providerCapabilities } from "../../src/providers/base-provider.js";
 
 const mockOk = (json: unknown) =>
   ({
@@ -35,7 +34,7 @@ describe("CohereProvider", () => {
 
   it("advertises generate_embedding capability and not chat", () => {
     const p = new CohereProvider({ COHERE_API_KEY: "k" });
-    const caps = providerCapabilities(p);
+    const caps = p.getCapabilities();
     expect(caps).toContain("generate_embedding");
   });
 

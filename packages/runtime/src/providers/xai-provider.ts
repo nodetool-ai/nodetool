@@ -12,6 +12,7 @@ import type {
   TextToVideoParams,
   VideoModel
 } from "./types.js";
+import type { ProviderCapability } from "./base-provider.js";
 
 const XAI_BASE_URL = "https://api.x.ai/v1";
 
@@ -92,6 +93,15 @@ function classifyModel(row: XAIModelRow): ModelModality {
  * xAI's OpenAI-compatible endpoint at https://api.x.ai/v1.
  */
 export class XAIProvider extends OpenAICompatProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video"
+    ];
+  }
+
   static override requiredSecrets(): string[] {
     return ["XAI_API_KEY"];
   }
