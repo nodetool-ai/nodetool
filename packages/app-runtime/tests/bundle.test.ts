@@ -108,6 +108,48 @@ describe("bundleFromApplication", () => {
   });
 });
 
+describe("Recipe Application manifest", () => {
+  const recipe = {
+    schemaVersion: 1 as const,
+    slug: "product-price-drop",
+    category: "social-ad",
+    tags: ["product", "motion-graphics"],
+    inputs: [
+      { id: "product", label: "Product image", kind: "image" as const, required: true },
+      { id: "price", label: "Price", kind: "text" as const, required: true }
+    ],
+    creativeStrategy: { objective: "Drive conversion", structure: "hook > offer > CTA" },
+    preservationRules: [
+      { inputId: "product", policy: "exact_asset" as const, allowedTransformations: ["position", "scale", "crop", "composite"] as const },
+      { inputId: "price", policy: "exact_text" as const }
+    ],
+    mediaPolicy: { defaultStrategy: "still_motion_graphics" as const, allowGeneratedVideo: false },
+    operations: [
+      { id: "build", bindingId: "draft", intent: "build_social_ad" }
+    ],
+    outputs: [{ id: "timeline", kind: "timeline" as const, label: "Editable ad" }],
+    marketing: { shortDescription: "Animate a faithful product offer." }
+  };
+
+  it("round-trips recipe metadata through export/import", () => {
+    const recipeApp: BundleApplicationSource = {
+      ...app,
+      document: { ...app.document, recipe }
+    };
+    const bundle = bundleFromApplication(recipeApp, sources);
+    expect(bundle.app.recipe).toEqual(recipe);
+
+    const wire = parseApplicationBundle(JSON.parse(serializeApplicationBundle(bundle)));
+    expect(wire?.app.recipe).toEqual(recipe);
+    const installed = applyBundle(wire!, { newWorkflowId: (_workflow, index) => `new-${index + 1}` });
+    expect(installed.app.document.recipe).toEqual(recipe);
+  });
+
+  it("leaves ordinary Applications unchanged", () => {
+    expect(parseApplicationBundle(bundleFromApplication(app, sources))?.app.recipe).toBeUndefined();
+  });
+});
+
 describe("applyBundle", () => {
   it("round-trips: operations point at the newly created workflow ids", () => {
     const bundle = bundleFromApplication(app, sources);
