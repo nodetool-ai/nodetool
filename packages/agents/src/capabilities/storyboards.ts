@@ -43,6 +43,7 @@ import {
   storyboardShotGraphics,
   type StoryboardSetupStage
 } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
+import { productionRequirement } from "@nodetool-ai/protocol";
 import type { ScriptAssemblyInput } from "@nodetool-ai/timeline";
 import type {
   RenderShotsOptions,
@@ -583,6 +584,7 @@ const getStoryboard: CapabilityExport = {
           camera: shot.camera,
           motion: shot.motion,
           graphics: shot.graphics,
+          production: shot.production,
           duration_seconds: shot.duration_seconds,
           status: shot.status,
           has_keyframe: !!shot.keyframe,
@@ -817,6 +819,10 @@ const renderStoryboardStills: CapabilityExport = {
             : "No shot needs a still: each already has one, or renders its clip directly."
       };
     }
+    const protectedStill = chosen.find((shot) => shot.production?.protected_inputs?.some((input) => input.asset_id));
+    if (protectedStill) {
+      return { error: `Shot ${protectedStill.id} protects source assets; the current still renderer cannot prove source fidelity. Use those assets directly in Timeline materialization or a policy-aware finishing path.` };
+    }
     if (chosen.length > MAX_SHOTS_PER_CALL) {
       return {
         error: `${chosen.length} shots selected, over the ${MAX_SHOTS_PER_CALL}-shot per-call limit. Pass targets in batches.`
@@ -936,6 +942,10 @@ const renderStoryboardClips: CapabilityExport = {
             : 'No shot is ready for a clip. A keyframe-mode shot needs a still first (render_storyboard_stills), or set its render_mode to "direct" — or pass mode: "direct" here — to render straight from the prompt. Name shots explicitly with `targets` to override the selection.'
       };
     }
+    const forbiddenClip = chosen.find((shot) => shot.production?.media_strategy === "still_motion_graphics");
+    if (forbiddenClip) {
+      return { error: `Shot ${forbiddenClip.id} is still_motion_graphics; video generation is forbidden. Materialize its still/assets as Timeline layers instead.` };
+    }
     if (chosen.length > MAX_SHOTS_PER_CALL) {
       return {
         error: `${chosen.length} shots selected, over the ${MAX_SHOTS_PER_CALL}-shot per-call limit. Pass targets in batches.`
@@ -1013,6 +1023,9 @@ const reviseStoryboardClip: CapabilityExport = {
       return {
         error: `No shot matches "${String(params["target"])}". Call get_storyboard to list shot ids.`
       };
+    }
+    if (shot.production?.media_strategy === "still_motion_graphics") {
+      return { error: `Shot ${shot.id} is still_motion_graphics; video revision is forbidden.` };
     }
     if (!shot.clip) {
       return {
@@ -1628,6 +1641,7 @@ const SHOT_EDIT_FIELDS = new Set([
   "camera",
   "motion",
   "graphics",
+  "production",
   "dialogue",
   "narration",
   "notes",
@@ -1806,6 +1820,21 @@ function applyShotFields(
         );
       }
       next.graphics = parsed.data;
+    }
+  }
+  if (args["production"] !== undefined) {
+    if (args["production"] === null) {
+      delete next.production;
+    } else {
+      const parsed = productionRequirement.safeParse(args["production"]);
+      if (!parsed.success) {
+        throw new Error(
+          `production must be a valid production requirement: ${parsed.error.issues
+            .map((issue) => issue.path.join(".") || issue.message)
+            .join(", ")}.`
+        );
+      }
+      next.production = parsed.data;
     }
   }
   if (args["dialogue"] !== undefined) next.dialogue = String(args["dialogue"]);
