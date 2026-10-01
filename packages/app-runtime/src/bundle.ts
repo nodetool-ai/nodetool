@@ -330,6 +330,10 @@ export const applyBundle = (
   bundle: ApplicationBundle,
   options: ApplyBundleOptions = {}
 ): ApplyBundleResult => {
+  if (bundle.app.recipe) {
+    const errors = validateApplicationBundleBindings(bundle);
+    if (errors.length) throw new Error(`Invalid Recipe bundle: ${errors.join(" ")}`);
+  }
   const mint =
     options.newWorkflowId ?? (() => defaultMintedId("newWorkflowId"));
   const mintScript =
@@ -465,7 +469,7 @@ export const parseApplicationBundle = (
         .map(parseScript)
         .filter((script): script is BundledJsScript => script !== null)
     : [];
-  return {
+  const bundle: ApplicationBundle = {
     schemaVersion: APPLICATION_BUNDLE_SCHEMA_VERSION,
     name: isString(value.name) ? value.name : "Untitled app",
     description: isString(value.description) ? value.description : "",
@@ -473,6 +477,51 @@ export const parseApplicationBundle = (
     workflows,
     scripts
   };
+  if (bundle.app.recipe && validateApplicationBundleBindings(bundle).length > 0) return null;
+  return bundle;
+};
+
+/** Resolve executable targets and script ports carried by an Application bundle. */
+export const validateApplicationBundleBindings = (bundle: ApplicationBundle): string[] => {
+  const errors: string[] = [];
+  const workflows = new Map(bundle.workflows.map((workflow) => [workflow.key, workflow]));
+  const scripts = new Map(bundle.scripts.map((script) => [script.key, script]));
+  if (workflows.size !== bundle.workflows.length) errors.push("Bundled workflow keys must be unique.");
+  if (scripts.size !== bundle.scripts.length) errors.push("Bundled script keys must be unique.");
+  for (const operation of bundle.app.operations) {
+    const target = operationTarget(operation);
+    if (target.kind === "workflow") {
+      const workflow = workflows.get(target.workflowId);
+      if (!workflow) errors.push(`Operation ${operation.id} references missing bundled workflow ${target.workflowId}.`);
+      else if (target.workflowVersion !== undefined && workflow.version != null && target.workflowVersion !== workflow.version) errors.push(`Operation ${operation.id} pins a workflow version absent from its bundle.`);
+      continue;
+    }
+    const script = scripts.get(target.scriptId);
+    if (!script) {
+      errors.push(`Operation ${operation.id} references missing bundled script ${target.scriptId}.`);
+      continue;
+    }
+    if (target.scriptVersion < 1 || target.scriptVersion !== (script.version ?? 1)) errors.push(`Operation ${operation.id} pins a script version absent from its bundle.`);
+    const inputs = new Set(script.document.inputs.map((port) => port.name));
+    const outputs = new Set(script.document.outputs.map((port) => port.name));
+    for (const name of Object.keys(operation.inputs)) {
+      if (!inputs.has(name)) errors.push(`Operation ${operation.id} maps missing script input ${name}.`);
+    }
+    for (const name of Object.keys(operation.outputs)) {
+      if (!outputs.has(name)) errors.push(`Operation ${operation.id} maps missing script output ${name}.`);
+    }
+    if (bundle.app.recipe) {
+      for (const [name, mapping] of Object.entries(operation.inputs)) {
+        if (mapping.from !== "variable") continue;
+        const variableType = bundle.app.variables.find((variable) => variable.id === mapping.variableId)?.type?.type;
+        const portType = script.document.inputs.find((port) => port.name === name)?.type;
+        if (variableType && portType && variableType !== "any" && portType !== "any" && variableType !== portType && !(variableType === "int" && portType === "float")) {
+          errors.push(`Recipe operation ${operation.id} input ${name} cannot bind ${variableType} to script type ${portType}.`);
+        }
+      }
+    }
+  }
+  return errors;
 };
 
 /** The bundle as a file's contents. */
