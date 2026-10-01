@@ -51,6 +51,7 @@ export const storyboardShotGraphicsElement = z
     text: z.string().optional(),
     asset_id: z.string().optional(),
     entity_id: z.string().optional(),
+    protected_input_id: z.string().optional(),
     direction: z.string().optional()
   })
   .passthrough();
