@@ -223,7 +223,7 @@ describe("useAssembleTimeline", () => {
     invalidateSpy.mockRestore();
   });
 
-  it("throws when no shot is rendered", async () => {
+  it("rejects a board without a persisted picture before creating a timeline", async () => {
     seedBoard("board-2", {
       shots: [
         {
@@ -238,7 +238,7 @@ describe("useAssembleTimeline", () => {
     const { result } = renderHook(() => useAssembleTimeline());
     await act(async () => {
       await expect(result.current.assemble("board-2")).rejects.toThrow(
-        /No rendered shots/
+        /No storyboard picture to assemble/
       );
     });
     expect(createMutate).not.toHaveBeenCalled();
