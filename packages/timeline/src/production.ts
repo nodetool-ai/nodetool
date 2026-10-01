@@ -118,6 +118,15 @@ export function compileProductionCandidates(
   input: CompileProductionCandidatesInput
 ): CompiledProductionCandidate[] {
   const requirement = input.requirement;
+  if (requirement?.media_strategy === "still_motion_graphics") {
+    throw new Error("still_motion_graphics is not a video-generation route; materialize supplied stills/assets on the Timeline.");
+  }
+  const protectedAssets = requirement?.protected_inputs?.filter((item) => item.asset_id) ?? [];
+  if (protectedAssets.length > 0) {
+    throw new Error(
+      `Video generation cannot prove fidelity for protected source assets: ${protectedAssets.map((item) => item.id).join(", ")}. Keep them as separate Timeline layers.`
+    );
+  }
   const prompt = requiredId(
     [input.prompt, requirement?.local_direction]
       .filter((value): value is string => Boolean(value?.trim()))
