@@ -94,7 +94,7 @@ interface OperationRuntime {
    * The script this operation runs, for a script target. Undefined while it
    * loads, or when the operation runs a workflow — the two are exclusive.
    */
-  script: { id: string; document: JsScriptDocument } | undefined;
+  script: { id: string; version: number; document: JsScriptDocument } | undefined;
   io: WorkflowIO;
   runnerStore: WorkflowRunnerStore;
 }
@@ -170,9 +170,7 @@ export const useAppRuntime = (
     return [...ids].sort();
   }, [operations, workflowId, workflowOverrides]);
 
-  // Scripts the app's operations run. The run endpoint executes the *saved*
-  // document, so the draft always runs the latest — the pinned version in the
-  // target says which one the app was authored against, not which one runs.
+  // Port bindings and execution use the same immutable operation snapshot.
   const fetchedScripts = useOperationScripts(operations);
   const fetchedScriptsRef = useRef(fetchedScripts);
   fetchedScriptsRef.current = fetchedScripts;
@@ -208,11 +206,13 @@ export const useAppRuntime = (
     for (const operation of operations) {
       const target = operationTarget(operation);
       if (target.kind === "script") {
-        const script = fetchedScriptsRef.current.get(target.scriptId);
+        const script = fetchedScriptsRef.current.get(operation.id);
         map.set(operation.id, {
           operation,
           workflow: undefined,
-          script: script ? { id: target.scriptId, document: script } : undefined,
+          script: script
+            ? { id: target.scriptId, version: target.scriptVersion, document: script }
+            : undefined,
           // A script's ports are its bindable surface; its name-keyed mappings
           // resolve against them the way a graph's resolve against node ids.
           io: extractScriptIO(script),
@@ -842,7 +842,9 @@ export const useAppRuntime = (
             params,
             usesStreamInputContract(script.document.code)
           );
-          result = await runJsScript(script.id, inputs, inputStreams);
+          result = await runJsScript(
+            script.id, inputs, inputStreams, script.version > 0 ? script.version : undefined
+          );
         } catch (error) {
           result = {
             ok: false,

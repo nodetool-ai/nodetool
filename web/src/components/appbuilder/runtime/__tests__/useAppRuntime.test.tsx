@@ -58,7 +58,7 @@ const getScript = jest.fn(async (_input: { id: string }) => ({
 jest.mock("../../../../trpc/client", () => ({
   trpcClient: {
     jobs: { cancel: { mutate: (input: { id: string }) => cancelJob(input) } },
-    jsScripts: { get: { query: (input: { id: string }) => getScript(input) } }
+    jsScripts: {get: {query: (input: {id: string}) => getScript(input)}, documentVersions: {get: { query: (input: { id: string; version: number }) => getScript(input) }} }
   }
 }));
 
@@ -67,8 +67,9 @@ jest.mock("../../../jsScript/runJsScript", () => ({
   runJsScript: (
     id: string,
     inputs: Record<string, unknown>,
-    inputStreams?: Record<string, unknown[]>
-  ) => runJsScript(id, inputs, inputStreams)
+    inputStreams?: Record<string, unknown[]>,
+    version?: number
+  ) => runJsScript(id, inputs, inputStreams, version)
 }));
 
 import { getWorkflowRunnerStore } from "../../../../stores/WorkflowRunner";
@@ -838,11 +839,11 @@ describe("useAppRuntime — script operations", () => {
       ]
     });
 
-  const renderScriptApp = () =>
+  const renderScriptApp = (scriptVersion = 1) =>
     renderHook(
       () =>
         useAppRuntime(workflowA, false, {
-          document: scriptDoc(),
+          document: {...scriptDoc(), operations: scriptDoc().operations.map(operation => ({...operation, target: {kind: "script", scriptId: "script-1", scriptVersion}}))},
           application: { id: "app-script" }
         }),
       { wrapper }
@@ -881,13 +882,23 @@ describe("useAppRuntime — script operations", () => {
       await result.current.dispatch({ kind: "run", operationId: "main" });
     });
 
+    expect(getScript).toHaveBeenCalledWith({id: "script-1", version: 1});
     // Ports are the wire names, so the mapped value arrives keyed by port name.
-    expect(runJsScript).toHaveBeenCalledWith("script-1", { a: 3 }, undefined);
+    expect(runJsScript).toHaveBeenCalledWith("script-1", { a: 3 }, undefined, 1);
     // No graph was submitted: a script run never touches a workflow runner.
     expect(runnerState("wf-a").run).not.toHaveBeenCalled();
     await waitFor(() =>
       expect(result.current.store.getState().variables.total).toBe(4)
     );
+  });
+
+  it("keeps unpinned version-zero draft operations on the saved head", async () => {
+    runJsScript.mockResolvedValue({ok: true, outputs: {sum: 4}, streamed: [], logs: [], duration_ms: 1});
+    const {result} = renderScriptApp(0);
+    await waitFor(() => expect(result.current.ioFor("main").inputs).toHaveLength(1));
+    await act(async () => { await result.current.dispatch({kind: "run", operationId: "main"}); });
+    expect(getScript).toHaveBeenCalledWith({id: "script-1"});
+    expect(runJsScript).toHaveBeenCalledWith("script-1", {}, undefined, undefined);
   });
 
   it("reports a failed script run as a failed invocation", async () => {

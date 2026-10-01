@@ -322,10 +322,11 @@ The app builder authors one: an operation's **Runs** field picks Workflow or JS
 script, and a script target picks from the user's scripts. Switching what an
 operation runs clears its input and output mappings, in `updateOperation` rather
 than in the panel, because they key on the old target's node ids or port names.
-The draft always runs the script's **saved** document — the run endpoint takes
-no version — so a target's `scriptVersion` records what the app was authored
-against, not what executes. Pinning a release to an exact version needs a
-version-aware run endpoint and is not built.
+A positive `scriptVersion` pins both the bindable ports and execution to the
+owned immutable snapshot. The run endpoint receives that version through
+`script_version` and rejects missing or malformed snapshots without falling
+back to the live script. Version-zero draft targets use the saved head.
+Ordinary script-editor runs omit `script_version` and retain saved-head behavior.
 
 `ApplicationBundle.scripts` carries each pinned document under a bundle-local
 key. Because a script row has its own version numbering, import snapshots every

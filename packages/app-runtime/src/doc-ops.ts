@@ -363,7 +363,7 @@ export interface BindingTargets {
  * one bound to the host workflow, which is what a legacy app runs.
  *
  * `scripts` carries the documents of the script operations the caller has
- * loaded, keyed by script id. A script operation whose document is absent
+ * loaded, keyed by operation id so different pinned versions stay distinct. A script operation whose document is absent
  * reports `ioAvailable: false`, exactly as an operation over an unloaded
  * workflow does.
  *
@@ -389,7 +389,7 @@ export const bindingTargets = (
     operations: operations.map((op) => {
       const target = operationTarget(op);
       const script =
-        target.kind === "script" ? scripts.get(target.scriptId) : undefined;
+        target.kind === "script" ? scripts.get(op.id) : undefined;
       // A script's ports are its bindable surface — its names stand in for the
       // node ids a graph would supply.
       const bindable: BindableWorkflow | undefined = script
