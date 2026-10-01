@@ -16,6 +16,7 @@
 
 import type {
   CameraDirection,
+  ProductionRequirement,
   Screenplay,
   ShotDurationSource,
   ShotGraphics,
@@ -36,6 +37,7 @@ export interface StoryboardShotNode {
   camera?: CameraDirection;
   motion?: string;
   graphics?: ShotGraphics;
+  production?: ProductionRequirement;
   durationSeconds?: number;
   /** Where `durationSeconds` comes from; absent on an unlinked board. */
   durationSource?: ShotDurationSource;
@@ -130,6 +132,7 @@ export interface StoryboardAddShotInput {
   camera?: CameraDirection;
   motion?: string;
   graphics?: ShotGraphics;
+  production?: ProductionRequirement;
   durationSeconds?: number;
   /** 0-based insertion index; appended when omitted. */
   index?: number;
@@ -194,6 +197,7 @@ export interface StoryboardUpdateShotPatch {
   camera?: CameraDirection;
   motion?: string;
   graphics?: ShotGraphics | null;
+  production?: ProductionRequirement | null;
   status?: ShotStatus;
   /** Spoken line delivered in-shot. Read-only on a board linked to a script. */
   dialogue?: string;
