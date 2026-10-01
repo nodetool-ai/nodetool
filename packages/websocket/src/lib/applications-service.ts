@@ -61,12 +61,16 @@ export const updateApplicationInput = patchApplicationInput.and(
 export type UpdateApplicationInput = z.infer<typeof updateApplicationInput>;
 
 export function toListItem(app: Application): ApplicationListItem {
+  const document = app.toDocument();
   return {
     id: app.id,
     projectId: app.project_id,
     name: app.name,
     description: app.description,
-    operationCount: app.toDocument().operations.length,
+    operationCount: document.operations.length,
+    isRecipe: document.recipe !== undefined,
+    recipeSlug: document.recipe?.slug ?? null,
+    recipeCategory: document.recipe?.category ?? null,
     updatedAt: app.updated_at
   };
 }
