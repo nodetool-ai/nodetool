@@ -137,7 +137,8 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   const [meta, setMeta] = useState<AppDocMeta>(() => ({
     operations: document.operations,
     resources: document.resources,
-    variables: document.variables
+    variables: document.variables,
+    recipe: document.recipe
   }));
   const narrow = useMediaQuery(NARROW_QUERY);
   const panelSx = narrow ? overlayPanelSx : sidePanelSx;
