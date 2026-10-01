@@ -2282,7 +2282,13 @@ function applyBoardOp(
       const direction = screenplayDirection.safeParse(args);
       if (!direction.success) {
         throw new Error(
-          `set_board: ${direction.error.issues.map((issue) => issue.path.join(".")).join(", ")} must be a string. Use an empty string to clear direction.`
+          "set_board has invalid screenplay direction: " +
+            direction.error.issues
+              .map(
+                (issue) =>
+                  `${issue.path.join(".") || "direction"}: ${issue.message}`
+              )
+              .join("; ")
         );
       }
       if (args["brief"] !== undefined) doc.brief = String(args["brief"]);
