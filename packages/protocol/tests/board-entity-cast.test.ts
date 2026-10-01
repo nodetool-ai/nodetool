@@ -40,28 +40,14 @@ describe("boardEntityIdsWithShots", () => {
     ).toEqual(["a", "b", "c"]);
   });
 
-  it("appends graphics element entity ids without making them prompt selections", () => {
+  it("keeps graphics-only entity ids out of the generation cast", () => {
     const s = shot("s1");
     s.graphics = {
       mode: "overlay",
-      elements: [
-        {
-          id: "logo",
-          kind: "asset",
-          role: "logo",
-          entity_id: "brand"
-        }
-      ]
+      elements: [{ id: "logo", kind: "asset", role: "logo", entity_id: "brand" }]
     };
-
-    const widened = boardEntityIdsWithShots(["character"], [s]);
-    expect(widened).toEqual(["character", "brand"]);
-
-    const library = [entity("character"), entity("brand")];
-    const cast = library.filter((candidate) => widened.includes(candidate.id));
-    expect(entitiesForShot(s, cast).map((candidate) => candidate.id)).not.toContain(
-      "brand"
-    );
+    const cast = ["character"];
+    expect(boardEntityIdsWithShots(cast, [s])).toBe(cast);
   });
 
   it("returns the same array when every shot id is already cast", () => {
