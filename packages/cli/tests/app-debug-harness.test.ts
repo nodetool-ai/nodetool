@@ -777,7 +777,7 @@ describe("runAppDebug target kinds", () => {
 
   /** What every target kind must agree on, whatever it was named as. */
   const shapeOf = (report: Awaited<ReturnType<typeof runAppDebug>>) => ({
-    app: report.app,
+    app: { title: report.app.title, widgetCount: report.app.widgetCount },
     io: report.io,
     validation: report.validation,
     interactions: report.interactions,
@@ -826,6 +826,9 @@ describe("runAppDebug target kinds", () => {
     const fromBundle = await runTarget(bundleFile);
 
     expect(fromApplication.verdict.ok).toBe(true);
+    expect(legacy.app.version).toBe(4);
+    expect(fromApplication.app.version).toBe(3);
+    expect(fromBundle.app.version).toBe(3);
     expect(shapeOf(fromApplication)).toEqual(shapeOf(legacy));
     expect(shapeOf(fromBundle)).toEqual(shapeOf(legacy));
 
