@@ -54,7 +54,14 @@ const RuntimeErrorBanner: React.FC = () => {
       ? runtimeState.invocations[invocationId]?.error
       : undefined;
     return error && invocationId
-      ? [{ invocationId, operationId: operation.id, name: operation.name, error }]
+      ? [
+          {
+            invocationId,
+            operationId: operation.id,
+            name: operation.name,
+            error
+          }
+        ]
       : [];
   });
 
@@ -78,7 +85,7 @@ const RuntimeErrorBanner: React.FC = () => {
               <ReportBugButton
                 label="Report failure"
                 context={{
-                  source: "panel-crash",
+                  source: "operation-failure",
                   summary: `${name || operationId} operation failed`,
                   errorText: error
                 }}

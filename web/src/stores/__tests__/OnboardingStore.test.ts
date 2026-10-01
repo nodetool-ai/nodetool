@@ -36,7 +36,7 @@ describe("OnboardingStore", () => {
     expect(useOnboardingStore.getState().dismissed).toBe(true);
   });
 
-  it("migrates workflow-era steps to the project-surface steps", () => {
+  it.each([1, 3])("clears action-based completion from persistence version %i", (version) => {
     const { migrate } = (useOnboardingStore as unknown as {
       persist: { getOptions: () => { migrate?: unknown } };
     }).persist.getOptions();
@@ -51,7 +51,7 @@ describe("OnboardingStore", () => {
         completedSteps: ["open-template", "run-workflow", "create-workflow"],
         dismissed: false
       },
-      1
+      version
     );
     expect(next.completedSteps).toEqual([]);
   });

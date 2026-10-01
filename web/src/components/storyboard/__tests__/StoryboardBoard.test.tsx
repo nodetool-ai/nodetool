@@ -1186,7 +1186,7 @@ describe("StoryboardBoard Change Style", () => {
 });
 
 describe("StoryboardBoard next steps", () => {
-  it("explains why timeline creation is disabled for a still-only board", () => {
+  it("offers timeline creation for a still-only board", () => {
     mockShots = [
       {
         ...makeShot("s1"),
@@ -1199,10 +1199,7 @@ describe("StoryboardBoard next steps", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByRole("button", { name: "Create timeline" })).toBeDisabled();
-    expect(
-      screen.getByText("Render a clip to create a timeline.")
-    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Create timeline" })).toBeEnabled();
   });
 
   it("offers Create timeline once a shot has a clip", () => {

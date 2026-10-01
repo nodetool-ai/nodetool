@@ -19,6 +19,8 @@ import {
 } from "../../hooks/useApplications";
 import {
   Caption,
+  AlertBanner,
+  EditorButton,
   EmptyState,
   FlexColumn,
   LoadingSpinner,
@@ -26,11 +28,13 @@ import {
 } from "../ui_primitives";
 import { parseApplicationDocument, type AppDocument } from "./appData";
 import AppRuntimeView from "./AppRuntimeView";
+import ReportBugButton from "../support/ReportBugButton";
 
 interface ApplicationRunViewProps {
   applicationId: string;
   /** Run the current draft for the owner without changing the released app. */
   previewDraft?: boolean;
+  draftDocument?: AppDocument;
 }
 
 /** A pinned graph, wrapped as the workflow shape the runtime and runner want. */
@@ -50,25 +54,27 @@ const pinnedWorkflow = (
 
 const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
   applicationId,
-  previewDraft = false
+  previewDraft = false,
+  draftDocument
 }) => {
-  const { data: application, isLoading } = useApplication(applicationId);
-  const { data: release, isLoading: releaseLoading } =
-    useReleasedApplicationDocument(applicationId);
+  const applicationQuery = useApplication(applicationId);
+  const { data: application, isLoading } = applicationQuery;
+  const releaseQuery = useReleasedApplicationDocument(applicationId);
+  const { data: release, isLoading: releaseLoading } = releaseQuery;
   const fetchWorkflow = useWorkflowManager((s) => s.fetchWorkflow);
 
   const document = useMemo<AppDocument | null>(() => {
     const source = previewDraft
-      ? application?.document
-      : release?.document ?? application?.document;
+      ? (draftDocument ?? application?.document)
+      : (release?.document ?? application?.document);
     return source ? parseApplicationDocument(source) : null;
-  }, [application?.document, previewDraft, release?.document]);
+  }, [application?.document, draftDocument, previewDraft, release?.document]);
 
   // Graphs the release froze. A snapshot published before releases pinned
   // anything carries none, and those operations fall back to the live workflow.
   const workflowOverrides = useMemo<Record<string, Workflow>>(() => {
     const overrides: Record<string, Workflow> = {};
-    for (const pinned of previewDraft ? [] : release?.workflows ?? []) {
+    for (const pinned of previewDraft ? [] : (release?.workflows ?? [])) {
       if (!pinned.graph) continue;
       overrides[pinned.workflowId] = pinnedWorkflow(
         pinned.workflowId,
@@ -82,14 +88,18 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
   // The host workflow: the first operation's, pinned when the release pinned it.
   const hostWorkflowId = document?.operations[0]?.workflowId ?? "";
   const pinnedHost = workflowOverrides[hostWorkflowId];
-  const { data: liveHost } = useQuery({
+  const hostQuery = useQuery({
     queryKey: ["app-run-workflow", hostWorkflowId],
     queryFn: async () => await fetchWorkflow(hostWorkflowId),
-    enabled: Boolean(hostWorkflowId) && !pinnedHost,
+    enabled:
+      Boolean(hostWorkflowId) &&
+      !pinnedHost &&
+      (previewDraft || (!releaseLoading && !releaseQuery.isError)),
     staleTime: 0,
     refetchOnWindowFocus: false,
     retry: false
   });
+  const liveHost = hostQuery.data;
   // An app need not run a workflow at all — widgets over variables and static
   // content are a whole app. With no operation bound, the runtime still wants
   // a workflow shape, so it gets an empty one that contributes no IO.
@@ -102,8 +112,40 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
     });
   }, [applicationId, application?.name, hostWorkflowId, liveHost, pinnedHost]);
 
-  if (isLoading || releaseLoading) {
+  if (isLoading || (!previewDraft && releaseLoading)) {
     return <LoadingSpinner size="large" text="Loading app" />;
+  }
+
+  const failedQuery = applicationQuery.isError
+    ? applicationQuery
+    : !previewDraft && releaseQuery.isError
+      ? releaseQuery
+      : null;
+  if (failedQuery) {
+    const title = applicationQuery.isError
+      ? "Could not load app"
+      : "Could not load released app";
+    return (
+      <AlertBanner
+        severity="error"
+        action={
+          <>
+            <EditorButton onClick={() => void failedQuery.refetch()}>
+              Retry
+            </EditorButton>
+            <ReportBugButton
+              context={{
+                source: "notification",
+                summary: title,
+                errorText: failedQuery.error?.message
+              }}
+            />
+          </>
+        }
+      >
+        {title}
+      </AlertBanner>
+    );
   }
 
   if (!document || document.ui.content.length === 0) {
@@ -116,12 +158,29 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
     );
   }
 
+  if (!pinnedHost && hostWorkflowId && hostQuery.isLoading) {
+    return <LoadingSpinner size="large" text="Loading workflow" />;
+  }
+
   if (!workflow) {
     return (
       <EmptyState
         variant="error"
         title="Workflow unavailable"
-        description={`This app runs workflow ${hostWorkflowId}, which could not be loaded.`}
+        description={
+          <>
+            This app runs workflow {hostWorkflowId}, which could not be loaded.
+            <ReportBugButton
+              context={{
+                source: "notification",
+                summary: "App workflow unavailable",
+                errorText: hostQuery.error?.message
+              }}
+            />
+          </>
+        }
+        actionText="Retry"
+        onAction={() => void hostQuery.refetch()}
       />
     );
   }

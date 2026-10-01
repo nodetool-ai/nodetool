@@ -37,6 +37,7 @@ import {
   mergeIntoSequence,
   stampBoardProvenance
 } from "../../lib/assembledSequenceMerge";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { newDocumentId } from "../../lib/newDocumentId";
 import { assetLocator } from "../../utils/mediaRef";
 import { probeMediaDurationMs } from "../../utils/probeMediaDuration";
@@ -50,6 +51,7 @@ export interface AssembleResult {
   skippedLineIds: string[];
   /** True when an existing linked sequence was rewritten rather than created. */
   reassembled: boolean;
+  warnings: string[];
 }
 
 interface UseAssembleTimelineResult {
@@ -69,7 +71,9 @@ async function boardWithMeasuredClipDurations(
       const url = await resolveMediaUri(clip.uri || assetLocator(assetId));
       if (!url) return null;
       const durationMs = await probeMediaDurationMs(url, "video");
-      return durationMs === null ? null : ([assetId, durationMs / 1000] as const);
+      return durationMs === null
+        ? null
+        : ([assetId, durationMs / 1000] as const);
     })
   );
   const durations = new Map<string, number>();
@@ -93,27 +97,53 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
       setError(null);
       setAssembling(true);
       try {
-        const ownerTab = useWorkspaceTabsStore.getState().tabs.find(
-          (tab) => tab.type === "storyboard" && tab.ref === boardId
-        );
-        const projectId = ownerTab?.projectId ??
+        const ownerTab = useWorkspaceTabsStore
+          .getState()
+          .tabs.find((tab) => tab.type === "storyboard" && tab.ref === boardId);
+        const projectId =
+          ownerTab?.projectId ??
           (await trpcClient.storyboards.get.query({ id: boardId })).projectId;
         const measuredBoard = await boardWithMeasuredClipDurations(board);
         const scriptId = linkedScriptId(measuredBoard);
         // A linked script that cannot be read leaves the board assembling the
         // way an unlinked one does — a deleted script must not break assemble.
         const script = scriptId ? await loadLinkedScript(scriptId) : null;
+        const warnings: string[] = [];
+        if (scriptId && !script) {
+          warnings.push(
+            `Script ${scriptId} is linked but could not be loaded, so the board was assembled on its own.`
+          );
+        }
         const doc = buildTimelineDocument(measuredBoard, script);
-        // The video clips only: a shot also contributes its audio twin, and a
+        // Count picture clips: a video shot also contributes its audio twin, and a
         // jointly assembled cut stamps the shot keys onto voiceover clips too.
         const shotClips = doc.clips.filter(
-          (clip) => clip.storyboardShotId && clip.mediaType === "video"
+          (clip) =>
+            clip.storyboardShotId &&
+            (clip.mediaType === "video" || clip.mediaType === "image")
         );
         if (shotClips.length === 0) {
           throw new Error(
-            "No rendered shots to assemble — generate and render clips first."
+            "No shots to assemble. Generate a still or render a clip first."
           );
         }
+        if (doc.skippedShotIds.length > 0) {
+          warnings.push(
+            `${doc.skippedShotIds.length} shots had no persisted still or clip and were skipped.`
+          );
+        }
+        if (doc.skippedLineIds.length > 0) {
+          warnings.push(
+            `${doc.skippedLineIds.length} script lines had no voiced take and were skipped.`
+          );
+        }
+        const notifyWarnings = (): void => {
+          for (const content of warnings) {
+            useNotificationStore
+              .getState()
+              .addNotification({ type: "warning", content, timeout: 0 });
+          }
+        };
         const name = board.title.trim() || "Storyboard cut";
         // The cut's frame follows the board's aspect ratio, so a 9:16 board
         // does not land in a 16:9 sequence.
@@ -148,11 +178,13 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
             title: name,
             projectId: sequence.projectId ?? LOOSE_PROJECT_ID
           });
+          notifyWarnings();
           return {
             sequenceId: existingId,
             clipCount: shotClips.length,
             skippedShotIds: doc.skippedShotIds,
             skippedLineIds: doc.skippedLineIds,
+            warnings,
             reassembled: true
           };
         }
@@ -177,11 +209,13 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
           title: name,
           projectId: sequence.projectId ?? LOOSE_PROJECT_ID
         });
+        notifyWarnings();
         return {
           sequenceId: sequence.id,
           clipCount: shotClips.length,
           skippedShotIds: doc.skippedShotIds,
           skippedLineIds: doc.skippedLineIds,
+          warnings,
           reassembled: false
         };
       } catch (err) {
