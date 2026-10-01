@@ -21,12 +21,37 @@ describe("finish_storyboard", () => {
     const timeline = (await TimelineSequence.findById(result.timelineId))!;
     expect(JSON.parse(timeline.document).clips[0].currentAssetId).toBe(asset.id);
     expect(timeline.width).toBe(1080);
+    expect(timeline.toTimelineSequence().storyboardMaterializations).toEqual([{ boardId: board.id, elementKeys: ["hook/product"] }]);
+    expect(JSON.parse(TimelineSequence.fromTimelineSequence("u1", timeline.toTimelineSequence()).document).storyboardMaterializations).toEqual(timeline.toDocument().storyboardMaterializations);
+  });
+  it.each(["owned", "ambiguous", "foreign"])("resolves protected short assets only when uniquely owned: %s", async (kind) => {
+    const { board, asset } = await fixture();
+    const prefix = asset.id.slice(0, 12);
+    if (kind === "ambiguous") await Asset.create<Asset>({ id: prefix + "0".repeat(20), user_id: "u1", content_type: "image/png", name: "Other" });
+    if (kind === "foreign") { asset.user_id = "other"; await asset.save(); }
+    const doc = board.toDocument(); doc.shots[0].production!.protected_inputs![0].asset_id = prefix; board.document = JSON.stringify(doc); await board.save();
+    const result = await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision }) as { timelineId?: string };
+    if (kind === "owned") expect(JSON.parse((await TimelineSequence.findById(result.timelineId!))!.document).clips[0].currentAssetId).toBe(asset.id);
+    else { expect(result).toHaveProperty("error"); expect((await Storyboard.findById(board.id))!.timeline_id).toBeFalsy(); }
   });
   it("rejects stale board revisions and foreign ownership without writes", async () => {
     const { board } = await fixture();
     expect(await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision + 1 })).toEqual({ error: "Storyboard revision conflict." });
     expect(await finishStoryboard.impl(run("foreign"), { storyboardId: board.id, expectedStoryboardRevision: board.revision })).toEqual({ error: "Storyboard was not found." });
     expect((await Storyboard.findById(board.id))!.timeline_id).toBeFalsy();
+  });
+  it("rejects deletion of a previously materialized product without writes", async () => {
+    const { board } = await fixture();
+    const first = await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision }) as { timelineId: string };
+    const savedBoard = (await Storyboard.findById(board.id))!;
+    const timeline = (await TimelineSequence.findById(first.timelineId))!;
+    const document = timeline.toDocument(); document.clips = [];
+    await TimelineSequence.updateDocumentIfUnchanged(timeline.id, timeline.updated_at, document);
+    const latest = (await TimelineSequence.findById(timeline.id))!;
+    const result = await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: savedBoard.revision, expectedTimelineRevision: latest.revision });
+    expect(result).toHaveProperty("error");
+    expect((await Storyboard.findById(board.id))!.revision).toBe(savedBoard.revision);
+    expect((await TimelineSequence.findById(timeline.id))!.toDocument().clips).toEqual([]);
   });
   it("requires current timeline revision and preserves manual product placement on rerun", async () => {
     const { board } = await fixture();
@@ -64,13 +89,13 @@ describe("finish_storyboard", () => {
     expect((await Storyboard.findById(board.id))!.revision).toBe(savedBoard.revision);
   });
 
-  it("resolves genuine entity-only graphics references without changing the storyboard", async () => {
+  it("resolves genuine short entity-only graphics references without changing the storyboard", async () => {
     const { board, asset } = await fixture();
     asset.metadata = { nodetool_entity: { kind: "prop", name: "Product", descriptor: "Original product" } };
     await asset.save();
     const document = board.toDocument();
     delete document.shots[0].production;
-    document.shots[0].graphics!.elements = [{ id: "product", kind: "asset", role: "product", entity_id: asset.id }];
+    document.shots[0].graphics!.elements = [{ id: "product", kind: "asset", role: "product", entity_id: asset.id.slice(0, 12) }];
     board.document = JSON.stringify(document); await board.save();
     const original = board.document;
     const result = await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision }) as { timelineId: string };
