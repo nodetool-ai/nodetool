@@ -752,16 +752,15 @@ export function entitiesForShot(shot: Shot, boardEntities: Entity[]): Entity[] {
 }
 
 /**
- * The board's cast, widened to hold every entity its shots or graphics reference.
+ * The board's cast, widened to hold every entity its shots explicitly reference.
  *
  * A shot's `entity_ids` is a selection out of the board's cast:
  * {@link entitiesForShot} filters the board's entities by it, so an id cast on
  * a shot but never on the board resolves to nothing — the chip is on the shot,
  * the entity is not in the board's library, and the prompt is not seasoned with
  * it. Agents writing shots hit this routinely. Reconciling on read keeps the
- * two in step: board cast first, in order, then each shot's unseen ids and
- * graphics element entity ids in shot order. Graphics references are resolved
- * for composition; they are not automatically added to the image/video prompt.
+ * two in step: board cast first, in order, then each shot's unseen ids in shot order. Graphics element entity references
+ * remain composition-only and are deliberately excluded from the generation cast.
  *
  * Returns `entityIds` itself when nothing is missing, so a caller can compare
  * by identity and skip a write.
@@ -773,12 +772,10 @@ export function boardEntityIdsWithShots(
   const seen = new Set(entityIds);
   const added: string[] = [];
   for (const shot of shots) {
-    const referenced = [
-      ...(shot.entity_ids ?? []),
-      ...(shot.graphics?.elements ?? []).flatMap((element) =>
-        element.entity_id ? [element.entity_id] : []
-      )
-    ];
+    // Graphics-only entity references are composition inputs, not prompt
+    // conditioning. Do not widen the generation cast with them: style/location
+    // entities in the cast automatically season prompts.
+    const referenced = shot.entity_ids ?? [];
     for (const id of referenced) {
       if (!seen.has(id)) {
         seen.add(id);
