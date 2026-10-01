@@ -150,6 +150,17 @@ export const recipeManifest = z.object({
     shortDescription: z.string().optional(),
     thumbnailAssetId: z.string().optional()
   }).optional()
+}).superRefine((manifest, context) => {
+  const inputIds = manifest.inputs.map((input) => input.id);
+  const operationIds = manifest.operations.map((operation) => operation.id);
+  const outputIds = manifest.outputs.map((output) => output.id);
+  if (new Set(inputIds).size !== inputIds.length) context.addIssue({ code: "custom", path: ["inputs"], message: "Recipe input ids must be unique." });
+  if (new Set(operationIds).size !== operationIds.length) context.addIssue({ code: "custom", path: ["operations"], message: "Recipe operation ids must be unique." });
+  if (new Set(outputIds).size !== outputIds.length) context.addIssue({ code: "custom", path: ["outputs"], message: "Recipe output ids must be unique." });
+  const knownInputs = new Set(inputIds);
+  manifest.preservationRules?.forEach((rule, index) => {
+    if (!knownInputs.has(rule.inputId)) context.addIssue({ code: "custom", path: ["preservationRules", index, "inputId"], message: "Preservation rule must reference a declared Recipe input." });
+  });
 });
 export type RecipeManifestSchema = z.infer<typeof recipeManifest>;
 
@@ -161,6 +172,12 @@ export const applicationDocument = z.object({
   variables: z.array(variableDeclaration).default([]),
   theme: z.object({ id: z.string() }).optional(),
   recipe: recipeManifest.optional()
+}).superRefine((document, context) => {
+  if (!document.recipe) return;
+  const operationIds = new Set(document.operations.map((operation) => operation.id));
+  document.recipe.operations.forEach((operation, index) => {
+    if (!operationIds.has(operation.bindingId)) context.addIssue({ code: "custom", path: ["recipe", "operations", index, "bindingId"], message: "Recipe operation must reference an Application operation." });
+  });
 });
 export type ApplicationDocumentSchema = z.infer<typeof applicationDocument>;
 
