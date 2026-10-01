@@ -7,6 +7,7 @@ import {
   SPACING,
   SPACING_PX,
   FONT_SIZE_SANS,
+  FONT_WEIGHT,
   Z_INDEX
 } from "../../ui_primitives";
 import { CHAT_COLUMN_MAX_WIDTH } from "../types/chat.types";
@@ -269,7 +270,8 @@ export const createStyles = (theme: Theme) => ({
     },
 
     // Status chrome ("Thinking…", elapsed time) shares the assistant
-    // message's left edge and the label type style (13px / 500).
+    // message's left edge and the 13px label size, like every other piece of
+    // thread chrome. Only prose runs at the 15px body size.
     ".chat-status-row": {
       padding: theme.spacing(1, 4),
       minHeight: theme.spacing(6)
@@ -282,7 +284,9 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".chat-status-elapsed": {
-      ...TYPOGRAPHY.sans.caption,
+      ...TYPOGRAPHY.sans.label,
+      fontWeight: FONT_WEIGHT.normal,
+      color: theme.vars.palette.text.disabled,
       marginLeft: "auto",
       fontVariantNumeric: "tabular-nums"
     },
@@ -451,8 +455,7 @@ export const createStyles = (theme: Theme) => ({
     // The thing the row acted on: a URL, a path, a query. Mono so it reads
     // apart from the prose that names the action.
     ".tool-row-detail": {
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.mono.code,
       color: theme.vars.palette.text.disabled,
       whiteSpace: "nowrap",
       overflow: "hidden",
@@ -466,8 +469,7 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-row-duration": {
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.mono.code,
       color: theme.vars.palette.text.disabled,
       fontVariantNumeric: "tabular-nums",
       whiteSpace: "nowrap",

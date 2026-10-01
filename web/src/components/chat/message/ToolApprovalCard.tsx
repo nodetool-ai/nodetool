@@ -3,14 +3,18 @@ import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import { EditorButton } from "../../editor_ui";
 import {
   Caption,
   CollapsibleSection,
   FlexColumn,
   FlexRow,
-  Text,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  FONT_SIZE_SANS,
+  FONT_WEIGHT,
+  SPACING,
+  TYPOGRAPHY
 } from "../../ui_primitives";
 import { isString } from "../../../utils/typePredicates";
 import type { ApprovalDecision } from "../../../stores/GlobalChatStore";
@@ -38,34 +42,60 @@ const QUESTIONS: Record<string, string> = {
 
 const styles = (theme: Theme) =>
   css({
-    border: `1px solid ${theme.vars.palette.warning.main}66`,
+    border: `1px solid ${theme.vars.palette.divider}`,
+    borderLeft: `3px solid ${theme.vars.palette.warning.main}`,
     borderRadius: BORDER_RADIUS.lg,
-    background: `rgb(${theme.vars.palette.warning.mainChannel} / 0.06)`,
-    padding: theme.spacing(3, 4),
+    background: theme.vars.palette.background.paper,
+    overflow: "hidden",
+    ".approval-body": {
+      padding: theme.spacing(SPACING.lg, SPACING.lg, SPACING.md)
+    },
+    ".approval-icon": {
+      color: theme.vars.palette.warning.main,
+      fontSize: FONT_SIZE_SANS.title,
+      flexShrink: 0
+    },
     ".approval-question": {
-      color: theme.vars.palette.grey[0]
+      ...TYPOGRAPHY.sans.body,
+      fontWeight: FONT_WEIGHT.semibold,
+      color: theme.vars.palette.text.primary,
+      margin: 0
+    },
+    // The summary often ends in an ID or a path: let it break anywhere
+    // rather than push the card wider than the chat column.
+    ".approval-summary": {
+      ...TYPOGRAPHY.sans.label,
+      fontWeight: FONT_WEIGHT.normal,
+      color: theme.vars.palette.text.secondary,
+      margin: 0,
+      overflowWrap: "anywhere"
     },
     ".approval-actions": {
-      marginTop: theme.spacing(1),
+      padding: theme.spacing(SPACING.md, SPACING.lg),
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
+      flexWrap: "wrap",
       button: {
+        ...TYPOGRAPHY.sans.label,
         borderRadius: BORDER_RADIUS.pill,
         textTransform: "none",
         letterSpacing: 0
       },
       ".approval-deny": {
-        marginLeft: "auto"
+        marginLeft: "auto",
+        color: theme.vars.palette.text.secondary,
+        "&:hover": {
+          color: theme.vars.palette.error.main
+        }
       }
     },
     ".approval-detail": {
+      ...TYPOGRAPHY.mono.code,
       margin: 0,
-      padding: theme.spacing(2, 3),
+      padding: theme.spacing(SPACING.md, SPACING.lg),
       borderRadius: BORDER_RADIUS.md,
-      background: theme.vars.palette.grey[900],
-      border: `1px solid ${theme.vars.palette.grey[800]}`,
-      color: theme.vars.palette.grey[200],
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmall)",
-      lineHeight: 1.5,
+      background: theme.vars.palette.background.default,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      color: theme.vars.palette.text.secondary,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
       maxHeight: 320,
@@ -133,11 +163,12 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
       role="group"
       aria-label={question}
     >
-      <FlexColumn gap={1}>
-        <Text size="normal" weight={600} className="approval-question">
-          {question}
-        </Text>
-        {summary && <Text size="normal">{summary}</Text>}
+      <FlexColumn gap={SPACING.sm} className="approval-body">
+        <FlexRow gap={SPACING.md} align="center">
+          <ShieldOutlinedIcon className="approval-icon" aria-hidden />
+          <p className="approval-question">{question}</p>
+        </FlexRow>
+        {summary && <p className="approval-summary">{summary}</p>}
         {code && (
           <CollapsibleSection
             compact
@@ -166,34 +197,35 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
             <pre className="approval-detail approval-args">{argsText}</pre>
           </CollapsibleSection>
         )}
-        <FlexRow gap={1} align="center" className="approval-actions">
-          <EditorButton
-            variant="contained"
-            color="primary"
-            density="normal"
-            onClick={handleAllow}
-          >
-            Allow
-          </EditorButton>
-          <EditorButton
-            variant="text"
-            color="primary"
-            density="normal"
-            onClick={handleAllowForChat}
-          >
-            Allow for this chat
-          </EditorButton>
-          <EditorButton
-            variant="text"
-            color="error"
-            density="normal"
-            className="approval-deny"
-            onClick={handleDeny}
-          >
-            Deny
-          </EditorButton>
-        </FlexRow>
       </FlexColumn>
+      <FlexRow gap={SPACING.md} align="center" className="approval-actions">
+        <EditorButton
+          variant="contained"
+          color="primary"
+          density="normal"
+          disableElevation
+          onClick={handleAllow}
+        >
+          Allow
+        </EditorButton>
+        <EditorButton
+          variant="outlined"
+          color="primary"
+          density="normal"
+          onClick={handleAllowForChat}
+        >
+          Allow for this chat
+        </EditorButton>
+        <EditorButton
+          variant="text"
+          color="inherit"
+          density="normal"
+          className="approval-deny"
+          onClick={handleDeny}
+        >
+          Deny
+        </EditorButton>
+      </FlexRow>
     </div>
   );
 };
