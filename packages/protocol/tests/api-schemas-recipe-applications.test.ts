@@ -24,6 +24,11 @@ describe("Recipe Application API validation", () => {
     expect(applicationDocument.safeParse(future).success).toBe(false);
     expect(applicationDocument.safeParse({ ...document(), schemaVersion: 99 }).success).toBe(false);
   });
+  it("rejects ambiguous duplicate preservation declarations", () => {
+    const value = document();
+    const recipe = { ...value.recipe, preservationRules: [{ inputId: "price", policy: "exact_text" }, { inputId: "price", policy: "exact_text" }] };
+    expect(applicationDocument.safeParse({ ...value, recipe }).success).toBe(false);
+  });
   it("retains ordinary legacy Application compatibility", () => {
     expect(applicationDocument.parse({ schemaVersion: 3, ui: { root: {}, content: [] } }).schemaVersion).toBe(3);
   });

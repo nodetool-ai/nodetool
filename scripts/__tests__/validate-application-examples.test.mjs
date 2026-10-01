@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import { expandBundle } from "../validate-examples.mjs";
 
 const bundle = () => ({schemaVersion: 1, name: "Script app", workflows: [], scripts: [{key: "plan", name: "Plan", version: 1, document: {schemaVersion: 1, code: "await output('result', inputs.price);", inputs: [{name: "price", type: "str"}], outputs: [{name: "result", type: "str"}], packages: [], secrets: [], tests: [], timeoutSeconds: 60}}], app: {schemaVersion: 4, ui: {root: {}, content: []}, variables: [], resources: [], operations: [{id: "plan", name: "Plan", workflowId: "", target: {kind: "script", scriptId: "plan", scriptVersion: 1}, inputs: {price: {from: "widget"}}, outputs: {result: {to: "display"}}, policy: "replace"}]}});
