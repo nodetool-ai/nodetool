@@ -2665,7 +2665,11 @@ const directStoryboard: CapabilityExport = {
           status: held.status
         };
       });
-      next.screenplay = screenplay;
+      next.screenplay = {
+        ...screenplay,
+        ...(next.screenplay?.motion_design !== undefined ? { motion_design: next.screenplay.motion_design } : {}),
+        shots: next.shots
+      };
       next.style = screenplay.style_bible ?? next.style;
       next.aspectRatio = screenplay.aspect_ratio ?? next.aspectRatio;
       if (screenplay.genre) next.genre = screenplay.genre;
