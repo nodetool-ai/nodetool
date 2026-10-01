@@ -1,3 +1,4 @@
+import { finishStoryboard } from "./finish-storyboard.js";
 /**
  * The `storyboards` capability module.
  *
@@ -474,7 +475,8 @@ const listStoryboards: CapabilityExport = {
           with_keyframe: doc.shots.filter((s) => !!s.keyframe).length,
           with_clip: doc.shots.filter((s) => !!s.clip).length,
           timeline_id: row.timeline_id ?? undefined,
-          updated_at: row.updated_at
+          updated_at: row.updated_at,
+    revision: row.revision
         };
       })
     };
@@ -494,7 +496,8 @@ function createdBoardSummary(row: Storyboard) {
     name: row.name,
     project_id: row.project_id,
     shots: doc.shots.length,
-    updated_at: row.updated_at
+    updated_at: row.updated_at,
+    revision: row.revision
   };
 }
 
@@ -564,6 +567,7 @@ const getStoryboard: CapabilityExport = {
     const drifted = new Set(link.drifted_shot_ids);
     return {
       id: row.id,
+      revision: row.revision,
       name: row.name,
       brief: doc.brief,
       style: doc.style,
@@ -2514,6 +2518,7 @@ const editStoryboard: CapabilityExport = {
       return {
         storyboard_id: row.id,
         updated_at: saved.updated_at,
+        revision: saved.revision,
         applied: records.length - failed.length,
         failed: failed.length,
         ops: records,
@@ -2689,6 +2694,7 @@ const directStoryboard: CapabilityExport = {
       return {
         storyboard_id: current.row.id,
         updated_at: saved.updated_at,
+        revision: saved.revision,
         title: screenplay.title,
         genre: next.genre,
         redirected: params["redirect"] === true,
@@ -2907,6 +2913,7 @@ const deleteStoryboard: CapabilityExport = {
   }
 };
 export const STORYBOARD_CAPABILITIES: readonly CapabilityExport[] = [
+  finishStoryboard,
   listStoryboards,
   createStoryboard,
   getStoryboard,
@@ -2926,6 +2933,7 @@ export const module: CapabilityModule = {
 };
 
 export {
+  finishStoryboard,
   listStoryboards,
   createStoryboard,
   getStoryboard,

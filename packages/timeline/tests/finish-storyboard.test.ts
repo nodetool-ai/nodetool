@@ -60,4 +60,33 @@ describe("Storyboard finishing", () => {
     first.document.clips[1].currentAssetId = "replacement";
     expect(materializeStoryboard({ ...args, current: first.document }).validation.some((issue) => issue.code === "manual_conflict")).toBe(true);
   });
+  it.each(["still", "video", "graphics"])("materializes %s source without conflating stills and video", (kind) => {
+    const args = input();
+    if (kind === "still") args.shots[0].keyframe = { type: "image", asset_id: "still-asset" };
+    if (kind === "video") {
+      args.shots[0].production!.media_strategy = "generated_video";
+      args.shots[0].clip = { type: "video", asset_id: "video-asset" };
+    }
+    const result = materializeStoryboard(args);
+    const source = result.document.clips.find((clip) => clip.storyboardElementId === "$source");
+    expect(result.validation).toEqual([]);
+    if (kind === "graphics") expect(source).toBeUndefined();
+    else expect(source?.mediaType).toBe(kind === "still" ? "image" : "video");
+  });
+  it("rejects missing required protection and manual brand color changes", () => {
+    const args = input();
+    const first = materializeStoryboard(args);
+    first.document.clips[0].shapeStyle!.fill = "#000000";
+    expect(materializeStoryboard({ ...args, current: first.document }).validation.some((issue) => issue.code === "manual_conflict")).toBe(true);
+    args.shots[0].graphics!.elements = args.shots[0].graphics!.elements.filter((element) => element.id !== "product");
+    expect(materializeStoryboard(args).validation.some((issue) => issue.code === "missing_element")).toBe(true);
+  });
+
+  it("reports manual style edits rather than destroying them", () => {
+    const args = input();
+    const first = materializeStoryboard(args);
+    first.document.clips[2].textStyle!.fontSizePx = 17;
+    expect(materializeStoryboard({ ...args, current: first.document }).validation.some((issue) => issue.code === "manual_conflict")).toBe(true);
+  });
+
 });

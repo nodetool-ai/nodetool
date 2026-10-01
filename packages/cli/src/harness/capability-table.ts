@@ -2833,6 +2833,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "finish_storyboard",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "55f9dcaa561d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-finish-storyboard.test.ts",
+    ],
+  },
+  {
     name: "list_storyboards",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",

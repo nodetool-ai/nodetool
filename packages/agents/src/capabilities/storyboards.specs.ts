@@ -462,8 +462,20 @@ export const deleteStoryboardSpec: CapabilitySpec = {
   userMessage: (params) => `Deleting storyboard ${params["storyboard_id"]}`
 };
 
+
+export const finishStoryboardSpec: CapabilitySpec = {
+  name: "finish_storyboard",
+  description: "Materialize semantic storyboard graphics into separately editable Timeline layers without generation. Requires current revisions and validates protected sources, text and colors before an atomic save.",
+  category: "write",
+  inputSchema: { type: "object", properties: {
+    storyboardId: { type: "string" }, expectedStoryboardRevision: { type: "integer", minimum: 0 },
+    timelineId: { type: "string" }, expectedTimelineRevision: { type: "integer", minimum: 0 }
+  }, required: ["storyboardId", "expectedStoryboardRevision"], additionalProperties: false }
+};
+
 /** Every spec this module declares, in declaration order. */
 export const storyboardsSpecs: readonly CapabilitySpec[] = [
+  finishStoryboardSpec,
   listStoryboardsSpec,
   createStoryboardSpec,
   getStoryboardSpec,
