@@ -119,7 +119,8 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
       applyMeta({
         operations: document.operations,
         resources: document.resources,
-        variables: document.variables
+        variables: document.variables,
+        recipe: document.recipe
       });
     };
 
@@ -300,7 +301,8 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
           ui: data as PuckData,
           operations: metaRef.current.operations,
           resources: metaRef.current.resources,
-          variables: metaRef.current.variables
+          variables: metaRef.current.variables,
+          recipe: metaRef.current.recipe
         };
         if (isString(themeId) && themeId) {
           document.theme = { id: themeId };
