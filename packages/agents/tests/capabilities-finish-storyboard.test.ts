@@ -92,4 +92,24 @@ describe("finish_storyboard", () => {
     expect((await Storyboard.findById(board.id))!.timeline_id).toBeFalsy();
   });
 
+  it("ignores unused stale video under an explicit still strategy", async () => {
+    const { board, asset } = await fixture();
+    const document = board.toDocument();
+    document.shots[0].keyframe = { type: "image", asset_id: asset.id };
+    document.shots[0].clip = { type: "video", asset_id: "missing-stale-video" };
+    board.document = JSON.stringify(document); await board.save();
+    const result = await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision });
+    expect(result).toHaveProperty("validation", []);
+  });
+  it("rejects an unavailable video when policy selects generated video", async () => {
+    const { board, asset } = await fixture();
+    const document = board.toDocument();
+    document.shots[0].production!.media_strategy = "generated_video";
+    document.shots[0].keyframe = { type: "image", asset_id: asset.id };
+    document.shots[0].clip = { type: "video", asset_id: "missing-selected-video" };
+    board.document = JSON.stringify(document); await board.save();
+    expect(await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision })).toHaveProperty("error");
+    expect((await Storyboard.findById(board.id))!.timeline_id).toBeFalsy();
+  });
+
 });

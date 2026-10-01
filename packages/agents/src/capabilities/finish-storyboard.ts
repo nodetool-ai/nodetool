@@ -7,7 +7,7 @@ export const finishStoryboard: CapabilityExport = {
     const userId = run.context.userId;
     if (!userId) return { error: "No user is bound to this session." };
     const { findFinishResourceIds, Storyboard, TimelineSequence, Asset, entityFromAsset, commitFinishedStoryboard } = await import("@nodetool-ai/models");
-    const { materializeStoryboard, validateStoryboardSemantics, frameSizeForAspect } = await import("@nodetool-ai/timeline");
+    const { materializeStoryboard, resolveShotSource, validateStoryboardSemantics, frameSizeForAspect } = await import("@nodetool-ai/timeline");
     const { resolveEffectiveProductionRequirement } = await import("@nodetool-ai/protocol");
     const boardId = String(params["storyboardId"] ?? "");
     const boardRows = await findFinishResourceIds("storyboard", boardId, userId, run.projectId);
@@ -21,7 +21,9 @@ export const finishStoryboard: CapabilityExport = {
     const assets = new Set<string>();
     const entities = new Set<string>();
     for (const shot of shots) {
-      const refs = [shot.keyframe?.asset_id, shot.clip?.asset_id, ...(shot.production?.protected_inputs ?? []).map((input) => input.asset_id), ...(shot.graphics?.elements ?? []).map((element) => element.asset_id)];
+      const source = resolveShotSource(shot);
+      const selectedAssetId = source && source.kind !== "graphics" ? source.assetId : undefined;
+      const refs = [selectedAssetId, ...(shot.production?.protected_inputs ?? []).map((input) => input.asset_id), ...(shot.graphics?.elements ?? []).map((element) => element.asset_id)];
       for (const id of refs) {
         if (!id || assets.has(id)) continue;
         const asset = await Asset.get<InstanceType<typeof Asset>>(id);
