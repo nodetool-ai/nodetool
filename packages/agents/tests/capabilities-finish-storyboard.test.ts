@@ -34,6 +34,35 @@ describe("finish_storyboard", () => {
     if (kind === "owned") expect(JSON.parse((await TimelineSequence.findById(result.timelineId!))!.document).clips[0].currentAssetId).toBe(asset.id);
     else { expect(result).toHaveProperty("error"); expect((await Storyboard.findById(board.id))!.timeline_id).toBeFalsy(); }
   });
+  it.each([false, true])("preserves persisted metadata and rejects unsupported camera before atomic writes: %s", async (withCamera) => {
+    const { board } = await fixture();
+    const first = await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision }) as { timelineId: string };
+    const savedBoard = (await Storyboard.findById(board.id))!;
+    const timeline = (await TimelineSequence.findById(first.timelineId))!;
+    const metadata = {
+      tempo: { bpm: 87, offsetMs: 12, timeSignature: { beatsPerBar: 3, beatUnit: 4 } },
+      transcript: [{ id: "line", text: "Manual notes", beatStartMs: 0, clipIds: [] }],
+      trackFolders: [{ id: "folder", name: "Manual folder" }],
+      setup: { stage: "done" as const, brief: "Manual brief" },
+      scriptEnabled: false,
+      camera2d: withCamera ? { position: { x: 12, y: 0 }, depthPx: 0, focalLengthPx: 1000 } : null
+    };
+    await TimelineSequence.updateDocumentIfUnchanged(timeline.id, timeline.updated_at, { ...timeline.toDocument(), ...metadata });
+    const latest = (await TimelineSequence.findById(timeline.id))!;
+    const result = await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: savedBoard.revision, expectedTimelineRevision: latest.revision });
+    const actual = (await TimelineSequence.findById(timeline.id))!;
+    expect(actual.toDocument()).toMatchObject(metadata);
+    if (withCamera) {
+      expect(result).toHaveProperty("error");
+      expect(result).toHaveProperty("validation", expect.arrayContaining([expect.objectContaining({ code: "manual_conflict" })]));
+      expect(actual.document).toBe(latest.document);
+      expect(actual.revision).toBe(latest.revision);
+      expect((await Storyboard.findById(board.id))!.revision).toBe(savedBoard.revision);
+    } else {
+      expect(result).toHaveProperty("validation", []);
+      expect(actual.revision).toBe(latest.revision + 1);
+    }
+  });
   it("rejects stale board revisions and foreign ownership without writes", async () => {
     const { board } = await fixture();
     expect(await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision + 1 })).toEqual({ error: "Storyboard revision conflict." });
