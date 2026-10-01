@@ -68,96 +68,99 @@ async function readJsonBody(request: Request): Promise<JsonValue> {
   }
 }
 
-const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
+export async function handleJsScriptRun(
+  request: Request,
+  id: string,
+  opts: RouteOptions
+): Promise<Response> {
   const { apiOptions } = opts;
+  const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
+  const script = await JsScript.findById(id);
+  // Scripts are per-user, like sketches and timelines: another owner's
+  // script is an absence, not a refusal.
+  if (!script || script.user_id !== userId) {
+    return jsonResponse({ detail: "JS script not found" }, 404);
+  }
 
+  const parsedBody = runJsScriptRequest.safeParse(await readJsonBody(request));
+  if (!parsedBody.success) {
+    return jsonResponse(
+      { detail: parsedBody.error.issues[0]?.message ?? "Invalid body" },
+      400
+    );
+  }
+
+  const document = script.toDocument();
+  const staged = parsedBody.data.input_streams;
+  if (staged) {
+    const declared = new Set(document.inputs.map((port) => port.name));
+    const undeclared = Object.keys(staged).filter(
+      (handle) => !declared.has(handle)
+    );
+    if (undeclared.length > 0) {
+      return jsonResponse(
+        {
+          detail:
+            `input_streams names ${undeclared.join(", ")}, which this ` +
+            "script does not declare as inputs"
+        },
+        400
+      );
+    }
+  }
+
+  const context = new ProcessingContext({
+    jobId: `js-script-${script.id}-${Date.now()}`,
+    userId,
+    secretResolver: getSecret,
+    storage: opts.storage ?? getAssetAdapter()
+  });
+  context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("JS script run"));
+
+  const runOptions: Parameters<typeof runCodeBody>[1] = {
+    code: document.code,
+    inputs: parsedBody.data.inputs,
+    secrets: document.secrets,
+    timeoutSeconds: Math.min(
+      document.timeoutSeconds,
+      JS_SCRIPT_MAX_TIMEOUT_SECONDS
+    ),
+    withToolbelt: true
+  };
+  if (staged) {
+    runOptions.inputStreams = staged;
+  }
+  const result = await runCodeBody(context, runOptions);
+
+  // A declared-output script that finishes with `outputs: {}` is a
+  // failed contract, not a 500 — same shape as a body that throws.
+  const missing = result.ok
+    ? missingDeclaredJsScriptOutputs(document.outputs, result.outputs)
+    : [];
+  const failedEmptyBag = missing.length > 0;
+  const body: RunJsScriptResponse = {
+    ok: failedEmptyBag ? false : result.ok,
+    logs: result.logs,
+    duration_ms: result.duration_ms
+  };
+  if (result.outputs !== undefined) {
+    body.outputs = result.outputs;
+  }
+  if (result.streamed !== undefined) {
+    body.streamed = result.streamed;
+  }
+  if (failedEmptyBag) {
+    body.error = emptyDeclaredJsScriptOutputsError(missing);
+  } else if (result.error !== undefined) {
+    body.error = result.error;
+  }
+  return jsonResponse(body);
+}
+
+const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.post("/api/js-scripts/:id/run", async (req, reply) => {
     const { id } = req.params as { id: string };
-    await bridge(req, reply, async (request) => {
-      const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
-      const script = await JsScript.findById(id);
-      // Scripts are per-user, like sketches and timelines: another owner's
-      // script is an absence, not a refusal.
-      if (!script || script.user_id !== userId) {
-        return jsonResponse({ detail: "JS script not found" }, 404);
-      }
-
-      const parsedBody = runJsScriptRequest.safeParse(
-        await readJsonBody(request)
-      );
-      if (!parsedBody.success) {
-        return jsonResponse(
-          { detail: parsedBody.error.issues[0]?.message ?? "Invalid body" },
-          400
-        );
-      }
-
-      const document = script.toDocument();
-      const staged = parsedBody.data.input_streams;
-      if (staged) {
-        const declared = new Set(document.inputs.map((port) => port.name));
-        const undeclared = Object.keys(staged).filter(
-          (handle) => !declared.has(handle)
-        );
-        if (undeclared.length > 0) {
-          return jsonResponse(
-            {
-              detail:
-                `input_streams names ${undeclared.join(", ")}, which this ` +
-                "script does not declare as inputs"
-            },
-            400
-          );
-        }
-      }
-
-      const context = new ProcessingContext({
-        jobId: `js-script-${script.id}-${Date.now()}`,
-        userId,
-        secretResolver: getSecret,
-        storage: opts.storage ?? getAssetAdapter()
-      });
-      context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("JS script run"));
-
-      const runOptions: Parameters<typeof runCodeBody>[1] = {
-        code: document.code,
-        inputs: parsedBody.data.inputs,
-        secrets: document.secrets,
-        timeoutSeconds: Math.min(
-          document.timeoutSeconds,
-          JS_SCRIPT_MAX_TIMEOUT_SECONDS
-        ),
-        withToolbelt: true
-      };
-      if (staged) {
-        runOptions.inputStreams = staged;
-      }
-      const result = await runCodeBody(context, runOptions);
-
-      // A declared-output script that finishes with `outputs: {}` is a
-      // failed contract, not a 500 — same shape as a body that throws.
-      const missing = result.ok
-        ? missingDeclaredJsScriptOutputs(document.outputs, result.outputs)
-        : [];
-      const failedEmptyBag = missing.length > 0;
-      const body: RunJsScriptResponse = {
-        ok: failedEmptyBag ? false : result.ok,
-        logs: result.logs,
-        duration_ms: result.duration_ms
-      };
-      if (result.outputs !== undefined) {
-        body.outputs = result.outputs;
-      }
-      if (result.streamed !== undefined) {
-        body.streamed = result.streamed;
-      }
-      if (failedEmptyBag) {
-        body.error = emptyDeclaredJsScriptOutputsError(missing);
-      } else if (result.error !== undefined) {
-        body.error = result.error;
-      }
-      return jsonResponse(body);
-    });
+    await bridge(req, reply, (request) => handleJsScriptRun(request, id, opts));
   });
 };
 

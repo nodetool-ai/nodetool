@@ -12,6 +12,7 @@
  * preview compositor.
  */
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   Caption,
@@ -127,6 +128,7 @@ export const SketchWidget: React.FC<
 export const TimelineWidget: React.FC<
   DocumentWidgetProps & { showMetadata?: boolean }
 > = (props) => {
+  const navigate = useNavigate();
   const { value, designMode } = useReadBinding(props);
   const bound = firstItem(value);
 
@@ -161,7 +163,21 @@ export const TimelineWidget: React.FC<
           </React.Suspense>
         </Box>
         {!designMode && timelineId ? (
-          <EditorButton href={`/timeline/${encodeURIComponent(timelineId)}`}>
+          <EditorButton
+            href={`/timeline/${encodeURIComponent(timelineId)}`}
+            onClick={(event) => {
+              if (
+                event.ctrlKey ||
+                event.metaKey ||
+                event.shiftKey ||
+                event.altKey
+              ) {
+                return;
+              }
+              event.preventDefault();
+              navigate(`/timeline/${encodeURIComponent(timelineId)}`);
+            }}
+          >
             Open editable timeline
           </EditorButton>
         ) : null}

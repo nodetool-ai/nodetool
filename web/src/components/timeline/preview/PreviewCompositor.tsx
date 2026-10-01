@@ -1686,6 +1686,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         }
         if (!presented.current && alive.current) {
           presented.current = true;
+          containerRef.current?.setAttribute("data-preview-ready", "true");
           onReady();
         }
       })().catch((error: unknown) => onFailure({ stage: "renderer-frame", error }))
@@ -1719,7 +1720,10 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           .flush()
           .then(() => {
             presented.current = true;
-            if (alive.current) onReady();
+            if (alive.current) {
+              containerRef.current?.setAttribute("data-preview-ready", "true");
+              onReady();
+            }
           })
           .catch((error: unknown) =>
             onFailure({ stage: "renderer-present", error })

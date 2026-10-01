@@ -72,7 +72,8 @@ export default defineConfig({
             "--enable-features=Vulkan,UseSkiaRenderer",
             "--use-gl=angle",
             "--use-angle=swiftshader",
-            "--enable-webgpu-developer-features"
+            "--enable-webgpu-developer-features",
+            "--enable-unsafe-webgpu"
           ]
         }
       }

@@ -3,6 +3,7 @@
  * fetching one that arrives as a bare ref, and the states in between.
  */
 import React from "react";
+import { MemoryRouter } from "react-router-dom";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import type { AppInstanceState } from "@nodetool-ai/app-runtime";
@@ -81,9 +82,11 @@ const renderWidget = (
 ) => {
   const { wrapper: Wrapper } = makeTestRuntime(initial);
   return render(
-    <ThemeProvider theme={mockTheme}>
-      <Wrapper>{element}</Wrapper>
-    </ThemeProvider>
+    <MemoryRouter>
+      <ThemeProvider theme={mockTheme}>
+        <Wrapper>{element}</Wrapper>
+      </ThemeProvider>
+    </MemoryRouter>
   );
 };
 
@@ -152,7 +155,9 @@ describe("SketchWidget", () => {
   });
 
   it("shows the placeholder when nothing is bound yet", () => {
-    renderWidget(<SketchWidget id="s1" binding="result" placeholder="Nothing" />);
+    renderWidget(
+      <SketchWidget id="s1" binding="result" placeholder="Nothing" />
+    );
     expect(screen.getByText("Nothing")).toBeInTheDocument();
     expect(sketchEnabled).toHaveBeenCalledWith(false);
   });
@@ -188,7 +193,9 @@ describe("TimelineWidget", () => {
     );
     expect(timelineEnabled).toHaveBeenCalledWith(true);
     expect(await screen.findByTestId("timeline-renderer")).toBeInTheDocument();
-    expect(screen.getByRole("link", {name: "Open editable timeline"})).toHaveAttribute("href", "/timeline/seq-1");
+    expect(
+      screen.getByRole("link", { name: "Open editable timeline" })
+    ).toHaveAttribute("href", "/timeline/seq-1");
   });
 
   it("shows the placeholder when nothing is bound yet", () => {

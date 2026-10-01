@@ -36,12 +36,17 @@ import { readFile } from "node:fs/promises";
 import { statSync } from "node:fs";
 import { join } from "node:path";
 import type { FastifyPluginAsync } from "fastify";
-import { BUNDLED_FONT_FILES, googleFontFaceCss, googleFontsSlug } from "@nodetool-ai/timeline";
+import {
+  BUNDLED_FONT_FILES,
+  googleFontFaceCss,
+  googleFontsSlug
+} from "@nodetool-ai/timeline";
 import {
   googleFontsCacheDir,
   resolveGoogleFontFamily
 } from "@nodetool-ai/timeline/fonts/google-fetch";
 import type { HttpApiOptions } from "../http-api.js";
+import { bridge } from "../lib/bridge.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
@@ -57,12 +62,13 @@ interface RouteOptions {
  * back to whichever nearby weight *did* get fetched — `pickGoogleFontFile`'s
  * nearest-match, silently wrong rather than the exact face.
  */
-const STANDARD_WEB_REQUESTS: { weight: number; style: "normal" | "italic" }[] = [
-  { weight: 400, style: "normal" },
-  { weight: 700, style: "normal" },
-  { weight: 400, style: "italic" },
-  { weight: 700, style: "italic" }
-];
+const STANDARD_WEB_REQUESTS: { weight: number; style: "normal" | "italic" }[] =
+  [
+    { weight: 400, style: "normal" },
+    { weight: 700, style: "normal" },
+    { weight: 400, style: "italic" },
+    { weight: 700, style: "italic" }
+  ];
 
 /**
  * Parse `?weights=400,800,900i` — a comma-separated list of weights, each
@@ -106,38 +112,42 @@ const CONTENT_TYPES: Record<string, string> = {
   txt: "text/plain; charset=utf-8"
 };
 
+const SERVED_BUNDLED_FONTS = new Set<string>(BUNDLED_FONT_FILES);
+
+export async function handleBundledTimelineFont(
+  file: string,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (!options.bundledFontsDir || !SERVED_BUNDLED_FONTS.has(file)) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+  const path = join(options.bundledFontsDir, file);
+  try {
+    const data = await readFile(path);
+    const extension = file.slice(file.lastIndexOf(".") + 1).toLowerCase();
+    return new Response(new Uint8Array(data), {
+      headers: {
+        "content-type": CONTENT_TYPES[extension] ?? "application/octet-stream",
+        "content-length": String(data.length),
+        "cache-control": CACHE_CONTROL
+      }
+    });
+  } catch {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+}
+
 const timelineFontRoutes: FastifyPluginAsync<RouteOptions> = async (
   app,
   opts
 ) => {
   const { apiOptions } = opts;
-  const served = new Set<string>(BUNDLED_FONT_FILES);
-
   app.get<{ Params: { file: string } }>(
     "/api/assets/packages/timeline/fonts/:file",
     async (req, reply) => {
-      const dir = apiOptions.bundledFontsDir;
-      const file = req.params.file;
-      if (dir === undefined || !served.has(file)) {
-        await reply.status(404).send({ error: "Not found" });
-        return;
-      }
-      const path = join(dir, file);
-      let size: number;
-      try {
-        const stat = statSync(path);
-        if (!stat.isFile()) throw new Error("not a file");
-        size = stat.size;
-      } catch {
-        await reply.status(404).send({ error: "Not found" });
-        return;
-      }
-      const extension = file.slice(file.lastIndexOf(".") + 1).toLowerCase();
-      await reply
-        .header("content-type", CONTENT_TYPES[extension] ?? "application/octet-stream")
-        .header("content-length", String(size))
-        .header("cache-control", CACHE_CONTROL)
-        .send(createReadStream(path));
+      await bridge(req, reply, () =>
+        handleBundledTimelineFont(req.params.file, apiOptions)
+      );
     }
   );
 
@@ -149,7 +159,8 @@ const timelineFontRoutes: FastifyPluginAsync<RouteOptions> = async (
         await reply.status(404).send({ error: "Not found" });
         return;
       }
-      const requested = parseWeightsParam(req.query.weights) ?? STANDARD_WEB_REQUESTS;
+      const requested =
+        parseWeightsParam(req.query.weights) ?? STANDARD_WEB_REQUESTS;
       let resolution;
       try {
         resolution = await resolveGoogleFontFamily(family, requested);
@@ -188,7 +199,9 @@ const timelineFontRoutes: FastifyPluginAsync<RouteOptions> = async (
       const manifestFile = join(googleFontsCacheDir(), slug, "manifest.json");
       let manifest: GoogleFontManifest;
       try {
-        manifest = JSON.parse(await readFile(manifestFile, "utf8")) as GoogleFontManifest;
+        manifest = JSON.parse(
+          await readFile(manifestFile, "utf8")
+        ) as GoogleFontManifest;
       } catch {
         await reply.status(404).send({ error: "Not found" });
         return;
@@ -215,7 +228,10 @@ const timelineFontRoutes: FastifyPluginAsync<RouteOptions> = async (
       }
       const extension = file.slice(file.lastIndexOf(".") + 1).toLowerCase();
       await reply
-        .header("content-type", CONTENT_TYPES[extension] ?? "application/octet-stream")
+        .header(
+          "content-type",
+          CONTENT_TYPES[extension] ?? "application/octet-stream"
+        )
         .header("content-length", String(size))
         .header("cache-control", CACHE_CONTROL)
         .send(createReadStream(path));

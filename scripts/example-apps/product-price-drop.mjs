@@ -19,6 +19,8 @@ const assetId = (value, label) => {
   if (!id) throw new Error(label + " must be a stored asset.");
   return id;
 };
+const brandColor = typeof inputs.brandColor === "string" ? inputs.brandColor : inputs.brandColor?.type === "color" ? inputs.brandColor.value : undefined;
+if (typeof brandColor !== "string" || !brandColor.trim()) throw new Error("Brand color must be an exact color value.");
 const product = assetId(inputs.productImage, "Product image");
 const logo = assetId(inputs.logo, "Logo");
 const board = inputs.storyboardId ? await get_storyboard({storyboard_id: inputs.storyboardId}) : await create_storyboard({name: "Product Price Drop", aspect_ratio: "9:16"});
@@ -35,7 +37,7 @@ const protectedInputs = [
   {id: "productImage", kind: "product", asset_id: product, allowed_transformations: allowed("productImage")},
   {id: "logo", kind: "logo", asset_id: logo, allowed_transformations: allowed("logo")},
   ...["headline", "oldPrice", "newPrice", "cta"].map(id => ({id, kind: "exact_text", value: inputs[id], allowed_transformations: allowed(id)})),
-  {id: "brandColor", kind: "brand_color", value: inputs.brandColor, allowed_transformations: allowed("brandColor")}
+  {id: "brandColor", kind: "brand_color", value: brandColor, allowed_transformations: allowed("brandColor")}
 ];
 const element = (id, kind, role) => ({id: kind === "shape" ? "background" : id, kind, role, protected_input_id: id, ...(id === "oldPrice" ? {direction: "superseded price"} : id === "newPrice" ? {direction: "current price"} : {}), ...(kind === "text" ? {text: inputs[id]} : kind === "asset" ? {asset_id: id === "logo" ? logo : product} : {})});
 const production = ids => ({schema_version: 1, media_strategy: "still_motion_graphics", protected_inputs: protectedInputs.filter(input => ids.includes(input.id))});

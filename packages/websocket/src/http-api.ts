@@ -1793,6 +1793,30 @@ export async function handleApiRequest(
     return handleNodeMetadata(request, options);
   }
 
+  const bundledFont = pathname.match(
+    /^\/api\/assets\/packages\/timeline\/fonts\/([^/]+)$/
+  );
+  if (bundledFont && request.method === "GET") {
+    const { handleBundledTimelineFont } =
+      await import("./routes/timeline-fonts.js");
+    return handleBundledTimelineFont(
+      decodeURIComponent(bundledFont[1]),
+      options
+    );
+  }
+
+  const scriptRun = pathname.match(/^\/api\/js-scripts\/([^/]+)\/run$/);
+  if (scriptRun && request.method === "POST") {
+    const { handleJsScriptRun } = await import("./routes/js-scripts.js");
+    return handleJsScriptRun(request, decodeURIComponent(scriptRun[1]), {
+      apiOptions: options
+    });
+  }
+
+  if (pathname === "/api/assets") {
+    return handleAssetsRoot(request, options);
+  }
+
   if (pathname === "/api/workflows") {
     return handleWorkflowsRoot(request, options);
   }
