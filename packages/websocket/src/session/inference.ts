@@ -2,9 +2,9 @@ import { randomUUID } from "node:crypto";
 
 import { createLogger } from "@nodetool-ai/config";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
-import { Asset, Prediction, Project, Storyboard, TimelineSequence, findFinishResourceIds } from "@nodetool-ai/models";
+import { Asset, Prediction, Project, TimelineSequence, findFinishResourceIds, assertStoryboardClipGenerationAllowed } from "@nodetool-ai/models";
 import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
-import { assertProductionGenerationAllowed, productionRequirement, resolveNodetoolDelegate } from "@nodetool-ai/protocol";
+import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
 import { GenerationAlreadyAcceptedError } from "@nodetool-ai/runtime";
 import {
   calculateChatCost,
@@ -1531,15 +1531,9 @@ async function assertTimelineGenerationAllowed(userId: string, req: DirectMediaG
   const referencedClips = clips.filter(clip => clip.currentAssetId && referencedAssets.has(clip.currentAssetId));
   for (const clip of [source, target, ...referencedClips]) {
     if (!clip?.storyboardBoardId) { continue; }
-    const board = await Storyboard.findById(clip.storyboardBoardId);
-    if (!board || board.user_id !== userId || board.project_id !== sequence.project_id) {
-      throw new Error("Storyboard generation context was not found in the caller's project.");
-    }
-    const shot = board.toDocument().shots.find(shot => shot.id === clip.storyboardShotId);
-    if (!shot) { throw new Error("Storyboard generation source shot was not found."); }
     const capability = req.mode === "video" ? (req.capability ?? (req.sourceAssetId ? "image_to_video" : "text_to_video"))
       : req.mode === "video_edit" || req.mode === "video_extend" ? "video_to_video"
       : req.mode === "image_edit" || req.mode === "inpaint" ? "image_to_image" : "text_to_image";
-    assertProductionGenerationAllowed(shot.production === undefined ? undefined : productionRequirement.parse(shot.production), capability);
+    await assertStoryboardClipGenerationAllowed(userId, sequence.project_id, clip, capability);
   }
 }

@@ -515,3 +515,4 @@ export type {
 export { commitFinishedStoryboard, findFinishResourceIds } from "./finish-storyboard.js";
 
 export { storyboards } from "./schema/storyboards.js";
+export { assertStoryboardClipGenerationAllowed } from "./storyboard-generation-policy.js";
