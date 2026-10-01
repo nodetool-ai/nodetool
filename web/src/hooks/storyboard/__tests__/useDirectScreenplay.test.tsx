@@ -7,6 +7,7 @@
  * them per shot.
  */
 import { renderHook, act } from "@testing-library/react";
+import { productionRequirement } from "@nodetool-ai/protocol";
 
 const rpcRequest = jest.fn();
 jest.mock("../../../lib/websocket/rpcRequest", () => ({
@@ -189,7 +190,7 @@ describe("useDirectScreenplay", () => {
 
   it("preserves approved graphics, production, media and motion design on retained shots", async () => {
     const graphics = { mode: "graphics_first" as const, elements: [{ id: "price", kind: "text" as const, text: " €29 " }] };
-    const production = { media_strategy: "still_motion_graphics" as const, protected_inputs: [{ id: "price", kind: "exact_text" as const, value: " €29 ", allowed_transformations: [] }] };
+    const production = productionRequirement.parse({ media_strategy: "still_motion_graphics", protected_inputs: [{ id: "price", kind: "exact_text", value: " €29 ", allowed_transformations: [] }] });
     const store = useStoryboardStore.getState();
     store.setScreenplay(BOARD, { type: "screenplay", id: "old", title: "Ad", motion_design: { direction: "Retain rhythm" }, shots: [{ type: "shot", id: "shot-0", index: 0, action: "Old", status: "rendered", graphics, production, keyframe: { type: "image", asset_id: "original" } }] });
     rpcRequest.mockResolvedValue(answer(1));
