@@ -58,6 +58,43 @@ describe("applications router releases", () => {
   beforeEach(() => initTestDb());
   afterEach(() => ModelObserver.clear());
 
+  it("rejects publishing when the saved draft revision changed before publish", async () => {
+    const app = await seedApp();
+    const caller = createCaller(makeCtx("user-1"));
+    const saved = await caller.applications.get({ id: app.id });
+    await caller.applications.update({
+      id: app.id,
+      baseUpdatedAt: saved.updatedAt,
+      document: {
+        ...saved.document,
+        ui: {
+          ...saved.document.ui,
+          root: { props: { title: "Changed elsewhere" } }
+        }
+      }
+    });
+    await expect(
+      caller.applications.publish({
+        id: app.id,
+        baseUpdatedAt: saved.updatedAt
+      })
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(
+      await caller.applications.releasedDocument({ id: app.id })
+    ).toBeNull();
+  });
+
+  it("publishes the saved revision when it still matches", async () => {
+    const app = await seedApp();
+    const caller = createCaller(makeCtx("user-1"));
+    const saved = await caller.applications.get({ id: app.id });
+    const version = await caller.applications.publish({
+      id: app.id,
+      baseUpdatedAt: saved.updatedAt
+    });
+    expect(version.version).toBe(1);
+  });
+
   it("releasedDocument serves the pinned snapshot, not the draft", async () => {
     const app = await seedApp();
     const caller = createCaller(makeCtx("user-1"));

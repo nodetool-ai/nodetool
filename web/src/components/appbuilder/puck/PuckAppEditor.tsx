@@ -39,6 +39,7 @@ interface PuckAppEditorProps {
   data: Data;
   onPublish: (data: Data) => void;
   onChange?: (data: Data) => void;
+  saving?: boolean;
   /** Omitted when the builder is embedded and there is nowhere to go back to. */
   onClose?: () => void;
   /**
@@ -62,7 +63,7 @@ interface PuckAppEditorProps {
  * Replaces Puck's built-in "Publish" button with a "Save" button that reads
  * the current editor data via Puck's store and forwards it to onPublish.
  */
-const SaveButton: React.FC<{ onSave: (data: Data) => void }> = ({ onSave }) => {
+const SaveButton: React.FC<{ onSave: (data: Data) => void; saving?: boolean }> = ({ onSave, saving }) => {
   const getPuck = useGetPuck();
   const handleClick = useCallback(() => {
     const { appState } = getPuck();
@@ -75,8 +76,9 @@ const SaveButton: React.FC<{ onSave: (data: Data) => void }> = ({ onSave }) => {
       color="primary"
       startIcon={<SaveIcon sx={{ fontSize: 16 }} />}
       onClick={handleClick}
+      disabled={saving}
     >
-      Save
+      {saving ? "Saving…" : "Save"}
     </EditorButton>
   );
 };
@@ -124,6 +126,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   data,
   onPublish,
   onChange,
+  saving,
   onClose,
   meta = EMPTY_DOC_META,
   onMetaChange,
@@ -223,7 +226,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
               Back
             </EditorButton>
           )}
-          <SaveButton onSave={onPublish} />
+          <SaveButton onSave={onPublish} saving={saving} />
         </>
       )
     }),
@@ -231,6 +234,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
       applicationId,
       onClose,
       onPublish,
+      saving,
       workflow,
       previewWidth,
       meta,

@@ -8,7 +8,7 @@ import {
 } from "react";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CloseIcon from "@mui/icons-material/Close";
-import useMediaQuery from "@mui/material/useMediaQuery";
+import type { AppDocument } from "../appbuilder/appData";
 
 import ApplicationGovernancePanel from "../applications/ApplicationGovernancePanel";
 import ApplicationAppBuilder from "../appbuilder/ApplicationAppBuilder";
@@ -54,19 +54,18 @@ type ApplicationView = "design" | "run" | "preview" | "settings";
  * surface, so it stays on the right in every view and keeps its thread.
  */
 const LAYER_SX = { position: "absolute", inset: 0 } as const;
-const ACTIVE_LAYER_SX = { ...LAYER_SX, opacity: 1, pointerEvents: "auto" } as const;
+const ACTIVE_LAYER_SX = {
+  ...LAYER_SX,
+  opacity: 1,
+  pointerEvents: "auto"
+} as const;
 const HIDDEN_LAYER_SX = {
   ...LAYER_SX,
   opacity: 0,
   pointerEvents: "none"
 } as const;
 
-/**
- * A 420px dock beside the canvas leaves too little of either below 638px, so
- * the assistant covers the surface and a floating button opens it from every
- * view.
- */
-const NARROW_QUERY = "(max-width: 637.98px)";
+const MIN_DOCKED_SURFACE_WIDTH = 960;
 
 const overlayPanelSx = {
   position: "absolute",
@@ -85,7 +84,12 @@ const ApplicationSurface = ({
   refId,
   mode = "edit"
 }: ApplicationSurfaceProps) => {
-  const { data: application, isLoading, isError, error } = useApplication(refId);
+  const {
+    data: application,
+    isLoading,
+    isError,
+    error
+  } = useApplication(refId);
   const [view, setView] = useState<ApplicationView>(
     mode === "view" ? "run" : "design"
   );
@@ -102,7 +106,34 @@ const ApplicationSurface = ({
   // The first operation's graph, reported by the builder as it binds. The
   // assistant lives on this surface, so a Design bind reaches it in Run too.
   const [agentWorkflowId, setAgentWorkflowId] = useState<string | undefined>();
-  const narrow = useMediaQuery(NARROW_QUERY);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const [narrow, setNarrow] = useState(false);
+  const [draftDocument, setDraftDocument] = useState<AppDocument>();
+  const saveDraftRef = useRef<(() => Promise<string>) | null>(null);
+  const registerSave = useCallback((save: () => Promise<string>) => {
+    saveDraftRef.current = save;
+  }, []);
+  const beforePublish = useCallback(async () => {
+    if (opened.includes("design")) {
+      if (!saveDraftRef.current) {
+        throw new Error("The app editor is still loading.");
+      }
+      return await saveDraftRef.current();
+    }
+  }, [opened]);
+  useEffect(() => {
+    const element = surfaceRef.current;
+    if (!element || typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) {
+        setNarrow(entry.contentRect.width < MIN_DOCKED_SURFACE_WIDTH);
+      }
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [isLoading, isError]);
   const [narrowAgentOpen, setNarrowAgentOpen] = useState(false);
   const narrowAgentPanelRef = useRef<HTMLDivElement>(null);
   const narrowAgentButtonRef = useRef<HTMLButtonElement>(null);
@@ -168,6 +199,7 @@ const ApplicationSurface = ({
 
   return (
     <FlexRow
+      ref={surfaceRef}
       gap={0}
       sx={{ width: "100%", height: "100%", minHeight: 0, position: "relative" }}
     >
@@ -229,6 +261,8 @@ const ApplicationSurface = ({
               <ApplicationAppBuilder
                 applicationId={application.id}
                 onAgentWorkflowIdChange={setAgentWorkflowId}
+                onDraftChange={setDraftDocument}
+                onSaveReady={registerSave}
               />
             </Box>
           )}
@@ -242,6 +276,7 @@ const ApplicationSurface = ({
               <ApplicationRunView
                 applicationId={application.id}
                 previewDraft={view === "preview"}
+                draftDocument={draftDocument}
               />
             </Box>
           )}
@@ -254,7 +289,10 @@ const ApplicationSurface = ({
             >
               <ScrollArea fullHeight>
                 <FlexColumn gap={SPACING.lg} padding={SPACING.xl} fullWidth>
-                  <ApplicationGovernancePanel applicationId={application.id} />
+                  <ApplicationGovernancePanel
+                    applicationId={application.id}
+                    beforePublish={beforePublish}
+                  />
                 </FlexColumn>
               </ScrollArea>
             </Box>

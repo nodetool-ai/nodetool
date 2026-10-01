@@ -105,10 +105,29 @@ const renderSurface = (mode?: "edit" | "view") =>
   );
 
 const originalMatchMedia = window.matchMedia;
+const originalResizeObserver = global.ResizeObserver;
+let surfaceWidth = 1200;
 
 beforeEach(() => {
   jest.clearAllMocks();
   state.error = null;
+  surfaceWidth = 1200;
+  global.ResizeObserver = class {
+    constructor(private callback: ResizeObserverCallback) {}
+    observe(target: Element) {
+      this.callback(
+        [
+          stub<ResizeObserverEntry>({
+            target,
+            contentRect: stub<DOMRectReadOnly>({ width: surfaceWidth })
+          })
+        ],
+        this
+      );
+    }
+    unobserve() {}
+    disconnect() {}
+  };
   // Wide viewport: the assistant docks on the right of every view.
   window.matchMedia = jest.fn((query: string) =>
     stub<MediaQueryList>({
@@ -126,6 +145,7 @@ beforeEach(() => {
 
 afterEach(() => {
   window.matchMedia = originalMatchMedia;
+  global.ResizeObserver = originalResizeObserver;
 });
 
 describe("ApplicationSurface", () => {
@@ -187,9 +207,9 @@ describe("ApplicationSurface", () => {
     expect(screen.getByTestId("application-run-layer")).toHaveAttribute(
       "inert"
     );
-    expect(screen.getByTestId("application-settings-layer")).not.toHaveAttribute(
-      "inert"
-    );
+    expect(
+      screen.getByTestId("application-settings-layer")
+    ).not.toHaveAttribute("inert");
   });
 
   it("mounts the run layer when preview opens directly from design", async () => {
@@ -246,16 +266,17 @@ describe("ApplicationSurface", () => {
     expect(screen.getByTestId("application-run-layer")).toHaveAttribute(
       "inert"
     );
-    expect(screen.getByTestId("application-settings-layer")).not.toHaveAttribute(
-      "inert"
-    );
+    expect(
+      screen.getByTestId("application-settings-layer")
+    ).not.toHaveAttribute("inert");
   });
 
   it("restores focus to the assistant button after closing its narrow overlay", async () => {
     const user = userEvent.setup();
+    surfaceWidth = 700;
     window.matchMedia = jest.fn((query: string) =>
       stub<MediaQueryList>({
-        matches: query === "(max-width: 637.98px)",
+        matches: false,
         media: query,
         onchange: null,
         addListener: jest.fn(),
@@ -269,7 +290,9 @@ describe("ApplicationSurface", () => {
 
     const openButton = screen.getByRole("button", { name: "Ask Agent" });
     await user.click(openButton);
-    expect(screen.getByRole("dialog", { name: "App builder assistant" })).toHaveFocus();
+    expect(
+      screen.getByRole("dialog", { name: "App builder assistant" })
+    ).toHaveFocus();
 
     await user.click(screen.getByRole("button", { name: "Close agent" }));
     expect(screen.getByRole("button", { name: "Ask Agent" })).toHaveFocus();
