@@ -2583,14 +2583,15 @@ const ChoiceCardsWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { value, setValue, emit } = useWidgetRuntime({ ...widget, bindingMode: "write" });
   const options = Array.isArray(widget.props.options) ? widget.props.options.filter(isRecord) : [];
+  const images = useResolvedMediaUris(options.map((option) => str(option.image)));
   return <View style={styles.field}>
     <FieldLabel text={str(widget.props.label)} colors={colors} />
     <View style={styles.tileGrid}>{options.map((option, index) => {
       const optionValue = str(option.value);
       const selected = str(value) === optionValue;
       const disabled = widget.disabled || option.disabled === true;
-      const image = str(option.image);
-      return <TouchableOpacity key={optionValue || index} accessibilityRole="radio" accessibilityState={{ selected, disabled }} disabled={disabled} onPress={() => { setValue(optionValue); emit("change"); }} style={[styles.documentCard, { borderColor: selected ? colors.primary : colors.border, opacity: disabled ? 0.5 : 1, width: "48%" }]}>
+      const image = images[index];
+      return <TouchableOpacity key={optionValue || index} accessibilityRole="radio" accessibilityState={{ selected, disabled }} disabled={disabled} onPress={() => { if (disabled) { return; } setValue(optionValue); emit("change"); }} style={[styles.documentCard, { borderColor: selected ? colors.primary : colors.border, opacity: disabled ? 0.5 : 1, width: "48%" }]}>
         {image ? <Image source={{ uri: image }} style={[styles.image, { height: 96 }]} resizeMode="cover" /> : null}
         <Text style={[styles.label, { color: colors.text }]}>{str(option.title) || optionValue}</Text>
         {str(option.description) ? <Text style={[styles.hint, { color: colors.textTertiary }]}>{str(option.description)}</Text> : null}
@@ -2604,16 +2605,17 @@ const StepperWidget: React.FC<WidgetProps> = (widget) => {
   const { value, setValue, emit } = useWidgetRuntime({ ...widget, bindingMode: "write" });
   const steps = Array.isArray(widget.props.steps) ? widget.props.steps.filter(isRecord) : [];
   const found = steps.findIndex((step) => str(step.value) === str(value));
-  const current = found < 0 ? 0 : found;
+  const current = found;
+  const firstStep = steps[0] ? str(steps[0].value) : undefined;
   React.useEffect(() => {
-    if (value == null && steps[0] && !widget.disabled) setValue(str(steps[0].value));
-  }, [setValue, steps, value, widget.disabled]);
+    if (value == null && firstStep !== undefined && !widget.disabled) { setValue(firstStep); }
+  }, [setValue, firstStep, value, widget.disabled]);
   return <View style={styles.field}>
     <FieldLabel text={str(widget.props.label)} colors={colors} />
     <ScrollView horizontal showsHorizontalScrollIndicator={false}><View style={styles.chipRow}>{steps.map((step, index) => {
       const disabled = widget.disabled || step.disabled === true || (index < current && widget.props.allowBack === false);
       const selected = index === current;
-      return <TouchableOpacity key={str(step.value) || index} accessibilityRole="button" accessibilityState={{ selected, disabled }} disabled={disabled} onPress={() => { setValue(str(step.value)); emit("change"); }} style={[styles.chip, { backgroundColor: selected ? colors.primary : colors.inputBg, borderColor: selected ? colors.primary : colors.border, opacity: disabled ? 0.5 : 1 }]}>
+      return <TouchableOpacity key={str(step.value) || index} accessibilityRole="button" accessibilityState={{ selected, disabled }} disabled={disabled} onPress={() => { if (disabled) { return; } setValue(str(step.value)); emit("change"); }} style={[styles.chip, { backgroundColor: selected ? colors.primary : colors.inputBg, borderColor: selected ? colors.primary : colors.border, opacity: disabled ? 0.5 : 1 }]}>
         <Text style={{ color: selected ? colors.textOnPrimary : colors.text }}>{step.completed === true ? "✓ " : ""}{str(step.title) || str(step.value)}</Text>
       </TouchableOpacity>;
     })}</View></ScrollView>
@@ -2624,12 +2626,12 @@ const StepperWidget: React.FC<WidgetProps> = (widget) => {
 const ApprovalWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { value, setValue, emit } = useWidgetRuntime({ ...widget, bindingMode: "write" });
-  const choose = (next: "approved" | "rejected") => { if (widget.disabled) return; setValue(next); emit("change"); };
+  const choose = (next: "approved" | "rejected") => { if (widget.disabled) { return; } setValue(next); emit("change"); };
   return <View style={[styles.panel, { borderColor: colors.border, backgroundColor: colors.cardBg }]}>
     <FieldLabel text={str(widget.props.label)} colors={colors} />
     {str(widget.props.description) ? <Text style={[styles.hint, { color: colors.textTertiary }]}>{str(widget.props.description)}</Text> : null}
     <View style={styles.chipRow}>
-      {(["approved", "rejected"] as const).map((choice) => <TouchableOpacity key={choice} accessibilityRole="button" disabled={widget.disabled} onPress={() => choose(choice)} style={[styles.chip, { backgroundColor: value === choice ? colors.primary : colors.inputBg, borderColor: value === choice ? colors.primary : colors.border, opacity: widget.disabled ? 0.5 : 1 }]}><Text style={{ color: value === choice ? colors.textOnPrimary : colors.text }}>{choice === "approved" ? str(widget.props.approveLabel) || "Approve" : str(widget.props.rejectLabel) || "Needs changes"}</Text></TouchableOpacity>)}
+      {(["approved", "rejected"] as const).map((choice) => <TouchableOpacity key={choice} accessibilityRole="button" accessibilityState={{ selected: value === choice, disabled: widget.disabled }} disabled={widget.disabled} onPress={() => choose(choice)} style={[styles.chip, { backgroundColor: value === choice ? colors.primary : colors.inputBg, borderColor: value === choice ? colors.primary : colors.border, opacity: widget.disabled ? 0.5 : 1 }]}><Text style={{ color: value === choice ? colors.textOnPrimary : colors.text }}>{choice === "approved" ? str(widget.props.approveLabel) || "Approve" : str(widget.props.rejectLabel) || "Needs changes"}</Text></TouchableOpacity>)}
     </View>
   </View>;
 };

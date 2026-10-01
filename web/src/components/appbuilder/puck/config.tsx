@@ -378,6 +378,8 @@ export const appConfig: Config = {
         "Switch",
         "Select",
         "RadioGroup",
+        "ChoiceCards",
+        "Stepper",
         "CheckboxGroup",
         "DateInput",
         "ResourcePicker",
@@ -403,7 +405,7 @@ export const appConfig: Config = {
       title: "Chat & AI",
       components: ["ChatThread", "ChatComposer", "ModelSelect"]
     },
-    actions: { title: "Actions", components: ["Button"] },
+    actions: { title: "Actions", components: ["Button", "Approval"] },
     display: {
       title: "Display",
       components: [
