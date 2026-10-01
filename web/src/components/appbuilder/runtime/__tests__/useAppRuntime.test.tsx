@@ -55,10 +55,16 @@ const getScript = jest.fn(async (_input: { id: string }) => ({
     tests: []
   }
 }));
+const getScriptVersion = jest.fn(async (input: {id: string; version: number}) => {
+  if (input.version < 1) {
+    throw new Error("JS script version not found");
+  }
+  return getScript(input);
+});
 jest.mock("../../../../trpc/client", () => ({
   trpcClient: {
     jobs: { cancel: { mutate: (input: { id: string }) => cancelJob(input) } },
-    jsScripts: {get: {query: (input: {id: string}) => getScript(input)}, documentVersions: {get: { query: (input: { id: string; version: number }) => getScript(input) }} }
+    jsScripts: {get: {query: (input: {id: string}) => getScript(input)}, documentVersions: {get: { query: (input: { id: string; version: number }) => getScriptVersion(input) }} }
   }
 }));
 
@@ -188,6 +194,7 @@ beforeEach(() => {
   subscribers.length = 0;
   cancelJob.mockClear();
   getScript.mockClear();
+  getScriptVersion.mockClear();
   runJsScript.mockReset();
   window.localStorage.clear();
   disposeAppRuntimeStore(appInstanceId("application:app-script"));
@@ -897,6 +904,15 @@ describe("useAppRuntime — script operations", () => {
     await act(async () => { await Promise.resolve(); });
     expect(result.current.ioFor("main").inputs).toEqual([]);
     expect(getScript).not.toHaveBeenCalled();
+  });
+
+  it("never falls back to the live head for a malformed negative version", async () => {
+    const {result} = renderScriptApp(-1);
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => { await result.current.dispatch({kind: "run", operationId: "main"}); });
+    expect(getScriptVersion).toHaveBeenCalledWith({id: "script-1", version: -1});
+    expect(getScript).not.toHaveBeenCalled();
+    expect(runJsScript).not.toHaveBeenCalled();
   });
 
   it("keeps unpinned version-zero draft operations on the saved head", async () => {

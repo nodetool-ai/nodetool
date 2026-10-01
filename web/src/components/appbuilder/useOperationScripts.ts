@@ -34,9 +34,9 @@ export const useOperationScripts = (
     queries: targets.map(({ id, version }) => ({
       queryKey: ["app-operation-script", id, version],
       queryFn: async () => {
-        const result = version > 0
-          ? await trpcClient.jsScripts.documentVersions.get.query({id, version})
-          : await trpcClient.jsScripts.get.query({id});
+        const result = version === 0
+          ? await trpcClient.jsScripts.get.query({id})
+          : await trpcClient.jsScripts.documentVersions.get.query({id, version});
         return jsScriptDocument.parse(result.document);
       },
       staleTime: 60_000,
