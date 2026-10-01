@@ -26,13 +26,21 @@ and reaches NodeTool through the `nodetool.*` object model.
    unselected models, and dangling or mistyped edges.
 3. `run_workflow` for a short run, or `start_background_job` for a long one.
    Poll `get_job` until it settles. The settled job carries `outputs`.
-   `get_job_logs` carries the log tail and any node error.
-4. `debug_workflow` runs a workflow and returns status, outputs, errors, logs,
-   and a graph overview in one call.
+   `get_job_logs` carries the log tail and any node error. Inspect that same
+   job. Do not start another run to read its result.
+
+## Debug a failed run
+
+`debug_workflow` starts a new execution. It does not inspect the job from step
+3. Call it only when a second run is intended and the user has authorized it,
+because a rerun can repeat charges and side effects. After an ordinary run,
+use `get_job` and `get_job_logs` first.
 
 ## Rules
 
 - Validate before running. A run can cost money.
+- Start one execution per request. Never run a workflow and then debug-run it
+  to read the result.
 - Ask before deleting a workflow, asset, collection, or version.
 - Report the job status and the real error text when a run fails. Do not
   retry blindly.
