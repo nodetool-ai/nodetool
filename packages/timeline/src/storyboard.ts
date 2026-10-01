@@ -419,7 +419,7 @@ export function buildStoryboardTimeline(
       mediaType: source ? "video" : "image",
       sourceType: "imported",
       status: "generated",
-      currentAssetId: source?.assetId ?? assetIdOf(shot.keyframe),
+      currentAssetId: source?.assetId ?? stillAssetId,
       linkId: source ? createTimeOrderedUuid() : undefined,
       storyboardBoardId: input.boardId,
       storyboardShotId: shot.id,
