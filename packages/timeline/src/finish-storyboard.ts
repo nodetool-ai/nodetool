@@ -1,4 +1,4 @@
-import { resolveEffectiveProductionRequirement, type ProductionRequirement, type ProductionProtectedInput, type Shot } from "@nodetool-ai/protocol";
+import { resolveEffectiveProductionRequirement, type StoryboardMotionDesign, type ProductionRequirement, type ProductionProtectedInput, type Shot } from "@nodetool-ai/protocol";
 import { createTimeOrderedUuid, makeClip, makeTrack } from "./defaults.js";
 import { resolveShotSource } from "./storyboard.js";
 import type { TimelineClip, TimelineTrack, TimelineMarker } from "./types.js";
@@ -20,6 +20,7 @@ export interface FinishStoryboardInput {
   width: number;
   height: number;
   production?: ProductionRequirement;
+  motionDesign?: StoryboardMotionDesign;
   current?: { tracks: TimelineTrack[]; clips: TimelineClip[]; markers?: TimelineMarker[] };
 }
 
@@ -69,7 +70,7 @@ export function validateProducedTimeline(
       if (clips.length === 0) { issue("missing_element", `Missing ${shot.id}/${element.id}.`); continue; }
       if (clips.length !== 1) { issue("duplicate_element", `Duplicate ${shot.id}/${element.id}.`); continue; }
       const clip = clips[0];
-      if (clip.hidden || clip.opacity === 0 || clip.durationMs <= 0 || !tracks.has(clip.trackId) || tracks.get(clip.trackId)?.visible === false) {
+      if (clip.hidden || clip.opacity === 0 || (clip.transform && (!Number.isFinite(clip.transform.scale.x) || !Number.isFinite(clip.transform.scale.y) || clip.transform.scale.x === 0 || clip.transform.scale.y === 0)) || clip.durationMs <= 0 || !tracks.has(clip.trackId) || tracks.get(clip.trackId)?.visible === false) {
         issue("missing_element", `${element.id} must be visible.`);
       }
       const protection = element.protected_input_id ? protectedInputs.get(element.protected_input_id) : undefined;
@@ -77,6 +78,9 @@ export function validateProducedTimeline(
         issue("protected_source", `Unknown protected input ${element.protected_input_id}.`);
       }
       const assetId = protection?.asset_id ?? element.asset_id;
+      if (protection && ["product", "logo", "source_asset"].includes(protection.kind) && (element.kind !== "asset" || clip.mediaType !== "image" || clip.currentAssetId !== protection.asset_id)) issue("protected_source", `${protection.id} requires its original separately editable image.`);
+      if (protection?.kind === "exact_text" && (element.kind !== "text" || clip.mediaType !== "text" || clip.textStyle?.text !== protection.value)) issue("protected_value", `${protection.id} requires its exact editable text.`);
+      if (protection && tracks.get(clip.trackId)?.effects?.length) issue("forbidden_transform", `Track effects on ${protection.id} cannot be proven faithful.`);
       if (element.kind === "asset" && (!assetId || clip.mediaType !== "image" || clip.currentAssetId !== assetId)) {
         issue("protected_source", `${element.id} must use original asset ${assetId ?? "(unresolved)"}.`);
       }
@@ -181,12 +185,48 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
           if (!same(previous.transform, prior.transform)) clip.transform = previous.transform;
           if (!same(previous.startMs, prior.startMs)) clip.startMs = previous.startMs;
           if (!same(previous.durationMs, prior.durationMs)) clip.durationMs = previous.durationMs;
-          if (!same(previous.animations, prior.animations)) clip.animations = previous.animations;
+          if (!same(previous.animations, prior.animations)) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Animations were manually changed on ${key}.` });
         }
       }
       clips.push(clip);
     }
     startMs += durationMs;
+  }
+  // These semantic directions select existing Timeline animations, never another animation model.
+  for (const transition of input.motionDesign?.transitions ?? []) {
+    const direction = transition.direction?.trim().toLowerCase() ?? "crossfade";
+    if (direction === "cut") continue;
+    if (direction !== "crossfade") {
+      conflicts.push({ code: "forbidden_transform", shotId: transition.to_shot_id, elementId: "$transition", message: `Unsupported transition direction ${direction}. Use cut or crossfade.` });
+      continue;
+    }
+    const outgoing = clips.filter((clip) => clip.storyboardBoardId === input.boardId && clip.storyboardShotId === transition.from_shot_id);
+    const incoming = clips.filter((clip) => clip.storyboardBoardId === input.boardId && clip.storyboardShotId === transition.to_shot_id);
+    for (const clip of outgoing) clip.animations = [...(clip.animations ?? []), { id: `${clip.id}:cut-out`, role: "out", preset: "fade", durationMs: 300 }];
+    for (const clip of incoming) clip.animations = [...(clip.animations ?? []), { id: `${clip.id}:cut-in`, role: "in", preset: "fade", durationMs: 300 }];
+  }
+  for (const continuity of input.motionDesign?.continuities ?? []) {
+    const matching = continuity.shot_ids.map((shotId) => clips.find((clip) => clip.storyboardBoardId === input.boardId && clip.storyboardShotId === shotId && clip.storyboardElementId === continuity.id));
+    if (matching.some((clip) => !clip)) {
+      conflicts.push({ code: "missing_element", shotId: continuity.shot_ids[0] ?? "", elementId: continuity.id, message: `Continuity ${continuity.id} must name a graphics element present in every referenced shot.` });
+      continue;
+    }
+    const first = matching[0]!;
+    for (const [index, clip] of matching.entries()) {
+      if (!clip) continue;
+      // A continuous device retains placement and does not restart its entrance at each cut.
+      if (index > 0) {
+        clip.transform = first.transform ? structuredClone(first.transform) : undefined;
+        clip.animations = (clip.animations ?? []).filter((animation) => animation.role !== "in");
+      }
+      if (index < matching.length - 1) clip.animations = (clip.animations ?? []).filter((animation) => animation.role !== "out");
+    }
+  }
+  for (const clip of clips) {
+    if (clip.storyboardBoardId !== input.boardId || !clip.storyboardMaterializationBaseline) continue;
+    const owned = JSON.parse(clip.storyboardMaterializationBaseline) as Record<string, unknown>;
+    owned.animations = clip.animations;
+    clip.storyboardMaterializationBaseline = JSON.stringify(owned);
   }
   const document: FinishedStoryboardDocument = { tracks, clips, markers: current.markers ?? [] };
   return { document, durationMs: Math.max(startMs, ...clips.map((clip) => clip.startMs + clip.durationMs)), validation: [...conflicts, ...validateProducedTimeline(input, document)] };

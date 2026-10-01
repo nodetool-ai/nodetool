@@ -89,4 +89,40 @@ describe("Storyboard finishing", () => {
     expect(materializeStoryboard({ ...args, current: first.document }).validation.some((issue) => issue.code === "manual_conflict")).toBe(true);
   });
 
+  it.each(["product", "text"])("rejects a shape masquerading as protected %s", (kind) => {
+    const args = input();
+    const element = args.shots[0].graphics!.elements!.find((value) => value.id === (kind === "product" ? "product" : "price"))!;
+    element.kind = "shape";
+    expect(materializeStoryboard(args).validation.length).toBeGreaterThan(0);
+  });
+  it("rejects inherited track effects on protected sources", () => {
+    const args = input();
+    const result = materializeStoryboard(args);
+    result.document.tracks[1].effects = [{ type: "blur", radius: 20 }] as never;
+    expect(validateProducedTimeline(args, result.document).some((issue) => issue.code === "forbidden_transform")).toBe(true);
+  });
+  it("uses motion design for cut animations and continuity without rerun duplication", () => {
+    const args = input();
+    const second = structuredClone(args.shots[0]);
+    second.id = "cta";
+    second.index = 1;
+    args.shots.push(second);
+    const motionDesign = { transitions: [{ from_shot_id: "hook", to_shot_id: "cta", direction: "crossfade" }], continuities: [{ id: "background", shot_ids: ["hook", "cta"], direction: "continue" }] };
+    const first = materializeStoryboard({ ...args, motionDesign });
+    expect(first.validation).toEqual([]);
+    expect(first.document.clips.find((clip) => clip.storyboardShotId === "hook" && clip.storyboardElementId === "product")!.animations!.some((animation) => animation.role === "out")).toBe(true);
+    expect(first.document.clips.filter((clip) => clip.storyboardElementId === "background").every((clip) => !clip.animations?.length)).toBe(true);
+    const rerun = materializeStoryboard({ ...args, motionDesign, current: first.document });
+    expect(rerun.validation).toEqual([]);
+    expect(rerun.document.clips.map((clip) => clip.animations)).toEqual(first.document.clips.map((clip) => clip.animations));
+    expect(materializeStoryboard({ ...args, motionDesign: { transitions: [{ from_shot_id: "hook", to_shot_id: "cta", direction: "unknown prose" }] } }).validation.some((issue) => issue.elementId === "$transition")).toBe(true);
+  });
+
+  it("rejects zero-scale protected elements", () => {
+    const args = input();
+    const result = materializeStoryboard(args);
+    result.document.clips[1].transform!.scale = { x: 0, y: 0 };
+    expect(validateProducedTimeline(args, result.document).some((issue) => issue.code === "missing_element")).toBe(true);
+  });
+
 });

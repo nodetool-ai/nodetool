@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, like, sql } from "drizzle-orm";
 import { getDatabase } from "./db.js";
 import { Storyboard } from "./storyboard.js";
 import { TimelineSequence, type TimelineDocument } from "./timeline-sequence.js";
@@ -47,4 +47,18 @@ export async function commitFinishedStoryboard(input: FinishStoryboardWrite): Pr
   ModelObserver.notify(board, ModelChangeEvent.UPDATED);
   ModelObserver.notify(timeline, input.timeline ? ModelChangeEvent.UPDATED : ModelChangeEvent.CREATED);
   return { board, timeline };
+}
+
+/** Resolve full ids or exact twelve-character prefixes only within ownership. */
+export async function findFinishResourceIds(kind: "storyboard" | "timeline", id: string, userId: string, projectId?: string): Promise<string[]> {
+  const connection = getDatabase();
+  const prefix = /^[a-f0-9]{12}$/.test(id);
+  if (connection.dialect === "sqlite") {
+    const table = kind === "storyboard" ? connection.schema.storyboards : connection.schema.timelineSequences;
+    const predicate = and(eq(table.user_id, userId), prefix ? like(table.id, `${id}%`) : eq(table.id, id), projectId ? eq(table.project_id, projectId) : undefined);
+    return connection.db.select({ id: table.id }).from(table).where(predicate).limit(2).all().map((row) => row.id);
+  }
+  const table = kind === "storyboard" ? connection.schema.storyboards : connection.schema.timelineSequences;
+  const predicate = and(eq(table.user_id, userId), prefix ? like(table.id, `${id}%`) : eq(table.id, id), projectId ? eq(table.project_id, projectId) : undefined);
+  return (await connection.db.select({ id: table.id }).from(table).where(predicate).limit(2)).map((row) => row.id);
 }

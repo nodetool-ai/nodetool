@@ -512,6 +512,6 @@ export type {
   UserSubscription
 } from "./credits.js";
 
-export { commitFinishedStoryboard } from "./finish-storyboard.js";
+export { commitFinishedStoryboard, findFinishResourceIds } from "./finish-storyboard.js";
 
 export { storyboards } from "./schema/storyboards.js";
