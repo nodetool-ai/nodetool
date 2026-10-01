@@ -9,6 +9,7 @@
 
 import { describe, it, expect } from "@jest/globals";
 import { createTimelineStore } from "../TimelineStore";
+import { buildTimelineDocumentPayload } from "../../../hooks/timeline/timelineDocumentPayload";
 import type { TimelineSequence } from "@nodetool-ai/timeline";
 
 function makeSequence(
@@ -32,6 +33,23 @@ function makeSequence(
 }
 
 describe("TimelineStore — project settings", () => {
+  it("preserves storyboard ownership through load, agent edit, undo and save/reload", () => {
+    const ledger = [{ boardId: "board-1", elementKeys: ["shot/product"] }];
+    const store = createTimelineStore();
+    store.getState().loadSequence(makeSequence({ storyboardMaterializations: ledger }));
+    expect(store.getState().syncedDocument?.storyboardMaterializations).toEqual(ledger);
+    store.temporal.getState().clear();
+    store.getState().applyAgentEdit({ tracks: [], clips: [], markers: [{ id: "marker", timeMs: 0, label: "Edit" }], mediaTracks: [] });
+    store.temporal.getState().undo();
+    expect(store.getState().storyboardMaterializations).toEqual(ledger);
+    const saved = buildTimelineDocumentPayload(store.getState());
+    expect(saved.storyboardMaterializations).toEqual(ledger);
+    store.getState().loadSequence(makeSequence(saved));
+    expect(store.getState().storyboardMaterializations).toEqual(ledger);
+    store.getState().loadSequence(makeSequence());
+    expect(store.getState().storyboardMaterializations).toBeUndefined();
+  });
+
   it("loads, edits, undoes and clears the persisted camera", () => {
     const camera2d = { position: { x: 10, y: 20 }, depthPx: 50, focalLengthPx: 1000 };
     const store = createTimelineStore();

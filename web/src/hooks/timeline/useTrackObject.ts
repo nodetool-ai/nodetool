@@ -242,6 +242,7 @@ export function useTrackObject(
         fps: state.fps,
         width: state.width,
         height: state.height,
+        storyboardMaterializations: state.storyboardMaterializations,
         camera2d: state.camera2d ?? null
       };
       const saved = await trpcClient.timeline.update.mutate({
@@ -286,6 +287,7 @@ export function useTrackObject(
         fps: current.fps,
         width: current.width,
         height: current.height,
+        storyboardMaterializations: current.storyboardMaterializations,
         camera2d: current.camera2d ?? null
       };
       const server: TimelineMergeDoc = {
@@ -299,6 +301,7 @@ export function useTrackObject(
         fps: sequence.fps,
         width: sequence.width,
         height: sequence.height,
+        storyboardMaterializations: sequence.storyboardMaterializations,
         camera2d: sequence.camera2d ?? null
       };
       const merged = mergeTimelineDocuments(base, draft, server, undefined, {
@@ -318,6 +321,7 @@ export function useTrackObject(
         fps: sequence.fps,
         width: sequence.width,
         height: sequence.height,
+        storyboardMaterializations: sequence.storyboardMaterializations,
         camera2d: sequence.camera2d ?? null
       };
       timeline.getState().setBaseUpdatedAt(sequence.updatedAt, synced);

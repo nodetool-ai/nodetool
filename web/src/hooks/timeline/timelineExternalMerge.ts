@@ -33,6 +33,7 @@ export type TimelineTypedDocument = Pick<
   | "fps"
   | "width"
   | "height"
+  | "storyboardMaterializations"
   | "camera2d"
 >;
 
@@ -110,6 +111,10 @@ export function applyAcceptedTimelineConflict(
     return;
   }
   if (conflict.unit.kind === "field") {
+    if (conflict.unit.id === "storyboardMaterializations") {
+      state.applyExternalMerge({ storyboardMaterializations: conflict.external as TimelineStoreState["storyboardMaterializations"] });
+      return;
+    }
     if (conflict.unit.id === "camera2d") {
       state.setCamera2D(conflict.external == null ? null : timelineCamera2d.parse(conflict.external));
       return;
@@ -177,6 +182,7 @@ export function rebaseTimelineSnapshots(
       fps: before.fps,
       width: before.width,
       height: before.height,
+      storyboardMaterializations: snapshot.storyboardMaterializations,
       camera2d: snapshot.camera2d ?? null
     })),
     before,
@@ -200,6 +206,7 @@ export function rebaseTimelineSnapshots(
       mediaTracks: typedNext.mediaTracks,
       transcript: typedNext.transcript,
       scriptEnabled: typedNext.scriptEnabled,
+      storyboardMaterializations: typedNext.storyboardMaterializations,
       camera2d: typedNext.camera2d ?? null,
       durationMs: reflowed.durationMs
     } satisfies TimelinePartializedState;
