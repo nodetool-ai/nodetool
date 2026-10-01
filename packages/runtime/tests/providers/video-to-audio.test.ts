@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { BaseProvider } from "../../src/providers/base-provider.js";
+import {
+  BaseProvider,
+  type ProviderCapability
+} from "../../src/providers/base-provider.js";
 import {
   requestVideoToAudio,
   VideoToAudioRequest,
@@ -34,6 +37,10 @@ class RecordingProvider extends UnsupportedProvider {
     id: "sound-model", name: "Sound", provider: "fake",
     supportedTasks: ["video_to_audio"]
   }];
+
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return ["video_to_audio"];
+  }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
     return this.models;
@@ -115,7 +122,7 @@ describe("video_to_audio foundation", () => {
     expect(provider.submit).not.toHaveBeenCalled();
   });
 
-  it("advertises only an overridden method, including after failure wrapping", () => {
+  it("advertises only a declared capability", () => {
     expect(new UnsupportedProvider().getCapabilities()).not.toContain(
       "video_to_audio"
     );

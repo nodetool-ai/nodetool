@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { FalProvider } from "../../src/providers/fal-provider.js";
-import { providerCapabilities } from "../../src/providers/base-provider.js";
 import type { SegmentImageParams } from "../../src/providers/types.js";
 
 vi.mock("@fal-ai/client", () => ({
@@ -49,7 +48,7 @@ afterEach(() => {
 
 describe("FalProvider.segmentImage", () => {
   it("advertises segment_image once the provider implements it", () => {
-    const capabilities = providerCapabilities(new FalProvider({ FAL_API_KEY: "k" }));
+    const capabilities = new FalProvider({ FAL_API_KEY: "k" }).getCapabilities();
     expect(capabilities).toContain("segment_image");
   });
 

@@ -5,7 +5,7 @@
  * API docs: https://api.jina.ai/redoc
  */
 
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   EmbeddingModel,
@@ -70,6 +70,12 @@ interface JinaProviderOptions {
 }
 
 export class JinaProvider extends BaseProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "generate_embedding"
+    ];
+  }
+
   static override requiredSecrets(): string[] {
     return ["JINA_API_KEY"];
   }

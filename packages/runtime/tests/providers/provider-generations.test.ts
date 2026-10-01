@@ -11,10 +11,7 @@ import { describe, it, expect, vi } from "vitest";
 import { AtlasCloudProvider } from "../../src/providers/atlascloud-provider.js";
 import { FalProvider } from "../../src/providers/fal-provider.js";
 import { FakeProvider } from "../../src/providers/fake-provider.js";
-import {
-  providerCapabilities,
-  BaseProvider
-} from "../../src/providers/base-provider.js";
+import { BaseProvider } from "../../src/providers/base-provider.js";
 import {
   falGetGeneration,
   falListGenerations,
@@ -53,19 +50,19 @@ describe("BaseProvider generation history", () => {
     await expect(provider.getGeneration("req-1")).rejects.toSatisfy(
       isProviderGenerationsUnsupported
     );
-    expect(providerCapabilities(provider)).not.toContain("list_generations");
-    expect(providerCapabilities(provider)).not.toContain("get_generation");
+    expect(provider.getCapabilities()).not.toContain("list_generations");
+    expect(provider.getCapabilities()).not.toContain("get_generation");
   });
 
   it("advertises the capability only for the overrides a provider has", () => {
     const fal = new FalProvider({ FAL_API_KEY: "k" });
-    expect(providerCapabilities(fal)).toContain("list_generations");
-    expect(providerCapabilities(fal)).toContain("get_generation");
+    expect(fal.getCapabilities()).toContain("list_generations");
+    expect(fal.getCapabilities()).toContain("get_generation");
 
     const atlas = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
     // AtlasCloud publishes a prediction lookup and no listing endpoint.
-    expect(providerCapabilities(atlas)).toContain("get_generation");
-    expect(providerCapabilities(atlas)).not.toContain("list_generations");
+    expect(atlas.getCapabilities()).toContain("get_generation");
+    expect(atlas.getCapabilities()).not.toContain("list_generations");
     expect(atlas.listGenerations).toBe(BaseProvider.prototype.listGenerations);
   });
 });

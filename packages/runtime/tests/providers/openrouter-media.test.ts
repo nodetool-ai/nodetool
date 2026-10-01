@@ -1,9 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { OpenRouterProvider } from "../../src/providers/openrouter-provider.js";
-import {
-  BaseProvider,
-  providerCapabilities
-} from "../../src/providers/base-provider.js";
+import { BaseProvider } from "../../src/providers/base-provider.js";
 import type { VideoModel } from "../../src/providers/types.js";
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
@@ -203,7 +200,7 @@ describe("OpenRouterProvider video", () => {
 
   it("advertises video capabilities but not reference-to-video", () => {
     const provider = makeProvider(routedFetch({}));
-    const caps = providerCapabilities(provider as unknown as BaseProvider);
+    const caps = (provider as unknown as BaseProvider).getCapabilities();
     expect(caps).toContain("text_to_video");
     expect(caps).toContain("image_to_video");
     expect(caps).not.toContain("reference_to_video");

@@ -652,15 +652,12 @@ describe("HuggingFaceProvider", () => {
   });
 
   describe("capabilities", () => {
-    it("advertises every supported modality", async () => {
-      const { providerCapabilities } = await import(
-        "../../src/providers/base-provider.js"
-      );
+    it("advertises every supported modality", () => {
       const provider = new HuggingFaceProvider(
         { HF_TOKEN: "hf_test" },
         { hfClient: makeMockHfClient() }
       );
-      const caps = providerCapabilities(provider);
+      const caps = provider.getCapabilities();
       expect(caps).toEqual(
         expect.arrayContaining([
           "text_to_image",

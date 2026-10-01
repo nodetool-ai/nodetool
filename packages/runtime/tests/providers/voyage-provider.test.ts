@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
 import { VoyageProvider } from "../../src/providers/voyage-provider.js";
-import { providerCapabilities } from "../../src/providers/base-provider.js";
 
 const mockOk = (json: unknown) =>
   ({
@@ -35,7 +34,7 @@ describe("VoyageProvider", () => {
 
   it("advertises generate_embedding capability", () => {
     const p = new VoyageProvider({ VOYAGE_API_KEY: "k" });
-    expect(providerCapabilities(p)).toContain("generate_embedding");
+    expect(p.getCapabilities()).toContain("generate_embedding");
   });
 
   it("returns the curated embedding model list", async () => {

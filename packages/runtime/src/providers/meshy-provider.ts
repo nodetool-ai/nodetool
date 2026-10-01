@@ -13,7 +13,7 @@
  * `nodetool-core@25e60910:src/nodetool/providers/meshy_provider.py`.
  */
 
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { sniffImageMime } from "./image-mime.js";
 import { createLogger } from "@nodetool-ai/config";
@@ -129,6 +129,13 @@ export class MeshyProvider extends BaseProvider {
       // Stryker disable next-line StringLiteral: diagnostic log message.
       log.warn("Meshy API key not configured");
     }
+  }
+
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_3d",
+      "image_to_3d"
+    ];
   }
 
   static override requiredSecrets(): string[] {

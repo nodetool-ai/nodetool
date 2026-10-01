@@ -1,5 +1,5 @@
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 
 const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
   "node:crypto"
@@ -226,6 +226,17 @@ export class FakeProvider extends BaseProvider {
 
   resetCallCount(): void {
     this.callCount = 0;
+  }
+
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "upscale_image",
+      "remove_background",
+      "relight_image",
+      "vectorize_image",
+      "video_to_video",
+      "lip_sync"
+    ];
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {

@@ -3,8 +3,15 @@ import {
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
 import type { EmbeddingModel, LanguageModel } from "./types.js";
+import type { ProviderCapability } from "./base-provider.js";
 
 export class MistralProvider extends OpenAICompatProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "generate_embedding"
+    ];
+  }
+
   static override requiredSecrets(): string[] {
     return ["MISTRAL_API_KEY"];
   }

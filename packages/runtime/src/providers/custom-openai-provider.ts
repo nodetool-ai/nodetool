@@ -20,6 +20,7 @@ import {
   type ListedModelKind
 } from "./custom-model-kinds.js";
 import type { ImageModel, LanguageModel, VideoModel } from "./types.js";
+import type { ProviderCapability } from "./base-provider.js";
 
 /** Cap on the model-list probe so an unreachable proxy cannot stall the model menu. */
 const MODEL_LIST_TIMEOUT_MS = 5000;
@@ -70,6 +71,15 @@ const IMAGE_TASKS = ["text_to_image", "image_to_image"];
 const VIDEO_TASKS = ["text_to_video", "image_to_video"];
 
 export class CustomOpenAIProvider extends OpenAICompatProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video"
+    ];
+  }
+
   static override requiredSecrets(): string[] {
     return [];
   }

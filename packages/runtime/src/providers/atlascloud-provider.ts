@@ -89,6 +89,7 @@ import type {
   ReferenceToVideoInputs,
   ReferenceToVideoParams
 } from "./types.js";
+import type { ProviderCapability } from "./base-provider.js";
 
 const log = createLogger("nodetool.runtime.providers.atlascloud");
 
@@ -548,6 +549,29 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
   private modelMap: Map<string, ModelInfo> | null = null;
   private chatModels: Promise<AtlasChatModelRow[]> | null = null;
   private readonly atlasFetch: typeof fetch;
+
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
+      "inpainting",
+      "remove_background",
+      "video_to_video",
+      "extend_video",
+      "upscale_video",
+      "lip_sync",
+      "text_to_speech",
+      "text_to_music",
+      "automatic_speech_recognition",
+      "generate_embedding",
+      "text_to_3d",
+      "image_to_3d",
+      "get_generation"
+    ];
+  }
 
   static override requiredSecrets(): string[] {
     return ["ATLASCLOUD_API_KEY"];

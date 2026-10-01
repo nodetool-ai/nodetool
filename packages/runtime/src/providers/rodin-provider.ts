@@ -15,7 +15,7 @@
  * `subscription_key` from a single submit response.
  */
 
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { createLogger } from "@nodetool-ai/config";
 import type {
@@ -154,6 +154,13 @@ export class RodinProvider extends BaseProvider {
       // Stryker disable next-line StringLiteral: diagnostic log message.
       log.warn("Rodin API key not configured");
     }
+  }
+
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_3d",
+      "image_to_3d"
+    ];
   }
 
   static override requiredSecrets(): string[] {

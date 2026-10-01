@@ -19,6 +19,7 @@ import type {
   VideoModel
 } from "./types.js";
 import { isString } from "@nodetool-ai/protocol";
+import type { ProviderCapability } from "./base-provider.js";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.openrouter");
@@ -93,6 +94,15 @@ function reportedCost(body: Record<string, unknown>): number | undefined {
 }
 
 export class OpenRouterProvider extends OpenAICompatProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video"
+    ];
+  }
+
   static override requiredSecrets(): string[] {
     return ["OPENROUTER_API_KEY"];
   }

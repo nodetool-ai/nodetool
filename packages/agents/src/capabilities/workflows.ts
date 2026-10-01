@@ -1003,10 +1003,9 @@ async function reviewPlan(
 ): Promise<ReturnType<typeof resolveWorkflowPlan>> {
   const registry = run.nodeRegistry;
   const providers = run.providers ?? {};
-  const { providerCapabilities } = await import("@nodetool-ai/runtime");
   const capabilities = new Set<string>();
   for (const provider of Object.values(providers)) {
-    for (const capability of providerCapabilities(provider)) {
+    for (const capability of provider.getCapabilities()) {
       capabilities.add(capability);
     }
   }

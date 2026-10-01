@@ -64,14 +64,10 @@ export class VLLMProvider extends OpenAICompatProvider {
 
   /**
    * vLLM serves chat, embeddings (`/v1/embeddings`) and transcription
-   * (`/v1/audio/transcriptions`). Declaring this set keeps the image, video
-   * and speech capabilities inherited from {@link OpenAIProvider} off, since
-   * vLLM has no endpoint for them.
+   * (`/v1/audio/transcriptions`), and has no image, video or speech endpoint.
    */
-  protected override declaredCapabilities(): ProviderCapability[] {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
     return [
-      "generate_message",
-      "generate_messages",
       "generate_embedding",
       "automatic_speech_recognition"
     ];

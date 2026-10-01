@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   BaseProvider,
-  providerCapabilities
+  type ProviderCapability
 } from "../../src/providers/base-provider.js";
 import type {
   AudioToAudioModel,
@@ -22,6 +22,10 @@ class SilentProvider extends BaseProvider {
 }
 
 class TransformProvider extends SilentProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return ["audio_to_audio"];
+  }
+
   override async getAvailableAudioToAudioModels(): Promise<
     AudioToAudioModel[]
   > {
@@ -44,11 +48,11 @@ class TransformProvider extends SilentProvider {
 }
 
 describe("audio_to_audio provider capability", () => {
-  it("is advertised only by a provider that lists audio-to-audio models", () => {
-    expect(providerCapabilities(new SilentProvider())).not.toContain(
+  it("is advertised only by a provider that declares it", () => {
+    expect(new SilentProvider().getCapabilities()).not.toContain(
       "audio_to_audio"
     );
-    expect(providerCapabilities(new TransformProvider())).toContain(
+    expect(new TransformProvider().getCapabilities()).toContain(
       "audio_to_audio"
     );
   });

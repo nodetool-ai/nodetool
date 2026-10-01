@@ -12,7 +12,7 @@ import {
   recordGenerationProviderResult,
   recordGenerationReceiptAsync
 } from "../generation-receipt.js";
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import {
   falGetGeneration,
   falListGenerations,
@@ -719,6 +719,34 @@ export class FalProvider extends BaseProvider {
     | undefined;
   /** Model ids the catalog says accept `tools`. Filled by the model listing. */
   private _toolCapableModels: Set<string> | null = null;
+
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
+      "inpainting",
+      "outpaint_image",
+      "upscale_image",
+      "remove_background",
+      "relight_image",
+      "segment_image",
+      "vectorize_image",
+      "video_to_video",
+      "extend_video",
+      "upscale_video",
+      "interpolate_video",
+      "outpaint_video",
+      "lip_sync",
+      "text_to_speech",
+      "text_to_music",
+      "audio_to_audio",
+      "list_generations",
+      "get_generation"
+    ];
+  }
 
   static override requiredSecrets(): string[] {
     return ["FAL_API_KEY"];
