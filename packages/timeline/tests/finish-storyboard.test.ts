@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Shot } from "@nodetool-ai/protocol";
 import { timelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
+import type { TimelineSequence } from "../src/types.js";
 import { materializeStoryboard, validateProducedTimeline } from "../src/finish-storyboard.js";
 
 const shot = (): Shot => ({
@@ -19,6 +20,43 @@ const shot = (): Shot => ({
 const input = () => ({ boardId: "board", shots: [shot()], width: 1080, height: 1920 });
 
 describe("Storyboard finishing", () => {
+  it("preserves unrelated document metadata on a finishing rerun", () => {
+    const args = input();
+    const first = materializeStoryboard(args).document;
+    const metadata: Partial<TimelineSequence> = {
+      name: "Manual composition", scriptEnabled: false, templateId: "template",
+      tempo: { bpm: 87, offsetMs: 12, timeSignature: { beatsPerBar: 3, beatUnit: 4 } },
+      transcript: [{ id: "line", text: "Manual notes", beatStartMs: 0, clipIds: [] }],
+      trackFolders: [{ id: "folder", name: "Manual folder" }],
+      setup: { stage: "done", brief: "Manual brief" },
+      camera2d: null, source: null, mediaTracks: []
+    };
+    const current = { ...first, ...metadata };
+    const before = structuredClone(current);
+    const result = materializeStoryboard({ ...args, current });
+    expect(result.validation).toEqual([]);
+    expect(result.document).toMatchObject(metadata);
+    expect(current).toEqual(before);
+  });
+  const unsupportedMetadata: Array<[string, Partial<TimelineSequence>]> = [
+    ["camera", { camera2d: { position: { x: 12, y: 0 }, depthPx: 0, focalLengthPx: 1000 } }],
+    ["code source", { source: { lang: "js", code: "// manual", bakedAt: "2026-10-01", scenes: {} } }],
+    ["media tracking", { mediaTracks: [{ id: "tracking", clipId: "clip", sourceAssetId: "product-asset", name: "Manual tracking", kind: "point", sourceStartMs: 0, sourceEndMs: 1000, samples: [], status: "ready" }] }]
+  ];
+  it.each(unsupportedMetadata)("returns an explicit conflict without mutation for %s", (_, metadata) => {
+    const args = input();
+    const current = { ...materializeStoryboard(args).document, ...metadata };
+    const before = structuredClone(current);
+    const result = materializeStoryboard({ ...args, current });
+    expect(result.validation.some((issue) => issue.code === "manual_conflict")).toBe(true);
+    expect(result.document).toEqual(before);
+    expect(current).toEqual(before);
+  });
+  it.each(unsupportedMetadata.filter(([name]) => name !== "code source"))("rejects actual %s transformations during standalone production validation", (_, metadata) => {
+    const args = input();
+    const current = { ...materializeStoryboard(args).document, ...metadata };
+    expect(validateProducedTimeline(args, current).some((issue) => issue.code === "forbidden_transform")).toBe(true);
+  });
   it("creates separately editable exact layers with persistent semantic ownership", () => {
     const result = materializeStoryboard(input());
     expect(result.validation).toEqual([]);

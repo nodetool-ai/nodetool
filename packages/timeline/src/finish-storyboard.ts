@@ -5,14 +5,9 @@ import { resolveShotSource } from "./storyboard.js";
 import { isKnownShapeKind } from "./types.js";
 import { buildTransformMatrix, IDENTITY_TRANSFORM } from "./render/transform.js";
 import { compileClipAnimations } from "./animation/compile.js";
-import type { TimelineClip, TimelineTrack, TimelineMarker } from "./types.js";
+import type { TimelineClip, TimelineSequence } from "./types.js";
 
-export interface FinishedStoryboardDocument {
-  tracks: TimelineTrack[];
-  clips: TimelineClip[];
-  markers: TimelineMarker[];
-  storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[] }>;
-}
+export type FinishedStoryboardDocument = Partial<TimelineSequence> & Pick<TimelineSequence, "tracks" | "clips" | "markers">;
 export interface ProducedTimelineIssue {
   code: "missing_element" | "duplicate_element" | "protected_source" | "protected_value" | "forbidden_generation" | "forbidden_transform" | "manual_conflict";
   shotId: string;
@@ -26,7 +21,7 @@ export interface FinishStoryboardInput {
   height: number;
   production?: ProductionRequirement;
   motionDesign?: StoryboardMotionDesign;
-  current?: { tracks: TimelineTrack[]; clips: TimelineClip[]; markers?: TimelineMarker[]; storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[] }> };
+  current?: Partial<TimelineSequence> & Pick<TimelineSequence, "tracks" | "clips">;
 }
 
 function parseBaseline(value: string | undefined): Record<string, unknown> | undefined {
@@ -62,7 +57,7 @@ const baseline = (clip: TimelineClip): string => JSON.stringify({
 /** Validate actual layers, rather than a caller's description of intended edits. */
 export function validateProducedTimeline(
   input: Pick<FinishStoryboardInput, "boardId" | "shots" | "production" | "width" | "height">,
-  document: { tracks: TimelineTrack[]; clips: TimelineClip[] }
+  document: Pick<TimelineSequence, "tracks" | "clips" | "camera2d" | "mediaTracks">
 ): ProducedTimelineIssue[] {
   const issues: ProducedTimelineIssue[] = [];
   const layers = new Map<string, TimelineClip[]>();
@@ -76,6 +71,9 @@ export function validateProducedTimeline(
     const protectedInputs = new Map((resolveEffectiveProductionRequirement(input.production, shot.production)?.protected_inputs ?? []).map((value) => [value.id, value]));
     const referencedProtection = new Set((shot.graphics?.elements ?? []).map((element) => element.protected_input_id));
     for (const protection of protectedInputs.values()) {
+      if (document.camera2d != null || (document.mediaTracks != null && (!Array.isArray(document.mediaTracks) || document.mediaTracks.length > 0))) {
+        issues.push({ code: "forbidden_transform", shotId: shot.id, elementId: protection.id, message: `Global camera or media tracking transforms on ${protection.id} cannot be proven faithful. Remove these transforms before production validation.` });
+      }
       if (!referencedProtection.has(protection.id)) issues.push({ code: "missing_element", shotId: shot.id, elementId: protection.id, message: `Protected input ${protection.id} has no editable visible graphics element.` });
     }
     for (const element of shot.graphics?.elements ?? []) {
@@ -190,6 +188,14 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
   validation: ProducedTimelineIssue[];
 } {
   const current = input.current ?? { tracks: [], clips: [] };
+  const unsupported = [current.camera2d != null && "camera", current.source != null && "code-authored source", current.mediaTracks != null && (!Array.isArray(current.mediaTracks) || current.mediaTracks.length > 0) && "media tracking"].filter(Boolean);
+  if (unsupported.length > 0) {
+    return {
+      document: { ...current, markers: current.markers ?? [] },
+      durationMs: Math.max(0, ...current.clips.map((clip) => clip.startMs + clip.durationMs)),
+      validation: [{ code: "manual_conflict", shotId: "", elementId: "", message: `Finishing cannot reconcile ${unsupported.join(", ")}. Use a separate Timeline or explicitly remove these features before finishing again.` }]
+    };
+  }
   const existing = new Map<string, TimelineClip>();
   const conflicts: ProducedTimelineIssue[] = [];
   for (const clip of current.clips) {
@@ -312,6 +318,6 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
     owned.animations = clip.animations;
     clip.storyboardMaterializationBaseline = JSON.stringify(owned);
   }
-  const document: FinishedStoryboardDocument = { tracks, clips, markers: current.markers ?? [], storyboardMaterializations: [...(current.storyboardMaterializations ?? []).filter((entry) => entry.boardId !== input.boardId), { boardId: input.boardId, elementKeys: clips.filter((clip) => clip.storyboardBoardId === input.boardId).map((clip) => identity(clip.storyboardShotId!, clip.storyboardElementId!)) }] };
+  const document: FinishedStoryboardDocument = { ...current, tracks, clips, markers: current.markers ?? [], storyboardMaterializations: [...(current.storyboardMaterializations ?? []).filter((entry) => entry.boardId !== input.boardId), { boardId: input.boardId, elementKeys: clips.filter((clip) => clip.storyboardBoardId === input.boardId).map((clip) => identity(clip.storyboardShotId!, clip.storyboardElementId!)) }] };
   return { document, durationMs: Math.max(startMs, ...clips.map((clip) => clip.startMs + clip.durationMs)), validation: [...conflicts, ...validateProducedTimeline(input, document)] };
 }
