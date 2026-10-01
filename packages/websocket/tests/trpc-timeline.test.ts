@@ -554,6 +554,7 @@ describe("timeline router", () => {
       const ownership = [{ boardId: "board-1", elementKeys: ["shot/product"] }];
       const sequence = makeSeq({ document: JSON.stringify({ tracks: [], clips: [], markers: [], storyboardMaterializations: ownership }) });
       TS.findById.mockResolvedValue(sequence);
+      const caller = createCaller(makeCtx());
       await caller.timeline.update({ id: "seq-1", durationMs: 3000, document: { tracks: [], clips: [], markers: [] } });
       expect(TS.update.mock.calls[0][1].duration_ms).toBe(3000);
       expect(JSON.parse(TS.update.mock.calls[0][1].document).storyboardMaterializations).toEqual(ownership);

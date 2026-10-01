@@ -1124,8 +1124,7 @@ describe("storyboards capability behaviour", () => {
     sequence.fromDocument({ ...previous, storyboardMaterializations: [{ boardId: board.id, elementKeys: ["s1/product"] }] });
     await sequence.save();
     const snapshot = sequence.toDocument();
-    const result = await run(context).invoke("assemble_storyboard_timeline", { storyboard_id: board.id });
-    expect(result).toMatchObject({ error: expect.stringContaining("finish_storyboard") });
+    await expect(run(context).invoke("assemble_storyboard_timeline", { storyboard_id: board.id })).rejects.toThrow("finish_storyboard");
     expect((await sequenceOf(first.timeline_id)).toDocument()).toEqual(snapshot);
   });
 
