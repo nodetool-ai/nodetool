@@ -174,6 +174,7 @@ export const applicationDocument = z.object({
   recipe: recipeManifest.optional()
 }).superRefine((document, context) => {
   if (!document.recipe) return;
+  if (document.schemaVersion < 5) context.addIssue({ code: "custom", path: ["schemaVersion"], message: "Recipe Applications require schemaVersion 5 or newer." });
   const operationIds = new Set(document.operations.map((operation) => operation.id));
   document.recipe.operations.forEach((operation, index) => {
     if (!operationIds.has(operation.bindingId)) context.addIssue({ code: "custom", path: ["recipe", "operations", index, "bindingId"], message: "Recipe operation must reference an Application operation." });
