@@ -17,6 +17,7 @@ import {
   isTabInScope
 } from "../../../stores/WorkspaceTabsStore";
 import { trpcClient } from "../../../trpc/client";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import { queryClient } from "../../../queryClient";
 
 jest.mock("../../../trpc/client", () => ({
@@ -94,7 +95,12 @@ const seedScript = (scriptId: string): void => {
       {
         id: "s1",
         lines: [
-          { id: "line-a", text: "Hello", takes: [take()], currentTakeId: "take-a" }
+          {
+            id: "line-a",
+            text: "Hello",
+            takes: [take()],
+            currentTakeId: "take-a"
+          }
         ]
       }
     ],
@@ -121,28 +127,32 @@ const seedLinkedPair = (boardId: string, scriptId: string): void => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  (trpcClient.storyboards.get.query as jest.Mock).mockResolvedValue({ projectId: "proj-1" });
-  mediaDurations.clear();
-  jest.spyOn(document, "createElement").mockImplementation((tagName, options) => {
-    const element = createElement(tagName, options);
-    if (tagName !== "video") return element;
-    const video = element as HTMLVideoElement;
-    let src = "";
-    Object.defineProperties(video, {
-      duration: { get: () => mediaDurations.get(src) ?? 30 },
-      src: {
-        get: () => src,
-        set: (value: string) => {
-          src = value;
-          queueMicrotask(() =>
-            video.onloadedmetadata?.(new Event("loadedmetadata"))
-          );
-        }
-      }
-    });
-    video.load = jest.fn();
-    return video;
+  (trpcClient.storyboards.get.query as jest.Mock).mockResolvedValue({
+    projectId: "proj-1"
   });
+  mediaDurations.clear();
+  jest
+    .spyOn(document, "createElement")
+    .mockImplementation((tagName, options) => {
+      const element = createElement(tagName, options);
+      if (tagName !== "video") return element;
+      const video = element as HTMLVideoElement;
+      let src = "";
+      Object.defineProperties(video, {
+        duration: { get: () => mediaDurations.get(src) ?? 30 },
+        src: {
+          get: () => src,
+          set: (value: string) => {
+            src = value;
+            queueMicrotask(() =>
+              video.onloadedmetadata?.(new Event("loadedmetadata"))
+            );
+          }
+        }
+      });
+      video.load = jest.fn();
+      return video;
+    });
   useStoryboardStore.setState({ boards: {}, serverRevisions: {} });
   useScriptStore.setState({
     scripts: {},
@@ -152,7 +162,7 @@ beforeEach(() => {
   });
   jest
     .spyOn(useWorkspaceTabsStore.getState(), "openTab")
-      .mockImplementation(() => undefined as never);
+    .mockImplementation(() => undefined as never);
 });
 
 afterEach(() => {
@@ -182,10 +192,11 @@ describe("useAssembleTimeline", () => {
       (clip: TimelineClip) => clip.mediaType === "video"
     );
     expect(picture.map((clip: TimelineClip) => clip.durationMs)).toEqual([
-      5184,
-      3200
+      5184, 3200
     ]);
-    expect(picture.map((clip: TimelineClip) => clip.startMs)).toEqual([0, 5184]);
+    expect(picture.map((clip: TimelineClip) => clip.startMs)).toEqual([
+      0, 5184
+    ]);
   });
 
   it("creates a sequence, links the board, and opens the tab", async () => {
@@ -204,9 +215,9 @@ describe("useAssembleTimeline", () => {
     expect(out!.clipCount).toBe(1);
     expect(out!.reassembled).toBe(false);
     expect(out!.skippedLineIds).toEqual([]);
-    expect(
-      useStoryboardStore.getState().getBoard("board-1")?.timelineId
-    ).toBe("tl-new");
+    expect(useStoryboardStore.getState().getBoard("board-1")?.timelineId).toBe(
+      "tl-new"
+    );
     expect(scriptQuery).not.toHaveBeenCalled();
 
     // F5: the cached `timeline.get` query for the new sequence must be
@@ -221,6 +232,33 @@ describe("useAssembleTimeline", () => {
       })
     ).toBe(true);
     invalidateSpy.mockRestore();
+  });
+
+  it("persists a still-only board as picture clips", async () => {
+    seedBoard("board-still", {
+      shots: [
+        renderedShot("still", {
+          clip: null,
+          keyframe: { type: "image", asset_id: "still-asset" }
+        })
+      ]
+    });
+    createMutate.mockResolvedValue({ id: "tl-new" });
+    updateMutate.mockResolvedValue({});
+    const { result } = renderHook(() => useAssembleTimeline());
+    await act(async () => {
+      const assembled = await result.current.assemble("board-still");
+      expect(assembled.clipCount).toBe(1);
+      expect(assembled.skippedShotIds).toEqual([]);
+    });
+    expect(updateMutate.mock.calls[0][0].document.clips).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          mediaType: "image",
+          currentAssetId: "still-asset"
+        })
+      ])
+    );
   });
 
   it("rejects a board without a persisted picture before creating a timeline", async () => {
@@ -271,7 +309,7 @@ describe("useAssembleTimeline", () => {
     expect(shotClip.durationMs).toBe(2000);
   });
 
-  it("assembles unlinked when the linked script is gone", async () => {
+  it("warns when the linked script cannot be read", async () => {
     seedLinkedPair("board-1", "script-1");
     // Nothing in the store, and the server no longer has it.
     useScriptStore.setState({ scripts: {} });
@@ -286,6 +324,14 @@ describe("useAssembleTimeline", () => {
     });
 
     expect(out!.sequenceId).toBe("tl-new");
+    expect(useNotificationStore.getState().notifications).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "warning",
+          content: expect.stringContaining("could not be loaded")
+        })
+      ])
+    );
     const doc = updateMutate.mock.calls[0][0].document;
     expect(doc.tracks.map((t: { name: string }) => t.name)).toEqual([
       "Shots",
@@ -501,17 +547,32 @@ describe("useAssembleTimeline", () => {
   });
   it("assembles into the storyboard owner after the current project changes", async () => {
     seedBoard("board-owned");
-    useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null, activeProjectId: "project-a", projectSessions: {} });
-    (trpcClient.storyboards.get.query as jest.Mock).mockImplementation(async () => {
-      useWorkspaceTabsStore.getState().setActiveProjectId("project-b");
-      return { projectId: "board-project" };
+    useWorkspaceTabsStore.setState({
+      tabs: [],
+      activeTabId: null,
+      activeProjectId: "project-a",
+      projectSessions: {}
     });
-    createMutate.mockResolvedValue({ id: "tl-owned", projectId: "board-project" });
+    (trpcClient.storyboards.get.query as jest.Mock).mockImplementation(
+      async () => {
+        useWorkspaceTabsStore.getState().setActiveProjectId("project-b");
+        return { projectId: "board-project" };
+      }
+    );
+    createMutate.mockResolvedValue({
+      id: "tl-owned",
+      projectId: "board-project"
+    });
     updateMutate.mockResolvedValue({});
     const { result } = renderHook(() => useAssembleTimeline());
-    await act(async () => { await result.current.assemble("board-owned"); });
-    expect(createMutate).toHaveBeenCalledWith(expect.objectContaining({ projectId: "board-project" }));
-    expect(useWorkspaceTabsStore.getState().activeProjectId).toBe("board-project");
+    await act(async () => {
+      await result.current.assemble("board-owned");
+    });
+    expect(createMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: "board-project" })
+    );
+    expect(useWorkspaceTabsStore.getState().activeProjectId).toBe(
+      "board-project"
+    );
   });
-
 });

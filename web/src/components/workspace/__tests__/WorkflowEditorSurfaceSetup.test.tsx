@@ -153,7 +153,7 @@ let settings: Record<string, unknown> = {};
 const nodeStore = { getState: () => ({ nodes: [], edges: [] }) };
 const managerState = {
   getWorkflow: () => ({ id: "w1", name: "W", settings, graph: null }),
-  getNodeStore: () => nodeStore,
+  getNodeStore: jest.fn((): typeof nodeStore | undefined => nodeStore),
   fetchWorkflow: jest.fn(async () => ({ id: "w1" })),
   create: jest.fn(),
   updateWorkflow: jest.fn(),
@@ -312,4 +312,17 @@ describe("WorkflowEditorSurface workflow setup resume", () => {
       })
     );
   });
+});
+
+it("keeps a failed workflow load visible and lets the user retry", async () => {
+  managerState.getNodeStore.mockReturnValue(undefined);
+  managerState.fetchWorkflow.mockRejectedValue(new Error("offline"));
+  renderSurface();
+  expect(await screen.findByText("Could not load workflow")).toBeVisible();
+  const callsBeforeRetry = managerState.fetchWorkflow.mock.calls.length;
+  await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+  expect(managerState.fetchWorkflow.mock.calls.length).toBeGreaterThan(
+    callsBeforeRetry
+  );
+  managerState.getNodeStore.mockReturnValue(nodeStore);
 });

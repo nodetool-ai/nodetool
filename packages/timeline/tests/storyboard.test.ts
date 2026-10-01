@@ -46,12 +46,35 @@ describe("frameSizeForAspect", () => {
     expect(frameSizeForAspect("wide")).toEqual({ width: 1920, height: 1080 });
     expect(frameSizeForAspect("0:9")).toEqual({ width: 1920, height: 1080 });
     expect(frameSizeForAspect(null)).toEqual({ width: 1920, height: 1080 });
-    expect(frameSizeForAspect(undefined)).toEqual({ width: 1920, height: 1080 });
+    expect(frameSizeForAspect(undefined)).toEqual({
+      width: 1920,
+      height: 1080
+    });
   });
 });
 
 describe("buildStoryboardTimeline", () => {
-  it("assembles rendered clips and held keyframe stills", () => {
+  it("assembles a still-only board without inventing shot audio", () => {
+    const result = buildStoryboardTimeline({
+      boardId: "board-1",
+      shots: [
+        makeShot({
+          id: "still",
+          index: 0,
+          keyframe: keyframeRef("image"),
+          duration_seconds: 3
+        })
+      ]
+    });
+    expect(pictureClips(result.clips)).toHaveLength(1);
+    expect(result.clips[0].mediaType).toBe("image");
+    expect(result.durationMs).toBe(3000);
+    expect(result.clips.filter((clip) => clip.mediaType === "audio")).toEqual(
+      []
+    );
+    expect(result.skippedShotIds).toEqual([]);
+  });
+  it("preserves rendered clips and keyframe stills in a mixed board", () => {
     const result = buildStoryboardTimeline({
       boardId: "board-1",
       shots: [
@@ -437,13 +460,13 @@ describe("assembly against the footage that came back", () => {
         renderedShot("c", 2, 2.0, 3.5)
       ]
     });
-    expect(pictureClips(result.clips).map((c) => [c.startMs, c.durationMs])).toEqual(
-      [
-        [0, 5184],
-        [5184, 2000],
-        [7184, 3500]
-      ]
-    );
+    expect(
+      pictureClips(result.clips).map((c) => [c.startMs, c.durationMs])
+    ).toEqual([
+      [0, 5184],
+      [5184, 2000],
+      [7184, 3500]
+    ]);
     expect(result.durationMs).toBe(10684);
     expect(result.retimedShots).toHaveLength(3);
   });
@@ -666,7 +689,7 @@ describe("scenes do not change the cut", () => {
   /**
    * Three contiguous scenes whose boundaries cut across everything else the
    * builder could group by: the fused run s3/s4 is split between scene B and
-   * scene C, and the skipped shots s2 and s6 land in different scenes.
+   * scene C, and the held still s2 and skipped shot s6 land in different scenes.
    */
   const SCENE_OF: Record<string, string> = {
     s0: "sc-a",
@@ -741,7 +764,8 @@ describe("scenes do not change the cut", () => {
         ...clip,
         id: token("clip", clip.id),
         trackId: token("track", clip.trackId),
-        linkId: clip.linkId === undefined ? undefined : token("link", clip.linkId)
+        linkId:
+          clip.linkId === undefined ? undefined : token("link", clip.linkId)
       }))
     };
   };

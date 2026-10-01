@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -211,13 +211,76 @@ beforeEach(() => {
 });
 
 describe("ApplicationGovernancePanel", () => {
+  it("waits for visible edits to save before publishing", async () => {
+    let finishSave: () => void = () => {};
+    const beforePublish = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishSave = resolve;
+        })
+    );
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ApplicationGovernancePanel
+          applicationId="app-1"
+          beforePublish={beforePublish}
+        />
+      </ThemeProvider>
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Publish new version" })
+    );
+    expect(beforePublish).toHaveBeenCalledTimes(1);
+    expect(publishMutate).not.toHaveBeenCalled();
+    finishSave();
+    await waitFor(() =>
+      expect(publishMutate).toHaveBeenCalledWith({ id: "app-1" })
+    );
+  });
+
+  it("publishes the revision returned by saving the visible draft", async () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ApplicationGovernancePanel
+          applicationId="app-1"
+          beforePublish={async () => "saved-revision"}
+        />
+      </ThemeProvider>
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Publish new version" })
+    );
+    expect(publishMutate).toHaveBeenCalledWith({
+      id: "app-1",
+      baseUpdatedAt: "saved-revision"
+    });
+  });
+
+  it("does not publish when saving visible edits fails", async () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ApplicationGovernancePanel
+          applicationId="app-1"
+          beforePublish={async () => {
+            throw new Error("Save failed");
+          }}
+        />
+      </ThemeProvider>
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Publish new version" })
+    );
+    expect(
+      await screen.findByText(/Could not save before publishing: Save failed/)
+    ).toBeInTheDocument();
+    expect(publishMutate).not.toHaveBeenCalled();
+  });
+
   it("summarizes what the released version may touch", () => {
     renderPanel();
 
     expect(
-      screen.getByText(
-        "Serving version 2 — 1 workflow · asset (read, create)"
-      )
+      screen.getByText("Serving version 2 — 1 workflow · asset (read, create)")
     ).toBeInTheDocument();
   });
 
@@ -281,7 +344,9 @@ describe("ApplicationGovernancePanel", () => {
   it("shows usage inside the budget window", () => {
     renderPanel();
 
-    expect(screen.getByText(/Used \$1\.2500 across 3 runs/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Used \$1\.2500 across 3 runs/)
+    ).toBeInTheDocument();
   });
 
   it("lists recent invocations with their settled cost", () => {
@@ -328,7 +393,9 @@ describe("ApplicationGovernancePanel error paths", () => {
     await user.type(screen.getByLabelText("Max spend (USD)"), "lots");
 
     expect(
-      screen.getByText("Enter a number of 0 or more, or leave empty for no limit.")
+      screen.getByText(
+        "Enter a number of 0 or more, or leave empty for no limit."
+      )
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save budget" })).toBeDisabled();
     expect(setBudgetMutate).not.toHaveBeenCalled();
@@ -415,9 +482,7 @@ describe("ApplicationGovernancePanel public link", () => {
     };
     renderPanel();
 
-    expect(
-      screen.getByText(/available on nodetool\.ai/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/available on nodetool\.ai/i)).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /create public link/i })
     ).not.toBeInTheDocument();

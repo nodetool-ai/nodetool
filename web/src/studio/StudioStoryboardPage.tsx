@@ -14,7 +14,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
-import { Box, FlexColumn, FlexRow } from "../components/ui_primitives";
+import {
+  Box,
+  EditorButton,
+  FlexColumn,
+  FlexRow,
+  WarningBanner,
+  STUDIO_ASSISTANT_WIDTH
+} from "../components/ui_primitives";
 import StoryboardBoard from "../components/storyboard/StoryboardBoard";
 import type { StoryboardReviewRequest } from "../components/storyboard/StoryboardBoard";
 import StoryboardAgentPanel from "../components/storyboard/StoryboardAgentPanel";
@@ -42,7 +49,10 @@ import {
 } from "./curatedModels";
 
 /** Stamp the curated models onto a board that has none selected. */
-const useStudioModelPolicy = (boardId: string, loadState: DocumentLoadState): void => {
+const useStudioModelPolicy = (
+  boardId: string,
+  loadState: DocumentLoadState
+): void => {
   const hasAnyModel = useStoryboardStore((state) => {
     const board = state.boards[boardId];
     return board
@@ -114,9 +124,23 @@ const StudioStoryboardPage = () => {
   );
 
   const { assemble, assembling, error: assembleError } = useAssembleTimeline();
+  const [assemblyNotice, setAssemblyNotice] = useState<{
+    sequenceId: string;
+    warnings: string[];
+  } | null>(null);
   const handleAssemble = useCallback(() => {
+    setAssemblyNotice(null);
     void assemble(boardId)
-      .then((result) => navigate(`/studio/timeline/${result.sequenceId}`))
+      .then((result) => {
+        if (result.warnings.length > 0) {
+          setAssemblyNotice({
+            sequenceId: result.sequenceId,
+            warnings: result.warnings
+          });
+        } else {
+          navigate(`/studio/timeline/${result.sequenceId}`);
+        }
+      })
       .catch(() => {
         // Surfaced via assembleError; swallow to keep the click handler quiet.
       });
@@ -146,6 +170,21 @@ const StudioStoryboardPage = () => {
 
   return (
     <StudioShell title={title || "Untitled storyboard"}>
+      {assemblyNotice && (
+        <WarningBanner
+          message="Timeline created with omissions"
+          description={assemblyNotice.warnings.join(" ")}
+          action={
+            <EditorButton
+              onClick={() =>
+                navigate(`/studio/timeline/${assemblyNotice.sequenceId}`)
+              }
+            >
+              Open timeline
+            </EditorButton>
+          }
+        />
+      )}
       <FlexRow
         sx={{
           flex: 1,
@@ -176,7 +215,7 @@ const StudioStoryboardPage = () => {
         <FlexColumn
           fullHeight
           sx={{
-            width: 320,
+            width: STUDIO_ASSISTANT_WIDTH,
             flexShrink: 0,
             minHeight: 0,
             borderLeft: `1px solid ${theme.vars.palette.divider}`

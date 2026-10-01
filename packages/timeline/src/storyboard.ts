@@ -136,17 +136,13 @@ export interface RetimedShot {
   directedMs: number;
 }
 
-/** A shot has an assemblable rendered clip when its accepted clip is persisted. */
+/** A shot can contribute a persisted clip or a held keyframe still. */
 export const isAssemblableShot = (shot: Shot): boolean =>
-  !!shot.clip &&
-  typeof shot.clip.asset_id === "string" &&
-  shot.clip.asset_id.length > 0;
+  assetIdOf(shot.clip) !== undefined || assetIdOf(shot.keyframe) !== undefined;
 
 /** The persisted asset id on a media ref, or undefined when it has none. */
 const assetIdOf = (ref: { asset_id?: string | null } | null | undefined) =>
-  ref?.asset_id != null && ref.asset_id.length > 0
-    ? ref.asset_id
-    : undefined;
+  ref?.asset_id != null && ref.asset_id.length > 0 ? ref.asset_id : undefined;
 
 export type ResolvedShotSource =
   | { kind: "still"; assetId: string }
@@ -230,10 +226,8 @@ export interface ShotSourceOptions {
 }
 
 /** Whether a shot has a clip of its own to play, under a caller's bar. */
-const playableShot = (shot: Shot, options?: ShotSourceOptions): boolean =>
-  options?.requireRendered === false
-    ? assetIdOf(shot.clip) !== undefined
-    : isAssemblableShot(shot);
+const playableShot = (shot: Shot): boolean =>
+  assetIdOf(shot.clip) !== undefined;
 
 /**
  * The earliest point another shot cuts into each shot's clip.
@@ -245,14 +239,14 @@ const playableShot = (shot: Shot, options?: ShotSourceOptions): boolean =>
  */
 export function coverageClaims(
   shots: readonly Shot[],
-  options?: ShotSourceOptions
+  _options?: ShotSourceOptions
 ): Map<string, number> {
   const claims = new Map<string, number>();
   for (const shot of shots) {
     const coveringId = shot.covered_by?.shot_id;
     // A shot with a clip of its own plays it and never reaches its coverage,
     // so it takes nothing out of the covering shot.
-    if (!coveringId || coveringId === shot.id || playableShot(shot, options)) {
+    if (!coveringId || coveringId === shot.id || playableShot(shot)) {
       continue;
     }
     const startMs = Math.max(
@@ -278,8 +272,7 @@ export function shotSource(
   byId?: ReadonlyMap<string, Shot>,
   options?: ShotSourceOptions
 ): ShotSource | null {
-  const playable = (candidate: Shot): boolean =>
-    playableShot(candidate, options);
+  const playable = (candidate: Shot): boolean => playableShot(candidate);
   if (playable(shot)) {
     const sourceMs = shotSourceDurationMs(shot);
     // The head of the clip, when other shots cover the rest of it.
@@ -303,7 +296,10 @@ export function shotSource(
   // One hop: a covering shot that is itself covered has no source length to
   // measure a window against.
   if (!cover || !playable(cover)) return null;
-  const inPointMs = Math.max(0, Math.round((coverage.start_seconds ?? 0) * 1000));
+  const inPointMs = Math.max(
+    0,
+    Math.round((coverage.start_seconds ?? 0) * 1000)
+  );
   const windowMs =
     typeof coverage.end_seconds === "number" && coverage.end_seconds > 0
       ? Math.max(0, Math.round(coverage.end_seconds * 1000) - inPointMs)
@@ -346,7 +342,7 @@ export function shotSources(
 
 /** Whether a shot's picture is a window into another shot's clip. */
 export const isCoveredShot = (shot: Shot): boolean =>
-  !isAssemblableShot(shot) && !!shot.covered_by?.shot_id;
+  assetIdOf(shot.clip) === undefined && !!shot.covered_by?.shot_id;
 
 /** How a shot's laid-down length was decided. */
 export interface ShotLayout {
@@ -464,7 +460,9 @@ export function buildStoryboardTimeline(
       videoClip.outPointMs = layout.outPointMs;
     }
     clips.push(videoClip);
-    if (source) clips.push(shotAudioClip(videoClip, shotAudioTrack.id));
+    if (source) {
+      clips.push(shotAudioClip(videoClip, shotAudioTrack.id));
+    }
     cursorMs += durationMs;
   }
   if (clips.some((clip) => clip.trackId === shotAudioTrack.id)) {

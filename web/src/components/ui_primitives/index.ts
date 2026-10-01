@@ -258,6 +258,7 @@ export {
 export type { SpacingStep, SpacingValue } from "./spacing";
 
 // Design tokens
+export { STUDIO_ASSISTANT_WIDTH } from "./tokens";
 export {
   MOTION,
   Z_INDEX,
