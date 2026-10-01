@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { VideoRef } from "../types.js";
 
 // Render Timeline — nodetool.timeline.RenderTimeline
@@ -21,8 +21,8 @@ export interface RenderTimelineOutputs {
   frames: unknown;
 }
 
-export function renderTimeline(inputs: RenderTimelineInputs): DslNode<RenderTimelineOutputs> {
-  return createNode("nodetool.timeline.RenderTimeline", inputs, { outputNames: ["output", "frames"] });
+export function renderTimeline(inputs: RenderTimelineInputs, options?: NodeOptions): NodeWithOutputs<RenderTimelineOutputs> {
+  return createNode("nodetool.timeline.RenderTimeline", inputs, { id: options?.id, outputNames: ["output", "frames"], outputTypes: {"output":"video","frames":"document"} });
 }
 
 // Timeline Transcript — nodetool.timeline.Transcript
@@ -35,8 +35,8 @@ export interface TranscriptOutputs {
   lines: string[];
 }
 
-export function transcript(inputs: TranscriptInputs): DslNode<TranscriptOutputs> {
-  return createNode("nodetool.timeline.Transcript", inputs, { outputNames: ["text", "lines"] });
+export function transcript(inputs: TranscriptInputs, options?: NodeOptions): NodeWithOutputs<TranscriptOutputs> {
+  return createNode("nodetool.timeline.Transcript", inputs, { id: options?.id, outputNames: ["text", "lines"], outputTypes: {"text":"str","lines":"list[str]"} });
 }
 
 // Add Clips To Timeline — nodetool.timeline.AddClips
@@ -51,8 +51,8 @@ export interface AddClipsOutputs {
   output: unknown;
 }
 
-export function addClips(inputs: AddClipsInputs): DslNode<AddClipsOutputs, "output"> {
-  return createNode("nodetool.timeline.AddClips", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function addClips(inputs: AddClipsInputs, options?: NodeOptions): NodeWithOutputs<AddClipsOutputs, "output"> {
+  return createNode("nodetool.timeline.AddClips", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"timeline"}, defaultOutput: "output" });
 }
 
 // Fill Timeline Text — nodetool.timeline.FillTimelineText
@@ -68,8 +68,8 @@ export interface FillTimelineTextOutputs {
   unresolved: string[];
 }
 
-export function fillTimelineText(inputs: FillTimelineTextInputs): DslNode<FillTimelineTextOutputs> {
-  return createNode("nodetool.timeline.FillTimelineText", inputs, { outputNames: ["timeline", "filled", "unresolved"] });
+export function fillTimelineText(inputs: FillTimelineTextInputs, options?: NodeOptions): NodeWithOutputs<FillTimelineTextOutputs> {
+  return createNode("nodetool.timeline.FillTimelineText", inputs, { id: options?.id, outputNames: ["timeline", "filled", "unresolved"], outputTypes: {"timeline":"timeline","filled":"list[str]","unresolved":"list[str]"} });
 }
 
 // Retarget Timeline — nodetool.timeline.RetargetTimeline
@@ -85,6 +85,6 @@ export interface RetargetTimelineOutputs {
   cropped: string[];
 }
 
-export function retargetTimeline(inputs: RetargetTimelineInputs): DslNode<RetargetTimelineOutputs> {
-  return createNode("nodetool.timeline.RetargetTimeline", inputs, { outputNames: ["timeline", "cropped"] });
+export function retargetTimeline(inputs: RetargetTimelineInputs, options?: NodeOptions): NodeWithOutputs<RetargetTimelineOutputs> {
+  return createNode("nodetool.timeline.RetargetTimeline", inputs, { id: options?.id, outputNames: ["timeline", "cropped"], outputTypes: {"timeline":"timeline","cropped":"list[str]"} });
 }

@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef, FolderRef } from "../types.js";
 
 // Load Model 3D File — nodetool.model3d.LoadModel3DFile
@@ -12,8 +12,8 @@ export interface LoadModel3DFileOutputs {
   output: unknown;
 }
 
-export function loadModel3DFile(inputs: LoadModel3DFileInputs): DslNode<LoadModel3DFileOutputs, "output"> {
-  return createNode("nodetool.model3d.LoadModel3DFile", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function loadModel3DFile(inputs: LoadModel3DFileInputs, options?: NodeOptions): NodeWithOutputs<LoadModel3DFileOutputs, "output"> {
+  return createNode("nodetool.model3d.LoadModel3DFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Save Model 3D File — nodetool.model3d.SaveModel3DFile
@@ -29,8 +29,8 @@ export interface SaveModel3DFileOutputs {
   output: unknown;
 }
 
-export function saveModel3DFile(inputs: SaveModel3DFileInputs): DslNode<SaveModel3DFileOutputs, "output"> {
-  return createNode("nodetool.model3d.SaveModel3DFile", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function saveModel3DFile(inputs: SaveModel3DFileInputs, options?: NodeOptions): NodeWithOutputs<SaveModel3DFileOutputs, "output"> {
+  return createNode("nodetool.model3d.SaveModel3DFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Save Model3D Asset — nodetool.model3d.SaveModel3D
@@ -44,8 +44,8 @@ export interface SaveModel3DOutputs {
   output: unknown;
 }
 
-export function saveModel3D(inputs: SaveModel3DInputs): DslNode<SaveModel3DOutputs, "output"> {
-  return createNode("nodetool.model3d.SaveModel3D", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function saveModel3D(inputs: SaveModel3DInputs, options?: NodeOptions): NodeWithOutputs<SaveModel3DOutputs, "output"> {
+  return createNode("nodetool.model3d.SaveModel3D", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Format Converter — nodetool.model3d.FormatConverter
@@ -58,8 +58,8 @@ export interface FormatConverterOutputs {
   output: unknown;
 }
 
-export function formatConverter(inputs: FormatConverterInputs): DslNode<FormatConverterOutputs, "output"> {
-  return createNode("nodetool.model3d.FormatConverter", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function formatConverter(inputs: FormatConverterInputs, options?: NodeOptions): NodeWithOutputs<FormatConverterOutputs, "output"> {
+  return createNode("nodetool.model3d.FormatConverter", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Get Model 3D Metadata — nodetool.model3d.GetModel3DMetadata
@@ -71,8 +71,8 @@ export interface GetModel3DMetadataOutputs {
   output: Record<string, unknown>;
 }
 
-export function getModel3DMetadata(inputs: GetModel3DMetadataInputs): DslNode<GetModel3DMetadataOutputs, "output"> {
-  return createNode("nodetool.model3d.GetModel3DMetadata", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function getModel3DMetadata(inputs: GetModel3DMetadataInputs, options?: NodeOptions): NodeWithOutputs<GetModel3DMetadataOutputs, "output"> {
+  return createNode("nodetool.model3d.GetModel3DMetadata", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"dict"}, defaultOutput: "output" });
 }
 
 // Transform 3D — nodetool.model3d.Transform3D
@@ -94,8 +94,8 @@ export interface Transform3DOutputs {
   output: unknown;
 }
 
-export function transform3D(inputs: Transform3DInputs): DslNode<Transform3DOutputs, "output"> {
-  return createNode("nodetool.model3d.Transform3D", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function transform3D(inputs: Transform3DInputs, options?: NodeOptions): NodeWithOutputs<Transform3DOutputs, "output"> {
+  return createNode("nodetool.model3d.Transform3D", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Decimate — nodetool.model3d.Decimate
@@ -109,8 +109,8 @@ export interface DecimateOutputs {
   output: unknown;
 }
 
-export function decimate(inputs: DecimateInputs): DslNode<DecimateOutputs, "output"> {
-  return createNode("nodetool.model3d.Decimate", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function decimate(inputs: DecimateInputs, options?: NodeOptions): NodeWithOutputs<DecimateOutputs, "output"> {
+  return createNode("nodetool.model3d.Decimate", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Boolean 3D — nodetool.model3d.Boolean3D
@@ -124,8 +124,8 @@ export interface Boolean3DOutputs {
   output: unknown;
 }
 
-export function boolean3D(inputs: Boolean3DInputs): DslNode<Boolean3DOutputs, "output"> {
-  return createNode("nodetool.model3d.Boolean3D", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function boolean3D(inputs: Boolean3DInputs, options?: NodeOptions): NodeWithOutputs<Boolean3DOutputs, "output"> {
+  return createNode("nodetool.model3d.Boolean3D", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Recalculate Normals — nodetool.model3d.RecalculateNormals
@@ -139,8 +139,8 @@ export interface RecalculateNormalsOutputs {
   output: unknown;
 }
 
-export function recalculateNormals(inputs: RecalculateNormalsInputs): DslNode<RecalculateNormalsOutputs, "output"> {
-  return createNode("nodetool.model3d.RecalculateNormals", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function recalculateNormals(inputs: RecalculateNormalsInputs, options?: NodeOptions): NodeWithOutputs<RecalculateNormalsOutputs, "output"> {
+  return createNode("nodetool.model3d.RecalculateNormals", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Center Mesh — nodetool.model3d.CenterMesh
@@ -153,8 +153,8 @@ export interface CenterMeshOutputs {
   output: unknown;
 }
 
-export function centerMesh(inputs: CenterMeshInputs): DslNode<CenterMeshOutputs, "output"> {
-  return createNode("nodetool.model3d.CenterMesh", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function centerMesh(inputs: CenterMeshInputs, options?: NodeOptions): NodeWithOutputs<CenterMeshOutputs, "output"> {
+  return createNode("nodetool.model3d.CenterMesh", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Flip Normals — nodetool.model3d.FlipNormals
@@ -166,8 +166,8 @@ export interface FlipNormalsOutputs {
   output: unknown;
 }
 
-export function flipNormals(inputs: FlipNormalsInputs): DslNode<FlipNormalsOutputs, "output"> {
-  return createNode("nodetool.model3d.FlipNormals", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function flipNormals(inputs: FlipNormalsInputs, options?: NodeOptions): NodeWithOutputs<FlipNormalsOutputs, "output"> {
+  return createNode("nodetool.model3d.FlipNormals", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Normalize Model 3D — nodetool.model3d.NormalizeModel3D
@@ -185,8 +185,8 @@ export interface NormalizeModel3DOutputs {
   output: unknown;
 }
 
-export function normalizeModel3D(inputs: NormalizeModel3DInputs): DslNode<NormalizeModel3DOutputs, "output"> {
-  return createNode("nodetool.model3d.NormalizeModel3D", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function normalizeModel3D(inputs: NormalizeModel3DInputs, options?: NodeOptions): NodeWithOutputs<NormalizeModel3DOutputs, "output"> {
+  return createNode("nodetool.model3d.NormalizeModel3D", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Extract Largest Component — nodetool.model3d.ExtractLargestComponent
@@ -198,8 +198,8 @@ export interface ExtractLargestComponentOutputs {
   output: unknown;
 }
 
-export function extractLargestComponent(inputs: ExtractLargestComponentInputs): DslNode<ExtractLargestComponentOutputs, "output"> {
-  return createNode("nodetool.model3d.ExtractLargestComponent", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function extractLargestComponent(inputs: ExtractLargestComponentInputs, options?: NodeOptions): NodeWithOutputs<ExtractLargestComponentOutputs, "output"> {
+  return createNode("nodetool.model3d.ExtractLargestComponent", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Repair Mesh — nodetool.model3d.RepairMesh
@@ -214,8 +214,8 @@ export interface RepairMeshOutputs {
   output: unknown;
 }
 
-export function repairMesh(inputs: RepairMeshInputs): DslNode<RepairMeshOutputs, "output"> {
-  return createNode("nodetool.model3d.RepairMesh", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function repairMesh(inputs: RepairMeshInputs, options?: NodeOptions): NodeWithOutputs<RepairMeshOutputs, "output"> {
+  return createNode("nodetool.model3d.RepairMesh", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Merge Meshes — nodetool.model3d.MergeMeshes
@@ -227,8 +227,8 @@ export interface MergeMeshesOutputs {
   output: unknown;
 }
 
-export function mergeMeshes(inputs: MergeMeshesInputs): DslNode<MergeMeshesOutputs, "output"> {
-  return createNode("nodetool.model3d.MergeMeshes", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function mergeMeshes(inputs: MergeMeshesInputs, options?: NodeOptions): NodeWithOutputs<MergeMeshesOutputs, "output"> {
+  return createNode("nodetool.model3d.MergeMeshes", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Text To 3D — nodetool.model3d.TextTo3D
@@ -247,8 +247,8 @@ export interface TextTo3DOutputs {
   output: unknown;
 }
 
-export function textTo3D(inputs: TextTo3DInputs): DslNode<TextTo3DOutputs, "output"> {
-  return createNode("nodetool.model3d.TextTo3D", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function textTo3D(inputs: TextTo3DInputs, options?: NodeOptions): NodeWithOutputs<TextTo3DOutputs, "output"> {
+  return createNode("nodetool.model3d.TextTo3D", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Image To 3D — nodetool.model3d.ImageTo3D
@@ -265,8 +265,8 @@ export interface ImageTo3DOutputs {
   output: unknown;
 }
 
-export function imageTo3D(inputs: ImageTo3DInputs): DslNode<ImageTo3DOutputs, "output"> {
-  return createNode("nodetool.model3d.ImageTo3D", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function imageTo3D(inputs: ImageTo3DInputs, options?: NodeOptions): NodeWithOutputs<ImageTo3DOutputs, "output"> {
+  return createNode("nodetool.model3d.ImageTo3D", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Render 3D To Image — nodetool.model3d.RenderToImage
@@ -288,6 +288,6 @@ export interface RenderToImageOutputs {
   output: ImageRef;
 }
 
-export function renderToImage(inputs: RenderToImageInputs): DslNode<RenderToImageOutputs, "output"> {
-  return createNode("nodetool.model3d.RenderToImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function renderToImage(inputs: RenderToImageInputs, options?: NodeOptions): NodeWithOutputs<RenderToImageOutputs, "output"> {
+  return createNode("nodetool.model3d.RenderToImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }

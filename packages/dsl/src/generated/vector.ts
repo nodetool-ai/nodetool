@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Collection — vector.Collection
@@ -13,8 +13,8 @@ export interface CollectionOutputs {
   output: unknown;
 }
 
-export function collection(inputs: CollectionInputs): DslNode<CollectionOutputs, "output"> {
-  return createNode("vector.Collection", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function collection(inputs: CollectionInputs, options?: NodeOptions): NodeWithOutputs<CollectionOutputs, "output"> {
+  return createNode("vector.Collection", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"collection"}, defaultOutput: "output" });
 }
 
 // Count Documents — vector.Count
@@ -26,8 +26,8 @@ export interface CountOutputs {
   output: number;
 }
 
-export function count(inputs: CountInputs): DslNode<CountOutputs, "output"> {
-  return createNode("vector.Count", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function count(inputs: CountInputs, options?: NodeOptions): NodeWithOutputs<CountOutputs, "output"> {
+  return createNode("vector.Count", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"int"}, defaultOutput: "output" });
 }
 
 // Get Documents — vector.GetDocuments
@@ -42,8 +42,8 @@ export interface GetDocumentsOutputs {
   output: string[];
 }
 
-export function getDocuments(inputs: GetDocumentsInputs): DslNode<GetDocumentsOutputs, "output"> {
-  return createNode("vector.GetDocuments", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function getDocuments(inputs: GetDocumentsInputs, options?: NodeOptions): NodeWithOutputs<GetDocumentsOutputs, "output"> {
+  return createNode("vector.GetDocuments", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[str]"}, defaultOutput: "output" });
 }
 
 // Peek — vector.Peek
@@ -56,8 +56,8 @@ export interface PeekOutputs {
   output: string[];
 }
 
-export function peek(inputs: PeekInputs): DslNode<PeekOutputs, "output"> {
-  return createNode("vector.Peek", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function peek(inputs: PeekInputs, options?: NodeOptions): NodeWithOutputs<PeekOutputs, "output"> {
+  return createNode("vector.Peek", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[str]"}, defaultOutput: "output" });
 }
 
 // Index Image — vector.IndexImage
@@ -72,8 +72,8 @@ export type IndexImageInputs = {
 export interface IndexImageOutputs {
 }
 
-export function indexImage(inputs: IndexImageInputs): DslNode<IndexImageOutputs> {
-  return createNode("vector.IndexImage", inputs, { outputNames: [] });
+export function indexImage(inputs: IndexImageInputs, options?: NodeOptions): NodeWithOutputs<IndexImageOutputs> {
+  return createNode("vector.IndexImage", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }
 
 // Index Embedding — vector.IndexEmbedding
@@ -87,8 +87,8 @@ export type IndexEmbeddingInputs = {
 export interface IndexEmbeddingOutputs {
 }
 
-export function indexEmbedding(inputs: IndexEmbeddingInputs): DslNode<IndexEmbeddingOutputs> {
-  return createNode("vector.IndexEmbedding", inputs, { outputNames: [] });
+export function indexEmbedding(inputs: IndexEmbeddingInputs, options?: NodeOptions): NodeWithOutputs<IndexEmbeddingOutputs> {
+  return createNode("vector.IndexEmbedding", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }
 
 // Index Text Chunk — vector.IndexTextChunk
@@ -102,8 +102,8 @@ export type IndexTextChunkInputs = {
 export interface IndexTextChunkOutputs {
 }
 
-export function indexTextChunk(inputs: IndexTextChunkInputs): DslNode<IndexTextChunkOutputs> {
-  return createNode("vector.IndexTextChunk", inputs, { outputNames: [] });
+export function indexTextChunk(inputs: IndexTextChunkInputs, options?: NodeOptions): NodeWithOutputs<IndexTextChunkOutputs> {
+  return createNode("vector.IndexTextChunk", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }
 
 // Index Aggregated Text — vector.IndexAggregatedText
@@ -119,8 +119,8 @@ export type IndexAggregatedTextInputs = {
 export interface IndexAggregatedTextOutputs {
 }
 
-export function indexAggregatedText(inputs: IndexAggregatedTextInputs): DslNode<IndexAggregatedTextOutputs> {
-  return createNode("vector.IndexAggregatedText", inputs, { outputNames: [] });
+export function indexAggregatedText(inputs: IndexAggregatedTextInputs, options?: NodeOptions): NodeWithOutputs<IndexAggregatedTextOutputs> {
+  return createNode("vector.IndexAggregatedText", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }
 
 // Index String — vector.IndexString
@@ -134,8 +134,8 @@ export type IndexStringInputs = {
 export interface IndexStringOutputs {
 }
 
-export function indexString(inputs: IndexStringInputs): DslNode<IndexStringOutputs> {
-  return createNode("vector.IndexString", inputs, { outputNames: [] });
+export function indexString(inputs: IndexStringInputs, options?: NodeOptions): NodeWithOutputs<IndexStringOutputs> {
+  return createNode("vector.IndexString", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }
 
 // Query Image — vector.QueryImage
@@ -152,8 +152,8 @@ export interface QueryImageOutputs {
   distances: number[];
 }
 
-export function queryImage(inputs: QueryImageInputs): DslNode<QueryImageOutputs> {
-  return createNode("vector.QueryImage", inputs, { outputNames: ["ids", "documents", "metadatas", "distances"] });
+export function queryImage(inputs: QueryImageInputs, options?: NodeOptions): NodeWithOutputs<QueryImageOutputs> {
+  return createNode("vector.QueryImage", inputs, { id: options?.id, outputNames: ["ids", "documents", "metadatas", "distances"], outputTypes: {"ids":"list[str]","documents":"list[str]","metadatas":"list[dict]","distances":"list[float]"} });
 }
 
 // Query Text — vector.QueryText
@@ -170,8 +170,8 @@ export interface QueryTextOutputs {
   distances: number[];
 }
 
-export function queryText(inputs: QueryTextInputs): DslNode<QueryTextOutputs> {
-  return createNode("vector.QueryText", inputs, { outputNames: ["ids", "documents", "metadatas", "distances"] });
+export function queryText(inputs: QueryTextInputs, options?: NodeOptions): NodeWithOutputs<QueryTextOutputs> {
+  return createNode("vector.QueryText", inputs, { id: options?.id, outputNames: ["ids", "documents", "metadatas", "distances"], outputTypes: {"ids":"list[str]","documents":"list[str]","metadatas":"list[dict]","distances":"list[float]"} });
 }
 
 // Remove Overlap — vector.RemoveOverlap
@@ -184,8 +184,8 @@ export interface RemoveOverlapOutputs {
   documents: string[];
 }
 
-export function removeOverlap(inputs: RemoveOverlapInputs): DslNode<RemoveOverlapOutputs, "documents"> {
-  return createNode("vector.RemoveOverlap", inputs, { outputNames: ["documents"], defaultOutput: "documents" });
+export function removeOverlap(inputs: RemoveOverlapInputs, options?: NodeOptions): NodeWithOutputs<RemoveOverlapOutputs, "documents"> {
+  return createNode("vector.RemoveOverlap", inputs, { id: options?.id, outputNames: ["documents"], outputTypes: {"documents":"list[str]"}, defaultOutput: "documents" });
 }
 
 // Hybrid Search — vector.HybridSearch
@@ -205,6 +205,6 @@ export interface HybridSearchOutputs {
   scores: number[];
 }
 
-export function hybridSearch(inputs: HybridSearchInputs): DslNode<HybridSearchOutputs> {
-  return createNode("vector.HybridSearch", inputs, { outputNames: ["ids", "documents", "metadatas", "distances", "scores"] });
+export function hybridSearch(inputs: HybridSearchInputs, options?: NodeOptions): NodeWithOutputs<HybridSearchOutputs> {
+  return createNode("vector.HybridSearch", inputs, { id: options?.id, outputNames: ["ids", "documents", "metadatas", "distances", "scores"], outputTypes: {"ids":"list[str]","documents":"list[str]","metadatas":"list[dict]","distances":"list[float]","scores":"list[float]"} });
 }

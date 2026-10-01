@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 
 // Code — nodetool.code.Code
 export type CodeInputs = {
@@ -11,11 +11,12 @@ export type CodeInputs = {
   max_response_mb?: Connectable<number>;
   allow_local_network?: Connectable<boolean>;
   allow_host_filesystem?: Connectable<boolean>;
+  [name: string]: unknown;
 };
 
 export interface CodeOutputs {
 }
 
-export function code(inputs: CodeInputs): DslNode<CodeOutputs> {
-  return createNode("nodetool.code.Code", inputs, { outputNames: [], streaming: true });
+export function code(inputs: CodeInputs, options?: NodeOptions): NodeWithOutputs<CodeOutputs> {
+  return createNode("nodetool.code.Code", inputs, { id: options?.id, outputNames: [], outputTypes: {}, streaming: true });
 }

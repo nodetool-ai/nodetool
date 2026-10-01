@@ -1,22 +1,22 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { createNode } from "../core.js";
-function loadScript(inputs) {
-  return createNode("nodetool.script.LoadScript", inputs, { outputNames: ["text", "lines", "name", "line_count"] });
+function loadScript(inputs, options) {
+  return createNode("nodetool.script.LoadScript", inputs, { id: options?.id, outputNames: ["text", "lines", "name", "line_count"], outputTypes: { "text": "str", "lines": "list[str]", "name": "str", "line_count": "int" } });
 }
-function voiceScript(inputs) {
-  return createNode("nodetool.script.VoiceScript", inputs, { outputNames: ["output", "voiced_count"] });
+function voiceScript(inputs, options) {
+  return createNode("nodetool.script.VoiceScript", inputs, { id: options?.id, outputNames: ["output", "voiced_count"], outputTypes: { "output": "script", "voiced_count": "int" } });
 }
-function scriptToTimeline(inputs) {
-  return createNode("nodetool.script.ScriptToTimeline", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function scriptToTimeline(inputs, options) {
+  return createNode("nodetool.script.ScriptToTimeline", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "timeline" }, defaultOutput: "output" });
 }
-function scriptToSubtitles(inputs) {
-  return createNode("nodetool.script.ScriptToSubtitles", inputs, { outputNames: ["subtitles", "cue_count"] });
+function scriptToSubtitles(inputs, options) {
+  return createNode("nodetool.script.ScriptToSubtitles", inputs, { id: options?.id, outputNames: ["subtitles", "cue_count"], outputTypes: { "subtitles": "str", "cue_count": "int" } });
 }
-function writeScript(inputs) {
-  return createNode("nodetool.script.WriteScript", inputs, { outputNames: ["script", "line_count"] });
+function writeScript(inputs, options) {
+  return createNode("nodetool.script.WriteScript", inputs, { id: options?.id, outputNames: ["script", "line_count"], outputTypes: { "script": "script", "line_count": "int" } });
 }
-function fillScript(inputs) {
-  return createNode("nodetool.script.FillScript", inputs, { outputNames: ["script", "filled", "unresolved"] });
+function fillScript(inputs, options) {
+  return createNode("nodetool.script.FillScript", inputs, { id: options?.id, outputNames: ["script", "filled", "unresolved"], outputTypes: { "script": "script", "filled": "list[str]", "unresolved": "list[str]" } });
 }
 export {
   fillScript,

@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Invert — lib.image.color.Invert
@@ -14,8 +14,8 @@ export interface InvertOutputs {
   output: ImageRef;
 }
 
-export function invert(inputs: InvertInputs): DslNode<InvertOutputs, "output"> {
-  return createNode("lib.image.color.Invert", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function invert(inputs: InvertInputs, options?: NodeOptions): NodeWithOutputs<InvertOutputs, "output"> {
+  return createNode("lib.image.color.Invert", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Brightness / Contrast — lib.image.color.BrightnessContrast
@@ -30,8 +30,8 @@ export interface BrightnessContrastOutputs {
   output: ImageRef;
 }
 
-export function brightnessContrast(inputs: BrightnessContrastInputs): DslNode<BrightnessContrastOutputs, "output"> {
-  return createNode("lib.image.color.BrightnessContrast", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function brightnessContrast(inputs: BrightnessContrastInputs, options?: NodeOptions): NodeWithOutputs<BrightnessContrastOutputs, "output"> {
+  return createNode("lib.image.color.BrightnessContrast", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // HSB — lib.image.color.HSB
@@ -47,8 +47,8 @@ export interface HSBOutputs {
   output: ImageRef;
 }
 
-export function hsb(inputs: HSBInputs): DslNode<HSBOutputs, "output"> {
-  return createNode("lib.image.color.HSB", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function hsb(inputs: HSBInputs, options?: NodeOptions): NodeWithOutputs<HSBOutputs, "output"> {
+  return createNode("lib.image.color.HSB", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Exposure — lib.image.color.Exposure
@@ -62,8 +62,8 @@ export interface ExposureOutputs {
   output: ImageRef;
 }
 
-export function exposure(inputs: ExposureInputs): DslNode<ExposureOutputs, "output"> {
-  return createNode("lib.image.color.Exposure", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function exposure(inputs: ExposureInputs, options?: NodeOptions): NodeWithOutputs<ExposureOutputs, "output"> {
+  return createNode("lib.image.color.Exposure", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Posterize — lib.image.color.Posterize
@@ -77,8 +77,8 @@ export interface PosterizeOutputs {
   output: ImageRef;
 }
 
-export function posterize(inputs: PosterizeInputs): DslNode<PosterizeOutputs, "output"> {
-  return createNode("lib.image.color.Posterize", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function posterize(inputs: PosterizeInputs, options?: NodeOptions): NodeWithOutputs<PosterizeOutputs, "output"> {
+  return createNode("lib.image.color.Posterize", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Color Grade — lib.image.color.Grade
@@ -98,8 +98,8 @@ export interface GradeOutputs {
   output: ImageRef;
 }
 
-export function grade(inputs: GradeInputs): DslNode<GradeOutputs, "output"> {
-  return createNode("lib.image.color.Grade", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function grade(inputs: GradeInputs, options?: NodeOptions): NodeWithOutputs<GradeOutputs, "output"> {
+  return createNode("lib.image.color.Grade", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Channel Split — lib.image.color.ChannelSplit
@@ -112,6 +112,6 @@ export interface ChannelSplitOutputs {
   output: ImageRef;
 }
 
-export function channelSplit(inputs: ChannelSplitInputs): DslNode<ChannelSplitOutputs, "output"> {
-  return createNode("lib.image.color.ChannelSplit", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function channelSplit(inputs: ChannelSplitInputs, options?: NodeOptions): NodeWithOutputs<ChannelSplitOutputs, "output"> {
+  return createNode("lib.image.color.ChannelSplit", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }

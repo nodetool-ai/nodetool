@@ -1,34 +1,34 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { createNode } from "../core.js";
-function cdl(inputs) {
-  return createNode("lib.image.color_grading.CDL", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function cdl(inputs, options) {
+  return createNode("lib.image.color_grading.CDL", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function colorBalance(inputs) {
-  return createNode("lib.image.color_grading.ColorBalance", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function colorBalance(inputs, options) {
+  return createNode("lib.image.color_grading.ColorBalance", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function curves(inputs) {
-  return createNode("lib.image.color_grading.Curves", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function curves(inputs, options) {
+  return createNode("lib.image.color_grading.Curves", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function exposure(inputs) {
-  return createNode("lib.image.color_grading.Exposure", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function exposure(inputs, options) {
+  return createNode("lib.image.color_grading.Exposure", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function filmLook(inputs) {
-  return createNode("lib.image.color_grading.FilmLook", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function filmLook(inputs, options) {
+  return createNode("lib.image.color_grading.FilmLook", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function hslAdjust(inputs) {
-  return createNode("lib.image.color_grading.HSLAdjust", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function hslAdjust(inputs, options) {
+  return createNode("lib.image.color_grading.HSLAdjust", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function liftGammaGain(inputs) {
-  return createNode("lib.image.color_grading.LiftGammaGain", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function liftGammaGain(inputs, options) {
+  return createNode("lib.image.color_grading.LiftGammaGain", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function saturationVibrance(inputs) {
-  return createNode("lib.image.color_grading.SaturationVibrance", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function saturationVibrance(inputs, options) {
+  return createNode("lib.image.color_grading.SaturationVibrance", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function splitToning(inputs) {
-  return createNode("lib.image.color_grading.SplitToning", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function splitToning(inputs, options) {
+  return createNode("lib.image.color_grading.SplitToning", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function vignette(inputs) {
-  return createNode("lib.image.color_grading.Vignette", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function vignette(inputs, options) {
+  return createNode("lib.image.color_grading.Vignette", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
 export {
   cdl,

@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Compare Images — nodetool.compare.CompareImages
@@ -17,6 +17,6 @@ export interface CompareImagesOutputs {
   equal: boolean;
 }
 
-export function compareImages(inputs: CompareImagesInputs): DslNode<CompareImagesOutputs> {
-  return createNode("nodetool.compare.CompareImages", inputs, { outputNames: ["comparison", "score", "equal"] });
+export function compareImages(inputs: CompareImagesInputs, options?: NodeOptions): NodeWithOutputs<CompareImagesOutputs> {
+  return createNode("nodetool.compare.CompareImages", inputs, { id: options?.id, outputNames: ["comparison", "score", "equal"], outputTypes: {"comparison":"any","score":"float","equal":"bool"} });
 }

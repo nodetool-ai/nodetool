@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // PDF Extract Text — lib.pdf.ExtractText
@@ -14,8 +14,8 @@ export interface ExtractTextOutputs {
   output: string;
 }
 
-export function extractText(inputs: ExtractTextInputs): DslNode<ExtractTextOutputs, "output"> {
-  return createNode("lib.pdf.ExtractText", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function extractText(inputs: ExtractTextInputs, options?: NodeOptions): NodeWithOutputs<ExtractTextOutputs, "output"> {
+  return createNode("lib.pdf.ExtractText", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }
 
 // PDF to Markdown — lib.pdf.ExtractMarkdown
@@ -29,8 +29,8 @@ export interface ExtractMarkdownOutputs {
   output: string;
 }
 
-export function extractMarkdown(inputs: ExtractMarkdownInputs): DslNode<ExtractMarkdownOutputs, "output"> {
-  return createNode("lib.pdf.ExtractMarkdown", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function extractMarkdown(inputs: ExtractMarkdownInputs, options?: NodeOptions): NodeWithOutputs<ExtractMarkdownOutputs, "output"> {
+  return createNode("lib.pdf.ExtractMarkdown", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }
 
 // PDF Extract Tables — lib.pdf.ExtractTables
@@ -45,8 +45,8 @@ export interface ExtractTablesOutputs {
   output: Record<string, unknown>[];
 }
 
-export function extractTables(inputs: ExtractTablesInputs): DslNode<ExtractTablesOutputs, "output"> {
-  return createNode("lib.pdf.ExtractTables", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function extractTables(inputs: ExtractTablesInputs, options?: NodeOptions): NodeWithOutputs<ExtractTablesOutputs, "output"> {
+  return createNode("lib.pdf.ExtractTables", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[dict]"}, defaultOutput: "output" });
 }
 
 // PDF Extract Styled Text — lib.pdf.ExtractStyledText
@@ -60,8 +60,8 @@ export interface ExtractStyledTextOutputs {
   output: Record<string, unknown>[];
 }
 
-export function extractStyledText(inputs: ExtractStyledTextInputs): DslNode<ExtractStyledTextOutputs, "output"> {
-  return createNode("lib.pdf.ExtractStyledText", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function extractStyledText(inputs: ExtractStyledTextInputs, options?: NodeOptions): NodeWithOutputs<ExtractStyledTextOutputs, "output"> {
+  return createNode("lib.pdf.ExtractStyledText", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[dict]"}, defaultOutput: "output" });
 }
 
 // PDF Page Screenshot — lib.pdf.Screenshot
@@ -76,8 +76,8 @@ export interface ScreenshotOutputs {
   output: ImageRef[];
 }
 
-export function screenshot(inputs: ScreenshotInputs): DslNode<ScreenshotOutputs, "output"> {
-  return createNode("lib.pdf.Screenshot", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function screenshot(inputs: ScreenshotInputs, options?: NodeOptions): NodeWithOutputs<ScreenshotOutputs, "output"> {
+  return createNode("lib.pdf.Screenshot", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[image]"}, defaultOutput: "output" });
 }
 
 // PDF Rasterize (pdftoppm) — lib.pdf.Pdftoppm
@@ -94,8 +94,8 @@ export interface PdftoppmOutputs {
   output: ImageRef[];
 }
 
-export function pdftoppm(inputs: PdftoppmInputs): DslNode<PdftoppmOutputs, "output"> {
-  return createNode("lib.pdf.Pdftoppm", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function pdftoppm(inputs: PdftoppmInputs, options?: NodeOptions): NodeWithOutputs<PdftoppmOutputs, "output"> {
+  return createNode("lib.pdf.Pdftoppm", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[image]"}, defaultOutput: "output" });
 }
 
 // PDF Extract Text (OCR) — lib.pdf.ExtractOcr
@@ -111,6 +111,6 @@ export interface ExtractOcrOutputs {
   output: string;
 }
 
-export function extractOcr(inputs: ExtractOcrInputs): DslNode<ExtractOcrOutputs, "output"> {
-  return createNode("lib.pdf.ExtractOcr", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function extractOcr(inputs: ExtractOcrInputs, options?: NodeOptions): NodeWithOutputs<ExtractOcrOutputs, "output"> {
+  return createNode("lib.pdf.ExtractOcr", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }

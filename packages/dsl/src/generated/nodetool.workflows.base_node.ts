@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 
 // Preview — nodetool.workflows.base_node.Preview
 export type PreviewInputs = {
@@ -11,6 +11,6 @@ export type PreviewInputs = {
 export interface PreviewOutputs {
 }
 
-export function preview(inputs: PreviewInputs): DslNode<PreviewOutputs> {
-  return createNode("nodetool.workflows.base_node.Preview", inputs, { outputNames: [] });
+export function preview(inputs: PreviewInputs, options?: NodeOptions): NodeWithOutputs<PreviewOutputs> {
+  return createNode("nodetool.workflows.base_node.Preview", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }

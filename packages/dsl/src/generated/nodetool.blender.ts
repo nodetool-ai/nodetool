@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef, VideoRef } from "../types.js";
 
 // Render 3D With Blender — nodetool.blender.RenderImage
@@ -28,8 +28,8 @@ export interface RenderImageOutputs {
   image: ImageRef;
 }
 
-export function renderImage(inputs: RenderImageInputs): DslNode<RenderImageOutputs, "image"> {
-  return createNode("nodetool.blender.RenderImage", inputs, { outputNames: ["image"], defaultOutput: "image" });
+export function renderImage(inputs: RenderImageInputs, options?: NodeOptions): NodeWithOutputs<RenderImageOutputs, "image"> {
+  return createNode("nodetool.blender.RenderImage", inputs, { id: options?.id, outputNames: ["image"], outputTypes: {"image":"image"}, defaultOutput: "image" });
 }
 
 // Render 3D Passes With Blender — nodetool.blender.RenderPasses
@@ -64,8 +64,8 @@ export interface RenderPassesOutputs {
   mask: ImageRef;
 }
 
-export function renderPasses(inputs: RenderPassesInputs): DslNode<RenderPassesOutputs> {
-  return createNode("nodetool.blender.RenderPasses", inputs, { outputNames: ["color", "depth", "depth_near", "depth_far", "normal", "mask"] });
+export function renderPasses(inputs: RenderPassesInputs, options?: NodeOptions): NodeWithOutputs<RenderPassesOutputs> {
+  return createNode("nodetool.blender.RenderPasses", inputs, { id: options?.id, outputNames: ["color", "depth", "depth_near", "depth_far", "normal", "mask"], outputTypes: {"color":"image","depth":"image","depth_near":"float","depth_far":"float","normal":"image","mask":"image"} });
 }
 
 // Render 3D Animation With Blender — nodetool.blender.RenderAnimation
@@ -97,8 +97,8 @@ export interface RenderAnimationOutputs {
   video: VideoRef;
 }
 
-export function renderAnimation(inputs: RenderAnimationInputs): DslNode<RenderAnimationOutputs, "video"> {
-  return createNode("nodetool.blender.RenderAnimation", inputs, { outputNames: ["video"], defaultOutput: "video" });
+export function renderAnimation(inputs: RenderAnimationInputs, options?: NodeOptions): NodeWithOutputs<RenderAnimationOutputs, "video"> {
+  return createNode("nodetool.blender.RenderAnimation", inputs, { id: options?.id, outputNames: ["video"], outputTypes: {"video":"video"}, defaultOutput: "video" });
 }
 
 // Bake 3D Timeline Clip — nodetool.blender.BakeTimelineClip
@@ -117,8 +117,8 @@ export interface BakeTimelineClipOutputs {
   video: VideoRef;
 }
 
-export function bakeTimelineClip(inputs: BakeTimelineClipInputs): DslNode<BakeTimelineClipOutputs, "video"> {
-  return createNode("nodetool.blender.BakeTimelineClip", inputs, { outputNames: ["video"], defaultOutput: "video" });
+export function bakeTimelineClip(inputs: BakeTimelineClipInputs, options?: NodeOptions): NodeWithOutputs<BakeTimelineClipOutputs, "video"> {
+  return createNode("nodetool.blender.BakeTimelineClip", inputs, { id: options?.id, outputNames: ["video"], outputTypes: {"video":"video"}, defaultOutput: "video" });
 }
 
 // Prepare 3D Model For Engine — nodetool.blender.PrepareForEngine
@@ -137,8 +137,8 @@ export interface PrepareForEngineOutputs {
   lods: unknown[];
 }
 
-export function prepareForEngine(inputs: PrepareForEngineInputs): DslNode<PrepareForEngineOutputs> {
-  return createNode("nodetool.blender.PrepareForEngine", inputs, { outputNames: ["model", "lods"] });
+export function prepareForEngine(inputs: PrepareForEngineInputs, options?: NodeOptions): NodeWithOutputs<PrepareForEngineOutputs> {
+  return createNode("nodetool.blender.PrepareForEngine", inputs, { id: options?.id, outputNames: ["model", "lods"], outputTypes: {"model":"model_3d","lods":"list[model_3d]"} });
 }
 
 // Export 3D Model With Blender — nodetool.blender.ExportModel
@@ -152,6 +152,6 @@ export interface ExportModelOutputs {
   file: unknown;
 }
 
-export function exportModel(inputs: ExportModelInputs): DslNode<ExportModelOutputs, "file"> {
-  return createNode("nodetool.blender.ExportModel", inputs, { outputNames: ["file"], defaultOutput: "file" });
+export function exportModel(inputs: ExportModelInputs, options?: NodeOptions): NodeWithOutputs<ExportModelOutputs, "file"> {
+  return createNode("nodetool.blender.ExportModel", inputs, { id: options?.id, outputNames: ["file"], outputTypes: {"file":"asset"}, defaultOutput: "file" });
 }

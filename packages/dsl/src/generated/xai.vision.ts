@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Image To Text — xai.vision.ImageToText
@@ -16,6 +16,6 @@ export interface ImageToTextOutputs {
   output: string;
 }
 
-export function imageToText(inputs: ImageToTextInputs): DslNode<ImageToTextOutputs, "output"> {
-  return createNode("xai.vision.ImageToText", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function imageToText(inputs: ImageToTextInputs, options?: NodeOptions): NodeWithOutputs<ImageToTextOutputs, "output"> {
+  return createNode("xai.vision.ImageToText", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }

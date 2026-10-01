@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef, Entity } from "../types.js";
 
 // Load Entity — nodetool.entity.LoadEntity
@@ -19,8 +19,8 @@ export interface LoadEntityOutputs {
   voice_id: string;
 }
 
-export function loadEntity(inputs: LoadEntityInputs): DslNode<LoadEntityOutputs> {
-  return createNode("nodetool.entity.LoadEntity", inputs, { outputNames: ["entity", "descriptor", "name", "kind", "reference_image", "voice_id"] });
+export function loadEntity(inputs: LoadEntityInputs, options?: NodeOptions): NodeWithOutputs<LoadEntityOutputs> {
+  return createNode("nodetool.entity.LoadEntity", inputs, { id: options?.id, outputNames: ["entity", "descriptor", "name", "kind", "reference_image", "voice_id"], outputTypes: {"entity":"entity","descriptor":"str","name":"str","kind":"str","reference_image":"image","voice_id":"str"} });
 }
 
 // List Entities — nodetool.entity.ListEntities
@@ -36,8 +36,8 @@ export interface ListEntitiesOutputs {
   entities: Entity[];
 }
 
-export function listEntities(inputs: ListEntitiesInputs): DslNode<ListEntitiesOutputs> {
-  return createNode("nodetool.entity.ListEntities", inputs, { outputNames: ["entity", "entities"], streaming: true });
+export function listEntities(inputs: ListEntitiesInputs, options?: NodeOptions): NodeWithOutputs<ListEntitiesOutputs> {
+  return createNode("nodetool.entity.ListEntities", inputs, { id: options?.id, outputNames: ["entity", "entities"], outputTypes: {"entity":"entity","entities":"list[entity]"}, streaming: true, inputMode: "buffered", outputCorrelation: {"entity":{"kind":"iteration","source":"__execution__","group":"items"},"entities":{"kind":"single","source":"__execution__"}} });
 }
 
 // Create Entity — nodetool.entity.CreateEntity
@@ -57,6 +57,6 @@ export interface CreateEntityOutputs {
   created: boolean;
 }
 
-export function createEntity(inputs: CreateEntityInputs): DslNode<CreateEntityOutputs> {
-  return createNode("nodetool.entity.CreateEntity", inputs, { outputNames: ["entity", "created"] });
+export function createEntity(inputs: CreateEntityInputs, options?: NodeOptions): NodeWithOutputs<CreateEntityOutputs> {
+  return createNode("nodetool.entity.CreateEntity", inputs, { id: options?.id, outputNames: ["entity", "created"], outputTypes: {"entity":"entity","created":"bool"} });
 }

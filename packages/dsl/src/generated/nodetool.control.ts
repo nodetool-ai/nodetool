@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 
 // If — nodetool.control.If
 export type IfInputs = {
@@ -13,8 +13,8 @@ export interface IfOutputs {
   if_false: unknown;
 }
 
-export function if_(inputs: IfInputs): DslNode<IfOutputs> {
-  return createNode("nodetool.control.If", inputs, { outputNames: ["if_true", "if_false"], streaming: true });
+export function if_(inputs: IfInputs, options?: NodeOptions): NodeWithOutputs<IfOutputs> {
+  return createNode("nodetool.control.If", inputs, { id: options?.id, outputNames: ["if_true", "if_false"], outputTypes: {"if_true":"any","if_false":"any"}, streaming: true, inputMode: "buffered", outputCorrelation: {"if_true":{"kind":"forward","source":"value"},"if_false":{"kind":"forward","source":"value"}} });
 }
 
 // Loop — nodetool.control.Loop
@@ -31,8 +31,8 @@ export interface LoopOutputs {
   done: unknown;
 }
 
-export function loop(inputs: LoopInputs): DslNode<LoopOutputs> {
-  return createNode("nodetool.control.Loop", inputs, { outputNames: ["value", "index", "done"], streaming: true });
+export function loop(inputs: LoopInputs, options?: NodeOptions): NodeWithOutputs<LoopOutputs> {
+  return createNode("nodetool.control.Loop", inputs, { id: options?.id, outputNames: ["value", "index", "done"], outputTypes: {"value":"any","index":"int","done":"any"}, streaming: true, inputMode: "buffered", outputCorrelation: {"value":{"kind":"iteration","source":"initial","group":"loop"},"index":{"kind":"iteration","source":"initial","group":"loop"},"done":{"kind":"single","source":"initial"}} });
 }
 
 // For Each — nodetool.control.ForEach
@@ -46,8 +46,8 @@ export interface ForEachOutputs {
   index: number;
 }
 
-export function forEach(inputs: ForEachInputs): DslNode<ForEachOutputs> {
-  return createNode("nodetool.control.ForEach", inputs, { outputNames: ["output", "index"], streaming: true });
+export function forEach(inputs: ForEachInputs, options?: NodeOptions): NodeWithOutputs<ForEachOutputs> {
+  return createNode("nodetool.control.ForEach", inputs, { id: options?.id, outputNames: ["output", "index"], outputTypes: {"output":"any","index":"int"}, streaming: true, inputMode: "buffered", outputCorrelation: {"output":{"kind":"iteration","source":"__execution__","group":"items"},"index":{"kind":"iteration","source":"__execution__","group":"items"}} });
 }
 
 // Asset Collection — nodetool.control.Collection
@@ -60,8 +60,8 @@ export interface CollectionOutputs {
   index: number;
 }
 
-export function collection(inputs: CollectionInputs): DslNode<CollectionOutputs> {
-  return createNode("nodetool.control.Collection", inputs, { outputNames: ["output", "index"], streaming: true });
+export function collection(inputs: CollectionInputs, options?: NodeOptions): NodeWithOutputs<CollectionOutputs> {
+  return createNode("nodetool.control.Collection", inputs, { id: options?.id, outputNames: ["output", "index"], outputTypes: {"output":"any","index":"int"}, streaming: true, inputMode: "buffered", outputCorrelation: {"output":{"kind":"iteration","source":"__execution__","group":"items"},"index":{"kind":"iteration","source":"__execution__","group":"items"}} });
 }
 
 // Repeat Count — nodetool.control.RepeatCount
@@ -74,8 +74,8 @@ export interface RepeatCountOutputs {
   index: number;
 }
 
-export function repeatCount(inputs: RepeatCountInputs): DslNode<RepeatCountOutputs> {
-  return createNode("nodetool.control.RepeatCount", inputs, { outputNames: ["output", "index"], streaming: true });
+export function repeatCount(inputs: RepeatCountInputs, options?: NodeOptions): NodeWithOutputs<RepeatCountOutputs> {
+  return createNode("nodetool.control.RepeatCount", inputs, { id: options?.id, outputNames: ["output", "index"], outputTypes: {"output":"int","index":"int"}, streaming: true, inputMode: "buffered", outputCorrelation: {"output":{"kind":"iteration","source":"__execution__","group":"items"},"index":{"kind":"iteration","source":"__execution__","group":"items"}} });
 }
 
 // Repeat Value — nodetool.control.RepeatValue
@@ -89,8 +89,8 @@ export interface RepeatValueOutputs {
   index: number;
 }
 
-export function repeatValue(inputs: RepeatValueInputs): DslNode<RepeatValueOutputs> {
-  return createNode("nodetool.control.RepeatValue", inputs, { outputNames: ["output", "index"], streaming: true });
+export function repeatValue(inputs: RepeatValueInputs, options?: NodeOptions): NodeWithOutputs<RepeatValueOutputs> {
+  return createNode("nodetool.control.RepeatValue", inputs, { id: options?.id, outputNames: ["output", "index"], outputTypes: {"output":"any","index":"int"}, streaming: true, inputMode: "buffered", outputCorrelation: {"output":{"kind":"iteration","source":"__execution__","group":"items"},"index":{"kind":"iteration","source":"__execution__","group":"items"}} });
 }
 
 // Take — nodetool.control.Take
@@ -104,8 +104,8 @@ export interface TakeOutputs {
   index: number;
 }
 
-export function take(inputs: TakeInputs): DslNode<TakeOutputs> {
-  return createNode("nodetool.control.Take", inputs, { outputNames: ["output", "index"], streaming: true, streamingInput: true });
+export function take(inputs: TakeInputs, options?: NodeOptions): NodeWithOutputs<TakeOutputs> {
+  return createNode("nodetool.control.Take", inputs, { id: options?.id, outputNames: ["output", "index"], outputTypes: {"output":"any","index":"int"}, streaming: true, streamingInput: true, inputMode: "stream", outputCorrelation: {"output":{"kind":"forward","source":"input_item"},"index":{"kind":"forward","source":"input_item"}} });
 }
 
 // Drop — nodetool.control.Drop
@@ -119,8 +119,8 @@ export interface DropOutputs {
   index: number;
 }
 
-export function drop(inputs: DropInputs): DslNode<DropOutputs> {
-  return createNode("nodetool.control.Drop", inputs, { outputNames: ["output", "index"], streaming: true, streamingInput: true });
+export function drop(inputs: DropInputs, options?: NodeOptions): NodeWithOutputs<DropOutputs> {
+  return createNode("nodetool.control.Drop", inputs, { id: options?.id, outputNames: ["output", "index"], outputTypes: {"output":"any","index":"int"}, streaming: true, streamingInput: true, inputMode: "stream", outputCorrelation: {"output":{"kind":"forward","source":"input_item"},"index":{"kind":"forward","source":"input_item"}} });
 }
 
 // Take While — nodetool.control.TakeWhile
@@ -133,8 +133,8 @@ export interface TakeWhileOutputs {
   output: unknown;
 }
 
-export function takeWhile(inputs: TakeWhileInputs): DslNode<TakeWhileOutputs, "output"> {
-  return createNode("nodetool.control.TakeWhile", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true, streamingInput: true });
+export function takeWhile(inputs: TakeWhileInputs, options?: NodeOptions): NodeWithOutputs<TakeWhileOutputs, "output"> {
+  return createNode("nodetool.control.TakeWhile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"any"}, defaultOutput: "output", streaming: true, streamingInput: true, inputMode: "stream", outputCorrelation: {"output":{"kind":"forward","source":"input_item"}} });
 }
 
 // Drop While — nodetool.control.DropWhile
@@ -147,8 +147,8 @@ export interface DropWhileOutputs {
   output: unknown;
 }
 
-export function dropWhile(inputs: DropWhileInputs): DslNode<DropWhileOutputs, "output"> {
-  return createNode("nodetool.control.DropWhile", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true, streamingInput: true });
+export function dropWhile(inputs: DropWhileInputs, options?: NodeOptions): NodeWithOutputs<DropWhileOutputs, "output"> {
+  return createNode("nodetool.control.DropWhile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"any"}, defaultOutput: "output", streaming: true, streamingInput: true, inputMode: "stream", outputCorrelation: {"output":{"kind":"forward","source":"input_item"}} });
 }
 
 // Filter Equal — nodetool.control.FilterEqual
@@ -162,8 +162,8 @@ export interface FilterEqualOutputs {
   output: unknown;
 }
 
-export function filterEqual(inputs: FilterEqualInputs): DslNode<FilterEqualOutputs, "output"> {
-  return createNode("nodetool.control.FilterEqual", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true, streamingInput: true });
+export function filterEqual(inputs: FilterEqualInputs, options?: NodeOptions): NodeWithOutputs<FilterEqualOutputs, "output"> {
+  return createNode("nodetool.control.FilterEqual", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"any"}, defaultOutput: "output", streaming: true, streamingInput: true, inputMode: "stream", outputCorrelation: {"output":{"kind":"forward","source":"input_item"}} });
 }
 
 // Filter (Expression) — nodetool.control.FilterCode
@@ -176,8 +176,8 @@ export interface FilterCodeOutputs {
   output: unknown;
 }
 
-export function filterCode(inputs: FilterCodeInputs): DslNode<FilterCodeOutputs, "output"> {
-  return createNode("nodetool.control.FilterCode", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true, streamingInput: true });
+export function filterCode(inputs: FilterCodeInputs, options?: NodeOptions): NodeWithOutputs<FilterCodeOutputs, "output"> {
+  return createNode("nodetool.control.FilterCode", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"any"}, defaultOutput: "output", streaming: true, streamingInput: true, inputMode: "stream", outputCorrelation: {"output":{"kind":"forward","source":"input_item"}} });
 }
 
 // Chunk — nodetool.control.Chunk
@@ -191,8 +191,8 @@ export interface ChunkOutputs {
   index: number;
 }
 
-export function chunk(inputs: ChunkInputs): DslNode<ChunkOutputs> {
-  return createNode("nodetool.control.Chunk", inputs, { outputNames: ["output", "index"], streaming: true, streamingInput: true });
+export function chunk(inputs: ChunkInputs, options?: NodeOptions): NodeWithOutputs<ChunkOutputs> {
+  return createNode("nodetool.control.Chunk", inputs, { id: options?.id, outputNames: ["output", "index"], outputTypes: {"output":"list[any]","index":"int"}, streaming: true, streamingInput: true, inputMode: "stream", outputCorrelation: {"output":{"kind":"iteration","source":"input_item","group":"batch"},"index":{"kind":"iteration","source":"input_item","group":"batch"}} });
 }
 
 // Last — nodetool.control.Last
@@ -204,8 +204,8 @@ export interface LastOutputs {
   output: unknown;
 }
 
-export function last(inputs: LastInputs): DslNode<LastOutputs, "output"> {
-  return createNode("nodetool.control.Last", inputs, { outputNames: ["output"], defaultOutput: "output", streamingInput: true });
+export function last(inputs: LastInputs, options?: NodeOptions): NodeWithOutputs<LastOutputs, "output"> {
+  return createNode("nodetool.control.Last", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"any"}, defaultOutput: "output", streamingInput: true, inputMode: "stream", outputCorrelation: {"output":{"kind":"aggregate","source":"input_item","collapse":"innermost"}} });
 }
 
 // Count — nodetool.control.Count
@@ -217,8 +217,8 @@ export interface CountOutputs {
   output: number;
 }
 
-export function count(inputs: CountInputs): DslNode<CountOutputs, "output"> {
-  return createNode("nodetool.control.Count", inputs, { outputNames: ["output"], defaultOutput: "output", streamingInput: true });
+export function count(inputs: CountInputs, options?: NodeOptions): NodeWithOutputs<CountOutputs, "output"> {
+  return createNode("nodetool.control.Count", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"int"}, defaultOutput: "output", streamingInput: true, inputMode: "stream", outputCorrelation: {"output":{"kind":"aggregate","source":"input_item","collapse":"innermost"}} });
 }
 
 // Distinct — nodetool.control.Distinct
@@ -231,8 +231,8 @@ export interface DistinctOutputs {
   output: unknown;
 }
 
-export function distinct(inputs: DistinctInputs): DslNode<DistinctOutputs, "output"> {
-  return createNode("nodetool.control.Distinct", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true, streamingInput: true });
+export function distinct(inputs: DistinctInputs, options?: NodeOptions): NodeWithOutputs<DistinctOutputs, "output"> {
+  return createNode("nodetool.control.Distinct", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"any"}, defaultOutput: "output", streaming: true, streamingInput: true, inputMode: "stream", outputCorrelation: {"output":{"kind":"forward","source":"input_item"}} });
 }
 
 // Tap — nodetool.control.Tap
@@ -245,8 +245,8 @@ export interface TapOutputs {
   output: unknown;
 }
 
-export function tap(inputs: TapInputs): DslNode<TapOutputs, "output"> {
-  return createNode("nodetool.control.Tap", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true, streamingInput: true });
+export function tap(inputs: TapInputs, options?: NodeOptions): NodeWithOutputs<TapOutputs, "output"> {
+  return createNode("nodetool.control.Tap", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"any"}, defaultOutput: "output", streaming: true, streamingInput: true, inputMode: "stream", outputCorrelation: {"output":{"kind":"forward","source":"input_item"}} });
 }
 
 // Collect — nodetool.control.Collect
@@ -258,8 +258,8 @@ export interface CollectOutputs {
   output: unknown[];
 }
 
-export function collect(inputs: CollectInputs): DslNode<CollectOutputs, "output"> {
-  return createNode("nodetool.control.Collect", inputs, { outputNames: ["output"], defaultOutput: "output", streamingInput: true });
+export function collect(inputs: CollectInputs, options?: NodeOptions): NodeWithOutputs<CollectOutputs, "output"> {
+  return createNode("nodetool.control.Collect", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[any]"}, defaultOutput: "output", streamingInput: true, inputMode: "stream", outputCorrelation: {"output":{"kind":"aggregate","source":"input_item","collapse":"innermost"}} });
 }
 
 // Reroute — nodetool.control.Reroute
@@ -271,8 +271,8 @@ export interface RerouteOutputs {
   output: unknown;
 }
 
-export function reroute(inputs: RerouteInputs): DslNode<RerouteOutputs, "output"> {
-  return createNode("nodetool.control.Reroute", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true });
+export function reroute(inputs: RerouteInputs, options?: NodeOptions): NodeWithOutputs<RerouteOutputs, "output"> {
+  return createNode("nodetool.control.Reroute", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"any"}, defaultOutput: "output", streaming: true, inputMode: "buffered", outputCorrelation: {"output":{"kind":"forward","source":"input_value"}} });
 }
 
 // Switch — nodetool.control.Switch
@@ -288,8 +288,8 @@ export interface SwitchOutputs {
   index: number;
 }
 
-export function switch_(inputs: SwitchInputs): DslNode<SwitchOutputs> {
-  return createNode("nodetool.control.Switch", inputs, { outputNames: ["matched", "default", "index"], streaming: true });
+export function switch_(inputs: SwitchInputs, options?: NodeOptions): NodeWithOutputs<SwitchOutputs> {
+  return createNode("nodetool.control.Switch", inputs, { id: options?.id, outputNames: ["matched", "default", "index"], outputTypes: {"matched":"any","default":"any","index":"int"}, streaming: true, inputMode: "buffered", outputCorrelation: {"matched":{"kind":"forward","source":"input"},"default":{"kind":"forward","source":"input"},"index":{"kind":"single","source":"input"}} });
 }
 
 // Fallback — nodetool.control.TryCatch
@@ -304,8 +304,8 @@ export interface TryCatchOutputs {
   has_error: boolean;
 }
 
-export function tryCatch(inputs: TryCatchInputs): DslNode<TryCatchOutputs> {
-  return createNode("nodetool.control.TryCatch", inputs, { outputNames: ["output", "error", "has_error"], streaming: true });
+export function tryCatch(inputs: TryCatchInputs, options?: NodeOptions): NodeWithOutputs<TryCatchOutputs> {
+  return createNode("nodetool.control.TryCatch", inputs, { id: options?.id, outputNames: ["output", "error", "has_error"], outputTypes: {"output":"any","error":"str","has_error":"bool"}, streaming: true, inputMode: "buffered", outputCorrelation: {"output":{"kind":"forward","source":"value"},"error":{"kind":"single","source":"value"},"has_error":{"kind":"single","source":"value"}} });
 }
 
 // Zip — nodetool.control.Zip
@@ -321,8 +321,8 @@ export interface ZipOutputs {
   index: number;
 }
 
-export function zip(inputs: ZipInputs): DslNode<ZipOutputs> {
-  return createNode("nodetool.control.Zip", inputs, { outputNames: ["left", "right", "index"], streaming: true, streamingInput: true });
+export function zip(inputs: ZipInputs, options?: NodeOptions): NodeWithOutputs<ZipOutputs> {
+  return createNode("nodetool.control.Zip", inputs, { id: options?.id, outputNames: ["left", "right", "index"], outputTypes: {"left":"any","right":"any","index":"int"}, streaming: true, streamingInput: true, inputMode: "stream", outputCorrelation: {"left":{"kind":"iteration","source":"__execution__","group":"zip"},"right":{"kind":"iteration","source":"__execution__","group":"zip"},"index":{"kind":"iteration","source":"__execution__","group":"zip"}} });
 }
 
 // Cross — nodetool.control.Cross
@@ -337,6 +337,6 @@ export interface CrossOutputs {
   right: unknown;
 }
 
-export function cross(inputs: CrossInputs): DslNode<CrossOutputs> {
-  return createNode("nodetool.control.Cross", inputs, { outputNames: ["left", "right"], streaming: true, streamingInput: true });
+export function cross(inputs: CrossInputs, options?: NodeOptions): NodeWithOutputs<CrossOutputs> {
+  return createNode("nodetool.control.Cross", inputs, { id: options?.id, outputNames: ["left", "right"], outputTypes: {"left":"any","right":"any"}, streaming: true, streamingInput: true, inputMode: "stream", outputCorrelation: {"left":{"kind":"iteration","source":"__execution__","group":"cross"},"right":{"kind":"iteration","source":"__execution__","group":"cross"}} });
 }

@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef, VideoRef } from "../types.js";
 
 // Text To Video — gemini.video.TextToVideo
@@ -16,8 +16,8 @@ export interface TextToVideoOutputs {
   output: VideoRef;
 }
 
-export function textToVideo(inputs: TextToVideoInputs): DslNode<TextToVideoOutputs, "output"> {
-  return createNode("gemini.video.TextToVideo", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function textToVideo(inputs: TextToVideoInputs, options?: NodeOptions): NodeWithOutputs<TextToVideoOutputs, "output"> {
+  return createNode("gemini.video.TextToVideo", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"video"}, defaultOutput: "output" });
 }
 
 // Image To Video — gemini.video.ImageToVideo
@@ -34,6 +34,6 @@ export interface ImageToVideoOutputs {
   output: VideoRef;
 }
 
-export function imageToVideo(inputs: ImageToVideoInputs): DslNode<ImageToVideoOutputs, "output"> {
-  return createNode("gemini.video.ImageToVideo", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function imageToVideo(inputs: ImageToVideoInputs, options?: NodeOptions): NodeWithOutputs<ImageToVideoOutputs, "output"> {
+  return createNode("gemini.video.ImageToVideo", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"video"}, defaultOutput: "output" });
 }

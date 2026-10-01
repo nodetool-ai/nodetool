@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Image To Text — mistral.vision.ImageToText
@@ -16,8 +16,8 @@ export interface ImageToTextOutputs {
   output: string;
 }
 
-export function imageToText(inputs: ImageToTextInputs): DslNode<ImageToTextOutputs, "output"> {
-  return createNode("mistral.vision.ImageToText", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function imageToText(inputs: ImageToTextInputs, options?: NodeOptions): NodeWithOutputs<ImageToTextOutputs, "output"> {
+  return createNode("mistral.vision.ImageToText", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }
 
 // OCR — mistral.vision.OCR
@@ -30,6 +30,6 @@ export interface OCROutputs {
   output: string;
 }
 
-export function ocr(inputs: OCRInputs): DslNode<OCROutputs, "output"> {
-  return createNode("mistral.vision.OCR", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function ocr(inputs: OCRInputs, options?: NodeOptions): NodeWithOutputs<OCROutputs, "output"> {
+  return createNode("mistral.vision.OCR", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }

@@ -1265,7 +1265,29 @@ export class MessageDeconstructorNode extends BaseNode {
   }
 }
 
+/** Named workflow parameter for values without a specialized input node. */
+export class ValueInputNode extends BaseNode {
+  static readonly nodeType = "nodetool.input.ValueInput";
+  static readonly retrySafe = true;
+  static readonly title = "Value Input";
+  static readonly description =
+    "Accept a named workflow parameter without converting its value.";
+  static readonly metadataOutputTypes = { output: "any" };
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
+  @prop(NAME_PROP)
+  declare name: string;
+  @prop({ type: "any", default: null, title: "Value" })
+  declare value: unknown;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
+  async process(): Promise<Record<string, unknown>> {
+    return { output: this.value };
+  }
+}
+
 export const INPUT_NODES = tagAsUniversal([
+  ValueInputNode,
   FloatInputNode,
   BooleanInputNode,
   IntegerInputNode,

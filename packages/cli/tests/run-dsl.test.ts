@@ -14,6 +14,10 @@ describe("isWorkflow", () => {
     expect(isWorkflow({ nodes: [{}], edges: [{}] })).toBe(true);
   });
 
+  test("recognizes callable typed workflow definitions", () => {
+    expect(isWorkflow(Object.assign(() => {}, { nodes: [], edges: [] }))).toBe(true);
+  });
+
   test("returns false for non-workflow values", () => {
     expect(isWorkflow(null)).toBe(false);
     expect(isWorkflow(42)).toBe(false);

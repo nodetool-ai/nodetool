@@ -1,43 +1,43 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { createNode } from "../core.js";
-function collection(inputs) {
-  return createNode("vector.Collection", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function collection(inputs, options) {
+  return createNode("vector.Collection", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "collection" }, defaultOutput: "output" });
 }
-function count(inputs) {
-  return createNode("vector.Count", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function count(inputs, options) {
+  return createNode("vector.Count", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "int" }, defaultOutput: "output" });
 }
-function getDocuments(inputs) {
-  return createNode("vector.GetDocuments", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function getDocuments(inputs, options) {
+  return createNode("vector.GetDocuments", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list[str]" }, defaultOutput: "output" });
 }
-function peek(inputs) {
-  return createNode("vector.Peek", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function peek(inputs, options) {
+  return createNode("vector.Peek", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list[str]" }, defaultOutput: "output" });
 }
-function indexImage(inputs) {
-  return createNode("vector.IndexImage", inputs, { outputNames: [] });
+function indexImage(inputs, options) {
+  return createNode("vector.IndexImage", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }
-function indexEmbedding(inputs) {
-  return createNode("vector.IndexEmbedding", inputs, { outputNames: [] });
+function indexEmbedding(inputs, options) {
+  return createNode("vector.IndexEmbedding", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }
-function indexTextChunk(inputs) {
-  return createNode("vector.IndexTextChunk", inputs, { outputNames: [] });
+function indexTextChunk(inputs, options) {
+  return createNode("vector.IndexTextChunk", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }
-function indexAggregatedText(inputs) {
-  return createNode("vector.IndexAggregatedText", inputs, { outputNames: [] });
+function indexAggregatedText(inputs, options) {
+  return createNode("vector.IndexAggregatedText", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }
-function indexString(inputs) {
-  return createNode("vector.IndexString", inputs, { outputNames: [] });
+function indexString(inputs, options) {
+  return createNode("vector.IndexString", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }
-function queryImage(inputs) {
-  return createNode("vector.QueryImage", inputs, { outputNames: ["ids", "documents", "metadatas", "distances"] });
+function queryImage(inputs, options) {
+  return createNode("vector.QueryImage", inputs, { id: options?.id, outputNames: ["ids", "documents", "metadatas", "distances"], outputTypes: { "ids": "list[str]", "documents": "list[str]", "metadatas": "list[dict]", "distances": "list[float]" } });
 }
-function queryText(inputs) {
-  return createNode("vector.QueryText", inputs, { outputNames: ["ids", "documents", "metadatas", "distances"] });
+function queryText(inputs, options) {
+  return createNode("vector.QueryText", inputs, { id: options?.id, outputNames: ["ids", "documents", "metadatas", "distances"], outputTypes: { "ids": "list[str]", "documents": "list[str]", "metadatas": "list[dict]", "distances": "list[float]" } });
 }
-function removeOverlap(inputs) {
-  return createNode("vector.RemoveOverlap", inputs, { outputNames: ["documents"], defaultOutput: "documents" });
+function removeOverlap(inputs, options) {
+  return createNode("vector.RemoveOverlap", inputs, { id: options?.id, outputNames: ["documents"], outputTypes: { "documents": "list[str]" }, defaultOutput: "documents" });
 }
-function hybridSearch(inputs) {
-  return createNode("vector.HybridSearch", inputs, { outputNames: ["ids", "documents", "metadatas", "distances", "scores"] });
+function hybridSearch(inputs, options) {
+  return createNode("vector.HybridSearch", inputs, { id: options?.id, outputNames: ["ids", "documents", "metadatas", "distances", "scores"], outputTypes: { "ids": "list[str]", "documents": "list[str]", "metadatas": "list[dict]", "distances": "list[float]", "scores": "list[float]" } });
 }
 export {
   collection,

@@ -1,79 +1,79 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { createNode } from "../core.js";
-function normalize(inputs) {
-  return createNode("nodetool.audio.Normalize", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function normalize(inputs, options) {
+  return createNode("nodetool.audio.Normalize", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function overlayAudio(inputs) {
-  return createNode("nodetool.audio.OverlayAudio", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function overlayAudio(inputs, options) {
+  return createNode("nodetool.audio.OverlayAudio", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function removeSilence(inputs) {
-  return createNode("nodetool.audio.RemoveSilence", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function removeSilence(inputs, options) {
+  return createNode("nodetool.audio.RemoveSilence", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function sliceAudio(inputs) {
-  return createNode("nodetool.audio.SliceAudio", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function sliceAudio(inputs, options) {
+  return createNode("nodetool.audio.SliceAudio", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function monoToStereo(inputs) {
-  return createNode("nodetool.audio.MonoToStereo", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function monoToStereo(inputs, options) {
+  return createNode("nodetool.audio.MonoToStereo", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function stereoToMono(inputs) {
-  return createNode("nodetool.audio.StereoToMono", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function stereoToMono(inputs, options) {
+  return createNode("nodetool.audio.StereoToMono", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function reverse(inputs) {
-  return createNode("nodetool.audio.Reverse", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function reverse(inputs, options) {
+  return createNode("nodetool.audio.Reverse", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function fadeIn(inputs) {
-  return createNode("nodetool.audio.FadeIn", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function fadeIn(inputs, options) {
+  return createNode("nodetool.audio.FadeIn", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function fadeOut(inputs) {
-  return createNode("nodetool.audio.FadeOut", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function fadeOut(inputs, options) {
+  return createNode("nodetool.audio.FadeOut", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function repeat(inputs) {
-  return createNode("nodetool.audio.Repeat", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function repeat(inputs, options) {
+  return createNode("nodetool.audio.Repeat", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function audioMixer(inputs) {
-  return createNode("nodetool.audio.AudioMixer", inputs ?? {}, { outputNames: ["output"], defaultOutput: "output" });
+function audioMixer(inputs, options) {
+  return createNode("nodetool.audio.AudioMixer", inputs ?? {}, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function trim(inputs) {
-  return createNode("nodetool.audio.Trim", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function trim(inputs, options) {
+  return createNode("nodetool.audio.Trim", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function createSilence(inputs) {
-  return createNode("nodetool.audio.CreateSilence", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function createSilence(inputs, options) {
+  return createNode("nodetool.audio.CreateSilence", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function concat(inputs) {
-  return createNode("nodetool.audio.Concat", inputs ?? {}, { outputNames: ["output"], defaultOutput: "output" });
+function concat(inputs, options) {
+  return createNode("nodetool.audio.Concat", inputs ?? {}, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function concatList(inputs) {
-  return createNode("nodetool.audio.ConcatList", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function concatList(inputs, options) {
+  return createNode("nodetool.audio.ConcatList", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function chunkToAudio(inputs) {
-  return createNode("nodetool.audio.ChunkToAudio", inputs, { outputNames: ["audio"], defaultOutput: "audio" });
+function chunkToAudio(inputs, options) {
+  return createNode("nodetool.audio.ChunkToAudio", inputs, { id: options?.id, outputNames: ["audio"], outputTypes: { "audio": "audio" }, defaultOutput: "audio" });
 }
-function getAudioInfo(inputs) {
-  return createNode("nodetool.audio.GetAudioInfo", inputs, { outputNames: ["duration", "sample_rate", "channels", "format", "size_bytes"] });
+function getAudioInfo(inputs, options) {
+  return createNode("nodetool.audio.GetAudioInfo", inputs, { id: options?.id, outputNames: ["duration", "sample_rate", "channels", "format", "size_bytes"], outputTypes: { "duration": "float", "sample_rate": "int", "channels": "int", "format": "str", "size_bytes": "int" } });
 }
-function loadAudioAssets(inputs) {
-  return createNode("nodetool.audio.LoadAudioAssets", inputs, { outputNames: ["audio", "name", "audios"], streaming: true });
+function loadAudioAssets(inputs, options) {
+  return createNode("nodetool.audio.LoadAudioAssets", inputs, { id: options?.id, outputNames: ["audio", "name", "audios"], outputTypes: { "audio": "audio", "name": "str", "audios": "list" }, streaming: true, inputMode: "buffered", outputCorrelation: { "audio": { "kind": "iteration", "source": "__execution__", "group": "items" }, "name": { "kind": "iteration", "source": "__execution__", "group": "items" }, "audios": { "kind": "single", "source": "__execution__" } } });
 }
-function loadAudioFile(inputs) {
-  return createNode("nodetool.audio.LoadAudioFile", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function loadAudioFile(inputs, options) {
+  return createNode("nodetool.audio.LoadAudioFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function loadAudioFolder(inputs) {
-  return createNode("nodetool.audio.LoadAudioFolder", inputs, { outputNames: ["audio", "path", "audios"], streaming: true });
+function loadAudioFolder(inputs, options) {
+  return createNode("nodetool.audio.LoadAudioFolder", inputs, { id: options?.id, outputNames: ["audio", "path", "audios"], outputTypes: { "audio": "audio", "path": "str", "audios": "list" }, streaming: true, inputMode: "buffered", outputCorrelation: { "audio": { "kind": "iteration", "source": "__execution__", "group": "items" }, "path": { "kind": "iteration", "source": "__execution__", "group": "items" }, "audios": { "kind": "single", "source": "__execution__" } } });
 }
-function saveAudio(inputs) {
-  return createNode("nodetool.audio.SaveAudio", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function saveAudio(inputs, options) {
+  return createNode("nodetool.audio.SaveAudio", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function saveAudioFile(inputs) {
-  return createNode("nodetool.audio.SaveAudioFile", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function saveAudioFile(inputs, options) {
+  return createNode("nodetool.audio.SaveAudioFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function textToSpeech(inputs) {
-  return createNode("nodetool.audio.TextToSpeech", inputs, { outputNames: ["audio", "chunk"] });
+function textToSpeech(inputs, options) {
+  return createNode("nodetool.audio.TextToSpeech", inputs, { id: options?.id, outputNames: ["audio", "chunk"], outputTypes: { "audio": "audio", "chunk": "chunk" }, inputMode: "buffered", outputCorrelation: { "audio": { "kind": "single", "source": "__execution__" }, "chunk": { "kind": "single", "source": "__execution__" } } });
 }
-function textToMusic(inputs) {
-  return createNode("nodetool.audio.TextToMusic", inputs, { outputNames: ["audio"], defaultOutput: "audio" });
+function textToMusic(inputs, options) {
+  return createNode("nodetool.audio.TextToMusic", inputs, { id: options?.id, outputNames: ["audio"], outputTypes: { "audio": "audio" }, defaultOutput: "audio", inputMode: "buffered", outputCorrelation: { "audio": { "kind": "single", "source": "__execution__" } } });
 }
-function audioToAudio(inputs) {
-  return createNode("nodetool.audio.AudioToAudio", inputs, { outputNames: ["audio"], defaultOutput: "audio" });
+function audioToAudio(inputs, options) {
+  return createNode("nodetool.audio.AudioToAudio", inputs, { id: options?.id, outputNames: ["audio"], outputTypes: { "audio": "audio" }, defaultOutput: "audio", inputMode: "buffered", outputCorrelation: { "audio": { "kind": "single", "source": "__execution__" } } });
 }
 export {
   audioMixer,

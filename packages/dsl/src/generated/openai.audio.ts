@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { AudioRef } from "../types.js";
 
 // Text To Speech — openai.audio.TextToSpeech
@@ -16,8 +16,8 @@ export interface TextToSpeechOutputs {
   output: AudioRef;
 }
 
-export function textToSpeech(inputs: TextToSpeechInputs): DslNode<TextToSpeechOutputs, "output"> {
-  return createNode("openai.audio.TextToSpeech", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function textToSpeech(inputs: TextToSpeechInputs, options?: NodeOptions): NodeWithOutputs<TextToSpeechOutputs, "output"> {
+  return createNode("openai.audio.TextToSpeech", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Translate — openai.audio.Translate
@@ -30,8 +30,8 @@ export interface TranslateOutputs {
   output: string;
 }
 
-export function translate(inputs: TranslateInputs): DslNode<TranslateOutputs, "output"> {
-  return createNode("openai.audio.Translate", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function translate(inputs: TranslateInputs, options?: NodeOptions): NodeWithOutputs<TranslateOutputs, "output"> {
+  return createNode("openai.audio.Translate", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }
 
 // Transcribe — openai.audio.Transcribe
@@ -50,6 +50,6 @@ export interface TranscribeOutputs {
   segments: unknown[];
 }
 
-export function transcribe(inputs: TranscribeInputs): DslNode<TranscribeOutputs> {
-  return createNode("openai.audio.Transcribe", inputs, { outputNames: ["text", "words", "segments"] });
+export function transcribe(inputs: TranscribeInputs, options?: NodeOptions): NodeWithOutputs<TranscribeOutputs> {
+  return createNode("openai.audio.Transcribe", inputs, { id: options?.id, outputNames: ["text", "words", "segments"], outputTypes: {"text":"str","words":"list[audio_chunk]","segments":"list[audio_chunk]"} });
 }

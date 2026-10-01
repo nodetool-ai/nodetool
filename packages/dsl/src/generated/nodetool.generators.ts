@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef, AudioRef, DataframeRef } from "../types.js";
 
 // Structured Output Generator — nodetool.generators.StructuredOutputGenerator
@@ -17,8 +17,8 @@ export type StructuredOutputGeneratorInputs = {
 export interface StructuredOutputGeneratorOutputs {
 }
 
-export function structuredOutputGenerator(inputs: StructuredOutputGeneratorInputs): DslNode<StructuredOutputGeneratorOutputs> {
-  return createNode("nodetool.generators.StructuredOutputGenerator", inputs, { outputNames: [] });
+export function structuredOutputGenerator(inputs: StructuredOutputGeneratorInputs, options?: NodeOptions): NodeWithOutputs<StructuredOutputGeneratorOutputs> {
+  return createNode("nodetool.generators.StructuredOutputGenerator", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }
 
 // Data Generator — nodetool.generators.DataGenerator
@@ -36,8 +36,8 @@ export interface DataGeneratorOutputs {
   index: number;
 }
 
-export function dataGenerator(inputs: DataGeneratorInputs): DslNode<DataGeneratorOutputs> {
-  return createNode("nodetool.generators.DataGenerator", inputs, { outputNames: ["record", "dataframe", "index"], streaming: true });
+export function dataGenerator(inputs: DataGeneratorInputs, options?: NodeOptions): NodeWithOutputs<DataGeneratorOutputs> {
+  return createNode("nodetool.generators.DataGenerator", inputs, { id: options?.id, outputNames: ["record", "dataframe", "index"], outputTypes: {"record":"dict","dataframe":"dataframe","index":"int"}, streaming: true, inputMode: "buffered", outputCorrelation: {"record":{"kind":"iteration","source":"__execution__","group":"items"},"index":{"kind":"iteration","source":"__execution__","group":"items"},"dataframe":{"kind":"single","source":"__execution__"}} });
 }
 
 // List Generator — nodetool.generators.ListGenerator
@@ -54,8 +54,8 @@ export interface ListGeneratorOutputs {
   output: string[];
 }
 
-export function listGenerator(inputs: ListGeneratorInputs): DslNode<ListGeneratorOutputs> {
-  return createNode("nodetool.generators.ListGenerator", inputs, { outputNames: ["item", "index", "output"], streaming: true });
+export function listGenerator(inputs: ListGeneratorInputs, options?: NodeOptions): NodeWithOutputs<ListGeneratorOutputs> {
+  return createNode("nodetool.generators.ListGenerator", inputs, { id: options?.id, outputNames: ["item", "index", "output"], outputTypes: {"item":"str","index":"int","output":"list[str]"}, streaming: true, inputMode: "buffered", outputCorrelation: {"item":{"kind":"iteration","source":"__execution__","group":"items"},"index":{"kind":"iteration","source":"__execution__","group":"items"},"output":{"kind":"single","source":"__execution__"}} });
 }
 
 // Chart Generator — nodetool.generators.ChartGenerator
@@ -70,8 +70,8 @@ export interface ChartGeneratorOutputs {
   output: unknown;
 }
 
-export function chartGenerator(inputs: ChartGeneratorInputs): DslNode<ChartGeneratorOutputs, "output"> {
-  return createNode("nodetool.generators.ChartGenerator", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function chartGenerator(inputs: ChartGeneratorInputs, options?: NodeOptions): NodeWithOutputs<ChartGeneratorOutputs, "output"> {
+  return createNode("nodetool.generators.ChartGenerator", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"chart_config"}, defaultOutput: "output" });
 }
 
 // SVGGenerator — nodetool.generators.SVGGenerator
@@ -87,6 +87,6 @@ export interface SVGGeneratorOutputs {
   output: unknown[];
 }
 
-export function svgGenerator(inputs: SVGGeneratorInputs): DslNode<SVGGeneratorOutputs, "output"> {
-  return createNode("nodetool.generators.SVGGenerator", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function svgGenerator(inputs: SVGGeneratorInputs, options?: NodeOptions): NodeWithOutputs<SVGGeneratorOutputs, "output"> {
+  return createNode("nodetool.generators.SVGGenerator", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[svg_element]"}, defaultOutput: "output" });
 }

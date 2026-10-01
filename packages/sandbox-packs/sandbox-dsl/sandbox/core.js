@@ -22,9 +22,47 @@
  */
 
 /** Nodes registered since the last `workflow()` call, by id. */
-const registry = new Map();
+let registry = new Map();
 /** Per-stem counters behind the readable auto ids. */
-const counters = new Map();
+let counters = new Map();
+const dslNodes = new WeakMap();
+const handleDescriptors = new WeakMap();
+
+let nodeScope = "";
+let scopeCounters = new Map();
+let captureConnection;
+
+export function withBuildScope(build, capture) {
+  const previous = { registry, counters, nodeScope, scopeCounters, captureConnection };
+  registry = new Map(); counters = new Map(); nodeScope = ""; scopeCounters = new Map(); captureConnection = capture;
+  try { return build(); }
+  finally { ({ registry, counters, nodeScope, scopeCounters, captureConnection } = previous); }
+}
+
+export function withNodeScope(id, build) {
+  if (id !== undefined && (typeof id !== "string" || !id.length)) throw new Error("Workflow scope id must be a non-empty string");
+  const previous = nodeScope;
+  const stem = previous + (id ?? "call");
+  const count = (scopeCounters.get(stem) ?? 0) + 1;
+  if (id && count > 1) throw new Error(`Duplicate workflow scope "${stem}"`);
+  scopeCounters.set(stem, count);
+  nodeScope = stem + (id ? "/" : `_${count}/`);
+  try { return build(); } finally { nodeScope = previous; }
+}
+
+export function resolveConnection(value) {
+  if (isOutputHandle(value)) {
+    const descriptor = handleDescriptors.get(value);
+    return captureConnection && descriptor && registry.get(value.source) !== descriptor ? captureConnection(value) : value;
+  }
+  if (value !== null && typeof value === "object" && dslNodes.has(value)) {
+    if (!value.defaultOutputHandle) {
+      throw new Error("Node " + value.nodeType + " requires an explicit output slot");
+    }
+    return resolveConnection(value.defaultOutputHandle);
+  }
+  return undefined;
+}
 
 function autoId(nodeType) {
   const last = String(nodeType).split(".").pop() || "node";
@@ -32,11 +70,11 @@ function autoId(nodeType) {
     .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
     .replace(/[^A-Za-z0-9_]/g, "_")
     .toLowerCase();
-  let id = stem;
+  let id = nodeScope + stem;
   while (registry.has(id)) {
     const next = (counters.get(stem) || 1) + 1;
     counters.set(stem, next);
-    id = stem + "_" + next;
+    id = nodeScope + stem + "_" + next;
   }
   return id;
 }
@@ -65,14 +103,14 @@ function findNestedHandlePath(value, seen) {
   if (Array.isArray(value)) {
     for (let i = 0; i < value.length; i++) {
       const item = value[i];
-      if (isOutputHandle(item)) return "[" + i + "]";
+      if (resolveConnection(item)) return "[" + i + "]";
       const deeper = findNestedHandlePath(item, seen);
       if (deeper !== null) return "[" + i + "]" + deeper;
     }
     return null;
   }
   for (const key of Object.keys(value)) {
-    if (isOutputHandle(value[key])) return "." + key;
+    if (resolveConnection(value[key])) return "." + key;
     const deeper = findNestedHandlePath(value[key], seen);
     if (deeper !== null) return "." + key + deeper;
   }
@@ -126,11 +164,19 @@ function classifyInput(name, value) {
   return { kind: "plain" };
 }
 
-function createHandle(nodeId, slot) {
+/** Original producer identity, including isolated build scopes. */
+export function connectionIdentity(handle) {
+  return handleDescriptors.get(handle) ?? handle;
+}
+
+export function connectionSlot(handle) { return handle.sourceHandle; }
+
+function createHandle(nodeId, slot, descriptor) {
   const handle = {
     __handle: true,
     source: nodeId,
-    sourceHandle: slot
+    sourceHandle: slot,
+    ...(descriptor.outputTypes && descriptor.outputTypes[slot] ? { valueType: descriptor.outputTypes[slot] } : {})
   };
   // Interpolating a handle into a string silently yields "[object Object]":
   // no edge is created and the node gets that literal text. Refuse the
@@ -158,6 +204,7 @@ function createHandle(nodeId, slot) {
         "not in the interpolated prompt."
     );
   };
+  handleDescriptors.set(handle, descriptor);
   return Object.freeze(handle);
 }
 
@@ -175,11 +222,13 @@ export function createNode(nodeType, inputs, opts) {
   if (inputs !== undefined && (inputs === null || typeof inputs !== "object" || Array.isArray(inputs))) {
     throw new Error("createNode(nodeType, inputs): inputs must be an object");
   }
-  const explicit = opts && typeof opts.id === "string" && opts.id.length > 0 ? opts.id : undefined;
-  if (explicit !== undefined && registry.has(explicit)) {
-    throw new Error('Duplicate node id "' + explicit + '"');
+  if (opts && opts.id !== undefined && (typeof opts.id !== "string" || opts.id.length === 0)) {
+    throw new Error("Node id must be a non-empty string");
   }
-  const nodeId = explicit ?? autoId(nodeType);
+  const explicit = opts && opts.id;
+
+  const nodeId = explicit !== undefined ? nodeScope + explicit : nodeScope + autoId(nodeType);
+  if (registry.has(nodeId)) throw new Error('Duplicate node id "' + nodeId + '"');
   const outputNames = opts && opts.outputNames ? [...opts.outputNames] : [];
   const defaultOutput =
     (opts && opts.defaultOutput) ??
@@ -188,9 +237,18 @@ export function createNode(nodeType, inputs, opts) {
   const descriptor = {
     nodeId,
     nodeType,
-    inputs: { ...(inputs ?? {}) },
+    inputs: Object.fromEntries(Object.entries(inputs ?? {}).map(([key, value]) => [
+      key,
+      resolveConnection(value) ?? (Array.isArray(value)
+        ? value.map((item) => resolveConnection(item) ?? item)
+        : value)
+    ])),
     streaming: Boolean(opts && opts.streaming),
-    streamingInput: Boolean(opts && opts.streamingInput)
+    streamingInput: Boolean(opts && opts.streamingInput),
+    outputTypes: opts && opts.outputTypes,
+    dynamicOutputs: opts && opts.dynamicOutputs,
+    inputMode: opts && opts.inputMode,
+    outputCorrelation: opts && opts.outputCorrelation
   };
   registry.set(nodeId, descriptor);
 
@@ -209,10 +267,24 @@ export function createNode(nodeType, inputs, opts) {
           ". Available: " + outputNames.join(", ")
       );
     }
-    return createHandle(nodeId, resolved);
+    return createHandle(nodeId, resolved, descriptor);
   };
 
-  return Object.freeze({ nodeId, nodeType, inputs: descriptor.inputs, output });
+  const node = {
+    nodeId, nodeType, inputs: descriptor.inputs, output,
+    outputs: Object.freeze(Object.fromEntries(outputNames.map((name) => [name, output(name)]))),
+    defaultOutputHandle: outputNames.length === 1 && !(opts && opts.multiOutput) && defaultOutput ? output() : undefined,
+    [Symbol.toPrimitive]: () => {
+      throw new Error("Cannot coerce a DSL node to a primitive. Pass it directly to an input or select node.output(slot).");
+    }
+  };
+  const reserved = new Set([...Object.keys(node), "then", "constructor", "__proto__"]);
+  for (const name of outputNames) {
+    if (!reserved.has(name)) Object.defineProperty(node, name, { get: () => output(name) });
+  }
+  Object.freeze(node);
+  dslNodes.set(node, descriptor);
+  return node;
 }
 
 /**
@@ -236,7 +308,7 @@ export function workflow(...terminals) {
   const admit = (node) => {
     const id = node && node.nodeId;
     const descriptor = typeof id === "string" ? registry.get(id) : undefined;
-    if (descriptor === undefined) {
+    if (descriptor === undefined || (dslNodes.has(node) && dslNodes.get(node) !== descriptor)) {
       throw new Error(
         "workflow(): not a node from this program" +
           (typeof id === "string" ? ' ("' + id + '")' : "") +
@@ -251,8 +323,8 @@ export function workflow(...terminals) {
 
   for (const terminal of terminals) admit(terminal);
 
-  while (queue.length > 0) {
-    const currentId = queue.shift();
+  for (let queueIndex = 0; queueIndex < queue.length; queueIndex++) {
+    const currentId = queue[queueIndex];
     const descriptor = reached.get(currentId);
     for (const [name, value] of Object.entries(descriptor.inputs)) {
       let sources;
@@ -265,6 +337,9 @@ export function workflow(...terminals) {
       }
       wiredInputs.add(currentId + "." + name);
       for (const handle of sources) {
+        if (handleDescriptors.has(handle) && handleDescriptors.get(handle) !== registry.get(handle.source)) {
+          throw new Error("workflow(): a handle from an earlier workflow() call is already spent.");
+        }
         edges.push({
           id: "e" + (edges.length + 1) + "_" + handle.source + "_" + currentId,
           source: handle.source,
@@ -292,11 +367,15 @@ export function workflow(...terminals) {
       type: descriptor.nodeType,
       properties,
       ...(descriptor.streaming ? { is_streaming_output: true } : {}),
-      ...(descriptor.streamingInput ? { is_streaming_input: true } : {})
+      ...(descriptor.streamingInput ? { is_streaming_input: true } : {}),
+      ...(descriptor.dynamicOutputs ? { dynamic_outputs: descriptor.dynamicOutputs } : {}),
+      ...(descriptor.inputMode ? { input_mode: descriptor.inputMode } : {}),
+      ...(descriptor.outputCorrelation ? { output_correlation: descriptor.outputCorrelation } : {})
     };
   });
 
   registry.clear();
+  scopeCounters.clear();
   counters.clear();
 
   return { nodes, edges };

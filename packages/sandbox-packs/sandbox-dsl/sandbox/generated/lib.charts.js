@@ -1,7 +1,7 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { createNode } from "../core.js";
-function chartRenderer(inputs) {
-  return createNode("lib.charts.ChartRenderer", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function chartRenderer(inputs, options) {
+  return createNode("lib.charts.ChartRenderer", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
 export {
   chartRenderer

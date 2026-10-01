@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Apply Mask — lib.image.mask.Apply
@@ -14,8 +14,8 @@ export interface ApplyOutputs {
   output: ImageRef;
 }
 
-export function apply(inputs: ApplyInputs): DslNode<ApplyOutputs, "output"> {
-  return createNode("lib.image.mask.Apply", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function apply(inputs: ApplyInputs, options?: NodeOptions): NodeWithOutputs<ApplyOutputs, "output"> {
+  return createNode("lib.image.mask.Apply", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Mask From Image — lib.image.mask.FromImage
@@ -29,8 +29,8 @@ export interface FromImageOutputs {
   output: ImageRef;
 }
 
-export function fromImage(inputs: FromImageInputs): DslNode<FromImageOutputs, "output"> {
-  return createNode("lib.image.mask.FromImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function fromImage(inputs: FromImageInputs, options?: NodeOptions): NodeWithOutputs<FromImageOutputs, "output"> {
+  return createNode("lib.image.mask.FromImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Invert Mask — lib.image.mask.Invert
@@ -42,6 +42,6 @@ export interface InvertOutputs {
   output: ImageRef;
 }
 
-export function invert(inputs: InvertInputs): DslNode<InvertOutputs, "output"> {
-  return createNode("lib.image.mask.Invert", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function invert(inputs: InvertInputs, options?: NodeOptions): NodeWithOutputs<InvertOutputs, "output"> {
+  return createNode("lib.image.mask.Invert", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }

@@ -17309,6 +17309,29 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/xai/vision/imagetotext",
       "markdown_url": "https://docs.nodetool.ai/nodes/xai/vision/imagetotext.md"
+    },
+    {
+      "type": "nodetool.input.ValueInput",
+      "title": "Value Input",
+      "namespace": "nodetool.input",
+      "description": "Accept a named workflow parameter without converting its value.",
+      "inputs": [
+        {
+          "name": "value",
+          "type": "any",
+          "description": "",
+          "required": false,
+          "default": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "any"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/input/valueinput",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/input/valueinput.md"
     }
   ]
 }

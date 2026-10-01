@@ -14,11 +14,23 @@ import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import {
   DocumentFileInputNode,
   FloatInputNode,
+  ValueInputNode,
   StringInputNode
 } from "@nodetool-ai/core-nodes";
 import { OutputNode } from "@nodetool-ai/audio-nodes";
 
 describe("input node process() outputs", () => {
+  it.each([
+    { value: null },
+    { value: [1, 2] },
+    { value: { nested: true } },
+    { value: "" }
+  ])("ValueInputNode preserves arbitrary values: %j", async ({ value }) => {
+    const node = new ValueInputNode();
+    node.assign({ value });
+    await expect(node.process()).resolves.toEqual({ output: value });
+  });
+
   it("StringInputNode emits the declared `output` handle and applies max_length", async () => {
     const node = new StringInputNode();
     node.assign({ value: "hello world", max_length: 5 });

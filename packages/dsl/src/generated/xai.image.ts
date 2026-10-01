@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Generate Image — xai.image.GenerateImage
@@ -14,6 +14,6 @@ export interface GenerateImageOutputs {
   revised_prompt: string;
 }
 
-export function generateImage(inputs: GenerateImageInputs): DslNode<GenerateImageOutputs> {
-  return createNode("xai.image.GenerateImage", inputs, { outputNames: ["output", "revised_prompt"] });
+export function generateImage(inputs: GenerateImageInputs, options?: NodeOptions): NodeWithOutputs<GenerateImageOutputs> {
+  return createNode("xai.image.GenerateImage", inputs, { id: options?.id, outputNames: ["output", "revised_prompt"], outputTypes: {"output":"image","revised_prompt":"str"} });
 }

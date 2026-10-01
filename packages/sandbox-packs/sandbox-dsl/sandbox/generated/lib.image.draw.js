@@ -1,28 +1,28 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { createNode } from "../core.js";
-function background(inputs) {
-  return createNode("lib.image.draw.Background", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function background(inputs, options) {
+  return createNode("lib.image.draw.Background", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function gaussianNoise(inputs) {
-  return createNode("lib.image.draw.GaussianNoise", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function gaussianNoise(inputs, options) {
+  return createNode("lib.image.draw.GaussianNoise", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function renderText(inputs) {
-  return createNode("lib.image.draw.RenderText", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function renderText(inputs, options) {
+  return createNode("lib.image.draw.RenderText", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function linearGradient(inputs) {
-  return createNode("lib.image.draw.LinearGradient", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function linearGradient(inputs, options) {
+  return createNode("lib.image.draw.LinearGradient", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function radialGradient(inputs) {
-  return createNode("lib.image.draw.RadialGradient", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function radialGradient(inputs, options) {
+  return createNode("lib.image.draw.RadialGradient", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function angularGradient(inputs) {
-  return createNode("lib.image.draw.AngularGradient", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function angularGradient(inputs, options) {
+  return createNode("lib.image.draw.AngularGradient", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function diamondGradient(inputs) {
-  return createNode("lib.image.draw.DiamondGradient", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function diamondGradient(inputs, options) {
+  return createNode("lib.image.draw.DiamondGradient", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function checkerboard(inputs) {
-  return createNode("lib.image.draw.Checkerboard", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function checkerboard(inputs, options) {
+  return createNode("lib.image.draw.Checkerboard", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
 export {
   angularGradient,

@@ -85,10 +85,14 @@ modules.sort((left, right) => (left.name < right.name ? -1 : 1));
 // generated namespaces, which the generated barrel alone cannot do.
 modules.unshift({ name: ".", kind: "js", file: "sandbox/index.js" });
 
+const authoringSource = join(packDir, "..", "..", "dsl", "src", "authoring.ts");
+const authoring = await esbuild.transform(readFileSync(authoringSource, "utf8"), { loader: "ts", format: "esm", target: "es2022" });
+emit(join(packDir, "sandbox", "authoring.js"), banner + authoring.code);
+
 const manifestPath = join(packDir, "package.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 manifest.nodetool.sandboxModules = modules;
-manifest.nodetool.internal = ["sandbox/core.js", "sandbox/generated/index.js"];
+manifest.nodetool.internal = ["sandbox/core.js", "sandbox/authoring.js", "sandbox/generated/index.js"];
 emit(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
 if (check) {

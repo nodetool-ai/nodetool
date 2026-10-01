@@ -1,40 +1,40 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { createNode } from "../core.js";
-function automaticSpeechRecognition(inputs) {
-  return createNode("nodetool.text.AutomaticSpeechRecognition", inputs, { outputNames: ["text"], defaultOutput: "text" });
+function automaticSpeechRecognition(inputs, options) {
+  return createNode("nodetool.text.AutomaticSpeechRecognition", inputs, { id: options?.id, outputNames: ["text"], outputTypes: { "text": "str" }, defaultOutput: "text" });
 }
-function embedding(inputs) {
-  return createNode("nodetool.text.Embedding", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function embedding(inputs, options) {
+  return createNode("nodetool.text.Embedding", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list" }, defaultOutput: "output" });
 }
-function saveTextFile(inputs) {
-  return createNode("nodetool.text.SaveTextFile", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function saveTextFile(inputs, options) {
+  return createNode("nodetool.text.SaveTextFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "text" }, defaultOutput: "output" });
 }
-function saveText(inputs) {
-  return createNode("nodetool.text.SaveText", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function saveText(inputs, options) {
+  return createNode("nodetool.text.SaveText", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "text" }, defaultOutput: "output" });
 }
-function loadTextFolder(inputs) {
-  return createNode("nodetool.text.LoadTextFolder", inputs, { outputNames: ["text", "path", "texts", "paths"], streaming: true });
+function loadTextFolder(inputs, options) {
+  return createNode("nodetool.text.LoadTextFolder", inputs, { id: options?.id, outputNames: ["text", "path", "texts", "paths"], outputTypes: { "text": "str", "path": "str", "texts": "list", "paths": "list" }, streaming: true });
 }
-function loadTextAssets(inputs) {
-  return createNode("nodetool.text.LoadTextAssets", inputs, { outputNames: ["text", "name", "texts", "names"], streaming: true });
+function loadTextAssets(inputs, options) {
+  return createNode("nodetool.text.LoadTextAssets", inputs, { id: options?.id, outputNames: ["text", "name", "texts", "names"], outputTypes: { "text": "text", "name": "str", "texts": "list", "names": "list" }, streaming: true });
 }
-function filterString(inputs) {
-  return createNode("nodetool.text.FilterString", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true });
+function filterString(inputs, options) {
+  return createNode("nodetool.text.FilterString", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "str" }, defaultOutput: "output", streaming: true, outputCorrelation: { "output": { "kind": "forward", "source": "value" } } });
 }
-function filterRegexString(inputs) {
-  return createNode("nodetool.text.FilterRegexString", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true });
+function filterRegexString(inputs, options) {
+  return createNode("nodetool.text.FilterRegexString", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "str" }, defaultOutput: "output", streaming: true, outputCorrelation: { "output": { "kind": "forward", "source": "value" } } });
 }
-function concat(inputs) {
-  return createNode("nodetool.text.Concat", inputs ?? {}, { outputNames: ["output"], defaultOutput: "output" });
+function concat(inputs, options) {
+  return createNode("nodetool.text.Concat", inputs ?? {}, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "str" }, defaultOutput: "output" });
 }
-function collect(inputs) {
-  return createNode("nodetool.text.Collect", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function collect(inputs, options) {
+  return createNode("nodetool.text.Collect", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "str" }, defaultOutput: "output" });
 }
-function prompt(inputs) {
-  return createNode("nodetool.text.Prompt", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function prompt(inputs, options) {
+  return createNode("nodetool.text.Prompt", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "str" }, defaultOutput: "output" });
 }
-function template(inputs) {
-  return createNode("nodetool.text.Template", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function template(inputs, options) {
+  return createNode("nodetool.text.Template", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "str" }, defaultOutput: "output" });
 }
 export {
   automaticSpeechRecognition,

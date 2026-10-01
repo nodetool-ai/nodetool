@@ -1,5 +1,8 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { callNode, streamNode } from "../guest-core.js";
+function valueInput(inputs) {
+  return callNode("nodetool.input.ValueInput", inputs);
+}
 function floatInput(inputs) {
   return callNode("nodetool.input.FloatInput", inputs);
 }
@@ -133,6 +136,7 @@ export {
   stringListInput,
   textListInput,
   ttsModelInput,
+  valueInput,
   videoInput,
   videoListInput,
   videoModelInput

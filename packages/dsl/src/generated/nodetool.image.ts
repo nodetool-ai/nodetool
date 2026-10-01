@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef, FolderRef, Entity } from "../types.js";
 
 // Paste — nodetool.image.Paste
@@ -15,8 +15,8 @@ export interface PasteOutputs {
   output: ImageRef;
 }
 
-export function paste(inputs: PasteInputs): DslNode<PasteOutputs, "output"> {
-  return createNode("nodetool.image.Paste", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function paste(inputs: PasteInputs, options?: NodeOptions): NodeWithOutputs<PasteOutputs, "output"> {
+  return createNode("nodetool.image.Paste", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Scale — nodetool.image.Scale
@@ -29,8 +29,8 @@ export interface ScaleOutputs {
   output: ImageRef;
 }
 
-export function scale(inputs: ScaleInputs): DslNode<ScaleOutputs, "output"> {
-  return createNode("nodetool.image.Scale", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function scale(inputs: ScaleInputs, options?: NodeOptions): NodeWithOutputs<ScaleOutputs, "output"> {
+  return createNode("nodetool.image.Scale", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Resize Image — nodetool.image.ResizeImage
@@ -46,8 +46,8 @@ export interface ResizeImageOutputs {
   output: ImageRef;
 }
 
-export function resizeImage(inputs: ResizeImageInputs): DslNode<ResizeImageOutputs, "output"> {
-  return createNode("nodetool.image.ResizeImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function resizeImage(inputs: ResizeImageInputs, options?: NodeOptions): NodeWithOutputs<ResizeImageOutputs, "output"> {
+  return createNode("nodetool.image.ResizeImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Resize — nodetool.image.Resize
@@ -61,8 +61,8 @@ export interface ResizeOutputs {
   output: ImageRef;
 }
 
-export function resize(inputs: ResizeInputs): DslNode<ResizeOutputs, "output"> {
-  return createNode("nodetool.image.Resize", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function resize(inputs: ResizeInputs, options?: NodeOptions): NodeWithOutputs<ResizeOutputs, "output"> {
+  return createNode("nodetool.image.Resize", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Canvas Resize — nodetool.image.CanvasResize
@@ -85,8 +85,8 @@ export interface CanvasResizeOutputs {
   output: ImageRef;
 }
 
-export function canvasResize(inputs: CanvasResizeInputs): DslNode<CanvasResizeOutputs, "output"> {
-  return createNode("nodetool.image.CanvasResize", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function canvasResize(inputs: CanvasResizeInputs, options?: NodeOptions): NodeWithOutputs<CanvasResizeOutputs, "output"> {
+  return createNode("nodetool.image.CanvasResize", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Crop — nodetool.image.Crop
@@ -102,8 +102,8 @@ export interface CropOutputs {
   output: ImageRef;
 }
 
-export function crop(inputs: CropInputs): DslNode<CropOutputs, "output"> {
-  return createNode("nodetool.image.Crop", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function crop(inputs: CropInputs, options?: NodeOptions): NodeWithOutputs<CropOutputs, "output"> {
+  return createNode("nodetool.image.Crop", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Fit — nodetool.image.Fit
@@ -117,8 +117,8 @@ export interface FitOutputs {
   output: ImageRef;
 }
 
-export function fit(inputs: FitInputs): DslNode<FitOutputs, "output"> {
-  return createNode("nodetool.image.Fit", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function fit(inputs: FitInputs, options?: NodeOptions): NodeWithOutputs<FitOutputs, "output"> {
+  return createNode("nodetool.image.Fit", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Rotate & Flip — nodetool.image.RotateAndFlip
@@ -133,8 +133,8 @@ export interface RotateAndFlipOutputs {
   output: ImageRef;
 }
 
-export function rotateAndFlip(inputs: RotateAndFlipInputs): DslNode<RotateAndFlipOutputs, "output"> {
-  return createNode("nodetool.image.RotateAndFlip", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function rotateAndFlip(inputs: RotateAndFlipInputs, options?: NodeOptions): NodeWithOutputs<RotateAndFlipOutputs, "output"> {
+  return createNode("nodetool.image.RotateAndFlip", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Channels — nodetool.image.Channels
@@ -147,8 +147,8 @@ export interface ChannelsOutputs {
   output: ImageRef;
 }
 
-export function channels(inputs: ChannelsInputs): DslNode<ChannelsOutputs, "output"> {
-  return createNode("nodetool.image.Channels", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function channels(inputs: ChannelsInputs, options?: NodeOptions): NodeWithOutputs<ChannelsOutputs, "output"> {
+  return createNode("nodetool.image.Channels", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Blur — nodetool.image.Blur
@@ -162,8 +162,8 @@ export interface BlurOutputs {
   output: ImageRef;
 }
 
-export function blur(inputs: BlurInputs): DslNode<BlurOutputs, "output"> {
-  return createNode("nodetool.image.Blur", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function blur(inputs: BlurInputs, options?: NodeOptions): NodeWithOutputs<BlurOutputs, "output"> {
+  return createNode("nodetool.image.Blur", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Levels — nodetool.image.Levels
@@ -184,8 +184,8 @@ export interface LevelsOutputs {
   output: ImageRef;
 }
 
-export function levels(inputs: LevelsInputs): DslNode<LevelsOutputs, "output"> {
-  return createNode("nodetool.image.Levels", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function levels(inputs: LevelsInputs, options?: NodeOptions): NodeWithOutputs<LevelsOutputs, "output"> {
+  return createNode("nodetool.image.Levels", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Compositor — nodetool.image.Compositor
@@ -193,14 +193,15 @@ export type CompositorInputs = {
   layers?: Connectable<unknown[]>;
   canvas_width?: Connectable<number>;
   canvas_height?: Connectable<number>;
+  [name: string]: unknown;
 };
 
 export interface CompositorOutputs {
   output: ImageRef;
 }
 
-export function compositor(inputs: CompositorInputs): DslNode<CompositorOutputs, "output"> {
-  return createNode("nodetool.image.Compositor", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function compositor(inputs: CompositorInputs, options?: NodeOptions): NodeWithOutputs<CompositorOutputs, "output"> {
+  return createNode("nodetool.image.Compositor", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Load Image File — nodetool.image.LoadImageFile
@@ -212,8 +213,8 @@ export interface LoadImageFileOutputs {
   output: ImageRef;
 }
 
-export function loadImageFile(inputs: LoadImageFileInputs): DslNode<LoadImageFileOutputs, "output"> {
-  return createNode("nodetool.image.LoadImageFile", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function loadImageFile(inputs: LoadImageFileInputs, options?: NodeOptions): NodeWithOutputs<LoadImageFileOutputs, "output"> {
+  return createNode("nodetool.image.LoadImageFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Load Image Folder — nodetool.image.LoadImageFolder
@@ -230,8 +231,8 @@ export interface LoadImageFolderOutputs {
   images: unknown[];
 }
 
-export function loadImageFolder(inputs: LoadImageFolderInputs): DslNode<LoadImageFolderOutputs> {
-  return createNode("nodetool.image.LoadImageFolder", inputs, { outputNames: ["image", "path", "images"], streaming: true });
+export function loadImageFolder(inputs: LoadImageFolderInputs, options?: NodeOptions): NodeWithOutputs<LoadImageFolderOutputs> {
+  return createNode("nodetool.image.LoadImageFolder", inputs, { id: options?.id, outputNames: ["image", "path", "images"], outputTypes: {"image":"image","path":"str","images":"list"}, streaming: true, inputMode: "buffered", outputCorrelation: {"image":{"kind":"iteration","source":"__execution__","group":"items"},"path":{"kind":"iteration","source":"__execution__","group":"items"},"images":{"kind":"single","source":"__execution__"}} });
 }
 
 // Save Image File — nodetool.image.SaveImageFile
@@ -248,8 +249,8 @@ export interface SaveImageFileOutputs {
   path: string;
 }
 
-export function saveImageFile(inputs: SaveImageFileInputs): DslNode<SaveImageFileOutputs> {
-  return createNode("nodetool.image.SaveImageFile", inputs, { outputNames: ["output", "path"] });
+export function saveImageFile(inputs: SaveImageFileInputs, options?: NodeOptions): NodeWithOutputs<SaveImageFileOutputs> {
+  return createNode("nodetool.image.SaveImageFile", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: {"output":"image","path":"str"} });
 }
 
 // Load Image Assets — nodetool.image.LoadImageAssets
@@ -263,8 +264,8 @@ export interface LoadImageAssetsOutputs {
   images: unknown[];
 }
 
-export function loadImageAssets(inputs: LoadImageAssetsInputs): DslNode<LoadImageAssetsOutputs> {
-  return createNode("nodetool.image.LoadImageAssets", inputs, { outputNames: ["image", "name", "images"], streaming: true });
+export function loadImageAssets(inputs: LoadImageAssetsInputs, options?: NodeOptions): NodeWithOutputs<LoadImageAssetsOutputs> {
+  return createNode("nodetool.image.LoadImageAssets", inputs, { id: options?.id, outputNames: ["image", "name", "images"], outputTypes: {"image":"image","name":"str","images":"list"}, streaming: true, inputMode: "buffered", outputCorrelation: {"image":{"kind":"iteration","source":"__execution__","group":"items"},"name":{"kind":"iteration","source":"__execution__","group":"items"},"images":{"kind":"single","source":"__execution__"}} });
 }
 
 // Save Image Asset — nodetool.image.SaveImage
@@ -278,8 +279,8 @@ export interface SaveImageOutputs {
   output: ImageRef;
 }
 
-export function saveImage(inputs: SaveImageInputs): DslNode<SaveImageOutputs, "output"> {
-  return createNode("nodetool.image.SaveImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function saveImage(inputs: SaveImageInputs, options?: NodeOptions): NodeWithOutputs<SaveImageOutputs, "output"> {
+  return createNode("nodetool.image.SaveImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Get Metadata — nodetool.image.GetMetadata
@@ -295,8 +296,8 @@ export interface GetMetadataOutputs {
   channels: number;
 }
 
-export function getMetadata(inputs: GetMetadataInputs): DslNode<GetMetadataOutputs> {
-  return createNode("nodetool.image.GetMetadata", inputs, { outputNames: ["format", "mode", "width", "height", "channels"] });
+export function getMetadata(inputs: GetMetadataInputs, options?: NodeOptions): NodeWithOutputs<GetMetadataOutputs> {
+  return createNode("nodetool.image.GetMetadata", inputs, { id: options?.id, outputNames: ["format", "mode", "width", "height", "channels"], outputTypes: {"format":"str","mode":"str","width":"int","height":"int","channels":"int"} });
 }
 
 // Batch To List — nodetool.image.BatchToList
@@ -308,20 +309,21 @@ export interface BatchToListOutputs {
   output: ImageRef[];
 }
 
-export function batchToList(inputs: BatchToListInputs): DslNode<BatchToListOutputs, "output"> {
-  return createNode("nodetool.image.BatchToList", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function batchToList(inputs: BatchToListInputs, options?: NodeOptions): NodeWithOutputs<BatchToListOutputs, "output"> {
+  return createNode("nodetool.image.BatchToList", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[image]"}, defaultOutput: "output" });
 }
 
 // Images To List — nodetool.image.ImagesToList
 export type ImagesToListInputs = {
+  [name: string]: unknown;
 };
 
 export interface ImagesToListOutputs {
   output: ImageRef[];
 }
 
-export function imagesToList(inputs?: ImagesToListInputs): DslNode<ImagesToListOutputs, "output"> {
-  return createNode("nodetool.image.ImagesToList", inputs ?? {}, { outputNames: ["output"], defaultOutput: "output" });
+export function imagesToList(inputs?: ImagesToListInputs, options?: NodeOptions): NodeWithOutputs<ImagesToListOutputs, "output"> {
+  return createNode("nodetool.image.ImagesToList", inputs ?? {}, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[image]"}, defaultOutput: "output" });
 }
 
 // Painter — nodetool.image.Painter
@@ -337,8 +339,8 @@ export interface PainterOutputs {
   image: ImageRef;
 }
 
-export function painter(inputs: PainterInputs): DslNode<PainterOutputs> {
-  return createNode("nodetool.image.Painter", inputs, { outputNames: ["mask", "image"] });
+export function painter(inputs: PainterInputs, options?: NodeOptions): NodeWithOutputs<PainterOutputs> {
+  return createNode("nodetool.image.Painter", inputs, { id: options?.id, outputNames: ["mask", "image"], outputTypes: {"mask":"image","image":"image"} });
 }
 
 // Text To Image — nodetool.image.TextToImage
@@ -355,8 +357,8 @@ export interface TextToImageOutputs {
   output: ImageRef;
 }
 
-export function textToImage(inputs: TextToImageInputs): DslNode<TextToImageOutputs, "output"> {
-  return createNode("nodetool.image.TextToImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function textToImage(inputs: TextToImageInputs, options?: NodeOptions): NodeWithOutputs<TextToImageOutputs, "output"> {
+  return createNode("nodetool.image.TextToImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Image To Image — nodetool.image.ImageToImage
@@ -376,8 +378,8 @@ export interface ImageToImageOutputs {
   output: ImageRef;
 }
 
-export function imageToImage(inputs: ImageToImageInputs): DslNode<ImageToImageOutputs, "output"> {
-  return createNode("nodetool.image.ImageToImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function imageToImage(inputs: ImageToImageInputs, options?: NodeOptions): NodeWithOutputs<ImageToImageOutputs, "output"> {
+  return createNode("nodetool.image.ImageToImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Upscale Image — nodetool.image.Upscale
@@ -392,8 +394,8 @@ export interface UpscaleOutputs {
   output: ImageRef;
 }
 
-export function upscale(inputs: UpscaleInputs): DslNode<UpscaleOutputs, "output"> {
-  return createNode("nodetool.image.Upscale", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function upscale(inputs: UpscaleInputs, options?: NodeOptions): NodeWithOutputs<UpscaleOutputs, "output"> {
+  return createNode("nodetool.image.Upscale", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Remove Background — nodetool.image.RemoveBackground
@@ -406,8 +408,8 @@ export interface RemoveBackgroundOutputs {
   output: ImageRef;
 }
 
-export function removeBackground(inputs: RemoveBackgroundInputs): DslNode<RemoveBackgroundOutputs, "output"> {
-  return createNode("nodetool.image.RemoveBackground", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function removeBackground(inputs: RemoveBackgroundInputs, options?: NodeOptions): NodeWithOutputs<RemoveBackgroundOutputs, "output"> {
+  return createNode("nodetool.image.RemoveBackground", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Relight Image — nodetool.image.Relight
@@ -422,8 +424,8 @@ export interface RelightOutputs {
   output: ImageRef;
 }
 
-export function relight(inputs: RelightInputs): DslNode<RelightOutputs, "output"> {
-  return createNode("nodetool.image.Relight", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function relight(inputs: RelightInputs, options?: NodeOptions): NodeWithOutputs<RelightOutputs, "output"> {
+  return createNode("nodetool.image.Relight", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Vectorize Image — nodetool.image.Vectorize
@@ -436,8 +438,8 @@ export interface VectorizeOutputs {
   output: unknown;
 }
 
-export function vectorize(inputs: VectorizeInputs): DslNode<VectorizeOutputs, "output"> {
-  return createNode("nodetool.image.Vectorize", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function vectorize(inputs: VectorizeInputs, options?: NodeOptions): NodeWithOutputs<VectorizeOutputs, "output"> {
+  return createNode("nodetool.image.Vectorize", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"svg_element"}, defaultOutput: "output" });
 }
 
 // Segment Image — nodetool.image.Segment
@@ -457,6 +459,6 @@ export interface SegmentOutputs {
   scores: number[];
 }
 
-export function segment(inputs: SegmentInputs): DslNode<SegmentOutputs> {
-  return createNode("nodetool.image.Segment", inputs, { outputNames: ["masks", "labels", "scores"] });
+export function segment(inputs: SegmentInputs, options?: NodeOptions): NodeWithOutputs<SegmentOutputs> {
+  return createNode("nodetool.image.Segment", inputs, { id: options?.id, outputNames: ["masks", "labels", "scores"], outputTypes: {"masks":"list[image]","labels":"list[str]","scores":"list[float]"} });
 }

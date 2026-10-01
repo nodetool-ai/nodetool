@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Chroma Key — lib.image.keyer.ChromaKey
@@ -16,8 +16,8 @@ export interface ChromaKeyOutputs {
   output: ImageRef;
 }
 
-export function chromaKey(inputs: ChromaKeyInputs): DslNode<ChromaKeyOutputs, "output"> {
-  return createNode("lib.image.keyer.ChromaKey", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function chromaKey(inputs: ChromaKeyInputs, options?: NodeOptions): NodeWithOutputs<ChromaKeyOutputs, "output"> {
+  return createNode("lib.image.keyer.ChromaKey", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Luma Key — lib.image.keyer.LumaKey
@@ -32,6 +32,6 @@ export interface LumaKeyOutputs {
   output: ImageRef;
 }
 
-export function lumaKey(inputs: LumaKeyInputs): DslNode<LumaKeyOutputs, "output"> {
-  return createNode("lib.image.keyer.LumaKey", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function lumaKey(inputs: LumaKeyInputs, options?: NodeOptions): NodeWithOutputs<LumaKeyOutputs, "output"> {
+  return createNode("lib.image.keyer.LumaKey", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }

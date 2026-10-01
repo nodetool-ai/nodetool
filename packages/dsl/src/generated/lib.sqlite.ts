@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 
 // Get Database Path — lib.sqlite.GetDatabasePath
 export type GetDatabasePathInputs = {
@@ -11,6 +11,6 @@ export interface GetDatabasePathOutputs {
   output: string;
 }
 
-export function getDatabasePath(inputs: GetDatabasePathInputs): DslNode<GetDatabasePathOutputs, "output"> {
-  return createNode("lib.sqlite.GetDatabasePath", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function getDatabasePath(inputs: GetDatabasePathInputs, options?: NodeOptions): NodeWithOutputs<GetDatabasePathOutputs, "output"> {
+  return createNode("lib.sqlite.GetDatabasePath", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }

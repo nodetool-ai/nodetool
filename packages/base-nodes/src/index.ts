@@ -644,6 +644,7 @@ export function registerBaseNodes(registry: NodeRegistry): void {
           namespace: "nodetool.workflows.subgraph",
           node_type: "nodetool.workflows.subgraph.Subgraph",
           supports_dynamic_inputs: true,
+          supports_dynamic_outputs: true,
           is_streaming_output: true,
           properties: [
             {

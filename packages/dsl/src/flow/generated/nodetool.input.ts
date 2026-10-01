@@ -5,6 +5,21 @@
 import { callNode, streamNode } from "../guest-core.js";
 import type { ImageRef, AudioRef, VideoRef, DataframeRef, FolderRef } from "../../types.js";
 
+// Value Input — nodetool.input.ValueInput
+export type ValueInputInputs = {
+  name?: string;
+  value?: unknown;
+  description?: string;
+};
+
+export interface ValueInputOutputs {
+  output: unknown;
+}
+
+export function valueInput(inputs: ValueInputInputs): Promise<ValueInputOutputs> {
+  return callNode<ValueInputOutputs>("nodetool.input.ValueInput", inputs);
+}
+
 // Float Input — nodetool.input.FloatInput
 export type FloatInputInputs = {
   name?: string;

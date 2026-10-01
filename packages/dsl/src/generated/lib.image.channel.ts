@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Channel Shuffle — lib.image.channel.Shuffle
@@ -16,8 +16,8 @@ export interface ShuffleOutputs {
   output: ImageRef;
 }
 
-export function shuffle(inputs: ShuffleInputs): DslNode<ShuffleOutputs, "output"> {
-  return createNode("lib.image.channel.Shuffle", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function shuffle(inputs: ShuffleInputs, options?: NodeOptions): NodeWithOutputs<ShuffleOutputs, "output"> {
+  return createNode("lib.image.channel.Shuffle", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Channel Merge — lib.image.channel.Merge
@@ -31,6 +31,6 @@ export interface MergeOutputs {
   output: ImageRef;
 }
 
-export function merge(inputs: MergeInputs): DslNode<MergeOutputs, "output"> {
-  return createNode("lib.image.channel.Merge", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function merge(inputs: MergeInputs, options?: NodeOptions): NodeWithOutputs<MergeOutputs, "output"> {
+  return createNode("lib.image.channel.Merge", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
