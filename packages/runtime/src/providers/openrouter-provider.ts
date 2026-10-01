@@ -129,7 +129,10 @@ export class OpenRouterProvider extends OpenAICompatProvider {
       "text_to_image",
       "image_to_image",
       "text_to_video",
-      "image_to_video"
+      "image_to_video",
+      "text_to_speech",
+      "automatic_speech_recognition",
+      "generate_embedding"
     ];
   }
 
