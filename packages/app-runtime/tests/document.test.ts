@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   APP_SCHEMA_VERSION,
+  BASE_APP_SCHEMA_VERSION,
   DEFAULT_OPERATION_ID,
   createEmptyDocument,
   isRenderableUi,
@@ -33,7 +34,7 @@ describe("parseApplicationDocument", () => {
         { id: "r1", name: "Shots", kind: "storyboard", scope: {}, operations: ["read", "update"] }
       ]
     });
-    expect(doc?.schemaVersion).toBe(APP_SCHEMA_VERSION);
+    expect(doc?.schemaVersion).toBe(3);
     expect(doc?.operations[0].policy).toBe("queue");
     expect(doc?.variables[0].persist).toBe(true);
     expect(doc?.resources[0].operations).toEqual(["read", "update"]);
@@ -44,7 +45,7 @@ describe("parseApplicationDocument", () => {
       { version: 2, data: puck },
       { hostWorkflowId: "wf-legacy" }
     );
-    expect(doc?.schemaVersion).toBe(APP_SCHEMA_VERSION);
+    expect(doc?.schemaVersion).toBe(BASE_APP_SCHEMA_VERSION);
     expect(doc?.ui).toEqual(puck);
     expect(doc?.operations).toEqual([
       {
@@ -78,6 +79,19 @@ describe("parseApplicationDocument", () => {
       { hostWorkflowId: "wf-installed" }
     );
     expect(doc?.operations[0].workflowId).toBe("wf-installed");
+  });
+
+  it("fails closed for malformed or downgraded Recipe metadata", () => {
+    const operation = { id: "build", name: "Build", workflowId: "wf1", inputs: {}, outputs: {}, policy: "replace" };
+    const baseRecipe = {
+      schemaVersion: 1, slug: "price-drop",
+      inputs: [{ id: "price", label: "Price", kind: "text", required: true }],
+      operations: [{ id: "build-intent", bindingId: "build", intent: "build_social_ad" }],
+      outputs: [{ id: "timeline", kind: "timeline" }]
+    };
+    expect(parseApplicationDocument({ schemaVersion: 5, ui: puck, operations: [operation], recipe: { ...baseRecipe, mediaPolicy: { defaultStrategy: "magic" } } })).toBeNull();
+    expect(parseApplicationDocument({ schemaVersion: 4, ui: puck, operations: [operation], recipe: baseRecipe })).toBeNull();
+    expect(parseApplicationDocument({ schemaVersion: 5, ui: puck, operations: [operation], recipe: { ...baseRecipe, operations: [{ id: "x", bindingId: "missing", intent: "build" }] } })).toBeNull();
   });
 
   it("refuses a document written by a newer schema", () => {
