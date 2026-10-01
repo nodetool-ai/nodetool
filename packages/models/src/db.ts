@@ -54,10 +54,21 @@ export type NodetoolDatabase =
   | BetterSQLite3Database<typeof schema>
   | PostgresJsDatabase<typeof pgSchema>;
 
-let _db: NodetoolDatabase | null = null;
+export type DatabaseConnection =
+  | {
+      dialect: "sqlite";
+      db: BetterSQLite3Database<typeof schema>;
+      schema: typeof schema;
+    }
+  | {
+      dialect: "postgres";
+      db: PostgresJsDatabase<typeof pgSchema>;
+      schema: typeof pgSchema;
+    };
+
+let _connection: DatabaseConnection | null = null;
 let _sqlite: Database.Database | null = null;
 let _pgClient: Sql | null = null;
-let _dbType: DbDialect = "sqlite";
 let _allowLegacyProjectWritesForTests = false;
 
 /**
@@ -66,9 +77,8 @@ let _allowLegacyProjectWritesForTests = false;
  */
 export function initDb(dbPath: string): BetterSQLite3Database<typeof schema> {
   _allowLegacyProjectWritesForTests = false;
-  if (_db && _dbType === "sqlite")
-    return _db as BetterSQLite3Database<typeof schema>;
-  if (_db && _dbType === "postgres") {
+  if (_connection?.dialect === "sqlite") return _connection.db;
+  if (_connection?.dialect === "postgres") {
     throw new Error(
       "A PostgreSQL connection is already active. Call closeDb() before switching to SQLite."
     );
@@ -85,10 +95,10 @@ export function initDb(dbPath: string): BetterSQLite3Database<typeof schema> {
     throw error;
   }
   _sqlite = sqlite;
-  _db = drizzleSqlite(sqlite, { schema });
-  _dbType = "sqlite";
+  const db = drizzleSqlite(sqlite, { schema });
+  _connection = { dialect: "sqlite", db, schema };
 
-  return _db;
+  return db;
 }
 
 const DEFAULT_PG_POOL_MAX = 10;
@@ -152,8 +162,8 @@ export function resolvePostgresClientOptions(
  */
 export async function initPostgresDb(connectionString: string): Promise<void> {
   _allowLegacyProjectWritesForTests = false;
-  if (_db && _dbType === "postgres") return;
-  if (_db && _dbType === "sqlite") {
+  if (_connection?.dialect === "postgres") return;
+  if (_connection?.dialect === "sqlite") {
     throw new Error(
       "A SQLite connection is already active. Call closeDb() before switching to PostgreSQL."
     );
@@ -170,8 +180,11 @@ export async function initPostgresDb(connectionString: string): Promise<void> {
   );
 
   _pgClient = client;
-  _db = drizzlePg(client, { schema: pgSchema });
-  _dbType = "postgres";
+  _connection = {
+    dialect: "postgres",
+    db: drizzlePg(client, { schema: pgSchema }),
+    schema: pgSchema
+  };
 }
 
 /**
@@ -197,10 +210,10 @@ export function initTestDb(
     throw error;
   }
   _sqlite = sqlite;
-  _db = drizzleSqlite(sqlite, { schema });
-  _dbType = "sqlite";
+  const db = drizzleSqlite(sqlite, { schema });
+  _connection = { dialect: "sqlite", db, schema };
 
-  return _db;
+  return db;
 }
 
 /** Compatibility for old fixtures that predate project rows. Never enabled outside initTestDb. */
@@ -208,33 +221,29 @@ export function allowLegacyProjectWritesForTests(): boolean {
   return _allowLegacyProjectWritesForTests;
 }
 
-/**
- * Get the current database instance.
- *
- * Typed as the SQLite query builder because the two dialects expose the same
- * `select`/`insert`/`update`/`delete` surface and the model layer is written
- * against it (a PostgreSQL connection returns the same API, with promises that
- * the existing `await`s resolve transparently). Throws if not initialized.
- */
-export function getDb(): BetterSQLite3Database<typeof schema> {
-  if (!_db)
-    throw new Error(
-      "Database not initialized. Call initDb() or initPostgresDb() first."
-    );
-  return _db as BetterSQLite3Database<typeof schema>;
+/** The active driver and its own schema. Narrow the dialect before querying. */
+export function getDatabase(): DatabaseConnection {
+  if (!_connection) {
+    throw new Error("Database not initialized. Call initDb() or initPostgresDb() first.");
+  }
+  return _connection;
 }
 
 /**
- * Get the current database dialect.
+ * Legacy query surface for models still using SQLite table declarations on both
+ * drivers. New dialect-sensitive code uses getDatabase() instead. This cast is
+ * compatibility debt, not a promise that PostgreSQL implements SQLite APIs.
  */
+export function getDb(): BetterSQLite3Database<typeof schema> {
+  // Untouched models rely on this legacy schema projection across dialects.
+  return getDatabase().db as unknown as BetterSQLite3Database<typeof schema>;
+}
+
 /**
  * The transaction handle a `db.transaction` callback receives.
  *
- * Derived from the driver's own signature rather than written out, so it keeps
- * up with the schema. Both dialects run through it — the SQLite branch takes a
- * synchronous callback and the Postgres branch an async one — because the two
- * expose the same query builders. The one capability they do not share is
- * Postgres row locking; see {@link forUpdate}.
+ * Legacy SQLite projection used by unmigrated callers. Use the narrowed
+ * getDatabase().db.transaction callback for actual driver transaction types.
  */
 export type DbTransaction = Parameters<
   Parameters<BetterSQLite3Database<typeof schema>["transaction"]>[0]
@@ -261,7 +270,7 @@ export function forUpdate<Q>(query: Q): Q {
 }
 
 export function getDbType(): DbDialect {
-  return _dbType;
+  return _connection?.dialect ?? "sqlite";
 }
 
 /**
@@ -278,7 +287,7 @@ export function getRawDb(): Database.Database {
 
 /** Execute dynamic SQL against the active database connection. */
 export async function executeRaw(sql: string): Promise<{ rows: unknown[] }> {
-  if (_dbType === "postgres") {
+  if (_connection?.dialect === "postgres") {
     if (!_pgClient) throw new Error("PostgreSQL database not initialized.");
     return { rows: await _pgClient.unsafe(sql) };
   }
@@ -296,11 +305,11 @@ export async function executeRaw(sql: string): Promise<{ rows: unknown[] }> {
  * the synchronous connection for several seconds on a large local database.
  */
 export async function pingDb(): Promise<void> {
-  if (!_db)
+  if (!_connection)
     throw new Error(
       "Database not initialized. Call initDb() or initPostgresDb() first."
     );
-  if (_dbType === "postgres") {
+  if (_connection?.dialect === "postgres") {
     if (!_pgClient) throw new Error("PostgreSQL client not initialized.");
     await _pgClient`select 1`;
     return;
@@ -350,8 +359,7 @@ export async function closeDb(): Promise<void> {
     }
     _pgClient = null;
   }
-  _db = null;
-  _dbType = "sqlite";
+  _connection = null;
 }
 
 /** Synchronous callers apply only the pinned compatibility migration. Historical data migrations remain pending. */

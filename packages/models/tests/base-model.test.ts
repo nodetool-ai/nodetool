@@ -85,8 +85,24 @@ describe("DBModel", () => {
       ModelObserver.subscribe((_, evt) => events.push(evt), "Job");
 
       await Job.create<Job>({ user_id: "u1", workflow_id: "w1" });
-      // create calls save (UPDATED) + then CREATED
-      expect(events).toContain(ModelChangeEvent.CREATED);
+      expect(events).toEqual([ModelChangeEvent.CREATED]);
+    });
+
+    it("emits one committed event per create, update, and delete with the same resource", async () => {
+      const events: Array<{ event: ModelChangeEvent; id: string | number; row: Record<string, unknown> }> = [];
+      ModelObserver.subscribe((instance, event) => events.push({
+        event, id: instance.partitionValue(), row: instance.toRow()
+      }));
+      const job = await Job.create<Job>({ user_id: "u1", workflow_id: "w1" });
+      await job.update({ error: "failed" });
+      await job.delete();
+      expect(events.map(({ event }) => event)).toEqual([
+        ModelChangeEvent.CREATED, ModelChangeEvent.UPDATED, ModelChangeEvent.DELETED
+      ]);
+      expect(events.map(({ id }) => id)).toEqual([job.id, job.id, job.id]);
+      expect(events[0].row).toMatchObject({ id: job.id, user_id: "u1" });
+      expect(events[1].row.error).toBe("failed");
+      expect(await Job.get<Job>(job.id)).toBeNull();
     });
 
     it("notifies on delete", async () => {

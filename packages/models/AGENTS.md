@@ -13,7 +13,10 @@ The package supports two database backends. The active dialect is set at startup
 | SQLite | `initDb(path)` | `src/schema/` | `better-sqlite3` |
 | PostgreSQL | `await initPostgresDb(url)` | `src/schema-pg/` | `postgres` (postgres.js) |
 
-Use `getDbType()` → `"sqlite" | "postgres"` to branch on dialect if unavoidable.
+Use `getDatabase()` to narrow the active driver together with its own schema.
+`getDb()` and `DbTransaction` retain a SQLite projection for unmigrated models.
+That projection is compatibility debt. Use the narrowed transaction callback for
+new PostgreSQL paths, including `.for("update")` locking.
 
 ## Adding a Column
 
@@ -63,20 +66,17 @@ reading it back rather than by matching text:
 
 All query methods must be `async`. Use Drizzle's promise-based API — it works on both dialects:
 
-```typescript
-// Fetch one row
-const [row] = await db.select().from(myTable).where(eq(myTable.id, id)).limit(1);
-return row ? new MyModel(row as Record<string, unknown>) : null;
+Use Drizzle-inferred row and insert types in converted models. `Asset` and
+`ExternalIdentity` are the initial examples. Keep dialect-specific builder calls
+in explicit branches and share conditions and business rules above those branches.
+Avoid passing a SQLite table into a PostgreSQL query.
 
-// Fetch many rows
-const rows = await db.select().from(myTable).where(eq(myTable.user_id, userId));
-return rows.map((r: Record<string, unknown>) => new MyModel(r));
+`DBModel.create()` emits one `CREATED` notification after persistence.
+`save()` and `update()` emit `UPDATED`, and `delete()` emits `DELETED`.
+The observer receives the same model instance used by resource broadcasting.
 
-// Insert / upsert — handled by DBModel.save() via onConflictDoUpdate
-// Delete — handled by DBModel.delete()
-```
-
-Never use `.get()`, `.run()`, or `.all()` — those are synchronous SQLite-only methods.
+Outside an explicitly narrowed synchronous SQLite transaction, use awaited
+queries. `.get()`, `.run()`, and `.all()` are SQLite-only methods.
 
 ### Returning pattern for CAS
 
@@ -151,7 +151,9 @@ When writing tests for new models, call `initTestDb()` in `beforeEach` to reset 
 ## Rules
 
 - All public query methods must be `async`.
-- Annotate `.map()` callbacks explicitly: `(r: Record<string, unknown>) => new Model(r)` — `getDb()` returns `any`, so TypeScript cannot infer row types.
+- Keep inferred query row types through `.map()` rather than widening rows to
+  `Record<string, unknown>`. Leave the dynamic base model compatibility boundary
+  explicit until a model is converted.
 - Never import from `dist/`. Use `@nodetool-ai/models` for cross-package imports.
 - Keep `src/schema/` (SQLite) and `src/schema-pg/` (PostgreSQL) in sync — columns, names, and types must match.
 - The SQLite baseline is versioned compatibility SQL. `TABLE_COLUMNS` is derived
