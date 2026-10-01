@@ -43,14 +43,8 @@ import {
   NodeRegistry,
   createGraphNodeTypeResolver
 } from "@nodetool-ai/node-sdk";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
-import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
-import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
-import { registerFalNodes } from "@nodetool-ai/fal-nodes";
-import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
-import { registerReveNodes } from "@nodetool-ai/reve-nodes";
-import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
+import { registerBuiltinPacks } from "@nodetool-ai/base-nodes/builtin-packs";
+import { CLI_LOCAL_BUILTIN_PACK_POLICY, CLI_DSL_BUILTIN_PACK_POLICY } from "./node-registry.js";
 import { ProcessingContext, createLocalWorkspace, initTelemetry, onPythonBridgeCreated } from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { AssetOutputMode } from "@nodetool-ai/runtime";
@@ -338,10 +332,9 @@ addSupervisorOptions(
     try {
       const { resolve } = await import("node:path");
       const { runDslFile } = await import("./run-dsl.js");
-      const { registerBaseNodes } = await import("@nodetool-ai/base-nodes");
       const { NodeRegistry } = await import("@nodetool-ai/node-sdk");
 
-      registerBaseNodes(NodeRegistry.global);
+      registerBuiltinPacks(NodeRegistry.global, CLI_DSL_BUILTIN_PACK_POLICY);
 
       const supervisorConfig = parseSupervisorFlags(opts);
       const absolutePath = resolve(dslFile);
@@ -615,14 +608,7 @@ addSupervisorOptions(
       // need to duplicate that here.
 
       const registry = new NodeRegistry();
-      registerBaseNodes(registry);
-      registerElevenLabsNodes(registry);
-      registerMinimaxNodes(registry);
-      registerTransformersJsNodes(registry);
-      registerFalNodes(registry);
-      registerReplicateNodes(registry);
-      registerReveNodes(registry);
-      registerHuggingFaceNodes(registry);
+      registerBuiltinPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
 
       const jobId = `job-${Date.now()}`;
       // Resolve asset URIs (e.g. /api/storage/<key>) against the local
@@ -1661,14 +1647,7 @@ mcp
       // A local TS-node registry powers list_nodes / search_nodes /
       // validate_workflow without spinning up a Python worker.
       const registry = new NodeRegistry();
-      registerBaseNodes(registry);
-      registerElevenLabsNodes(registry);
-      registerMinimaxNodes(registry);
-      registerTransformersJsNodes(registry);
-      registerFalNodes(registry);
-      registerReplicateNodes(registry);
-      registerReveNodes(registry);
-      registerHuggingFaceNodes(registry);
+      registerBuiltinPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
 
       // stdio serves exactly one local user; "1" is the local single-user id.
       const server = createMcpServer({

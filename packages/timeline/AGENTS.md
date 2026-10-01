@@ -112,9 +112,10 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
 - **A track's index is its z-order, and `add_track` appends to the bottom.**
   Index 0 draws on top (`render/sceneModel.ts`), so a picture track added after
   its overlays covers all of them. `moveTrackOrder` (`src/trackOrder.ts`) is the
-  one place the destination arithmetic lives — both `ui_timeline_move_track`
-  surfaces call it and hand the ids it returns to `reorderTracks` — and it
-  throws on a destination it cannot make rather than returning the same order.
+  one place the destination arithmetic lives. Browser and headless track tools
+  use [shared track operations](src/ops/apply.ts), which call it and return the
+  edited document. Browser writes use `applyAgentEdit` with `preserveTiming`
+  so a track edit is one undo entry and keeps voiceover timing intact.
 - **`authoredStyles.ts` holds the defaults an under-specified text or shape clip
   gets**, for the same reason: the browser bridge and the headless one each had
   a copy, and the headless one stroked every shape white 8px — so a translucent

@@ -261,7 +261,7 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
             guidanceScale: num("guidance_scale"),
             seed: num("seed"),
             negativePrompt: str("negative_prompt")
-          });
+          }, { signal: context?.signal });
           return storeMedia(bytes, "image", undefined, context);
         }
         case "image_to_image": {
@@ -274,7 +274,7 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
             steps: num("steps"),
             guidanceScale: num("guidance_scale"),
             seed: num("seed")
-          });
+          }, { signal: context?.signal });
           return storeMedia(bytes, "image", undefined, context);
         }
         case "text_to_speech": {
@@ -287,7 +287,8 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
               voice: str("voice"),
               speed: num("speed"),
               format
-            }
+            },
+            { signal: context?.signal }
           );
           return storeMedia(data, "audio", mimeType, context);
         }

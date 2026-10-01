@@ -10,7 +10,7 @@
 
 import { and, eq } from "drizzle-orm";
 import { DBModel, createStableUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getDatabase } from "./db.js";
 import { externalIdentities } from "./schema/external-identities.js";
 
 export interface LinkExternalIdentityParams {
@@ -19,14 +19,17 @@ export interface LinkExternalIdentityParams {
   userId: string;
 }
 
+export type ExternalIdentityRow = typeof externalIdentities.$inferSelect;
+export type ExternalIdentityInsert = typeof externalIdentities.$inferInsert;
+
 export class ExternalIdentity extends DBModel {
   static override table = externalIdentities;
 
-  declare id: string;
-  declare provider: string;
-  declare external_id: string;
-  declare user_id: string;
-  declare linked_at: string;
+  declare id: ExternalIdentityRow["id"];
+  declare provider: ExternalIdentityRow["provider"];
+  declare external_id: ExternalIdentityRow["external_id"];
+  declare user_id: ExternalIdentityRow["user_id"];
+  declare linked_at: ExternalIdentityRow["linked_at"];
 
   constructor(data: Record<string, unknown>) {
     super(data);
@@ -44,32 +47,30 @@ export class ExternalIdentity extends DBModel {
     provider: string,
     externalId: string
   ): Promise<ExternalIdentity | null> {
-    const db = getDb();
-    const rows = await db
-      .select()
-      .from(externalIdentities)
-      .where(
-        and(
-          eq(externalIdentities.provider, provider),
-          eq(externalIdentities.external_id, externalId)
-        )
-      )
-      .limit(1);
-    const row = rows[0];
-    if (!row) return null;
-    return new ExternalIdentity(row as Record<string, unknown>);
+    const connection = getDatabase();
+    const table = connection.schema.externalIdentities;
+    const condition = and(eq(table.provider, provider), eq(table.external_id, externalId));
+    const rows = connection.dialect === "sqlite"
+      ? await connection.db.select().from(connection.schema.externalIdentities).where(condition).limit(1)
+      : await connection.db.select().from(connection.schema.externalIdentities).where(condition).limit(1);
+    return rows[0] ? new ExternalIdentity(rows[0]) : null;
   }
 
   /** Every external account linked to a NodeTool user. */
   static async listForUser(userId: string): Promise<ExternalIdentity[]> {
-    const db = getDb();
-    const rows = await db
-      .select()
-      .from(externalIdentities)
-      .where(eq(externalIdentities.user_id, userId));
-    return rows.map(
-      (row: Record<string, unknown>) => new ExternalIdentity(row)
-    );
+    const connection = getDatabase();
+    const condition = eq(connection.schema.externalIdentities.user_id, userId);
+    const rows = connection.dialect === "sqlite"
+      ? await connection.db.select().from(connection.schema.externalIdentities).where(condition)
+      : await connection.db.select().from(connection.schema.externalIdentities).where(condition);
+    return rows.map((row) => new ExternalIdentity(row));
+  }
+
+  override toRow(): ExternalIdentityInsert {
+    return {
+      id: this.id, provider: this.provider, external_id: this.external_id,
+      user_id: this.user_id, linked_at: this.linked_at
+    };
   }
 
   /**

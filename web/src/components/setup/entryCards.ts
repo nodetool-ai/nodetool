@@ -1,10 +1,10 @@
 /**
  * The creation-flow entry cards (PRD § 6.1) — one list, two hosts.
  *
- * The New Project surface shows all seven, Studio shows three (D24 and D30:
- * Image, Workflow and Game are workspace flows). The promise line on each card
- * is PRD § 6.1 and game-prd Appendix A verbatim, kept here so both hosts say
- * the same thing. Entity is the library-oriented addition to that set.
+ * New Project starts with Image, Storyboard, and Workflow and reveals the
+ * other formats on request. Studio shows Storyboard, Video, and Script
+ * (D24 and D30: Image, Workflow and Game are workspace flows). Shared copy
+ * comes from PRD § 6.1 and game-prd Appendix A. Entity adds library creation.
  *
  * `disabled` with a `disabledReason` naming the phase is how a card waits for
  * its flow to be built. All seven are live now; the field stays on the type for

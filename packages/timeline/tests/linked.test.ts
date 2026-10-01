@@ -80,15 +80,47 @@ function renderedShot(
 
 /** Clip, track and link ids are minted per call; compare everything else. */
 const withoutIds = (clips: TimelineClip[]) =>
-  clips.map(
-    ({ id: _id, trackId: _trackId, linkId: _linkId, ...rest }) => rest
-  );
+  clips.map(({ id: _id, trackId: _trackId, linkId: _linkId, ...rest }) => rest);
 const trackShape = (tracks: TimelineTrack[]) =>
   tracks.map(({ id: _id, ...rest }) => rest);
 
 // ── buildLinkedTimeline ───────────────────────────────────────────────
 
 describe("buildLinkedTimeline", () => {
+  it("keeps a keyframe still and its voiced lines in a linked cut", () => {
+    const result = buildLinkedTimeline({
+      boardId: "board",
+      shots: [
+        renderedShot("a", 0, {
+          clip: null,
+          keyframe: { type: "image", asset_id: "still" },
+          script_line_ids: ["line"]
+        })
+      ],
+      script: {
+        scriptId: "script",
+        cast,
+        sections: [section([voicedLine("line", 2500)])]
+      }
+    });
+    const picture = result.clips.find(
+      (clip) => clip.storyboardShotId === "a" && clip.mediaType === "image"
+    );
+    expect(picture?.currentAssetId).toBe("still");
+    expect(picture?.durationMs).toBe(2500);
+    expect(result.clips.some((clip) => clip.scriptLineId === "line")).toBe(
+      true
+    );
+    expect(result.skippedShotIds).toEqual([]);
+    expect(result.skippedLineIds).toEqual([]);
+    expect(
+      result.clips.filter(
+        (clip) =>
+          clip.trackId ===
+          result.tracks.find((track) => track.name === "Shot Audio")?.id
+      )
+    ).toEqual([]);
+  });
   it("makes each shot as long as the takes it covers", () => {
     const result = buildLinkedTimeline({
       boardId: "board-1",

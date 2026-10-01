@@ -108,11 +108,22 @@ export const VISIBLE_STARTERS = 8;
 const isPromptingGuide = (name: string): boolean => name.endsWith("-prompting");
 
 /**
+ * A shipped reference for one `nodetool.*` code-action namespace. The agent
+ * loads it before its first call into that namespace; like a prompting guide,
+ * it is nothing a project starts from.
+ */
+const isApiReference = (name: string): boolean => name.startsWith("api-");
+
+/** A skill the agent loads mid-run rather than one a project starts from. */
+const isReferenceSkill = (name: string): boolean =>
+  isPromptingGuide(name) || isApiReference(name);
+
+/**
  * Starters in the order the row shows them: the ones this user's past projects
  * started from, most recently used first, then the rest as the catalog lists
  * them — the user's own skills, then the shipped ones — with the model-line
- * prompting guides last. What someone has started before is the best guess at
- * what they will start next.
+ * prompting guides and the code-action API references last. What someone has
+ * started before is the best guess at what they will start next.
  */
 export const rankStarters = <T extends { name: string }>(
   starters: readonly T[],
@@ -136,8 +147,8 @@ export const rankStarters = <T extends { name: string }>(
   const rest = starters.filter((starter) => !lastUsed.has(starter.name));
   return [
     ...used,
-    ...rest.filter((starter) => !isPromptingGuide(starter.name)),
-    ...rest.filter((starter) => isPromptingGuide(starter.name))
+    ...rest.filter((starter) => !isReferenceSkill(starter.name)),
+    ...rest.filter((starter) => isReferenceSkill(starter.name))
   ];
 };
 

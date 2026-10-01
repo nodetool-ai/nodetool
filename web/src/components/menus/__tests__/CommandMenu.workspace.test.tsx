@@ -106,7 +106,7 @@ it.each([false, true])("Close Workflow honors unsaved discard choice %s", async 
   const confirm = jest.spyOn(window, "confirm").mockReturnValue(discard);
   renderMenu();
   await userEvent.click(await screen.findByRole("option", { name: "Close Workflow" }));
-  expect(confirm).toHaveBeenCalledWith('Discard unsaved changes and close “Existing”?');
+  expect(confirm).toHaveBeenCalledWith('Unsaved changes or saves in progress may be lost. Close “Existing”?');
   expect(useWorkspaceTabsStore.getState().tabs.some((tab) => tab.ref === "existing")).toBe(!discard);
   expect(mockRemoveWorkflow).toHaveBeenCalledTimes(discard ? 1 : 0);
   confirm.mockRestore();

@@ -1453,7 +1453,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               <Caption color="secondary">
                 {hasUnselectedClip
                   ? "Set a clip take as current to create a timeline."
-                  : "Render a clip to create a timeline."}
+                  : "Generate a still or render a clip to create a timeline."}
               </Caption>
             )}
             {assembleError && (

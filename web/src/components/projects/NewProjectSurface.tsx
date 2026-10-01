@@ -27,6 +27,10 @@ import {
   type ProductionReferenceBinding
 } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame, createNative3DGame } from "@nodetool-ai/game-runtime";
+import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 
 import {
   BORDER_RADIUS,
@@ -41,6 +45,7 @@ import {
   Label,
   InspectorSelect,
   MenuItemPrimitive,
+  MOTION,
   Popover,
   ResponsiveImage,
   ScrollArea,
@@ -142,8 +147,7 @@ import imageBackground from "../../assets/guided-flows/image.webp";
 import workflowBackground from "../../assets/guided-flows/workflow.webp";
 import gameBackground from "../../assets/guided-flows/game.webp";
 
-const ENTRY_BACKGROUNDS: Record<EntryFlowId, string> = {
-  entity: imageBackground,
+const ENTRY_BACKGROUNDS: Partial<Record<EntryFlowId, string>> = {
   storyboard: storyboardBackground,
   video: videoBackground,
   script: scriptBackground,
@@ -168,6 +172,13 @@ const activeStarterPillSx = {
   borderColor: PROJECT_COLOR,
   backgroundColor: "rgba(var(--palette-info-lightChannel) / 0.12)",
   "&:hover": { backgroundColor: "rgba(var(--palette-info-lightChannel) / 0.2)" }
+} as const;
+
+/** A context control in the composer's toolbar: quiet until pointed at. */
+const composerToolSx = {
+  color: "text.secondary",
+  borderRadius: BORDER_RADIUS.pill,
+  "&:hover": { color: "text.primary", bgcolor: "action.hover" }
 } as const;
 
 interface SubmenuAnchor {
@@ -375,6 +386,7 @@ const NewProjectSurface = ({
   initialSetupTarget
 }: NewProjectSurfaceProps) => {
   const [prompt, setPrompt] = useState("");
+  const [showMoreFlows, setShowMoreFlows] = useState(false);
   const [gameDimension, setGameDimension] = useState<"2d" | "3d">("2d");
   // The starter row folds past `VISIBLE_STARTERS` until asked to show the rest.
   const [showAllStarters, setShowAllStarters] = useState(false);
@@ -678,7 +690,6 @@ const NewProjectSurface = ({
         title: "New chat",
         projectId
       });
-      useOnboardingStore.getState().markStep("describe-idea");
       closeTab(
         tabId(flowRef ? "guided-flow" : "project-new", flowRef ?? PROJECT_NEW_REF)
       );
@@ -735,9 +746,6 @@ const NewProjectSurface = ({
         setupTarget: target
       });
       setActiveTab(id);
-    }
-    if (target) {
-      useOnboardingStore.getState().markStep("start-guided-flow");
     }
   }, [flowRef, hasHomeTab, openTab, setActiveTab, setGuidedFlowTarget]);
 
@@ -1028,7 +1036,6 @@ const NewProjectSurface = ({
           title: name,
           projectId
         });
-        useOnboardingStore.getState().markStep("start-guided-flow");
         if (flowRef) closeTab(tabId("guided-flow", flowRef));
       } catch (error) {
         reportEntryFailure("image", error);
@@ -1240,8 +1247,13 @@ const NewProjectSurface = ({
   // The chosen card says what it is doing; the other cards are off, because a
   // second flow started over the first would create an unwanted draft.
   const entryOptions = useMemo<readonly OptionCardItem[]>(() => {
-    const cards = ENTRY_CARDS.map((card) => ({
+    const cards = ENTRY_CARDS.filter((card) =>
+      showMoreFlows || ["storyboard", "image", "workflow"].includes(card.id)
+    ).map((card) => ({
       ...card,
+      description: card.id === "game" && gameDimension === "3d"
+        ? "Start with a playable 3D exploration scene in the built-in engine."
+        : card.description,
       image: ENTRY_BACKGROUNDS[card.id]
     }));
     if (pendingFlow === null) {
@@ -1261,7 +1273,7 @@ const NewProjectSurface = ({
             disabledReason: "One flow is already starting."
           }
     );
-  }, [pendingFlow]);
+  }, [pendingFlow, showMoreFlows, gameDimension]);
 
   /**
    * The flow's last step wrote stage `done`: hand the finished board its own
@@ -1295,6 +1307,9 @@ const NewProjectSurface = ({
         title: target.name,
         projectId: target.projectId
       });
+      if (failures.length === 0) {
+        useOnboardingStore.getState().markStep("start-guided-flow");
+      }
       applySetupTarget(null);
       if (flowRef) closeTab(tabId("guided-flow", flowRef));
     },
@@ -1302,6 +1317,7 @@ const NewProjectSurface = ({
   );
 
   const handleEntityFinished = useCallback(() => {
+    useOnboardingStore.getState().markStep("start-guided-flow");
     applySetupTarget(null);
     openPageTab("entities");
     if (flowRef) closeTab(tabId("guided-flow", flowRef));
@@ -1584,7 +1600,7 @@ const NewProjectSurface = ({
     <ScrollArea fullHeight>
       <FlexColumn align="center" sx={{ minHeight: "100%", px: SPACING.xl }}>
         <FlexColumn
-          gap={SPACING.xl}
+          gap={SPACING.xxxl}
           sx={{
             width: "100%",
             maxWidth: `${COLUMN_WIDTH}px`,
@@ -1603,35 +1619,287 @@ const NewProjectSurface = ({
             />
           )}
 
-          <CurrentProjectDocuments />
+          {/* The prompt is the page's first action, so it sits under the
+              question it answers. Its `/` and `@` menus open downward when
+              the field is too near the top of the viewport for them to fit
+              above it (`mentionMenuPosition`). */}
+          <FlexColumn
+            component="section"
+            aria-label="Describe what you want to make"
+            gap={SPACING.lg}
+            sx={{ pt: showOnboarding ? 0 : SPACING.xxl }}
+          >
+            <FlexColumn gap={SPACING.sm} align="center">
+              <Text size="giant" component="h1" sx={{ textAlign: "center" }}>
+                What do you want to make?
+              </Text>
+              <Text
+                color="secondary"
+                sx={{ maxWidth: "640px", textAlign: "center" }}
+              >
+                An agent plans the documents and builds them while you watch.
+                Everything it makes stays editable.
+              </Text>
+            </FlexColumn>
 
-          <FlexColumn gap={SPACING.md} align="center">
-            <Text size="big">What do you want to make?</Text>
-            <Caption
-              color="secondary"
-              sx={{ maxWidth: "560px", textAlign: "center" }}
+            <FlexColumn
+              sx={{
+                bgcolor: "background.paper",
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: BORDER_RADIUS.xl,
+                transition: MOTION.border,
+                "&:hover": { borderColor: "action.active" },
+                "&:focus-within": { borderColor: "primary.main" }
+              }}
             >
-              An agent plans the documents and builds them while you watch.
-              Everything it makes stays editable.
-            </Caption>
+              <TextInput
+                value={prompt}
+                autoFocus
+                multiline
+                minRows={3}
+                maxRows={12}
+                variant="standard"
+                label="Chat prompt"
+                hideLabel
+                inputRef={promptRef}
+                placeholder="A 30-second launch spot for our desk lamp — warm, minimal, night-time mood. Type / for a skill, @ for an asset or entity."
+                onChange={(event) => setPrompt(event.target.value)}
+                onKeyDown={handlePromptKeyDown}
+                slotProps={{ input: { disableUnderline: true } }}
+                sx={{ px: SPACING.xl, pt: SPACING.lg }}
+              />
+              {mentionMenu}
+              {skillMenu}
+
+              {droppedFiles.length > 0 && (
+                <FlexRow gap={SPACING.md} wrap sx={{ px: SPACING.xl }}>
+                  {droppedFiles.map((file) => (
+                    <Box key={file.id} sx={{ position: "relative" }}>
+                      <ResponsiveImage
+                        locator={file.dataUri}
+                        alt={file.name}
+                        fit="cover"
+                        borderRadius={BORDER_RADIUS.sm}
+                        showErrorFallback
+                        sx={{ width: "48px", height: "48px" }}
+                      />
+                      <CloseButton
+                        onClick={() => removeFile(file.id)}
+                        tooltip={`Remove ${file.name}`}
+                        buttonSize="small"
+                        iconVariant="clear"
+                        sx={{
+                          position: "absolute",
+                          top: -SPACING_PX.xs,
+                          right: -SPACING_PX.xs
+                        }}
+                      />
+                    </Box>
+                  ))}
+                </FlexRow>
+              )}
+
+              {/* The context a turn carries sits quietly on the left; the one
+                  primary action is the send on the right. */}
+              <FlexRow
+                align="center"
+                gap={SPACING.xs}
+                wrap
+                sx={{ px: SPACING.md, pt: SPACING.md, pb: SPACING.md }}
+              >
+                <EditorButton
+                  variant="text"
+                  color="inherit"
+                  density="normal"
+                  startIcon={<AddPhotoAlternateOutlinedIcon />}
+                  onClick={() => refInputRef.current?.click()}
+                  sx={composerToolSx}
+                >
+                  {droppedFiles.length === 0
+                    ? "Reference images"
+                    : `Ref images · ${droppedFiles.length}`}
+                </EditorButton>
+                <input
+                  ref={refInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  aria-label="Reference images"
+                  onChange={handleRefImages}
+                  style={{ display: "none" }}
+                />
+                <EditorButton
+                  variant="text"
+                  color="inherit"
+                  density="normal"
+                  startIcon={<PeopleAltOutlinedIcon />}
+                  onClick={(event) => setEntityAnchor(event.currentTarget)}
+                  sx={composerToolSx}
+                >
+                  {selectedEntities.length === 0
+                    ? "Entities · none"
+                    : `Entities · ${selectedEntities
+                        .map((entity) => entity.name)
+                        .join(", ")}`}
+                </EditorButton>
+                <EditorButton
+                  ref={modelButtonRef}
+                  variant="text"
+                  color="inherit"
+                  density="normal"
+                  startIcon={<AutoAwesomeOutlinedIcon />}
+                  onClick={(event) => setModelAnchor(event.currentTarget)}
+                  sx={composerToolSx}
+                >
+                  {isModelSelected(selectedModel)
+                    ? `Model · ${selectedModel?.name || selectedModel?.id}`
+                    : "Select a model"}
+                </EditorButton>
+                <Box sx={{ flex: 1 }} />
+                {estimate && (
+                  <Box
+                    component="span"
+                    sx={{ ...TYPOGRAPHY.mono.caption, color: "text.secondary" }}
+                  >
+                    {formatEstimate(estimate)}
+                  </Box>
+                )}
+                <Caption
+                  color="muted"
+                  aria-hidden
+                  sx={{ display: { xs: "none", sm: "block" }, px: SPACING.sm }}
+                >
+                  {sendShortcutLabel}
+                </Caption>
+                <EditorButton
+                  variant="contained"
+                  color="primary"
+                  density="normal"
+                  endIcon={<ArrowUpwardIcon />}
+                  disabled={
+                    prompt.trim().length === 0 || starting || isUploading
+                  }
+                  onClick={() => void handleStart()}
+                  sx={{ borderRadius: BORDER_RADIUS.pill }}
+                >
+                  Send to chat
+                </EditorButton>
+              </FlexRow>
+            </FlexColumn>
+
+            {starters.length > 0 && (
+              <FlexColumn gap={SPACING.md} align="center">
+                <FlexRow
+                  justify="center"
+                  gap={SPACING.sm}
+                  wrap
+                  role="group"
+                  aria-label="Start from a skill"
+                >
+                  {visibleStarters.map((entry) => {
+                    const active = entry.name === starter?.name;
+                    return (
+                      <Tooltip
+                        key={entry.name}
+                        title={entry.description}
+                        placement="bottom"
+                        // Described by, not named by: the pill's name stays
+                        // the skill's label.
+                        describeChild
+                      >
+                        <Chip
+                          clickable
+                          compact
+                          variant="outlined"
+                          label={starterLabel(entry.name)}
+                          aria-pressed={active}
+                          onClick={() => handleToggleStarter(entry.name)}
+                          sx={{
+                            ...starterPillSx,
+                            ...(active && activeStarterPillSx)
+                          }}
+                        />
+                      </Tooltip>
+                    );
+                  })}
+                  {(hiddenStarterCount > 0 || showAllStarters) && (
+                    <Chip
+                      clickable
+                      compact
+                      variant="outlined"
+                      aria-expanded={showAllStarters}
+                      label={
+                        showAllStarters
+                          ? "Show fewer"
+                          : `${hiddenStarterCount} more`
+                      }
+                      onClick={() => setShowAllStarters((shown) => !shown)}
+                      sx={{ ...starterPillSx, borderStyle: "dashed" }}
+                    />
+                  )}
+                </FlexRow>
+                {starter ? (
+                  <Caption
+                    color="secondary"
+                    sx={{ maxWidth: "620px", textAlign: "center" }}
+                  >
+                    {starter.description}
+                  </Caption>
+                ) : (
+                  <Caption color="muted">
+                    Pick a skill to start from, or just describe what you want.
+                  </Caption>
+                )}
+              </FlexColumn>
+            )}
           </FlexColumn>
 
+          <CurrentProjectDocuments />
+
           <FlexColumn
+            component="section"
             id="guided-flows"
-            gap={SPACING.md}
+            aria-label="Start with a guided flow"
+            gap={SPACING.lg}
             sx={{
               "& button": { bgcolor: "common.black" },
               '& button:not([aria-disabled="true"]):hover': {
                 bgcolor: "common.black",
                 borderColor: "primary.main"
               },
-              "& img": { opacity: 0.6 }
+              "& img": { opacity: 0.7, transition: MOTION.opacity },
+              '& button:not([aria-disabled="true"]):hover img': {
+                opacity: 0.9
+              }
             }}
           >
-            <FlexRow gap={SPACING.sm} align="center">
-              <Caption color="muted">Start with a guided flow</Caption>
-              <InspectorSelect label="Game dimension" value={gameDimension} options={[{ value: "2d", label: "2D game" }, { value: "3d", label: "3D exploration" }]}
-                onChange={(value) => { if (value === "2d" || value === "3d") { setGameDimension(value); } }} />
+            <FlexRow align="flex-end" gap={SPACING.md} wrap>
+              <FlexColumn gap={SPACING.xs} sx={{ flex: 1, minWidth: 0 }}>
+                <Text size="big" component="h2">
+                  Start with a guided flow
+                </Text>
+                <Caption color="secondary">
+                  A few short steps, each ending in a document you keep
+                  editing.
+                </Caption>
+              </FlexColumn>
+              {showMoreFlows && <FlexRow align="center" gap={SPACING.sm}>
+                <Caption color="muted">Game card starts as</Caption>
+                <InspectorSelect
+                  label="Game dimension"
+                  value={gameDimension}
+                  options={[
+                    { value: "2d", label: "2D game" },
+                    { value: "3d", label: "3D exploration" }
+                  ]}
+                  onChange={(value) => {
+                    if (value === "2d" || value === "3d") {
+                      setGameDimension(value);
+                    }
+                  }}
+                />
+              </FlexRow>}
             </FlexRow>
             <OptionCardGrid
               label="Guided creation flows"
@@ -1643,197 +1911,16 @@ const NewProjectSurface = ({
               // no pressed state, and each is its own tab stop.
               mode="navigation"
             />
-          </FlexColumn>
-
-          {/* The composer sits below the cards, not above them: its `/` and `@`
-              menus open upward from the box's top edge
-              (`useTextareaSkillMention`), so it needs the page above it as
-              headroom. */}
-          <Caption color="muted">Or describe what you want to make</Caption>
-          <FlexColumn
-            gap={SPACING.lg}
-            sx={{
-              mt: -SPACING.lg,
-              bgcolor: "background.paper",
-              border: "1px solid",
-              borderColor: "primary.main",
-              borderRadius: BORDER_RADIUS.lg,
-              p: SPACING.xl
-            }}
-          >
-            <TextInput
-              value={prompt}
-              autoFocus
-              multiline
-              rows={3}
-              label="Chat prompt"
-              hideLabel
-              inputRef={promptRef}
-              placeholder="A 30-second launch spot for our desk lamp — warm, minimal, night-time mood. Type / for a skill, @ for an asset or entity."
-              onChange={(event) => setPrompt(event.target.value)}
-              onKeyDown={handlePromptKeyDown}
-            />
-            {mentionMenu}
-            {skillMenu}
-
-            {droppedFiles.length > 0 && (
-              <FlexRow gap={SPACING.md} wrap>
-                {droppedFiles.map((file) => (
-                  <Box key={file.id} sx={{ position: "relative" }}>
-                    <ResponsiveImage
-                      locator={file.dataUri}
-                      alt={file.name}
-                      fit="cover"
-                      borderRadius={BORDER_RADIUS.sm}
-                      showErrorFallback
-                      sx={{ width: "48px", height: "48px" }}
-                    />
-                    <CloseButton
-                      onClick={() => removeFile(file.id)}
-                      tooltip={`Remove ${file.name}`}
-                      buttonSize="small"
-                      iconVariant="clear"
-                      sx={{
-                        position: "absolute",
-                        top: -SPACING_PX.xs,
-                        right: -SPACING_PX.xs
-                      }}
-                    />
-                  </Box>
-                ))}
-              </FlexRow>
-            )}
-
-            <FlexRow align="center" gap={SPACING.md} wrap>
-              <EditorButton
-                variant="outlined"
-                density="compact"
-                onClick={() => refInputRef.current?.click()}
-              >
-                {`Ref images · ${droppedFiles.length}`}
-              </EditorButton>
-              <input
-                ref={refInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                aria-label="Reference images"
-                onChange={handleRefImages}
-                style={{ display: "none" }}
-              />
-              <EditorButton
-                variant="outlined"
-                density="compact"
-                onClick={(event) => setEntityAnchor(event.currentTarget)}
-              >
-                {selectedEntities.length === 0
-                  ? "Entities · none"
-                  : `Entities · ${selectedEntities
-                      .map((entity) => entity.name)
-                      .join(", ")}`}
-              </EditorButton>
-              <EditorButton
-                ref={modelButtonRef}
-                variant="outlined"
-                density="compact"
-                onClick={(event) => setModelAnchor(event.currentTarget)}
-              >
-                {isModelSelected(selectedModel)
-                  ? `Model · ${selectedModel?.name || selectedModel?.id}`
-                  : "Select a model"}
-              </EditorButton>
-              <Box sx={{ flex: 1 }} />
-              {estimate && (
-                <Box component="span" sx={{ ...TYPOGRAPHY.mono.caption }}>
-                  {formatEstimate(estimate)}
-                </Box>
-              )}
-              <Caption color="muted" aria-hidden>
-                {sendShortcutLabel}
-              </Caption>
-              <EditorButton
-                variant="contained"
-                color="primary"
-                density="normal"
-                disabled={prompt.trim().length === 0 || starting || isUploading}
-                onClick={() => void handleStart()}
-              >
-                Send to chat
-              </EditorButton>
-            </FlexRow>
-          </FlexColumn>
-
-          {starters.length > 0 && (
-            <FlexColumn
-              gap={SPACING.md}
-              align="center"
-              sx={{ mt: -SPACING.lg }}
+            <EditorButton
+              aria-expanded={showMoreFlows}
+              onClick={() => setShowMoreFlows((shown) => !shown)}
             >
-              <FlexRow
-                justify="center"
-                gap={SPACING.sm}
-                wrap
-                role="group"
-                aria-label="Start from a skill"
-              >
-                {visibleStarters.map((entry) => {
-                  const active = entry.name === starter?.name;
-                  return (
-                    <Tooltip
-                      key={entry.name}
-                      title={entry.description}
-                      placement="bottom"
-                      // Described by, not named by: the pill's name stays the
-                      // skill's label.
-                      describeChild
-                    >
-                      <Chip
-                        clickable
-                        variant="outlined"
-                        label={starterLabel(entry.name)}
-                        aria-pressed={active}
-                        onClick={() => handleToggleStarter(entry.name)}
-                        sx={{
-                          ...starterPillSx,
-                          ...(active && activeStarterPillSx)
-                        }}
-                      />
-                    </Tooltip>
-                  );
-                })}
-                {(hiddenStarterCount > 0 || showAllStarters) && (
-                  <Chip
-                    clickable
-                    variant="outlined"
-                    aria-expanded={showAllStarters}
-                    label={
-                      showAllStarters
-                        ? "Show fewer"
-                        : `${hiddenStarterCount} more`
-                    }
-                    onClick={() => setShowAllStarters((shown) => !shown)}
-                    sx={{ ...starterPillSx, borderStyle: "dashed" }}
-                  />
-                )}
-              </FlexRow>
-              {starter ? (
-                <Caption
-                  color="secondary"
-                  sx={{ maxWidth: "620px", textAlign: "center" }}
-                >
-                  {starter.description}
-                </Caption>
-              ) : (
-                <Caption color="muted">
-                  Pick a skill to start from, or just describe what you want.
-                </Caption>
-              )}
-            </FlexColumn>
-          )}
+              {showMoreFlows ? "Fewer formats" : "More formats"}
+            </EditorButton>
+          </FlexColumn>
 
-          {/* Examples come after the composer: they are a place to browse,
-              not the first thing to do, and above it they pushed the prompt
-              below the fold. */}
+          {/* Examples come after the flows: they are a place to browse, not
+              the first thing to do. */}
           <StartExamples onBrowseAll={handleOpenExamples} />
         </FlexColumn>
 

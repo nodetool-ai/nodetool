@@ -3,7 +3,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 
 import { appDeploymentPath } from "@nodetool-ai/protocol";
 
-import type { RouterOutputs } from "../../trpc/client";
+import type { RouterInputs, RouterOutputs } from "../../trpc/client";
 import {
   useApplicationBudget,
   useApplicationDeployment,
@@ -95,12 +95,7 @@ const VersionRow = memo(function VersionRow({
     [onRelease, version.version]
   );
   return (
-    <FlexRow
-      align="center"
-      justify="space-between"
-      gap={SPACING.md}
-      fullWidth
-    >
+    <FlexRow align="center" justify="space-between" gap={SPACING.md} fullWidth>
       <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
         <FlexRow align="center" gap={SPACING.xs}>
           <Text weight={600}>{`Version ${version.version}`}</Text>
@@ -254,8 +249,12 @@ interface DeploySectionProps {
 const DeploySection = memo(function DeploySection({
   applicationId
 }: DeploySectionProps) {
-  const { data: deployment, isLoading, isError, error } =
-    useApplicationDeployment(applicationId);
+  const {
+    data: deployment,
+    isLoading,
+    isError,
+    error
+  } = useApplicationDeployment(applicationId);
   const deploy = useDeployApplication();
   const undeploy = useUndeployApplication();
 
@@ -354,7 +353,9 @@ const DeploySection = memo(function DeploySection({
                   summary: "Public link creation failed",
                   errorText: deploy.error.message,
                   stackTrace:
-                    deploy.error instanceof Error ? deploy.error.stack : undefined
+                    deploy.error instanceof Error
+                      ? deploy.error.stack
+                      : undefined
                 }}
               />
             </FlexColumn>
@@ -446,6 +447,7 @@ const InvocationsSection = memo(function InvocationsSection({
 
 interface ApplicationGovernancePanelProps {
   applicationId: string;
+  beforePublish?: () => Promise<string | void>;
 }
 
 /**
@@ -454,7 +456,8 @@ interface ApplicationGovernancePanelProps {
  * spend.
  */
 const ApplicationGovernancePanel = ({
-  applicationId
+  applicationId,
+  beforePublish
 }: ApplicationGovernancePanelProps) => {
   const {
     data: versions,
@@ -466,9 +469,24 @@ const ApplicationGovernancePanel = ({
   const publish = usePublishApplication();
   const release = useReleaseApplicationVersion();
 
-  const handlePublish = useCallback(() => {
-    publish.mutate({ id: applicationId });
-  }, [applicationId, publish]);
+  const [savingBeforePublish, setSavingBeforePublish] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const handlePublish = useCallback(async () => {
+    setSaveError(null);
+    setSavingBeforePublish(true);
+    try {
+      const baseUpdatedAt = await beforePublish?.();
+      const input: RouterInputs["applications"]["publish"] = { id: applicationId };
+      if (baseUpdatedAt) {
+        input.baseUpdatedAt = baseUpdatedAt;
+      }
+      publish.mutate(input);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSavingBeforePublish(false);
+    }
+  }, [applicationId, beforePublish, publish]);
 
   const handleRelease = useCallback(
     (version: number) => {
@@ -503,12 +521,28 @@ const ApplicationGovernancePanel = ({
         <Button
           variant="contained"
           size="small"
-          disabled={publish.isPending}
+          disabled={publish.isPending || savingBeforePublish}
           onClick={handlePublish}
         >
           Publish new version
         </Button>
       </FlexRow>
+      {saveError && (
+        <AlertBanner
+          severity="error"
+          action={
+            <ReportBugButton
+              context={{
+                source: "notification",
+                summary: "Could not save before publishing",
+                errorText: saveError
+              }}
+            />
+          }
+        >
+          {`Could not save before publishing: ${saveError}`}
+        </AlertBanner>
+      )}
       {publish.isError && (
         <AlertBanner severity="error">
           {`Could not publish: ${publish.error.message}`}

@@ -298,12 +298,13 @@ export type WorkflowManagerState = {
   getNodeStore: (workflowId: string) => NodeStore | undefined;
   reorderWorkflows: (sourceIndex: number, targetIndex: number) => void;
   updateWorkflow: (workflow: WorkflowAttributes) => void;
+  isSavingWorkflow: (workflowId: string) => boolean;
   saveWorkflow: (workflow: Workflow) => Promise<void>;
   getCurrentWorkflow: () => Workflow | undefined;
   setCurrentWorkflowId: (workflowId: string) => void;
   fetchWorkflow: (
     workflowId: string,
-    options?: { makeCurrent?: boolean }
+    options?: { makeCurrent?: boolean; throwOnError?: boolean }
   ) => Promise<Workflow | undefined>;
   newWorkflow: (projectId?: string) => Workflow;
   createNew: (projectId?: string) => Promise<Workflow>;
@@ -462,6 +463,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @returns {Promise<void>}
        * @throws {Error} If the save operation fails
        */
+      isSavingWorkflow: (workflowId) => savesInFlight.has(workflowId),
       saveWorkflow: async (workflow: Workflow) => {
         savesInFlight.set(workflow.id, []);
         // The etag the server assigns this save. Every notice held while the
@@ -1244,7 +1246,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       // active tab.
       fetchWorkflow: async (
         workflowId: string,
-        options?: { makeCurrent?: boolean }
+        options?: { makeCurrent?: boolean; throwOnError?: boolean }
       ) => {
         const makeCurrent = options?.makeCurrent ?? true;
         // Assets are non-critical to opening the workflow: log and continue
@@ -1312,6 +1314,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               `[WorkflowManager] fetchWorkflow error for ${workflowId}`,
               e
             );
+            if (options?.throwOnError) {
+              throw e;
+            }
           }
           return undefined;
         }
