@@ -61,7 +61,7 @@ describe("CLI command host policies", () => {
 
   it("routes all nodetool entrypoint registration through shared policy", () => {
     const source = readFileSync(
-      new URL("../src/nodetool.ts", import.meta.url),
+      new URL("../src/nodetool-main.ts", import.meta.url),
       "utf8"
     );
     expect(source).not.toMatch(/register\w+Nodes\(/);
