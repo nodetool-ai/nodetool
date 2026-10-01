@@ -21,6 +21,7 @@
  * editor does.
  */
 
+import { applyTimelineTrackOp, type TimelineTrackOp } from "@nodetool-ai/timeline/ops";
 import { z } from "zod";
 import { isShortResourceId } from "@nodetool-ai/protocol";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
@@ -47,7 +48,6 @@ import {
   shapeStyleWithDefaults,
   assertAuthorableFontFamily,
   textStyleWithDefaults,
-  moveTrackOrder,
   mediaTypeForContentType,
   trackTypeForMediaType,
   STAGGER_UNITS,
@@ -63,7 +63,6 @@ import {
   moveGroup,
   ungroup,
   trimGroup,
-  type TrackDestination,
   type AnimationRole,
   type CustomClipAnimation,
   type PropertyCurve,
@@ -1677,6 +1676,31 @@ export function createTimelineToolBridge(
     );
   }
 
+  function editTrack(op: TimelineTrackOp) {
+    const outcome = applyTimelineTrackOp(
+      {
+        fps,
+        width,
+        height,
+        tracks,
+        clips,
+        markers,
+        mediaTracks,
+        playheadMs,
+        selectedClipIds,
+        tempo
+      },
+      op,
+      { newId: nextTrackId }
+    );
+    if (outcome.error) throw new Error(outcome.error);
+    tracks.splice(0, tracks.length, ...outcome.state.tracks);
+    clips = outcome.state.clips;
+    selectedClipIds = outcome.state.selectedClipIds;
+    tempo = outcome.state.tempo;
+    return outcome.result;
+  }
+
   const tools: HeadlessTool[] = [
     sharedTool(
       "ui_timeline_get_state",
@@ -1718,46 +1742,16 @@ export function createTimelineToolBridge(
       }
     ),
 
-    sharedTool(
-      "ui_timeline_add_track",
-      async ({ type, name }) => {
-        const track = addTrackInternal(
-          type as TimelineTrack["type"],
-          name as string | undefined
-        );
-        return { ok: true, track: serializeTrack(track) };
-      }
-    ),
-
-    sharedTool(
-      "ui_timeline_move_track",
-      async (args) => {
-        const { target, toIndex, before, after } = resolveMoveTrackArgs(args);
-        const track = resolveTrack(target);
-        const destination: TrackDestination = {};
-        if (toIndex !== undefined) destination.toIndex = toIndex;
-        if (before !== undefined) {
-          destination.beforeId = resolveTrack(before).id;
-        }
-        if (after !== undefined) {
-          destination.afterId = resolveTrack(after).id;
-        }
-        const orderedIds = moveTrackOrder(tracks, track.id, destination);
-        const byId = new Map(tracks.map((t) => [t.id, t]));
-        // The array order is what `get_state` prints, so keep it and the
-        // indices saying the same thing.
-        tracks.length = 0;
-        orderedIds.forEach((id, i) => {
-          const moved = byId.get(id)!;
-          moved.index = i;
-          tracks.push(moved);
-        });
-        return {
-          ok: true,
-          track: serializeTrack(track),
-          tracks: tracks.map(serializeTrack)
-        };
-      }
+    sharedTool("ui_timeline_add_track", async (args) => {
+      const parsed = CONTRACTS.ui_timeline_add_track.shape;
+      return editTrack({
+        op: "add_track",
+        type: parsed.type.parse(args.type),
+        name: parsed.name.parse(args.name)
+      });
+    }),
+    sharedTool("ui_timeline_move_track", async (args) =>
+      editTrack({ op: "move_track", ...resolveMoveTrackArgs(args) })
     ),
 
     sharedTool(
@@ -1803,48 +1797,8 @@ export function createTimelineToolBridge(
       }
     ),
 
-    sharedTool(
-      "ui_timeline_delete_track",
-      async (args) => {
-        const { target, deleteClips } = resolveDeleteTrackArgs(args);
-        const track = resolveTrack(target);
-        const onIt = clips.filter((c) => c.trackId === track.id);
-        if (onIt.length > 0 && !deleteClips) {
-          throw new Error(
-            `Track "${track.name}" still holds ${onIt.length} clip(s): ` +
-              `${onIt.map((c) => c.id).join(", ")}. Move them first, or pass ` +
-              "deleteClips: true to delete them with the track."
-          );
-        }
-        const removedClipIds = onIt.map((c) => c.id);
-        const kept = clips.filter((c) => c.trackId !== track.id);
-        clips.length = 0;
-        clips.push(...kept);
-        // A parent that went with the track would leave its children pointing
-        // at a clip that no longer exists, which the validator reads as a
-        // broken document rather than a deletion.
-        for (const clip of clips) {
-          if (clip.parentId && removedClipIds.includes(clip.parentId)) {
-            delete clip.parentId;
-          }
-        }
-        selectedClipIds = selectedClipIds.filter(
-          (id) => !removedClipIds.includes(id)
-        );
-        const remaining = tracks.filter((t) => t.id !== track.id);
-        tracks.length = 0;
-        // Index is z-order, so the stack has to close over the gap.
-        remaining.forEach((t, i) => {
-          t.index = i;
-          tracks.push(t);
-        });
-        return {
-          ok: true,
-          deleted: { id: track.id, name: track.name, type: track.type },
-          deletedClipIds: removedClipIds,
-          tracks: tracks.map(serializeTrack)
-        };
-      }
+    sharedTool("ui_timeline_delete_track", async (args) =>
+      editTrack({ op: "delete_track", ...resolveDeleteTrackArgs(args) })
     ),
 
     sharedTool(
@@ -1868,8 +1822,14 @@ export function createTimelineToolBridge(
             `Asset "${found.name}" is ${found.contentType}, which is not video, image, or audio and cannot go on a timeline.`
           );
         }
-        if (mediaType !== "image" && durationMs === undefined && !found.durationMs) {
-          throw new Error(`Asset "${found.name}" has no known duration. Supply durationMs or import media that can be probed.`);
+        if (
+          mediaType !== "image" &&
+          durationMs === undefined &&
+          !found.durationMs
+        ) {
+          throw new Error(
+            `Asset "${found.name}" has no known duration. Supply durationMs or import media that can be probed.`
+          );
         }
         const track = trackId
           ? resolveTrack(trackId as string)
@@ -1892,7 +1852,11 @@ export function createTimelineToolBridge(
           init.thumbnailAssetId = found.thumbnailAssetId;
         }
         const clip = makeClip(init);
-        if (transform) clip.transform = mergeClipTransform(clip.transform, transform as ClipTransformPatch);
+        if (transform)
+          clip.transform = mergeClipTransform(
+            clip.transform,
+            transform as ClipTransformPatch
+          );
         clips.push(clip);
         selectedClipIds = [clip.id];
         return { ok: true, clip: serializeClip(clip) };

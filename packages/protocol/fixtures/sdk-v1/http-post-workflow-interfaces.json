@@ -123,7 +123,7 @@
           "interfaces": [
             {
               "diagnostics": [],
-              "etag": "cb330249a9200ced1822bd4617451fa9",
+              "etag": "41fb5a99a8c56bb33a566d3003076579",
               "inputs": [
                 {
                   "default": "hello",
@@ -159,7 +159,7 @@
             },
             {
               "diagnostics": [],
-              "etag": "bae74feecd84b4fb975c1cd27410631f",
+              "etag": "b1ef3c9163c195c2f32ab9637d590a99",
               "inputs": [
                 {
                   "default": "hello",

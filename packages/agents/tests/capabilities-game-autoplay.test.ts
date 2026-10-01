@@ -62,6 +62,8 @@ describe("agent game routes", () => {
   });
 
   it("checks an emitted victory signal and a selected tick on a long replay", async () => {
+    // This checks tick semantics. Budget exhaustion has separate clock-controlled tests.
+    vi.spyOn(Date, "now").mockReturnValue(Date.now());
     const agent = run();
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Victory signal" }) as GameReply;
     const document = structuredClone(created.document);

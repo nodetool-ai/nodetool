@@ -1,3 +1,4 @@
+import { createTimelineToolBridge } from "../src/evals/surfaces/timeline.js";
 /**
  * The `timelines` capability module.
  *
@@ -19,7 +20,7 @@ import {
   TimelineSequenceVersion,
   initTestDb
 } from "@nodetool-ai/models";
-import { module as timelines } from "../src/capabilities/timelines.js";
+import { applyOps, module as timelines } from "../src/capabilities/timelines.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import {
   capabilityCategoryFor,
@@ -1305,5 +1306,70 @@ await v.save(nodetool.timelines, { name: "x" });
       scenes: 123
     })) as { error: string };
     expect(result.error).toContain('scenes must be "all"');
+  });
+});
+
+
+describe("pure backend track batches", () => {
+  beforeEach(() => initTestDb());
+  afterEach(() => ModelObserver.clear());
+  it("matches the actual headless adapter including failures, stable IDs and metadata", async () => {
+    const row = await makeTimeline();
+    const original = row.toDocument();
+    original.clips[0] = {
+      ...original.clips[0]!,
+      sourceType: "generated",
+      bindingKind: "text-to-audio",
+      startMs: 5678
+    };
+    original.tempo = {
+      bpm: 97,
+      offsetMs: 50,
+      timeSignature: { beatsPerBar: 3, beatUnit: 4 }
+    };
+    const bridge = createTimelineToolBridge({
+      sequence: {
+        ...original,
+        fps: row.fps,
+        width: row.width,
+        height: row.height
+      }
+    });
+    const ops = [
+      { op: "ui_timeline_add_track", input: { type: "midi", name: "Voice" } },
+      {
+        op: "ui_timeline_move_track",
+        input: { target: "Voice", before: "Video 1" }
+      },
+      { op: "ui_timeline_delete_track", input: { target: "Video 1" } },
+      {
+        op: "ui_timeline_delete_track",
+        input: { target: "Video 1", deleteClips: true }
+      },
+      { op: "ui_timeline_move_track", input: { target: "absent", toIndex: 0 } }
+    ];
+    const expectedRecords = [];
+    for (const { op, input } of ops) {
+      const tool = bridge.tools.find((tool) => tool.name === op)!;
+      try {
+        expectedRecords.push({
+          op,
+          ok: true,
+          result: await tool.execute(input)
+        });
+      } catch (error) {
+        expectedRecords.push({
+          op,
+          ok: false,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+    const actual = await applyOps(run(), row, original, ops);
+    expect(actual.records).toEqual(expectedRecords);
+    expect(actual.records[0]?.result).toMatchObject({ track: { instrument: { type: "subtractive" } } });
+    expect(actual.state).toEqual(bridge.finalState());
+    expect(original.tracks).toHaveLength(1);
+    expect(original.clips).toHaveLength(1);
   });
 });

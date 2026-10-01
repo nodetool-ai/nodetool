@@ -99,6 +99,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | FAL media upload | `packages/fal-nodes/src/fal-base.ts` | workflow |
 | Replicate files upload | `packages/replicate-nodes/src/replicate-base.ts` | workflow |
 | OpenAI media input | `packages/llm-nodes/src/nodes/openai.ts` | workflow |
+| Together image result downloads | `packages/runtime/src/providers/together-provider.ts` | provider response |
 | Together asset resolution | `packages/together-nodes/src/together-base.ts` | workflow |
 | AtlasCloud media pass-through | `packages/atlascloud-nodes/src/atlascloud-factory.ts` | workflow |
 | AtlasCloud prediction downloads | `packages/runtime/src/providers/atlascloud-transport.ts` | provider response |

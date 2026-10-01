@@ -1,9 +1,10 @@
 /** The clip and track shapes an op result reports. */
 
+import { presetIdForInstrument } from "../midi/presets.js";
 import type { MediaTrack, TimelineClip, TimelineTrack } from "../types.js";
 import type { TimelineOpState } from "./types.js";
 
-export function serializeTrack(state: TimelineOpState, t: TimelineTrack) {
+export function serializeTrack(state: TimelineOpState, t: TimelineTrack, clipCount?: number) {
   return {
     id: t.id,
     name: t.name,
@@ -13,7 +14,9 @@ export function serializeTrack(state: TimelineOpState, t: TimelineTrack) {
     locked: t.locked,
     muted: t.muted ?? false,
     solo: t.solo ?? false,
-    clipCount: state.clips.filter((c) => c.trackId === t.id).length
+    clipCount: clipCount ?? state.clips.filter((c) => c.trackId === t.id).length,
+    instrument: t.instrument,
+    presetId: t.instrument ? presetIdForInstrument(t.instrument) : undefined
   };
 }
 

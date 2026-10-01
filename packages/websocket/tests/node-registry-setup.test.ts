@@ -1,4 +1,7 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import {
+  registerBuiltinPacks, CLI_BUILTIN_PACK_POLICY, applyBuiltinNodePolicy
+} from "@nodetool-ai/base-nodes/builtin-packs";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   BUILTIN_NODE_PACKS,
@@ -332,5 +335,79 @@ describe("applyCloudNodePolicy", () => {
     expect(registry.list()).toContain("nodetool.input.DocumentFileInput");
     applyCloudNodePolicy(registry);
     expectNoNativePathPickers(registry);
+  });
+});
+
+describe("shared built-in host policy", () => {
+  it("preserves the CLI pack catalog and matches the server for equivalent policy", () => {
+    const cli = new NodeRegistry();
+    registerBuiltinPacks(cli, CLI_BUILTIN_PACK_POLICY);
+    expect(cli.listNodePackageIds()).toEqual([
+      "atlascloud",
+      "base",
+      "elevenlabs",
+      "fal",
+      "huggingface",
+      "minimax",
+      "replicate",
+      "reve",
+      "transformers-js"
+    ]);
+    const server = new NodeRegistry();
+    registerBuiltInNodes(server, {
+      enabledOverrides: Object.fromEntries(
+        BUILTIN_NODE_PACKS.map((pack) => [
+          pack.id,
+          !CLI_BUILTIN_PACK_POLICY.excludedPackIds?.includes(pack.id)
+        ])
+      )
+    });
+    expect(server.list().sort()).toEqual(cli.list().sort());
+  });
+
+  it("detects catalog entries without registrars even when disabled", () => {
+    const pack = {
+      id: "missing-test-registrar",
+      name: "test",
+      description: "",
+      namespaces: []
+    };
+    // Temporarily add an invalid catalog entry to prove the completeness guard.
+    const catalog = BUILTIN_NODE_PACKS as unknown as Array<typeof pack>;
+    catalog.push(pack);
+    try {
+      expect(() => registerBuiltinPacks(new NodeRegistry())).toThrow(
+        /No registrar/
+      );
+    } finally {
+      catalog.pop();
+    }
+  });
+
+  it("disables a pack using recorded membership without invoking a registrar", () => {
+    const registry = new NodeRegistry();
+    applyBuiltinPackEnabled(registry, "elevenlabs", true);
+    const registrar = vi.spyOn(registry, "registerPackage");
+    applyBuiltinPackEnabled(registry, "elevenlabs", false);
+    expect(registrar).not.toHaveBeenCalled();
+    expect(registry.listNodePackageIds()).not.toContain("elevenlabs");
+  });
+
+  it("loads only curated packs for cloud and applies production exclusions", () => {
+    const registry = new NodeRegistry();
+    registerBuiltinPacks(registry, {
+      includeOptionalPacks: true,
+      cloudProfile: true,
+      production: true,
+      enabledOverrides: { together: true, fal: false },
+      excludedPackIds: ["base"]
+    });
+    expect(registry.listNodePackageIds()).toEqual(["base", "fal", "kie"]);
+    applyBuiltinNodePolicy(registry, { cloudProfile: true, production: true });
+    expect(registry.list().length).toBeGreaterThan(0);
+    expect(registry.list().every(isCloudNodeType)).toBe(true);
+    expect(registry.list().some((type) => type.startsWith("vector."))).toBe(
+      false
+    );
   });
 });
