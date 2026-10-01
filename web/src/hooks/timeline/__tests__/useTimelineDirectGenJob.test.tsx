@@ -8,6 +8,9 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, renderHook } from "@testing-library/react";
 
+const storyboardQueryMock = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+jest.mock("../../../trpc/client", () => ({ trpcClient: { storyboards: { get: { query: (...args: unknown[]) => storyboardQueryMock(...args) } } } }));
+
 const sendMock = jest.fn(async (_frame?: unknown) => {});
 jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: {
@@ -158,6 +161,14 @@ describe("useTimelineDirectGenJob request payloads", () => {
       aspect_ratio: "16:9",
       resolution: "1080p"
     });
+  });
+
+  it("rejects a protected imported source before submitting image-to-image", async () => {
+    addClip({ id: "protected", mediaType: "image", sourceType: "imported", currentAssetId: "original", storyboardBoardId: "board", storyboardShotId: "shot" });
+    addClip({ id: "edit", bindingKind: "image-to-image", sourceClipId: "protected" });
+    storyboardQueryMock.mockResolvedValue({ document: { shots: [{ id: "shot", production: { media_strategy: "still_motion_graphics", protected_inputs: [{ id: "product", kind: "product", asset_id: "original", allowed_transformations: [] }] } }] } });
+    await expect(startClip("edit")).rejects.toThrow("protected source fidelity");
+    expect(sendMock).not.toHaveBeenCalled();
   });
 
   it("image-to-image: adds the source clip's asset id", async () => {

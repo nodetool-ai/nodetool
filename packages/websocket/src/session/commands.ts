@@ -39,6 +39,7 @@ import type { RunJobRequest } from "./job-execution.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const referenceMediaDataSchema = generateMediaDataSchema.pick({
+  timeline_context: true,
   capability: true,
   reference_asset_ids: true,
   entity_ids: true,
@@ -960,6 +961,11 @@ export class CommandRouter {
           useReferenceVideoAudio: references.use_reference_video_audio,
           projectId,
           sourceContext,
+          timelineContext: references.timeline_context ? {
+            sequenceId: references.timeline_context.sequence_id,
+            sourceClipId: references.timeline_context.source_clip_id,
+            targetClipId: references.timeline_context.target_clip_id
+          } : undefined,
           requestId
         });
       });

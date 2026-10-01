@@ -232,6 +232,11 @@ export const generateMediaDataSchema = z
     use_reference_video_audio: z.boolean().optional(),
     /** Required for "image_edit" and "inpaint". Bytes are loaded server-side. */
     source_asset_id: z.string().optional(),
+    timeline_context: z.object({
+      sequence_id: z.string().min(1),
+      source_clip_id: z.string().min(1).optional(),
+      target_clip_id: z.string().min(1).optional()
+    }).optional(),
     source_context: z
       .object({
         sequence_id: z.string(),

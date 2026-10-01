@@ -2,9 +2,9 @@ import { randomUUID } from "node:crypto";
 
 import { createLogger } from "@nodetool-ai/config";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
-import { Asset, Prediction, Project } from "@nodetool-ai/models";
+import { Asset, Prediction, Project, Storyboard, TimelineSequence, findFinishResourceIds } from "@nodetool-ai/models";
 import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
-import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
+import { assertProductionGenerationAllowed, productionRequirement, resolveNodetoolDelegate } from "@nodetool-ai/protocol";
 import { GenerationAlreadyAcceptedError } from "@nodetool-ai/runtime";
 import {
   calculateChatCost,
@@ -90,6 +90,7 @@ export interface DirectMediaGenerationRequest {
   requestId?: string;
   /** Submission-time timeline mapping for a native video edit. */
   sourceContext?: DirectMediaSourceContext;
+  timelineContext?: { sequenceId: string; sourceClipId?: string; targetClipId?: string };
   capability?: "reference_to_video";
   referenceImages?: unknown[];
   referenceAssetIds?: readonly string[];
@@ -709,6 +710,7 @@ export class DirectInferenceHandler {
     if (req.projectId && req.projectId !== "default") {
       await Project.requireOwned(userId, req.projectId);
     }
+    await assertTimelineGenerationAllowed(userId, req);
     const provider = await this.session.resolveProvider(req.provider, userId);
     const videoEditReferences = req.mode === "video_edit"
       ? await resolveVideoEditReferences(userId, req)
@@ -1491,5 +1493,44 @@ export class DirectInferenceHandler {
       .filter((w) => w.word.length > 0);
 
     return { text: result.text, words };
+  }
+}
+
+/** Resolve protection from authorized persisted documents, never client-reported policy. */
+async function assertTimelineGenerationAllowed(userId: string, req: DirectMediaGenerationRequest): Promise<void> {
+  const context = req.timelineContext;
+  if (!context) { return; }
+  const sequenceIds = await findFinishResourceIds("timeline", context.sequenceId, userId, req.projectId ?? undefined);
+  if (sequenceIds.length !== 1) { throw new Error("Timeline generation context was not found uniquely in the caller's project."); }
+  const sequence = await TimelineSequence.findById(sequenceIds[0]);
+  if (!sequence || sequence.user_id !== userId || (req.projectId && req.projectId !== sequence.project_id)) {
+    throw new Error("Timeline generation context was not found in the caller's project.");
+  }
+  const clips = sequence.toDocument().clips;
+  const resolveClip = (id: string) => {
+    const matches = clips.filter(clip => clip.id === id || (/^[a-f0-9]{12}$/.test(id) && clip.id.startsWith(id)));
+    if (matches.length > 1) { throw new Error("Timeline generation clip prefix is ambiguous."); }
+    return matches[0];
+  };
+  const source = context.sourceClipId ? resolveClip(context.sourceClipId) : undefined;
+  if (context.sourceClipId && (!source || source.currentAssetId !== req.sourceAssetId)) {
+    throw new Error("Timeline generation source changed or was not found. Save and retry.");
+  }
+  const target = context.targetClipId ? resolveClip(context.targetClipId) : undefined;
+  const references = [...(req.referenceImages ?? []), ...(req.referenceVideos ?? [])];
+  const referencedAssets = new Set(references.filter(isRecord).map(ref => ref.asset_id).filter(isString));
+  const referencedClips = clips.filter(clip => clip.currentAssetId && referencedAssets.has(clip.currentAssetId));
+  for (const clip of [source, target, ...referencedClips]) {
+    if (!clip?.storyboardBoardId) { continue; }
+    const board = await Storyboard.findById(clip.storyboardBoardId);
+    if (!board || board.user_id !== userId || board.project_id !== sequence.project_id) {
+      throw new Error("Storyboard generation context was not found in the caller's project.");
+    }
+    const shot = board.toDocument().shots.find(shot => shot.id === clip.storyboardShotId);
+    if (!shot) { throw new Error("Storyboard generation source shot was not found."); }
+    const capability = req.mode === "video" ? (req.capability ?? (req.sourceAssetId ? "image_to_video" : "text_to_video"))
+      : req.mode === "video_edit" || req.mode === "video_extend" ? "video_to_video"
+      : req.mode === "image_edit" || req.mode === "inpaint" ? "image_to_image" : "text_to_image";
+    assertProductionGenerationAllowed(shot.production === undefined ? undefined : productionRequirement.parse(shot.production), capability);
   }
 }

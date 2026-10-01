@@ -10,6 +10,8 @@
  * `"text-to-video"`, or `"text-to-audio"`.
  */
 import { useCallback } from "react";
+import { assertProductionGenerationAllowed, productionRequirement } from "@nodetool-ai/protocol";
+import { trpcClient } from "../../trpc/client";
 import {
   globalWebSocketManager,
   type WebSocketMessage
@@ -1055,6 +1057,15 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         sourceAssetId = sourceClip.currentAssetId;
       }
 
+      for (const candidate of [clip, kind === "image-to-image" ? timeline.getState().clips.find(c => c.id === clip.sourceClipId) : undefined]) {
+        if (!candidate?.storyboardBoardId) { continue; }
+        const board = await trpcClient.storyboards.get.query({ id: candidate.storyboardBoardId });
+        const shot = board.document.shots.find(shot => shot.id === candidate.storyboardShotId);
+        if (!shot) { throw new Error("Storyboard generation source shot was not found."); }
+        const capability = kind === "text-to-video" ? (productionCandidate?.executionRoute === "reference_to_video" ? "reference_to_video" : "text_to_video") : kind === "image-to-image" ? "image_to_image" : "text_to_image";
+        assertProductionGenerationAllowed(shot.production === undefined ? undefined : productionRequirement.parse(shot.production), capability);
+      }
+
       const recipeResult =
         kind === "text-to-video"
           ? captureVideoGenerationRecipe(clip)
@@ -1136,6 +1147,11 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
             model: clip.model,
             prompt,
             source_asset_id: sourceAssetId,
+            timeline_context: sequenceId ? {
+              sequence_id: sequenceId,
+              source_clip_id: kind === "image-to-image" ? clip.sourceClipId ?? undefined : undefined,
+              target_clip_id: clip.id
+            } : undefined,
             width: clip.width,
             height: clip.height,
             strength: clip.strength,
