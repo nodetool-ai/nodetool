@@ -41,6 +41,7 @@ const identity = (shotId: string, elementId: string): string => `${shotId}/${ele
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
 const baseline = (clip: TimelineClip): string => JSON.stringify({
   mediaType: clip.mediaType,
+  blendMode: clip.blendMode ?? "normal",
   currentAssetId: clip.currentAssetId,
   textStyle: clip.textStyle,
   shapeStyle: clip.shapeStyle,
@@ -171,6 +172,7 @@ function validateTransforms(
   forbidden("opacity", clip.opacity !== undefined && clip.opacity !== 1);
   forbidden("mask", !!clip.matte);
   forbidden("crop", !!clip.crop);
+  if (clip.blendMode && clip.blendMode !== "normal") issue("forbidden_transform", `Color-changing blending on ${protection.id} cannot preserve protected values.`);
   if (clip.parentId || clip.effects?.length) issue("forbidden_transform", `Inherited transforms or effects on ${protection.id} cannot be proven faithful by this materializer.`);
   for (const animation of clip.animations ?? []) {
     if (animation.enabled === false) continue;
@@ -246,7 +248,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
         const prior = parseBaseline(previous.storyboardMaterializationBaseline);
         if (!prior) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Layer ${key} has no valid materializer baseline.` });
         else {
-          if (!same(previous.mediaType, prior.mediaType ?? clip.mediaType) || !same(previous.currentAssetId, prior.currentAssetId) || !same(previous.textStyle?.text, prior.text) || !same(previous.textStyle?.color ?? previous.shapeStyle?.fill, prior.color) || !same(previous.textStyle, prior.textStyle) || !same(previous.shapeStyle, prior.shapeStyle) || !same(previous.opacity, prior.opacity) || !same(previous.hidden, prior.hidden) || !same(previous.matte, prior.matte) || !same(previous.crop, prior.crop) || !same(previous.effects, prior.effects) || !same(previous.parentId, prior.parentId)) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Source or exact copy was manually changed on ${key}.` });
+          if (!same(previous.blendMode ?? "normal", prior.blendMode ?? "normal") || !same(previous.mediaType, prior.mediaType ?? clip.mediaType) || !same(previous.currentAssetId, prior.currentAssetId) || !same(previous.textStyle?.text, prior.text) || !same(previous.textStyle?.color ?? previous.shapeStyle?.fill, prior.color) || !same(previous.textStyle, prior.textStyle) || !same(previous.shapeStyle, prior.shapeStyle) || !same(previous.opacity, prior.opacity) || !same(previous.hidden, prior.hidden) || !same(previous.matte, prior.matte) || !same(previous.crop, prior.crop) || !same(previous.effects, prior.effects) || !same(previous.parentId, prior.parentId)) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Source or exact copy was manually changed on ${key}.` });
           if (!same(previous.transform, prior.transform)) clip.transform = previous.transform;
           if (!same(previous.startMs, prior.startMs)) clip.startMs = previous.startMs;
           if (!same(previous.durationMs, prior.durationMs)) clip.durationMs = previous.durationMs;

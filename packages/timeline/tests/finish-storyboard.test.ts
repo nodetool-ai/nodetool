@@ -118,6 +118,14 @@ describe("Storyboard finishing", () => {
     expect(first.document).toEqual(before);
   });
 
+  it("rejects color-changing blend modes on protected layers and reports manual conflicts", () => {
+    const args = input();
+    const first = materializeStoryboard(args);
+    first.document.clips[0].blendMode = "multiply";
+    expect(validateProducedTimeline(args, first.document).some((issue) => issue.code === "forbidden_transform")).toBe(true);
+    expect(materializeStoryboard({ ...args, current: first.document }).validation.some((issue) => issue.code === "manual_conflict")).toBe(true);
+  });
+
   it("rejects inherited track effects on protected sources", () => {
     const args = input();
     const result = materializeStoryboard(args);
