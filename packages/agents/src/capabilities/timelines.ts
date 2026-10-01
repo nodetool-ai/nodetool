@@ -18,6 +18,12 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
+import { z } from "zod";
+import { applyTimelineTrackOp, type TimelineTrackOp, type TimelineOpState } from "@nodetool-ai/timeline/ops";
+import { STAGGER_UNITS, ANIMATED_PROPERTIES, DEFAULT_BEAT_TOLERANCE_MS } from "@nodetool-ai/timeline";
+import { buildTimelineToolContracts } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
+import { resolveMoveTrackArgs, resolveDeleteTrackArgs } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
+import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
 import type {
   TimelineDocument,
   TimelineSequence,
@@ -700,6 +706,130 @@ function writingHooks(
   };
 }
 
+/** Track-only batches need no simulated editor or external hooks. */
+function applyTrackOps(
+  sequence: TimelineSequence,
+  document: TimelineDocument,
+  ops: ParsedOp[]
+): ApplyOutcome {
+  const contracts = buildTimelineToolContracts({
+    staggerUnits: STAGGER_UNITS,
+    animatedProperties: ANIMATED_PROPERTIES,
+    beatToleranceMs: DEFAULT_BEAT_TOLERANCE_MS
+  });
+  let state: TimelineOpState = {
+    fps: sequence.fps,
+    width: sequence.width,
+    height: sequence.height,
+    tracks: document.tracks,
+    clips: document.clips,
+    markers: document.markers,
+    mediaTracks: document.mediaTracks,
+    tempo: document.tempo,
+    playheadMs: 0,
+    selectedClipIds: []
+  };
+  const usedIds = new Set([
+    ...[
+      ...document.tracks,
+      ...document.clips,
+      ...document.markers,
+      ...(document.mediaTracks ?? [])
+    ].map((unit) => unit.id),
+    ...document.clips.flatMap((clip) =>
+      (clip.animations ?? []).map((animation) => animation.id)
+    )
+  ]);
+  let nextId = 0;
+  const newId = (): string => {
+    let id: string;
+    do {
+      id = `track_${++nextId}`;
+    } while (usedIds.has(id));
+    usedIds.add(id);
+    return id;
+  };
+  const records: OpRecord[] = [];
+  for (const entry of ops) {
+    try {
+      let op: TimelineTrackOp;
+      if (entry.op === "ui_timeline_add_track") {
+        const args = parseWithTypeCoercion(
+          z.object(contracts.ui_timeline_add_track.shape),
+          entry.input
+        );
+        op = { op: "add_track", ...args };
+      } else if (entry.op === "ui_timeline_move_track") {
+        const args = parseWithTypeCoercion(
+          z.object(contracts.ui_timeline_move_track.shape),
+          entry.input
+        );
+        op = { op: "move_track", ...resolveMoveTrackArgs(args) };
+      } else {
+        const args = parseWithTypeCoercion(
+          z.object(contracts.ui_timeline_delete_track.shape),
+          entry.input
+        );
+        op = { op: "delete_track", ...resolveDeleteTrackArgs(args) };
+      }
+      const outcome = applyTimelineTrackOp(state, op, { newId });
+      if (outcome.error) throw new Error(outcome.error);
+      state = outcome.state;
+      records.push({ op: entry.op, ok: true, result: outcome.result });
+    } catch (error) {
+      records.push({
+        op: entry.op,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+  return {
+    records,
+    state: {
+      fps: state.fps,
+      width: state.width,
+      height: state.height,
+      durationMs: state.clips.reduce(
+        (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
+        0
+      ),
+      playheadMs: state.playheadMs,
+      tracks: state.tracks.map(({ id, name, type, index }) => ({
+        id,
+        name,
+        type,
+        index
+      })),
+      clips: state.clips.map((clip) => ({
+        id: clip.id,
+        name: clip.name,
+        trackId: clip.trackId,
+        mediaType: clip.mediaType,
+        startMs: clip.startMs,
+        durationMs: clip.durationMs,
+        prompt: clip.prompt,
+        animations: (clip.animations ?? []).map(({ role, preset }) => ({
+          role,
+          preset
+        }))
+      })),
+      documentTracks: state.tracks,
+      documentClips: state.clips,
+      markers: state.markers,
+      mediaTracks: state.mediaTracks ?? [],
+      derivedSequences: [],
+      tempo: state.tempo,
+      camera2d: document.camera2d ?? null,
+      setup: document.setup ?? null,
+      transitionCandidates: [],
+      appliedTransitionCandidates: [],
+      toolLog: ops.map((entry) => entry.op),
+      previewTimesMs: [],
+      previewedLayerKinds: []
+    }
+  };
+}
 /**
  * Run `ops` against a bridge seeded from `document`.
  *
@@ -717,6 +847,9 @@ export async function applyOps(
   ops: ParsedOp[],
   options: { hermetic?: boolean; generateMediaEdit?: (request: MediaEditRequest, operationIndex: number) => Promise<{ generationId: string; assetId: string }> } = {}
 ): Promise<ApplyOutcome> {
+  if (ops.every(({ op }) => op === "ui_timeline_add_track" || op === "ui_timeline_move_track" || op === "ui_timeline_delete_track")) {
+    return applyTrackOps(sequence, document, ops);
+  }
   const { createTimelineToolBridge } =
     await import("../evals/surfaces/timeline.js");
   let operationIndex = 0;

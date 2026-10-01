@@ -1,3 +1,4 @@
+import { applyTimelineTrackOp, type TimelineOpState } from "@nodetool-ai/timeline/ops";
 /**
  * @jest-environment jsdom
  */
@@ -680,4 +681,120 @@ describe("useTimelineAgentBridge midi", () => {
       })
     ).toThrow(/midi track/i);
   });
+});
+
+
+describe("shared track document operations", () => {
+  const snapshot = (): TimelineOpState => {
+    const store = mockDoc.getState();
+    return structuredClone({
+      fps: store.fps,
+      width: store.width,
+      height: store.height,
+      tracks: store.tracks,
+      clips: store.clips,
+      markers: store.markers,
+      mediaTracks: store.mediaTracks,
+      tempo: store.tempo,
+      playheadMs: mockPlayback.getState().currentTimeMs,
+      selectedClipIds: [...mockUi.getState().selectedClipIds]
+    });
+  };
+
+  it.each(["track ID", "track name"])(
+    "matches pure document semantics for move/delete using %s",
+    (kind) => {
+      seedGroup();
+      mockDoc.getState().addTrack("overlay", "Surviving children");
+      const [first, second] = mockDoc.getState().tracks;
+      mockDoc.getState().patchClip("child-b", { trackId: second.id });
+      mockDoc.setState({
+        clips: mockDoc
+          .getState()
+          .clips.map((clip) =>
+            clip.id === "child-b"
+              ? {
+                  ...clip,
+                  sourceType: "generated",
+                  bindingKind: "text-to-audio",
+                  startMs: 5000
+                }
+              : clip
+          )
+      });
+      mockUi.getState().setSelection(["group-1", "child-b"]);
+      renderHook(() => useTimelineAgentBridge(SEQ_ID));
+      const handler = getTimelineAgentHandler(SEQ_ID);
+      const target = kind === "track ID" ? first.id : first.name.toUpperCase();
+      const before = snapshot();
+      const moved = applyTimelineTrackOp(
+        before,
+        { op: "move_track", target, after: second.name },
+        { newId: () => "unused" }
+      );
+      const returned = handler.moveTrack(target, { after: second.name });
+      expect(snapshot()).toEqual(moved.state);
+      expect(returned.map((track) => track.id)).toEqual(
+        moved.state.tracks.map((track) => track.id)
+      );
+
+      const beforeDelete = snapshot();
+      const deleted = applyTimelineTrackOp(
+        beforeDelete,
+        { op: "delete_track", target, deleteClips: true },
+        { newId: () => "unused" }
+      );
+      const result = handler.deleteTrack(target, true);
+      expect(snapshot()).toEqual(deleted.state);
+      expect(result.deletedClipIds).toEqual(deleted.result.deletedClipIds);
+      expect(clipById("child-b").parentId).toBeUndefined();
+      expect([...mockUi.getState().selectedClipIds]).toEqual(["child-b"]);
+      expect(mockDoc.getState().tracks[0].index).toBe(0);
+      timelineTemporalOf(mockDoc).undo();
+      expect(mockDoc.getState().clips).toEqual(beforeDelete.clips);
+      expect(mockDoc.getState().tracks).toEqual(beforeDelete.tracks);
+    }
+  );
+
+  it("rejects populated track deletion and invalid moves without a write or undo entry", () => {
+    seedGroup();
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    const before = snapshot();
+    const history = timelineTemporalOf(mockDoc).pastStates.length;
+    expect(() => handler.deleteTrack(before.tracks[0].id, false)).toThrow(
+      "still holds"
+    );
+    expect(() =>
+      handler.moveTrack(before.tracks[0].id, { before: "absent" })
+    ).toThrow();
+    expect(() => handler.moveTrack(before.tracks[0].id, {})).toThrow();
+    expect(snapshot()).toEqual(before);
+    expect(timelineTemporalOf(mockDoc).pastStates.length).toBe(history);
+  });
+
+  it.each(["video", "midi"] as const)(
+    "adds %s with shared defaults, stable returned ID and one undo entry",
+    (type) => {
+      renderHook(() => useTimelineAgentBridge(SEQ_ID));
+      const before = snapshot();
+      const history = timelineTemporalOf(mockDoc).pastStates.length;
+      const returned = getTimelineAgentHandler(SEQ_ID).addTrack(
+        type,
+        "Authored"
+      );
+      const outcome = applyTimelineTrackOp(
+        before,
+        { op: "add_track", type, name: "Authored" },
+        {
+          newId: () => returned.id,
+          defaultMidiInstrument: mockDoc.getState().tracks[0].instrument
+        }
+      );
+      expect(snapshot()).toEqual(outcome.state);
+      expect(mockDoc.getState().tracks[0].id).toBe(returned.id);
+      expect(timelineTemporalOf(mockDoc).pastStates.length).toBe(history + 1);
+      expect(before.tracks).toEqual([]);
+    }
+  );
 });
