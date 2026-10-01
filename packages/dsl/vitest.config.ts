@@ -3,6 +3,7 @@ import { resolve } from "path";
 export default defineConfig({
   resolve: {
     alias: {
+      "@nodetool-ai/execution": resolve(__dirname, "../execution/src"),
       "@nodetool-ai/protocol": resolve(__dirname, "../protocol/src"),
       "@nodetool-ai/kernel": resolve(__dirname, "../kernel/src/index.ts"),
       // Subpaths before the root alias (Vite alias is prefix-based).

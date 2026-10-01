@@ -1,10 +1,4 @@
-/**
- * `ExecutionSession` — the one place that constructs `WorkflowRunner`.
- *
- * See the package README for the wiring-inventory table this facade is
- * derived from (Track A / task A1 of docs/RELIABILITY_TASKS.md) and
- * docs/RELIABILITY_ARCHITECTURE.md §7 for the target API shape.
- */
+/** Canonical lifecycle for top-level Node/server workflow runs. */
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import { hydrateGraphNodeFlags } from "@nodetool-ai/node-sdk";
@@ -12,6 +6,7 @@ import {
   Graph,
   WorkflowRunner,
   withExplicitNodeFlags,
+  MessageStream,
   type RunResult
 } from "@nodetool-ai/kernel";
 import {
@@ -20,7 +15,10 @@ import {
   connectPythonBridgeForGraph,
   headlessGate
 } from "@nodetool-ai/runtime";
-import type { PythonJobLifecycle } from "@nodetool-ai/runtime";
+import type {
+  PythonJobLifecycle,
+  PythonBridgeBase
+} from "@nodetool-ai/runtime";
 import type {
   HydratedGraphData,
   ProcessingMessage
@@ -33,9 +31,8 @@ import {
 import { normalizeGraph } from "./normalize-graph.js";
 import { assertPreflight } from "./preflight.js";
 import { rewriteOutputNames } from "./output-names.js";
-import { MessageStream } from "./message-stream.js";
 import { attachRunCostLedger, nodeTypeLookup } from "./cost-ledger.js";
-import type { ExecutionSessionOptions } from "./types.js";
+import type { BridgeFactory, ExecutionSessionOptions } from "./types.js";
 
 const log = createLogger("nodetool.execution.session");
 
@@ -83,13 +80,6 @@ export class ExecutionSession {
       ? new MessageStream(init.context, init.messageBufferLimit)
       : null;
 
-    // Every generation this run pays for lands in the ledger `nodetool costs`
-    // reads. Attached here, at the one seam all surfaces share, so image and
-    // video spend is recorded whether the run came from the CLI, the debug
-    // harness, an app, or the websocket server.
-    // No `projectId`/`documentId`: a session is constructed from a graph and a
-    // job id, and no host passes project attribution down to it. The rows carry
-    // a null rather than being attributed to the loose bucket.
     const detachLedger = init.recordCosts
       ? attachRunCostLedger(init.context, {
           userId: init.userId,
@@ -134,8 +124,8 @@ export class ExecutionSession {
       runRequest.trigger_event = init.triggerEvent;
     }
 
-    this.resultPromise = init.runner
-      .run(runRequest, init.graph)
+    this.resultPromise = Promise.resolve()
+      .then(() => init.runner.run(runRequest, init.graph))
       .then(
         (result) => {
           void init.lifecycle?.jobEnd({
@@ -157,20 +147,12 @@ export class ExecutionSession {
           clearTimeout(this.runTimeoutHandle);
           this.runTimeoutHandle = null;
         }
-        init.closeBridge();
-        // The terminal message was emitted synchronously before run()
-        // resolved (ProcessingContext.emit() calls listeners inline), so the
-        // stream can close now without dropping it. The same holds for the
-        // ledger: every prediction/node_update it prices was already delivered.
-        detachLedger?.();
-        this.stream?.close();
         try {
-          await init.context.workspace?.cleanupScratch?.();
-        } catch (err) {
-          log.warn("Workspace scratch cleanup failed", {
-            jobId: this.jobId,
-            error: err instanceof Error ? err.message : String(err)
-          });
+          init.closeBridge();
+        } finally {
+          detachLedger?.();
+          this.stream?.close();
+          await cleanupWorkspace(init.context, this.jobId);
         }
       });
 
@@ -204,9 +186,13 @@ export class ExecutionSession {
       );
     }
 
-    if (!options.registry && !options.resolveExecutor) {
+    if (
+      !options.registry &&
+      !options.resolveExecutor &&
+      !options.executorResolverFactory
+    ) {
       throw new Error(
-        "ExecutionSession: either registry or resolveExecutor must be provided " +
+        "ExecutionSession: either registry or resolveExecutor (or executorResolverFactory) must be provided " +
           "(registry builds the default registry+bridge resolver; resolveExecutor " +
           "bypasses it for a host with its own resolution, e.g. the WS runner)."
       );
@@ -215,8 +201,6 @@ export class ExecutionSession {
     const jobId = options.jobId ?? randomUUID();
     const workflowId = options.workflowId ?? null;
     const registry = options.registry;
-
-    const normalized = normalizeGraph(options.graph);
 
     // A caller that brings no context still gets one that can reach the
     // secret store. The bare `new ProcessingContext(...)` this replaced
@@ -239,7 +223,10 @@ export class ExecutionSession {
     // headless one here. A caller that already has a user to ask — a chat
     // turn's `run_node` — set its gate before handing the context in, and
     // keeps it.
-    if (context.get(PERMISSION_GATE_CONTEXT_KEY) === undefined) {
+    if (
+      options.installHeadlessPermissionGate !== false &&
+      context.get(PERMISSION_GATE_CONTEXT_KEY) === undefined
+    ) {
       context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate(WORKFLOW_RUN_HOST));
     }
 
@@ -258,25 +245,7 @@ export class ExecutionSession {
       options.providerConfiguration ??
       (context.hasProviderResolver ? () => [] : undefined);
 
-    await assertPreflight(normalized, {
-      catalogs: options.catalogs,
-      providerConfiguration,
-      resolveSecret: (key) => context.getSecret(key)
-    });
-
-    // A caller injecting its own `resolveExecutor` (see the option doc)
-    // typically also owns its own Python bridge — never connect a second one
-    // behind its back. `bridgeFactory` remains available for that caller to
-    // opt back in explicitly (e.g. handing this facade an already-connected
-    // bridge instance to close on its behalf).
-    const bridgeFactory =
-      options.bridgeFactory ??
-      (options.resolveExecutor
-        ? async () => null
-        : connectPythonBridgeForGraph);
-    const bridge = await bridgeFactory(normalized.nodes, (t) =>
-      registry ? registry.has(t) : false
-    );
+    let bridge: PythonBridgeBase | null = null;
     let bridgeClosed = false;
     const closeBridge = (): void => {
       if (bridgeClosed) return;
@@ -284,8 +253,33 @@ export class ExecutionSession {
       bridge?.close();
     };
 
-    let hydrated: HydratedGraphData;
     try {
+      const normalized = normalizeGraph(options.graph);
+      if (options.preflight !== false) {
+        await assertPreflight(normalized, {
+          catalogs: options.catalogs,
+          providerConfiguration,
+          resolveSecret: (key) => context.getSecret(key)
+        });
+      }
+      // A resolver supplied directly already owns its bridge. A factory
+      // instead receives the connection owned and closed by this session.
+      const bridgeFactory: BridgeFactory =
+        options.bridgeFactory ??
+        (options.resolveExecutor
+          ? async () => null
+          : (nodes, hasTsExecutor) =>
+              connectPythonBridgeForGraph(
+                nodes,
+                hasTsExecutor,
+                options.bridgeOptions
+              ));
+      bridge = await bridgeFactory(
+        normalized.nodes,
+        options.hasTsExecutor ?? ((type) => registry?.has(type) ?? false)
+      );
+
+      let hydrated: HydratedGraphData;
       if (options.resolveNodeType) {
         // Richer path: resolves `propertyTypes`/`outputs` from registry
         // metadata too (async — the resolver may lazy-load a namespace),
@@ -308,59 +302,68 @@ export class ExecutionSession {
         // unchanged.
         hydrated = withExplicitNodeFlags(normalized);
       }
+
+      if (options.requireTerminalResult) {
+        rewriteOutputNames(hydrated);
+      }
+
+      const resolveExecutor =
+        options.resolveExecutor ??
+        options.executorResolverFactory?.(bridge) ??
+        (registry ? createExecutorResolver(registry, bridge) : null);
+      if (!resolveExecutor) {
+        throw new Error("ExecutionSession: no executor resolver available");
+      }
+
+      const runnerOptions: ConstructorParameters<typeof WorkflowRunner>[1] = {
+        resolveExecutor,
+        executionContext: context,
+        validateNode: options.validateNode,
+        bufferLimit: options.limits?.bufferLimit ?? null,
+        strict: options.strict
+      };
+      if (options.supervisor) {
+        runnerOptions.supervisor = options.supervisor;
+      }
+      const runner = new WorkflowRunner(jobId, runnerOptions);
+
+      try {
+        await options.persistence?.onAccepted?.(jobId);
+      } catch (err) {
+        log.warn("persistence.onAccepted threw", {
+          jobId,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+
+      return new ExecutionSession({
+        jobId,
+        workflowId,
+        graph: hydrated,
+        runner,
+        context,
+        persistence: options.persistence ?? null,
+        params: options.params ?? {},
+        triggerEvent: options.triggerEvent ?? null,
+        bridge,
+        lifecycle: options.jobLifecycleBridge ?? bridge,
+        userId: context.userId,
+        closeBridge,
+        runTimeoutMs: options.limits?.runTimeoutMs,
+        captureMessages: options.captureMessages === true,
+        messageBufferLimit: options.limits?.messageBufferLimit,
+        recordCosts: options.recordCosts !== false,
+        projectId: options.projectId,
+        documentId: options.documentId
+      });
     } catch (err) {
-      closeBridge();
+      try {
+        closeBridge();
+      } finally {
+        await cleanupWorkspace(context, jobId);
+      }
       throw err;
     }
-
-    if (options.requireTerminalResult) {
-      rewriteOutputNames(hydrated);
-    }
-
-    const resolveExecutor =
-      options.resolveExecutor ?? createExecutorResolver(registry!, bridge);
-
-    const runnerOptions: ConstructorParameters<typeof WorkflowRunner>[1] = {
-      resolveExecutor,
-      executionContext: context,
-      validateNode: options.validateNode,
-      bufferLimit: options.limits?.bufferLimit ?? null,
-      strict: options.strict
-    };
-    if (options.supervisor) {
-      runnerOptions.supervisor = options.supervisor;
-    }
-    const runner = new WorkflowRunner(jobId, runnerOptions);
-
-    try {
-      await options.persistence?.onAccepted?.(jobId);
-    } catch (err) {
-      log.warn("persistence.onAccepted threw", {
-        jobId,
-        error: err instanceof Error ? err.message : String(err)
-      });
-    }
-
-    return new ExecutionSession({
-      jobId,
-      workflowId,
-      graph: hydrated,
-      runner,
-      context,
-      persistence: options.persistence ?? null,
-      params: options.params ?? {},
-      triggerEvent: options.triggerEvent ?? null,
-      bridge,
-      lifecycle: options.jobLifecycleBridge ?? bridge,
-      userId: context.userId,
-      closeBridge,
-      runTimeoutMs: options.limits?.runTimeoutMs,
-      captureMessages: options.captureMessages === true,
-      messageBufferLimit: options.limits?.messageBufferLimit,
-      recordCosts: options.recordCosts !== false,
-      projectId: options.projectId,
-      documentId: options.documentId
-    });
   }
 
   /**
@@ -380,7 +383,7 @@ export class ExecutionSession {
     return this.stream;
   }
 
-  /** The run's terminal result. Never rejects — kernel failures resolve as `status: "failed"`. */
+  /** Terminal result. Kernel failures resolve as failed, unexpected lifecycle errors reject. */
   get result(): Promise<RunResult> {
     return this.resultPromise;
   }
@@ -443,5 +446,19 @@ export class ExecutionSession {
   cancel(reason?: string): void {
     this._cancelReason = reason ?? this._cancelReason ?? "cancelled";
     this.runner.cancel();
+  }
+}
+
+async function cleanupWorkspace(
+  context: ProcessingContext,
+  jobId: string
+): Promise<void> {
+  try {
+    await context.workspace?.cleanupScratch?.();
+  } catch (err) {
+    log.warn("Workspace scratch cleanup failed", {
+      jobId,
+      error: err instanceof Error ? err.message : String(err)
+    });
   }
 }

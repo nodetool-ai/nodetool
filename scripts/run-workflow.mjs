@@ -284,7 +284,7 @@ async function main() {
     ...extraFromPairs,
   };
 
-  let WorkflowRunner;
+  let ExecutionSession;
   let NodeRegistry;
   let registerBaseNodes;
   let registerElevenLabsNodes;
@@ -296,14 +296,12 @@ async function main() {
   let AnthropicProvider;
   let OllamaProvider;
   let LlamaProvider;
-  let PythonStdioBridge;
-  let PythonNodeExecutor;
   let getSecret;
   let initDb;
   let getDefaultDbPath;
   let initMasterKey;
   try {
-    const kernelPath = path.resolve(tsRoot, "packages/kernel/dist/index.js");
+
     const nodeSdkPath = path.resolve(tsRoot, "packages/node-sdk/dist/index.js");
     const baseNodesPath = path.resolve(tsRoot, "packages/base-nodes/dist/index.js");
     const elevenLabsNodesPath = path.resolve(tsRoot, "packages/elevenlabs-nodes/dist/index.js");
@@ -315,7 +313,7 @@ async function main() {
     const configPath = path.resolve(tsRoot, "packages/config/dist/index.js");
     const securityPath = path.resolve(tsRoot, "packages/security/dist/index.js");
 
-    ({ WorkflowRunner } = await import(pathToFileURL(kernelPath).href));
+    ({ ExecutionSession } = await import("@nodetool-ai/execution"));
     ({ NodeRegistry } = await import(pathToFileURL(nodeSdkPath).href));
     ({ registerBaseNodes } = await import(pathToFileURL(baseNodesPath).href));
     ({ registerElevenLabsNodes } = await import(pathToFileURL(elevenLabsNodesPath).href));
@@ -330,8 +328,6 @@ async function main() {
       AnthropicProvider,
       OllamaProvider,
       LlamaProvider,
-      PythonStdioBridge,
-      PythonNodeExecutor,
     } = await import(pathToFileURL(runtimePath).href));
     ({ initDb, getSecret } = await import(pathToFileURL(modelsPath).href));
     ({ getDefaultDbPath } = await import(pathToFileURL(configPath).href));
@@ -375,23 +371,6 @@ async function main() {
   if (registerFalNodes) registerFalNodes(registry);
   if (registerHuggingFaceNodes) registerHuggingFaceNodes(registry);
 
-  // Check if any node in the graph needs Python execution
-  const allNodeTypes = new Set(graph.nodes.map((n) => n.type));
-  const needsPython = [...allNodeTypes].some((t) => !registry.has(t));
-
-  let pythonBridge = null;
-  if (needsPython) {
-    process.stderr.write("Starting Python bridge for non-TS nodes...\n");
-    pythonBridge = new PythonStdioBridge({
-      workerArgs: process.env.NODETOOL_WORKER_NAMESPACES
-        ? ["--namespaces", process.env.NODETOOL_WORKER_NAMESPACES]
-        : [],
-    });
-    await pythonBridge.connect();
-    const meta = pythonBridge.getNodeMetadata();
-    process.stderr.write(`Python bridge connected — ${meta.length} Python nodes available\n`);
-  }
-
   const context = new ProcessingContext({
     jobId,
     workflowId: workflowId ?? null,
@@ -430,44 +409,18 @@ async function main() {
     return provider;
   });
 
-  const runner = new WorkflowRunner(jobId, {
-    resolveExecutor: (node) => {
-      // Try TS registry first
-      if (registry.has(node.type)) {
-        return registry.resolve(node);
-      }
-      // Route through Python bridge
-      if (pythonBridge && pythonBridge.hasNodeType(node.type)) {
-        const meta = pythonBridge
-          .getNodeMetadata()
-          .find((n) => n.node_type === node.type);
-        const props = node.properties ?? node.data ?? {};
-        return new PythonNodeExecutor(
-          pythonBridge,
-          node.type,
-          props,
-          Object.fromEntries(
-            (meta?.outputs ?? []).map((o) => [o.name, o.type.type]),
-          ),
-          meta?.required_settings ?? [],
-        );
-      }
-      throw new Error(`Unknown node type: ${node.type}`);
-    },
-    executionContext: context,
+  const session = await ExecutionSession.create({
+    jobId,
+    workflowId,
+    graph,
+    registry,
+    context,
+    params: resolvedParams,
+    preflight: false,
+    installHeadlessPermissionGate: false,
+    recordCosts: false,
   });
-
-  const result = await runner.run(
-    {
-      job_id: jobId,
-      workflow_id: workflowId,
-      params: resolvedParams,
-    },
-    {
-      nodes: graph.nodes,
-      edges: graph.edges,
-    }
-  );
+  const result = await session.result;
 
   if (parsed.jsonOnly) {
     await writeStream(process.stdout, `${JSON.stringify(result, null, 2)}\n`);
@@ -492,7 +445,6 @@ async function main() {
     }
   }
 
-  if (pythonBridge) pythonBridge.close();
   // Exit explicitly rather than setting `exitCode` and letting the loop drain.
   // A workflow containing an image node acquires a Dawn GPU instance, and
   // dawn.node's AsyncRunner re-schedules `ProcessEvents()` on the event loop

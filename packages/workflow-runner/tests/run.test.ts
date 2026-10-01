@@ -11,7 +11,12 @@ import {
   type NodeExecutor,
   type NodeValidator
 } from "@nodetool-ai/kernel";
-import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
+import type {
+  NodeDescriptor,
+  Edge,
+  ProcessingMessage
+} from "@nodetool-ai/protocol";
+import { ProcessingContext } from "@nodetool-ai/runtime/context";
 import { runWorkflow } from "../src/run.js";
 
 function passthrough(): NodeExecutor {
@@ -34,6 +39,72 @@ function fakeRegistry(
 }
 
 describe("runWorkflow", () => {
+  it("delivers ordered terminal messages, drains the queue and removes listeners", async () => {
+    const context = new ProcessingContext({
+      jobId: "listeners",
+      retainMessageQueue: false
+    });
+    const detach = vi.fn();
+    const add = context.addMessageListener.bind(context);
+    vi.spyOn(context, "addMessageListener").mockImplementation((listener) => {
+      const unsubscribe = add(listener);
+      return () => {
+        detach();
+        unsubscribe();
+      };
+    });
+    const generator = runWorkflow({
+      graph: {
+        nodes: [{ id: "n", type: "test.Echo", properties: { value: 42 } }],
+        edges: []
+      },
+      registry: fakeRegistry(),
+      context
+    });
+    const messages: ProcessingMessage[] = [];
+    for (;;) {
+      const next = await generator.next();
+      if (next.done) {
+        expect(next.value.status).toBe("completed");
+        break;
+      }
+      messages.push(next.value);
+    }
+    expect(
+      messages
+        .filter((message) => message.type === "job_update")
+        .map((message) => message.status)
+    ).toEqual(["running", "completed"]);
+    expect(messages.at(-1)).toMatchObject({
+      type: "job_update",
+      status: "completed"
+    });
+    expect(detach).toHaveBeenCalledTimes(1);
+  });
+
+  it("observes an abort during host setup and still yields the terminal", async () => {
+    const controller = new AbortController();
+    const generator = runWorkflow({
+      graph: { nodes: [], edges: [] },
+      registry: fakeRegistry(),
+      signal: controller.signal,
+      onRunner: () => controller.abort()
+    });
+    const messages: ProcessingMessage[] = [];
+    for (;;) {
+      const next = await generator.next();
+      if (next.done) {
+        expect(next.value.status).toBe("cancelled");
+        break;
+      }
+      messages.push(next.value);
+    }
+    expect(messages.at(-1)).toMatchObject({
+      type: "job_update",
+      status: "cancelled"
+    });
+  });
+
   it("yields messages live and returns the final RunResult", async () => {
     const nodes: NodeDescriptor[] = [
       { id: "in", type: "test.Input", name: "value" },
@@ -119,14 +190,19 @@ describe("runWorkflow", () => {
       ctrl.abort();
 
       let status: string | undefined;
+      const terminalStatuses: string[] = [];
       while (true) {
         const next = await gen.next();
         if (next.done) {
           status = next.value.status;
           break;
         }
+        if (next.value.type === "job_update") {
+          terminalStatuses.push(next.value.status);
+        }
       }
 
+      expect(terminalStatuses).toContain("cancelled");
       expect(cancelSpy).toHaveBeenCalledTimes(1);
       expect(status).toBe("cancelled");
     } finally {
@@ -252,6 +328,6 @@ describe("runWorkflow", () => {
       })(),
       new Promise((_, rej) => setTimeout(() => rej(new Error("hang")), 5000))
     ]);
-    expect(settled).toBeDefined();
+    expect(settled).toMatchObject({ status: "cancelled" });
   });
 });
