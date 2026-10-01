@@ -145,6 +145,41 @@ describe("Recipe Application manifest", () => {
     expect(installed.app.document.recipe).toEqual(recipe);
   });
 
+  it("represents a real product-ad recipe as an Application manifest", () => {
+    const manifest = {
+      schemaVersion: 1 as const,
+      slug: "product-hero-offer",
+      inputs: [
+        { id: "product", label: "Product", kind: "image" as const, required: true },
+        { id: "logo", label: "Logo", kind: "image" as const, required: true },
+        { id: "headline", label: "Headline", kind: "text" as const, required: true },
+        { id: "cta", label: "CTA", kind: "text" as const, required: true }
+      ],
+      creativeStrategy: { structure: "hook > product hero > offer > CTA" },
+      preservationRules: [
+        { inputId: "product", policy: "exact_asset" as const, allowedTransformations: ["position", "scale", "crop", "composite"] as const },
+        { inputId: "logo", policy: "exact_asset" as const, allowedTransformations: ["position", "scale", "opacity"] as const },
+        { inputId: "headline", policy: "exact_text" as const },
+        { inputId: "cta", policy: "exact_text" as const }
+      ],
+      mediaPolicy: { defaultStrategy: "still_motion_graphics" as const, allowGeneratedVideo: true },
+      operations: [
+        { id: "plan", bindingId: "draft", intent: "plan_storyboard" },
+        { id: "finish", bindingId: "refine", intent: "build_finished_cut" }
+      ],
+      outputs: [
+        { id: "storyboard", kind: "storyboard" as const },
+        { id: "timeline", kind: "timeline" as const }
+      ]
+    };
+    const bundle = bundleFromApplication(
+      { name: "Product hero offer", document: { ...app.document, recipe: manifest } },
+      sources
+    );
+    expect(bundle.app.recipe?.mediaPolicy?.defaultStrategy).toBe("still_motion_graphics");
+    expect(bundle.app.recipe?.outputs.map((output) => output.kind)).toEqual(["storyboard", "timeline"]);
+  });
+
   it("leaves ordinary Applications unchanged", () => {
     expect(parseApplicationBundle(bundleFromApplication(app, sources))?.app.recipe).toBeUndefined();
   });
