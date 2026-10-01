@@ -135,9 +135,11 @@ export interface RetimedShot {
   directedMs: number;
 }
 
-/** A shot is assemblable when it has persisted picture: a clip or a held keyframe. */
+/** A shot has an assemblable rendered clip when its accepted clip is persisted. */
 export const isAssemblableShot = (shot: Shot): boolean =>
-  assetIdOf(shot.clip) !== undefined || assetIdOf(shot.keyframe) !== undefined;
+  !!shot.clip &&
+  typeof shot.clip.asset_id === "string" &&
+  shot.clip.asset_id.length > 0;
 
 /** The persisted asset id on a media ref, or undefined when it has none. */
 const assetIdOf = (ref: { asset_id?: string | null } | null | undefined) =>
