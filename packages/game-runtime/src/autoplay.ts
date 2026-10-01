@@ -49,14 +49,39 @@ interface Point { readonly x: number; readonly y: number }
 
 export function gameLevelStats(document: GameDocument): GameLevelStats {
   const entities = document.scenes.flatMap((scene) => scene.entities);
+  let tiles = 0;
+  let solidTiles = 0;
+  let collectibles = 0;
+  let scripts = 0;
+  let prefabs = 0;
+
+  for (const entity of entities) {
+    if (entity.tilemap?.tiles) {
+      tiles += entity.tilemap.tiles.length;
+      const defaultSolid = entity.tilemap.solid ?? false;
+      for (const tile of entity.tilemap.tiles) {
+        if (tile.solid ?? defaultSolid) {
+          solidTiles++;
+        }
+      }
+    }
+    let hasCollectible = false;
+    for (const behavior of entity.behaviors) {
+      if (behavior.kind === "collectible") hasCollectible = true;
+      if (behavior.kind === "script") scripts++;
+    }
+    if (hasCollectible) collectibles++;
+    if (entity.templateOnly) prefabs++;
+  }
+
   return {
     scenes: document.scenes.length,
     entities: entities.length,
-    tiles: entities.reduce((total, entity) => total + (entity.tilemap?.tiles.length ?? 0), 0),
-    solidTiles: entities.reduce((total, entity) => total + (entity.tilemap?.tiles.filter((tile) => tile.solid ?? entity.tilemap?.solid ?? false).length ?? 0), 0),
-    collectibles: entities.filter((entity) => entity.behaviors.some((behavior) => behavior.kind === "collectible")).length,
-    scripts: entities.reduce((total, entity) => total + entity.behaviors.filter((behavior) => behavior.kind === "script").length, 0),
-    prefabs: entities.filter((entity) => entity.templateOnly).length
+    tiles,
+    solidTiles,
+    collectibles,
+    scripts,
+    prefabs
   };
 }
 
