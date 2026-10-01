@@ -306,24 +306,6 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
       events: "array"
     }
   },
-  DynamicCards: {
-    label: "Dynamic Cards",
-    mode: "read",
-    trigger: "change",
-    bindingProps: [{ prop: "selectionBinding", mode: "write" }],
-    fields: {
-      binding: "custom",
-      selectionBinding: "custom",
-      label: "text",
-      titleField: "text",
-      descriptionField: "text",
-      imageField: "text",
-      valueField: "text",
-      columns: "number",
-      placeholder: "text",
-      events: "array"
-    }
-  },
   Stepper: {
     label: "Guided Steps",
     mode: "write",
@@ -348,32 +330,6 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
       description: "textarea",
       approveLabel: "text",
       rejectLabel: "text",
-      events: "array"
-    }
-  },
-  ProductBrandInput: {
-    label: "Product / Brand",
-    mode: "write",
-    trigger: "change",
-    commits: false,
-    fields: {
-      binding: "custom",
-      label: "text",
-      fields: "array",
-      events: "array"
-    }
-  },
-  ShotReview: {
-    label: "Shot Review",
-    mode: "read",
-    trigger: "change",
-    bindingProps: [{ prop: "selectionBinding", mode: "write" }],
-    fields: {
-      binding: "custom",
-      selectionBinding: "custom",
-      label: "text",
-      compact: "radio",
-      placeholder: "text",
       events: "array"
     }
   },
