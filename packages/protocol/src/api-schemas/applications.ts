@@ -183,6 +183,10 @@ export const applicationListItem = z.object({
   name: z.string(),
   description: z.string(),
   operationCount: z.number(),
+  /** Catalogue projection: ordinary apps return false/null without loading/executing them. */
+  isRecipe: z.boolean().default(false),
+  recipeSlug: z.string().nullable().default(null),
+  recipeCategory: z.string().nullable().default(null),
   updatedAt: z.string()
 });
 export type ApplicationListItem = z.infer<typeof applicationListItem>;
