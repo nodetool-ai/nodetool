@@ -19,7 +19,8 @@ import type {
   ResourceBinding,
   ResourceKind,
   ResourceOperation,
-  VariableDeclaration
+  VariableDeclaration,
+  RecipeManifest
 } from "./document.js";
 
 /** The parts of an application document that are not the UI layout. */
@@ -27,6 +28,7 @@ export interface AppDocMeta {
   operations: OperationBinding[];
   resources: ResourceBinding[];
   variables: VariableDeclaration[];
+  recipe?: RecipeManifest;
 }
 
 export const EMPTY_DOC_META: AppDocMeta = {

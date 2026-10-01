@@ -1,5 +1,8 @@
 # Applications as the Only Mini-App Resource
 
+> Recipe Applications: a Recipe is an Application carrying a versioned `recipe` manifest in its `ApplicationDocument`. It is not a separate resource/table. The manifest describes catalogue metadata, inputs, semantic operation intents, outputs, preservation rules and media policy; executable truth remains the ApplicationDocument operation bindings and their pinned workflow/script versions. Because the manifest lives inside the document, Application versions/releases and ApplicationBundle export/import freeze and round-trip the exact Recipe metadata automatically. List/catalogue APIs project `isRecipe`, `recipeSlug` and `recipeCategory` without executing the app.
+
+
 Status: draft v2, 2026-07-26. Scope: retire `workflows.app_doc`, make the
 `applications` table (added 2026-07-25, PR #4479) the single place a mini app
 lives, and keep apps and workflows **orthogonal** in the UI: apps get their own

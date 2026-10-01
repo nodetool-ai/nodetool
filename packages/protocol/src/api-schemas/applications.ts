@@ -98,13 +98,87 @@ export const variableDeclaration = z.object({
   persist: z.boolean()
 });
 
+export const RECIPE_MANIFEST_SCHEMA_VERSION = 1;
+
+const recipeInput = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  kind: z.enum(["text", "number", "boolean", "image", "video", "audio", "color", "asset", "entity", "storyboard", "timeline"]),
+  required: z.boolean(),
+  description: z.string().optional()
+});
+
+const recipePreservationRule = z.object({
+  inputId: z.string().min(1),
+  policy: z.enum(["exact_asset", "exact_text", "exact_color"]),
+  allowedTransformations: z.array(z.enum(["position", "scale", "crop", "rotate", "mask", "opacity", "composite"])).optional()
+});
+
+export const recipeManifest = z.object({
+  schemaVersion: z.literal(RECIPE_MANIFEST_SCHEMA_VERSION),
+  slug: z.string().trim().min(1),
+  category: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  inputs: z.array(recipeInput),
+  defaults: z.record(z.string(), z.unknown()).optional(),
+  creativeStrategy: z.object({
+    objective: z.string().optional(),
+    structure: z.string().optional(),
+    direction: z.string().optional()
+  }).optional(),
+  preservationRules: z.array(recipePreservationRule).optional(),
+  mediaPolicy: z.object({
+    defaultStrategy: z.enum(["still_motion_graphics", "hybrid", "generated_video"]).optional(),
+    allowGeneratedVideo: z.boolean().optional()
+  }).optional(),
+  operations: z.array(z.object({
+    id: z.string().min(1),
+    bindingId: z.string().min(1),
+    intent: z.string().min(1)
+  })),
+  outputs: z.array(z.object({
+    id: z.string().min(1),
+    kind: z.enum(["asset", "storyboard", "timeline", "value"]),
+    label: z.string().optional()
+  })),
+  presentation: z.object({
+    layout: z.string().optional(),
+    groups: z.array(z.object({ id: z.string(), title: z.string(), inputIds: z.array(z.string()) })).optional(),
+    advancedInputs: z.array(z.string()).optional()
+  }).optional(),
+  marketing: z.object({
+    shortDescription: z.string().optional(),
+    thumbnailAssetId: z.string().optional()
+  }).optional()
+}).superRefine((manifest, context) => {
+  const inputIds = manifest.inputs.map((input) => input.id);
+  const operationIds = manifest.operations.map((operation) => operation.id);
+  const outputIds = manifest.outputs.map((output) => output.id);
+  if (new Set(inputIds).size !== inputIds.length) context.addIssue({ code: "custom", path: ["inputs"], message: "Recipe input ids must be unique." });
+  if (new Set(operationIds).size !== operationIds.length) context.addIssue({ code: "custom", path: ["operations"], message: "Recipe operation ids must be unique." });
+  if (new Set(outputIds).size !== outputIds.length) context.addIssue({ code: "custom", path: ["outputs"], message: "Recipe output ids must be unique." });
+  const knownInputs = new Set(inputIds);
+  manifest.preservationRules?.forEach((rule, index) => {
+    if (!knownInputs.has(rule.inputId)) context.addIssue({ code: "custom", path: ["preservationRules", index, "inputId"], message: "Preservation rule must reference a declared Recipe input." });
+  });
+});
+export type RecipeManifestSchema = z.infer<typeof recipeManifest>;
+
 export const applicationDocument = z.object({
   schemaVersion: z.number(),
   ui: puckData,
   operations: z.array(operationBinding).default([]),
   resources: z.array(resourceBinding).default([]),
   variables: z.array(variableDeclaration).default([]),
-  theme: z.object({ id: z.string() }).optional()
+  theme: z.object({ id: z.string() }).optional(),
+  recipe: recipeManifest.optional()
+}).superRefine((document, context) => {
+  if (!document.recipe) return;
+  if (document.schemaVersion < 5) context.addIssue({ code: "custom", path: ["schemaVersion"], message: "Recipe Applications require schemaVersion 5 or newer." });
+  const operationIds = new Set(document.operations.map((operation) => operation.id));
+  document.recipe.operations.forEach((operation, index) => {
+    if (!operationIds.has(operation.bindingId)) context.addIssue({ code: "custom", path: ["recipe", "operations", index, "bindingId"], message: "Recipe operation must reference an Application operation." });
+  });
 });
 export type ApplicationDocumentSchema = z.infer<typeof applicationDocument>;
 
@@ -127,6 +201,10 @@ export const applicationListItem = z.object({
   name: z.string(),
   description: z.string(),
   operationCount: z.number(),
+  /** Catalogue projection: ordinary apps return false/null without loading/executing them. */
+  isRecipe: z.boolean().default(false),
+  recipeSlug: z.string().nullable().default(null),
+  recipeCategory: z.string().nullable().default(null),
   updatedAt: z.string()
 });
 export type ApplicationListItem = z.infer<typeof applicationListItem>;

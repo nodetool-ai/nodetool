@@ -24,7 +24,86 @@ export interface PuckData {
 }
 
 /** Bumped whenever the parser needs a new branch. */
-export const APP_SCHEMA_VERSION = 4 as const;
+export const APP_SCHEMA_VERSION = 5 as const;
+/** Ordinary Applications remain v4-compatible; Recipe metadata requires v5. */
+export const BASE_APP_SCHEMA_VERSION = 4 as const;
+
+/** Versioned authoring metadata for an Application that is also a Recipe. */
+export const RECIPE_MANIFEST_SCHEMA_VERSION = 1 as const;
+
+export type RecipeInputKind =
+  | "text"
+  | "number"
+  | "boolean"
+  | "image"
+  | "video"
+  | "audio"
+  | "color"
+  | "asset"
+  | "entity"
+  | "storyboard"
+  | "timeline";
+
+export interface RecipeInput {
+  id: string;
+  label: string;
+  kind: RecipeInputKind;
+  required: boolean;
+  description?: string;
+}
+
+export interface RecipeOperationSpec {
+  /** Semantic operation id, stable across concrete workflow/script bindings. */
+  id: string;
+  /** Application operation binding that implements this intent. */
+  bindingId: string;
+  /** Human/agent-readable intent, e.g. plan_storyboard or render_stills. */
+  intent: string;
+}
+
+export interface RecipeOutputSpec {
+  id: string;
+  kind: "asset" | "storyboard" | "timeline" | "value";
+  label?: string;
+}
+
+export interface RecipePreservationRule {
+  inputId: string;
+  policy: "exact_asset" | "exact_text" | "exact_color";
+  allowedTransformations?: Array<
+    "position" | "scale" | "crop" | "rotate" | "mask" | "opacity" | "composite"
+  >;
+}
+
+export interface RecipeManifest {
+  schemaVersion: typeof RECIPE_MANIFEST_SCHEMA_VERSION;
+  slug: string;
+  category?: string;
+  tags?: string[];
+  inputs: RecipeInput[];
+  defaults?: Record<string, unknown>;
+  creativeStrategy?: {
+    objective?: string;
+    structure?: string;
+    direction?: string;
+  };
+  preservationRules?: RecipePreservationRule[];
+  mediaPolicy?: {
+    defaultStrategy?: "still_motion_graphics" | "hybrid" | "generated_video";
+    allowGeneratedVideo?: boolean;
+  };
+  operations: RecipeOperationSpec[];
+  outputs: RecipeOutputSpec[];
+  presentation?: {
+    layout?: string;
+    groups?: Array<{ id: string; title: string; inputIds: string[] }>;
+    advancedInputs?: string[];
+  };
+  marketing?: {
+    shortDescription?: string;
+    thumbnailAssetId?: string;
+  };
+}
 
 /** Where an operation input takes its value from. */
 export type InputMapping =
@@ -156,6 +235,8 @@ export interface ApplicationDocument {
   resources: ResourceBinding[];
   variables: VariableDeclaration[];
   theme?: ThemeRef;
+  /** Present only when this Application is a curated Recipe. */
+  recipe?: RecipeManifest;
 }
 
 export const createEmptyPuckData = (title?: string): PuckData => ({
@@ -165,7 +246,7 @@ export const createEmptyPuckData = (title?: string): PuckData => ({
 });
 
 export const createEmptyDocument = (title?: string): ApplicationDocument => ({
-  schemaVersion: APP_SCHEMA_VERSION,
+  schemaVersion: BASE_APP_SCHEMA_VERSION,
   ui: createEmptyPuckData(title),
   operations: [],
   resources: [],
@@ -174,6 +255,97 @@ export const createEmptyDocument = (title?: string): ApplicationDocument => ({
 
 const isPuckData = (value: unknown): value is PuckData =>
   isRecord(value) && isRecord(value.root) && Array.isArray(value.content);
+
+const recipeInputKinds = new Set<RecipeInputKind>([
+  "text", "number", "boolean", "image", "video", "audio", "color", "asset", "entity", "storyboard", "timeline"
+]);
+const recipeOutputKinds = new Set<RecipeOutputSpec["kind"]>([
+  "asset", "storyboard", "timeline", "value"
+]);
+const recipePreservationPolicies = new Set<RecipePreservationRule["policy"]>([
+  "exact_asset", "exact_text", "exact_color"
+]);
+const recipeTransforms = new Set<NonNullable<RecipePreservationRule["allowedTransformations"]>[number]>([
+  "position", "scale", "crop", "rotate", "mask", "opacity", "composite"
+]);
+
+/** Strict at the manifest boundary: malformed Recipe metadata must not masquerade as a Recipe. */
+const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
+  if (value === undefined || value === null) return undefined;
+  if (!isRecord(value) || value.schemaVersion !== RECIPE_MANIFEST_SCHEMA_VERSION || !isNonEmptyString(value.slug)) return undefined;
+  if (!Array.isArray(value.inputs) || !Array.isArray(value.operations) || !Array.isArray(value.outputs)) return undefined;
+  const inputs: RecipeInput[] = [];
+  for (const raw of value.inputs) {
+    if (!isRecord(raw) || !isNonEmptyString(raw.id) || !isNonEmptyString(raw.label) || !recipeInputKinds.has(raw.kind as RecipeInputKind) || typeof raw.required !== "boolean") return undefined;
+    inputs.push({ id: raw.id, label: raw.label, kind: raw.kind as RecipeInputKind, required: raw.required, ...(isString(raw.description) ? { description: raw.description } : {}) });
+  }
+  const operations: RecipeOperationSpec[] = [];
+  for (const raw of value.operations) {
+    if (!isRecord(raw) || !isNonEmptyString(raw.id) || !isNonEmptyString(raw.bindingId) || !isNonEmptyString(raw.intent)) return undefined;
+    operations.push({ id: raw.id, bindingId: raw.bindingId, intent: raw.intent });
+  }
+  const outputs: RecipeOutputSpec[] = [];
+  for (const raw of value.outputs) {
+    if (!isRecord(raw) || !isNonEmptyString(raw.id) || !recipeOutputKinds.has(raw.kind as RecipeOutputSpec["kind"])) return undefined;
+    outputs.push({ id: raw.id, kind: raw.kind as RecipeOutputSpec["kind"], ...(isString(raw.label) ? { label: raw.label } : {}) });
+  }
+  let preservationRules: RecipePreservationRule[] | undefined;
+  if (value.preservationRules !== undefined) {
+    if (!Array.isArray(value.preservationRules)) return undefined;
+    preservationRules = [];
+    for (const raw of value.preservationRules) {
+      if (!isRecord(raw) || !isNonEmptyString(raw.inputId) || !recipePreservationPolicies.has(raw.policy as RecipePreservationRule["policy"])) return undefined;
+      const transforms = raw.allowedTransformations;
+      if (transforms !== undefined && (!Array.isArray(transforms) || !transforms.every((item) => recipeTransforms.has(item as never)))) return undefined;
+      preservationRules.push({ inputId: raw.inputId, policy: raw.policy as RecipePreservationRule["policy"], ...(transforms ? { allowedTransformations: transforms as RecipePreservationRule["allowedTransformations"] } : {}) });
+    }
+  }
+  const inputIds = new Set(inputs.map((input) => input.id));
+  const operationIds = new Set(operations.map((operation) => operation.id));
+  const outputIds = new Set(outputs.map((output) => output.id));
+  if (inputIds.size !== inputs.length || operationIds.size !== operations.length || outputIds.size !== outputs.length) return undefined;
+  if (preservationRules?.some((rule) => !inputIds.has(rule.inputId))) return undefined;
+  const manifest: RecipeManifest = { schemaVersion: RECIPE_MANIFEST_SCHEMA_VERSION, slug: value.slug, inputs, operations, outputs };
+  if (isString(value.category)) manifest.category = value.category;
+  if (Array.isArray(value.tags) && value.tags.every(isString)) manifest.tags = value.tags;
+  if (isRecord(value.defaults)) manifest.defaults = value.defaults;
+  if (value.creativeStrategy !== undefined) {
+    if (!isRecord(value.creativeStrategy)) return undefined;
+    const { objective, structure, direction } = value.creativeStrategy;
+    if ([objective, structure, direction].some((part) => part !== undefined && !isString(part))) return undefined;
+    manifest.creativeStrategy = {
+      ...(isString(objective) ? { objective } : {}),
+      ...(isString(structure) ? { structure } : {}),
+      ...(isString(direction) ? { direction } : {})
+    };
+  }
+  if (preservationRules) manifest.preservationRules = preservationRules;
+  if (value.mediaPolicy !== undefined) {
+    if (!isRecord(value.mediaPolicy)) return undefined;
+    const strategy = value.mediaPolicy.defaultStrategy;
+    if (strategy !== undefined && strategy !== "still_motion_graphics" && strategy !== "hybrid" && strategy !== "generated_video") return undefined;
+    if (value.mediaPolicy.allowGeneratedVideo !== undefined && typeof value.mediaPolicy.allowGeneratedVideo !== "boolean") return undefined;
+    manifest.mediaPolicy = {
+      ...(strategy !== undefined ? { defaultStrategy: strategy } : {}),
+      ...(typeof value.mediaPolicy.allowGeneratedVideo === "boolean" ? { allowGeneratedVideo: value.mediaPolicy.allowGeneratedVideo } : {})
+    };
+  }
+  if (value.presentation !== undefined) {
+    if (!isRecord(value.presentation)) return undefined;
+    const { layout, groups, advancedInputs } = value.presentation;
+    if (layout !== undefined && !isString(layout)) return undefined;
+    if (advancedInputs !== undefined && (!Array.isArray(advancedInputs) || !advancedInputs.every(isString))) return undefined;
+    if (groups !== undefined && (!Array.isArray(groups) || !groups.every((group) => isRecord(group) && isString(group.id) && isString(group.title) && Array.isArray(group.inputIds) && group.inputIds.every(isString)))) return undefined;
+    manifest.presentation = value.presentation as RecipeManifest["presentation"];
+  }
+  if (value.marketing !== undefined) {
+    if (!isRecord(value.marketing)) return undefined;
+    if (value.marketing.shortDescription !== undefined && !isString(value.marketing.shortDescription)) return undefined;
+    if (value.marketing.thumbnailAssetId !== undefined && !isString(value.marketing.thumbnailAssetId)) return undefined;
+    manifest.marketing = value.marketing as RecipeManifest["marketing"];
+  }
+  return manifest;
+};
 
 /**
  * Parse one input mapping, or null when the entry is not a mapping the union
@@ -395,18 +567,30 @@ export const parseApplicationDocument = (
 
   // v3+: the native shape.
   if (isPuckData(value.ui)) {
+    const recipe = parseRecipeManifest(value.recipe);
     const schemaVersion = isNumber(value.schemaVersion)
       ? value.schemaVersion
-      : APP_SCHEMA_VERSION;
+      : recipe
+        ? APP_SCHEMA_VERSION
+        : BASE_APP_SCHEMA_VERSION;
     if (schemaVersion > APP_SCHEMA_VERSION) return null;
+    // Recipe metadata is a safety contract. Malformed or unsupported metadata
+    // must never downgrade silently to an unconstrained ordinary Application.
+    if (value.recipe !== undefined && value.recipe !== null && recipe === undefined) return null;
+    if (recipe && schemaVersion < 5) return null;
+    const operations = Array.isArray(value.operations)
+      ? value.operations
+          .map((op) => parseOperation(op, options.hostWorkflowId))
+          .filter((op): op is OperationBinding => op !== null)
+      : [];
+    if (recipe) {
+      const bindingIds = new Set(operations.map((operation) => operation.id));
+      if (recipe.operations.some((operation) => !bindingIds.has(operation.bindingId))) return null;
+    }
     return {
-      schemaVersion: APP_SCHEMA_VERSION,
+      schemaVersion,
       ui: value.ui,
-      operations: Array.isArray(value.operations)
-        ? value.operations
-            .map((op) => parseOperation(op, options.hostWorkflowId))
-            .filter((op): op is OperationBinding => op !== null)
-        : [],
+      operations,
       resources: Array.isArray(value.resources)
         ? value.resources
             .map(parseResource)
@@ -420,14 +604,15 @@ export const parseApplicationDocument = (
       theme:
         isRecord(value.theme) && isString(value.theme.id)
           ? { id: value.theme.id }
-          : undefined
+          : undefined,
+      recipe
     };
   }
 
   // v1/v2: `{ version, data }` on `workflow.app_doc`.
   if (isPuckData(value.data)) {
     return {
-      schemaVersion: APP_SCHEMA_VERSION,
+      schemaVersion: BASE_APP_SCHEMA_VERSION,
       ui: value.data,
       operations: options.hostWorkflowId
         ? [

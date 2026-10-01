@@ -23,6 +23,7 @@ import {
 } from "./puckDataOps";
 import {
   APP_SCHEMA_VERSION,
+  BASE_APP_SCHEMA_VERSION,
   addOperation,
   addResource,
   bindingTargets,
@@ -119,7 +120,8 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
       applyMeta({
         operations: document.operations,
         resources: document.resources,
-        variables: document.variables
+        variables: document.variables,
+        recipe: document.recipe
       });
     };
 
@@ -296,11 +298,12 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
         // `Data` — root props, content, zones — kept in `app-runtime` so that
         // package needs no Puck dependency. `working.current` is that document.
         const document: ApplicationDocument = {
-          schemaVersion: APP_SCHEMA_VERSION,
+          schemaVersion: metaRef.current.recipe ? APP_SCHEMA_VERSION : BASE_APP_SCHEMA_VERSION,
           ui: data as PuckData,
           operations: metaRef.current.operations,
           resources: metaRef.current.resources,
-          variables: metaRef.current.variables
+          variables: metaRef.current.variables,
+          recipe: metaRef.current.recipe
         };
         if (isString(themeId) && themeId) {
           document.theme = { id: themeId };
