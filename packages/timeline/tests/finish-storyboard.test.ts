@@ -192,4 +192,11 @@ describe("Storyboard finishing", () => {
     expect(restricted.validation).toEqual([]);
   });
 
+  it("reports manual visibility changes instead of silently unhiding required layers", () => {
+    const args = input();
+    const first = materializeStoryboard(args);
+    first.document.clips.find((clip) => clip.storyboardElementId === "product")!.hidden = true;
+    expect(materializeStoryboard({ ...args, current: first.document }).validation.some((issue) => issue.code === "manual_conflict")).toBe(true);
+  });
+
 });

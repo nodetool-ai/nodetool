@@ -33,6 +33,7 @@ const baseline = (clip: TimelineClip): string => JSON.stringify({
   textStyle: clip.textStyle,
   shapeStyle: clip.shapeStyle,
   opacity: clip.opacity,
+  hidden: clip.hidden,
   matte: clip.matte,
   crop: clip.crop,
   effects: clip.effects,
@@ -192,7 +193,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
         try { prior = previous.storyboardMaterializationBaseline ? JSON.parse(previous.storyboardMaterializationBaseline) as Record<string, unknown> : undefined; } catch { /* Unrecognized ownership is an explicit conflict below. */ }
         if (!prior) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Layer ${key} has no valid materializer baseline.` });
         else {
-          if (!same(previous.currentAssetId, prior.currentAssetId) || !same(previous.textStyle?.text, prior.text) || !same(previous.textStyle?.color ?? previous.shapeStyle?.fill, prior.color) || !same(previous.textStyle, prior.textStyle) || !same(previous.shapeStyle, prior.shapeStyle) || !same(previous.opacity, prior.opacity) || !same(previous.matte, prior.matte) || !same(previous.crop, prior.crop) || !same(previous.effects, prior.effects) || !same(previous.parentId, prior.parentId)) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Source or exact copy was manually changed on ${key}.` });
+          if (!same(previous.currentAssetId, prior.currentAssetId) || !same(previous.textStyle?.text, prior.text) || !same(previous.textStyle?.color ?? previous.shapeStyle?.fill, prior.color) || !same(previous.textStyle, prior.textStyle) || !same(previous.shapeStyle, prior.shapeStyle) || !same(previous.opacity, prior.opacity) || !same(previous.hidden, prior.hidden) || !same(previous.matte, prior.matte) || !same(previous.crop, prior.crop) || !same(previous.effects, prior.effects) || !same(previous.parentId, prior.parentId)) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Source or exact copy was manually changed on ${key}.` });
           if (!same(previous.transform, prior.transform)) clip.transform = previous.transform;
           if (!same(previous.startMs, prior.startMs)) clip.startMs = previous.startMs;
           if (!same(previous.durationMs, prior.durationMs)) clip.durationMs = previous.durationMs;
