@@ -175,6 +175,130 @@ describe("script link fields", () => {
   });
 });
 
+describe("motion graphics intent", () => {
+  const graphics = {
+    mode: "hybrid" as const,
+    direction: "Keep the packshot centered while the offer builds around it.",
+    elements: [
+      {
+        id: "headline",
+        kind: "text" as const,
+        role: "headline" as const,
+        text: "NEW DROP",
+        direction: "Reveal from behind the product."
+      },
+      {
+        id: "logo",
+        kind: "asset" as const,
+        role: "logo" as const,
+        asset_id: "asset-logo",
+        entity_id: "entity-brand",
+        direction: "Hold bottom right."
+      }
+    ]
+  };
+
+  const motionDesign = {
+    direction: "One continuous yellow line ties the cut together.",
+    transitions: [
+      {
+        from_shot_id: "shot-a",
+        to_shot_id: "shot-b",
+        direction: "Carry the line through the cut."
+      }
+    ],
+    continuities: [
+      {
+        id: "yellow-line",
+        shot_ids: ["shot-a", "shot-b"],
+        direction: "Persist across both shots."
+      }
+    ]
+  };
+
+  it("normalizes and round-trips shot graphics plus board motion design", () => {
+    const play = normalizeStoryboardScreenplay({
+      type: "screenplay",
+      title: "Product drop",
+      motionDesign,
+      shots: [
+        {
+          id: "shot-a",
+          action: "A faithful product packshot on a clean studio background",
+          graphics
+        },
+        {
+          id: "shot-b",
+          action: "The same product against a color field"
+        }
+      ]
+    });
+
+    expect(play.motion_design).toEqual(motionDesign);
+    expect(play.shots[0].graphics).toEqual(graphics);
+    expect(storyboardScreenplay.parse(play)).toEqual(play);
+  });
+
+  it("preserves graphics intent through the storyboard document schema", () => {
+    const play = normalizeStoryboardScreenplay({
+      type: "screenplay",
+      title: "Product drop",
+      motion_design: motionDesign,
+      shots: [
+        {
+          id: "shot-a",
+          action: "Product hero",
+          graphics
+        }
+      ]
+    });
+    const doc = storyboardDocument.parse({
+      screenplay: play,
+      shots: play.shots,
+      brief: "Launch the product",
+      style: "minimal studio",
+      entityIds: ["entity-brand"],
+      aspectRatio: "9:16",
+      directorModel: null,
+      imageModel: null,
+      videoModel: null
+    });
+
+    expect(doc.screenplay?.motion_design).toEqual(motionDesign);
+    expect(doc.shots[0].graphics?.elements?.[0]).toMatchObject({
+      id: "headline",
+      kind: "text",
+      text: "NEW DROP"
+    });
+  });
+
+  it("rejects malformed cross-shot and graphics contracts", () => {
+    expect(() =>
+      normalizeStoryboardScreenplay({
+        type: "screenplay",
+        title: "Broken motion",
+        motionDesign: {
+          transitions: [{ from_shot_id: "shot-a" }]
+        },
+        shots: [{ action: "Product hero" }]
+      })
+    ).toThrow(/motion_design/);
+
+    expect(() =>
+      normalizeStoryboardScreenplay({
+        type: "screenplay",
+        title: "Broken graphics",
+        shots: [
+          {
+            action: "Product hero",
+            graphics: { mode: "cinematic_magic" }
+          }
+        ]
+      })
+    ).toThrow(/graphics/);
+  });
+});
+
 describe("normalizeStoryboardShot", () => {
   it("fills in what the save requires", () => {
     const shot = normalizeStoryboardShot(
