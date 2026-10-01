@@ -437,6 +437,44 @@ describe("storyboards capability behaviour", () => {
     expect(saved?.toDocument().shots[0].graphics).toEqual(graphics);
   });
 
+  it("edits and reads per-shot social-ad production policy", async () => {
+    const board = await makeBoard([shot({ id: "s1", index: 0 })]);
+    const policy = {
+      media_strategy: "still_motion_graphics",
+      protected_inputs: [
+        {
+          id: "packshot",
+          kind: "product",
+          asset_id: "asset-product",
+          allowed_transformations: ["position", "scale", "crop", "composite"]
+        },
+        {
+          id: "price",
+          kind: "exact_text",
+          value: "€29",
+          allowed_transformations: ["position", "scale"]
+        }
+      ]
+    };
+
+    expect(
+      await run(ctx()).invoke("edit_storyboard", {
+        storyboard_id: board.id,
+        ops: [{ op: "update_shot", target: "s1", production: policy }]
+      })
+    ).toMatchObject({ applied: 1, failed: 0 });
+
+    const read = (await run(ctx()).invoke("get_storyboard", {
+      storyboard_id: board.id
+    })) as { shots: Array<{ id: string; production?: unknown }> };
+    expect(read.shots.find((entry) => entry.id === "s1")?.production).toEqual(
+      policy
+    );
+    expect((await Storyboard.findById(board.id))?.toDocument().shots[0].production).toEqual(
+      policy
+    );
+  });
+
   it("refuses malformed storyboard graphics intent without saving it", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })]);
     const before = board.toDocument();
