@@ -267,9 +267,10 @@ still is reported in the results, not rendered — render its still first, or se
 `{"op": "add_shot", ...}` · `update_shot {target, ...}` · `remove_shot {target}` ·
 `reorder_shot {target, index}` · `set_board {...}`
 
-Shot fields (add and update both): `action`, `slug`, `camera`, `motion`, `dialogue`,
+Shot fields (add and update both): `action`, `slug`, `camera`, `motion`, `graphics`, `dialogue`,
 `narration`, `notes`, `duration_seconds`, `duration_source` (`audio`\|`manual`),
-`render_mode` (`keyframe`\|`direct`), `entity_ids`, `location_id`, `covered_by`, `index`.
+`render_mode` (`keyframe`\|`direct`\|`reference`), `entity_ids`, `location_id`, `covered_by`, `index`.
+`graphics` is semantic design intent (`mode`, `direction`, exact text/assets in `elements`), not Timeline keyframes; pass `null` on `update_shot` to clear it.
 
 `camera` is `{framing?, lens?, angle?, movement?}`.
 
