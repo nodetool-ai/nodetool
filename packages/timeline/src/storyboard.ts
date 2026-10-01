@@ -19,7 +19,7 @@
  * player, where a board that is only half rendered still has to play.
  */
 
-import type { Shot } from "@nodetool-ai/protocol";
+import type { ProductionRequirement, Shot } from "@nodetool-ai/protocol";
 import { createTimeOrderedUuid, makeClip, makeTrack } from "./defaults.js";
 import type { TimelineClip, TimelineTrack } from "./types.js";
 
@@ -88,6 +88,7 @@ export interface StoryboardAssemblyInput {
   /** Board id stamped onto each clip, linking the cut back to the board. */
   boardId: string;
   shots: Shot[];
+  production?: ProductionRequirement;
   /** Voiceover script, laid across the full cut as one draft audio clip. */
   narration?: string | null;
   /** Score direction, laid across the full cut as one draft audio clip. */
@@ -146,6 +147,28 @@ const assetIdOf = (ref: { asset_id?: string | null } | null | undefined) =>
   ref?.asset_id != null && ref.asset_id.length > 0
     ? ref.asset_id
     : undefined;
+
+export type ResolvedShotSource =
+  | { kind: "still"; assetId: string }
+  | { kind: "video"; assetId: string }
+  | { kind: "graphics" };
+
+/** Policy determines the source before old rendered media is considered. */
+export function resolveShotSource(shot: Shot, boardProduction?: ProductionRequirement): ResolvedShotSource | null {
+  const strategy = shot.production?.media_strategy ?? boardProduction?.media_strategy;
+  const still = assetIdOf(shot.keyframe);
+  const video = assetIdOf(shot.clip);
+  if (strategy !== "still_motion_graphics" && video) {
+    return { kind: "video", assetId: video };
+  }
+  if (strategy !== "generated_video" && still) {
+    return { kind: "still", assetId: still };
+  }
+  if (strategy !== "generated_video" && shot.graphics?.mode === "graphics_first") {
+    return { kind: "graphics" };
+  }
+  return null;
+}
 
 /** Clip length a shot was directed at: its target duration, or the default. */
 export const shotDurationMs = (shot: Shot): number =>
@@ -378,11 +401,13 @@ export function buildStoryboardTimeline(
 ): AssembledTimeline {
   const ordered = [...input.shots].sort((a, b) => a.index - b.index);
   const sources = shotSources(input.shots);
+  const resolvedSources = new Map(input.shots.map((shot) => [shot.id, resolveShotSource(shot, input.production)]));
   const assemblable = ordered.filter((shot) =>
-    sources.get(shot.id) != null || assetIdOf(shot.keyframe) !== undefined
+    resolvedSources.get(shot.id) != null || (shot.production?.media_strategy ?? input.production?.media_strategy) !== "still_motion_graphics" && sources.get(shot.id) != null
   );
+  const assemblableIds = new Set(assemblable.map((shot) => shot.id));
   const skippedShotIds = ordered
-    .filter((shot) => sources.get(shot.id) == null && assetIdOf(shot.keyframe) === undefined)
+    .filter((shot) => !assemblableIds.has(shot.id))
     .map((shot) => shot.id);
 
   const shotTrack = makeTrack({ type: "video", name: "Shots", index: 0 });
@@ -397,8 +422,13 @@ export function buildStoryboardTimeline(
   let cursorMs = 0;
   const retimedShots: RetimedShot[] = [];
   for (const shot of assemblable) {
-    const source = sources.get(shot.id) ?? null;
-    const stillAssetId = source ? undefined : assetIdOf(shot.keyframe);
+    const resolved = resolvedSources.get(shot.id);
+    if (resolved?.kind === "graphics") {
+      cursorMs += shotDurationMs(shot);
+      continue;
+    }
+    const source = resolved?.kind === "still" ? null : sources.get(shot.id) ?? null;
+    const stillAssetId = resolved?.kind === "still" ? resolved.assetId : undefined;
     const layout = source
       ? layoutShot(shot, source)
       : { durationMs: shotDurationMs(shot), directedMs: shotDurationMs(shot) };
@@ -505,6 +535,7 @@ export interface StoryboardPreviewInput {
   /** Board id stamped onto each clip. */
   boardId: string;
   shots: Shot[];
+  production?: ProductionRequirement;
 }
 
 export interface StoryboardPreviewTimeline {
@@ -550,9 +581,14 @@ export function buildStoryboardPreviewTimeline(
   const sources = shotSources(input.shots, { requireRendered: false });
   let cursorMs = 0;
   for (const shot of ordered) {
-    const source = sources.get(shot.id) ?? null;
+    const resolved = resolveShotSource(shot, input.production);
+    if (resolved?.kind === "graphics") {
+      cursorMs += shotDurationMs(shot);
+      continue;
+    }
+    const source = resolved?.kind === "still" || (shot.production?.media_strategy ?? input.production?.media_strategy) === "still_motion_graphics" ? null : sources.get(shot.id) ?? null;
     const clipAssetId = source?.assetId;
-    const stillAssetId = clipAssetId ? undefined : assetIdOf(shot.keyframe);
+    const stillAssetId = resolved?.kind === "still" ? resolved.assetId : undefined;
     const assetId = clipAssetId ?? stillAssetId;
     if (!assetId) {
       skippedShotIds.push(shot.id);

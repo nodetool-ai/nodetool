@@ -22,7 +22,7 @@
  * did, and this is a third function rather than a branch inside either.
  */
 
-import type { Shot } from "@nodetool-ai/protocol";
+import type { ProductionRequirement, Shot } from "@nodetool-ai/protocol";
 import { createTimeOrderedUuid, makeClip, makeTrack } from "./defaults.js";
 import {
   currentTake,
@@ -40,6 +40,7 @@ import {
   shotAudioClip,
   shotDurationMs,
   shotSources,
+  resolveShotSource,
   type AssembledTimeline,
   type TrimmedShot
 } from "./storyboard.js";
@@ -49,6 +50,7 @@ export interface LinkedAssemblyInput {
   /** Board id stamped onto every clip, linking the cut back to the board. */
   boardId: string;
   shots: Shot[];
+  production?: ProductionRequirement;
   /** Score direction, laid across the full cut as one draft audio clip. */
   musicPrompt?: string | null;
   /** The linked script: the words, the cast, and the id to stamp. */
@@ -88,12 +90,10 @@ export function buildLinkedTimeline(
   const trimmedShots: TrimmedShot[] = [];
   for (const shot of ordered) {
     const lineIds = shot.script_line_ids ?? [];
-    const source = sources.get(shot.id) ?? null;
-    const stillAssetId =
-      !source && typeof shot.keyframe?.asset_id === "string" && shot.keyframe.asset_id
-        ? shot.keyframe.asset_id
-        : undefined;
-    if (!source && !stillAssetId) {
+    const resolved = resolveShotSource(shot, input.production);
+    const source = resolved?.kind === "still" || resolved?.kind === "graphics" || (shot.production?.media_strategy ?? input.production?.media_strategy) === "still_motion_graphics" ? null : sources.get(shot.id) ?? null;
+    const stillAssetId = resolved?.kind === "still" ? resolved.assetId : undefined;
+    if (!source && !stillAssetId && resolved?.kind !== "graphics") {
       skippedShotIds.push(shot.id);
       skippedLineIds.push(...lineIds);
       continue;
@@ -136,7 +136,7 @@ export function buildLinkedTimeline(
       videoClip.inPointMs = source.inPointMs;
       videoClip.outPointMs = source.inPointMs + durationMs;
     }
-    clips.push(videoClip);
+    if (resolved?.kind !== "graphics") clips.push(videoClip);
     if (source) clips.push(shotAudioClip(videoClip, shotAudioTrack.id));
     cursorMs += durationMs;
 

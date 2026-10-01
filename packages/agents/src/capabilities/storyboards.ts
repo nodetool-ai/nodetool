@@ -1203,10 +1203,10 @@ const assembleStoryboardTimeline: CapabilityExport = {
           `Re-render those shots at the length their lines need.`
       );
     }
-    if (assembled.clips.length === 0) {
+    if (assembled.durationMs === 0) {
       return {
         error:
-          "No shot has a rendered clip, so there is nothing to assemble. Run render_storyboard_stills, then render_storyboard_clips.",
+          "No shot has an allowed still, video, or graphics source. Add graphics intent or use render_storyboard_stills / render_storyboard_clips where allowed by the shot production policy.",
         skipped_shot_ids: assembled.skippedShotIds,
         skipped_line_ids: skippedLineIds
       };

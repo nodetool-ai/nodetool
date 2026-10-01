@@ -8,6 +8,7 @@
  * remain the deep behavioural net.
  */
 
+import { productionRequirement } from "@nodetool-ai/protocol";
 import { withGenerationSeam } from "./_helpers/generation-seam.js";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -468,10 +469,10 @@ describe("storyboards capability behaviour", () => {
       storyboard_id: board.id
     })) as { shots: Array<{ id: string; production?: unknown }> };
     expect(read.shots.find((entry) => entry.id === "s1")?.production).toEqual(
-      policy
+      productionRequirement.parse(policy)
     );
     expect((await Storyboard.findById(board.id))?.toDocument().shots[0].production).toEqual(
-      policy
+      productionRequirement.parse(policy)
     );
   });
 

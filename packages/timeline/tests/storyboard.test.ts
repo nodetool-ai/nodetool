@@ -8,6 +8,7 @@ import {
   DEFAULT_SHOT_MS,
   buildStoryboardPreviewTimeline,
   buildStoryboardTimeline,
+  resolveShotSource,
   frameSizeForAspect
 } from "../src/storyboard.js";
 import type { AssembledTimeline } from "../src/storyboard.js";
@@ -755,6 +756,7 @@ describe("scenes do not change the cut", () => {
     expect(pictureClips(unscened.clips).map((c) => c.storyboardShotId)).toEqual([
       "s0",
       "s1",
+      "s2",
       "s3",
       "s4",
       "s5",
@@ -765,13 +767,14 @@ describe("scenes do not change the cut", () => {
     ).toEqual([
       [0, 5184],
       [5184, 2000],
-      [7184, 1250],
-      [8434, 2750],
-      [11184, 3000],
-      [14184, 2200]
+      [7184, 3000],
+      [10184, 1250],
+      [11434, 2750],
+      [14184, 3000],
+      [17184, 2200]
     ]);
-    expect(unscened.durationMs).toBe(16384);
-    expect(unscened.skippedShotIds).toEqual(["s2", "s6"]);
+    expect(unscened.durationMs).toBe(19384);
+    expect(unscened.skippedShotIds).toEqual(["s6"]);
     expect(unscened.tracks.map((t) => t.name)).toEqual([
       "Shots",
       "Shot Audio",
@@ -818,6 +821,7 @@ describe("scenes do not change the cut", () => {
       "s5",
       "s4",
       "s3",
+      "s2",
       "s1",
       "s0"
     ]);
@@ -826,3 +830,29 @@ describe("scenes do not change the cut", () => {
     );
   });
 });
+
+ describe("policy source selection", () => {
+ it("uses the still instead of stale video in assembly and preview", () => {
+ const shot = makeShot({id:"s",index:0,clip:clipRef("stale"),keyframe:keyframeRef("exact")});
+ const input = {boardId:"b",shots:[shot],production:{media_strategy:"still_motion_graphics" as const}};
+ expect(resolveShotSource(shot,input.production)).toEqual({kind:"still",assetId:"exact"});
+ for (const build of [buildStoryboardTimeline,buildStoryboardPreviewTimeline]) {
+ const result=build(input);
+ expect(result.clips).toHaveLength(1);
+ expect(result.clips[0]).toMatchObject({mediaType:"image",currentAssetId:"exact"});
+ }
+ });
+ it("reserves graphics-only shot timing without inventing a source", () => {
+ const shot=makeShot({id:"g",index:0,graphics:{mode:"graphics_first",elements:[]}});
+ expect(resolveShotSource(shot)).toEqual({kind:"graphics"});
+ const result=buildStoryboardTimeline({boardId:"b",shots:[shot]});
+ expect(result.durationMs).toBe(DEFAULT_SHOT_MS);
+ expect(result.skippedShotIds).toEqual([]);
+ expect(result.clips).toEqual([]);
+ });
+ it("does not substitute a still for an explicit generated-video strategy",()=>{
+ const shot=makeShot({id:"s",index:0,keyframe:keyframeRef("still"),production:{media_strategy:"generated_video"}});
+ expect(resolveShotSource(shot)).toBeNull();
+ expect(buildStoryboardTimeline({boardId:"b",shots:[shot]}).skippedShotIds).toEqual(["s"]);
+ });
+ });
