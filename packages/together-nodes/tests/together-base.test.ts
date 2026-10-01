@@ -9,6 +9,9 @@ import {
   togetherTranscribe
 } from "../src/together-base.js";
 
+import { ProcessingContext } from "@nodetool-ai/runtime";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
+
 const originalFetch = global.fetch;
 
 afterEach(() => {
@@ -80,8 +83,65 @@ describe("resolveAssetBytes", () => {
       { storage, resolveAssetBytes: resolve } as never,
       "image"
     );
-    expect(resolve).toHaveBeenCalledWith("asset://asset-123");
+    expect(resolve).toHaveBeenCalledWith("asset://asset-123", { requireOwnedAsset: true });
     expect(Array.from(out!)).toEqual([137, 80, 78, 71]);
+  });
+
+  it.each(["file:///etc/passwd", "/etc/passwd", "C:\\secret.png", "/api/storage/../../etc/passwd", "/api/storage/%2e%2e%2fsecret"])(
+    "denies local source %s before consulting permissive storage", async (uri) => {
+      const retrieve = vi.fn().mockResolvedValue(new Uint8Array([1]));
+      await expect(resolveAssetBytes({ uri }, { storage: { retrieve } }, "image"))
+        .rejects.toThrow("Cannot resolve");
+      expect(retrieve).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([{ asset_id: "owned" }, { uri: "asset://owned" }, { uri: "package://core/test.png" }])(
+    "routes reference %j through owned canonical resolution", async (ref) => {
+      const resolve = vi.fn().mockResolvedValue({ bytes: new Uint8Array([8]) });
+      expect(await resolveAssetBytes(ref, { resolveAssetBytes: resolve }, "image"))
+        .toEqual(new Uint8Array([8]));
+      expect(resolve).toHaveBeenCalledWith(ref.uri ?? "asset://owned", { requireOwnedAsset: true });
+    }
+  );
+
+  it("does not bypass a foreign asset denial through storage", async () => {
+    const retrieve = vi.fn().mockResolvedValue(new Uint8Array([1]));
+    expect(await resolveAssetBytes({ asset_id: "foreign" }, {
+      resolveAssetBytes: vi.fn().mockResolvedValue({ bytes: null }), storage: { retrieve }
+    }, "image")).toBeNull();
+    expect(retrieve).not.toHaveBeenCalled();
+  });
+
+  it("uses canonical percent-encoded data URI decoding", async () => {
+    expect(await resolveAssetBytes({ data: "data:text/plain,hello%20world" }, undefined, "audio"))
+      .toEqual(new TextEncoder().encode("hello world"));
+    expect(await resolveAssetBytes({ data: "data:text/plain,%invalid" }, undefined, "audio"))
+      .toBeNull();
+  });
+
+  it.each(["owner/owned.wav", "owned.wav", "owned.bin"])(
+    "resolves stored layout %s through ProcessingContext", async (key) => {
+      const storage = new InMemoryStorageAdapter();
+      await storage.store(key, new Uint8Array([7]));
+      const context = new ProcessingContext({
+        jobId: "together-media", userId: "owner", storage,
+        modelInterfaces: { getAssetInfo: async ({ assetId }) => assetId === "owned"
+          ? { id: "owned", name: "tone.wav", content_type: "audio/wav", metadata: null }
+          : null }
+      });
+      expect(await resolveAssetBytes({ asset_id: "owned" }, context, "audio"))
+        .toEqual(new Uint8Array([7]));
+    }
+  );
+
+  it("rejects a public URL redirecting to private HTTP", async () => {
+    global.fetch = vi.fn(async () => new Response(null, {
+      status: 302, headers: { location: "http://127.0.0.1/private" }
+    }));
+    await expect(resolveAssetBytes({ uri: "https://cdn.example.org/a.png" }, undefined, "image"))
+      .rejects.toThrow();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it("fetches a public https url ref", async () => {
@@ -118,6 +178,8 @@ describe("resolveAssetBytes", () => {
       "http://[::1]/a.png",
       "http://[::ffff:127.0.0.1]/a.png",
       "http://[fe80::1]/a.png",
+      "http://[fe90::1]/a.png",
+      "http://[64:ff9b::7f00:1]/a.png",
       "http://[fc00::1]/a.png"
     ];
     for (const uri of blocked) {

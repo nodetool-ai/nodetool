@@ -1,6 +1,7 @@
 /** Together node auth, media adaptation, and video/transcription executors. */
 
-import { fetchExternalMedia } from "@nodetool-ai/runtime";
+import { fetchExternalMedia, loadMediaRefBytes } from "@nodetool-ai/runtime";
+import { isBlockedIpLiteral } from "@nodetool-ai/runtime/safe-url";
 import {
   togetherImage,
   togetherSpeech,
@@ -54,86 +55,10 @@ export function isSafeHttpUrl(uri: string): boolean {
   return !isPrivateOrLocalHost(u.hostname);
 }
 
-function parseIpComponent(part: string): number | null {
-  if (/^0x[0-9a-f]+$/i.test(part)) return parseInt(part.slice(2), 16);
-  if (/^0[0-7]+$/.test(part)) return parseInt(part, 8);
-  if (/^[0-9]+$/.test(part)) return parseInt(part, 10);
-  return null;
-}
-
-function ipv4ToOctets(host: string): [number, number, number, number] | null {
-  const parts = host.split(".");
-  if (parts.length === 0 || parts.length > 4) return null;
-  const nums: number[] = [];
-  for (const part of parts) {
-    const n = parseIpComponent(part);
-    if (n === null || n < 0) return null;
-    nums.push(n);
-  }
-
-  const n = nums.length;
-  for (let i = 0; i < n - 1; i++) {
-    if (nums[i] > 0xff) return null;
-  }
-  const tailOctets = 4 - (n - 1);
-  const tail = nums[n - 1];
-  if (tail < 0 || tail > 0xffffffff || tail >= 2 ** (tailOctets * 8)) {
-    return null;
-  }
-
-  let value = tail;
-  for (let i = 0; i < n - 1; i++) {
-    value += nums[i] * 256 ** (3 - i);
-  }
-  return [
-    (value >>> 24) & 0xff,
-    (value >>> 16) & 0xff,
-    (value >>> 8) & 0xff,
-    value & 0xff
-  ];
-}
-
-function mappedIpv4ToOctets(
-  host: string
-): [number, number, number, number] | null {
-  const dotted = /^::(?:ffff:)?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i.exec(
-    host
-  );
-  if (dotted) return ipv4ToOctets(dotted[1]);
-
-  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i.exec(host);
-  if (hex) {
-    const hi = parseInt(hex[1], 16);
-    const lo = parseInt(hex[2], 16);
-    return [(hi >> 8) & 0xff, hi & 0xff, (lo >> 8) & 0xff, lo & 0xff];
-  }
-  return null;
-}
-
-function isPrivateV4(octets: [number, number, number, number]): boolean {
-  const [o1, o2] = octets;
-  if (o1 === 0) return true;
-  if (o1 === 10) return true;
-  if (o1 === 127) return true;
-  if (o1 === 169 && o2 === 254) return true;
-  if (o1 === 172 && o2 >= 16 && o2 <= 31) return true;
-  if (o1 === 192 && o2 === 168) return true;
-  if (o1 === 100 && o2 >= 64 && o2 <= 127) return true;
-  return false;
-}
-
 function isPrivateOrLocalHost(hostname: string): boolean {
-  let h = hostname.toLowerCase();
-  if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1);
-  if (h === "" || h === "localhost" || h.endsWith(".localhost")) return true;
-
-  const octets = ipv4ToOctets(h) ?? mappedIpv4ToOctets(h);
-  if (octets) return isPrivateV4(octets);
-
-  if (h === "::1" || h === "::") return true;
-  if (h.startsWith("fe80:") || h.startsWith("fe80::")) return true;
-  if (/^f[cd][0-9a-f]{2}:/i.test(h)) return true;
-  return false;
+  const host = hostname.toLowerCase();
+  return host === "" || host === "localhost" || host.endsWith(".localhost") ||
+    isBlockedIpLiteral(host);
 }
 
 export type AssetKind = "image" | "audio" | "video";
@@ -152,72 +77,55 @@ export interface AssetResolveContext {
    * is the only path that resolves them. SSRF-safe (resolves from storage / the
    * configured server, never an attacker-controlled host).
    */
-  resolveAssetBytes?: (uri: string) => Promise<{ bytes: Uint8Array | null }>;
+  resolveAssetBytes?: (
+    uri: string,
+    options?: { requireOwnedAsset?: boolean }
+  ) => Promise<{ bytes: Uint8Array | null }>;
 }
 
-function decodeBase64(data: string): Uint8Array {
-  // Accept both raw base64 and `data:<mime>;base64,<...>` forms.
-  const comma = data.indexOf(",");
-  const raw =
-    data.startsWith("data:") && comma >= 0 ? data.slice(comma + 1) : data;
-  return Uint8Array.from(Buffer.from(raw, "base64"));
-}
-
-/**
- * Resolve a NodeTool asset ref (ImageRef / AudioRef / VideoRef) to raw bytes.
- * Order: inline data → storage.retrieve(uri) → SSRF-guarded fetch(uri).
- * Returns null when the ref carries no usable source.
- */
+/** Resolve Together inputs through runtime interpretation with local files denied. */
 export async function resolveAssetBytes(
   ref: NodeValue,
   context: AssetResolveContext | undefined,
   kind: AssetKind
 ): Promise<Uint8Array | null> {
   if (ref === null || ref === undefined) return null;
-
   if (isString(ref)) {
-    if (ref === "") return null;
     return isSafeHttpUrl(ref) ? fetchBytes(ref) : null;
   }
-  // Anything that is not a keyed ref (a number, a list) carries no source.
   if (!isRecord(ref)) return null;
 
-  const data = ref.data;
-  if (isNonEmptyString(data)) return decodeBase64(data);
-  if (data instanceof Uint8Array && data.byteLength > 0) return data;
-
   const uri = isString(ref.uri) ? ref.uri : "";
-  // Empty placeholder ref (no uri, no data) → treat as "no asset provided" so
-  // the caller can surface a clear "<field> is required" error instead.
-  if (uri.length === 0) return null;
-
-  // Reference URIs (`asset://<id>`, `package://<pkg>/<path>`) are not known to
-  // storage adapters — only the ProcessingContext resolver handles them.
-  if (
-    (uri.startsWith("asset://") || uri.startsWith("package://")) &&
-    context?.resolveAssetBytes
-  ) {
-    const { bytes } = await context.resolveAssetBytes(uri);
-    if (bytes) return new Uint8Array(bytes);
-  }
-
-  if (context?.storage) {
-    try {
-      const bytes = await context.storage.retrieve(uri);
-      if (bytes && bytes.byteLength > 0) return new Uint8Array(bytes);
-    } catch {
-      /* fall through to direct fetch */
-    }
-  }
-  if (isSafeHttpUrl(uri)) {
-    return fetchBytes(uri);
-  }
-
-  // A uri was supplied but can't be safely fetched (private/loopback/metadata
-  // host, or an unresolvable relative path with no storage) — fail loudly.
-  throw new Error(
+  const assetId = isString(ref.asset_id) ? ref.asset_id : undefined;
+  const data = ref.data;
+  const inline = isNonEmptyString(data) ||
+    (data instanceof Uint8Array && data.byteLength > 0);
+  const cannotResolve = () => new Error(
     `Cannot resolve ${kind} asset for Together — '${uri}' is not a fetchable URL`
   );
+  if (!inline && /^https?:/.test(uri) && !isSafeHttpUrl(uri)) {
+    throw cannotResolve();
+  }
+  const bytes = await loadMediaRefBytes(
+    { uri, asset_id: assetId, data, type: kind },
+    {
+      resolveAssetBytes: context?.resolveAssetBytes?.bind(context),
+      storage: context?.storage ? {
+        retrieve: async (source) => {
+          try {
+            const stored = await context.storage?.retrieve(source);
+            return stored && stored.byteLength > 0 ? stored : null;
+          } catch {
+            return null;
+          }
+        }
+      } : undefined
+    },
+    { allowLocalFile: false, fetchHttp: fetchBytes }
+  );
+  if (bytes && bytes.byteLength > 0) return bytes;
+  if (!uri || inline) return null;
+  throw cannotResolve();
 }
 
 async function fetchBytes(

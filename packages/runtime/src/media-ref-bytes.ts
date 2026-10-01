@@ -1,6 +1,5 @@
 import { isPackageAssetUri, isRawRgbaImage } from "@nodetool-ai/protocol";
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
-import type { ProcessingContext } from "./context.js";
 import { fetchExternalMedia } from "./external-media-fetch.js";
 import { encodeRawRgbaToPng } from "./image-codec.js";
 import { isNonEmptyString } from "@nodetool-ai/protocol";
@@ -67,6 +66,24 @@ export type MediaRefValue = {
   height?: number;
 };
 
+/** Byte sources needed by the shared resolver, without a full processing context. */
+export interface MediaRefContext {
+  storage?: {
+    retrieve(uri: string): Promise<Uint8Array | null> | Uint8Array | null;
+  } | null;
+  resolveAssetBytes?: (
+    uri: string,
+    options?: { requireOwnedAsset?: boolean }
+  ) => Promise<{ bytes: Uint8Array | null }>;
+}
+
+/** Caller-specific access and HTTP error behavior. Defaults retain runtime behavior. */
+export interface MediaRefByteOptions {
+  allowLocalFile?: boolean;
+  /** Must enforce media URL and redirect policy, as fetchExternalMedia does. */
+  fetchHttp?: (uri: string) => Promise<Uint8Array | null>;
+}
+
 const ASSET_ID_EXTENSION_CANDIDATES: Record<string, string[]> = {
   image: ["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"],
   audio: ["wav", "mp3", "ogg", "m4a", "aac", "flac"],
@@ -132,7 +149,8 @@ async function readUriBytes(uri: string): Promise<Uint8Array | null> {
  */
 export async function loadMediaRefBytes(
   value: MediaRefValue,
-  context?: ProcessingContext
+  context?: MediaRefContext,
+  options: MediaRefByteOptions = {}
 ): Promise<Uint8Array | null> {
   if (isRawRgbaImage(value)) {
     return encodeRawRgbaToPng(value.data, value.width, value.height);
@@ -151,18 +169,31 @@ export async function loadMediaRefBytes(
     return null;
   }
 
-  if (uri && (uri.startsWith("asset://") || isPackageAssetUri(uri)) && context) {
+  if (
+    uri && (uri.startsWith("asset://") || isPackageAssetUri(uri)) &&
+    context?.resolveAssetBytes
+  ) {
     const { bytes } = await context.resolveAssetBytes(uri, {
       requireOwnedAsset: true
     });
     return bytes;
   }
 
-  if (!uri && value.asset_id && context) {
+  if (!uri && value.asset_id && context?.resolveAssetBytes) {
     const { bytes } = await context.resolveAssetBytes(`asset://${value.asset_id}`, {
       requireOwnedAsset: true
     });
     return bytes;
+  }
+
+  // A storage adapter may read local paths itself. Reject before consulting it.
+  if (
+    uri && options.allowLocalFile === false &&
+    (uri.startsWith("file://") ||
+      (isAbsoluteFilePath(uri) &&
+        !/^\/api\/storage\/[A-Za-z0-9_-][A-Za-z0-9_.-]*$/.test(uri)))
+  ) {
+    return null;
   }
 
   if (context?.storage) {
@@ -191,12 +222,17 @@ export async function loadMediaRefBytes(
     return null;
   }
 
-  const fromUri = await readUriBytes(uri);
+  const fromUri = options.allowLocalFile === false && !uri.startsWith("data:")
+    ? null
+    : await readUriBytes(uri);
   if (fromUri !== null) {
     return fromUri;
   }
 
   if (uri.startsWith("http://") || uri.startsWith("https://")) {
+    if (options.fetchHttp) {
+      return options.fetchHttp(uri);
+    }
     // Last resort, and the only branch that opens a socket: the uri is caller
     // data, so it goes through the media-ref egress policy rather than a bare
     // fetch. A refusal throws and lands in the catch, which is this function's
