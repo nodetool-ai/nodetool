@@ -187,14 +187,14 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
       type: "array",
       description:
         'Operations in order. Each is {"op": <name>, ...arguments}: ' +
-        "add_shot {action, slug?, camera?, motion?, graphics?, dialogue?, narration?, " +
+        "add_shot {action, slug?, camera?, motion?, dialogue?, narration?, " +
         "duration_seconds?, duration_source?, render_mode?, entity_ids?, " +
         "location_id?, covered_by?, notes?, index?}, " +
         "update_shot {target, ...same fields}, remove_shot {target}, " +
         "reorder_shot {target, index}, move_shot {target, scene_id?, " +
         "position}, duplicate_shot {target}, set_board {brief?, style?, " +
         "aspect_ratio?, entity_ids?, image_model?, video_model?, narration?, " +
-        "music_prompt?, motion_design?}, " +
+        "music_prompt?}, " +
         "set_setup {brief?, genre?, stage?}, update_scene {scene_id, " +
         "slugline?, lighting?}, create_scene {after_scene_id?}, " +
         "merge_scene {scene_id}, set_style {entity_id? | style?}, " +
@@ -214,12 +214,9 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
         "and assembles as that window. Pass null to undo it. " +
         "image_model/video_model take a model object from find_model and " +
         "become the board's defaults for render_storyboard_stills and " +
-        "render_storyboard_clips. `graphics` is shot-local semantic design intent " +
-        "(exact text/assets plus direction), not Timeline keyframes; pass null " +
-        "to clear it. set_board narration/music_prompt are screenplay-level " +
-        "strings for voiceover and score direction. motion_design carries " +
-        "whole-board transition/continuity intent and accepts null to clear. " +
-        "Other screenplay fields are preserved.",
+        "render_storyboard_clips. set_board narration/music_prompt are " +
+        "screenplay-level strings for voiceover and score direction; an " +
+        "empty string clears one. Other screenplay fields are preserved.",
       items: { type: "object" }
     }
   },
@@ -310,7 +307,7 @@ export const getStoryboardSpec: CapabilitySpec = {
   description:
     "Read one storyboard: brief, style, aspect ratio, the still/clip models it " +
     "renders with, and every shot with its id, index, slug, action, camera, " +
-    "motion, graphics intent, duration, status, and whether it already has a still or a clip. " +
+    "motion, duration, status, and whether it already has a still or a clip. " +
     "`has_clip` counts a shot whose picture is a window into another shot's " +
     "generation; `covered_by` says which shot and which window. " +
     "Call this before rendering — the other tools address shots by these ids.",
