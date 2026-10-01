@@ -26,6 +26,7 @@ import { useTheme } from "@mui/material/styles";
 import { Box, PADDING, ScrollArea, Z_INDEX } from "../../ui_primitives";
 import { useSketchStore } from "../../sketch/state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
+import { useOnboardingStore } from "../../../stores/OnboardingStore";
 import { useSaveEntity } from "../../../serverState/useEntities";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import {
@@ -61,6 +62,17 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
     setBatch([]);
     onFinish?.();
   }, [onFinish]);
+
+  const pickRenderedImage = useCallback(
+    (layerId: string) => {
+      if (!useSketchSessionStore.getState().bindings[layerId]?.currentAssetId) {
+        return;
+      }
+      useOnboardingStore.getState().markStep("start-guided-flow");
+      finish();
+    },
+    [finish]
+  );
 
   const { config, look } = useImageSetupFlow({
     onGenerated: handleGenerated,
@@ -211,7 +223,7 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
           <Box sx={{ padding: PADDING.section }}>
             <ContactSheet
               layerIds={batch}
-              onPick={finish}
+              onPick={pickRenderedImage}
               onMakeMore={makeMore}
               makeMorePending={makingMore}
               makeMoreError={makeMoreError}

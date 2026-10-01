@@ -1,22 +1,12 @@
-/**
- * Together AI HTTP helpers, auth, asset resolution, and per-modality executors.
- *
- * This module is deliberately self-contained — it re-implements the small slice
- * of the Together API the nodes need rather than importing `TogetherProvider`
- * from `@nodetool-ai/runtime`. That mirrors the convention used by the FAL /
- * AtlasCloud / Replicate node packages (their `-base.ts` files duplicate the
- * provider's HTTP on purpose) so this package stays publishable on its own and
- * free of a static dependency on the runtime's provider classes.
- *
- * Wire spec (https://docs.together.ai/docs/serverless/models):
- *  - Auth: `Authorization: Bearer <api_key>`.
- *  - Images: POST /v1/images/generations → { data: [{ b64_json | url }] }  (sync)
- *  - Speech: POST /v1/audio/speech → raw audio bytes                        (sync)
- *  - Transcribe: POST /v1/audio/transcriptions (multipart) → { text }       (sync)
- *  - Video: POST /v2/videos → { id }, then poll GET /v2/videos/{id}          (async)
- */
+/** Together node auth, media adaptation, and video/transcription executors. */
 
-import { fetchExternalMedia } from "@nodetool-ai/runtime";
+import { fetchExternalMedia, loadMediaRefBytes } from "@nodetool-ai/runtime";
+import { isBlockedIpLiteral } from "@nodetool-ai/runtime/safe-url";
+import {
+  togetherImage,
+  togetherSpeech,
+  type TogetherTransport
+} from "@nodetool-ai/runtime/together-operations";
 import { sleep } from "@nodetool-ai/runtime/provider-transport";
 import {
   isNonEmptyString,
@@ -28,12 +18,9 @@ import type { NodeValue } from "@nodetool-ai/node-sdk";
 
 const TOGETHER_BASE = "https://api.together.xyz";
 
-
 export function getApiKey(secrets: Record<string, string> | undefined): string {
   const key =
-    (secrets && secrets.TOGETHER_API_KEY) ||
-    process.env.TOGETHER_API_KEY ||
-    "";
+    (secrets && secrets.TOGETHER_API_KEY) || process.env.TOGETHER_API_KEY || "";
   if (!key.trim()) {
     throw new Error("TOGETHER_API_KEY is not configured");
   }
@@ -68,84 +55,10 @@ export function isSafeHttpUrl(uri: string): boolean {
   return !isPrivateOrLocalHost(u.hostname);
 }
 
-function parseIpComponent(part: string): number | null {
-  if (/^0x[0-9a-f]+$/i.test(part)) return parseInt(part.slice(2), 16);
-  if (/^0[0-7]+$/.test(part)) return parseInt(part, 8);
-  if (/^[0-9]+$/.test(part)) return parseInt(part, 10);
-  return null;
-}
-
-function ipv4ToOctets(host: string): [number, number, number, number] | null {
-  const parts = host.split(".");
-  if (parts.length === 0 || parts.length > 4) return null;
-  const nums: number[] = [];
-  for (const part of parts) {
-    const n = parseIpComponent(part);
-    if (n === null || n < 0) return null;
-    nums.push(n);
-  }
-
-  const n = nums.length;
-  for (let i = 0; i < n - 1; i++) {
-    if (nums[i] > 0xff) return null;
-  }
-  const tailOctets = 4 - (n - 1);
-  const tail = nums[n - 1];
-  if (tail < 0 || tail > 0xffffffff || tail >= 2 ** (tailOctets * 8)) {
-    return null;
-  }
-
-  let value = tail;
-  for (let i = 0; i < n - 1; i++) {
-    value += nums[i] * 256 ** (3 - i);
-  }
-  return [
-    (value >>> 24) & 0xff,
-    (value >>> 16) & 0xff,
-    (value >>> 8) & 0xff,
-    value & 0xff
-  ];
-}
-
-function mappedIpv4ToOctets(
-  host: string
-): [number, number, number, number] | null {
-  const dotted = /^::(?:ffff:)?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i.exec(host);
-  if (dotted) return ipv4ToOctets(dotted[1]);
-
-  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i.exec(host);
-  if (hex) {
-    const hi = parseInt(hex[1], 16);
-    const lo = parseInt(hex[2], 16);
-    return [(hi >> 8) & 0xff, hi & 0xff, (lo >> 8) & 0xff, lo & 0xff];
-  }
-  return null;
-}
-
-function isPrivateV4(octets: [number, number, number, number]): boolean {
-  const [o1, o2] = octets;
-  if (o1 === 0) return true;
-  if (o1 === 10) return true;
-  if (o1 === 127) return true;
-  if (o1 === 169 && o2 === 254) return true;
-  if (o1 === 172 && o2 >= 16 && o2 <= 31) return true;
-  if (o1 === 192 && o2 === 168) return true;
-  if (o1 === 100 && o2 >= 64 && o2 <= 127) return true;
-  return false;
-}
-
 function isPrivateOrLocalHost(hostname: string): boolean {
-  let h = hostname.toLowerCase();
-  if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1);
-  if (h === "" || h === "localhost" || h.endsWith(".localhost")) return true;
-
-  const octets = ipv4ToOctets(h) ?? mappedIpv4ToOctets(h);
-  if (octets) return isPrivateV4(octets);
-
-  if (h === "::1" || h === "::") return true;
-  if (h.startsWith("fe80:") || h.startsWith("fe80::")) return true;
-  if (/^f[cd][0-9a-f]{2}:/i.test(h)) return true;
-  return false;
+  const host = hostname.toLowerCase();
+  return host === "" || host === "localhost" || host.endsWith(".localhost") ||
+    isBlockedIpLiteral(host);
 }
 
 export type AssetKind = "image" | "audio" | "video";
@@ -165,80 +78,67 @@ export interface AssetResolveContext {
    * configured server, never an attacker-controlled host).
    */
   resolveAssetBytes?: (
-    uri: string
+    uri: string,
+    options?: { requireOwnedAsset?: boolean }
   ) => Promise<{ bytes: Uint8Array | null }>;
 }
 
-function decodeBase64(data: string): Uint8Array {
-  // Accept both raw base64 and `data:<mime>;base64,<...>` forms.
-  const comma = data.indexOf(",");
-  const raw = data.startsWith("data:") && comma >= 0 ? data.slice(comma + 1) : data;
-  return Uint8Array.from(Buffer.from(raw, "base64"));
-}
-
-/**
- * Resolve a NodeTool asset ref (ImageRef / AudioRef / VideoRef) to raw bytes.
- * Order: inline data → storage.retrieve(uri) → SSRF-guarded fetch(uri).
- * Returns null when the ref carries no usable source.
- */
+/** Resolve Together inputs through runtime interpretation with local files denied. */
 export async function resolveAssetBytes(
   ref: NodeValue,
   context: AssetResolveContext | undefined,
   kind: AssetKind
 ): Promise<Uint8Array | null> {
   if (ref === null || ref === undefined) return null;
-
   if (isString(ref)) {
-    if (ref === "") return null;
     return isSafeHttpUrl(ref) ? fetchBytes(ref) : null;
   }
-  // Anything that is not a keyed ref (a number, a list) carries no source.
   if (!isRecord(ref)) return null;
 
-  const data = ref.data;
-  if (isNonEmptyString(data)) return decodeBase64(data);
-  if (data instanceof Uint8Array && data.byteLength > 0) return data;
-
   const uri = isString(ref.uri) ? ref.uri : "";
-  // Empty placeholder ref (no uri, no data) → treat as "no asset provided" so
-  // the caller can surface a clear "<field> is required" error instead.
-  if (uri.length === 0) return null;
-
-  // Reference URIs (`asset://<id>`, `package://<pkg>/<path>`) are not known to
-  // storage adapters — only the ProcessingContext resolver handles them.
-  if (
-    (uri.startsWith("asset://") || uri.startsWith("package://")) &&
-    context?.resolveAssetBytes
-  ) {
-    const { bytes } = await context.resolveAssetBytes(uri);
-    if (bytes) return new Uint8Array(bytes);
-  }
-
-  if (context?.storage) {
-    try {
-      const bytes = await context.storage.retrieve(uri);
-      if (bytes && bytes.byteLength > 0) return new Uint8Array(bytes);
-    } catch {
-      /* fall through to direct fetch */
-    }
-  }
-  if (isSafeHttpUrl(uri)) {
-    return fetchBytes(uri);
-  }
-
-  // A uri was supplied but can't be safely fetched (private/loopback/metadata
-  // host, or an unresolvable relative path with no storage) — fail loudly.
-  throw new Error(
+  const assetId = isString(ref.asset_id) ? ref.asset_id : undefined;
+  const data = ref.data;
+  const inline = isNonEmptyString(data) ||
+    (data instanceof Uint8Array && data.byteLength > 0);
+  const cannotResolve = () => new Error(
     `Cannot resolve ${kind} asset for Together — '${uri}' is not a fetchable URL`
   );
+  if (!inline && /^https?:/.test(uri) && !isSafeHttpUrl(uri)) {
+    throw cannotResolve();
+  }
+  const bytes = await loadMediaRefBytes(
+    { uri, asset_id: assetId, data, type: kind },
+    {
+      resolveAssetBytes: context?.resolveAssetBytes?.bind(context),
+      storage: context?.storage ? {
+        retrieve: async (source) => {
+          try {
+            const stored = await context.storage?.retrieve(source);
+            return stored && stored.byteLength > 0 ? stored : null;
+          } catch {
+            return null;
+          }
+        }
+      } : undefined
+    },
+    { allowLocalFile: false, fetchHttp: fetchBytes }
+  );
+  if (bytes && bytes.byteLength > 0) return bytes;
+  if (!uri || inline) return null;
+  throw cannotResolve();
 }
 
-async function fetchBytes(url: string): Promise<Uint8Array> {
+async function fetchBytes(
+  url: string,
+  signal?: AbortSignal
+): Promise<Uint8Array> {
   // `isSafeHttpUrl` has already judged the initial URL; it cannot judge the
   // redirect hops, which is what the protected fetch is for.
-  const res = await fetchExternalMedia(url);
+  const res = await fetchExternalMedia(url, { signal });
   if (!res.ok) {
-    throw new Error(`Together asset fetch failed: HTTP ${res.status} for ${url}`);
+    throw new Error(
+      `Together asset fetch failed: HTTP ${res.status} for ${url}`
+    );
   }
   return new Uint8Array(await res.arrayBuffer());
 }
@@ -260,63 +160,17 @@ interface ImageParams {
   imageUrl?: string | null;
 }
 
-/** POST /v1/images/generations — the fields these nodes send. */
-interface ImageRequestBody {
-  model: string;
-  prompt: string;
-  n: number;
-  response_format: "b64_json";
-  image_url?: string;
-  width?: number;
-  height?: number;
-  steps?: number;
-  guidance_scale?: number;
-  seed?: number;
-  negative_prompt?: string;
-}
-
 export async function togetherGenerateImage(
   apiKey: string,
   modelId: string,
-  params: ImageParams
+  params: ImageParams,
+  options: TogetherTransport = {}
 ): Promise<Uint8Array> {
-  if (!params.prompt) throw new Error("The input prompt cannot be empty.");
-
-  const body: ImageRequestBody = {
-    model: modelId,
-    prompt: params.prompt,
-    n: 1,
-    response_format: "b64_json"
-  };
-  if (params.imageUrl) body.image_url = params.imageUrl;
-  if (params.width != null) body.width = params.width;
-  if (params.height != null) body.height = params.height;
-  if (params.steps != null) body.steps = params.steps;
-  if (params.guidanceScale != null) body.guidance_scale = params.guidanceScale;
-  if (params.seed != null) body.seed = params.seed;
-  if (params.negativePrompt) body.negative_prompt = params.negativePrompt;
-
-  const response = await fetch(`${TOGETHER_BASE}/v1/images/generations`, {
-    method: "POST",
-    headers: authHeaders(apiKey),
-    body: JSON.stringify(body)
+  return togetherImage(apiKey, modelId, params, {
+    ...options,
+    label: "generation",
+    download: fetchBytes
   });
-  if (!response.ok) {
-    throw new Error(`Together image generation failed: ${await response.text()}`);
-  }
-
-  const payload = await response.json();
-  const items: readonly unknown[] =
-    isObjectLike(payload) && Array.isArray(payload.data) ? payload.data : [];
-  const item = items[0];
-  if (!isObjectLike(item)) {
-    throw new Error("Together image generation returned no data.");
-  }
-  if (isNonEmptyString(item.b64_json)) {
-    return Uint8Array.from(Buffer.from(item.b64_json, "base64"));
-  }
-  if (isNonEmptyString(item.url)) return fetchBytes(item.url);
-  throw new Error("Together image generation returned no image data.");
 }
 
 export function imageBytesToDataUri(bytes: Uint8Array): string {
@@ -343,43 +197,21 @@ function isSpeechFormat(format: string): format is SpeechFormat {
   return Object.hasOwn(SPEECH_FORMAT_MIME, format);
 }
 
-/** POST /v1/audio/speech — the fields these nodes send. */
-interface SpeechRequestBody {
-  model: string;
-  input: string;
-  voice: string;
-  response_format: string;
-  speed?: number;
-}
-
 export async function togetherTextToSpeech(
   apiKey: string,
   modelId: string,
-  params: SpeechParams
+  params: SpeechParams,
+  options: TogetherTransport = {}
 ): Promise<{ data: Uint8Array; mimeType: string }> {
-  if (!params.text) throw new Error("text must not be empty");
-
   const fmt = (params.format ?? "mp3").toLowerCase();
-  const mime = isSpeechFormat(fmt) ? SPEECH_FORMAT_MIME[fmt] : "audio/mpeg";
-
-  const body: SpeechRequestBody = {
-    model: modelId,
-    input: params.text,
-    voice: params.voice ?? "tara",
-    response_format: fmt
-  };
-  if (params.speed != null) body.speed = params.speed;
-
-  const response = await fetch(`${TOGETHER_BASE}/v1/audio/speech`, {
-    method: "POST",
-    headers: authHeaders(apiKey),
-    body: JSON.stringify(body)
-  });
-  if (!response.ok) {
-    throw new Error(`Together TTS failed: ${await response.text()}`);
-  }
-  const data = new Uint8Array(await response.arrayBuffer());
-  return { data, mimeType: mime };
+  const mimeType = isSpeechFormat(fmt) ? SPEECH_FORMAT_MIME[fmt] : "audio/mpeg";
+  const data = await togetherSpeech(
+    apiKey,
+    modelId,
+    { ...params, format: fmt },
+    options
+  );
+  return { data, mimeType };
 }
 
 // Transcription — POST /v1/audio/transcriptions (multipart, OpenAI-compatible)

@@ -927,3 +927,31 @@ async function act_merge(notice: unknown): Promise<void> {
     await Promise.resolve();
   });
 }
+
+it("keeps one save pending when the Save action is dispatched twice", async () => {
+  let resolveSave: (value: typeof application) => void = () => {};
+  mutateAsync.mockImplementation(() => new Promise((resolve) => { resolveSave = resolve; }));
+  renderBuilder();
+  const save = screen.getByRole("button", { name: "Save" });
+  await userEvent.click(save);
+  await userEvent.click(save);
+  expect(mutateAsync).toHaveBeenCalledTimes(1);
+  await act(async () => { resolveSave(application); });
+});
+
+it("keeps edits made during a save dirty after the earlier draft is persisted", async () => {
+  const { stub } = await import("../../../test-utils/doubles");
+  const { useDocumentDraftStore } = await import("../../../stores/DocumentDraftStore");
+  let live: AppDocument = { ...application.document, schemaVersion: 4 };
+  const handler = stub<import("../puck/puckAgentBridge").PuckAgentHandler>({ document: () => live });
+  setPuckAgentHandler("app-1", handler);
+  let resolveSave: (value: typeof application) => void = () => {};
+  mutateAsync.mockImplementation(() => new Promise((resolve) => { resolveSave = resolve; }));
+  renderBuilder();
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  live = { ...live, ui: { ...live.ui, root: { props: { title: "Newer edit" } } } };
+  await act(async () => { resolveSave(application); });
+  expect(useDocumentDraftStore.getState().dirtyTabs["application:app-1"]).toBe(true);
+  expect(useDocumentDraftStore.getState().savingTabs["application:app-1"]).toBe(false);
+  setPuckAgentHandler("app-1", null);
+});

@@ -122,7 +122,7 @@
       "response": {
         "body": {
           "diagnostics": [],
-          "etag": "cb330249a9200ced1822bd4617451fa9",
+          "etag": "41fb5a99a8c56bb33a566d3003076579",
           "inputs": [
             {
               "default": "hello",

@@ -12,12 +12,13 @@ export {
   initTestDb,
   migrateSqliteDb,
   getDb,
+  getDatabase,
   getDbType,
   getRawDb,
   pingDb,
   closeDb
 } from "./db.js";
-export type { DbDialect } from "./db.js";
+export type { DbDialect, DatabaseConnection } from "./db.js";
 
 // ── Drizzle Schema (SQLite — default) ──────────────────────────────
 export {
@@ -156,6 +157,7 @@ export {
 export { WorkflowShare } from "./workflow-share.js";
 
 export { Asset } from "./asset.js";
+export type { AssetRow, AssetInsert } from "./asset.js";
 export { entityFromAsset } from "./entity.js";
 
 export {
@@ -412,6 +414,7 @@ export type {
   CreateAccessTokenParams
 } from "./access-token.js";
 export { ExternalIdentity } from "./external-identity.js";
+export type { ExternalIdentityRow, ExternalIdentityInsert } from "./external-identity.js";
 export type { LinkExternalIdentityParams } from "./external-identity.js";
 export {
   DEFAULT_USER_EVENT_RETENTION_DAYS,

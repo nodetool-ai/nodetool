@@ -93,6 +93,7 @@ type BugReportSource =
   | "app-crash"
   | "panel-crash"
   | "job-failure"
+  | "operation-failure"
   | "provider-call"
   | "notification"
   | "manual";
@@ -102,6 +103,7 @@ const SOURCE_LABELS: Record<BugReportSource, string> = {
   "app-crash": "App crash",
   "panel-crash": "Panel crash",
   "job-failure": "Job failure",
+  "operation-failure": "Operation failure",
   "provider-call": "Failed provider call",
   notification: "Error notification",
   manual: "Manual report"
@@ -288,7 +290,9 @@ const MAX_ISSUE_BODY_CHARS = 6000;
 
 export function buildIssueBody(input: IssueBodyInput): string {
   const { context } = input;
-  const contextLines: string[] = [`Reported from: ${sourceLabel(context.source)}`];
+  const contextLines: string[] = [
+    `Reported from: ${sourceLabel(context.source)}`
+  ];
   if (context.nodeType) {
     contextLines.push(
       `Node: \`${context.nodeType}\`${context.nodeTitle ? ` ("${context.nodeTitle}")` : ""}`
@@ -368,7 +372,11 @@ export function buildIssueTitle(
   return `[Bug]: ${prefix}${subject}`.slice(0, 120);
 }
 
-export function buildIssueUrl(baseUrl: string, body: string, title: string): string {
+export function buildIssueUrl(
+  baseUrl: string,
+  body: string,
+  title: string
+): string {
   const search = new URLSearchParams({ title, body, labels: "bug" });
   return `${baseUrl}?${search.toString()}`;
 }

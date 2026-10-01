@@ -147,8 +147,7 @@ import imageBackground from "../../assets/guided-flows/image.webp";
 import workflowBackground from "../../assets/guided-flows/workflow.webp";
 import gameBackground from "../../assets/guided-flows/game.webp";
 
-const ENTRY_BACKGROUNDS: Record<EntryFlowId, string> = {
-  entity: imageBackground,
+const ENTRY_BACKGROUNDS: Partial<Record<EntryFlowId, string>> = {
   storyboard: storyboardBackground,
   video: videoBackground,
   script: scriptBackground,
@@ -387,6 +386,7 @@ const NewProjectSurface = ({
   initialSetupTarget
 }: NewProjectSurfaceProps) => {
   const [prompt, setPrompt] = useState("");
+  const [showMoreFlows, setShowMoreFlows] = useState(false);
   const [gameDimension, setGameDimension] = useState<"2d" | "3d">("2d");
   // The starter row folds past `VISIBLE_STARTERS` until asked to show the rest.
   const [showAllStarters, setShowAllStarters] = useState(false);
@@ -690,7 +690,6 @@ const NewProjectSurface = ({
         title: "New chat",
         projectId
       });
-      useOnboardingStore.getState().markStep("describe-idea");
       closeTab(
         tabId(flowRef ? "guided-flow" : "project-new", flowRef ?? PROJECT_NEW_REF)
       );
@@ -747,9 +746,6 @@ const NewProjectSurface = ({
         setupTarget: target
       });
       setActiveTab(id);
-    }
-    if (target) {
-      useOnboardingStore.getState().markStep("start-guided-flow");
     }
   }, [flowRef, hasHomeTab, openTab, setActiveTab, setGuidedFlowTarget]);
 
@@ -1040,7 +1036,6 @@ const NewProjectSurface = ({
           title: name,
           projectId
         });
-        useOnboardingStore.getState().markStep("start-guided-flow");
         if (flowRef) closeTab(tabId("guided-flow", flowRef));
       } catch (error) {
         reportEntryFailure("image", error);
@@ -1252,8 +1247,13 @@ const NewProjectSurface = ({
   // The chosen card says what it is doing; the other cards are off, because a
   // second flow started over the first would create an unwanted draft.
   const entryOptions = useMemo<readonly OptionCardItem[]>(() => {
-    const cards = ENTRY_CARDS.map((card) => ({
+    const cards = ENTRY_CARDS.filter((card) =>
+      showMoreFlows || ["storyboard", "image", "workflow"].includes(card.id)
+    ).map((card) => ({
       ...card,
+      description: card.id === "game" && gameDimension === "3d"
+        ? "Start with a playable 3D exploration scene in the built-in engine."
+        : card.description,
       image: ENTRY_BACKGROUNDS[card.id]
     }));
     if (pendingFlow === null) {
@@ -1273,7 +1273,7 @@ const NewProjectSurface = ({
             disabledReason: "One flow is already starting."
           }
     );
-  }, [pendingFlow]);
+  }, [pendingFlow, showMoreFlows, gameDimension]);
 
   /**
    * The flow's last step wrote stage `done`: hand the finished board its own
@@ -1307,6 +1307,9 @@ const NewProjectSurface = ({
         title: target.name,
         projectId: target.projectId
       });
+      if (failures.length === 0) {
+        useOnboardingStore.getState().markStep("start-guided-flow");
+      }
       applySetupTarget(null);
       if (flowRef) closeTab(tabId("guided-flow", flowRef));
     },
@@ -1314,6 +1317,7 @@ const NewProjectSurface = ({
   );
 
   const handleEntityFinished = useCallback(() => {
+    useOnboardingStore.getState().markStep("start-guided-flow");
     applySetupTarget(null);
     openPageTab("entities");
     if (flowRef) closeTab(tabId("guided-flow", flowRef));
@@ -1880,7 +1884,7 @@ const NewProjectSurface = ({
                   editing.
                 </Caption>
               </FlexColumn>
-              <FlexRow align="center" gap={SPACING.sm}>
+              {showMoreFlows && <FlexRow align="center" gap={SPACING.sm}>
                 <Caption color="muted">Game card starts as</Caption>
                 <InspectorSelect
                   label="Game dimension"
@@ -1895,7 +1899,7 @@ const NewProjectSurface = ({
                     }
                   }}
                 />
-              </FlexRow>
+              </FlexRow>}
             </FlexRow>
             <OptionCardGrid
               label="Guided creation flows"
@@ -1907,6 +1911,12 @@ const NewProjectSurface = ({
               // no pressed state, and each is its own tab stop.
               mode="navigation"
             />
+            <EditorButton
+              aria-expanded={showMoreFlows}
+              onClick={() => setShowMoreFlows((shown) => !shown)}
+            >
+              {showMoreFlows ? "Fewer formats" : "More formats"}
+            </EditorButton>
           </FlexColumn>
 
           {/* Examples come after the flows: they are a place to browse, not

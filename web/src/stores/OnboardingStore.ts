@@ -75,9 +75,9 @@ export const useOnboardingStore = create<OnboardingStore>()(
       // Older versions recorded exploration and clicks, not successful
       // outcomes. Do not turn those actions into completed work after the
       // success-only semantics were introduced.
-      version: 3,
+      version: 4,
       migrate: (persistedState, version) => {
-        if (version >= 3 || typeof persistedState !== "object" || persistedState === null) {
+        if (version >= 4 || typeof persistedState !== "object" || persistedState === null) {
           return persistedState as OnboardingStore;
         }
         return {

@@ -1,3 +1,5 @@
+import { safeFetch } from "./safe-url.js";
+import { togetherImage, togetherSpeech } from "./together-operations.js";
 import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
@@ -128,7 +130,10 @@ function parseWavPCM(bytes: Uint8Array) {
     const chunkId = view.getUint32(offset, false);
     const chunkSize = view.getUint32(offset + 4, true);
 
-    if (chunkId === 0x666d7420 /* "fmt " */ && offset + 16 <= bytes.byteLength) {
+    if (
+      chunkId === 0x666d7420 /* "fmt " */ &&
+      offset + 16 <= bytes.byteLength
+    ) {
       // The sampleRate read is a 4-byte uint32 at offset+12, so it needs
       // offset+16 in bounds — the previous offset+12 guard let getUint32 throw
       // RangeError on a WAV truncated between offset+12 and offset+15.
@@ -263,7 +268,7 @@ export class TogetherProvider extends OpenAICompatProvider {
       | Array<{ id?: string; display_name?: string; type?: string }>
       | { data?: Array<{ id?: string; display_name?: string; type?: string }> };
 
-    const rows = Array.isArray(payload) ? payload : payload.data ?? [];
+    const rows = Array.isArray(payload) ? payload : (payload.data ?? []);
     return rows
       .filter(
         (row): row is { id: string; display_name?: string; type?: string } =>
@@ -296,146 +301,64 @@ export class TogetherProvider extends OpenAICompatProvider {
    * combined `size` string so we can pass the full resolution range.
    */
   override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
-    if (!params.prompt) {
-      throw new Error("The input prompt cannot be empty.");
-    }
-
-    const body: Record<string, unknown> = {
-      model: params.model.id,
-      prompt: params.prompt,
-      n: 1,
-      response_format: "b64_json"
-    };
-
-    if (params.width != null) body.width = params.width;
-    if (params.height != null) body.height = params.height;
-    if (params.numInferenceSteps != null) body.steps = params.numInferenceSteps;
-    if (params.guidanceScale != null) body.guidance_scale = params.guidanceScale;
-    if (params.seed != null) body.seed = params.seed;
-    if (params.negativePrompt) body.negative_prompt = params.negativePrompt;
-
-    const response = await this._togetherFetch(
-      "https://api.together.xyz/v1/images/generations",
+    return togetherImage(
+      this.apiKey,
+      params.model.id,
       {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
+        ...params,
+        steps: params.numInferenceSteps
+      },
+      {
+        fetchFn: this._togetherFetch,
+        label: "generation",
+        signal: params.signal,
+        download: this.downloadImage
       }
     );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Together image generation failed: ${errorText}`);
-    }
-
-    const payload = (await response.json()) as {
-      data?: Array<{ b64_json?: string; url?: string }>;
-    };
-    const item = payload.data?.[0];
-    if (!item) {
-      throw new Error("Together image generation returned no data.");
-    }
-
-    if (item.b64_json) {
-      return Uint8Array.from(Buffer.from(item.b64_json, "base64"));
-    }
-
-    if (item.url) {
-      const fetchResponse = await this._togetherFetch(item.url);
-      if (!fetchResponse.ok) {
-        throw new Error(`Image fetch failed: ${fetchResponse.status}`);
-      }
-      return new Uint8Array(await fetchResponse.arrayBuffer());
-    }
-
-    throw new Error("Together image generation returned no image data.");
   }
 
-  /**
-   * Image-to-image editing via Together's Kontext / FLUX.2 models.
-   * Images are encoded as base64 data URIs. A single image is sent as
-   * `image_url` (supported by FLUX.1-kontext-pro/max and FLUX.2-pro/flex);
-   * multiple reference images are sent as the `reference_images` array
-   * (supported by FLUX.2 and Google image models). The first image is the
-   * primary subject and the rest are additional references.
-   */
   override async imageToImage(
     images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
-    const sources = images.filter((b) => b && b.length > 0);
+    const sources = images.filter((bytes) => bytes && bytes.length > 0);
     if (sources.length === 0) {
       throw new Error("image must not be empty.");
     }
-    if (!params.prompt) {
-      throw new Error("The input prompt cannot be empty.");
-    }
-
-    const imageUrls = sources.map((b) => bytesToImageDataUri(b));
-
-    const body: Record<string, unknown> = {
-      model: params.model.id,
-      prompt: params.prompt,
-      n: 1,
-      response_format: "b64_json"
-    };
-
-    // One image → `image_url` (widest model support); multiple → the
-    // `reference_images` array that FLUX.2 / Google models accept.
-    if (imageUrls.length === 1) {
-      body.image_url = imageUrls[0];
-    } else {
-      body.reference_images = imageUrls;
-    }
-
-    if (params.targetWidth != null) body.width = params.targetWidth;
-    if (params.targetHeight != null) body.height = params.targetHeight;
-    if (params.numInferenceSteps != null) body.steps = params.numInferenceSteps;
-    if (params.guidanceScale != null) body.guidance_scale = params.guidanceScale;
-    if (params.seed != null) body.seed = params.seed;
-
-    const response = await this._togetherFetch(
-      "https://api.together.xyz/v1/images/generations",
+    const urls = sources.map(bytesToImageDataUri);
+    return togetherImage(
+      this.apiKey,
+      params.model.id,
       {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
+        prompt: params.prompt,
+        ...(urls.length === 1
+          ? { imageUrl: urls[0] }
+          : { referenceImages: urls }),
+        width: params.targetWidth,
+        height: params.targetHeight,
+        steps: params.numInferenceSteps,
+        guidanceScale: params.guidanceScale,
+        seed: params.seed
+      },
+      {
+        fetchFn: this._togetherFetch,
+        label: "editing",
+        signal: params.signal,
+        download: this.downloadImage
       }
     );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Together image editing failed: ${errorText}`);
-    }
-
-    const payload = (await response.json()) as {
-      data?: Array<{ b64_json?: string; url?: string }>;
-    };
-    const item = payload.data?.[0];
-    if (!item) {
-      throw new Error("Together image editing returned no data.");
-    }
-
-    if (item.b64_json) {
-      return Uint8Array.from(Buffer.from(item.b64_json, "base64"));
-    }
-
-    if (item.url) {
-      const fetchResponse = await this._togetherFetch(item.url);
-      if (!fetchResponse.ok) {
-        throw new Error(`Image fetch failed: ${fetchResponse.status}`);
-      }
-      return new Uint8Array(await fetchResponse.arrayBuffer());
-    }
-
-    throw new Error("Together image editing returned no image data.");
   }
+
+  private readonly downloadImage = async (
+    url: string,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> => {
+    const response = await safeFetch(url, { signal }, 5, this._togetherFetch);
+    if (!response.ok) {
+      throw new Error(`Image fetch failed: ${response.status}`);
+    }
+    return new Uint8Array(await response.arrayBuffer());
+  };
 
   // ─── TTS ────────────────────────────────────────────────────────────────────
 
@@ -454,38 +377,17 @@ export class TogetherProvider extends OpenAICompatProvider {
     voice?: string;
     speed?: number;
     audioFormat?: string;
+    signal?: AbortSignal;
   }): AsyncGenerator<StreamingAudioChunk> {
-    if (!args.text) {
-      throw new Error("text must not be empty");
-    }
-
-    const voice = args.voice ?? "tara"; // Default to "tara" (Orpheus); Kokoro callers should pass e.g. "af_heart"
-    const body: Record<string, unknown> = {
-      model: args.model,
-      input: args.text,
-      voice,
-      response_format: "wav"
-    };
-    if (args.speed != null) body.speed = args.speed;
-
-    const response = await this._togetherFetch(
-      "https://api.together.xyz/v1/audio/speech",
+    const bytes = await togetherSpeech(
+      this.apiKey,
+      args.model,
       {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      }
+        ...args,
+        format: "wav"
+      },
+      { fetchFn: this._togetherFetch, signal: args.signal }
     );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Together TTS failed: ${errorText}`);
-    }
-
-    const bytes = new Uint8Array(await response.arrayBuffer());
     const { samples, sampleRate } = parseWavPCM(bytes);
     yield { samples, sampleRate };
   }
@@ -501,6 +403,7 @@ export class TogetherProvider extends OpenAICompatProvider {
     voice?: string;
     speed?: number;
     audioFormat?: string;
+    signal?: AbortSignal;
   }): Promise<EncodedAudioResult | null> {
     if (!args.text) {
       throw new Error("text must not be empty");
@@ -516,33 +419,15 @@ export class TogetherProvider extends OpenAICompatProvider {
       return null;
     }
 
-    const voice = args.voice ?? "tara";
-    const body: Record<string, unknown> = {
-      model: args.model,
-      input: args.text,
-      voice,
-      response_format: fmt
-    };
-    if (args.speed != null) body.speed = args.speed;
-
-    const response = await this._togetherFetch(
-      "https://api.together.xyz/v1/audio/speech",
+    const bytes = await togetherSpeech(
+      this.apiKey,
+      args.model,
       {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      }
+        ...args,
+        format: fmt
+      },
+      { fetchFn: this._togetherFetch, signal: args.signal }
     );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Together TTS failed: ${errorText}`);
-    }
-
-    const bytes = new Uint8Array(await response.arrayBuffer());
     return { data: bytes, mimeType: formatToMime[fmt] };
   }
 

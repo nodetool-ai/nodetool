@@ -13,7 +13,8 @@ import type {
   MediaTrack,
   TimelineClip,
   TimelineMarker,
-  TimelineTrack
+  TimelineTrack,
+  TimelineTempo
 } from "../types.js";
 import type { TimelineComposition } from "../composition.js";
 import type { Model3DBakeSequence } from "../model3dBake.js";
@@ -25,6 +26,7 @@ import type {
 
 /** The document shape every host already holds, plus its editor cursor. */
 export interface TimelineOpState {
+  tempo?: TimelineTempo;
   fps: number;
   width: number;
   height: number;
@@ -99,16 +101,13 @@ export interface TimelineOpCompositionLoader {
 }
 
 /** Ids a host mints. Kept out of the ops so ids stay the host's to allocate. */
-export type TimelineOpIdKind =
-  | "track"
-  | "clip"
-  | "anim"
-  | "marker"
-  | "version";
+export type TimelineOpIdKind = "track" | "clip" | "anim" | "marker" | "version";
 
 /** Everything an op needs that the document cannot answer. */
 export interface TimelineOpContext {
   newId(kind: TimelineOpIdKind): string;
+  /** New MIDI track voice. Hosts may keep their existing preset defaults. */
+  defaultMidiInstrument?: TimelineTrack["instrument"];
   /** Timestamp for a baked animation. Defaults to `new Date().toISOString()`. */
   now?(): string;
   /** Asset lookup for `add_media_clip`. Absent means this surface has none. */

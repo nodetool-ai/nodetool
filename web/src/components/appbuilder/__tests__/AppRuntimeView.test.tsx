@@ -9,6 +9,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 
 import AppRuntimeView from "../AppRuntimeView";
+import { useBugReportStore } from "../../../stores/BugReportStore";
 import { Workflow } from "../../../stores/ApiTypes";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import {
@@ -57,16 +58,18 @@ const renderView = (document?: ApplicationDocument) =>
 /** Register a run and make it the operation's active invocation. */
 const startRun = (id: string) =>
   act(() =>
-    store().getState().dispatchEvent({
-      type: "runStarted",
-      invocation: {
-        id,
-        operationId: "main",
-        status: "running",
-        startedAt: 1
-      },
-      outputKeys: []
-    })
+    store()
+      .getState()
+      .dispatchEvent({
+        type: "runStarted",
+        invocation: {
+          id,
+          operationId: "main",
+          status: "running",
+          startedAt: 1
+        },
+        outputKeys: []
+      })
   );
 
 beforeEach(() => {
@@ -101,16 +104,18 @@ describe("AppRuntimeView (Puck Render)", () => {
     renderView();
 
     act(() => {
-      globalWebSocketManager.deliverLocal(stub<Parameters<typeof globalWebSocketManager.deliverLocal>[0]>({
-        type: "output_update",
-        workflow_id: workflow.id,
-        job_id: "someone-elses-job",
-        node_id: "out1",
-        node_name: "result",
-        output_name: "result",
-        output_type: "string",
-        value: "Contamination from another tab"
-      }));
+      globalWebSocketManager.deliverLocal(
+        stub<Parameters<typeof globalWebSocketManager.deliverLocal>[0]>({
+          type: "output_update",
+          workflow_id: workflow.id,
+          job_id: "someone-elses-job",
+          node_id: "out1",
+          node_name: "result",
+          output_name: "result",
+          output_type: "string",
+          value: "Contamination from another tab"
+        })
+      );
     });
 
     await waitFor(() =>
@@ -157,6 +162,25 @@ describe("AppRuntimeView (Puck Render)", () => {
     );
   });
 
+  it("reports an invocation as an operation failure", async () => {
+    startRun("job-report");
+    act(() =>
+      store().getState().dispatchEvent({
+        type: "invocationError",
+        invocationId: "job-report",
+        error: "Provider unavailable"
+      })
+    );
+    renderView();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Report failure" })
+    );
+    expect(useBugReportStore.getState().context?.source).toBe(
+      "operation-failure"
+    );
+    useBugReportStore.getState().close();
+  });
+
   it("surfaces an error from a non-default operation", async () => {
     const document: ApplicationDocument = {
       schemaVersion: 3,
@@ -183,16 +207,18 @@ describe("AppRuntimeView (Puck Render)", () => {
       variables: []
     };
     act(() =>
-      store().getState().dispatchEvent({
-        type: "runStarted",
-        invocation: {
-          id: "job-review-error",
-          operationId: "review",
-          status: "running",
-          startedAt: 2
-        },
-        outputKeys: []
-      })
+      store()
+        .getState()
+        .dispatchEvent({
+          type: "runStarted",
+          invocation: {
+            id: "job-review-error",
+            operationId: "review",
+            status: "running",
+            startedAt: 2
+          },
+          outputKeys: []
+        })
     );
     act(() =>
       store().getState().dispatchEvent({

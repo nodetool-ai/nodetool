@@ -119,6 +119,9 @@ jest.mock("../../../../stores/AssetStore", () => ({
   useAssetStore: { getState: () => ({ createAsset }) }
 }));
 
+import * as imageSetupFlow from "../useImageSetupFlow";
+import { useOnboardingStore } from "../../../../stores/OnboardingStore";
+import { useSketchSessionStore } from "../../../../stores/sketch/SketchSessionStore";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { ImageSetupOverlay } from "../ImageSetupOverlay";
 import { useSketchStore } from "../../../sketch/state/useSketchStore";
@@ -522,5 +525,58 @@ describe("context carried from the composer", () => {
     expect(
       screen.queryByRole("heading", { name: "Came with your prompt" })
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("guided completion", () => {
+  it("completes only when a rendered variation is picked", async () => {
+    useOnboardingStore.setState({ completedSteps: [] });
+    seed({ stage: "look", brief: "a dripper", use_case: "product" });
+    const original = imageSetupFlow.useImageSetupFlow;
+    let generated: ((layerIds: readonly string[]) => void) | undefined;
+    const spy = jest
+      .spyOn(imageSetupFlow, "useImageSetupFlow")
+      .mockImplementation((options) => {
+        generated = options.onGenerated;
+        return original(options);
+      });
+    try {
+      renderOverlay();
+      expect(useOnboardingStore.getState().completedSteps).not.toContain(
+        "start-guided-flow"
+      );
+      const layerId = useSketchStore.getState().addLayer("Variation 1");
+      act(() => {
+        useSketchSessionStore.setState({
+          bindings: {
+            [layerId]: {
+              layerId,
+              kind: "text-to-image",
+              prompt: "a dripper",
+              provider: "prov",
+              model: "model-1",
+              width: 1024,
+              height: 1024,
+              seed: 1,
+              status: "generated",
+              currentAssetId: "rendered-image",
+              versions: []
+            }
+          }
+        });
+        generated?.([layerId]);
+      });
+      expect(useOnboardingStore.getState().completedSteps).not.toContain(
+        "start-guided-flow"
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Sketch editor" })
+      );
+      expect(useOnboardingStore.getState().completedSteps).toContain(
+        "start-guided-flow"
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
