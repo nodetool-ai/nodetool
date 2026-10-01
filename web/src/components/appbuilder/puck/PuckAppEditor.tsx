@@ -21,6 +21,7 @@ import { appConfig } from "./config";
 import PuckAgentBinder from "./PuckAgentBinder";
 import {
   APP_SCHEMA_VERSION,
+  BASE_APP_SCHEMA_VERSION,
   EMPTY_DOC_META,
   type AppDocMeta,
   type ApplicationDocument
@@ -169,11 +170,12 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   // unbound in the builder.
   const designDocument = useMemo<ApplicationDocument>(
     () => ({
-      schemaVersion: APP_SCHEMA_VERSION,
+      schemaVersion: meta.recipe ? APP_SCHEMA_VERSION : BASE_APP_SCHEMA_VERSION,
       ui: data as ApplicationDocument["ui"],
       operations: meta.operations,
       resources: meta.resources,
-      variables: meta.variables
+      variables: meta.variables,
+      recipe: meta.recipe
     }),
     [data, meta]
   );
