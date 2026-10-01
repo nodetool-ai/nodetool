@@ -173,4 +173,23 @@ describe("Storyboard finishing", () => {
     expect(rerun.document.clips.map((clip) => clip.transform)).toEqual(first.document.clips.map((clip) => clip.transform));
   });
 
+  it("materializes distinct approved creative directions without changing source truth", () => {
+    const args = input();
+    args.shots[0].graphics!.direction = "Bold editorial rhythm";
+    const bold = materializeStoryboard(args);
+    args.shots[0].graphics!.direction = "Quiet premium composition";
+    const quiet = materializeStoryboard(args);
+    const boldProduct = bold.document.clips.find((clip) => clip.storyboardElementId === "product")!;
+    const quietProduct = quiet.document.clips.find((clip) => clip.storyboardElementId === "product")!;
+    expect(boldProduct.animations![0].preset).toBe("slide");
+    expect(quietProduct.animations![0].preset).toBe("fade");
+    expect(quietProduct.animations![0].durationMs).toBeGreaterThan(boldProduct.animations![0].durationMs);
+    expect(boldProduct.currentAssetId).toBe(quietProduct.currentAssetId);
+    expect(bold.validation).toEqual([]); expect(quiet.validation).toEqual([]);
+    args.shots[0].production!.protected_inputs![0].allowed_transformations = ["position", "scale"];
+    const restricted = materializeStoryboard(args);
+    expect(restricted.document.clips.find((clip) => clip.storyboardElementId === "product")!.animations).toEqual([]);
+    expect(restricted.validation).toEqual([]);
+  });
+
 });

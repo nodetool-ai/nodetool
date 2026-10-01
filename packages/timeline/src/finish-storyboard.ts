@@ -165,6 +165,11 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
       const track = current.tracks.find((value) => value.id === previous?.trackId) ?? makeTrack({ type: "overlay", name: `${shot.slug ?? shot.id}: ${element.id}`, index: tracks.length });
       if (!tracks.some((value) => value.id === track.id)) tracks.push({ ...track, index: previous ? track.index : Math.max(-1, ...tracks.map((value) => value.index)) + 1 });
       const protection = element.protected_input_id ? protectedInputs.get(element.protected_input_id) : undefined;
+      const creativeDirection = shot.graphics?.direction?.trim().toLowerCase();
+      const bold = creativeDirection === "bold editorial rhythm";
+      const quiet = creativeDirection === "quiet premium composition";
+      const allowedMotion = !protection || protection.allowed_transformations.includes("opacity");
+      const slideAllowed = allowedMotion && (!protection || protection.allowed_transformations.includes("position"));
       const isBackground = element.kind === "shape" && element.id === "background";
       const priceIntent = element.role === "price" ? element.direction?.trim().toLowerCase() : undefined;
       const priceY = priceIntent === "superseded price" ? 0.65 : priceIntent === "current price" ? 0.76 : undefined;
@@ -179,7 +184,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
         transform: isBackground ? undefined : { position: { x: 0, y: (y - 0.5) * input.height }, scale: { x: element.role === "logo" ? 0.18 : element.kind === "asset" ? 0.65 : 1, y: element.role === "logo" ? 0.18 : element.kind === "asset" ? 0.65 : 1 }, rotation: 0, anchor: { x: 0.5, y: 0.5 } },
         textStyle: element.kind === "text" ? { text: protection?.value ?? element.text ?? "", fontSizePx: element.role === "price" ? input.width * (priceIntent === "superseded price" ? 0.055 : 0.12) : input.width * 0.065, fontWeight: 600, color: "#FFFFFF", align: "center", maxWidthFrac: 0.85 } : undefined,
         shapeStyle: element.kind === "shape" ? { kind: "rect", fill: protection?.kind === "brand_color" ? protection.value : "#21263A", x: isBackground ? 0 : 0.12, y: isBackground ? 0 : 0.74, width: isBackground ? 1 : 0.76, height: isBackground ? 1 : 0.008 } : undefined,
-        animations: isBackground ? [] : [{ id: previous?.animations?.[0]?.id ?? createTimeOrderedUuid(), role: "in", preset: "fade", durationMs: 400, delayMs: 80 * index }]
+        animations: isBackground || !allowedMotion ? [] : [{ id: previous?.animations?.[0]?.id ?? createTimeOrderedUuid(), role: "in", preset: bold && slideAllowed ? "slide" : "fade", durationMs: quiet ? 700 : 400, delayMs: (quiet ? 40 : 80) * index, params: bold && slideAllowed ? { direction: "up", distance: 0.12 } : undefined }]
       });
       clip.storyboardMaterializationBaseline = baseline(clip);
       if (previous) {
