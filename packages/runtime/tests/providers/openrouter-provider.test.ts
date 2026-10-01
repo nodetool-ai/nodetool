@@ -501,7 +501,11 @@ describe("OpenRouterProvider", () => {
     it("returns available image models", async () => {
       const provider = new OpenRouterProvider(
         { OPENROUTER_API_KEY: "k" },
-        { client: {} as any }
+        {
+          client: {} as any,
+          fetchFn: (async () =>
+            new Response("down", { status: 503 })) as unknown as typeof fetch
+        }
       );
 
       const models = await provider.getAvailableImageModels();
