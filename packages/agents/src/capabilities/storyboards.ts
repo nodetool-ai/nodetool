@@ -1061,6 +1061,11 @@ const reviseStoryboardClip: CapabilityExport = {
           error: "The shot's clip could not be read back from storage."
         };
       }
+      const current = await loadBoard(run, row.id);
+      if (isError(current)) return current;
+      const currentShot = current.doc.shots.find((value) => value.id === shot.id);
+      if (!currentShot) return { error: `Shot ${shot.id} no longer exists.` };
+      assertProductionGenerationAllowed(currentShot.production, "video_to_video");
       const saved = await renderMedia(
         context,
         {

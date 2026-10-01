@@ -829,6 +829,26 @@ describe("storyboards capability behaviour", () => {
     expect(result.error).toContain("find_model");
   });
 
+  it.each([
+    productionRequirement.parse({ media_strategy: "still_motion_graphics" }),
+    productionRequirement.parse({ protected_inputs: [{ id: "product", kind: "product", asset_id: "exact-product" }] })
+  ])("refuses revision when policy changes while loading its source", async (policy) => {
+    const board = await makeBoard([renderedShot("s1", 0)]);
+    const context = ctx();
+    context.resolveAssetBytes = vi.fn(async () => {
+      const document = board.toDocument();
+      document.shots[0].production = policy;
+      board.document = JSON.stringify(document);
+      await board.save();
+      return { bytes: MP4, attempts: [] };
+    });
+    const result = await run(context).invoke("revise_storyboard_clip", {
+      storyboard_id: board.id, target: "s1", instruction: "make it darker"
+    });
+    expect(result).toHaveProperty("error");
+    expect(context.runProviderPrediction).not.toHaveBeenCalled();
+  });
+
   it("refuses to revise a shot with no clip", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })]);
     const result = (await run(ctx()).invoke("revise_storyboard_clip", {
