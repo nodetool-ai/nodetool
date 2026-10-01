@@ -59,7 +59,7 @@ describe("operation targets", () => {
         { id: "main", name: "Run", workflowId: "wf1", workflowVersion: 2 }
       ]
     });
-    expect(parsed?.schemaVersion).toBe(4);
+    expect(parsed?.schemaVersion).toBe(3);
     const operation = parsed!.operations[0];
     expect(operationTarget(operation)).toEqual({
       kind: "workflow",

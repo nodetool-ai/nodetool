@@ -181,6 +181,22 @@ afterEach(() => {
 });
 
 describe("AppBuilderShell", () => {
+  it("preserves Recipe metadata through a UI-only edit and save", async () => {
+    const user = userEvent.setup();
+    const recipe: NonNullable<AppDocument["recipe"]> = {
+      schemaVersion: 1, slug: "price-drop", inputs: [], operations: [], outputs: [],
+      mediaPolicy: { defaultStrategy: "still_motion_graphics", allowGeneratedVideo: false }
+    };
+    const onSave = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <AppBuilderShell applicationId="recipe-1" document={{ ...document, schemaVersion: 5, recipe }} workflow={workflow} agentWorkflowId="wf-1" onSave={onSave} />
+      </ThemeProvider>
+    );
+    await user.click(screen.getByRole("button", { name: "Save with theme" }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ recipe, schemaVersion: 5 }));
+  });
+
   it("saves the whole document, not just the layout", async () => {
     const user = userEvent.setup();
     const onSave = renderShell();
