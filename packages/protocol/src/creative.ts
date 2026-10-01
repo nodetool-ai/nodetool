@@ -451,6 +451,8 @@ export interface ShotGraphicsElement {
   asset_id?: string;
   /** Optional project entity backing the element. */
   entity_id?: string;
+  /** Resolved production input whose exact asset/value this element must use. */
+  protected_input_id?: string;
   /** Semantic placement/motion direction, not Timeline keyframes. */
   direction?: string;
 }
