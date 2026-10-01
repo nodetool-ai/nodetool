@@ -203,6 +203,29 @@ const optionsField: ArrayField = {
     String(item.value ?? "option")
 };
 
+const choiceCardsField: ArrayField = {
+  type: "array", label: "Cards",
+  arrayFields: {
+    value: { type: "text", label: "Value" }, title: { type: "text", label: "Title" },
+    description: { type: "textarea", label: "Description" }, image: { type: "text", label: "Image URL" },
+    disabled: { type: "radio", label: "Disabled", options: [{ label: "No", value: false }, { label: "Yes", value: true }] }
+  },
+  defaultItemProps: { value: "option", title: "Option", description: "", image: "", disabled: false },
+  getItemSummary: (item: Record<string, unknown>) => String(item.title ?? item.value ?? "card")
+};
+
+const stepperField: ArrayField = {
+  type: "array", label: "Steps",
+  arrayFields: {
+    value: { type: "text", label: "Value" }, title: { type: "text", label: "Title" },
+    description: { type: "textarea", label: "Description" },
+    disabled: { type: "radio", label: "Disabled", options: [{ label: "No", value: false }, { label: "Yes", value: true }] },
+    completed: { type: "radio", label: "Completed", options: [{ label: "No", value: false }, { label: "Yes", value: true }] }
+  },
+  defaultItemProps: { value: "step", title: "Step", description: "", disabled: false, completed: false },
+  getItemSummary: (item: Record<string, unknown>) => String(item.title ?? item.value ?? "step")
+};
+
 /**
  * The fields every fixed-kind input shares. `extra` slots a widget's own field
  * (a path's placeholder, a table's height) between the label and the events.
@@ -950,7 +973,7 @@ export const appConfig: Config = {
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
-        options: { ...optionsField, label: "Cards" },
+        options: choiceCardsField,
         columns: { type: "number", label: "Columns" },
         events: eventsField("change", { commits: false }),
         ...conditionalFields({ format: false })
@@ -963,13 +986,13 @@ export const appConfig: Config = {
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
-        steps: { ...optionsField, label: "Steps" },
+        steps: stepperField,
         allowBack: { type: "radio", label: "Allow back", options: [{ label: "Yes", value: true }, { label: "No", value: false }] },
         events: eventsField("change", { commits: false }),
         ...conditionalFields({ format: false })
       },
       defaultProps: { label: "", allowBack: true, steps: [{ value: "Inputs" }, { value: "Review" }, { value: "Build" }] },
-      render: withConditions((props) => <StepperWidget {...props} steps={(props.steps ?? []).map((step: { value: string }) => ({ value: step.value, title: step.value }))} />)
+      render: withConditions((props) => <StepperWidget {...props} />)
     },
     Approval: {
       label: "Approval",
