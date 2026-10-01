@@ -1221,7 +1221,7 @@ export const ChoiceCardsWidget: React.FC<
             <Card key={option.value} variant="outlined" padding="none" sx={{ p: SPACING.md, cursor: option.disabled ? "not-allowed" : "pointer", outline: active ? "2px solid currentColor" : "none", opacity: option.disabled ? 0.5 : 1 }}>
               <Box role="radio" aria-checked={active} aria-disabled={option.disabled || undefined} tabIndex={option.disabled ? -1 : 0} onClick={() => { if (!props.disabled && !option.disabled) { setValue(option.value); emit("change"); } }} onKeyDown={(event) => { if (!props.disabled && !option.disabled && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setValue(option.value); emit("change"); } }} sx={{ width: "100%" }}>
                 <FlexColumn gap={SPACING.micro} fullWidth>
-                  {option.image ? <Box component="img" src={option.image} alt="" sx={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 1 }} /> : null}\n                  <Text>{option.title || option.value}</Text>
+                  {option.image ? <img src={option.image} alt="" style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 8 }} /> : null}\n                  <Text>{option.title || option.value}</Text>
                   {option.description ? <Caption color="secondary">{option.description}</Caption> : null}
                 </FlexColumn>
               </Box>
