@@ -58,6 +58,20 @@ describe("applications router releases", () => {
   beforeEach(() => initTestDb());
   afterEach(() => ModelObserver.clear());
 
+  it.each([3, 4])("rejects an older client save that omits existing Recipe metadata at schema %s", async (schemaVersion) => {
+    const app = await seedApp();
+    const caller = createCaller(makeCtx("user-1"));
+    const saved = await caller.applications.get({ id: app.id });
+    const recipe = { schemaVersion: 1 as const, slug: "protected-recipe", inputs: [], operations: [{ id: "plan", bindingId: "main", intent: "plan" as const }], outputs: [] };
+    await caller.applications.update({ id: app.id, baseUpdatedAt: saved.updatedAt, document: { ...saved.document, schemaVersion: 5, recipe } });
+    const current = await caller.applications.get({ id: app.id });
+    const legacyDocument = structuredClone(current.document);
+    delete legacyDocument.recipe;
+    legacyDocument.schemaVersion = schemaVersion;
+    await expect(caller.applications.update({ id: app.id, baseUpdatedAt: current.updatedAt, document: legacyDocument })).rejects.toThrow("Recipe metadata");
+    expect((await caller.applications.get({ id: app.id })).document).toEqual(current.document);
+  });
+
   it("preserves Recipe metadata through draft updates, publish and release reads", async () => {
     const app = await seedApp();
     const caller = createCaller(makeCtx("user-1"));

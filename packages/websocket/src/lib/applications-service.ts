@@ -420,6 +420,12 @@ export async function updateApplication(
   if (input.name !== undefined) fields.name = input.name;
   if (input.description !== undefined) fields.description = input.description;
   if (input.document !== undefined) {
+    if (app.toDocument().recipe && input.document.recipe === undefined) {
+      throwApiError(
+        ApiErrorCode.INVALID_INPUT,
+        "Recipe metadata cannot be removed by an ordinary Application document update. Use a Recipe-compatible client."
+      );
+    }
     fields.document = JSON.stringify(input.document);
   }
 
