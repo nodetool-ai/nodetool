@@ -843,7 +843,7 @@ export const useAppRuntime = (
             usesStreamInputContract(script.document.code)
           );
           result = await runJsScript(
-            script.id, inputs, inputStreams, script.version > 0 ? script.version : undefined
+            script.id, inputs, inputStreams, script.version === 0 ? undefined : script.version
           );
         } catch (error) {
           result = {
