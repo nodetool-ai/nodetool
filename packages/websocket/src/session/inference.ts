@@ -139,10 +139,10 @@ function trimTrailingDots(value: string): string {
   return value.slice(0, end);
 }
 
-async function resolveVideoEditReferences(
+async function resolveVideoEditReferenceIds(
   userId: string,
   req: DirectMediaGenerationRequest
-): Promise<VideoEditReferences> {
+): Promise<Omit<VideoEditReferences, "images">> {
   const ownedResolver = entityRefResolver(userId);
   const assets = new Map<string, ReturnType<typeof ownedResolver.getAssetInfo>>();
   const requestedEntities = new Set([
@@ -191,10 +191,7 @@ async function resolveVideoEditReferences(
       ref.uri.slice("asset://".length, ref.uri.lastIndexOf("."))
     )
   ])];
-  const images = assetIds.length
-    ? await resolveReferenceAssets(userId, assetIds.map((asset_id) => ({ asset_id })), "image")
-    : [];
-  return { prompt: expanded.prompt, assetIds, entityIds: [...resolvedEntityIds], images };
+  return { prompt: expanded.prompt, assetIds, entityIds: [...resolvedEntityIds] };
 }
 
 /**
@@ -711,10 +708,17 @@ export class DirectInferenceHandler {
       await Project.requireOwned(userId, req.projectId);
     }
     await assertTimelineGenerationAllowed(userId, req);
-    const provider = await this.session.resolveProvider(req.provider, userId);
-    const videoEditReferences = req.mode === "video_edit"
-      ? await resolveVideoEditReferences(userId, req)
+    const videoEditReferenceIds = req.mode === "video_edit"
+      ? await resolveVideoEditReferenceIds(userId, req)
       : undefined;
+    if (videoEditReferenceIds) {
+      await assertTimelineGenerationAllowed(userId, req, videoEditReferenceIds.assetIds);
+    }
+    const provider = await this.session.resolveProvider(req.provider, userId);
+    const videoEditReferences = videoEditReferenceIds ? {
+      ...videoEditReferenceIds,
+      images: await resolveReferenceAssets(userId, videoEditReferenceIds.assetIds.map(asset_id => ({ asset_id })), "image")
+    } : undefined;
     if (req.mode === "video_edit" || req.mode === "video_extend") {
       const extension = req.mode === "video_extend";
       const task = extension ? "extend_video" : "video_to_video";
@@ -1497,10 +1501,11 @@ export class DirectInferenceHandler {
 }
 
 /** Resolve protection from authorized persisted documents, never client-reported policy. */
-async function assertTimelineGenerationAllowed(userId: string, req: DirectMediaGenerationRequest): Promise<void> {
-  const context = req.timelineContext;
+async function assertTimelineGenerationAllowed(userId: string, req: DirectMediaGenerationRequest, resolvedReferenceIds: readonly string[] = []): Promise<void> {
+  const context = req.timelineContext ?? (req.sourceContext ? { sequenceId: req.sourceContext.sequenceId, sourceClipId: req.sourceContext.clipId } : undefined);
   if (!context) { return; }
   const sequenceIds = await findFinishResourceIds("timeline", context.sequenceId, userId, req.projectId ?? undefined);
+  if (!req.timelineContext && sequenceIds.length === 0) { return; }
   if (sequenceIds.length !== 1) { throw new Error("Timeline generation context was not found uniquely in the caller's project."); }
   const sequence = await TimelineSequence.findById(sequenceIds[0]);
   if (!sequence || sequence.user_id !== userId || (req.projectId && req.projectId !== sequence.project_id)) {
@@ -1517,8 +1522,12 @@ async function assertTimelineGenerationAllowed(userId: string, req: DirectMediaG
     throw new Error("Timeline generation source changed or was not found. Save and retry.");
   }
   const target = context.targetClipId ? resolveClip(context.targetClipId) : undefined;
-  const references = [...(req.referenceImages ?? []), ...(req.referenceVideos ?? [])];
-  const referencedAssets = new Set(references.filter(isRecord).map(ref => ref.asset_id).filter(isString));
+  const referencedAssets = new Set([
+    ...(req.referenceAssetIds ?? []),
+    ...resolvedReferenceIds,
+    ...(req.referenceImages ?? []).map(ref => referenceAssetId(ref, "image")),
+    ...(req.referenceVideos ?? []).map(ref => referenceAssetId(ref, "video"))
+  ]);
   const referencedClips = clips.filter(clip => clip.currentAssetId && referencedAssets.has(clip.currentAssetId));
   for (const clip of [source, target, ...referencedClips]) {
     if (!clip?.storyboardBoardId) { continue; }

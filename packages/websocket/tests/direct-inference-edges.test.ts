@@ -519,6 +519,14 @@ describe("runDirectMediaGeneration", () => {
     expect(resolved).toBe(0);
     await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "video", capability: "reference_to_video", referenceImages: [{ asset_id: sourceId }], timelineContext: { sequenceId: timeline.id, targetClipId: "draft-video" } }))).rejects.toThrow("forbids video generation");
     expect(resolved).toBe(0);
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "video", capability: "reference_to_video", referenceImages: [{ uri: `asset://${sourceId}.png` }], timelineContext: { sequenceId: timeline.id, targetClipId: "draft-video" } }))).rejects.toThrow("forbids video generation");
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "video_edit", sourceAssetId: "unprotected-video", referenceAssetIds: [sourceId], timelineContext: { sequenceId: timeline.id, targetClipId: "draft-video" } }))).rejects.toThrow("forbids video generation");
+    const entity = new Asset({ user_id: "1", name: "product entity", content_type: "image/png", metadata: { nodetool_entity: { name: "Product", reference_asset_id: sourceId } } });
+    await entity.save();
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "video_edit", sourceAssetId: "unprotected-video", entityIds: [entity.id], timelineContext: { sequenceId: timeline.id, targetClipId: "draft-video" } }))).rejects.toThrow("forbids video generation");
+    expect(resolved).toBe(0);
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "video_edit", sourceAssetId: sourceId, sourceContext: { sequenceId: timeline.id, clipId: "abc123abc12300000000000000000000", sourceAssetId: sourceId, sourceStartMs: 0, sourceEndMs: 1000, timelineStartMs: 0, timelineDurationMs: 1000, speedMultiplier: 1 } }))).rejects.toThrow("forbids video generation");
+    expect(resolved).toBe(0);
   });
 
   it("rejects foreign and stale Timeline source contexts before provider resolution", async () => {
