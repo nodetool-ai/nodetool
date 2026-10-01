@@ -115,6 +115,7 @@ async function documentFromWorkflow(
       )
     : null;
   if (parsed) return parsed;
+  if (raw) throwApiError(ApiErrorCode.INVALID_INPUT, "Workflow Application document is invalid or unsupported. Protection metadata cannot be discarded.");
   return scaffoldDocumentFromWorkflow(workflowId, workflow);
 }
 
