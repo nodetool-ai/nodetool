@@ -18,7 +18,9 @@ import type {
   CameraDirection,
   Screenplay,
   ShotDurationSource,
-  ShotStatus
+  ShotGraphics,
+  ShotStatus,
+  StoryboardMotionDesign
 } from "@nodetool-ai/protocol";
 import type {
   StoryboardImportSource,
@@ -33,6 +35,7 @@ export interface StoryboardShotNode {
   action: string;
   camera?: CameraDirection;
   motion?: string;
+  graphics?: ShotGraphics;
   durationSeconds?: number;
   /** Where `durationSeconds` comes from; absent on an unlinked board. */
   durationSource?: ShotDurationSource;
@@ -89,6 +92,8 @@ export interface StoryboardSnapshot {
    * every shot prompt, subject to each shot's own `entity_ids` override.
    */
   entityIds: string[];
+  /** Whole-board transition/continuity direction from the screenplay. */
+  motionDesign?: StoryboardMotionDesign;
   /** True once a screenplay has been loaded onto the board. */
   hasScreenplay: boolean;
   /** Script this board's words come from, or null when it is unlinked. */
@@ -124,6 +129,7 @@ export interface StoryboardAddShotInput {
   slug?: string;
   camera?: CameraDirection;
   motion?: string;
+  graphics?: ShotGraphics;
   durationSeconds?: number;
   /** 0-based insertion index; appended when omitted. */
   index?: number;
@@ -187,6 +193,7 @@ export interface StoryboardUpdateShotPatch {
   slug?: string;
   camera?: CameraDirection;
   motion?: string;
+  graphics?: ShotGraphics | null;
   status?: ShotStatus;
   /** Spoken line delivered in-shot. Read-only on a board linked to a script. */
   dialogue?: string;
