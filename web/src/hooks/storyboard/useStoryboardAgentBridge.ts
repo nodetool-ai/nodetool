@@ -368,7 +368,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         if (patch.motion !== undefined) next.motion = patch.motion;
         if (patch.graphics !== undefined) {
           if (patch.graphics === null) {
-            delete next.graphics;
+            next.graphics = undefined;
           } else {
             next.graphics = patch.graphics;
           }
