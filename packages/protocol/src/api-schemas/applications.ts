@@ -158,6 +158,8 @@ export const recipeManifest = z.object({
   if (new Set(inputIds).size !== inputIds.length) context.addIssue({ code: "custom", path: ["inputs"], message: "Recipe input ids must be unique." });
   if (new Set(operationIds).size !== operationIds.length) context.addIssue({ code: "custom", path: ["operations"], message: "Recipe operation ids must be unique." });
   if (new Set(outputIds).size !== outputIds.length) context.addIssue({ code: "custom", path: ["outputs"], message: "Recipe output ids must be unique." });
+  const preservationIds = manifest.preservationRules?.map((rule) => rule.inputId) ?? [];
+  if (new Set(preservationIds).size !== preservationIds.length) context.addIssue({ code: "custom", path: ["preservationRules"], message: "Recipe preservation inputs must be unique." });
   const knownInputs = new Set(inputIds);
   manifest.preservationRules?.forEach((rule, index) => {
     if (!knownInputs.has(rule.inputId)) context.addIssue({ code: "custom", path: ["preservationRules", index, "inputId"], message: "Preservation rule must reference a declared Recipe input." });

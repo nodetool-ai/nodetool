@@ -154,10 +154,10 @@ export type ResolvedShotSource =
   | { kind: "graphics" };
 
 /** Policy determines the source before old rendered media is considered. */
-export function resolveShotSource(shot: Shot, boardProduction?: ProductionRequirement): ResolvedShotSource | null {
+export function resolveShotSource(shot: Shot, boardProduction?: ProductionRequirement, coverageAssetId?: string): ResolvedShotSource | null {
   const strategy = shot.production?.media_strategy ?? boardProduction?.media_strategy;
   const still = assetIdOf(shot.keyframe);
-  const video = assetIdOf(shot.clip);
+  const video = assetIdOf(shot.clip) ?? coverageAssetId;
   if (strategy !== "still_motion_graphics" && video) {
     return { kind: "video", assetId: video };
   }
@@ -401,7 +401,7 @@ export function buildStoryboardTimeline(
 ): AssembledTimeline {
   const ordered = [...input.shots].sort((a, b) => a.index - b.index);
   const sources = shotSources(input.shots);
-  const resolvedSources = new Map(input.shots.map((shot) => [shot.id, resolveShotSource(shot, input.production)]));
+  const resolvedSources = new Map(input.shots.map((shot) => [shot.id, resolveShotSource(shot, input.production, sources.get(shot.id)?.assetId)]));
   const assemblable = ordered.filter((shot) =>
     resolvedSources.get(shot.id) != null || (shot.production?.media_strategy ?? input.production?.media_strategy) !== "still_motion_graphics" && sources.get(shot.id) != null
   );
@@ -581,7 +581,7 @@ export function buildStoryboardPreviewTimeline(
   const sources = shotSources(input.shots, { requireRendered: false });
   let cursorMs = 0;
   for (const shot of ordered) {
-    const resolved = resolveShotSource(shot, input.production);
+    const resolved = resolveShotSource(shot, input.production, sources.get(shot.id)?.assetId);
     if (resolved?.kind === "graphics") {
       cursorMs += shotDurationMs(shot);
       continue;

@@ -90,7 +90,7 @@ export function buildLinkedTimeline(
   const trimmedShots: TrimmedShot[] = [];
   for (const shot of ordered) {
     const lineIds = shot.script_line_ids ?? [];
-    const resolved = resolveShotSource(shot, input.production);
+    const resolved = resolveShotSource(shot, input.production, sources.get(shot.id)?.assetId);
     const source = resolved?.kind === "still" || resolved?.kind === "graphics" || (shot.production?.media_strategy ?? input.production?.media_strategy) === "still_motion_graphics" ? null : sources.get(shot.id) ?? null;
     const stillAssetId = resolved?.kind === "still" ? resolved.assetId : undefined;
     if (!source && !stillAssetId && resolved?.kind !== "graphics") {

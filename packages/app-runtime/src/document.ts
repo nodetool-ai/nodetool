@@ -278,8 +278,10 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
   if (!Array.isArray(value.inputs) || !Array.isArray(value.operations) || !Array.isArray(value.outputs)) return undefined;
   const inputs: RecipeInput[] = [];
   for (const raw of value.inputs) {
-    if (!isRecord(raw) || !isNonEmptyString(raw.id) || !isNonEmptyString(raw.label) || !recipeInputKinds.has(raw.kind as RecipeInputKind) || typeof raw.required !== "boolean") return undefined;
-    inputs.push({ id: raw.id, label: raw.label, kind: raw.kind as RecipeInputKind, required: raw.required, ...(isString(raw.description) ? { description: raw.description } : {}) });
+    if (!isRecord(raw) || !isNonEmptyString(raw.id) || !isNonEmptyString(raw.label) || !recipeInputKinds.has(raw.kind as RecipeInputKind) || (raw.required !== true && raw.required !== false)) return undefined;
+    const input: RecipeInput = { id: raw.id, label: raw.label, kind: raw.kind as RecipeInputKind, required: raw.required };
+    if (isString(raw.description)) input.description = raw.description;
+    inputs.push(input);
   }
   const operations: RecipeOperationSpec[] = [];
   for (const raw of value.operations) {
@@ -290,7 +292,10 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
   for (const raw of value.outputs) {
     if (!isRecord(raw) || !isNonEmptyString(raw.id) || !recipeOutputKinds.has(raw.kind as RecipeOutputSpec["kind"])) return undefined;
     if (raw.binding !== undefined && !isNonEmptyString(raw.binding)) return undefined;
-    outputs.push({ id: raw.id, ...(isString(raw.binding) ? { binding: raw.binding } : {}), kind: raw.kind as RecipeOutputSpec["kind"], ...(isString(raw.label) ? { label: raw.label } : {}) });
+    const output: RecipeOutputSpec = { id: raw.id, kind: raw.kind as RecipeOutputSpec["kind"] };
+    if (isString(raw.binding)) output.binding = raw.binding;
+    if (isString(raw.label)) output.label = raw.label;
+    outputs.push(output);
   }
   let preservationRules: RecipePreservationRule[] | undefined;
   if (value.preservationRules !== undefined) {
@@ -300,7 +305,9 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
       if (!isRecord(raw) || !isNonEmptyString(raw.inputId) || !recipePreservationPolicies.has(raw.policy as RecipePreservationRule["policy"])) return undefined;
       const transforms = raw.allowedTransformations;
       if (transforms !== undefined && (!Array.isArray(transforms) || !transforms.every((item) => recipeTransforms.has(item as never)))) return undefined;
-      preservationRules.push({ inputId: raw.inputId, policy: raw.policy as RecipePreservationRule["policy"], ...(transforms ? { allowedTransformations: transforms as RecipePreservationRule["allowedTransformations"] } : {}) });
+      const rule: RecipePreservationRule = { inputId: raw.inputId, policy: raw.policy as RecipePreservationRule["policy"] };
+      if (transforms) rule.allowedTransformations = transforms as RecipePreservationRule["allowedTransformations"];
+      preservationRules.push(rule);
     }
   }
   const inputIds = new Set(inputs.map((input) => input.id));
@@ -320,22 +327,20 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
     if (!isRecord(value.creativeStrategy)) return undefined;
     const { objective, structure, direction } = value.creativeStrategy;
     if ([objective, structure, direction].some((part) => part !== undefined && !isString(part))) return undefined;
-    manifest.creativeStrategy = {
-      ...(isString(objective) ? { objective } : {}),
-      ...(isString(structure) ? { structure } : {}),
-      ...(isString(direction) ? { direction } : {})
-    };
+    manifest.creativeStrategy = {};
+    if (isString(objective)) manifest.creativeStrategy.objective = objective;
+    if (isString(structure)) manifest.creativeStrategy.structure = structure;
+    if (isString(direction)) manifest.creativeStrategy.direction = direction;
   }
   if (preservationRules) manifest.preservationRules = preservationRules;
   if (value.mediaPolicy !== undefined) {
     if (!isRecord(value.mediaPolicy)) return undefined;
     const strategy = value.mediaPolicy.defaultStrategy;
     if (strategy !== undefined && strategy !== "still_motion_graphics" && strategy !== "hybrid" && strategy !== "generated_video") return undefined;
-    if (value.mediaPolicy.allowGeneratedVideo !== undefined && typeof value.mediaPolicy.allowGeneratedVideo !== "boolean") return undefined;
-    manifest.mediaPolicy = {
-      ...(strategy !== undefined ? { defaultStrategy: strategy } : {}),
-      ...(typeof value.mediaPolicy.allowGeneratedVideo === "boolean" ? { allowGeneratedVideo: value.mediaPolicy.allowGeneratedVideo } : {})
-    };
+    if (value.mediaPolicy.allowGeneratedVideo !== undefined && value.mediaPolicy.allowGeneratedVideo !== true && value.mediaPolicy.allowGeneratedVideo !== false) return undefined;
+    manifest.mediaPolicy = {};
+    if (strategy !== undefined) manifest.mediaPolicy.defaultStrategy = strategy;
+    if (value.mediaPolicy.allowGeneratedVideo === true || value.mediaPolicy.allowGeneratedVideo === false) manifest.mediaPolicy.allowGeneratedVideo = value.mediaPolicy.allowGeneratedVideo;
   }
   if (value.presentation !== undefined) {
     if (!isRecord(value.presentation)) return undefined;
