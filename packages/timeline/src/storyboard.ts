@@ -135,7 +135,7 @@ export interface RetimedShot {
   directedMs: number;
 }
 
-/** A shot is assemblable when its explicitly accepted clip is persisted. */
+/** A shot has an assemblable rendered clip when its accepted clip is persisted. */
 export const isAssemblableShot = (shot: Shot): boolean =>
   !!shot.clip &&
   typeof shot.clip.asset_id === "string" &&
@@ -378,10 +378,12 @@ export function buildStoryboardTimeline(
 ): AssembledTimeline {
   const ordered = [...input.shots].sort((a, b) => a.index - b.index);
   const sources = shotSources(input.shots);
-  const assemblable = ordered.filter((s) => sources.get(s.id) != null);
+  const assemblable = ordered.filter((shot) =>
+    sources.get(shot.id) != null || assetIdOf(shot.keyframe) !== undefined
+  );
   const skippedShotIds = ordered
-    .filter((s) => sources.get(s.id) == null)
-    .map((s) => s.id);
+    .filter((shot) => sources.get(shot.id) == null && assetIdOf(shot.keyframe) === undefined)
+    .map((shot) => shot.id);
 
   const shotTrack = makeTrack({ type: "video", name: "Shots", index: 0 });
   const shotAudioTrack = makeTrack({
@@ -396,7 +398,10 @@ export function buildStoryboardTimeline(
   const retimedShots: RetimedShot[] = [];
   for (const shot of assemblable) {
     const source = sources.get(shot.id) ?? null;
-    const layout = layoutShot(shot, source);
+    const stillAssetId = source ? undefined : assetIdOf(shot.keyframe);
+    const layout = source
+      ? layoutShot(shot, source)
+      : { durationMs: shotDurationMs(shot), directedMs: shotDurationMs(shot) };
     const durationMs = layout.durationMs;
     // A shot cut to a coverage window is exactly as long as the caller asked
     // for when they split the generation; only a shot playing a clip of its
@@ -413,11 +418,11 @@ export function buildStoryboardTimeline(
       name: shot.slug ?? `Shot ${shot.index + 1}`,
       startMs: cursorMs,
       durationMs,
-      mediaType: "video",
+      mediaType: source ? "video" : "image",
       sourceType: "imported",
       status: "generated",
-      currentAssetId: source?.assetId,
-      linkId: createTimeOrderedUuid(),
+      currentAssetId: source?.assetId ?? stillAssetId,
+      linkId: source ? createTimeOrderedUuid() : undefined,
       storyboardBoardId: input.boardId,
       storyboardShotId: shot.id,
       versions: []
@@ -428,10 +433,11 @@ export function buildStoryboardTimeline(
       videoClip.inPointMs = layout.inPointMs;
       videoClip.outPointMs = layout.outPointMs;
     }
-    clips.push(videoClip, shotAudioClip(videoClip, shotAudioTrack.id));
+    clips.push(videoClip);
+    if (source) clips.push(shotAudioClip(videoClip, shotAudioTrack.id));
     cursorMs += durationMs;
   }
-  if (cursorMs > 0) {
+  if (clips.some((clip) => clip.trackId === shotAudioTrack.id)) {
     tracks.push(shotAudioTrack);
   }
 

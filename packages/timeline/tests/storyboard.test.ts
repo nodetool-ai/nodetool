@@ -50,7 +50,7 @@ describe("frameSizeForAspect", () => {
 });
 
 describe("buildStoryboardTimeline", () => {
-  it("keeps only rendered shots with a clip asset", () => {
+  it("assembles rendered clips and held keyframe stills", () => {
     const result = buildStoryboardTimeline({
       boardId: "board-1",
       shots: [
@@ -70,10 +70,10 @@ describe("buildStoryboardTimeline", () => {
       ]
     });
 
-    expect(pictureClips(result.clips)).toHaveLength(1);
-    expect(pictureClips(result.clips)[0].currentAssetId).toBe("asset-a");
-    expect(result.skippedShotIds).toEqual(["b", "c"]);
-    expect(result.durationMs).toBe(DEFAULT_SHOT_MS);
+    expect(pictureClips(result.clips)).toHaveLength(2);
+    expect(pictureClips(result.clips).map((clip) => [clip.mediaType, clip.currentAssetId])).toEqual([["video", "asset-a"], ["image", "still-b"]]);
+    expect(result.skippedShotIds).toEqual(["c"]);
+    expect(result.durationMs).toBe(DEFAULT_SHOT_MS * 2);
   });
 
   it("lays narration across the full cut as a draft audio clip", () => {

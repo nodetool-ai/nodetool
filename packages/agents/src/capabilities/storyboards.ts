@@ -38,7 +38,11 @@ import type {
   ShotCoverage,
   VideoRef
 } from "@nodetool-ai/protocol";
-import type { StoryboardSetupStage } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
+import {
+  storyboardMotionDesign,
+  storyboardShotGraphics,
+  type StoryboardSetupStage
+} from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import type { ScriptAssemblyInput } from "@nodetool-ai/timeline";
 import type {
   RenderShotsOptions,
@@ -566,6 +570,7 @@ const getStoryboard: CapabilityExport = {
       timeline_id: row.timeline_id ?? undefined,
       narration: doc.screenplay?.narration ?? undefined,
       music_prompt: doc.screenplay?.music_prompt ?? undefined,
+      motion_design: doc.screenplay?.motion_design ?? null,
       script_id: link.script_id,
       script_link: link,
       shots: [...doc.shots]
@@ -577,6 +582,7 @@ const getStoryboard: CapabilityExport = {
           action: shot.action,
           camera: shot.camera,
           motion: shot.motion,
+          graphics: shot.graphics,
           duration_seconds: shot.duration_seconds,
           status: shot.status,
           has_keyframe: !!shot.keyframe,
@@ -1621,6 +1627,7 @@ const SHOT_EDIT_FIELDS = new Set([
   "slug",
   "camera",
   "motion",
+  "graphics",
   "dialogue",
   "narration",
   "notes",
@@ -1682,12 +1689,14 @@ const BOARD_EDIT_FIELDS = new Set([
   "image_model",
   "video_model",
   "narration",
-  "music_prompt"
+  "music_prompt",
+  "motion_design"
 ]);
 
 const screenplayDirection = z.object({
   narration: z.string().optional(),
-  music_prompt: z.string().optional()
+  music_prompt: z.string().optional(),
+  motion_design: storyboardMotionDesign.nullable().optional()
 });
 
 /**
@@ -1784,6 +1793,21 @@ function applyShotFields(
   if (args["camera"] !== undefined)
     next.camera = args["camera"] as Shot["camera"];
   if (args["motion"] !== undefined) next.motion = String(args["motion"]);
+  if (args["graphics"] !== undefined) {
+    if (args["graphics"] === null) {
+      delete next.graphics;
+    } else {
+      const parsed = storyboardShotGraphics.safeParse(args["graphics"]);
+      if (!parsed.success) {
+        throw new Error(
+          `graphics must be a valid Storyboard graphics object: ${parsed.error.issues
+            .map((issue) => issue.path.join(".") || issue.message)
+            .join(", ")}.`
+        );
+      }
+      next.graphics = parsed.data;
+    }
+  }
   if (args["dialogue"] !== undefined) next.dialogue = String(args["dialogue"]);
   if (args["narration"] !== undefined)
     next.narration = String(args["narration"]);
@@ -2258,7 +2282,13 @@ function applyBoardOp(
       const direction = screenplayDirection.safeParse(args);
       if (!direction.success) {
         throw new Error(
-          `set_board: ${direction.error.issues.map((issue) => issue.path.join(".")).join(", ")} must be a string. Use an empty string to clear direction.`
+          "set_board has invalid screenplay direction: " +
+            direction.error.issues
+              .map(
+                (issue) =>
+                  `${issue.path.join(".") || "direction"}: ${issue.message}`
+              )
+              .join("; ")
         );
       }
       if (args["brief"] !== undefined) doc.brief = String(args["brief"]);
@@ -2298,19 +2328,33 @@ function applyBoardOp(
       }
       if (
         args["narration"] !== undefined ||
-        args["music_prompt"] !== undefined
+        args["music_prompt"] !== undefined ||
+        args["motion_design"] !== undefined
       ) {
-        doc.screenplay = doc.screenplay ?? {
-          type: "screenplay",
-          id: newDocId("sp"),
-          title: "",
-          shots: []
-        };
-        if (direction.data.narration !== undefined) {
+        const needsScreenplay =
+          args["narration"] !== undefined ||
+          args["music_prompt"] !== undefined ||
+          direction.data.motion_design !== null;
+        if (needsScreenplay) {
+          doc.screenplay = doc.screenplay ?? {
+            type: "screenplay",
+            id: newDocId("sp"),
+            title: "",
+            shots: []
+          };
+        }
+        if (doc.screenplay && direction.data.narration !== undefined) {
           doc.screenplay.narration = direction.data.narration;
         }
-        if (direction.data.music_prompt !== undefined) {
+        if (doc.screenplay && direction.data.music_prompt !== undefined) {
           doc.screenplay.music_prompt = direction.data.music_prompt;
+        }
+        if (doc.screenplay && direction.data.motion_design !== undefined) {
+          if (direction.data.motion_design === null) {
+            delete doc.screenplay.motion_design;
+          } else {
+            doc.screenplay.motion_design = direction.data.motion_design;
+          }
         }
       }
       return {
@@ -2321,7 +2365,8 @@ function applyBoardOp(
         image_model: doc.imageModel,
         video_model: doc.videoModel,
         narration: doc.screenplay?.narration,
-        music_prompt: doc.screenplay?.music_prompt
+        music_prompt: doc.screenplay?.music_prompt,
+        motion_design: doc.screenplay?.motion_design
       };
     }
   }
@@ -2591,7 +2636,11 @@ const directStoryboard: CapabilityExport = {
           status: held.status
         };
       });
-      next.screenplay = screenplay;
+      next.screenplay = {
+        ...screenplay,
+        ...(next.screenplay?.motion_design !== undefined ? { motion_design: next.screenplay.motion_design } : {}),
+        shots: next.shots
+      };
       next.style = screenplay.style_bible ?? next.style;
       next.aspectRatio = screenplay.aspect_ratio ?? next.aspectRatio;
       if (screenplay.genre) next.genre = screenplay.genre;

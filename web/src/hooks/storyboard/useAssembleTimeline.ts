@@ -104,14 +104,14 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
         // way an unlinked one does — a deleted script must not break assemble.
         const script = scriptId ? await loadLinkedScript(scriptId) : null;
         const doc = buildTimelineDocument(measuredBoard, script);
-        // The video clips only: a shot also contributes its audio twin, and a
-        // jointly assembled cut stamps the shot keys onto voiceover clips too.
+        // Picture clips only: still-first shots are first-class assembly
+        // sources, while rendered video shots may also contribute audio twins.
         const shotClips = doc.clips.filter(
-          (clip) => clip.storyboardShotId && clip.mediaType === "video"
+          (clip) => clip.storyboardShotId && (clip.mediaType === "video" || clip.mediaType === "image")
         );
         if (shotClips.length === 0) {
           throw new Error(
-            "No rendered shots to assemble — generate and render clips first."
+            "No storyboard picture to assemble — add a persisted keyframe or rendered clip first."
           );
         }
         const name = board.title.trim() || "Storyboard cut";

@@ -32,6 +32,78 @@ const shotModelRef = z.object({
   name: z.string().optional()
 });
 
+export const storyboardShotGraphicsElement = z
+  .object({
+    id: z.string(),
+    kind: z.enum(["text", "asset", "shape"]),
+    role: z
+      .enum([
+        "headline",
+        "subhead",
+        "price",
+        "badge",
+        "cta",
+        "logo",
+        "product",
+        "decorative"
+      ])
+      .optional(),
+    text: z.string().optional(),
+    asset_id: z.string().optional(),
+    entity_id: z.string().optional(),
+    protected_input_id: z.string().optional(),
+    direction: z.string().optional()
+  })
+  .passthrough();
+
+export const storyboardShotGraphics = z
+  .object({
+    mode: z
+      .enum(["none", "overlay", "graphics_first", "hybrid"])
+      .optional(),
+    direction: z.string().optional(),
+    elements: z.array(storyboardShotGraphicsElement).optional()
+  })
+  .passthrough()
+  .superRefine((graphics, context) => {
+    const ids = graphics.elements?.map((element) => element.id) ?? [];
+    if (ids.some((id) => id.trim().length === 0) || new Set(ids).size !== ids.length) {
+      context.addIssue({ code: "custom", path: ["elements"], message: "Graphics element ids must be non-empty and unique within a shot." });
+    }
+    graphics.elements?.forEach((element, index) => {
+      if (element.kind === "text" && element.text === undefined) {
+        context.addIssue({ code: "custom", path: ["elements", index, "text"], message: "Text graphics need exact text." });
+      }
+      if (element.kind === "asset" && !element.asset_id && !element.entity_id && !element.protected_input_id) {
+        context.addIssue({ code: "custom", path: ["elements", index], message: "Asset graphics need asset_id or entity_id." });
+      }
+    });
+  });
+
+const storyboardTransitionIntent = z
+  .object({
+    from_shot_id: z.string(),
+    to_shot_id: z.string(),
+    direction: z.string().optional()
+  })
+  .passthrough();
+
+const storyboardContinuityIntent = z
+  .object({
+    id: z.string(),
+    shot_ids: z.array(z.string()),
+    direction: z.string()
+  })
+  .passthrough();
+
+export const storyboardMotionDesign = z
+  .object({
+    direction: z.string().optional(),
+    transitions: z.array(storyboardTransitionIntent).optional(),
+    continuities: z.array(storyboardContinuityIntent).optional()
+  })
+  .passthrough();
+
 export const storyboardShot = z
   .object({
     type: z.literal("shot"),
@@ -41,6 +113,7 @@ export const storyboardShot = z
     status: z.string(),
     slug: z.string().optional(),
     motion: z.string().optional(),
+    graphics: storyboardShotGraphics.optional(),
     duration_seconds: z.number().optional(),
     keyframe: mediaRef.nullable().optional(),
     clip: mediaRef.nullable().optional(),
@@ -84,10 +157,25 @@ export const storyboardScreenplay = z
     script_id: z.string().nullable().optional(),
     /** The board's genre as it stood when this screenplay was directed. */
     genre: z.string().optional(),
+    /** Whole-board motion-design direction, including cross-shot intent. */
+    motion_design: storyboardMotionDesign.optional(),
     /** The authoritative scene list. Order is derived from `shot.index`. */
     scenes: z.array(storyboardScene).optional()
   })
-  .passthrough();
+  .passthrough()
+  .superRefine((screenplay, context) => {
+    const shotIds = new Set(screenplay.shots.map((shot) => shot.id));
+    screenplay.motion_design?.transitions?.forEach((transition, index) => {
+      if (!shotIds.has(transition.from_shot_id) || !shotIds.has(transition.to_shot_id)) {
+        context.addIssue({ code: "custom", path: ["motion_design", "transitions", index], message: "Transition references a shot that is not in this screenplay." });
+      }
+    });
+    screenplay.motion_design?.continuities?.forEach((continuity, index) => {
+      if (continuity.id.trim().length === 0 || continuity.shot_ids.some((id) => !shotIds.has(id))) {
+        context.addIssue({ code: "custom", path: ["motion_design", "continuities", index], message: "Continuity needs a non-empty id and only existing shot ids." });
+      }
+    });
+  });
 export type StoryboardScreenplay = z.infer<typeof storyboardScreenplay>;
 
 // ── Normalization ───────────────────────────────────────────────────────────
@@ -124,6 +212,7 @@ const SCREENPLAY_KEY_ALIASES: Readonly<Record<string, string>> = {
   musicPrompt: "music_prompt",
   entityIds: "entity_ids",
   scriptId: "script_id",
+  motionDesign: "motion_design",
   createdAt: "created_at",
   updatedAt: "updated_at"
 };

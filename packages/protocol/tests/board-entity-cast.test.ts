@@ -40,6 +40,16 @@ describe("boardEntityIdsWithShots", () => {
     ).toEqual(["a", "b", "c"]);
   });
 
+  it("keeps graphics-only entity ids out of the generation cast", () => {
+    const s = shot("s1");
+    s.graphics = {
+      mode: "overlay",
+      elements: [{ id: "logo", kind: "asset", role: "logo", entity_id: "brand" }]
+    };
+    const cast = ["character"];
+    expect(boardEntityIdsWithShots(cast, [s])).toBe(cast);
+  });
+
   it("returns the same array when every shot id is already cast", () => {
     const cast = ["a", "b"];
     expect(boardEntityIdsWithShots(cast, [shot("s1", ["b"])])).toBe(cast);
