@@ -259,6 +259,8 @@ describe("db", () => {
 
   it.each(["20260103_000001", "20260829_000004", "20260927_000001"])(
     "upgrades a tracked database at historical level %s",
+    // Replays durable file-backed migrations before testing the upgrade.
+    { timeout: 30_000 },
     async (version) => {
       tempDir = mkdtempSync(join(tmpdir(), "nodetool-historical-level-"));
       const path = join(tempDir, "tracked.sqlite");
