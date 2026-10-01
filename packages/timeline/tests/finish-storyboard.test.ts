@@ -146,4 +146,15 @@ describe("Storyboard finishing", () => {
     expect(validateProducedTimeline(args, first.document).some((issue) => issue.code === "missing_element")).toBe(true);
   });
 
+  it("places new background below overlays and preserves manual track order on rerun", () => {
+    const args = input();
+    const first = materializeStoryboard(args);
+    const bg = first.document.clips.find((clip) => clip.storyboardElementId === "background")!;
+    const product = first.document.clips.find((clip) => clip.storyboardElementId === "product")!;
+    expect(first.document.tracks.find((track) => track.id === bg.trackId)!.index).toBeGreaterThan(first.document.tracks.find((track) => track.id === product.trackId)!.index);
+    first.document.tracks.find((track) => track.id === product.trackId)!.index = 0;
+    const second = materializeStoryboard({ ...args, current: first.document });
+    expect(second.document.tracks.find((track) => track.id === product.trackId)!.index).toBe(0);
+  });
+
 });

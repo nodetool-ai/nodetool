@@ -1,5 +1,6 @@
 import { resolveEffectiveProductionRequirement, type StoryboardMotionDesign, type ProductionRequirement, type ProductionProtectedInput, type Shot } from "@nodetool-ai/protocol";
 import { createTimeOrderedUuid, makeClip, makeTrack } from "./defaults.js";
+import { moveTrackOrder } from "./trackOrder.js";
 import { resolveShotSource } from "./storyboard.js";
 import { isKnownShapeKind } from "./types.js";
 import type { TimelineClip, TimelineTrack, TimelineMarker } from "./types.js";
@@ -143,7 +144,8 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
     existing.set(key, clip);
   }
   const foreignClips = current.clips.filter((clip) => clip.storyboardBoardId !== input.boardId);
-  const tracks = current.tracks.filter((track) => foreignClips.some((clip) => clip.trackId === track.id));
+  const ownedTrackIds = new Set(current.clips.filter((clip) => clip.storyboardBoardId === input.boardId).map((clip) => clip.trackId));
+  const tracks = current.tracks.filter((track) => !ownedTrackIds.has(track.id) || foreignClips.some((clip) => clip.trackId === track.id));
   const clips: TimelineClip[] = [...foreignClips];
   let startMs = 0;
   for (const shot of [...input.shots].sort((a, b) => a.index - b.index)) {
@@ -161,7 +163,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
       const key = identity(shot.id, element.id);
       const previous = existing.get(key);
       const track = current.tracks.find((value) => value.id === previous?.trackId) ?? makeTrack({ type: "overlay", name: `${shot.slug ?? shot.id}: ${element.id}`, index: tracks.length });
-      if (!tracks.some((value) => value.id === track.id)) tracks.push({ ...track, index: tracks.length });
+      if (!tracks.some((value) => value.id === track.id)) tracks.push({ ...track, index: previous ? track.index : Math.max(-1, ...tracks.map((value) => value.index)) + 1 });
       const protection = element.protected_input_id ? protectedInputs.get(element.protected_input_id) : undefined;
       const isBackground = element.kind === "shape" && element.id === "background";
       const y = element.role === "product" ? 0.42 : element.role === "logo" ? 0.1 : element.role === "headline" ? 0.18 : element.role === "cta" ? 0.84 : 0.66 + (index % 2) * 0.1;
@@ -193,6 +195,13 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
       clips.push(clip);
     }
     startMs += durationMs;
+  }
+  // New backgrounds belong beneath overlays. Existing track order is a user-owned edit.
+  for (const clip of clips) {
+    if (clip.storyboardBoardId !== input.boardId || clip.storyboardElementId !== "background" || existing.has(identity(clip.storyboardShotId ?? "", "background"))) continue;
+    const order = moveTrackOrder(tracks, clip.trackId, { toIndex: tracks.length - 1 });
+    const indices = new Map(order.map((id, index) => [id, index]));
+    for (const track of tracks) track.index = indices.get(track.id)!;
   }
   // These semantic directions select existing Timeline animations, never another animation model.
   for (const transition of input.motionDesign?.transitions ?? []) {
