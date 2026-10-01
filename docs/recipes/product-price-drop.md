@@ -32,6 +32,9 @@ conflict and requires a new plan.
 Finishing updates the layers identified by board, shot, and graphics-element
 identity. Manual placement edits survive. Manual replacement of protected
 sources or copy causes an explicit conflict instead of silently overwriting it.
+Finishing preserves unrelated Timeline metadata. Existing global camera,
+code-authored source, or media tracking returns an explicit conflict because
+this finishing slice cannot reconcile those features.
 Ordinary Storyboard assembly refuses to replace finished semantic layers. Use
 `finish_storyboard` to update them through the same reconciliation rules.
 
@@ -58,7 +61,10 @@ PRICE_DROP_PROOF_DIR=/tmp/recipe-price-drop-proof \
 The frontend interaction test exercises the same Recipe's normal input,
 ChoiceCards, and Approval bindings. The Playwright Recipe builder journey opens
 the real App Builder, edits its title through Puck, saves, reloads and confirms
-the original Recipe manifest survives. Run it with:
+the original Recipe manifest survives. It then uploads both assets, fills every
+protected input, plans, approves, builds, verifies the inline preview, and opens
+the editable Timeline. It also changes the live script heads to prove that
+operations still execute their pinned versions. Run it with:
 
 ```bash
 npm run test:journeys --workspace=web -- recipe-builder.spec.ts
