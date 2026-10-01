@@ -1,5 +1,5 @@
 import { memo, useEffect } from "react";
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { trpcClient } from "../../trpc/client";
@@ -36,8 +36,9 @@ const findApplicationForWorkflow = async (
  * workflow we open that app's workspace tab, otherwise the link is dead.
  */
 const LegacyAppRedirect = () => {
+  const navigate = useNavigate();
   const { workflowId } = useParams<{ workflowId?: string }>();
-  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const openTab = useWorkspaceTabsStore((state) => state.openForegroundTab);
 
   const { data, isLoading } = useQuery({
     queryKey: ["application-for-workflow", workflowId],
@@ -80,6 +81,8 @@ const LegacyAppRedirect = () => {
           variant="error"
           title="App not found"
           description="No app is built on this workflow. Open the Apps panel to create one."
+          actionText="Back to workspace"
+          onAction={() => navigate("/workspace", { replace: true })}
         />
       </FlexColumn>
     );

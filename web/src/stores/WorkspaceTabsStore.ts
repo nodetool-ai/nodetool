@@ -104,7 +104,7 @@ export const isTabInScope = (
     ? tab.projectId === activeProjectId
     : tab.projectId === undefined);
 
-interface OpenTabInput {
+export interface OpenTabInput {
   type: WorkspaceTabType;
   ref: string;
   /**
@@ -144,6 +144,18 @@ export interface ProjectSession {
   selectedChatThreadId: string | null;
 }
 
+export const tabsToCloseOthers = (
+  tabs: readonly WorkspaceTab[],
+  keepId: string
+): WorkspaceTab[] => {
+  const kept = tabs.find((tab) => tab.id === keepId);
+  return kept
+    ? tabs.filter(
+        (tab) => tab.projectId === kept.projectId && tab.id !== keepId
+      )
+    : [];
+};
+
 interface WorkspaceTabsState {
   /**
    * The tabs, in the order the bar renders them: the active project's tabs are
@@ -167,6 +179,8 @@ interface WorkspaceTabsState {
    * than duplicated. Returns the tab id.
    */
   openTab: (input: OpenTabInput) => string;
+  /** Foreground navigation requires resolved ownership and updates visible scope atomically. */
+  openForegroundTab: (input: OpenTabInput & { projectId: string }) => string;
   closeTab: (id: string) => void;
   closeOthers: (id: string) => void;
   setActiveTab: (id: string) => void;
@@ -391,17 +405,18 @@ export const seedTabsFromLegacy = (): Pick<
 
 export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
   persist(
-    (set, get) => ({
-      ...seedTabsFromLegacy(),
-      activeProjectId: null,
-      personalProjectId: null,
-      projectSessions: {},
-
-      openTab: ({ type, ref, mode, title, projectId, setupTarget }) => {
+    (set, get) => {
+      const openTab = (
+        { type, ref, mode, title, projectId, setupTarget }: OpenTabInput,
+        foreground = false
+      ): string => {
         const id = tabId(type, ref);
         const existing = get().tabs.find((t) => t.id === id);
         const project =
           projectId === undefined ? existing?.projectId : projectOf(projectId);
+        const activeProjectId = foreground
+          ? (project ?? null)
+          : get().activeProjectId;
         if (existing) {
           set((state) => {
             const movedBetweenProjects = existing.projectId !== project;
@@ -434,6 +449,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             }
             return {
               activeTabId: id,
+              activeProjectId,
               projectSessions,
               tabs: gatherProjectTabs(
                 state.tabs.map((t) =>
@@ -448,7 +464,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
                       }
                     : t
                 ),
-                state.activeProjectId
+                activeProjectId
               )
             };
           });
@@ -468,7 +484,8 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           tab.setupTarget = setupTarget;
         }
         set((state) => ({
-          tabs: gatherProjectTabs([...state.tabs, tab], state.activeProjectId),
+          tabs: gatherProjectTabs([...state.tabs, tab], activeProjectId),
+          activeProjectId,
           activeTabId: id,
           projectSessions: updateSession(
             state.projectSessions,
@@ -483,16 +500,24 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           )
         }));
         return id;
-      },
+      };
+      return {
+      ...seedTabsFromLegacy(),
+      activeProjectId: null,
+      personalProjectId: null,
+      projectSessions: {},
+
+      openTab,
+      openForegroundTab: (input) => openTab(input, true),
 
       closeTab: (id) =>
         set((state) => {
           const tabs = state.tabs.filter((t) => t.id !== id);
           const closed = state.tabs.find((tab) => tab.id === id);
           const activeProjectId = state.activeProjectId;
-          const scopedTabs = closed
-            ? state.tabs.filter((tab) => tab.projectId === closed.projectId)
-            : state.tabs;
+          const scopedTabs = state.tabs.filter((tab) =>
+            isTabInScope(tab, activeProjectId)
+          );
           const nextActiveTabId = nextActiveAfterClose(
             scopedTabs,
             state.activeTabId,
@@ -536,9 +561,10 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
         set((state) => {
           const keptTab = state.tabs.find((tab) => tab.id === id);
           if (!keptTab) return state;
-          const kept = state.tabs.filter(
-            (tab) => tab.projectId !== keptTab.projectId || tab.id === id
+          const closingIds = new Set(
+            tabsToCloseOthers(state.tabs, id).map((tab) => tab.id)
           );
+          const kept = state.tabs.filter((tab) => !closingIds.has(tab.id));
           const projectSessions = updateSession(
             state.projectSessions,
             keptTab.projectId,
@@ -546,7 +572,8 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
               ...session,
               tabIds: [id],
               activeTabId: id,
-              selectedChatThreadId: keptTab.type === "chat" ? keptTab.ref : null
+              selectedChatThreadId:
+                keptTab.type === "chat" ? keptTab.ref : null
             })
           );
           return {
@@ -575,7 +602,9 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
                 ...session,
                 activeTabId: id,
                 selectedChatThreadId:
-                  tab?.type === "chat" ? tab.ref : session.selectedChatThreadId
+                  tab?.type === "chat"
+                    ? tab.ref
+                    : session.selectedChatThreadId
               })
             ),
             tabs: gatherProjectTabs(state.tabs, activeProjectId)
@@ -610,7 +639,11 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
         set((state) => ({
           tabs: state.tabs.map((tab) =>
             tab.type === "guided-flow" && tab.ref === ref
-              ? { ...tab, setupTarget: target, title: target?.name ?? "New flow" }
+              ? {
+                  ...tab,
+                  setupTarget: target,
+                  title: target?.name ?? "New flow"
+                }
               : tab
           )
         })),
@@ -679,7 +712,10 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
         set((state) => {
           if (state.personalProjectId === projectId) return state;
           const looseSession = sessionFor(state.projectSessions, undefined);
-          const existingSession = sessionFor(state.projectSessions, projectId);
+          const existingSession = sessionFor(
+            state.projectSessions,
+            projectId
+          );
           const migratedTabs = state.tabs.map((tab) =>
             tab.projectId === undefined && !isGlobalWorkspaceTab(tab)
               ? { ...tab, projectId }
@@ -761,7 +797,8 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
                 .map((savedTabId) =>
                   documents === undefined
                     ? owned.get(savedTabId)
-                    : owned.get(savedTabId)?.type === "guided-flow" || available.has(savedTabId)
+                    : owned.get(savedTabId)?.type === "guided-flow" ||
+                        available.has(savedTabId)
                       ? owned.get(savedTabId)
                       : undefined
                 )
@@ -773,12 +810,16 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           const finalProjectTabs = restored;
           const finalIds = new Set(finalProjectTabs.map((tab) => tab.id));
           const others = state.tabs.filter(
-            (t) => t.type !== "project" && t.projectId !== id && !finalIds.has(t.id)
+            (t) =>
+              t.type !== "project" &&
+              t.projectId !== id &&
+              !finalIds.has(t.id)
           );
           // The group lands where its first member already sat, so opening a
           // project the user has tabs from does not reshuffle the bar.
           const at = state.tabs.findIndex((t) => finalIds.has(t.id));
-          const head = at === -1 ? others.length : Math.min(at, others.length);
+          const head =
+            at === -1 ? others.length : Math.min(at, others.length);
           const activeTabId =
             previous.activeTabId && finalIds.has(previous.activeTabId)
               ? previous.activeTabId
@@ -816,7 +857,9 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
       closeProject: (projectId) =>
         set((state) => {
           const tabs = state.tabs.filter((t) => t.projectId !== projectId);
-          const activeStillOpen = tabs.some((t) => t.id === state.activeTabId);
+          const activeStillOpen = tabs.some(
+            (t) => t.id === state.activeTabId
+          );
           // Focus what the group left behind: the tab that slid into its
           // place, else the one just before it. All tabs before `at` survive
           // the filter, so `tabs[at]` is the first survivor past the group's
@@ -824,7 +867,9 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           const at = state.tabs.findIndex((t) => t.projectId === projectId);
           const neighbour = tabs[at] ?? tabs[at - 1] ?? tabs[tabs.length - 1];
           const activeProjectId =
-            state.activeProjectId === projectId ? null : state.activeProjectId;
+            state.activeProjectId === projectId
+              ? null
+              : state.activeProjectId;
           const projectSessions = { ...state.projectSessions };
           delete projectSessions[projectId];
           return {
@@ -836,7 +881,8 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             projectSessions
           };
         })
-    }),
+    };
+    },
     {
       name: "workspace-tabs-storage",
       version: 3,

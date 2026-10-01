@@ -8,9 +8,11 @@
 import { useCallback, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
-  writeGameSetup,
   writeWorkflowSetup
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+
+import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
+import { newDocumentId } from "../../lib/newDocumentId";
 
 import { useCreateStoryboard } from "../../hooks/storyboard/useStoryboards";
 import { useCreateScript } from "../../hooks/script/useScripts";
@@ -73,7 +75,7 @@ export const useGuidedFlowStarters = (
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const openTab = useWorkspaceTabsStore((state) => state.openForegroundTab);
   const createStoryboard = useCreateStoryboard();
   const createScript = useCreateScript();
   const createTimeline = useCreateTimeline();
@@ -216,23 +218,21 @@ export const useGuidedFlowStarters = (
     (projectIdOverride?: string) =>
       runStart("game", async () => {
         const projectId = projectIdOverride ?? creationProjectId();
-        const created = await createWorkflow({
+        const created = await trpcClient.games.create.mutate({
           name: "Untitled game",
-          description: "",
-          tags: [],
-          access: "private",
-          project_id: projectId,
-          settings: writeGameSetup({}, { stage: "idea", brief: "" })
+          projectId,
+          dimension: "2d",
+          document: createTopDownRoomGame(newDocumentId())
         });
         openTab({
-          type: "workflow",
-          ref: created.id,
+          type: "game",
+          ref: created.game.id,
           mode: "edit",
-          title: created.name || "Untitled game",
-          projectId
+          title: created.game.name || "Untitled game",
+          projectId: created.game.projectId
         });
       }),
-    [runStart, createWorkflow, openTab]
+    [runStart, openTab]
   );
 
   // Entities have no document tab — the library is their surface — so the

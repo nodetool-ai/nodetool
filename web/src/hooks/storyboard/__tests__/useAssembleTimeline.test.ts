@@ -121,6 +121,7 @@ const seedLinkedPair = (boardId: string, scriptId: string): void => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  (trpcClient.storyboards.get.query as jest.Mock).mockResolvedValue({ projectId: "proj-1" });
   mediaDurations.clear();
   jest.spyOn(document, "createElement").mockImplementation((tagName, options) => {
     const element = createElement(tagName, options);
@@ -498,4 +499,19 @@ describe("useAssembleTimeline", () => {
       expect(isTabInScope(tab!, "proj-1")).toBe(true);
     });
   });
+  it("assembles into the storyboard owner after the current project changes", async () => {
+    seedBoard("board-owned");
+    useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null, activeProjectId: "project-a", projectSessions: {} });
+    (trpcClient.storyboards.get.query as jest.Mock).mockImplementation(async () => {
+      useWorkspaceTabsStore.getState().setActiveProjectId("project-b");
+      return { projectId: "board-project" };
+    });
+    createMutate.mockResolvedValue({ id: "tl-owned", projectId: "board-project" });
+    updateMutate.mockResolvedValue({});
+    const { result } = renderHook(() => useAssembleTimeline());
+    await act(async () => { await result.current.assemble("board-owned"); });
+    expect(createMutate).toHaveBeenCalledWith(expect.objectContaining({ projectId: "board-project" }));
+    expect(useWorkspaceTabsStore.getState().activeProjectId).toBe("board-project");
+  });
+
 });

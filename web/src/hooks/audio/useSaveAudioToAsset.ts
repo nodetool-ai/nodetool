@@ -16,14 +16,23 @@ import type { Asset } from "../../stores/ApiTypes";
  * sets the asset's content type to `audio/wav` regardless of the original
  * format. Invalidates the asset query so the viewer reloads the new audio.
  */
-export function useSaveAudioToAsset(asset: Asset | undefined) {
+interface SaveAudioToAssetResult {
+  save: (sample: AudioSample) => Promise<boolean>;
+  saving: boolean;
+}
+
+export function useSaveAudioToAsset(
+  asset: Asset | undefined
+): SaveAudioToAssetResult {
   const updateAsset = useAssetStore((state) => state.update);
   const invalidateQueries = useAssetStore((state) => state.invalidateQueries);
   const [saving, setSaving] = useState(false);
 
   const save = useCallback(
     async (sample: AudioSample) => {
-      if (!asset) return;
+      if (!asset) {
+        return false;
+      }
       setSaving(true);
       try {
         const base64 = arrayBufferToBase64(encodeWav(sample));
@@ -41,6 +50,7 @@ export function useSaveAudioToAsset(asset: Asset | undefined) {
           type: "success",
           content: "Saved edits to audio."
         });
+        return true;
       } catch (error) {
         useNotificationStore.getState().addNotification({
           type: "error",
@@ -49,6 +59,7 @@ export function useSaveAudioToAsset(asset: Asset | undefined) {
             error instanceof Error ? error.message : String(error)
           }`
         });
+        return false;
       } finally {
         setSaving(false);
       }

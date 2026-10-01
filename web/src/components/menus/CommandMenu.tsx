@@ -18,6 +18,7 @@ import isEqual from "../../utils/isEqual";
 import React from "react";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useWorkspaceDocumentClose } from "../../hooks/useWorkspaceDocumentClose";
 import { useNavigate } from "react-router-dom";
 import {
   exportWorkflowBundle,
@@ -208,8 +209,10 @@ const WorkflowCommands = memo(function WorkflowCommands() {
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
   const getCurrentWorkflow = useWorkflowManager((state) => state.getCurrentWorkflow);
   const createNew = useWorkflowManager((state) => state.createNew);
-  const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
-  const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
+  const { closeDocument } = useWorkspaceDocumentClose();
+  const openForegroundTab = useWorkspaceTabsStore(
+    (state) => state.openForegroundTab
+  );
   const createWorkflow = useWorkflowManager((state) => state.create);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bundleInputRef = useRef<HTMLInputElement>(null);
@@ -256,22 +259,25 @@ const WorkflowCommands = memo(function WorkflowCommands() {
   }, [saveWorkflow, getCurrentWorkflow, addNotification]);
 
   const handleNewWorkflow = useCallback(async () => {
-    const newWorkflow = await createNew();
-    navigate(`/editor/${newWorkflow.id}`);
-  }, [createNew, navigate]);
+    const projectId = creationProjectId();
+    const workflow = await createNew(projectId);
+    openForegroundTab({
+      type: "workflow",
+      ref: workflow.id,
+      title: workflow.name,
+      mode: "edit",
+      projectId
+    });
+    void queryClient.invalidateQueries({ queryKey: ["workflows"] });
+    navigate("/workspace");
+  }, [createNew, navigate, openForegroundTab, queryClient]);
 
-  const handleCloseWorkflow = useCallback(() => {
-    const workflow = getCurrentWorkflow();
-    if (workflow) {
-      removeWorkflow(workflow.id);
-      const remaining = openWorkflows.filter((w) => w.id !== workflow.id);
-      if (remaining.length > 0) {
-        navigate(`/editor/${remaining[remaining.length - 1].id}`);
-      } else {
-        navigate("/editor");
-      }
+  const handleCloseWorkflow = () => {
+    const tab = useWorkspaceTabsStore.getState().getActiveTab();
+    if (tab?.type === "workflow") {
+      closeDocument(tab);
     }
-  }, [removeWorkflow, getCurrentWorkflow, openWorkflows, navigate]);
+  };
 
   const handleImportWorkflow = useCallback(() => {
     fileInputRef.current?.click();

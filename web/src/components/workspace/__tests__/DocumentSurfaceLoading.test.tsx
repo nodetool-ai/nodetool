@@ -6,6 +6,7 @@
  * really is empty. Each waits on its sync hook instead.
  */
 
+import userEvent from "@testing-library/user-event";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -32,8 +33,9 @@ jest.mock("@mui/material/useMediaQuery", () => () => false);
 let storyboardLoadState: DocumentLoadState = "loading";
 let scriptLoadState: DocumentLoadState = "loading";
 
+const mockStoryboardSync = jest.fn<DocumentLoadState, unknown[]>(() => storyboardLoadState);
 jest.mock("../../../hooks/storyboard/useStoryboardServerSync", () => ({
-  useStoryboardServerSync: () => storyboardLoadState
+  useStoryboardServerSync: (...args: unknown[]) => mockStoryboardSync(...args)
 }));
 jest.mock("../../../hooks/script/useScriptServerSync", () => ({
   useScriptServerSync: () => scriptLoadState
@@ -95,6 +97,13 @@ const withTheme = (ui: React.ReactElement) =>
   render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
 
 describe("document surfaces during the initial load", () => {
+  it("retries a failed storyboard load without closing the tab", async () => {
+    storyboardLoadState = "error";
+    withTheme(<StoryboardSurface refId="board-1" mode="edit" active />);
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(mockStoryboardSync).toHaveBeenLastCalledWith("board-1", 1);
+  });
+
   it("shows a spinner instead of an empty storyboard", () => {
     storyboardLoadState = "loading";
     withTheme(<StoryboardSurface refId="board-1" mode="edit" active />);

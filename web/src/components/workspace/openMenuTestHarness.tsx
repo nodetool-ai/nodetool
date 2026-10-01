@@ -72,8 +72,8 @@ jest.mock("./useGuidedFlowStarters", () => ({
 
 jest.mock("../../stores/WorkspaceTabsStore", () => ({
   creationProjectId: () => mockCreationProjectId.value,
-  useWorkspaceTabsStore: <T,>(selector: (s: { openTab: jest.Mock }) => T): T =>
-    selector({ openTab: mockOpenMenu.openTab })
+  useWorkspaceTabsStore: <T,>(selector: (s: { openTab: jest.Mock; openForegroundTab: jest.Mock }) => T): T =>
+    selector({ openTab: mockOpenMenu.openTab, openForegroundTab: mockOpenMenu.openTab })
 }));
 
 jest.mock("../../stores/NotificationStore", () => ({

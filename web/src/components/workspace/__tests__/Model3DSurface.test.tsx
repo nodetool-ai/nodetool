@@ -1,0 +1,20 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
+import Model3DSurface from "../Model3DSurface";
+const mockQuery = jest.fn();
+const mockRefetch = jest.fn();
+jest.mock("../../../serverState/useAssetById", () => ({ useAssetById: () => mockQuery() }));
+jest.mock("../../asset_viewer/LazyModel3DViewer", () => ({ __esModule: true, default: () => <div>Model loaded</div> }));
+jest.mock("../../../stores/AssetStore", () => ({ useAssetStore: (select: (s: unknown) => unknown) => select({ update: jest.fn(), invalidateQueries: jest.fn() }) }));
+it.each(["404", "403", "network"])("renders a settled %s metadata failure and can retry", async (failure) => {
+  mockQuery.mockReturnValue({ data: undefined, isPending: false, isError: true, error: new Error(failure), refetch: mockRefetch });
+  const page = render(<ThemeProvider theme={mockTheme}><Model3DSurface refId="model-1" mode="view" active /></ThemeProvider>);
+  expect(screen.getByText("Could not load this 3D asset")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+  expect(mockRefetch).toHaveBeenCalled();
+  mockQuery.mockReturnValue({ data: { id: "model-1", content_type: "model/gltf-binary", name: "Model" }, isPending: false });
+  page.rerender(<ThemeProvider theme={mockTheme}><Model3DSurface refId="model-1" mode="view" active /></ThemeProvider>);
+  expect(screen.getByText("Model loaded")).toBeInTheDocument();
+});

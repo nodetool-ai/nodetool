@@ -71,6 +71,7 @@ const ProviderOnboardingDialog = React.lazy(
   () => import("./components/provider_onboarding/ProviderOnboardingDialog")
 );
 import FirstRunProviderSignIn from "./components/provider_onboarding/FirstRunProviderSignIn";
+import HelpDialogHost from "./components/content/Help/HelpDialogHost";
 import BugReportDialogHost from "./components/support/BugReportDialogHost";
 import ReportBugButton from "./components/support/ReportBugButton";
 import { installConsoleCapture } from "./utils/consoleCapture";
@@ -780,6 +781,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                   {/* Outside the router gate: a boot failure is exactly when
                       someone needs to report a bug. */}
                   <BugReportDialogHost />
+                  <HelpDialogHost />
                 </KeyboardProvider>
               </WorkflowManagerProvider>
             </MenuProvider>

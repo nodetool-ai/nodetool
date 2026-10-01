@@ -36,10 +36,12 @@ describe("OpenMenu storyboards", () => {
     ];
     mockOpenMenu.createStoryboard.mockResolvedValue({
       id: "board-blank",
+      projectId: "default",
       name: "Untitled storyboard"
     });
     mockOpenMenu.installExample.mockResolvedValue({
       id: "board-1",
+      projectId: "default",
       name: "Lighthouse Keeper — Opening"
     });
   });
@@ -65,7 +67,8 @@ describe("OpenMenu storyboards", () => {
       type: "storyboard",
       ref: "board-1",
       mode: "edit",
-      title: "Lighthouse Keeper — Opening"
+      title: "Lighthouse Keeper — Opening",
+      projectId: "default"
     });
     expect(mockOpenMenu.createStoryboard).not.toHaveBeenCalled();
   });
@@ -79,7 +82,8 @@ describe("OpenMenu storyboards", () => {
       type: "storyboard",
       ref: "board-blank",
       mode: "edit",
-      title: "Untitled storyboard"
+      title: "Untitled storyboard",
+      projectId: "default"
     });
   });
 

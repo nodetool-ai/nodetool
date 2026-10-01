@@ -27,7 +27,7 @@ import {
 } from "../../stores/storyboard/StoryboardStore";
 import {
   useWorkspaceTabsStore,
-  creationProjectId
+  LOOSE_PROJECT_ID
 } from "../../stores/WorkspaceTabsStore";
 import { buildTimelineDocument } from "../../components/storyboard/assembleTimeline";
 import { invalidateTimelineGetQuery } from "../../stores/storyboard/timelineSync";
@@ -93,6 +93,11 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
       setError(null);
       setAssembling(true);
       try {
+        const ownerTab = useWorkspaceTabsStore.getState().tabs.find(
+          (tab) => tab.type === "storyboard" && tab.ref === boardId
+        );
+        const projectId = ownerTab?.projectId ??
+          (await trpcClient.storyboards.get.query({ id: boardId })).projectId;
         const measuredBoard = await boardWithMeasuredClipDurations(board);
         const scriptId = linkedScriptId(measuredBoard);
         // A linked script that cannot be read leaves the board assembling the
@@ -136,12 +141,12 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
             document: { ...merged, markers: sequence.markers ?? [] }
           });
           invalidateTimelineGetQuery(existingId);
-          useWorkspaceTabsStore.getState().openTab({
+          useWorkspaceTabsStore.getState().openForegroundTab({
             type: "timeline",
             ref: existingId,
             mode: "edit",
             title: name,
-            projectId: sequence.projectId
+            projectId: sequence.projectId ?? LOOSE_PROJECT_ID
           });
           return {
             sequenceId: existingId,
@@ -157,7 +162,7 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
           name,
           width,
           height,
-          projectId: creationProjectId()
+          projectId
         });
         await trpcClient.timeline.update.mutate({
           id: sequence.id,
@@ -165,12 +170,12 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
         });
         invalidateTimelineGetQuery(sequence.id);
         useStoryboardStore.getState().setTimelineLink(boardId, sequence.id);
-        useWorkspaceTabsStore.getState().openTab({
+        useWorkspaceTabsStore.getState().openForegroundTab({
           type: "timeline",
           ref: sequence.id,
           mode: "edit",
           title: name,
-          projectId: sequence.projectId
+          projectId: sequence.projectId ?? LOOSE_PROJECT_ID
         });
         return {
           sequenceId: sequence.id,

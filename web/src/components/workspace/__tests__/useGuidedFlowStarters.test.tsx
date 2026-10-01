@@ -3,6 +3,8 @@
  */
 import { act, renderHook, waitFor } from "@testing-library/react";
 
+jest.mock("../../../stores/GlobalChatStore", () => ({ __esModule: true, default: { getState: () => ({ threads: {} }) } }));
+
 const createStoryboard = jest.fn(async () => ({
   id: "b1",
   projectId: "p-current",
@@ -43,12 +45,14 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   useWorkspaceTabsStore: <T,>(
     selector: (s: {
       openTab: jest.Mock;
+      openForegroundTab: jest.Mock;
       activeProjectId: string | null;
       personalProjectId: string | null;
     }) => T
   ): T =>
     selector({
       openTab,
+      openForegroundTab: openTab,
       activeProjectId: "p-current",
       personalProjectId: null
     }),
@@ -78,8 +82,9 @@ jest.mock("../../setup/image/startImageFlow", () => ({
 }));
 
 const timelineUpdate = jest.fn();
+const gameCreate = jest.fn(async () => ({ game: { id: "game-1", projectId: "p-game", name: "Untitled game" } }));
 jest.mock("../../../trpc/client", () => ({
-  trpcClient: { timeline: { update: { mutate: timelineUpdate } } }
+  trpcClient: { timeline: { update: { mutate: timelineUpdate } }, games: { create: { mutate: gameCreate } } }
 }));
 
 const openPageTab = jest.fn();
@@ -148,4 +153,12 @@ describe("useGuidedFlowStarters", () => {
     await waitFor(() => expect(openPageTab).toHaveBeenCalledWith("entities"));
     expect(createProject).not.toHaveBeenCalled();
   });
+});
+
+it("opens the native game resource instead of a general workflow", async () => {
+  const { hook } = renderStarters();
+  await act(async () => { await hook.result.current.starters.find((entry) => entry.id === "game")!.start("p-game"); });
+  expect(gameCreate).toHaveBeenCalledWith(expect.objectContaining({ projectId: "p-game", dimension: "2d", document: expect.objectContaining({ schemaVersion: 1 }) }));
+  expect(managerCreate).not.toHaveBeenCalled();
+  expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "game", ref: "game-1", projectId: "p-game" }));
 });

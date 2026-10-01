@@ -36,8 +36,7 @@ export interface AppMenuAction {
  * Shared by the desktop rail's popover (RailAppMenu) and the mobile browse
  * sheet's More section (AppPagesList) so the two cannot drift.
  *
- * Callers own the Help dialog: render `<Help>` against `useAppHeaderStore`,
- * since the Downloads dialog and page tabs mount themselves but Help does not.
+ * App-level dialog hosts own Help and Downloads independently of menu lifetime.
  */
 export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
   const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);

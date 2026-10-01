@@ -103,7 +103,8 @@ interface ExternalNotice {
 }
 
 export const useStoryboardServerSync = (
-  boardId: string
+  boardId: string,
+  retryToken = 0
 ): DocumentLoadState => {
   const utils = trpc.useUtils();
   const [loadState, setLoadState] = useState<DocumentLoadState>("loading");
@@ -115,6 +116,7 @@ export const useStoryboardServerSync = (
 
   useEffect(() => {
     let disposed = false;
+    let initialLoadReady = false;
     const store = useStoryboardStore;
     setLoadState("loading");
     const pendingNotices: ExternalNotice[] = [];
@@ -146,13 +148,15 @@ export const useStoryboardServerSync = (
       }
     };
 
-    const load = async (): Promise<void> => {
+    const load = async (): Promise<boolean> => {
       try {
         applyResponse(await trpcClient.storyboards.get.query({ id: boardId }));
+        initialLoadReady = true;
+        return true;
       } catch (error) {
         if (!isNotFound(error)) {
           console.error("Failed to load storyboard", error);
-          return;
+          return false;
         }
         const local = store.getState().boards[boardId];
         try {
@@ -161,13 +165,16 @@ export const useStoryboardServerSync = (
             name: local?.title || "Untitled storyboard",
             document: local ? boardToDocument(local) : undefined
           });
-          if (disposed) return;
+          if (disposed) return false;
           revisionRef.current = created.updatedAt;
           store.getState().setServerRevision(boardId, created.updatedAt);
           syncedRef.current = store.getState().boards[boardId] ?? null;
+          initialLoadReady = true;
           void utilsRef.current.storyboards.list.invalidate();
+          return true;
         } catch (createError) {
           console.error("Failed to create storyboard", createError);
+          return false;
         }
       }
     };
@@ -303,7 +310,7 @@ export const useStoryboardServerSync = (
     };
 
     const currentRevision = (): string | null =>
-      store.getState().serverRevisions[boardId] ?? null;
+      initialLoadReady ? store.getState().serverRevisions[boardId] ?? null : null;
     const flushNow = async (): Promise<StoryboardSaveResult> => {
       await loadPromiseRef.current;
       return controller.flush();
@@ -381,11 +388,9 @@ export const useStoryboardServerSync = (
     });
 
     registerStoryboardSaver(boardId, flushNow);
-    loadPromiseRef.current = load().finally(() => {
+    loadPromiseRef.current = load().then((loaded) => {
       if (disposed) return;
-      setLoadState(
-        store.getState().serverRevisions[boardId] ? "ready" : "error"
-      );
+      setLoadState(loaded ? "ready" : "error");
     });
     void loadPromiseRef.current;
 
@@ -397,7 +402,7 @@ export const useStoryboardServerSync = (
       useConflictStore.getState().clear(`storyboard:${boardId}`);
       controller.dispose();
     };
-  }, [boardId]);
+  }, [boardId, retryToken]);
 
   return loadState;
 };

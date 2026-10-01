@@ -66,8 +66,9 @@ jest.mock("../../components/storyboard/StoryboardQueueOverlay", () => ({
   )
 }));
 
+const mockSync = jest.fn<string, unknown[]>(() => "ready");
 jest.mock("../../hooks/storyboard/useStoryboardServerSync", () => ({
-  useStoryboardServerSync: () => "ready"
+  useStoryboardServerSync: (...args: unknown[]) => mockSync(...args)
 }));
 jest.mock("../../hooks/storyboard/useStoryboardAgentBridge", () => ({
   useStoryboardAgentBridge: jest.fn()
@@ -138,10 +139,27 @@ const renderPage = () =>
   );
 
 beforeEach(() => {
+  mockSync.mockReturnValue("ready");
   useStoryboardStore.setState({ boards: {} });
 });
 
 describe("StudioStoryboardPage setup stages", () => {
+  it.each(["loading", "error"])("gates the editor while %s", (state) => {
+    mockSync.mockReturnValue(state);
+    renderPage();
+    expect(screen.queryByTestId("board")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("agent-panel")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
+    expect(screen.getByText(state === "loading" ? "Loading storyboard…" : "Could not load this storyboard")).toBeInTheDocument();
+  });
+
+  it("retries a failed initial load", async () => {
+    mockSync.mockReturnValue("error");
+    renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(mockSync).toHaveBeenLastCalledWith(BOARD_ID, 1);
+  });
+
   it.each([
     ["idea", "Continue"],
     ["genre", "Generate screenplay"],

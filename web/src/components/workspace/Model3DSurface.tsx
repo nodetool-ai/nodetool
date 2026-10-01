@@ -13,6 +13,8 @@ import {
 } from "../../stores/WorkspaceTabsStore";
 import { BASE_URL } from "../../stores/BASE_URL";
 
+import DocumentLoadStatus from "./DocumentLoadStatus";
+
 const Model3DEditor = React.lazy(() => import("../model_editor/Model3DEditor"));
 
 interface Model3DSurfaceProps {
@@ -69,7 +71,7 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
  * but loads the asset here and passes data down so no editor edits are needed.
  */
 const Model3DSurface = ({ refId, mode }: Model3DSurfaceProps) => {
-  const { data: asset, isLoading } = useAssetById(refId);
+  const { data: asset, isPending, refetch } = useAssetById(refId);
 
   const updateAsset = useAssetStore((state) => state.update);
   const invalidateQueries = useAssetStore((state) => state.invalidateQueries);
@@ -110,15 +112,14 @@ const Model3DSurface = ({ refId, mode }: Model3DSurfaceProps) => {
     setMode(tabId("model3d", refId), "view");
   }, [setMode, refId]);
 
-  if (isLoading || !asset) {
+  if (!asset) {
     return (
-      <FlexColumn
-        fullWidth
-        fullHeight
-        sx={{ alignItems: "center", justifyContent: "center" }}
-      >
-        <LoadingSpinner />
-      </FlexColumn>
+      <DocumentLoadStatus
+        state={isPending ? "loading" : "error"}
+        label="3D asset"
+        onRetry={() => { void refetch(); }}
+        onClose={() => useWorkspaceTabsStore.getState().closeTab(tabId("model3d", refId))}
+      />
     );
   }
 

@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { tabCanRename } from "../tabRename";
+import { tabCanRename, renameStrategy } from "../tabRename";
 
 describe("tabCanRename", () => {
   it("allows rename on sketch documents and image tabs that host the sketch editor", () => {
@@ -20,4 +20,10 @@ describe("tabCanRename", () => {
   it("blocks rename on page tabs", () => {
     expect(tabCanRename("page")).toBe(false);
   });
+});
+
+
+it.each(["storyboard", "script"] as const)("advertises a persisted rename strategy for %s", (type) => {
+  expect(tabCanRename(type)).toBe(true);
+  expect(renameStrategy(type)).toBe(type);
 });

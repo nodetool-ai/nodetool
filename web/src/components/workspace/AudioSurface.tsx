@@ -1,11 +1,12 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 import type { WorkspaceTabMode } from "../../stores/WorkspaceTabsStore";
 import { tabId, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { useAssetById } from "../../serverState/useAssetById";
 import AudioViewer from "../asset_viewer/AudioViewer";
 import AudioSampleEditor from "../audio_editor/AudioSampleEditor";
-import { FlexColumn, LoadingSpinner } from "../ui_primitives";
+import { Box } from "../ui_primitives";
+import DocumentLoadStatus from "./DocumentLoadStatus";
 
 interface AudioSurfaceProps {
   refId: string;
@@ -18,13 +19,15 @@ interface AudioSurfaceProps {
  * AudioViewer; edit mode embeds the sample editor, which decodes the asset into
  * PCM, applies destructive edits, and saves the result back as WAV.
  *
- * The editor is mounted only while the tab is `active`: it owns an AudioContext
- * and playback, so keeping it alive in hidden background tabs (all tabs stay
- * mounted in the shell) would leak audio resources. Inactive edit tabs fall
- * back to the (hidden) viewer.
+ * Editor drafts stay mounted through tab and mode switches. Playback is
+ * suspended while the editor is hidden.
  */
 const AudioSurface = ({ refId, mode, active }: AudioSurfaceProps) => {
-  const { data: asset } = useAssetById(refId);
+  const { data: asset, isPending, refetch } = useAssetById(refId);
+  const [editorOpened, setEditorOpened] = useState(mode === "edit");
+  if (mode === "edit" && !editorOpened) {
+    setEditorOpened(true);
+  }
   const setMode = useWorkspaceTabsStore((state) => state.setMode);
 
   const returnToView = useCallback(() => {
@@ -33,17 +36,37 @@ const AudioSurface = ({ refId, mode, active }: AudioSurfaceProps) => {
 
   if (!asset) {
     return (
-      <FlexColumn fullWidth fullHeight align="center" justify="center">
-        <LoadingSpinner />
-      </FlexColumn>
+      <DocumentLoadStatus
+        state={isPending ? "loading" : "error"}
+        label="audio asset"
+        onRetry={() => void refetch()}
+        onClose={() =>
+          useWorkspaceTabsStore.getState().closeTab(tabId("audio", refId))
+        }
+      />
     );
   }
 
-  if (mode === "edit" && active) {
-    return <AudioSampleEditor asset={asset} onClose={returnToView} />;
-  }
-
-  return <AudioViewer asset={asset} />;
+  return (
+    <>
+      {editorOpened && (
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            display: mode === "edit" ? "block" : "none"
+          }}
+        >
+          <AudioSampleEditor
+            asset={asset}
+            onClose={returnToView}
+            active={active && mode === "edit"}
+          />
+        </Box>
+      )}
+      {mode !== "edit" && <AudioViewer asset={asset} />}
+    </>
+  );
 };
 
 export default AudioSurface;
