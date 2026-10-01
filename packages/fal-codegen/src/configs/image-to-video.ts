@@ -2,6 +2,20 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "pixelcut/looping-video": {
+      className: "PixelcutLoopingVideo",
+      docstring:
+        "Pixelcut Looping Video turns one product photo into a seamless 5 to 15 second loop with a locked camera, subtle ambient motion, or a 360 degree spin.",
+      tags: ["video", "generation", "image-to-video", "img2vid", "pixelcut", "loop"],
+      useCases: [
+        "Animate product photos for listings",
+        "Create seamless looping social clips",
+        "Show a product with a 360 degree spin",
+        "Add ambient motion to a still",
+        "Produce autoplay banners"
+      ]
+    },
+
     "blackforestlabs/flux-3/image-to-video": {
       className: "Flux3ImageToVideo",
       docstring:

@@ -362047,5 +362047,1941 @@
       }
     ],
     "moduleName": "video_to_video"
+  },
+  {
+    "endpointId": "veed/clean-audio",
+    "className": "VeedCleanAudio",
+    "docstring": "VEED Clean Audio turns noisy speech recordings into studio-quality audio, with adjustable strength and a loudness target.",
+    "tags": [
+      "audio",
+      "processing",
+      "audio-to-audio",
+      "denoise",
+      "veed"
+    ],
+    "useCases": [
+      "Remove background noise from speech",
+      "Clean up interview recordings",
+      "Normalize loudness to a target LUFS",
+      "Improve podcast audio",
+      "Prepare voiceovers for mixing"
+    ],
+    "inputFields": [
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "flac",
+        "description": "Container for the 48 kHz mono 16-bit output. FLAC is lossless at about half the size of WAV.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "flac",
+          "wav"
+        ]
+      },
+      {
+        "name": "audio",
+        "tsType": "audio",
+        "propType": "audio",
+        "default": null,
+        "description": "The recording to clean. Any audio or video ffmpeg can decode (wav, mp3, m4a, aac, ogg, mp4, mov, webm, ...); a video's audio track is used and multi-channel input is mixed down to mono. Up to 30 minutes and 512 MB. A public URL or a data URI.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "audio_url"
+      },
+      {
+        "name": "target_lufs",
+        "tsType": "string",
+        "propType": "str",
+        "default": -19,
+        "description": "Integrated loudness of the output (ITU-R BS.1770). The default -19 LUFS is the level the VEED editor delivers; true peak is capped at -1.1 dBTP. Pass null through the API to skip loudness normalization and keep the input level.",
+        "fieldType": "input",
+        "required": false,
+        "min": -40,
+        "max": -8
+      },
+      {
+        "name": "strength",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0.874,
+        "description": "How much of the original is allowed to remain under speech: the suppression floor is 1 - strength (the default 0.874 is the validated -18 dB). Lower keeps more room tone behind the voice; silence between words is always fully cleaned.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      }
+    ],
+    "outputType": "audio",
+    "outputFields": [
+      {
+        "name": "audio_duration",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "Input duration in seconds. Billing: whole seconds rounded up to full minutes, minimum 1 unit.",
+        "fieldType": "output",
+        "required": true,
+        "min": 1
+      },
+      {
+        "name": "audio",
+        "tsType": "audio",
+        "propType": "audio",
+        "default": null,
+        "description": "The denoised recording: 48 kHz mono 16-bit, same duration as the input, loudness-normalized.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "FLAC",
+            "flac"
+          ],
+          [
+            "WAV",
+            "wav"
+          ]
+        ],
+        "description": "Container for the 48 kHz mono 16-bit output. FLAC is lossless at about half the size of WAV."
+      }
+    ],
+    "moduleName": "audio_to_audio"
+  },
+  {
+    "endpointId": "ideogram/v4.5/edit",
+    "className": "IdeogramV45Edit",
+    "docstring": "Ideogram 4.5 Edit changes an image from a prompt with up to four reference images, an optional mask, and a precision mode that keeps unchanged pixels intact.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "ideogram",
+      "inpainting"
+    ],
+    "useCases": [
+      "Edit part of an image with a mask",
+      "Restyle an image using reference images",
+      "Replace text inside an image",
+      "Make precise edits that preserve untouched pixels",
+      "Revise marketing assets"
+    ],
+    "inputFields": [
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "auto preserves source geometry, downscaled by the provider if needed. Only unmasked regular edits accept named presets or custom sizes: dimensions >=256, multiples of 32, area <=4194304, ratio <=6:1. Named presets use standard fal dimensions.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "auto",
+          "square",
+          "square_hd",
+          "portrait_4_3",
+          "landscape_4_3",
+          "portrait_16_9",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Random seed. Omit to choose automatically.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "mask",
+        "tsType": "image",
+        "propType": "image",
+        "default": "",
+        "description": "Mask matching the source dimensions. Black edits, white preserves. Must contain both regions after rounding.",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "mask_url"
+      },
+      {
+        "name": "reference_images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Up to four references plus the primary source, or three references plus the primary source and mask.",
+        "fieldType": "input",
+        "required": false,
+        "max": 4,
+        "apiParamName": "reference_image_urls"
+      },
+      {
+        "name": "edit_precision",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "regular",
+        "description": "regular uses Generate; high uses Precise Edit with unchanged-pixel restoration. Both always prepare structured edit instructions.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "EditPrecision",
+        "enumValues": [
+          "regular",
+          "high"
+        ]
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "Number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 8
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Primary source image to edit.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "quality",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "medium",
+        "description": "Quality tier for either edit precision. Defaults to medium.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Quality",
+        "enumValues": [
+          "very_low",
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The generation or editing prompt.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 10000
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Return image data directly in the response.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Seed used for the random number generator",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "images",
+        "tsType": "File[]",
+        "propType": "list[File]",
+        "default": [],
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ]
+        ],
+        "description": "auto preserves source geometry, downscaled by the provider if needed. Only unmasked regular edits accept named presets or custom sizes: dimensions >=256, multiples of 32, area <=4194304, ratio <=6:1. Named presets use standard fal dimensions."
+      },
+      {
+        "name": "EditPrecision",
+        "values": [
+          [
+            "REGULAR",
+            "regular"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "regular uses Generate; high uses Precise Edit with unchanged-pixel restoration. Both always prepare structured edit instructions."
+      },
+      {
+        "name": "Quality",
+        "values": [
+          [
+            "VERY_LOW",
+            "very_low"
+          ],
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "Quality tier for either edit precision. Defaults to medium."
+      }
+    ],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "pixelcut/looping-video",
+    "className": "PixelcutLoopingVideo",
+    "docstring": "Pixelcut Looping Video turns one product photo into a seamless 5 to 15 second loop with a locked camera, subtle ambient motion, or a 360 degree spin.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "pixelcut",
+      "loop"
+    ],
+    "useCases": [
+      "Animate product photos for listings",
+      "Create seamless looping social clips",
+      "Show a product with a 360 degree spin",
+      "Add ambient motion to a still",
+      "Produce autoplay banners"
+    ],
+    "inputFields": [
+      {
+        "name": "include_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Keep the generated audio track (off by default; the loop is silent)",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1080p",
+        "description": "Output resolution",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "768p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Input image the video starts and ends on (JPEG, PNG, or WebP)",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Optional creative direction for the motion. Camera stays locked regardless.",
+        "fieldType": "input",
+        "required": false,
+        "max": 1000
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "Video duration in seconds",
+        "fieldType": "input",
+        "required": false,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "name": "motion",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "subtle",
+        "description": "Motion style: 'subtle' for gentle ambient movement, 'spin' for one full 360° revolution ending on the source frame",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Motion",
+        "enumValues": [
+          "subtle",
+          "spin"
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "Looping MP4 that starts and ends on the input image",
+        "fieldType": "output",
+        "required": false
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480p"
+          ],
+          [
+            "VALUE_768P",
+            "768p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Output resolution"
+      },
+      {
+        "name": "Motion",
+        "values": [
+          [
+            "SUBTLE",
+            "subtle"
+          ],
+          [
+            "SPIN",
+            "spin"
+          ]
+        ],
+        "description": "Motion style: 'subtle' for gentle ambient movement, 'spin' for one full 360° revolution ending on the source frame"
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "ideogram/v4.5",
+    "className": "IdeogramV45",
+    "docstring": "Ideogram 4.5 generates images, posters, and logos from text with accurate text rendering and low, medium, or high quality tiers.",
+    "tags": [
+      "generation",
+      "text-to-image",
+      "txt2img",
+      "ideogram",
+      "typography"
+    ],
+    "useCases": [
+      "Design posters with legible text",
+      "Generate logos and brand marks",
+      "Create marketing visuals",
+      "Render typography-heavy images",
+      "Trade quality for cost with quality tiers"
+    ],
+    "inputFields": [
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Random seed. Omit to choose automatically.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Return image data directly in the response.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "Number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 8
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Enable partner prompt expansion.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "quality",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "medium",
+        "description": "Text-to-image quality.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Quality",
+        "enumValues": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The generation or editing prompt.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 10000
+      },
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "square_hd",
+        "description": "Output size. square is promoted to square_hd (1024x1024). 4:3 presets use 1152x864 or 864x1152; 16:9 presets use 1280x720 or 720x1280. Explicit dimensions must match a supported size: 1024x1024, 1024x3072, 1120x896, 1152x2944, 1152x864, 1248x3328, 1248x832, 1280x3072, 1280x720, 1280x800, 1296x3168, 1440x2560, 1440x2880, 1440x720, 1600x2560, 1664x2496, 1728x2304, 1792x2240, 2048x2048, 2240x1792, 2304x1728, 2496x1664, 2560x1440, 2560x1600, 2880x1440, 2944x1152, 3072x1024, 3072x1280, 3168x1296, 3328x1248, 720x1280, 720x1440, 800x1280, 832x1248, 864x1152, 896x1120",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Seed used for the random number generator",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "images",
+        "tsType": "File[]",
+        "propType": "list[File]",
+        "default": [],
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Quality",
+        "values": [
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "Text-to-image quality."
+      },
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ]
+        ],
+        "description": "Output size. square is promoted to square_hd (1024x1024). 4:3 presets use 1152x864 or 864x1152; 16:9 presets use 1280x720 or 720x1280. Explicit dimensions must match a supported size: 1024x1024, 1024x3072, 1120x896, 1152x2944, 1152x864, 1248x3328, 1248x832, 1280x3072, 1280x720, 1280x800, 1296x3168, 1440x2560, 1440x2880, 1440x720, 1600x2560, 1664x2496, 1728x2304, 1792x2240, 2048x2048, 2240x1792, 2304x1728, 2496x1664, 2560x1440, 2560x1600, 2880x1440, 2944x1152, 3072x1024, 3072x1280, 3168x1296, 3328x1248, 720x1280, 720x1440, 800x1280, 832x1248, 864x1152, 896x1120"
+      }
+    ],
+    "moduleName": "text_to_image"
+  },
+  {
+    "endpointId": "elevenlabs/tts/eleven-v4",
+    "className": "ElevenlabsTtsElevenV4",
+    "docstring": "Eleven v4 from ElevenLabs generates expressive speech with audio tags, voice stability and similarity controls, and IPA pronunciation.",
+    "tags": [
+      "audio",
+      "tts",
+      "text-to-speech",
+      "elevenlabs",
+      "voice"
+    ],
+    "useCases": [
+      "Narrate videos and audiobooks",
+      "Direct delivery with audio tags",
+      "Control pronunciation with IPA",
+      "Generate voiceovers in many languages",
+      "Produce expressive character dialogue"
+    ],
+    "inputFields": [
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "mp3_44100_128",
+        "description": "Output format of the generated audio. Formatted as codec_sample_rate_bitrate.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "mp3_22050_32",
+          "mp3_44100_32",
+          "mp3_44100_64",
+          "mp3_44100_96",
+          "mp3_44100_128",
+          "mp3_44100_192",
+          "pcm_8000",
+          "pcm_16000",
+          "pcm_22050",
+          "pcm_24000",
+          "pcm_44100",
+          "pcm_48000",
+          "ulaw_8000",
+          "alaw_8000",
+          "opus_48000_32",
+          "opus_48000_64",
+          "opus_48000_96",
+          "opus_48000_128",
+          "opus_48000_192"
+        ]
+      },
+      {
+        "name": "timestamps",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Whether to return character-level timing information with the generated audio.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "language_code",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Language code (ISO 639-1) for speech generation and text normalization.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "stability",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0.5,
+        "description": "Voice stability. Lower values allow more expressive delivery; higher values make delivery more consistent.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Seed for best-effort reproducibility. Identical output is not guaranteed.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4294967295
+      },
+      {
+        "name": "apply_text_normalization",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Whether to normalize text such as numbers and dates before generation.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ApplyTextNormalization",
+        "enumValues": [
+          "auto",
+          "on",
+          "off"
+        ]
+      },
+      {
+        "name": "similarity_boost",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0.75,
+        "description": "How closely the output follows the reference voice. Higher values increase similarity but may reduce naturalness.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "text",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text to convert to speech. Supports audio tags such as [whispering] and IPA pronunciation enclosed in forward slashes.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 5000
+      },
+      {
+        "name": "voice",
+        "tsType": "string",
+        "propType": "str",
+        "default": "Rachel",
+        "description": "The voice to use for speech generation",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "audio",
+    "outputFields": [
+      {
+        "name": "audio",
+        "tsType": "audio",
+        "propType": "audio",
+        "default": null,
+        "description": "The generated audio file",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "timestamps",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Timestamps for each word in the generated speech. Only returned if `timestamps` is set to True in the request.",
+        "fieldType": "output",
+        "required": false
+      }
+    ],
+    "enums": [
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "MP3_22050_32",
+            "mp3_22050_32"
+          ],
+          [
+            "MP3_44100_32",
+            "mp3_44100_32"
+          ],
+          [
+            "MP3_44100_64",
+            "mp3_44100_64"
+          ],
+          [
+            "MP3_44100_96",
+            "mp3_44100_96"
+          ],
+          [
+            "MP3_44100_128",
+            "mp3_44100_128"
+          ],
+          [
+            "MP3_44100_192",
+            "mp3_44100_192"
+          ],
+          [
+            "PCM_8000",
+            "pcm_8000"
+          ],
+          [
+            "PCM_16000",
+            "pcm_16000"
+          ],
+          [
+            "PCM_22050",
+            "pcm_22050"
+          ],
+          [
+            "PCM_24000",
+            "pcm_24000"
+          ],
+          [
+            "PCM_44100",
+            "pcm_44100"
+          ],
+          [
+            "PCM_48000",
+            "pcm_48000"
+          ],
+          [
+            "ULAW_8000",
+            "ulaw_8000"
+          ],
+          [
+            "ALAW_8000",
+            "alaw_8000"
+          ],
+          [
+            "OPUS_48000_32",
+            "opus_48000_32"
+          ],
+          [
+            "OPUS_48000_64",
+            "opus_48000_64"
+          ],
+          [
+            "OPUS_48000_96",
+            "opus_48000_96"
+          ],
+          [
+            "OPUS_48000_128",
+            "opus_48000_128"
+          ],
+          [
+            "OPUS_48000_192",
+            "opus_48000_192"
+          ]
+        ],
+        "description": "Output format of the generated audio. Formatted as codec_sample_rate_bitrate."
+      },
+      {
+        "name": "ApplyTextNormalization",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "ON",
+            "on"
+          ],
+          [
+            "OFF",
+            "off"
+          ]
+        ],
+        "description": "Whether to normalize text such as numbers and dates before generation."
+      }
+    ],
+    "moduleName": "text_to_speech"
+  },
+  {
+    "endpointId": "elevenlabs/tts/eleven-v4-turbo",
+    "className": "ElevenlabsTtsElevenV4Turbo",
+    "docstring": "Eleven v4 Turbo from ElevenLabs generates speech faster with audio tags, voice stability and similarity controls, and IPA pronunciation.",
+    "tags": [
+      "audio",
+      "tts",
+      "text-to-speech",
+      "elevenlabs",
+      "voice",
+      "turbo"
+    ],
+    "useCases": [
+      "Generate low-latency voiceovers",
+      "Narrate content in batches",
+      "Direct delivery with audio tags",
+      "Control pronunciation with IPA",
+      "Prototype voice lines quickly"
+    ],
+    "inputFields": [
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "mp3_44100_128",
+        "description": "Output format of the generated audio. Formatted as codec_sample_rate_bitrate.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "mp3_22050_32",
+          "mp3_44100_32",
+          "mp3_44100_64",
+          "mp3_44100_96",
+          "mp3_44100_128",
+          "mp3_44100_192",
+          "pcm_8000",
+          "pcm_16000",
+          "pcm_22050",
+          "pcm_24000",
+          "pcm_44100",
+          "pcm_48000",
+          "ulaw_8000",
+          "alaw_8000",
+          "opus_48000_32",
+          "opus_48000_64",
+          "opus_48000_96",
+          "opus_48000_128",
+          "opus_48000_192"
+        ]
+      },
+      {
+        "name": "timestamps",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Whether to return character-level timing information with the generated audio.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "language_code",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Language code (ISO 639-1) for speech generation and text normalization.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "stability",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0.5,
+        "description": "Voice stability. Lower values allow more expressive delivery; higher values make delivery more consistent.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Seed for best-effort reproducibility. Identical output is not guaranteed.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4294967295
+      },
+      {
+        "name": "apply_text_normalization",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Whether to normalize text such as numbers and dates before generation.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ApplyTextNormalization",
+        "enumValues": [
+          "auto",
+          "on",
+          "off"
+        ]
+      },
+      {
+        "name": "similarity_boost",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0.75,
+        "description": "How closely the output follows the reference voice. Higher values increase similarity but may reduce naturalness.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "text",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text to convert to speech. Supports audio tags such as [whispering] and IPA pronunciation enclosed in forward slashes.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 5000
+      },
+      {
+        "name": "voice",
+        "tsType": "string",
+        "propType": "str",
+        "default": "Rachel",
+        "description": "The voice to use for speech generation",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "audio",
+    "outputFields": [
+      {
+        "name": "audio",
+        "tsType": "audio",
+        "propType": "audio",
+        "default": null,
+        "description": "The generated audio file",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "timestamps",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Timestamps for each word in the generated speech. Only returned if `timestamps` is set to True in the request.",
+        "fieldType": "output",
+        "required": false
+      }
+    ],
+    "enums": [
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "MP3_22050_32",
+            "mp3_22050_32"
+          ],
+          [
+            "MP3_44100_32",
+            "mp3_44100_32"
+          ],
+          [
+            "MP3_44100_64",
+            "mp3_44100_64"
+          ],
+          [
+            "MP3_44100_96",
+            "mp3_44100_96"
+          ],
+          [
+            "MP3_44100_128",
+            "mp3_44100_128"
+          ],
+          [
+            "MP3_44100_192",
+            "mp3_44100_192"
+          ],
+          [
+            "PCM_8000",
+            "pcm_8000"
+          ],
+          [
+            "PCM_16000",
+            "pcm_16000"
+          ],
+          [
+            "PCM_22050",
+            "pcm_22050"
+          ],
+          [
+            "PCM_24000",
+            "pcm_24000"
+          ],
+          [
+            "PCM_44100",
+            "pcm_44100"
+          ],
+          [
+            "PCM_48000",
+            "pcm_48000"
+          ],
+          [
+            "ULAW_8000",
+            "ulaw_8000"
+          ],
+          [
+            "ALAW_8000",
+            "alaw_8000"
+          ],
+          [
+            "OPUS_48000_32",
+            "opus_48000_32"
+          ],
+          [
+            "OPUS_48000_64",
+            "opus_48000_64"
+          ],
+          [
+            "OPUS_48000_96",
+            "opus_48000_96"
+          ],
+          [
+            "OPUS_48000_128",
+            "opus_48000_128"
+          ],
+          [
+            "OPUS_48000_192",
+            "opus_48000_192"
+          ]
+        ],
+        "description": "Output format of the generated audio. Formatted as codec_sample_rate_bitrate."
+      },
+      {
+        "name": "ApplyTextNormalization",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "ON",
+            "on"
+          ],
+          [
+            "OFF",
+            "off"
+          ]
+        ],
+        "description": "Whether to normalize text such as numbers and dates before generation."
+      }
+    ],
+    "moduleName": "text_to_speech"
+  },
+  {
+    "endpointId": "google/gemini-3.8-flash-tts",
+    "className": "Gemini38FlashTts",
+    "docstring": "Gemini 3.8 Flash TTS generates expressive speech with 30 voices, style instructions, and single-speaker or two-speaker dialogue.",
+    "tags": [
+      "audio",
+      "tts",
+      "text-to-speech",
+      "gemini",
+      "google",
+      "voice"
+    ],
+    "useCases": [
+      "Narrate content with a chosen voice",
+      "Direct tone with style instructions",
+      "Produce two-speaker dialogue",
+      "Generate podcast-style audio",
+      "Create voiceovers for video"
+    ],
+    "inputFields": [
+      {
+        "name": "speakers",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Exactly two distinct speaker aliases and their prebuilt voices for dialogue.",
+        "fieldType": "input",
+        "required": false,
+        "min": 2,
+        "max": 2
+      },
+      {
+        "name": "style_instructions",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Delivery style, separate from the spoken transcript. Applies to all turns unless overridden.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "voice",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "Kore",
+        "description": "Prebuilt voice for single-speaker speech.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Voice",
+        "enumValues": [
+          "Achernar",
+          "Achird",
+          "Algenib",
+          "Algieba",
+          "Alnilam",
+          "Aoede",
+          "Autonoe",
+          "Callirrhoe",
+          "Charon",
+          "Despina",
+          "Enceladus",
+          "Erinome",
+          "Fenrir",
+          "Gacrux",
+          "Iapetus",
+          "Kore",
+          "Laomedeia",
+          "Leda",
+          "Orus",
+          "Pulcherrima",
+          "Puck",
+          "Rasalgethi",
+          "Sadachbia",
+          "Sadaltager",
+          "Schedar",
+          "Sulafat",
+          "Umbriel",
+          "Vindemiatrix",
+          "Zephyr",
+          "Zubenelgenubi"
+        ]
+      },
+      {
+        "name": "turns",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Ordered dialogue turns, each identifying a configured speaker.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Verbatim text for single-speaker speech. Put delivery directions in style_instructions; inline vocal events may use <laugh> or <sigh>. For dialogue, omit prompt and provide speakers and turns instead. The provider limits the complete input to 8,192 tokens.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "audio",
+    "outputFields": [
+      {
+        "name": "audio",
+        "tsType": "audio",
+        "propType": "audio",
+        "default": null,
+        "description": "Generated WAV audio.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Voice",
+        "values": [
+          [
+            "ACHERNAR",
+            "Achernar"
+          ],
+          [
+            "ACHIRD",
+            "Achird"
+          ],
+          [
+            "ALGENIB",
+            "Algenib"
+          ],
+          [
+            "ALGIEBA",
+            "Algieba"
+          ],
+          [
+            "ALNILAM",
+            "Alnilam"
+          ],
+          [
+            "AOEDE",
+            "Aoede"
+          ],
+          [
+            "AUTONOE",
+            "Autonoe"
+          ],
+          [
+            "CALLIRRHOE",
+            "Callirrhoe"
+          ],
+          [
+            "CHARON",
+            "Charon"
+          ],
+          [
+            "DESPINA",
+            "Despina"
+          ],
+          [
+            "ENCELADUS",
+            "Enceladus"
+          ],
+          [
+            "ERINOME",
+            "Erinome"
+          ],
+          [
+            "FENRIR",
+            "Fenrir"
+          ],
+          [
+            "GACRUX",
+            "Gacrux"
+          ],
+          [
+            "IAPETUS",
+            "Iapetus"
+          ],
+          [
+            "KORE",
+            "Kore"
+          ],
+          [
+            "LAOMEDEIA",
+            "Laomedeia"
+          ],
+          [
+            "LEDA",
+            "Leda"
+          ],
+          [
+            "ORUS",
+            "Orus"
+          ],
+          [
+            "PULCHERRIMA",
+            "Pulcherrima"
+          ],
+          [
+            "PUCK",
+            "Puck"
+          ],
+          [
+            "RASALGETHI",
+            "Rasalgethi"
+          ],
+          [
+            "SADACHBIA",
+            "Sadachbia"
+          ],
+          [
+            "SADALTAGER",
+            "Sadaltager"
+          ],
+          [
+            "SCHEDAR",
+            "Schedar"
+          ],
+          [
+            "SULAFAT",
+            "Sulafat"
+          ],
+          [
+            "UMBRIEL",
+            "Umbriel"
+          ],
+          [
+            "VINDEMIATRIX",
+            "Vindemiatrix"
+          ],
+          [
+            "ZEPHYR",
+            "Zephyr"
+          ],
+          [
+            "ZUBENELGENUBI",
+            "Zubenelgenubi"
+          ]
+        ],
+        "description": "Prebuilt voice for single-speaker speech."
+      }
+    ],
+    "moduleName": "text_to_speech"
+  },
+  {
+    "endpointId": "google/gemini-3.8-flash-lite-tts",
+    "className": "Gemini38FlashLiteTts",
+    "docstring": "Gemini 3.8 Flash Lite TTS generates expressive speech at lower cost with 30 voices, style instructions, and single-speaker or two-speaker dialogue.",
+    "tags": [
+      "audio",
+      "tts",
+      "text-to-speech",
+      "gemini",
+      "google",
+      "voice"
+    ],
+    "useCases": [
+      "Generate low-cost voiceovers in bulk",
+      "Direct tone with style instructions",
+      "Produce two-speaker dialogue",
+      "Narrate drafts and prototypes",
+      "Create assistant voice responses"
+    ],
+    "inputFields": [
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Verbatim text for single-speaker speech. Put delivery directions in style_instructions; inline vocal events may use <laugh> or <sigh>. For dialogue, omit prompt and provide speakers and turns instead. The provider limits the complete input to 8,192 tokens.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "speakers",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Exactly two distinct speaker aliases and their prebuilt voices for dialogue.",
+        "fieldType": "input",
+        "required": false,
+        "min": 2,
+        "max": 2
+      },
+      {
+        "name": "style_instructions",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Delivery style, separate from the spoken transcript. Applies to all turns unless overridden.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "turns",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Ordered dialogue turns, each identifying a configured speaker.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1
+      },
+      {
+        "name": "voice",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "Kore",
+        "description": "Prebuilt voice for single-speaker speech.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Voice",
+        "enumValues": [
+          "Achernar",
+          "Achird",
+          "Algenib",
+          "Algieba",
+          "Alnilam",
+          "Aoede",
+          "Autonoe",
+          "Callirrhoe",
+          "Charon",
+          "Despina",
+          "Enceladus",
+          "Erinome",
+          "Fenrir",
+          "Gacrux",
+          "Iapetus",
+          "Kore",
+          "Laomedeia",
+          "Leda",
+          "Orus",
+          "Pulcherrima",
+          "Puck",
+          "Rasalgethi",
+          "Sadachbia",
+          "Sadaltager",
+          "Schedar",
+          "Sulafat",
+          "Umbriel",
+          "Vindemiatrix",
+          "Zephyr",
+          "Zubenelgenubi"
+        ]
+      }
+    ],
+    "outputType": "audio",
+    "outputFields": [
+      {
+        "name": "audio",
+        "tsType": "audio",
+        "propType": "audio",
+        "default": null,
+        "description": "Generated WAV audio.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Voice",
+        "values": [
+          [
+            "ACHERNAR",
+            "Achernar"
+          ],
+          [
+            "ACHIRD",
+            "Achird"
+          ],
+          [
+            "ALGENIB",
+            "Algenib"
+          ],
+          [
+            "ALGIEBA",
+            "Algieba"
+          ],
+          [
+            "ALNILAM",
+            "Alnilam"
+          ],
+          [
+            "AOEDE",
+            "Aoede"
+          ],
+          [
+            "AUTONOE",
+            "Autonoe"
+          ],
+          [
+            "CALLIRRHOE",
+            "Callirrhoe"
+          ],
+          [
+            "CHARON",
+            "Charon"
+          ],
+          [
+            "DESPINA",
+            "Despina"
+          ],
+          [
+            "ENCELADUS",
+            "Enceladus"
+          ],
+          [
+            "ERINOME",
+            "Erinome"
+          ],
+          [
+            "FENRIR",
+            "Fenrir"
+          ],
+          [
+            "GACRUX",
+            "Gacrux"
+          ],
+          [
+            "IAPETUS",
+            "Iapetus"
+          ],
+          [
+            "KORE",
+            "Kore"
+          ],
+          [
+            "LAOMEDEIA",
+            "Laomedeia"
+          ],
+          [
+            "LEDA",
+            "Leda"
+          ],
+          [
+            "ORUS",
+            "Orus"
+          ],
+          [
+            "PULCHERRIMA",
+            "Pulcherrima"
+          ],
+          [
+            "PUCK",
+            "Puck"
+          ],
+          [
+            "RASALGETHI",
+            "Rasalgethi"
+          ],
+          [
+            "SADACHBIA",
+            "Sadachbia"
+          ],
+          [
+            "SADALTAGER",
+            "Sadaltager"
+          ],
+          [
+            "SCHEDAR",
+            "Schedar"
+          ],
+          [
+            "SULAFAT",
+            "Sulafat"
+          ],
+          [
+            "UMBRIEL",
+            "Umbriel"
+          ],
+          [
+            "VINDEMIATRIX",
+            "Vindemiatrix"
+          ],
+          [
+            "ZEPHYR",
+            "Zephyr"
+          ],
+          [
+            "ZUBENELGENUBI",
+            "Zubenelgenubi"
+          ]
+        ],
+        "description": "Prebuilt voice for single-speaker speech."
+      }
+    ],
+    "moduleName": "text_to_speech"
+  },
+  {
+    "endpointId": "minimax/h3-max/insert-video",
+    "className": "MinimaxH3MaxInsertVideo",
+    "docstring": "H3 Max inserts a new scene into an existing video, guided by a prompt, reference images, or reference videos, then returns to the original footage.",
+    "tags": [
+      "video",
+      "editing",
+      "video-to-video",
+      "vid2vid",
+      "minimax",
+      "h3",
+      "insert"
+    ],
+    "useCases": [
+      "Insert a generated scene mid-clip",
+      "Add a cutaway guided by reference images",
+      "Blend new footage into existing video",
+      "Match color between inserted and original footage",
+      "Extend a story beat inside a cut"
+    ],
+    "inputFields": [
+      {
+        "name": "reference_video_urls",
+        "tsType": "video[]",
+        "propType": "list[video]",
+        "default": [],
+        "description": "",
+        "fieldType": "input",
+        "required": false,
+        "max": 3
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "name": "reference_images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "",
+        "fieldType": "input",
+        "required": false,
+        "max": 9,
+        "apiParamName": "reference_image_urls"
+      },
+      {
+        "name": "start_time",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "",
+        "fieldType": "input",
+        "required": true,
+        "min": 1.625,
+        "max": 60
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "768p",
+        "description": "",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "768p"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 50000
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "apiParamName": "video_url"
+      },
+      {
+        "name": "color_match",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "float",
+        "default": 5,
+        "description": "",
+        "fieldType": "input",
+        "required": false,
+        "min": 5,
+        "max": 13
+      },
+      {
+        "name": "resume_time",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "",
+        "fieldType": "input",
+        "required": true,
+        "max": 60
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "timings",
+        "tsType": "object",
+        "propType": "dict[str, any]",
+        "default": "",
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "start_time",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "source",
+        "tsType": "object",
+        "propType": "dict[str, any]",
+        "default": "",
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "expanded_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "",
+        "fieldType": "output",
+        "required": false
+      },
+      {
+        "name": "frame_count",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "height",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "resume_time",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "injected_duration",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "width",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480p"
+          ],
+          [
+            "VALUE_768P",
+            "768p"
+          ]
+        ],
+        "description": ""
+      }
+    ],
+    "moduleName": "video_to_video"
   }
 ]

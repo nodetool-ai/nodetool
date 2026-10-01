@@ -16,6 +16,20 @@ export const config: ModuleConfig = {
     }
   },
   configs: {
+    "ideogram/v4.5": {
+      className: "IdeogramV45",
+      docstring:
+        "Ideogram 4.5 generates images, posters, and logos from text with accurate text rendering and low, medium, or high quality tiers.",
+      tags: ["generation", "text-to-image", "txt2img", "ideogram", "typography"],
+      useCases: [
+        "Design posters with legible text",
+        "Generate logos and brand marks",
+        "Create marketing visuals",
+        "Render typography-heavy images",
+        "Trade quality for cost with quality tiers"
+      ]
+    },
+
     "meta/muse-image/text-to-image": {
       className: "MuseImageTextToImage",
       docstring:

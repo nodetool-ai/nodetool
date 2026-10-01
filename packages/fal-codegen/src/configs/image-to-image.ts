@@ -16,6 +16,20 @@ export const config: ModuleConfig = {
     }
   },
   configs: {
+    "ideogram/v4.5/edit": {
+      className: "IdeogramV45Edit",
+      docstring:
+        "Ideogram 4.5 Edit changes an image from a prompt with up to four reference images, an optional mask, and a precision mode that keeps unchanged pixels intact.",
+      tags: ["editing", "image-to-image", "img2img", "ideogram", "inpainting"],
+      useCases: [
+        "Edit part of an image with a mask",
+        "Restyle an image using reference images",
+        "Replace text inside an image",
+        "Make precise edits that preserve untouched pixels",
+        "Revise marketing assets"
+      ]
+    },
+
     "meta/muse-image/edit": {
       className: "MuseImageEdit",
       docstring:

@@ -2,6 +2,20 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "minimax/h3-max/insert-video": {
+      className: "MinimaxH3MaxInsertVideo",
+      docstring:
+        "H3 Max inserts a new scene into an existing video, guided by a prompt, reference images, or reference videos, then returns to the original footage.",
+      tags: ["video", "editing", "video-to-video", "vid2vid", "minimax", "h3", "insert"],
+      useCases: [
+        "Insert a generated scene mid-clip",
+        "Add a cutaway guided by reference images",
+        "Blend new footage into existing video",
+        "Match color between inserted and original footage",
+        "Extend a story beat inside a cut"
+      ]
+    },
+
     "blackforestlabs/flux-3/edit-video": {
       className: "Flux3EditVideo",
       docstring:
