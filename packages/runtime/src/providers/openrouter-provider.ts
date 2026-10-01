@@ -6,7 +6,12 @@ import {
 } from "./openai-compat-provider.js";
 import { fetchWithRetry, pollUntilTerminal } from "./http-transport.js";
 import { bytesToImageDataUri } from "./image-mime.js";
+import { sniffAudioMimeOrNull } from "./audio-mime.js";
 import type {
+  ASRModel,
+  ASRResult,
+  AudioChunk,
+  EmbeddingModel,
   ImageModel,
   ImageToImageParams,
   ImageToVideoParams,
@@ -16,6 +21,7 @@ import type {
   ProviderTool,
   TextToImageParams,
   TextToVideoParams,
+  TTSModel,
   VideoModel
 } from "./types.js";
 import { isString } from "@nodetool-ai/protocol";
@@ -63,6 +69,30 @@ function numberList(value: unknown): number[] {
   return Array.isArray(value)
     ? value.filter((v): v is number => typeof v === "number")
     : [];
+}
+
+/** `input_audio.format` values OpenRouter accepts, by sniffed MIME type. */
+const AUDIO_FORMAT_BY_MIME: Record<string, string> = {
+  "audio/wav": "wav",
+  "audio/mpeg": "mp3",
+  "audio/ogg": "ogg",
+  "audio/flac": "flac"
+};
+
+function architectureOf(row: Record<string, unknown>): Record<string, unknown> {
+  const architecture = row.architecture;
+  return architecture && typeof architecture === "object"
+    ? (architecture as Record<string, unknown>)
+    : {};
+}
+
+/** The enum values of one `supported_parameters` entry, or `[]`. */
+function parameterValues(row: Record<string, unknown>, name: string): string[] {
+  const parameters = row.supported_parameters;
+  if (!parameters || typeof parameters !== "object") return [];
+  const entry = (parameters as Record<string, unknown>)[name];
+  if (!entry || typeof entry !== "object") return [];
+  return stringList((entry as { values?: unknown }).values);
 }
 
 function withNegativePrompt(
@@ -344,12 +374,143 @@ export class OpenRouterProvider extends OpenAICompatProvider {
     return this.generateVideo(params, { frame_images: frames });
   }
 
+  /**
+   * Image models come from `/images/models`, with per-model aspect ratio and
+   * resolution enums. The built-in list is the fallback when the listing is
+   * unreachable, so the picker is never empty.
+   */
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return OPENROUTER_IMAGE_MODELS;
+    const rows = await this.fetchCompatModelRows(
+      `${OPENROUTER_BASE_URL}/images/models`
+    );
+    if (rows.length === 0) return OPENROUTER_IMAGE_MODELS;
+    return rows.map((row) => {
+      const supportedTasks = ["text_to_image"];
+      if (stringList(architectureOf(row).input_modalities).includes("image")) {
+        supportedTasks.push("image_to_image");
+      }
+      const model: ImageModel = {
+        id: row.id,
+        name: typeof row.name === "string" ? row.name : row.id,
+        provider: "openrouter",
+        supportedTasks
+      };
+      const aspectRatios = parameterValues(row, "aspect_ratio");
+      if (aspectRatios.length > 0) model.aspectRatios = aspectRatios;
+      const resolutions = parameterValues(row, "resolution");
+      if (resolutions.length > 0) model.resolutions = resolutions;
+      return model;
+    });
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     return this.listCompatModels();
+  }
+
+  /** Speech models are `/models` rows whose output modality is `speech`. */
+  override async getAvailableTTSModels(): Promise<TTSModel[]> {
+    const rows = await this.fetchCompatModelRows(
+      `${OPENROUTER_BASE_URL}/models?output_modalities=speech`
+    );
+    return rows.map((row) => {
+      const model: TTSModel = {
+        id: row.id,
+        name: typeof row.name === "string" ? row.name : row.id,
+        provider: "openrouter"
+      };
+      const voices = stringList(row.supported_voices);
+      if (voices.length > 0) model.voices = voices;
+      return model;
+    });
+  }
+
+  /** Transcription models are `/models` rows with output modality `transcription`. */
+  override async getAvailableASRModels(): Promise<ASRModel[]> {
+    const rows = await this.fetchCompatModelRows(
+      `${OPENROUTER_BASE_URL}/models?output_modalities=transcription`
+    );
+    return rows.map((row) => ({
+      id: row.id,
+      name: typeof row.name === "string" ? row.name : row.id,
+      provider: "openrouter"
+    }));
+  }
+
+  override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
+    const rows = await this.fetchCompatModelRows(
+      `${OPENROUTER_BASE_URL}/embeddings/models`
+    );
+    return rows.map((row) => ({
+      id: row.id,
+      name: typeof row.name === "string" ? row.name : row.id,
+      provider: "openrouter"
+    }));
+  }
+
+  /**
+   * OpenRouter transcribes from a JSON body with base64 `input_audio`, not the
+   * multipart upload the inherited OpenAI path sends. `prompt` has no
+   * OpenRouter field and is ignored.
+   */
+  override async automaticSpeechRecognition(args: {
+    audio: Uint8Array;
+    model: string;
+    language?: string;
+    prompt?: string;
+    temperature?: number;
+    word_timestamps?: boolean;
+  }): Promise<ASRResult> {
+    if (!args.audio || args.audio.length === 0) {
+      throw new Error("audio must not be empty");
+    }
+    const mime = sniffAudioMimeOrNull(args.audio);
+    const request: Record<string, unknown> = {
+      model: args.model,
+      input_audio: {
+        data: Buffer.from(args.audio).toString("base64"),
+        format: (mime && AUDIO_FORMAT_BY_MIME[mime]) ?? "mp3"
+      }
+    };
+    if (args.language) request.language = args.language;
+    if (args.temperature != null) request.temperature = args.temperature;
+    if (args.word_timestamps) {
+      request.response_format = "verbose_json";
+      request.timestamp_granularities = ["word"];
+    }
+
+    const res = await this.compatFetch(
+      `${OPENROUTER_BASE_URL}/audio/transcriptions`,
+      {
+        method: "POST",
+        headers: this.openRouterHeaders(),
+        body: JSON.stringify(request)
+      }
+    );
+    if (!res.ok) {
+      throw new Error(
+        `OpenRouter transcription failed: ${res.status} ${(await res.text()).slice(0, 500)}`
+      );
+    }
+    const body = (await res.json()) as Record<string, unknown>;
+    const usage = body.usage as { seconds?: unknown } | undefined;
+    if (typeof usage?.seconds === "number") {
+      this.trackUsage(args.model, { durationSeconds: usage.seconds });
+    }
+
+    const text = typeof body.text === "string" ? body.text : "";
+    if (!args.word_timestamps) return { text };
+    const chunks: AudioChunk[] = [];
+    for (const word of Array.isArray(body.words) ? body.words : []) {
+      if (
+        word &&
+        typeof word.word === "string" &&
+        typeof word.start === "number" &&
+        typeof word.end === "number"
+      ) {
+        chunks.push({ timestamp: [word.start, word.end], text: word.word });
+      }
+    }
+    return chunks.length > 0 ? { text, chunks } : { text };
   }
 
   private openRouterHeaders(): Record<string, string> {

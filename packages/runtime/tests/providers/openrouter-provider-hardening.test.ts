@@ -30,7 +30,11 @@ describe("OpenRouterProvider hardening", () => {
   });
 
   it("exposes the SDXL and Gemini image models with their tasks", async () => {
-    const models = await make({ client: {} }).getAvailableImageModels();
+    // A failed /images/models listing falls back to the built-in catalog.
+    const models = await make({
+      client: {},
+      fetchFn: async () => new Response("down", { status: 503 })
+    }).getAvailableImageModels();
     expect(models).toEqual([
       {
         id: "stabilityai/stable-diffusion-xl",
