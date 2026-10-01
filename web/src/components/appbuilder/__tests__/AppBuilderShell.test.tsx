@@ -1,5 +1,5 @@
 import { stub } from "../../../test-utils/doubles";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Data, DefaultComponents } from "@puckeditor/core";
@@ -76,13 +76,16 @@ jest.mock("../puck/PuckAppEditor", () => ({
   default: ({
     onPublish,
     onMetaChange,
-    onClose
+    onClose,
+    onToggleData
   }: {
     onPublish: (data: Data) => void;
     onMetaChange?: (meta: AppDocMeta) => void;
     onClose?: () => void;
+    onToggleData?: () => void;
   }) => (
     <div>
+      <button onClick={onToggleData}>App Data</button>
       <button type="button" onClick={() => onMetaChange?.(EDITED_META)}>
         Edit meta
       </button>
@@ -109,6 +112,11 @@ jest.mock("../puck/PuckAppEditor", () => ({
       )}
     </div>
   )
+}));
+
+jest.mock("../AppDataPanel", () => ({
+  __esModule: true,
+  default: () => <div>App data fields</div>
 }));
 
 import AppBuilderShell from "../AppBuilderShell";
@@ -248,3 +256,29 @@ describe("AppBuilderShell", () => {
     expect(setCurrentWorkflowId).not.toHaveBeenCalled();
   });
 });
+
+it("lets an author return to the canvas from App Data in a narrow container", async () => {
+    renderShell();
+    await userEvent.click(screen.getByRole("button", { name: "App Data" }));
+    expect(screen.getByText("App data fields")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Back to canvas" }));
+    expect(screen.queryByText("App data fields")).not.toBeInTheDocument();
+  });
+
+it("switches App Data to an overlay when its container shrinks", async () => {
+    let resize: ResizeObserverCallback | undefined;
+    const observer = stub<ResizeObserver>({
+      observe: jest.fn(), unobserve: jest.fn(), disconnect: jest.fn()
+    });
+    const observe = jest.spyOn(globalThis, "ResizeObserver").mockImplementation((callback) => {
+      resize = callback;
+      return observer;
+    });
+    renderShell();
+    act(() => resize?.([stub<ResizeObserverEntry>({ contentRect: { width: 1100 } })], observer));
+    await userEvent.click(screen.getByRole("button", { name: "App Data" }));
+    expect(screen.queryByRole("button", { name: "Back to canvas" })).not.toBeInTheDocument();
+    act(() => resize?.([stub<ResizeObserverEntry>({ contentRect: { width: 600 } })], observer));
+    expect(screen.getByRole("button", { name: "Back to canvas" })).toBeInTheDocument();
+    observe.mockRestore();
+ });

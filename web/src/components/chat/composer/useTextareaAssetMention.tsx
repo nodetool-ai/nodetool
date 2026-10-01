@@ -11,7 +11,7 @@ import { createPortal } from "react-dom";
 
 import type { Asset } from "../../../stores/ApiTypes";
 import type { Entity } from "@nodetool-ai/protocol";
-import { Z_INDEX } from "../../ui_primitives";
+import { mentionMenuPosition } from "./mentionMenuPosition";
 import { useRecentAssetsStore } from "../../../stores/RecentAssetsStore";
 import { AssetMentionMenu } from "../../node_types/editing/promptComposer/AssetMentionMenu";
 import { useAssetMentionSearch } from "../../node_types/editing/promptComposer/useAssetMentionSearch";
@@ -64,13 +64,6 @@ export const findMentionTrigger = (
 const readCaret = (el: HTMLTextAreaElement, value: string): number =>
   el.selectionStart ?? value.length;
 
-const menuWrapperStyles = (rect: DOMRect): React.CSSProperties => ({
-  position: "fixed",
-  left: Math.max(8, rect.left),
-  // Open upward — the composer usually sits at the bottom of the panel.
-  bottom: Math.max(8, window.innerHeight - rect.top + 6),
-  zIndex: Z_INDEX.tooltip
-});
 
 interface UseTextareaAssetMention {
   /** The positioned picker, or `null` when no mention is active. */
@@ -335,7 +328,7 @@ export const useTextareaAssetMention = ({
       return null;
     }
     return createPortal(
-      <div ref={menuRef} style={menuWrapperStyles(rect)}>
+      <div ref={menuRef} style={mentionMenuPosition(rect)}>
         <AssetMentionMenu
           activeTab={activeTab}
           onTabChange={(tab) => {

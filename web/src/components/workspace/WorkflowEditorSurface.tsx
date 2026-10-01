@@ -49,6 +49,7 @@ import {
   Box,
   FlexColumn,
   LoadingSpinner,
+  EmptyState,
   SPACING
 } from "../ui_primitives";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
@@ -110,6 +111,8 @@ const WorkflowEditorSurface = ({
     (state) => state.settings.editorViewMode
   );
   const [missing, setMissing] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   // A workflow flow still in setup (`settings.setup` not at `done`) is where
   // this tab lands after a refresh or a close — same rule as the game flow
   // above. A workflow saved before the flow existed has no `setup` key and
@@ -308,20 +311,38 @@ const WorkflowEditorSurface = ({
     }
 
     let cancelled = false;
-    void fetchWorkflow(workflowId).then((loadedWorkflow) => {
-      if (cancelled || loadedWorkflow) {
-        return;
-      }
-      setMissing(true);
-      closeTab(tabId("workflow", workflowId));
-    });
+    setLoadFailed(false);
+    void fetchWorkflow(workflowId, { throwOnError: true })
+      .then((loadedWorkflow) => {
+        if (cancelled || loadedWorkflow) {
+          return;
+        }
+        setMissing(true);
+        closeTab(tabId("workflow", workflowId));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLoadFailed(true);
+        }
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [nodeStore, fetchWorkflow, workflowId, closeTab]);
+  }, [nodeStore, fetchWorkflow, workflowId, closeTab, loadAttempt]);
 
   if (!nodeStore) {
+    if (loadFailed) {
+      return (
+        <EmptyState
+          variant="error"
+          title="Could not load workflow"
+          description="Check your connection and try again. Your tab is still open."
+          actionText="Retry"
+          onAction={() => setLoadAttempt((attempt) => attempt + 1)}
+        />
+      );
+    }
     if (missing) {
       return null;
     }

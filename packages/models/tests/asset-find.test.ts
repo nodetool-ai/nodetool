@@ -489,3 +489,18 @@ describe("Asset.getAssetsRecursive", () => {
     expect(subChildren[0].name).toBe("file2.txt");
   });
 });
+
+
+describe("Asset inferred row serialization", () => {
+  it("keeps column values, clones metadata, and excludes extra model properties", () => {
+    const metadata = { nested: { label: "original" } };
+    const asset = new Asset({ user_id: "owner", name: "image.png", metadata, transient: true });
+    const row = asset.toRow();
+    expect(row.name).toBe("image.png");
+    expect(row.content_type).toBe("application/octet-stream");
+    expect(row.metadata).toEqual(metadata);
+    expect(row.metadata).not.toBe(metadata);
+    expect(row).not.toHaveProperty("transient");
+    expect(row.created_at).toBe(asset.created_at);
+  });
+});

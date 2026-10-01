@@ -187,7 +187,7 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
       type: "array",
       description:
         'Operations in order. Each is {"op": <name>, ...arguments}: ' +
-        "add_shot {action, slug?, camera?, motion?, graphics?, dialogue?, narration?, " +
+        "add_shot {action, slug?, camera?, motion?, dialogue?, narration?, " +
         "duration_seconds?, duration_source?, render_mode?, entity_ids?, " +
         "location_id?, covered_by?, notes?, index?}, " +
         "update_shot {target, ...same fields}, remove_shot {target}, " +
@@ -398,7 +398,7 @@ export const editStoryboardSpec: CapabilitySpec = {
     "reorder shots, and set the board's brief, style, aspect ratio and " +
     "entities, narration and music direction. Operations run in order against " +
     "the stored document and the " +
-    "result is saved; an open board picks the change up live. `graphics` stores semantic editable text/assets and design direction, never Timeline keyframes. Rendering stays " +
+    "result is saved; an open board picks the change up live. Rendering stays " +
     "with render_storyboard_stills / render_storyboard_clips — this tool " +
     "directs, it does not spend. Call get_storyboard first for shot ids.",
   inputSchema: EDIT_STORYBOARD_SCHEMA,
@@ -434,7 +434,7 @@ export const directStoryboardSpec: CapabilitySpec = {
     "gets its shot list without writing each one by hand — set the brief with " +
     "edit_storyboard's set_setup first. Pass redirect: true to re-direct a " +
     "board that already has shots; retained shots keep their ids and their " +
-    "rendered media; retained graphics and production policy are preserved because the Director does not own them. Renders nothing: stills and clips stay with " +
+    "rendered media. Renders nothing: stills and clips stay with " +
     "render_storyboard_stills / render_storyboard_clips.",
   inputSchema: DIRECT_STORYBOARD_SCHEMA,
   category: "write",

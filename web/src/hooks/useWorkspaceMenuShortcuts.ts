@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { useMenuHandler } from "./useIpcRenderer";
 import type { MenuEventData } from "../window";
 import { useWorkspaceTabsStore } from "../stores/WorkspaceTabsStore";
-import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
+import { useWorkspaceDocumentClose } from "./useWorkspaceDocumentClose";
 
 /**
  * Workspace-level handling of Electron menu tab actions. "Close Tab" (Cmd+W)
@@ -13,8 +13,7 @@ import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
  * surface (image, video/timeline, 3D, …), mirroring the tab bar's × button.
  */
 export function useWorkspaceMenuShortcuts(): void {
-  const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
-  const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
+  const { closeDocument } = useWorkspaceDocumentClose();
 
   const handleMenuEvent = useCallback(
     (data: MenuEventData) => {
@@ -26,12 +25,9 @@ export function useWorkspaceMenuShortcuts(): void {
       if (!tab) {
         return;
       }
-      closeTab(tab.id);
-      if (tab.type === "workflow") {
-        removeWorkflow(tab.ref);
-      }
+      closeDocument(tab);
     },
-    [closeTab, removeWorkflow]
+    [closeDocument]
   );
 
   useMenuHandler(handleMenuEvent);

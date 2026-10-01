@@ -18,6 +18,7 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
+    "@nodetool-ai/atlascloud-nodes": "*",
     "@nodetool-ai/audio-nodes": "*",
     "@nodetool-ai/automation-nodes": "*",
     "@nodetool-ai/blender-nodes": "*",
@@ -25,14 +26,25 @@
     "@nodetool-ai/core-nodes": "*",
     "@nodetool-ai/data-nodes": "*",
     "@nodetool-ai/document-nodes": "*",
+    "@nodetool-ai/elevenlabs-nodes": "*",
+    "@nodetool-ai/fal-nodes": "*",
     "@nodetool-ai/game-nodes": "*",
+    "@nodetool-ai/higgsfield-nodes": "*",
+    "@nodetool-ai/huggingface-nodes": "*",
     "@nodetool-ai/image-nodes": "*",
     "@nodetool-ai/integration-nodes": "*",
+    "@nodetool-ai/kie-nodes": "*",
     "@nodetool-ai/llm-nodes": "*",
+    "@nodetool-ai/minimax-nodes": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/replicate-nodes": "*",
+    "@nodetool-ai/reve-nodes": "*",
     "@nodetool-ai/text-nodes": "*",
+    "@nodetool-ai/together-nodes": "*",
+    "@nodetool-ai/topaz-nodes": "*",
+    "@nodetool-ai/transformers-js-nodes": "*",
     "@nodetool-ai/video-nodes": "*"
   },
   "devDependencies": {
@@ -53,6 +65,12 @@
       "types": "./dist/platforms/browser.d.ts",
       "import": "./dist/platforms/browser.js",
       "default": "./dist/platforms/browser.js"
+    },
+    "./builtin-packs": {
+      "nodetool-dev": "./src/builtin-packs.ts",
+      "types": "./dist/builtin-packs.d.ts",
+      "import": "./dist/builtin-packs.js",
+      "default": "./dist/builtin-packs.js"
     }
   },
   "license": "MIT",

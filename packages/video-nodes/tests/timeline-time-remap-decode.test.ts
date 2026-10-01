@@ -170,7 +170,7 @@ describe("openSourceFrameStream", () => {
     }
   }, 120_000);
 
-  it("holds the last frame past the end of the media, like the rate path", async () => {
+  it.each([0, 0.025])("holds the last frame past the end of the media with source offset %s", async (offset) => {
     const stream = openSourceFrameStream({
       filePath: clipPath,
       size: { width: WIDTH, height: HEIGHT },
@@ -179,9 +179,13 @@ describe("openSourceFrameStream", () => {
     });
     try {
       await stream.frameAtSourceSec(0);
-      const past = await stream.frameAtSourceSec(SOURCE_FRAMES / FPS + 5);
+      const past = await stream.frameAtSourceSec(SOURCE_FRAMES / FPS + 5 + offset);
       expect(past).not.toBeNull();
       expect(nearestFrameIndex(grayAt(past!))).toBe(SOURCE_FRAMES - 1);
+      const held = await stream.frameAtSourceSec(SOURCE_FRAMES / FPS + 5 + offset);
+      expect(nearestFrameIndex(grayAt(held!))).toBe(SOURCE_FRAMES - 1);
+      const beginning = await stream.frameAtSourceSec(0);
+      expect(nearestFrameIndex(grayAt(beginning!))).toBe(0);
     } finally {
       stream.close();
     }

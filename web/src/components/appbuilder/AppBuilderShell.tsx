@@ -4,10 +4,10 @@ import {
   type AppDocMeta,
   type OperationBinding
 } from "@nodetool-ai/app-runtime";
-import useMediaQuery from "@mui/material/useMediaQuery";
 
 import {
   Box,
+  EditorButton,
   FlexColumn,
   FlexRow,
   BORDER_RADIUS,
@@ -58,6 +58,8 @@ interface AppBuilderShellProps {
   /** Banner between the header and the canvas (a save conflict, say). */
   banner?: React.ReactNode;
   onSave: (document: AppDocument) => void;
+  onDraftChange?: (document: AppDocument) => void;
+  saving?: boolean;
   onClose?: () => void;
   /**
    * Project whose documents an "all of this kind" resource binding reaches.
@@ -66,17 +68,13 @@ interface AppBuilderShellProps {
   projectId?: string;
 }
 
-/**
- * Puck folds its header actions — the "App Data" toggle among them — into a
- * chevron menu below 638px. Below that width the App Data panel covers the
- * canvas instead of docking beside it: a 360px column leaves too little of
- * either.
- */
-const NARROW_QUERY = "(max-width: 637.98px)";
+// Leave room for both the canvas and a docked App Data panel.
+const MIN_DOCKED_WIDTH = 960;
+const DATA_PANEL_WIDTH = 360;
 
 /** Shared framing for the panels that dock beside the canvas. */
 const sidePanelSx = {
-  width: { xs: "min(100vw, 360px)", lg: 420 },
+  width: DATA_PANEL_WIDTH,
   flexShrink: 0,
   height: "100%",
   borderLeft: "1px solid",
@@ -116,6 +114,8 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   header,
   banner,
   onSave,
+  onDraftChange,
+  saving,
   onClose,
   projectId
 }) => {
@@ -134,12 +134,28 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
       }
     };
   });
+  const [liveData, setLiveData] = useState(data);
   const [meta, setMeta] = useState<AppDocMeta>(() => ({
     operations: document.operations,
     resources: document.resources,
     variables: document.variables
   }));
-  const narrow = useMediaQuery(NARROW_QUERY);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+  const narrow = containerWidth < MIN_DOCKED_WIDTH;
   const panelSx = narrow ? overlayPanelSx : sidePanelSx;
   const [dataOpen, setDataOpen] = useState(false);
   const toggleData = useCallback(() => setDataOpen((open) => !open), []);
@@ -158,6 +174,16 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   useEffect(() => {
     onOperationsChangeRef.current?.(meta.operations);
   }, [meta.operations]);
+
+  const draftChangeRef = useRef(onDraftChange);
+  draftChangeRef.current = onDraftChange;
+  useEffect(() => {
+    const rootProps = liveData.root?.props;
+    const themeId = rootProps && "theme" in rootProps ? rootProps.theme : null;
+    draftChangeRef.current?.({ ...document, ui: liveData, ...meta,
+      theme: themeId === null ? document.theme : isString(themeId) && themeId ? { id: themeId } : undefined
+    });
+  }, [document, liveData, meta]);
 
   const handleSave = useCallback(
     (nextData: Data) => {
@@ -187,6 +213,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
 
   return (
     <FlexRow
+      ref={containerRef}
       gap={0}
       sx={{ width: "100%", height: "100%", minHeight: 0, position: "relative" }}
     >
@@ -201,6 +228,8 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
             workflow={workflow}
             data={data}
             onPublish={handleSave}
+            onChange={setLiveData}
+            saving={saving}
             onClose={onClose}
             meta={meta}
             onMetaChange={setMeta}
@@ -211,7 +240,10 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
         </Box>
       </FlexColumn>
       {dataOpen && (
-        <Box sx={panelSx}>
+        <FlexColumn role="complementary" aria-label="App Data" sx={panelSx}>
+          {narrow && (
+            <EditorButton onClick={toggleData}>Back to canvas</EditorButton>
+          )}
           <AppDataPanel
             meta={meta}
             onChange={setMeta}
@@ -219,7 +251,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
             workflowName={workflow.name}
             projectId={projectId}
           />
-        </Box>
+        </FlexColumn>
       )}
     </FlexRow>
   );

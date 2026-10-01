@@ -333,7 +333,8 @@ export interface TimelineStoreState {
   /**
    * Write back the document `applyTimelineOp` returned, in one `set` so one
    * agent tool call is one undo entry. Clips are reflowed and `durationMs`
-   * recomputed, as `applyExternalMerge` does.
+   * recomputed, as `applyExternalMerge` does. Track edits pass `preserveTiming`
+   * to keep voiceover placement unchanged.
    */
   applyAgentEdit: (next: {
     tracks: TimelineTrack[];
@@ -341,7 +342,8 @@ export interface TimelineStoreState {
     clips: TimelineClip[];
     markers: TimelineMarker[];
     mediaTracks: MediaTrack[];
-  }) => void;
+    tempo?: TimelineTempo;
+  }, options?: { preserveTiming: boolean }) => void;
   /** Reset the store to an empty document. */
   reset: () => void;
   /**
@@ -1837,10 +1839,20 @@ export const createTimelineStore = (
           });
         },
 
-        applyAgentEdit: (next) => {
+        applyAgentEdit: (next, options) => {
           set((state) => {
-            const reflowed = reflowGenerated(next.clips);
+            const reflowed = options?.preserveTiming
+              ? {
+                  clips: next.clips,
+                  durationMs: next.clips.reduce(
+                    (end, clip) =>
+                      Math.max(end, clip.startMs + clip.durationMs),
+                    0
+                  )
+                }
+              : reflowGenerated(next.clips);
             return {
+              tempo: next.tempo ?? state.tempo,
               tracks: next.tracks,
               trackFolders: next.trackFolders ?? state.trackFolders,
               clips: reflowed.clips,

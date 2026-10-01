@@ -366,3 +366,6 @@ export const scrollbarStyles = (theme: Theme) => ({
       theme.vars.palette.c_scroll_hover ?? theme.vars.palette.grey[500],
   },
 });
+
+/** Width of the assistant beside Studio document editors, in pixels. */
+export const STUDIO_ASSISTANT_WIDTH = 320;

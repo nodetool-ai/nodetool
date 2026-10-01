@@ -266,6 +266,14 @@ describe("ui_storyboard_* tools", () => {
     expect(result.shot.graphics).toEqual(graphics);
   });
 
+  it("forwards graphics null as an explicit clear operation", async () => {
+    const handler = createMockHandler();
+    handler.updateShot.mockReturnValue(shotNode());
+    setStoryboardAgentHandler(BOARD_ID, handler);
+    await FrontendToolRegistry.call("ui_storyboard_update_shot", { storyboard_id: BOARD_ID, target: "0", graphics: null }, "tc-clear-graphics", ctx);
+    expect(handler.updateShot).toHaveBeenCalledWith("0", expect.objectContaining({ graphics: null }));
+  });
+
   it("generates a keyframe through the handler", async () => {
     const handler = createMockHandler();
     handler.generateKeyframe.mockResolvedValue({

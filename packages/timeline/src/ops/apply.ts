@@ -12,6 +12,9 @@
  * `src/render` or `@nodetool-ai/gpu`, so mobile compiles it from source (AS2).
  */
 
+import { isShortResourceId } from "@nodetool-ai/protocol";
+import { DEFAULT_MIDI_INSTRUMENT } from "../midi/instrument.js";
+import { DEFAULT_TEMPO } from "../midi/tempo.js";
 import {
   buildEffect,
   buildMask,
@@ -280,6 +283,15 @@ class OpScope {
   resolveTrack(idOrName: string): TimelineTrack {
     const byId = this.tracks.find((t) => t.id === idOrName);
     if (byId) return byId;
+    if (isShortResourceId(idOrName)) {
+      const matches = this.tracks.filter((track) => track.id.startsWith(idOrName));
+      if (matches.length === 1 && matches[0]) {
+        return matches[0];
+      }
+      if (matches.length > 1) {
+        throw new Error(`Short track id "${idOrName}" matches more than one track; use the full id or name.`);
+      }
+    }
     const lower = idOrName.toLowerCase();
     const byName = this.tracks.find((t) => t.name.toLowerCase() === lower);
     if (byName) return byName;
@@ -618,79 +630,10 @@ async function runOp(
       };
     }
 
-    case "add_track": {
-      const track = scope.addTrack(op.type, op.name);
-      return { ok: true, track: scope.trackOut(track) };
-    }
-
-    case "move_track": {
-      const { target, toIndex, before, after } = resolveMoveTrackArgs(op);
-      const track = scope.resolveTrack(target);
-      const destination: TrackDestination = {};
-      if (toIndex !== undefined) destination.toIndex = toIndex;
-      if (before !== undefined)
-        destination.beforeId = scope.resolveTrack(before).id;
-      if (after !== undefined)
-        destination.afterId = scope.resolveTrack(after).id;
-      const orderedIds = moveTrackOrder(scope.tracks, track.id, destination);
-      const byId = new Map(scope.tracks.map((t) => [t.id, t]));
-      // The array order is what `get_state` prints, so keep it and the indices
-      // saying the same thing.
-      scope.tracks.length = 0;
-      orderedIds.forEach((id, i) => {
-        const moved = byId.get(id)!;
-        moved.index = i;
-        scope.tracks.push(moved);
-      });
-      return {
-        ok: true,
-        track: scope.trackOut(track),
-        tracks: scope.tracks.map((t) => scope.trackOut(t))
-      };
-    }
-
-    case "delete_track": {
-      const { target, deleteClips } = resolveDeleteTrackArgs(op);
-      const track = scope.resolveTrack(target);
-      const onIt = scope.clips.filter((c) => c.trackId === track.id);
-      if (onIt.length > 0 && !deleteClips) {
-        throw new Error(
-          `Track "${track.name}" still holds ${onIt.length} clip(s): ` +
-            `${onIt.map((c) => c.id).join(", ")}. Move them first, or pass ` +
-            "deleteClips: true to delete them with the track."
-        );
-      }
-      const removedClipIds = onIt.map((c) => c.id);
-      const kept = scope.clips.filter((c) => c.trackId !== track.id);
-      scope.clips.length = 0;
-      scope.clips.push(...kept);
-      // A parent that went with the track would leave its children pointing at
-      // a clip that no longer exists, which the validator reads as a broken
-      // document rather than a deletion.
-      for (const clip of scope.clips) {
-        if (clip.parentId && removedClipIds.includes(clip.parentId)) {
-          delete clip.parentId;
-          scope.touch(clip.id);
-        }
-      }
-      scope.touch(...removedClipIds);
-      state.selectedClipIds = state.selectedClipIds.filter(
-        (id) => !removedClipIds.includes(id)
-      );
-      const remaining = scope.tracks.filter((t) => t.id !== track.id);
-      scope.tracks.length = 0;
-      // Index is z-order, so the stack has to close over the gap.
-      remaining.forEach((t, i) => {
-        t.index = i;
-        scope.tracks.push(t);
-      });
-      return {
-        ok: true,
-        deleted: { id: track.id, name: track.name, type: track.type },
-        deletedClipIds: removedClipIds,
-        tracks: scope.tracks.map((t) => scope.trackOut(t))
-      };
-    }
+    case "add_track":
+    case "move_track":
+    case "delete_track":
+      return runTrackOp(scope, op);
 
     case "add_text_clip": {
       const track = op.trackId
@@ -1863,6 +1806,7 @@ async function runOp(
 /** Deep copy of the document, so a failed op leaves the caller's state alone. */
 function cloneState(state: TimelineOpState): TimelineOpState {
   return {
+    tempo: state.tempo,
     fps: state.fps,
     width: state.width,
     height: state.height,
@@ -1894,6 +1838,128 @@ export async function applyTimelineOp(
       result,
       changedClipIds: [...scope.changed]
     };
+  } catch (error) {
+    return {
+      state,
+      result: {},
+      changedClipIds: [],
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
+export type TimelineTrackOp = Extract<
+  TimelineOp,
+  { op: "add_track" | "move_track" | "delete_track" }
+>;
+
+function serializeTracks(state: TimelineOpState) {
+  const clipCount = new Map<string, number>();
+  for (const clip of state.clips) {
+    clipCount.set(clip.trackId, (clipCount.get(clip.trackId) ?? 0) + 1);
+  }
+  return state.tracks.map((track) => serializeTrack(state, track, clipCount.get(track.id) ?? 0));
+}
+
+function runTrackOp(scope: OpScope, op: TimelineTrackOp): TimelineOpResult {
+  const state = scope.state;
+  switch (op.op) {
+    case "add_track": {
+      const track = scope.addTrack(op.type, op.name);
+      if (op.type === "midi") {
+        track.instrument = structuredClone(
+          scope.ctx.defaultMidiInstrument ?? DEFAULT_MIDI_INSTRUMENT
+        );
+        state.tempo ??= structuredClone(DEFAULT_TEMPO);
+      }
+      return { ok: true, track: scope.trackOut(track) };
+    }
+
+    case "move_track": {
+      const { target, toIndex, before, after } = resolveMoveTrackArgs(op);
+      const track = scope.resolveTrack(target);
+      const destination: TrackDestination = {};
+      if (toIndex !== undefined) destination.toIndex = toIndex;
+      if (before !== undefined)
+        destination.beforeId = scope.resolveTrack(before).id;
+      if (after !== undefined)
+        destination.afterId = scope.resolveTrack(after).id;
+      const orderedIds = moveTrackOrder(scope.tracks, track.id, destination);
+      const byId = new Map(scope.tracks.map((t) => [t.id, t]));
+      // The array order is what `get_state` prints, so keep it and the indices
+      // saying the same thing.
+      scope.tracks.length = 0;
+      orderedIds.forEach((id, i) => {
+        const moved = byId.get(id);
+        if (!moved) {
+          throw new Error(`Track "${id}" no longer exists.`);
+        }
+        moved.index = i;
+        scope.tracks.push(moved);
+      });
+      return {
+        ok: true,
+        track: scope.trackOut(track),
+        tracks: serializeTracks(scope.state)
+      };
+    }
+
+    case "delete_track": {
+      const { target, deleteClips } = resolveDeleteTrackArgs(op);
+      const track = scope.resolveTrack(target);
+      const onIt = scope.clips.filter((c) => c.trackId === track.id);
+      if (onIt.length > 0 && !deleteClips) {
+        throw new Error(
+          `Track "${track.name}" still holds ${onIt.length} clip(s): ` +
+            `${onIt.map((c) => c.id).join(", ")}. Move them first, or pass ` +
+            "deleteClips: true to delete them with the track."
+        );
+      }
+      const removedClipIds = onIt.map((c) => c.id);
+      const removed = new Set(removedClipIds);
+      const kept = scope.clips.filter((c) => c.trackId !== track.id);
+      scope.clips.length = 0;
+      scope.clips.push(...kept);
+      // A parent that went with the track would leave its children pointing at
+      // a clip that no longer exists, which the validator reads as a broken
+      // document rather than a deletion.
+      for (const clip of scope.clips) {
+        if (clip.parentId && removed.has(clip.parentId)) {
+          delete clip.parentId;
+          scope.touch(clip.id);
+        }
+      }
+      scope.touch(...removedClipIds);
+      state.selectedClipIds = state.selectedClipIds.filter(
+        (id) => !removed.has(id)
+      );
+      const remaining = scope.tracks.filter((t) => t.id !== track.id);
+      scope.tracks.length = 0;
+      // Index is z-order, so the stack has to close over the gap.
+      remaining.forEach((t, i) => {
+        t.index = i;
+        scope.tracks.push(t);
+      });
+      return {
+        ok: true,
+        deleted: { id: track.id, name: track.name, type: track.type },
+        deletedClipIds: removedClipIds,
+        tracks: serializeTracks(scope.state)
+      };
+    }
+  }
+}
+
+/** Synchronous document edits for hosts whose editor actions are synchronous. */
+export function applyTimelineTrackOp(
+  state: TimelineOpState,
+  op: TimelineTrackOp,
+  ctx: Pick<TimelineOpContext, "newId" | "defaultMidiInstrument">
+): TimelineOpOutcome {
+  const scope = new OpScope(cloneState(state), ctx);
+  try {
+    const result = runTrackOp(scope, op);
+    return { state: scope.state, result, changedClipIds: [...scope.changed] };
   } catch (error) {
     return {
       state,

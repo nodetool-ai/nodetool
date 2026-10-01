@@ -44,6 +44,10 @@ export class SQLiteMigrationAdapter implements MigrationDBAdapter {
     return "sqlite";
   }
 
+  get rawDatabase(): Database.Database {
+    return this.db;
+  }
+
   async execute(sql: string, params?: SqlParams): Promise<void> {
     if (params && params.length > 0) {
       const result = this.db.prepare(sql).run(...params);

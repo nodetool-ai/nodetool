@@ -262,7 +262,7 @@ export {
   connectPythonBridgeForGraph,
   resolvePythonNodeExecutor
 } from "./python-graph-resolver.js";
-export { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
+export { loadMediaRefBytes, type MediaRefValue, type MediaRefContext, type MediaRefByteOptions } from "./media-ref-bytes.js";
 export { imageModelSupportsTask } from "./image-model-tasks.js";
 export {
   fetchExternalMedia,

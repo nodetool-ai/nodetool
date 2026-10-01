@@ -1206,7 +1206,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
     if (assembled.clips.length === 0) {
       return {
         error:
-          "No shot has a rendered clip, so there is nothing to assemble. Run render_storyboard_stills, then render_storyboard_clips.",
+          "No shot has a rendered still or clip, so there is nothing to assemble. Run render_storyboard_stills or render_storyboard_clips.",
         skipped_shot_ids: assembled.skippedShotIds,
         skipped_line_ids: skippedLineIds
       };
@@ -2657,6 +2657,8 @@ const directStoryboard: CapabilityExport = {
           ...held,
           ...shot,
           index,
+          graphics: held.graphics,
+          production: held.production,
           keyframe: held.keyframe,
           keyframe_versions: held.keyframe_versions,
           clip: held.clip,

@@ -264,6 +264,22 @@ describe("rankStarters", () => {
       )
     ).toEqual(["veo-3-prompting", "house-style", "launch-commercial"]);
   });
+
+  // The `api-*` skills document one code-action namespace for the agent; a
+  // row of "Api agents", "Api apps"… in front of the real starters says
+  // nothing about what to make.
+  it("ranks the code-action API references with the guides", () => {
+    const apiAgents: ProjectStarter = {
+      name: "api-agents",
+      description: "Call nodetool.agents from a code action.",
+      system: true
+    };
+    expect(
+      rankStarters([apiAgents, houseStyle, launch], []).map(
+        (starter) => starter.name
+      )
+    ).toEqual(["house-style", "launch-commercial", "api-agents"]);
+  });
 });
 
 describe("estimateFromHistory", () => {

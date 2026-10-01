@@ -120,6 +120,7 @@ export const usePublishApplication = () => {
     onSuccess: (version) => {
       void utils.applications.versions.invalidate({ id: version.applicationId });
       void utils.applications.released.invalidate({ id: version.applicationId });
+      void utils.applications.releasedDocument.invalidate({ id: version.applicationId });
     }
   });
 };
@@ -131,6 +132,7 @@ export const useReleaseApplicationVersion = () => {
     onSuccess: (version) => {
       void utils.applications.versions.invalidate({ id: version.applicationId });
       void utils.applications.released.invalidate({ id: version.applicationId });
+      void utils.applications.releasedDocument.invalidate({ id: version.applicationId });
     }
   });
 };

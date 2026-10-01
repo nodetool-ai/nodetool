@@ -8,16 +8,18 @@
 import { randomUUID } from "node:crypto";
 import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
-import { and, Column, eq, getTableColumns, like, Table } from "drizzle-orm";
+import {
+  and, Column, eq, getTableColumns, getTableName, like, Table
+} from "drizzle-orm";
 import { isShortResourceId } from "@nodetool-ai/protocol";
 import {
   allowLegacyProjectWritesForTests,
-  forUpdate,
   getDb,
-  getDbType,
-  type DbTransaction
+  getDatabase
 } from "./db.js";
 import { projects } from "./schema/projects.js";
+import type { PgTable } from "drizzle-orm/pg-core";
+import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 
 const log = createLogger("nodetool.models");
 
@@ -122,7 +124,7 @@ export function createStableUuid(namespace: string, key: string): string {
 
 export function computeEtag(data: Record<string, unknown>): string {
   const raw = JSON.stringify(data, Object.keys(data).sort());
-  return createHash("md5").update(raw).digest("hex");
+  return createHash("sha256").update(raw).digest("hex").slice(0, 32);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle table type varies by dialect; any is required for the base-class pattern.
@@ -187,8 +189,7 @@ export abstract class DBModel {
     data: Record<string, unknown>
   ): Promise<T> {
     const instance = new this(data) as T;
-    await instance.save();
-    ModelObserver.notify(instance, ModelChangeEvent.CREATED);
+    await instance.persist(ModelChangeEvent.CREATED);
     return instance;
   }
 
@@ -230,9 +231,12 @@ export abstract class DBModel {
   beforeSave(): void {}
 
   async save(): Promise<this> {
+    return this.persist(ModelChangeEvent.UPDATED);
+  }
+
+  protected async persist(event: ModelChangeEvent): Promise<this> {
     this.beforeSave();
     const ctor = this.constructor as typeof DBModel;
-    const db = getDb();
     const table = ctor.table;
     const row = this.toRow();
     const projectId = row["project_id"];
@@ -247,51 +251,58 @@ export abstract class DBModel {
       typeof userId === "string" &&
       !allowLegacyProjectWritesForTests();
     const pkCol = getTableColumn(table, ctor.primaryKey);
-    const upsert = (tx: DbTransaction) =>
-      tx
-        .insert(table)
-        .values(row)
-        .onConflictDoUpdate({
-          target: pkCol as Parameters<
-            ReturnType<
-              ReturnType<typeof db.insert>["values"]
-            >["onConflictDoUpdate"]
-          >[0]["target"],
-          set: row
-        });
-    const projectQuery = (tx: DbTransaction) =>
-      tx
-        .select({ deletedAt: projects.deleted_at })
-        .from(projects)
-        .where(
-          and(
-            eq(projects.id, projectId as string),
-            eq(projects.user_id, userId as string)
-          )
-        )
-        .limit(1);
-
-    if (getDbType() === "sqlite") {
-      db.transaction((tx: DbTransaction): void => {
+    const connection = getDatabase();
+    if (connection.dialect === "sqlite") {
+      connection.db.transaction((tx): void => {
         if (guardProject) {
-          const project = projectQuery(tx).all()[0];
+          const [project] = tx.select({ deletedAt: projects.deleted_at })
+            .from(projects)
+            .where(and(eq(projects.id, projectId), eq(projects.user_id, userId)))
+            .limit(1).all();
           if (!project) throw new Error("Project not found");
           if (project.deletedAt) throw new Error("Project has been deleted");
         }
-        upsert(tx).run();
+        // Dynamic DBModel metadata cannot express a concrete primary-key type.
+        tx.insert(table).values(row).onConflictDoUpdate({
+          target: pkCol as SQLiteColumn,
+          set: row
+        }).run();
       });
     } else {
-      await db.transaction(async (tx: DbTransaction): Promise<void> => {
+      // DBModel still discovers its table dynamically. Resolve the actual Pg
+      // declaration here rather than passing a SQLite table to a Pg driver.
+      const name = getTableName(table);
+      const pgTable = Object.values(connection.schema).find((candidate) =>
+        getTableName(candidate) === name
+      );
+      if (!pgTable) throw new Error(`PostgreSQL table not found: ${name}`);
+      // The dynamic base model cannot express each table's insert shape. The
+      // concrete models retain that responsibility until their conversion.
+      const targetTable: PgTable = pgTable;
+      const columns = getTableColumns(targetTable);
+      const pgRow = Object.fromEntries(Object.entries(row).map(([key, value]) => [
+        key,
+        typeof value === "boolean" && columns[key]?.dataType === "number"
+          ? Number(value) : value
+      ]));
+      const pk = columns[ctor.primaryKey];
+      if (!pk) throw new Error(`Column "${ctor.primaryKey}" not found on the table schema.`);
+      const pgProjects = connection.schema.projects;
+      await connection.db.transaction(async (tx): Promise<void> => {
         if (guardProject) {
-          const [project] = await forUpdate(projectQuery(tx));
+          const [project] = await tx.select({ deletedAt: pgProjects.deleted_at })
+            .from(pgProjects)
+            .where(and(eq(pgProjects.id, projectId), eq(pgProjects.user_id, userId)))
+            .limit(1).for("update");
           if (!project) throw new Error("Project not found");
           if (project.deletedAt) throw new Error("Project has been deleted");
         }
-        await upsert(tx);
+        await tx.insert(targetTable).values(pgRow)
+          .onConflictDoUpdate({ target: pk, set: pgRow });
       });
     }
 
-    ModelObserver.notify(this, ModelChangeEvent.UPDATED);
+    ModelObserver.notify(this, event);
     return this;
   }
 
@@ -311,11 +322,11 @@ export abstract class DBModel {
   }
 
   async reload(): Promise<this> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ctor = this.constructor as any;
+    // Runtime subclasses carry the constructor and table metadata together.
+    const ctor = this.constructor as ModelConstructor<this>;
     const db = getDb();
-    const table = (ctor as typeof DBModel).table;
-    const pkCol = getTableColumn(table, (ctor as typeof DBModel).primaryKey);
+    const table = ctor.table;
+    const pkCol = getTableColumn(table, ctor.primaryKey);
     const rows = await db
       .select()
       .from(table)
@@ -323,7 +334,7 @@ export abstract class DBModel {
       .limit(1);
     const row = rows[0];
     if (!row) throw new Error(`Item not found: ${this.partitionValue()}`);
-    const fresh = new ctor(row as Record<string, unknown>);
+    const fresh = new ctor(row);
     Object.assign(this, fresh);
     return this;
   }

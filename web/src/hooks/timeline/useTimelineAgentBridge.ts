@@ -11,6 +11,8 @@
  * stays addressable by id. The handler is cleared on unmount.
  */
 
+import { DEFAULT_TIMELINE_INSTRUMENT } from "../../stores/timeline/instrumentPresets";
+import { applyTimelineTrackOp, type TimelineTrackOp } from "@nodetool-ai/timeline/ops";
 import { useEffect, useMemo } from "react";
 import {
   createTimeOrderedUuid,
@@ -20,7 +22,6 @@ import {
   isMediaTrackStale,
   mediaTrackCanDriveReframe,
   model3dStyleWithPatch,
-  moveTrackOrder,
   presetIdForInstrument,
   resolveTempo,
   shapeStyleWithDefaults,
@@ -30,7 +31,6 @@ import {
   validateNotes
 } from "@nodetool-ai/timeline";
 import type {
-  TrackDestination,
   ClipAnimation,
   ClipMatte,
   ClipModel3DStylePatch,
@@ -288,6 +288,46 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
   const { bakeClip } = useModel3DBake();
 
   const handler = useMemo<TimelineAgentHandler>(() => {
+    const editTrack = (op: TimelineTrackOp): void => {
+      const store = doc.getState();
+      const outcome = applyTimelineTrackOp(
+        {
+          tempo: store.tempo,
+          fps: store.fps,
+          width: store.width,
+          height: store.height,
+          tracks: store.tracks,
+          clips: store.clips,
+          markers: store.markers,
+          mediaTracks: store.mediaTracks,
+          playheadMs: playback.getState().currentTimeMs,
+          selectedClipIds: [...ui.getState().selectedClipIds]
+        },
+        op,
+        {
+          newId: createTimeOrderedUuid,
+          defaultMidiInstrument: DEFAULT_TIMELINE_INSTRUMENT
+        }
+      );
+      if (outcome.error) throw new Error(outcome.error);
+      store.applyAgentEdit(
+        { ...outcome.state, mediaTracks: outcome.state.mediaTracks ?? [] },
+        { preserveTiming: true }
+      );
+      if (outcome.state.selectedClipIds.length !== ui.getState().selectedClipIds.size) {
+        ui.getState().setSelection(outcome.state.selectedClipIds);
+      }
+    };
+
+    const trackNodes = (): TimelineTrackNode[] => {
+      const store = doc.getState();
+      const clipCount = new Map<string, number>();
+      for (const clip of store.clips) {
+        clipCount.set(clip.trackId, (clipCount.get(clip.trackId) ?? 0) + 1);
+      }
+      return store.tracks.map((track) => toTrackNode(track, clipCount.get(track.id) ?? 0));
+    };
+
     const trackMap = (): Map<string, TimelineTrack> =>
       new Map(doc.getState().tracks.map((t) => [t.id, t]));
 
@@ -556,63 +596,42 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       },
 
       addTrack(type, name) {
-        doc.getState().addTrack(type, name);
-        const tracks = doc.getState().tracks;
-        // A freshly added track has no clips yet.
-        return toTrackNode(tracks[tracks.length - 1], 0);
+        editTrack({
+          op: "add_track",
+          type,
+          name: name ?? `${type} ${doc.getState().tracks.length + 1}`
+        });
+        const track = doc.getState().tracks.at(-1);
+        if (!track) throw new Error("Track was not added.");
+        return toTrackNode(track, 0);
       },
 
       moveTrack(target, destination) {
-        const track = requireTrack(target);
-        const to: TrackDestination = {};
-        if (destination.toIndex !== undefined) to.toIndex = destination.toIndex;
-        if (destination.before !== undefined) {
-          to.beforeId = requireTrack(destination.before).id;
-        }
-        if (destination.after !== undefined) {
-          to.afterId = requireTrack(destination.after).id;
-        }
-        const orderedIds = moveTrackOrder(doc.getState().tracks, track.id, to);
-        doc.getState().reorderTracks(orderedIds);
-        const clipCount = new Map<string, number>();
-        for (const clip of doc.getState().clips) {
-          clipCount.set(clip.trackId, (clipCount.get(clip.trackId) ?? 0) + 1);
-        }
-        return doc
-          .getState()
-          .tracks.slice()
-          .sort((a, b) => a.index - b.index)
-          .map((t) => toTrackNode(t, clipCount.get(t.id) ?? 0));
+        editTrack({
+          op: "move_track",
+          target: requireTrack(target).id,
+          ...destination,
+          before: destination.before
+            ? requireTrack(destination.before).id
+            : undefined,
+          after: destination.after
+            ? requireTrack(destination.after).id
+            : undefined
+        });
+        return trackNodes();
       },
 
       deleteTrack(target, deleteClips) {
         const track = requireTrack(target);
-        const onIt = doc
+        const removed = doc
           .getState()
           .clips.filter((clip) => clip.trackId === track.id);
-        if (onIt.length > 0 && !deleteClips) {
-          throw new Error(
-            `Track "${track.name}" still holds ${onIt.length} clip(s): ` +
-              `${onIt.map((clip) => clip.id).join(", ")}. Move them first, ` +
-              "or pass deleteClips: true to delete them with the track."
-          );
-        }
-        const deleted = toTrackNode(track, onIt.length);
-        // The store's own removal — the same one the track menu calls — takes
-        // the clips with it and reindexes what is left.
-        doc.getState().removeTrack(track.id);
-        const clipCount = new Map<string, number>();
-        for (const clip of doc.getState().clips) {
-          clipCount.set(clip.trackId, (clipCount.get(clip.trackId) ?? 0) + 1);
-        }
+        const deleted = toTrackNode(track, removed.length);
+        editTrack({ op: "delete_track", target: track.id, deleteClips });
         return {
           deleted,
-          deletedClipIds: onIt.map((clip) => clip.id),
-          tracks: doc
-            .getState()
-            .tracks.slice()
-            .sort((a, b) => a.index - b.index)
-            .map((t) => toTrackNode(t, clipCount.get(t.id) ?? 0))
+          deletedClipIds: removed.map((clip) => clip.id),
+          tracks: trackNodes()
         };
       },
 

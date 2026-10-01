@@ -51,6 +51,7 @@ export const storyboardShotGraphicsElement = z
     text: z.string().optional(),
     asset_id: z.string().optional(),
     entity_id: z.string().optional(),
+    protected_input_id: z.string().optional(),
     direction: z.string().optional()
   })
   .passthrough();
@@ -73,7 +74,7 @@ export const storyboardShotGraphics = z
       if (element.kind === "text" && element.text === undefined) {
         context.addIssue({ code: "custom", path: ["elements", index, "text"], message: "Text graphics need exact text." });
       }
-      if (element.kind === "asset" && !element.asset_id && !element.entity_id) {
+      if (element.kind === "asset" && !element.asset_id && !element.entity_id && !element.protected_input_id) {
         context.addIssue({ code: "custom", path: ["elements", index], message: "Asset graphics need asset_id or entity_id." });
       }
     });

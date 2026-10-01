@@ -9,6 +9,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import type { Data } from "@puckeditor/core";
 
+import type { AppDocument } from "../appData";
 import type { Workflow } from "../../../stores/ApiTypes";
 
 const fetchWorkflow = jest.fn();
@@ -27,13 +28,7 @@ jest.mock("../../../hooks/useApplications", () => ({
 
 jest.mock("../AppRuntimeView", () => ({
   __esModule: true,
-  default: ({
-    workflow,
-    data
-  }: {
-    workflow: Workflow;
-    data: Data;
-  }) => (
+  default: ({ workflow, data }: { workflow: Workflow; data: Data }) => (
     <div data-testid="runtime">
       <span data-testid="workflow">{workflow.id}</span>
       <span data-testid="title">{String(data.root?.props?.title ?? "")}</span>
@@ -49,7 +44,7 @@ const ui = (title: string) => ({
   zones: {}
 });
 
-const appDocument = (title: string) => ({
+const appDocument = (title: string): AppDocument => ({
   schemaVersion: 3,
   ui: ui(title),
   operations: [
@@ -76,13 +71,17 @@ const liveWorkflow: Workflow = {
   updated_at: ""
 };
 
-const renderView = (previewDraft = false) =>
+const renderView = (
+  previewDraft = false,
+  draftDocument?: ReturnType<typeof appDocument>
+) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <ThemeProvider theme={mockTheme}>
         <ApplicationRunView
           applicationId="app-1"
           previewDraft={previewDraft}
+          draftDocument={draftDocument}
         />
       </ThemeProvider>
     </QueryClientProvider>
@@ -102,13 +101,47 @@ beforeEach(() => {
 });
 
 describe("ApplicationRunView", () => {
+  it("blocks running when the released snapshot lookup fails", async () => {
+    useReleasedApplicationDocument.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error("Connection lost"),
+      refetch: jest.fn()
+    });
+    renderView();
+    expect(
+      await screen.findByText("Could not load released app")
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("runtime")).not.toBeInTheDocument();
+  });
+
+  it("shows loading while its host workflow is pending", () => {
+    fetchWorkflow.mockReturnValue(new Promise(() => {}));
+    renderView();
+    expect(screen.getByText("Loading workflow")).toBeInTheDocument();
+    expect(screen.queryByText("Workflow unavailable")).not.toBeInTheDocument();
+  });
+
+  it("previews visible canvas edits before they are saved", async () => {
+    renderView(true, appDocument("Unsaved edits"));
+    expect(await screen.findByTestId("title")).toHaveTextContent(
+      "Unsaved edits"
+    );
+  });
+
   it("runs the released snapshot when one exists", async () => {
     useReleasedApplicationDocument.mockReturnValue({
       data: {
         version: 3,
         document: appDocument("Released"),
         workflows: [
-          { workflowId: "wf-1", version: 2, graphHash: null, graph: { nodes: [], edges: [] } }
+          {
+            workflowId: "wf-1",
+            version: 2,
+            graphHash: null,
+            graph: { nodes: [], edges: [] }
+          }
         ]
       },
       isLoading: false
@@ -155,7 +188,9 @@ describe("ApplicationRunView", () => {
         "Previewing current draft. This does not change the released app."
       )
     ).toBeInTheDocument();
-    expect(screen.queryByText(/Running released version/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Running released version/)
+    ).not.toBeInTheDocument();
     expect(fetchWorkflow).toHaveBeenCalledWith("wf-1");
   });
 

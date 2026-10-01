@@ -89,10 +89,7 @@ export function buildLinkedTimeline(
   for (const shot of ordered) {
     const lineIds = shot.script_line_ids ?? [];
     const source = sources.get(shot.id) ?? null;
-    const stillAssetId =
-      !source && typeof shot.keyframe?.asset_id === "string" && shot.keyframe.asset_id
-        ? shot.keyframe.asset_id
-        : undefined;
+    const stillAssetId = shot.keyframe?.asset_id ?? undefined;
     if (!source && !stillAssetId) {
       skippedShotIds.push(shot.id);
       skippedLineIds.push(...lineIds);
@@ -137,7 +134,9 @@ export function buildLinkedTimeline(
       videoClip.outPointMs = source.inPointMs + durationMs;
     }
     clips.push(videoClip);
-    if (source) clips.push(shotAudioClip(videoClip, shotAudioTrack.id));
+    if (source) {
+      clips.push(shotAudioClip(videoClip, shotAudioTrack.id));
+    }
     cursorMs += durationMs;
 
     let offsetMs = 0;
