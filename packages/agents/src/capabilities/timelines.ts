@@ -301,7 +301,7 @@ const getTimeline: CapabilityExport = {
   impl: async (run, params) => {
     const seq = await loadTimeline(run, params["timeline_id"]);
     if (isError(seq)) return seq;
-    return { timeline: seq.toTimelineSequence() };
+    return { timeline: seq.toTimelineSequence(), revision: seq.revision };
   }
 };
 

@@ -41,7 +41,7 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
   const generation = vi.spyOn(ProcessingContext.prototype, "runGeneration").mockRejectedValue(new Error("Recipe must not generate media"));
   const values: Record<string, unknown> = {productImage: {type: "image", asset_id: PRODUCT}, logo: {type: "image", asset_id: LOGO}, headline: "  Better coffee  ", oldPrice: "€49", newPrice: "€29", cta: "Shop now", brandColor: "#1248AB", direction: "Bold editorial rhythm"};
   const runner = createJsScriptAppRunner(USER);
-  const run = async (operationId: string) => {
+  const run = async (operationId: string, expectSuccess = true) => {
     const op = doc.operations.find(operation => operation.id === operationId)!;
     if (op.target?.kind !== "script") throw new Error("Expected normal script binding");
     const version = await JsScriptVersion.findByVersion(op.target.scriptId, op.target.scriptVersion);
@@ -51,6 +51,7 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
       return [port, values[mapping.variableId]];
     }));
     const result = await runner({scriptId: op.target.scriptId, scriptVersion: op.target.scriptVersion, name: op.name, document: JSON.parse(version!.document), inputs});
+    if (!expectSuccess) return result;
     expect(result.error).toBeUndefined();
     expect(result.ok).toBe(true);
     for (const [port, mapping] of Object.entries(op.outputs)) if (mapping.to === "variable") values[mapping.variableId] = result.outputs?.[port];
@@ -127,15 +128,22 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
   productClip.transform!.position.x += 12;
   timeline!.fromDocument({...timeline!.toDocument(), clips: layered.clips});
   await timeline!.save();
-  values.timelineRevision = timeline!.revision;
   values.newPrice = "€19";
   await run("plan");
+  expect(values.timelineRevision).toBe(timeline!.revision);
   values.approval = "approved";
   await run("finish");
   const rerun = (await TimelineSequence.findById(timeline!.id))!.toDocument();
   expect(rerun.clips).toHaveLength(9);
   expect(rerun.clips.find(clip => clip.id === productClip.id)!.transform!.position.x).toBe(productClip.transform!.position.x);
   expect(rerun.clips.some(clip => clip.textStyle?.text === "€19")).toBe(true);
+  await run("plan");
+  values.approval = "approved";
+  const changedAfterPlan = (await TimelineSequence.findById(timeline!.id))!;
+  await changedAfterPlan.save();
+  const stale = await run("finish", false);
+  expect(stale.ok).toBe(false);
+  expect(stale.error).toMatch(/revision|modified|conflict/i);
   expect(generation).not.toHaveBeenCalled();
 }, 180_000);
 

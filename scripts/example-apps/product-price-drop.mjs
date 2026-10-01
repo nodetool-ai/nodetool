@@ -9,6 +9,7 @@ const preservationRules = PRICE_DROP_INPUTS.map(([inputId, , kind]) => ({inputId
 const fingerprintCode = `const keys = ["productImage", "logo", "headline", "oldPrice", "newPrice", "cta", "brandColor", "direction"];
 const fingerprint = JSON.stringify(keys.map(key => inputs[key]));`;
 export const PLAN_CODE = `import { create_storyboard, get_storyboard, edit_storyboard } from "@nodetool-ai/sandbox-nodetool/storyboards";
+import { get_timeline } from "@nodetool-ai/sandbox-nodetool/timelines";
 ${fingerprintCode}
 for (const key of keys.slice(0, 7)) {
   if (inputs[key] === undefined || inputs[key] === null || (typeof inputs[key] === "string" && !inputs[key].trim())) throw new Error(key + " is required.");
@@ -22,6 +23,12 @@ const product = assetId(inputs.productImage, "Product image");
 const logo = assetId(inputs.logo, "Logo");
 const board = inputs.storyboardId ? await get_storyboard({storyboard_id: inputs.storyboardId}) : await create_storyboard({name: "Product Price Drop", aspect_ratio: "9:16"});
 if (board.error) throw new Error(board.error);
+if (board.timeline_id) {
+  const linked = await get_timeline({timeline_id: board.timeline_id});
+  if (linked.error) throw new Error(linked.error);
+  await output("timelineId", linked.timeline.id);
+  await output("timelineRevision", linked.revision);
+}
 const preservationRules = ${JSON.stringify(preservationRules)};
 const allowed = id => preservationRules.find(rule => rule.inputId === id).allowedTransformations;
 const protectedInputs = [
@@ -70,8 +77,8 @@ const shared = [...PRICE_DROP_INPUTS.map(([id]) => id), "direction"];
 const operation = (id, inputs, outputs) => ({id, name: id === "plan" ? "Plan" : "Build editable ad", workflowId: "", target: {kind: "script", scriptId: id, scriptVersion: 1}, policy: "queue", inputs: Object.fromEntries(inputs.map(key => [key, binding(key)])), outputs: Object.fromEntries(outputs.map(key => [key, {to: "variable", variableId: key}]))});
 const script = (key, code, inputs, outputs) => ({key, name: `Price Drop ${key}`, document: {schemaVersion: 1, code, inputs: inputs.map(name => ({name, type: "any"})), outputs: outputs.map(name => ({name, type: "any"})), packages: [], secrets: [], timeoutSeconds: 60, tests: []}});
 const planInputs = [...shared, "storyboardId"];
-const planOutputs = ["storyboardId", "storyboardRevision", "plannedFingerprint", "approval", "planPreview", "step"]; 
-const finishInputs = [...shared, ...planOutputs, "timelineId", "timelineRevision"];
+const planOutputs = ["storyboardId", "storyboardRevision", "plannedFingerprint", "approval", "planPreview", "step", "timelineId", "timelineRevision"];
+const finishInputs = [...shared, ...planOutputs];
 const finishOutputs = ["timelineId", "timelineRevision", "storyboardRevision", "timeline", "validation", "step"];
 export const PRODUCT_PRICE_DROP_BUNDLE = {
   schemaVersion: 1, name: "Product Price Drop", description: "Build a layered six-second vertical ad using your exact product, logo, prices and copy. No generated video.", workflows: [],
@@ -79,7 +86,7 @@ export const PRODUCT_PRICE_DROP_BUNDLE = {
   app: {
     schemaVersion: 5,
     recipe: {schemaVersion: 1, slug: "product-price-drop", inputs: PRICE_DROP_INPUTS.map(([id, label, kind]) => ({id, label, kind, required: true})), preservationRules, mediaPolicy: {defaultStrategy: "still_motion_graphics", allowGeneratedVideo: false}, operations: [{id: "plan", bindingId: "plan", intent: "plan_storyboard"}, {id: "finish", bindingId: "finish", intent: "finish_storyboard"}], outputs: [{id: "storyboardId", kind: "storyboard"}, {id: "timeline", kind: "timeline"}]},
-    variables: [...PRICE_DROP_INPUTS.map(([id, label, kind]) => variable(id, label, kind === "image" ? "image" : "str")), variable("direction", "Creative direction", "str", "Bold editorial rhythm"), variable("step", "Step", "str", "inputs"), ...[...new Set([...planOutputs, ...finishOutputs])].filter(id => id !== "step").map(id => variable(id, id, id === "timeline" ? "timeline" : "str"))],
+    variables: [...PRICE_DROP_INPUTS.map(([id, label, kind]) => variable(id, label, kind === "image" ? "image" : "str")), variable("direction", "Creative direction", "str", "Bold editorial rhythm"), variable("step", "Step", "str", "inputs"), ...[...new Set([...planOutputs, ...finishOutputs])].filter(id => id !== "step").map(id => variable(id, id, id === "timeline" ? "timeline" : id.endsWith("Revision") ? "int" : "str"))],
     operations: [operation("plan", planInputs, planOutputs), operation("finish", finishInputs, finishOutputs)], resources: [],
     ui: {root: {props: {title: "Product Price Drop"}}, content: [
       widget("Stepper", "steps", {binding: "var:step", steps: [{value: "inputs", title: "Inputs"}, {value: "review", title: "Plan and review"}, {value: "result", title: "Editable result"}], allowBack: true}),

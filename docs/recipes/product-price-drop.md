@@ -26,6 +26,9 @@ an image or video generation provider. Use **Open editable timeline** on the res
 and render or export there.
 
 Rerunning the plan updates the existing shots by their stable semantic labels.
+Planning reads the linked Timeline revision, so manual placement edits made
+before planning can be reconciled. An edit after planning produces a revision
+conflict and requires a new plan.
 Finishing updates the layers identified by board, shot, and graphics-element
 identity. Manual placement edits survive. Manual replacement of protected
 sources or copy causes an explicit conflict instead of silently overwriting it.

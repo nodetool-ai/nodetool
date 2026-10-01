@@ -6,7 +6,7 @@ import { PRODUCT_PRICE_DROP_BUNDLE, PLAN_CODE, FINISH_CODE } from "../example-ap
 const input = {productImage: {asset_id: "a".repeat(32)}, logo: {asset_id: "b".repeat(32)}, headline: "  Better coffee  ", oldPrice: "€49", newPrice: "€29", cta: "Shop now", brandColor: "#1248AB", direction: "Bold editorial rhythm"};
 const execute = async (code, inputs, capabilities) => {
   const results = {};
-  const body = code.replace(/^import .*;\n/, "");
+  const body = code.replace(/^import .*;\n/gm, "");
   const fn = new Function("inputs", "output", ...Object.keys(capabilities), `return (async () => {${body}})();`);
   await fn(inputs, async (name, value) => {results[name] = value;}, ...Object.values(capabilities));
   return results;
@@ -45,11 +45,14 @@ test("plan retains exact sources and whitespace with graphics-only strategy", as
   assert.equal(result.planPreview.shots.length, 2);
   for (const protectedInput of shots[0].production.protected_inputs) assert.deepEqual(protectedInput.allowed_transformations, PRODUCT_PRICE_DROP_BUNDLE.app.recipe.preservationRules.find(rule => rule.inputId === protectedInput.id).allowedTransformations);
   assert.equal(edits[1][0].motion_design.continuities[0].shot_ids.length, 2);
-  await execute(PLAN_CODE, {...input, storyboardId: result.storyboardId}, {
+  const refreshed = await execute(PLAN_CODE, {...input, storyboardId: result.storyboardId}, {
     create_storyboard: async () => {throw Error("must reuse");},
-    get_storyboard: async () => ({id: result.storyboardId, shots}),
+    get_storyboard: async () => ({id: result.storyboardId, shots, timeline_id: "linked"}),
+    get_timeline: async () => ({timeline: {id: "linked"}, revision: 7}),
     edit_storyboard: async ({ops}) => {assert.ok(ops.every(op => op.op !== "add_shot")); return {shots, failed: 0, revision: 2};}
   });
+  assert.equal(refreshed.timelineId, "linked");
+  assert.equal(refreshed.timelineRevision, 7);
 });
 test("finish rejects stale approval before invoking finishing", async () => {
   const plannedFingerprint = JSON.stringify([...Object.values(input)]);
