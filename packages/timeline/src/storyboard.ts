@@ -136,9 +136,9 @@ export interface RetimedShot {
   directedMs: number;
 }
 
-/** A shot can contribute a persisted clip or a held keyframe still. */
+/** A shot has a source compatible with its production strategy. */
 export const isAssemblableShot = (shot: Shot): boolean =>
-  assetIdOf(shot.clip) !== undefined || assetIdOf(shot.keyframe) !== undefined;
+  resolveShotSource(shot) !== null;
 
 /** The persisted asset id on a media ref, or undefined when it has none. */
 const assetIdOf = (ref: { asset_id?: string | null } | null | undefined) =>

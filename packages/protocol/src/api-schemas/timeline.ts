@@ -2019,6 +2019,7 @@ export const patchTimelineInput = z
     fps: z.number().int().min(1).optional(),
     width: z.number().int().min(1).optional(),
     height: z.number().int().min(1).optional(),
+    durationMs: z.number().int().nonnegative().optional(),
     document: timelineDocument.optional()
   })
   .refine((v) => Object.keys(v).length > 0, {

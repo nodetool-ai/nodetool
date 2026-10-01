@@ -9,6 +9,7 @@ import {
   buildStoryboardPreviewTimeline,
   buildStoryboardTimeline,
   resolveShotSource,
+  isAssemblableShot,
   frameSizeForAspect
 } from "../src/storyboard.js";
 import type { AssembledTimeline } from "../src/storyboard.js";
@@ -869,6 +870,7 @@ describe("scenes do not change the cut", () => {
  it("reserves graphics-only shot timing without inventing a source", () => {
  const shot=makeShot({id:"g",index:0,graphics:{mode:"graphics_first",elements:[]}});
  expect(resolveShotSource(shot)).toEqual({kind:"graphics"});
+ expect(isAssemblableShot(shot)).toBe(true);
  const result=buildStoryboardTimeline({boardId:"b",shots:[shot]});
  expect(result.durationMs).toBe(DEFAULT_SHOT_MS);
  expect(result.skippedShotIds).toEqual([]);
@@ -877,6 +879,7 @@ describe("scenes do not change the cut", () => {
  it("does not substitute a still for an explicit generated-video strategy",()=>{
  const shot=makeShot({id:"s",index:0,keyframe:keyframeRef("still"),production:{media_strategy:"generated_video"}});
  expect(resolveShotSource(shot)).toBeNull();
+ expect(isAssemblableShot(shot)).toBe(false);
  expect(buildStoryboardTimeline({boardId:"b",shots:[shot]}).skippedShotIds).toEqual(["s"]);
  });
  });

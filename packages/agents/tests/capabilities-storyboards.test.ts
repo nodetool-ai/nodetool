@@ -1115,6 +1115,20 @@ describe("storyboards capability behaviour", () => {
     expect(document.tracks.map((t) => t.name)).toEqual(["Shots", "Shot Audio"]);
   });
 
+  it("refuses legacy reassembly of finished layers without writing the timeline", async () => {
+    const board = await makeBoard([renderedShot("s1", 0)]);
+    const context = ctx();
+    const first = await run(context).invoke("assemble_storyboard_timeline", { storyboard_id: board.id }) as { timeline_id: string };
+    const sequence = await sequenceOf(first.timeline_id);
+    const previous = sequence.toDocument();
+    sequence.fromDocument({ ...previous, storyboardMaterializations: [{ boardId: board.id, elementKeys: ["s1/product"] }] });
+    await sequence.save();
+    const snapshot = sequence.toDocument();
+    const result = await run(context).invoke("assemble_storyboard_timeline", { storyboard_id: board.id });
+    expect(result).toMatchObject({ error: expect.stringContaining("finish_storyboard") });
+    expect((await sequenceOf(first.timeline_id)).toDocument()).toEqual(snapshot);
+  });
+
   it("keeps tracks the board does not own when re-assembling", async () => {
     const script = await makeVoicedScript();
     const board = await makeBoard([renderedShot("s1", 0, ["l1"])], {

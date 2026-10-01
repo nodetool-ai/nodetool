@@ -1119,6 +1119,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
       buildLinkedTimeline,
       buildStoryboardTimeline,
       foreignTimelineParts,
+      assertStoryboardReassemblyAllowed,
       frameSizeForAspect
     } = await import("@nodetool-ai/timeline");
 
@@ -1300,6 +1301,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
       }
 
       const previous = current.toDocument();
+      assertStoryboardReassemblyAllowed(previous, row.id);
       const foreign = foreignTimelineParts(
         previous,
         (clip) =>
@@ -1310,7 +1312,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
       const clips = [...assembled.clips, ...foreign.clips];
       const durationMs = clips.reduce(
         (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
-        0
+        assembled.durationMs
       );
 
       const nextDocument = {

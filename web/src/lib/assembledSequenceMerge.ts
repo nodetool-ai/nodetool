@@ -13,7 +13,12 @@
  * clip as foreign and add a second one next to it.
  */
 
-import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
+import { assertStoryboardReassemblyAllowed } from "@nodetool-ai/timeline";
+import type {
+  TimelineClip,
+  TimelineTrack,
+  TimelineSequence
+} from "@nodetool-ai/timeline";
 
 /** The documents a cut was assembled from, by id. */
 interface AssemblyOwner {
@@ -24,6 +29,7 @@ interface AssemblyOwner {
 interface MergedSequence {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
+  storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
 }
 
 /** Whether this clip came from one of the documents being re-assembled. */
@@ -58,6 +64,9 @@ export function mergeIntoSequence(
   existing: MergedSequence,
   owner: AssemblyOwner
 ): MergedSequence {
+  if (owner.boardId) {
+    assertStoryboardReassemblyAllowed(existing, owner.boardId);
+  }
   const foreignClips = existing.clips.filter(
     (clip) => !isOwnedClip(clip, owner)
   );
@@ -79,5 +88,12 @@ export function mergeIntoSequence(
   const tracks = [...built.tracks, ...foreignTracks].map((track, index) =>
     track.index === index ? track : { ...track, index }
   );
-  return { tracks, clips: [...built.clips, ...foreignClips] };
+  const result: MergedSequence = {
+    tracks,
+    clips: [...built.clips, ...foreignClips]
+  };
+  if (existing.storyboardMaterializations) {
+    result.storyboardMaterializations = existing.storyboardMaterializations;
+  }
+  return result;
 }

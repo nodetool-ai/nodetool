@@ -120,7 +120,7 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
         const shotClips = doc.clips.filter(
           (clip) => clip.storyboardShotId && (clip.mediaType === "video" || clip.mediaType === "image")
         );
-        if (shotClips.length === 0) {
+        if (doc.durationMs === 0) {
           throw new Error(
             "No storyboard picture to assemble — add a persisted keyframe or rendered clip first."
           );
@@ -157,7 +157,8 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
             { tracks: doc.tracks, clips },
             {
               tracks: sequence.tracks as TimelineTrack[],
-              clips: sequence.clips as TimelineClip[]
+              clips: sequence.clips as TimelineClip[],
+              storyboardMaterializations: sequence.storyboardMaterializations
             },
             { boardId, scriptId: doc.linked ? scriptId : null }
           );
@@ -166,6 +167,10 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
             baseUpdatedAt: sequence.updatedAt,
             width,
             height,
+            durationMs: merged.clips.reduce(
+              (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
+              doc.durationMs
+            ),
             document: { ...merged, markers: sequence.markers ?? [] }
           });
           invalidateTimelineGetQuery(existingId);
@@ -196,6 +201,7 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
         });
         await trpcClient.timeline.update.mutate({
           id: sequence.id,
+          durationMs: doc.durationMs,
           document: { tracks: doc.tracks, clips, markers: [] }
         });
         invalidateTimelineGetQuery(sequence.id);

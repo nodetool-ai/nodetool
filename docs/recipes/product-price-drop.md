@@ -32,6 +32,8 @@ conflict and requires a new plan.
 Finishing updates the layers identified by board, shot, and graphics-element
 identity. Manual placement edits survive. Manual replacement of protected
 sources or copy causes an explicit conflict instead of silently overwriting it.
+Ordinary Storyboard assembly refuses to replace finished semantic layers. Use
+`finish_storyboard` to update them through the same reconciliation rules.
 
 The operation's source permissions come from the Recipe manifest's preservation
 rules. Both the Recipe and its executable scripts ship in the normal Application

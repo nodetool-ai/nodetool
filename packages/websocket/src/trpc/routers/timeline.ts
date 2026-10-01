@@ -515,6 +515,7 @@ export const timelineRouter = router({
       if (input.fps !== undefined) fields.fps = input.fps;
       if (input.width !== undefined) fields.width = input.width;
       if (input.height !== undefined) fields.height = input.height;
+      if (input.durationMs !== undefined) fields.duration_ms = input.durationMs;
 
       if (input.document !== undefined) {
         const current = seq.toDocument();
@@ -524,6 +525,7 @@ export const timelineRouter = router({
             (input.document.clips as TimelineDocument["clips"]) ??
             current.clips,
           markers: input.document.markers ?? current.markers,
+          storyboardMaterializations: input.document.storyboardMaterializations ?? current.storyboardMaterializations,
           transcript: input.document.transcript ?? current.transcript,
           scriptEnabled: input.document.scriptEnabled ?? current.scriptEnabled,
           tempo: input.document.tempo ?? current.tempo,
