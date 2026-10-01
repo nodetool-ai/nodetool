@@ -14,6 +14,11 @@ import {
   resolvePostgresClientOptions
 } from "../src/db.js";
 
+import {
+  MigrationRunner,
+  SQLiteMigrationAdapter
+} from "../src/migrations/index.js";
+
 describe("db", () => {
   let tempDir: string | null = null;
 
@@ -250,6 +255,56 @@ describe("db", () => {
         .prepare("SELECT name FROM nodetool_workflows WHERE id = 'existing'")
         .get()
     ).toEqual({ name: "name" });
+  });
+
+  it.each(["20260103_000001", "20260829_000004", "20260927_000001"])(
+    "upgrades a tracked database at historical level %s",
+    async (version) => {
+      tempDir = mkdtempSync(join(tmpdir(), "nodetool-historical-level-"));
+      const path = join(tempDir, "tracked.sqlite");
+      const historical = new Database(path);
+      try {
+        await new MigrationRunner(
+          new SQLiteMigrationAdapter(historical)
+        ).migrate({ target: version });
+        historical
+          .prepare(
+            `INSERT INTO nodetool_workflows (id, user_id, name, graph, access, created_at, updated_at)
+          VALUES ('kept', 'owner', 'historical row', '{"nodes":[],"edges":[]}', 'private', 'old', 'old')`
+          )
+          .run();
+      } finally {
+        historical.close();
+      }
+      await migrateSqliteDb(path);
+      initDb(path);
+      expect(
+        getRawDb()
+          .prepare("SELECT name FROM nodetool_workflows WHERE id = 'kept'")
+          .get()
+      ).toEqual({ name: "historical row" });
+      expect(
+        getRawDb()
+          .prepare(
+            "SELECT version FROM _nodetool_migrations ORDER BY version DESC LIMIT 1"
+          )
+          .get()
+      ).toEqual({ version: "20261001_000000" });
+      expect(await migrateSqliteDb(path)).toEqual([]);
+    }
+  );
+
+  it("does not expose a connection after compatibility migration failure", () => {
+    tempDir = mkdtempSync(join(tmpdir(), "nodetool-failed-baseline-"));
+    const path = join(tempDir, "invalid.sqlite");
+    const invalid = new Database(path);
+    invalid.exec(
+      "CREATE TABLE application_deployments (id TEXT, token TEXT); INSERT INTO application_deployments VALUES ('a', 'same'), ('b', 'same')"
+    );
+    invalid.close();
+    expect(() => initDb(path)).toThrow();
+    expect(() => getDb()).toThrow(/not initialized/i);
+    expect(() => getRawDb()).toThrow(/not initialized/i);
   });
 
   it("closeDb resets both the drizzle and raw database handles", async () => {

@@ -62,7 +62,8 @@ describe("migration chain vs Drizzle schema", () => {
 
   it("creates every Drizzle table", () => {
     const missing = [...drizzleTables.keys()].filter(
-      (name) => !TABLES_NOT_IN_THE_CHAIN.has(name) && chainColumns(name).size === 0
+      (name) =>
+        !TABLES_NOT_IN_THE_CHAIN.has(name) && chainColumns(name).size === 0
     );
     expect(missing).toEqual([]);
   });
@@ -78,11 +79,16 @@ describe("migration chain vs Drizzle schema", () => {
       for (const column of config.columns) {
         const got = actual.get(column.name);
         if (got === undefined) {
-          disagreements.push(`${tableName}.${column.name}: missing from the chain`);
+          disagreements.push(
+            `${tableName}.${column.name}: missing from the chain`
+          );
           continue;
         }
         const want = column.getSQLType().toLowerCase();
-        if (got !== want && !KNOWN_TYPE_DRIFT.has(`${tableName}.${column.name}`)) {
+        if (
+          got !== want &&
+          !KNOWN_TYPE_DRIFT.has(`${tableName}.${column.name}`)
+        ) {
           disagreements.push(
             `${tableName}.${column.name}: type chain=${got} drizzle=${want}`
           );
@@ -90,5 +96,49 @@ describe("migration chain vs Drizzle schema", () => {
       }
     }
     expect(disagreements).toEqual([]);
+  });
+  it("preserves declared indexes and foreign keys through the complete chain", () => {
+    for (const [table, config] of drizzleTables) {
+      const actual = migrated
+        .prepare(`SELECT name, "unique" AS uniq FROM pragma_index_list(?)`)
+        .all(table) as Array<{ name: string; uniq: number }>;
+      for (const index of config.indexes) {
+        expect(
+          actual.find(({ name }) => name === index.config.name),
+          `${table}.${index.config.name}`
+        ).toEqual({
+          name: index.config.name,
+          uniq: index.config.unique ? 1 : 0
+        });
+      }
+      const foreignKeys = migrated
+        .prepare("SELECT * FROM pragma_foreign_key_list(?)")
+        .all(table);
+      expect(foreignKeys.length, table).toBe(config.foreignKeys.length);
+    }
+  });
+
+  it("preserves constant defaults used by newly created rows", () => {
+    expect(
+      migrated
+        .prepare(
+          "SELECT dflt_value FROM pragma_table_info('games') WHERE name = 'draft_version_id'"
+        )
+        .get()
+    ).toEqual({ dflt_value: "''" });
+    expect(
+      migrated
+        .prepare(
+          "SELECT dflt_value FROM pragma_table_info('application_invocations') WHERE name = 'status'"
+        )
+        .get()
+    ).toEqual({ dflt_value: "'running'" });
+    expect(
+      migrated
+        .prepare(
+          "SELECT dflt_value FROM pragma_table_info('trigger_registrations') WHERE name = 'enabled'"
+        )
+        .get()
+    ).toEqual({ dflt_value: "1" });
   });
 });

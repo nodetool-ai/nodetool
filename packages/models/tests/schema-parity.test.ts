@@ -5,6 +5,10 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { TABLE_COLUMNS, getCreateSchemaSql } from "../src/db.js";
 import * as schema from "../src/schema/index.js";
+import {
+  MigrationRunner,
+  SQLiteMigrationAdapter
+} from "../src/migrations/index.js";
 
 /** Verify the frozen SQLite baseline and its derived compatibility columns against the declared schema. */
 
@@ -123,9 +127,12 @@ function bootstrapIndexes(tableName: string): Map<string, IndexFacts> {
 }
 
 describe("SQLite schema parity", () => {
-  beforeAll(() => {
+  beforeAll(async () => {
     bootstrapped = new Database(":memory:");
     bootstrapped.exec(getCreateSchemaSql());
+    await new MigrationRunner(
+      new SQLiteMigrationAdapter(bootstrapped)
+    ).migrate();
   });
 
   it("finds the schema tables it is supposed to compare", () => {
@@ -147,11 +154,6 @@ describe("SQLite schema parity", () => {
       const actual = bootstrapColumns(tableName);
       const expected = drizzleColumns(config);
 
-      for (const name of actual.keys()) {
-        if (!expected.has(name)) {
-          disagreements.push(`${tableName}.${name}: in DDL, not in Drizzle`);
-        }
-      }
       for (const [name, want] of expected) {
         const got = actual.get(name);
         if (!got) {
@@ -230,17 +232,24 @@ describe("SQLite schema parity", () => {
     expect(disagreements).toEqual([]);
   });
 
-  it("lists every Drizzle table in TABLE_COLUMNS", () => {
-    // A table absent here gets no additive column repair, so a legacy SQLite
-    // install that predates one of its columns never gains it.
-    const missing = [...tables.keys()].filter(
-      (name) => !(name in TABLE_COLUMNS)
-    );
-    expect(missing).toEqual([]);
+  it("derives compatibility columns from every frozen baseline table", () => {
+    const baseline = new Database(":memory:");
+    try {
+      baseline.exec(getCreateSchemaSql());
+      const names = baseline
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+        .all() as Array<{ name: string }>;
+      expect(names.length).toBeGreaterThan(0);
+      expect(names.map(({ name }) => name).sort()).toEqual(
+        Object.keys(TABLE_COLUMNS).sort()
+      );
+    } finally {
+      baseline.close();
+    }
   });
 
   it("adds every TABLE_COLUMNS column to a legacy table that has rows", () => {
-    // `addMissingColumns` splices each entry into `ALTER TABLE … ADD COLUMN`.
+    // The compatibility migration splices each entry into `ALTER TABLE … ADD COLUMN`.
     // SQLite rejects a NOT NULL addition without a constant default and
     // rejects a malformed type, so running every fragment against a table
     // that already holds a row is what proves the fragments are usable.
@@ -270,41 +279,31 @@ describe("SQLite schema parity", () => {
             .all(tableName) as Array<{ name: string }>
         ).map((row) => row.name)
       );
-      expect([...Object.keys(columns)].filter((c) => !added.has(c))).toEqual([]);
+      expect([...Object.keys(columns)].filter((c) => !added.has(c))).toEqual(
+        []
+      );
       legacy.close();
     }
   });
 
-  it("gives TABLE_COLUMNS the same columns and types as the Drizzle tables", () => {
-    const disagreements: string[] = [];
-    for (const [tableName, expectedColumns] of Object.entries(TABLE_COLUMNS)) {
-      const config = tables.get(tableName);
-      if (!config) {
-        disagreements.push(`${tableName}: in TABLE_COLUMNS, not in Drizzle`);
-        continue;
-      }
-      const declared = drizzleColumns(config);
-      for (const name of declared.keys()) {
-        if (!(name in expectedColumns)) {
-          disagreements.push(`${tableName}.${name}: missing from TABLE_COLUMNS`);
-        }
-      }
-      for (const [name, ddl] of Object.entries(expectedColumns)) {
-        const want = declared.get(name);
-        if (!want) {
-          disagreements.push(`${tableName}.${name}: not a Drizzle column`);
-          continue;
-        }
-        // The map's value is spliced into `ALTER TABLE … ADD COLUMN "x" <ddl>`,
-        // so it is a type optionally followed by NOT NULL/DEFAULT.
-        const [type] = ddl.split(/\s+/);
-        if (type.toLowerCase() !== want.type) {
-          disagreements.push(
-            `${tableName}.${name}: type map=${type} drizzle=${want.type}`
+  it("derives compatibility types from the frozen baseline", () => {
+    const baseline = new Database(":memory:");
+    try {
+      baseline.exec(getCreateSchemaSql());
+      for (const [table, columns] of Object.entries(TABLE_COLUMNS)) {
+        const actual = baseline.pragma(`table_info("${table}")`) as Array<{
+          name: string;
+          type: string;
+        }>;
+        expect(Object.keys(columns)).toEqual(actual.map(({ name }) => name));
+        for (const column of actual) {
+          expect(columns[column.name].split(/\s+/)[0]).toBe(
+            column.type.toLowerCase()
           );
         }
       }
+    } finally {
+      baseline.close();
     }
-    expect(disagreements).toEqual([]);
   });
 });

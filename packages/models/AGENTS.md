@@ -29,9 +29,7 @@ Use `getDbType()` → `"sqlite" | "postgres"` to branch on dialect if unavoidabl
 
 4. Update the constructor to set a default: `this.my_col ??= null;`
 
-5. Add a migration entry in `src/migrations/versions.ts`. This is not optional on
-   PostgreSQL: `initPostgresDb` creates no tables and runs no column repair, so the
-   migration chain is the whole cloud schema.
+`initPostgresDb` creates no tables. Run migrations separately before cloud startup.
 
 `TABLE_COLUMNS` is derived from the frozen SQLite baseline. Its additive repair
 is a recorded compatibility migration, not an automatic repair from live schema.
@@ -43,9 +41,9 @@ Direct synchronous callers leave those migrations pending.
 Three tests relate the remaining declaration sites, each by building the schema and
 reading it back rather than by matching text:
 
-- `tests/schema-parity.test.ts` — bootstrap DDL and `TABLE_COLUMNS` against the Drizzle
-  tables: column names, types, NOT NULL, primary keys, defaults, indexes, foreign keys.
-  These checks verify the pinned baseline.
+- `tests/schema-parity.test.ts` — migrated baseline against the Drizzle tables:
+  column names, types, NOT NULL, primary keys, defaults, indexes, foreign keys.
+  It also verifies compatibility columns against the frozen baseline.
 - `tests/schema-dialect-parity.test.ts` — `src/schema/` against `src/schema-pg/`: tables,
   columns, constraints, defaults, index names.
 - `tests/migration-schema-parity.test.ts` — applies the migration chain to a real

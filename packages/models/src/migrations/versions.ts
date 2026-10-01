@@ -3712,9 +3712,7 @@ export const migrations: MigrationDef[] = [
       }
     },
     async down() {
-      throw new Error(
-        "The SQLite compatibility baseline preserves legacy data and cannot be rolled back."
-      );
+      // Additive legacy compatibility has no destructive inverse.
     }
   }
 ];

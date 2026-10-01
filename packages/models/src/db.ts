@@ -16,6 +16,10 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { Sql } from "postgres";
 import * as schema from "./schema/index.js";
 import * as pgSchema from "./schema-pg/index.js";
+import {
+  MIGRATION_TRACKING_TABLE,
+  MIGRATION_LOCK_TABLE
+} from "./migrations/state.js";
 import { MigrationRunner, SQLiteMigrationAdapter } from "./migrations/index.js";
 import {
   applySqliteBaseline,
@@ -352,16 +356,18 @@ export async function closeDb(): Promise<void> {
 
 /** Synchronous callers apply only the pinned compatibility migration. Historical data migrations remain pending. */
 function initializeSqliteBaseline(sqlite: Database.Database): void {
-  sqlite.exec(`CREATE TABLE IF NOT EXISTS _nodetool_migrations (
+  sqlite.exec(`CREATE TABLE IF NOT EXISTS ${MIGRATION_TRACKING_TABLE} (
     version TEXT PRIMARY KEY, name TEXT NOT NULL, checksum TEXT NOT NULL,
     applied_at TEXT NOT NULL, execution_time_ms INTEGER NOT NULL, baselined INTEGER DEFAULT 0
   )`);
-  sqlite.exec(`CREATE TABLE IF NOT EXISTS _nodetool_migration_lock (
+  sqlite.exec(`CREATE TABLE IF NOT EXISTS ${MIGRATION_LOCK_TABLE} (
     id INTEGER PRIMARY KEY CHECK (id = 1), locked_at TEXT, locked_by TEXT
-  ); INSERT OR IGNORE INTO _nodetool_migration_lock (id) VALUES (1)`);
+  ); INSERT OR IGNORE INTO ${MIGRATION_LOCK_TABLE} (id) VALUES (1)`);
   if (
     sqlite
-      .prepare("SELECT version FROM _nodetool_migrations WHERE version = ?")
+      .prepare(
+        `SELECT version FROM ${MIGRATION_TRACKING_TABLE} WHERE version = ?`
+      )
       .get(SQLITE_BASELINE_VERSION)
   ) {
     return;
@@ -370,13 +376,15 @@ function initializeSqliteBaseline(sqlite: Database.Database): void {
     .discoverMigrations()
     .find((entry) => entry.version === SQLITE_BASELINE_VERSION);
   if (!migration) {
-    throw new Error("The SQLite baseline migration is missing from the migration catalog.");
+    throw new Error(
+      "The SQLite baseline migration is missing from the migration catalog."
+    );
   }
   sqlite.transaction(() => {
     applySqliteBaseline(sqlite);
     sqlite
       .prepare(
-        `INSERT INTO _nodetool_migrations (version, name, checksum, applied_at, execution_time_ms, baselined) VALUES (?, ?, ?, ?, 0, 0)`
+        `INSERT INTO ${MIGRATION_TRACKING_TABLE} (version, name, checksum, applied_at, execution_time_ms, baselined) VALUES (?, ?, ?, ?, 0, 0)`
       )
       .run(
         migration.version,
