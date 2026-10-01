@@ -217,6 +217,7 @@ describe("storyboards capability module", () => {
   it("is well-formed and declares itself as storyboards", () => {
     expect(capabilityModuleIssues("storyboards", storyboards)).toEqual([]);
     expect(storyboards.exports.map((e) => e.spec.name)).toEqual([
+      "finish_storyboard",
       "list_storyboards",
       "create_storyboard",
       "get_storyboard",
