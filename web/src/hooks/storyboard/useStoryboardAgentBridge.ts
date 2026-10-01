@@ -111,6 +111,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         action: shot.action,
         camera: shot.camera,
         motion: shot.motion,
+        graphics: shot.graphics,
         durationSeconds: shot.duration_seconds,
         durationSource: shot.duration_source,
         status: shot.status,
@@ -214,6 +215,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
             )
           ),
         entityIds: board.entityIds,
+        motionDesign: board.screenplay?.motion_design,
         hasScreenplay: board.screenplay !== null,
         scriptId: linkedScriptId(board),
         selectedShotId: board.activeShotId,
@@ -325,6 +327,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
             slug: input.slug,
             camera: input.camera,
             motion: input.motion,
+            graphics: input.graphics,
             duration_seconds: input.durationSeconds
           });
           return toShotNode(reRead(id));
@@ -338,6 +341,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
           action: input.action,
           camera: input.camera,
           motion: input.motion,
+          graphics: input.graphics,
           duration_seconds: input.durationSeconds,
           status: "planned"
         };
@@ -362,6 +366,13 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         if (patch.slug !== undefined) next.slug = patch.slug;
         if (patch.camera !== undefined) next.camera = patch.camera;
         if (patch.motion !== undefined) next.motion = patch.motion;
+        if (patch.graphics !== undefined) {
+          if (patch.graphics === null) {
+            next.graphics = undefined;
+          } else {
+            next.graphics = patch.graphics;
+          }
+        }
         if (patch.status !== undefined) next.status = patch.status;
         if (patch.dialogue !== undefined) next.dialogue = patch.dialogue;
         if (patch.notes !== undefined) next.notes = patch.notes;
