@@ -1,5 +1,5 @@
 /**
- * Fixture: uses base nodes that the CLI registers via registerBaseNodes().
+ * Fixture: uses base nodes included by the CLI's built-in pack policy.
  * Suitable for integration testing with the compiled CLI.
  */
 import { constant, output, workflow } from "@nodetool-ai/dsl";

@@ -8,6 +8,8 @@ interface CodeDraft {
 
 interface DocumentDraftState {
   dirtyTabs: Record<string, boolean>;
+  savingTabs: Record<string, boolean>;
+  setSaving: (tabId: string, saving: boolean) => void;
   codeDrafts: Record<string, CodeDraft>;
   discardDraft: (tabId: string) => void;
   setDirty: (tabId: string, dirty: boolean) => void;
@@ -17,16 +19,21 @@ interface DocumentDraftState {
 /** Drafts outlive responsive editor hosts and workspace mode changes. */
 export const useDocumentDraftStore = create<DocumentDraftState>((set) => ({
   dirtyTabs: {},
+  savingTabs: {},
+  setSaving: (tabId, saving) =>
+    set((state) => ({ savingTabs: { ...state.savingTabs, [tabId]: saving } })),
   codeDrafts: {},
   discardDraft: (tabId) =>
     set((state) => {
       const dirtyTabs = { ...state.dirtyTabs };
       const codeDrafts = { ...state.codeDrafts };
+      const savingTabs = { ...state.savingTabs };
       delete dirtyTabs[tabId];
+      delete savingTabs[tabId];
       if (tabId.startsWith("timeline:")) {
         delete codeDrafts[tabId.slice("timeline:".length)];
       }
-      return { dirtyTabs, codeDrafts };
+      return { dirtyTabs, savingTabs, codeDrafts };
     }),
   setDirty: (tabId, dirty) =>
     set((state) => ({

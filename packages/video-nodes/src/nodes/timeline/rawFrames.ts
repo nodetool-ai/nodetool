@@ -413,7 +413,13 @@ export function openSourceFrameStream(opts: {
           reverseWindow = [];
           decodedIndex = -1;
         }
-        const frame = await active.frameAt(0);
+        let frame = await active.frameAt(0);
+        if (!frame && target > 0) {
+          // A fresh seek beyond EOF has no frame to hold. Decode to the end
+          // instead of reusing whichever earlier frame the caller requested.
+          active = replaceStream(0);
+          frame = await active.frameAt(Number.MAX_SAFE_INTEGER);
+        }
         if (closed) return null;
         if (frame) lastFrame = frame;
         return frame ?? lastFrame;

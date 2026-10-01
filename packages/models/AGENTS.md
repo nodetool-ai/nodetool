@@ -13,7 +13,10 @@ The package supports two database backends. The active dialect is set at startup
 | SQLite | `initDb(path)` | `src/schema/` | `better-sqlite3` |
 | PostgreSQL | `await initPostgresDb(url)` | `src/schema-pg/` | `postgres` (postgres.js) |
 
-Use `getDbType()` → `"sqlite" | "postgres"` to branch on dialect if unavoidable.
+Use `getDatabase()` to narrow the active driver together with its own schema.
+`getDb()` and `DbTransaction` retain a SQLite projection for unmigrated models.
+That projection is compatibility debt. Use the narrowed transaction callback for
+new PostgreSQL paths, including `.for("update")` locking.
 
 ## Adding a Column
 
@@ -21,28 +24,31 @@ Use `getDbType()` → `"sqlite" | "postgres"` to branch on dialect if unavoidabl
    - `src/schema/<table>.ts` — `sqliteTable`, e.g. `text("my_col")`
    - `src/schema-pg/<table>.ts` — `pgTable`, same column name and semantics
 
-2. Add the column to the `CREATE TABLE` for that table in `getCreateSchemaSql()` in
-   `src/db.ts` — the DDL a fresh SQLite database is created from.
+2. Add a versioned migration in `src/migrations/versions.ts` for both dialects.
+   The SQLite baseline in `src/migrations/sqlite-baseline.ts` is frozen at
+   `SQLITE_BASELINE_VERSION`. Do not add new columns to that historical baseline.
 
 3. Add a `declare my_col: ...` field to the model class.
 
 4. Update the constructor to set a default: `this.my_col ??= null;`
 
-5. Add a migration entry in `src/migrations/versions.ts`. This is not optional on
-   PostgreSQL: `initPostgresDb` creates no tables and runs no column repair, so the
-   migration chain is the whole cloud schema.
+`initPostgresDb` creates no tables. Run migrations separately before cloud startup.
 
-`TABLE_COLUMNS` — the map `addMissingColumns()` uses to repair a legacy SQLite install —
-is **derived** from the Drizzle tables, so there is nothing to update there.
+`TABLE_COLUMNS` is derived from the frozen SQLite baseline. Its additive repair
+is a recorded compatibility migration, not an automatic repair from live schema.
+`initDb()` remains synchronous and applies only that compatibility migration.
+Run `await migrateSqliteDb(path)` before `initDb(path)` for normal application
+startup so historical data transformations and subsequent migrations run.
+Direct synchronous callers leave those migrations pending.
 
 Three tests relate the remaining declaration sites, each by building the schema and
 reading it back rather than by matching text:
 
-- `tests/schema-parity.test.ts` — bootstrap DDL and `TABLE_COLUMNS` against the Drizzle
-  tables: column names, types, NOT NULL, primary keys, defaults, indexes, foreign keys.
-  Forget step 2 and it fails.
+- `tests/schema-parity.test.ts` — migrated baseline against the Drizzle tables:
+  column names, types, NOT NULL, primary keys, defaults, indexes, foreign keys.
+  It also verifies compatibility columns against the frozen baseline.
 - `tests/schema-dialect-parity.test.ts` — `src/schema/` against `src/schema-pg/`: tables,
-  columns, constraints, defaults, index names. Forget half of step 1 and it fails.
+  columns, constraints, defaults, index names.
 - `tests/migration-schema-parity.test.ts` — applies the migration chain to a real
   database and checks it creates every Drizzle table and column. Forget step 5 and it
   fails.
@@ -51,10 +57,8 @@ reading it back rather than by matching text:
 
 1. Create `src/schema/<name>.ts` (SQLite) and `src/schema-pg/<name>.ts` (PostgreSQL).
 2. Export both from their respective `index.ts` barrel files.
-3. Add the `CREATE TABLE IF NOT EXISTS` and index SQL to `getCreateSchemaSql()` in `src/db.ts`,
-   and a `createsTables` migration entry in `src/migrations/versions.ts` — the DDL covers a
-   fresh SQLite database, the migration covers every existing one and all of PostgreSQL.
-   `TABLE_COLUMNS` is derived from the schema and needs no edit.
+3. Add a `createsTables` migration entry in `src/migrations/versions.ts` with
+   table and index SQL for both dialects. Keep the historical baseline unchanged.
 4. Create `src/<model-name>.ts` extending `DBModel`. Set `static override table = <sqliteTable>`.
 5. Export the new model from `src/index.ts`.
 
@@ -62,20 +66,17 @@ reading it back rather than by matching text:
 
 All query methods must be `async`. Use Drizzle's promise-based API — it works on both dialects:
 
-```typescript
-// Fetch one row
-const [row] = await db.select().from(myTable).where(eq(myTable.id, id)).limit(1);
-return row ? new MyModel(row as Record<string, unknown>) : null;
+Use Drizzle-inferred row and insert types in converted models. `Asset` and
+`ExternalIdentity` are the initial examples. Keep dialect-specific builder calls
+in explicit branches and share conditions and business rules above those branches.
+Avoid passing a SQLite table into a PostgreSQL query.
 
-// Fetch many rows
-const rows = await db.select().from(myTable).where(eq(myTable.user_id, userId));
-return rows.map((r: Record<string, unknown>) => new MyModel(r));
+`DBModel.create()` emits one `CREATED` notification after persistence.
+`save()` and `update()` emit `UPDATED`, and `delete()` emits `DELETED`.
+The observer receives the same model instance used by resource broadcasting.
 
-// Insert / upsert — handled by DBModel.save() via onConflictDoUpdate
-// Delete — handled by DBModel.delete()
-```
-
-Never use `.get()`, `.run()`, or `.all()` — those are synchronous SQLite-only methods.
+Outside an explicitly narrowed synchronous SQLite transaction, use awaited
+queries. `.get()`, `.run()`, and `.all()` are SQLite-only methods.
 
 ### Returning pattern for CAS
 
@@ -150,9 +151,12 @@ When writing tests for new models, call `initTestDb()` in `beforeEach` to reset 
 ## Rules
 
 - All public query methods must be `async`.
-- Annotate `.map()` callbacks explicitly: `(r: Record<string, unknown>) => new Model(r)` — `getDb()` returns `any`, so TypeScript cannot infer row types.
+- Keep inferred query row types through `.map()` rather than widening rows to
+  `Record<string, unknown>`. Leave the dynamic base model compatibility boundary
+  explicit until a model is converted.
 - Never import from `dist/`. Use `@nodetool-ai/models` for cross-package imports.
 - Keep `src/schema/` (SQLite) and `src/schema-pg/` (PostgreSQL) in sync — columns, names, and types must match.
-- `TABLE_COLUMNS` in `db.ts` is generated from `src/schema/` — never hand-edit it. The DDL in
-  `getCreateSchemaSql()` is still hand-written and must match `src/schema/`;
-  `tests/schema-parity.test.ts` enforces that.
+- The SQLite baseline is versioned compatibility SQL. `TABLE_COLUMNS` is derived
+  from that SQL, not the live schema. Preserve legacy nullable additions where
+  SQLite cannot add a required column without a constant default. New constraints
+  need explicit versioned migrations that preserve existing data.

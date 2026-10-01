@@ -89,7 +89,8 @@ export function buildLinkedTimeline(
   for (const shot of ordered) {
     const lineIds = shot.script_line_ids ?? [];
     const source = sources.get(shot.id) ?? null;
-    if (!source) {
+    const stillAssetId = shot.keyframe?.asset_id ?? undefined;
+    if (!source && !stillAssetId) {
       skippedShotIds.push(shot.id);
       skippedLineIds.push(...lineIds);
       continue;
@@ -105,9 +106,9 @@ export function buildLinkedTimeline(
     // unlinked cut does, and only then to the length it was directed at.
     const durationMs =
       linkedShotDurationMs(shot, linesById) ??
-      source.availableMs ??
+      source?.availableMs ??
       shotDurationMs(shot);
-    const sourceMs = source.availableMs;
+    const sourceMs = source?.availableMs ?? null;
     if (sourceMs !== null && sourceMs !== durationMs) {
       trimmedShots.push({ shotId: shot.id, usedMs: durationMs, sourceMs });
     }
@@ -116,11 +117,11 @@ export function buildLinkedTimeline(
       name: shot.slug ?? `Shot ${shot.index + 1}`,
       startMs: shotStartMs,
       durationMs,
-      mediaType: "video",
+      mediaType: source ? "video" : "image",
       sourceType: "imported",
       status: "generated",
-      currentAssetId: source.assetId,
-      linkId: createTimeOrderedUuid(),
+      currentAssetId: source?.assetId ?? stillAssetId,
+      linkId: source ? createTimeOrderedUuid() : undefined,
       storyboardBoardId: input.boardId,
       storyboardShotId: shot.id,
       versions: []
@@ -128,11 +129,14 @@ export function buildLinkedTimeline(
     // A covered shot is a slice out of the middle of someone else's
     // generation, so it needs its window written; a shot playing its own clip
     // starts at the head and is left exactly as it was.
-    if (source.sourceShotId !== shot.id) {
+    if (source && source.sourceShotId !== shot.id) {
       videoClip.inPointMs = source.inPointMs;
       videoClip.outPointMs = source.inPointMs + durationMs;
     }
-    clips.push(videoClip, shotAudioClip(videoClip, shotAudioTrack.id));
+    clips.push(videoClip);
+    if (source) {
+      clips.push(shotAudioClip(videoClip, shotAudioTrack.id));
+    }
     cursorMs += durationMs;
 
     let offsetMs = 0;

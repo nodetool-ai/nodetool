@@ -3,7 +3,7 @@
  * the blank-document strip still opens loose tabs.
  */
 import { useState } from "react";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -441,7 +441,7 @@ const actualTabsStore: typeof import("../../../stores/WorkspaceTabsStore") =
 
 type FlowTab = { ref: string; setupTarget: NonNullable<import("../../../stores/WorkspaceTabsStore").WorkspaceTab["setupTarget"]> };
 
-const renderSurface = (initialFlowTab: FlowTab | null = null) => {
+const renderSurface = (initialFlowTab: FlowTab | null = null, expandFormats = true) => {
   const client = new QueryClient();
   let activateFlowTab: (tab: FlowTab) => void = () => {};
   const Surface = () => {
@@ -467,6 +467,10 @@ const renderSurface = (initialFlowTab: FlowTab | null = null) => {
       )
     }
   );
+  const moreFormats = screen.queryByRole("button", { name: "More formats" });
+  if (expandFormats && moreFormats) {
+    fireEvent.click(moreFormats);
+  }
   return {
     ...view,
     refresh: () => view.rerender(
@@ -769,7 +773,7 @@ describe("NewProjectSurface", () => {
     expect(createWorkflow).toHaveBeenCalled();
   });
 
-  it("marks describe-idea when chat starts from the prompt", async () => {
+  it("does not complete describe-idea when chat merely starts", async () => {
     renderSurface();
     await userEvent.type(
       screen.getByPlaceholderText(/30-second launch spot/),
@@ -779,12 +783,12 @@ describe("NewProjectSurface", () => {
 
     await waitFor(() => expect(createNewThread).toHaveBeenCalled());
     expect(openProject).not.toHaveBeenCalled();
-    expect(useOnboardingStore.getState().completedSteps).toContain(
+    expect(useOnboardingStore.getState().completedSteps).not.toContain(
       "describe-idea"
     );
   });
 
-  it("marks start-guided-flow when an entry card starts", async () => {
+  it("does not complete a guided flow when an entry card starts", async () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
@@ -796,7 +800,7 @@ describe("NewProjectSurface", () => {
 
 
     await waitFor(() => expect(createStoryboard).toHaveBeenCalled());
-    expect(useOnboardingStore.getState().completedSteps).toContain(
+    expect(useOnboardingStore.getState().completedSteps).not.toContain(
       "start-guided-flow"
     );
   });
@@ -1036,6 +1040,7 @@ describe("NewProjectSurface", () => {
 
     await waitFor(() => expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "guided-flow", setupTarget: expect.objectContaining({ kind: "storyboard" }) })));
 
+    await userEvent.click(screen.getByRole("button", { name: "More formats" }));
     await userEvent.click(await screen.findByRole("button", { name: /^Video From a sentence/ }));
 
     await waitFor(() => expect(openTab.mock.calls.filter(([input]) => input.type === "guided-flow")).toHaveLength(2));
@@ -1369,6 +1374,7 @@ describe("NewProjectSurface", () => {
     const documentCall = openTab.mock.calls.findIndex(([input]) => input.type === "workflow");
     expect(documentCall).toBeGreaterThan(-1);
     expect(closeTab).toHaveBeenCalled();
+    expect(useOnboardingStore.getState().completedSteps).toContain("start-guided-flow");
   });
 
   it("opens the image flow's sketch tab in the selected project", async () => {
@@ -1387,6 +1393,7 @@ describe("NewProjectSurface", () => {
       )
     );
     expect(openProject).not.toHaveBeenCalled();
+    expect(useOnboardingStore.getState().completedSteps).not.toContain("start-guided-flow");
   });
 
   // "Change flow" on step 1: the brief comes back to the composer and the
@@ -1522,3 +1529,14 @@ describe("NewProjectSurface", () => {
     ).toBeInTheDocument();
   });
 });
+
+it("starts with three formats and reveals other formats on request", async () => {
+    renderSurface(null, false);
+    const cards = screen.getByRole("group", { name: "Guided creation flows" });
+    expect(within(cards).getAllByRole("button")).toHaveLength(3);
+    await userEvent.click(screen.getByRole("button", { name: "More formats" }));
+    expect(within(cards).getAllByRole("button")).toHaveLength(7);
+    await userEvent.click(screen.getByRole("combobox", { name: "Game dimension" }));
+    await userEvent.click(screen.getByRole("option", { name: "3D exploration" }));
+    expect(within(cards).getByRole("button", { name: /Game Start with a playable 3D exploration scene/ })).toBeInTheDocument();
+ });

@@ -3,7 +3,7 @@
  * run: each declared operation has an implementation of its own, and every
  * task its offline model catalog offers is declared.
  */
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getProvider,
   listRegisteredProviderIds
@@ -117,7 +117,7 @@ async function catalogCapabilities(provider: BaseProvider): Promise<string[]> {
 }
 
 describe("provider capability contract", () => {
-  beforeAll(() => {
+  beforeEach(() => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {
@@ -126,7 +126,7 @@ describe("provider capability contract", () => {
     );
   });
 
-  afterAll(() => {
+  afterEach(() => {
     vi.unstubAllGlobals();
   });
 
@@ -137,6 +137,7 @@ describe("provider capability contract", () => {
   });
 
   it.each(ids)("%s implements every capability it declares", async (id) => {
+    expect(vi.isMockFunction(globalThis.fetch)).toBe(true);
     const provider = await getProvider(id, dummySecret);
     const unimplemented = provider
       .getCapabilities()
@@ -153,6 +154,7 @@ describe("provider capability contract", () => {
   it.each(ids)(
     "%s declares every task its model catalog offers",
     async (id) => {
+      expect(vi.isMockFunction(globalThis.fetch)).toBe(true);
       const provider = await getProvider(id, dummySecret);
       const declared = new Set<string>(provider.getCapabilities());
       const undeclared = (await catalogCapabilities(provider)).filter(

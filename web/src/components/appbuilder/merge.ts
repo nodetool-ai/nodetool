@@ -335,12 +335,17 @@ export function appDocumentToMerge(
     zones?: unknown;
     root?: { props?: unknown };
   };
+  const rootProps: Record<string, unknown> = {};
+  if (doc.theme) {
+    rootProps.theme = doc.theme.id;
+  }
+  Object.assign(rootProps, doc.ui.root?.props);
   return {
     content: flattenAppComponents(ui.content ?? []),
     operations: doc.operations ?? [],
     variables: doc.variables ?? [],
     resources: doc.resources ?? [],
-    rootProps: ui.root?.props ?? {},
+    rootProps,
     zones: ui.zones ?? {}
   };
 }

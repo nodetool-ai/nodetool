@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useWorkflowManagerStore } from "../contexts/WorkflowManagerContext";
 import {
   useWorkspaceTabsStore,
@@ -15,19 +16,31 @@ interface WorkspaceDocumentClose {
 
 export function useWorkspaceDocumentClose(): WorkspaceDocumentClose {
   const manager = useWorkflowManagerStore();
+  const hasUnsavedChanges = (tab: WorkspaceTab): boolean =>
+    Boolean(
+      useDocumentDraftStore.getState().dirtyTabs[tab.id] ||
+      useDocumentDraftStore.getState().savingTabs[tab.id] ||
+      (tab.type === "workflow" &&
+        (manager.getState().isSavingWorkflow?.(tab.ref) ||
+          manager.getState().unsavedWorkflowIds[tab.ref] ||
+          manager.getState().getNodeStore(tab.ref)?.getState().workflowIsDirty))
+    );
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent): void => {
+      if (useWorkspaceTabsStore.getState().tabs.some(hasUnsavedChanges)) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  });
   const close = (tabs: readonly WorkspaceTab[]): boolean => {
     return closeWorkspaceDocuments(tabs, {
-      isDirty: (tab) =>
-        Boolean(
-          useDocumentDraftStore.getState().dirtyTabs[tab.id] ||
-          (tab.type === "workflow" &&
-            (manager.getState().unsavedWorkflowIds[tab.ref] ||
-              manager.getState().getNodeStore(tab.ref)?.getState()
-                .workflowIsDirty))
-        ),
+      isDirty: hasUnsavedChanges,
       confirmDiscard: (dirty) =>
         window.confirm(
-          `Discard unsaved changes and close ${dirty.map((tab) => `“${tab.title}”`).join(", ")}?`
+          `Unsaved changes or saves in progress may be lost. Close ${dirty.map((tab) => `“${tab.title}”`).join(", ")}?`
         ),
       cleanup: (tab) => {
         useDocumentDraftStore.getState().discardDraft(tab.id);
@@ -38,12 +51,18 @@ export function useWorkspaceDocumentClose(): WorkspaceDocumentClose {
     });
   };
   return {
-    closeDocument: (tab) => { close([tab]); },
+    closeDocument: (tab) => {
+      close([tab]);
+    },
     closeOtherDocuments: (tab) => {
-      if (close(tabsToCloseOthers(useWorkspaceTabsStore.getState().tabs, tab.id))) {
+      if (
+        close(tabsToCloseOthers(useWorkspaceTabsStore.getState().tabs, tab.id))
+      ) {
         useWorkspaceTabsStore.getState().setActiveTab(tab.id);
       }
     },
-    closeAllDocuments: () => { close(useWorkspaceTabsStore.getState().tabs); }
+    closeAllDocuments: () => {
+      close(useWorkspaceTabsStore.getState().tabs);
+    }
   };
 }

@@ -3,6 +3,21 @@ import { encodeBase64, loadMediaRefBytes } from "../src/media-ref-bytes.js";
 import type { ProcessingContext } from "../src/context.js";
 
 describe("loadMediaRefBytes", () => {
+  it.each(["file:///etc/passwd", "/etc/passwd", "/api/storage/../../etc/passwd", "/api/storage/%2e%2e%2fsecret"])(
+    "narrow caller policy denies %s before storage", async (uri) => {
+      const retrieve = vi.fn().mockResolvedValue(new Uint8Array([1]));
+      expect(await loadMediaRefBytes({ uri }, { storage: { retrieve } }, { allowLocalFile: false }))
+        .toBeNull();
+      expect(retrieve).not.toHaveBeenCalled();
+    }
+  );
+
+  it("retains local paths for existing default callers", async () => {
+    const retrieve = vi.fn().mockResolvedValue(new Uint8Array([1]));
+    expect(await loadMediaRefBytes({ uri: "/local/image.png" }, { storage: { retrieve } }))
+      .toEqual(new Uint8Array([1]));
+  });
+
   it("loads inline base64 data", async () => {
     const payload = Buffer.from([1, 2, 3]).toString("base64");
     const bytes = await loadMediaRefBytes({

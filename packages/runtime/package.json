@@ -123,6 +123,12 @@
       "types": "./dist/google/index.d.ts",
       "import": "./dist/google/index.js",
       "default": "./dist/google/index.js"
+    },
+    "./together-operations": {
+      "nodetool-dev": "./src/providers/together-operations.ts",
+      "types": "./dist/providers/together-operations.d.ts",
+      "import": "./dist/providers/together-operations.js",
+      "default": "./dist/providers/together-operations.js"
     }
   },
   "license": "MIT",
