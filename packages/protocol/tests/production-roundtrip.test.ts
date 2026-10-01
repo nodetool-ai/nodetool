@@ -216,6 +216,19 @@ describe("social-ad production policy", () => {
     ]);
   });
 
+  it("preserves exact protected copy byte-for-byte and rejects duplicate ids", () => {
+    const exact = productionRequirement.parse({
+      protected_inputs: [{ id: "headline", kind: "exact_text", value: "  SAVE 20%  " }]
+    });
+    expect(exact.protected_inputs?.[0].value).toBe("  SAVE 20%  ");
+    expect(productionRequirement.safeParse({
+      protected_inputs: [
+        { id: "same", kind: "exact_text", value: "A" },
+        { id: "same", kind: "exact_text", value: "B" }
+      ]
+    }).success).toBe(false);
+  });
+
   it("requires source truth for every protected input", () => {
     expect(
       productionRequirement.safeParse({
