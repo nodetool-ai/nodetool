@@ -1,9 +1,8 @@
-import { WorkflowRunner, withExplicitNodeFlags } from "@nodetool-ai/kernel";
+import { ExecutionSession, toRawGraphInput } from "@nodetool-ai/execution";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { usesStreamInputContract } from "@nodetool-ai/node-sdk";
 import {
   ProcessingContext,
-  connectPythonBridgeForGraph,
   type PythonBridgeOptions
 } from "@nodetool-ai/runtime";
 import {
@@ -134,8 +133,8 @@ export function createNode<
   const streaming = opts?.streaming ?? false;
   // The generated helpers stamp `streamingInput` from per-type metadata, which
   // cannot carry the Code node's answer: its mode is a property of the body.
-  // `run()` executes a DSL graph through `withExplicitNodeFlags`, never through
-  // registry hydration, so the probe has to run here or a streaming body would
+  // DSL execution preserves these explicit flags rather than hydrating them
+  // from a registry, so the probe has to run here or a streaming body would
   // be invoked per item and never see its inputs.
   const streamingInput =
     opts?.streamingInput ??
@@ -403,46 +402,29 @@ export async function run(
   const builtinRegistry = await buildBuiltinRegistry();
   const hasTsExecutor = createHasTsExecutor(opts?.registry, builtinRegistry);
 
-  // Connect a Python worker bridge only when the graph has a node type no TS
-  // registry can resolve (a candidate Python node). Transport is chosen by
-  // NODETOOL_WORKER_URL (remote) vs unset (local stdio); see the helper. The
-  // bridge is closed in the finally below.
-  const pythonBridge = await connectPythonBridgeForGraph(
-    wf.nodes,
+  const sessionOptions: Parameters<typeof ExecutionSession.create>[0] = {
+    graph: toRawGraphInput({ nodes, edges }),
+    jobId,
+    context,
     hasTsExecutor,
-    opts?.bridgeOptions
-  );
-
-  const resolveExecutor = createExecutorResolver(
-    opts,
-    builtinRegistry,
-    pythonBridge
-  );
-
-  const runner = new WorkflowRunner(jobId, {
-    resolveExecutor,
-    executionContext: context
-  });
-
-  const result = await (async () => {
-    try {
-      // DSL nodes carry their streaming flags from generated metadata
-      // (`n.streaming` / `n.streamingInput` above); the rest default off.
-      return await runner.run(
-        { job_id: jobId },
-        withExplicitNodeFlags({ nodes, edges })
-      );
-    } finally {
-      pythonBridge?.close();
-    }
-  })();
+    executorResolverFactory: (bridge) =>
+      createExecutorResolver(opts, builtinRegistry, bridge),
+    preflight: false,
+    installHeadlessPermissionGate: false,
+    recordCosts: false
+  };
+  if (opts?.bridgeOptions) {
+    sessionOptions.bridgeOptions = opts.bridgeOptions;
+  }
+  const session = await ExecutionSession.create(sessionOptions);
+  const result = await session.result;
 
   if (result.status === "failed") {
     throw new Error(result.error ?? "Workflow execution failed");
   }
 
-  // Surface node-level errors: actors catch exceptions and return them as
-  // node_update messages with status "error" without failing the whole run.
+  // Actor failures now fail the run. Keep the legacy message check for
+  // error updates retained in other results, including cancellation races.
   const nodeErrors = (result.messages ?? []).filter(
     (m): m is NodeUpdate =>
       m.type === "node_update" && m.status === "error"

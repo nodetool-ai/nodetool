@@ -22,7 +22,8 @@ import type {
 import type {
   PythonBridgeBase,
   ProcessingContext,
-  PythonJobLifecycle
+  PythonJobLifecycle,
+  PythonBridgeOptions
 } from "@nodetool-ai/runtime";
 
 /** A raw saved graph — the shape stored in the DB / sent over the wire. */
@@ -86,8 +87,8 @@ export interface ExecutionSessionOptions {
   graph: RawGraphInput;
   /**
    * Node registry used for both hydration and TS executor resolution.
-   * Optional only for a host that injects its own `resolveExecutor` (below)
-   * AND has no `NodeRegistry` instance of its own to hand the facade — e.g.
+   * Optional for a host supplying `resolveExecutor` or `executorResolverFactory`.
+   * The host then provides explicit graph flags or `resolveNodeType`, e.g.
    * `websocket-client-session.ts`'s `resolveExecutor` is wired in wholesale at
    * server bootstrap, closing over a registry this class never sees. Without
    * a registry, hydration falls back to `withExplicitNodeFlags` (flags
@@ -100,8 +101,8 @@ export interface ExecutionSessionOptions {
   registry?: NodeRegistry;
   /**
    * Bypass the facade's own registry-based executor resolution
-   * (`createExecutorResolver`) entirely and use this instead. Required when
-   * `registry` is omitted. Exists for hosts whose executor resolution isn't
+   * (`createExecutorResolver`) entirely and use this instead. With no registry,
+   * either this or `executorResolverFactory` is required. Used when resolution isn't
    * "registry, else Python bridge, else throw" — `websocket-client-session.ts`
    * injects its own `resolveExecutor` at bootstrap (a closure over a registry
    * and an already-connected bridge this class never sees), so migrating it
@@ -109,6 +110,18 @@ export interface ExecutionSessionOptions {
    * building a second, possibly-divergent one from a `bridgeFactory`.
    */
   resolveExecutor?: (node: NodeDescriptor) => NodeExecutor;
+  /** Build a host resolver using the Python bridge owned by this session. */
+  executorResolverFactory?: (
+    bridge: PythonBridgeBase | null
+  ) => (node: NodeDescriptor) => NodeExecutor;
+  /** TS resolution across host registries, used to decide whether Python is needed. */
+  hasTsExecutor?: (nodeType: string) => boolean;
+  /** Transport configuration for the session-owned Python connection. */
+  bridgeOptions?: PythonBridgeOptions;
+  /** Disable provider preflight for hosts that do not use the server catalogs. */
+  preflight?: boolean;
+  /** Install the headless gate on an injected context if none is present (default true). */
+  installHeadlessPermissionGate?: boolean;
   /**
    * Optional richer hydration path, mirroring `Graph.loadFromDict`'s async
    * metadata resolver (`createGraphNodeTypeResolver` in `@nodetool-ai/node-sdk`).
@@ -150,11 +163,9 @@ export interface ExecutionSessionOptions {
     input_id: string;
   } | null;
   /**
-   * Pre-built execution context. When omitted, the facade builds a minimal
-   * one (no storage/secrets/persistence wiring) suitable for hermetic runs
-   * and tests. Hosts with asset storage, secrets, or workspace directories
-   * should build and pass their own — the facade never invents storage
-   * behavior a caller didn't ask for.
+   * Pre-built execution context. When omitted, builds the server default with
+   * DB secret resolution and durable FAL generation hooks. Hosts with different
+   * secrets, storage, workspace or generation policies provide their own.
    */
   context?: ProcessingContext;
   persistence?: JobPersistenceHook | null;

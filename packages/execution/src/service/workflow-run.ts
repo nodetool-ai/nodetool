@@ -13,7 +13,7 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
-import { BoundedHandle, WorkflowRunner } from "@nodetool-ai/kernel";
+import { BoundedHandle, type RunResult } from "@nodetool-ai/kernel";
 import { Job, Project, Workflow, getSecret } from "@nodetool-ai/models";
 import {
   hydrateGraphNodeFlags,
@@ -24,10 +24,11 @@ import type {
   NodeExecutor,
   ProcessingContext,
   StorageAdapter,
-  Workspace
+  Workspace,
+  PythonJobLifecycle
 } from "@nodetool-ai/runtime";
-import { attachRunCostLedger, nodeTypeLookup } from "../cost-ledger.js";
-import { normalizeGraph } from "../normalize-graph.js";
+import { ExecutionSession } from "../session.js";
+import { normalizeGraph, toRawGraphInput } from "../normalize-graph.js";
 import type { RawGraphInput } from "../types.js";
 import {
   collectPreflightIssues,
@@ -78,7 +79,7 @@ export type {
 
 const log = createLogger("nodetool.execution.workflow-run");
 
-type WorkflowRunResult = Awaited<ReturnType<WorkflowRunner["run"]>>;
+type WorkflowRunResult = RunResult;
 
 /**
  * Hydrate a saved graph for the kernel: registry-resolved execution flags,
@@ -130,6 +131,8 @@ export interface WorkflowRunEnvironment {
     [key: string]: unknown;
   }) => NodeExecutor;
   ensurePythonBridge?: () => Promise<void>;
+  /** Host-owned shared worker. The session brackets the job without closing it. */
+  pythonBridge?: PythonJobLifecycle;
   /**
    * Attach host-provided model interfaces (asset persistence, message
    * storage, …) to the run's ProcessingContext before execution. Without it
@@ -599,8 +602,7 @@ export async function runWorkflow(
   // Everything after the row exists must finalize it. Workspace resolution,
   // node-flag hydration and the run itself can all throw (fs, registry) — a
   // bare throw here stranded the row at "running" forever.
-  let runner: WorkflowRunner;
-  let hydratedGraph: ReturnType<typeof hydrateGraphNodeFlags>;
+  let execution: ExecutionSession;
   let interactiveHandle: InteractiveEscalationHandle | null = null;
   let supervisorHandle: BoundedHandle | null = null;
   try {
@@ -642,58 +644,45 @@ export async function runWorkflow(
       environment.resolveExecutor ??
       ((node: { id: string; type: string; [key: string]: unknown }) =>
         registry.resolve(node));
-    const runnerOptions: ConstructorParameters<typeof WorkflowRunner>[1] = {
-      resolveExecutor: (node) =>
-        resolveExecutor(
-          node as { id: string; type: string; [key: string]: unknown }
-        ),
-      executionContext: (() => {
-        const executionContext = buildWorkspaceExecutionContext({
-          jobId: job.id,
-          workflowId,
-          projectId: workflowProjectId,
-          userId,
-          workspace,
-          storage: environment.storage ?? null,
-          assetStorage: environment.assetStorage ?? null,
-          durableFalGenerations: true
-        });
-        // The host attaches its model interfaces (asset persistence, …) —
-        // without them an Output node that stores an image fails the run.
-        environment.configureContext?.(executionContext);
-        // This path builds its own runner instead of going through
-        // `ExecutionSession`, so it has to attach the spend ledger itself.
-        // No detach: the listener lives on this context and dies with it.
-        // No `projectId`/`documentId` either — a run request names a workflow
-        // and a user, and nothing on this path carries project attribution.
-        // Progress on the row, so `get_job` during a long background render
-        // answers with a frame count instead of only "running".
-        executionContext.addMessageListener(
-          createJobProgressRecorder({
-            write: async (progress) => {
-              await Job.recordProgressIfActive(job.id, { ...progress });
-            }
-          })
-        );
-        attachRunCostLedger(executionContext, {
-          userId,
-          workflowId,
-          projectId: workflowProjectId,
-          documentId: options.documentId ?? null,
-          nodeType: nodeTypeLookup(runnableGraph.nodes),
-          resolveSecret: (key) => executionContext.getSecret(key)
-        });
-        return executionContext;
-      })()
+    const executionContext = buildWorkspaceExecutionContext({
+      jobId: job.id,
+      workflowId,
+      projectId: workflowProjectId,
+      userId,
+      workspace,
+      storage: environment.storage ?? null,
+      assetStorage: environment.assetStorage ?? null,
+      durableFalGenerations: true
+    });
+    environment.configureContext?.(executionContext);
+    executionContext.addMessageListener(
+      createJobProgressRecorder({
+        write: async (progress) => {
+          await Job.recordProgressIfActive(job.id, { ...progress });
+        }
+      })
+    );
+    const sessionOptions: Parameters<typeof ExecutionSession.create>[0] = {
+      graph: toRawGraphInput(hydrateRunGraph(runnableGraph, registry)),
+      resolveExecutor: (node) => resolveExecutor({ ...node }),
+      jobId: job.id,
+      workflowId,
+      params,
+      context: executionContext,
+      // Checked before the environment and job row are created above.
+      preflight: false,
+      projectId: workflowProjectId,
+      documentId: options.documentId ?? null,
+      jobLifecycleBridge: environment.pythonBridge ?? null
     };
     if (supervisorHandle) {
-      runnerOptions.supervisor = supervisorHandle;
+      sessionOptions.supervisor = supervisorHandle;
     }
-    runner = new WorkflowRunner(job.id, runnerOptions);
-    hydratedGraph = hydrateRunGraph(runnableGraph, registry);
+    execution = await ExecutionSession.create(sessionOptions);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await markJobFailed(job, message);
+    supervisorHandle?.close();
     throw error instanceof Error ? error : new Error(message);
   }
 
@@ -704,10 +693,7 @@ export async function runWorkflow(
     // was cancelled before the job it started could be reported.
     void (async () => {
       try {
-        const result = await runner.run(
-          { job_id: job.id, workflow_id: workflowId, params },
-          hydratedGraph
-        );
+        const result = await execution.result;
         await finalizeWorkflowRunJob(job, result);
       } catch (error) {
         await markJobFailed(
@@ -734,10 +720,7 @@ export async function runWorkflow(
   if (!interactive) {
     let result: WorkflowRunResult;
     try {
-      result = await runner.run(
-        { job_id: job.id, workflow_id: workflowId, params },
-        hydratedGraph
-      );
+      result = await execution.result;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await markJobFailed(job, message);
@@ -758,10 +741,7 @@ export async function runWorkflow(
   // The promise never rejects; the session depends on that.
   const runPromise = (async (): Promise<Record<string, unknown>> => {
     try {
-      const result = await runner.run(
-        { job_id: job.id, workflow_id: workflowId, params },
-        hydratedGraph
-      );
+      const result = await execution.result;
       await finalizeWorkflowRunJob(job, result);
       return buildWorkflowRunPayload(job.id, workflowId, result, debug, {
         background: false
@@ -793,12 +773,12 @@ export async function runWorkflow(
       jobId: job.id,
       handle: interactiveHandle!,
       done: runPromise,
-      cancel: () => runner.cancel()
+      cancel: () => execution.cancel()
     });
   } catch (error) {
     // The run is already going; without a session nobody can answer it, so
     // cancel it rather than leave an unreachable run behind.
-    runner.cancel();
+    execution.cancel();
     if (error instanceof TooManyDebugSessionsError) {
       return { kind: "error", status: 429, detail: error.message };
     }

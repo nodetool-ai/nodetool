@@ -95,6 +95,10 @@ const KNOWN_UNHYDRATED: Record<string, string> = {
  * reporting, and names who.
  */
 const PREFLIGHT_PROPAGATORS: Record<string, string> = {
+  "packages/execution/src/service/workflow-run.ts":
+    "handles collectPreflightIssues before creating the environment and job row",
+  "packages/dsl/src/core.ts":
+    "DSL explicitly disables server preflight and propagates execution errors",
   // Called only from `nodetool run --supervise`, whose catch prints the
   // refusal through `describeRunFailure`.
   "packages/cli/src/run-dsl-supervised.ts":

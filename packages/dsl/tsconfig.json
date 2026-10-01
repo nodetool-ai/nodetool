@@ -39,6 +39,9 @@
     },
     {
       "path": "../runtime"
+    },
+    {
+      "path": "../execution"
     }
   ]
 }

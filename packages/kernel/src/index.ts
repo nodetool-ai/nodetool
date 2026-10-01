@@ -113,3 +113,5 @@ export {
   type TriggerInput,
   type TriggerInputStore
 } from "./trigger-wakeup.js";
+
+export { MessageStream, DEFAULT_MESSAGE_BUFFER_LIMIT } from "./message-stream.js";

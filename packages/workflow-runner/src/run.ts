@@ -9,6 +9,7 @@
 
 import {
   WorkflowRunner,
+  MessageStream,
   type NodeValidator,
   type RunJobRequest,
   type RunResult
@@ -151,17 +152,7 @@ export async function* runWorkflow(
   });
   opts.onRunner?.(runner);
 
-  const queue: ProcessingMessage[] = [];
-  let wake: (() => void) | null = null;
-  const wakeQueue = (): void => {
-    const w = wake;
-    wake = null;
-    w?.();
-  };
-  const unsubscribe = context.addMessageListener((message) => {
-    queue.push(message);
-    wakeQueue();
-  });
+  const messages = new MessageStream(context, 0);
 
   const request: RunJobRequest = {
     job_id: jobId,
@@ -183,42 +174,34 @@ export async function* runWorkflow(
     })
     .finally(() => {
       finished = true;
-      wakeQueue();
+      messages.close();
     });
 
   let cancelRequested = false;
   const cancelRun = (): void => {
     if (cancelRequested) {
-      wakeQueue();
       return;
     }
     cancelRequested = true;
     if (!finished) {
       runner.cancel();
     }
-    wakeQueue();
   };
   opts.signal?.addEventListener("abort", cancelRun, { once: true });
+  if (opts.signal?.aborted) {
+    cancelRun();
+  }
 
   try {
-    while (!finished || queue.length > 0) {
-      if (queue.length === 0) {
-        if (opts.signal?.aborted) {
-          cancelRun();
-          break;
-        }
-        await new Promise<void>((resolve) => {
-          wake = resolve;
-        });
-        continue;
-      }
-      const msg = queue.shift()!;
-      yield msg;
+    for await (const message of messages) {
+      yield message;
     }
     await runPromise;
   } finally {
     opts.signal?.removeEventListener("abort", cancelRun);
-    unsubscribe();
+    cancelRun();
+    await runPromise;
+    messages.close();
   }
 
   if (runError) throw runError;
