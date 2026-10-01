@@ -610,7 +610,7 @@ export const parseApplicationDocument = (
   // v1/v2: `{ version, data }` on `workflow.app_doc`.
   if (isPuckData(value.data)) {
     return {
-      schemaVersion: APP_SCHEMA_VERSION,
+      schemaVersion: BASE_APP_SCHEMA_VERSION,
       ui: value.data,
       operations: options.hostWorkflowId
         ? [
