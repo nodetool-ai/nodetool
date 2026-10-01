@@ -289,7 +289,7 @@ export const PreviewCompositor: React.FC<{ quality?: PreviewQuality }> = ({
 const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   const { onFailure: reportFailure, onReady, quality } = props;
   const theme = useTheme();
-  const alive = useRef(true);
+  const alive = useRef(false);
   useEffect(() => {
     alive.current = true;
     return () => {
@@ -384,7 +384,14 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   useEffect(() => {
     const controller = new AbortController();
     proxyWatch.current = controller;
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      for (const [id, entry] of assetUrlCache.current) {
+        if (entry.status === "pending") {
+          assetUrlCache.current.delete(id);
+        }
+      }
+    };
   }, []);
 
   // A relink keeps the asset id but moves its media URL to the new file's
@@ -419,28 +426,40 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         return packageUrl;
       }
       const cached = assetUrlCache.current.get(assetId);
-      if (cached) {
-        // pending → fetch already in flight; failed → don't retry every tick
-        // (the cache ref survives until remount, when a fresh attempt is made).
-        return cached.status === "resolved" ? cached.url : undefined;
+      return cached?.status === "resolved" ? cached.url : undefined;
+    },
+    []
+  );
+
+  const loadAsset = useCallback(
+    (assetId: string | undefined): void => {
+      const signal = proxyWatch.current?.signal;
+      if (
+        !assetId ||
+        packageClipMediaUrl(assetId) ||
+        !signal ||
+        signal.aborted ||
+        assetUrlCache.current.has(assetId)
+      ) {
+        return;
       }
       assetUrlCache.current.set(assetId, { status: "pending" });
-      getAsset(assetId)
+      void getAsset(assetId)
         .then((asset) => {
-          if (!alive.current) return;
-          // The all-intra proxy when it is ready: a seek decodes one frame
-          // instead of a GOP. Export resolves the original on its own.
+          if (signal.aborted || !alive.current) {
+            return;
+          }
           const url = getAssetPreviewUrl(asset);
           if (isVideoProxyPending(asset)) {
             watchVideoProxy(assetId, {
               fetchAsset: getAsset,
               onReady: bumpAssetRevision,
-              signal: proxyWatch.current?.signal
+              signal
             });
           }
           if (url) {
             assetUrlCache.current.set(assetId, { status: "resolved", url });
-            setUrlCacheVersion((v) => v + 1);
+            setUrlCacheVersion((version) => version + 1);
           } else {
             assetUrlCache.current.set(assetId, { status: "failed" });
             onFailure({
@@ -450,15 +469,15 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             });
           }
         })
-        .catch((error) => {
-          // Asset unavailable — mark failed so the placeholder renders
-          // without re-issuing the fetch on every render tick.
+        .catch((error: unknown) => {
+          if (signal.aborted || !alive.current) {
+            return;
+          }
           assetUrlCache.current.set(assetId, { status: "failed" });
           onFailure({ stage: "asset", resourceId: assetId, error });
         });
-      return undefined;
     },
-    [bumpAssetRevision, getAsset, onFailure]
+    [getAsset, bumpAssetRevision, onFailure]
   );
 
   /**
@@ -820,6 +839,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     let cancelled = false;
     for (const bake of alphaBakesToProbe(clips, liveBakeHash)) {
       if (probedBakes.current.has(bake.assetId)) continue;
+      loadAsset(bake.assetId);
       const url = resolveUrl(bake.assetId);
       if (!url) continue;
       probedBakes.current.add(bake.assetId);
@@ -835,7 +855,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     return () => {
       cancelled = true;
     };
-  }, [clips, liveBakeHash, resolveUrl, urlCacheVersion]);
+  }, [clips, liveBakeHash, loadAsset, resolveUrl, urlCacheVersion]);
 
   const model3dBakeHash = useMemo(
     () => guardBakeHash(liveBakeHash, undecodableBakes),
@@ -898,7 +918,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     [tracks, previewClips, mediaTracks, camera2d, tempo, sceneCanvas, model3dBakeHash]
   );
 
-  const { sceneLayers, precomposites, adjustments, activeVideoSlots, placeholderLayers } =
+  const { sceneLayers, sourceLayers, precomposites, adjustments, activeVideoSlots, placeholderLayers } =
     useMemo(() => {
       // The same scene description the offline exporter and the server render
       // consume, kept whole: what a layer draws with — its group's matrix and
@@ -918,6 +938,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         ? matteOnlyLayers(composite, selectedClipId)
         : composite;
 
+      const sourceLayers = [...layers];
       const videoSlots: ActiveVideoSlot[] = [];
       const placeholders: PlaceholderLayer[] = [];
       const placeholderClipIds = new Set<string>();
@@ -994,12 +1015,14 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             camera2d,
             tempo
           });
+          sourceLayers.push(...shutterLayers);
           shutterLayers.forEach(bindShutterVideo);
         }
       }
 
       return {
         sceneLayers: layers,
+        sourceLayers,
         precomposites: buildCompositePrecomposites(groups),
         adjustments: buildCompositeAdjustments(treatments),
         activeVideoSlots: videoSlots,
@@ -1022,6 +1045,17 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       matteViewEnabled,
       selectedClipId
     ]);
+
+  // Source selection belongs to the scene model, including shutter samples and mattes.
+  useEffect(() => {
+    const visit = (layer: ActiveLayer): void => {
+      if (layer.matte) {
+        visit(layer.matte.layer);
+      }
+      loadAsset(layer.assetId);
+    };
+    sourceLayers.forEach(visit);
+  }, [sourceLayers, assetRevisions, loadAsset]);
 
   // Hold a render session only while its clip is on screen: each one is a
   // WebGL context, and a browser has about sixteen (R2).
@@ -1339,6 +1373,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       const upcoming: ActiveVideoSlot[] = [];
       for (const clip of upcomingVideoClips) {
         for (const assetId of [effectiveAssetId(clip), clip.generatedMatte && (clip.generatedMatte.status ?? "ready") === "ready" ? clip.generatedMatte.assetId : undefined]) {
+          loadAsset(assetId);
           const url = resolveUrl(assetId);
           if (!url) continue;
           upcoming.push({ clip, clipId: clip.id, assetUrl: url });
@@ -1403,6 +1438,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     previewClips,
     sequenceFps,
     resolveUrl,
+    loadAsset,
     // Not read directly — bumped every 2s during playback purely to
     // re-evaluate cold-pool preloads mid-clip (see the effect above).
     preloadTick
@@ -1429,7 +1465,9 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       img.decoding = "async";
       img.onload = () => {
         // Trigger a re-render on first decode so the compositor picks it up.
-        setUrlCacheVersion((v) => v + 1);
+        if (alive.current) {
+          setUrlCacheVersion((v) => v + 1);
+        }
       };
       img.onerror = () =>
         onFailure({
