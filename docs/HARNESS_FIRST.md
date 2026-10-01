@@ -166,6 +166,9 @@ npm run dev:nodetool -- harness gate --dry-run       # plan only, run nothing
 npm run dev:nodetool -- harness gate --all           # every selfcheck, diff ignored
 npm run dev:nodetool -- harness gate --expensive     # include bundle-staging class checks
 npm run dev:nodetool -- harness gate --strict        # fail when a touched surface has no harness
+npm run dev:nodetool -- harness gate --deps          # also route through workspace dependents
+npm run dev:nodetool -- harness gate --include-suites  # also run suite-only selfchecks
+npm run dev:nodetool -- harness gate --jobs 4        # run cheap selfchecks concurrently
 ```
 
 The gate reads the diff, maps files to surfaces by path prefix, and runs the
@@ -177,6 +180,20 @@ deterministic cases with a provider that is never called, `node-run` executes
 a real node hermetically. Touch `packages/kernel/` and the kernel's journeys
 run; touch `packages/agents/src/app-build/` and the build harness proves
 itself; touch nothing mapped and nothing runs.
+
+A root file that changes every workspace's behavior (`package.json`,
+`package-lock.json`, root `tsconfig*.json`, `turbo.json`, `.nvmrc`, the root
+Vitest config, the shared `scripts/run-*.mjs` launchers) is a global file: it
+selects every selfcheck, the way `npm run test:affected` runs every suite for
+it. A selfcheck marked `suiteOnly` only re-runs workspace suites that
+`test:affected` already runs in full for the same diff, so the gate skips it
+unless `--include-suites` is passed. The registry test derives `suiteOnly`
+from the real workspace graph and fails when an entry claims it wrongly.
+`--deps` also touches a surface when one of its paths sits in a workspace
+downstream of a changed one. It is opt-in because the hub workspaces (`cli`,
+`agents`, `websocket`) depend on nearly everything, so most package changes
+then select most of the registry. The plan step loads no built package, so
+`--dry-run`, `list`, and `audit` work before `npm run build:packages`.
 
 Exit code: non-zero when any selfcheck fails, when a capability's declared
 contract moved without its coverage mapping moving with it, or — with

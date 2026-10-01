@@ -103,7 +103,8 @@ describe("harness registry", () => {
 
     expect(harness?.selfcheck).toEqual({
       command: "npm run test --workspace=demo",
-      cost: "cheap"
+      cost: "cheap",
+      suiteOnly: true
     });
     expect(surface?.harnesses).toEqual(["tutorial-rendering"]);
     expect(surface?.paths).toEqual([
@@ -134,6 +135,7 @@ describe("harness registry", () => {
       harnessId: "tutorial-rendering",
       command: "npm run test --workspace=demo",
       cost: "cheap",
+      suiteOnly: true,
       surfaces: ["tutorial-rendering"]
     });
   });
@@ -415,6 +417,7 @@ describe("harness gate", () => {
       harnessId: "serein-timeline-repro",
       command: "npm run test --workspace=packages/agents -- timeline-serein-gaps-frames",
       cost: "cheap",
+      suiteOnly: false,
       surfaces: ["serein-timeline-repro"]
     });
   });

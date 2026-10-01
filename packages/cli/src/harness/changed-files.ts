@@ -90,3 +90,20 @@ export function isGateRelevantCodeFile(path: string): boolean {
   }
   return GATE_RELEVANT_CODE_EXTENSIONS.some((ext) => path.endsWith(ext));
 }
+
+/**
+ * Root files whose change can alter any workspace's behavior: dependency
+ * manifests, shared compiler and test config, the Node pin, and the shared
+ * build/test launchers. Mirrors what `npm run test:affected` runs everything
+ * for (a file outside every workspace that is neither documentation nor
+ * covered by a `PATH_CHECKS` entry). A nested workspace `package.json` belongs
+ * to its own surface and is not listed. `.github/` is documentation to
+ * `test:affected`, so workflow edits stay out too.
+ */
+const GLOBAL_GATE_FILE =
+  /^(package\.json|package-lock\.json|tsconfig[^/]*\.json|turbo\.json|\.nvmrc|vitest\.config\.[cm]?[jt]s|scripts\/run-(turbo|vitest|tsc)\.mjs)$/;
+
+/** A changed file that forces every selfcheck, whatever surfaces it maps to. */
+export function isGlobalGateFile(path: string): boolean {
+  return GLOBAL_GATE_FILE.test(path.replace(/^\.\//, "").replace(/\\/g, "/"));
+}

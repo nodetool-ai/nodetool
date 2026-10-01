@@ -242,6 +242,13 @@ jobs:
   # backend, …) unless `--expensive` is passed, so `backend:smoke` stays a
   # leg of its own rather than folding into this one.
   #
+  # `suiteOnly` selfchecks (they only re-run workspace test suites) are skipped
+  # by the gate unless `--include-suites` is passed. No flag here: the
+  # `test-packages-*` and `test` legs run those suites on both push (full) and
+  # pull_request (`--affected`), and test.yml passes `skip-tests: false`. If a
+  # caller ever sets `skip-tests: true`, add `--include-suites` below, because
+  # this leg is `is-test: "false"` and would then be the only one left.
+  #
   # The backend suite goes the other way: it is split across four runners
   # (`test-packages-*`). As one leg it was the gate's critical path by about
   # ten minutes — every other leg finished within six minutes of `build`, that

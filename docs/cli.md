@@ -2278,6 +2278,19 @@ need a target or a key are printed as manual work rather than silently skipped.
 - `--dry-run` — print the plan without running anything.
 - `--json` — print the plan, and the results unless `--dry-run`.
 - `--strict` — exit non-zero when the diff touches a surface no harness covers.
+- `--deps` — also touch surfaces whose paths sit in a workspace downstream of a
+  changed one.
+- `--include-suites` — also run `suiteOnly` selfchecks, which only re-run
+  suites `npm run test:affected` runs for the same diff.
+- `--jobs <n>` — run cheap selfchecks `n` at a time (default 1). Each check's
+  output prints as one block when it finishes. Expensive checks run serially
+  afterwards.
+- `--timeout <seconds>` — kill a selfcheck that runs longer (default 900).
+
+A changed root manifest, lockfile, root `tsconfig*.json`, `turbo.json`,
+`.nvmrc`, or shared `scripts/run-*.mjs` launcher selects every selfcheck. The
+plan step loads no built package, so `--dry-run` works before
+`npm run build:packages`.
 
 ```bash
 nodetool harness gate --base main
