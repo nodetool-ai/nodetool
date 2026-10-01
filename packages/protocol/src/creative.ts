@@ -429,6 +429,70 @@ export function renderInputsMatch(a: RenderInputs, b: RenderInputs): boolean {
   );
 }
 
+/** A semantic graphics element the Storyboard can show without baking into AI media. */
+export interface ShotGraphicsElement {
+  /** Stable id used to trace the element into a later Timeline composition. */
+  id: string;
+  /** What kind of exact/editable element this is. */
+  kind: "text" | "asset" | "shape";
+  /** Its creative role, when one of the common ad roles applies. */
+  role?:
+    | "headline"
+    | "subhead"
+    | "price"
+    | "badge"
+    | "cta"
+    | "logo"
+    | "product"
+    | "decorative";
+  /** Exact copy. This remains authoritative instead of asking an image model to spell it. */
+  text?: string;
+  /** Exact stored media to preserve, e.g. a logo or product cutout. */
+  asset_id?: string;
+  /** Optional project entity backing the element. */
+  entity_id?: string;
+  /** Semantic placement/motion direction, not Timeline keyframes. */
+  direction?: string;
+}
+
+/**
+ * Shot-local graphics intent.
+ *
+ * This describes the approved composition, not how the Timeline implements it:
+ * tracks, easing, masks and keyframes stay Timeline concerns.
+ */
+export interface ShotGraphics {
+  mode?: "none" | "overlay" | "graphics_first" | "hybrid";
+  direction?: string;
+  elements?: ShotGraphicsElement[];
+}
+
+/** A transition idea between two Storyboard shots. */
+export interface StoryboardTransitionIntent {
+  from_shot_id: string;
+  to_shot_id: string;
+  direction?: string;
+}
+
+/** One graphic/device intentionally continuing across several shots. */
+export interface StoryboardContinuityIntent {
+  id: string;
+  shot_ids: string[];
+  direction: string;
+}
+
+/**
+ * Whole-board motion-design direction.
+ *
+ * Stored with the Screenplay direction so a later finished-cut pass can reason
+ * about transitions and continuity across shot boundaries.
+ */
+export interface StoryboardMotionDesign {
+  direction?: string;
+  transitions?: StoryboardTransitionIntent[];
+  continuities?: StoryboardContinuityIntent[];
+}
+
 /** One shot in a {@link Screenplay}. */
 export interface Shot {
   production?: ProductionRequirement;
@@ -443,6 +507,8 @@ export interface Shot {
   camera?: CameraDirection;
   /** What moves in the shot (and how the camera moves). */
   motion?: string;
+  /** Exact graphic elements and semantic motion-design intent for this shot. */
+  graphics?: ShotGraphics;
   /** Spoken line delivered in-shot, if any. */
   dialogue?: string;
   /** Voiceover narration timed to this shot. */
@@ -623,6 +689,8 @@ export interface Screenplay {
   narration?: string;
   /** Score direction as a music-generation prompt. */
   music_prompt?: string;
+  /** Motion-design direction that can span several shots. */
+  motion_design?: StoryboardMotionDesign;
   /** Entities referenced anywhere in the screenplay. */
   entity_ids?: string[];
   /** Copy of the board's genre, taken when the Director ran. */
