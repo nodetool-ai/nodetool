@@ -95,6 +95,29 @@ describe("Storyboard finishing", () => {
     element.kind = "shape";
     expect(materializeStoryboard(args).validation.length).toBeGreaterThan(0);
   });
+  it("rejects an image masquerading as the protected brand shape", () => {
+    const args = input();
+    const first = materializeStoryboard(args);
+    first.document.clips[0].mediaType = "image";
+    first.document.clips[0].currentAssetId = "replacement";
+    expect(validateProducedTimeline(args, first.document).some((issue) => issue.code === "protected_value" && issue.elementId === "background")).toBe(true);
+    expect(materializeStoryboard({ ...args, current: first.document }).validation.some((issue) => issue.code === "manual_conflict" && issue.elementId === "background")).toBe(true);
+  });
+
+  it.each([true, false])("does not mutate an existing document when composition has validation errors: %s", (invalid) => {
+    const args = input();
+    args.shots[0].graphics!.elements = [{ id: "headline", kind: "text", text: "Exact" }, { id: "line", kind: "shape" }];
+    args.shots[0].production!.protected_inputs = [];
+    const first = materializeStoryboard(args);
+    first.document.tracks.push({ ...first.document.tracks[0], id: "manual", name: "Manual", index: 2 });
+    first.document.clips.push({ ...first.document.clips[0], id: "manual", trackId: "manual", storyboardBoardId: undefined });
+    const before = structuredClone(first.document);
+    args.shots[0].graphics!.elements = [{ id: "background", kind: "shape" }, { id: "headline", kind: "text", text: "Exact" }, ...(invalid ? [{ id: "bad", kind: "asset" as const }] : [])];
+    const next = materializeStoryboard({ ...args, current: first.document });
+    expect(next.validation.length > 0).toBe(invalid);
+    expect(first.document).toEqual(before);
+  });
+
   it("rejects inherited track effects on protected sources", () => {
     const args = input();
     const result = materializeStoryboard(args);
@@ -116,6 +139,34 @@ describe("Storyboard finishing", () => {
     expect(rerun.validation).toEqual([]);
     expect(rerun.document.clips.map((clip) => clip.animations)).toEqual(first.document.clips.map((clip) => clip.animations));
     expect(materializeStoryboard({ ...args, motionDesign: { transitions: [{ from_shot_id: "hook", to_shot_id: "cta", direction: "unknown prose" }] } }).validation.some((issue) => issue.elementId === "$transition")).toBe(true);
+  });
+
+  it.each([{ x: 10000, y: 0 }, { x: -10000, y: 0 }, { x: 0, y: 10000 }, { x: 0, y: -10000 }])("rejects a required product outside the canvas at %j", (position) => {
+    const args = input();
+    args.shots[0].graphics!.direction = "Bold editorial rhythm";
+    const result = materializeStoryboard(args);
+    result.document.clips[1].transform!.position = position;
+    expect(validateProducedTimeline(args, result.document).some((issue) => issue.code === "missing_element" && issue.elementId === "product")).toBe(true);
+    expect(materializeStoryboard({ ...args, current: result.document }).validation.some((issue) => issue.code === "missing_element" && issue.elementId === "product")).toBe(true);
+  });
+
+  it("allows an entry animation whose movement intersects the canvas", () => {
+    const args = input();
+    args.shots[0].graphics!.direction = "Bold editorial rhythm";
+    const first = materializeStoryboard(args);
+    first.document.clips[1].transform!.position.y = 1700;
+    const next = materializeStoryboard({ ...args, current: first.document });
+    expect(next.validation).toEqual([]);
+    expect(next.document.clips[1].transform!.position.y).toBe(1700);
+  });
+
+  it("preserves a manual placement that partially intersects the canvas", () => {
+    const args = input();
+    const first = materializeStoryboard(args);
+    first.document.clips[1].transform!.position.x = 550;
+    const rerun = materializeStoryboard({ ...args, current: first.document });
+    expect(rerun.validation).toEqual([]);
+    expect(rerun.document.clips[1].transform!.position.x).toBe(550);
   });
 
   it("rejects zero-scale protected elements", () => {

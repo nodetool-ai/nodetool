@@ -3,6 +3,8 @@ import { createTimeOrderedUuid, makeClip, makeTrack } from "./defaults.js";
 import { moveTrackOrder } from "./trackOrder.js";
 import { resolveShotSource } from "./storyboard.js";
 import { isKnownShapeKind } from "./types.js";
+import { buildTransformMatrix, IDENTITY_TRANSFORM } from "./render/transform.js";
+import { compileClipAnimations } from "./animation/compile.js";
 import type { TimelineClip, TimelineTrack, TimelineMarker } from "./types.js";
 
 export interface FinishedStoryboardDocument {
@@ -38,6 +40,7 @@ function parseBaseline(value: string | undefined): Record<string, unknown> | und
 const identity = (shotId: string, elementId: string): string => `${shotId}/${elementId}`;
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
 const baseline = (clip: TimelineClip): string => JSON.stringify({
+  mediaType: clip.mediaType,
   currentAssetId: clip.currentAssetId,
   textStyle: clip.textStyle,
   shapeStyle: clip.shapeStyle,
@@ -57,7 +60,7 @@ const baseline = (clip: TimelineClip): string => JSON.stringify({
 
 /** Validate actual layers, rather than a caller's description of intended edits. */
 export function validateProducedTimeline(
-  input: Pick<FinishStoryboardInput, "boardId" | "shots" | "production">,
+  input: Pick<FinishStoryboardInput, "boardId" | "shots" | "production" | "width" | "height">,
   document: { tracks: TimelineTrack[]; clips: TimelineClip[] }
 ): ProducedTimelineIssue[] {
   const issues: ProducedTimelineIssue[] = [];
@@ -85,6 +88,10 @@ export function validateProducedTimeline(
       if (clip.hidden || clip.opacity === 0 || (clip.transform && (!Number.isFinite(clip.transform.scale.x) || !Number.isFinite(clip.transform.scale.y) || clip.transform.scale.x === 0 || clip.transform.scale.y === 0)) || clip.durationMs <= 0 || !tracks.has(clip.trackId) || tracks.get(clip.trackId)?.visible === false) {
         issue("missing_element", `${element.id} must be visible.`);
       }
+      if (!intersectsCanvas(clip, input.width, input.height)) {
+        issue("missing_element", `${element.id} is outside the canvas. Move the layer into view before finishing.`);
+      }
+      if (element.kind === "shape" && clip.mediaType !== "shape") issue("protected_value", `${element.id} requires its separately editable shape.`);
       if (element.kind === "shape" && (!clip.shapeStyle || !isKnownShapeKind(clip.shapeStyle.kind))) issue("missing_element", `${element.id} has unsupported or missing visible shape geometry.`);
       const protection = element.protected_input_id ? protectedInputs.get(element.protected_input_id) : undefined;
       if (element.protected_input_id && !protection) {
@@ -110,6 +117,42 @@ export function validateProducedTimeline(
     }
   }
   return issues;
+}
+
+/** A contain-fit source cannot exceed this canvas-sized envelope. This checks
+ * placement, not source alpha, text glyphs or occlusion by other layers. */
+function intersectsCanvas(clip: TimelineClip, width: number, height: number): boolean {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return false;
+  const transform = clip.transform ?? IDENTITY_TRANSFORM;
+  let minOffsetX = 0, maxOffsetX = 0, minOffsetY = 0, maxOffsetY = 0;
+  let scaleX = 1, scaleY = 1;
+  for (const animation of compileClipAnimations(clip.animations, clip.durationMs, { width, height })) {
+    for (const curve of animation.curves) {
+      if (curve.property === "opacity") continue;
+      // Unknown or overshooting curves require sampling actual source geometry.
+      if (curve.keyframes.some((keyframe) => keyframe.easing && !["linear", "easeIn", "easeOut", "easeInOut"].includes(keyframe.easing))) return true;
+      const values = curve.keyframes.map((keyframe) => keyframe.value);
+      if (curve.property === "offsetX") { minOffsetX += Math.min(0, ...values); maxOffsetX += Math.max(0, ...values); }
+      else if (curve.property === "offsetY") { minOffsetY += Math.min(0, ...values); maxOffsetY += Math.max(0, ...values); }
+      else if (curve.property === "scale") { const maximum = Math.max(1, ...values); scaleX *= maximum; scaleY *= maximum; }
+      else if (curve.property === "scaleX") scaleX *= Math.max(1, ...values);
+      else if (curve.property === "scaleY") scaleY *= Math.max(1, ...values);
+      else return true;
+    }
+  }
+  const matrix = buildTransformMatrix({ ...transform, scale: { x: transform.scale.x * scaleX, y: transform.scale.y * scaleY } }, { x: 1, y: 1 }, width, height);
+  // Include the pivot because shrinking a source can move it toward that pivot.
+  const xs = [Math.min(-1, (transform.anchor.x - 0.5) * 2), Math.max(1, (transform.anchor.x - 0.5) * 2)];
+  const ys = [Math.min(-1, (transform.anchor.y - 0.5) * 2), Math.max(1, (transform.anchor.y - 0.5) * 2)];
+  const corners = xs.flatMap((x) => ys.map((y) => {
+    const w = matrix[3] * x + matrix[7] * y + matrix[15];
+    return { x: (matrix[0] * x + matrix[4] * y + matrix[12]) / w, y: (matrix[1] * x + matrix[5] * y + matrix[13]) / w, w };
+  }));
+  // Crossing the perspective plane needs actual source bounds, not this envelope.
+  if (corners.some((point) => point.w <= 0)) return true;
+  if (corners.some((point) => !Number.isFinite(point.x) || !Number.isFinite(point.y))) return false;
+  return Math.max(...corners.map((point) => point.x)) + 2 * maxOffsetX / width > -1 && Math.min(...corners.map((point) => point.x)) + 2 * minOffsetX / width < 1
+    && Math.max(...corners.map((point) => point.y)) - 2 * minOffsetY / height > -1 && Math.min(...corners.map((point) => point.y)) - 2 * maxOffsetY / height < 1;
 }
 
 function validateTransforms(
@@ -156,7 +199,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
   const previousKeys = new Set(current.storyboardMaterializations?.find((entry) => entry.boardId === input.boardId)?.elementKeys ?? []);
   const foreignClips = current.clips.filter((clip) => clip.storyboardBoardId !== input.boardId);
   const ownedTrackIds = new Set(current.clips.filter((clip) => clip.storyboardBoardId === input.boardId).map((clip) => clip.trackId));
-  const tracks = current.tracks.filter((track) => !ownedTrackIds.has(track.id) || foreignClips.some((clip) => clip.trackId === track.id));
+  const tracks = current.tracks.filter((track) => !ownedTrackIds.has(track.id) || foreignClips.some((clip) => clip.trackId === track.id)).map((track) => ({ ...track }));
   const clips: TimelineClip[] = [...foreignClips];
   let startMs = 0;
   for (const shot of [...input.shots].sort((a, b) => a.index - b.index)) {
@@ -203,7 +246,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
         const prior = parseBaseline(previous.storyboardMaterializationBaseline);
         if (!prior) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Layer ${key} has no valid materializer baseline.` });
         else {
-          if (!same(previous.currentAssetId, prior.currentAssetId) || !same(previous.textStyle?.text, prior.text) || !same(previous.textStyle?.color ?? previous.shapeStyle?.fill, prior.color) || !same(previous.textStyle, prior.textStyle) || !same(previous.shapeStyle, prior.shapeStyle) || !same(previous.opacity, prior.opacity) || !same(previous.hidden, prior.hidden) || !same(previous.matte, prior.matte) || !same(previous.crop, prior.crop) || !same(previous.effects, prior.effects) || !same(previous.parentId, prior.parentId)) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Source or exact copy was manually changed on ${key}.` });
+          if (!same(previous.mediaType, prior.mediaType ?? clip.mediaType) || !same(previous.currentAssetId, prior.currentAssetId) || !same(previous.textStyle?.text, prior.text) || !same(previous.textStyle?.color ?? previous.shapeStyle?.fill, prior.color) || !same(previous.textStyle, prior.textStyle) || !same(previous.shapeStyle, prior.shapeStyle) || !same(previous.opacity, prior.opacity) || !same(previous.hidden, prior.hidden) || !same(previous.matte, prior.matte) || !same(previous.crop, prior.crop) || !same(previous.effects, prior.effects) || !same(previous.parentId, prior.parentId)) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Source or exact copy was manually changed on ${key}.` });
           if (!same(previous.transform, prior.transform)) clip.transform = previous.transform;
           if (!same(previous.startMs, prior.startMs)) clip.startMs = previous.startMs;
           if (!same(previous.durationMs, prior.durationMs)) clip.durationMs = previous.durationMs;
