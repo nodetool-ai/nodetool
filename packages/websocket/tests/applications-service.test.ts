@@ -94,6 +94,13 @@ describe("applications service", () => {
     expect(again.name).toBe("Mine");
   });
 
+  it("refuses to scaffold over invalid Recipe protection in a workflow document", async () => {
+    const workflow = await Workflow.find(USER, "wf1");
+    workflow!.app_doc = { version: 2, data: { root: {}, content: [] }, recipe: { schemaVersion: 99 } };
+    await workflow!.save();
+    await expect(createApplication(USER, { name: "Unsafe Recipe", description: "", projectId: "default", fromWorkflowId: "wf1" })).rejects.toThrow();
+  });
+
   it("scaffolds a runnable screen when the workflow has no legacy app document", async () => {
     const created = await createApplication(USER, {
       name: "Demo workflow",

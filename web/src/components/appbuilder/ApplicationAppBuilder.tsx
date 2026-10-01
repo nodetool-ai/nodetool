@@ -26,7 +26,6 @@ import {
 } from "../../hooks/useApplications";
 import { trpc, trpcClient } from "../../trpc/client";
 import {
-  createEmptyDocument,
   parseApplicationDocument,
   type AppDocument
 } from "./appData";
@@ -404,12 +403,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
 
   const document = useMemo<AppDocument | null>(() => {
     if (!application) return null;
-    return (
-      parseApplicationDocument(application.document) ??
-      // Untitled on purpose — see createEmptyDocument's caller in
-      // `capabilities/apps.ts`. The name lives on the row, not in the page.
-      createEmptyDocument()
-    );
+    return parseApplicationDocument(application.document);
   }, [application]);
 
   // The operations the canvas holds, which lead the saved row: the agent binds
@@ -585,7 +579,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
       <EmptyState
         variant="error"
         title="Could not load app"
-        description={error?.message ?? "The app may have been deleted."}
+        description={error?.message ?? (application && !document ? "The Application document is invalid or uses an unsupported version." : "The app may have been deleted.")}
       />
     );
   }

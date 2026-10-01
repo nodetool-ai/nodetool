@@ -199,7 +199,7 @@ describe("ApplicationAppBuilder", () => {
       id: "app-1",
       baseUpdatedAt: "2026-07-11T10:00:00.000Z",
       document: {
-        schemaVersion: 4,
+        schemaVersion: 3,
         ui: EDITED.ui,
         operations: application.document.operations,
         resources: [],
@@ -311,6 +311,13 @@ describe("ApplicationAppBuilder", () => {
     await waitFor(() =>
       expect(onAgentWorkflowIdChange).toHaveBeenCalledWith("wf-1")
     );
+  });
+
+  it.each([null, { schemaVersion: 2 }])("does not turn invalid Recipe metadata %s into an empty editable App", (recipe) => {
+    state.application = { ...application, document: { ...application.document, recipe } as unknown as AppDocument };
+    renderBuilder();
+    expect(screen.getByText("Could not load app")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
   });
 
   it("opens on a canvas even before a workflow is bound", () => {
