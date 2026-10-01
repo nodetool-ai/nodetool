@@ -17,7 +17,7 @@ import {
   type PermissionGateOptions,
   type PermissionMode
 } from "../src/tools/tool-permissions.js";
-import { gateTools } from "../src/capabilities/gate-tools.js";
+import { gateLegacyTools } from "../src/capabilities/legacy-tools.js";
 import type {
   PendingAction,
   SecurityVerdict
@@ -63,7 +63,7 @@ function gateOne(
     requestApproval: async () => "allow",
     ...overrides
   };
-  return gateTools([inner], opts)[0];
+  return gateLegacyTools([inner], opts)[0];
 }
 
 describe("GatedTool × security monitor", () => {

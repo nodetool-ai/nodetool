@@ -28,6 +28,7 @@ export {
 export {
   DECLARED_CAPABILITY_MODULES,
   listCapabilitySpecs,
+  capabilityForName,
   capabilitySpec,
   capabilityCategoryFor,
   capabilityModuleOf,
@@ -57,6 +58,7 @@ export {
   UNGATED,
   contextSecretAvailability,
   createCapabilityRun,
+  capabilityProviderTool,
   resolveCapabilityMessage,
   ungatedCapabilityRun
 } from "./invoke.js";

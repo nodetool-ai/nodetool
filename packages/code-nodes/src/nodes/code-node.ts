@@ -282,7 +282,7 @@ async function toolBridgeGlobals(
   if (!context) return NO_TOOLS_GLOBALS;
   const mod = await loadAgentsModule();
   if (!mod) return NO_TOOLS_GLOBALS;
-  const tools = mod.gateTools(
+  const tools = mod.gateLegacyTools(
     toolOverride ?? assembleToolbelt(mod),
     codeNodeGate(mod, context)
   );

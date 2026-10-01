@@ -214,7 +214,7 @@ const packagesDir = resolve(
  *
  * Two shapes qualify. A re-export moves the symbol without building a run. A
  * construction site qualifies when the `Tool` it builds is gated from outside
- * by `gateTools`, or when the capability it serves is read-class — reading a
+ * by `gateLegacyTools`, or when the capability it serves is read-class — reading a
  * SKILL.md has nothing for the ladder to withhold.
  *
  * The walk covers every package's `src`, not just this package's: the
@@ -227,7 +227,7 @@ const MAY_BE_UNGATED: Record<string, string> = {
   "agents/src/capabilities/index.ts": "re-export",
   "agents/src/index.ts": "re-export",
   "agents/src/capabilities/lazy-tool.ts":
-    "builds a Tool; the host gates it with gateTools",
+    "builds a Tool; the host gates it with gateLegacyTools",
   "agents/src/capabilities/packs.ts": "reads a SKILL.md, a read-class call",
   "agents/src/tools/serp-tool-factory.ts":
     "builds the one Tool a belt cannot assemble from the registry; " +
@@ -272,7 +272,7 @@ function* packageSourceDirs(root: string): Generator<string> {
 /**
  * Files allowed to build a run on `UNGATED` directly, and why each is not a
  * hole. A construction site qualifies when the `Tool` built over the run is
- * wrapped by `gateTools` from outside, or when the run only serves a call the
+ * wrapped by `gateLegacyTools` from outside, or when the run only serves a call the
  * ladder already admitted (a nested run inside a gated capability).
  */
 const MAY_BUILD_UNGATED: Record<string, string> = {
@@ -280,18 +280,18 @@ const MAY_BUILD_UNGATED: Record<string, string> = {
   "agents/src/capabilities/index.ts": "re-export",
   "agents/src/index.ts": "re-export",
   "agents/src/capabilities/files.ts":
-    "fileCapabilityRun backs CapabilityTool instances a host wraps in gateTools",
+    "fileCapabilityRun backs CapabilityTool instances a host wraps in gateLegacyTools",
   "agents/src/capabilities/google.ts":
-    "googleCapabilityRun backs CapabilityTool instances a host wraps in gateTools",
+    "googleCapabilityRun backs CapabilityTool instances a host wraps in gateLegacyTools",
   "agents/src/capabilities/scripts.ts":
     "nested generate_speech run inside voice_script_lines, a write-class " +
     "call the ladder already admitted",
   "agents/src/tools/mcp-tools.ts":
     "builds lazy Tools for the MCP/CLI/chat belts; every host wraps that " +
-    "belt in gateTools",
+    "belt in gateLegacyTools",
   "websocket/src/mcp-agent-tools.ts":
     "inner runs for loader-carrying Tools; registerAgentMcpTools wraps the " +
-    "whole belt in gateTools",
+    "whole belt in gateLegacyTools",
   "websocket/src/session/chat-turn.ts":
     "delegation run for run_subtask/start_subtask/wait_subtasks, read-class " +
     "spawns whose children act through the gated belt"

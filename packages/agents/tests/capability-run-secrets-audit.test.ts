@@ -79,10 +79,8 @@ function callSites(source: string): string[] {
  */
 const OMITS_SECRET_RESOLVER: Record<string, { reason: string; sites: number }> =
   {
-    // Serves exactly the one tool it wraps; that tool builds its own run, and
-    // this one never reaches an implementation that validates a graph.
-    "packages/agents/src/capabilities/gate-tools.ts": {
-      reason: "one-call run over a single wrapped tool",
+    "packages/agents/src/evals/tool-loop-permission.ts": {
+      reason: "headless tool-loop implementations do not validate persisted graphs",
       sites: 1
     },
     "packages/agents/src/capabilities/files.ts": {
@@ -101,14 +99,9 @@ const OMITS_SECRET_RESOLVER: Record<string, { reason: string; sites: number }> =
       reason: "internal run for generate_speech",
       sites: 1
     },
-    // The `ui_*` document tools, node discovery, and `find_model`/
-    // `list_models`. None validates a graph; the workflow belt above them
-    // does, and it injects. The media belt was a fourth site and is gone: the
-    // media tools are built-ins now, over the run `getBuiltinTools()` builds,
-    // which does inject.
     "packages/agents/src/tools/mcp-tools.ts": {
-      reason: "document, discovery and model belts validate no graph",
-      sites: 3
+      reason: "document belt validates no graph",
+      sites: 1
     }
   };
 

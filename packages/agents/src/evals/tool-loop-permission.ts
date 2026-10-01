@@ -1,24 +1,10 @@
-/**
- * The permission gate for a tool-loop eval case.
- *
- * A case that declares `permission` runs its belt through the same ladder a
- * chat turn does: `gateTools` over a `PermissionGateOptions` built from the
- * declared mode, with a scripted approver in place of the UI round trip. Every
- * approval request the ladder makes is recorded, so a case can assert that a
- * mutation was asked about, denied, or never reached the prompt at all.
- *
- * `HeadlessTool` is not a `Tool`, and `gateTools` only takes a `Tool`, so each
- * headless tool is wrapped in a minimal `Tool` whose `process()` calls
- * `execute()`, gated, and unwrapped back to the `HeadlessTool` shape the loop
- * drives. The gate is also published on the run's context under
- * `PERMISSION_GATE_CONTEXT_KEY`, the way a host does it.
- */
+/** Headless evals invoke capabilities through the production permission gate. */
 
 import { randomUUID } from "node:crypto";
 import { ProcessingContext } from "@nodetool-ai/runtime";
-import type { ZodType } from "zod";
-import { gateTools } from "../capabilities/gate-tools.js";
-import { Tool } from "../tools/base-tool.js";
+import { zodToJsonSchema } from "@nodetool-ai/runtime";
+import { createCapabilityRun } from "../capabilities/invoke.js";
+import { capabilityCategoryFor } from "../capabilities/registry.js";
 import type {
   PermissionCategory,
   PermissionGateOptions,
@@ -47,29 +33,6 @@ export interface GatedHeadlessTools {
   tools: HeadlessTool[];
   /** Every approval request so far, in order. */
   requests: () => readonly PermissionRequestRecord[];
-}
-
-/** A `Tool` view of a headless tool, so `gateTools` can wrap it. */
-class HeadlessSurfaceTool extends Tool {
-  readonly name: string;
-  readonly description: string;
-
-  constructor(private readonly inner: HeadlessTool) {
-    super();
-    this.name = inner.name;
-    this.description = inner.description;
-  }
-
-  override get schema(): ZodType {
-    return this.inner.parameters;
-  }
-
-  process(
-    _context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    return this.inner.execute(params);
-  }
 }
 
 /**
@@ -102,16 +65,26 @@ export function gateHeadlessTools(
   });
   context.set(PERMISSION_GATE_CONTEXT_KEY, gate);
 
-  const gated = gateTools(
-    tools.map((tool) => new HeadlessSurfaceTool(tool)),
-    gate
-  );
+  const run = createCapabilityRun({
+    context,
+    gate,
+    capabilities: tools.map((tool) => ({
+      spec: {
+        name: tool.name,
+        description: tool.description,
+        inputSchema: zodToJsonSchema(tool.parameters),
+        zodSchema: tool.parameters,
+        category: tool.category ?? capabilityCategoryFor(tool.name),
+        userMessage: tool.userMessage,
+        needsToolCallId: tool.needsToolCallId
+      },
+      impl: (_run, args) => tool.execute(args)
+    }))
+  });
   return {
-    tools: tools.map((tool, index) => ({
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.parameters,
-      execute: (args) => gated[index].process(context, args)
+    tools: tools.map((tool) => ({
+      ...tool,
+      execute: (args) => run.invoke(tool.name, args)
     })),
     requests: () => requests
   };

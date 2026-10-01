@@ -6,10 +6,16 @@
  * covered in packages/chat/tests/codeact-turn.test.ts.
  */
 import { describe, it, expect, vi } from "vitest";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 class StubTool {
   readonly name: string = "";
   readonly description: string = "";
+  readonly needsToolCallId: boolean = false;
+  static stripMessage(args: Record<string, unknown>) {
+    const { _message, ...rest } = args;
+    return rest;
+  }
   get inputSchema(): unknown {
     return { type: "object", properties: {} };
   }
@@ -39,6 +45,8 @@ const executedCalls: Array<{
   options: { toolCallId?: string };
 }> = [];
 
+const runsByTool = new WeakMap<object, { invoke: (name: string, args: Record<string, unknown>) => Promise<unknown> }>();
+
 const sessionsCreated: Array<{ toolNames: string[] }> = [];
 
 const listSkillsByUser = vi.fn(
@@ -51,6 +59,7 @@ vi.mock("@nodetool-ai/models", () => ({
 
 vi.mock("@nodetool-ai/agents", () => ({
   Tool: StubTool,
+  capabilityRunForLegacyTool: (tool: StubTool) => runsByTool.get(tool),
   mergeSystemSkills: (rows: Array<{ name: string; description: string }>) => [
     ...rows,
     { name: "motion-direction", description: "Set the motion language." }
@@ -229,4 +238,22 @@ describe("applySystemPrompt", () => {
     expect(messages.filter((m) => m.role === "system")).toHaveLength(1);
     expect(messages[0].content).toBe("new catalog");
   });
+});
+
+
+it("CLI CodeAct invokes the owned capability run once and preserves the call id", async () => {
+  class NativeTool extends EchoTool {
+    override readonly needsToolCallId: boolean = true;
+  }
+  const tool = new NativeTool();
+  const invoke = vi.fn(async () => ({ ok: true }));
+  runsByTool.set(tool, { invoke });
+  const before = executedCalls.length;
+  // The CLI wiring test passes this context only to its stubbed run.
+  const context = {} as unknown as ProcessingContext;
+  const turn = createCliCodeActTurn({ tools: [tool], context });
+  const session = turn.session as unknown as { __executeTool: (call: { id: string; name: string; args: Record<string, unknown> }) => Promise<unknown> };
+  expect(await session.__executeTool({ id: "call-1", name: tool.name, args: { text: "hello", _message: "Reading a value" } })).toEqual({ ok: true });
+  expect(invoke).toHaveBeenCalledExactlyOnceWith(tool.name, { text: "hello", _tool_call_id: "call-1" });
+  expect(executedCalls).toHaveLength(before);
 });

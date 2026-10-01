@@ -6,7 +6,7 @@
  * whether each tool call runs automatically, asks the user first, or is
  * blocked. The ladder itself lives in `capabilities/invoke.ts` — one
  * implementation, reached either through `CapabilityRun.invoke` or through the
- * `gateTools` wrapper (`capabilities/gate-tools.ts`), which is how a host that
+ * `gateLegacyTools` wrapper (`capabilities/legacy-tools.ts`), which is how a host that
  * still hands out `Tool` instances gets the same gate. The wrapper lives on
  * the capabilities side so this file never imports from `capabilities/` — the
  * reverse edge deadlocked the bundled backend's async module wrappers.

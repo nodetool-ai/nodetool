@@ -654,16 +654,16 @@ module has a data-only sibling (`workflows.specs.ts`, `media.specs.ts`, …)
 holding wire name, description, JSON schema, category and message template, and
 importing no implementation, so `capabilitySpec(name)` and
 `listCapabilitySpecs()` answer synchronously. That is what lets a belt be
-assembled synchronously from the registry: `toolFromLazyCapability(spec, run)` /
-`toolForCapabilityName(name, run)` (`capabilities/lazy-tool.ts`) return a `Tool`
-whose spec is there at assembly time and whose implementation loads from its own
-module at the first `process()` — `Tool.process()` was already async, so only the
-spec ever had to be eager. `getBuiltinTools()`, `getAllMcpTools()` and
-`getGoogleWorkspaceTools()` all build this way; the one-line
-`extends CapabilityTool` subclasses they replaced are gone, and so is
-`CapabilityTool` itself — `toolFromCapability(spec, impl, run)`
-(`capabilities/adapters.ts`) hands the implementation it already has to
-`toolFromLazyCapability`'s optional `impl` argument.
+assembled synchronously from the registry. `capabilityForName(name)` returns
+an eager spec and a lazy implementation. Chat and MCP catalogs use specs,
+with provider declarations built by `capabilityProviderTool(spec)`. Dependencies
+belong to the host's `CapabilityRun`.
+
+`toolFromLazyCapability(spec, run)`, `toolForCapabilityName(name, run)`, and
+`toolFromCapability(spec, impl, run)` remain compatibility adapters for
+executors and provider loops that require `Tool[]`. Their calls use the
+permission and validation machinery in `invoke.ts`. Native capabilities must
+never pass through `capabilityFromTool`.
 
 A module imports its own specs back and attaches each to an implementation, so
 one spec *object* stands behind both halves, and `eagerSpecDrift` compares them
@@ -671,10 +671,9 @@ by identity — a module that copied its spec would pass a field check and still
 be two things to keep in step. `CapabilitySpec.zodSchema` carries the Zod schema
 for the capabilities whose identity is one (`view_image`, `list_images`, the
 `ui_*` document tools, the `settings` and `packs` namespaces). It is checked
-once, by `validateCapabilityArgs` (`capabilities/args.ts`): in
-`LazyCapabilityTool.process()` on the belt path, in `gatedCall` on the `invoke`
-path. `Tool.execute` does not pre-parse — `LazyCapabilityTool` exposes no
-`schema` — so neither entrance validates twice and neither skips it.
+once, by `validateCapabilityArgs` (`capabilities/args.ts`) at the invocation
+seam. Compatibility wrappers forward to that same seam. The reserved
+`_tool_call_id` survives validation, and approval prompts preserve `_message`.
 
 What the registry deliberately does *not* serve is written down where the API
 it mirrors lives: `packages/websocket/src/trpc/sandbox-coverage.ts` classifies
@@ -700,12 +699,18 @@ checked-in `name → category` snapshot, so a reclassification is a one-line dif
 `getBuiltinTools()` and `getAllMcpTools({})` assemble must resolve through
 `findCapability`, or sit in that file's pinned exception list with a reason.
 
-`invoke.ts` holds the one ladder — lookup, gate, impl. Every entrance runs it:
-the guest dispatcher, a direct MCP registration, `run_subtask`'s child loop.
-`gateTools` (`capabilities/gate-tools.ts`) is the door a `Tool` walks through:
-it wraps each tool in a subclass whose `process()` builds a one-call run over
-`capabilityFromTool` and calls `invoke`. `tests/capabilities-gate-parity.test.ts`
-drives both entrances and compares transcripts.
+[`invoke.ts`](src/capabilities/invoke.ts) holds the permission and validation
+sequence. Chat, MCP, sandbox imports, and headless evals invoke their owned
+`CapabilityRun` directly. A child context needs its own run because its memory,
+workspace, and delegation depth can differ, while sharing the host's gate.
+
+`gateLegacyTools` ([`legacy-tools.ts`](src/capabilities/legacy-tools.ts)) is only
+for consumers that still require `Tool[]`. It caches one invocation run per
+belt and context. Native compatibility wrappers contribute their original
+spec and implementation, preserving injected dependencies without calling
+`Tool.process()`. Only actual legacy implementations use `capabilityFromTool`.
+Tests in `capabilities-headless-permission.test.ts` cover direct invocation,
+headless permissions, metadata, validation, and the compatibility boundary.
 
 The guest reaches a namespace by import, never by a global:
 
@@ -742,7 +747,7 @@ and what a session added at its own call site is grafted onto `.../session`
 `nodetool` object model stays a global.
 
 **Import direction is one-way: `capabilities/` imports
-`tools/tool-permissions.ts`, never the reverse.** That is why `gateTools` sits
+`tools/tool-permissions.ts`, never the reverse.** That is why `gateLegacyTools` sits
 in `capabilities/` and not beside the classification map it uses. The reverse
 edge made the bundled backend's module wrappers an async cycle —
 `init_tool_permissions` awaiting `init_adapters` awaiting
@@ -892,7 +897,7 @@ the server's persistence (`packages/websocket/src/external-mcp.ts`, one
 `Setting` row per user, the `externalMcp` tRPC router) and the settings UI
 (`web/src/components/menus/ExternalMcpServersSection.tsx`). The cloud
 profile refuses stdio servers, since a command runs on the machine the server
-owns. A remote tool has no capability entry, so `gateTools` classifies it
+owns. A remote tool has no capability entry, so `gateLegacyTools` classifies it
 `external`. Tests: `tests/external-mcp-tools.test.ts` (a real MCP server over
 an in-memory transport), `packages/websocket/tests/external-mcp.test.ts`.
 
@@ -1147,10 +1152,10 @@ route instead of failing the whole step.
 ## Where the permission gate is set
 
 One ladder decides every actionable call. `decidePermission`
-(`tools/tool-permissions.ts`) reads a mode and a category, `gatedCall`
+(`tools/tool-permissions.ts`) reads a mode and a category, `invokeCapability`
 (`capabilities/invoke.ts`) runs the sequence around it (read-class fast path,
-mode decision, session allow-set, approval round trip), and `gateTools`
-(`capabilities/gate-tools.ts`) is the door a `Tool` walks through it. What
+mode decision, session allow-set, approval round trip), and `gateLegacyTools`
+(`capabilities/legacy-tools.ts`) is the door a `Tool` walks through it. What
 differs between hosts is who answers when the ladder asks.
 
 A host publishes one `PermissionGateOptions` under
@@ -1172,18 +1177,18 @@ with `headlessGate(hostName)`.
 | Host | Where its gate comes from | Mode | Approver |
 |---|---|---|---|
 | Chat turn (web, Telegram) | `chat-turn.ts` sets `chatGate` on the turn context | the thread's live mode, read through a getter so `set_permission_mode` lands mid-turn | round trip to the client (`requestToolApproval`) |
-| MCP mount | `mcpSessionGate()` in `mcp-agent-tools.ts` — `headlessGate("MCP")` with `execute_code` seeded into `sessionAllow` — and the whole belt wrapped in `gateTools`, so the direct registrations and `tools.<name>()` inside a code action meet the same ladder | `auto`: the client's user connected this agent deliberately, and an MCP session has no approval UI of its own to prompt through | nobody: the headless deny. The one standing approval is `execute_code`, because the client already put that call, code included, in front of its user; an escalation from inside a run (an un-allowlisted Apify actor) has no such answer and is denied |
+| MCP mount | `mcpSessionGate()` in `mcp-agent-tools.ts` — `headlessGate("MCP")` with `execute_code` seeded into `sessionAllow` — and one session-owned `CapabilityRun`, so direct registrations, namespace imports, and `tools.<name>()` meet the same ladder | `auto`: the client's user connected this agent deliberately, and an MCP session has no approval UI of its own to prompt through | nobody: the headless deny. The one standing approval is `execute_code`, because the client already put that call, code included, in front of its user; an escalation from inside a run (an un-allowlisted Apify actor) has no such answer and is denied |
 | `run_node` child | `runSingleNode` builds a context of its own, so the turn's gate is passed in as an argument and set on it | the calling turn's, the same object | the calling turn's client |
 | `AgentNode` in a workflow | `genProcess` wraps what `buildTools` returned in `gateFromContext(context, "Agent node")` | the host's, or `auto` when no host set one | the host's, or the headless deny |
 | JS script | `js-script-sandbox.ts` passes `gateFromContext(context, "JS script")` to `createCapabilityRun` | same | same |
-| `nodetool.code.Code` node | `code-node.ts` reads `gateFromContext(context, "Code node")` once and uses it for both doors: `createCapabilityRun` for the `@nodetool-ai/sandbox-nodetool/*` imports, `gateTools` around the belt the bridge calls | same | same |
+| `nodetool.code.Code` node | `code-node.ts` reads `gateFromContext(context, "Code node")` once and uses it for both doors: `createCapabilityRun` for the `@nodetool-ai/sandbox-nodetool/*` imports, `gateLegacyTools` around the belt the bridge calls | same | same |
 | Kernel workflow run | `buildWorkspaceExecutionContext` (`packages/execution/src/service/workflow-workspace.ts`) sets `headlessGate("kernel workflow run")` on the context it builds, and `ExecutionSession.create` sets the same on a caller's own context when that caller set none (see below) | `auto` | nobody: the headless deny |
 | Headless job runner (trigger-driven runs) | `packages/websocket/src/headless-job-runner.ts` sets `headlessGate("headless job runner")` on the run context | `auto` | nobody: the headless deny |
 | `nodetool agent run` on a TTY | `createCliPermissionGate` (`packages/cli/src/permission-gate.ts`), host name `nodetool agent run`, set on the run's context | `--permission-mode`, defaulting to `default` | the terminal: `y / n / a` prompted on stderr, because stdout carries the result. `a` answers `allow_for_chat`, and the name lands in the run's shared `sessionAllow` |
 | `nodetool agent run` with the objective piped in | the same builder, not interactive | `--permission-mode`, defaulting to `auto` | nobody: `headlessGate`'s deny, its reason printed once per run |
 | `nodetool-chat` reading piped stdin (`runStdinMode`) | the same builder, host name `nodetool-chat`, set on each line's context | `--permission-mode`, defaulting to `auto` | nobody: the headless deny |
 | `nodetool-chat --url` | no gate is built here | — | the server's chat turn, which gates the belt it runs |
-| `nodetool-chat` interactive session | **nothing**: the Ink session builds its own belt in `app.tsx`, wraps it in no `gateTools`, and puts no key on its context | none | nobody |
+| `nodetool-chat` interactive session | **nothing**: the Ink session builds its own belt in `app.tsx`, wraps it in no `gateLegacyTools`, and puts no key on its context | none | nobody |
 
 A CLI run that cannot prompt keeps the mode it was asked for and changes only
 the approver, so a piped `--permission-mode plan` still blocks what plan mode
@@ -1201,14 +1206,12 @@ it, and an approval there needs an Ink component instead. Rather than accept a
 mode it would ignore, `packages/cli/src/index.ts` prints that
 `--permission-mode` does not apply to the interactive session.
 
-**Both gated CLI hosts wrap their belt the way chat does.** `gateTools` covers
-the belt, and `execute_plan` is wrapped on its own, because
-`toolForCapabilityName` builds a `LazyCapabilityTool` whose `process` calls the
-implementation directly: a gate on the delegation run covers what that
-implementation invokes, not the tool itself. The delegation primitives
-(`run_subtask`, `start_subtask`, `wait_subtasks`, `run_search`, `create_plan`)
-stay ungated in both hosts, because spawning a child loop has no effect of its
-own and the child acts through the belt that is already gated.
+**Both gated CLI hosts retain a `Tool[]` compatibility belt.** The provider
+loop and delegated executors still require it. `gateLegacyTools` owns one run
+per belt and context, and CLI CodeAct reuses that run directly. Native wrappers
+supply specs and implementations without being converted back into legacy
+capabilities. `execute_plan` uses the same gate as other actionable calls.
+Delegation and planning capabilities retain their declared read category.
 
 **The kernel row is a decision, set explicitly.** A workflow run is consent:
 the user pressed Run on a graph whose nodes list their tools, so an agent loop
@@ -1248,10 +1251,11 @@ withhold, and never resolving would hang the run (invariant I-4).
 `headlessDenialReason` is exported so a host that runs headless on purpose can
 print the same sentence once at the start instead of once per denied call.
 
-**Three construction sites may still build an ungated run.**
-`capabilities/lazy-tool.ts` and `tools/serp-tool-factory.ts` build a `Tool` the
-host gates from outside with `gateTools`; `capabilities/packs.ts` reads a
-SKILL.md, a read-class call with nothing for the ladder to withhold.
+**Compatibility consumers may still build an ungated run.**
+`capabilities/lazy-tool.ts` and `tools/serp-tool-factory.ts` build compatibility
+tools whose calls use `invokeCapability`. Gated hosts supply their permission
+gate through `gateLegacyTools`. `capabilities/packs.ts` reads a SKILL.md,
+a read-class call with nothing for the ladder to withhold.
 `packages/agents/tests/gate-from-context.test.ts` walks every
 `packages/*/src` for `ungatedCapabilityRun` and fails on any file its allowlist
 does not cover. It also asserts that the three sites it names by hand were
@@ -2179,7 +2183,7 @@ FAL_API_KEY=$FAL_KEY IS_SANDBOX=1 npx tsx \
 #### Permission-gated cases
 
 A case that declares `permission: { mode, approve? }` runs its belt through
-the real `gateTools` ladder with a scripted approver
+the production `CapabilityRun.invoke` ladder with a scripted approver
 (`src/evals/tool-loop-permission.ts`), and every approval request is recorded
 on `permissionRequests` for the case's `expect.permissionRequests` predicates,
 which count as final-state checks. `plan-mode-blocks-mutation` and

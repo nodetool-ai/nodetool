@@ -1,7 +1,7 @@
 /**
  * One source of truth for a capability's permission category.
  *
- * `run.invoke` gates on the spec's `category`; `gateTools` wraps a `Tool`
+ * `run.invoke` gates on the spec's `category`; `gateLegacyTools` wraps a `Tool`
  * through `capabilityFromTool`, which used to classify by name from
  * `TOOL_PERMISSION_CATEGORIES` alone — so a capability absent from the map
  * was `read` through one door and `external` through the other. Both doors

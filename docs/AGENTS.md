@@ -283,10 +283,12 @@ read-class capability goes straight to its implementation, then the mode and
 category decide (`decidePermission`), then the session allow-set, then the
 approval round trip. A capability declares its `category` (`read`, `write`,
 `execute`, `external`) in its spec; a `Tool` reaches the same ladder through
-`gateTools`, which builds a one-call `CapabilityRun` over a capability view of
-the tool and classifies it with `capabilityCategoryFor`, which reads the
-registered spec's category first and the hand-written map only for the few
-Tool classes without a spec.
+[`gateLegacyTools`](../packages/agents/src/capabilities/legacy-tools.ts), which
+caches one invocation run per belt and context. It adapts only legacy
+implementations with `capabilityFromTool`. Native compatibility wrappers retain
+their specs and implementations. Chat, MCP, and headless evals use their owned
+`CapabilityRun` directly, and provider declarations are generated from specs.
+
 
 The gate is per run, not per tool. A host publishes one
 `PermissionGateOptions` on the context under `PERMISSION_GATE_CONTEXT_KEY`, and

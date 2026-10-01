@@ -37,17 +37,17 @@ import {
   CODEACT_RESIDENT_TOOL_NAMES,
   createChatCodeActSession,
   type ChatCodeActToolCall,
-  getBuiltinTools,
-  getAllMcpTools,
-  getGoogleWorkspaceTools,
-  getApifyTools,
-  getSerpApiTools,
-  capabilityCategoryFor,
-  toolForCapabilityName,
-  UNGATED,
+  availableBuiltinToolNames,
+  GOOGLE_WORKSPACE_TOOL_NAMES,
+  APIFY_TOOL_NAMES,
+  SERPAPI_TOOL_NAMES,
+  capabilityForName,
+  capabilityFromTool,
+  type CapabilitySpec,
+  type CapabilityExport,
+  getAllMcpCapabilitySpecs,
   createCapabilityRun,
   contextSecretAvailability,
-  gateTools,
   headlessGate,
   EXECUTE_CODE_TOOL_NAME,
   type PermissionGateOptions,
@@ -330,87 +330,14 @@ function errorResponse(err: unknown) {
  * same catalogs `websocket-client-session` assembles a chat toolbelt from, so
  * the two surfaces cannot drift.
  *
- * `providers` is the map `find_model` and `list_models` read at call time — it
- * is passed by reference and filled in lazily, so it is empty here.
+ * Dependency resolution is deferred to the session-owned capability run.
  */
-function collectBridgedTools(
-  options: McpServerOptions | undefined,
-  providers: Record<string, BaseProvider>
-): Tool[] {
+function collectBridgedSpecs(options: McpServerOptions | undefined): CapabilitySpec[] {
   return [
-    // The chat agent's built-ins: files, search, browser, PDF, vision,
-    // critique, memory, asset library, todo.
-    ...getBuiltinTools(),
-    // Workflow / node / job / asset / app tools. The read tools among them
-    // (list_workflows, get_asset, …)
-    // collide with the native registrations and are skipped by the caller.
-    // Thread this mount's own configuration into the host deps — a server
-    // configured with a non-default examples dir or metadata roots must not
-    // silently fall back to the defaults.
-    ...getAllMcpTools({
-      registry: options?.registry,
-      ...mcpToolHostDeps({
-        registry: options?.registry,
-        metadataRoots: options?.metadataRoots,
-        metadataMaxDepth: options?.metadataMaxDepth,
-        examplesDir: options?.examplesDir
-      })
-    }),
-    // Google Workspace runs on the token from the user's Google sign-in, so it
-    // only exists on deployments that have a login — same gate the runner uses.
-    ...(isGoogleWorkspaceEnabled() ? getGoogleWorkspaceTools() : []),
-    // Apify and SerpAPI: same belt the chat runner offers. The gate is not
-    // set here: `registerAgentMcpTools` wraps the whole belt in `gateTools`,
-    // so these run past the same ladder as everything else.
-    ...getApifyTools(),
-    ...getSerpApiTools(),
-    // Timelines have no REST route (the API is tRPC-only), so this capability
-    // reads a loader off the run instead of fetching, and `getAllMcpTools`
-    // cannot build it.
-    // `UNGATED` on the inner run, because the belt-level `gateTools` wrapper
-    // is what carries this mount's gate — a second ladder here would decide
-    // the same call twice. The run exists for the loader, not for permissions.
-    toolForCapabilityName("validate_timeline", (context) =>
-      createCapabilityRun({
-        context,
-        gate: UNGATED,
-        availableSecrets: contextSecretAvailability(context),
-        loaders: { timeline: loadTimelineForUser }
-      })
-    ),
-    // Sketches are tRPC-only too, so this one reads a loader for the same
-    // reason and `getAllMcpTools` cannot build it either.
-    toolForCapabilityName("validate_sketch", (context) =>
-      createCapabilityRun({
-        context,
-        gate: UNGATED,
-        availableSecrets: contextSecretAvailability(context),
-        loaders: { sketch: loadSketchForUser }
-      })
-    ),
-    // `getAllMcpTools` only offers the media tools when handed a populated
-    // provider map. Here they resolve providers from the scoped user's secrets
-    // at call time, so offer them unconditionally rather than probing every
-    // provider during server construction.
-    ...[
-      "generate_image",
-      "edit_image",
-      "generate_video",
-      "animate_image",
-      "generate_speech",
-      "transcribe_audio",
-      "embed_text"
-    ].map((name) => toolForCapabilityName(name)),
-    ...["find_model", "list_models"].map((name) =>
-      toolForCapabilityName(name, (context) =>
-        createCapabilityRun({
-          context,
-          gate: UNGATED,
-          availableSecrets: contextSecretAvailability(context),
-          providers
-        })
-      )
-    )
+    ...availableBuiltinToolNames().map((name) => capabilityForName(name).spec),
+    ...getAllMcpCapabilitySpecs({ registry: options?.registry }),
+    ...(isGoogleWorkspaceEnabled() ? GOOGLE_WORKSPACE_TOOL_NAMES : []).map((name) => capabilityForName(name).spec),
+    ...[...APIFY_TOOL_NAMES, ...SERPAPI_TOOL_NAMES, "find_model", "list_models"].map((name) => capabilityForName(name).spec)
   ];
 }
 
@@ -497,7 +424,10 @@ class ImportAssetTool extends Tool {
     required: []
   };
 
-  constructor(private readonly localFilePathsAllowed: boolean) {
+  constructor(
+    private readonly localFilePathsAllowed: boolean,
+    private readonly saveAsset: (args: Record<string, unknown>) => Promise<unknown>
+  ) {
     super();
   }
 
@@ -549,7 +479,7 @@ class ImportAssetTool extends Tool {
       if (isString(params["content_type"])) {
         saveParams["content_type"] = params["content_type"];
       }
-      result = await toolForCapabilityName("save_asset").process(context, saveParams);
+      result = await this.saveAsset(saveParams);
     }
     if (!isRecord(result) || !isString(result["asset_id"])) return result;
     const asset = await Asset.find(context.userId, result["asset_id"]);
@@ -803,38 +733,6 @@ class FrontendUiTool extends Tool {
   }
 }
 
-/** Adds the optional renderer selector to a workflow document tool schema. */
-class RendererAwareDocumentTool extends Tool {
-  readonly name: string;
-  readonly description: string;
-  protected readonly jsonSchema: JsonSchema;
-
-  constructor(private readonly delegate: Tool) {
-    super();
-    this.name = delegate.name;
-    this.description = delegate.description;
-    const schema = delegate.inputSchema;
-    this.jsonSchema = {
-      ...schema,
-      type: "object",
-      properties: {
-        ...recordValue(schema["properties"]),
-        renderer_id: RENDERER_ID_PROPERTY
-      }
-    };
-  }
-
-  // HOLDOUT (anti-slop/no-unknown-returns): the result is the delegate's, and
-  // `Tool.process` in `@nodetool-ai/agents` declares `Promise<unknown>`.
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const { renderer_id: _rendererId, ...serverArgs } = params;
-    return this.delegate.process(context, serverArgs);
-  }
-}
-
 /** `list_renderers` as a belt tool: which editors a `ui_*` call could target. */
 class ListRenderersTool extends Tool {
   readonly name = "list_renderers";
@@ -914,7 +812,7 @@ function oneLine(description: string): string {
  * poor for tooling; this is the same catalog with structure, and costs nothing
  * at list time.
  */
-function buildCapabilityCatalog(belt: Tool[], directToolNames: string[]) {
+function buildCapabilityCatalog(belt: CapabilitySpec[], directToolNames: string[]) {
   const available = new Set(belt.map((tool) => tool.name));
   const modules = Object.entries(NODETOOL_API_NAMESPACE_TOOLS)
     .map(([namespace, names]) => ({
@@ -931,7 +829,7 @@ function buildCapabilityCatalog(belt: Tool[], directToolNames: string[]) {
       .map((tool) => ({
         name: tool.name,
         description: oneLine(tool.description),
-        permission_category: capabilityCategoryFor(tool.name)
+        permission_category: tool.category
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
   };
@@ -992,22 +890,7 @@ export function registerAgentMcpTools(
   //
   // The codeact session mounts this run, so an action can import
   // `@nodetool-ai/sandbox-nodetool/<namespace>` and land on `run.invoke`; the
-  // belt is wrapped in `gateTools` below, so `tools.<name>()` and the direct
-  // MCP registrations reach the same ladder (invariant I-1).
-  const capabilityRun = createCapabilityRun({
-    context,
-    gate,
-    availableSecrets: contextSecretAvailability(context),
-    nodeRegistry: options.registry,
-    ...mcpToolHostDeps({
-      registry: options.registry,
-      metadataRoots: options.metadataRoots,
-      metadataMaxDepth: options.metadataMaxDepth,
-      examplesDir: options.examplesDir
-    }),
-    providers: sharedProviders,
-    loaders: { timeline: loadTimelineForUser, sketch: loadSketchForUser }
-  });
+  // same run handles `tools.<name>()` and direct MCP registrations.
 
   const workflowDocumentToolNames = new Set<string>(
     WORKFLOW_DOCUMENT_TOOL_NAMES
@@ -1021,52 +904,13 @@ export function registerAgentMcpTools(
   // HOLDOUT (anti-slop/no-unknown-returns): one path for every bridged tool,
   // so the result is the open tool-result domain `Tool.process` declares.
   const runBridgedTool = async (
-    tool: Tool,
+    tool: CapabilitySpec,
     args: Record<string, unknown>
   ): Promise<unknown> => {
-    // Model search and workflow readiness read the configured-providers map at
-    // call time, so populate it before either handler runs. Without the
-    // workflow entries, the first plan/build call sees the lazy map while it
-    // is still empty and reports a false missing-provider blocker.
-    if (
-      tool.name === "find_model" ||
-      tool.name === "list_models" ||
-      WORKFLOW_READINESS_TOOL_NAMES.has(tool.name)
-    ) {
-      await ensureProviders();
-    }
-    const isWorkflowDocumentTool = workflowDocumentToolNames.has(tool.name);
-    const isFrontendTool = tool.name.startsWith("ui_");
-    if (isWorkflowDocumentTool || isFrontendTool) {
-      const live = await executeFrontendTool(
-        options,
-        scope.userId,
-        tool.name,
-        args
-      );
-      if (live.handled) return live.result;
-
-      const rendererId = args["renderer_id"];
-      if (isString(rendererId)) {
-        throw new Error(
-          `No connected NodeTool renderer with id "${rendererId}".`
-        );
-      }
-
-      // Workflow document tools have a server-side implementation and use the
-      // live editor when one is available. Other editor tools only exist in a
-      // connected renderer, so report the missing target clearly.
-      if (isFrontendTool && !isWorkflowDocumentTool) {
-        throw new Error(
-          `${tool.name} needs a connected NodeTool editor; none is open.`
-        );
-      }
-    }
-    const { renderer_id: _rendererId, ...serverArgs } = args;
-    return tool.process(context, serverArgs);
+    return capabilityRun.invoke(tool.name, args);
   };
 
-  const register = (tool: Tool): void => {
+  const register = (tool: CapabilitySpec): void => {
     const isImageTool = tool.name === "view_image";
     const schema = { ...jsonSchemaToZodShape(tool.inputSchema) };
     if (isImageTool) {
@@ -1138,28 +982,107 @@ export function registerAgentMcpTools(
 
   // The belt the sandbox sees. Deduped by name, because the two catalogs
   // overlap and a session must not offer one tool under two instances.
-  const rawBelt: Tool[] = [];
-  const beltNames = new Set<string>();
-  for (const originalTool of [
-    new ImportAssetTool(localFilePathsAllowed),
+  const hostCapabilities: CapabilityExport[] = [];
+  const legacyEntries = [
+    new ImportAssetTool(localFilePathsAllowed, (args) =>
+      capabilityRun.invoke("save_asset", args)
+    ),
     new RenderDemoSurfaceTool(),
-    ...collectBridgedTools(options, sharedProviders),
     ...editorSteeringTools(options, scope.userId)
-  ]) {
-    const tool = workflowDocumentToolNames.has(originalTool.name)
-      ? new RendererAwareDocumentTool(originalTool)
-      : originalTool;
-    if (beltNames.has(tool.name)) continue;
+  ].map(capabilityFromTool);
+  const entries = [
+    ...legacyEntries,
+    ...collectBridgedSpecs(options).map((spec) => capabilityForName(spec.name))
+  ];
+  const belt: CapabilitySpec[] = [];
+  const beltNames = new Set<string>();
+  for (const entry of entries) {
+    const tool = entry.spec;
+    if (beltNames.has(tool.name)) {
+      continue;
+    }
     beltNames.add(tool.name);
-    rawBelt.push(tool);
+    const spec = workflowDocumentToolNames.has(tool.name)
+      ? {
+          ...tool,
+          zodSchema:
+            tool.zodSchema instanceof z.ZodObject
+              ? tool.zodSchema.extend({ renderer_id: z.string().optional() })
+              : tool.zodSchema,
+          inputSchema: {
+            ...tool.inputSchema,
+            properties: {
+              ...recordValue(tool.inputSchema["properties"]),
+              renderer_id: RENDERER_ID_PROPERTY
+            }
+          }
+        }
+      : tool;
+    belt.push(spec);
+    hostCapabilities.push({
+      spec,
+      impl: async (run, args) => {
+        // Model search and workflow readiness read the configured-providers map at
+        // call time, so populate it before either handler runs. Without the
+        // workflow entries, the first plan/build call sees the lazy map while it
+        // is still empty and reports a false missing-provider blocker.
+        if (
+          tool.name === "find_model" ||
+          tool.name === "list_models" ||
+          WORKFLOW_READINESS_TOOL_NAMES.has(tool.name)
+        ) {
+          await ensureProviders();
+        }
+
+        const isWorkflowDocumentTool = workflowDocumentToolNames.has(tool.name);
+        const isFrontendTool = tool.name.startsWith("ui_");
+        if (isWorkflowDocumentTool || isFrontendTool) {
+          const live = await executeFrontendTool(
+            options,
+            scope.userId,
+            tool.name,
+            args
+          );
+          if (live.handled) {
+            return live.result;
+          }
+
+          const rendererId = args["renderer_id"];
+          if (isString(rendererId)) {
+            throw new Error(
+              `No connected NodeTool renderer with id "${rendererId}".`
+            );
+          }
+
+          // Workflow document tools have a server-side implementation and use the
+          // live editor when one is available. Other editor tools only exist in a
+          // connected renderer, so report the missing target clearly.
+          if (isFrontendTool && !isWorkflowDocumentTool) {
+            throw new Error(
+              `${tool.name} needs a connected NodeTool editor; none is open.`
+            );
+          }
+        }
+        const { renderer_id: _rendererId, ...serverArgs } = args;
+        return entry.impl(run, serverArgs);
+      }
+    });
   }
-  // Every belt tool goes through the one ladder. `runBridgedTool` ends in
-  // `tool.process`, so wrapping here covers both entrances — the direct MCP
-  // registrations below and `tools.<name>()` inside a code action — with no
-  // second gate of their own. The wrapper is transparent otherwise (identity,
-  // schema, message template are the inner tool's), so the catalog and the
-  // sandbox belt are unchanged.
-  const belt = gateTools(rawBelt, gate);
+  const capabilityRun = createCapabilityRun({
+    capabilities: hostCapabilities,
+    context,
+    gate,
+    availableSecrets: contextSecretAvailability(context),
+    nodeRegistry: options.registry,
+    ...mcpToolHostDeps({
+      registry: options.registry,
+      metadataRoots: options.metadataRoots,
+      metadataMaxDepth: options.metadataMaxDepth,
+      examplesDir: options.examplesDir
+    }),
+    providers: sharedProviders,
+    loaders: { timeline: loadTimelineForUser, sketch: loadSketchForUser }
+  });
   const byName = new Map(belt.map((tool) => [tool.name, tool]));
 
   // `view_image` is the one channel that puts pixels into a caller's context,

@@ -13,7 +13,7 @@ import {
   type PermissionGateOptions,
   type PermissionMode
 } from "../src/tools/tool-permissions.js";
-import { gateTools } from "../src/capabilities/gate-tools.js";
+import { gateLegacyTools } from "../src/capabilities/legacy-tools.js";
 
 const ctx = {} as ProcessingContext;
 
@@ -59,14 +59,14 @@ describe("TOOL_PERMISSION_CATEGORIES", () => {
 describe("GatedTool — forwarding & messages", () => {
   it("forwards inputSchema and userMessage to the inner tool", () => {
     const inner = new FakeTool("read_file");
-    const gated = gateTools([inner], opts("default", async () => "allow"))[0];
+    const gated = gateLegacyTools([inner], opts("default", async () => "allow"))[0];
     expect(gated.inputSchema).toBe(inner.inputSchema);
     expect(gated.userMessage({ x: 1 })).toBe("fake ran with x");
   });
 
   it("explains plan-mode blocks with the tool name and remediation", async () => {
     const inner = new FakeTool("write_file");
-    const result = (await gateTools([inner], opts("plan", async () => "allow"))[0].process(
+    const result = (await gateLegacyTools([inner], opts("plan", async () => "allow"))[0].process(
       ctx,
       {}
     )) as { message: string };
@@ -78,7 +78,7 @@ describe("GatedTool — forwarding & messages", () => {
 
   it("explains denials with the tool name and a no-retry hint", async () => {
     const inner = new FakeTool("write_file");
-    const result = (await gateTools([inner], opts("default", async () => "deny"))[0].process(
+    const result = (await gateLegacyTools([inner], opts("default", async () => "deny"))[0].process(
       ctx,
       {}
     )) as { message: string };
@@ -91,7 +91,7 @@ describe("GatedTool — forwarding & messages", () => {
   it("does not persist a plain 'allow' to the session allowlist", async () => {
     const sessionAllow = new Set<string>();
     const inner = new FakeTool("write_file");
-    await gateTools([inner], opts("default", async () => "allow", sessionAllow))[0].process(
+    await gateLegacyTools([inner], opts("default", async () => "allow", sessionAllow))[0].process(
       ctx,
       {}
     );

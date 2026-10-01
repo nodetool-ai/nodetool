@@ -214,7 +214,7 @@ export abstract class Tool {
   }
 }
 
-function injectUserMessageField(
+export function injectUserMessageField(
   schema: Record<string, unknown>
 ) {
   // Only object-type schemas have a `properties` map we can extend. Every tool

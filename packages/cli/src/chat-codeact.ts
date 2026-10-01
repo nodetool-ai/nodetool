@@ -29,7 +29,8 @@ import {
   BackgroundSubtaskRegistry,
   contextSecretAvailability,
   createCapabilityRun,
-  gateTools,
+  gateLegacyTools,
+  capabilityRunForLegacyTool,
   Tool,
   toolForCapabilityName,
   createChatCodeActSession,
@@ -70,9 +71,7 @@ class ExecuteCodeTool extends Tool {
 
   override userMessage(params: Record<string, unknown>): string {
     const title = params["title"];
-    return isNonBlankString(title)
-      ? title.trim()
-      : "Executing code action";
+    return isNonBlankString(title) ? title.trim() : "Executing code action";
   }
 }
 
@@ -93,7 +92,10 @@ interface CliCodeActTurnOptions {
   context: ProcessingContext;
   signal?: AbortSignal;
   /** Fires before each tool the sandbox calls. */
-  onToolCall?: (record: { name: string; args: Record<string, unknown> }) => void;
+  onToolCall?: (record: {
+    name: string;
+    args: Record<string, unknown>;
+  }) => void;
   /** The skill catalog section from {@link loadCliSkillCatalog}. */
   skillCatalog?: string;
 }
@@ -103,11 +105,18 @@ export function createCliCodeActTurn(
 ): CliCodeActTurn {
   const byName = new Map(options.tools.map((tool) => [tool.name, tool]));
   const directTools = options.tools.filter(
-    (t) => t.name !== VIEW_IMAGE_TOOL && (t.name === "bash" || DIRECT_TOOL_NAMES.has(t.name))
+    (t) =>
+      t.name !== VIEW_IMAGE_TOOL &&
+      (t.name === "bash" || DIRECT_TOOL_NAMES.has(t.name))
   );
   const beltTools = options.tools.filter((t) => t.name !== VIEW_IMAGE_TOOL);
 
+  const firstTool = options.tools[0];
+  const capabilityRun = firstTool
+    ? capabilityRunForLegacyTool(firstTool, options.context)
+    : undefined;
   const session = createChatCodeActSession({
+    capabilityRun,
     tools: beltTools.map((tool) => ({
       name: tool.name,
       description: tool.description,
@@ -117,6 +126,14 @@ export function createCliCodeActTurn(
     executeTool: async (call) => {
       const tool = byName.get(call.name);
       if (!tool) throw new Error(`Tool "${call.name}" not available`);
+      const run = capabilityRunForLegacyTool(tool, options.context);
+      if (run) {
+        const args = { ...Tool.stripMessage(call.args) };
+        if (tool.needsToolCallId) {
+          args["_tool_call_id"] = call.id;
+        }
+        return run.invoke(tool.name, args);
+      }
       return Tool.executeTool(tool, options.context, call.args, {
         toolCallId: call.id
       });
@@ -196,11 +213,11 @@ export interface CliAgentBeltOptions {
  */
 export function buildCliAgentBelt(options: CliAgentBeltOptions): Tool[] {
   const { baseTools, provider, model, forwardMessage, gate } = options;
-  // The belt runs through the ladder, as chat's does: `gateTools` is the door
+  // The belt runs through the ladder, as chat's does: `gateLegacyTools` is the door
   // a `Tool` takes into `decidePermission` (invariant I-1). A delegated loop
   // is handed the gated belt, not the raw one, so approving `run_subtask` is
   // not approval for whatever the child then calls.
-  const gatedBase = gateTools(baseTools, gate);
+  const gatedBase = gateLegacyTools(baseTools, gate);
   const subAgent = {
     provider,
     model,
@@ -209,19 +226,28 @@ export function buildCliAgentBelt(options: CliAgentBeltOptions): Tool[] {
     background: new BackgroundSubtaskRegistry(),
     ...(options.budget !== undefined && { budget: options.budget })
   };
-  const delegationRun = (context: ProcessingContext) =>
-    createCapabilityRun({
+  const delegationRuns = new WeakMap<
+    ProcessingContext,
+    ReturnType<typeof createCapabilityRun>
+  >();
+  const delegationRun = (context: ProcessingContext) => {
+    const cached = delegationRuns.get(context);
+    if (cached) {
+      return cached;
+    }
+    const run = createCapabilityRun({
       context,
       gate,
       availableSecrets: contextSecretAvailability(context),
       subAgent,
       ...(options.budget !== undefined && { budget: options.budget })
     });
+    delegationRuns.set(context, run);
+    return run;
+  };
 
-  // The delegation capabilities stay ungated, as they are in chat: spawning a
-  // child loop has no side effect of its own, and the child acts through
-  // `gatedBase`. `create_plan` writes nothing either — it decomposes an
-  // objective and streams the DAG.
+  // Delegation and planning retain their read category. The child executes
+  // mutations through gatedBase under the same permission policy.
   const spawned: Tool[] = [];
   if (options.readOnlySearch !== false) {
     spawned.push(toolForCapabilityName("run_search", delegationRun));
@@ -237,14 +263,9 @@ export function buildCliAgentBelt(options: CliAgentBeltOptions): Tool[] {
     // action but every action in the plan. In plan mode the ladder answers
     // `blocked_in_plan_mode`, which tells the model to have the user switch
     // out; elsewhere it asks once.
-    spawned.push(
-      ...gateTools(
-        [toolForCapabilityName("execute_plan", delegationRun)],
-        gate
-      )
-    );
+    spawned.push(toolForCapabilityName("execute_plan", delegationRun));
   }
-  return [...spawned, ...gatedBase];
+  return gateLegacyTools([...spawned, ...baseTools], gate);
 }
 
 /**

@@ -77,7 +77,7 @@ export type CapabilityImpl = (
 ) => Promise<unknown>;
 
 /**
- * The permission gate a run carries. Identical to the options `gateTools` takes
+ * The permission gate a run carries. Identical to the options `gateLegacyTools` takes
  * today — mode, the shared session allow-set, the approval round trip, and the
  * optional security-monitor consult — because the gate that moves into
  * {@link CapabilityRun.invoke} is that gate, not a second one.

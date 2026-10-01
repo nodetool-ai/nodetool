@@ -2,11 +2,11 @@
  * Gate parity: the two doors into the one ladder must decide the same way.
  *
  * PR 10 moved the gate out of the wrapper class and into `invoke`, and
- * `gateTools` became a shim that routes a `Tool` through it. So there is one
+ * `gateLegacyTools` became a shim that routes a `Tool` through it. So there is one
  * implementation and two entrances, and the risk is that the shim loses
  * something on the way in — a capability that quietly loses its prompt, or
  * gains one. Every assertion here therefore runs twice: once through
- * `invoke`, once through `gateTools(toolFromCapability(...))`, over the same
+ * `invoke`, once through `gateLegacyTools(toolFromCapability(...))`, over the same
  * capability, with the same scripted approver. The transcripts must be equal.
  *
  * One canary per category, named after a real tool so the classification map
@@ -33,7 +33,7 @@ import {
   type PermissionMode
 } from "../src/tools/tool-permissions.js";
 import { capabilityCategoryFor } from "../src/capabilities/registry.js";
-import { gateTools } from "../src/capabilities/gate-tools.js";
+import { gateLegacyTools } from "../src/capabilities/legacy-tools.js";
 
 const ctx = {} as ProcessingContext;
 
@@ -122,7 +122,7 @@ async function throughGatedTool(
   const tool = toolFromCapability(capability.spec, capability.impl, (context) =>
     createCapabilityRun({ context, gate, capabilities: [capability] })
   );
-  const gated = gateTools([tool], gate)[0];
+  const gated = gateLegacyTools([tool], gate)[0];
   return { result: await gated.process(ctx, args), transcript };
 }
 
@@ -295,7 +295,7 @@ describe("gate parity on the security monitor", () => {
     expect(blocked).toMatchObject({ error: "blocked_by_security_monitor" });
 
     // Same two calls through the wrapper class.
-    const gatedRead = gateTools(
+    const gatedRead = gateLegacyTools(
       [
         toolFromCapability(readCapability.spec, readCapability.impl, run),
         toolFromCapability(writeCapability.spec, writeCapability.impl, run)
@@ -424,7 +424,7 @@ describe("the gate suspends the sandbox clock", () => {
     expect(clock.events).toEqual(["suspend", "resume"]);
   });
 
-  it("suspends the same way through the gateTools shim", async () => {
+  it("suspends the same way through the gateLegacyTools shim", async () => {
     const clock = recordingClock();
     const runs: Record<string, unknown>[] = [];
     const capability = makeCapability(CANARIES.write, "write", runs);
@@ -437,7 +437,7 @@ describe("the gate suspends the sandbox clock", () => {
     const tool = toolFromCapability(capability.spec, capability.impl, (context) =>
       createCapabilityRun({ context, gate, capabilities: [capability] })
     );
-    await gateTools([tool], gate)[0].process(ctx, {});
+    await gateLegacyTools([tool], gate)[0].process(ctx, {});
     expect(clock.events).toEqual(["suspend", "resume"]);
   });
 });
@@ -457,10 +457,10 @@ class NeedsToolCallIdTool extends Tool {
   }
 }
 
-describe("the gateTools shim preserves the tool's own surface", () => {
+describe("the gateLegacyTools shim preserves the tool's own surface", () => {
   it("threads _tool_call_id through to a needsToolCallId tool", async () => {
     const inner = new NeedsToolCallIdTool();
-    const gated = gateTools([inner], {
+    const gated = gateLegacyTools([inner], {
       mode: "default",
       sessionAllow: new Set<string>(),
       requestApproval: async () => "allow"
@@ -473,7 +473,7 @@ describe("the gateTools shim preserves the tool's own surface", () => {
 
   it("forwards name, description, schema and the provider tool", () => {
     const inner = new NeedsToolCallIdTool();
-    const gated = gateTools([inner], {
+    const gated = gateLegacyTools([inner], {
       mode: "auto",
       sessionAllow: new Set<string>(),
       requestApproval: async () => "allow"
