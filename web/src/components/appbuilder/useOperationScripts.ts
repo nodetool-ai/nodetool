@@ -18,7 +18,7 @@ export const useOperationScripts = (
     () =>
       operations.flatMap((operation) => {
         const target = operationTarget(operation);
-        return target.kind === "script"
+        return target.kind === "script" && target.scriptId
           ? [
               {
                 operationId: operation.id,

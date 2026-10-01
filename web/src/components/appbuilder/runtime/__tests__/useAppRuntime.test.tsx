@@ -839,11 +839,11 @@ describe("useAppRuntime — script operations", () => {
       ]
     });
 
-  const renderScriptApp = (scriptVersion = 1) =>
+  const renderScriptApp = (scriptVersion = 1, scriptId = "script-1") =>
     renderHook(
       () =>
         useAppRuntime(workflowA, false, {
-          document: {...scriptDoc(), operations: scriptDoc().operations.map(operation => ({...operation, target: {kind: "script", scriptId: "script-1", scriptVersion}}))},
+          document: {...scriptDoc(), operations: scriptDoc().operations.map(operation => ({...operation, target: {kind: "script", scriptId, scriptVersion}}))},
           application: { id: "app-script" }
         }),
       { wrapper }
@@ -890,6 +890,13 @@ describe("useAppRuntime — script operations", () => {
     await waitFor(() =>
       expect(result.current.store.getState().variables.total).toBe(4)
     );
+  });
+
+  it("does not query an unselected script target while authoring", async () => {
+    const {result} = renderScriptApp(0, "");
+    await act(async () => { await Promise.resolve(); });
+    expect(result.current.ioFor("main").inputs).toEqual([]);
+    expect(getScript).not.toHaveBeenCalled();
   });
 
   it("keeps unpinned version-zero draft operations on the saved head", async () => {
