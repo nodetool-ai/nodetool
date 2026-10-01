@@ -55,6 +55,7 @@ export interface TimelineSequence {
   trackFolders?: TimelineTrackFolder[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
+  storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[] }>;
   /**
    * Studio transcript lines. Optional so sequences written before Studio
    * existed load with no transcript. Persisted inside the document blob so
