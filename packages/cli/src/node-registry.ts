@@ -13,7 +13,24 @@ import {
   registerBuiltinPacks,
   CLI_BUILTIN_PACK_POLICY
 } from "@nodetool-ai/base-nodes/builtin-packs";
+import { BUILTIN_NODE_PACKS } from "@nodetool-ai/protocol";
 import { installSandboxCatalog } from "./sandbox-catalog.js";
+
+/** Workflow JSON runs and local MCP historically omit AtlasCloud too. */
+export const CLI_LOCAL_BUILTIN_PACK_POLICY = {
+  ...CLI_BUILTIN_PACK_POLICY,
+  excludedPackIds: [
+    ...(CLI_BUILTIN_PACK_POLICY.excludedPackIds ?? []),
+    "atlascloud"
+  ]
+};
+
+/** DSL files import provider nodes themselves, so only the required base pack is bootstrapped. */
+export const CLI_DSL_BUILTIN_PACK_POLICY = {
+  enabledOverrides: Object.fromEntries(
+    BUILTIN_NODE_PACKS.map((pack) => [pack.id, false])
+  )
+};
 
 export function buildFullRegistry(): NodeRegistry {
   installSandboxCatalog();
