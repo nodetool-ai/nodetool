@@ -3,7 +3,7 @@ layout: page
 title: "nodetool.input Nodes"
 ---
 
-This namespace contains 33 node(s).
+This namespace contains 34 node(s).
 
 ## Available Nodes
 
@@ -37,6 +37,7 @@ This namespace contains 33 node(s).
 - **[String List Input](stringlistinput.md)** - Accepts a list of strings as a parameter for workflows.
 - **[Text List Input](textlistinput.md)** - Accepts a list of text strings as a parameter for workflows.
 - **[TTS Model Input](ttsmodelinput.md)** - Accepts a text-to-speech model as a parameter for workflows.
+- **[Value Input](valueinput.md)** - Accepts a named workflow parameter without converting its value.
 - **[Video Input](videoinput.md)** - Accepts a reference to a video asset for workflows, specified by a 'VideoRef'...
 - **[Video List Input](videolistinput.md)** - Accepts a list of video references as a parameter for workflows.
 - **[Video Model Input](videomodelinput.md)** - Accepts a video generation model as a parameter for workflows.

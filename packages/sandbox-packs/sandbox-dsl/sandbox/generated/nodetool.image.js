@@ -1,88 +1,88 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { createNode } from "../core.js";
-function paste(inputs) {
-  return createNode("nodetool.image.Paste", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function paste(inputs, options) {
+  return createNode("nodetool.image.Paste", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function scale(inputs) {
-  return createNode("nodetool.image.Scale", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function scale(inputs, options) {
+  return createNode("nodetool.image.Scale", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function resizeImage(inputs) {
-  return createNode("nodetool.image.ResizeImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function resizeImage(inputs, options) {
+  return createNode("nodetool.image.ResizeImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function resize(inputs) {
-  return createNode("nodetool.image.Resize", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function resize(inputs, options) {
+  return createNode("nodetool.image.Resize", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function canvasResize(inputs) {
-  return createNode("nodetool.image.CanvasResize", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function canvasResize(inputs, options) {
+  return createNode("nodetool.image.CanvasResize", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function crop(inputs) {
-  return createNode("nodetool.image.Crop", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function crop(inputs, options) {
+  return createNode("nodetool.image.Crop", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function fit(inputs) {
-  return createNode("nodetool.image.Fit", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function fit(inputs, options) {
+  return createNode("nodetool.image.Fit", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function rotateAndFlip(inputs) {
-  return createNode("nodetool.image.RotateAndFlip", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function rotateAndFlip(inputs, options) {
+  return createNode("nodetool.image.RotateAndFlip", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function channels(inputs) {
-  return createNode("nodetool.image.Channels", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function channels(inputs, options) {
+  return createNode("nodetool.image.Channels", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function blur(inputs) {
-  return createNode("nodetool.image.Blur", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function blur(inputs, options) {
+  return createNode("nodetool.image.Blur", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function levels(inputs) {
-  return createNode("nodetool.image.Levels", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function levels(inputs, options) {
+  return createNode("nodetool.image.Levels", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function compositor(inputs) {
-  return createNode("nodetool.image.Compositor", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function compositor(inputs, options) {
+  return createNode("nodetool.image.Compositor", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function loadImageFile(inputs) {
-  return createNode("nodetool.image.LoadImageFile", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function loadImageFile(inputs, options) {
+  return createNode("nodetool.image.LoadImageFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function loadImageFolder(inputs) {
-  return createNode("nodetool.image.LoadImageFolder", inputs, { outputNames: ["image", "path", "images"], streaming: true });
+function loadImageFolder(inputs, options) {
+  return createNode("nodetool.image.LoadImageFolder", inputs, { id: options?.id, outputNames: ["image", "path", "images"], outputTypes: { "image": "image", "path": "str", "images": "list" }, streaming: true, inputMode: "buffered", outputCorrelation: { "image": { "kind": "iteration", "source": "__execution__", "group": "items" }, "path": { "kind": "iteration", "source": "__execution__", "group": "items" }, "images": { "kind": "single", "source": "__execution__" } } });
 }
-function saveImageFile(inputs) {
-  return createNode("nodetool.image.SaveImageFile", inputs, { outputNames: ["output", "path"] });
+function saveImageFile(inputs, options) {
+  return createNode("nodetool.image.SaveImageFile", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: { "output": "image", "path": "str" } });
 }
-function loadImageAssets(inputs) {
-  return createNode("nodetool.image.LoadImageAssets", inputs, { outputNames: ["image", "name", "images"], streaming: true });
+function loadImageAssets(inputs, options) {
+  return createNode("nodetool.image.LoadImageAssets", inputs, { id: options?.id, outputNames: ["image", "name", "images"], outputTypes: { "image": "image", "name": "str", "images": "list" }, streaming: true, inputMode: "buffered", outputCorrelation: { "image": { "kind": "iteration", "source": "__execution__", "group": "items" }, "name": { "kind": "iteration", "source": "__execution__", "group": "items" }, "images": { "kind": "single", "source": "__execution__" } } });
 }
-function saveImage(inputs) {
-  return createNode("nodetool.image.SaveImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function saveImage(inputs, options) {
+  return createNode("nodetool.image.SaveImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function getMetadata(inputs) {
-  return createNode("nodetool.image.GetMetadata", inputs, { outputNames: ["format", "mode", "width", "height", "channels"] });
+function getMetadata(inputs, options) {
+  return createNode("nodetool.image.GetMetadata", inputs, { id: options?.id, outputNames: ["format", "mode", "width", "height", "channels"], outputTypes: { "format": "str", "mode": "str", "width": "int", "height": "int", "channels": "int" } });
 }
-function batchToList(inputs) {
-  return createNode("nodetool.image.BatchToList", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function batchToList(inputs, options) {
+  return createNode("nodetool.image.BatchToList", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list[image]" }, defaultOutput: "output" });
 }
-function imagesToList(inputs) {
-  return createNode("nodetool.image.ImagesToList", inputs ?? {}, { outputNames: ["output"], defaultOutput: "output" });
+function imagesToList(inputs, options) {
+  return createNode("nodetool.image.ImagesToList", inputs ?? {}, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list[image]" }, defaultOutput: "output" });
 }
-function painter(inputs) {
-  return createNode("nodetool.image.Painter", inputs, { outputNames: ["mask", "image"] });
+function painter(inputs, options) {
+  return createNode("nodetool.image.Painter", inputs, { id: options?.id, outputNames: ["mask", "image"], outputTypes: { "mask": "image", "image": "image" } });
 }
-function textToImage(inputs) {
-  return createNode("nodetool.image.TextToImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function textToImage(inputs, options) {
+  return createNode("nodetool.image.TextToImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function imageToImage(inputs) {
-  return createNode("nodetool.image.ImageToImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function imageToImage(inputs, options) {
+  return createNode("nodetool.image.ImageToImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function upscale(inputs) {
-  return createNode("nodetool.image.Upscale", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function upscale(inputs, options) {
+  return createNode("nodetool.image.Upscale", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function removeBackground(inputs) {
-  return createNode("nodetool.image.RemoveBackground", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function removeBackground(inputs, options) {
+  return createNode("nodetool.image.RemoveBackground", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function relight(inputs) {
-  return createNode("nodetool.image.Relight", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function relight(inputs, options) {
+  return createNode("nodetool.image.Relight", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function vectorize(inputs) {
-  return createNode("nodetool.image.Vectorize", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function vectorize(inputs, options) {
+  return createNode("nodetool.image.Vectorize", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "svg_element" }, defaultOutput: "output" });
 }
-function segment(inputs) {
-  return createNode("nodetool.image.Segment", inputs, { outputNames: ["masks", "labels", "scores"] });
+function segment(inputs, options) {
+  return createNode("nodetool.image.Segment", inputs, { id: options?.id, outputNames: ["masks", "labels", "scores"], outputTypes: { "masks": "list[image]", "labels": "list[str]", "scores": "list[float]" } });
 }
 export {
   batchToList,

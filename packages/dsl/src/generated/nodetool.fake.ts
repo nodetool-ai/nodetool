@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Fake Generate Image — nodetool.fake.GenerateImage
@@ -14,8 +14,8 @@ export interface GenerateImageOutputs {
   output: ImageRef;
 }
 
-export function generateImage(inputs: GenerateImageInputs): DslNode<GenerateImageOutputs, "output"> {
-  return createNode("nodetool.fake.GenerateImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function generateImage(inputs: GenerateImageInputs, options?: NodeOptions): NodeWithOutputs<GenerateImageOutputs, "output"> {
+  return createNode("nodetool.fake.GenerateImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Color Grade (browser) — nodetool.fake.ColorGrade
@@ -30,6 +30,6 @@ export interface ColorGradeOutputs {
   output: ImageRef;
 }
 
-export function colorGrade(inputs: ColorGradeInputs): DslNode<ColorGradeOutputs, "output"> {
-  return createNode("nodetool.fake.ColorGrade", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function colorGrade(inputs: ColorGradeInputs, options?: NodeOptions): NodeWithOutputs<ColorGradeOutputs, "output"> {
+  return createNode("nodetool.fake.ColorGrade", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }

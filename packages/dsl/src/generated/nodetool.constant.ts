@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef, AudioRef, VideoRef, DataframeRef, StoryboardRef, Entity } from "../types.js";
 
 // Bool — nodetool.constant.Bool
@@ -12,8 +12,8 @@ export interface BoolOutputs {
   output: boolean;
 }
 
-export function bool(inputs: BoolInputs): DslNode<BoolOutputs, "output"> {
-  return createNode("nodetool.constant.Bool", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function bool(inputs: BoolInputs, options?: NodeOptions): NodeWithOutputs<BoolOutputs, "output"> {
+  return createNode("nodetool.constant.Bool", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"bool"}, defaultOutput: "output" });
 }
 
 // Integer — nodetool.constant.Integer
@@ -25,8 +25,8 @@ export interface IntegerOutputs {
   output: number;
 }
 
-export function integer(inputs: IntegerInputs): DslNode<IntegerOutputs, "output"> {
-  return createNode("nodetool.constant.Integer", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function integer(inputs: IntegerInputs, options?: NodeOptions): NodeWithOutputs<IntegerOutputs, "output"> {
+  return createNode("nodetool.constant.Integer", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"int"}, defaultOutput: "output" });
 }
 
 // Float — nodetool.constant.Float
@@ -38,8 +38,8 @@ export interface FloatOutputs {
   output: number;
 }
 
-export function float(inputs: FloatInputs): DslNode<FloatOutputs, "output"> {
-  return createNode("nodetool.constant.Float", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function float(inputs: FloatInputs, options?: NodeOptions): NodeWithOutputs<FloatOutputs, "output"> {
+  return createNode("nodetool.constant.Float", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"float"}, defaultOutput: "output" });
 }
 
 // String — nodetool.constant.String
@@ -51,8 +51,8 @@ export interface StringOutputs {
   output: string;
 }
 
-export function string(inputs: StringInputs): DslNode<StringOutputs, "output"> {
-  return createNode("nodetool.constant.String", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function string(inputs: StringInputs, options?: NodeOptions): NodeWithOutputs<StringOutputs, "output"> {
+  return createNode("nodetool.constant.String", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }
 
 // List — nodetool.constant.List
@@ -64,8 +64,8 @@ export interface ListOutputs {
   output: unknown[];
 }
 
-export function list(inputs: ListInputs): DslNode<ListOutputs, "output"> {
-  return createNode("nodetool.constant.List", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function list(inputs: ListInputs, options?: NodeOptions): NodeWithOutputs<ListOutputs, "output"> {
+  return createNode("nodetool.constant.List", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[any]"}, defaultOutput: "output" });
 }
 
 // Text List — nodetool.constant.TextList
@@ -77,8 +77,8 @@ export interface TextListOutputs {
   output: string[];
 }
 
-export function textList(inputs: TextListInputs): DslNode<TextListOutputs, "output"> {
-  return createNode("nodetool.constant.TextList", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function textList(inputs: TextListInputs, options?: NodeOptions): NodeWithOutputs<TextListOutputs, "output"> {
+  return createNode("nodetool.constant.TextList", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[str]"}, defaultOutput: "output" });
 }
 
 // Dict — nodetool.constant.Dict
@@ -90,8 +90,8 @@ export interface DictOutputs {
   output: Record<string, unknown>;
 }
 
-export function dict(inputs: DictInputs): DslNode<DictOutputs, "output"> {
-  return createNode("nodetool.constant.Dict", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function dict(inputs: DictInputs, options?: NodeOptions): NodeWithOutputs<DictOutputs, "output"> {
+  return createNode("nodetool.constant.Dict", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"dict[str, any]"}, defaultOutput: "output" });
 }
 
 // Audio — nodetool.constant.Audio
@@ -103,8 +103,8 @@ export interface AudioOutputs {
   output: AudioRef;
 }
 
-export function audio(inputs: AudioInputs): DslNode<AudioOutputs, "output"> {
-  return createNode("nodetool.constant.Audio", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function audio(inputs: AudioInputs, options?: NodeOptions): NodeWithOutputs<AudioOutputs, "output"> {
+  return createNode("nodetool.constant.Audio", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Image — nodetool.constant.Image
@@ -116,8 +116,8 @@ export interface ImageOutputs {
   output: ImageRef;
 }
 
-export function image(inputs: ImageInputs): DslNode<ImageOutputs, "output"> {
-  return createNode("nodetool.constant.Image", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function image(inputs: ImageInputs, options?: NodeOptions): NodeWithOutputs<ImageOutputs, "output"> {
+  return createNode("nodetool.constant.Image", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Video — nodetool.constant.Video
@@ -129,8 +129,8 @@ export interface VideoOutputs {
   output: VideoRef;
 }
 
-export function video(inputs: VideoInputs): DslNode<VideoOutputs, "output"> {
-  return createNode("nodetool.constant.Video", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function video(inputs: VideoInputs, options?: NodeOptions): NodeWithOutputs<VideoOutputs, "output"> {
+  return createNode("nodetool.constant.Video", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"video"}, defaultOutput: "output" });
 }
 
 // Document — nodetool.constant.Document
@@ -142,8 +142,8 @@ export interface DocumentOutputs {
   output: unknown;
 }
 
-export function document(inputs: DocumentInputs): DslNode<DocumentOutputs, "output"> {
-  return createNode("nodetool.constant.Document", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function document(inputs: DocumentInputs, options?: NodeOptions): NodeWithOutputs<DocumentOutputs, "output"> {
+  return createNode("nodetool.constant.Document", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"document"}, defaultOutput: "output" });
 }
 
 // Sketch — nodetool.constant.Sketch
@@ -153,6 +153,7 @@ export type SketchInputs = {
   image?: Connectable<ImageRef>;
   mask?: Connectable<ImageRef>;
   layers?: Connectable<unknown[]>;
+  [name: string]: unknown;
 };
 
 export interface SketchOutputs {
@@ -162,8 +163,8 @@ export interface SketchOutputs {
   layers: ImageRef[];
 }
 
-export function sketch(inputs: SketchInputs): DslNode<SketchOutputs> {
-  return createNode("nodetool.constant.Sketch", inputs, { outputNames: ["output", "image", "mask", "layers"] });
+export function sketch(inputs: SketchInputs, options?: NodeOptions): NodeWithOutputs<SketchOutputs> {
+  return createNode("nodetool.constant.Sketch", inputs, { id: options?.id, outputNames: ["output", "image", "mask", "layers"], outputTypes: {"output":"sketch","image":"image","mask":"image","layers":"list[image]"} });
 }
 
 // Timeline — nodetool.constant.Timeline
@@ -175,8 +176,8 @@ export interface TimelineOutputs {
   output: unknown;
 }
 
-export function timeline(inputs: TimelineInputs): DslNode<TimelineOutputs, "output"> {
-  return createNode("nodetool.constant.Timeline", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function timeline(inputs: TimelineInputs, options?: NodeOptions): NodeWithOutputs<TimelineOutputs, "output"> {
+  return createNode("nodetool.constant.Timeline", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"timeline"}, defaultOutput: "output" });
 }
 
 // Script — nodetool.constant.Script
@@ -188,8 +189,8 @@ export interface ScriptOutputs {
   output: unknown;
 }
 
-export function script(inputs: ScriptInputs): DslNode<ScriptOutputs, "output"> {
-  return createNode("nodetool.constant.Script", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function script(inputs: ScriptInputs, options?: NodeOptions): NodeWithOutputs<ScriptOutputs, "output"> {
+  return createNode("nodetool.constant.Script", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"script"}, defaultOutput: "output" });
 }
 
 // Storyboard — nodetool.constant.Storyboard
@@ -201,8 +202,8 @@ export interface StoryboardOutputs {
   output: StoryboardRef;
 }
 
-export function storyboard(inputs: StoryboardInputs): DslNode<StoryboardOutputs, "output"> {
-  return createNode("nodetool.constant.Storyboard", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function storyboard(inputs: StoryboardInputs, options?: NodeOptions): NodeWithOutputs<StoryboardOutputs, "output"> {
+  return createNode("nodetool.constant.Storyboard", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"storyboard"}, defaultOutput: "output" });
 }
 
 // Entity — nodetool.constant.Entity
@@ -214,8 +215,8 @@ export interface EntityOutputs {
   output: Entity;
 }
 
-export function entity(inputs: EntityInputs): DslNode<EntityOutputs, "output"> {
-  return createNode("nodetool.constant.Entity", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function entity(inputs: EntityInputs, options?: NodeOptions): NodeWithOutputs<EntityOutputs, "output"> {
+  return createNode("nodetool.constant.Entity", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"entity"}, defaultOutput: "output" });
 }
 
 // JSON — nodetool.constant.JSON
@@ -227,8 +228,8 @@ export interface JSONOutputs {
   output: unknown;
 }
 
-export function json(inputs: JSONInputs): DslNode<JSONOutputs, "output"> {
-  return createNode("nodetool.constant.JSON", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function json(inputs: JSONInputs, options?: NodeOptions): NodeWithOutputs<JSONOutputs, "output"> {
+  return createNode("nodetool.constant.JSON", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"json"}, defaultOutput: "output" });
 }
 
 // Model 3D — nodetool.constant.Model3D
@@ -240,8 +241,8 @@ export interface Model3DOutputs {
   output: unknown;
 }
 
-export function model3D(inputs: Model3DInputs): DslNode<Model3DOutputs, "output"> {
-  return createNode("nodetool.constant.Model3D", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function model3D(inputs: Model3DInputs, options?: NodeOptions): NodeWithOutputs<Model3DOutputs, "output"> {
+  return createNode("nodetool.constant.Model3D", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
 // Data Frame — nodetool.constant.DataFrame
@@ -253,8 +254,8 @@ export interface DataFrameOutputs {
   output: DataframeRef;
 }
 
-export function dataFrame(inputs: DataFrameInputs): DslNode<DataFrameOutputs, "output"> {
-  return createNode("nodetool.constant.DataFrame", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function dataFrame(inputs: DataFrameInputs, options?: NodeOptions): NodeWithOutputs<DataFrameOutputs, "output"> {
+  return createNode("nodetool.constant.DataFrame", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"dataframe"}, defaultOutput: "output" });
 }
 
 // Audio List — nodetool.constant.AudioList
@@ -266,8 +267,8 @@ export interface AudioListOutputs {
   output: AudioRef[];
 }
 
-export function audioList(inputs: AudioListInputs): DslNode<AudioListOutputs, "output"> {
-  return createNode("nodetool.constant.AudioList", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function audioList(inputs: AudioListInputs, options?: NodeOptions): NodeWithOutputs<AudioListOutputs, "output"> {
+  return createNode("nodetool.constant.AudioList", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[audio]"}, defaultOutput: "output" });
 }
 
 // Image List — nodetool.constant.ImageList
@@ -279,8 +280,8 @@ export interface ImageListOutputs {
   output: ImageRef[];
 }
 
-export function imageList(inputs: ImageListInputs): DslNode<ImageListOutputs, "output"> {
-  return createNode("nodetool.constant.ImageList", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function imageList(inputs: ImageListInputs, options?: NodeOptions): NodeWithOutputs<ImageListOutputs, "output"> {
+  return createNode("nodetool.constant.ImageList", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[image]"}, defaultOutput: "output" });
 }
 
 // Video List — nodetool.constant.VideoList
@@ -292,8 +293,8 @@ export interface VideoListOutputs {
   output: VideoRef[];
 }
 
-export function videoList(inputs: VideoListInputs): DslNode<VideoListOutputs, "output"> {
-  return createNode("nodetool.constant.VideoList", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function videoList(inputs: VideoListInputs, options?: NodeOptions): NodeWithOutputs<VideoListOutputs, "output"> {
+  return createNode("nodetool.constant.VideoList", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[video]"}, defaultOutput: "output" });
 }
 
 // Select — nodetool.constant.Select
@@ -307,8 +308,8 @@ export interface SelectOutputs {
   output: string;
 }
 
-export function select(inputs: SelectInputs): DslNode<SelectOutputs, "output"> {
-  return createNode("nodetool.constant.Select", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function select(inputs: SelectInputs, options?: NodeOptions): NodeWithOutputs<SelectOutputs, "output"> {
+  return createNode("nodetool.constant.Select", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }
 
 // Image Size — nodetool.constant.ImageSize
@@ -322,8 +323,8 @@ export interface ImageSizeOutputs {
   height: number;
 }
 
-export function imageSize(inputs: ImageSizeInputs): DslNode<ImageSizeOutputs> {
-  return createNode("nodetool.constant.ImageSize", inputs, { outputNames: ["image_size", "width", "height"] });
+export function imageSize(inputs: ImageSizeInputs, options?: NodeOptions): NodeWithOutputs<ImageSizeOutputs> {
+  return createNode("nodetool.constant.ImageSize", inputs, { id: options?.id, outputNames: ["image_size", "width", "height"], outputTypes: {"image_size":"image_size","width":"int","height":"int"} });
 }
 
 // Date — nodetool.constant.Date
@@ -337,8 +338,8 @@ export interface DateOutputs {
   output: unknown;
 }
 
-export function date(inputs: DateInputs): DslNode<DateOutputs, "output"> {
-  return createNode("nodetool.constant.Date", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function date(inputs: DateInputs, options?: NodeOptions): NodeWithOutputs<DateOutputs, "output"> {
+  return createNode("nodetool.constant.Date", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"date"}, defaultOutput: "output" });
 }
 
 // Date Time — nodetool.constant.DateTime
@@ -358,8 +359,8 @@ export interface DateTimeOutputs {
   output: unknown;
 }
 
-export function dateTime(inputs: DateTimeInputs): DslNode<DateTimeOutputs, "output"> {
-  return createNode("nodetool.constant.DateTime", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function dateTime(inputs: DateTimeInputs, options?: NodeOptions): NodeWithOutputs<DateTimeOutputs, "output"> {
+  return createNode("nodetool.constant.DateTime", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"datetime"}, defaultOutput: "output" });
 }
 
 // ASR Model Constant — nodetool.constant.ASRModelConstant
@@ -371,8 +372,8 @@ export interface ASRModelConstantOutputs {
   output: unknown;
 }
 
-export function asrModelConstant(inputs: ASRModelConstantInputs): DslNode<ASRModelConstantOutputs, "output"> {
-  return createNode("nodetool.constant.ASRModelConstant", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function asrModelConstant(inputs: ASRModelConstantInputs, options?: NodeOptions): NodeWithOutputs<ASRModelConstantOutputs, "output"> {
+  return createNode("nodetool.constant.ASRModelConstant", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"asr_model"}, defaultOutput: "output" });
 }
 
 // Embedding Model Constant — nodetool.constant.EmbeddingModelConstant
@@ -384,8 +385,8 @@ export interface EmbeddingModelConstantOutputs {
   output: unknown;
 }
 
-export function embeddingModelConstant(inputs: EmbeddingModelConstantInputs): DslNode<EmbeddingModelConstantOutputs, "output"> {
-  return createNode("nodetool.constant.EmbeddingModelConstant", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function embeddingModelConstant(inputs: EmbeddingModelConstantInputs, options?: NodeOptions): NodeWithOutputs<EmbeddingModelConstantOutputs, "output"> {
+  return createNode("nodetool.constant.EmbeddingModelConstant", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"embedding_model"}, defaultOutput: "output" });
 }
 
 // Image Model Constant — nodetool.constant.ImageModelConstant
@@ -397,8 +398,8 @@ export interface ImageModelConstantOutputs {
   output: unknown;
 }
 
-export function imageModelConstant(inputs: ImageModelConstantInputs): DslNode<ImageModelConstantOutputs, "output"> {
-  return createNode("nodetool.constant.ImageModelConstant", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function imageModelConstant(inputs: ImageModelConstantInputs, options?: NodeOptions): NodeWithOutputs<ImageModelConstantOutputs, "output"> {
+  return createNode("nodetool.constant.ImageModelConstant", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image_model"}, defaultOutput: "output" });
 }
 
 // Language Model Constant — nodetool.constant.LanguageModelConstant
@@ -410,8 +411,8 @@ export interface LanguageModelConstantOutputs {
   output: unknown;
 }
 
-export function languageModelConstant(inputs: LanguageModelConstantInputs): DslNode<LanguageModelConstantOutputs, "output"> {
-  return createNode("nodetool.constant.LanguageModelConstant", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function languageModelConstant(inputs: LanguageModelConstantInputs, options?: NodeOptions): NodeWithOutputs<LanguageModelConstantOutputs, "output"> {
+  return createNode("nodetool.constant.LanguageModelConstant", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"language_model"}, defaultOutput: "output" });
 }
 
 // TTS Model Constant — nodetool.constant.TTSModelConstant
@@ -423,8 +424,8 @@ export interface TTSModelConstantOutputs {
   output: unknown;
 }
 
-export function ttsModelConstant(inputs: TTSModelConstantInputs): DslNode<TTSModelConstantOutputs, "output"> {
-  return createNode("nodetool.constant.TTSModelConstant", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function ttsModelConstant(inputs: TTSModelConstantInputs, options?: NodeOptions): NodeWithOutputs<TTSModelConstantOutputs, "output"> {
+  return createNode("nodetool.constant.TTSModelConstant", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"tts_model"}, defaultOutput: "output" });
 }
 
 // Video Model Constant — nodetool.constant.VideoModelConstant
@@ -436,6 +437,6 @@ export interface VideoModelConstantOutputs {
   output: unknown;
 }
 
-export function videoModelConstant(inputs: VideoModelConstantInputs): DslNode<VideoModelConstantOutputs, "output"> {
-  return createNode("nodetool.constant.VideoModelConstant", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function videoModelConstant(inputs: VideoModelConstantInputs, options?: NodeOptions): NodeWithOutputs<VideoModelConstantOutputs, "output"> {
+  return createNode("nodetool.constant.VideoModelConstant", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"video_model"}, defaultOutput: "output" });
 }

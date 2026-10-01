@@ -15,6 +15,11 @@ interface NormalizedNode {
   outputs: string[];
   dynamicOutputs: string[];
   streaming: boolean;
+  hasStreamingFlag?: boolean;
+  streamingInput?: boolean;
+  inputMode?: unknown;
+  dynamicOutputTypes?: Record<string, unknown>;
+  outputCorrelation?: Record<string, unknown>;
 }
 
 interface NormalizedEdge extends Edge {}
@@ -284,6 +289,16 @@ function normalizeGraph(graph: WorkflowLike) {
       properties: asRecord(rawNode.properties) ?? asRecord(rawNode.data) ?? {},
       outputs: Object.keys(asRecord(rawNode.outputs) ?? {}),
       dynamicOutputs: Object.keys(asRecord(rawNode.dynamic_outputs) ?? {}),
+      hasStreamingFlag:
+        "streaming" in rawNode || "is_streaming_output" in rawNode,
+      streamingInput:
+        "streamingInput" in rawNode || "is_streaming_input" in rawNode
+          ? rawNode.streamingInput === true ||
+            rawNode.is_streaming_input === true
+          : undefined,
+      inputMode: rawNode.input_mode,
+      dynamicOutputTypes: asRecord(rawNode.dynamic_outputs) ?? undefined,
+      outputCorrelation: asRecord(rawNode.output_correlation) ?? undefined,
       streaming:
         rawNode.streaming === true || rawNode.is_streaming_output === true
     } satisfies NormalizedNode;
@@ -489,7 +504,7 @@ function buildCreateNodeOptions(
   node: NormalizedNode,
   outputNames: string[]
 ): string {
-  const options: string[] = [];
+  const options: string[] = [`id: ${JSON.stringify(node.id)}`];
   if (outputNames.length > 0) {
     options.push(
       `outputNames: [${outputNames.map((name) => JSON.stringify(name)).join(", ")}]`
@@ -501,6 +516,15 @@ function buildCreateNodeOptions(
   if (node.streaming) {
     options.push("streaming: true");
   }
+  if (node.streamingInput) options.push("streamingInput: true");
+  if (node.inputMode)
+    options.push(`inputMode: ${JSON.stringify(node.inputMode)}`);
+  if (node.dynamicOutputTypes)
+    options.push(`dynamicOutputs: ${JSON.stringify(node.dynamicOutputTypes)}`);
+  if (node.outputCorrelation)
+    options.push(
+      `outputCorrelation: ${JSON.stringify(node.outputCorrelation)}`
+    );
   return options.length > 0 ? `, { ${options.join(", ")} }` : "";
 }
 
@@ -577,7 +601,19 @@ export function workflowToDsl(
         )
       : false;
     const canUseFactory =
-      !!ref && !hasDynamicOutputs && !hasUnknownOutgoingHandle;
+      !!ref &&
+      !hasDynamicOutputs &&
+      !hasUnknownOutgoingHandle &&
+      (!node.hasStreamingFlag ||
+        node.streaming === !!ref.metadata.is_streaming_output) &&
+      (node.streamingInput === undefined ||
+        node.streamingInput === !!ref.metadata.is_streaming_input) &&
+      (node.inputMode === undefined ||
+        JSON.stringify(node.inputMode) ===
+          JSON.stringify(ref.metadata.input_mode)) &&
+      (node.outputCorrelation === undefined ||
+        JSON.stringify(node.outputCorrelation) ===
+          JSON.stringify(ref.metadata.output_correlation));
 
     const preferredName = node.name ?? extractClassName(node.type);
     const fallbackName = `${toCamelCase(extractClassName(node.type)) || "node"}Node`;
@@ -600,7 +636,7 @@ export function workflowToDsl(
     let statement: string;
     if (canUseFactory) {
       namespaceImports.add(ref.namespaceImport);
-      statement = `const ${variableName} = ${ref.namespaceImport}.${ref.factoryName}(${inputs});`;
+      statement = `const ${variableName} = ${ref.namespaceImport}.${ref.factoryName}(${inputs}, { id: ${JSON.stringify(node.id)} });`;
     } else {
       helperImports.add("createNode");
       const optionsCode = buildCreateNodeOptions(node, outputNames);

@@ -68,6 +68,7 @@ export default defineConfig({
   test: {
     root: resolve(__dirname),
     include: ["tests/**/*.test.ts"],
-    testTimeout: 30000
+    testTimeout: 30000,
+    typecheck: { enabled: true }
   }
 });

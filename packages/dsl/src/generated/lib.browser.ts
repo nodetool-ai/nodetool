@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Screenshot — lib.browser.Screenshot
@@ -14,6 +14,6 @@ export interface ScreenshotOutputs {
   output: ImageRef;
 }
 
-export function screenshot(inputs: ScreenshotInputs): DslNode<ScreenshotOutputs, "output"> {
-  return createNode("lib.browser.Screenshot", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function screenshot(inputs: ScreenshotInputs, options?: NodeOptions): NodeWithOutputs<ScreenshotOutputs, "output"> {
+  return createNode("lib.browser.Screenshot", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }

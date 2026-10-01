@@ -196,7 +196,7 @@ describe("every namespace module in the guest", () => {
             (key) => typeof dsl[key] === "function"
           ),
           sameFactory: dsl.text.collect === collect,
-          namespaces: Object.keys(dsl).filter((key) => typeof dsl[key] === "object").length
+          namespaces: Object.keys(dsl).filter((key) => typeof dsl[key] === "object" && key !== "t").length
         };
       `,
       [SPECIFIER, TEXT]
@@ -376,7 +376,7 @@ describe("the graph workflow() returns", () => {
    * the duplicate-id guard is unreachable from a namespace import. The second
    * argument is accepted and dropped, which is the quiet half of the problem.
    */
-  it("drops the id a program passes to a wrapper", async () => {
+  it("preserves the id a program passes to a wrapper", async () => {
     const graph = await buildGraph(
       `
         import { workflow } from "${SPECIFIER}";
@@ -388,7 +388,7 @@ describe("the graph workflow() returns", () => {
       `,
       [SPECIFIER, INPUT, OUTPUT]
     );
-    expect(graph.nodes.map((node) => node.id).sort()).toEqual(["output", "string_input"]);
+    expect(graph.nodes.map((node) => node.id).sort()).toEqual(["the_out", "the_prompt"]);
   });
 
   it("pins an id only through createNode, which then refuses a duplicate", async () => {
@@ -711,5 +711,145 @@ describe("building the same program twice", () => {
       "string_input_2",
       "string_input"
     ]);
+  });
+});
+
+
+describe("implicit node connections", () => {
+  it("matches explicit handles with shared sources and literal values", async () => {
+    const build = (explicit: boolean) => buildGraph(`
+      import { workflow } from "${SPECIFIER}";
+      import { stringInput } from "${INPUT}";
+      import { concat } from "${TEXT}";
+      import { output } from "${OUTPUT}";
+      const source = stringInput({ name: "source", value: "hello" }, { id: "source" });
+      const joined = concat({ a: ${explicit ? "source.output()" : "source"}, b: "!" }, { id: "joined" });
+      return workflow(
+        output({ name: "left", value: ${explicit ? "joined.output()" : "joined"} }, { id: "left" }),
+        output({ name: "right", value: ${explicit ? "source.output()" : "source"} }, { id: "right" })
+      );
+    `, [SPECIFIER, INPUT, TEXT, OUTPUT]);
+    const graph = await build(false);
+    expect(graph).toEqual(await build(true));
+    expect(graph.nodes).toHaveLength(4);
+    expect(graph.edges).toHaveLength(3);
+    expect(graph.nodes.find((node) => node.id === "joined")?.properties).toEqual({ b: "!" });
+    expect(validateGraph(graph, liveRegistry()).issues.filter((issue) => issue.severity === "error")).toEqual([]);
+  });
+
+  it("preserves sandbox list fan-in with implicit node elements", async () => {
+    const graph = await buildGraph(`
+      import { workflow } from "${SPECIFIER}";
+      import { stringInput } from "${INPUT}";
+      import { loadTextFolder } from "${TEXT}";
+      const a = stringInput({ name: "a", value: ".txt" });
+      const b = stringInput({ name: "b", value: ".md" });
+      return workflow(loadTextFolder({ folder: "/tmp", extensions: [a, b] }));
+    `, [SPECIFIER, INPUT, TEXT]);
+    expect(graph.nodes).toHaveLength(3);
+    expect(graph.edges.map((edge) => edge.targetHandle)).toEqual(["extensions", "extensions"]);
+    expect(graph.nodes.find((node) => node.type === "nodetool.text.LoadTextFolder")?.properties).toEqual({ folder: "/tmp" });
+    expect(validateGraph(graph, liveRegistry()).issues.filter((issue) => issue.severity === "error")).toEqual([]);
+  });
+
+  it("refuses multi-output nodes used implicitly", async () => {
+    const run = await runGuest(`
+      import { loadTextFolder } from "${TEXT}";
+      import { output } from "${OUTPUT}";
+      return output({ name: "out", value: loadTextFolder({ folder: "/tmp" }) });
+    `, [SPECIFIER, TEXT, OUTPUT]);
+    expect(run.success).toBe(false);
+    expect(run.error).toContain("explicit output slot");
+  });
+
+  it("keeps generated metadata when runtime options contain extra keys", async () => {
+    const graph = await buildGraph(`
+      import { workflow } from "${SPECIFIER}";
+      import { stringInput } from "${INPUT}";
+      import { output } from "${OUTPUT}";
+      const source = stringInput({ name: "source" }, {
+        id: "source", outputNames: ["wrong"], defaultOutput: "wrong", streaming: true
+      });
+      return workflow(output({ name: "out", value: source }));
+    `, [SPECIFIER, INPUT, OUTPUT]);
+    expect(graph.nodes.find((node) => node.id === "source")?.is_streaming_output).toBeUndefined();
+    expect(graph.edges[0].sourceHandle).toBe("output");
+  });
+
+  it("refuses duplicate wrapper ids and empty ids", async () => {
+    for (const id of ["same", ""]) {
+      const run = await runGuest(`
+        import { stringInput } from "${INPUT}";
+        stringInput({ name: "a" }, { id: ${JSON.stringify(id)} });
+        return stringInput({ name: "b" }, { id: ${JSON.stringify(id)} });
+      `, [SPECIFIER, INPUT]);
+      expect(run.success).toBe(false);
+      expect(run.error).toContain(id ? 'Duplicate node id "same"' : "non-empty string");
+    }
+  });
+
+  it("does not alias an old handle when an explicit id is reused", async () => {
+    const run = await runGuest(`
+      import { workflow } from "${SPECIFIER}";
+      import { stringInput } from "${INPUT}";
+      import { output } from "${OUTPUT}";
+      const old = stringInput({ name: "old" }, { id: "source" });
+      workflow(old);
+      stringInput({ name: "new" }, { id: "source" });
+      return workflow(output({ name: "out", value: old.output() }));
+    `, [SPECIFIER, INPUT, OUTPUT]);
+    expect(run.success).toBe(false);
+    expect(run.error).toContain("already spent");
+  });
+
+  it("refuses coercion and nested implicit nodes", async () => {
+    for (const expression of ['String(source)', 'output({ name: "out", value: { source } })']) {
+      const run = await runGuest(`
+        import { workflow } from "${SPECIFIER}";
+        import { stringInput } from "${INPUT}";
+        import { output } from "${OUTPUT}";
+        const source = stringInput({ name: "source" });
+        const result = ${expression};
+        return workflow(result);
+      `, [SPECIFIER, INPUT, OUTPUT]);
+      expect(run.success).toBe(false);
+      expect(run.error).toMatch(/Cannot coerce a DSL node|value.source/);
+    }
+  });
+});
+
+describe("typed authoring in the guest", () => {
+  it("lowers schemas, composition, template, branches, and maps to valid graphs", async () => {
+    const graph = await buildGraph(`
+      import { workflow, t, template, choose, map } from "${SPECIFIER}";
+      const greet = workflow({ name: t.string() }, ({ name }) => ({ greeting: template\`Hello \${name}\` }));
+      const main = workflow({ names: t.list(t.string()), loud: t.boolean() }, ({ names, loud }) => ({
+        greetings: map(names, name => choose(loud, {
+          then: () => greet({ name }, { id: "loud" }).greeting,
+          else: () => template\`Hi \${name}\`
+        }))
+      }));
+      return { nodes: main.nodes, edges: main.edges };
+    `, [SPECIFIER]);
+    const result = validateGraph(graph, liveRegistry());
+    expect(result.issues.filter((issue) => issue.severity === "error")).toEqual([]);
+    expect(graph.nodes.some((node) => node.type === "nodetool.control.ForEach")).toBe(true);
+    expect(graph.nodes.some((node) => node.type === "nodetool.workflows.subgraph.Subgraph")).toBe(true);
+  });
+
+  it("scopes explicit ids and exposes collision-safe named outputs", async () => {
+    const result = await runGuest(`
+      import { workflow, createNode, t, template } from "${SPECIFIER}";
+      const greet = workflow({ name: t.string() }, ({ name }) => ({ result: template\`Hi \${name}\` }));
+      const main = workflow({}, () => ({ first: greet({ name: "A" }, { id: "first" }).result, second: greet({ name: "B" }, { id: "second" }).result }));
+      const node = createNode("test.Multi", {}, { outputNames: ["value", "then", "output"] });
+      return { ids: main.nodes.map(n => n.id), value: node.value.sourceHandle, reserved: node.outputs.output.sourceHandle, method: typeof node.output, then: "then" in node };
+    `, [SPECIFIER]);
+    expect(result.success, result.error).toBe(true);
+    expect(result.result).toMatchObject({ value: "value", reserved: "output", method: "function", then: false });
+    const ids = (result.result as { ids: string[] }).ids;
+    expect(ids.some((id) => id.startsWith("first/"))).toBe(true);
+    expect(ids.some((id) => id.startsWith("second/"))).toBe(true);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

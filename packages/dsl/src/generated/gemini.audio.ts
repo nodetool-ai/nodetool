@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { AudioRef } from "../types.js";
 
 // Text To Speech — gemini.audio.TextToSpeech
@@ -15,8 +15,8 @@ export interface TextToSpeechOutputs {
   output: AudioRef;
 }
 
-export function textToSpeech(inputs: TextToSpeechInputs): DslNode<TextToSpeechOutputs, "output"> {
-  return createNode("gemini.audio.TextToSpeech", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function textToSpeech(inputs: TextToSpeechInputs, options?: NodeOptions): NodeWithOutputs<TextToSpeechOutputs, "output"> {
+  return createNode("gemini.audio.TextToSpeech", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Transcribe — gemini.audio.Transcribe
@@ -30,6 +30,6 @@ export interface TranscribeOutputs {
   output: string;
 }
 
-export function transcribe(inputs: TranscribeInputs): DslNode<TranscribeOutputs, "output"> {
-  return createNode("gemini.audio.Transcribe", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function transcribe(inputs: TranscribeInputs, options?: NodeOptions): NodeWithOutputs<TranscribeOutputs, "output"> {
+  return createNode("gemini.audio.Transcribe", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }

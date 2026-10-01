@@ -360,6 +360,7 @@
     ],
     "internal": [
       "sandbox/core.js",
+      "sandbox/authoring.js",
       "sandbox/generated/index.js"
     ]
   },

@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef, VideoRef, StoryboardRef, Entity } from "../types.js";
 
 // Load Storyboard — nodetool.storyboard.LoadStoryboard
@@ -20,8 +20,8 @@ export interface LoadStoryboardOutputs {
   shot_count: number;
 }
 
-export function loadStoryboard(inputs: LoadStoryboardInputs): DslNode<LoadStoryboardOutputs> {
-  return createNode("nodetool.storyboard.LoadStoryboard", inputs, { outputNames: ["storyboard", "shots", "entities", "style", "aspect_ratio", "name", "image_model", "video_model", "shot_count"] });
+export function loadStoryboard(inputs: LoadStoryboardInputs, options?: NodeOptions): NodeWithOutputs<LoadStoryboardOutputs> {
+  return createNode("nodetool.storyboard.LoadStoryboard", inputs, { id: options?.id, outputNames: ["storyboard", "shots", "entities", "style", "aspect_ratio", "name", "image_model", "video_model", "shot_count"], outputTypes: {"storyboard":"storyboard","shots":"list[dict]","entities":"list[entity]","style":"str","aspect_ratio":"str","name":"str","image_model":"image_model","video_model":"video_model","shot_count":"int"} });
 }
 
 // Storyboard Shots — nodetool.storyboard.StoryboardShots
@@ -38,8 +38,8 @@ export interface StoryboardShotsOutputs {
   output: Record<string, unknown>[];
 }
 
-export function storyboardShots(inputs: StoryboardShotsInputs): DslNode<StoryboardShotsOutputs> {
-  return createNode("nodetool.storyboard.StoryboardShots", inputs, { outputNames: ["shot", "index", "slug", "keyframe", "clip", "output"], streaming: true });
+export function storyboardShots(inputs: StoryboardShotsInputs, options?: NodeOptions): NodeWithOutputs<StoryboardShotsOutputs> {
+  return createNode("nodetool.storyboard.StoryboardShots", inputs, { id: options?.id, outputNames: ["shot", "index", "slug", "keyframe", "clip", "output"], outputTypes: {"shot":"dict","index":"int","slug":"str","keyframe":"image","clip":"video","output":"list[dict]"}, streaming: true, inputMode: "buffered", outputCorrelation: {"shot":{"kind":"iteration","source":"__execution__","group":"items"},"index":{"kind":"iteration","source":"__execution__","group":"items"},"slug":{"kind":"iteration","source":"__execution__","group":"items"},"keyframe":{"kind":"iteration","source":"__execution__","group":"items"},"clip":{"kind":"iteration","source":"__execution__","group":"items"},"output":{"kind":"single","source":"__execution__"}} });
 }
 
 // Recast Storyboard — nodetool.storyboard.RecastStoryboard
@@ -57,8 +57,8 @@ export interface RecastStoryboardOutputs {
   kept: string[];
 }
 
-export function recastStoryboard(inputs: RecastStoryboardInputs): DslNode<RecastStoryboardOutputs> {
-  return createNode("nodetool.storyboard.RecastStoryboard", inputs, { outputNames: ["storyboard", "invalidated", "kept"] });
+export function recastStoryboard(inputs: RecastStoryboardInputs, options?: NodeOptions): NodeWithOutputs<RecastStoryboardOutputs> {
+  return createNode("nodetool.storyboard.RecastStoryboard", inputs, { id: options?.id, outputNames: ["storyboard", "invalidated", "kept"], outputTypes: {"storyboard":"storyboard","invalidated":"list[str]","kept":"list[str]"} });
 }
 
 // Render Stills — nodetool.storyboard.RenderStills
@@ -80,8 +80,8 @@ export interface RenderStillsOutputs {
   failed: string[];
 }
 
-export function renderStills(inputs: RenderStillsInputs): DslNode<RenderStillsOutputs> {
-  return createNode("nodetool.storyboard.RenderStills", inputs, { outputNames: ["storyboard", "keyframes", "rendered", "skipped", "failed"] });
+export function renderStills(inputs: RenderStillsInputs, options?: NodeOptions): NodeWithOutputs<RenderStillsOutputs> {
+  return createNode("nodetool.storyboard.RenderStills", inputs, { id: options?.id, outputNames: ["storyboard", "keyframes", "rendered", "skipped", "failed"], outputTypes: {"storyboard":"storyboard","keyframes":"list[image]","rendered":"list[str]","skipped":"list[str]","failed":"list[str]"} });
 }
 
 // Render Clips — nodetool.storyboard.RenderClips
@@ -104,8 +104,8 @@ export interface RenderClipsOutputs {
   failed: string[];
 }
 
-export function renderClips(inputs: RenderClipsInputs): DslNode<RenderClipsOutputs> {
-  return createNode("nodetool.storyboard.RenderClips", inputs, { outputNames: ["storyboard", "clips", "rendered", "skipped", "failed"] });
+export function renderClips(inputs: RenderClipsInputs, options?: NodeOptions): NodeWithOutputs<RenderClipsOutputs> {
+  return createNode("nodetool.storyboard.RenderClips", inputs, { id: options?.id, outputNames: ["storyboard", "clips", "rendered", "skipped", "failed"], outputTypes: {"storyboard":"storyboard","clips":"list[video]","rendered":"list[str]","skipped":"list[str]","failed":"list[str]"} });
 }
 
 // Assemble Timeline — nodetool.storyboard.AssembleTimeline
@@ -122,6 +122,6 @@ export interface AssembleTimelineOutputs {
   retimed: Record<string, unknown>[];
 }
 
-export function assembleTimeline(inputs: AssembleTimelineInputs): DslNode<AssembleTimelineOutputs> {
-  return createNode("nodetool.storyboard.AssembleTimeline", inputs, { outputNames: ["timeline", "skipped_shots", "retimed"] });
+export function assembleTimeline(inputs: AssembleTimelineInputs, options?: NodeOptions): NodeWithOutputs<AssembleTimelineOutputs> {
+  return createNode("nodetool.storyboard.AssembleTimeline", inputs, { id: options?.id, outputNames: ["timeline", "skipped_shots", "retimed"], outputTypes: {"timeline":"timeline","skipped_shots":"list[str]","retimed":"list[dict]"} });
 }

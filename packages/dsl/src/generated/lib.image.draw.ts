@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Background — lib.image.draw.Background
@@ -14,8 +14,8 @@ export interface BackgroundOutputs {
   output: ImageRef;
 }
 
-export function background(inputs: BackgroundInputs): DslNode<BackgroundOutputs, "output"> {
-  return createNode("lib.image.draw.Background", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function background(inputs: BackgroundInputs, options?: NodeOptions): NodeWithOutputs<BackgroundOutputs, "output"> {
+  return createNode("lib.image.draw.Background", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Gaussian Noise — lib.image.draw.GaussianNoise
@@ -31,8 +31,8 @@ export interface GaussianNoiseOutputs {
   output: ImageRef;
 }
 
-export function gaussianNoise(inputs: GaussianNoiseInputs): DslNode<GaussianNoiseOutputs, "output"> {
-  return createNode("lib.image.draw.GaussianNoise", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function gaussianNoise(inputs: GaussianNoiseInputs, options?: NodeOptions): NodeWithOutputs<GaussianNoiseOutputs, "output"> {
+  return createNode("lib.image.draw.GaussianNoise", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Render Text — lib.image.draw.RenderText
@@ -51,8 +51,8 @@ export interface RenderTextOutputs {
   output: ImageRef;
 }
 
-export function renderText(inputs: RenderTextInputs): DslNode<RenderTextOutputs, "output"> {
-  return createNode("lib.image.draw.RenderText", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function renderText(inputs: RenderTextInputs, options?: NodeOptions): NodeWithOutputs<RenderTextOutputs, "output"> {
+  return createNode("lib.image.draw.RenderText", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Linear Gradient — lib.image.draw.LinearGradient
@@ -69,8 +69,8 @@ export interface LinearGradientOutputs {
   output: ImageRef;
 }
 
-export function linearGradient(inputs: LinearGradientInputs): DslNode<LinearGradientOutputs, "output"> {
-  return createNode("lib.image.draw.LinearGradient", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function linearGradient(inputs: LinearGradientInputs, options?: NodeOptions): NodeWithOutputs<LinearGradientOutputs, "output"> {
+  return createNode("lib.image.draw.LinearGradient", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Radial Gradient — lib.image.draw.RadialGradient
@@ -86,8 +86,8 @@ export interface RadialGradientOutputs {
   output: ImageRef;
 }
 
-export function radialGradient(inputs: RadialGradientInputs): DslNode<RadialGradientOutputs, "output"> {
-  return createNode("lib.image.draw.RadialGradient", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function radialGradient(inputs: RadialGradientInputs, options?: NodeOptions): NodeWithOutputs<RadialGradientOutputs, "output"> {
+  return createNode("lib.image.draw.RadialGradient", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Angular Gradient — lib.image.draw.AngularGradient
@@ -103,8 +103,8 @@ export interface AngularGradientOutputs {
   output: ImageRef;
 }
 
-export function angularGradient(inputs: AngularGradientInputs): DslNode<AngularGradientOutputs, "output"> {
-  return createNode("lib.image.draw.AngularGradient", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function angularGradient(inputs: AngularGradientInputs, options?: NodeOptions): NodeWithOutputs<AngularGradientOutputs, "output"> {
+  return createNode("lib.image.draw.AngularGradient", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Diamond Gradient — lib.image.draw.DiamondGradient
@@ -120,8 +120,8 @@ export interface DiamondGradientOutputs {
   output: ImageRef;
 }
 
-export function diamondGradient(inputs: DiamondGradientInputs): DslNode<DiamondGradientOutputs, "output"> {
-  return createNode("lib.image.draw.DiamondGradient", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function diamondGradient(inputs: DiamondGradientInputs, options?: NodeOptions): NodeWithOutputs<DiamondGradientOutputs, "output"> {
+  return createNode("lib.image.draw.DiamondGradient", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Checkerboard — lib.image.draw.Checkerboard
@@ -137,6 +137,6 @@ export interface CheckerboardOutputs {
   output: ImageRef;
 }
 
-export function checkerboard(inputs: CheckerboardInputs): DslNode<CheckerboardOutputs, "output"> {
-  return createNode("lib.image.draw.Checkerboard", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function checkerboard(inputs: CheckerboardInputs, options?: NodeOptions): NodeWithOutputs<CheckerboardOutputs, "output"> {
+  return createNode("lib.image.draw.Checkerboard", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }

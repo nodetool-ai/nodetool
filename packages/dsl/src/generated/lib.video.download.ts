@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef, AudioRef, VideoRef } from "../types.js";
 
 // YouTube Downloader — lib.video.download.YtDlpDownload
@@ -25,6 +25,6 @@ export interface YtDlpDownloadOutputs {
   thumbnail: ImageRef;
 }
 
-export function ytDlpDownload(inputs: YtDlpDownloadInputs): DslNode<YtDlpDownloadOutputs> {
-  return createNode("lib.video.download.YtDlpDownload", inputs, { outputNames: ["video", "audio", "metadata", "subtitles", "thumbnail"] });
+export function ytDlpDownload(inputs: YtDlpDownloadInputs, options?: NodeOptions): NodeWithOutputs<YtDlpDownloadOutputs> {
+  return createNode("lib.video.download.YtDlpDownload", inputs, { id: options?.id, outputNames: ["video", "audio", "metadata", "subtitles", "thumbnail"], outputTypes: {"video":"video","audio":"audio","metadata":"dict","subtitles":"str","thumbnail":"image"} });
 }

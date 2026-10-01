@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Mask — lib.image.Mask
@@ -14,6 +14,6 @@ export interface MaskOutputs {
   output: ImageRef;
 }
 
-export function mask(inputs: MaskInputs): DslNode<MaskOutputs, "output"> {
-  return createNode("lib.image.Mask", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function mask(inputs: MaskInputs, options?: NodeOptions): NodeWithOutputs<MaskOutputs, "output"> {
+  return createNode("lib.image.Mask", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }

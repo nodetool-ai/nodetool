@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef, DataframeRef } from "../types.js";
 
 // Chart Renderer — lib.charts.ChartRenderer
@@ -17,6 +17,6 @@ export interface ChartRendererOutputs {
   output: ImageRef;
 }
 
-export function chartRenderer(inputs: ChartRendererInputs): DslNode<ChartRendererOutputs, "output"> {
-  return createNode("lib.charts.ChartRenderer", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function chartRenderer(inputs: ChartRendererInputs, options?: NodeOptions): NodeWithOutputs<ChartRendererOutputs, "output"> {
+  return createNode("lib.charts.ChartRenderer", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }

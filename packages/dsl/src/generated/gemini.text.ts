@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 
 // Grounded Search — gemini.text.GroundedSearch
 export type GroundedSearchInputs = {
@@ -14,8 +14,8 @@ export interface GroundedSearchOutputs {
   text: string;
 }
 
-export function groundedSearch(inputs: GroundedSearchInputs): DslNode<GroundedSearchOutputs> {
-  return createNode("gemini.text.GroundedSearch", inputs, { outputNames: ["results", "sources", "text"] });
+export function groundedSearch(inputs: GroundedSearchInputs, options?: NodeOptions): NodeWithOutputs<GroundedSearchOutputs> {
+  return createNode("gemini.text.GroundedSearch", inputs, { id: options?.id, outputNames: ["results", "sources", "text"], outputTypes: {"results":"list[str]","sources":"list[source]","text":"str"} });
 }
 
 // Embedding — gemini.text.Embedding
@@ -28,6 +28,6 @@ export interface EmbeddingOutputs {
   output: unknown[];
 }
 
-export function embedding(inputs: EmbeddingInputs): DslNode<EmbeddingOutputs, "output"> {
-  return createNode("gemini.text.Embedding", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function embedding(inputs: EmbeddingInputs, options?: NodeOptions): NodeWithOutputs<EmbeddingOutputs, "output"> {
+  return createNode("gemini.text.Embedding", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list"}, defaultOutput: "output" });
 }

@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { AudioRef, TextRef, FolderRef } from "../types.js";
 
 // Automatic Speech Recognition — nodetool.text.AutomaticSpeechRecognition
@@ -16,8 +16,8 @@ export interface AutomaticSpeechRecognitionOutputs {
   text: string;
 }
 
-export function automaticSpeechRecognition(inputs: AutomaticSpeechRecognitionInputs): DslNode<AutomaticSpeechRecognitionOutputs, "text"> {
-  return createNode("nodetool.text.AutomaticSpeechRecognition", inputs, { outputNames: ["text"], defaultOutput: "text" });
+export function automaticSpeechRecognition(inputs: AutomaticSpeechRecognitionInputs, options?: NodeOptions): NodeWithOutputs<AutomaticSpeechRecognitionOutputs, "text"> {
+  return createNode("nodetool.text.AutomaticSpeechRecognition", inputs, { id: options?.id, outputNames: ["text"], outputTypes: {"text":"str"}, defaultOutput: "text" });
 }
 
 // Embedding — nodetool.text.Embedding
@@ -31,8 +31,8 @@ export interface EmbeddingOutputs {
   output: unknown[];
 }
 
-export function embedding(inputs: EmbeddingInputs): DslNode<EmbeddingOutputs, "output"> {
-  return createNode("nodetool.text.Embedding", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function embedding(inputs: EmbeddingInputs, options?: NodeOptions): NodeWithOutputs<EmbeddingOutputs, "output"> {
+  return createNode("nodetool.text.Embedding", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list"}, defaultOutput: "output" });
 }
 
 // Save Text File — nodetool.text.SaveTextFile
@@ -47,8 +47,8 @@ export interface SaveTextFileOutputs {
   output: TextRef;
 }
 
-export function saveTextFile(inputs: SaveTextFileInputs): DslNode<SaveTextFileOutputs, "output"> {
-  return createNode("nodetool.text.SaveTextFile", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function saveTextFile(inputs: SaveTextFileInputs, options?: NodeOptions): NodeWithOutputs<SaveTextFileOutputs, "output"> {
+  return createNode("nodetool.text.SaveTextFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"text"}, defaultOutput: "output" });
 }
 
 // Save Text — nodetool.text.SaveText
@@ -62,8 +62,8 @@ export interface SaveTextOutputs {
   output: TextRef;
 }
 
-export function saveText(inputs: SaveTextInputs): DslNode<SaveTextOutputs, "output"> {
-  return createNode("nodetool.text.SaveText", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function saveText(inputs: SaveTextInputs, options?: NodeOptions): NodeWithOutputs<SaveTextOutputs, "output"> {
+  return createNode("nodetool.text.SaveText", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"text"}, defaultOutput: "output" });
 }
 
 // Load Text Folder — nodetool.text.LoadTextFolder
@@ -81,8 +81,8 @@ export interface LoadTextFolderOutputs {
   paths: unknown[];
 }
 
-export function loadTextFolder(inputs: LoadTextFolderInputs): DslNode<LoadTextFolderOutputs> {
-  return createNode("nodetool.text.LoadTextFolder", inputs, { outputNames: ["text", "path", "texts", "paths"], streaming: true });
+export function loadTextFolder(inputs: LoadTextFolderInputs, options?: NodeOptions): NodeWithOutputs<LoadTextFolderOutputs> {
+  return createNode("nodetool.text.LoadTextFolder", inputs, { id: options?.id, outputNames: ["text", "path", "texts", "paths"], outputTypes: {"text":"str","path":"str","texts":"list","paths":"list"}, streaming: true });
 }
 
 // Load Text Assets — nodetool.text.LoadTextAssets
@@ -97,8 +97,8 @@ export interface LoadTextAssetsOutputs {
   names: unknown[];
 }
 
-export function loadTextAssets(inputs: LoadTextAssetsInputs): DslNode<LoadTextAssetsOutputs> {
-  return createNode("nodetool.text.LoadTextAssets", inputs, { outputNames: ["text", "name", "texts", "names"], streaming: true });
+export function loadTextAssets(inputs: LoadTextAssetsInputs, options?: NodeOptions): NodeWithOutputs<LoadTextAssetsOutputs> {
+  return createNode("nodetool.text.LoadTextAssets", inputs, { id: options?.id, outputNames: ["text", "name", "texts", "names"], outputTypes: {"text":"text","name":"str","texts":"list","names":"list"}, streaming: true });
 }
 
 // Filter String — nodetool.text.FilterString
@@ -112,8 +112,8 @@ export interface FilterStringOutputs {
   output: string;
 }
 
-export function filterString(inputs: FilterStringInputs): DslNode<FilterStringOutputs, "output"> {
-  return createNode("nodetool.text.FilterString", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true });
+export function filterString(inputs: FilterStringInputs, options?: NodeOptions): NodeWithOutputs<FilterStringOutputs, "output"> {
+  return createNode("nodetool.text.FilterString", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output", streaming: true, outputCorrelation: {"output":{"kind":"forward","source":"value"}} });
 }
 
 // Filter Regex String — nodetool.text.FilterRegexString
@@ -127,20 +127,21 @@ export interface FilterRegexStringOutputs {
   output: string;
 }
 
-export function filterRegexString(inputs: FilterRegexStringInputs): DslNode<FilterRegexStringOutputs, "output"> {
-  return createNode("nodetool.text.FilterRegexString", inputs, { outputNames: ["output"], defaultOutput: "output", streaming: true });
+export function filterRegexString(inputs: FilterRegexStringInputs, options?: NodeOptions): NodeWithOutputs<FilterRegexStringOutputs, "output"> {
+  return createNode("nodetool.text.FilterRegexString", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output", streaming: true, outputCorrelation: {"output":{"kind":"forward","source":"value"}} });
 }
 
 // Concat — nodetool.text.Concat
 export type ConcatInputs = {
+  [name: string]: unknown;
 };
 
 export interface ConcatOutputs {
   output: string;
 }
 
-export function concat(inputs?: ConcatInputs): DslNode<ConcatOutputs, "output"> {
-  return createNode("nodetool.text.Concat", inputs ?? {}, { outputNames: ["output"], defaultOutput: "output" });
+export function concat(inputs?: ConcatInputs, options?: NodeOptions): NodeWithOutputs<ConcatOutputs, "output"> {
+  return createNode("nodetool.text.Concat", inputs ?? {}, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }
 
 // Collect Text — nodetool.text.Collect
@@ -153,32 +154,34 @@ export interface CollectOutputs {
   output: string;
 }
 
-export function collect(inputs: CollectInputs): DslNode<CollectOutputs, "output"> {
-  return createNode("nodetool.text.Collect", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function collect(inputs: CollectInputs, options?: NodeOptions): NodeWithOutputs<CollectOutputs, "output"> {
+  return createNode("nodetool.text.Collect", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }
 
 // Prompt — nodetool.text.Prompt
 export type PromptInputs = {
   prompt?: Connectable<string>;
+  [name: string]: unknown;
 };
 
 export interface PromptOutputs {
   output: string;
 }
 
-export function prompt(inputs: PromptInputs): DslNode<PromptOutputs, "output"> {
-  return createNode("nodetool.text.Prompt", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function prompt(inputs: PromptInputs, options?: NodeOptions): NodeWithOutputs<PromptOutputs, "output"> {
+  return createNode("nodetool.text.Prompt", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }
 
 // Template — nodetool.text.Template
 export type TemplateInputs = {
   string?: Connectable<string>;
+  [name: string]: unknown;
 };
 
 export interface TemplateOutputs {
   output: string;
 }
 
-export function template(inputs: TemplateInputs): DslNode<TemplateOutputs, "output"> {
-  return createNode("nodetool.text.Template", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function template(inputs: TemplateInputs, options?: NodeOptions): NodeWithOutputs<TemplateOutputs, "output"> {
+  return createNode("nodetool.text.Template", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }

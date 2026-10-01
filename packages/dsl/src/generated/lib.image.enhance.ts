@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Adaptive Contrast — lib.image.enhance.AdaptiveContrast
@@ -14,8 +14,8 @@ export interface AdaptiveContrastOutputs {
   output: ImageRef;
 }
 
-export function adaptiveContrast(inputs: AdaptiveContrastInputs): DslNode<AdaptiveContrastOutputs, "output"> {
-  return createNode("lib.image.enhance.AdaptiveContrast", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function adaptiveContrast(inputs: AdaptiveContrastInputs, options?: NodeOptions): NodeWithOutputs<AdaptiveContrastOutputs, "output"> {
+  return createNode("lib.image.enhance.AdaptiveContrast", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Auto Contrast — lib.image.enhance.AutoContrast
@@ -28,8 +28,8 @@ export interface AutoContrastOutputs {
   output: ImageRef;
 }
 
-export function autoContrast(inputs: AutoContrastInputs): DslNode<AutoContrastOutputs, "output"> {
-  return createNode("lib.image.enhance.AutoContrast", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function autoContrast(inputs: AutoContrastInputs, options?: NodeOptions): NodeWithOutputs<AutoContrastOutputs, "output"> {
+  return createNode("lib.image.enhance.AutoContrast", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Detail — lib.image.enhance.Detail
@@ -41,8 +41,8 @@ export interface DetailOutputs {
   output: ImageRef;
 }
 
-export function detail(inputs: DetailInputs): DslNode<DetailOutputs, "output"> {
-  return createNode("lib.image.enhance.Detail", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function detail(inputs: DetailInputs, options?: NodeOptions): NodeWithOutputs<DetailOutputs, "output"> {
+  return createNode("lib.image.enhance.Detail", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Edge Enhance — lib.image.enhance.EdgeEnhance
@@ -54,8 +54,8 @@ export interface EdgeEnhanceOutputs {
   output: ImageRef;
 }
 
-export function edgeEnhance(inputs: EdgeEnhanceInputs): DslNode<EdgeEnhanceOutputs, "output"> {
-  return createNode("lib.image.enhance.EdgeEnhance", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function edgeEnhance(inputs: EdgeEnhanceInputs, options?: NodeOptions): NodeWithOutputs<EdgeEnhanceOutputs, "output"> {
+  return createNode("lib.image.enhance.EdgeEnhance", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Equalize — lib.image.enhance.Equalize
@@ -67,8 +67,8 @@ export interface EqualizeOutputs {
   output: ImageRef;
 }
 
-export function equalize(inputs: EqualizeInputs): DslNode<EqualizeOutputs, "output"> {
-  return createNode("lib.image.enhance.Equalize", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function equalize(inputs: EqualizeInputs, options?: NodeOptions): NodeWithOutputs<EqualizeOutputs, "output"> {
+  return createNode("lib.image.enhance.Equalize", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Rank Filter — lib.image.enhance.RankFilter
@@ -82,6 +82,6 @@ export interface RankFilterOutputs {
   output: ImageRef;
 }
 
-export function rankFilter(inputs: RankFilterInputs): DslNode<RankFilterOutputs, "output"> {
-  return createNode("lib.image.enhance.RankFilter", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function rankFilter(inputs: RankFilterInputs, options?: NodeOptions): NodeWithOutputs<RankFilterOutputs, "output"> {
+  return createNode("lib.image.enhance.RankFilter", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }

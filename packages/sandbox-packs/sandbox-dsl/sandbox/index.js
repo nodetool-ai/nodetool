@@ -7,5 +7,7 @@
  * nodes it built into a graph.
  */
 
-export { createNode, isOutputHandle, workflow } from "./core.js";
+export { createNode, isOutputHandle, resolveConnection } from "./core.js";
 export * from "./generated/index.js";
+
+export { workflow, t, choose, map, template } from "./authoring.js";

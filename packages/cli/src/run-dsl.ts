@@ -13,7 +13,7 @@ import { pathToFileURL } from "node:url";
 
 export function isWorkflow(value: unknown): value is Workflow {
   return (
-    typeof value === "object" &&
+    (typeof value === "object" || typeof value === "function") &&
     value !== null &&
     Array.isArray((value as Record<string, unknown>).nodes) &&
     Array.isArray((value as Record<string, unknown>).edges)
@@ -64,6 +64,9 @@ export function dslWorkflowToGraph(wf: Workflow) {
       id: n.id,
       type: n.type,
       properties: n.data,
+      dynamic_outputs: n.dynamic_outputs,
+      output_correlation: n.output_correlation,
+      input_mode: n.input_mode,
       is_streaming_output: n.streaming,
       is_streaming_input: n.streamingInput
     })),

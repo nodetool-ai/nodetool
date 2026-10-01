@@ -559,8 +559,8 @@ describe("buildCreateNodeOptions", () => {
     streaming: false
   };
 
-  test("returns empty string for no outputs and no streaming", () => {
-    expect(buildCreateNodeOptions(baseNode, [])).toBe("");
+  test("preserves identity even with no outputs or streaming", () => {
+    expect(buildCreateNodeOptions(baseNode, [])).toBe(', { id: "n1" }');
   });
 
   test("includes outputNames and defaultOutput for single output", () => {

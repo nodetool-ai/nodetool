@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Create Image — openai.image.CreateImage
@@ -16,8 +16,8 @@ export interface CreateImageOutputs {
   output: ImageRef;
 }
 
-export function createImage(inputs: CreateImageInputs): DslNode<CreateImageOutputs, "output"> {
-  return createNode("openai.image.CreateImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function createImage(inputs: CreateImageInputs, options?: NodeOptions): NodeWithOutputs<CreateImageOutputs, "output"> {
+  return createNode("openai.image.CreateImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Edit Image — openai.image.EditImage
@@ -34,8 +34,8 @@ export interface EditImageOutputs {
   output: ImageRef;
 }
 
-export function editImage(inputs: EditImageInputs): DslNode<EditImageOutputs, "output"> {
-  return createNode("openai.image.EditImage", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function editImage(inputs: EditImageInputs, options?: NodeOptions): NodeWithOutputs<EditImageOutputs, "output"> {
+  return createNode("openai.image.EditImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Image Variation — openai.image.ImageVariation
@@ -48,6 +48,6 @@ export interface ImageVariationOutputs {
   output: ImageRef;
 }
 
-export function imageVariation(inputs: ImageVariationInputs): DslNode<ImageVariationOutputs, "output"> {
-  return createNode("openai.image.ImageVariation", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function imageVariation(inputs: ImageVariationInputs, options?: NodeOptions): NodeWithOutputs<ImageVariationOutputs, "output"> {
+  return createNode("openai.image.ImageVariation", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }

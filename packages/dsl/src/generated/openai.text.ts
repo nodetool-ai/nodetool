@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 
 // Embedding — openai.text.Embedding
 export type EmbeddingInputs = {
@@ -13,8 +13,8 @@ export interface EmbeddingOutputs {
   output: unknown[];
 }
 
-export function embedding(inputs: EmbeddingInputs): DslNode<EmbeddingOutputs, "output"> {
-  return createNode("openai.text.Embedding", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function embedding(inputs: EmbeddingInputs, options?: NodeOptions): NodeWithOutputs<EmbeddingOutputs, "output"> {
+  return createNode("openai.text.Embedding", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list"}, defaultOutput: "output" });
 }
 
 // Web Search — openai.text.WebSearch
@@ -26,8 +26,8 @@ export interface WebSearchOutputs {
   output: string;
 }
 
-export function webSearch(inputs: WebSearchInputs): DslNode<WebSearchOutputs, "output"> {
-  return createNode("openai.text.WebSearch", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function webSearch(inputs: WebSearchInputs, options?: NodeOptions): NodeWithOutputs<WebSearchOutputs, "output"> {
+  return createNode("openai.text.WebSearch", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }
 
 // Moderation — openai.text.Moderation
@@ -42,6 +42,6 @@ export interface ModerationOutputs {
   category_scores: Record<string, number>;
 }
 
-export function moderation(inputs: ModerationInputs): DslNode<ModerationOutputs> {
-  return createNode("openai.text.Moderation", inputs, { outputNames: ["flagged", "categories", "category_scores"] });
+export function moderation(inputs: ModerationInputs, options?: NodeOptions): NodeWithOutputs<ModerationOutputs> {
+  return createNode("openai.text.Moderation", inputs, { id: options?.id, outputNames: ["flagged", "categories", "category_scores"], outputTypes: {"flagged":"bool","categories":"dict[str, bool]","category_scores":"dict[str, float]"} });
 }

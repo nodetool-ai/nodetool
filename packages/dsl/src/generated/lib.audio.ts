@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { AudioRef } from "../types.js";
 
 // Gain — lib.audio.Gain
@@ -13,8 +13,8 @@ export interface GainOutputs {
   output: AudioRef;
 }
 
-export function gain(inputs: GainInputs): DslNode<GainOutputs, "output"> {
-  return createNode("lib.audio.Gain", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function gain(inputs: GainInputs, options?: NodeOptions): NodeWithOutputs<GainOutputs, "output"> {
+  return createNode("lib.audio.Gain", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Delay — lib.audio.Delay
@@ -29,8 +29,8 @@ export interface DelayOutputs {
   output: AudioRef;
 }
 
-export function delay(inputs: DelayInputs): DslNode<DelayOutputs, "output"> {
-  return createNode("lib.audio.Delay", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function delay(inputs: DelayInputs, options?: NodeOptions): NodeWithOutputs<DelayOutputs, "output"> {
+  return createNode("lib.audio.Delay", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // High Pass Filter — lib.audio.HighPassFilter
@@ -43,8 +43,8 @@ export interface HighPassFilterOutputs {
   output: AudioRef;
 }
 
-export function highPassFilter(inputs: HighPassFilterInputs): DslNode<HighPassFilterOutputs, "output"> {
-  return createNode("lib.audio.HighPassFilter", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function highPassFilter(inputs: HighPassFilterInputs, options?: NodeOptions): NodeWithOutputs<HighPassFilterOutputs, "output"> {
+  return createNode("lib.audio.HighPassFilter", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Low Pass Filter — lib.audio.LowPassFilter
@@ -57,8 +57,8 @@ export interface LowPassFilterOutputs {
   output: AudioRef;
 }
 
-export function lowPassFilter(inputs: LowPassFilterInputs): DslNode<LowPassFilterOutputs, "output"> {
-  return createNode("lib.audio.LowPassFilter", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function lowPassFilter(inputs: LowPassFilterInputs, options?: NodeOptions): NodeWithOutputs<LowPassFilterOutputs, "output"> {
+  return createNode("lib.audio.LowPassFilter", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // High Shelf Filter — lib.audio.HighShelfFilter
@@ -72,8 +72,8 @@ export interface HighShelfFilterOutputs {
   output: AudioRef;
 }
 
-export function highShelfFilter(inputs: HighShelfFilterInputs): DslNode<HighShelfFilterOutputs, "output"> {
-  return createNode("lib.audio.HighShelfFilter", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function highShelfFilter(inputs: HighShelfFilterInputs, options?: NodeOptions): NodeWithOutputs<HighShelfFilterOutputs, "output"> {
+  return createNode("lib.audio.HighShelfFilter", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Low Shelf Filter — lib.audio.LowShelfFilter
@@ -87,8 +87,8 @@ export interface LowShelfFilterOutputs {
   output: AudioRef;
 }
 
-export function lowShelfFilter(inputs: LowShelfFilterInputs): DslNode<LowShelfFilterOutputs, "output"> {
-  return createNode("lib.audio.LowShelfFilter", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function lowShelfFilter(inputs: LowShelfFilterInputs, options?: NodeOptions): NodeWithOutputs<LowShelfFilterOutputs, "output"> {
+  return createNode("lib.audio.LowShelfFilter", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Peak Filter — lib.audio.PeakFilter
@@ -103,8 +103,8 @@ export interface PeakFilterOutputs {
   output: AudioRef;
 }
 
-export function peakFilter(inputs: PeakFilterInputs): DslNode<PeakFilterOutputs, "output"> {
-  return createNode("lib.audio.PeakFilter", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function peakFilter(inputs: PeakFilterInputs, options?: NodeOptions): NodeWithOutputs<PeakFilterOutputs, "output"> {
+  return createNode("lib.audio.PeakFilter", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Bitcrush — lib.audio.Bitcrush
@@ -118,8 +118,8 @@ export interface BitcrushOutputs {
   output: AudioRef;
 }
 
-export function bitcrush(inputs: BitcrushInputs): DslNode<BitcrushOutputs, "output"> {
-  return createNode("lib.audio.Bitcrush", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function bitcrush(inputs: BitcrushInputs, options?: NodeOptions): NodeWithOutputs<BitcrushOutputs, "output"> {
+  return createNode("lib.audio.Bitcrush", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Compress — lib.audio.Compress
@@ -136,8 +136,8 @@ export interface CompressOutputs {
   output: AudioRef;
 }
 
-export function compress(inputs: CompressInputs): DslNode<CompressOutputs, "output"> {
-  return createNode("lib.audio.Compress", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function compress(inputs: CompressInputs, options?: NodeOptions): NodeWithOutputs<CompressOutputs, "output"> {
+  return createNode("lib.audio.Compress", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Distortion — lib.audio.Distortion
@@ -150,8 +150,8 @@ export interface DistortionOutputs {
   output: AudioRef;
 }
 
-export function distortion(inputs: DistortionInputs): DslNode<DistortionOutputs, "output"> {
-  return createNode("lib.audio.Distortion", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function distortion(inputs: DistortionInputs, options?: NodeOptions): NodeWithOutputs<DistortionOutputs, "output"> {
+  return createNode("lib.audio.Distortion", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Limiter — lib.audio.Limiter
@@ -166,8 +166,8 @@ export interface LimiterOutputs {
   output: AudioRef;
 }
 
-export function limiter(inputs: LimiterInputs): DslNode<LimiterOutputs, "output"> {
-  return createNode("lib.audio.Limiter", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function limiter(inputs: LimiterInputs, options?: NodeOptions): NodeWithOutputs<LimiterOutputs, "output"> {
+  return createNode("lib.audio.Limiter", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Reverb — lib.audio.Reverb
@@ -183,8 +183,8 @@ export interface ReverbOutputs {
   output: AudioRef;
 }
 
-export function reverb(inputs: ReverbInputs): DslNode<ReverbOutputs, "output"> {
-  return createNode("lib.audio.Reverb", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function reverb(inputs: ReverbInputs, options?: NodeOptions): NodeWithOutputs<ReverbOutputs, "output"> {
+  return createNode("lib.audio.Reverb", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Noise Gate — lib.audio.NoiseGate
@@ -199,8 +199,8 @@ export interface NoiseGateOutputs {
   output: AudioRef;
 }
 
-export function noiseGate(inputs: NoiseGateInputs): DslNode<NoiseGateOutputs, "output"> {
-  return createNode("lib.audio.NoiseGate", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function noiseGate(inputs: NoiseGateInputs, options?: NodeOptions): NodeWithOutputs<NoiseGateOutputs, "output"> {
+  return createNode("lib.audio.NoiseGate", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Phaser — lib.audio.Phaser
@@ -217,8 +217,8 @@ export interface PhaserOutputs {
   output: AudioRef;
 }
 
-export function phaser(inputs: PhaserInputs): DslNode<PhaserOutputs, "output"> {
-  return createNode("lib.audio.Phaser", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function phaser(inputs: PhaserInputs, options?: NodeOptions): NodeWithOutputs<PhaserOutputs, "output"> {
+  return createNode("lib.audio.Phaser", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Pitch Shift — lib.audio.PitchShift
@@ -231,8 +231,8 @@ export interface PitchShiftOutputs {
   output: AudioRef;
 }
 
-export function pitchShift(inputs: PitchShiftInputs): DslNode<PitchShiftOutputs, "output"> {
-  return createNode("lib.audio.PitchShift", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function pitchShift(inputs: PitchShiftInputs, options?: NodeOptions): NodeWithOutputs<PitchShiftOutputs, "output"> {
+  return createNode("lib.audio.PitchShift", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }
 
 // Time Stretch — lib.audio.TimeStretch
@@ -245,6 +245,6 @@ export interface TimeStretchOutputs {
   output: AudioRef;
 }
 
-export function timeStretch(inputs: TimeStretchInputs): DslNode<TimeStretchOutputs, "output"> {
-  return createNode("lib.audio.TimeStretch", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function timeStretch(inputs: TimeStretchInputs, options?: NodeOptions): NodeWithOutputs<TimeStretchOutputs, "output"> {
+  return createNode("lib.audio.TimeStretch", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
 }

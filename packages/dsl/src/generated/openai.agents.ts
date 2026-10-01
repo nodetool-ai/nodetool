@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { AudioRef } from "../types.js";
 
 // Realtime Agent — openai.agents.RealtimeAgent
@@ -19,8 +19,8 @@ export interface RealtimeAgentOutputs {
   text: string;
 }
 
-export function realtimeAgent(inputs: RealtimeAgentInputs): DslNode<RealtimeAgentOutputs> {
-  return createNode("openai.agents.RealtimeAgent", inputs, { outputNames: ["chunk", "audio", "text"], streamingInput: true });
+export function realtimeAgent(inputs: RealtimeAgentInputs, options?: NodeOptions): NodeWithOutputs<RealtimeAgentOutputs> {
+  return createNode("openai.agents.RealtimeAgent", inputs, { id: options?.id, outputNames: ["chunk", "audio", "text"], outputTypes: {"chunk":"chunk","audio":"audio","text":"str"}, streamingInput: true });
 }
 
 // Realtime Transcription — openai.agents.RealtimeTranscription
@@ -36,8 +36,8 @@ export interface RealtimeTranscriptionOutputs {
   chunk: unknown;
 }
 
-export function realtimeTranscription(inputs: RealtimeTranscriptionInputs): DslNode<RealtimeTranscriptionOutputs> {
-  return createNode("openai.agents.RealtimeTranscription", inputs, { outputNames: ["text", "chunk"], streamingInput: true });
+export function realtimeTranscription(inputs: RealtimeTranscriptionInputs, options?: NodeOptions): NodeWithOutputs<RealtimeTranscriptionOutputs> {
+  return createNode("openai.agents.RealtimeTranscription", inputs, { id: options?.id, outputNames: ["text", "chunk"], outputTypes: {"text":"str","chunk":"chunk"}, streamingInput: true });
 }
 
 // Live Agent — openai.agents.LiveAgent
@@ -58,6 +58,6 @@ export interface LiveAgentOutputs {
   input_transcript: string;
 }
 
-export function liveAgent(inputs: LiveAgentInputs): DslNode<LiveAgentOutputs> {
-  return createNode("openai.agents.LiveAgent", inputs, { outputNames: ["chunk", "audio", "text", "input_transcript"], streamingInput: true });
+export function liveAgent(inputs: LiveAgentInputs, options?: NodeOptions): NodeWithOutputs<LiveAgentOutputs> {
+  return createNode("openai.agents.LiveAgent", inputs, { id: options?.id, outputNames: ["chunk", "audio", "text", "input_transcript"], outputTypes: {"chunk":"chunk","audio":"audio","text":"str","input_transcript":"str"}, streamingInput: true });
 }

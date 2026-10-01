@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef, VideoRef, Entity } from "../types.js";
 
 // Director — nodetool.creative.Director
@@ -20,8 +20,8 @@ export interface DirectorOutputs {
   title: string;
 }
 
-export function director(inputs: DirectorInputs): DslNode<DirectorOutputs> {
-  return createNode("nodetool.creative.Director", inputs, { outputNames: ["screenplay", "narration", "music_prompt", "title"] });
+export function director(inputs: DirectorInputs, options?: NodeOptions): NodeWithOutputs<DirectorOutputs> {
+  return createNode("nodetool.creative.Director", inputs, { id: options?.id, outputNames: ["screenplay", "narration", "music_prompt", "title"], outputTypes: {"screenplay":"dict","narration":"str","music_prompt":"str","title":"str"} });
 }
 
 // Screenplay Shots — nodetool.creative.ScreenplayShots
@@ -36,8 +36,8 @@ export interface ScreenplayShotsOutputs {
   output: string[];
 }
 
-export function screenplayShots(inputs: ScreenplayShotsInputs): DslNode<ScreenplayShotsOutputs> {
-  return createNode("nodetool.creative.ScreenplayShots", inputs, { outputNames: ["shot", "shot_prompt", "index", "output"], streaming: true });
+export function screenplayShots(inputs: ScreenplayShotsInputs, options?: NodeOptions): NodeWithOutputs<ScreenplayShotsOutputs> {
+  return createNode("nodetool.creative.ScreenplayShots", inputs, { id: options?.id, outputNames: ["shot", "shot_prompt", "index", "output"], outputTypes: {"shot":"dict","shot_prompt":"str","index":"int","output":"list[str]"}, streaming: true, inputMode: "buffered", outputCorrelation: {"shot":{"kind":"iteration","source":"__execution__","group":"items"},"shot_prompt":{"kind":"iteration","source":"__execution__","group":"items"},"index":{"kind":"iteration","source":"__execution__","group":"items"},"output":{"kind":"single","source":"__execution__"}} });
 }
 
 // Apply Entities — nodetool.creative.ApplyEntities
@@ -51,8 +51,8 @@ export interface ApplyEntitiesOutputs {
   reference_images: ImageRef[];
 }
 
-export function applyEntities(inputs: ApplyEntitiesInputs): DslNode<ApplyEntitiesOutputs> {
-  return createNode("nodetool.creative.ApplyEntities", inputs, { outputNames: ["prompt", "reference_images"] });
+export function applyEntities(inputs: ApplyEntitiesInputs, options?: NodeOptions): NodeWithOutputs<ApplyEntitiesOutputs> {
+  return createNode("nodetool.creative.ApplyEntities", inputs, { id: options?.id, outputNames: ["prompt", "reference_images"], outputTypes: {"prompt":"str","reference_images":"list[image]"} });
 }
 
 // Shot Batch — nodetool.creative.ShotBatch
@@ -66,8 +66,8 @@ export interface ShotBatchOutputs {
   shots: Record<string, unknown>[];
 }
 
-export function shotBatch(inputs: ShotBatchInputs): DslNode<ShotBatchOutputs, "shots"> {
-  return createNode("nodetool.creative.ShotBatch", inputs, { outputNames: ["shots"], defaultOutput: "shots" });
+export function shotBatch(inputs: ShotBatchInputs, options?: NodeOptions): NodeWithOutputs<ShotBatchOutputs, "shots"> {
+  return createNode("nodetool.creative.ShotBatch", inputs, { id: options?.id, outputNames: ["shots"], outputTypes: {"shots":"list[dict]"}, defaultOutput: "shots" });
 }
 
 // Shot Chain — nodetool.creative.ShotChain
@@ -83,6 +83,6 @@ export interface ShotChainOutputs {
   videos: VideoRef[];
 }
 
-export function shotChain(inputs: ShotChainInputs): DslNode<ShotChainOutputs, "videos"> {
-  return createNode("nodetool.creative.ShotChain", inputs, { outputNames: ["videos"], defaultOutput: "videos" });
+export function shotChain(inputs: ShotChainInputs, options?: NodeOptions): NodeWithOutputs<ShotChainOutputs, "videos"> {
+  return createNode("nodetool.creative.ShotChain", inputs, { id: options?.id, outputNames: ["videos"], outputTypes: {"videos":"list[video]"}, defaultOutput: "videos" });
 }

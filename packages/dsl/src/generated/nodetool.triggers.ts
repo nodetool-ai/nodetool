@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 
 // Wait — nodetool.triggers.Wait
 export type WaitInputs = {
@@ -14,8 +14,8 @@ export interface WaitOutputs {
   waited_seconds: number;
 }
 
-export function wait(inputs: WaitInputs): DslNode<WaitOutputs> {
-  return createNode("nodetool.triggers.Wait", inputs, { outputNames: ["data", "resumed_at", "waited_seconds"] });
+export function wait(inputs: WaitInputs, options?: NodeOptions): NodeWithOutputs<WaitOutputs> {
+  return createNode("nodetool.triggers.Wait", inputs, { id: options?.id, outputNames: ["data", "resumed_at", "waited_seconds"], outputTypes: {"data":"any","resumed_at":"str","waited_seconds":"float"} });
 }
 
 // Manual Trigger — nodetool.triggers.ManualTrigger
@@ -32,8 +32,8 @@ export interface ManualTriggerOutputs {
   event_type: string;
 }
 
-export function manualTrigger(inputs: ManualTriggerInputs): DslNode<ManualTriggerOutputs> {
-  return createNode("nodetool.triggers.ManualTrigger", inputs, { outputNames: ["data", "timestamp", "source", "event_type"], streamingInput: true });
+export function manualTrigger(inputs: ManualTriggerInputs, options?: NodeOptions): NodeWithOutputs<ManualTriggerOutputs> {
+  return createNode("nodetool.triggers.ManualTrigger", inputs, { id: options?.id, outputNames: ["data", "timestamp", "source", "event_type"], outputTypes: {"data":"any","timestamp":"str","source":"str","event_type":"str"}, streamingInput: true });
 }
 
 // Interval Trigger — nodetool.triggers.IntervalTrigger
@@ -54,8 +54,8 @@ export interface IntervalTriggerOutputs {
   event_type: string;
 }
 
-export function intervalTrigger(inputs: IntervalTriggerInputs): DslNode<IntervalTriggerOutputs> {
-  return createNode("nodetool.triggers.IntervalTrigger", inputs, { outputNames: ["tick", "elapsed_seconds", "interval_seconds", "timestamp", "source", "event_type"], streaming: true });
+export function intervalTrigger(inputs: IntervalTriggerInputs, options?: NodeOptions): NodeWithOutputs<IntervalTriggerOutputs> {
+  return createNode("nodetool.triggers.IntervalTrigger", inputs, { id: options?.id, outputNames: ["tick", "elapsed_seconds", "interval_seconds", "timestamp", "source", "event_type"], outputTypes: {"tick":"int","elapsed_seconds":"float","interval_seconds":"float","timestamp":"str","source":"str","event_type":"str"}, streaming: true });
 }
 
 // Webhook Trigger — nodetool.triggers.WebhookTrigger
@@ -73,8 +73,8 @@ export interface WebhookTriggerOutputs {
   event_type: string;
 }
 
-export function webhookTrigger(inputs?: WebhookTriggerInputs): DslNode<WebhookTriggerOutputs> {
-  return createNode("nodetool.triggers.WebhookTrigger", inputs ?? {}, { outputNames: ["body", "headers", "query", "method", "path", "timestamp", "source", "event_type"] });
+export function webhookTrigger(inputs?: WebhookTriggerInputs, options?: NodeOptions): NodeWithOutputs<WebhookTriggerOutputs> {
+  return createNode("nodetool.triggers.WebhookTrigger", inputs ?? {}, { id: options?.id, outputNames: ["body", "headers", "query", "method", "path", "timestamp", "source", "event_type"], outputTypes: {"body":"any","headers":"dict[str, any]","query":"dict[str, any]","method":"str","path":"str","timestamp":"str","source":"str","event_type":"str"} });
 }
 
 // File Watch Trigger — nodetool.triggers.FileWatchTrigger
@@ -96,6 +96,6 @@ export interface FileWatchTriggerOutputs {
   timestamp: string;
 }
 
-export function fileWatchTrigger(inputs: FileWatchTriggerInputs): DslNode<FileWatchTriggerOutputs> {
-  return createNode("nodetool.triggers.FileWatchTrigger", inputs, { outputNames: ["event", "path", "dest_path", "is_directory", "timestamp"], streaming: true });
+export function fileWatchTrigger(inputs: FileWatchTriggerInputs, options?: NodeOptions): NodeWithOutputs<FileWatchTriggerOutputs> {
+  return createNode("nodetool.triggers.FileWatchTrigger", inputs, { id: options?.id, outputNames: ["event", "path", "dest_path", "is_directory", "timestamp"], outputTypes: {"event":"str","path":"str","dest_path":"str","is_directory":"bool","timestamp":"str"}, streaming: true });
 }

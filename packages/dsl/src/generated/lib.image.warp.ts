@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef } from "../types.js";
 
 // Offset — lib.image.warp.Offset
@@ -15,8 +15,8 @@ export interface OffsetOutputs {
   output: ImageRef;
 }
 
-export function offset(inputs: OffsetInputs): DslNode<OffsetOutputs, "output"> {
-  return createNode("lib.image.warp.Offset", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function offset(inputs: OffsetInputs, options?: NodeOptions): NodeWithOutputs<OffsetOutputs, "output"> {
+  return createNode("lib.image.warp.Offset", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Pad — lib.image.warp.Pad
@@ -33,8 +33,8 @@ export interface PadOutputs {
   output: ImageRef;
 }
 
-export function pad(inputs: PadInputs): DslNode<PadOutputs, "output"> {
-  return createNode("lib.image.warp.Pad", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function pad(inputs: PadInputs, options?: NodeOptions): NodeWithOutputs<PadOutputs, "output"> {
+  return createNode("lib.image.warp.Pad", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Tile — lib.image.warp.Tile
@@ -49,8 +49,8 @@ export interface TileOutputs {
   output: ImageRef;
 }
 
-export function tile(inputs: TileInputs): DslNode<TileOutputs, "output"> {
-  return createNode("lib.image.warp.Tile", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function tile(inputs: TileInputs, options?: NodeOptions): NodeWithOutputs<TileOutputs, "output"> {
+  return createNode("lib.image.warp.Tile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Affine — lib.image.warp.Affine
@@ -70,8 +70,8 @@ export interface AffineOutputs {
   output: ImageRef;
 }
 
-export function affine(inputs: AffineInputs): DslNode<AffineOutputs, "output"> {
-  return createNode("lib.image.warp.Affine", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function affine(inputs: AffineInputs, options?: NodeOptions): NodeWithOutputs<AffineOutputs, "output"> {
+  return createNode("lib.image.warp.Affine", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Corner Pin — lib.image.warp.CornerPin
@@ -91,8 +91,8 @@ export interface CornerPinOutputs {
   output: ImageRef;
 }
 
-export function cornerPin(inputs: CornerPinInputs): DslNode<CornerPinOutputs, "output"> {
-  return createNode("lib.image.warp.CornerPin", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function cornerPin(inputs: CornerPinInputs, options?: NodeOptions): NodeWithOutputs<CornerPinOutputs, "output"> {
+  return createNode("lib.image.warp.CornerPin", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Polar Remap — lib.image.warp.PolarRemap
@@ -105,8 +105,8 @@ export interface PolarRemapOutputs {
   output: ImageRef;
 }
 
-export function polarRemap(inputs: PolarRemapInputs): DslNode<PolarRemapOutputs, "output"> {
-  return createNode("lib.image.warp.PolarRemap", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function polarRemap(inputs: PolarRemapInputs, options?: NodeOptions): NodeWithOutputs<PolarRemapOutputs, "output"> {
+  return createNode("lib.image.warp.PolarRemap", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Displace — lib.image.warp.Displace
@@ -121,8 +121,8 @@ export interface DisplaceOutputs {
   output: ImageRef;
 }
 
-export function displace(inputs: DisplaceInputs): DslNode<DisplaceOutputs, "output"> {
-  return createNode("lib.image.warp.Displace", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function displace(inputs: DisplaceInputs, options?: NodeOptions): NodeWithOutputs<DisplaceOutputs, "output"> {
+  return createNode("lib.image.warp.Displace", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
 // Spherize — lib.image.warp.Spherize
@@ -135,6 +135,6 @@ export interface SpherizeOutputs {
   output: ImageRef;
 }
 
-export function spherize(inputs: SpherizeInputs): DslNode<SpherizeOutputs, "output"> {
-  return createNode("lib.image.warp.Spherize", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function spherize(inputs: SpherizeInputs, options?: NodeOptions): NodeWithOutputs<SpherizeOutputs, "output"> {
+  return createNode("lib.image.warp.Spherize", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }

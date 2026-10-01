@@ -3,7 +3,7 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 446 NodeTool nodes across 69 namespaces.
+Reference documentation for NodeTool nodes, grouped by namespace.
 
 ## Namespaces
 
@@ -81,7 +81,7 @@ Complete reference documentation for all 446 NodeTool nodes across 69 namespaces
 - **[nodetool.fake](nodetool/fake/)** - 2 node(s)
 - **[nodetool.generators](nodetool/generators/)** - 5 node(s)
 - **[nodetool.image](nodetool/image/)** - 26 node(s)
-- **[nodetool.input](nodetool/input/)** - 33 node(s)
+- **[nodetool.input](nodetool/input/)** - 34 node(s)
 - **[nodetool.model3d](nodetool/model3d/)** - 18 node(s)
 - **[nodetool.output](nodetool/output/)** - 1 node(s)
 - **[nodetool.script](nodetool/script/)** - 4 node(s)

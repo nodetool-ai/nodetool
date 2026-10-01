@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { ImageRef, AudioRef } from "../types.js";
 
 // Summarizer — nodetool.agents.Summarizer
@@ -18,8 +18,8 @@ export interface SummarizerOutputs {
   chunk: unknown;
 }
 
-export function summarizer(inputs: SummarizerInputs): DslNode<SummarizerOutputs> {
-  return createNode("nodetool.agents.Summarizer", inputs, { outputNames: ["text", "chunk"], streaming: true });
+export function summarizer(inputs: SummarizerInputs, options?: NodeOptions): NodeWithOutputs<SummarizerOutputs> {
+  return createNode("nodetool.agents.Summarizer", inputs, { id: options?.id, outputNames: ["text", "chunk"], outputTypes: {"text":"str","chunk":"chunk"}, streaming: true, outputCorrelation: {"text":{"kind":"single","source":"__execution__"},"chunk":{"kind":"iteration","source":"__execution__","group":"stream"}} });
 }
 
 // Enhance Prompt — nodetool.agents.EnhancePrompt
@@ -35,8 +35,8 @@ export interface EnhancePromptOutputs {
   chunk: unknown;
 }
 
-export function enhancePrompt(inputs: EnhancePromptInputs): DslNode<EnhancePromptOutputs> {
-  return createNode("nodetool.agents.EnhancePrompt", inputs, { outputNames: ["text", "chunk"], streaming: true });
+export function enhancePrompt(inputs: EnhancePromptInputs, options?: NodeOptions): NodeWithOutputs<EnhancePromptOutputs> {
+  return createNode("nodetool.agents.EnhancePrompt", inputs, { id: options?.id, outputNames: ["text", "chunk"], outputTypes: {"text":"str","chunk":"chunk"}, streaming: true, outputCorrelation: {"text":{"kind":"single","source":"__execution__"},"chunk":{"kind":"iteration","source":"__execution__","group":"stream"}} });
 }
 
 // Create Thread — nodetool.agents.CreateThread
@@ -49,8 +49,8 @@ export interface CreateThreadOutputs {
   thread_id: string;
 }
 
-export function createThread(inputs: CreateThreadInputs): DslNode<CreateThreadOutputs, "thread_id"> {
-  return createNode("nodetool.agents.CreateThread", inputs, { outputNames: ["thread_id"], defaultOutput: "thread_id" });
+export function createThread(inputs: CreateThreadInputs, options?: NodeOptions): NodeWithOutputs<CreateThreadOutputs, "thread_id"> {
+  return createNode("nodetool.agents.CreateThread", inputs, { id: options?.id, outputNames: ["thread_id"], outputTypes: {"thread_id":"str"}, defaultOutput: "thread_id" });
 }
 
 // Extractor — nodetool.agents.Extractor
@@ -66,8 +66,8 @@ export type ExtractorInputs = {
 export interface ExtractorOutputs {
 }
 
-export function extractor(inputs: ExtractorInputs): DslNode<ExtractorOutputs> {
-  return createNode("nodetool.agents.Extractor", inputs, { outputNames: [] });
+export function extractor(inputs: ExtractorInputs, options?: NodeOptions): NodeWithOutputs<ExtractorOutputs> {
+  return createNode("nodetool.agents.Extractor", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }
 
 // Classifier — nodetool.agents.Classifier
@@ -85,8 +85,8 @@ export interface ClassifierOutputs {
   output: string;
 }
 
-export function classifier(inputs: ClassifierInputs): DslNode<ClassifierOutputs, "output"> {
-  return createNode("nodetool.agents.Classifier", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function classifier(inputs: ClassifierInputs, options?: NodeOptions): NodeWithOutputs<ClassifierOutputs, "output"> {
+  return createNode("nodetool.agents.Classifier", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"str"}, defaultOutput: "output" });
 }
 
 // Decision — nodetool.agents.Decision
@@ -96,6 +96,7 @@ export type DecisionInputs = {
   value?: Connectable<unknown>;
   system_prompt?: Connectable<string>;
   max_tokens?: Connectable<number>;
+  [name: string]: unknown;
 };
 
 export interface DecisionOutputs {
@@ -105,8 +106,8 @@ export interface DecisionOutputs {
   if_false: unknown;
 }
 
-export function decision(inputs: DecisionInputs): DslNode<DecisionOutputs> {
-  return createNode("nodetool.agents.Decision", inputs, { outputNames: ["decision", "reason", "if_true", "if_false"] });
+export function decision(inputs: DecisionInputs, options?: NodeOptions): NodeWithOutputs<DecisionOutputs> {
+  return createNode("nodetool.agents.Decision", inputs, { id: options?.id, outputNames: ["decision", "reason", "if_true", "if_false"], outputTypes: {"decision":"bool","reason":"str","if_true":"any","if_false":"any"}, outputCorrelation: {"decision":{"kind":"single","source":"__execution__"},"reason":{"kind":"single","source":"__execution__"},"if_true":{"kind":"single","source":"__execution__"},"if_false":{"kind":"single","source":"__execution__"}} });
 }
 
 // Agent — nodetool.agents.Agent
@@ -132,6 +133,6 @@ export interface AgentOutputs {
   audio: AudioRef;
 }
 
-export function agent(inputs: AgentInputs): DslNode<AgentOutputs> {
-  return createNode("nodetool.agents.Agent", inputs, { outputNames: ["text", "chunk", "thinking", "audio"], streaming: true });
+export function agent(inputs: AgentInputs, options?: NodeOptions): NodeWithOutputs<AgentOutputs> {
+  return createNode("nodetool.agents.Agent", inputs, { id: options?.id, outputNames: ["text", "chunk", "thinking", "audio"], outputTypes: {"text":"str","chunk":"chunk","thinking":"chunk","audio":"audio"}, streaming: true, outputCorrelation: {"text":{"kind":"single","source":"__execution__"},"chunk":{"kind":"iteration","source":"__execution__","group":"stream"},"thinking":{"kind":"iteration","source":"__execution__","group":"stream"},"audio":{"kind":"iteration","source":"__execution__","group":"stream"}} });
 }

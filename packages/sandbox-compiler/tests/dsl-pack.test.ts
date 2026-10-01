@@ -47,6 +47,7 @@ describe("the sandbox-dsl pack", () => {
     expect(modules.some((module) => module.name === "nodetool.image")).toBe(true);
     expect(manifest().nodetool.internal).toEqual([
       "sandbox/core.js",
+      "sandbox/authoring.js",
       "sandbox/generated/index.js"
     ]);
   });

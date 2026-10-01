@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 
 // Load Document File — nodetool.document.LoadDocumentFile
 export type LoadDocumentFileInputs = {
@@ -11,8 +11,8 @@ export interface LoadDocumentFileOutputs {
   output: unknown;
 }
 
-export function loadDocumentFile(inputs: LoadDocumentFileInputs): DslNode<LoadDocumentFileOutputs, "output"> {
-  return createNode("nodetool.document.LoadDocumentFile", inputs, { outputNames: ["output"], defaultOutput: "output" });
+export function loadDocumentFile(inputs: LoadDocumentFileInputs, options?: NodeOptions): NodeWithOutputs<LoadDocumentFileOutputs, "output"> {
+  return createNode("nodetool.document.LoadDocumentFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"document"}, defaultOutput: "output" });
 }
 
 // Save Document File — nodetool.document.SaveDocumentFile
@@ -26,8 +26,8 @@ export type SaveDocumentFileInputs = {
 export interface SaveDocumentFileOutputs {
 }
 
-export function saveDocumentFile(inputs: SaveDocumentFileInputs): DslNode<SaveDocumentFileOutputs> {
-  return createNode("nodetool.document.SaveDocumentFile", inputs, { outputNames: [] });
+export function saveDocumentFile(inputs: SaveDocumentFileInputs, options?: NodeOptions): NodeWithOutputs<SaveDocumentFileOutputs> {
+  return createNode("nodetool.document.SaveDocumentFile", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
 }
 
 // List Documents — nodetool.document.ListDocuments
@@ -42,6 +42,6 @@ export interface ListDocumentsOutputs {
   documents: unknown[];
 }
 
-export function listDocuments(inputs: ListDocumentsInputs): DslNode<ListDocumentsOutputs> {
-  return createNode("nodetool.document.ListDocuments", inputs, { outputNames: ["document", "documents"], streaming: true });
+export function listDocuments(inputs: ListDocumentsInputs, options?: NodeOptions): NodeWithOutputs<ListDocumentsOutputs> {
+  return createNode("nodetool.document.ListDocuments", inputs, { id: options?.id, outputNames: ["document", "documents"], outputTypes: {"document":"document","documents":"list"}, streaming: true, inputMode: "buffered", outputCorrelation: {"document":{"kind":"iteration","source":"__execution__","group":"items"},"documents":{"kind":"single","source":"__execution__"}} });
 }

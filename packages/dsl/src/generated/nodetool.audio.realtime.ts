@@ -1,6 +1,6 @@
 // Auto-generated — do not edit manually
 
-import { createNode, Connectable, DslNode } from "../core.js";
+import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
 import type { AudioRef } from "../types.js";
 
 // Audio To Chunks — nodetool.audio.realtime.AudioToChunks
@@ -13,8 +13,8 @@ export interface AudioToChunksOutputs {
   chunk: unknown;
 }
 
-export function audioToChunks(inputs: AudioToChunksInputs): DslNode<AudioToChunksOutputs, "chunk"> {
-  return createNode("nodetool.audio.realtime.AudioToChunks", inputs, { outputNames: ["chunk"], defaultOutput: "chunk", streaming: true });
+export function audioToChunks(inputs: AudioToChunksInputs, options?: NodeOptions): NodeWithOutputs<AudioToChunksOutputs, "chunk"> {
+  return createNode("nodetool.audio.realtime.AudioToChunks", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: {"chunk":"chunk"}, defaultOutput: "chunk", streaming: true, outputCorrelation: {"chunk":{"kind":"iteration","source":"__execution__","group":"stream"}} });
 }
 
 // Audio Out — nodetool.audio.realtime.AudioOutput
@@ -26,8 +26,8 @@ export interface AudioOutputOutputs {
   chunk: unknown;
 }
 
-export function audioOutput(inputs: AudioOutputInputs): DslNode<AudioOutputOutputs, "chunk"> {
-  return createNode("nodetool.audio.realtime.AudioOutput", inputs, { outputNames: ["chunk"], defaultOutput: "chunk", streamingInput: true });
+export function audioOutput(inputs: AudioOutputInputs, options?: NodeOptions): NodeWithOutputs<AudioOutputOutputs, "chunk"> {
+  return createNode("nodetool.audio.realtime.AudioOutput", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: {"chunk":"chunk"}, defaultOutput: "chunk", streamingInput: true });
 }
 
 // Chunks To Audio — nodetool.audio.realtime.ChunksToAudio
@@ -39,8 +39,8 @@ export interface ChunksToAudioOutputs {
   audio: AudioRef;
 }
 
-export function chunksToAudio(inputs: ChunksToAudioInputs): DslNode<ChunksToAudioOutputs, "audio"> {
-  return createNode("nodetool.audio.realtime.ChunksToAudio", inputs, { outputNames: ["audio"], defaultOutput: "audio", streamingInput: true });
+export function chunksToAudio(inputs: ChunksToAudioInputs, options?: NodeOptions): NodeWithOutputs<ChunksToAudioOutputs, "audio"> {
+  return createNode("nodetool.audio.realtime.ChunksToAudio", inputs, { id: options?.id, outputNames: ["audio"], outputTypes: {"audio":"audio"}, defaultOutput: "audio", streamingInput: true });
 }
 
 // Streaming Gain — nodetool.audio.realtime.StreamingGain
@@ -53,8 +53,8 @@ export interface StreamingGainOutputs {
   chunk: unknown;
 }
 
-export function streamingGain(inputs: StreamingGainInputs): DslNode<StreamingGainOutputs, "chunk"> {
-  return createNode("nodetool.audio.realtime.StreamingGain", inputs, { outputNames: ["chunk"], defaultOutput: "chunk", streamingInput: true });
+export function streamingGain(inputs: StreamingGainInputs, options?: NodeOptions): NodeWithOutputs<StreamingGainOutputs, "chunk"> {
+  return createNode("nodetool.audio.realtime.StreamingGain", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: {"chunk":"chunk"}, defaultOutput: "chunk", streamingInput: true });
 }
 
 // Streaming Low Pass — nodetool.audio.realtime.StreamingLowPass
@@ -68,8 +68,8 @@ export interface StreamingLowPassOutputs {
   chunk: unknown;
 }
 
-export function streamingLowPass(inputs: StreamingLowPassInputs): DslNode<StreamingLowPassOutputs, "chunk"> {
-  return createNode("nodetool.audio.realtime.StreamingLowPass", inputs, { outputNames: ["chunk"], defaultOutput: "chunk", streamingInput: true });
+export function streamingLowPass(inputs: StreamingLowPassInputs, options?: NodeOptions): NodeWithOutputs<StreamingLowPassOutputs, "chunk"> {
+  return createNode("nodetool.audio.realtime.StreamingLowPass", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: {"chunk":"chunk"}, defaultOutput: "chunk", streamingInput: true });
 }
 
 // Streaming High Pass — nodetool.audio.realtime.StreamingHighPass
@@ -83,6 +83,6 @@ export interface StreamingHighPassOutputs {
   chunk: unknown;
 }
 
-export function streamingHighPass(inputs: StreamingHighPassInputs): DslNode<StreamingHighPassOutputs, "chunk"> {
-  return createNode("nodetool.audio.realtime.StreamingHighPass", inputs, { outputNames: ["chunk"], defaultOutput: "chunk", streamingInput: true });
+export function streamingHighPass(inputs: StreamingHighPassInputs, options?: NodeOptions): NodeWithOutputs<StreamingHighPassOutputs, "chunk"> {
+  return createNode("nodetool.audio.realtime.StreamingHighPass", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: {"chunk":"chunk"}, defaultOutput: "chunk", streamingInput: true });
 }

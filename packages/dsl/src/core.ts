@@ -1,4 +1,5 @@
 import { ExecutionSession, toRawGraphInput } from "@nodetool-ai/execution";
+import type { InputSchema, WorkflowDefinition } from "./authoring.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { usesStreamInputContract } from "@nodetool-ai/node-sdk";
 import {
@@ -23,17 +24,23 @@ export interface OutputHandle<T> {
   readonly nodeId: string;
   readonly slot: string;
   readonly __phantom?: T;
+  readonly valueType?: string;
 }
 
 export function isOutputHandle(value: unknown): value is OutputHandle<unknown> {
   return (
     typeof value === "object" &&
     value !== null &&
-    (value as any).__brand === "OutputHandle"
+    "__brand" in value &&
+    value.__brand === "OutputHandle"
   );
 }
 
-export type Connectable<T> = T | OutputHandle<T>;
+export interface SingleOutputNode<T> {
+  readonly defaultOutputHandle: OutputHandle<T>;
+}
+
+export type Connectable<T> = T | OutputHandle<T> | SingleOutputNode<T>;
 
 export type SingleOutput<T, TSlot extends string = "output"> = {
   readonly [K in TSlot]: T;
@@ -43,6 +50,20 @@ export type OutputSlot<TOutputs extends object> = Extract<
   keyof TOutputs,
   string
 >;
+
+type IsUnion<T, TWhole = T> = T extends TWhole
+  ? [TWhole] extends [T]
+    ? false
+    : true
+  : never;
+
+type DefaultOutputSlot<TOutputs extends object> = [
+  OutputSlot<TOutputs>
+] extends [never]
+  ? undefined
+  : IsUnion<OutputSlot<TOutputs>> extends false
+    ? OutputSlot<TOutputs>
+    : undefined;
 
 export interface OutputAccessor<
   TOutputs extends object,
@@ -57,15 +78,44 @@ export interface OutputAccessor<
 export interface DslNode<
   TOutputs extends object,
   TDefault extends OutputSlot<TOutputs> | undefined =
-    TOutputs extends SingleOutput<infer _TValue, infer TSlot>
-      ? Extract<TSlot, OutputSlot<TOutputs>>
-      : undefined
+    DefaultOutputSlot<TOutputs>
 > {
+  readonly defaultOutputHandle: [DefaultOutputSlot<TOutputs>] extends [
+    undefined
+  ]
+    ? undefined
+    : TDefault extends OutputSlot<TOutputs>
+      ? OutputHandle<TOutputs[TDefault]>
+      : undefined;
   readonly nodeId: string;
   readonly nodeType: string;
   readonly inputs: Record<string, unknown>;
   readonly output: OutputAccessor<TOutputs, TDefault>;
 }
+
+export type OutputHandles<TOutputs extends object> = {
+  readonly [K in OutputSlot<TOutputs>]: OutputHandle<TOutputs[K]>;
+};
+export type NamedOutputs<TOutputs extends object> = {
+  readonly outputs: OutputHandles<TOutputs>;
+} & (string extends keyof TOutputs
+  ? object
+  : {
+      readonly [K in Exclude<
+        OutputSlot<TOutputs>,
+        | keyof DslNode<TOutputs>
+        | "outputs"
+        | "then"
+        | "constructor"
+        | "__proto__"
+      >]: OutputHandle<TOutputs[K]>;
+    });
+
+export type NodeWithOutputs<
+  TOutputs extends object,
+  TDefault extends OutputSlot<TOutputs> | undefined =
+    DefaultOutputSlot<TOutputs>
+> = DslNode<TOutputs, TDefault> & NamedOutputs<TOutputs>;
 
 export interface WorkflowNode {
   readonly id: string;
@@ -73,6 +123,15 @@ export interface WorkflowNode {
   readonly data: Record<string, unknown>;
   readonly streaming: boolean;
   readonly streamingInput: boolean;
+  readonly dynamic_outputs?: Record<
+    string,
+    { type: string; type_args: never[] }
+  >;
+  readonly input_mode?: import("@nodetool-ai/protocol").InputMode;
+  readonly output_correlation?: Record<
+    string,
+    import("@nodetool-ai/protocol").OutputCorrelation
+  >;
 }
 
 export interface WorkflowEdge {
@@ -87,7 +146,10 @@ export interface Workflow {
   readonly edges: WorkflowEdge[];
 }
 
-type WorkflowTerminal = Pick<DslNode<Record<string, unknown>, string>, "nodeId">;
+export type WorkflowTerminal = Pick<
+  DslNode<Record<string, unknown>, string>,
+  "nodeId"
+>;
 
 interface RegisteredNodeDescriptor {
   nodeId: string;
@@ -95,41 +157,157 @@ interface RegisteredNodeDescriptor {
   inputs: Record<string, unknown>;
   streaming: boolean;
   streamingInput: boolean;
+  outputTypes?: Record<string, string>;
+  dynamicOutputs?: Record<string, { type: string; type_args: never[] }>;
+  inputMode?: import("@nodetool-ai/protocol").InputMode;
+  outputCorrelation?: Record<
+    string,
+    import("@nodetool-ai/protocol").OutputCorrelation
+  >;
 }
 
-const nodeRegistry = new Map<string, RegisteredNodeDescriptor>();
+let nodeRegistry = new Map<string, RegisteredNodeDescriptor>();
+let nodeScope = "";
+let scopeCounters = new Map<string, number>();
+let captureConnection:
+  | ((handle: OutputHandle<unknown>) => OutputHandle<unknown>)
+  | undefined;
 
-function createOutputHandle<T>(nodeId: string, slot: string): OutputHandle<T> {
-  return Object.freeze({
-    __brand: "OutputHandle" as const,
-    nodeId,
-    slot
-  });
+/** @internal Isolate a synchronous graph build and restore the enclosing build. */
+export function withBuildScope<T>(
+  build: () => T,
+  capture?: (handle: OutputHandle<unknown>) => OutputHandle<unknown>
+): T {
+  const previous = {
+    nodeRegistry,
+    nodeScope,
+    scopeCounters,
+    captureConnection
+  };
+  nodeRegistry = new Map();
+  nodeScope = "";
+  scopeCounters = new Map();
+  captureConnection = capture;
+  try {
+    return build();
+  } finally {
+    ({ nodeRegistry, nodeScope, scopeCounters, captureConnection } = previous);
+  }
+}
+
+/** @internal Namespace one composed instantiation without clearing its parent. */
+export function withNodeScope<T>(id: string | undefined, build: () => T): T {
+  if (id !== undefined && (typeof id !== "string" || !id.length))
+    throw new Error("Workflow scope id must be a non-empty string");
+  const previous = nodeScope;
+  const stem = previous + (id ?? "call");
+  const count = (scopeCounters.get(stem) ?? 0) + 1;
+  if (id && count > 1) throw new Error(`Duplicate workflow scope "${stem}"`);
+  scopeCounters.set(stem, count);
+  nodeScope = stem + (id ? "/" : `_${count}/`);
+  try {
+    return build();
+  } finally {
+    nodeScope = previous;
+  }
+}
+const dslNodes = new WeakMap<object, RegisteredNodeDescriptor>();
+const handleDescriptors = new WeakMap<object, RegisteredNodeDescriptor>();
+
+/** Resolve a symbolic connection, leaving literal values unchanged. */
+export function resolveConnection(
+  value: unknown
+): OutputHandle<unknown> | undefined {
+  if (isOutputHandle(value)) {
+    const descriptor = handleDescriptors.get(value);
+    return captureConnection &&
+      descriptor &&
+      nodeRegistry.get(value.nodeId) !== descriptor
+      ? captureConnection(value)
+      : value;
+  }
+  if (typeof value === "object" && value !== null && dslNodes.has(value)) {
+    const node = value as DslNode<Record<string, unknown>, string>;
+    if (!node.defaultOutputHandle) {
+      throw new Error(`Node ${node.nodeType} requires an explicit output slot`);
+    }
+    return resolveConnection(node.defaultOutputHandle);
+  }
+  return undefined;
+}
+
+/** @internal Original producer identity, including isolated build scopes. */
+export function connectionIdentity(handle: OutputHandle<unknown>): object {
+  return handleDescriptors.get(handle) ?? handle;
+}
+
+/** @internal Port name shared with the guest handle adapter. */
+export function connectionSlot(handle: OutputHandle<unknown>): string {
+  return handle.slot;
+}
+
+function createOutputHandle<T>(
+  nodeId: string,
+  slot: string,
+  descriptor: RegisteredNodeDescriptor
+): OutputHandle<T> {
+  const handle: OutputHandle<T> = { __brand: "OutputHandle", nodeId, slot };
+  if (descriptor.outputTypes?.[slot]) {
+    Object.assign(handle, { valueType: descriptor.outputTypes[slot] });
+  }
+  Object.freeze(handle);
+  handleDescriptors.set(handle, descriptor);
+  return handle;
+}
+
+/** Optional authored identity shared by generated factories. */
+export interface NodeOptions {
+  id?: string;
 }
 
 export type CreateNodeOptions<
   TOutputs extends object,
   TDefault extends OutputSlot<TOutputs> | undefined = undefined
-> = {
+> = NodeOptions & {
   streaming?: boolean;
   streamingInput?: boolean;
   outputNames?: readonly OutputSlot<TOutputs>[];
   defaultOutput?: TDefault;
   multiOutput?: boolean;
+  outputTypes?: Record<string, string>;
+  dynamicOutputs?: Record<string, { type: string; type_args: never[] }>;
+  inputMode?: import("@nodetool-ai/protocol").InputMode;
+  outputCorrelation?: Record<
+    string,
+    import("@nodetool-ai/protocol").OutputCorrelation
+  >;
 };
 
 export function createNode<
   TOutputs extends object,
   TDefault extends OutputSlot<TOutputs> | undefined =
-    TOutputs extends SingleOutput<infer _TValue, infer TSlot>
-      ? Extract<TSlot, OutputSlot<TOutputs>>
-      : undefined
+    DefaultOutputSlot<TOutputs>
 >(
   nodeType: string,
   inputs: Record<string, unknown>,
   opts?: CreateNodeOptions<TOutputs, TDefault>
-): DslNode<TOutputs, TDefault> {
-  const nodeId = crypto.randomUUID();
+): NodeWithOutputs<TOutputs, TDefault> {
+  if (
+    opts?.id !== undefined &&
+    (typeof opts.id !== "string" || opts.id.length === 0)
+  ) {
+    throw new Error("Node id must be a non-empty string");
+  }
+  const nodeId = nodeScope + (opts?.id ?? crypto.randomUUID());
+  if (nodeRegistry.has(nodeId)) {
+    throw new Error(`Duplicate node id "${nodeId}"`);
+  }
+  inputs = Object.fromEntries(
+    Object.entries(inputs).map(([key, value]) => [
+      key,
+      resolveConnection(value) ?? value
+    ])
+  );
   const streaming = opts?.streaming ?? false;
   // The generated helpers stamp `streamingInput` from per-type metadata, which
   // cannot carry the Code node's answer: its mode is a property of the body.
@@ -156,7 +334,11 @@ export function createNode<
     nodeType,
     inputs,
     streaming,
-    streamingInput
+    streamingInput,
+    outputTypes: opts?.outputTypes,
+    dynamicOutputs: opts?.dynamicOutputs,
+    inputMode: opts?.inputMode,
+    outputCorrelation: opts?.outputCorrelation
   };
   nodeRegistry.set(nodeId, descriptor);
 
@@ -171,17 +353,47 @@ export function createNode<
         `Unknown output slot '${resolvedSlot}' for node type ${nodeType}`
       );
     }
-    return createOutputHandle(nodeId, resolvedSlot);
+    return createOutputHandle(nodeId, resolvedSlot, descriptor);
   }) as OutputAccessor<TOutputs, TDefault>);
 
-  const node = Object.freeze({
+  const node = {
     nodeId,
     nodeType,
     inputs,
-    output
-  });
+    output,
+    outputs: Object.freeze(
+      Object.fromEntries(
+        outputNames.map((name) => [name, output(name as OutputSlot<TOutputs>)])
+      ) as OutputHandles<TOutputs>
+    ),
+    defaultOutputHandle: (outputNames.length === 1 &&
+    !opts?.multiOutput &&
+    defaultOutput
+      ? output()
+      : undefined) as DslNode<TOutputs, TDefault>["defaultOutputHandle"],
+    [Symbol.toPrimitive]: () => {
+      throw new Error(
+        "Cannot coerce a DSL node to a primitive. Pass it directly to an input or select node.output(slot)."
+      );
+    }
+  };
+  const reserved = new Set([
+    ...Object.keys(node),
+    "then",
+    "constructor",
+    "__proto__"
+  ]);
+  for (const name of outputNames) {
+    if (!reserved.has(name)) {
+      Object.defineProperty(node, name, {
+        get: () => output(name as OutputSlot<TOutputs>)
+      });
+    }
+  }
+  Object.freeze(node);
+  dslNodes.set(node, descriptor);
 
-  return node;
+  return node as NodeWithOutputs<TOutputs, TDefault>;
 }
 
 /**
@@ -204,14 +416,14 @@ function findNestedHandlePath(
   if (Array.isArray(value)) {
     for (let i = 0; i < value.length; i++) {
       const item = value[i];
-      if (isOutputHandle(item)) return `[${i}]`;
+      if (resolveConnection(item)) return `[${i}]`;
       const deeper = findNestedHandlePath(item, seen);
       if (deeper !== null) return `[${i}]${deeper}`;
     }
     return null;
   }
   for (const [key, item] of Object.entries(value)) {
-    if (isOutputHandle(item)) return `.${key}`;
+    if (resolveConnection(item)) return `.${key}`;
     const deeper = findNestedHandlePath(item, seen);
     if (deeper !== null) return `.${key}${deeper}`;
   }
@@ -250,7 +462,7 @@ export function workflow(...terminals: WorkflowTerminal[]): Workflow {
 
   for (const terminal of terminals) {
     const desc = nodeRegistry.get(terminal.nodeId);
-    if (!desc) {
+    if (!desc || (dslNodes.has(terminal) && dslNodes.get(terminal) !== desc)) {
       throw new Error(
         `Node not found: ${terminal.nodeId} — this handle may belong to a previous workflow() build`
       );
@@ -261,13 +473,21 @@ export function workflow(...terminals: WorkflowTerminal[]): Workflow {
     }
   }
 
-  while (queue.length > 0) {
-    const currentId = queue.shift()!;
+  for (let queueIndex = 0; queueIndex < queue.length; queueIndex++) {
+    const currentId = queue[queueIndex]!;
     const desc = visited.get(currentId)!;
     assertNoNestedHandles(desc);
 
     for (const [inputName, value] of Object.entries(desc.inputs)) {
       if (isOutputHandle(value)) {
+        if (
+          handleDescriptors.has(value) &&
+          handleDescriptors.get(value) !== nodeRegistry.get(value.nodeId)
+        ) {
+          throw new Error(
+            `Node not found: ${value.nodeId} — this handle belongs to a previous workflow() build`
+          );
+        }
         edges.push({
           source: value.nodeId,
           sourceHandle: value.slot,
@@ -306,8 +526,8 @@ export function workflow(...terminals: WorkflowTerminal[]): Workflow {
     if (deg === 0) topoQueue.push(id);
   }
   const sorted: string[] = [];
-  while (topoQueue.length > 0) {
-    const id = topoQueue.shift()!;
+  for (let queueIndex = 0; queueIndex < topoQueue.length; queueIndex++) {
+    const id = topoQueue[queueIndex]!;
     sorted.push(id);
     for (const neighbor of adjList.get(id)!) {
       const newDeg = inDegree.get(neighbor)! - 1;
@@ -328,16 +548,27 @@ export function workflow(...terminals: WorkflowTerminal[]): Workflow {
         data[key] = val;
       }
     }
-    return {
+    const node: WorkflowNode = {
       id: desc.nodeId,
       type: desc.nodeType,
       data,
       streaming: desc.streaming,
       streamingInput: desc.streamingInput
     };
+    if (desc.dynamicOutputs) {
+      Object.assign(node, { dynamic_outputs: desc.dynamicOutputs });
+    }
+    if (desc.inputMode) {
+      Object.assign(node, { input_mode: desc.inputMode });
+    }
+    if (desc.outputCorrelation) {
+      Object.assign(node, { output_correlation: desc.outputCorrelation });
+    }
+    return node;
   });
 
   nodeRegistry.clear();
+  scopeCounters.clear();
 
   return Object.freeze({ nodes, edges });
 }
@@ -348,6 +579,7 @@ export type SecretResolver = (
 ) => Promise<string | null | undefined> | string | null | undefined;
 
 export type RunOptions = {
+  params?: Record<string, unknown>;
   userId?: string;
   authToken?: string;
   /** Custom node registry; defaults to NodeRegistry.global. */
@@ -371,6 +603,16 @@ export type RunOptions = {
 
 export type WorkflowResult = Record<string, unknown>;
 
+export function run<I extends InputSchema, O extends Record<string, unknown>>(
+  wf: WorkflowDefinition<I, O>,
+  opts?: Omit<RunOptions, "params"> & {
+    params?: import("./authoring.js").WorkflowParams<I>;
+  }
+): Promise<import("./authoring.js").WorkflowValues<O>>;
+export function run(
+  wf: Workflow & { inputSchema?: never },
+  opts?: RunOptions
+): Promise<WorkflowResult>;
 export async function run(
   wf: Workflow,
   opts?: RunOptions
@@ -380,6 +622,9 @@ export async function run(
     id: n.id,
     type: n.type,
     properties: n.data,
+    dynamic_outputs: n.dynamic_outputs,
+    output_correlation: n.output_correlation,
+    input_mode: n.input_mode,
     is_streaming_output: n.streaming,
     is_streaming_input: n.streamingInput
   }));
@@ -407,8 +652,18 @@ export async function run(
     jobId,
     context,
     hasTsExecutor,
-    executorResolverFactory: (bridge) =>
-      createExecutorResolver(opts, builtinRegistry, bridge),
+    params: opts?.params,
+    executorResolverFactory: (bridge) => {
+      const resolveExecutor = createExecutorResolver(
+        opts,
+        builtinRegistry,
+        bridge
+      );
+      context.setResolveExecutor((node) =>
+        resolveExecutor(node as GraphNodeDescriptor)
+      );
+      return resolveExecutor;
+    },
     preflight: false,
     installHeadlessPermissionGate: false,
     recordCosts: false
@@ -426,8 +681,7 @@ export async function run(
   // Actor failures now fail the run. Keep the legacy message check for
   // error updates retained in other results, including cancellation races.
   const nodeErrors = (result.messages ?? []).filter(
-    (m): m is NodeUpdate =>
-      m.type === "node_update" && m.status === "error"
+    (m): m is NodeUpdate => m.type === "node_update" && m.status === "error"
   );
   if (nodeErrors.length > 0) {
     throw new Error(nodeErrors[0].error ?? "A node failed during execution");

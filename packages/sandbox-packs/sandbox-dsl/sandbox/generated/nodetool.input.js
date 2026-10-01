@@ -1,103 +1,106 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { createNode } from "../core.js";
-function floatInput(inputs) {
-  return createNode("nodetool.input.FloatInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function valueInput(inputs, options) {
+  return createNode("nodetool.input.ValueInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "any" }, defaultOutput: "output" });
 }
-function booleanInput(inputs) {
-  return createNode("nodetool.input.BooleanInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function floatInput(inputs, options) {
+  return createNode("nodetool.input.FloatInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "float" }, defaultOutput: "output" });
 }
-function integerInput(inputs) {
-  return createNode("nodetool.input.IntegerInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function booleanInput(inputs, options) {
+  return createNode("nodetool.input.BooleanInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "bool" }, defaultOutput: "output" });
 }
-function stringInput(inputs) {
-  return createNode("nodetool.input.StringInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function integerInput(inputs, options) {
+  return createNode("nodetool.input.IntegerInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "int" }, defaultOutput: "output" });
 }
-function selectInput(inputs) {
-  return createNode("nodetool.input.SelectInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function stringInput(inputs, options) {
+  return createNode("nodetool.input.StringInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "str" }, defaultOutput: "output" });
 }
-function stringListInput(inputs) {
-  return createNode("nodetool.input.StringListInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function selectInput(inputs, options) {
+  return createNode("nodetool.input.SelectInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "str" }, defaultOutput: "output" });
 }
-function folderPathInput(inputs) {
-  return createNode("nodetool.input.FolderPathInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function stringListInput(inputs, options) {
+  return createNode("nodetool.input.StringListInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list[str]" }, defaultOutput: "output" });
 }
-function huggingFaceModelInput(inputs) {
-  return createNode("nodetool.input.HuggingFaceModelInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function folderPathInput(inputs, options) {
+  return createNode("nodetool.input.FolderPathInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "str" }, defaultOutput: "output" });
 }
-function colorInput(inputs) {
-  return createNode("nodetool.input.ColorInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function huggingFaceModelInput(inputs, options) {
+  return createNode("nodetool.input.HuggingFaceModelInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "hf.model" }, defaultOutput: "output" });
 }
-function imageSizeInput(inputs) {
-  return createNode("nodetool.input.ImageSizeInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function colorInput(inputs, options) {
+  return createNode("nodetool.input.ColorInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "color" }, defaultOutput: "output" });
 }
-function languageModelInput(inputs) {
-  return createNode("nodetool.input.LanguageModelInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function imageSizeInput(inputs, options) {
+  return createNode("nodetool.input.ImageSizeInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image_size" }, defaultOutput: "output" });
 }
-function imageModelInput(inputs) {
-  return createNode("nodetool.input.ImageModelInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function languageModelInput(inputs, options) {
+  return createNode("nodetool.input.LanguageModelInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "language_model" }, defaultOutput: "output" });
 }
-function videoModelInput(inputs) {
-  return createNode("nodetool.input.VideoModelInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function imageModelInput(inputs, options) {
+  return createNode("nodetool.input.ImageModelInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image_model" }, defaultOutput: "output" });
 }
-function ttsModelInput(inputs) {
-  return createNode("nodetool.input.TTSModelInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function videoModelInput(inputs, options) {
+  return createNode("nodetool.input.VideoModelInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "video_model" }, defaultOutput: "output" });
 }
-function asrModelInput(inputs) {
-  return createNode("nodetool.input.ASRModelInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function ttsModelInput(inputs, options) {
+  return createNode("nodetool.input.TTSModelInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "tts_model" }, defaultOutput: "output" });
 }
-function embeddingModelInput(inputs) {
-  return createNode("nodetool.input.EmbeddingModelInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function asrModelInput(inputs, options) {
+  return createNode("nodetool.input.ASRModelInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "asr_model" }, defaultOutput: "output" });
 }
-function dataframeInput(inputs) {
-  return createNode("nodetool.input.DataframeInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function embeddingModelInput(inputs, options) {
+  return createNode("nodetool.input.EmbeddingModelInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "embedding_model" }, defaultOutput: "output" });
 }
-function documentInput(inputs) {
-  return createNode("nodetool.input.DocumentInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function dataframeInput(inputs, options) {
+  return createNode("nodetool.input.DataframeInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "dataframe" }, defaultOutput: "output" });
 }
-function imageInput(inputs) {
-  return createNode("nodetool.input.ImageInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function documentInput(inputs, options) {
+  return createNode("nodetool.input.DocumentInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "document" }, defaultOutput: "output" });
 }
-function imageListInput(inputs) {
-  return createNode("nodetool.input.ImageListInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function imageInput(inputs, options) {
+  return createNode("nodetool.input.ImageInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
-function videoListInput(inputs) {
-  return createNode("nodetool.input.VideoListInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function imageListInput(inputs, options) {
+  return createNode("nodetool.input.ImageListInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list[image]" }, defaultOutput: "output" });
 }
-function audioListInput(inputs) {
-  return createNode("nodetool.input.AudioListInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function videoListInput(inputs, options) {
+  return createNode("nodetool.input.VideoListInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list[video]" }, defaultOutput: "output" });
 }
-function textListInput(inputs) {
-  return createNode("nodetool.input.TextListInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function audioListInput(inputs, options) {
+  return createNode("nodetool.input.AudioListInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list[audio]" }, defaultOutput: "output" });
 }
-function videoInput(inputs) {
-  return createNode("nodetool.input.VideoInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function textListInput(inputs, options) {
+  return createNode("nodetool.input.TextListInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list[str]" }, defaultOutput: "output" });
 }
-function audioInput(inputs) {
-  return createNode("nodetool.input.AudioInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function videoInput(inputs, options) {
+  return createNode("nodetool.input.VideoInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "video" }, defaultOutput: "output" });
 }
-function model3DInput(inputs) {
-  return createNode("nodetool.input.Model3DInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function audioInput(inputs, options) {
+  return createNode("nodetool.input.AudioInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
 }
-function realtimeAudioInput(inputs) {
-  return createNode("nodetool.input.RealtimeAudioInput", inputs, { outputNames: ["chunk"], defaultOutput: "chunk", streaming: true });
+function model3DInput(inputs, options) {
+  return createNode("nodetool.input.Model3DInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "model_3d" }, defaultOutput: "output" });
 }
-function assetFolderInput(inputs) {
-  return createNode("nodetool.input.AssetFolderInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function realtimeAudioInput(inputs, options) {
+  return createNode("nodetool.input.RealtimeAudioInput", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streaming: true, inputMode: "buffered", outputCorrelation: { "chunk": { "kind": "chunk", "source": "__execution__" } } });
 }
-function filePathInput(inputs) {
-  return createNode("nodetool.input.FilePathInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function assetFolderInput(inputs, options) {
+  return createNode("nodetool.input.AssetFolderInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "folder" }, defaultOutput: "output" });
 }
-function documentFileInput(inputs) {
-  return createNode("nodetool.input.DocumentFileInput", inputs, { outputNames: ["document", "path"] });
+function filePathInput(inputs, options) {
+  return createNode("nodetool.input.FilePathInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "str" }, defaultOutput: "output" });
 }
-function messageInput(inputs) {
-  return createNode("nodetool.input.MessageInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function documentFileInput(inputs, options) {
+  return createNode("nodetool.input.DocumentFileInput", inputs, { id: options?.id, outputNames: ["document", "path"], outputTypes: { "document": "document", "path": "str" } });
 }
-function messageListInput(inputs) {
-  return createNode("nodetool.input.MessageListInput", inputs, { outputNames: ["output"], defaultOutput: "output" });
+function messageInput(inputs, options) {
+  return createNode("nodetool.input.MessageInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "message" }, defaultOutput: "output" });
 }
-function messageDeconstructor(inputs) {
-  return createNode("nodetool.input.MessageDeconstructor", inputs, { outputNames: ["id", "thread_id", "role", "text", "image", "audio", "model"] });
+function messageListInput(inputs, options) {
+  return createNode("nodetool.input.MessageListInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list[message]" }, defaultOutput: "output" });
+}
+function messageDeconstructor(inputs, options) {
+  return createNode("nodetool.input.MessageDeconstructor", inputs, { id: options?.id, outputNames: ["id", "thread_id", "role", "text", "image", "audio", "model"], outputTypes: { "id": "str", "thread_id": "str", "role": "str", "text": "str", "image": "image", "audio": "audio", "model": "language_model" } });
 }
 export {
   asrModelInput,
@@ -130,6 +133,7 @@ export {
   stringListInput,
   textListInput,
   ttsModelInput,
+  valueInput,
   videoInput,
   videoListInput,
   videoModelInput
