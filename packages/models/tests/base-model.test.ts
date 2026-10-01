@@ -187,6 +187,10 @@ describe("DBModel", () => {
       expect(computeEtag(data)).toBe(computeEtag(data));
     });
 
+    it("computeEtag uses a 128-bit SHA-256 prefix with sorted keys", () => {
+      expect(computeEtag({ b: "hello", a: 1 })).toBe("d84ab9f85753473707229d00b92623f0");
+    });
+
     it("computeEtag changes when data changes", () => {
       const a = computeEtag({ x: 1 });
       const b = computeEtag({ x: 2 });
@@ -200,7 +204,7 @@ describe("DBModel", () => {
       });
       const etag = job.getEtag();
       expect(typeof etag).toBe("string");
-      expect(etag.length).toBe(32); // MD5 hex
+      expect(etag).toMatch(/^[0-9a-f]{32}$/);
     });
   });
 

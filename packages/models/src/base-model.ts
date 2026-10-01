@@ -124,7 +124,7 @@ export function createStableUuid(namespace: string, key: string): string {
 
 export function computeEtag(data: Record<string, unknown>): string {
   const raw = JSON.stringify(data, Object.keys(data).sort());
-  return createHash("md5").update(raw).digest("hex");
+  return createHash("sha256").update(raw).digest("hex").slice(0, 32);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle table type varies by dialect; any is required for the base-class pattern.
