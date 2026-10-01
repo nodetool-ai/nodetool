@@ -199,4 +199,31 @@ describe("Storyboard finishing", () => {
     expect(materializeStoryboard({ ...args, current: first.document }).validation.some((issue) => issue.code === "manual_conflict")).toBe(true);
   });
 
+  it("places a still source beneath separately editable graphics", () => {
+    const args = input();
+    args.shots[0].keyframe = { type: "image", asset_id: "still" };
+    const result = materializeStoryboard(args);
+    const source = result.document.clips.find((clip) => clip.storyboardElementId === "$source")!;
+    const text = result.document.clips.find((clip) => clip.storyboardElementId === "price")!;
+    expect(result.document.tracks.find((track) => track.id === source.trackId)!.index).toBeGreaterThan(result.document.tracks.find((track) => track.id === text.trackId)!.index);
+  });
+
+  it.each([false, true])("rejects manual owned layer deletion including whole cut deletion %s", (all) => {
+    const args = input();
+    const first = materializeStoryboard(args);
+    const current = timelineDocument.parse(first.document);
+    expect(current.storyboardMaterializations).toEqual([{ boardId: args.boardId, elementKeys: ["hook/background", "hook/product", "hook/price"] }]);
+    current.clips = all ? [] : current.clips.filter((clip) => clip.storyboardElementId !== "product");
+    expect(materializeStoryboard({ ...args, current }).validation.some((issue) => issue.code === "manual_conflict")).toBe(true);
+  });
+  it("permits newly planned graphics and preserves other board ownership", () => {
+    const args = input();
+    const first = materializeStoryboard(args);
+    first.document.storyboardMaterializations!.push({ boardId: "other", elementKeys: ["other/clip"] });
+    args.shots[0].graphics!.elements.push({ id: "new-copy", kind: "text", text: "New" });
+    const result = materializeStoryboard({ ...args, current: first.document });
+    expect(result.validation).toEqual([]);
+    expect(result.document.storyboardMaterializations).toContainEqual({ boardId: "other", elementKeys: ["other/clip"] });
+  });
+
 });

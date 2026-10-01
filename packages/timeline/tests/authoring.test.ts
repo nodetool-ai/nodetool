@@ -264,3 +264,8 @@ describe("sourceTypeForClip", () => {
     expect(sourceTypeForClip({ prompt: "   " })).toBe("imported");
   });
 });
+
+it("preserves storyboard ownership through code authoring normalization", () => {
+  const ledger = [{ boardId: "board", elementKeys: ["shot/product"] }];
+  expect(normalizeAuthoredDocument({ clips: [], tracks: [], markers: [], storyboardMaterializations: ledger }).document.storyboardMaterializations).toEqual(ledger);
+});

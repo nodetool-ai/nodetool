@@ -50,6 +50,7 @@ import type { TimelineClip } from "./types.js";
  */
 export interface TimelineDocumentLike {
   clips: TimelineClip[];
+  storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[] }>;
   [key: string]: unknown;
 }
 
@@ -290,5 +291,6 @@ export function mergeTimelineSource(
   }
 
   const document: TimelineDocumentLike = { ...built, clips: resultClips };
+  if (current.storyboardMaterializations) document.storyboardMaterializations = structuredClone(current.storyboardMaterializations);
   return { document, conflicts, scenes };
 }

@@ -73,3 +73,12 @@ describe("track operations", () => {
     expect(result.result.tracks).toHaveLength(2000);
   });
 });
+
+it("keeps materialization ownership after deleting an owned track", () => {
+  const state = seed();
+  state.storyboardMaterializations = [{ boardId: "board", elementKeys: ["shot/product"] }];
+  const result = applyTimelineTrackOp(state, { op: "delete_track", target: "123456789abc", deleteClips: true }, ctx);
+  expect(result.error).toBeUndefined();
+  expect(result.state.storyboardMaterializations).toEqual(state.storyboardMaterializations);
+  expect(result.state.storyboardMaterializations).not.toBe(state.storyboardMaterializations);
+});

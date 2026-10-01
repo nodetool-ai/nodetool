@@ -9,6 +9,7 @@ export interface FinishedStoryboardDocument {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
+  storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[] }>;
 }
 export interface ProducedTimelineIssue {
   code: "missing_element" | "duplicate_element" | "protected_source" | "protected_value" | "forbidden_generation" | "forbidden_transform" | "manual_conflict";
@@ -23,7 +24,7 @@ export interface FinishStoryboardInput {
   height: number;
   production?: ProductionRequirement;
   motionDesign?: StoryboardMotionDesign;
-  current?: { tracks: TimelineTrack[]; clips: TimelineClip[]; markers?: TimelineMarker[] };
+  current?: { tracks: TimelineTrack[]; clips: TimelineClip[]; markers?: TimelineMarker[]; storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[] }> };
 }
 
 function parseBaseline(value: string | undefined): Record<string, unknown> | undefined {
@@ -152,6 +153,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
     if (existing.has(key)) conflicts.push({ code: "duplicate_element", shotId: clip.storyboardShotId, elementId: clip.storyboardElementId, message: `Duplicate owned layer ${key}.` });
     existing.set(key, clip);
   }
+  const previousKeys = new Set(current.storyboardMaterializations?.find((entry) => entry.boardId === input.boardId)?.elementKeys ?? []);
   const foreignClips = current.clips.filter((clip) => clip.storyboardBoardId !== input.boardId);
   const ownedTrackIds = new Set(current.clips.filter((clip) => clip.storyboardBoardId === input.boardId).map((clip) => clip.trackId));
   const tracks = current.tracks.filter((track) => !ownedTrackIds.has(track.id) || foreignClips.some((clip) => clip.trackId === track.id));
@@ -171,6 +173,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
     for (const [index, element] of elements.entries()) {
       const key = identity(shot.id, element.id);
       const previous = existing.get(key);
+      if (!previous && previousKeys.has(key)) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Owned layer ${key} was manually deleted. Restore it before finishing again.` });
       const track = current.tracks.find((value) => value.id === previous?.trackId) ?? makeTrack({ type: "overlay", name: `${shot.slug ?? shot.id}: ${element.id}`, index: tracks.length });
       if (!tracks.some((value) => value.id === track.id)) tracks.push({ ...track, index: previous ? track.index : Math.max(-1, ...tracks.map((value) => value.index)) + 1 });
       const protection = element.protected_input_id ? protectedInputs.get(element.protected_input_id) : undefined;
@@ -213,7 +216,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
   }
   // New backgrounds belong beneath overlays. Existing track order is a user-owned edit.
   for (const clip of clips) {
-    if (clip.storyboardBoardId !== input.boardId || clip.storyboardElementId !== "background" || existing.has(identity(clip.storyboardShotId ?? "", "background"))) continue;
+    if (clip.storyboardBoardId !== input.boardId || !["background", "$source"].includes(clip.storyboardElementId ?? "") || existing.has(identity(clip.storyboardShotId ?? "", clip.storyboardElementId ?? ""))) continue;
     const order = moveTrackOrder(tracks, clip.trackId, { toIndex: tracks.length - 1 });
     const indices = new Map(order.map((id, index) => [id, index]));
     for (const track of tracks) {
@@ -264,6 +267,6 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
     owned.animations = clip.animations;
     clip.storyboardMaterializationBaseline = JSON.stringify(owned);
   }
-  const document: FinishedStoryboardDocument = { tracks, clips, markers: current.markers ?? [] };
+  const document: FinishedStoryboardDocument = { tracks, clips, markers: current.markers ?? [], storyboardMaterializations: [...(current.storyboardMaterializations ?? []).filter((entry) => entry.boardId !== input.boardId), { boardId: input.boardId, elementKeys: clips.filter((clip) => clip.storyboardBoardId === input.boardId).map((clip) => identity(clip.storyboardShotId!, clip.storyboardElementId!)) }] };
   return { document, durationMs: Math.max(startMs, ...clips.map((clip) => clip.startMs + clip.durationMs)), validation: [...conflicts, ...validateProducedTimeline(input, document)] };
 }
