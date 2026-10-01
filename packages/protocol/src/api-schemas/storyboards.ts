@@ -142,6 +142,8 @@ export const storyboardScreenplay = z
     script_id: z.string().nullable().optional(),
     /** The board's genre as it stood when this screenplay was directed. */
     genre: z.string().optional(),
+    /** Whole-board motion-design direction, including cross-shot intent. */
+    motion_design: storyboardMotionDesign.optional(),
     /** The authoritative scene list. Order is derived from `shot.index`. */
     scenes: z.array(storyboardScene).optional()
   })
