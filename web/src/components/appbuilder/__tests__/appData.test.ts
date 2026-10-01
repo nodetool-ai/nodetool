@@ -2,7 +2,7 @@ import {
   createEmptyData,
   createEmptyDocument,
   parseApplicationDocument,
-  APP_SCHEMA_VERSION
+  BASE_APP_SCHEMA_VERSION
 } from "../appData";
 
 describe("appData", () => {
