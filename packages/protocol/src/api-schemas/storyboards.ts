@@ -63,7 +63,21 @@ export const storyboardShotGraphics = z
     direction: z.string().optional(),
     elements: z.array(storyboardShotGraphicsElement).optional()
   })
-  .passthrough();
+  .passthrough()
+  .superRefine((graphics, context) => {
+    const ids = graphics.elements?.map((element) => element.id) ?? [];
+    if (ids.some((id) => id.trim().length === 0) || new Set(ids).size !== ids.length) {
+      context.addIssue({ code: "custom", path: ["elements"], message: "Graphics element ids must be non-empty and unique within a shot." });
+    }
+    graphics.elements?.forEach((element, index) => {
+      if (element.kind === "text" && element.text === undefined) {
+        context.addIssue({ code: "custom", path: ["elements", index, "text"], message: "Text graphics need exact text." });
+      }
+      if (element.kind === "asset" && !element.asset_id && !element.entity_id) {
+        context.addIssue({ code: "custom", path: ["elements", index], message: "Asset graphics need asset_id or entity_id." });
+      }
+    });
+  });
 
 const storyboardTransitionIntent = z
   .object({
@@ -147,7 +161,20 @@ export const storyboardScreenplay = z
     /** The authoritative scene list. Order is derived from `shot.index`. */
     scenes: z.array(storyboardScene).optional()
   })
-  .passthrough();
+  .passthrough()
+  .superRefine((screenplay, context) => {
+    const shotIds = new Set(screenplay.shots.map((shot) => shot.id));
+    screenplay.motion_design?.transitions?.forEach((transition, index) => {
+      if (!shotIds.has(transition.from_shot_id) || !shotIds.has(transition.to_shot_id)) {
+        context.addIssue({ code: "custom", path: ["motion_design", "transitions", index], message: "Transition references a shot that is not in this screenplay." });
+      }
+    });
+    screenplay.motion_design?.continuities?.forEach((continuity, index) => {
+      if (continuity.id.trim().length === 0 || continuity.shot_ids.some((id) => !shotIds.has(id))) {
+        context.addIssue({ code: "custom", path: ["motion_design", "continuities", index], message: "Continuity needs a non-empty id and only existing shot ids." });
+      }
+    });
+  });
 export type StoryboardScreenplay = z.infer<typeof storyboardScreenplay>;
 
 // ── Normalization ───────────────────────────────────────────────────────────
