@@ -249,7 +249,8 @@ describe("motion graphics intent", () => {
           id: "shot-a",
           action: "Product hero",
           graphics
-        }
+        },
+        { id: "shot-b", action: "CTA" }
       ]
     });
     const doc = storyboardDocument.parse({
