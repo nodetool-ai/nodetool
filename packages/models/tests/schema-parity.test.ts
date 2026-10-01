@@ -6,18 +6,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { TABLE_COLUMNS, getCreateSchemaSql } from "../src/db.js";
 import * as schema from "../src/schema/index.js";
 
-/**
- * The SQLite schema is stated in three places that no compiler relates:
- * the Drizzle tables in `src/schema/`, the bootstrap DDL in
- * `getCreateSchemaSql()` that a fresh database is created from, and
- * `TABLE_COLUMNS`, the map `addMissingColumns()` uses to repair a legacy
- * install. Drizzle is the source every query goes through, so it is the
- * reference here; the other two must agree with it.
- *
- * The bootstrap DDL is compared by executing it and reading the schema back
- * out of SQLite, not by parsing the string — that way a difference SQLite
- * ignores does not fail, and one it honors cannot pass.
- */
+/** Verify the frozen SQLite baseline and its derived compatibility columns against the declared schema. */
 
 type ColumnFacts = {
   type: string;

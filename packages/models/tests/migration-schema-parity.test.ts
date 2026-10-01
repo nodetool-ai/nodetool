@@ -9,30 +9,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { migrateSqliteDb } from "../src/db.js";
 import * as schema from "../src/schema/index.js";
 
-/**
- * The migration chain in `src/migrations/versions.ts` is a fourth declaration
- * of the schema, beside the Drizzle tables, the bootstrap DDL and
- * `TABLE_COLUMNS` (those three are related by `schema-parity.test.ts`).
- *
- * On SQLite a gap here is invisible: `initDb` runs the bootstrap DDL and
- * `addMissingColumns` after the chain, so anything the chain missed is
- * repaired. On PostgreSQL nothing repairs it — `initPostgresDb` creates no
- * tables and runs no column repair, so the chain *is* the cloud schema, and a
- * column that only reaches SQLite is a cloud-only failure.
- *
- * The chain is applied to a real database here and read back with
- * `pragma_table_info`, so what is compared is the schema SQLite ended up with,
- * not the text of the migrations.
- */
+/** Inspect the real migrated SQLite schema, including the versioned compatibility baseline. */
 
-/**
- * `nodetool_team_tasks` is created by the bootstrap DDL only. Nothing in the
- * repo reads or writes the table (see the entry in `personal-data-registry.ts`,
- * which classifies it `not-personal` for that reason), so it has never needed
- * to exist on a cloud deployment. A writer arriving is the point at which it
- * needs a migration.
- */
-const TABLES_NOT_IN_THE_CHAIN = new Set(["nodetool_team_tasks"]);
+const TABLES_NOT_IN_THE_CHAIN = new Set<string>();
 
 /**
  * `nodetool_assets.size` was migrated in as `INTEGER` and later declared `real`

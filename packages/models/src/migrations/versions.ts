@@ -13,7 +13,8 @@ import {
   type ApplicationDocument
 } from "@nodetool-ai/app-runtime";
 
-import type { MigrationDBAdapter } from "./db-adapter.js";
+import { SQLiteMigrationAdapter, type MigrationDBAdapter } from "./db-adapter.js";
+import { applySqliteBaseline, SQLITE_BASELINE_VERSION } from "./sqlite-baseline.js";
 
 export interface MigrationDef {
   version: string;
@@ -3698,6 +3699,22 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS game_revision_messages");
+    }
+  },
+  {
+    version: SQLITE_BASELINE_VERSION,
+    name: "sqlite_legacy_baseline_compatibility",
+    createsTables: [],
+    modifiesTables: [],
+    async up(db) {
+      if (db instanceof SQLiteMigrationAdapter) {
+        applySqliteBaseline(db.rawDatabase);
+      }
+    },
+    async down() {
+      throw new Error(
+        "The SQLite compatibility baseline preserves legacy data and cannot be rolled back."
+      );
     }
   }
 ];

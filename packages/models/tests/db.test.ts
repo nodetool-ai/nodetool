@@ -185,6 +185,73 @@ describe("db", () => {
     }
   });
 
+  it("runs both startup orders without skipping historical migrations", async () => {
+    tempDir = mkdtempSync(join(tmpdir(), "nodetool-startup-orders-"));
+    for (const migrateFirst of [false, true]) {
+      const path = join(tempDir, `${migrateFirst}.sqlite`);
+      if (migrateFirst) {
+        await migrateSqliteDb(path);
+      }
+      initDb(path);
+      const count = getRawDb()
+        .prepare("SELECT COUNT(*) AS count FROM _nodetool_migrations")
+        .get() as { count: number };
+      if (!migrateFirst) {
+        // Opening synchronously cannot pretend historical data transformations ran.
+        expect(count.count).toBe(1);
+      }
+      await closeDb();
+      const pending = await migrateSqliteDb(path);
+      expect(pending.length > 0).toBe(!migrateFirst);
+      initDb(path);
+      const exec = vi.spyOn(getRawDb(), "exec");
+      await closeDb();
+      exec.mockRestore();
+      expect(await migrateSqliteDb(path)).toEqual([]);
+    }
+  });
+
+  it("records the compatibility migration once and preserves existing rows", async () => {
+    tempDir = mkdtempSync(join(tmpdir(), "nodetool-legacy-once-"));
+    const path = join(tempDir, "legacy.sqlite");
+    const legacy = new Database(path);
+    legacy.exec(`CREATE TABLE nodetool_workflows (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL,
+      graph TEXT NOT NULL, access TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    ); INSERT INTO nodetool_workflows VALUES ('existing', 'owner', 'name', '{"nodes":[],"edges":[]}', 'private', 'old', 'old')`);
+    legacy.close();
+    initDb(path);
+    expect(
+      getRawDb()
+        .prepare(
+          "SELECT name, receive_clipboard FROM nodetool_workflows WHERE id = 'existing'"
+        )
+        .get()
+    ).toEqual({ name: "name", receive_clipboard: null });
+    const applied = getRawDb()
+      .prepare(
+        "SELECT applied_at FROM _nodetool_migrations WHERE version = '20261001_000000'"
+      )
+      .get();
+    await closeDb();
+    initDb(path);
+    expect(
+      getRawDb()
+        .prepare(
+          "SELECT applied_at FROM _nodetool_migrations WHERE version = '20261001_000000'"
+        )
+        .get()
+    ).toEqual(applied);
+    await closeDb();
+    await migrateSqliteDb(path);
+    initDb(path);
+    expect(
+      getRawDb()
+        .prepare("SELECT name FROM nodetool_workflows WHERE id = 'existing'")
+        .get()
+    ).toEqual({ name: "name" });
+  });
+
   it("closeDb resets both the drizzle and raw database handles", async () => {
     tempDir = mkdtempSync(join(tmpdir(), "nodetool-models-db-"));
     const dbPath = join(tempDir, "close.sqlite");
@@ -261,6 +328,8 @@ describe("resolvePostgresClientOptions", () => {
   });
 
   it("disables prepared statements on the transaction pooler port", () => {
-    expect(resolvePostgresClientOptions(transactionUrl, {}).prepare).toBe(false);
+    expect(resolvePostgresClientOptions(transactionUrl, {}).prepare).toBe(
+      false
+    );
   });
 });
