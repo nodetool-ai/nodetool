@@ -47,7 +47,6 @@ import {
   type CapabilityGate,
   type CreateCapabilityRunOptions
 } from "./capabilities/index.js";
-import { gateTools } from "./capabilities/gate-tools.js";
 import {
   GRAPH_DSL_PACKAGE,
   catalogServesGraphDsl
@@ -284,9 +283,8 @@ function resolveAuthoringBudget(opts: AuthorGraphOptions): RunBudget | undefined
  * Discovery, graph validation, and the Code-body harness — plus `find_model`
  * when providers are configured. Everything else the agent needs is the pack.
  *
- * The belt is wrapped in `gateTools` under the caller's gate: a lazy
- * capability tool calls its implementation directly, so the gate on the run
- * alone would cover what `run_code` invokes, not `run_code` itself.
+ * The executor still accepts Tool[], so these are compatibility views over
+ * the owned run. Each invocation uses that run's permission gate.
  */
 export function buildAuthoringBelt(opts: AuthorGraphOptions): Tool[] {
   const gate = opts.gate ?? gateFromContext(opts.context, "authorGraph");
@@ -312,10 +310,7 @@ export function buildAuthoringBelt(opts: AuthorGraphOptions): Tool[] {
       "authorGraph has no configured providers — `find_model` is off the belt, so AI work falls back to the model-less Agent node."
     );
   }
-  return gateTools(
-    names.map((name) => toolForCapabilityName(name, run)),
-    gate
-  );
+  return names.map((name) => toolForCapabilityName(name, run));
 }
 
 /**

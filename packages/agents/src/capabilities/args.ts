@@ -219,11 +219,8 @@ function oneObjectMessage(spec: CapabilityArgSpec): string {
  * Validate one call's arguments against the spec's Zod schema, for the
  * handful of capabilities whose identity is that schema.
  *
- * The one implementation of the check. `gatedCall` runs it for a registry
- * entry reached through `invoke` (guest code, `run.invoke`); the lazy `Tool`
- * runs it for a belt call, where the entry `capabilityFromTool` builds carries
- * no schema. Every entrance therefore validates exactly once, and returns the
- * same `invalid_tool_arguments` envelope `Tool.execute` used to return.
+ * Native invocations and legacy compatibility wrappers use this same check.
+ * Invalid arguments return the structured invalid_tool_arguments result.
  *
  * The reserved protocol fields are not part of any schema: they are lifted out
  * before the parse and `_tool_call_id` is put back on the parsed args, so a

@@ -52,6 +52,7 @@ export {
 } from "./tools/serp-tool-factory.js";
 export { htmlToText } from "./tools/browser-tools.js";
 export {
+  getAllMcpCapabilitySpecs,
   getAllMcpTools,
   createWorkflowDocumentTools
 } from "./tools/mcp-tools.js";
@@ -75,7 +76,7 @@ export {
   headlessGate,
   headlessDenialReason
 } from "./tools/tool-permissions.js";
-export { gateTools } from "./capabilities/gate-tools.js";
+export { gateLegacyTools, capabilityRunForLegacyTool } from "./capabilities/legacy-tools.js";
 export { gateFromContext } from "./capabilities/gate-from-context.js";
 export type {
   PermissionCategory,
@@ -100,12 +101,14 @@ export {
   toolFromLazyCapability,
   toolForCapabilityName,
   capabilityFromTool,
+  capabilityForName,
   capabilitySpec,
   capabilityCategoryFor,
   capabilityModuleOf,
   listCapabilitySpecs,
   createCapabilityRun,
   contextSecretAvailability,
+  capabilityProviderTool,
   resolveCapabilityMessage,
   UNGATED
 } from "./capabilities/index.js";
@@ -981,3 +984,5 @@ export type {
   McpResourceLink,
   McpSecretResolver
 } from "./tools/external-mcp-tools.js";
+
+export { nativeCapabilityTool } from "./capabilities/lazy-tool.js";

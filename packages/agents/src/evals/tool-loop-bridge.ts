@@ -1,5 +1,6 @@
 /** Headless executor for the frontend workflow-tool evaluation suite. */
 import { z } from "zod";
+import type { PermissionCategory } from "../capabilities/types.js";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
 import { uiToolSchemas, type NodeMetadata } from "@nodetool-ai/protocol";
 import type { Graph } from "@nodetool-ai/protocol/api-schemas/workflows.js";
@@ -49,6 +50,9 @@ export interface ToolLoopFinalState {
 }
 
 export interface HeadlessTool {
+  category?: PermissionCategory;
+  userMessage?: (args: Record<string, unknown>) => string;
+  needsToolCallId?: boolean;
   name: string;
   description: string;
   parameters: z.ZodTypeAny;

@@ -10,7 +10,15 @@
  * to call `tool.process` on an ungated tool, skipping `decidePermission`
  * entirely (invariant I-1).
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  vi
+} from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -151,4 +159,46 @@ describe("the MCP mount's permission gate", () => {
     // Blocked, not asked: plan mode decides without consulting an approver.
     expect(prompts).toEqual([]);
   });
+});
+
+describe("MCP capability renderer routing", () => {
+  for (const answer of ["allow", "deny"] as const) {
+    it(`gates a native document capability before routing with ${answer}`, async () => {
+      const execute = vi.fn(async () => ({
+        handled: true,
+        result: { ok: true }
+      }));
+      const requestApproval = vi.fn(async () => answer);
+      const run = registerAgentMcpTools(
+        newServer(),
+        {
+          agentToolsScope: scope,
+          frontendRendererRegistry: { list: () => [], execute }
+        },
+        { mode: "default", sessionAllow: new Set(), requestApproval }
+      );
+      const args = {
+        workflow_id: "workflow-1",
+        node_id: "node-1",
+        title: "New title",
+        renderer_id: "renderer-2"
+      };
+      const result = await run.invoke("ui_set_node_title", args);
+      expect(requestApproval).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(
+        answer === "allow"
+          ? { ok: true }
+          : expect.objectContaining({ error: "permission_denied" })
+      );
+      expect(execute).toHaveBeenCalledTimes(answer === "allow" ? 1 : 0);
+      if (answer === "allow") {
+        expect(execute).toHaveBeenCalledWith(
+          expect.objectContaining({
+            toolName: "ui_set_node_title",
+            rendererId: "renderer-2"
+          })
+        );
+      }
+    });
+  }
 });

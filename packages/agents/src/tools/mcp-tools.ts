@@ -24,13 +24,13 @@ import {
   createCapabilityRun,
   toolFromLazyCapability,
   type AvailableSecretsResolver,
-  type CapabilityRun
+  type CapabilityRun,
+  type CapabilitySpec
 } from "../capabilities/index.js";
 import { capabilitySpec } from "../capabilities/registry.js";
 import { workflowDocumentSpec } from "../capabilities/ui.specs.js";
 import {
   type ExampleWorkflowCatalog,
-  type ModelCatalogs,
   type WorkflowEnvironmentProvider
 } from "./mcp-tool-support.js";
 
@@ -40,54 +40,26 @@ export type {
   WorkflowEnvironmentProvider
 } from "./mcp-tool-support.js";
 
-/** How a capability on this belt gets its run. */
-type RunSource = (context: ProcessingContext) => CapabilityRun;
-
-/** What a host injects into the workflow capabilities. */
-interface WorkflowCapabilityDeps {
-  secretAvailability?: SecretAvailabilityFactory;
-  registry?: NodeRegistry;
-  examples?: ExampleWorkflowCatalog;
-  exportDsl?: WorkflowDslExporter;
-  workflowEnvironment?: WorkflowEnvironmentProvider;
-  modelCatalogs?: ModelCatalogs;
-  /** `list_assets` with `source: "package"`. */
-  listPackageAssets?: PackageAssetLister;
-  /** `delete_project`. */
-  deleteProject?: ProjectDeleter;
-}
-
-/** A run over one call's context, carrying the injected dependencies. */
-function workflowCapabilityRun(
-  context: ProcessingContext,
-  deps: WorkflowCapabilityDeps
-): CapabilityRun {
-  return createCapabilityRun({
-    context,
-    gate: UNGATED,
-    availableSecrets: deps.secretAvailability?.(context),
-    nodeRegistry: deps.registry,
-    examples: deps.examples,
-    exportDsl: deps.exportDsl,
-    workflowEnvironment: deps.workflowEnvironment,
-    modelCatalogs: deps.modelCatalogs,
-    listPackageAssets: deps.listPackageAssets,
-    deleteProject: deps.deleteProject
-  });
-}
-
-
 /**
  * The eight `ui_*` workflow-document tools, built from the `ui` module's eager
- * specs. Each carries that tool's Zod schema, so `Tool.execute` validates once
- * on the way in exactly where the class this replaced did; the node registry
- * that was a constructor argument rides on the run.
+ * specs, as compatibility views for Tool[] consumers. Invocation validates
+ * the Zod schema, and the run carries the registry.
  */
 export function createWorkflowDocumentTools(registry?: NodeRegistry): Tool[] {
+  const runs = new WeakMap<ProcessingContext, CapabilityRun>();
   return WORKFLOW_DOCUMENT_TOOL_NAMES.map((name) =>
-    toolFromLazyCapability(workflowDocumentSpec(name), (context) =>
-      createCapabilityRun({ context, gate: UNGATED, nodeRegistry: registry })
-    )
+    toolFromLazyCapability(workflowDocumentSpec(name), (context) => {
+      let run = runs.get(context);
+      if (!run) {
+        run = createCapabilityRun({
+          context,
+          gate: UNGATED,
+          nodeRegistry: registry
+        });
+        runs.set(context, run);
+      }
+      return run;
+    })
   );
 }
 
@@ -212,32 +184,38 @@ export type SecretAvailabilityFactory = (
   context: ProcessingContext
 ) => AvailableSecretsResolver | undefined;
 
+/** Compatibility catalog for consumers that still require Tool[]. */
 export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
-  // Every name here is a capability. The belt is assembled from the registry's
-  // eager spec table — synchronously, because only the spec has to be there at
-  // assembly time — and each implementation loads from its own module at first
-  // call. The dependencies that used to be constructor arguments ride on the
-  // run instead.
-  const workflowRun = (context: ProcessingContext): CapabilityRun =>
-    workflowCapabilityRun(context, {
-      registry: options.registry,
-      examples: options.examples,
-      exportDsl: options.exportDsl,
-      workflowEnvironment: options.workflowEnvironment,
-      listPackageAssets: options.listPackageAssets,
-      deleteProject: options.deleteProject,
-      secretAvailability: options.secretAvailability
-    });
-
-  const withRun = (name: string, run: RunSource): Tool => {
-    const spec = capabilitySpec(name);
-    if (spec === undefined) {
-      throw new Error(`no capability is registered for "${name}"`);
+  const runs = new WeakMap<ProcessingContext, CapabilityRun>();
+  const runFor = (context: ProcessingContext): CapabilityRun => {
+    let run = runs.get(context);
+    if (!run) {
+      run = createCapabilityRun({
+        context,
+        gate: UNGATED,
+        availableSecrets: options.secretAvailability?.(context),
+        nodeRegistry: options.registry,
+        examples: options.examples,
+        exportDsl: options.exportDsl,
+        workflowEnvironment: options.workflowEnvironment,
+        listPackageAssets: options.listPackageAssets,
+        deleteProject: options.deleteProject,
+        providers: options.providers
+      });
+      runs.set(context, run);
     }
-    return toolFromLazyCapability(spec, run);
+    return run;
   };
+  return getAllMcpCapabilitySpecs(options).map((spec) =>
+    toolFromLazyCapability(spec, runFor)
+  );
+}
 
-  const tools: Tool[] = [
+/** Metadata for native hosts. Dependencies belong to their CapabilityRun. */
+export function getAllMcpCapabilitySpecs(
+  options: GetAllMcpToolsOptions = {}
+): CapabilitySpec[] {
+  const names = [
     // workflows
     "list_workflows",
     "get_workflow",
@@ -288,43 +266,19 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     "get_asset",
     "save_asset",
     "read_asset"
-  ].map((name) => withRun(name, workflowRun));
-
-  // Node discovery reads the registry directly; there is no registry-free
-  // variant, because the only other way to answer was an HTTP call to a server
-  // that may not be running.
+  ];
   if (options.registry) {
-    const nodeRun = (context: ProcessingContext): CapabilityRun =>
-      createCapabilityRun({
-        context,
-        gate: UNGATED,
-        nodeRegistry: options.registry
-      });
-    tools.push(
-      ...["list_nodes", "search_nodes", "get_node_info"].map((name) =>
-        withRun(name, nodeRun)
-      )
-    );
+    names.push("list_nodes", "search_nodes", "get_node_info");
   }
-  tools.push(...createWorkflowDocumentTools(options.registry));
-
+  names.push(...WORKFLOW_DOCUMENT_TOOL_NAMES);
   if (options.providers && Object.keys(options.providers).length > 0) {
-    // The providers map rides on the run and is read at call time, so a host
-    // that fills it lazily still serves what it resolved after construction.
-    // Only the two catalog capabilities read it: `find_model` and `list_models`
-    // enumerate the map itself, so without one they can only answer "no
-    // providers configured". The media tools that used to be added here go
-    // through `context.runProviderPrediction` and read nothing off the run, so
-    // they are built-ins now (`BUILTIN_TOOL_NAMES`) and a host that injects no
-    // map still gets them.
-    const providers = options.providers;
-    const modelRun = (context: ProcessingContext): CapabilityRun =>
-      createCapabilityRun({ context, gate: UNGATED, providers });
-    tools.push(
-      withRun("find_model", modelRun),
-      withRun("list_models", modelRun)
-    );
+    names.push("find_model", "list_models");
   }
-
-  return tools;
+  return names.map((name) => {
+    const spec = capabilitySpec(name);
+    if (!spec) {
+      throw new Error(`no capability is registered for "${name}"`);
+    }
+    return spec;
+  });
 }

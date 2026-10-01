@@ -108,7 +108,7 @@ class NamedTool extends StubTool {
 const sessionBelts: string[][] = [];
 /** Code bodies the scripted `execute_code` action ran. */
 const actionsRun: string[] = [];
-/** Every `gateTools` call: the names wrapped, and the gate they were given. */
+/** Every `gateLegacyTools` call: the names wrapped, and the gate they were given. */
 const gatedWith: Array<{ names: string[]; gate: unknown }> = [];
 /** Every gate a capability run was built over. */
 const runGates: unknown[] = [];
@@ -135,7 +135,8 @@ vi.mock("@nodetool-ai/agents", async () => {
   // module goes last so the stubbed re-export cannot shadow it.
   ...(await import("../../runtime/src/permission-gate.js")),
     PERMISSION_GATE_CONTEXT_KEY: "nodetool_permission_gate",
-    gateTools: (tools: NamedTool[], gate: unknown) => {
+    capabilityRunForLegacyTool: () => undefined,
+  gateLegacyTools: (tools: NamedTool[], gate: unknown) => {
       gatedWith.push({ names: tools.map((t) => t.name), gate });
       return tools;
     },
@@ -338,7 +339,7 @@ describe("nodetool agent run", () => {
 });
 
 describe("the gate a CLI run belts through", () => {
-  it("wraps the platform belt and execute_plan in one shared gate", async () => {
+  it("routes the whole CLI belt through one shared gate", async () => {
     const provider = new ScriptedProvider([textScript("Ready.")]);
 
     const { code } = await runWithCapture(provider, {
@@ -362,10 +363,10 @@ describe("the gate a CLI run belts through", () => {
     expect(runGates.length).toBeGreaterThan(0);
     for (const runGate of runGates) expect(runGate).toBe(gate);
 
-    // Spawning a child loop is not itself an action: those stay ungated, and
-    // the child acts through the gated belt above.
-    expect(beltNames).not.toContain("run_subtask");
-    expect(beltNames).not.toContain("create_plan");
+    // Read-class delegation and planning use the same invocation seam.
+    // Their categories, tested in agents, keep them free of approval prompts.
+    expect(beltNames).toContain("run_subtask");
+    expect(beltNames).toContain("create_plan");
   });
 
   it("names the headless refusal once, in the event stream", async () => {

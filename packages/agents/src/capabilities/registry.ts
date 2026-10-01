@@ -262,9 +262,8 @@ const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
  * The namespaces this build declares, in the order {@link CAPABILITY_MODULES}
  * lists them — the module list a reviewer reads.
  */
-export const DECLARED_CAPABILITY_MODULES: readonly string[] = Object.keys(
-  CAPABILITY_MODULES
-);
+export const DECLARED_CAPABILITY_MODULES: readonly string[] =
+  Object.keys(CAPABILITY_MODULES);
 
 const SPEC_BY_NAME: ReadonlyMap<string, CapabilitySpec> = new Map(
   Object.values(CAPABILITY_MODULES).flatMap((entry) =>
@@ -483,7 +482,9 @@ export function eagerSpecDrift(
   for (const entry of mod.exports) {
     const spec = eager.get(entry.spec.name);
     if (spec === undefined) {
-      issues.push(`${entry.spec.name} is exported by ${moduleName} but carries no eager spec`);
+      issues.push(
+        `${entry.spec.name} is exported by ${moduleName} but carries no eager spec`
+      );
       continue;
     }
     if (spec !== entry.spec) {
@@ -494,7 +495,9 @@ export function eagerSpecDrift(
     eager.delete(entry.spec.name);
   }
   for (const name of eager.keys()) {
-    issues.push(`${name} has an eager spec but ${moduleName} exports no such capability`);
+    issues.push(
+      `${name} has an eager spec but ${moduleName} exports no such capability`
+    );
   }
   return issues;
 }
@@ -528,4 +531,24 @@ export async function capabilityModuleDrift(): Promise<readonly string[]> {
     }
   }
   return drift.sort();
+}
+
+const lazyCapabilities = new Map<string, CapabilityExport>();
+
+/** Resolve eager metadata while keeping implementation loading lazy. */
+export function capabilityForName(name: string): CapabilityExport {
+  const cached = lazyCapabilities.get(name);
+  if (cached) {
+    return cached;
+  }
+  const spec = capabilitySpec(name);
+  if (!spec) {
+    throw new Error(`no capability is registered for "${name}"`);
+  }
+  const entry: CapabilityExport = {
+    spec,
+    impl: async (run, args) => (await loadCapabilityImpl(name))(run, args)
+  };
+  lazyCapabilities.set(name, entry);
+  return entry;
 }

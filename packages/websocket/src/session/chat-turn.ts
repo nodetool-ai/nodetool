@@ -107,18 +107,19 @@ import {
   type ChatCodeActToolCall
 } from "@nodetool-ai/agents";
 import {
-  getBuiltinTools,
-  getAllMcpTools,
-  getGoogleWorkspaceTools,
-  getApifyTools,
-  getSerpApiTools,
-  toolForCapabilityName,
-  gateTools,
+  availableBuiltinToolNames,
+  GOOGLE_WORKSPACE_TOOL_NAMES,
+  APIFY_TOOL_NAMES,
+  SERPAPI_TOOL_NAMES,
+  capabilityForName,
+  capabilityProviderTool,
+  type CapabilitySpec,
+  getAllMcpCapabilitySpecs,
+  toolFromCapability,
   capabilityFromTool,
   createCapabilityRun,
   contextSecretAvailability,
   BackgroundSubtaskRegistry,
-  UNGATED,
   PERMISSION_GATE_CONTEXT_KEY,
   GAME_ASSET_NODE_RUNNER_CONTEXT_KEY,
   type GameAssetNodeRunner,
@@ -1716,14 +1717,6 @@ export class ChatTurnHandler {
     // it starts (invariant I-2). A loop that made its own would hand every
     // nested agent a fresh allowance, which is no ceiling at all.
     const turnBudget = await createChatTurnBudget();
-    const gatedRun = (context: ProcessingContext): CapabilityRun =>
-      createCapabilityRun({
-        context,
-        gate: chatGate,
-        projectId: chatProjectId,
-        availableSecrets: contextSecretAvailability(context),
-        budget: turnBudget
-      });
     // The user's external MCP servers (Blender, Hugging Face, …). Their tools
     // are plain belt tools named `mcp_<server>_<tool>`, so every loop reaches
     // them the same way; a server that does not answer is skipped, not fatal.
@@ -1735,41 +1728,49 @@ export class ChatTurnHandler {
         error: err instanceof Error ? err.message : String(err)
       });
     }
-    const rawToolbelt: Tool[] = [
-      ...getBuiltinTools(),
-      ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
-      // Apify and SerpAPI have no `nodetool.*` namespace, so the belt is how
-      // a chat discovers them (`nodetool.searchTools("apify")`) at all.
-      ...getApifyTools(gatedRun),
-      ...getSerpApiTools(gatedRun),
-      ...externalMcpTools,
-      ...getAllMcpTools({
-        registry: this.session.nodeRegistry,
-        providers: chatProviders,
-        ...mcpToolHostDeps()
-      }),
-      toolForCapabilityName("list_collections"),
-      toolForCapabilityName("query_collection"),
-      runNodeTool
+    const legacyCapabilities = [runNodeTool, ...externalMcpTools].map(capabilityFromTool);
+    const nativeSpecs = [
+      ...availableBuiltinToolNames().map((name) => capabilityForName(name).spec),
+      ...(googleWorkspace ? GOOGLE_WORKSPACE_TOOL_NAMES : []).map((name) => capabilityForName(name).spec),
+      ...[...APIFY_TOOL_NAMES, ...SERPAPI_TOOL_NAMES].map((name) => capabilityForName(name).spec),
+      ...getAllMcpCapabilitySpecs({ registry: this.session.nodeRegistry, providers: chatProviders }),
+      capabilityForName("list_collections").spec,
+      capabilityForName("query_collection").spec
     ];
-    // De-duplicate by name (builtins / mcp / extras may overlap); first wins.
-    const dedupedToolbelt: Tool[] = [];
-    const seenToolNames = new Set<string>();
-    for (const tool of rawToolbelt) {
-      if (seenToolNames.has(tool.name)) continue;
-      seenToolNames.add(tool.name);
-      dedupedToolbelt.push(tool);
+    const specsByName = new Map<string, CapabilitySpec>();
+    for (const spec of [...nativeSpecs, ...legacyCapabilities.map((entry) => entry.spec)]) {
+      if (!specsByName.has(spec.name)) {
+        specsByName.set(spec.name, spec);
+      }
     }
-
-    // Wrap the toolbelt in the permission gate. The wrapper is transparent
-    // except for `process()`, so the chat loop AND any `run_subtask` child
-    // loop inherit gating by simply calling `tool.process()`.
-    const baseTools = gateTools(dedupedToolbelt, chatGate);
+    const baseSpecs = [...specsByName.values()];
+    const legacyByName = new Map(legacyCapabilities.map((entry) => [entry.spec.name, entry]));
+    // Delegated executors still consume Tool[]. Adapt only at that boundary.
+    // Each child context owns a separate run so its memory and depth are local.
+    const childRuns = new WeakMap<ProcessingContext, CapabilityRun>();
+    const childRun = (context: ProcessingContext): CapabilityRun => {
+      let run = childRuns.get(context);
+      if (!run) {
+        run = createCapabilityRun({
+          context, gate: chatGate, nodeRegistry: this.session.nodeRegistry,
+          providers: chatProviders, budget: turnBudget,
+          availableSecrets: contextSecretAvailability(context),
+          ...mcpToolHostDeps(), capabilities: legacyCapabilities
+        });
+        childRuns.set(context, run);
+      }
+      return run;
+    };
+    const baseTools = baseSpecs.map((spec) => {
+      const entry = legacyByName.get(spec.name)
+        ?? capabilityForName(spec.name);
+      return toolFromCapability(entry.spec, entry.impl, childRun);
+    });
 
     // Inject the recursive-decomposition primitive (ungated — it spawns a
     // child loop whose own tools are the gated `baseTools`). Child events
     // stream back tagged with `parent_tool_call_id` so the UI can nest cards.
-    const serverTools: Tool[] = baseTools.slice();
+    const serverTools: CapabilitySpec[] = baseSpecs.slice();
     // The same runtime the delegation tools take, kept for the capability run
     // below: provider, model, the parent belt, and the event forwarder.
     let subAgentRuntime: SubAgentRuntime | undefined;
@@ -1813,22 +1814,12 @@ export class ChatTurnHandler {
       // `parent_tool_call_id` / `subtask_depth` tagging are unchanged.
       // `start_subtask` / `wait_subtasks` share the per-turn registry above:
       // spawn returns immediately, and the parent collects on its own terms.
-      const delegationRun = (context: ProcessingContext) =>
-        createCapabilityRun({
-          context,
-          // Ungated on purpose, as before: spawning a child loop has no side
-          // effect of its own, and the child's tools are the gated `baseTools`.
-          gate: UNGATED,
-          availableSecrets: contextSecretAvailability(context),
-          subAgent: subAgentRuntime,
-          budget: turnBudget
-        });
-      serverTools.unshift(toolForCapabilityName("run_subtask", delegationRun));
+      serverTools.unshift(capabilityForName("run_subtask").spec);
       serverTools.unshift(
-        toolForCapabilityName("start_subtask", delegationRun)
+        capabilityForName("start_subtask").spec
       );
       serverTools.unshift(
-        toolForCapabilityName("wait_subtasks", delegationRun)
+        capabilityForName("wait_subtasks").spec
       );
 
       // Plan mode's own capability: `create_plan` runs the TaskPlanner over the
@@ -1840,7 +1831,7 @@ export class ChatTurnHandler {
       // gate, not for which tools were offered.
       if (permissionMode === "plan") {
         serverTools.unshift(
-          toolForCapabilityName("create_plan", delegationRun)
+          capabilityForName("create_plan").spec
         );
       }
 
@@ -1850,18 +1841,13 @@ export class ChatTurnHandler {
       // `blocked_in_plan_mode`, which tells the model to have the user switch
       // out, where dropping it from the belt entirely would only say the tool
       // does not exist. It is *offered* everywhere but plan mode, below.
-      serverTools.unshift(
-        ...gateTools(
-          [toolForCapabilityName("execute_plan", delegationRun)],
-          chatGate
-        )
-      );
+      serverTools.unshift(capabilityForName("execute_plan").spec);
 
       // Read-only fan-out search (opt-in). Reuses the same runtime — the
       // capability filters the parent belt to its read-only allowlist
       // internally, so passing the full snapshot is correct.
       if (enableReadOnlySearch) {
-        serverTools.unshift(toolForCapabilityName("run_search", delegationRun));
+        serverTools.unshift(capabilityForName("run_search").spec);
       }
     }
 
@@ -1875,7 +1861,7 @@ export class ChatTurnHandler {
     });
 
     const serverSchemas: ProviderTool[] = serverTools.map((t) =>
-      t.toProviderTool()
+      capabilityProviderTool(t)
     );
     // Every client tool the connected UI registered is exposed. They used to be
     // gated on an active workflow, which made the editor tools unreachable from
@@ -1991,7 +1977,7 @@ export class ChatTurnHandler {
       budget: turnBudget,
       secretPrompt: (request) => this.requestSecretEntry(threadId, request),
       ...mcpToolHostDeps(),
-      capabilities: [capabilityFromTool(runNodeTool)]
+      capabilities: legacyCapabilities
     });
     const gameAssetRun = this.chatCapabilityRun;
     const gameAssetNodeRunner: GameAssetNodeRunner = (args) => gameAssetRun.invoke("run_node", args);
@@ -2196,9 +2182,14 @@ export class ChatTurnHandler {
           clientResult.result ?? clientResult.content ?? clientResult;
       } else if (serverTool) {
         try {
-          toolResult = await Tool.executeTool(serverTool, ctx, toolCall.args, {
-            toolCallId: toolCall.id
-          });
+          const args = { ...Tool.stripMessage(toolCall.args) };
+          if (serverTool.needsToolCallId) {
+            args["_tool_call_id"] = toolCall.id;
+          }
+          if (!this.chatCapabilityRun) {
+            throw new Error("Chat capability run is unavailable");
+          }
+          toolResult = await this.chatCapabilityRun.invoke(serverTool.name, args);
         } catch (err) {
           const errMsg = err instanceof Error ? err.message : String(err);
           log.error("Tool execution failed", {

@@ -14,7 +14,7 @@ import {
   type PermissionMode
 } from "../src/tools/tool-permissions.js";
 import { capabilityCategoryFor } from "../src/capabilities/registry.js";
-import { gateTools } from "../src/capabilities/gate-tools.js";
+import { gateLegacyTools } from "../src/capabilities/legacy-tools.js";
 
 const ctx = {} as ProcessingContext;
 
@@ -44,7 +44,7 @@ function gateOne(
   requestApproval: (r: ApprovalRequest) => Promise<ApprovalDecision>,
   sessionAllow = new Set<string>()
 ): Tool {
-  return gateTools([inner], { mode, sessionAllow, requestApproval })[0];
+  return gateLegacyTools([inner], { mode, sessionAllow, requestApproval })[0];
 }
 
 describe("capabilityCategoryFor", () => {
@@ -157,12 +157,12 @@ describe("GatedTool", () => {
     const opts = { mode: "default" as PermissionMode, sessionAllow, requestApproval: approve };
 
     const first = new FakeTool("write_file");
-    await gateTools([first], opts)[0].process(ctx, {});
+    await gateLegacyTools([first], opts)[0].process(ctx, {});
     expect(approve).toHaveBeenCalledTimes(1);
     expect(sessionAllow.has("write_file")).toBe(true);
 
     const second = new FakeTool("write_file");
-    await gateTools([second], opts)[0].process(ctx, {});
+    await gateLegacyTools([second], opts)[0].process(ctx, {});
     // Still only called once — the second call was pre-approved.
     expect(approve).toHaveBeenCalledTimes(1);
     expect(second.ran).toBe(true);

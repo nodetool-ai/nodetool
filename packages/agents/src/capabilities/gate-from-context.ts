@@ -8,7 +8,7 @@
  *
  * This lives in `capabilities/`, not in `tools/tool-permissions.ts`, because
  * the import edge stays one-way: capabilities import the classification map,
- * never the reverse (see `gate-tools.ts` for what the reverse edge did to the
+ * never the reverse (see `legacy-tools.ts` for what the reverse edge did to the
  * bundled backend).
  */
 

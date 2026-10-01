@@ -8,7 +8,7 @@
  * so a chat asked to "download via Apify" found `web_search` and nothing else,
  * and the sandbox-package prompt says every specifier not listed fails. On the
  * belt they are found by name, listed in the catalog, and gated by
- * `gateTools` like every other tool.
+ * `gateLegacyTools` like every other tool.
  *
  * The implementations live in `../capabilities/apify.ts` and `serpapi.ts` and
  * arrive through the registry's eager spec table: each name becomes a `Tool`

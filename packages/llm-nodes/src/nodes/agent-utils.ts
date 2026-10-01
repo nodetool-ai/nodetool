@@ -1,6 +1,6 @@
 import type { BaseNode } from "@nodetool-ai/node-sdk";
 import {
-  gateTools,
+  gateLegacyTools,
   Tool,
   TOOL_CALL_ID_FIELD,
   type PermissionGateOptions
@@ -626,13 +626,17 @@ export function gateAgentTools(
   tools: ToolLike[],
   gate: PermissionGateOptions
 ): ToolLike[] {
+  const executable = tools.filter((tool) => isCallable(tool.process) || isCallable(tool.execute));
+  const gated = gateLegacyTools(
+    executable.map((tool) => tool instanceof Tool ? tool : new AdaptedAgentTool(tool)),
+    gate
+  );
+  let index = 0;
   return tools.map((tool) => {
     if (!isCallable(tool.process) && !isCallable(tool.execute)) return tool;
-    const gateable = tool instanceof Tool ? tool : new AdaptedAgentTool(tool);
-    // `Tool` satisfies ToolLike structurally except for `process`, which
-    // answers `unknown` where ToolLike names the values a result can take —
-    // the same crossing `normalizeTools` makes when it hydrates.
-    return gateTools([gateable], gate)[0] as ToolLike;
+    // ToolLike narrows the result domain, while Tool.process returns unknown.
+    // This is the same compatibility boundary normalizeTools uses.
+    return gated[index++] as ToolLike;
   });
 }
 

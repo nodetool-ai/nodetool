@@ -88,7 +88,8 @@ vi.mock("@nodetool-ai/agents", async () => ({
   ...(await import("../../runtime/src/permission-gate.js")),
   EXECUTE_CODE_TOOL_NAME: "execute_code",
   PERMISSION_GATE_CONTEXT_KEY: "nodetool_permission_gate",
-  gateTools: (tools: unknown[]) => tools,
+  capabilityRunForLegacyTool: () => undefined,
+  gateLegacyTools: (tools: unknown[]) => tools,
   Tool: class {
     name = "";
     description = "";
