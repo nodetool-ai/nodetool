@@ -9,7 +9,8 @@ import {
   BaseProvider,
   budgetStopItem,
   resolveTurnBudget,
-  splitToolResultImages
+  splitToolResultImages,
+  type ProviderCapability
 } from "./base-provider.js";
 import { openAIContextExceeded } from "./context-exceeded.js";
 import { hashSystemPrompt } from "./provider-session.js";
@@ -426,6 +427,25 @@ export class OpenAIProvider extends BaseProvider {
    */
   protected servesOpenAICatalog(): boolean {
     return this.provider === PROVIDER_IDS.OPENAI;
+  }
+
+  /**
+   * OpenAI's own media and embedding operations. A subclass serves them only
+   * through {@link servesOpenAICatalog}; one with its own catalog declares its
+   * own list.
+   */
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    if (!this.servesOpenAICatalog()) return [];
+    return [
+      "text_to_image",
+      "image_to_image",
+      "inpainting",
+      "text_to_video",
+      "image_to_video",
+      "text_to_speech",
+      "automatic_speech_recognition",
+      "generate_embedding"
+    ];
   }
 
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {

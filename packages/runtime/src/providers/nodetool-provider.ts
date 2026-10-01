@@ -148,11 +148,10 @@ export class NodetoolProvider extends BaseProvider {
     this._absorbedCost = 0;
   }
 
-  protected override declaredCapabilities(): ProviderCapability[] {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
     const capabilities: ProviderCapability[] = [];
     for (const def of NODETOOL_MODELS) {
       if (!this.isServable(def)) continue;
-      if (def.kind === "language") capabilities.push("generate_message");
       if (def.kind === "image") {
         capabilities.push("text_to_image");
         if (def.editDelegate) capabilities.push("image_to_image");

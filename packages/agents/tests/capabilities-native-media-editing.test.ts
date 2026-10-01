@@ -18,6 +18,15 @@ class NativeMediaProvider extends BaseProvider {
     super("fake");
   }
 
+  protected override declaredCapabilities() {
+    return [
+      "outpaint_video",
+      "upscale_video",
+      "video_to_audio",
+      "audio_to_audio",
+      "lip_sync"
+    ] as const;
+  }
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
     return [
       {

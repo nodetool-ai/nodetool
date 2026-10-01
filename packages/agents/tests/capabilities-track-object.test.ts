@@ -34,6 +34,9 @@ class UnsupportedTrackingProvider extends BaseProvider {
 }
 
 class ExecutableTrackingProvider extends UnsupportedTrackingProvider {
+  protected override declaredCapabilities() {
+    return ["track_object"] as const;
+  }
   override async trackObject(
     _video: Uint8Array,
     params: ObjectTrackingParams

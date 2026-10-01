@@ -11,6 +11,9 @@ class ReferenceVideoProvider extends BaseProvider {
   constructor(private readonly models: VideoModel[]) {
     super("fal_ai" as ProviderId);
   }
+  protected override declaredCapabilities() {
+    return ["text_to_video", "image_to_video", "reference_to_video"] as const;
+  }
   override async referenceToVideo(): Promise<Uint8Array> { return new Uint8Array(); }
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
     return this.models;

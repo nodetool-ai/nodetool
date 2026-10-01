@@ -8,7 +8,7 @@
 import { describe, it, expect } from "vitest";
 import {
   BaseProvider,
-  providerCapabilities
+  type ProviderCapability
 } from "../../src/providers/base-provider.js";
 import { ProcessingContext } from "../../src/context.js";
 import {
@@ -24,6 +24,13 @@ import type {
   OutpaintVideoParams,
   UpscaleVideoParams
 } from "../../src/providers/types.js";
+
+const NEW_CAPABILITIES = [
+  "outpaint_image",
+  "upscale_video",
+  "interpolate_video",
+  "outpaint_video"
+] as const;
 
 class SilentProvider extends BaseProvider {
   constructor() {
@@ -42,6 +49,10 @@ class EditProvider extends SilentProvider {
   outpaintVideoParams?: OutpaintVideoParams;
   lastVideo?: Uint8Array;
   lastImages?: Uint8Array[];
+
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return NEW_CAPABILITIES;
+  }
 
   override async outpaintImage(
     images: Uint8Array[],
@@ -77,17 +88,10 @@ class EditProvider extends SilentProvider {
   }
 }
 
-const NEW_CAPABILITIES = [
-  "outpaint_image",
-  "upscale_video",
-  "interpolate_video",
-  "outpaint_video"
-] as const;
-
 describe("editing task capabilities", () => {
-  it("are advertised only by a provider that implements them", () => {
-    const silent = providerCapabilities(new SilentProvider());
-    const editing = providerCapabilities(new EditProvider());
+  it("are advertised only by a provider that declares them", () => {
+    const silent = new SilentProvider().getCapabilities();
+    const editing = new EditProvider().getCapabilities();
     for (const capability of NEW_CAPABILITIES) {
       expect(silent).not.toContain(capability);
       expect(editing).toContain(capability);

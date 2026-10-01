@@ -79,11 +79,7 @@ import { JinaProvider } from "./jina-provider.js";
 import { FakeProvider } from "./fake-provider.js";
 import { HiggsfieldProvider } from "./higgsfield-provider.js";
 import { UseapiProvider } from "./useapi-provider.js";
-export {
-  BaseProvider,
-  estimatePromptTokens,
-  providerCapabilities
-} from "./base-provider.js";
+export { BaseProvider, estimatePromptTokens } from "./base-provider.js";
 export {
   FAL_PROVIDER_ID,
   FAL_QUEUE_ORIGIN,

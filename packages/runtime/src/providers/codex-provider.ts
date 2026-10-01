@@ -43,6 +43,7 @@ import {
   isProviderMessageEvent,
   isProviderStop
 } from "./types.js";
+import type { ProviderCapability } from "./base-provider.js";
 
 const log = createLogger("nodetool.runtime.codex");
 
@@ -87,6 +88,12 @@ function codexDefaultHeaders(
 }
 
 export class CodexProvider extends OpenAIProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image"
+    ];
+  }
+
   static override requiredSecrets(): string[] {
     return ["CODEX_ACCESS_TOKEN"];
   }

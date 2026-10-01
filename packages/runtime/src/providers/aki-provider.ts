@@ -18,6 +18,7 @@ import type {
   TextToImageParams
 } from "./types.js";
 import { isString } from "@nodetool-ai/protocol";
+import type { ProviderCapability } from "./base-provider.js";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.aki");
@@ -241,6 +242,13 @@ interface AkiProviderOptions extends OpenAICompatProviderOptions {
 }
 
 export class AkiProvider extends OpenAICompatProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image"
+    ];
+  }
+
   static override requiredSecrets(): string[] {
     return ["AKI_API_KEY"];
   }

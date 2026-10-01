@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { BaseProvider } from "../src/providers/base-provider.js";
+import {
+  BaseProvider,
+  type ProviderCapability
+} from "../src/providers/base-provider.js";
 import { ProcessingContext } from "../src/context.js";
 import type { Message, ProviderStreamItem } from "../src/providers/types.js";
 import {
@@ -26,6 +29,9 @@ class UnsupportedProvider extends BaseProvider {
 
 class TrackingProvider extends UnsupportedProvider {
   readonly calls: ObjectTrackingParams[] = [];
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return ["track_object"];
+  }
   override async trackObject(
     video: Uint8Array,
     params: ObjectTrackingParams
@@ -45,7 +51,7 @@ const request = {
 };
 
 describe("track_object provider dispatch", () => {
-  it("advertises only an implemented tracking method", () => {
+  it("advertises only a declared tracking capability", () => {
     expect(new UnsupportedProvider().getCapabilities()).not.toContain(
       "track_object"
     );

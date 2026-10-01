@@ -1,7 +1,7 @@
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { z } from "zod";
 import { recordGenerationReceiptAsync } from "../generation-receipt.js";
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { fetchWithRetry, sleep } from "./http-transport.js";
 import { sniffImageMime } from "./image-mime.js";
 import { safeFetch } from "./safe-url.js";
@@ -112,6 +112,15 @@ export class UseapiProvider extends BaseProvider {
   private readonly token: string;
   private readonly flowEmail: string;
   private readonly dreaminaAccount: string;
+
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video"
+    ];
+  }
 
   static override requiredSecrets(): string[] {
     return ["USEAPI_API_TOKEN"];

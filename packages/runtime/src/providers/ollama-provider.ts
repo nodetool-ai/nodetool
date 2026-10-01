@@ -1,6 +1,6 @@
 import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { isNonEmptyString, isRecord, isString } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.providers.ollama");
@@ -92,6 +92,12 @@ function asTextParts(content: MessageContent[]): string {
 }
 
 export class OllamaProvider extends BaseProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "generate_embedding"
+    ];
+  }
+
   static requiredSecrets(): string[] {
     return ["OLLAMA_API_URL"];
   }

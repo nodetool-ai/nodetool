@@ -1,7 +1,7 @@
 import { loadPackageAssetJson, createLogger } from "@nodetool-ai/config";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { recordGenerationReceiptAsync } from "../generation-receipt.js";
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { providerGeneration, type ProviderGeneration, type ProviderGenerationLookup } from "./provider-generations.js";
 import type { ExtendVideoParams, ImageModel, ImageToImageParams, ImageToVideoParams, Message, ProviderStreamItem, ReferenceToVideoInputs, ReferenceToVideoParams, TextToImageParams, TextToVideoParams, VideoModel, VideoToVideoParams } from "./types.js";
 import { higgsfieldAwaitResult, higgsfieldCancelByRequestId, higgsfieldCreateUploadUrl, higgsfieldDownloadResult, higgsfieldEstimate, higgsfieldGetStatusByRequestId, higgsfieldOutputUrls, higgsfieldSubmit, higgsfieldUploadMedia, type HiggsfieldCredentials, type HiggsfieldEstimate } from "./higgsfield-transport.js";
@@ -29,6 +29,19 @@ function clean(input: Record<string, unknown>): Record<string, unknown> {
 
 export class HiggsfieldProvider extends BaseProvider {
   private readonly credentials: HiggsfieldCredentials;
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
+      "video_to_video",
+      "extend_video",
+      "get_generation"
+    ];
+  }
+
   static override requiredSecrets(): string[] { return ["HIGGSFIELD_API_KEY_ID", "HIGGSFIELD_API_KEY_SECRET"]; }
   constructor(secrets: Record<string, unknown> = {}) { super(PROVIDER_IDS.HIGGSFIELD); this.credentials = asCredentials(secrets); }
   override getContainerEnv(): Record<string, string> { return { HIGGSFIELD_API_KEY_ID: this.credentials.keyId, HIGGSFIELD_API_KEY_SECRET: this.credentials.secret }; }

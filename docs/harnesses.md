@@ -2211,8 +2211,8 @@ npm run dev:nodetool -- generations provider-get <request_id> --provider fal_ai 
 
 That is `BaseProvider.listGenerations` / `getGeneration`
 (`packages/runtime/src/providers/provider-generations.ts`), which a provider
-overrides only where it publishes a history API — `providerCapabilities`
-reports `list_generations` / `get_generation` for exactly those, and every
+overrides only where it publishes a history API. Exactly those providers
+declare `list_generations` / `get_generation`, and every
 other provider throws `ProviderGenerationsUnsupportedError`, a capability
 answer rather than a failure. FAL answers both through its Platform APIs: a
 listing with no model filter comes from the billing feed, which records the

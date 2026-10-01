@@ -8,7 +8,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { Prediction } from "@nodetool-ai/protocol";
 import { ProcessingContext } from "../src/context.js";
-import { BaseProvider } from "../src/providers/base-provider.js";
+import {
+  BaseProvider,
+  type ProviderCapability
+} from "../src/providers/base-provider.js";
 import type {
   Message,
   EncodedAudioResult,
@@ -44,6 +47,9 @@ class VideoAudioProvider extends ImageProvider {
     super(async () => PNG);
   }
 
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return ["video_to_audio"];
+  }
   override async videoToAudio(): Promise<EncodedAudioResult> {
     recordGenerationReceipt({ provider_request_id: "audio-request" });
     return this.audio;

@@ -15,8 +15,8 @@
  * caller reconciling spend or hunting a lost asset does not write a client per
  * provider. A provider without such an API keeps the base methods and throws
  * {@link ProviderGenerationsUnsupportedError}, which is a capability answer,
- * not a failure: `providerCapabilities` reports `list_generations` and
- * `get_generation` only for the providers that override them.
+ * not a failure: only the providers that implement them declare
+ * `list_generations` and `get_generation`.
  */
 
 import type { ProviderId } from "./types.js";

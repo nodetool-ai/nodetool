@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import type {
   EncodedAudioResult,
   Message,
@@ -67,6 +67,12 @@ interface ElevenLabsProviderOptions {
 }
 
 export class ElevenLabsProvider extends BaseProvider {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_speech"
+    ];
+  }
+
   static requiredSecrets(): string[] {
     return ["ELEVENLABS_API_KEY"];
   }

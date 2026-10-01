@@ -6,7 +6,7 @@
  * and proxies all BaseProvider methods through the bridge.
  */
 
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import type {
   LanguageModel,
   ImageModel,
@@ -102,26 +102,20 @@ export class PythonProvider extends BaseProvider {
       this._bridge = bridge;
       this._pythonProviderId = providerIdOrOptions;
       this._secrets = secrets;
-      this.referenceToVideo = BaseProvider.prototype.referenceToVideo;
       return;
     }
 
     const { _id, _bridge, _bridgeProviderId, _capabilities, ...rawSecrets } =
       providerIdOrOptions;
     super(_id);
-    const wrappedReferenceToVideo = this.referenceToVideo;
     this._bridge = _bridge;
     this._pythonProviderId = _bridgeProviderId ?? _id;
-    this.referenceToVideo = BaseProvider.prototype.referenceToVideo;
     if (Array.isArray(_capabilities)) {
       this._workerCapabilities = new Set(_capabilities.map(String));
       this._supportsStreamingTTS = _capabilities.includes("text_to_speech");
       this._supportsEncodedTTS = _capabilities.includes(
         "text_to_speech_encoded"
       );
-      if (this._workerCapabilities.has("reference_to_video")) {
-        this.referenceToVideo = wrappedReferenceToVideo;
-      }
     }
     this._secrets = Object.fromEntries(
       Object.entries(rawSecrets).filter(
@@ -132,6 +126,27 @@ export class PythonProvider extends BaseProvider {
 
   static requiredSecrets(): string[] {
     return [];
+  }
+
+  /**
+   * Every operation the bridge forwards. Reference-to-video needs a worker
+   * that reports it.
+   */
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    const capabilities: ProviderCapability[] = [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video",
+      "text_to_speech",
+      "text_to_music",
+      "automatic_speech_recognition",
+      "generate_embedding"
+    ];
+    if (this._workerCapabilities.has("reference_to_video")) {
+      capabilities.push("reference_to_video");
+    }
+    return capabilities;
   }
 
   // ── Model discovery ───────────────────────────────────────────────

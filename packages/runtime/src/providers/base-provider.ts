@@ -238,138 +238,6 @@ export type ProviderCapability =
   | "track_object";
 
 /**
- * Derive a provider's capability set by checking which optional `getAvailable*`
- * methods it overrides on its prototype. Every provider can always generate
- * messages; image/video/TTS/ASR/embedding are advertised only when the concrete
- * class overrides the matching base method.
- *
- * Shared by `packages/websocket/src/models-api.ts` (REST leftover) and the
- * `models` tRPC router so both report identical capabilities for the same
- * provider instance.
- */
-export function providerCapabilities(
-  instance: BaseProvider
-): ProviderCapability[] {
-  const capabilities: ProviderCapability[] = [
-    "generate_message",
-    "generate_messages"
-  ];
-  if (
-    instance.getAvailableImageModels !==
-    BaseProvider.prototype.getAvailableImageModels
-  ) {
-    capabilities.push("text_to_image", "image_to_image");
-  }
-  if (
-    instance.getAvailableVideoModels !==
-    BaseProvider.prototype.getAvailableVideoModels
-  ) {
-    capabilities.push("text_to_video", "image_to_video");
-  }
-  if (
-    instance.referenceToVideo !== BaseProvider.prototype.referenceToVideo
-  ) {
-    capabilities.push("reference_to_video");
-  }
-  // The remaining task types don't have their own model-discovery method —
-  // they reuse Image/VideoModel (advertised via each model's `supportedTasks`).
-  // Advertise the provider-level capability when the concrete class overrides
-  // the matching task method.
-  if (instance.inpaint !== BaseProvider.prototype.inpaint) {
-    capabilities.push("inpainting");
-  }
-  if (instance.outpaintImage !== BaseProvider.prototype.outpaintImage) {
-    capabilities.push("outpaint_image");
-  }
-  if (instance.upscaleImage !== BaseProvider.prototype.upscaleImage) {
-    capabilities.push("upscale_image");
-  }
-  if (instance.removeBackground !== BaseProvider.prototype.removeBackground) {
-    capabilities.push("remove_background");
-  }
-  if (instance.relightImage !== BaseProvider.prototype.relightImage) {
-    capabilities.push("relight_image");
-  }
-  if (instance.segmentImage !== BaseProvider.prototype.segmentImage) {
-    capabilities.push("segment_image");
-  }
-  if (instance.vectorizeImage !== BaseProvider.prototype.vectorizeImage) {
-    capabilities.push("vectorize_image");
-  }
-  if (instance.videoToVideo !== BaseProvider.prototype.videoToVideo) {
-    capabilities.push("video_to_video");
-  }
-  if (instance.videoToAudio !== BaseProvider.prototype.videoToAudio) {
-    capabilities.push("video_to_audio");
-  }
-  if (instance.trackObject !== BaseProvider.prototype.trackObject) {
-    capabilities.push("track_object");
-  }
-  if (instance.extendVideo !== BaseProvider.prototype.extendVideo) {
-    capabilities.push("extend_video");
-  }
-  if (instance.upscaleVideo !== BaseProvider.prototype.upscaleVideo) {
-    capabilities.push("upscale_video");
-  }
-  if (instance.interpolateVideo !== BaseProvider.prototype.interpolateVideo) {
-    capabilities.push("interpolate_video");
-  }
-  if (instance.outpaintVideo !== BaseProvider.prototype.outpaintVideo) {
-    capabilities.push("outpaint_video");
-  }
-  if (instance.lipSync !== BaseProvider.prototype.lipSync) {
-    capabilities.push("lip_sync");
-  }
-  if (
-    instance.getAvailableTTSModels !==
-    BaseProvider.prototype.getAvailableTTSModels
-  ) {
-    capabilities.push("text_to_speech");
-  }
-  if (
-    instance.getAvailableMusicModels !==
-    BaseProvider.prototype.getAvailableMusicModels
-  ) {
-    capabilities.push("text_to_music");
-  }
-  if (
-    instance.getAvailableAudioToAudioModels !==
-    BaseProvider.prototype.getAvailableAudioToAudioModels
-  ) {
-    capabilities.push("audio_to_audio");
-  }
-  if (
-    instance.getAvailableASRModels !==
-    BaseProvider.prototype.getAvailableASRModels
-  ) {
-    capabilities.push("automatic_speech_recognition");
-  }
-  if (
-    instance.getAvailableEmbeddingModels !==
-    BaseProvider.prototype.getAvailableEmbeddingModels
-  ) {
-    capabilities.push("generate_embedding");
-  }
-  if (
-    instance.getAvailable3DModels !==
-    BaseProvider.prototype.getAvailable3DModels
-  ) {
-    // Providers that expose 3D models are assumed to support both task types;
-    // individual `textTo3D` / `imageTo3D` calls will throw if not implemented.
-    capabilities.push("text_to_3d", "image_to_3d");
-  }
-  // The provider's own record of what it ran, exposed only by providers with
-  // a history API behind it (see provider-generations.ts).
-  if (instance.listGenerations !== BaseProvider.prototype.listGenerations) {
-    capabilities.push("list_generations");
-  }
-  if (instance.getGeneration !== BaseProvider.prototype.getGeneration) {
-    capabilities.push("get_generation");
-  }
-  return capabilities;
-}
-
-/**
  * What one attached medium costs a vision/audio model, per block. These are
  * modality constants, not measurements of the bytes: by the time a turn is
  * estimated, `resolveMessageMediaUris` has inlined every `asset://` as a
@@ -722,33 +590,26 @@ export abstract class BaseProvider {
   }
 
   /**
-   * Explicit capability declaration. Returns `null` by default, in which case
-   * {@link getCapabilities} derives capabilities by reflecting on which
-   * optional methods the concrete class overrides. Providers may override this
-   * to declare their capabilities directly — an alternative to method
-   * reflection when methods are wrapped, bound, or composed via mixins.
+   * The operations beyond chat that this provider implements. Each concrete
+   * provider lists its own; the base implements none. A capability belongs
+   * here only when the matching method has a working implementation.
    */
-  protected declaredCapabilities(): ProviderCapability[] | null {
-    return null;
+  protected declaredCapabilities(): readonly ProviderCapability[] {
+    return [];
   }
 
   /**
-   * The capabilities this provider exposes. Prefers an explicit declaration
-   * from {@link declaredCapabilities}; otherwise falls back to reflecting over
-   * overridden methods via {@link providerCapabilities}. Callers should use
-   * this instead of calling `providerCapabilities()` directly so explicit
-   * declarations are honored.
+   * The capabilities this provider exposes: chat generation, which every
+   * provider has, plus its {@link declaredCapabilities}.
    */
   getCapabilities(): ProviderCapability[] {
-    const declared = this.declaredCapabilities();
-    if (declared) {
-      // Message generation is always available; ensure it is present.
-      const set = new Set<ProviderCapability>(declared);
-      set.add("generate_message");
-      set.add("generate_messages");
-      return [...set];
-    }
-    return providerCapabilities(this);
+    return [
+      ...new Set<ProviderCapability>([
+        "generate_message",
+        "generate_messages",
+        ...this.declaredCapabilities()
+      ])
+    ];
   }
 
   /**

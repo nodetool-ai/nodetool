@@ -6,6 +6,7 @@ import type {
   EncodedAudioResult,
   LanguageModel,
   Message,
+  ProviderCapability,
   ProviderStreamItem,
   TTSModel
 } from "@nodetool-ai/runtime";
@@ -27,6 +28,14 @@ export class TransformersJsProvider extends BaseProvider {
 
   static requiredSecrets(): string[] {
     return [];
+  }
+
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_speech",
+      "automatic_speech_recognition",
+      "generate_embedding"
+    ];
   }
 
   override async hasToolSupport(_model: string): Promise<boolean> {

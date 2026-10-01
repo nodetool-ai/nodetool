@@ -11,7 +11,7 @@
 import { recordGenerationReceipt } from "../generation-receipt.js";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { isString } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
@@ -781,6 +781,21 @@ const KIE_MANIFEST_PATH = "kie-manifest.json";
 
 export class KieProvider extends BaseProvider {
   private apiKey: string;
+
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
+      "inpainting",
+      "extend_video",
+      "upscale_video",
+      "text_to_speech",
+      "text_to_music"
+    ];
+  }
 
   static override requiredSecrets(): string[] {
     return ["KIE_API_KEY"];
