@@ -236,7 +236,7 @@ export function getDatabase(): DatabaseConnection {
  */
 export function getDb(): BetterSQLite3Database<typeof schema> {
   // Untouched models rely on this legacy schema projection across dialects.
-  return getDatabase().db as unknown as BetterSQLite3Database<typeof schema>;
+  return getDatabase().db as BetterSQLite3Database<typeof schema>;
 }
 
 /**

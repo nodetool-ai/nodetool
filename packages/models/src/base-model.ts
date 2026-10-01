@@ -264,7 +264,7 @@ export abstract class DBModel {
         }
         // Dynamic DBModel metadata cannot express a concrete primary-key type.
         tx.insert(table).values(row).onConflictDoUpdate({
-          target: pkCol as unknown as SQLiteColumn,
+          target: pkCol as SQLiteColumn,
           set: row
         }).run();
       });
@@ -278,7 +278,7 @@ export abstract class DBModel {
       if (!pgTable) throw new Error(`PostgreSQL table not found: ${name}`);
       // The dynamic base model cannot express each table's insert shape. The
       // concrete models retain that responsibility until their conversion.
-      const targetTable = pgTable as unknown as PgTable;
+      const targetTable: PgTable = pgTable;
       const columns = getTableColumns(targetTable);
       const pgRow = Object.fromEntries(Object.entries(row).map(([key, value]) => [
         key,
@@ -323,7 +323,7 @@ export abstract class DBModel {
 
   async reload(): Promise<this> {
     // Runtime subclasses carry the constructor and table metadata together.
-    const ctor = this.constructor as unknown as ModelConstructor<this>;
+    const ctor = this.constructor as ModelConstructor<this>;
     const db = getDb();
     const table = ctor.table;
     const pkCol = getTableColumn(table, ctor.primaryKey);
