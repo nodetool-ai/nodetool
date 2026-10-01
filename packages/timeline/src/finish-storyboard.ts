@@ -1,4 +1,4 @@
-import { resolveEffectiveProductionRequirement, type StoryboardMotionDesign, type ProductionRequirement, type ProductionProtectedInput, type Shot } from "@nodetool-ai/protocol";
+import { isRecord, resolveEffectiveProductionRequirement, type StoryboardMotionDesign, type ProductionRequirement, type ProductionProtectedInput, type Shot } from "@nodetool-ai/protocol";
 import { createTimeOrderedUuid, makeClip, makeTrack } from "./defaults.js";
 import { moveTrackOrder } from "./trackOrder.js";
 import { resolveShotSource } from "./storyboard.js";
@@ -24,6 +24,14 @@ export interface FinishStoryboardInput {
   production?: ProductionRequirement;
   motionDesign?: StoryboardMotionDesign;
   current?: { tracks: TimelineTrack[]; clips: TimelineClip[]; markers?: TimelineMarker[] };
+}
+
+function parseBaseline(value: string | undefined): Record<string, unknown> | undefined {
+  if (!value) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return isRecord(parsed) ? parsed : undefined;
+  } catch { return undefined; }
 }
 
 const identity = (shotId: string, elementId: string): string => `${shotId}/${elementId}`;
@@ -189,8 +197,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
       });
       clip.storyboardMaterializationBaseline = baseline(clip);
       if (previous) {
-        let prior: Record<string, unknown> | undefined;
-        try { prior = previous.storyboardMaterializationBaseline ? JSON.parse(previous.storyboardMaterializationBaseline) as Record<string, unknown> : undefined; } catch { /* Unrecognized ownership is an explicit conflict below. */ }
+        const prior = parseBaseline(previous.storyboardMaterializationBaseline);
         if (!prior) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Layer ${key} has no valid materializer baseline.` });
         else {
           if (!same(previous.currentAssetId, prior.currentAssetId) || !same(previous.textStyle?.text, prior.text) || !same(previous.textStyle?.color ?? previous.shapeStyle?.fill, prior.color) || !same(previous.textStyle, prior.textStyle) || !same(previous.shapeStyle, prior.shapeStyle) || !same(previous.opacity, prior.opacity) || !same(previous.hidden, prior.hidden) || !same(previous.matte, prior.matte) || !same(previous.crop, prior.crop) || !same(previous.effects, prior.effects) || !same(previous.parentId, prior.parentId)) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Source or exact copy was manually changed on ${key}.` });
@@ -209,7 +216,11 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
     if (clip.storyboardBoardId !== input.boardId || clip.storyboardElementId !== "background" || existing.has(identity(clip.storyboardShotId ?? "", "background"))) continue;
     const order = moveTrackOrder(tracks, clip.trackId, { toIndex: tracks.length - 1 });
     const indices = new Map(order.map((id, index) => [id, index]));
-    for (const track of tracks) track.index = indices.get(track.id)!;
+    for (const track of tracks) {
+      const index = indices.get(track.id);
+      if (index === undefined) throw new Error(`Track ${track.id} is missing from composition order.`);
+      track.index = index;
+    }
   }
   // These semantic directions select existing Timeline animations, never another animation model.
   for (const transition of input.motionDesign?.transitions ?? []) {
@@ -230,13 +241,14 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
       conflicts.push({ code: "missing_element", shotId: continuity.shot_ids[0] ?? "", elementId: continuity.id, message: `Continuity ${continuity.id} must name a graphics element present in every referenced shot.` });
       continue;
     }
-    const first = matching[0]!;
+    const first = matching[0];
+    if (!first) continue;
     for (const [index, clip] of matching.entries()) {
       if (!clip) continue;
       // A continuous device retains placement and does not restart its entrance at each cut.
       if (index > 0) {
         const previous = existing.get(identity(clip.storyboardShotId ?? "", clip.storyboardElementId ?? ""));
-        const owned = previous?.storyboardMaterializationBaseline ? JSON.parse(previous.storyboardMaterializationBaseline) as Record<string, unknown> : undefined;
+        const owned = parseBaseline(previous?.storyboardMaterializationBaseline);
         if (previous && owned && !same(previous.transform, owned.transform) && !same(previous.transform, first.transform)) {
           conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: continuity.id, message: `Manual placement on continuity ${continuity.id} conflicts with shared placement.` });
         } else clip.transform = first.transform ? structuredClone(first.transform) : undefined;
@@ -247,7 +259,8 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
   }
   for (const clip of clips) {
     if (clip.storyboardBoardId !== input.boardId || !clip.storyboardMaterializationBaseline) continue;
-    const owned = JSON.parse(clip.storyboardMaterializationBaseline) as Record<string, unknown>;
+    const owned = parseBaseline(clip.storyboardMaterializationBaseline);
+    if (!owned) continue;
     owned.animations = clip.animations;
     clip.storyboardMaterializationBaseline = JSON.stringify(owned);
   }

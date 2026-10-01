@@ -64,4 +64,32 @@ describe("finish_storyboard", () => {
     expect((await Storyboard.findById(board.id))!.revision).toBe(savedBoard.revision);
   });
 
+  it("resolves genuine entity-only graphics references without changing the storyboard", async () => {
+    const { board, asset } = await fixture();
+    asset.metadata = { nodetool_entity: { kind: "prop", name: "Product", descriptor: "Original product" } };
+    await asset.save();
+    const document = board.toDocument();
+    delete document.shots[0].production;
+    document.shots[0].graphics!.elements = [{ id: "product", kind: "asset", role: "product", entity_id: asset.id }];
+    board.document = JSON.stringify(document); await board.save();
+    const original = board.document;
+    const result = await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision }) as { timelineId: string };
+    expect(result).toHaveProperty("validation", []);
+    expect(JSON.parse((await TimelineSequence.findById(result.timelineId))!.document).clips[0].currentAssetId).toBe(asset.id);
+    expect((await Storyboard.findById(board.id))!.document).toBe(original);
+  });
+  it.each(["ordinary", "foreign-reference"])("rejects %s entity references before writes", async (kind) => {
+    const { board, asset } = await fixture();
+    if (kind === "foreign-reference") {
+      const foreign = await Asset.create<Asset>({ user_id: "foreign", name: "Other", content_type: "image/png" });
+      asset.metadata = { nodetool_entity: { kind: "prop", name: "Product", descriptor: "Product", reference_asset_id: foreign.id } };
+      await asset.save();
+    }
+    const document = board.toDocument(); delete document.shots[0].production;
+    document.shots[0].graphics!.elements = [{ id: "product", kind: "asset", entity_id: asset.id }];
+    board.document = JSON.stringify(document); await board.save();
+    expect(await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision })).toHaveProperty("error");
+    expect((await Storyboard.findById(board.id))!.timeline_id).toBeFalsy();
+  });
+
 });

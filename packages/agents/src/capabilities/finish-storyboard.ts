@@ -6,17 +6,18 @@ export const finishStoryboard: CapabilityExport = {
   impl: async (run, params) => {
     const userId = run.context.userId;
     if (!userId) return { error: "No user is bound to this session." };
-    const { findFinishResourceIds, Storyboard, TimelineSequence, Asset, commitFinishedStoryboard } = await import("@nodetool-ai/models");
+    const { findFinishResourceIds, Storyboard, TimelineSequence, Asset, entityFromAsset, commitFinishedStoryboard } = await import("@nodetool-ai/models");
     const { materializeStoryboard, validateStoryboardSemantics, frameSizeForAspect } = await import("@nodetool-ai/timeline");
     const { resolveEffectiveProductionRequirement } = await import("@nodetool-ai/protocol");
     const boardId = String(params["storyboardId"] ?? "");
     const boardRows = await findFinishResourceIds("storyboard", boardId, userId, run.projectId);
     if (boardRows.length !== 1) return { error: boardRows.length ? "Storyboard prefix is ambiguous." : "Storyboard was not found." };
-    const board = (await Storyboard.findById(boardRows[0]))!;
+    const board = await Storyboard.findById(boardRows[0]);
+    if (!board) return { error: "Storyboard was not found." };
     if (run.projectId && run.projectId !== board.project_id) return { error: "Storyboard was not found in this project." };
     if (board.revision !== params["expectedStoryboardRevision"]) return { error: "Storyboard revision conflict." };
     const doc = board.toDocument();
-    const shots = doc.shots.map((shot) => ({ ...shot, production: resolveEffectiveProductionRequirement(undefined, shot.production) }));
+    const shots = structuredClone(doc.shots).map((shot) => ({ ...shot, production: resolveEffectiveProductionRequirement(undefined, shot.production) }));
     const assets = new Set<string>();
     const entities = new Set<string>();
     for (const shot of shots) {
@@ -28,9 +29,20 @@ export const finishStoryboard: CapabilityExport = {
         else return { error: `Asset ${id} is unavailable.` };
       }
       for (const element of shot.graphics?.elements ?? []) {
-        if (!element.entity_id || entities.has(element.entity_id)) continue;
-        const entity = await Asset.get<InstanceType<typeof Asset>>(element.entity_id);
-        if (entity?.user_id === userId) entities.add(element.entity_id);
+        const protection = element.protected_input_id ? shot.production?.protected_inputs?.find((input) => input.id === element.protected_input_id) : undefined;
+        const entityId = element.entity_id ?? protection?.entity_id;
+        if (!entityId) continue;
+        const row = await Asset.get<InstanceType<typeof Asset>>(entityId);
+        const entity = row?.user_id === userId ? entityFromAsset(row) : null;
+        if (!entity) return { error: `Entity ${entityId} is unavailable or is not an entity.` };
+        const referenceId = entity.reference_images?.[0]?.asset_id;
+        if (!referenceId) return { error: `Entity ${entityId} has no reference image.` };
+        const reference = await Asset.get<InstanceType<typeof Asset>>(referenceId);
+        if (reference?.user_id !== userId || !reference.content_type.startsWith("image/")) return { error: `Entity reference image ${referenceId} is unavailable.` };
+        entities.add(entityId);
+        assets.add(referenceId);
+        if (element.kind === "asset" && !element.asset_id) element.asset_id = referenceId;
+        if (protection && !protection.asset_id && ["product", "logo", "source_asset"].includes(protection.kind)) protection.asset_id = referenceId;
       }
     }
     const semanticErrors = validateStoryboardSemantics(shots, doc.screenplay, { assetIds: assets, entityIds: entities });
@@ -41,7 +53,8 @@ export const finishStoryboard: CapabilityExport = {
       const id = String(requestedTimelineId);
       const rows = await findFinishResourceIds("timeline", id, userId, board.project_id);
       if (rows.length !== 1) return { error: rows.length ? "Timeline prefix is ambiguous." : "Timeline was not found in this project." };
-      timeline = (await TimelineSequence.findById(rows[0]))!;
+      timeline = await TimelineSequence.findById(rows[0]) ?? undefined;
+      if (!timeline) return { error: "Timeline was not found." };
       if (timeline.revision !== params["expectedTimelineRevision"]) return { error: "Timeline revision conflict. Supply expectedTimelineRevision for an existing result." };
     } else if (params["expectedTimelineRevision"] !== undefined) return { error: "expectedTimelineRevision requires an existing timeline." };
     const size = frameSizeForAspect(doc.aspectRatio ?? "9:16");

@@ -42,8 +42,9 @@ export async function commitFinishedStoryboard(input: FinishStoryboardWrite): Pr
       } else await tx.insert(timelineSequences).values({ ...initial, document: input.document });
     });
   }
-  const board = (await Storyboard.findById(input.board.id))!;
-  const timeline = (await TimelineSequence.findById(id))!;
+  const board = await Storyboard.findById(input.board.id);
+  const timeline = await TimelineSequence.findById(id);
+  if (!board || !timeline) throw new Error("Finished resources disappeared before confirmation.");
   ModelObserver.notify(board, ModelChangeEvent.UPDATED);
   ModelObserver.notify(timeline, input.timeline ? ModelChangeEvent.UPDATED : ModelChangeEvent.CREATED);
   return { board, timeline };
